@@ -127,60 +127,7 @@
 		return m_connections.size() &lt; m_max_connections
 			&amp;&amp; !is_paused()
 			&amp;&amp; ((m_state != torrent_status::checking_files
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(2)">src/torrent.cpp:8718</a></td><td>with 110 as response codes, we should just consider the tracker as a failure and not retry it anymore</td></tr><tr id="2" style="display: none;" colspan="3"><td colspan="3"><h2>with 110 as response codes, we should just consider
-the tracker as a failure and not retry
-it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(m_ses.is_network_thread());
-		TORRENT_ASSERT(b &gt; 0);
-		m_total_failed_bytes += b;
-		m_ses.add_failed_bytes(b);
-//		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
-//			&lt;= m_stat.total_payload_download());
-	}
-
-	int torrent::num_seeds() const
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		INVARIANT_CHECK;
-
-		int ret = 0;
-		for (std::set&lt;peer_connection*&gt;::const_iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
-			if ((*i)-&gt;is_seed()) ++ret;
-		return ret;
-	}
-
-<div style="background: #ffff00" width="100%">	void torrent::tracker_request_error(tracker_request const&amp; r
-</div>		, int response_code, error_code const&amp; ec, const std::string&amp; msg
-		, int retry_interval)
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-
-		INVARIANT_CHECK;
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		debug_log("*** tracker error: (%d) %s %s", ec.value(), ec.message().c_str(), msg.c_str());
-#endif
-		if (r.kind == tracker_request::announce_request)
-		{
-			announce_entry* ae = find_tracker(r);
-			if (ae)
-			{
-				ae-&gt;failed(settings(), retry_interval);
-				ae-&gt;last_error = ec;
-				ae-&gt;message = msg;
-				int tracker_index = ae - &amp;m_trackers[0];
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				debug_log("*** increment tracker fail count [%d]", ae-&gt;fails);
-#endif
-				deprioritize_tracker(tracker_index);
-			}
-			if (m_ses.m_alerts.should_post&lt;tracker_error_alert&gt;())
-			{
-				m_ses.m_alerts.post_alert(tracker_error_alert(get_handle()
-					, ae?ae-&gt;fails:0, response_code, r.url, ec, msg));
-			}
-		}
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(3)">src/utp_stream.cpp:412</a></td><td>remove the read timeout concept. This should not be necessary</td></tr><tr id="3" style="display: none;" colspan="3"><td colspan="3"><h2>remove the read timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:412</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	// these are the callbacks made into the utp_stream object
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(2)">src/utp_stream.cpp:412</a></td><td>remove the read timeout concept. This should not be necessary</td></tr><tr id="2" style="display: none;" colspan="3"><td colspan="3"><h2>remove the read timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:412</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	// these are the callbacks made into the utp_stream object
 	// on read/write/connect events
 	utp_stream::handler_t m_read_handler;
 	utp_stream::handler_t m_write_handler;
@@ -202,9 +149,7 @@ it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; bor
 	// before)
 <div style="background: #ffff00" width="100%">	ptime m_read_timeout;
 </div>
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(4)">src/utp_stream.cpp:415</a></td><td>remove the write timeout concept. This should not be necessary</td></tr><tr id="4" style="display: none;" colspan="3"><td colspan="3"><h2>remove the write timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:415</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	// these are the callbacks made into the utp_stream object
-	// on read/write/connect events
-	utp_stream::handler_t m_read_handler;
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(3)">src/utp_stream.cpp:415</a></td><td>remove the write timeout concept. This should not be necessary</td></tr><tr id="3" style="display: none;" colspan="3"><td colspan="3"><h2>remove the write timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:415</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	utp_stream::handler_t m_read_handler;
 	utp_stream::handler_t m_write_handler;
 	utp_stream::connect_handler_t m_connect_handler;
 
@@ -222,6 +167,8 @@ it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; bor
 	// timers when we should trigger the read and
 	// write callbacks (unless the buffers fill up
 	// before)
+	ptime m_read_timeout;
+
 <div style="background: #ffff00" width="100%">	ptime m_write_timeout;
 </div>
 	// the time when the last packet we sent times out. Including re-sends.
@@ -253,6 +200,58 @@ it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; bor
 	timestamp_history m_their_delay_hist;
 
 	// the number of bytes we have buffered in m_inbuf
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(4)">src/utp_stream.cpp:1685</a></td><td>this alloca() statement won't necessariky produce correctly aligned memory. do something about that</td></tr><tr id="4" style="display: none;" colspan="3"><td colspan="3"><h2>this alloca() statement won't necessariky produce
+correctly aligned memory. do something about that</h2><h4>src/utp_stream.cpp:1685</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	bool stack_alloced = false;
+#endif
+
+	// payload size being zero means we're just sending
+	// an force. We should not pick up the nagle packet
+	if (!m_nagle_packet || (payload_size == 0 &amp;&amp; force))
+	{
+		// we only need a heap allocation if we have payload and
+		// need to keep the packet around (in the outbuf)
+		if (payload_size) 
+		{
+			p = (packet*)malloc(sizeof(packet) + m_mtu);
+			p-&gt;allocated = m_mtu;
+		}
+		else
+		{
+#ifdef TORRENT_DEBUG
+			stack_alloced = true;
+#endif
+			TORRENT_ASSERT(force);
+<div style="background: #ffff00" width="100%">			p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size);
+</div>			UTP_LOGV("%8p: allocating %d bytes on the stack\n", this, packet_size);
+			p-&gt;allocated = packet_size;
+		}
+
+		p-&gt;size = packet_size;
+		p-&gt;header_size = packet_size - payload_size;
+		p-&gt;num_transmissions = 0;
+		p-&gt;need_resend = false;
+		ptr = p-&gt;buf;
+		h = (utp_header*)ptr;
+		ptr += sizeof(utp_header);
+
+		h-&gt;extension = sack ? 1 : 0;
+		h-&gt;connection_id = m_send_id;
+		// seq_nr is ignored for ST_STATE packets, so it doesn't
+		// matter that we say this is a sequence number we haven't
+		// actually sent yet
+		h-&gt;seq_nr = m_seq_nr;
+		h-&gt;type_ver = ((payload_size ? ST_DATA : ST_STATE) &lt;&lt; 4) | 1;
+
+		write_payload(p-&gt;buf + p-&gt;header_size, payload_size);
+	}
+	else
+	{
+		// pick up the nagle packet and keep adding bytes to it
+		p = m_nagle_packet;
+
+		ptr = p-&gt;buf + sizeof(utp_header);
+		h = (utp_header*)p-&gt;buf;
+		TORRENT_ASSERT(h-&gt;seq_nr == m_seq_nr);
 </pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(5)">src/kademlia/rpc_manager.cpp:36</a></td><td>remove this dependency by having the dht observer have its own flags</td></tr><tr id="5" style="display: none;" colspan="3"><td colspan="3"><h2>remove this dependency by having the dht observer
 have its own flags</h2><h4>src/kademlia/rpc_manager.cpp:36</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">      contributors may be used to endorse or promote products derived
       from this software without specific prior written permission.
@@ -608,9 +607,9 @@ private:
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 int socket_impl_size() { return sizeof(utp_socket_impl); }
 #endif
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(12)">src/utp_stream.cpp:1846</a></td><td>we might want to do something else here as well, to resend the packet immediately without it being an MTU probe</td></tr><tr id="12" style="display: none;" colspan="3"><td colspan="3"><h2>we might want to do something else here
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(12)">src/utp_stream.cpp:1848</a></td><td>we might want to do something else here as well, to resend the packet immediately without it being an MTU probe</td></tr><tr id="12" style="display: none;" colspan="3"><td colspan="3"><h2>we might want to do something else here
 as well, to resend the packet immediately without
-it being an MTU probe</h2><h4>src/utp_stream.cpp:1846</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		, boost::uint32_t(h-&gt;timestamp_difference_microseconds), int(p-&gt;mtu_probe)
+it being an MTU probe</h2><h4>src/utp_stream.cpp:1848</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		, boost::uint32_t(h-&gt;timestamp_difference_microseconds), int(p-&gt;mtu_probe)
 		, h-&gt;extension);
 #endif
 
@@ -810,7 +809,7 @@ are pushed back and items are popped from the front</h2><h4>include/libtorrent/t
 
 		// each bit represents a piece. a set bit means
 		// the piece has had its hash verified. This
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(16)">include/libtorrent/torrent_info.hpp:450</a></td><td>these strings (m_comment, m_created_by, m_ssl_root_cert) could be lazy_entry* to save memory</td></tr><tr id="16" style="display: none;" colspan="3"><td colspan="3"><h2>these strings (m_comment, m_created_by, m_ssl_root_cert) could be lazy_entry* to save memory</h2><h4>include/libtorrent/torrent_info.hpp:450</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		std::vector&lt;announce_entry&gt; m_urls;
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(16)">include/libtorrent/torrent_info.hpp:455</a></td><td>these strings (m_comment, m_created_by, m_ssl_root_cert) could be lazy_entry* to save memory</td></tr><tr id="16" style="display: none;" colspan="3"><td colspan="3"><h2>these strings (m_comment, m_created_by, m_ssl_root_cert) could be lazy_entry* to save memory</h2><h4>include/libtorrent/torrent_info.hpp:455</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		std::vector&lt;announce_entry&gt; m_urls;
 		std::vector&lt;web_seed_entry&gt; m_web_seeds;
 		nodes_t m_nodes;
 
@@ -1464,26 +1463,26 @@ filenames should be preserved!</h2><h4>src/torrent_info.cpp:366</h4><pre style="
 			// simply point into the info-section buffer
 			internal_file_entry const&amp; fe = *target.rbegin();
 </pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(29)">src/torrent_info.cpp:387</a></td><td>once the filename renaming is removed from here this check can be removed as well</td></tr><tr id="29" style="display: none;" colspan="3"><td colspan="3"><h2>once the filename renaming is removed from here
-this check can be removed as well</h2><h4>src/torrent_info.cpp:387</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			}
-			return false;
-		}
-	};
+this check can be removed as well</h2><h4>src/torrent_info.cpp:387</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				return false;
 
-	bool extract_files(lazy_entry const&amp; list, file_storage&amp; target
-		, std::string const&amp; root_dir, ptrdiff_t info_ptr_diff)
-	{
-		if (list.type() != lazy_entry::list_t) return false;
-		target.reserve(list.list_size());
-		for (int i = 0, end(list.list_size()); i &lt; end; ++i)
-		{
-			lazy_entry const* file_hash = 0;
-			time_t mtime = 0;
-			file_entry e;
-			lazy_entry const* fee = 0;
-			if (!extract_single_file(*list.list_at(i), e, root_dir
-				, &amp;file_hash, &amp;fee, &amp;mtime))
-				return false;
+			int cnt = 0;
+			std::set&lt;std::string, string_less_no_case&gt; files;
 
+			// as long as this file already exists
+			// increase the counter
+			while (!files.insert(e.path).second)
+			{
+				++cnt;
+				char suffix[50];
+				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(e.path).c_str());
+				replace_extension(e.path, suffix);
+			}
+			target.add_file(e, file_hash ? file_hash-&gt;string_ptr() + info_ptr_diff : 0);
+
+			// This is a memory optimization! Instead of having
+			// each entry keep a string for its filename, make it
+			// simply point into the info-section buffer
+			internal_file_entry const&amp; fe = *target.rbegin();
 <div style="background: #ffff00" width="100%">			if (fee &amp;&amp; fe.filename() == fee-&gt;string_value())
 </div>			{
 				// this string pointer does not necessarily point into
@@ -2569,26 +2568,26 @@ connections</h2><h4>src/session_impl.cpp:4423</h4><pre style="background: #f6f6f
 					int num_attempts = 1;
 					if (!t.is_finished())
 					{
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(51)">src/session_impl.cpp:4457</a></td><td>make this bias configurable</td></tr><tr id="51" style="display: none;" colspan="3"><td colspan="3"><h2>make this bias configurable</h2><h4>src/session_impl.cpp:4457</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;"></pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(52)">src/session_impl.cpp:4458</a></td><td>also take average_peers into account, to create a bias for downloading torrents with < average peers</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>also take average_peers into account, to create a bias for downloading torrents with < average peers</h2><h4>src/session_impl.cpp:4458</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		{
-			if (m_boost_connections &gt; max_connections)
-			{
-				m_boost_connections -= max_connections;
-				max_connections = 0;
-			}
-			else
-			{
-				max_connections -= m_boost_connections;
-				m_boost_connections = 0;
-			}
-		}
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(51)">src/session_impl.cpp:4457</a></td><td>make this bias configurable</td></tr><tr id="51" style="display: none;" colspan="3"><td colspan="3"><h2>make this bias configurable</h2><h4>src/session_impl.cpp:4457</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;"></pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(52)">src/session_impl.cpp:4458</a></td><td>also take average_peers into account, to create a bias for downloading torrents with < average peers</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>also take average_peers into account, to create a bias for downloading torrents with < average peers</h2><h4>src/session_impl.cpp:4458</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				average_peers = num_downloads_peers / num_downloads;
 
-		// this logic is here to smooth out the number of new connection
-		// attempts over time, to prevent connecting a large number of
-		// sockets, wait 10 seconds, and then try again
-		int limit = (std::min)(m_settings.connections_limit - num_connections(), free_slots);
-		if (m_settings.smooth_connects &amp;&amp; max_connections &gt; (limit+1) / 2)
-			max_connections = (limit+1) / 2;
+			if (m_next_connect_torrent == m_torrents.end())
+				m_next_connect_torrent = m_torrents.begin();
 
+			int steps_since_last_connect = 0;
+			int num_torrents = int(m_torrents.size());
+			for (;;)
+			{
+				torrent&amp; t = *m_next_connect_torrent-&gt;second;
+				if (t.want_more_peers())
+				{
+					TORRENT_ASSERT(t.allows_peers());
+					// have a bias to give more connection attempts
+					// to downloading torrents than seed, and even
+					// more to downloading torrents with less than
+					// average number of connections
+					int num_attempts = 1;
+					if (!t.is_finished())
+					{
 <div style="background: #ffff00" width="100%">						TORRENT_ASSERT(m_num_active_downloading &gt; 0);
 </div>						num_attempts += m_num_active_finished / m_num_active_downloading;
 					}
@@ -2653,25 +2652,25 @@ connections</h2><h4>src/session_impl.cpp:4423</h4><pre style="background: #f6f6f
 
 				++m_allowed_upload_slots;
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(54)">src/session_impl.cpp:4616</a></td><td>make configurable</td></tr><tr id="54" style="display: none;" colspan="3"><td colspan="3"><h2>make configurable</h2><h4>src/session_impl.cpp:4616</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
-#ifdef TORRENT_DEBUG
-			for (std::vector&lt;peer_connection*&gt;::const_iterator i = peers.begin()
-				, end(peers.end()), prev(peers.end()); i != end; ++i)
-			{
-				if (prev != end)
-				{
-					boost::shared_ptr&lt;torrent&gt; t1 = (*prev)-&gt;associated_torrent().lock();
-					TORRENT_ASSERT(t1);
-					boost::shared_ptr&lt;torrent&gt; t2 = (*i)-&gt;associated_torrent().lock();
-					TORRENT_ASSERT(t2);
-					TORRENT_ASSERT((*prev)-&gt;uploaded_since_unchoke() * 1000
-						* (1 + t1-&gt;priority()) / total_milliseconds(unchoke_interval)
-						&gt;= (*i)-&gt;uploaded_since_unchoke() * 1000
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(54)">src/session_impl.cpp:4616</a></td><td>make configurable</td></tr><tr id="54" style="display: none;" colspan="3"><td colspan="3"><h2>make configurable</h2><h4>src/session_impl.cpp:4616</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">						&gt;= (*i)-&gt;uploaded_since_unchoke() * 1000
 						* (1 + t2-&gt;priority()) / total_milliseconds(unchoke_interval));
 				}
 				prev = i;
 			}
 #endif
+
+			int rate_threshold = 1024;
+
+			for (std::vector&lt;peer_connection*&gt;::const_iterator i = peers.begin()
+				, end(peers.end()); i != end; ++i)
+			{
+				peer_connection const&amp; p = **i;
+				int rate = int(p.uploaded_since_unchoke()
+					* 1000 / total_milliseconds(unchoke_interval));
+
+				if (rate &lt; rate_threshold) break;
+
+				++m_allowed_upload_slots;
 
 <div style="background: #ffff00" width="100%">				rate_threshold += 1024;
 </div>			}
@@ -2755,25 +2754,25 @@ connections</h2><h4>src/session_impl.cpp:4423</h4><pre style="background: #f6f6f
 				{
 					buf.iov_len = (std::min)(block_size, size);
 					int ret = m_storage-&gt;readv(&amp;buf, slot, ph.offset, 1);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(56)">src/storage.cpp:358</a></td><td>if the read fails, set error and exit immediately</td></tr><tr id="56" style="display: none;" colspan="3"><td colspan="3"><h2>if the read fails, set error and exit immediately</h2><h4>src/storage.cpp:358</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (m_storage-&gt;disk_pool()) block_size = m_storage-&gt;disk_pool()-&gt;block_size();
-			int size = slot_size;
-			int num_blocks = (size + block_size - 1) / block_size;
-
-			// when we optimize for speed we allocate all the buffers we
-			// need for the rest of the piece, and read it all in one call
-			// and then hash it. When optimizing for memory usage, we read
-			// one block at a time and hash it. This ends up only using a
-			// single buffer
-			if (m_storage-&gt;settings().optimize_hashing_for_speed)
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(56)">src/storage.cpp:358</a></td><td>if the read fails, set error and exit immediately</td></tr><tr id="56" style="display: none;" colspan="3"><td colspan="3"><h2>if the read fails, set error and exit immediately</h2><h4>src/storage.cpp:358</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">					else
+					{
+						ph.h.update((char const*)bufs[i].iov_base, bufs[i].iov_len);
+						small_piece_size -= bufs[i].iov_len;
+					}
+					ph.offset += bufs[i].iov_len;
+					m_storage-&gt;disk_pool()-&gt;free_buffer((char*)bufs[i].iov_base);
+				}
+			}
+			else
 			{
-				file::iovec_t* bufs = TORRENT_ALLOCA(file::iovec_t, num_blocks);
+				file::iovec_t buf;
+				disk_buffer_holder holder(*m_storage-&gt;disk_pool()
+					, m_storage-&gt;disk_pool()-&gt;allocate_buffer("hash temp"));
+				buf.iov_base = holder.get();
 				for (int i = 0; i &lt; num_blocks; ++i)
 				{
-					bufs[i].iov_base = m_storage-&gt;disk_pool()-&gt;allocate_buffer("hash temp");
-					bufs[i].iov_len = (std::min)(block_size, size);
-					size -= bufs[i].iov_len;
-				}
-				num_read = m_storage-&gt;readv(bufs, slot, ph.offset, num_blocks);
+					buf.iov_len = (std::min)(block_size, size);
+					int ret = m_storage-&gt;readv(&amp;buf, slot, ph.offset, 1);
 					if (ret &gt; 0) num_read += ret;
 <div style="background: #ffff00" width="100%">
 </div>					if (small_hash &amp;&amp; small_piece_size &lt;= block_size)

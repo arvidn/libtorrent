@@ -64,11 +64,17 @@ for f in files:
 				state = 'context'
 				items[-1]['context'] = ''.join(context) + '<div style="background: #ffff00" width="100%">' + html_sanitize(l) + '</div>';
 				context_lines = 1
+
+				context.append(html_sanitize(l))
+				if len(context) > 20: context.pop(0)
 			continue
 
 		if state == 'context':
 			items[-1]['context'] += html_sanitize(l)
 			context_lines += 1
+
+			context.append(html_sanitize(l))
+			if len(context) > 20: context.pop(0)
 			if context_lines > 30: state = ''
 
 	h.close()
