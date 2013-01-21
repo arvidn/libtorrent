@@ -638,7 +638,9 @@ namespace libtorrent { namespace dht
 		
 			if (e["y"].string() == "r")
 			{
-				// TODO: fix this stats logging
+				// TODO: 2 fix this stats logging. For instance,
+				// the stats counters could be factored out into its own
+				// class, and dht_tracker could take an optional reference to it
 //				++m_replies_sent[e["r"]];
 //				m_replies_bytes_sent[e["r"]] += int(m_send_buf.size());
 			}

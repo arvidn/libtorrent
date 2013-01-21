@@ -16,6 +16,8 @@ items = []
 # todo-items
 context = []
 
+priority_count = [0, 0, 0, 0]
+
 def html_sanitize(s):
 	ret = ''
 	for i in s:
@@ -45,6 +47,8 @@ for f in files:
 				items[-1]['priority'] = int(line[0])
 				line = line[1:].strip()
 			items[-1]['todo'] = line
+			prio = items[-1]['priority']
+			if prio >= 0 and prio <= 3: priority_count[prio] += 1
 			continue
 			
 		if state == '':
@@ -102,13 +106,20 @@ out.write('''<html><head>
 
 </head><body>
 <h1>libtorrent todo-list</h1>
-<table width="100%" border="1" style="border-collapse: collapse;">''')
+<span style="color: #f77">%d important</span>
+<span style="color: #3c3">%d relevant</span>
+<span style="color: #77f">%d feasible</span>
+<span style="color: #999">%d notes</span>
+<table width="100%%" border="1" style="border-collapse: collapse;">''' % \
+	(priority_count[3], priority_count[2], priority_count[1], priority_count[0]))
+
+prio_colors = [ '#ccc', '#ccf', '#cfc', '#fcc']
 
 index = 0
 for i in items:
 	if not 'context' in i: i['context'] = ''
-	out.write('<tr><td>relevance&nbsp;%d</td><td><a href="javascript:expand(%d)">%s</a></td><td>%s</td></tr>' \
-		% (i['priority'], index, i['location'], i['todo'].replace('\n', ' ')))
+	out.write('<tr style="background: %s"><td>relevance&nbsp;%d</td><td><a href="javascript:expand(%d)">%s</a></td><td>%s</td></tr>' \
+		% (prio_colors[i['priority']], i['priority'], index, i['location'], i['todo'].replace('\n', ' ')))
 
 	out.write('<tr id="%d" style="display: none;" colspan="3"><td colspan="3"><h2>%s</h2><h4>%s</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">%s</pre></td></tr>' \
 		% (index, i['todo'], i['location'], i['context']))

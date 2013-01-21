@@ -184,7 +184,7 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	// TODO: should this take a char const*?
+	// TODO: 1 we might save constructing a std::String if this would take a char const* instead
 	bool valid_path_element(std::string const& element)
 	{
 		if (element.empty()
@@ -363,7 +363,7 @@ namespace libtorrent
 				, &file_hash, &fee, &mtime))
 				return false;
 
-			// TODO: this logic should be a separate step
+			// TODO: 1 this logic should be a separate step
 			// done once the torrent is loaded, and the original
 			// filenames should be preserved!
 			int cnt = 0;
@@ -384,7 +384,7 @@ namespace libtorrent
 			// each entry keep a string for its filename, make it
 			// simply point into the info-section buffer
 			internal_file_entry const& fe = *target.rbegin();
-			// TODO: once the filename renaming is removed from here
+			// TODO: 1 once the filename renaming is removed from here
 			// this check can be removed as well
 			if (fee && fe.filename() == fee->string_value())
 			{

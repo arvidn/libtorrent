@@ -5110,7 +5110,7 @@ retry:
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
-		// TODO: find by url?
+		// TODO: 2 if we still can't find the torrent, we should probably look for it by url here
 
 		if (torrent_ptr)
 		{
@@ -5466,9 +5466,12 @@ retry:
 
 		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
-			// TODO: report the proper address of the router
-			if (ip != address()) set_external_address(ip, source_router
-				, address());
+			if (ip != address())
+			{
+				// TODO: 1 report the proper address of the router as the source IP of
+				// this understanding of our external address, instead of the empty address
+				set_external_address(ip, source_router, address());
+			}
 
 			if (!m_listen_sockets.empty()) {
 				m_listen_sockets.front().external_address = ip;
@@ -5670,7 +5673,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_dht_router_name_lookup");
 #endif
-		// TODO: report errors as alerts
+		// TODO: 1 report errors as alerts
 		if (e) return;
 		while (host != tcp::resolver::iterator())
 		{

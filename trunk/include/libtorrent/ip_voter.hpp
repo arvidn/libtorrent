@@ -97,7 +97,7 @@ namespace libtorrent
 
 		// for now, assume one external IPv4 and one external IPv6 address
 		// 0 = IPv4 1 = IPv6
-		// TODO: instead, have one instance per possible subnet, global IPv4, global IPv6, loopback, 192.168.x.x, 10.x.x.x, etc.
+		// TODO: 1 instead, have one instance per possible subnet, global IPv4, global IPv6, loopback, 192.168.x.x, 10.x.x.x, etc.
 		ip_voter m_vote_group[2];
 	};
 

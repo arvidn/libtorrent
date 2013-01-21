@@ -60,7 +60,7 @@ void incoming_error(entry& e, char const* msg);
 
 using detail::write_endpoint;
 
-// TODO: configurable?
+// TODO: 2 make this configurable in dht_settings
 enum { announce_interval = 30 };
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -687,7 +687,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		sha1_hash target(msg_keys[0]->string_ptr());
 
-		// TODO: find_node should write directly to the response entry
+		// TODO: 1 find_node should write directly to the response entry
 		nodes_t n;
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
