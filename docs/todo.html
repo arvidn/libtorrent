@@ -25,61 +25,7 @@
 <span style="color: #3c3">9 relevant</span>
 <span style="color: #77f">16 feasible</span>
 <span style="color: #999">33 notes</span>
-<table width="100%" border="1" style="border-collapse: collapse;"><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(0)">src/alert.cpp:370</a></td><td>change this to use a timed wait on a condition variable problem is, that's not necessarily portable. But it should be used where available. This implementation can be left the way it is for more primitive platforms</td></tr><tr id="0" style="display: none;" colspan="3"><td colspan="3"><h2>change this to use a timed wait on a condition variable
-problem is, that's not necessarily portable. But it should be used
-where available. This implementation can be left the way it is for
-more primitive platforms</h2><h4>src/alert.cpp:370</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			delete m_alerts.front();
-			m_alerts.pop_front();
-		}
-	}
-
-	alert const* alert_manager::wait_for_alert(time_duration max_wait)
-	{
-		mutex::scoped_lock lock(m_mutex);
-
-		if (!m_alerts.empty()) return m_alerts.front();
-		
-//		system_time end = get_system_time()
-//			+ boost::posix_time::microseconds(total_microseconds(max_wait));
-
-		// this call can be interrupted prematurely by other signals
-//		while (m_condition.timed_wait(lock, end))
-//			if (!m_alerts.empty()) return m_alerts.front();
-
-		ptime start = time_now_hires();
-
-<div style="background: #ffff00" width="100%">		while (m_alerts.empty())
-</div>		{
-			lock.unlock();
-			sleep(50);
-			lock.lock();
-			if (time_now_hires() - start &gt;= max_wait) return 0;
-		}
-		return m_alerts.front();
-	}
-
-	void alert_manager::set_dispatch_function(boost::function&lt;void(std::auto_ptr&lt;alert&gt;)&gt; const&amp; fun)
-	{
-		mutex::scoped_lock lock(m_mutex);
-
-		m_dispatch = fun;
-
-		std::deque&lt;alert*&gt; alerts;
-		m_alerts.swap(alerts);
-		lock.unlock();
-
-		while (!alerts.empty())
-		{
-			TORRENT_TRY {
-				m_dispatch(std::auto_ptr&lt;alert&gt;(alerts.front()));
-			} TORRENT_CATCH(std::exception&amp;) {}
-			alerts.pop_front();
-		}
-	}
-
-	void dispatch_alert(boost::function&lt;void(alert const&amp;)&gt; dispatcher
-		, alert* alert_)
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(1)">src/storage.cpp:989</a></td><td>use binary search to find the file entry</td></tr><tr id="1" style="display: none;" colspan="3"><td colspan="3"><h2>use binary search to find the file entry</h2><h4>src/storage.cpp:989</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		size_type ret = 0;
+<table width="100%" border="1" style="border-collapse: collapse;"><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(0)">src/storage.cpp:989</a></td><td>use binary search to find the file entry</td></tr><tr id="0" style="display: none;" colspan="3"><td colspan="3"><h2>use binary search to find the file entry</h2><h4>src/storage.cpp:989</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		size_type ret = 0;
 		if (f &amp;&amp; !ec) ret = f-&gt;phys_offset(file_offset);
 
 		if (ret == 0)
@@ -130,7 +76,7 @@ more primitive platforms</h2><h4>src/alert.cpp:370</h4><pre style="background: #
 			if (file_bytes_left == 0) continue;
 
 			if (file_iter-&gt;pad_file) continue;
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(2)">src/storage.cpp:1095</a></td><td>use binary search to find the file entry</td></tr><tr id="2" style="display: none;" colspan="3"><td colspan="3"><h2>use binary search to find the file entry</h2><h4>src/storage.cpp:1095</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(offset &gt;= 0);
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(1)">src/storage.cpp:1095</a></td><td>use binary search to find the file entry</td></tr><tr id="1" style="display: none;" colspan="3"><td colspan="3"><h2>use binary search to find the file entry</h2><h4>src/storage.cpp:1095</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(offset &gt;= 0);
 		TORRENT_ASSERT(offset &lt; m_files.piece_size(slot));
 		TORRENT_ASSERT(num_bufs &gt; 0);
 
@@ -181,7 +127,7 @@ more primitive platforms</h2><h4>src/alert.cpp:370</h4><pre style="background: #
 		copy_bufs(bufs, size, current_buf);
 		TORRENT_ASSERT(count_bufs(current_buf, size) == num_bufs);
 		int file_bytes_left;
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(3)">src/torrent.cpp:1505</a></td><td>filter out peers that are disconnecting</td></tr><tr id="3" style="display: none;" colspan="3"><td colspan="3"><h2>filter out peers that are disconnecting</h2><h4>src/torrent.cpp:1505</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		snprintf(filename, sizeof(filename), "/tmp/%d.pem", rand());
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(2)">src/torrent.cpp:1505</a></td><td>filter out peers that are disconnecting</td></tr><tr id="2" style="display: none;" colspan="3"><td colspan="3"><h2>filter out peers that are disconnecting</h2><h4>src/torrent.cpp:1505</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		snprintf(filename, sizeof(filename), "/tmp/%d.pem", rand());
 		FILE* f = fopen(filename, "w+");
 		fwrite(cert.c_str(), cert.size(), 1, f);
 		fclose(f);
@@ -232,7 +178,7 @@ more primitive platforms</h2><h4>src/alert.cpp:370</h4><pre style="background: #
 		{
 			set_error(errors::too_many_pieces_in_torrent, "");
 			pause();
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(4)">src/torrent.cpp:6004</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it</td></tr><tr id="4" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it</h2><h4>src/torrent.cpp:6004</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			return false;
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(3)">src/torrent.cpp:6004</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it</td></tr><tr id="3" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it</h2><h4>src/torrent.cpp:6004</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			return false;
 		}
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		m_connections.insert(p);
@@ -283,7 +229,7 @@ more primitive platforms</h2><h4>src/alert.cpp:370</h4><pre style="background: #
 		return m_connections.size() &lt; m_max_connections
 			&amp;&amp; !is_paused()
 			&amp;&amp; ((m_state != torrent_status::checking_files
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(5)">src/torrent.cpp:8718</a></td><td>with 110 as response codes, we should just consider the tracker as a failure and not retry it anymore</td></tr><tr id="5" style="display: none;" colspan="3"><td colspan="3"><h2>with 110 as response codes, we should just consider
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(4)">src/torrent.cpp:8718</a></td><td>with 110 as response codes, we should just consider the tracker as a failure and not retry it anymore</td></tr><tr id="4" style="display: none;" colspan="3"><td colspan="3"><h2>with 110 as response codes, we should just consider
 the tracker as a failure and not retry
 it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(b &gt; 0);
@@ -336,7 +282,7 @@ it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; bor
 					, ae?ae-&gt;fails:0, response_code, r.url, ec, msg));
 			}
 		}
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(6)">src/utp_stream.cpp:412</a></td><td>remove the read timeout concept. This should not be necessary</td></tr><tr id="6" style="display: none;" colspan="3"><td colspan="3"><h2>remove the read timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:412</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	// these are the callbacks made into the utp_stream object
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(5)">src/utp_stream.cpp:412</a></td><td>remove the read timeout concept. This should not be necessary</td></tr><tr id="5" style="display: none;" colspan="3"><td colspan="3"><h2>remove the read timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:412</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	// these are the callbacks made into the utp_stream object
 	// on read/write/connect events
 	utp_stream::handler_t m_read_handler;
 	utp_stream::handler_t m_write_handler;
@@ -358,7 +304,7 @@ it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; bor
 	// before)
 <div style="background: #ffff00" width="100%">	ptime m_read_timeout;
 </div>
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(7)">src/utp_stream.cpp:415</a></td><td>remove the write timeout concept. This should not be necessary</td></tr><tr id="7" style="display: none;" colspan="3"><td colspan="3"><h2>remove the write timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:415</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	// these are the callbacks made into the utp_stream object
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(6)">src/utp_stream.cpp:415</a></td><td>remove the write timeout concept. This should not be necessary</td></tr><tr id="6" style="display: none;" colspan="3"><td colspan="3"><h2>remove the write timeout concept. This should not be necessary</h2><h4>src/utp_stream.cpp:415</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	// these are the callbacks made into the utp_stream object
 	// on read/write/connect events
 	utp_stream::handler_t m_read_handler;
 	utp_stream::handler_t m_write_handler;
@@ -409,7 +355,7 @@ it anymore</h2><h4>src/torrent.cpp:8718</h4><pre style="background: #f6f6f6; bor
 	timestamp_history m_their_delay_hist;
 
 	// the number of bytes we have buffered in m_inbuf
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(8)">src/kademlia/rpc_manager.cpp:36</a></td><td>remove this dependency by having the dht observer have its own flags</td></tr><tr id="8" style="display: none;" colspan="3"><td colspan="3"><h2>remove this dependency by having the dht observer
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(7)">src/kademlia/rpc_manager.cpp:36</a></td><td>remove this dependency by having the dht observer have its own flags</td></tr><tr id="7" style="display: none;" colspan="3"><td colspan="3"><h2>remove this dependency by having the dht observer
 have its own flags</h2><h4>src/kademlia/rpc_manager.cpp:36</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">      contributors may be used to endorse or promote products derived
       from this software without specific prior written permission.
 
@@ -461,6 +407,53 @@ namespace io = libtorrent::detail;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(rpc)
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(8)">include/libtorrent/thread.hpp:61</a></td><td>make this interface compatible with c++11 to allow for smooth transition for platforms with support</td></tr><tr id="8" style="display: none;" colspan="3"><td colspan="3"><h2>make this interface compatible with c++11
+to allow for smooth transition for platforms with support</h2><h4>include/libtorrent/thread.hpp:61</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#endif
+
+#if defined TORRENT_BEOS
+#include &lt;kernel/OS.h&gt;
+#endif
+
+#include &lt;memory&gt; // for auto_ptr required by asio
+
+#include &lt;boost/asio/detail/thread.hpp&gt;
+#include &lt;boost/asio/detail/mutex.hpp&gt;
+#include &lt;boost/asio/detail/event.hpp&gt;
+
+namespace libtorrent
+{
+	typedef boost::asio::detail::thread thread;
+	typedef boost::asio::detail::mutex mutex;
+	typedef boost::asio::detail::event event;
+
+	TORRENT_EXPORT void sleep(int milliseconds);
+
+<div style="background: #ffff00" width="100%">	struct TORRENT_EXTRA_EXPORT condition
+</div>	{
+		condition();
+		~condition();
+		void wait(mutex::scoped_lock&amp; l);
+		void timed_wait(mutex::scoped_lock&amp; l, int sleep_ms);
+		void signal_all(mutex::scoped_lock&amp; l);
+	private:
+#ifdef BOOST_HAS_PTHREADS
+		pthread_cond_t m_cond;
+#elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+		HANDLE m_sem;
+		mutex m_mutex;
+		int m_num_waiters;
+#elif defined TORRENT_BEOS
+		sem_id m_sem;
+		mutex m_mutex;
+		int m_num_waiters;
+#else
+#error not implemented
+#endif
+	};
+}
+
+#endif
+
 </pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(9)">include/libtorrent/kademlia/dht_tracker.hpp:79</a></td><td>take a udp_socket_interface here instead. Move udp_socket_interface down into libtorrent core</td></tr><tr id="9" style="display: none;" colspan="3"><td colspan="3"><h2>take a udp_socket_interface here instead. Move udp_socket_interface down into libtorrent core</h2><h4>include/libtorrent/kademlia/dht_tracker.hpp:79</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	struct lazy_entry;
 }
 

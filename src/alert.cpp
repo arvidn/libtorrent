@@ -358,27 +358,11 @@ namespace libtorrent {
 
 		if (!m_alerts.empty()) return m_alerts.front();
 		
-//		system_time end = get_system_time()
-//			+ boost::posix_time::microseconds(total_microseconds(max_wait));
-
 		// this call can be interrupted prematurely by other signals
-//		while (m_condition.timed_wait(lock, end))
-//			if (!m_alerts.empty()) return m_alerts.front();
+		m_condition.timed_wait(lock, total_milliseconds(max_wait));
+		if (!m_alerts.empty()) return m_alerts.front();
 
-		ptime start = time_now_hires();
-
-		// TODO: 3 change this to use a timed wait on a condition variable
-		// problem is, that's not necessarily portable. But it should be used
-		// where available. This implementation can be left the way it is for
-		// more primitive platforms
-		while (m_alerts.empty())
-		{
-			lock.unlock();
-			sleep(50);
-			lock.lock();
-			if (time_now_hires() - start >= max_wait) return 0;
-		}
-		return m_alerts.front();
+		return NULL;
 	}
 
 	void alert_manager::set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const& fun)
@@ -422,7 +406,7 @@ namespace libtorrent {
 #endif
 
 		mutex::scoped_lock lock(m_mutex);
-		post_impl(a);
+		post_impl(a, lock);
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
@@ -440,10 +424,10 @@ namespace libtorrent {
 #endif
 
 		mutex::scoped_lock lock(m_mutex);
-		post_impl(a);
+		post_impl(a, lock);
 	}
 		
-	void alert_manager::post_impl(std::auto_ptr<alert>& alert_)
+	void alert_manager::post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l)
 	{
 		if (m_dispatch)
 		{
@@ -455,6 +439,8 @@ namespace libtorrent {
 		else if (m_alerts.size() < m_queue_size_limit || !alert_->discardable())
 		{
 			m_alerts.push_back(alert_.release());
+			if (m_alerts.size() == 1)
+				m_condition.signal_all(l);
 		}
 	}
 

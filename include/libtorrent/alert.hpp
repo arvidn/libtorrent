@@ -171,11 +171,11 @@ namespace libtorrent {
 #endif
 
 	private:
-		void post_impl(std::auto_ptr<alert>& alert_);
+		void post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l);
 
 		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
-//		event m_condition;
+		condition m_condition;
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
