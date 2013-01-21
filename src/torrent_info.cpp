@@ -421,10 +421,11 @@ namespace libtorrent
 
 	int merkle_num_leafs(int pieces)
 	{
+		TORRENT_ASSERT(pieces > 0);
 		// round up to nearest 2 exponent
-		int i;
-		for (i = 0; pieces > 0; pieces >>= 1, ++i);
-		return 1 << i;
+		int ret = 1;
+		while (pieces > ret) ret <<= 1;
+		return ret;
 	}
 
 	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit)

@@ -780,7 +780,7 @@ namespace libtorrent
 			m_verified.free();
 		}
 		bool all_verified() const
-		{ return m_num_verified == m_torrent_file->num_pieces(); }
+		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
 		bool verified_piece(int piece) const
 		{
 			TORRENT_ASSERT(piece < int(m_verified.size()));
