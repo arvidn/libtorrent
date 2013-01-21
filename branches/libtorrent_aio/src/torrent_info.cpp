@@ -476,10 +476,11 @@ namespace libtorrent
 
 	int merkle_num_leafs(int pieces)
 	{
+		TORRENT_ASSERT(pieces > 0);
 		// round up to nearest 2 exponent
-		int i;
-		for (i = 0; pieces > 0; pieces >>= 1, ++i);
-		return 1 << i;
+		int ret = 1;
+		while (pieces > ret) ret <<= 1;
+		return ret;
 	}
 
 	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit)
@@ -1338,7 +1339,7 @@ namespace libtorrent
 
 		// if there are any url-seeds, extract them
 		lazy_entry const* url_seeds = torrent_file.dict_find("url-list");
-		if (url_seeds && url_seeds->type() == lazy_entry::string_t)
+		if (url_seeds && url_seeds->type() == lazy_entry::string_t && url_seeds->string_length() > 0)
 		{
 			web_seed_entry ent(maybe_url_encode(url_seeds->string_value())
 				, web_seed_entry::url_seed);
@@ -1351,6 +1352,7 @@ namespace libtorrent
 			{
 				lazy_entry const* url = url_seeds->list_at(i);
 				if (url->type() != lazy_entry::string_t) continue;
+				if (url->string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url->string_value())
 					, web_seed_entry::url_seed);
 				if (m_multifile && ent.url[ent.url.size()-1] != '/') ent.url += '/';
@@ -1360,7 +1362,7 @@ namespace libtorrent
 
 		// if there are any http-seeds, extract them
 		lazy_entry const* http_seeds = torrent_file.dict_find("httpseeds");
-		if (http_seeds && http_seeds->type() == lazy_entry::string_t)
+		if (http_seeds && http_seeds->type() == lazy_entry::string_t && http_seeds->string_length() > 0)
 		{
 			m_web_seeds.push_back(web_seed_entry(maybe_url_encode(http_seeds->string_value())
 				, web_seed_entry::http_seed));
@@ -1370,7 +1372,7 @@ namespace libtorrent
 			for (int i = 0, end(http_seeds->list_size()); i < end; ++i)
 			{
 				lazy_entry const* url = http_seeds->list_at(i);
-				if (url->type() != lazy_entry::string_t) continue;
+				if (url->type() != lazy_entry::string_t || url->string_length() == 0) continue;
 				m_web_seeds.push_back(web_seed_entry(maybe_url_encode(url->string_value())
 					, web_seed_entry::http_seed));
 			}
