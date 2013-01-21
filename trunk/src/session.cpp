@@ -304,20 +304,20 @@ namespace libtorrent
 	// wrapper around a function that's executed in the network thread
 	// ans synchronized in the client thread
 	template <class R>
-	void fun_ret(R* ret, bool* done, condition* e, mutex* m, boost::function<R(void)> f)
+	void fun_ret(R* ret, bool* done, condition_variable* e, mutex* m, boost::function<R(void)> f)
 	{
 		*ret = f();
 		mutex::scoped_lock l(*m);
 		*done = true;
-		e->signal_all(l);
+		e->notify_all();
 	}
 
-	void fun_wrap(bool* done, condition* e, mutex* m, boost::function<void(void)> f)
+	void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(void)> f)
 	{
 		f();
 		mutex::scoped_lock l(*m);
 		*done = true;
-		e->signal_all(l);
+		e->notify_all();
 	}
 
 #define TORRENT_ASYNC_CALL(x) \

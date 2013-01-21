@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void fun(condition* s, libtorrent::mutex* m, int i)
+void fun(condition_variable* s, libtorrent::mutex* m, int i)
 {
 	fprintf(stderr, "thread %d waiting\n", i);
 	libtorrent::mutex::scoped_lock l(*m);
@@ -47,7 +47,7 @@ void fun(condition* s, libtorrent::mutex* m, int i)
 
 int test_main()
 {
-	condition cond;
+	condition_variable cond;
 	libtorrent::mutex m;
 	std::list<thread*> threads;
 	for (int i = 0; i < 20; ++i)
@@ -55,11 +55,11 @@ int test_main()
 		threads.push_back(new thread(boost::bind(&fun, &cond, &m, i)));
 	}
 
-	// make sure all threads are waiting on the condition
+	// make sure all threads are waiting on the condition_variable
 	sleep(10);
 
 	libtorrent::mutex::scoped_lock l(m);
-	cond.signal_all(l);
+	cond.notify_all();
 	l.unlock();
 
 	for (std::list<thread*>::iterator i = threads.begin(); i != threads.end(); ++i)

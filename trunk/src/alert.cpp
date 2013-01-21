@@ -359,7 +359,7 @@ namespace libtorrent {
 		if (!m_alerts.empty()) return m_alerts.front();
 		
 		// this call can be interrupted prematurely by other signals
-		m_condition.timed_wait(lock, total_milliseconds(max_wait));
+		m_condition.wait_for(lock, max_wait);
 		if (!m_alerts.empty()) return m_alerts.front();
 
 		return NULL;
@@ -440,7 +440,7 @@ namespace libtorrent {
 		{
 			m_alerts.push_back(alert_.release());
 			if (m_alerts.size() == 1)
-				m_condition.signal_all(l);
+				m_condition.notify_all();
 		}
 	}
 
