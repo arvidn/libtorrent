@@ -615,7 +615,7 @@ int feed::next_update(time_t now) const
 }
 
 // defined in session.cpp
-void fun_wrap(bool* done, condition* e, mutex* m, boost::function<void(void)> f);
+void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(void)> f);
 
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \
