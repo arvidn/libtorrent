@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003-2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -184,7 +184,7 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	// TODO: 1 we might save constructing a std::String if this would take a char const* instead
+	// TODO: should this take a char const*?
 	bool valid_path_element(std::string const& element)
 	{
 		if (element.empty()
@@ -363,7 +363,7 @@ namespace libtorrent
 				, &file_hash, &fee, &mtime))
 				return false;
 
-			// TODO: 1 this logic should be a separate step
+			// TODO: this logic should be a separate step
 			// done once the torrent is loaded, and the original
 			// filenames should be preserved!
 			int cnt = 0;
@@ -384,7 +384,7 @@ namespace libtorrent
 			// each entry keep a string for its filename, make it
 			// simply point into the info-section buffer
 			internal_file_entry const& fe = *target.rbegin();
-			// TODO: 1 once the filename renaming is removed from here
+			// TODO: once the filename renaming is removed from here
 			// this check can be removed as well
 			if (fee && fe.filename() == fee->string_value())
 			{
@@ -545,9 +545,6 @@ namespace libtorrent
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
 			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
-#ifndef BOOST_NO_EXCEPTIONS
-			if (ret != 0) throw libtorrent_exception(ec);
-#endif
 			TORRENT_ASSERT(ret == 0);
 
 			ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
@@ -594,7 +591,7 @@ namespace libtorrent
 		if (tmp.size() == 0 || lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file(ec);
+			throw invalid_torrent_file(errors::invalid_bencoding);
 #endif
 			return;
 		}
@@ -1193,7 +1190,7 @@ namespace libtorrent
 
 		// if there are any url-seeds, extract them
 		lazy_entry const* url_seeds = torrent_file.dict_find("url-list");
-		if (url_seeds && url_seeds->type() == lazy_entry::string_t && url_seeds->string_length() > 0)
+		if (url_seeds && url_seeds->type() == lazy_entry::string_t)
 		{
 			web_seed_entry ent(maybe_url_encode(url_seeds->string_value())
 				, web_seed_entry::url_seed);
@@ -1206,7 +1203,6 @@ namespace libtorrent
 			{
 				lazy_entry const* url = url_seeds->list_at(i);
 				if (url->type() != lazy_entry::string_t) continue;
-				if (url->string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url->string_value())
 					, web_seed_entry::url_seed);
 				if (m_multifile && ent.url[ent.url.size()-1] != '/') ent.url += '/';
@@ -1216,7 +1212,7 @@ namespace libtorrent
 
 		// if there are any http-seeds, extract them
 		lazy_entry const* http_seeds = torrent_file.dict_find("httpseeds");
-		if (http_seeds && http_seeds->type() == lazy_entry::string_t && http_seeds->string_length() > 0)
+		if (http_seeds && http_seeds->type() == lazy_entry::string_t)
 		{
 			m_web_seeds.push_back(web_seed_entry(maybe_url_encode(http_seeds->string_value())
 				, web_seed_entry::http_seed));
@@ -1226,7 +1222,7 @@ namespace libtorrent
 			for (int i = 0, end(http_seeds->list_size()); i < end; ++i)
 			{
 				lazy_entry const* url = http_seeds->list_at(i);
-				if (url->type() != lazy_entry::string_t || url->string_length() == 0) continue;
+				if (url->type() != lazy_entry::string_t) continue;
 				m_web_seeds.push_back(web_seed_entry(maybe_url_encode(url->string_value())
 					, web_seed_entry::http_seed));
 			}

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,8 +57,7 @@ class node_impl;
 
 // -------- find data -----------
 
-//TODO: 3 rename this class to find_peers, since that's what it does
-// find_data is an unnecessarily generic name
+//TODO: rename this to find_peers
 class find_data : public traversal_algorithm
 {
 public:

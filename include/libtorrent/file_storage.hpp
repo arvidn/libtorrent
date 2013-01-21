@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003-2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -244,18 +244,16 @@ namespace libtorrent
 		// if pad_file_limit >= 0, files larger than
 		// that limit will be padded, default is to
 		// not add any padding
-		void optimize(int pad_file_limit = -1, int alignment = 0x10000);
+		void optimize(int pad_file_limit = -1);
 
 		sha1_hash hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
+		int file_index(int index) const;
 		size_type file_base(int index) const;
 		void set_file_base(int index, size_type off);
 		std::string file_path(int index) const;
-		std::string file_name(int index) const;
 		size_type file_size(int index) const;
-		bool pad_file_at(int index) const;
-		size_type file_offset(int index) const;
 
 		sha1_hash hash(internal_file_entry const& fe) const;
 		std::string const& symlink(internal_file_entry const& fe) const;
@@ -264,10 +262,7 @@ namespace libtorrent
 		size_type file_base(internal_file_entry const& fe) const;
 		void set_file_base(internal_file_entry const& fe, size_type off);
 		std::string file_path(internal_file_entry const& fe) const;
-		std::string file_name(internal_file_entry const& fe) const;
 		size_type file_size(internal_file_entry const& fe) const;
-		bool pad_file_at(internal_file_entry const& fe) const;
-		size_type file_offset(internal_file_entry const& fe) const;
 
 #if !defined TORRENT_VERBOSE_LOGGING \
 	&& !defined TORRENT_LOGGING \

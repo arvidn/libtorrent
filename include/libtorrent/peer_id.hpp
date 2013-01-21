@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -134,7 +134,6 @@ namespace libtorrent
 					m_number[i] <<= n;
 					m_number[i] |= m_number[i+1] >> (8 - n);
 				}
-				m_number[number_size-1] <<= n;
 			}
 			return *this;
 		}
@@ -161,7 +160,6 @@ namespace libtorrent
 					m_number[i] >>= n;
 					m_number[i] |= m_number[i-1] << (8 - n);
 				}
-				m_number[0] >>= n;
 			}
 			return *this;
 		}

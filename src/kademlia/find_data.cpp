@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,6 +56,11 @@ using detail::read_v6_endpoint;
 
 void find_data_observer::reply(msg const& m)
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	std::stringstream log_line;
+	log_line << "[" << m_algorithm.get() << "] incoming get_peer response [ ";
+#endif
+
 	lazy_entry const* r = m.message.dict_find_dict("r");
 	if (!r)
 	{
@@ -73,11 +78,16 @@ void find_data_observer::reply(msg const& m)
 #endif
 		return;
 	}
+
 	lazy_entry const* token = r->dict_find_string("token");
 	if (token)
 	{
 		static_cast<find_data*>(m_algorithm.get())->got_write_token(
 			node_id(id->string_ptr()), token->string_value());
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		log_line << " token: " << to_hex(token->string_value());
+#endif
 	}
 
 	// look for peers
@@ -92,14 +102,7 @@ void find_data_observer::reply(msg const& m)
 			char const* end = peers + n->list_at(0)->string_length();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(traversal)
-				<< "[" << m_algorithm.get() << "] PEERS"
-				<< " invoke-count: " << m_algorithm->invoke_count()
-				<< " branch-factor: " << m_algorithm->branch_factor()
-				<< " addr: " << m.addr
-				<< " id: " << node_id(id->string_ptr())
-				<< " distance: " << distance_exp(m_algorithm->target(), node_id(id->string_ptr()))
-				<< " p: " << ((end - peers) / 6);
+			log_line << " p: " << ((end - peers) / 6);
 #endif
 			while (end - peers >= 6)
 				peer_list.push_back(read_v4_endpoint<tcp::endpoint>(peers));
@@ -109,14 +112,7 @@ void find_data_observer::reply(msg const& m)
 			// assume it's uTorrent/libtorrent format
 			read_endpoint_list<tcp::endpoint>(n, peer_list);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(traversal)
-				<< "[" << m_algorithm.get() << "] PEERS"
-				<< " invoke-count: " << m_algorithm->invoke_count()
-				<< " branch-factor: " << m_algorithm->branch_factor()
-				<< " addr: " << m.addr
-				<< " id: " << node_id(id->string_ptr())
-				<< " distance: " << distance_exp(m_algorithm->target(), node_id(id->string_ptr()))
-				<< " p: " << n->list_size();
+			log_line << " p: " << n->list_size();
 #endif
 		}
 		static_cast<find_data*>(m_algorithm.get())->got_peers(peer_list);
@@ -130,6 +126,9 @@ void find_data_observer::reply(msg const& m)
 		char const* nodes = n->string_ptr();
 		char const* end = nodes + n->string_length();
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		log_line << " nodes: " << ((end - nodes) / 26);
+#endif
 		while (end - nodes >= 26)
 		{
 			node_id id;
@@ -142,6 +141,9 @@ void find_data_observer::reply(msg const& m)
 	n = r->dict_find_list("nodes2");
 	if (n)
 	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		log_line << " nodes2: " << n->list_size();
+#endif
 		for (int i = 0; i < n->list_size(); ++i)
 		{
 			lazy_entry const* p = n->list_at(0);
@@ -160,6 +162,10 @@ void find_data_observer::reply(msg const& m)
 #endif
 		}
 	}
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	log_line << " ]";
+	TORRENT_LOG(traversal) << log_line.str();
+#endif
 	done();
 }
 
@@ -226,7 +232,7 @@ void find_data::done()
 	m_done = true;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << "[" << this << "] get_peers DONE";
+	TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] get_peers DONE";
 #endif
 
 	std::vector<std::pair<node_entry, std::string> > results;

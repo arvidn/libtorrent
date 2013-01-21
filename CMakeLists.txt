@@ -30,7 +30,6 @@ set(sources
 	i2p_stream
 	identify_client
 	ip_filter
-	ip_voter
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
@@ -246,7 +245,7 @@ set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
-set (VERSION "1.0.0")
+set (VERSION "0.16.7")
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
@@ -298,7 +297,6 @@ if(build_tests)
 		test_piece_picker
 		test_fast_extension
 		test_pe_crypto
-		test_peer_priority
 		test_bencoding
 		test_bdecode_performance
 		test_primitives

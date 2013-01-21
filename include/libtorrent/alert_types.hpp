@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -713,7 +713,6 @@ namespace libtorrent
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " deleted"; }
-		virtual bool discardable() const { return false; }
 
 		sha1_hash info_hash;
 	};
@@ -738,7 +737,6 @@ namespace libtorrent
 			return torrent_alert::message() + " torrent deletion failed: "
 				+ error.message();
 		}
-		virtual bool discardable() const { return false; }
 
 		error_code error;
 

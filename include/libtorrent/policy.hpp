@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,6 @@ namespace libtorrent
 
 	class torrent;
 	class peer_connection;
-	struct external_ip;
 
 	// this is compressed as an unsigned floating point value
 	// the top 13 bits are the mantissa and the low
@@ -101,11 +100,6 @@ namespace libtorrent
 		// the peer is choked
 		free_upload_amount = 4 * 16 * 1024
 	};
-
-	// calculate the priority of a peer based on its address. One of the
-	// endpoint should be our own. The priority is symmetric, so it doesn't
-	// matter which is which
-	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2);
 
 	void request_a_block(torrent& t, peer_connection& c);
 
@@ -178,8 +172,6 @@ namespace libtorrent
 
 			size_type total_download() const;
 			size_type total_upload() const;
-			
-			boost::uint32_t rank(external_ip const& external, int external_port) const;
 
 			libtorrent::address address() const;
 			char const* dest() const;
@@ -205,11 +197,6 @@ namespace libtorrent
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection
 			peer_connection* connection;
-
-			// as computed by hashing our IP with the remote
-			// IP of this peer
-			// calculated lazily
-			mutable boost::uint32_t peer_rank;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef TORRENT_DEBUG
@@ -443,7 +430,7 @@ namespace libtorrent
 
 		bool compare_peer_erase(policy::peer const& lhs, policy::peer const& rhs) const;
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
-			, external_ip const& external, int source_port) const;
+			, address const& external_ip) const;
 
 		iterator find_connect_candidate(int session_time);
 

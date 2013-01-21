@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.7
 
 .. contents:: Table of contents
   :depth: 2
@@ -174,12 +174,6 @@ or ``static``. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example::
 
   bjam msvc-7.1 link=static runtime-link=static boost=source
-
-.. note::
-
-	When building on windows, the path boost-build puts targets in may be too
-	long. If you get an error message like: "The input line is long", try to
-	pass --abbreviate-paths on the bjam command line.
 
 .. warning::
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2012, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,11 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <kernel/OS.h>
 #endif
 
-#ifdef BOOST_HAS_PTHREADS
-#include <sys/time.h> // for gettimeofday()
-#include <boost/cstdint.hpp>
-#endif
-
 namespace libtorrent
 {
 	void sleep(int milliseconds)
@@ -74,21 +69,6 @@ namespace libtorrent
 		pthread_cond_wait(&m_cond, (::pthread_mutex_t*)&l.mutex());
 	}
 
-	void condition::timed_wait(mutex::scoped_lock& l, int sleep_ms)
-	{
-		TORRENT_ASSERT(l.locked());
-
-		struct timeval tv;
-		struct timespec ts;
-		gettimeofday(&tv, NULL);
-		boost::uint64_t microseconds = tv.tv_usec + boost::uint64_t(sleep_ms % 1000) * 1000;
-		ts.tv_nsec = (microseconds % 1000000) * 1000;
-		ts.tv_sec = tv.tv_sec + sleep_ms / 1000 + microseconds / 1000000;
-		
-		// wow, this is quite a hack
-		pthread_cond_timedwait(&m_cond, (::pthread_mutex_t*)&l.mutex(), &ts);
-	}
-
 	void condition::signal_all(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
@@ -116,16 +96,6 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition::timed_wait(mutex::scoped_lock& l, int sleep_ms)
-	{
-		TORRENT_ASSERT(l.locked());
-		++m_num_waiters;
-		l.unlock();
-		WaitForSingleObject(m_sem, sleep_ms);
-		l.lock();
-		--m_num_waiters;
-	}
-
 	void condition::signal_all(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
@@ -149,16 +119,6 @@ namespace libtorrent
 		++m_num_waiters;
 		l.unlock();
 		acquire_sem(m_sem);
-		l.lock();
-		--m_num_waiters;
-	}
-	
-	void condition::timed_wait(mutex::scoped_lock& l, int sleep_ms)
-	{
-		TORRENT_ASSERT(l.locked());
-		++m_num_waiters;
-		l.unlock();
-		acquire_sem_etc(m_sem, 1, B_RELATIVE_TIMEOUT, bigtime_t(sleep_ms) * 1000);
 		l.lock();
 		--m_num_waiters;
 	}

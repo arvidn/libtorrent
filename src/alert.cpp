@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -358,11 +358,25 @@ namespace libtorrent {
 
 		if (!m_alerts.empty()) return m_alerts.front();
 		
-		// this call can be interrupted prematurely by other signals
-		m_condition.timed_wait(lock, total_milliseconds(max_wait));
-		if (!m_alerts.empty()) return m_alerts.front();
+//		system_time end = get_system_time()
+//			+ boost::posix_time::microseconds(total_microseconds(max_wait));
 
-		return NULL;
+		// apparently this call can be interrupted
+		// prematurely if there are other signals
+//		while (m_condition.timed_wait(lock, end))
+//			if (!m_alerts.empty()) return m_alerts.front();
+
+		ptime start = time_now_hires();
+
+		// TODO: change this to use an asio timer instead
+		while (m_alerts.empty())
+		{
+			lock.unlock();
+			sleep(50);
+			lock.lock();
+			if (time_now_hires() - start >= max_wait) return 0;
+		}
+		return m_alerts.front();
 	}
 
 	void alert_manager::set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const& fun)
@@ -406,7 +420,7 @@ namespace libtorrent {
 #endif
 
 		mutex::scoped_lock lock(m_mutex);
-		post_impl(a, lock);
+		post_impl(a);
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
@@ -424,10 +438,10 @@ namespace libtorrent {
 #endif
 
 		mutex::scoped_lock lock(m_mutex);
-		post_impl(a, lock);
+		post_impl(a);
 	}
 		
-	void alert_manager::post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l)
+	void alert_manager::post_impl(std::auto_ptr<alert>& alert_)
 	{
 		if (m_dispatch)
 		{
@@ -439,8 +453,6 @@ namespace libtorrent {
 		else if (m_alerts.size() < m_queue_size_limit || !alert_->discardable())
 		{
 			m_alerts.push_back(alert_.release());
-			if (m_alerts.size() == 1)
-				m_condition.signal_all(l);
 		}
 	}
 
@@ -607,12 +619,7 @@ namespace libtorrent {
 		}
 		else
 		{
-			snprintf(msg, sizeof(msg), "added torrent: %s"
-				, !params.url.empty() ? params.url.c_str()
-				: params.ti ? params.ti->name().c_str()
-				: !params.name.empty() ? params.name.c_str()
-				: !params.uuid.empty() ? params.uuid.c_str()
-				: "");
+			snprintf(msg, sizeof(msg), "added torrent: %s", !params.url.empty() ? params.url.c_str() : params.ti->name().c_str());
 		}
 		return msg;
 	}
