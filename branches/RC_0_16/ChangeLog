@@ -1,3 +1,4 @@
+	* fix string encoding conversions on windows
 	* take torrent_handle::query_pieces into account in torrent_handle::statue()
 	* honor trackers responding with 410
 	* fixed merkle tree torrent creation bug
