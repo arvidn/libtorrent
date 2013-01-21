@@ -4606,7 +4606,7 @@ namespace libtorrent
 #endif
 		return m_ses.m_upload_rate.request_bandwidth(self()
 			, (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
-				/ (1000 / m_ses.m_settings.tick_interval))
+				* m_ses.m_settings.tick_interval / 1000)
 			, priority
 			, bwc1, bwc2, bwc3, bwc4);
 	}
@@ -4638,8 +4638,7 @@ namespace libtorrent
 		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
 		return m_ses.m_download_rate.request_bandwidth(self()
 			, (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
-				, m_statistics.download_rate() * 2
-				/ (1000 / m_ses.m_settings.tick_interval))
+				, m_statistics.download_rate() * 2 * m_ses.m_settings.tick_interval / 1000)
 			, priority , bwc1, bwc2, bwc3, bwc4);
 	}
 
