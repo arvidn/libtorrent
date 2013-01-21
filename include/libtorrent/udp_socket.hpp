@@ -192,7 +192,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 
-		// TODO: move this debug facility into a base class. It's used in a lot of places
 #if defined BOOST_HAS_PTHREADS
 		mutable pthread_t m_thread;
 #endif
