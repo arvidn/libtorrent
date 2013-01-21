@@ -10,6 +10,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* take torrent_handle::query_pieces into account in torrent_handle::statue()
 	* honor trackers responding with 410
 	* fixed merkle tree torrent creation bug
 	* fixed crash with empty url-lists in torrent files
