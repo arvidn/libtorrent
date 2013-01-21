@@ -10,6 +10,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* honor trackers responding with 410
 	* fixed merkle tree torrent creation bug
 	* fixed crash with empty url-lists in torrent files
 	* added missing max_connections() function to python bindings
