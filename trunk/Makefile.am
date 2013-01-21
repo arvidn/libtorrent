@@ -30,6 +30,7 @@ DOCS_IMAGES = \
   docs/firetorrent.png            \
   docs/flush.jpg                  \
   docs/halite_thumb.png           \
+  docs/hacking.html               \
   docs/im_thumb.jpg               \
   docs/leechcraft.png             \
   docs/libtorrent_screen.png      \
