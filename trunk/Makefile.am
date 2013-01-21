@@ -53,6 +53,7 @@ DOCS_IMAGES = \
   docs/storage.png                \
   docs/style.css                  \
   docs/t2e.jpg                    \
+  docs/todo.html                  \
   docs/tvblob.jpg                 \
   docs/tvitty.jpg                 \
   docs/unicode_support.png        \
