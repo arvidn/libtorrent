@@ -8647,7 +8647,7 @@ namespace libtorrent
 #endif
 		}
 
-		if (has_picker())
+		if (has_picker() && (flags & torrent_handle::query_pieces))
 		{
 			st->sparse_regions = m_picker->sparse_regions();
 			int num_pieces = m_picker->num_pieces();
