@@ -8619,9 +8619,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	// TODO: with some response codes, we should just consider
-	// the tracker as a failure and not retry
-	// it anymore
 	void torrent::tracker_request_error(tracker_request const& r
 		, int response_code, error_code const& ec, const std::string& msg
 		, int retry_interval)
@@ -8645,6 +8642,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				debug_log("*** increment tracker fail count [%d]", ae->fails);
 #endif
+				// never talk to this tracker again
+				if (response_code == 410) ae->fail_limit = 1;
+
 				deprioritize_tracker(tracker_index);
 			}
 			if (m_ses.m_alerts.should_post<tracker_error_alert>())
@@ -8655,6 +8655,13 @@ namespace libtorrent
 		}
 		else if (r.kind == tracker_request::scrape_request)
 		{
+			if (response_code == 410)
+			{
+				// never talk to this tracker again
+				announce_entry* ae = find_tracker(r);
+				if (ae) ae->fail_limit = 1;
+			}
+
 			if (m_ses.m_alerts.should_post<scrape_failed_alert>())
 			{
 				m_ses.m_alerts.post_alert(scrape_failed_alert(get_handle(), r.url, ec));
