@@ -1590,6 +1590,8 @@ bool utp_socket_impl::send_pkt(bool ack)
 	packet* p;
 	// we only need a heap allocation if we have payload and
 	// need to keep the packet around (in the outbuf)
+	// TODO: 3 this alloca() statement won't necessariky produce
+	// correctly aligned memory. do something about that
 	if (payload_size) p = (packet*)malloc(sizeof(packet) + packet_size);
 	else p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size);
 
