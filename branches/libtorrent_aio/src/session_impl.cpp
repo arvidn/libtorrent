@@ -4350,7 +4350,8 @@ retry:
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
 		m_next_dht_torrent->second->dht_announce();
-		// TODO: make a list for torrents that want to be announced on the DHT
+		// TODO: 2 make a list for torrents that want to be announced on the DHT so we
+		// don't have to loop over all torrents, just to find the ones that want to announce
 		++m_next_dht_torrent;
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
