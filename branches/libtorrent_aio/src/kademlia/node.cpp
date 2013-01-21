@@ -60,7 +60,7 @@ void incoming_error(entry& e, char const* msg);
 
 using detail::write_endpoint;
 
-// TODO: configurable?
+// TODO: 2 make this configurable in dht_settings
 enum { announce_interval = 30 };
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -266,7 +266,7 @@ namespace
 			, end(v.end()); i != end; ++i)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->first.id));
+			TORRENT_LOG(node) << "  announce-distance: " << (160 - distance_exp(ih, i->first.id));
 #endif
 
 			void* ptr = node.m_rpc.allocate_observer();
@@ -666,7 +666,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		if (msg_keys[3] && msg_keys[3]->int_value() != 0) scrape = true;
 		lookup_peers(info_hash, prefix, reply, noseed, scrape);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		if (reply.find_key("values")) TORRENT_LOG(node) << " values: " << reply["values"].list().size();
+		if (reply.find_key("values"))
+		{
+			TORRENT_LOG(node) << " values: " << reply["values"].list().size();
+		}
 #endif
 	}
 	else if (strcmp(query, "find_node") == 0)
@@ -684,7 +687,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		sha1_hash target(msg_keys[0]->string_ptr());
 
-		// TODO: find_node should write directly to the response entry
+		// TODO: 1 find_node should write directly to the response entry
 		nodes_t n;
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);

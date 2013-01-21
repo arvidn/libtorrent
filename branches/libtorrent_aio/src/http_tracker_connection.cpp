@@ -97,7 +97,7 @@ namespace libtorrent
 
 	void http_tracker_connection::start()
 	{
-		// TODO: authentication
+		// TODO: 0 support authentication (i.e. user name and password) in the URL
 		std::string url = tracker_req().url;
 
 		if (tracker_req().kind == tracker_request::scrape_request)

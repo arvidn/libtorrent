@@ -830,7 +830,7 @@ namespace libtorrent
 			m_verifying.free();
 		}
 		bool all_verified() const
-		{ return m_num_verified == m_torrent_file->num_pieces(); }
+		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
 		bool verifying_piece(int piece) const
 		{
 			TORRENT_ASSERT(piece < int(m_verifying.size()));
@@ -1088,7 +1088,10 @@ namespace libtorrent
 		};
 
 		// this list is sorted by time_critical_piece::deadline
-		// TODO: this should be a deque
+		// TODO: 2 this should be a deque, since time critical
+		// pieces are expected to be popped in the same order
+		// as they are sorted. The expectation is that new items
+		// are pushed back and items are popped from the front
 		std::list<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;
@@ -1170,6 +1173,9 @@ namespace libtorrent
 		link m_links[aux::session_interface::num_torrent_lists];
 
 	private:
+
+		// m_num_verified = m_verified.count()
+		boost::uint32_t m_num_verified;
 
 		// this timestamp is kept in session-time, to
 		// make it fit in 16 bits
@@ -1406,20 +1412,17 @@ namespace libtorrent
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
 
-		// m_num_verified = m_verified.count()
-		boost::uint16_t m_num_verified;
+		// the number of seconds since the last piece passed for
+		// this torrent
+		boost::uint32_t m_last_download:24;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint32_t m_last_upload:24;
 
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
 		boost::uint16_t m_last_scrape;
-
-		// the number of seconds since the last piece passed for
-		// this torrent
-		boost::uint16_t m_last_download;
-
-		// the number of seconds since the last byte was uploaded
-		// from this torrent
-		boost::uint16_t m_last_upload;
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff

@@ -866,14 +866,6 @@ namespace libtorrent
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
-	namespace
-	{
-		bool compare_file_offset(internal_file_entry const& lhs, internal_file_entry const& rhs)
-		{
-			return lhs.offset < rhs.offset;
-		}
-	}
-
 	// much of what needs to be done when reading and writing 
 	// is buffer management and piece to file mapping. Most
 	// of that is the same for reading and writing. This function
@@ -898,17 +890,14 @@ namespace libtorrent
 		TORRENT_ASSERT(!slices.empty());
 #endif
 
-		internal_file_entry target_file;
-		target_file.offset = slot * size_type(m_files.piece_length()) + offset;
-
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
-			files().begin(), files().end(), target_file, compare_file_offset);
-
-		TORRENT_ASSERT(file_iter != files().begin());
-		--file_iter;
-		int file_index = file_iter - files().begin();
-
-		size_type file_offset = target_file.offset - file_iter->offset;
+		// find the file iterator and file offset
+		boost::uint64_t torrent_offset = slot * boost::uint64_t(m_files.piece_length()) + offset;
+		file_storage::iterator file_iter = files().file_at_offset(torrent_offset);
+		TORRENT_ASSERT(file_iter != files().end());
+		TORRENT_ASSERT(torrent_offset >= files().file_offset(*file_iter));
+		TORRENT_ASSERT(torrent_offset < files().file_offset(*file_iter) + files().file_size(*file_iter));
+		size_type file_offset = torrent_offset - files().file_offset(*file_iter);
+		int file_index = files().file_index(*file_iter);
 
 		int buf_pos = 0;
 

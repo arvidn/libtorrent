@@ -163,6 +163,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_last_seen_complete)
 		PRINT_OFFSETOF(torrent, m_swarm_last_seen_complete)
 		PRINT_OFFSETOF(torrent, m_links)
+		PRINT_OFFSETOF(torrent, m_num_verified)
 		PRINT_OFFSETOF(torrent, m_last_saved_resume)
 		PRINT_OFFSETOF(torrent, m_started)
 		PRINT_OFFSETOF(torrent, m_checking_piece)
@@ -212,7 +213,6 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_allow_peers:1)
 //		PRINT_OFFSETOF(torrent, m_upload_mode:1)
 //		PRINT_OFFSETOF(torrent, m_auto_managed:1)
-		PRINT_OFFSETOF(torrent, m_num_verified)
 		PRINT_OFFSETOF(torrent, m_last_scrape)
 		PRINT_OFFSETOF(torrent, m_last_download)
 		PRINT_OFFSETOF_END(torrent)
@@ -263,6 +263,7 @@ namespace libtorrent
 		, m_completed_time(0)
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
+		, m_num_verified(0)
 		, m_last_saved_resume(ses.session_time())
 		, m_started(ses.session_time())
 		, m_checking_piece(0)
@@ -316,10 +317,9 @@ namespace libtorrent
 		, m_upload_mode(p.flags & add_torrent_params::flag_upload_mode)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_share_mode(p.flags & add_torrent_params::flag_share_mode)
-		, m_num_verified(0)
-		, m_last_scrape(0)
 		, m_last_download(0)
 		, m_last_upload(0)
+		, m_last_scrape(0)
 		, m_downloaders(0xffffff)
 		, m_graceful_pause_mode(false)
 		, m_need_connect_boost(true)
@@ -1149,7 +1149,7 @@ namespace libtorrent
 		{
 			// if we failed to write, stop downloading and just
 			// keep seeding.
-			// TODO: make this depend on the error and on the filesystem the
+			// TODO: 1 make this depend on the error and on the filesystem the
 			// files are being downloaded to. If the error is no_space_left_on_device
 			// and the filesystem doesn't support sparse files, only zero the priorities
 			// of the pieces that are at the tails of all files, leaving everything
@@ -1636,7 +1636,7 @@ namespace libtorrent
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
 	{
-		// TODO: filter out peers that are disconnecting
+		// TODO: 3 filter out peers that are disconnecting
 		const_peer_iterator lowest_rank = std::min_element(begin(), end()
 			, boost::bind(&peer_connection::peer_rank, _1)
 			< boost::bind(&peer_connection::peer_rank, _2));
@@ -5967,11 +5967,12 @@ namespace libtorrent
 			}
 			else
 			{
-				// TODO: if this is a merkle torrent and we can't
+				// TODO: 0 if this is a merkle torrent and we can't
 				// restore the tree, we need to wipe all the
 				// bits in the have array, but not necessarily
 				// we might want to do a full check to see if we have
-				// all the pieces
+				// all the pieces. This is low priority since almost
+				// no one uses merkle torrents
 				TORRENT_ASSERT(false);
 			}
 		}
@@ -6099,7 +6100,8 @@ namespace libtorrent
 				, end(m_trackers.end()); i != end; ++i)
 			{
 				// don't save trackers we can't trust
-				// TODO: save the send_stats state instead
+				// TODO: 1 save the send_stats state instead of throwing them away
+				// it may pose an issue when downgrading though
 				if (i->send_stats == false) continue;
 				if (i->tier == tier)
 				{
@@ -6156,8 +6158,9 @@ namespace libtorrent
 		}
 
 		// write renamed files
-		// TODO: make this more generic to not just work if files have been
-		// renamed, but also if they have been merged into a single file for instance
+		// TODO: 0 make this more generic to not just work if files have been
+		// renamed, but also if they have been merged into a single file for instance.
+		// using file_base
 		if (&m_torrent_file->files() != &m_torrent_file->orig_files()
 			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
 		{
@@ -6777,11 +6780,10 @@ namespace libtorrent
 			if (m_num_connecting > m_max_connections / 10)
 			{
 				// find one of the connecting peers and disconnect it
-				// TODO: ideally, we would disconnect the oldest connection
-				// i.e. the one that has waited the longest to connect.
-				
 				// find any peer that's connecting (i.e. a half-open TCP connection)
 				// that's also not disconnecting
+				// TODO: 1 ideally, we would disconnect the oldest connection
+				// i.e. the one that has waited the longest to connect.
 				std::vector<peer_connection*>::iterator i = std::find_if(begin(), end()
 					, boost::bind(&peer_connection::is_connecting, _1)
 					&& !boost::bind(&peer_connection::is_disconnecting, _1));
@@ -6862,7 +6864,7 @@ namespace libtorrent
 			// if it's lower rank than the incoming connection
 			peer_connection* peer = find_lowest_ranking_peer();
 
-			// TODO: if peer is a really good peer, maybe we shouldn't disconnect it
+			// TODO: 3 if peer is a really good peer, maybe we shouldn't disconnect it
 			if (peer && peer->peer_rank() < p->peer_rank())
 			{
 				peer->disconnect(errors::too_many_connections);
@@ -7101,8 +7103,9 @@ namespace libtorrent
 		m_completed_time = time(0);
 
 		// disconnect all seeds
-		// TODO: should disconnect all peers that have the pieces we have
-		// not just seeds
+		// TODO: 1 should disconnect all peers that have the pieces we have
+		// not just seeds. It would be pretty expensive to check all pieces
+		// for all peers though
 		std::vector<peer_connection*> seeds;
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
@@ -9662,7 +9665,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	// TODO: with some response codes, we should just consider
+	// TODO: 3 with 110 as response codes, we should just consider
 	// the tracker as a failure and not retry
 	// it anymore
 	void torrent::tracker_request_error(tracker_request const& r

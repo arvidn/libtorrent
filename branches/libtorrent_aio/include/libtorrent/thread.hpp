@@ -62,11 +62,14 @@ namespace libtorrent
 
 	TORRENT_EXPORT void sleep(int milliseconds);
 
+	// TODO: 3 make this interface compatible with c++11
+	// to allow for smooth transition for platforms with support
 	struct TORRENT_EXTRA_EXPORT condition
 	{
 		condition();
 		~condition();
 		void wait(mutex::scoped_lock& l);
+		void timed_wait(mutex::scoped_lock& l, int sleep_ms);
 		void signal_all(mutex::scoped_lock& l);
 		void signal(mutex::scoped_lock& l)
 		{

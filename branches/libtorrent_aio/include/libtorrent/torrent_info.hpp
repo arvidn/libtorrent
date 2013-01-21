@@ -475,10 +475,9 @@ namespace libtorrent
 		// pointing to the first byte of the first sha-1 hash
 		char const* m_piece_hashes;
 
-		// TODO: these strings could be lazy_entry* to save memory
-
 		// if a comment is found in the torrent file
 		// this will be set to that comment
+		// TODO: 2 these strings (m_comment, m_created_by, m_ssl_root_cert) could be lazy_entry* to save memory
 		std::string m_comment;
 
 		// an optional string naming the software used

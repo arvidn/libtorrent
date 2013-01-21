@@ -1012,6 +1012,7 @@ namespace libtorrent
 			, restrict_routing_ips(true)
 			, restrict_search_ips(true)
 			, extended_routing_table(true)
+			, aggressive_lookups(true)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -1058,6 +1059,11 @@ namespace libtorrent
 		// table are enlarged, to make room for more nodes in order
 		// to lower the look-up times
 		bool extended_routing_table;
+
+		// makes lookups waste less time finding results,
+		// at the cost of being more likely to keep more
+		// outstanding requests
+		bool aggressive_lookups;
 	};
 #endif
 

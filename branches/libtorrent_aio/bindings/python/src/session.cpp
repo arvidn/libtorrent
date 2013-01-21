@@ -646,6 +646,7 @@ void bind_session()
 
         .def("set_max_uploads", allow_threads(&session::set_max_uploads))
         .def("set_max_connections", allow_threads(&session::set_max_connections))
+        .def("max_connections", allow_threads(&session::max_connections))
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
         .def("num_connections", allow_threads(&session::num_connections))
         .def("set_settings", &session::set_settings)

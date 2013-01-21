@@ -1890,6 +1890,17 @@ opened. The number of connections is set to a hard minimum of at least two per
 torrent, so if you set a too low connections limit, and open too many torrents,
 the limit will not be met.
 
+.. _connections_slack:
+
++-------------------+------+---------+
+| name              | type | default |
++===================+======+=========+
+| connections_slack | int  | 10      |
++-------------------+------+---------+
+
+``connections_slack`` is the the number of incoming connections exceeding the
+connection limit to accept in order to potentially replace existing ones.
+
 .. _utp_target_delay:
 
 .. _utp_gain_factor:

@@ -79,10 +79,14 @@ struct traversal_algorithm : boost::noncopyable
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 
 	traversal_algorithm(node_impl& node, node_id target);
+	int invoke_count() const { return m_invoke_count; }
+	int branch_factor() const { return m_branch_factor; }
 
 protected:
 
-	void add_requests();
+	// returns true if we're done
+	bool add_requests();
+
 	void add_router_entries();
 	void init();
 

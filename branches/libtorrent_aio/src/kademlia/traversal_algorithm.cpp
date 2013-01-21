@@ -69,10 +69,11 @@ traversal_algorithm::traversal_algorithm(
 	, m_branch_factor(3)
 	, m_responses(0)
 	, m_timeouts(0)
-	, m_num_target_nodes(m_node.m_table.bucket_size() * 2)
+	, m_num_target_nodes(m_node.m_table.bucket_size())
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << " [" << this << "] new traversal process. Target: " << target;
+	TORRENT_LOG(traversal) << "[" << this << "] NEW"
+		" target: " << target << " k: " << m_node.m_table.bucket_size();
 #endif
 }
 
@@ -98,8 +99,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (ptr == 0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << ":" << name()
-			<< "] failed to allocate memory for observer. aborting!";
+		TORRENT_LOG(traversal) << "[" << this << "] failed to allocate memory for observer. aborting!";
 #endif
 		done();
 		return;
@@ -139,19 +139,24 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 				// close to this one. We know that it's not the same, because
 				// it claims a different node-ID. Ignore this to avoid attacks
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(traversal) << "ignoring DHT search entry: " << o->id()
-				<< " " << o->target_addr()
+			TORRENT_LOG(traversal) << "[" << this << "] IGNORING result "
+				<< "id: " << o->id()
+				<< " address: " << o->target_addr()
 				<< " existing node: "
-				<< (*j)->id() << " " << (*j)->target_addr();
+				<< (*j)->id() << " " << (*j)->target_addr()
+				<< " distance: " << distance_exp(m_target, o->id());
 #endif
 				return;
 			}
 		}
+
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << ":" << name()
-			<< "] adding result: " << id << " " << addr;
+		TORRENT_LOG(traversal) << "[" << this << "] ADD id: " << id
+			<< " address: " << addr
+			<< " distance: " << distance_exp(m_target, id)
+			<< " invoke-count: " << m_invoke_count;
 #endif
 		i = m_results.insert(i, o);
 	}
@@ -189,8 +194,9 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	if (id.is_all_zeros())
-		TORRENT_LOG(traversal) << time_now_string() << "[" << this << ":" << name()
-			<< "] WARNING: node returned a list which included a node with id 0";
+	{
+		TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] WARNING node returned a list which included a node with id 0";
+	}
 #endif
 	add_entry(id, addr, 0);
 }
@@ -207,7 +213,10 @@ void traversal_algorithm::finished(observer_ptr o)
 	// if this flag is set, it means we increased the
 	// branch factor for it, and we should restore it
 	if (o->flags & observer::flag_short_timeout)
+	{
+		TORRENT_ASSERT(m_branch_factor > 0);
 		--m_branch_factor;
+	}
 
 	TORRENT_ASSERT(o->flags & observer::flag_queried);
 	o->flags |= observer::flag_alive;
@@ -215,8 +224,8 @@ void traversal_algorithm::finished(observer_ptr o)
 	++m_responses;
 	--m_invoke_count;
 	TORRENT_ASSERT(m_invoke_count >= 0);
-	add_requests();
-	if (m_invoke_count == 0) done();
+	bool is_done = add_requests();
+	if (is_done) done();
 }
 
 // prevent request means that the total number of requests has
@@ -241,9 +250,10 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			++m_branch_factor;
 		o->flags |= observer::flag_short_timeout;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << ":" << name()
-			<< "] first chance timeout: "
-			<< o->id() << " " << o->target_ep()
+		TORRENT_LOG(traversal) << "[" << this << "] 1ST_TIMEOUT "
+			<< " id: " << o->id()
+			<< " distance: " << distance_exp(m_target, o->id())
+			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
 			<< " invoke-count: " << m_invoke_count;
 #endif
@@ -257,8 +267,10 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			--m_branch_factor;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << ":" << name()
-			<< "] failed: " << o->id() << " " << o->target_ep()
+		TORRENT_LOG(traversal) << "[" << this << "] TIMEOUT "
+			<< " id: " << o->id()
+			<< " distance: " << distance_exp(m_target, o->id())
+			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
 			<< " invoke-count: " << m_invoke_count;
 #endif
@@ -276,49 +288,122 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
 	}
-	add_requests();
-	if (m_invoke_count == 0) done();
+	bool is_done = add_requests();
+	if (is_done) done();
 }
 
 void traversal_algorithm::done()
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	int results_target = m_num_target_nodes;
+	int closest_target = 160;
+
+	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+		, end(m_results.end()); i != end && results_target > 0; ++i)
+	{
+		boost::intrusive_ptr<observer> o = *i;
+		if (o->flags & observer::flag_alive)
+		{
+			TORRENT_ASSERT(o->flags & observer::flag_queried);
+			TORRENT_LOG(traversal) << "[" << this << "]  "
+				<< results_target
+				<< " id: " << o->id()
+				<< " distance: " << distance_exp(m_target, o->id())
+				<< " address: " << o->target_ep();
+			--results_target;
+			int dist = distance_exp(m_target, o->id());
+			if (dist < closest_target) closest_target = dist;
+		}
+	}
+
+	TORRENT_LOG(traversal) << "[" << this << "] COMPLETED "
+		<< "distance: " << closest_target;
+
+#endif
 	// delete all our references to the observer objects so
 	// they will in turn release the traversal algorithm
 	m_results.clear();
 }
 
-void traversal_algorithm::add_requests()
+bool traversal_algorithm::add_requests()
 {
 	int results_target = m_num_target_nodes;
 
+	// this only counts outstanding requests at the top of the
+	// target list. This is <= m_invoke count. m_invoke_count
+	// is the total number of outstanding requests, including
+	// old ones that may be waiting on nodes much farther behind
+	// the current point we've reached in the search.
+	int outstanding = 0;
+
+	// if we're doing aggressive lookups, we keep branch-factor
+	// outstanding requests _at the tops_ of the result list. Otherwise
+	// we just keep any branch-factor outstanding requests
+	bool agg = m_node.settings().aggressive_lookups;
+
 	// Find the first node that hasn't already been queried.
+	// and make sure that the 'm_branch_factor' top nodes
+	// stay queried at all times (obviously ignoring failed nodes)
+	// and without surpassing the 'result_target' nodes (i.e. k=8)
+	// this is a slight variation of the original paper which instead
+	// limits the number of outstanding requests, this limits the
+	// number of good outstanding requests. It will use more traffic,
+	// but is intended to speed up lookups
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end
-		&& results_target > 0 && m_invoke_count < m_branch_factor; ++i)
+		&& results_target > 0
+		&& (agg ? outstanding < m_branch_factor
+			: m_invoke_count < m_branch_factor);
+		++i)
 	{
-		if ((*i)->flags & observer::flag_alive) --results_target;
-		if ((*i)->flags & observer::flag_queried) continue;
+		observer* o = i->get();
+		if (o->flags & observer::flag_alive)
+		{
+			TORRENT_ASSERT(o->flags & observer::flag_queried);
+			--results_target;
+			continue;
+		}
+		if (o->flags & observer::flag_queried)
+		{
+			// if it's queried, not alive and not failed, it
+			// must be currently in flight
+			if ((o->flags & observer::flag_failed) == 0)
+				++outstanding;
+
+			continue;
+		}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << ":" << name() << "]"
+		TORRENT_LOG(traversal) << "[" << this << "] INVOKE "
 			<< " nodes-left: " << (m_results.end() - i)
+			<< " top-invoke-count: " << outstanding
 			<< " invoke-count: " << m_invoke_count
-			<< " branch-factor: " << m_branch_factor;
+			<< " branch-factor: " << m_branch_factor
+			<< " distance: " << distance_exp(m_target, (*i)->id())
+			;
 #endif
 
 		if (invoke(*i))
 		{
 			TORRENT_ASSERT(m_invoke_count >= 0);
 			++m_invoke_count;
-			(*i)->flags |= observer::flag_queried;
+			o->flags |= observer::flag_queried;
+			++outstanding;
 		}
 	}
+
+	// this is the completion condition. If we found m_num_target_nodes
+	// (i.e. k=8) completed results, without finding any still
+	// outstanding requests, we're done.
+	// also, if invoke count is 0, it means we didn't even find 'k'
+	// working nodes, we still have to terminate though.
+	return (results_target == 0 && outstanding == 0) || m_invoke_count == 0;
 }
 
 void traversal_algorithm::add_router_entries()
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << " using router nodes to initiate traversal algorithm. "
+	TORRENT_LOG(traversal) << "[" << this << "] using router nodes to initiate traversal algorithm. "
 		<< std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end()) << " routers";
 #endif
 	for (routing_table::router_iterator i = m_node.m_table.router_begin()

@@ -430,10 +430,10 @@ time_duration rpc_manager::tick()
 			break;
 		}
 		
+		// don't call short_timeout() again if we've
+		// already called it once
 		if (o->has_short_timeout()) continue;
 
-		// TODO: don't call short_timeout() again if we've
-		// already called it once
 		timeouts.push_back(o);
 	}
 

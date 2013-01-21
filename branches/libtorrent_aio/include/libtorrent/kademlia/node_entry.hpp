@@ -89,7 +89,9 @@ struct node_entry
 		else rtt = int(rtt) / 3 + int(new_rtt) * 2 / 3;
 	}
 
-	// TODO: replace with a union of address_v4 and address_v6
+	// TODO: 2 replace with a union of address_v4 and address_v6
+	// to not waste space. This struct is instantiated hundreds of times
+	// for the routing table
 	address addr;
 	boost::uint16_t port;
 	// the number of times this node has failed to
