@@ -983,19 +983,11 @@ ret:
 		size_type start = slot * (size_type)m_files.piece_length() + offset;
 		TORRENT_ASSERT(start + size <= m_files.total_size());
 
-		size_type file_offset = start;
-		file_storage::iterator file_iter;
-
-		// TODO: 3 use binary search to find the file entry
-		for (file_iter = files().begin();;)
-		{
-			if (file_offset < file_iter->size)
-				break;
-
-			file_offset -= file_iter->size;
-			++file_iter;
-			TORRENT_ASSERT(file_iter != files().end());
-		}
+		file_storage::iterator file_iter = files().file_at_offset(start);
+		TORRENT_ASSERT(file_iter != files().end());
+		TORRENT_ASSERT(start >= files().file_offset(*file_iter));
+		TORRENT_ASSERT(start < files().file_offset(*file_iter) + files().file_size(*file_iter));
+		size_type file_offset = start - files().file_offset(*file_iter);
 
 		boost::intrusive_ptr<file> file_handle;
 		int bytes_left = size;
@@ -1089,19 +1081,11 @@ ret:
 		TORRENT_ASSERT(start + size <= m_files.total_size());
 
 		// find the file iterator and file offset
-		size_type file_offset = start;
-		file_storage::iterator file_iter;
-
-		// TODO: 3 use binary search to find the file entry
-		for (file_iter = files().begin();;)
-		{
-			if (file_offset < file_iter->size)
-				break;
-
-			file_offset -= file_iter->size;
-			++file_iter;
-			TORRENT_ASSERT(file_iter != files().end());
-		}
+		file_storage::iterator file_iter = files().file_at_offset(start);
+		TORRENT_ASSERT(file_iter != files().end());
+		TORRENT_ASSERT(start >= files().file_offset(*file_iter));
+		TORRENT_ASSERT(start < files().file_offset(*file_iter) + files().file_size(*file_iter));
+		size_type file_offset = start - files().file_offset(*file_iter);
 
 		int buf_pos = 0;
 		error_code ec;
@@ -1205,7 +1189,7 @@ ret:
 					// we likely wrote a bit too much, since we're restricted to
 					// a specific alignment for writes. Make sure to truncate the size
 
-					// TODO: what if file_base is used to merge several virtual files
+					// TODO: 0 what if file_base is used to merge several virtual files
 					// into a single physical file? We should probably disable this
 					// if file_base is used. This is not a widely used feature though
 					file_handle->set_size(file_iter->size, ec);
