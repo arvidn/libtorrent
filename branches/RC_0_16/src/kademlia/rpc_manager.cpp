@@ -389,7 +389,7 @@ time_duration rpc_manager::tick()
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end(); ++i)
 	{
-		TORRENT_ASSERT((*i)->sent() > last);
+		TORRENT_ASSERT((*i)->sent() >= last);
 		last = (*i)->sent();
 	}
 #endif
