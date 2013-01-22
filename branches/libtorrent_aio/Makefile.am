@@ -30,6 +30,7 @@ DOCS_IMAGES = \
   docs/firetorrent.png            \
   docs/flush.jpg                  \
   docs/halite_thumb.png           \
+  docs/hacking.html               \
   docs/im_thumb.jpg               \
   docs/leechcraft.png             \
   docs/libtorrent_screen.png      \
@@ -52,6 +53,7 @@ DOCS_IMAGES = \
   docs/storage.png                \
   docs/style.css                  \
   docs/t2e.jpg                    \
+  docs/todo.html                  \
   docs/tvblob.jpg                 \
   docs/tvitty.jpg                 \
   docs/unicode_support.png        \

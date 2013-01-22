@@ -656,7 +656,7 @@ namespace libtorrent
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
 			mutable libtorrent::mutex mut;
-			mutable libtorrent::condition cond;
+			mutable libtorrent::condition_variable cond;
 
 			void inc_disk_queue(int channel)
 			{

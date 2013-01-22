@@ -149,16 +149,16 @@ namespace libtorrent
 	torrent_status::~torrent_status() {}
 
 	template <class R>
-	void fun_ret(R* ret, bool* done, condition* e, mutex* m, boost::function<R(void)> f)
+	void fun_ret(R* ret, bool* done, condition_variable* e, mutex* m, boost::function<R(void)> f)
 	{
 		*ret = f();
 		mutex::scoped_lock l(*m);
 		*done = true;
-		e->signal_all(l);
+		e->notify_all();
 	}
 
 	// defined in session.cpp
-	void fun_wrap(bool* done, condition* e, mutex* m, boost::function<void(void)> f);
+	void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(void)> f);
 
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \

@@ -176,7 +176,7 @@ namespace libtorrent {
 
 		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
-		condition m_condition;
+		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;

@@ -8229,12 +8229,14 @@ namespace libtorrent
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
 
-		set_allow_peers(true);
-
 		dec_torrent_gauge();
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
+		// this call will trigger a tracker announce, that's
+		// why it's important to set announce_to_trackers to
+		// true first
+		set_allow_peers(true);
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
 
 		inc_torrent_gauge();
@@ -9595,7 +9597,7 @@ namespace libtorrent
 		}
 
 		int num_pieces = m_torrent_file->num_pieces();
-		if (has_picker())
+		if (has_picker() && (flags & torrent_handle::query_pieces))
 		{
 			st->sparse_regions = m_picker->sparse_regions();
 			st->pieces.resize(num_pieces, false);
@@ -9665,9 +9667,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	// TODO: 3 with 110 as response codes, we should just consider
-	// the tracker as a failure and not retry
-	// it anymore
 	void torrent::tracker_request_error(tracker_request const& r
 		, int response_code, error_code const& ec, const std::string& msg
 		, int retry_interval)
@@ -9691,6 +9690,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				debug_log("*** increment tracker fail count [%d]", ae->fails);
 #endif
+				// never talk to this tracker again
+				if (response_code == 410) ae->fail_limit = 1;
+
 				deprioritize_tracker(tracker_index);
 			}
 			if (m_ses.alerts().should_post<tracker_error_alert>())
@@ -9701,6 +9703,13 @@ namespace libtorrent
 		}
 		else if (r.kind == tracker_request::scrape_request)
 		{
+			if (response_code == 410)
+			{
+				// never talk to this tracker again
+				announce_entry* ae = find_tracker(r);
+				if (ae) ae->fail_limit = 1;
+			}
+
 			if (m_ses.alerts().should_post<scrape_failed_alert>())
 			{
 				m_ses.alerts().post_alert(scrape_failed_alert(get_handle(), r.url, ec));

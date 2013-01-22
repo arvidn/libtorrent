@@ -4856,8 +4856,8 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(priority <= 0xffff);
 
-		int bytes = (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
-				/ (1000 / m_settings.get_int(settings_pack::tick_interval)));
+		int bytes = (std::max)(m_send_buffer.size()
+			, (m_statistics.upload_rate() * 2 * m_settings.get_int(settings_pack::tick_interval)) / 1000);
 
 		// peers that we are not interested in are non-prioritized
 		return request_bandwidth(upload_channel, priority, bytes);

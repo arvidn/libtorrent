@@ -500,7 +500,7 @@ namespace libtorrent
 
 		// used to wake up the disk IO thread when there are new
 		// jobs on the job queue (m_queued_jobs)
-		condition m_job_cond;
+		condition_variable m_job_cond;
 
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;
@@ -511,7 +511,7 @@ namespace libtorrent
 		// when using more than 2 threads, this is
 		// used for just hashing jobs, just for threads
 		// dedicated to do hashing
-		condition m_hash_job_cond;
+		condition_variable m_hash_job_cond;
 		tailqueue m_queued_hash_jobs;
 		
 		// used to rate limit disk performance warnings

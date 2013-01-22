@@ -173,8 +173,8 @@ namespace libtorrent
 		{
 			while (m_num_threads > i) { --m_num_threads; }
 			mutex::scoped_lock l(m_job_mutex);
-			m_job_cond.signal_all(l);
-			m_hash_job_cond.signal_all(l);
+			m_job_cond.notify_all();
+			m_hash_job_cond.notify_all();
 			l.unlock();
 			if (wait) for (int i = m_num_threads; i < m_threads.size(); ++i) m_threads[i]->join();
 			// this will detach the threads
@@ -2543,9 +2543,9 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_job_mutex);
 		if (!m_queued_jobs.empty())
-			m_job_cond.signal_all(l);
+			m_job_cond.notify_all();
 		if (!m_queued_hash_jobs.empty())
-			m_hash_job_cond.signal_all(l);
+			m_hash_job_cond.notify_all();
 	}
 
 	void disk_io_thread::thread_fun(int thread_id, thread_type_t type)
@@ -2731,7 +2731,7 @@ namespace libtorrent
 #endif
 			mutex::scoped_lock l(m_job_mutex);
 			m_queued_jobs.append(new_jobs);
-			m_job_cond.signal_all(l);
+			m_job_cond.notify_all();
 		}
 
 		mutex::scoped_lock l(m_completed_jobs_mutex);

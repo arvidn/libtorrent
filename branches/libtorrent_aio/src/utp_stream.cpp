@@ -1695,6 +1695,8 @@ bool utp_socket_impl::send_pkt(int flags)
 			stack_alloced = true;
 #endif
 			TORRENT_ASSERT(force);
+			// TODO: 3 this alloca() statement won't necessarily produce
+			// correctly aligned memory. do something about that
 			p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size);
 			UTP_LOGV("%8p: allocating %d bytes on the stack\n", this, packet_size);
 			p->allocated = packet_size;

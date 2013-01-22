@@ -615,6 +615,32 @@ namespace libtorrent
 		return iconv_convert_impl(s, iconv_handle);
 	}
 
+#elif defined TORRENT_WINDOWS
+
+	std::string convert_to_native(std::string const& s)
+	{
+		std::wstring ws;
+		libtorrent::utf8_wchar(s, ws);
+		std::string ret;
+		ret.resize(ws.size() * 4);
+		std::size_t size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], ret.size(), NULL, NULL);
+		if (size == std::size_t(-1)) return s;
+		ret.resize(size);
+		return ret;
+	}
+
+	std::string convert_from_native(std::string const& s)
+	{
+		std::wstring ws;
+		ws.resize(s.size());
+		std::size_t size = MultiByteToWideChar(CP_ACP, 0, s.c_str(), -1, &ws[0], ws.size());
+		if (size == std::size_t(-1)) return s;
+		ws.resize(size);
+		std::string ret;
+		libtorrent::wchar_utf8(ws, ret);
+		return ret;
+	}
+
 #elif TORRENT_USE_LOCALE
 
 	std::string convert_to_native(std::string const& s)
