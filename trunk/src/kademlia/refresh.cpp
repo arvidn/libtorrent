@@ -75,8 +75,7 @@ bool refresh::invoke(observer_ptr o)
 	e["q"] = "find_node";
 	entry& a = e["a"];
 	a["target"] = target().to_string();
-	m_node.m_rpc.invoke(e, o->target_ep(), o);
-	return true;
+	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
 bootstrap::bootstrap(
