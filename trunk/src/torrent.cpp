@@ -7303,10 +7303,13 @@ namespace libtorrent
 			&& m_announce_to_dht
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
-		set_allow_peers(true);
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
+		// this call will trigger a tracker announce, that's
+		// why it's important to set announce_to_trackers to
+		// true first
+		set_allow_peers(true);
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
 
 		// we need to save this new state
