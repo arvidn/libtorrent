@@ -2,10 +2,12 @@ example_programs =  \
   client_test       \
   dump_torrent      \
   enum_if           \
+  fragmentation_test\
   make_torrent      \
   simple_client     \
   rss_reader        \
   parse_request_log \
+  upnp_test         \
   utp_test          \
   connection_tester
 
@@ -42,6 +44,12 @@ utp_test_SOURCES = rss_reader.cpp
 
 parse_request_log_SOURCES = parse_request_log.cpp
 #parse_request_log_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+
+fragmentation_test_SOURCES = fragmentation_test.cpp
+#fragmentation_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+
+upnp_test_SOURCES = upnp_test.cpp
+#upnp_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
