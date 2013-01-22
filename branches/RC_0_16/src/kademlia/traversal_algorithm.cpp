@@ -173,6 +173,7 @@ void traversal_algorithm::start()
 	if (m_results.empty()) add_router_entries();
 	init();
 	add_requests();
+	if (m_invoke_count == 0) done();
 }
 
 void* traversal_algorithm::allocate_observer()
@@ -306,11 +307,15 @@ void traversal_algorithm::add_requests()
 			<< " branch-factor: " << m_branch_factor;
 #endif
 
+		(*i)->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
 			TORRENT_ASSERT(m_invoke_count >= 0);
 			++m_invoke_count;
-			(*i)->flags |= observer::flag_queried;
+		}
+		else
+		{
+			(*i)->flags |= observer::flag_failed;
 		}
 	}
 }
