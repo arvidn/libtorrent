@@ -177,7 +177,8 @@ void traversal_algorithm::start()
 	// router nodes in the table
 	if (m_results.empty()) add_router_entries();
 	init();
-	add_requests();
+	bool is_done = add_requests();
+	if (is_done) done();
 }
 
 void* traversal_algorithm::allocate_observer()
@@ -383,12 +384,16 @@ bool traversal_algorithm::add_requests()
 			;
 #endif
 
+		o->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
 			TORRENT_ASSERT(m_invoke_count >= 0);
 			++m_invoke_count;
-			o->flags |= observer::flag_queried;
 			++outstanding;
+		}
+		else
+		{
+			o->flags |= observer::flag_failed;
 		}
 	}
 
