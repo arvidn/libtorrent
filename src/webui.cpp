@@ -88,13 +88,13 @@ void webui_base::start(int port, char const* cert_path)
 	// start web interface
 	char port_str[20];
 	snprintf(port_str, sizeof(port_str), "%d%s", port, cert_path ? "s" : "");
-	const char *options[] = {"listening_ports", port_str, "ssl_certificate", cert_path ? cert_path : "", NULL};
+	const char *options[] = {"listening_ports", port_str, cert_path ? "ssl_certificate" : NULL , cert_path ? cert_path : "", NULL};
 	m_ctx = mg_start(&::handle_http, this, options);
 }
 
 void webui_base::stop()
 {
-	mg_stop(m_ctx);
+	if (m_ctx) mg_stop(m_ctx);
 	m_ctx = NULL;
 }
 
