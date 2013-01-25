@@ -175,8 +175,9 @@ namespace
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
+			WaitForSingleObject(ol[i].hEvent, INFINITE);
 			DWORD num_read;
-			if (GetOverlappedResult(fd, &ol[i], &num_read, TRUE) == FALSE)
+			if (GetOverlappedResult(fd, &ol[i], &num_read, FALSE) == FALSE)
 			{
 #ifndef TORRENT_MINGW
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
@@ -236,8 +237,9 @@ done:
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
+			WaitForSingleObject(ol[i].hEvent, INFINITE);
 			DWORD num_written;
-			if (GetOverlappedResult(fd, &ol[i], &num_written, TRUE) == FALSE)
+			if (GetOverlappedResult(fd, &ol[i], &num_written, FALSE) == FALSE)
 			{
 #ifndef TORRENT_MINGW
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
