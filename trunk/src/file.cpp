@@ -1344,8 +1344,9 @@ namespace libtorrent
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
+			WaitForSingleObject(ol.hEvent, INFINITE);
 			DWORD num_read;
-			if (GetOverlappedResult(m_file_handle, &ol, &num_read, true) == 0)
+			if (GetOverlappedResult(m_file_handle, &ol, &num_read, false) == 0)
 			{
 				DWORD last_error = GetLastError();
 				if (last_error != ERROR_HANDLE_EOF)
