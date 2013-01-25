@@ -176,7 +176,7 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		mutex::scoped_lock l(m_mutex);
 
-		open_file(ec);
+		open_file(file::read_write, ec);
 		if (ec) return -1;
 
 		int slot = -1;
@@ -211,7 +211,7 @@ namespace libtorrent
 
 		int slot = i->second;
 
-		open_file(ec);
+		open_file(file::read_write, ec);
 		if (ec) return -1;
 
 		l.unlock();
@@ -220,11 +220,14 @@ namespace libtorrent
 		return m_file.readv(slot_offset + offset, bufs, num_bufs, ec);
 	}
 
-	void part_file::open_file(error_code& ec)
+	void part_file::open_file(int mode, error_code& ec)
 	{
-		if (m_file.is_open()) return;
+		if (m_file.is_open()
+			&& ((m_file.open_mode() & file::rw_mask) == mode
+				|| mode == file::read_only)) return;
+
 		std::string fn = combine_path(m_path, m_name);
-		m_file.open(fn, file::read_write, ec);
+		m_file.open(fn, mode, ec);
 	}
 
 	void part_file::free_piece(int piece, error_code& ec)
@@ -291,7 +294,7 @@ namespace libtorrent
 			int block_to_copy = (std::min)(m_piece_size - piece_offset, size);
 			if (i != m_piece_map.end())
 			{
-				open_file(ec);
+				open_file(file::read_only, ec);
 				if (ec) return;
 				
 				if (!buf) buf.reset(new char[m_piece_size]);
@@ -343,7 +346,7 @@ namespace libtorrent
 			return;
 		}
 
-		open_file(ec);
+		open_file(file::read_write, ec);
 		if (ec) return;
 
 		boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size]);

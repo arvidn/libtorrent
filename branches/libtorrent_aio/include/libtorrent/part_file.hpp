@@ -64,7 +64,7 @@ namespace libtorrent
 
 	private:
 
-		void open_file(error_code& ec);
+		void open_file(int mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 
 		std::string m_path;
