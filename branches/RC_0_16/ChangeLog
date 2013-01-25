@@ -1,3 +1,4 @@
+	* add work-around for bug in windows vista and earlier in GetOverlappedResult
 	* fix traversal algorithm leak in DHT
 	* fix string encoding conversions on windows
 	* take torrent_handle::query_pieces into account in torrent_handle::statue()
