@@ -214,7 +214,7 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_upload_mode:1)
 //		PRINT_OFFSETOF(torrent, m_auto_managed:1)
 		PRINT_OFFSETOF(torrent, m_last_scrape)
-		PRINT_OFFSETOF(torrent, m_last_download)
+//		PRINT_OFFSETOF(torrent, m_last_download)
 		PRINT_OFFSETOF_END(torrent)
 	}
 #undef PRINT_SIZEOF
@@ -4547,13 +4547,15 @@ namespace libtorrent
 		bool was_finished = is_finished();
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
 		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
+
+		inc_torrent_gauge();
+	
 		if (filter_updated)
 		{
 			update_peer_interest(was_finished);
 			if (priority == 0) remove_time_critical_piece(index);
 		}
 
-		inc_torrent_gauge();
 	}
 
 	int torrent::piece_priority(int index) const
