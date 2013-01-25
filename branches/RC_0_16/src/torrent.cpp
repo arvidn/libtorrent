@@ -3731,6 +3731,9 @@ namespace libtorrent
 				std::iter_swap(i, boost::prior(i));
 				--i;
 			}
+			// just in case this piece had priority 0
+			if (m_picker->piece_priority(piece) == 0)
+				m_picker->set_piece_priority(piece, 1);
 			return;
 		}
 
@@ -3744,6 +3747,10 @@ namespace libtorrent
 		std::list<time_critical_piece>::iterator i = std::upper_bound(m_time_critical_pieces.begin()
 			, m_time_critical_pieces.end(), p);
 		m_time_critical_pieces.insert(i, p);
+
+		// just in case this piece had priority 0
+		if (m_picker->piece_priority(piece) == 0)
+			m_picker->set_piece_priority(piece, 1);
 
 		piece_picker::downloading_piece pi;
 		m_picker->piece_info(piece, pi);

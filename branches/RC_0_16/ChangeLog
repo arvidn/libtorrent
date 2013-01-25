@@ -1,3 +1,4 @@
+	* set_piece_deadline() also unfilters the piece (if its priority is 0)
 	* add work-around for bug in windows vista and earlier in GetOverlappedResult
 	* fix traversal algorithm leak in DHT
 	* fix string encoding conversions on windows
