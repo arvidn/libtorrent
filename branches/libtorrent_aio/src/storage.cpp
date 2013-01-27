@@ -515,6 +515,9 @@ namespace libtorrent
 			delete_one_file(*i, ec.ec);
 			if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
 		}
+
+		remove(m_part_file_name, ec.ec);
+		if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
 	}
 
 	void default_storage::write_resume_data(entry& rd, storage_error& ec) const
