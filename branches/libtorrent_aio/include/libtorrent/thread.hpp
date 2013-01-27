@@ -70,7 +70,7 @@ namespace libtorrent
 		void wait(mutex::scoped_lock& l);
 		void wait_for(mutex::scoped_lock& l, time_duration rel_time);
 		void notify_all();
-		void signal(mutex::scoped_lock& l)
+		void notify()
 		{
 			// TODO: support this
 			notify_all();
