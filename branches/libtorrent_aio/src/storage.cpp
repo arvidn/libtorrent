@@ -427,6 +427,17 @@ namespace libtorrent
 			if (m_stat_cache.get_filesize(index) > 0)
 				return true;
 		}
+		file_status s;
+		stat_file(m_part_file_name, &s, ec.ec);
+		if (!ec) return true;
+
+		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory) ec.ec.clear();
+		if (ec)
+		{
+			ec.file = -1;
+			ec.operation = storage_error::stat;
+			return false;
+		}
 		m_stat_cache.clear();
 		return false;
 	}
