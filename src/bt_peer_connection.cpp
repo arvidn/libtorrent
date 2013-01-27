@@ -1903,7 +1903,7 @@ namespace libtorrent
 		// if we send upload-only, the other end is very likely to disconnect
 		// us, at least if it's a seed. If we don't want to close redundant
 		// connections, don't sent upload-only
-		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
+		if (!m_ses.settings().close_redundant_connections) return;
 
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
