@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ namespace libtorrent
 		thread* m_accept_thread;
 		std::vector<thread*> m_threads;
 		mutex m_mutex;
-		condition m_cond;
+		condition_variable m_cond;
 		boost::asio::ssl::context m_context;
 
 		std::vector<ssl_socket*> m_jobs;

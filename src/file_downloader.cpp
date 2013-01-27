@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,7 @@ namespace libtorrent
 		// or end of request
 		int finish;
 		std::priority_queue<piece_entry> queue;
-		condition cond;
+		condition_variable cond;
 		mutex queue_mutex;
 	};
 
@@ -95,7 +95,7 @@ namespace libtorrent
 				pe.size = p->size;
 				i->second->queue.push(pe);
 				if (pe.piece == i->second->begin)
-					i->second->cond.signal_all(l2);
+					i->second->cond.notify_all();
 			}
 		}
 
