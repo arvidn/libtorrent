@@ -4420,6 +4420,9 @@ namespace libtorrent
 				std::iter_swap(i, boost::prior(i));
 				--i;
 			}
+			// just in case this piece had priority 0
+			if (m_picker->piece_priority(piece) == 0)
+				m_picker->set_piece_priority(piece, 1);
 			return;
 		}
 
@@ -4435,6 +4438,10 @@ namespace libtorrent
 		std::list<time_critical_piece>::iterator i = std::upper_bound(m_time_critical_pieces.begin()
 			, m_time_critical_pieces.end(), p);
 		m_time_critical_pieces.insert(i, p);
+
+		// just in case this piece had priority 0
+		if (m_picker->piece_priority(piece) == 0)
+			m_picker->set_piece_priority(piece, 1);
 
 		piece_picker::downloading_piece pi;
 		m_picker->piece_info(piece, pi);
@@ -7105,25 +7112,29 @@ namespace libtorrent
 		m_completed_time = time(0);
 
 		// disconnect all seeds
-		// TODO: 1 should disconnect all peers that have the pieces we have
-		// not just seeds. It would be pretty expensive to check all pieces
-		// for all peers though
-		std::vector<peer_connection*> seeds;
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		if (settings().get_bool(settings_pack::close_redundant_connections))
 		{
-			peer_connection* p = *i;
-			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
-			if (p->upload_only())
+			// TODO: 1 should disconnect all peers that have the pieces we have
+			// not just seeds
+			// not just seeds. It would be pretty expensive to check all pieces
+			// for all peers though
+			std::vector<peer_connection*> seeds;
+			for (peer_iterator i = m_connections.begin();
+				i != m_connections.end(); ++i)
 			{
+				peer_connection* p = *i;
+				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
+				if (p->upload_only())
+				{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				p->peer_log("*** SEED, CLOSING CONNECTION");
+					p->peer_log("*** SEED, CLOSING CONNECTION");
 #endif
-				seeds.push_back(p);
+					seeds.push_back(p);
+				}
 			}
+			std::for_each(seeds.begin(), seeds.end()
+				, boost::bind(&peer_connection::disconnect, _1, errors::torrent_finished, 0));
 		}
-		std::for_each(seeds.begin(), seeds.end()
-			, boost::bind(&peer_connection::disconnect, _1, errors::torrent_finished, 0));
 
 		if (m_abort) return;
 
