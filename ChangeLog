@@ -1,3 +1,4 @@
+	* fixed file priority vector-overrun
 	* fix potential packet allocation alignment issue in utp
 	* make 'close_redudnant_connections' cover more cases
 	* set_piece_deadline() also unfilters the piece (if its priority is 0)
