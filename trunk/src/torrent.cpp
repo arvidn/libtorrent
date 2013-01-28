@@ -3183,6 +3183,8 @@ namespace libtorrent
 			TORRENT_ASSERT(size >= 0);
 		}
 
+		remove_time_critical_piece(index, true);
+
 		m_picker->we_have(index);
 	}
 
@@ -3695,6 +3697,8 @@ namespace libtorrent
 
 	void torrent::set_piece_deadline(int piece, int t, int flags)
 	{
+		INVARIANT_CHECK;
+
 		if (m_abort)
 		{
 			// failed
@@ -6215,7 +6219,6 @@ namespace libtorrent
 		if (settings().close_redundant_connections)
 		{
 			// TODO: 1 should disconnect all peers that have the pieces we have
-			// not just seeds
 			// not just seeds. It would be pretty expensive to check all pieces
 			// for all peers though
 			std::vector<peer_connection*> seeds;
@@ -6525,6 +6528,13 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
+		for (std::list<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
+			, end(m_time_critical_pieces.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT(!is_seed());
+			TORRENT_ASSERT(!has_picker() || !m_picker->have_piece(i->piece));
+		}
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
