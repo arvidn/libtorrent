@@ -568,7 +568,7 @@ namespace libtorrent { namespace dht
 			{
 				std::string node;
 				std::back_insert_iterator<std::string> out(node);
-				write_endpoint(udp::endpoint(i->addr, i->port), out);
+				write_endpoint(i->ep(), out);
 				nodes.list().push_back(entry(node));
 			}
 			if (!nodes.list().empty())

@@ -1602,8 +1602,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 		TEST_EQUAL(nodes[0].timeout_count, 0);
 	}
 
@@ -1616,8 +1616,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 		TEST_EQUAL(nodes[0].timeout_count, 1);
 	}
 
@@ -1629,8 +1629,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 		TEST_EQUAL(nodes[0].timeout_count, 0);
 	}
 
@@ -1643,8 +1643,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 	}
 
 	// test adding the same node ID again with a different IP (should be ignored)
@@ -1654,8 +1654,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 	}
 
 	// test adding a node that ends up in the same bucket with an IP
@@ -1667,8 +1667,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 	}
 
 	s.restrict_routing_ips = false;
