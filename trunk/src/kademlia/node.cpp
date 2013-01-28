@@ -467,13 +467,13 @@ namespace
 		for (nodes_t::const_iterator i = nodes.begin()
 			, end(nodes.end()); i != end; ++i)
 		{
-			if (!i->addr.is_v4())
+			if (!i->addr().is_v4())
 			{
 				ipv6_nodes = true;
 				continue;
 			}
 			std::copy(i->id.begin(), i->id.end(), out);
-			write_endpoint(udp::endpoint(i->addr, i->port), out);
+			write_endpoint(udp::endpoint(i->addr(), i->port()), out);
 		}
 
 		if (ipv6_nodes)
@@ -483,12 +483,12 @@ namespace
 			for (nodes_t::const_iterator i = nodes.begin()
 				, end(nodes.end()); i != end; ++i)
 			{
-				if (!i->addr.is_v6()) continue;
+				if (!i->addr().is_v6()) continue;
 				endpoint.resize(18 + 20);
 				std::string::iterator out = endpoint.begin();
 				std::copy(i->id.begin(), i->id.end(), out);
 				out += 20;
-				write_endpoint(udp::endpoint(i->addr, i->port), out);
+				write_endpoint(udp::endpoint(i->addr(), i->port()), out);
 				endpoint.resize(out - endpoint.begin());
 				p.list().push_back(entry(endpoint));
 			}

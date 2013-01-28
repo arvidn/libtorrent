@@ -46,9 +46,39 @@ namespace libtorrent
 			*this = ep;
 		}
 
+		union_endpoint(udp::endpoint const& ep)
+		{
+			*this = ep;
+		}
+
 		union_endpoint()
 		{
 			*this = tcp::endpoint();
+		}
+
+		union_endpoint& operator=(udp::endpoint const& ep)
+		{
+#if TORRENT_USE_IPV6
+			v4 = ep.address().is_v4();
+			if (v4)
+				addr.v4 = ep.address().to_v4().to_bytes();
+			else
+				addr.v6 = ep.address().to_v6().to_bytes();
+#else
+			addr.v4 = ep.address().to_v4().to_bytes();
+#endif
+			port = ep.port();
+			return *this;
+		}
+
+		operator udp::endpoint() const
+		{
+#if TORRENT_USE_IPV6
+			if (v4) return udp::endpoint(address_v4(addr.v4), port);
+			else return udp::endpoint(address_v6(addr.v6), port);
+#else
+			return udp::endpoint(address_v4(addr.v4), port);
+#endif
 		}
 
 		union_endpoint& operator=(tcp::endpoint const& ep)
@@ -64,6 +94,16 @@ namespace libtorrent
 #endif
 			port = ep.port();
 			return *this;
+		}
+
+		libtorrent::address address() const
+		{
+#if TORRENT_USE_IPV6
+			if (v4) return address_v4(addr.v4);
+			else return address_v6(addr.v6);
+#else
+			return address_v4(addr.v4);
+#endif
 		}
 
 		operator tcp::endpoint() const
