@@ -939,6 +939,11 @@ namespace libtorrent
 		if (m_abort)
 		{
 			// failed
+			// TODO: 3 add an error code to the read_piece alert
+			// to indicate what went wrong. operation_aborted in this
+			// case. It also has to be included in the cases where
+			// a time_critical_piece is aborted by setting its priority
+			// to zero.
 			m_ses.m_alerts.post_alert(read_piece_alert(
 				get_handle(), piece, boost::shared_array<char>(), 0));
 			return;
@@ -3808,6 +3813,12 @@ namespace libtorrent
 					}
 				}
 			}
+			else if (i->flags & torrent_handle::alert_when_available)
+			{
+				// post an empty read_piece_alert to indicate it failed
+				m_ses.m_alerts.post_alert(read_piece_alert(
+					get_handle(), piece, boost::shared_array<char>(), 0));
+			}
 			m_time_critical_pieces.erase(i);
 			return;
 		}
@@ -3821,6 +3832,12 @@ namespace libtorrent
 		{
 			if (priority[i->piece] == 0)
 			{
+				if (i->flags & torrent_handle::alert_when_available)
+				{
+					// post an empty read_piece_alert to indicate it failed
+					m_ses.m_alerts.post_alert(read_piece_alert(
+						get_handle(), i->piece, boost::shared_array<char>(), 0));
+				}
 				i = m_time_critical_pieces.erase(i);
 				continue;
 			}
