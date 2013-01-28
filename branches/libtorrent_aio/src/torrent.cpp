@@ -924,6 +924,11 @@ namespace libtorrent
 		if (m_abort)
 		{
 			// failed
+			// TODO: 3 add an error code to the read_piece alert
+			// to indicate what went wrong. operation_aborted in this
+			// case. It also has to be included in the cases where
+			// a time_critical_piece is aborted by setting its priority
+			// to zero.
 			m_ses.alerts().post_alert(read_piece_alert(
 				get_handle(), piece, boost::shared_array<char>(), 0));
 			return;
@@ -3668,7 +3673,7 @@ namespace libtorrent
 			}
 		}
 
-		remove_time_critical_piece(index);
+		remove_time_critical_piece(index, true);
 
 		if (is_finished()
 			&& m_state != torrent_status::finished
@@ -4389,6 +4394,8 @@ namespace libtorrent
 
 	void torrent::set_piece_deadline(int piece, int t, int flags)
 	{
+		INVARIANT_CHECK;
+
 		if (m_abort)
 		{
 			// failed
@@ -4509,6 +4516,12 @@ namespace libtorrent
 					}
 				}
 			}
+			else if (i->flags & torrent_handle::alert_when_available)
+			{
+				// post an empty read_piece_alert to indicate it failed
+				alerts().post_alert(read_piece_alert(
+					get_handle(), piece, boost::shared_array<char>(), 0));
+			}
 			m_time_critical_pieces.erase(i);
 			return;
 		}
@@ -4522,6 +4535,12 @@ namespace libtorrent
 		{
 			if (priority[i->piece] == 0)
 			{
+				if (i->flags & torrent_handle::alert_when_available)
+				{
+					// post an empty read_piece_alert to indicate it failed
+					alerts().post_alert(read_piece_alert(
+						get_handle(), i->piece, boost::shared_array<char>(), 0));
+				}
 				i = m_time_critical_pieces.erase(i);
 				continue;
 			}
@@ -7131,7 +7150,6 @@ namespace libtorrent
 		if (settings().get_bool(settings_pack::close_redundant_connections))
 		{
 			// TODO: 1 should disconnect all peers that have the pieces we have
-			// not just seeds
 			// not just seeds. It would be pretty expensive to check all pieces
 			// for all peers though
 			std::vector<peer_connection*> seeds;
@@ -7468,6 +7486,13 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
+		for (std::list<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
+			, end(m_time_critical_pieces.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT(!is_seed());
+			TORRENT_ASSERT(!has_picker() || !m_picker->have_piece(i->piece));
+		}
+
 		if (!m_finished_alert_posted)
 		{
 			TORRENT_ASSERT(m_state != torrent_status::seeding
