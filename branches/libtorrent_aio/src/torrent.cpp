@@ -1636,10 +1636,14 @@ namespace libtorrent
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
 	{
-		// TODO: 3 filter out peers that are disconnecting
-		const_peer_iterator lowest_rank = std::min_element(begin(), end()
-			, boost::bind(&peer_connection::peer_rank, _1)
-			< boost::bind(&peer_connection::peer_rank, _2));
+		const_peer_iterator lowest_rank = end();
+		for (const_peer_iterator i = begin(); i != end(); ++i)
+		{
+			// disconnecting peers don't count
+			if ((*i)->is_disconnecting()) continue;
+			if (lowest_rank == end() || (*lowest_rank)->peer_rank() > (*i)->peer_rank())
+				lowest_rank = i;
+		}
 
 		if (lowest_rank == end()) return NULL;
 		return *lowest_rank;
@@ -1655,6 +1659,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
+
+		if (m_file_priority.size() > m_torrent_file->num_files())
+			m_file_priority.resize(m_torrent_file->num_files());
 
 #ifdef TORRENT_USE_OPENSSL
 		std::string cert = m_torrent_file->ssl_cert();
@@ -4755,6 +4762,7 @@ namespace libtorrent
 
 		files->clear();
 		files->resize(m_torrent_file->num_files(), 1);
+		TORRENT_ASSERT(m_file_priority.size() <= m_torrent_file->num_files());
 		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 	}
 

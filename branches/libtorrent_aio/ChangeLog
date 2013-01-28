@@ -16,6 +16,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* DHT memory optimization
 	* improve DHT lookup speed
 	* improve support for windows XP and earlier
 	* introduce global connection priority for improved swarm performance
@@ -28,6 +29,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fixed file priority vector-overrun
+	* fix potential packet allocation alignment issue in utp
 	* make 'close_redudnant_connections' cover more cases
 	* set_piece_deadline() also unfilters the piece (if its priority is 0)
 	* add work-around for bug in windows vista and earlier in GetOverlappedResult
