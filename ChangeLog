@@ -11,6 +11,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix read-piece response for cancelled deadline-pieces
 	* fixed file priority vector-overrun
 	* fix potential packet allocation alignment issue in utp
 	* make 'close_redudnant_connections' cover more cases
