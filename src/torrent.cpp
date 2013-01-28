@@ -3814,6 +3814,12 @@ namespace libtorrent
 					}
 				}
 			}
+			else if (i->flags & torrent_handle::alert_when_available)
+			{
+				// post an empty read_piece_alert to indicate it failed
+				m_ses.m_alerts.post_alert(read_piece_alert(
+					get_handle(), piece, boost::shared_array<char>(), 0));
+			}
 			m_time_critical_pieces.erase(i);
 			return;
 		}
@@ -3827,6 +3833,12 @@ namespace libtorrent
 		{
 			if (priority[i->piece] == 0)
 			{
+				if (i->flags & torrent_handle::alert_when_available)
+				{
+					// post an empty read_piece_alert to indicate it failed
+					m_ses.m_alerts.post_alert(read_piece_alert(
+						get_handle(), i->piece, boost::shared_array<char>(), 0));
+				}
 				i = m_time_critical_pieces.erase(i);
 				continue;
 			}
