@@ -8246,10 +8246,7 @@ namespace libtorrent
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
-		// this call will trigger a tracker announce, that's
-		// why it's important to set announce_to_trackers to
-		// true first
-		set_allow_peers(true);
+		m_allow_peers = true;
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
 
 		inc_torrent_gauge();
