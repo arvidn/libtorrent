@@ -50,11 +50,21 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
 	ses.set_alert_mask(alert::storage_notification);
 
+	std::vector<boost::uint8_t> zeroes;
+	zeroes.resize(1000, 0);
 	add_torrent_params p;
 	p.ti = info;
 	p.save_path = ".";
+
+	// make sure we correctly handle the case where we pass in
+	// more values than there are files
+	p.file_priorities = &zeroes;
+
 	error_code ec;
 	torrent_handle h = ses.add_torrent(p, ec);
+
+	std::vector<int> ones(info->num_files(), 1);
+	h.prioritize_files(ones);
 
 	test_sleep(500);
 	torrent_status st = h.status();
