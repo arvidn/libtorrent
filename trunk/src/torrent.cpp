@@ -1502,10 +1502,14 @@ namespace libtorrent
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
 	{
-		// TODO: 3 filter out peers that are disconnecting
-		const_peer_iterator lowest_rank = std::min_element(begin(), end()
-			, boost::bind(&peer_connection::peer_rank, _1)
-			< boost::bind(&peer_connection::peer_rank, _2));
+		const_peer_iterator lowest_rank = end();
+		for (const_peer_iterator i = begin(); i != end(); ++i)
+		{
+			// disconnecting peers don't count
+			if ((*i)->is_disconnecting()) continue;
+			if (lowest_rank == end() || (*lowest_rank)->peer_rank() > (*i)->peer_rank())
+				lowest_rank = i;
+		}
 
 		if (lowest_rank == end()) return NULL;
 		return *lowest_rank;
