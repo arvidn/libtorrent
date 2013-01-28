@@ -1524,6 +1524,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
+		if (m_file_priority.size() > m_torrent_file->num_files())
+			m_file_priority.resize(m_torrent_file->num_files());
+
 #ifdef TORRENT_USE_OPENSSL
 		std::string cert = m_torrent_file->ssl_cert();
 		if (!cert.empty()) init_ssl(cert);
@@ -3975,6 +3978,11 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
 		if (index < 0 || index >= m_torrent_file->num_files()) return;
+		if (m_file_priority.size() <= index)
+		{
+			if (prio == 1) return;
+			m_file_priority.resize(m_torrent_file->num_files(), 1);
+		}
 		if (m_file_priority[index] == prio) return;
 		m_file_priority[index] = prio;
 		update_piece_priorities();
@@ -3988,6 +3996,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
 		if (index < 0 || index >= m_torrent_file->num_files()) return 0;
+		if (m_file_priority.size() <= index) return 1;
 		return m_file_priority[index];
 	}
 
@@ -4001,10 +4010,9 @@ namespace libtorrent
 			return;
 		}
 
-		files->resize(m_torrent_file->num_files());
+		files->resize(m_torrent_file->num_files(), 1);
+		TORRENT_ASSERT(m_file_priority.size() <= m_torrent_file->num_files());
 		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
-		if (m_file_priority.size() < m_torrent_file->num_files())
-			std::fill(files->begin() + m_file_priority.size(), files->end(), 1);
 	}
 
 	void torrent::update_piece_priorities()
