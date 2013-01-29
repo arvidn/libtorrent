@@ -191,6 +191,7 @@ namespace libtorrent
 			boost::shared_array<char> piece_data;
 			int blocks_left;
 			bool fail;
+			error_code error;
 		};
 		void read_piece(int piece);
 		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp);

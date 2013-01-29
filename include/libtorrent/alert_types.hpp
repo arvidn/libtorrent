@@ -145,12 +145,20 @@ namespace libtorrent
 			, size(s)
 		{}
 
+		read_piece_alert(torrent_handle h, int p, error_code e)
+			: torrent_alert(h)
+			, ec(e)
+			, piece(p)
+			, size(0)
+		{}
+
 		TORRENT_DEFINE_ALERT(read_piece_alert);
 
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
 		virtual bool discardable() const { return false; }
 
+		error_code ec;
 		boost::shared_array<char> buffer;
 		int piece;
 		int size;
