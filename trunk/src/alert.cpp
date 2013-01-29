@@ -79,8 +79,16 @@ namespace libtorrent {
 	std::string read_piece_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s: piece %s %u", torrent_alert::message().c_str()
-			, buffer ? "successful" : "failed", piece);
+		if (ec)
+		{
+			snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
+				, torrent_alert::message().c_str() , piece, ec.message().c_str());
+		}
+		else
+		{
+			snprintf(msg, sizeof(msg), "%s: read_piece %u successful"
+				, torrent_alert::message().c_str() , piece);
+		}
 		return msg;
 	}
 

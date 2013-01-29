@@ -6314,6 +6314,10 @@ e.g::
 		case read_piece_alert::alert_type:
 		{
 			read_piece_alert* p = (read_piece_alert*)a.get();
+			if (p->ec) {
+				// read_piece failed
+				break;
+			}
 			// use p
 			break;
 		}
@@ -6432,11 +6436,14 @@ is 0. If successful, ``buffer`` points to a buffer containing all the data
 of the piece. ``piece`` is the piece index that was read. ``size`` is the
 number of bytes that was read.
 
+If the operation fails, ec will indicat what went wrong.
+
 ::
 
 	struct read_piece_alert: torrent_alert
 	{
 		// ...
+		error_code ec;
 		boost::shared_ptr<char> buffer;
 		int piece;
 		int size;
