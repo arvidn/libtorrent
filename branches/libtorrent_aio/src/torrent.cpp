@@ -924,13 +924,8 @@ namespace libtorrent
 		if (m_abort)
 		{
 			// failed
-			// TODO: 3 add an error code to the read_piece alert
-			// to indicate what went wrong. operation_aborted in this
-			// case. It also has to be included in the cases where
-			// a time_critical_piece is aborted by setting its priority
-			// to zero.
 			m_ses.alerts().post_alert(read_piece_alert(
-				get_handle(), piece, boost::shared_array<char>(), 0));
+				get_handle(), piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
 			return;
 		}
 
@@ -1186,6 +1181,7 @@ namespace libtorrent
 		if (j->ret != r.length)
 		{
 			rp->fail = true;
+			rp->error = j->error.ec;
 			handle_disk_error(j);
 		}
 		else
@@ -1198,12 +1194,14 @@ namespace libtorrent
 			int size = m_torrent_file->piece_size(r.piece);
 			if (rp->fail)
 			{
-				rp->piece_data.reset();
-				size = 0;
+				m_ses.alerts().post_alert(read_piece_alert(
+					get_handle(), r.piece, rp->error));
 			}
-
-			m_ses.alerts().post_alert(read_piece_alert(
-				get_handle(), r.piece, rp->piece_data, size));
+			else
+			{
+				m_ses.alerts().post_alert(read_piece_alert(
+					get_handle(), r.piece, rp->piece_data, size));
+			}
 			delete rp;
 		}
 	}
@@ -4402,7 +4400,7 @@ namespace libtorrent
 			if (flags & torrent_handle::alert_when_available)
 			{
 				m_ses.alerts().post_alert(read_piece_alert(
-					get_handle(), piece, boost::shared_array<char>(), 0));
+					get_handle(), piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
 			}
 			return;
 		}
@@ -4520,7 +4518,7 @@ namespace libtorrent
 			{
 				// post an empty read_piece_alert to indicate it failed
 				alerts().post_alert(read_piece_alert(
-					get_handle(), piece, boost::shared_array<char>(), 0));
+					get_handle(), piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
 			}
 			m_time_critical_pieces.erase(i);
 			return;
@@ -4539,7 +4537,7 @@ namespace libtorrent
 				{
 					// post an empty read_piece_alert to indicate it failed
 					alerts().post_alert(read_piece_alert(
-						get_handle(), i->piece, boost::shared_array<char>(), 0));
+						get_handle(), i->piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
 				}
 				i = m_time_critical_pieces.erase(i);
 				continue;

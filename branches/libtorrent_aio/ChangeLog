@@ -16,6 +16,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* report errors in read_piece_alert
 	* DHT memory optimization
 	* improve DHT lookup speed
 	* improve support for windows XP and earlier
