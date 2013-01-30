@@ -1,3 +1,4 @@
+	* fixed piece picker bug when using pad-files
 	* fix read-piece response for cancelled deadline-pieces
 	* fixed file priority vector-overrun
 	* fix potential packet allocation alignment issue in utp
