@@ -230,6 +230,7 @@ namespace libtorrent
 			TORRENT_ASSERT(i->piece_index < bits.size());
 			TORRENT_ASSERT(bits[i->piece_index]);
 			TORRENT_ASSERT(!m_piece_map[i->piece_index].have());
+			TORRENT_ASSERT(!m_piece_map[i->piece_index].filtered());
 		}
 	}
 	
@@ -1483,6 +1484,8 @@ namespace libtorrent
 		// make this scale by the number of peers we have. For large
 		// scale clients, we would have more peers, and allow a higher
 		// threshold for the number of partials
+		// TODO: 2 m_downloads size will be > 0 just by having pad-files
+		// in the torrent. That should be taken into account here.
 		if (m_downloads.size() > num_peers * 3 / 2) options |= prioritize_partials;
 
 		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
@@ -1519,7 +1522,7 @@ namespace libtorrent
 			for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
 				, end(m_downloads.end()); i != end; ++i)
 			{
-				if (!pieces[i->index]) continue;
+				if (!is_piece_free(i->index, pieces)) continue;
 				if (m_piece_map[i->index].full
 					&& backup_blocks.size() >= num_blocks
 					&& backup_blocks2.size() >= num_blocks)
@@ -1675,6 +1678,7 @@ namespace libtorrent
 						num_blocks_in_piece = num_blocks;
 					for (int j = 0; j < num_blocks_in_piece; ++j)
 					{
+						TORRENT_ASSERT(is_piece_free(k, pieces));
 						interesting_blocks.push_back(piece_block(k, j));
 						--num_blocks;
 					}
@@ -1935,6 +1939,7 @@ namespace libtorrent
 		{
 			if (num_blocks_in_piece > num_blocks)
 				num_blocks_in_piece = num_blocks;
+			TORRENT_ASSERT(is_piece_free(piece, pieces));
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 				interesting_blocks.push_back(piece_block(piece, j));
 			num_blocks -= num_blocks_in_piece;
@@ -1947,6 +1952,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(m_piece_map[k].priority(this) > 0);
 				num_blocks_in_piece = blocks_in_piece(k);
+				TORRENT_ASSERT(is_piece_free(k, pieces));
 				for (int j = 0; j < num_blocks_in_piece; ++j)
 				{
 					interesting_blocks.push_back(piece_block(k, j));
@@ -1970,6 +1976,7 @@ namespace libtorrent
 		, void* peer, piece_state_t speed, int options) const
 	{
 		if (!pieces[dp.index]) return num_blocks;
+		if (m_piece_map[dp.index].filtered()) return num_blocks;
 
 		int num_blocks_in_piece = blocks_in_piece(dp.index);
 
