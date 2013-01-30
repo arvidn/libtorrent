@@ -539,10 +539,10 @@ namespace libtorrent
 	{
 		// the main purpuse of padding is to optimize disk
 		// I/O. This is a conservative memory page size assumption
-		int alignment = 8*1024;
+		int alignment = 16*1024;
 
 		// it doesn't make any sense to pad files that
-		// are smaller than one piece
+		// are smaller than the alignment
 		if (pad_file_limit >= 0 && pad_file_limit < alignment)
 			pad_file_limit = alignment;
 
@@ -568,7 +568,6 @@ namespace libtorrent
 				}
 			}
 			else if (pad_file_limit >= 0
-				&& (off & (alignment-1)) != 0
 				&& i->size > pad_file_limit
 				&& i->pad_file == false)
 			{
