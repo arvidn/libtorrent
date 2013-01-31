@@ -1,3 +1,4 @@
+	* make torrent file parser reject invalid path elements earlier
 	* fixed piece picker bug when using pad-files
 	* fix read-piece response for cancelled deadline-pieces
 	* fixed file priority vector-overrun
