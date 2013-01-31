@@ -281,6 +281,7 @@ namespace libtorrent
 			if (p->list_at(i)->type() != lazy_entry::string_t)
 				return false;
 			std::string path_element = p->list_at(i)->string_value();
+			if (!valid_path_element(path_element)) continue;
 			if (i == end - 1) *filename = p->list_at(i);
 			trim_path_element(path_element);
 			path = combine_path(path, path_element);
