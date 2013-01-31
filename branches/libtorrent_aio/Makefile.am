@@ -116,6 +116,18 @@ EXTRA_DIST = \
   libtorrent-rasterbar-cmake.pc  \
   parse_dht_log.py \
   parse_session_stats.py \
+  test/test_torrents/url_list2.torrent \ 
+  test/test_torrents/httpseed.torrent \
+  test/test_torrents/empty_httpseed.torrent \
+  test/test_torrents/hidden_parent_path.torrent \
+  test/test_torrents/url_list3.torrent \
+  test/test_torrents/parent_path.torrent \
+  test/test_torrents/slash_path.torrent \
+  test/test_torrents/backslash_path.torrent \
+  test/test_torrents/base.torrent \
+  test/test_torrents/empty_path.torrent \
+  test/test_torrents/single_multi_file.torrent \
+  test/test_torrents/url_list.torrent \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES)
 

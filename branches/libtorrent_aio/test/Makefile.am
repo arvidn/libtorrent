@@ -34,6 +34,7 @@ test_programs = \
   test_tailqueue             \
   test_threads               \
   test_torrent               \
+  test_torrent_parse         \
   test_trackers_extension    \
   test_transfer              \
   test_upnp                  \
