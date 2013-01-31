@@ -319,7 +319,6 @@ namespace libtorrent
 		{
 			if (p->list_at(i)->type() != lazy_entry::string_t)
 				return false;
-			if (!valid_path_element(path_element)) continue;
 			if (i == end - 1) *filename = p->list_at(i);
 			sanitize_append_path_element(path
 				, p->list_at(i)->string_ptr(), p->list_at(i)->string_length());
