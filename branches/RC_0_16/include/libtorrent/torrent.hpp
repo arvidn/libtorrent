@@ -963,6 +963,9 @@ namespace libtorrent
 		// this torrent belongs to.
 		aux::session_impl& m_ses;
 
+		// used to resolve hostnames for web seeds
+		mutable tcp::resolver m_host_resolver;
+
 		std::vector<boost::uint8_t> m_file_priority;
 
 		// this vector contains the number of bytes completely

@@ -357,6 +357,7 @@ namespace libtorrent
 		, m_num_connecting(0)
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
+		, m_host_resolver(ses.m_io_service)
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
 		, m_url(p.url)
@@ -2612,7 +2613,7 @@ namespace libtorrent
 					add_outstanding_async("torrent::on_peer_name_lookup");
 #endif
 					tcp::resolver::query q(i->ip, to_string(i->port).elems);
-					m_ses.m_host_resolver.async_resolve(q,
+					m_host_resolver.async_resolve(q,
 						boost::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
 				}
 			}
@@ -3544,7 +3545,7 @@ namespace libtorrent
 			set_state(torrent_status::queued_for_checking);
 
 		m_owning_storage = 0;
-		m_ses.m_host_resolver.cancel();
+		m_host_resolver.cancel();
 	}
 
 	void torrent::super_seeding(bool on)
@@ -4576,7 +4577,7 @@ namespace libtorrent
 			// use proxy
 			web->resolving = true;
 			tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
-			m_ses.m_host_resolver.async_resolve(q,
+			m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
 		}
 		else if (ps.proxy_hostnames
@@ -4589,7 +4590,7 @@ namespace libtorrent
 		{
 			web->resolving = true;
 			tcp::resolver::query q(hostname, to_string(port).elems);
-			m_ses.m_host_resolver.async_resolve(q,
+			m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
 					, tcp::endpoint()));
 		}
@@ -4681,7 +4682,7 @@ namespace libtorrent
 
 		web->resolving = true;
 		tcp::resolver::query q(hostname, to_string(port).elems);
-		m_ses.m_host_resolver.async_resolve(q,
+		m_host_resolver.async_resolve(q,
 			boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web, a));
 	}
 
@@ -4907,7 +4908,7 @@ namespace libtorrent
 			return;
 		}
 		m_resolving_country = true;
-		m_ses.m_host_resolver.async_resolve(q,
+		m_host_resolver.async_resolve(q,
 			boost::bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
 	}
 
