@@ -12,6 +12,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix torrent-abort issue which would cancel name lookups of other torrents
 	* make torrent file parser reject invalid path elements earlier
 	* fixed piece picker bug when using pad-files
 	* fix read-piece response for cancelled deadline-pieces
