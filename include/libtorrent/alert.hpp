@@ -99,7 +99,11 @@ namespace libtorrent {
 			stats_notification = 0x800,
 			rss_notification = 0x1000,
 
-			all_categories = 0xffffffff
+			// since the enum is signed, make sure this isn't
+			// interpreted as -1. For instance, boost.python
+			// does that and fails when assigning it to an
+			// unsigned parameter.
+			all_categories = 0x7fffffff
 		};
 
 		alert();
