@@ -1041,6 +1041,9 @@ namespace libtorrent
 		// this torrent belongs to.
 		aux::session_interface& m_ses;
 
+		// used to resolve hostnames for web seeds
+		mutable tcp::resolver m_host_resolver;
+
 		// this vector is allocated lazily. If no file priorities are
 		// ever changed, this remains empty. Any unallocated slot
 		// implicitly means the file has priority 1.

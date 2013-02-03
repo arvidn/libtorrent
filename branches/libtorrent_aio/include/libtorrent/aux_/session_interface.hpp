@@ -216,8 +216,6 @@ namespace libtorrent { namespace aux
 		virtual tcp::endpoint get_ipv6_interface() const = 0;
 		virtual tcp::endpoint get_ipv4_interface() const = 0;
 
-		virtual tcp::resolver& host_resolver() = 0;
-
 		virtual void trigger_auto_manage() = 0;
 
 		virtual session_settings const& settings() const = 0;

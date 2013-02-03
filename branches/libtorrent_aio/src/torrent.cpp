@@ -253,6 +253,7 @@ namespace libtorrent
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
 		, m_ses(ses)
+		, m_host_resolver(ses.get_io_service())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
 		, m_url(p.url)
@@ -2944,7 +2945,9 @@ namespace libtorrent
 					add_outstanding_async("torrent::on_peer_name_lookup");
 #endif
 					tcp::resolver::query q(i->ip, to_string(i->port).elems);
-					m_ses.host_resolver().async_resolve(q,
+					// TODO: instead, borrow host resolvers from a pool in session_impl. That
+					// would make the torrent object smaller
+					m_host_resolver.async_resolve(q,
 						boost::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2));
 				}
 			}
@@ -4236,9 +4239,7 @@ namespace libtorrent
 		}
 		
 		m_storage = 0;
-		// TODO: this would abort all async_resolve, for all torrents.
-		// this should probably be moved to session::abort()
-		m_ses.host_resolver().cancel();
+		m_host_resolver.cancel();
 
 		if (!m_apply_ip_filter)
 		{
@@ -5344,7 +5345,7 @@ namespace libtorrent
 			// use proxy
 			web->resolving = true;
 			tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
-			m_ses.host_resolver().async_resolve(q,
+			m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
 		}
 		else if (ps.proxy_hostnames
@@ -5357,7 +5358,7 @@ namespace libtorrent
 		{
 			web->resolving = true;
 			tcp::resolver::query q(hostname, to_string(port).elems);
-			m_ses.host_resolver().async_resolve(q,
+			m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
 					, tcp::endpoint()));
 		}
@@ -5449,7 +5450,7 @@ namespace libtorrent
 
 		web->resolving = true;
 		tcp::resolver::query q(hostname, to_string(port).elems);
-		m_ses.host_resolver().async_resolve(q,
+		m_host_resolver.async_resolve(q,
 			boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web, a));
 	}
 
@@ -5693,7 +5694,7 @@ namespace libtorrent
 			return;
 		}
 		m_resolving_country = true;
-		m_ses.host_resolver().async_resolve(q,
+		m_host_resolver.async_resolve(q,
 			boost::bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
 	}
 

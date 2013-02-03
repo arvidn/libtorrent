@@ -278,7 +278,6 @@ namespace libtorrent
 			void open_listen_port(int flags, error_code& ec);
 			
 			io_service& get_io_service() { return m_io_service; }
-			tcp::resolver& host_resolver() { return m_host_resolver; }
 
 			std::vector<torrent*>& torrent_list(int i)
 			{
