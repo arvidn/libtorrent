@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <queue>
 
 extern "C" {
-#include "mongoose.h"
+#include "local_mongoose.h"
 }
 
 namespace libtorrent

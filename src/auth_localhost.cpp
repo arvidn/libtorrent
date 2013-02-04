@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,53 +30,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_WEBUI_HPP
-#define TORRENT_WEBUI_HPP
+#include "auth_localhost.hpp"
 
-#include <vector>
-#include <string>
+extern "C" {
+#include "local_mongoose.h"
+}
 
-struct mg_context;
-struct mg_connection;
-struct mg_request_info;
-
-struct http_handler
-{
-	virtual bool handle_http(mg_connection* conn,
-		mg_request_info const* request_info) = 0;
-};
+#include <stdio.h>
 
 namespace libtorrent
 {
-	class session;
 
-	struct webui_base
-	{
-		webui_base();
-		~webui_base();
+bool auth_localhost::handle_http(mg_connection* conn, mg_request_info const* request_info)
+{
+	// we might as well be extra strict and only allow 127.0.0.1, instead
+	// of 127.x.x.x
+	if (request_info->remote_ip == 0x7f000001)
+		return false;
 
-		void add_handler(http_handler* h)
-		{ m_handlers.push_back(h); }
-
-		void remove_handler(http_handler* h);
-
-		void start(int port, char const* cert_path = 0);
-		void stop();
-
-		bool handle_http(mg_connection* conn
-			, mg_request_info const* request_info);
-	
-		void set_document_root(std::string r) { m_document_root = r; }
-
-	private:
-
-		std::vector<http_handler*> m_handlers;
-		std::string m_document_root;
-
-		mg_context* m_ctx;
-	};
-
+	mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+		"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+		"Content-Length: 0\r\n\r\n");
+	return true;
 }
 
-#endif
+}
 

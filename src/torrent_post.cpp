@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp" // for http_parser
 
 extern "C" {
-#include "mongoose.h"
+#include "local_mongoose.h"
 }
 
 using namespace libtorrent;

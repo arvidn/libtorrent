@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,53 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_WEBUI_HPP
-#define TORRENT_WEBUI_HPP
-
-#include <vector>
-#include <string>
-
-struct mg_context;
-struct mg_connection;
-struct mg_request_info;
-
-struct http_handler
-{
-	virtual bool handle_http(mg_connection* conn,
-		mg_request_info const* request_info) = 0;
-};
+#include "webui.hpp" // for http_handler
 
 namespace libtorrent
 {
-	class session;
 
-	struct webui_base
+	// this http_handler only lets requests from 127.0.0.1 through
+	// any other request is unauthorized
+	struct auth_localhost : http_handler
 	{
-		webui_base();
-		~webui_base();
-
-		void add_handler(http_handler* h)
-		{ m_handlers.push_back(h); }
-
-		void remove_handler(http_handler* h);
-
-		void start(int port, char const* cert_path = 0);
-		void stop();
-
-		bool handle_http(mg_connection* conn
-			, mg_request_info const* request_info);
-	
-		void set_document_root(std::string r) { m_document_root = r; }
-
-	private:
-
-		std::vector<http_handler*> m_handlers;
-		std::string m_document_root;
-
-		mg_context* m_ctx;
+		bool handle_http(mg_connection* conn, mg_request_info const* request_info);
 	};
-
 }
-
-#endif
 

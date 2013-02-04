@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "base64.hpp"
 
 extern "C" {
-#include "mongoose.h"
+#include "local_mongoose.h"
 }
 
 #include <string.h> // for strcmp() 

@@ -55,8 +55,8 @@ namespace libtorrent
 		void set_params_model(add_torrent_params const& p)
 		{ m_params_model = p; }
 
-		virtual bool handle_http(mg_connection* conn,
-			mg_request_info const* request_info);
+		virtual bool handle_http(mg_connection* conn
+			, mg_request_info const* request_info);
 
 		void start(std::vector<char>&, char const* args);
 		void stop(std::vector<char>&, char const* args);
