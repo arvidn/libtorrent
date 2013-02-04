@@ -58,10 +58,13 @@ namespace libtorrent
 		if (ta)
 		{
 			printf("added torrent: %s\n", ta->handle.name().c_str());
+			mutex::scoped_lock l(m_mutex);
 			m_queue.left.push_front(std::make_pair(m_frame, ta->handle.status()));
 		}
 		else if (td)
 		{
+			mutex::scoped_lock l(m_mutex);
+
 			m_removed.push_front(std::make_pair(m_frame, td->info_hash));
 			torrent_status st;
 			st.handle = td->handle;
@@ -74,6 +77,8 @@ namespace libtorrent
 		}
 		else if (su)
 		{
+			mutex::scoped_lock l(m_mutex);
+
 			std::vector<torrent_status> const& st = su->status;
 			for (std::vector<torrent_status>::const_iterator i = st.begin()
 				, end(st.end()); i != end; ++i)
@@ -100,6 +105,7 @@ namespace libtorrent
 	void torrent_history::removed_since(int frame, std::vector<sha1_hash>& torrents) const
 	{
 		torrents.clear();
+		mutex::scoped_lock l(m_mutex);
 		for (std::deque<std::pair<int, sha1_hash> >::const_iterator i = m_removed.begin()
 			, end(m_removed.end()); i != end; ++i)
 		{
@@ -110,6 +116,7 @@ namespace libtorrent
 
 	void torrent_history::updated_since(int frame, std::vector<torrent_status>& torrents) const
 	{
+		mutex::scoped_lock l(m_mutex);
 		for (queue_t::left_const_iterator i = m_queue.left.begin()
 			, end(m_queue.left.end()); i != end; ++i)
 		{
