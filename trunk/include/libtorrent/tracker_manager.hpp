@@ -156,6 +156,7 @@ namespace libtorrent
 			, int min_interval
 			, int complete
 			, int incomplete
+			, int downloaded
 			, address const& external_ip
 			, std::string const& trackerid) = 0;
 		virtual void tracker_request_error(
