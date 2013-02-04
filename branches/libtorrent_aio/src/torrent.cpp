@@ -4778,6 +4778,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (!valid_metadata())
+		{
+			files->resize(m_file_priority.size());
+			std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
+			return;
+		}
+
 		files->clear();
 		files->resize(m_torrent_file->num_files(), 1);
 		TORRENT_ASSERT(m_file_priority.size() <= m_torrent_file->num_files());
