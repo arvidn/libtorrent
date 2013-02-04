@@ -105,6 +105,17 @@ namespace libtorrent
 		// no announces before this time
 		ptime min_announce;
 
+		// TODO: include the number of peers received from this tracker, at last announce
+
+		// if this tracker has returned scrape data, these fields are filled
+		// in with valid numbers. Otherwise they are set to -1.
+		// the number of current downloaders
+		int scrape_incomplete;
+		// the number of current seeds
+		int scrape_complete;
+		// the cumulative number of completed downloads, ever
+		int scrape_downloaded;
+
 		// the tier this tracker belongs to
 		boost::uint8_t tier;
 
