@@ -409,10 +409,10 @@ struct utp_socket_impl
 	// timers when we should trigger the read and
 	// write callbacks (unless the buffers fill up
 	// before)
-	// TODO: 3 remove the read timeout concept. This should not be necessary
+	// TODO: 3 remove the read timeout concept. This should not be necessary, use nagle-like semantics instead
 	ptime m_read_timeout;
 
-	// TODO: 3 remove the write timeout concept. This should not be necessary
+	// TODO: 3 remove the write timeout concept. This should not be necessary, use nagle-like semantics instead
 	ptime m_write_timeout;
 
 	// the time when the last packet we sent times out. Including re-sends.

@@ -6115,6 +6115,13 @@ retry:
 	external_ip const& session_impl::external_address() const
 	{ return m_external_ip; }
 
+	// this is the DHT observer version. DHT is the implied source
+	void session_impl::set_external_address(address const& ip
+		, address const& source)
+	{
+		set_external_address(ip, source_dht, source);
+	}
+
 	void session_impl::set_external_address(address const& ip
 		, int source_type, address const& source)
 	{
