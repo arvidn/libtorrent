@@ -79,8 +79,6 @@ namespace
 
 	void session_set_settings(session& ses, dict const& sett_dict)
 	{
-		allow_threading_guard guard;
-
 		settings_pack p;
 		list iterkeys = (list)sett_dict.iterkeys();
 		for (int i = 0; i < boost::python::len(iterkeys); i++)
@@ -108,6 +106,8 @@ namespace
 			}
 			TORRENT_CATCH(...) {}
 		}
+
+		allow_threading_guard guard;
 
 		ses.apply_settings(p);
 	}
