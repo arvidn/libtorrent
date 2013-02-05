@@ -511,6 +511,9 @@ namespace libtorrent
 
 			// implements dht_observer
 			virtual void set_external_address(address const& ip
+				, address const& source);
+
+			void set_external_address(address const& ip
 				, int source_type, address const& source);
 
 			external_ip const& external_address() const;

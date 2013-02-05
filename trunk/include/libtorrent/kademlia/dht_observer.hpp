@@ -40,7 +40,7 @@ namespace libtorrent { namespace dht
 	struct dht_observer
 	{
 		virtual void set_external_address(address const& addr
-			, int source_type, address const& source) = 0;
+			, address const& source) = 0;
 	};
 }}
 
