@@ -50,12 +50,12 @@ test_torrent_t test_torrents[] =
 	{ "single_multi_file.torrent" },
 	{ "slash_path.torrent" },
 	{ "backslash_path.torrent" },
-	{ "slash_path.torrent" },
 	{ "url_list.torrent" },
 	{ "url_list2.torrent" },
 	{ "url_list3.torrent" },
 	{ "httpseed.torrent" },
 	{ "empty_httpseed.torrent" },
+	{ "long_name.torrent" },
 //	{ "" },
 };
 
