@@ -68,6 +68,9 @@ void test_transfer()
 	// make sure we announce to both http and udp trackers
 	sett.prefer_udp_trackers = false;
 
+	// speed up loopback connections (by using the full MTU)
+	sett.utp_dynamic_sock_buf = true;
+
 	// for performance testing
 //	sett.disable_hash_checks = true;
 //	sett.utp_delayed_ack = 0;
