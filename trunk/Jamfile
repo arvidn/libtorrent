@@ -305,9 +305,6 @@ feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
 feature need-librt : no yes : composite propagated link-incompatible ;
 
-feature boost-date-time : off on : composite propagated link-incompatible ;
-feature.compose <boost-date-time>off : <define>TORRENT_NO_BOOST_DATE_TIME ;
-
 feature fiemap : off on : composite propagated ;
 feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
 
