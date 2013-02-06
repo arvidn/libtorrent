@@ -366,6 +366,15 @@ namespace libtorrent
 			utp_socket_impl* s = *i;
 			utp_send_ack(s);
 		}
+
+		std::vector<utp_socket_impl*> drained_event;
+		m_drained_event.swap(drained_event);
+		for (std::vector<utp_socket_impl*>::iterator i = drained_event.begin()
+			, end(drained_event.end()); i != end; ++i)
+		{
+			utp_socket_impl* s = *i;
+			utp_socket_drained(s);
+		}
 	}
 
 	void utp_socket_manager::defer_ack(utp_socket_impl* s)
@@ -373,6 +382,13 @@ namespace libtorrent
 		TORRENT_ASSERT(std::find(m_deferred_acks.begin(), m_deferred_acks.end(), s)
 			== m_deferred_acks.end());
 		m_deferred_acks.push_back(s);
+	}
+
+	void utp_socket_manager::subscribe_drained(utp_socket_impl* s)
+	{
+		TORRENT_ASSERT(std::find(m_drained_event.begin(), m_drained_event.end(), s)
+			== m_drained_event.end());
+		m_drained_event.push_back(s);
 	}
 
 	void utp_socket_manager::remove_socket(boost::uint16_t id)
