@@ -240,6 +240,7 @@ namespace libtorrent
 		int added = 0;
 		// the number of dots we've added
 		char num_dots = 0;
+		bool found_extension = false;
 		for (int i = 0; i < element_len; ++i)
 		{
 			if (element[i] == '/'
@@ -261,17 +262,19 @@ namespace libtorrent
 			// file extension and add that too
 			// TODO: this may corrupt utf-8 encoding. We should find a
 			// proper breaking point between characters
-			if (added > 200)
+			if (added >= 200 && !found_extension)
 			{
-				i = -1;
-				for (int j = element_len-1; j > element_len - 10; --j)
+				int dot = -1;
+				for (int j = element_len-1; j > (std::max)(element_len - 10, i); --j)
 				{
 					if (element[j] != '.') continue;
-					i = j;
+					dot = j;
 					break;
 				}
 				// there is no extension
-				if (i == -1) break;
+				if (dot == -1) break;
+				found_extension = true;
+				i = dot - 1;
 			}
 		}
 
