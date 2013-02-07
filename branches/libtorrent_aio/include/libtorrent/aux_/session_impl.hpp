@@ -644,11 +644,10 @@ namespace libtorrent
 			{ return m_disk_thread.exceeded_cache_use(); }
 
 			// implements dht_observer
-			virtual void set_external_address(address const& addr
-				, address const& source)
-			{ set_external_address(addr, session_interface::source_dht, source); }
-
 			virtual void set_external_address(address const& ip
+				, address const& source);
+
+			void set_external_address(address const& ip
 				, int source_type, address const& source);
 			virtual external_ip const& external_address() const;
 
@@ -1438,6 +1437,7 @@ namespace libtorrent
 				, int min_interval
 				, int complete
 				, int incomplete
+				, int downloaded 
 				, address const& external_ip
 				, std::string const& tracker_id)
 			{

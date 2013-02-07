@@ -500,8 +500,8 @@ namespace libtorrent
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& e, int interval, int min_interval
-			, int complete, int incomplete, address const& external_ip
-			, std::string const& trackerid);
+			, int complete, int incomplete, int downloaded
+			, address const& external_ip, std::string const& trackerid);
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
 			, int retry_interval);
@@ -509,6 +509,8 @@ namespace libtorrent
 			, std::string const& msg);
 		virtual void tracker_scrape_response(tracker_request const& req
 			, int complete, int incomplete, int downloaded, int downloaders);
+
+		void update_scrape_state();
 
 		// if no password and username is set
 		// this will return an empty string, otherwise
@@ -1430,7 +1432,7 @@ namespace libtorrent
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		unsigned int m_downloaders:24;
+		unsigned int m_downloaded:24;
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests

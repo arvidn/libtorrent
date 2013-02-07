@@ -2511,6 +2511,10 @@ ones with lower tier will always be tried before the one with higher tier number
 		int next_announce_in() const;
 		int min_announce_in() const;
 
+		int scrape_incomplete;
+		int scrape_complete;
+		int scrape_downloaded;
+
 		error_code last_error;
 
 		std::string message;
@@ -2540,6 +2544,13 @@ allowed to force another tracker update with this tracker.
 
 If the last time this tracker was contacted failed, ``last_error`` is the error
 code describing what error occurred.
+
+``scrape_incomplete``, ``scrape_complete`` and ``scrape_downloaded`` are either
+-1 or the scrape information this tracker last responded with. *incomplete* is
+the current number of downloaders in the swarm, *complete* is the current number
+of seeds in the swarm and *downloaded* is the cumulative number of completed
+downloads of this torrent, since the beginning of time (from this tracker's point
+of view).
 
 If the last time this tracker was contacted, the tracker returned a warning
 or error message, ``message`` contains that message.
@@ -6110,8 +6121,9 @@ the DHT.
 		int num_peers;
 	};
 
-The ``num_peers`` tells how many peers were returned from the tracker. This is
-not necessarily all new peers, some of them may already be connected.
+The ``num_peers`` tells how many peers the tracker returned in this response. This is
+not expected to be more thant the ``num_want`` settings. These are not necessarily
+all new peers, some of them may already be connected.
 
 tracker_warning_alert
 ---------------------

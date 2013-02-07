@@ -65,6 +65,7 @@ void test_transfer()
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 	pack.set_bool(settings_pack::prefer_udp_trackers, false);
+	pack.set_bool(settings_pack::utp_dynamic_sock_buf, true);
 	pack.set_int(settings_pack::min_reconnect_time, 1);
 	ses1.apply_settings(pack);
 	ses2.apply_settings(pack);
