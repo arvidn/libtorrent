@@ -1,3 +1,4 @@
+	* added missing python function: parse_magnet_uri
 	* fix alerts.all_categories in python binding
 	* fix torrent-abort issue which would cancel name lookups of other torrents
 	* make torrent file parser reject invalid path elements earlier
