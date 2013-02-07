@@ -1323,6 +1323,8 @@ namespace aux {
 
 	void session_impl::on_trigger_auto_manage()
 	{
+		INVARIANT_CHECK;
+
 		assert(m_pending_auto_manage);
 		m_pending_auto_manage = false;
 		if (!m_need_auto_manage) return;
@@ -3205,6 +3207,7 @@ retry:
 			// ignore connections that already have a torrent, since they
 			// are ticked through the torrents' second_tick
 			if (!p->associated_torrent().expired()) continue;
+			// TODO: have a separate list for these connections, instead of having to loop through all of them
 			if (m_last_tick - p->connected_time() > seconds(m_settings.handshake_timeout))
 				p->disconnect(errors::timed_out);
 		}
