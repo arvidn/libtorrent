@@ -35,6 +35,39 @@ namespace {
     }
 #endif
 
+	dict parse_magnet_uri_wrap(std::string const& uri)
+	{
+		add_torrent_params p;
+		error_code ec;
+		parse_magnet_uri(uri, p, ec);
+
+		if (ec) throw libtorrent_exception(ec);
+
+		dict ret;
+
+		ret["ti"] = p.ti;
+		list tracker_list;
+		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
+			, end(p.trackers.end()); i != end; ++i)
+			tracker_list.append(*i);
+		ret["trackers"] = tracker_list;
+
+		list nodes_list;
+		for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
+			, end(p.dht_nodes.end()); i != end; ++i)
+			tracker_list.append(make_tuple(i->first, i->second));
+		ret["dht_nodes"] =  nodes_list;
+		ret["info_hash"] = p.info_hash;
+		ret["name"] = p.name;
+		ret["save_path"] = p.save_path;
+		ret["storage_mode"] = p.storage_mode;
+		ret["url"] = p.url;
+		ret["uuid"] = p.uuid;
+		ret["source_feed_url"] = p.source_feed_url;
+		ret["flags"] = p.flags;
+		return ret;
+	}
+
 	std::string (*make_magnet_uri0)(torrent_handle const&) = make_magnet_uri;
 	std::string (*make_magnet_uri1)(torrent_info const&) = make_magnet_uri;
 }
@@ -46,5 +79,6 @@ void bind_magnet_uri()
 #endif
     def("make_magnet_uri", make_magnet_uri0);
     def("make_magnet_uri", make_magnet_uri1);
+    def("parse_magnet_uri", parse_magnet_uri_wrap);
 }
 
