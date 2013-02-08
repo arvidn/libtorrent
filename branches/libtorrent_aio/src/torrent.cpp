@@ -1106,7 +1106,12 @@ namespace libtorrent
 				}
 				else
 				{
-					if (has_picker()) picker().write_failed(block_finished);
+					if (has_picker())
+					{
+						dec_torrent_gauge();
+						picker().write_failed(block_finished);
+						inc_torrent_gauge();
+					}
 				}
 			}
 		}
@@ -1165,7 +1170,10 @@ namespace libtorrent
 
 	void torrent::on_piece_fail_sync(disk_io_job const* j, piece_block b)
 	{
-		if (has_picker()) picker().write_failed(b);
+		if (!has_picker()) return;
+		dec_torrent_gauge();
+		picker().write_failed(b);
+		inc_torrent_gauge();
 	}
 
 	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp)
@@ -1210,6 +1218,8 @@ namespace libtorrent
 	void torrent::need_picker()
 	{
 		if (m_picker) return;
+
+		INVARIANT_CHECK;
 
 		// if we have all pieces we should not have a picker
 		TORRENT_ASSERT(!m_have_all);
@@ -2187,7 +2197,11 @@ namespace libtorrent
 						if (piece < 0 || piece > torrent_file().num_pieces()) continue;
 
 						if (has_picker() && m_picker->have_piece(piece))
+						{
+							dec_torrent_gauge();
 							m_picker->we_dont_have(piece);
+							inc_torrent_gauge();
+						}
 
 						std::string bitmask = e->dict_find_string_value("bitmask");
 						if (bitmask.empty()) continue;
@@ -4438,7 +4452,7 @@ namespace libtorrent
 
 		ptime deadline = time_now() + milliseconds(t);
 
-		if (is_seed() || (has_picker() && m_picker->have_piece(piece)))
+		if (is_seed() || (has_picker() && m_picker->has_piece_passed(piece)))
 		{
 			if (flags & torrent_handle::alert_when_available)
 				read_piece(piece);
@@ -4465,7 +4479,11 @@ namespace libtorrent
 			}
 			// just in case this piece had priority 0
 			if (m_picker->piece_priority(piece) == 0)
+			{
+				dec_torrent_gauge();
 				m_picker->set_piece_priority(piece, 1);
+				inc_torrent_gauge();
+			}
 			return;
 		}
 
@@ -4484,7 +4502,11 @@ namespace libtorrent
 
 		// just in case this piece had priority 0
 		if (m_picker->piece_priority(piece) == 0)
+		{
+			dec_torrent_gauge();
 			m_picker->set_piece_priority(piece, 1);
+			inc_torrent_gauge();
+		}
 
 		piece_picker::downloading_piece pi;
 		m_picker->piece_info(piece, pi);
@@ -4597,7 +4619,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed()) return;
-		need_picker();
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(index >= 0);
@@ -7243,6 +7264,7 @@ namespace libtorrent
 		m_completed_time = 0;
 
 		send_upload_only();
+		update_want_tick();
 	}
 
 	void torrent::maybe_done_flushing()
@@ -7522,6 +7544,9 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
+		TORRENT_ASSERT(current_stats_state() == m_current_stats_state
+			|| m_current_stats_state == -1);
+
 		for (std::list<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
@@ -7533,6 +7558,22 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_state != torrent_status::seeding
 				&& m_state != torrent_status::finished);
+		}
+
+		switch (current_stats_state())
+		{
+			case aux::session_interface::num_error_torrents: TORRENT_ASSERT(has_error()); break;
+			case aux::session_interface::num_checking_torrents: 
+				TORRENT_ASSERT(state() == torrent_status::checking_files
+					|| state() == torrent_status::queued_for_checking);
+				break;
+			case aux::session_interface::num_seeding_torrents: TORRENT_ASSERT(is_seed()); break;
+			case aux::session_interface::num_upload_only_torrents: TORRENT_ASSERT(is_upload_only()); break;
+			case aux::session_interface::num_stopped_torrents: TORRENT_ASSERT(!is_auto_managed()
+				&& (!m_allow_peers || m_graceful_pause_mode));
+				break;
+			case aux::session_interface::num_queued_seeding_torrents:
+				TORRENT_ASSERT((!m_allow_peers || m_graceful_pause_mode) && is_seed()); break;
 		}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
