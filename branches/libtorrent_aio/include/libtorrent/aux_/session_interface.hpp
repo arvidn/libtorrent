@@ -405,7 +405,7 @@ namespace libtorrent { namespace aux
 
 			torrent_evicted_counter,
 
-			// TODO: these should probably be gauges
+			// TODO: 3 these should probably be gauges
 			num_piece_passed,
 			num_piece_passed_removed,
 			num_have_pieces,
@@ -420,7 +420,7 @@ namespace libtorrent { namespace aux
 		{
 			num_checking_torrents = num_stats_counters,
 			num_stopped_torrents,
-			num_upload_only_torrents,
+			num_upload_only_torrents, // i.e. finished
 			num_downloading_torrents,
 			num_seeding_torrents,
 			num_queued_seeding_torrents,
