@@ -139,6 +139,12 @@ namespace libtorrent
 		// returns which stats gauge this torrent currently
 		// has incremented.
 		int current_stats_state() const;
+
+		// TODO: 3 instead of decrementing, update state, incrementing. Just keep the 4 bits of
+		// current gauge state and have a single call to "update_gauge_state" which makes sure
+		// the counters it counts against are updated, if needed. This might very well be more
+		// efficient, since the counters aren't touched unless they need to be. It's definitely
+		// less error-prone
 		void dec_torrent_gauge();
 		void inc_torrent_gauge();
 
