@@ -89,5 +89,6 @@ int test_main()
 				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
 		}
 	}
+	return 0;
 }
 
