@@ -523,8 +523,23 @@ namespace libtorrent
 		m_pool.release(this, index);
 
 		error_code ec;
-		rename(old_name, combine_path(m_save_path, new_filename), ec);
+		std::string new_path = combine_path(m_save_path, new_filename);
+		std::string new_dir = parent_path(new_path);
+
+		// create any missing directories that the new filename
+		// lands in
+		create_directories(new_dir, ec);
+		if (ec)
+		{
+			set_error(new_dir, ec);
+			return true;
+		}
+
+		rename(old_name, new_path, ec);
 		
+		// if old_name doesn't exist, that's not an error
+		// here. Once we start writing to the file, it will
+		// be written to the new filename
 		if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		{
 			set_error(old_name, ec);

@@ -547,13 +547,23 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	// test rename_file
 	remove(combine_path(test_path, "part0"), ec);
 	if (ec) std::cerr << "remove: " << ec.message() << std::endl;
+	remove_all(combine_path(test_path, "test_dir"), ec);
+	if (ec) std::cerr << "remove: " << ec.message() << std::endl;
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage/test1.tmp")));
 	TEST_CHECK(!exists(combine_path(test_path, "part0")));	
-	boost::function<void(int, disk_io_job const&)> none;
+	TEST_CHECK(!exists(combine_path(test_path, "test_dir/subdir/part0")));	
+
+	// test that we can create missing directories when we rename a file
+	done = false;
+	pm->async_rename_file(0, "test_dir/subdir/part0", boost::bind(&signal_bool, &done, "rename_file"));
+	run_until(ios, done);
+	TEST_CHECK(!exists(combine_path(test_path, "temp_storage/test1.tmp")));
+	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2")));
+	TEST_CHECK(exists(combine_path(test_path, "test_dir/subdir/part0")));
+
 	done = false;
 	pm->async_rename_file(0, "part0", boost::bind(&signal_bool, &done, "rename_file"));
 	run_until(ios, done);
-
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage/test1.tmp")));
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2")));
 	TEST_CHECK(exists(combine_path(test_path, "part0")));
