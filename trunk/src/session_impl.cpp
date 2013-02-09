@@ -5251,8 +5251,6 @@ retry:
 
 	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
 	{
-		INVARIANT_CHECK;
-
 		// remove from uuid list
 		if (!tptr->uuid().empty())
 		{
@@ -5278,12 +5276,7 @@ retry:
 		if (options & session::delete_files)
 			t.delete_files();
 
-		bool is_active_download = tptr->is_active_download();
-		bool is_active_finished = tptr->is_active_finished();
-
-		// update finished and downloading counters
-		if (is_active_download) dec_active_downloading();
-		if (is_active_finished) dec_active_finished();
+		tptr->update_guage();
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();

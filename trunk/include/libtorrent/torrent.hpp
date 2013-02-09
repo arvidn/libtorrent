@@ -263,19 +263,9 @@ namespace libtorrent
 		void force_recheck();
 		void save_resume_data(int flags);
 
-		bool is_active_download() const
-		{
-			return (m_state == torrent_status::downloading
-				|| m_state == torrent_status::downloading_metadata)
-				&& m_allow_peers;
-		}
-
-		bool is_active_finished() const
-		{
-			return (m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding)
-				&& m_allow_peers;
-		}
+		bool is_active_download() const;
+		bool is_active_finished() const;
+		void update_guage();
 
 		bool need_save_resume_data() const
 		{
@@ -1384,6 +1374,12 @@ namespace libtorrent
 		// session_impl's m_state_update list, this bit is set
 		// to never add the same torrent twice
 		bool m_in_state_updates:1;
+
+		// these represent whether or not this torrent is counted
+		// in the total counters of active seeds and downloads
+		// in the session.
+		bool m_is_active_download:1;
+		bool m_is_active_finished:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
