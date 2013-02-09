@@ -549,22 +549,22 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	if (ec) std::cerr << "remove: " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "test_dir"), ec);
 	if (ec) std::cerr << "remove: " << ec.message() << std::endl;
-	TEST_CHECK(exists(combine_path(test_path, "temp_storage/test1.tmp")));
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))));
 	TEST_CHECK(!exists(combine_path(test_path, "part0")));	
-	TEST_CHECK(!exists(combine_path(test_path, "test_dir/subdir/part0")));	
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("test_dir", combine_path("subdir", "part0")))));	
 
 	// test that we can create missing directories when we rename a file
 	done = false;
 	pm->async_rename_file(0, "test_dir/subdir/part0", boost::bind(&signal_bool, &done, "rename_file"));
 	run_until(ios, done);
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage/test1.tmp")));
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))));
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2")));
-	TEST_CHECK(exists(combine_path(test_path, "test_dir/subdir/part0")));
+	TEST_CHECK(exists(combine_path(test_path, combine_path("test_dir", combine_path("subdir", "part0")))));
 
 	done = false;
 	pm->async_rename_file(0, "part0", boost::bind(&signal_bool, &done, "rename_file"));
 	run_until(ios, done);
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage/test1.tmp")));
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))));
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2")));
 	TEST_CHECK(exists(combine_path(test_path, "part0")));
 
@@ -579,17 +579,17 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	if (fs.num_files() > 1)
 	{
 		TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
-		TEST_CHECK(exists(combine_path(test_path, "temp_storage2/temp_storage")));
+		TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));
 	}
-	TEST_CHECK(exists(combine_path(test_path, "temp_storage2/part0")));	
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
 
 	done = false;
 	pm->async_move_storage(test_path, boost::bind(on_move_storage, _1, &done, _2, test_path));
 	run_until(ios, done);
 
 	TEST_CHECK(exists(combine_path(test_path, "part0")));	
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2/temp_storage")));	
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2/part0")));	
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));	
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
 
 	r.piece = 0;
 	r.start = 0;
@@ -665,8 +665,8 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	if (s->error())
 		fprintf(stderr, "%s: %s\n", s->error().message().c_str(), s->error_file().c_str());
 
-	TEST_CHECK(exists(combine_path(test_path, "temp_storage/_folder3/subfolder/test5.tmp")));	
-	TEST_CHECK(exists(combine_path(test_path, "temp_storage/folder2/test3.tmp")));	
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("folder2", "test3.tmp")))));	
 
 	s->delete_files();
 
@@ -724,11 +724,11 @@ void test_check_files(std::string const& test_path
 	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
 
 	std::ofstream f;
-	f.open(combine_path(test_path, "temp_storage/test1.tmp").c_str()
+	f.open(combine_path(test_path, combine_path("temp_storage", "test1.tmp")).c_str()
 		, std::ios::trunc | std::ios::binary);
 	f.write(piece0, sizeof(piece0));
 	f.close();
-	f.open(combine_path(test_path, "temp_storage/test3.tmp").c_str()
+	f.open(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str()
 		, std::ios::trunc | std::ios::binary);
 	f.write(piece2, sizeof(piece2));
 	f.close();
