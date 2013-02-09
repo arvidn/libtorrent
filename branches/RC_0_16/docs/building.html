@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.7</td></tr>
+<td>0.16.8</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -196,6 +196,12 @@ the runtime, but on windows you can do both. Example:</p>
 <pre class="literal-block">
 bjam msvc-7.1 link=static runtime-link=static boost=source
 </pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">When building on windows, the path boost-build puts targets in may be too
+long. If you get an error message like: &quot;The input line is long&quot;, try to
+pass --abbreviate-paths on the bjam command line.</p>
+</div>
 <div class="warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">If you link statically to the runtime library, you cannot build libtorrent
