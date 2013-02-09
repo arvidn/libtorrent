@@ -10,12 +10,12 @@ rm -fr autom4te.cache build-aux
 rm -f Makefile Makefile.in
 rm -f src/Makefile src/Makefile.in
 rm -f include/libtorrent/Makefile include/libtorrent/Makefile.in
-rm -f examples/Makefile examples/Makefile.in
-rm -f test/Makefile test/Makefile.in
-rm -f bindings/Makefile bindings/Makefile.in
+rm -f examples/Makefile examples/Makefile.in examples/.dep examples/.libs
+rm -rf test/Makefile test/Makefile.in test/.dep test/.lib
+rm -rf bindings/Makefile bindings/Makefile.in bindings/.dep bindings/.libs
 rm -f bindings/python/Makefile bindings/python/Makefile.in
 chmod a-x docs/*.rst docs/*.htm* src/*.cpp include/libtorrent/*.hpp
 
 ./autotool.sh
-./configure --enable-python-binding --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt 
+./configure --enable-python-binding --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt --enable-tests
 make V=1 -j8 dist check
