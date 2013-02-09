@@ -425,6 +425,8 @@ namespace libtorrent
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
 		, m_in_state_updates(false)
+		, m_is_active_download(false)
+		, m_is_active_finished(false)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -436,9 +438,7 @@ namespace libtorrent
 
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
-		// update finished and downloading counters
-		if (is_active_download()) m_ses.inc_active_downloading();
-		if (is_active_finished()) m_ses.inc_active_finished();
+		update_guage();
 
 		if (!p.ti || !p.ti->is_valid())
 		{
@@ -838,6 +838,54 @@ namespace libtorrent
 			// metadata. To receive peers to ask for it.
 			set_state(torrent_status::downloading_metadata);
 			start_announcing();
+		}
+	}
+
+	bool torrent::is_active_download() const
+	{
+		return (m_state == torrent_status::downloading
+			|| m_state == torrent_status::downloading_metadata)
+			&& m_allow_peers
+			&& !m_abort;
+	}
+
+	bool torrent::is_active_finished() const
+	{
+		return (m_state == torrent_status::finished
+			|| m_state == torrent_status::seeding)
+			&& m_allow_peers
+			&& !m_abort;
+	}
+
+	void torrent::update_guage()
+	{
+		bool is_active_download = (m_state == torrent_status::downloading
+			|| m_state == torrent_status::downloading_metadata)
+			&& m_allow_peers
+			&& !m_abort;
+
+		bool is_active_finished = (m_state == torrent_status::finished
+			|| m_state == torrent_status::seeding)
+			&& m_allow_peers
+			&& !m_abort;
+
+		// update finished and downloading counters
+		if (is_active_download != m_is_active_download)
+		{
+			if (is_active_download)
+				m_ses.inc_active_downloading();
+			else
+				m_ses.dec_active_downloading();
+			m_is_active_download = is_active_download;
+		}
+
+		if (is_active_finished != m_is_active_finished)
+		{
+			if (is_active_finished)
+				m_ses.inc_active_finished();
+			else
+				m_ses.dec_active_finished();
+			m_is_active_finished = is_active_finished;
 		}
 	}
 
@@ -3544,6 +3592,9 @@ namespace libtorrent
 		if (m_abort) return;
 
 		m_abort = true;
+
+		update_guage();
+
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
 		if (!is_paused())
@@ -7346,18 +7397,9 @@ namespace libtorrent
 		if (m_allow_peers == b
 			&& m_graceful_pause_mode == graceful) return;
 
-		bool was_active_download = is_active_download();
-		bool was_active_finished = is_active_finished();
-
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
 			m_graceful_pause_mode = graceful;
-
-		// update finished and downloading counters
-		if (was_active_download && !is_active_download()) m_ses.dec_active_downloading();
-		else if (!was_active_download && is_active_download()) m_ses.inc_active_downloading();
-		if (was_active_finished && !is_active_finished()) m_ses.dec_active_finished();
-		else if (!was_active_finished && is_active_finished()) m_ses.inc_active_finished();
 
 		if (!b)
 		{
@@ -7370,6 +7412,8 @@ namespace libtorrent
 		{
 			do_resume();
 		}
+
+		update_guage();
 	}
 
 	void torrent::resume()
@@ -8501,20 +8545,13 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 
-		bool was_active_download = is_active_download();
-		bool was_active_finished = is_active_finished();
-
 		m_state = s;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		debug_log("set_state() %d", m_state);
 #endif
 
-		// update finished and downloading counters
-		if (was_active_download && !is_active_download()) m_ses.dec_active_downloading();
-		else if (!was_active_download && is_active_download()) m_ses.inc_active_downloading();
-		if (was_active_finished && !is_active_finished()) m_ses.dec_active_finished();
-		else if (!was_active_finished && is_active_finished()) m_ses.inc_active_finished();
+		update_guage();
 
 		state_updated();
 
