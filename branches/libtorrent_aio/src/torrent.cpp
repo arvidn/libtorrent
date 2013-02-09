@@ -333,11 +333,11 @@ namespace libtorrent
 		, m_storage_tick(0)
 		, m_should_be_loaded(true)
 		, m_have_all(false)
+		, m_current_gauge_state(no_gauge_state)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
 		m_finished_alert_posted = false;
-		m_current_stats_state = -1;
 #endif
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
@@ -460,7 +460,7 @@ namespace libtorrent
 				, m_torrent_file->num_pieces());
 		}
 
-		inc_torrent_gauge();
+		update_gauge();
 	}
 
 #if 0
@@ -622,6 +622,8 @@ namespace libtorrent
 	{
 		using aux::session_interface;
 
+		if (m_abort) return session_interface::num_checking_torrents + no_gauge_state;
+
 		if (has_error()) return session_interface::num_error_torrents;
 		if (!m_allow_peers || m_graceful_pause_mode)
 		{
@@ -637,28 +639,22 @@ namespace libtorrent
 		return session_interface::num_downloading_torrents;
 	}
 
-	void torrent::dec_torrent_gauge()
+	void torrent::update_gauge()
 	{
-		if (m_abort)
-		{
-			TORRENT_ASSERT(m_current_stats_state == -1);
-			return;
-		}
-		TORRENT_ASSERT(current_stats_state() == m_current_stats_state);
-		m_ses.inc_stats_counter(current_stats_state(), -1);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_current_stats_state = -1;
-#endif
-	}
+		using aux::session_interface;
 
-	void torrent::inc_torrent_gauge()
-	{
-		TORRENT_ASSERT(m_current_stats_state == -1);
-		if (m_abort) return;
-		m_ses.inc_stats_counter(current_stats_state(), 1);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_current_stats_state = current_stats_state();
-#endif
+		int new_gauge_state = current_stats_state() - session_interface::num_checking_torrents;
+		TORRENT_ASSERT(new_gauge_state >= 0);
+		TORRENT_ASSERT(new_gauge_state <= no_gauge_state);
+
+		if (new_gauge_state == m_current_gauge_state) return;
+
+		if (m_current_gauge_state != no_gauge_state)
+			m_ses.inc_stats_counter(m_current_gauge_state + session_interface::num_checking_torrents, -1);
+		if (new_gauge_state != no_gauge_state)
+			m_ses.inc_stats_counter(new_gauge_state + session_interface::num_checking_torrents, 1);
+
+		m_current_gauge_state = new_gauge_state;
 	}
 
 	void torrent::on_torrent_download(error_code const& ec
@@ -1038,12 +1034,9 @@ namespace libtorrent
 	{
 		if (b == m_upload_mode) return;
 
-		dec_torrent_gauge();
-
 		m_upload_mode = b;
 
-		inc_torrent_gauge();
-
+		update_gauge();
 		state_updated();
 		send_upload_only();
 
@@ -1108,9 +1101,8 @@ namespace libtorrent
 				{
 					if (has_picker())
 					{
-						dec_torrent_gauge();
 						picker().write_failed(block_finished);
-						inc_torrent_gauge();
+						update_gauge();
 					}
 				}
 			}
@@ -1171,9 +1163,8 @@ namespace libtorrent
 	void torrent::on_piece_fail_sync(disk_io_job const* j, piece_block b)
 	{
 		if (!has_picker()) return;
-		dec_torrent_gauge();
 		picker().write_failed(b);
-		inc_torrent_gauge();
+		update_gauge();
 	}
 
 	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp)
@@ -1224,15 +1215,13 @@ namespace libtorrent
 		// if we have all pieces we should not have a picker
 		TORRENT_ASSERT(!m_have_all);
 
-		dec_torrent_gauge();
-
 		m_picker.reset(new piece_picker());
 		int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
 		int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
 			+ block_size() - 1) / block_size();
 		m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 
-		inc_torrent_gauge();
+		update_gauge();
 
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
@@ -1733,15 +1722,13 @@ namespace libtorrent
 
 		if (m_seed_mode)
 		{
-			dec_torrent_gauge();
-
 			m_have_all = true;
 			m_ses.get_io_service().post(boost::bind(&torrent::files_checked, shared_from_this()));
 			m_resume_data.reset();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_resume_data_loaded = true;
 #endif
-			inc_torrent_gauge();
+			update_gauge();
 			return;
 		}
 
@@ -1840,11 +1827,10 @@ namespace libtorrent
 			for (std::vector<int>::iterator i = have_pieces.begin();
 				i != have_pieces.end(); ++i)
 			{
-				dec_torrent_gauge();
 				picker().piece_passed(*i);
-				inc_torrent_gauge();
 				TORRENT_ASSERT(picker().have_piece(*i));
 				we_have(*i);
+				update_gauge();
 			}
 		}
 
@@ -2153,10 +2139,9 @@ namespace libtorrent
 						if (pieces_str[i] & 1)
 						{
 							need_picker();
-							dec_torrent_gauge();
 							m_picker->we_have(i);
-							inc_torrent_gauge();
 							m_ses.inc_stats_counter(aux::session_interface::num_piece_passed);
+							update_gauge();
 							we_have(i);
 						}
 						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
@@ -2173,9 +2158,8 @@ namespace libtorrent
 							if (piece >= 0)
 							{
 								need_picker();
-								dec_torrent_gauge();
 								m_picker->we_have(piece);
-								inc_torrent_gauge();
+								update_gauge();
 								m_ses.inc_stats_counter(aux::session_interface::num_piece_passed);
 								we_have(piece);
 							}
@@ -2198,9 +2182,8 @@ namespace libtorrent
 
 						if (has_picker() && m_picker->have_piece(piece))
 						{
-							dec_torrent_gauge();
 							m_picker->we_dont_have(piece);
-							inc_torrent_gauge();
+							update_gauge();
 						}
 
 						std::string bitmask = e->dict_find_string_value("bitmask");
@@ -2267,8 +2250,6 @@ namespace libtorrent
 		m_ses.disk_thread().async_release_files(m_storage.get()
 			, boost::function<void(disk_io_job const*)>());
 
-		dec_torrent_gauge();
-
 		m_have_all = false;
 
 		// file progress is allocated lazily, the first time the client
@@ -2281,8 +2262,7 @@ namespace libtorrent
 		// assume that we don't have anything
 		m_files_checked = false;
 
-		inc_torrent_gauge();
-
+		update_gauge();
 		update_want_tick();
 		set_state(torrent_status::checking_resume_data);
 
@@ -2420,9 +2400,8 @@ namespace libtorrent
 			if (has_picker() || !m_have_all)
 			{
 				need_picker();
-				dec_torrent_gauge();
 				m_picker->we_have(j->piece);
-				inc_torrent_gauge();
+				update_gauge();
 			}
 			we_have(j->piece);
 		}
@@ -3547,11 +3526,9 @@ namespace libtorrent
 		else
 		{
 			TORRENT_ASSERT(ret == -1);
-			dec_torrent_gauge();
 			m_picker->restore_piece(j->piece);
 //			restore_piece_state(j->piece);
-
-			inc_torrent_gauge();
+			update_gauge();
 		}
 
 	}
@@ -3563,12 +3540,11 @@ namespace libtorrent
 			return;
 		bool have_before = i == 0 || m_picker->have_piece(i - 1);
 		bool have_after = i == end - 1 || m_picker->have_piece(i + 1);
-		dec_torrent_gauge();
 		if (have_after && have_before)
 			m_picker->set_piece_priority(i, 7);
 		else if (have_after || have_before)
 			m_picker->set_piece_priority(i, 6);
-		inc_torrent_gauge();
+		update_gauge();
 	}
 
 	// this is called once we have completely downloaded piece
@@ -3805,9 +3781,8 @@ namespace libtorrent
 
 		// make the disk cache flush the piece to disk
 		m_ses.disk_thread().async_flush_piece(m_storage.get(), index);
-		dec_torrent_gauge();
 		m_picker->piece_passed(index);
-		inc_torrent_gauge();
+		update_gauge();
 		we_have(index);
 	}
 
@@ -4248,11 +4223,10 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		dec_torrent_gauge();
-
 		m_abort = true;
 		update_want_peers();
 		update_want_tick();
+		update_gauge();
 
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
@@ -4480,9 +4454,8 @@ namespace libtorrent
 			// just in case this piece had priority 0
 			if (m_picker->piece_priority(piece) == 0)
 			{
-				dec_torrent_gauge();
 				m_picker->set_piece_priority(piece, 1);
-				inc_torrent_gauge();
+				update_gauge();
 			}
 			return;
 		}
@@ -4503,9 +4476,8 @@ namespace libtorrent
 		// just in case this piece had priority 0
 		if (m_picker->piece_priority(piece) == 0)
 		{
-			dec_torrent_gauge();
 			m_picker->set_piece_priority(piece, 1);
-			inc_torrent_gauge();
+			update_gauge();
 		}
 
 		piece_picker::downloading_piece pi;
@@ -4625,13 +4597,11 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 		if (index < 0 || index >= m_torrent_file->num_pieces()) return;
 
-		dec_torrent_gauge();
-
 		bool was_finished = is_finished();
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
 		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 
-		inc_torrent_gauge();
+		update_gauge();
 	
 		if (filter_updated)
 		{
@@ -4666,8 +4636,6 @@ namespace libtorrent
 
 		need_picker();
 
-		dec_torrent_gauge();
-
 		bool filter_updated = false;
 		bool was_finished = is_finished();
 		for (std::vector<std::pair<int, int> >::const_iterator i = pieces.begin()
@@ -4684,7 +4652,7 @@ namespace libtorrent
 			filter_updated |= m_picker->set_piece_priority(i->first, i->second);
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
-		inc_torrent_gauge();
+		update_gauge();
 		if (filter_updated)
 		{
 			// we need to save this new state
@@ -4706,8 +4674,6 @@ namespace libtorrent
 
 		need_picker();
 
-		dec_torrent_gauge();
-
 		int index = 0;
 		bool filter_updated = false;
 		bool was_finished = is_finished();
@@ -4719,7 +4685,7 @@ namespace libtorrent
 			filter_updated |= m_picker->set_piece_priority(index, *i);
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
-		inc_torrent_gauge();
+		update_gauge();
 		if (filter_updated)
 		{
 			// we need to save this new state
@@ -4938,11 +4904,10 @@ namespace libtorrent
 
 		if (index < 0 || index >= m_torrent_file->num_pieces()) return;
 
-		dec_torrent_gauge();
 		bool was_finished = is_finished();
 		m_picker->set_piece_priority(index, filter ? 1 : 0);
-		inc_torrent_gauge();
 		update_peer_interest(was_finished);
+		update_gauge();
 	}
 
 	void torrent::filter_pieces(std::vector<bool> const& bitmask)
@@ -4955,7 +4920,6 @@ namespace libtorrent
 
 		need_picker();
 
-		dec_torrent_gauge();
 		bool was_finished = is_finished();
 		int index = 0;
 		for (std::vector<bool>::const_iterator i = bitmask.begin()
@@ -4967,8 +4931,8 @@ namespace libtorrent
 			else
 				m_picker->set_piece_priority(index, 1);
 		}
-		inc_torrent_gauge();
 		update_peer_interest(was_finished);
+		update_gauge();
 	}
 
 	bool torrent::is_piece_filtered(int index) const
@@ -5955,19 +5919,17 @@ namespace libtorrent
 				int prio = p[i];
 				if (!has_picker() && prio == 1) continue;
 				need_picker();
-				dec_torrent_gauge();
 				m_picker->set_piece_priority(i, p[i]);
-				inc_torrent_gauge();
+				update_gauge();
 			}
 			m_policy.recalculate_connect_candidates();
 		}
 
 		if (!m_override_resume_data)
 		{
-			dec_torrent_gauge();
 			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
 			if (auto_managed_ != -1) m_auto_managed = auto_managed_;
-			inc_torrent_gauge();
+			update_gauge();
 		}
 
 		int sequential_ = rd.dict_find_int_value("sequential_download", -1);
@@ -5980,12 +5942,11 @@ namespace libtorrent
 			{
 				set_allow_peers(!paused_);
 
-				dec_torrent_gauge();
 				m_announce_to_dht = !paused_;
 				m_announce_to_trackers = !paused_;
 				m_announce_to_lsd = !paused_;
-				inc_torrent_gauge();
 
+				update_gauge();
 				update_want_peers();
 				update_want_scrape();
 			}
@@ -6704,14 +6665,12 @@ namespace libtorrent
 			return false;
 		}
 
-		dec_torrent_gauge();
-
 		lazy_entry metadata;
 		error_code ec;
 		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
 		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec, 0))
 		{
-			inc_torrent_gauge();
+			update_gauge();
 			// this means the metadata is correct, since we
 			// verified it against the info-hash, but we
 			// failed to parse it. Pause the torrent
@@ -6724,7 +6683,7 @@ namespace libtorrent
 			return false;
 		}
 
-		inc_torrent_gauge();
+		update_gauge();
 
 		if (m_ses.alerts().should_post<metadata_received_alert>())
 		{
@@ -7277,11 +7236,10 @@ namespace libtorrent
 		if (m_picker->is_seeding()
 			&& settings().get_int(settings_pack::suggest_mode) != settings_pack::suggest_read_cache)
 		{
-			dec_torrent_gauge();
 			// no need for the piece picker anymore
 			m_picker.reset();
 			m_have_all = true;
-			inc_torrent_gauge();
+			update_gauge();
 		}
 	}
 
@@ -7544,8 +7502,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
-		TORRENT_ASSERT(current_stats_state() == m_current_stats_state
-			|| m_current_stats_state == -1);
+		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + aux::session_interface::num_checking_torrents
+			|| m_current_gauge_state == no_gauge_state);
 
 		for (std::list<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
@@ -7879,13 +7837,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (!m_error) return;
 		bool checking_files = should_check_files();
-		dec_torrent_gauge();
 		m_ses.trigger_auto_manage();
 		m_error = error_code();
 		m_error_file = error_file_none;
 
-		inc_torrent_gauge();
-
+		update_gauge();
 		state_updated();
 
 		// if we haven't downloaded the metadata from m_url, try again
@@ -7918,13 +7874,11 @@ namespace libtorrent
 
 	void torrent::set_error(error_code const& ec, int error_file)
 	{
-		dec_torrent_gauge();
-
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		m_error = ec;
 		m_error_file = error_file;
 
-		inc_torrent_gauge();
+		update_gauge();
 
 		if (alerts().should_post<torrent_error_alert>())
 			alerts().post_alert(torrent_error_alert(get_handle(), ec, resolve_filename(error_file)));
@@ -7949,9 +7903,8 @@ namespace libtorrent
 
 		if (m_auto_managed == a) return;
 		bool checking_files = should_check_files();
-		dec_torrent_gauge();
 		m_auto_managed = a;
-		inc_torrent_gauge();
+		update_gauge();
 		update_want_scrape();
 
 		state_updated();
@@ -8162,11 +8115,10 @@ namespace libtorrent
 		if (!m_allow_peers) return;
 		if (!graceful) set_allow_peers(false);
 
-		dec_torrent_gauge();
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
-		inc_torrent_gauge();
+		update_gauge();
 
 		update_want_peers();
 		update_want_scrape();
@@ -8175,12 +8127,9 @@ namespace libtorrent
 		m_need_save_resume_data = true;
 		state_updated();
 
-		dec_torrent_gauge();
-
 		bool prev_graceful = m_graceful_pause_mode;
 		m_graceful_pause_mode = graceful;
-
-		inc_torrent_gauge();
+		update_gauge();
 
 		if (!m_ses.is_paused() || (prev_graceful && !m_graceful_pause_mode))
 			do_pause();
@@ -8328,14 +8277,11 @@ namespace libtorrent
 		if (m_allow_peers == b
 			&& m_graceful_pause_mode == graceful) return;
 
-		dec_torrent_gauge();
-
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
 			m_graceful_pause_mode = graceful;
 
-		inc_torrent_gauge();
-
+		update_gauge();
 		update_want_scrape();
 
 		if (!b)
@@ -8361,14 +8307,13 @@ namespace libtorrent
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
 
-		dec_torrent_gauge();
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
 		m_allow_peers = true;
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
 
-		inc_torrent_gauge();
+		update_gauge();
 
 		// we need to save this new state
 		m_need_save_resume_data = true;
@@ -8833,7 +8778,6 @@ namespace libtorrent
 		int num_pieces = m_torrent_file->num_pieces();
 		int rarest_rarity = INT_MAX;
 		bool prio_updated = false;
-		dec_torrent_gauge();
 		for (int i = 0; i < num_pieces; ++i)
 		{
 			piece_picker::piece_pos const& pp = m_picker->piece_stats(i);
@@ -8858,7 +8802,7 @@ namespace libtorrent
 			rarest_pieces.push_back(i);
 		}
 
-		inc_torrent_gauge();
+		update_gauge();
 
 		if (prio_updated)
 			m_policy.recalculate_connect_candidates();
@@ -8883,9 +8827,8 @@ namespace libtorrent
 		// now, pick one of the rarest pieces to download
 		int pick = random() % rarest_pieces.size();
 		bool was_finished = is_finished();
-		dec_torrent_gauge();
 		m_picker->set_piece_priority(rarest_pieces[pick], 1);
-		inc_torrent_gauge();
+		update_gauge();
 		update_peer_interest(was_finished);
 
 		m_policy.recalculate_connect_candidates();
@@ -9476,17 +9419,15 @@ namespace libtorrent
 		if (m_ses.alerts().should_post<state_changed_alert>())
 			m_ses.alerts().post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 
-		dec_torrent_gauge();
-
 		m_state = s;
-
-		inc_torrent_gauge();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		debug_log("set_state() %d", m_state);
 #endif
 
 		update_want_peers();
+		update_gauge();
+
 		state_updated();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

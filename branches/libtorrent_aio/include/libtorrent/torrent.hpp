@@ -140,14 +140,6 @@ namespace libtorrent
 		// has incremented.
 		int current_stats_state() const;
 
-		// TODO: 3 instead of decrementing, update state, incrementing. Just keep the 4 bits of
-		// current gauge state and have a single call to "update_gauge_state" which makes sure
-		// the counters it counts against are updated, if needed. This might very well be more
-		// efficient, since the counters aren't touched unless they need to be. It's definitely
-		// less error-prone
-		void dec_torrent_gauge();
-		void inc_torrent_gauge();
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
@@ -466,6 +458,7 @@ namespace libtorrent
 
 		void update_want_peers();
 		void update_want_scrape();
+		void update_gauge();
 
 		bool try_connect_peer();
 		void add_peer(tcp::endpoint const& adr, int source, int flags = 0);
@@ -1499,6 +1492,10 @@ namespace libtorrent
 		// the state of how many pieces we have
 		bool m_have_all:1;
 
+		enum { no_gauge_state = 0xf };
+		// the current stats gauge this torrent counts against
+		boost::uint32_t m_current_gauge_state:4;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
 		// set to false until we've loaded resume data
@@ -1506,9 +1503,6 @@ namespace libtorrent
 
 		// set to true when the finished alert is posted
 		bool m_finished_alert_posted;
-
-		// the current stats gauge this torrent counts against
-		int m_current_stats_state;
 #endif
 	};
 

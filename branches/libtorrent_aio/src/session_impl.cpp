@@ -5845,6 +5845,8 @@ retry:
 
 		TORRENT_ASSERT(t.prev == NULL && t.next == NULL);
 
+		tptr->update_gauge();
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
