@@ -516,7 +516,7 @@ namespace libtorrent
 			if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
 		}
 
-		remove(m_part_file_name, ec.ec);
+		remove(combine_path(m_save_path, m_part_file_name), ec.ec);
 		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 		else if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
