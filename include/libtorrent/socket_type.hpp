@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,10 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
-
-#if defined TORRENT_OS2 && defined ioc
-#undef ioc
 #endif
 
 #if TORRENT_USE_I2P

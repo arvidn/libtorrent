@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,7 @@ namespace libtorrent
 		};
 
 		create_torrent(file_storage& fs, int piece_size = 0
-			, int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
+			, int pad_file_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 		~create_torrent();
 		entry generate() const;

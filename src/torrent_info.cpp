@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003-2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -184,7 +184,7 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	// TODO: 1 we might save constructing a std::String if this would take a char const* instead
+	// TODO: should this take a char const*?
 	bool valid_path_element(std::string const& element)
 	{
 		if (element.empty()
@@ -364,7 +364,7 @@ namespace libtorrent
 				, &file_hash, &fee, &mtime))
 				return false;
 
-			// TODO: 1 this logic should be a separate step
+			// TODO: this logic should be a separate step
 			// done once the torrent is loaded, and the original
 			// filenames should be preserved!
 			int cnt = 0;
@@ -385,7 +385,7 @@ namespace libtorrent
 			// each entry keep a string for its filename, make it
 			// simply point into the info-section buffer
 			internal_file_entry const& fe = *target.rbegin();
-			// TODO: 1 once the filename renaming is removed from here
+			// TODO: once the filename renaming is removed from here
 			// this check can be removed as well
 			if (fee && fe.filename() == fee->string_value())
 			{
@@ -454,9 +454,6 @@ namespace libtorrent
 		: url(u)
 		, next_announce(min_time())
 		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
 		, tier(0)
 		, fail_limit(0)
 		, fails(0)
@@ -550,9 +547,6 @@ namespace libtorrent
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
 			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
-#ifndef BOOST_NO_EXCEPTIONS
-			if (ret != 0) throw libtorrent_exception(ec);
-#endif
 			TORRENT_ASSERT(ret == 0);
 
 			ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
@@ -599,7 +593,7 @@ namespace libtorrent
 		if (tmp.size() == 0 || lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file(ec);
+			throw invalid_torrent_file(errors::invalid_bencoding);
 #endif
 			return;
 		}

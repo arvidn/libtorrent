@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/union_endpoint.hpp"
-#include "libtorrent/udp_socket.hpp" // for udp_socket_observer
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
 #endif
@@ -156,7 +155,6 @@ namespace libtorrent
 			, int min_interval
 			, int complete
 			, int incomplete
-			, int downloaded
 			, address const& external_ip
 			, std::string const& trackerid) = 0;
 		virtual void tracker_request_error(
@@ -265,7 +263,7 @@ namespace libtorrent
 		const tracker_request m_req;
 	};
 
-	class TORRENT_EXTRA_EXPORT tracker_manager: public udp_socket_observer, boost::noncopyable
+	class TORRENT_EXTRA_EXPORT tracker_manager: boost::noncopyable
 	{
 	public:
 
@@ -291,13 +289,11 @@ namespace libtorrent
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
 
-		virtual bool incoming_packet(error_code const& e, udp::endpoint const& ep
-			, char const* buf, int size);
+		bool incoming_udp(error_code const& e, udp::endpoint const& ep, char const* buf, int size);
 
 		// this is only used for SOCKS packets, since
 		// they may be addressed to hostname
-		virtual bool incoming_packet(error_code const& e, char const* hostname
-			, char const* buf, int size);
+		bool incoming_udp(error_code const& e, char const* hostname, char const* buf, int size);
 		
 	private:
 

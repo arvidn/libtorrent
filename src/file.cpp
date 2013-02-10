@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -338,6 +338,7 @@ namespace libtorrent
 
 		// rely on default umask to filter x and w permissions
 		// for group and others
+		// TODO: copy the mode from the source file
 		int permissions = S_IRUSR | S_IWUSR
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
@@ -383,7 +384,7 @@ namespace libtorrent
 		{
 			while (*p != '/'
 				&& *p != '\0'
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 				&& *p != '\\'
 #endif
 				) ++p;
@@ -425,7 +426,7 @@ namespace libtorrent
 	{
 		if (f.empty()) return false;
 
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 		// match \\ form
 		if (f == "\\\\") return true;
 		int i = 0;
@@ -502,7 +503,7 @@ namespace libtorrent
 		if (f.empty()) return "";
 		char const* first = f.c_str();
 		char const* sep = strrchr(first, '/');
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 		char const* altsep = strrchr(first, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
@@ -517,7 +518,7 @@ namespace libtorrent
 			{
 				--sep;
 				if (*sep == '/'
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 					|| *sep == '\\'
 #endif
 					)
@@ -536,7 +537,7 @@ namespace libtorrent
 		if (lhs.empty() || lhs == ".") return rhs;
 		if (rhs.empty() || rhs == ".") return lhs;
 
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR "\\"
 		bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
 #else
@@ -727,7 +728,7 @@ namespace libtorrent
 	bool is_complete(std::string const& f)
 	{
 		if (f.empty()) return false;
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 		int i = 0;
 		// match the xx:\ or xx:/ form
 		while (f[i] && is_alpha(f[i])) ++i;
@@ -969,11 +970,8 @@ namespace libtorrent
 
 		if (mode & attribute_executable)
 			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
-#ifdef O_BINARY
-		static const int mode_array[] = {O_RDONLY | O_BINARY, O_WRONLY | O_CREAT | O_BINARY, O_RDWR | O_CREAT | O_BINARY};
-#else
+
 		static const int mode_array[] = {O_RDONLY, O_WRONLY | O_CREAT, O_RDWR | O_CREAT};
-#endif
 #ifdef O_DIRECT
 		static const int no_buffer_flag[] = {0, O_DIRECT};
 #else
@@ -1841,53 +1839,25 @@ namespace libtorrent
 				return false;
 			}
 		}
-
+#if _WIN32_WINNT >= 0x501		
 		if ((m_open_mode & sparse) == 0)
 		{
-			typedef DWORD (WINAPI *GetCompressedFileSizeW_t)(LPCWSTR lpFileName, LPDWORD lpFileSizeHigh);
-			typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE hFile, LONGLONG ValidDataLength);
-
-			static GetCompressedFileSizeW_t GetCompressedFileSizeW = NULL;
-			static SetFileValidData_t SetFileValidData = NULL;
-
-			static bool failed_kernel32 = false;
-
-			if ((GetCompressedFileSizeW == NULL) && !failed_kernel32)
+			// only allocate the space if the file
+			// is not fully allocated
+			DWORD high_dword = 0;
+			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
+			offs.HighPart = high_dword;
+			ec.assign(GetLastError(), get_system_category());
+			if (ec) return false;
+			if (offs.QuadPart != s)
 			{
-				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-				if (kernel32)
-				{
-					GetCompressedFileSizeW = (GetCompressedFileSizeW_t)GetProcAddress(kernel32, "GetCompressedFileSizeW");
-					SetFileValidData = (SetFileValidData_t)GetProcAddress(kernel32, "SetFileValidData");
-					if ((GetCompressedFileSizeW == NULL) || (SetFileValidData == NULL))
-					{ 
-						failed_kernel32 = true;
-					}
-				}
-				else
-				{
-					failed_kernel32 = true;
-				}
-			}
-
-			if (!failed_kernel32 && GetCompressedFileSizeW && SetFileValidData)
-			{
-				// only allocate the space if the file
-				// is not fully allocated
-				DWORD high_dword = 0;
-				offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
-				offs.HighPart = high_dword;
-				ec.assign(GetLastError(), get_system_category());
-				if (ec) return false;
-				if (offs.QuadPart != s)
-				{
-					// if the user has permissions, avoid filling
-					// the file with zeroes, but just fill it with
-					// garbage instead
-					SetFileValidData(m_file_handle, offs.QuadPart);
-				}
+				// if the user has permissions, avoid filling
+				// the file with zeroes, but just fill it with
+				// garbage instead
+				SetFileValidData(m_file_handle, offs.QuadPart);
 			}
 		}
+#endif // _WIN32_WINNT >= 0x501
 #else // NON-WINDOWS
 		struct stat st;
 		if (fstat(m_fd, &st) != 0)

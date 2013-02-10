@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ namespace libtorrent
 
 	void http_tracker_connection::start()
 	{
-		// TODO: 0 support authentication (i.e. user name and password) in the URL
+		// TODO: authentication
 		std::string url = tracker_req().url;
 
 		if (tracker_req().kind == tracker_request::scrape_request)
@@ -214,7 +214,7 @@ namespace libtorrent
 
 		m_tracker_connection.reset(new http_connection(m_ios, m_cc
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
-			, true, settings.max_http_recv_buffer_size
+			, true
 			, boost::bind(&http_tracker_connection::on_connect, self(), _1)
 			, boost::bind(&http_tracker_connection::on_filter, self(), _1, _2)
 #ifdef TORRENT_USE_OPENSSL
@@ -527,7 +527,6 @@ namespace libtorrent
 		
 		int complete = int(e.dict_find_int_value("complete", -1));
 		int incomplete = int(e.dict_find_int_value("incomplete", -1));
-		int downloaded = int(e.dict_find_int_value("downloaded", -1));
 
 		std::list<address> ip_list;
 		if (m_tracker_connection)
@@ -543,7 +542,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
-			, interval, min_interval, complete, incomplete, downloaded, external_ip, trackerid);
+			, interval, min_interval, complete, incomplete, external_ip, trackerid);
 	}
 
 }

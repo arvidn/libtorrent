@@ -23,7 +23,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 1.0.0 ;
+VERSION = 0.16.8 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
@@ -487,7 +487,6 @@ SOURCES =
 	http_parser
 	identify_client
 	ip_filter
-	ip_voter
 	peer_connection
 	bt_peer_connection
 	web_connection_base
