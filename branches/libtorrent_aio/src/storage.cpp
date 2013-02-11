@@ -1169,7 +1169,12 @@ namespace libtorrent
 				return fatal_disk_error; 
 			}
 
-			if (has_files) return need_full_check;
+			if (has_files)
+			{
+				// always initialize the storage
+				int ret = check_init_storage(ec);
+				return ret != no_error ? ret : need_full_check;
+			}
 		}
 
 		return check_init_storage(ec);

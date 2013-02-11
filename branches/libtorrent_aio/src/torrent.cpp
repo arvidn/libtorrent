@@ -632,7 +632,10 @@ namespace libtorrent
 			return session_interface::num_queued_download_torrents;
 		}
 		if (state() == torrent_status::checking_files
-			|| state() == torrent_status::queued_for_checking)
+#ifndef TORRENT_NO_DEPRECATE
+			|| state() == torrent_status::queued_for_checking
+#endif
+			)
 			return session_interface::num_checking_torrents;
 		else if (is_seed()) return session_interface::num_seeding_torrents;
 		else if (is_upload_only()) return session_interface::num_upload_only_torrents;
@@ -1990,7 +1993,7 @@ namespace libtorrent
 			handle_disk_error(j);
 			auto_managed(false);
 			pause();
-			set_state(torrent_status::queued_for_checking);
+			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
 			m_resume_data.reset();
 			return;
@@ -7523,7 +7526,10 @@ namespace libtorrent
 			case aux::session_interface::num_error_torrents: TORRENT_ASSERT(has_error()); break;
 			case aux::session_interface::num_checking_torrents: 
 				TORRENT_ASSERT(state() == torrent_status::checking_files
-					|| state() == torrent_status::queued_for_checking);
+#ifndef TORRENT_NO_DEPRECATE
+					|| state() == torrent_status::queued_for_checking
+#endif
+					);
 				break;
 			case aux::session_interface::num_seeding_torrents: TORRENT_ASSERT(is_seed()); break;
 			case aux::session_interface::num_upload_only_torrents: TORRENT_ASSERT(is_upload_only()); break;

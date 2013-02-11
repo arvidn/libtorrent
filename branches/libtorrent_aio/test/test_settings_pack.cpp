@@ -52,12 +52,15 @@ int test_main()
 	// all default values are supposed to be skipped
 	// by save_settings
 	TEST_EQUAL(e.dict().size(), 0);
+	if (e.dict().size() > 0)
+		std::cerr << e << std::endl;
 
 	apply_pack(&sp, sett);
 
 	TEST_EQUAL(sett.get_int(settings_pack::max_out_request_queue), 1337);
 	save_settings_to_dict(sett, e.dict());
 	TEST_EQUAL(e.dict().size(), 1);
+
 
 #define TEST_NAME(n) \
 	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
