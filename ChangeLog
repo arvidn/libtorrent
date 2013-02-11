@@ -1,3 +1,5 @@
+	* fixed streaming piece picking issue
+
 0.16.8 release
 
 	* make rename_file create missing directories for new filename
