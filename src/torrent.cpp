@@ -8150,23 +8150,39 @@ namespace libtorrent
 					, ignore, piece_picker::none, 0);
 
 				std::vector<pending_block> const& rq = c.request_queue();
+				std::vector<pending_block> const& dq = c.download_queue();
 
 				bool added_request = false;
 
-				if (!interesting_blocks.empty() && std::find_if(rq.begin(), rq.end()
-					, has_block(interesting_blocks.front())) != rq.end())
+				if (!interesting_blocks.empty())
 				{
-					c.make_time_critical(interesting_blocks.front());
-					added_request = true;
-				}
-				else if (!interesting_blocks.empty())
-				{
-					if (!c.add_request(interesting_blocks.front(), peer_connection::req_time_critical))
+					bool already_requested = std::find_if(dq.begin(), dq.end()
+						, has_block(interesting_blocks.front())) != dq.end();
+					if (already_requested)
 					{
-						peers.erase(p);
+						// TODO: interesting_blocks should ideally not include blocks
+						// that have been requested already
+						interesting_blocks.erase(interesting_blocks.begin());
 						continue;
 					}
-					added_request = true;
+
+					bool already_in_queue = std::find_if(rq.begin(), rq.end()
+						, has_block(interesting_blocks.front())) != rq.end();
+
+					if (already_in_queue)
+					{
+						c.make_time_critical(interesting_blocks.front());
+						added_request = true;
+					}
+					else
+					{
+						if (!c.add_request(interesting_blocks.front(), peer_connection::req_time_critical))
+						{
+							peers.erase(p);
+							continue;
+						}
+						added_request = true;
+					}
 				}
 
 				// TODO: if there's been long enough since we requested something
