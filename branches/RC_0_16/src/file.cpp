@@ -1342,7 +1342,12 @@ namespace libtorrent
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			WaitForSingleObject(ol.hEvent, INFINITE);
+			if (WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				CloseHandle(ol.hEvent);
+				return -1;
+			}
 			DWORD num_read;
 			if (GetOverlappedResult(m_file_handle, &ol, &num_read, false) == 0)
 			{
@@ -1582,7 +1587,12 @@ namespace libtorrent
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			WaitForSingleObject(ol.hEvent, INFINITE);
+			if (WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				CloseHandle(ol.hEvent);
+				return -1;
+			}
 			DWORD num_written;
 			if (GetOverlappedResult(m_file_handle, &ol, &num_written, false) == 0)
 			{
