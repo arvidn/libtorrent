@@ -31,6 +31,11 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fixed streaming piece picking issue
+
+0.16.8 release
+
+	* make rename_file create missing directories for new filename
 	* added missing python function: parse_magnet_uri
 	* fix alerts.all_categories in python binding
 	* fix torrent-abort issue which would cancel name lookups of other torrents

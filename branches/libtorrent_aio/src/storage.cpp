@@ -448,8 +448,24 @@ namespace libtorrent
 		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
 		m_pool.release(this, index);
 
-		rename(old_name, combine_path(m_save_path, new_filename), ec.ec);
+		std::string new_path = combine_path(m_save_path, new_filename);
+		std::string new_dir = parent_path(new_path);
+
+		// create any missing directories that the new filename
+		// lands in
+		create_directories(new_dir, ec.ec);
+		if (ec.ec)
+		{
+			ec.file = index;
+			ec.operation = storage_error::rename;
+			return;
+		}
+
+		rename(old_name, new_path, ec.ec);
 		
+		// if old_name doesn't exist, that's not an error
+		// here. Once we start writing to the file, it will
+		// be written to the new filename
 		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 
