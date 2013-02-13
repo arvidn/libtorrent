@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 
 extern "C" {
-#include "mongoose.h"
+#include "local_mongoose.h"
 #include "jsmn.h"
 }
 

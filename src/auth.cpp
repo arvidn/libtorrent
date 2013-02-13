@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "base64.hpp"
 
 extern "C" {
-#include "mongoose.h"
+#include "local_mongoose.h"
 }
 
 #include <string.h> // for strcmp() 

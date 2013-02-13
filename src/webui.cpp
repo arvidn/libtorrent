@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "webui.hpp"
 
 extern "C" {
-#include "mongoose.h"
+#include "local_mongoose.h"
 }
 
 using namespace libtorrent;
@@ -59,7 +59,8 @@ static void *handle_http(mg_event event,
 }
 
 webui_base::webui_base()
-	: m_ctx(NULL)
+	: m_document_root(".")
+	, m_ctx(NULL)
 {}
 
 webui_base::~webui_base() {}
@@ -71,7 +72,7 @@ void webui_base::remove_handler(http_handler* h)
 }
 
 bool webui_base::handle_http(mg_connection* conn
-		, mg_request_info const* request_info)
+	, mg_request_info const* request_info)
 {
 	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
 		, end(m_handlers.end()); i != end; ++i)
@@ -88,8 +89,21 @@ void webui_base::start(int port, char const* cert_path)
 	// start web interface
 	char port_str[20];
 	snprintf(port_str, sizeof(port_str), "%d%s", port, cert_path ? "s" : "");
-	const char *options[] = {"listening_ports", port_str, cert_path ? "ssl_certificate" : NULL , cert_path ? cert_path : "", NULL};
+	const char *options[10];
+	memset(options, 0, sizeof(options));
+	int i = 0;
+	options[i++] = "document_root";
+	options[i++] = m_document_root.c_str();
+	if (cert_path)
+	{
+		options[i++] = "ssl_certificate";
+		options[i++] = cert_path;
+	}
+	options[i++] = "listening_ports";
+	options[i++] = port_str;
+
 	m_ctx = mg_start(&::handle_http, this, options);
+	TORRENT_ASSERT(m_ctx);
 }
 
 void webui_base::stop()

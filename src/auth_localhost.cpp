@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISK_SPACE_HPP
-#define TORRENT_DISK_SPACE_HPP
+#include "auth_localhost.hpp"
 
-#include <string>
-#include <boost/cstdint.hpp>
+extern "C" {
+#include "local_mongoose.h"
+}
+
+#include <stdio.h>
 
 namespace libtorrent
 {
-	boost::int64_t free_disk_space(std::string const& path);
+
+bool auth_localhost::handle_http(mg_connection* conn, mg_request_info const* request_info)
+{
+	// we might as well be extra strict and only allow 127.0.0.1, instead
+	// of 127.x.x.x
+	if (request_info->remote_ip == 0x7f000001)
+		return false;
+
+	mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+		"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+		"Content-Length: 0\r\n\r\n");
+	return true;
 }
 
-#endif // TORRENT_DISK_SPACE_HPP
+}
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -167,7 +167,7 @@ void deluge::on_accept(error_code const& ec, ssl_socket* sock)
 	fprintf(stderr, "accepted connection\n");
 	mutex::scoped_lock l(m_mutex);
 	m_jobs.push_back(sock);
-	m_cond.signal(l);
+	m_cond.notify();
 	l.unlock();
 
 	do_accept();
@@ -1030,7 +1030,7 @@ void deluge::do_stop()
 {
 	mutex::scoped_lock l(m_mutex);
 	m_shutdown = true;
-	m_cond.signal_all(l);
+	m_cond.notify_all();
 	if (m_listen_socket)
 	{
 		m_listen_socket->close();

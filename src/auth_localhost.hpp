@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISK_SPACE_HPP
-#define TORRENT_DISK_SPACE_HPP
-
-#include <string>
-#include <boost/cstdint.hpp>
+#include "webui.hpp" // for http_handler
 
 namespace libtorrent
 {
-	boost::int64_t free_disk_space(std::string const& path);
-}
 
-#endif // TORRENT_DISK_SPACE_HPP
+	// this http_handler only lets requests from 127.0.0.1 through
+	// any other request is unauthorized
+	struct auth_localhost : http_handler
+	{
+		bool handle_http(mg_connection* conn, mg_request_info const* request_info);
+	};
+}
 

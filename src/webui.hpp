@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WEBUI_HPP
 
 #include <vector>
+#include <string>
 
 struct mg_context;
 struct mg_connection;
@@ -65,9 +66,12 @@ namespace libtorrent
 		bool handle_http(mg_connection* conn
 			, mg_request_info const* request_info);
 	
+		void set_document_root(std::string r) { m_document_root = r; }
+
 	private:
 
 		std::vector<http_handler*> m_handlers;
+		std::string m_document_root;
 
 		mg_context* m_ctx;
 	};

@@ -71,6 +71,8 @@ namespace libtorrent
 		typedef boost::bimap<boost::bimaps::list_of<int>
 			, boost::bimaps::unordered_set_of<torrent_status> > queue_t;
 
+		mutable mutex m_mutex;
+
 		queue_t m_queue;
 
 		std::deque<std::pair<int, sha1_hash> > m_removed;
