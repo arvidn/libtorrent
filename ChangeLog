@@ -1,3 +1,4 @@
+	* fixed sparse flag manipulation on windows
 	* fixed streaming piece picking issue
 
 0.16.8 release

@@ -487,17 +487,9 @@ namespace libtorrent
 		return error() ? true : false;
 	}
 
-	void default_storage::finalize_file(int index)
-	{
-		TORRENT_ASSERT(index >= 0 && index < files().num_files());
-		if (index < 0 || index >= files().num_files()) return;
-	
-		error_code ec;
-		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, ec);
-		if (ec || !f) return;
-
-		f->finalize();
-	}
+#ifndef TORRENT_NO_DEPRECATE
+	void default_storage::finalize_file(int index) {}
+#endif
 
 	bool default_storage::has_any_file()
 	{
@@ -1493,21 +1485,8 @@ ret:
 		m_storage->m_disk_pool = &m_io_thread;
 	}
 
-	void piece_manager::finalize_file(int index)
-	{ m_storage->finalize_file(index); }
-
 	piece_manager::~piece_manager()
 	{
-	}
-
-	void piece_manager::async_finalize_file(int file)
-	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::finalize_file;
-		j.piece = file;
-		boost::function<void(int, disk_io_job const&)> empty;
-		m_io_thread.add_job(j, empty);
 	}
 
 	void piece_manager::async_save_resume_data(

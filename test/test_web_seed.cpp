@@ -85,7 +85,9 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = torrent_file;
 	p.save_path = "tmp2_web_seed";
+#ifndef TORRENT_NO_DEPRECATE
 	p.storage_mode = storage_mode_compact;
+#endif
 	torrent_handle th = ses.add_torrent(p, ec);
 
 	std::vector<announce_entry> empty;
