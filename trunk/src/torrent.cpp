@@ -3239,14 +3239,6 @@ namespace libtorrent
 			{
 				if (!m_torrent_file->files().pad_file_at(file_index))
 				{
-					// don't finalize files if we discover that they exist
-					// in whole (i.e. while checking). In that case, just assume
-					// they were finalized when they completed.
-					// The main purpose of finalizing files is to clear the sparse
-					// flag on windows, which only needs to be done once
-					if (m_owning_storage.get() && m_state == torrent_status::downloading)
-						m_storage->async_finalize_file(file_index);
-
 					if (m_ses.m_alerts.should_post<file_completed_alert>())
 					{
 						// this file just completed, post alert
