@@ -101,7 +101,9 @@ namespace libtorrent
 			, update_settings
 			, read_and_hash
 			, cache_piece
+#ifndef TORRENT_NO_DEPRECATE
 			, finalize_file
+#endif
 		};
 
 		action_t action;

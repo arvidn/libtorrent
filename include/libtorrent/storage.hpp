@@ -160,7 +160,9 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
+#ifndef TORRENT_NO_DEPRECATE
 		virtual void finalize_file(int) {}
+#endif
 
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
 		session_settings const& settings() const { return *m_settings; }
@@ -187,7 +189,9 @@ namespace libtorrent
 			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio);
 		~default_storage();
 
+#ifndef TORRENT_NO_DEPRECATE
 		void finalize_file(int file);
+#endif
 		bool has_any_file();
 		bool rename_file(int index, std::string const& new_filename);
 		bool release_files();
@@ -306,8 +310,6 @@ namespace libtorrent
 
 		boost::intrusive_ptr<torrent_info const> info() const { return m_info; }
 		void write_resume_data(entry& rd) const;
-
-		void async_finalize_file(int file);
 
 		void async_check_fastresume(lazy_entry const* resume_data
 			, boost::function<void(int, disk_io_job const&)> const& handler);
@@ -436,8 +438,6 @@ namespace libtorrent
 			, int num_bufs);
 
 		size_type physical_offset(int piece_index, int offset);
-
-		void finalize_file(int index);
 
 		// returns the number of pieces left in the
 		// file currently being checked
