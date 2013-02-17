@@ -369,21 +369,9 @@ namespace libtorrent
 		m_pool.release(this);
 	}
 
-	void default_storage::finalize_file(int index, storage_error& ec)
-	{
-		TORRENT_ASSERT(index >= 0 && index < files().num_files());
-		if (index < 0 || index >= files().num_files()) return;
-	
-		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, 0, ec.ec);
-		if (ec || !f)
-		{
-			ec.file = index;
-			ec.operation = storage_error::open;
-			return;
-		}
-
-		f->finalize();
-	}
+#ifndef TORRENT_NO_DEPRECATE
+	void default_storage::finalize_file(int, storage_error&) {}
+#endif
 
 	bool default_storage::has_any_file(storage_error& ec)
 	{

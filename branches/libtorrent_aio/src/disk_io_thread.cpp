@@ -870,7 +870,9 @@ namespace libtorrent
 		&disk_io_thread::do_rename_file,
 		&disk_io_thread::do_stop_torrent,
 		&disk_io_thread::do_cache_piece,
+#ifndef TORRENT_NO_DEPRECATE
 		&disk_io_thread::do_finalize_file,
+#endif
 		&disk_io_thread::do_flush_piece,
 		&disk_io_thread::do_flush_hashed,
 		&disk_io_thread::do_flush_storage,
@@ -1524,6 +1526,7 @@ namespace libtorrent
 		add_fence_job(storage, j);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
@@ -1534,6 +1537,7 @@ namespace libtorrent
 
 		add_job(j);
 	}
+#endif
 
 	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
 		, boost::function<void(disk_io_job const*)> const& handler)
@@ -2224,11 +2228,13 @@ namespace libtorrent
 		return 0;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	int disk_io_thread::do_finalize_file(disk_io_job* j)
 	{
 		j->storage->get_storage_impl()->finalize_file(j->piece, j->error);
 		return j->error ? -1 : 0;
 	}
+#endif
 
 	void disk_io_thread::flip_stats()
 	{

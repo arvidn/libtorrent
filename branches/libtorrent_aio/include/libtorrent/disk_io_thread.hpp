@@ -240,9 +240,11 @@ namespace libtorrent
 		void async_check_fastresume(piece_manager* storage
 			, lazy_entry const* resume_data
 			, boost::function<void(disk_io_job const*)> const& handler);
+#ifndef TORRENT_NO_DEPRECATE
 		void async_finalize_file(piece_manager* storage, int file
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>());
+#endif
 		void async_flush_piece(piece_manager* storage, int piece
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>());
@@ -337,7 +339,9 @@ namespace libtorrent
 		int do_stop_torrent(disk_io_job* j);
 		int do_read_and_hash(disk_io_job* j);
 		int do_cache_piece(disk_io_job* j);
+#ifndef TORRENT_NO_DEPRECATE
 		int do_finalize_file(disk_io_job* j);
+#endif
 		int do_flush_piece(disk_io_job* j);
 		int do_flush_hashed(disk_io_job* j);
 		int do_flush_storage(disk_io_job* j);

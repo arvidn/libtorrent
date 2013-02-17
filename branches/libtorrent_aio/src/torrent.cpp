@@ -3675,14 +3675,6 @@ namespace libtorrent
 				{
 					if (!m_torrent_file->files().pad_file_at(file_index))
 					{
-						// don't finalize files if we discover that they exist
-						// in whole (i.e. while checking). In that case, just assume
-						// they were finalized when they completed.
-						// The main purpose of finalizing files is to clear the sparse
-						// flag on windows, which only needs to be done once
-						if (m_storage.get() && m_state == torrent_status::downloading)
-							m_ses.disk_thread().async_finalize_file(m_storage.get(), file_index);
-
 						if (m_ses.alerts().should_post<file_completed_alert>())
 						{
 							// this file just completed, post alert
@@ -4436,7 +4428,7 @@ namespace libtorrent
 			return;
 		}
 
-		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
 			if (i->piece != piece) continue;
@@ -4472,7 +4464,7 @@ namespace libtorrent
 		p.deadline = deadline;
 		p.peers = 0;
 		p.piece = piece;
-		std::list<time_critical_piece>::iterator i = std::upper_bound(m_time_critical_pieces.begin()
+		std::deque<time_critical_piece>::iterator i = std::upper_bound(m_time_critical_pieces.begin()
 			, m_time_critical_pieces.end(), p);
 		m_time_critical_pieces.insert(i, p);
 
@@ -4509,7 +4501,7 @@ namespace libtorrent
 
 	void torrent::remove_time_critical_piece(int piece, bool finished)
 	{
-		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
 			if (i->piece != piece) continue;
@@ -4556,7 +4548,7 @@ namespace libtorrent
 	// remove time critical pieces where priority is 0
 	void torrent::remove_time_critical_pieces(std::vector<int> const& priority)
 	{
-		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin();
+		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin();
 			i != m_time_critical_pieces.end();)
 		{
 			if (priority[i->piece] == 0)
@@ -7508,7 +7500,7 @@ namespace libtorrent
 		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + aux::session_interface::num_checking_torrents
 			|| m_current_gauge_state == no_gauge_state);
 
-		for (std::list<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
+		for (std::deque<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(!is_seed());
@@ -8985,23 +8977,51 @@ namespace libtorrent
 		std::vector<piece_block> backup2;
 		std::vector<int> ignore;
 
-		ptime now = time_now();
+		// peers that should be temporarily ignored for a specific piece
+		// in order to give priority to other peers. They should be used for
+		// subsequent pieces, so they are stored in this vector until the
+		// piece is done
+		std::vector<peer_connection*> ignore_peers;
+
+		ptime now = time_now_hires();
 
 		// now, iterate over all time critical pieces, in order of importance, and
 		// request them from the peers, in order of responsiveness. i.e. request
 		// the most time critical pieces from the fastest peers.
-		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
 			if (peers.empty()) break;
 
+			// the +1000 is to compensate for the fact that we only call this functions
+			// once per second, so if we need to request it 500 ms from now, we should request
+			// it right away
 			if (i != m_time_critical_pieces.begin() && i->deadline > now
-				+ milliseconds(m_average_piece_time + m_piece_time_deviation * 4))
+				+ milliseconds(m_average_piece_time + m_piece_time_deviation * 4 + 1000))
 			{
 				// don't request pieces whose deadline is too far in the future
 				// this is one of the termination conditions. We don't want to
 				// send requests for all pieces in the torrent right away
 				break;
+			}
+
+			piece_picker::downloading_piece pi;
+			m_picker->piece_info(i->piece, pi);
+
+			int free_to_request = m_picker->blocks_in_piece(i->piece) - pi.finished - pi.writing - pi.requested;
+			if (free_to_request == 0)
+			{
+				// every block in this piece is already requested
+				// there's no need to consider this piece, unless it
+				// appears to be stalled.
+				if (pi.requested == 0 || i->last_requested + milliseconds(m_average_piece_time) > now)
+				{
+					// if requested is 0, it meants all blocks have been received, and
+					// we're just waiting for it to flush them to disk.
+					// if last_requested is recent enough, we should give it some
+					// more time
+					break;
+				}
 			}
 
 			// loop until every block has been requested from this piece (i->piece)
@@ -9036,9 +9056,13 @@ namespace libtorrent
 						, has_block(interesting_blocks.front())) != dq.end();
 					if (already_requested)
 					{
-						// TODO: interesting_blocks should ideally not include blocks
-						// that have been requested already
-						interesting_blocks.erase(interesting_blocks.begin());
+						// if the piece is stalled, we may end up picking a block
+						// that we've already requested from this peer. If so, we should
+						// simply disregard this peer from this piece, since this peer
+						// is likely to be causing the stall. We should request it
+						// from the next peer in the list
+						ignore_peers.push_back(*p);
+						peers.erase(p);
 						continue;
 					}
 
@@ -9061,11 +9085,6 @@ namespace libtorrent
 					}
 				}
 
-				// TODO: if there's been long enough since we requested something
-				// from this piece, request one of the backup blocks (the one with
-				// the least number of requests to it) and update the last request
-				// timestamp
-
 				if (added_request)
 				{
 					peers_with_requests.insert(peers_with_requests.begin(), &c);
@@ -9086,7 +9105,11 @@ namespace libtorrent
 					}
 				}
 
+				// TODO: 2 will pick_pieces ever return an empty set?
 			} while (!interesting_blocks.empty());
+
+			peers.insert(peers.begin(), ignore_peers.begin(), ignore_peers.end());
+			ignore_peers.clear();
 		}
 
 		// commit all the time critical requests

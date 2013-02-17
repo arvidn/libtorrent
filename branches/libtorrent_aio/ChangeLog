@@ -31,6 +31,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fixed sparse flag manipulation on windows
 	* fixed streaming piece picking issue
 
 0.16.8 release

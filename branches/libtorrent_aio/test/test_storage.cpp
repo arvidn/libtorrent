@@ -804,6 +804,10 @@ void test_check_files(std::string const& test_path
 	io.join();
 }
 
+#ifdef TORRENT_NO_DEPRECATE
+#define storage_mode_compact storage_mode_sparse
+#endif
+
 void run_test(std::string const& test_path, bool unbuffered)
 {
 	std::cerr << "\n=== " << test_path << " ===\n" << std::endl;
@@ -943,6 +947,7 @@ void test_fastresume(std::string const& test_path)
 				break;
 			}
 		}
+		// TODO: 3 don't use this deprecated function
 		resume = h.write_resume_data();
 		ses.remove_torrent(h, session::delete_files);
 	}
@@ -1033,6 +1038,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		std::cout << "stop loop" << std::endl;
 		torrent_status s = h.status();
 		TEST_CHECK(s.state == torrent_status::seeding);
+		// TODO: 3 don't use this deprecated function
 		resume = h.write_resume_data();
 		ses.remove_torrent(h);
 	}
@@ -1065,6 +1071,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		torrent_status stat = h.status();
 		TEST_CHECK(stat.state == torrent_status::seeding);
 
+		// TODO: 3 don't use this deprecated function
 		resume = h.write_resume_data();
 		ses.remove_torrent(h);
 	}

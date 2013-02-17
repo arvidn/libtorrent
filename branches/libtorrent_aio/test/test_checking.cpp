@@ -147,8 +147,11 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 
 		printf("%d %f %s\n", st.state, st.progress_ppm / 10000.f, st.error.c_str());
 
-		if (st.state != torrent_status::queued_for_checking
-			&& st.state != torrent_status::checking_files
+		if (
+#ifndef TORRENT_NO_DEPRECATE
+			st.state != torrent_status::queued_for_checking &&
+#endif
+			st.state != torrent_status::checking_files
 			&& st.state != torrent_status::checking_resume_data)
 			break;
 

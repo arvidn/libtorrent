@@ -119,12 +119,14 @@ int test_main()
 {
 	using namespace libtorrent;
 
+#ifndef TORRENT_NO_DEPRECATE
 	// test to disconnect one client prematurely
 	test_transfer(true, true, &create_metadata_plugin);
 	// test where one has data and one doesn't
 	test_transfer(true, false, &create_metadata_plugin);
 	// test where both have data (to trigger the file check)
 	test_transfer(false, false, &create_metadata_plugin);
+#endif
 
 	// test to disconnect one client prematurely
 	test_transfer(true, true, &create_ut_metadata_plugin);
