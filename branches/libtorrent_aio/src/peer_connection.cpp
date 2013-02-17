@@ -1956,7 +1956,10 @@ namespace libtorrent
 			{
 				bool have = bits[i];
 				if (!have || m_have_piece[i]) continue;
-				if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
+				// if we don't have a picker, the assumption is that the piece
+				// priority is 1, or that we're a seed, but in that case have_piece
+				// would have returned true.
+				if (!t->have_piece(i) && (!t->has_picker() || t->picker().piece_priority(i) != 0))
 					interesting = true;
 			}
 		}
@@ -3677,7 +3680,7 @@ namespace libtorrent
 		// closed, which is an edge case, but possible to happen when
 		// a peer makes a TCP and uTP connection in parallel.
 		// for outgoing connections however, why would we get this?
-		TORRENT_ASSERT(ec != error::invalid_argument || !m_outgoing);
+//		TORRENT_ASSERT(ec != error::invalid_argument || !m_outgoing);
 
 		m_ses.inc_stats_counter(aux::session_interface::disconnected_peers);
 		if (error == 2) m_ses.inc_stats_counter(aux::session_interface::error_peers);
