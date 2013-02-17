@@ -226,9 +226,9 @@ The ``session`` class has the following synopsis::
 			size_t queue_size_limit_);
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
-		feed_handle session::add_feed(feed_settings const& feed);
-		void session::remove_feed(feed_handle h);
-		void session::get_feeds(std::vector<feed_handle>& f) const;
+		feed_handle add_feed(feed_settings const& feed);
+		void remove_feed(feed_handle h);
+		void get_feeds(std::vector<feed_handle>& f) const;
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
@@ -1185,7 +1185,7 @@ add_feed()
 
 	::
 
-		feed_handle session::add_feed(feed_settings const& feed);
+		feed_handle add_feed(feed_settings const& feed);
 
 This adds an RSS feed to the session. The feed will be refreshed
 regularly and optionally add all torrents from the feed, as they
@@ -1244,7 +1244,7 @@ remove_feed()
 
 	::
 
-		void session::remove_feed(feed_handle h);
+		void remove_feed(feed_handle h);
 
 Removes a feed from being watched by the session. When this
 call returns, the feed handle is invalid and won't refer
@@ -1256,7 +1256,7 @@ get_feeds()
 
 	::
 
-		void session::get_feeds(std::vector<feed_handle>& f) const;
+		void get_feeds(std::vector<feed_handle>& f) const;
 
 Returns a list of all RSS feeds that are being watched by the session.
 
