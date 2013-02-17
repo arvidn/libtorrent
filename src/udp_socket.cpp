@@ -1384,9 +1384,6 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	, m_quota(8000)
 	, m_last_tick(time_now())
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("rate_limited_udp_socket::on_tick");
-#endif
 }
 
 bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
