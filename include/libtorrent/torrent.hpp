@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
+#include <deque>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -997,8 +998,7 @@ namespace libtorrent
 		};
 
 		// this list is sorted by time_critical_piece::deadline
-		// TODO: this should be a deque
-		std::list<time_critical_piece> m_time_critical_pieces;
+		std::deque<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;
 		std::string m_username;
