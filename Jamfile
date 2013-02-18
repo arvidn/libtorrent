@@ -26,6 +26,7 @@ SOURCES =
 	save_resume
 	torrent_history
 	auth
+	no_auth
 	auth_localhost
 	;
 

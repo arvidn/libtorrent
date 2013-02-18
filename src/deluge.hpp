@@ -47,10 +47,12 @@ namespace libtorrent
 	class session;
 	struct rtok_t;
 	struct rencoder;
+	struct permissions_interface;
+	struct auth_interface;
 
 	struct deluge
 	{
-		deluge(session& s, std::string pem_path);
+		deluge(session& s, std::string pem_path, auth_interface const* auth = NULL);
 		~deluge();
 
 		void start(int port);
@@ -59,23 +61,31 @@ namespace libtorrent
 		void set_params_model(add_torrent_params const& p)
 		{ m_params_model = p; }
 
-		void handle_login(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_set_event_interest(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_info(rtok_t const* tokens, char const* buf, rencoder& out);
+		struct conn_state
+		{
+			rtok_t const* tokens;
+			char const* buf;
+			rencoder* out;
+			permissions_interface const* perms;
+		};
 
-		void handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_get_session_status(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_get_enabled_plugins(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_get_free_space(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_get_num_connections(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_get_torrents_status(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_add_torrent_file(rtok_t const* tokens, char const* buf, rencoder& out);
-		void handle_get_filter_tree(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_login(conn_state* st);
+		void handle_set_event_interest(conn_state* st);
+		void handle_info(conn_state* st);
+
+		void handle_get_config_value(conn_state* st);
+		void handle_get_config_values(conn_state* st);
+		void handle_get_session_status(conn_state* st);
+		void handle_get_enabled_plugins(conn_state* st);
+		void handle_get_free_space(conn_state* st);
+		void handle_get_num_connections(conn_state* st);
+		void handle_get_torrents_status(conn_state* st);
+		void handle_add_torrent_file(conn_state* st);
+		void handle_get_filter_tree(conn_state* st);
 
 	private:
 
-		void incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& out);
+		void incoming_rpc(conn_state* st);
 		void output_error(int id, char const* msg, rencoder& out);
 		void output_config_value(std::string set_name, aux::session_settings const& sett
 			, rencoder& out);
@@ -90,6 +100,7 @@ namespace libtorrent
 		void on_accept(error_code const& ec, ssl_socket* sock);
 
 		session& m_ses;
+		auth_interface const* m_auth;
 		add_torrent_params m_params_model;
 		io_service m_ios;
 		socket_acceptor* m_listen_socket;

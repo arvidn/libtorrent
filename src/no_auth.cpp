@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,38 +31,32 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "auth_interface.hpp"
-
-#include "libtorrent/peer_id.hpp" // sha1_hash
-#include <string>
-#include <map>
-#include <vector>
-
-struct mg_connection;
+#include "no_auth.hpp"
 
 namespace libtorrent
 {
-	permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth);
 
-	struct auth : auth_interface
-	{
-		auth();
-		void add_account(std::string const& user, std::string const& pwd, bool read_only = false);
-		void remove_account(std::string const& user);
-		permissions_interface const* find_user(std::string username, std::string password) const;
-		std::vector<std::string> accounts() const;
+struct full_permissions : permissions_interface
+{
+	full_permissions() {}
+	bool allow_start() const { return true; }
+	bool allow_stop() const { return true; }
+	bool allow_recheck() const { return true; }
+	bool allow_list() const { return true; }
+	bool allow_add() const { return true; }
+	bool allow_remove() const { return true; }
+	bool allow_remove_data() const { return true; }
+	bool allow_queue_change() const { return true; }
+	bool allow_get_settings() const { return true; }
+	bool allow_set_settings() const { return true; }
+	bool allow_get_data() const { return true; }
+};
 
-	private:
+permissions_interface const* no_auth::find_user(std::string username, std::string password) const
+{
+	const static full_permissions full_perms;
+	return &full_perms;
+}
 
-		struct account_t
-		{
-			sha1_hash password_hash(std::string const& pwd) const;
-
-			sha1_hash hash;
-			char salt[10];
-			bool read_only;
-		};
-
-		std::map<std::string, account_t> m_accounts;
-	};
 }
 

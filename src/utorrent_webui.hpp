@@ -45,11 +45,14 @@ namespace libtorrent
 	struct auto_load;
 	struct save_settings_interface;
 	struct torrent_history;
+	struct permissions_interface;
+	struct auth_interface;
 
 	struct utorrent_webui : http_handler
 	{
 		utorrent_webui(session& s, save_settings_interface* sett = NULL
-			, auto_load* al = NULL, torrent_history* hist = NULL);
+			, auto_load* al = NULL, torrent_history* hist = NULL
+			, auth_interface const* auth = NULL);
 		~utorrent_webui();
 
 		void set_params_model(add_torrent_params const& p)
@@ -58,27 +61,27 @@ namespace libtorrent
 		virtual bool handle_http(mg_connection* conn
 			, mg_request_info const* request_info);
 
-		void start(std::vector<char>&, char const* args);
-		void stop(std::vector<char>&, char const* args);
-		void force_start(std::vector<char>&, char const* args);
-		void recheck(std::vector<char>&, char const* args);
-		void remove_torrent(std::vector<char>&, char const* args);
-		void remove_torrent_and_data(std::vector<char>&, char const* args);
+		void start(std::vector<char>&, char const* args, permissions_interface const* p);
+		void stop(std::vector<char>&, char const* args, permissions_interface const* p);
+		void force_start(std::vector<char>&, char const* args, permissions_interface const* p);
+		void recheck(std::vector<char>&, char const* args, permissions_interface const* p);
+		void remove_torrent(std::vector<char>&, char const* args, permissions_interface const* p);
+		void remove_torrent_and_data(std::vector<char>&, char const* args, permissions_interface const* p);
 
-		void queue_up(std::vector<char>&, char const* args);
-		void queue_down(std::vector<char>&, char const* args);
-		void queue_top(std::vector<char>&, char const* args);
-		void queue_bottom(std::vector<char>&, char const* args);
+		void queue_up(std::vector<char>&, char const* args, permissions_interface const* p);
+		void queue_down(std::vector<char>&, char const* args, permissions_interface const* p);
+		void queue_top(std::vector<char>&, char const* args, permissions_interface const* p);
+		void queue_bottom(std::vector<char>&, char const* args, permissions_interface const* p);
 
-		void get_settings(std::vector<char>&, char const* args);
-		void set_settings(std::vector<char>&, char const* args);
+		void get_settings(std::vector<char>&, char const* args, permissions_interface const* p);
+		void set_settings(std::vector<char>&, char const* args, permissions_interface const* p);
 
-		void get_properties(std::vector<char>&, char const* args);
-		void add_url(std::vector<char>&, char const* args);
+		void get_properties(std::vector<char>&, char const* args, permissions_interface const* p);
+		void add_url(std::vector<char>&, char const* args, permissions_interface const* p);
 
-		void send_file_list(std::vector<char>&, char const* args);
-		void send_torrent_list(std::vector<char>&, char const* args);
-		void send_peer_list(std::vector<char>& response, char const* args);
+		void send_file_list(std::vector<char>&, char const* args, permissions_interface const* p);
+		void send_torrent_list(std::vector<char>&, char const* args, permissions_interface const* p);
+		void send_peer_list(std::vector<char>& response, char const* args, permissions_interface const* p);
 
 	private:
 
@@ -92,6 +95,8 @@ namespace libtorrent
 		// optional auto loader, controllable
 		// via webui settings
 		auto_load* m_al;
+
+		auth_interface const* m_auth;
 
 		save_settings_interface* m_settings;
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,39 +30,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "auth_interface.hpp"
+#ifndef TORRENT_NO_AUTH_HPP
+#define TORRENT_NO_AUTH_HPP
 
-#include "libtorrent/peer_id.hpp" // sha1_hash
 #include <string>
-#include <map>
-#include <vector>
 
-struct mg_connection;
+#include "auth_interface.hpp"
 
 namespace libtorrent
 {
-	permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth);
 
-	struct auth : auth_interface
-	{
-		auth();
-		void add_account(std::string const& user, std::string const& pwd, bool read_only = false);
-		void remove_account(std::string const& user);
-		permissions_interface const* find_user(std::string username, std::string password) const;
-		std::vector<std::string> accounts() const;
+struct no_auth : auth_interface
+{
+	virtual permissions_interface const* find_user(std::string username, std::string password) const;
+};
 
-	private:
-
-		struct account_t
-		{
-			sha1_hash password_hash(std::string const& pwd) const;
-
-			sha1_hash hash;
-			char salt[10];
-			bool read_only;
-		};
-
-		std::map<std::string, account_t> m_accounts;
-	};
 }
+
+#endif // TORRENT_NO_AUTH_HPP
 

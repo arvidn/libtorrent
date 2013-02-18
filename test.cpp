@@ -44,9 +44,9 @@ int main(int argc, char *const argv[])
 	sett.load(ec);
 
 	torrent_history hist(&alerts);
-	auth authorizer(&sett);
-	authorizer.set_username("admin");
-	authorizer.set_password("test");
+	auth authorizer;
+	authorizer.add_account("admin", "test");
+	authorizer.add_account("guest", "test", true);
 
 	save_resume resume(ses, ".resume", &alerts);
 	add_torrent_params p;
@@ -55,18 +55,17 @@ int main(int argc, char *const argv[])
 
 	auto_load al(ses, &sett);
 
-	transmission_webui tr_handler(ses, &sett);
-	utorrent_webui ut_handler(ses, &sett, &al, &hist);
-	file_downloader file_handler(ses);
+	transmission_webui tr_handler(ses, &sett, &authorizer);
+	utorrent_webui ut_handler(ses, &sett, &al, &hist, &authorizer);
+	file_downloader file_handler(ses, &authorizer);
 
 	webui_base webport;
-	webport.add_handler(&authorizer);
 	webport.add_handler(&ut_handler);
 	webport.add_handler(&tr_handler);
 	webport.add_handler(&file_handler);
-	webport.start(8080);
+	webport.start(8090);
 
-	deluge dlg(ses, "server.pem");
+	deluge dlg(ses, "server.pem", &authorizer);
 	dlg.start(58846);
 
 	signal(SIGTERM, &sighandler);

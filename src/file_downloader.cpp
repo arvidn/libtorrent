@@ -32,6 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "webui.hpp"
 #include "file_downloader.hpp"
+#include "no_auth.hpp"
+#include "auth.hpp"
+
+#include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/peer_id.hpp" // for sha1_hash
@@ -128,11 +132,18 @@ namespace libtorrent
 	
 	};
 
-	file_downloader::file_downloader(session& s)
+	file_downloader::file_downloader(session& s, auth_interface const* auth)
 		: m_ses(s)
+		, m_auth(auth)
 		, m_dispatch(new piece_alert_dispatch())
 		, m_queue_size(4 * 1024 * 1024)
 	{
+		if (m_auth == NULL)
+		{
+			const static no_auth n;
+			m_auth = &n;
+		}
+
 		m_ses.add_extension(boost::static_pointer_cast<plugin>(m_dispatch));
 	}
 
@@ -142,6 +153,15 @@ namespace libtorrent
 		if (!string_begins_no_case(request_info->uri, "/download")
 			&& !string_begins_no_case(request_info->uri, "/proxy"))
 			return false;
+
+		permissions_interface const* perms = parse_http_auth(conn, m_auth);
+		if (!perms || !perms->allow_get_data())
+		{
+			mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+				"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+				"Content-Length: 0\r\n\r\n");
+			return true;
+		}
 
 		std::string info_hash_str;
 		std::string file_str;

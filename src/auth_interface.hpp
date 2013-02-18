@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,39 +30,37 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "auth_interface.hpp"
+#ifndef TORRENT_PERM_INTERFACE_HPP
+#define TORRENT_PERM_INTERFACE_HPP
 
-#include "libtorrent/peer_id.hpp" // sha1_hash
 #include <string>
-#include <map>
-#include <vector>
-
-struct mg_connection;
 
 namespace libtorrent
 {
-	permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth);
-
-	struct auth : auth_interface
+	struct permissions_interface
 	{
-		auth();
-		void add_account(std::string const& user, std::string const& pwd, bool read_only = false);
-		void remove_account(std::string const& user);
-		permissions_interface const* find_user(std::string username, std::string password) const;
-		std::vector<std::string> accounts() const;
-
-	private:
-
-		struct account_t
-		{
-			sha1_hash password_hash(std::string const& pwd) const;
-
-			sha1_hash hash;
-			char salt[10];
-			bool read_only;
-		};
-
-		std::map<std::string, account_t> m_accounts;
+		virtual bool allow_start() const = 0;
+		virtual bool allow_stop() const = 0;
+		virtual bool allow_recheck() const = 0;
+		virtual bool allow_list() const = 0;
+		virtual bool allow_add() const = 0;
+		virtual bool allow_remove() const = 0;
+		virtual bool allow_remove_data() const = 0;
+		virtual bool allow_queue_change() const = 0;
+		virtual bool allow_get_settings() const = 0;
+		virtual bool allow_set_settings() const = 0;
+		virtual bool allow_get_data() const = 0;
 	};
+
+	struct auth_interface
+	{
+		// returns the persmissions object for the specified
+		// account, or NULL in case the username doesn't exist
+		// or if the password is incorrect
+		virtual permissions_interface const* find_user(std::string username, std::string password) const = 0;
+	};
+
 }
+
+#endif // TORRENT_PERM_INTERFACE_HPP
 
