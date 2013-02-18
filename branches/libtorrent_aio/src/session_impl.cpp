@@ -6552,7 +6552,7 @@ retry:
 
 	void session_impl::trigger_auto_manage()
 	{
-		if (m_pending_auto_manage) return;
+		if (m_pending_auto_manage || m_abort) return;
 
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
