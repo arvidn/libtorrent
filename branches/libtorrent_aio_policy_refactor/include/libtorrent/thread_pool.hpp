@@ -67,7 +67,7 @@ namespace libtorrent
 			{
 				while (m_num_threads > i) { --m_num_threads; }
 				mutex::scoped_lock l(m_mutex);
-				m_cond.signal_all(l);
+				m_cond.notify_all();
 				l.unlock();
 				if (wait) for (int i = m_num_threads; i < int(m_threads.size()); ++i) m_threads[i]->join();
 				// this will detach the threads
@@ -96,7 +96,7 @@ namespace libtorrent
 				// previous to adding the new job was > 0
 				// they don't need waking up.
 				if (m_queue.size() == 1)
-					m_cond.signal_all(l);
+					m_cond.notify_all();
 				return true;
 			}
 		}
@@ -145,7 +145,7 @@ namespace libtorrent
 		// thread (the user of this class, i.e. the disk
 		// thread).
 		mutex m_mutex;
-		condition m_cond;
+		condition_variable m_cond;
 		std::deque<T> m_queue;
 
 		std::vector<boost::shared_ptr<thread> > m_threads;

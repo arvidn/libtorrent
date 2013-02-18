@@ -240,6 +240,7 @@ namespace libtorrent
 		int added = 0;
 		// the number of dots we've added
 		char num_dots = 0;
+		bool found_extension = false;
 		for (int i = 0; i < element_len; ++i)
 		{
 			if (element[i] == '/'
@@ -261,17 +262,19 @@ namespace libtorrent
 			// file extension and add that too
 			// TODO: this may corrupt utf-8 encoding. We should find a
 			// proper breaking point between characters
-			if (added > 200)
+			if (added >= 200 && !found_extension)
 			{
-				i = -1;
-				for (int j = element_len-1; j > element_len - 10; --j)
+				int dot = -1;
+				for (int j = element_len-1; j > (std::max)(element_len - 10, i); --j)
 				{
 					if (element[j] != '.') continue;
-					i = j;
+					dot = j;
 					break;
 				}
 				// there is no extension
-				if (i == -1) break;
+				if (dot == -1) break;
+				found_extension = true;
+				i = dot - 1;
 			}
 		}
 
@@ -476,10 +479,11 @@ namespace libtorrent
 
 	int merkle_num_leafs(int pieces)
 	{
+		TORRENT_ASSERT(pieces > 0);
 		// round up to nearest 2 exponent
-		int i;
-		for (i = 0; pieces > 0; pieces >>= 1, ++i);
-		return 1 << i;
+		int ret = 1;
+		while (pieces > ret) ret <<= 1;
+		return ret;
 	}
 
 	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit)
@@ -507,6 +511,9 @@ namespace libtorrent
 		: url(u)
 		, next_announce(min_time())
 		, min_announce(min_time())
+		, scrape_incomplete(-1)
+		, scrape_complete(-1)
+		, scrape_downloaded(-1)
 		, tier(0)
 		, fail_limit(0)
 		, fails(0)
@@ -1338,7 +1345,7 @@ namespace libtorrent
 
 		// if there are any url-seeds, extract them
 		lazy_entry const* url_seeds = torrent_file.dict_find("url-list");
-		if (url_seeds && url_seeds->type() == lazy_entry::string_t)
+		if (url_seeds && url_seeds->type() == lazy_entry::string_t && url_seeds->string_length() > 0)
 		{
 			web_seed_entry ent(maybe_url_encode(url_seeds->string_value())
 				, web_seed_entry::url_seed);
@@ -1351,6 +1358,7 @@ namespace libtorrent
 			{
 				lazy_entry const* url = url_seeds->list_at(i);
 				if (url->type() != lazy_entry::string_t) continue;
+				if (url->string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url->string_value())
 					, web_seed_entry::url_seed);
 				if (m_multifile && ent.url[ent.url.size()-1] != '/') ent.url += '/';
@@ -1360,7 +1368,7 @@ namespace libtorrent
 
 		// if there are any http-seeds, extract them
 		lazy_entry const* http_seeds = torrent_file.dict_find("httpseeds");
-		if (http_seeds && http_seeds->type() == lazy_entry::string_t)
+		if (http_seeds && http_seeds->type() == lazy_entry::string_t && http_seeds->string_length() > 0)
 		{
 			m_web_seeds.push_back(web_seed_entry(maybe_url_encode(http_seeds->string_value())
 				, web_seed_entry::http_seed));
@@ -1370,7 +1378,7 @@ namespace libtorrent
 			for (int i = 0, end(http_seeds->list_size()); i < end; ++i)
 			{
 				lazy_entry const* url = http_seeds->list_at(i);
-				if (url->type() != lazy_entry::string_t) continue;
+				if (url->type() != lazy_entry::string_t || url->string_length() == 0) continue;
 				m_web_seeds.push_back(web_seed_entry(maybe_url_encode(url->string_value())
 					, web_seed_entry::http_seed));
 			}

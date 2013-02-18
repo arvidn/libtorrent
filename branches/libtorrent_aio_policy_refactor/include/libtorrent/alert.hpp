@@ -100,7 +100,11 @@ namespace libtorrent {
 			stats_notification = 0x800,
 			rss_notification = 0x1000,
 
-			all_categories = 0xffffffff
+			// since the enum is signed, make sure this isn't
+			// interpreted as -1. For instance, boost.python
+			// does that and fails when assigning it to an
+			// unsigned parameter.
+			all_categories = 0x7fffffff
 		};
 
 		alert();
@@ -172,11 +176,11 @@ namespace libtorrent {
 #endif
 
 	private:
-		void post_impl(std::auto_ptr<alert>& alert_);
+		void post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l);
 
 		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
-//		event m_condition;
+		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;

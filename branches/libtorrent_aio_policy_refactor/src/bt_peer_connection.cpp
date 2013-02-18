@@ -1890,6 +1890,11 @@ namespace libtorrent
 		if (m_upload_only_id == 0) return;
 		if (t->share_mode()) return;
 
+		// if we send upload-only, the other end is very likely to disconnect
+		// us, at least if it's a seed. If we don't want to close redundant
+		// connections, don't sent upload-only
+		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
+
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
 		detail::write_uint8(m_upload_only_id, ptr);

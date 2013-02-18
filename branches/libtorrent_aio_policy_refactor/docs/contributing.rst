@@ -43,3 +43,11 @@ enumerated on this page, please contact arvid@rasterbar.com or the `mailing list
 	New features might be better support for integrating with other services, new choking
 	algorithms, seeding policies, ports to new platforms etc.
 
+For an overview of the internals of libtorrent, see the hacking_ page.
+
+For outstanding things to do, see the `todo list`_.
+
+.. _hacking: hacking.html
+
+.. _`todo list`: todo.html
+

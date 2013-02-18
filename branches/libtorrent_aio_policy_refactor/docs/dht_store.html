@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.8.1: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.4</td></tr>
+<td>1.1.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -109,7 +109,9 @@ hash table internally, or in separate ones and potentially do two lookups for <t
 requests.</p>
 <p>The <tt class="docutils literal">v</tt> field is the <em>value</em> to be stored. It is allowed to be any bencoded type (list,
 dict, string or integer). When it's being hashed (for verifying its signature or to calculate
-its key), its flattened, bencoded, form is used.</p>
+its key), its flattened, bencoded, form is used. It is important to use the exact
+bencoded representation as it appeared in the message. decoding and then re-encoding
+bencoded structures is not necessarily an identity operation.</p>
 <p>Storing nodes SHOULD reject <tt class="docutils literal">put</tt> requests where the bencoded form of <tt class="docutils literal">v</tt> is longer
 than 767 bytes.</p>
 </div>
@@ -117,6 +119,8 @@ than 767 bytes.</p>
 <h1>immutable items</h1>
 <p>Immutable items are stored under their SHA-1 hash, and since they cannot be modified,
 there is no need to authenticate the origin of them. This makes immutable items simple.</p>
+<p>A node making a lookup SHOULD verify the data it receives from the network, to verify
+that its hash matches the target that was looked up.</p>
 <div class="section" id="put-message">
 <h2>put message</h2>
 <p>Request:</p>
@@ -182,7 +186,9 @@ is the SHA-1 hash of the public key (as it appears in the <tt class="docutils li
 <p>In order to avoid a malicious node to overwrite the list head with an old
 version, the sequence number <tt class="docutils literal">seq</tt> must be monotonically increasing for each update,
 and a node hosting the list node MUST not downgrade a list head from a higher sequence
-number to a lower one, only upgrade.</p>
+number to a lower one, only upgrade. The sequence number SHOULD not exceed <tt class="docutils literal">MAX_INT64</tt>,
+(i.e. <tt class="docutils literal">0x7fffffffffffffff</tt>. A client MAY reject any message with a sequence number
+exceeding this.</p>
 <p>The signature is a 2048 bit RSA signature of the SHA-1 hash of the bencoded sequence
 number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
 <div class="section" id="id1">

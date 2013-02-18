@@ -1027,6 +1027,30 @@ int test_main()
 	// test sanitize_append_path_element
 
 	std::string path;
+
+	path.clear();
+	sanitize_append_path_element(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_", 210);
+	sanitize_append_path_element(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test", 210);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_\\"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+#else
+	TEST_EQUAL(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_/"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+#endif
+
 	path.clear();
 	sanitize_append_path_element(path, "/a/", 3);
 	sanitize_append_path_element(path, "b", 1);
@@ -1670,8 +1694,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 		TEST_EQUAL(nodes[0].timeout_count, 0);
 	}
 
@@ -1684,8 +1708,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 		TEST_EQUAL(nodes[0].timeout_count, 1);
 	}
 
@@ -1697,8 +1721,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 		TEST_EQUAL(nodes[0].timeout_count, 0);
 	}
 
@@ -1711,8 +1735,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 	}
 
 	// test adding the same node ID again with a different IP (should be ignored)
@@ -1722,8 +1746,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 	}
 
 	// test adding a node that ends up in the same bucket with an IP
@@ -1735,8 +1759,8 @@ int test_main()
 	if (!nodes.empty())
 	{
 		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
-		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port(), 4);
 	}
 
 	s.restrict_routing_ips = false;
@@ -1903,6 +1927,34 @@ int test_main()
 	std::cerr << h1 << std::endl;
 #endif
 	TEST_CHECK(h1 == to_hash("000fffffff0000000000ffffffffff0000000000"));
+
+	h1 = to_hash("7000000000000000000000000000000000000000");
+	h1 <<= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("e000000000000000000000000000000000000000"));
+
+	h1 = to_hash("0000000000000000000000000000000000000007");
+	h1 <<= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("000000000000000000000000000000000000000e"));
+
+	h1 = to_hash("0000000000000000000000000000000000000007");
+	h1 >>= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("0000000000000000000000000000000000000003"));
+
+	h1 = to_hash("7000000000000000000000000000000000000000");
+	h1 >>= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("3800000000000000000000000000000000000000"));
 	
 	// CIDR distance test
 	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
@@ -1953,6 +2005,74 @@ int test_main()
 
 	test1.resize(100, true);
 	TEST_CHECK(test1.all_set() == true);
+
+	// test merkle_*() functions
+
+	// this is the structure:
+	//             0
+	//      1              2
+	//   3      4       5       6
+	//  7 8    9 10   11 12   13 14
+	// num_leafs = 8
+
+	TEST_EQUAL(merkle_num_leafs(1), 1);
+	TEST_EQUAL(merkle_num_leafs(2), 2);
+	TEST_EQUAL(merkle_num_leafs(3), 4);
+	TEST_EQUAL(merkle_num_leafs(4), 4);
+	TEST_EQUAL(merkle_num_leafs(5), 8);
+	TEST_EQUAL(merkle_num_leafs(6), 8);
+	TEST_EQUAL(merkle_num_leafs(7), 8);
+	TEST_EQUAL(merkle_num_leafs(8), 8);
+	TEST_EQUAL(merkle_num_leafs(9), 16);
+	TEST_EQUAL(merkle_num_leafs(10), 16);
+	TEST_EQUAL(merkle_num_leafs(11), 16);
+	TEST_EQUAL(merkle_num_leafs(12), 16);
+	TEST_EQUAL(merkle_num_leafs(13), 16);
+	TEST_EQUAL(merkle_num_leafs(14), 16);
+	TEST_EQUAL(merkle_num_leafs(15), 16);
+	TEST_EQUAL(merkle_num_leafs(16), 16);
+	TEST_EQUAL(merkle_num_leafs(17), 32);
+	TEST_EQUAL(merkle_num_leafs(18), 32);
+
+	// parents
+	TEST_EQUAL(merkle_get_parent(1), 0);
+	TEST_EQUAL(merkle_get_parent(2), 0);
+	TEST_EQUAL(merkle_get_parent(3), 1);
+	TEST_EQUAL(merkle_get_parent(4), 1);
+	TEST_EQUAL(merkle_get_parent(5), 2);
+	TEST_EQUAL(merkle_get_parent(6), 2);
+	TEST_EQUAL(merkle_get_parent(7), 3);
+	TEST_EQUAL(merkle_get_parent(8), 3);
+	TEST_EQUAL(merkle_get_parent(9), 4);
+	TEST_EQUAL(merkle_get_parent(10), 4);
+	TEST_EQUAL(merkle_get_parent(11), 5);
+	TEST_EQUAL(merkle_get_parent(12), 5);
+	TEST_EQUAL(merkle_get_parent(13), 6);
+	TEST_EQUAL(merkle_get_parent(14), 6);
+
+	// siblings
+	TEST_EQUAL(merkle_get_sibling(1), 2);
+	TEST_EQUAL(merkle_get_sibling(2), 1);
+	TEST_EQUAL(merkle_get_sibling(3), 4);
+	TEST_EQUAL(merkle_get_sibling(4), 3);
+	TEST_EQUAL(merkle_get_sibling(5), 6);
+	TEST_EQUAL(merkle_get_sibling(6), 5);
+	TEST_EQUAL(merkle_get_sibling(7), 8);
+	TEST_EQUAL(merkle_get_sibling(8), 7);
+	TEST_EQUAL(merkle_get_sibling(9), 10);
+	TEST_EQUAL(merkle_get_sibling(10), 9);
+	TEST_EQUAL(merkle_get_sibling(11), 12);
+	TEST_EQUAL(merkle_get_sibling(12), 11);
+	TEST_EQUAL(merkle_get_sibling(13), 14);
+	TEST_EQUAL(merkle_get_sibling(14), 13);
+
+	// total number of nodes given the number of leafs
+	TEST_EQUAL(merkle_num_nodes(1), 1);
+	TEST_EQUAL(merkle_num_nodes(2), 3);
+	TEST_EQUAL(merkle_num_nodes(4), 7);
+	TEST_EQUAL(merkle_num_nodes(8), 15);
+	TEST_EQUAL(merkle_num_nodes(16), 31);
+
 	return 0;
 }
 

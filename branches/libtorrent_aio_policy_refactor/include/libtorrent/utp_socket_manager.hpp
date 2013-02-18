@@ -94,6 +94,7 @@ namespace libtorrent
 		int num_sockets() const { return m_utp_sockets.size(); }
 
 		void defer_ack(utp_socket_impl* s);
+		void subscribe_drained(utp_socket_impl* s);
 
 	private:
 		udp_socket& m_sock;
@@ -108,6 +109,13 @@ namespace libtorrent
 		// have a chance to do that. This is to avoid sending
 		// an ack for every single packet
 		std::vector<utp_socket_impl*> m_deferred_acks;
+
+		// sockets that have received or sent packets this
+		// round, may subscribe to the event of draining the
+		// UDP socket. At that point they may call the
+		// user callback function to indicate bytes have been
+		// sent or received.
+		std::vector<utp_socket_impl*> m_drained_event;
 		
 		// list of sockets that received EWOULDBLOCK from the
 		// underlying socket. They are notified when the socket

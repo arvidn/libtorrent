@@ -82,6 +82,7 @@ libtorrent_rasterbar_la_SOURCES = \
   policy.cpp                      \
   puff.cpp                        \
   random.cpp                      \
+  request_blocks.cpp              \
   rsa.cpp                         \
   rss.cpp                         \
   session.cpp                     \
@@ -96,9 +97,9 @@ libtorrent_rasterbar_la_SOURCES = \
   stat.cpp                        \
   stat_cache.cpp                  \
   storage.cpp                     \
-  tailqueue.cpp                   \
   session_stats.cpp               \
   string_util.cpp                 \
+  tailqueue.cpp                   \
   thread.cpp                      \
   torrent.cpp                     \
   torrent_handle.cpp              \

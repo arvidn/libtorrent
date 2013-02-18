@@ -234,7 +234,7 @@ namespace libtorrent { namespace dht
 
 		rpc_log().enable(false);
 		node_log().enable(false);
-		traversal_log().enable(false);
+//		traversal_log().enable(false);
 //		dht_tracker_log.enable(false);
 
 		TORRENT_LOG(dht_tracker) << "starting DHT tracker with node id: " << m_dht.nid();
@@ -262,7 +262,7 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
-		m_connection_timer.expires_from_now(seconds(10), ec);
+		m_connection_timer.expires_from_now(seconds(1), ec);
 		m_connection_timer.async_wait(
 			boost::bind(&dht_tracker::connection_timeout, self(), _1));
 
@@ -568,7 +568,7 @@ namespace libtorrent { namespace dht
 			{
 				std::string node;
 				std::back_insert_iterator<std::string> out(node);
-				write_endpoint(udp::endpoint(i->addr, i->port), out);
+				write_endpoint(i->ep(), out);
 				nodes.list().push_back(entry(node));
 			}
 			if (!nodes.list().empty())
@@ -638,7 +638,9 @@ namespace libtorrent { namespace dht
 		
 			if (e["y"].string() == "r")
 			{
-				// TODO: fix this stats logging
+				// TODO: 2 fix this stats logging. For instance,
+				// the stats counters could be factored out into its own
+				// class, and dht_tracker could take an optional reference to it
 //				++m_replies_sent[e["r"]];
 //				m_replies_bytes_sent[e["r"]] += int(m_send_buf.size());
 			}

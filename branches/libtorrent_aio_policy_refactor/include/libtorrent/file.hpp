@@ -242,10 +242,6 @@ namespace libtorrent
 		void close();
 		bool set_size(size_type size, error_code& ec);
 
-		// called when we're done writing to the file.
-		// On windows this will clear the sparse bit
-		void finalize();
-
 		int open_mode() const { return m_open_mode; }
 
 		// flags for writev and readv

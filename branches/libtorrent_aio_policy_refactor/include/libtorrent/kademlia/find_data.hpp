@@ -57,7 +57,8 @@ class node_impl;
 
 // -------- find data -----------
 
-//TODO: rename this to find_peers
+//TODO: 3 rename this class to find_peers, since that's what it does
+// find_data is an unnecessarily generic name
 class find_data : public traversal_algorithm
 {
 public:

@@ -389,6 +389,16 @@ time_duration rpc_manager::tick()
 	time_duration ret = seconds(short_timeout);
 	ptime now = time_now();
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	ptime last = min_time();
+	for (transactions_t::iterator i = m_transactions.begin();
+		i != m_transactions.end(); ++i)
+	{
+		TORRENT_ASSERT((*i)->sent() >= last);
+		last = (*i)->sent();
+	}
+#endif
+
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
@@ -430,10 +440,10 @@ time_duration rpc_manager::tick()
 			break;
 		}
 		
+		// don't call short_timeout() again if we've
+		// already called it once
 		if (o->has_short_timeout()) continue;
 
-		// TODO: don't call short_timeout() again if we've
-		// already called it once
 		timeouts.push_back(o);
 	}
 
@@ -479,8 +489,9 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		o->m_was_sent = true;
 #endif
+		return true;
 	}
-	return true;
+	return false;
 }
 
 observer::~observer()

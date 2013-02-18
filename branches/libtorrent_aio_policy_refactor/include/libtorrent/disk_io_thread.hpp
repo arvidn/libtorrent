@@ -240,9 +240,11 @@ namespace libtorrent
 		void async_check_fastresume(piece_manager* storage
 			, lazy_entry const* resume_data
 			, boost::function<void(disk_io_job const*)> const& handler);
+#ifndef TORRENT_NO_DEPRECATE
 		void async_finalize_file(piece_manager* storage, int file
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>());
+#endif
 		void async_flush_piece(piece_manager* storage, int piece
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>());
@@ -337,7 +339,9 @@ namespace libtorrent
 		int do_stop_torrent(disk_io_job* j);
 		int do_read_and_hash(disk_io_job* j);
 		int do_cache_piece(disk_io_job* j);
+#ifndef TORRENT_NO_DEPRECATE
 		int do_finalize_file(disk_io_job* j);
+#endif
 		int do_flush_piece(disk_io_job* j);
 		int do_flush_hashed(disk_io_job* j);
 		int do_flush_storage(disk_io_job* j);
@@ -500,7 +504,7 @@ namespace libtorrent
 
 		// used to wake up the disk IO thread when there are new
 		// jobs on the job queue (m_queued_jobs)
-		condition m_job_cond;
+		condition_variable m_job_cond;
 
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;
@@ -511,7 +515,7 @@ namespace libtorrent
 		// when using more than 2 threads, this is
 		// used for just hashing jobs, just for threads
 		// dedicated to do hashing
-		condition m_hash_job_cond;
+		condition_variable m_hash_job_cond;
 		tailqueue m_queued_hash_jobs;
 		
 		// used to rate limit disk performance warnings

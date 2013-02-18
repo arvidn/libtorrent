@@ -147,14 +147,14 @@ namespace
 	// must be ordered alphabetically
 	map_entry name_map[] =
 	{
-		{"A",  "ABC"}
-		, {"AG",  "Ares"}
+		  {"A",  "ABC"}
+		, {"AG", "Ares"}
 		, {"AR", "Arctic Torrent"}
 		, {"AT", "Artemis"}
 		, {"AV", "Avicora"}
 		, {"AX", "BitPump"}
 		, {"AZ", "Azureus"}
-		, {"A~",  "Ares"}
+		, {"A~", "Ares"}
 		, {"BB", "BitBuddy"}
 		, {"BC", "BitComet"}
 		, {"BF", "Bitflu"}
@@ -193,15 +193,15 @@ namespace
 		, {"MT", "Moonlight Torrent"}
 		, {"NX", "Net Transport"}
 		, {"O",  "Osprey Permaseed"}
-		, {"OS",  "OneSwarm"}
-		, {"OT",  "OmegaTorrent"}
-		, {"PD",  "Pando"}
-		, {"Q", "BTQueue"}
+		, {"OS", "OneSwarm"}
+		, {"OT", "OmegaTorrent"}
+		, {"PD", "Pando"}
+		, {"Q",  "BTQueue"}
 		, {"QD", "QQDownload"}
 		, {"QT", "Qt 4"}
 		, {"R",  "Tribler"}
-		, {"RT",  "Retriever"}
-		, {"RZ",  "RezTorrent"}
+		, {"RT", "Retriever"}
+		, {"RZ", "RezTorrent"}
 		, {"S",  "Shadow"}
 		, {"SB", "Swiftbit"}
 		, {"SD", "Xunlei"}
@@ -209,8 +209,9 @@ namespace
 		, {"SS", "SwarmScope"}
 		, {"ST", "SymTorrent"}
 		, {"SZ", "Shareaza"}
-		, {"S~",  "Shareaza (beta)"}
+		, {"S~", "Shareaza (beta)"}
 		, {"T",  "BitTornado"}
+		, {"TL", "Tribler"}
 		, {"TN", "Torrent.NET"}
 		, {"TR", "Transmission"}
 		, {"TS", "TorrentStorm"}
@@ -274,6 +275,7 @@ namespace
 		, {0, "OP", "Opera"}
 		, {2, "RS", "Rufus"}
 		, {0, "AZ2500BT", "BitTyrant"}
+		, {0, "btpd/", "BitTorrent Protocol Daemon"}
 	};
 
 	bool compare_id(map_entry const& lhs, map_entry const& rhs)

@@ -593,7 +593,6 @@ namespace libtorrent
 				}
 			}
 			else if (pad_file_limit >= 0
-				&& (off & (alignment-1)) != 0
 				&& i->size > pad_file_limit
 				&& i->pad_file == false)
 			{

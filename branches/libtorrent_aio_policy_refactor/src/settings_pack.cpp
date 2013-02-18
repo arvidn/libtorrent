@@ -508,12 +508,15 @@ namespace libtorrent
 			TORRENT_ASSERT(s.get_bool(settings_pack::bool_type_base + i) == bool_settings[i].default_value);
 		}
 
+		// this seems questionable...
+/*
 		// Some settings have dynamic defaults depending on the machine
 		// for instance, the disk cache size
 
 		// by default, set the cahe size to an 8:th of the total amount of physical RAM
 		boost::uint64_t phys_ram = total_physical_ram();
 		if (phys_ram > 0) s.set_int(settings_pack::cache_size, phys_ram / 16 / 1024 / 8);
+*/
 	}
 
 	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses)

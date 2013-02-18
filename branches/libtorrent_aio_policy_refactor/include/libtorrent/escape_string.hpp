@@ -84,7 +84,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string convert_from_wstring(std::wstring const& s);
 #endif
 	
-#if TORRENT_USE_ICONV || TORRENT_USE_LOCALE
+#if TORRENT_USE_ICONV || TORRENT_USE_LOCALE || defined TORRENT_WINDOWS
 	TORRENT_EXTRA_EXPORT std::string convert_to_native(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_native(std::string const& s);
 #else

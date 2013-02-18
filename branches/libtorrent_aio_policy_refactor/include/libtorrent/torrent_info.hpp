@@ -78,6 +78,11 @@ namespace libtorrent
 		, tracker_retry_delay_max = 60 * 60
 	};
 
+	TORRENT_EXTRA_EXPORT int merkle_num_leafs(int);
+	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
+	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
+	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
+
 	struct TORRENT_EXPORT announce_entry
 	{
 		announce_entry(std::string const& u);
@@ -103,6 +108,17 @@ namespace libtorrent
 
 		// no announces before this time
 		ptime min_announce;
+
+		// TODO: include the number of peers received from this tracker, at last announce
+
+		// if this tracker has returned scrape data, these fields are filled
+		// in with valid numbers. Otherwise they are set to -1.
+		// the number of current downloaders
+		int scrape_incomplete;
+		// the number of current seeds
+		int scrape_complete;
+		// the cumulative number of completed downloads, ever
+		int scrape_downloaded;
 
 		// the tier this tracker belongs to
 		boost::uint8_t tier;
@@ -475,10 +491,9 @@ namespace libtorrent
 		// pointing to the first byte of the first sha-1 hash
 		char const* m_piece_hashes;
 
-		// TODO: these strings could be lazy_entry* to save memory
-
 		// if a comment is found in the torrent file
 		// this will be set to that comment
+		// TODO: 2 these strings (m_comment, m_created_by, m_ssl_root_cert) could be lazy_entry* to save memory
 		std::string m_comment;
 
 		// an optional string naming the software used

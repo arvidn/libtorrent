@@ -79,8 +79,16 @@ namespace libtorrent {
 	std::string read_piece_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s: piece %s %u", torrent_alert::message().c_str()
-			, buffer ? "successful" : "failed", piece);
+		if (ec)
+		{
+			snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
+				, torrent_alert::message().c_str() , piece, ec.message().c_str());
+		}
+		else
+		{
+			snprintf(msg, sizeof(msg), "%s: read_piece %u successful"
+				, torrent_alert::message().c_str() , piece);
+		}
 		return msg;
 	}
 
@@ -104,7 +112,7 @@ namespace libtorrent {
 	{
 		char ret[200 + TORRENT_MAX_PATH * 2];
 		snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
-			, torrent_alert::message().c_str(), index, error.message().c_str());
+			, torrent_alert::message().c_str(), index, convert_from_native(error.message()).c_str());
 		return ret;
 	}
 
@@ -277,7 +285,7 @@ namespace libtorrent {
 	{
 		char ret[200];
 		snprintf(ret, sizeof(ret), "listening on %s failed: %s"
-			, print_endpoint(endpoint).c_str(), error.message().c_str());
+			, print_endpoint(endpoint).c_str(), convert_from_native(error.message()).c_str());
 		return ret;
 	}
 
@@ -292,7 +300,7 @@ namespace libtorrent {
 	{
 		static char const* type_str[] = {"NAT-PMP", "UPnP"};
 		return std::string("could not map port using ") + type_str[map_type]
-			+ ": " + error.message();
+			+ ": " + convert_from_native(error.message());
 	}
 
 	std::string portmap_alert::message() const
@@ -359,25 +367,11 @@ namespace libtorrent {
 
 		if (!m_alerts.empty()) return m_alerts.front();
 		
-//		system_time end = get_system_time()
-//			+ boost::posix_time::microseconds(total_microseconds(max_wait));
+		// this call can be interrupted prematurely by other signals
+		m_condition.wait_for(lock, max_wait);
+		if (!m_alerts.empty()) return m_alerts.front();
 
-		// apparently this call can be interrupted
-		// prematurely if there are other signals
-//		while (m_condition.timed_wait(lock, end))
-//			if (!m_alerts.empty()) return m_alerts.front();
-
-		ptime start = time_now_hires();
-
-		// TODO: change this to use an asio timer instead
-		while (m_alerts.empty())
-		{
-			lock.unlock();
-			sleep(50);
-			lock.lock();
-			if (time_now_hires() - start >= max_wait) return 0;
-		}
-		return m_alerts.front();
+		return NULL;
 	}
 
 	void alert_manager::set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const& fun)
@@ -421,7 +415,7 @@ namespace libtorrent {
 #endif
 
 		mutex::scoped_lock lock(m_mutex);
-		post_impl(a);
+		post_impl(a, lock);
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
@@ -439,10 +433,10 @@ namespace libtorrent {
 #endif
 
 		mutex::scoped_lock lock(m_mutex);
-		post_impl(a);
+		post_impl(a, lock);
 	}
 		
-	void alert_manager::post_impl(std::auto_ptr<alert>& alert_)
+	void alert_manager::post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l)
 	{
 		if (m_dispatch)
 		{
@@ -454,6 +448,8 @@ namespace libtorrent {
 		else if (m_alerts.size() < m_queue_size_limit || !alert_->discardable())
 		{
 			m_alerts.push_back(alert_.release());
+			if (m_alerts.size() == 1)
+				m_condition.notify_all();
 		}
 	}
 
@@ -563,14 +559,14 @@ namespace libtorrent {
 		char msg[600];
 		char const* state_msg[] = {"updating", "updated", "error"};
 		snprintf(msg, sizeof(msg), "RSS feed %s: %s (%s)"
-			, url.c_str(), state_msg[state], error.message().c_str());
+			, url.c_str(), state_msg[state], convert_from_native(error.message()).c_str());
 		return msg;
 	}
 
 	std::string torrent_error_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), " ERROR: %s", error.message().c_str());
+		snprintf(msg, sizeof(msg), " ERROR: %s", convert_from_native(error.message()).c_str());
 		return torrent_alert::message() + msg;
 	}
 	
@@ -615,7 +611,8 @@ namespace libtorrent {
 		char msg[600];
 		if (error)
 		{
-			snprintf(msg, sizeof(msg), "failed to add torrent: %s", error.message().c_str());
+			snprintf(msg, sizeof(msg), "failed to add torrent: %s"
+				, convert_from_native(error.message()).c_str());
 		}
 		else
 		{

@@ -101,6 +101,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	// overwrite the files with new random data
 	if (corrupt_files)
 	{
+		fprintf(stderr, "corrupt file test. overwriting files\n");
 		// increase the size of some files. When they're read only that forces
 		// the checker to open them in write-mode to truncate them
 		static const int file_sizes2[] =
@@ -112,12 +113,14 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	// make the files read only
 	if (read_only_files)
 	{
+		fprintf(stderr, "making files read-only\n");
 		for (int i = 0; i < num_files; ++i)
 		{
 			char name[1024];
 			snprintf(name, sizeof(name), "test%d", i);
 			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
 			path = combine_path(path, name);
+			fprintf(stderr, "   %s\n", path.c_str());
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_READONLY);
 #else
@@ -144,8 +147,11 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 
 		printf("%d %f %s\n", st.state, st.progress_ppm / 10000.f, st.error.c_str());
 
-		if (st.state != torrent_status::queued_for_checking
-			&& st.state != torrent_status::checking_files
+		if (
+#ifndef TORRENT_NO_DEPRECATE
+			st.state != torrent_status::queued_for_checking &&
+#endif
+			st.state != torrent_status::checking_files
 			&& st.state != torrent_status::checking_resume_data)
 			break;
 
@@ -155,13 +161,31 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	if (corrupt_files)
 	{
 		TEST_CHECK(!st.is_seeding);
-		TEST_CHECK(!st.error.empty());
-		// wait a while to make sure libtorrent survived the error
-		test_sleep(5000);
 
-		st = tor1.status();
-		TEST_CHECK(!st.is_seeding);
-		TEST_CHECK(!st.error.empty());
+		if (read_only_files)
+		{
+			// we expect our checking of the files to trigger
+			// attempts to truncate them, since the files are
+			// read-only here, we expect the checking to fail.
+			TEST_CHECK(!st.error.empty());
+			if (!st.error.empty())
+				fprintf(stderr, "error: %s\n", st.error.c_str());
+
+			// wait a while to make sure libtorrent survived the error
+			test_sleep(1000);
+   
+			st = tor1.status();
+			TEST_CHECK(!st.is_seeding);
+			TEST_CHECK(!st.error.empty());
+			if (!st.error.empty())
+				fprintf(stderr, "error: %s\n", st.error.c_str());
+		}
+		else
+		{
+			TEST_CHECK(st.error.empty());
+			if (!st.error.empty())
+				fprintf(stderr, "error: %s\n", st.error.c_str());
+		}
 	}
 	else
 	{
@@ -195,6 +219,7 @@ int test_main()
 	test_checking(false);
 	test_checking(true);
 	test_checking(true, true);
+	test_checking(false, true);
 
 	return 0;
 }

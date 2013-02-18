@@ -79,8 +79,6 @@ namespace
 
 	void session_set_settings(session& ses, dict const& sett_dict)
 	{
-		allow_threading_guard guard;
-
 		settings_pack p;
 		list iterkeys = (list)sett_dict.iterkeys();
 		for (int i = 0; i < boost::python::len(iterkeys); i++)
@@ -108,6 +106,8 @@ namespace
 			}
 			TORRENT_CATCH(...) {}
 		}
+
+		allow_threading_guard guard;
 
 		ses.apply_settings(p);
 	}
@@ -646,6 +646,7 @@ void bind_session()
 
         .def("set_max_uploads", allow_threads(&session::set_max_uploads))
         .def("set_max_connections", allow_threads(&session::set_max_connections))
+        .def("max_connections", allow_threads(&session::max_connections))
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
         .def("num_connections", allow_threads(&session::num_connections))
         .def("set_settings", &session::set_settings)

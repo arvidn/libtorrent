@@ -3507,6 +3507,8 @@ retry:
 			// ignore connections that already have a torrent, since they
 			// are ticked through the torrents' second_tick
 			if (!p->associated_torrent().expired()) continue;
+
+			// TODO: have a separate list for these connections, instead of having to loop through all of them
 			if (m_last_tick - p->connected_time()
 				> seconds(m_settings.get_int(settings_pack::handshake_timeout)))
 				p->disconnect(errors::timed_out);
@@ -4350,7 +4352,8 @@ retry:
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
 		m_next_dht_torrent->second->dht_announce();
-		// TODO: make a list for torrents that want to be announced on the DHT
+		// TODO: 2 make a list for torrents that want to be announced on the DHT so we
+		// don't have to loop over all torrents, just to find the ones that want to announce
 		++m_next_dht_torrent;
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
@@ -4560,7 +4563,7 @@ retry:
 		bool handled_by_extension = false;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		// TODO: allow extensions to sort torrents for queuing
+		// TODO: 0 allow extensions to sort torrents for queuing
 #endif
 
 		if (!handled_by_extension)
@@ -5666,7 +5669,7 @@ retry:
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
-		// TODO: find by url?
+		// TODO: 2 if we still can't find the torrent, we should probably look for it by url here
 
 		if (torrent_ptr)
 		{
@@ -5841,6 +5844,8 @@ retry:
 			m_torrent_lru.erase(&t);
 
 		TORRENT_ASSERT(t.prev == NULL && t.next == NULL);
+
+		tptr->update_gauge();
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
@@ -6027,9 +6032,12 @@ retry:
 
 		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
-			// TODO: report the proper address of the router
-			if (ip != address()) set_external_address(ip, source_router
-				, address());
+			if (ip != address())
+			{
+				// TODO: 1 report the proper address of the router as the source IP of
+				// this understanding of our external address, instead of the empty address
+				set_external_address(ip, source_router, address());
+			}
 
 			if (!m_listen_sockets.empty()) {
 				m_listen_sockets.front().external_address = ip;
@@ -6238,7 +6246,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_dht_router_name_lookup");
 #endif
-		// TODO: report errors as alerts
+		// TODO: 1 report errors as alerts
 		if (e) return;
 		while (host != tcp::resolver::iterator())
 		{
@@ -6544,7 +6552,7 @@ retry:
 
 	void session_impl::trigger_auto_manage()
 	{
-		if (m_pending_auto_manage) return;
+		if (m_pending_auto_manage || m_abort) return;
 
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
@@ -6918,6 +6926,13 @@ retry:
 	external_ip const& session_impl::external_address() const
 	{ return m_external_ip; }
 
+	// this is the DHT observer version. DHT is the implied source
+	void session_impl::set_external_address(address const& ip
+		, address const& source)
+	{
+		set_external_address(ip, source_dht, source);
+	}
+
 	void session_impl::set_external_address(address const& ip
 		, int source_type, address const& source)
 	{
@@ -6938,7 +6953,9 @@ retry:
 		// since we have a new external IP now, we need to
 		// restart the DHT with a new node ID
 #ifndef TORRENT_DISABLE_DHT
-		// TODO: we only need to do this if our global IPv4 address has changed
+		// TODO: 1 we only need to do this if our global IPv4 address has changed
+		// since the DHT (currently) only supports IPv4. Since restarting the DHT
+		// is kind of expensive, it would be nice to not do it unnecessarily
 		if (m_dht)
 		{
 			entry s = m_dht->state();

@@ -3,7 +3,6 @@ project(libtorrent)
 
 set(sources
 	web_connection_base
-	aiocb_pool
 	alert
 	alert_handler
 	allocator
@@ -34,12 +33,15 @@ set(sources
 	identify_client
 	ip_filter
 	ip_voter
+	peer_class
+	peer_class_set
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
 	http_seed_connection
 	instantiate_connection
 	natpmp
+	part_file
 	packet_buffer
 	piece_picker
 	platform_util
@@ -47,17 +49,21 @@ set(sources
 	policy
 	puff
 	random
+	request_blocks
 	rsa
 	rss
 	session
 	session_impl
 	session_stats
 	settings
+	settings_pack
 	socket_io
 	socket_type  
 	socks5_stream
 	stat
+	stat_cache
 	storage
+	tailqueue
 	thread
 	time
 	timestamp_history
@@ -77,6 +83,7 @@ set(sources
 	file_pool
 	lsd
 	disk_io_job
+	disk_job_pool
 	disk_buffer_pool
 	disk_io_thread
 	enum_net

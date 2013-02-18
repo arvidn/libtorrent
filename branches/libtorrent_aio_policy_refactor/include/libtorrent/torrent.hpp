@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
+#include <deque>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -139,8 +140,6 @@ namespace libtorrent
 		// returns which stats gauge this torrent currently
 		// has incremented.
 		int current_stats_state() const;
-		void dec_torrent_gauge();
-		void inc_torrent_gauge();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
@@ -231,6 +230,7 @@ namespace libtorrent
 			boost::shared_array<char> piece_data;
 			int blocks_left;
 			bool fail;
+			error_code error;
 		};
 		void read_piece(int piece);
 		void on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp);
@@ -459,6 +459,7 @@ namespace libtorrent
 
 		void update_want_peers();
 		void update_want_scrape();
+		void update_gauge();
 
 		bool try_connect_peer();
 		void add_peer(tcp::endpoint const& adr, int source, int flags = 0);
@@ -499,8 +500,8 @@ namespace libtorrent
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& e, int interval, int min_interval
-			, int complete, int incomplete, address const& external_ip
-			, std::string const& trackerid);
+			, int complete, int incomplete, int downloaded
+			, address const& external_ip, std::string const& trackerid);
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
 			, int retry_interval);
@@ -508,6 +509,8 @@ namespace libtorrent
 			, std::string const& msg);
 		virtual void tracker_scrape_response(tracker_request const& req
 			, int complete, int incomplete, int downloaded, int downloaders);
+
+		void update_scrape_state();
 
 		// if no password and username is set
 		// this will return an empty string, otherwise
@@ -830,7 +833,7 @@ namespace libtorrent
 			m_verifying.free();
 		}
 		bool all_verified() const
-		{ return m_num_verified == m_torrent_file->num_pieces(); }
+		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
 		bool verifying_piece(int piece) const
 		{
 			TORRENT_ASSERT(piece < int(m_verifying.size()));
@@ -1040,6 +1043,9 @@ namespace libtorrent
 		// this torrent belongs to.
 		aux::session_interface& m_ses;
 
+		// used to resolve hostnames for web seeds
+		mutable tcp::resolver m_host_resolver;
+
 		// this vector is allocated lazily. If no file priorities are
 		// ever changed, this remains empty. Any unallocated slot
 		// implicitly means the file has priority 1.
@@ -1088,8 +1094,7 @@ namespace libtorrent
 		};
 
 		// this list is sorted by time_critical_piece::deadline
-		// TODO: this should be a deque
-		std::list<time_critical_piece> m_time_critical_pieces;
+		std::deque<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;
 		std::string m_username;
@@ -1170,6 +1175,9 @@ namespace libtorrent
 		link m_links[aux::session_interface::num_torrent_lists];
 
 	private:
+
+		// m_num_verified = m_verified.count()
+		boost::uint32_t m_num_verified;
 
 		// this timestamp is kept in session-time, to
 		// make it fit in 16 bits
@@ -1406,24 +1414,21 @@ namespace libtorrent
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
 
-		// m_num_verified = m_verified.count()
-		boost::uint16_t m_num_verified;
+		// the number of seconds since the last piece passed for
+		// this torrent
+		boost::uint32_t m_last_download:24;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint32_t m_last_upload:24;
 
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
 		boost::uint16_t m_last_scrape;
 
-		// the number of seconds since the last piece passed for
-		// this torrent
-		boost::uint16_t m_last_download;
-
-		// the number of seconds since the last byte was uploaded
-		// from this torrent
-		boost::uint16_t m_last_upload;
-
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		unsigned int m_downloaders:24;
+		unsigned int m_downloaded:24;
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests
@@ -1484,6 +1489,10 @@ namespace libtorrent
 		// the state of how many pieces we have
 		bool m_have_all:1;
 
+		enum { no_gauge_state = 0xf };
+		// the current stats gauge this torrent counts against
+		boost::uint32_t m_current_gauge_state:4;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
 		// set to false until we've loaded resume data
@@ -1491,9 +1500,6 @@ namespace libtorrent
 
 		// set to true when the finished alert is posted
 		bool m_finished_alert_posted;
-
-		// the current stats gauge this torrent counts against
-		int m_current_stats_state;
 #endif
 	};
 

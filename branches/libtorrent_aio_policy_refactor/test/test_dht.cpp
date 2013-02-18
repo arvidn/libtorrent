@@ -62,10 +62,23 @@ address rand_v4()
 	return address_v4((rand() << 16 | rand()) & 0xffffffff);
 }
 
+udp::endpoint rand_ep()
+{
+	return udp::endpoint(rand_v4(), rand());
+}
+
 sha1_hash generate_next()
 {
 	sha1_hash ret;
 	for (int i = 0; i < 20; ++i) ret[i] = rand();
+	return ret;
+}
+
+node_id random_id()
+{
+	node_id ret;
+	for (int i = 0; i < 20; ++i)
+		ret[i] = rand();
 	return ret;
 }
 
@@ -590,6 +603,43 @@ int test_main()
 		TEST_ERROR(error_string);
 	}
 #endif // TORRENT_USE_OPENSSL
+
+// test routing table
+
+	{
+		sett.extended_routing_table = false;
+		routing_table tbl(random_id(), 8, sett);
+   
+		// insert 256 nodes evenly distributed across the ID space.
+		// we expect to fill the top 5 buckets
+		for (int i = 0; i < 256; ++i)
+		{
+			node_id id = random_id();
+			id[0] = i;
+			tbl.node_seen(id, rand_ep(), 50);
+		}
+		TEST_EQUAL(tbl.num_active_buckets(), 6);
+   
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+		tbl.print_state(std::cerr);
+#endif
+	}
+
+	{
+		sett.extended_routing_table = true;
+		routing_table tbl(random_id(), 8, sett);
+		for (int i = 0; i < 256; ++i)
+		{
+			node_id id = random_id();
+			id[0] = i;
+			tbl.node_seen(id, rand_ep(), 50);
+		}
+		TEST_EQUAL(tbl.num_active_buckets(), 6);
+
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+		tbl.print_state(std::cerr);
+#endif
+	}
 
 	return 0;
 }

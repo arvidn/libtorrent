@@ -34,6 +34,7 @@ test_programs = \
   test_tailqueue             \
   test_threads               \
   test_torrent               \
+  test_torrent_parse         \
   test_trackers_extension    \
   test_transfer              \
   test_upnp                  \
@@ -47,7 +48,21 @@ endif
 
 TESTS = $(check_PROGRAMS)
 
-EXTRA_DIST = Jamfile
+EXTRA_DIST = Jamfile \
+  test_torrents/base.torrent \
+  test_torrents/empty_path.torrent \
+  test_torrents/parent_path.torrent \
+  test_torrents/hidden_parent_path.torrent \
+  test_torrents/single_multi_file.torrent \
+  test_torrents/slash_path.torrent \
+  test_torrents/backslash_path.torrent \
+  test_torrents/url_list.torrent \
+  test_torrents/url_list2.torrent \ 
+  test_torrents/url_list3.torrent \
+  test_torrents/httpseed.torrent \
+  test_torrents/empty_httpseed.torrent \
+  test_torrents/long_name.torrent
+
 EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
@@ -67,6 +82,7 @@ test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
 test_dht_SOURCES = test_dht.cpp
 test_bencoding_SOURCES = test_bencoding.cpp
 test_buffer_SOURCES = test_buffer.cpp
+test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_hasher_SOURCES = test_hasher.cpp
 test_http_connection_SOURCES = test_http_connection.cpp
@@ -86,6 +102,7 @@ test_swarm_SOURCES = test_swarm.cpp
 test_rss_SOURCES = test_rss.cpp
 test_threads_SOURCES = test_threads.cpp
 test_torrent_SOURCES = test_torrent.cpp
+test_torrent_parse_SOURCES = test_torrent_parse.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp
 test_transfer_SOURCES = test_transfer.cpp
 test_upnp_SOURCES = test_upnp.cpp

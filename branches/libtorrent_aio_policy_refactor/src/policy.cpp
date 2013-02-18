@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/struct_debug.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/ip_voter.hpp" // for external_ip
 #endif
 
 namespace
@@ -586,6 +587,8 @@ namespace libtorrent
 //			|| (iter == m_peers.end() && (*(iter-1))->address() < c.remote().address())
 //			|| (iter != m_peers.end() && c.remote().address() < (*iter)->address())
 //			|| (iter != m_peers.end() && iter != m_peers.begin() && (*(iter-1))->address() < c.remote().address()));
+
+		aux::session_interface& ses = m_torrent->session();
 
 		if (found)
 		{

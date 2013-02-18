@@ -979,6 +979,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 		TORRENT_ASSERT(pe->blocks[i].dirty);
 		free_buffer(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
+		pe->blocks[i].dirty = false;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
 		TORRENT_ASSERT(m_write_cache_size > 0);

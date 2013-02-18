@@ -132,9 +132,11 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual void delete_files(storage_error& ec) = 0;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// called for every file when it completes downloading
 		// used on windows to turn off the sparse flag
 		virtual void finalize_file(int, storage_error&) {}
+#endif
 
 		// called periodically (useful for deferred flushing). When returning
 		// false, it means no more ticks are necessary. Any disk job submitted
@@ -156,7 +158,9 @@ namespace libtorrent
 		default_storage(storage_params const& params);
 		~default_storage();
 
+#ifndef TORRENT_NO_DEPRECATE
 		void finalize_file(int file, storage_error& ec);
+#endif
 		bool has_any_file(storage_error& ec);
 		void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec);
 		void rename_file(int index, std::string const& new_filename, storage_error& ec);

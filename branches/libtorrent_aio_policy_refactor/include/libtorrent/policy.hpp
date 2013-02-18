@@ -109,6 +109,11 @@ namespace libtorrent
 		virtual void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags) = 0;
 #endif
 		virtual bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false) = 0;
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+		virtual std::string name() const = 0;
+		// hack
+		void debug_log(const char* fmt, ...) const {}
+#endif
 	};
 
 	// TODO: this class should be renamed peer_list

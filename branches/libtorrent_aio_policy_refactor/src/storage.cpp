@@ -369,21 +369,9 @@ namespace libtorrent
 		m_pool.release(this);
 	}
 
-	void default_storage::finalize_file(int index, storage_error& ec)
-	{
-		TORRENT_ASSERT(index >= 0 && index < files().num_files());
-		if (index < 0 || index >= files().num_files()) return;
-	
-		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, 0, ec.ec);
-		if (ec || !f)
-		{
-			ec.file = index;
-			ec.operation = storage_error::open;
-			return;
-		}
-
-		f->finalize();
-	}
+#ifndef TORRENT_NO_DEPRECATE
+	void default_storage::finalize_file(int, storage_error&) {}
+#endif
 
 	bool default_storage::has_any_file(storage_error& ec)
 	{
@@ -427,6 +415,17 @@ namespace libtorrent
 			if (m_stat_cache.get_filesize(index) > 0)
 				return true;
 		}
+		file_status s;
+		stat_file(m_part_file_name, &s, ec.ec);
+		if (!ec) return true;
+
+		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory) ec.ec.clear();
+		if (ec)
+		{
+			ec.file = -1;
+			ec.operation = storage_error::stat;
+			return false;
+		}
 		m_stat_cache.clear();
 		return false;
 	}
@@ -437,8 +436,24 @@ namespace libtorrent
 		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
 		m_pool.release(this, index);
 
-		rename(old_name, combine_path(m_save_path, new_filename), ec.ec);
+		std::string new_path = combine_path(m_save_path, new_filename);
+		std::string new_dir = parent_path(new_path);
+
+		// create any missing directories that the new filename
+		// lands in
+		create_directories(new_dir, ec.ec);
+		if (ec.ec)
+		{
+			ec.file = index;
+			ec.operation = storage_error::rename;
+			return;
+		}
+
+		rename(old_name, new_path, ec.ec);
 		
+		// if old_name doesn't exist, that's not an error
+		// here. Once we start writing to the file, it will
+		// be written to the new filename
 		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 
@@ -504,6 +519,11 @@ namespace libtorrent
 			delete_one_file(*i, ec.ec);
 			if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
 		}
+
+		remove(combine_path(m_save_path, m_part_file_name), ec.ec);
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
+			ec.ec.clear();
+		else if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
 	}
 
 	void default_storage::write_resume_data(entry& rd, storage_error& ec) const
@@ -866,14 +886,6 @@ namespace libtorrent
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
-	namespace
-	{
-		bool compare_file_offset(internal_file_entry const& lhs, internal_file_entry const& rhs)
-		{
-			return lhs.offset < rhs.offset;
-		}
-	}
-
 	// much of what needs to be done when reading and writing 
 	// is buffer management and piece to file mapping. Most
 	// of that is the same for reading and writing. This function
@@ -898,17 +910,14 @@ namespace libtorrent
 		TORRENT_ASSERT(!slices.empty());
 #endif
 
-		internal_file_entry target_file;
-		target_file.offset = slot * size_type(m_files.piece_length()) + offset;
-
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
-			files().begin(), files().end(), target_file, compare_file_offset);
-
-		TORRENT_ASSERT(file_iter != files().begin());
-		--file_iter;
-		int file_index = file_iter - files().begin();
-
-		size_type file_offset = target_file.offset - file_iter->offset;
+		// find the file iterator and file offset
+		boost::uint64_t torrent_offset = slot * boost::uint64_t(m_files.piece_length()) + offset;
+		file_storage::iterator file_iter = files().file_at_offset(torrent_offset);
+		TORRENT_ASSERT(file_iter != files().end());
+		TORRENT_ASSERT(torrent_offset >= files().file_offset(*file_iter));
+		TORRENT_ASSERT(torrent_offset < files().file_offset(*file_iter) + files().file_size(*file_iter));
+		size_type file_offset = torrent_offset - files().file_offset(*file_iter);
+		int file_index = files().file_index(*file_iter);
 
 		int buf_pos = 0;
 
@@ -1164,7 +1173,12 @@ namespace libtorrent
 				return fatal_disk_error; 
 			}
 
-			if (has_files) return need_full_check;
+			if (has_files)
+			{
+				// always initialize the storage
+				int ret = check_init_storage(ec);
+				return ret != no_error ? ret : need_full_check;
+			}
 		}
 
 		return check_init_storage(ec);

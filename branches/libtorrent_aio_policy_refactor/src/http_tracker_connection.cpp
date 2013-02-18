@@ -97,7 +97,7 @@ namespace libtorrent
 
 	void http_tracker_connection::start()
 	{
-		// TODO: authentication
+		// TODO: 0 support authentication (i.e. user name and password) in the URL
 		std::string url = tracker_req().url;
 
 		if (tracker_req().kind == tracker_request::scrape_request)
@@ -528,6 +528,7 @@ namespace libtorrent
 		
 		int complete = int(e.dict_find_int_value("complete", -1));
 		int incomplete = int(e.dict_find_int_value("incomplete", -1));
+		int downloaded = int(e.dict_find_int_value("downloaded", -1));
 
 		std::list<address> ip_list;
 		if (m_tracker_connection)
@@ -543,7 +544,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
-			, interval, min_interval, complete, incomplete, external_ip, trackerid);
+			, interval, min_interval, complete, incomplete, downloaded, external_ip, trackerid);
 	}
 
 }

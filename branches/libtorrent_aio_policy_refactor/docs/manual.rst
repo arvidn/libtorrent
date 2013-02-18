@@ -252,9 +252,9 @@ The ``session`` class has the following synopsis::
 			size_t queue_size_limit_);
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
-		feed_handle session::add_feed(feed_settings const& feed);
-		void session::remove_feed(feed_handle h);
-		void session::get_feeds(std::vector<feed_handle>& f) const;
+		feed_handle add_feed(feed_settings const& feed);
+		void remove_feed(feed_handle h);
+		void get_feeds(std::vector<feed_handle>& f) const;
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
@@ -1581,7 +1581,7 @@ add_feed()
 
 	::
 
-		feed_handle session::add_feed(feed_settings const& feed);
+		feed_handle add_feed(feed_settings const& feed);
 
 This adds an RSS feed to the session. The feed will be refreshed
 regularly and optionally add all torrents from the feed, as they
@@ -1640,7 +1640,7 @@ remove_feed()
 
 	::
 
-		void session::remove_feed(feed_handle h);
+		void remove_feed(feed_handle h);
 
 Removes a feed from being watched by the session. When this
 call returns, the feed handle is invalid and won't refer
@@ -1652,7 +1652,7 @@ get_feeds()
 
 	::
 
-		void session::get_feeds(std::vector<feed_handle>& f) const;
+		void get_feeds(std::vector<feed_handle>& f) const;
 
 Returns a list of all RSS feeds that are being watched by the session.
 
@@ -1818,6 +1818,7 @@ struct has the following members::
 		bool restrict_routing_ips;
 		bool restrict_search_ips;
 		bool extended_routing_table;
+		bool aggressive_lookups;
 	};
 
 ``max_peers_reply`` is the maximum number of peers the node will send in
@@ -1858,6 +1859,12 @@ The ``dht_settings`` struct used to contain a ``service_port`` member to control
 which port the DHT would listen on and send messages from. This field is deprecated
 and ignored. libtorrent always tries to open the UDP socket on the same port
 as the TCP socket.
+
+``aggressive_lookups`` slightly changes the lookup behavior in terms of how
+many outstanding requests we keep. Instead of having branch factor be a hard
+limit, we always keep *branch factor* outstanding requests to the closest nodes.
+i.e. every time we get results back with closer nodes, we query them right away.
+It lowers the lookup times at the cost of more outstanding queries.
 
 ``is_dht_running()`` returns true if the DHT support has been started and false
 otherwise.
@@ -2504,6 +2511,10 @@ ones with lower tier will always be tried before the one with higher tier number
 		int next_announce_in() const;
 		int min_announce_in() const;
 
+		int scrape_incomplete;
+		int scrape_complete;
+		int scrape_downloaded;
+
 		error_code last_error;
 
 		std::string message;
@@ -2533,6 +2544,13 @@ allowed to force another tracker update with this tracker.
 
 If the last time this tracker was contacted failed, ``last_error`` is the error
 code describing what error occurred.
+
+``scrape_incomplete``, ``scrape_complete`` and ``scrape_downloaded`` are either
+-1 or the scrape information this tracker last responded with. *incomplete* is
+the current number of downloaders in the swarm, *complete* is the current number
+of seeds in the swarm and *downloaded* is the cumulative number of completed
+downloads of this torrent, since the beginning of time (from this tracker's point
+of view).
 
 If the last time this tracker was contacted, the tracker returned a warning
 or error message, ``message`` contains that message.
@@ -5707,6 +5725,10 @@ e.g::
 		case read_piece_alert::alert_type:
 		{
 			read_piece_alert* p = (read_piece_alert*)a.get();
+			if (p->ec) {
+				// read_piece failed
+				break;
+			}
 			// use p
 			break;
 		}
@@ -5825,11 +5847,14 @@ is 0. If successful, ``buffer`` points to a buffer containing all the data
 of the piece. ``piece`` is the piece index that was read. ``size`` is the
 number of bytes that was read.
 
+If the operation fails, ec will indicat what went wrong.
+
 ::
 
 	struct read_piece_alert: torrent_alert
 	{
 		// ...
+		error_code ec;
 		boost::shared_ptr<char> buffer;
 		int piece;
 		int size;
@@ -6096,8 +6121,9 @@ the DHT.
 		int num_peers;
 	};
 
-The ``num_peers`` tells how many peers were returned from the tracker. This is
-not necessarily all new peers, some of them may already be connected.
+The ``num_peers`` tells how many peers the tracker returned in this response. This is
+not expected to be more thant the ``num_want`` settings. These are not necessarily
+all new peers, some of them may already be connected.
 
 tracker_warning_alert
 ---------------------
