@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/stat.hpp"
+#include "libtorrent/ip_voter.hpp"
 
 #include "test.hpp"
 #include <vector>
@@ -109,7 +110,9 @@ struct mock_torrent : torrent_interface
 	}
 	void free_peer_entry(torrent_peer* p) { free(p); }
 
-	aux::session_interface& session() { return *((aux::session_interface*)NULL); }
+	external_ip const& external_address() const { return m_ext_ip; }
+	int listen_port() const { return 9999; }
+
 	alert_manager& alerts() const { return *((alert_manager*)NULL); }
 	bool apply_ip_filter() const { return true; }
 	bool is_paused() const { return false; }
@@ -130,6 +133,25 @@ struct mock_torrent : torrent_interface
 		return true;
 	}
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+	std::string name() const { return "mock"; }
+	void debug_log(const char* fmt, ...) const
+	{
+		va_list v;
+		va_start(v);
+		vprintf(fmt, v);
+		va_end(v);
+	}
+	void session_log(char const* fmt, ...) const
+	{
+		va_list v;
+		va_start(v);
+		vprintf(fmt, v);
+		va_end(v);
+	}
+#endif
+
+	external_ip m_ext_ip;
 	aux::session_settings sett;
 
 private:

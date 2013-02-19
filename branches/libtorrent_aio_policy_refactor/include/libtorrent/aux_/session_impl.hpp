@@ -1315,6 +1315,7 @@ namespace libtorrent
 				, int instance, bool append = true);
 			
 			virtual void session_log(char const* fmt, ...) const;
+			virtual void session_vlog(char const* fmt, va_list& va) const;
 
 #if defined TORRENT_VERBOSE_LOGGING
 			void log_all_torrents(peer_connection* p);

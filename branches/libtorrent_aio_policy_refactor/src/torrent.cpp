@@ -1980,6 +1980,12 @@ namespace libtorrent
 		return 0;
 	}
 
+	void torrent::ban_peer(torrent_peer* tp)
+	{
+		if (m_policy.ban_peer(tp))
+			m_ses.inc_stats_counter(aux::session_interface::num_banned_peers);
+	}
+
 	void torrent::on_resume_data_checked(disk_io_job const* j)
 	{
 		// hold a reference until this function returns
@@ -9859,6 +9865,14 @@ namespace libtorrent
 		char buf[450];
 		snprintf(buf, sizeof(buf), "%"PRId64": %s\n", total_microseconds(time_now_hires() - m_logger_time), usr);
 		(*m_logger) << buf;
+	}
+
+	void torrent::session_log(char const* fmt, ...) const
+	{
+		va_list v;
+		va_start(v, fmt);
+		m_ses.session_vlog();
+		va_end(v);
 	}
 #endif
 

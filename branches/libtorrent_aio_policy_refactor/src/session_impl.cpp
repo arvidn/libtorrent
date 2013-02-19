@@ -5349,9 +5349,14 @@ retry:
 	{
 		if (!m_logger) return;
 
-		va_list v;	
+		va_list v;
 		va_start(v, fmt);
+		session_vlog(fmt, v);
+		va_end(v);
+	}
 	
+	void session_impl::session_vlog(char const* fmt, va_list& v) const
+	{
 		char usr[400];
 		vsnprintf(usr, sizeof(usr), fmt, v);
 		va_end(v);

@@ -43,7 +43,6 @@ namespace libtorrent
 
 	namespace aux
 	{
-		struct session_interface;
 		struct session_settings;
 	}
 
@@ -52,7 +51,8 @@ namespace libtorrent
 		virtual piece_picker& picker() = 0;
 		virtual int num_peers() const = 0;
 		virtual aux::session_settings const& settings() const = 0;
-		virtual aux::session_interface& session() = 0;
+		virtual external_ip const& external_address() const = 0;
+		virtual int listen_port() const = 0;
 		virtual bool apply_ip_filter() const = 0;
 		virtual bool is_i2p() const = 0;
 
@@ -87,10 +87,10 @@ namespace libtorrent
 		virtual void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags) = 0;
 #endif
 		virtual bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false) = 0;
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual std::string name() const = 0;
-		// hack
-		void debug_log(const char* fmt, ...) const {}
+		virtual void debug_log(const char* fmt, ...) const = 0;
+		virtual void session_log(char const* fmt, ...) const = 0;
 #endif
 	};
 

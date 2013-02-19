@@ -90,7 +90,7 @@ namespace libtorrent
 		// the given connection was just closed
 		void connection_closed(const peer_connection_interface& c, int session_time);
 
-		void ban_peer(torrent_peer* p);
+		bool ban_peer(torrent_peer* p);
 		void set_connection(torrent_peer* p, peer_connection_interface* c);
 		void set_failcount(torrent_peer* p, int f);
 

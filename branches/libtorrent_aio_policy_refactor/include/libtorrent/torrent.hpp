@@ -190,6 +190,10 @@ namespace libtorrent
 		// only count BitTorrent peers
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 
+		void ban_peer(torrent_peer* tp);
+		external_ip const& external_address() const { return m_ses.external_address(); }
+		int listen_port() const { return m_ses.listen_port(); }
+
 		void on_resume_data_checked(disk_io_job const* j);
 		void on_force_recheck(disk_io_job const* j);
 		void on_piece_hashed(disk_io_job const* j);

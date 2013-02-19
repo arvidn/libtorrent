@@ -355,7 +355,8 @@ namespace libtorrent
 		}
 	}
 
-	void policy::ban_peer(torrent_peer* p)
+	// returns true if the peer was actually banned
+	bool policy::ban_peer(torrent_peer* p)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -363,18 +364,14 @@ namespace libtorrent
 		TORRENT_ASSERT(p->in_use);
 
 		if (!m_torrent->settings().get_bool(settings_pack::ban_web_seeds) && p->web_seed)
-			return;
+			return false;
 
 		if (is_connect_candidate(*p, m_finished))
 			update_connect_candidates(-1);
 
-#ifdef TORRENT_STATS
-		aux::session_interface& ses = m_torrent->session();
-		ses.inc_stats_counter(aux::session_interface::num_banned_peers);
-#endif
-
 		p->banned = true;
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
+		return true;
 	}
 
 	void policy::set_connection(torrent_peer* p, peer_connection_interface* c)
@@ -440,8 +437,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
 		int min_reconnect_time = m_torrent->settings().get_int(settings_pack::min_reconnect_time);
-		external_ip const& external = m_torrent->session().external_address();
-		int external_port = m_torrent->session().listen_port();
+		external_ip const& external = m_torrent->external_address();
+		int external_port = m_torrent->listen_port();
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
@@ -470,7 +467,8 @@ namespace libtorrent
 			if (!pinged && !pe.added_to_dht)
 			{
 				udp::endpoint node(pe.address(), pe.port);
-				m_torrent->session().add_dht_node(node);
+				// TODO: 3 how can this dependency on session be removed?
+//				m_torrent->session().add_dht_node(node);
 				pe.added_to_dht = true;
 				pinged = true;
 			}
@@ -527,7 +525,7 @@ namespace libtorrent
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		if (candidate != -1)
 		{
-			m_torrent->session().session_log(" *** FOUND CONNECTION CANDIDATE ["
+			m_torrent->session_log(" *** FOUND CONNECTION CANDIDATE ["
 				" ip: %s d: %d rank: %u external: %s t: %d ]"
 				, print_endpoint(m_peers[candidate]->ip()).c_str()
 				, cidr_distance(external.external_address(m_peers[candidate]->address()), m_peers[candidate]->address())
@@ -587,10 +585,6 @@ namespace libtorrent
 //			|| (iter == m_peers.end() && (*(iter-1))->address() < c.remote().address())
 //			|| (iter != m_peers.end() && c.remote().address() < (*iter)->address())
 //			|| (iter != m_peers.end() && iter != m_peers.begin() && (*(iter-1))->address() < c.remote().address()));
-
-#ifndef TORRENT_DISABLE_GEO_IP
-		aux::session_interface& ses = m_torrent->session();
-#endif
 
 		if (found)
 		{
@@ -706,7 +700,7 @@ namespace libtorrent
 				if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 				{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-					m_torrent->session().session_log(" *** TOO MANY PEERS IN LIST ["
+					m_torrent->session_log(" *** TOO MANY PEERS IN LIST ["
 						" torrent: %s torrent peers: %d "
 						"global limit: %d global list peers: %d global list limit: %d ]"
 						, m_torrent->name().c_str()
@@ -750,13 +744,18 @@ namespace libtorrent
 			if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
 
 			i = *iter;
+/*
 #ifndef TORRENT_DISABLE_GEO_IP
+			// TODO: 3 this does not belong in the policy
+			aux::session_interface& ses = m_torrent->session();
+
 			int as = ses.as_for_ip(c.remote().address());
 #ifdef TORRENT_DEBUG
 			i->inet_as_num = as;
 #endif
 			i->inet_as = ses.lookup_as(as);
 #endif
+*/
 			i->source = peer_info::incoming;
 		}
 	
@@ -929,14 +928,16 @@ namespace libtorrent
 			p->supports_utp = true;
 		if (flags & 0x08)
 			p->supports_holepunch = true;
-
+/*
 #ifndef TORRENT_DISABLE_GEO_IP
+		// TODO: 3 this does not belong in the policy
 		int as = m_torrent->session().as_for_ip(p->address());
 #ifdef TORRENT_DEBUG
 		p->inet_as_num = as;
 #endif
 		p->inet_as = m_torrent->session().lookup_as(as);
 #endif
+*/
 		if (is_connect_candidate(*p, m_finished))
 			update_connect_candidates(1);
 
@@ -1518,9 +1519,10 @@ namespace libtorrent
 		int lhs_rank = source_rank(lhs.source);
 		int rhs_rank = source_rank(rhs.source);
 		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
-
+/*
 #ifndef TORRENT_DISABLE_GEO_IP
 		// don't bias fast peers when seeding
+		// TODO: 3 how can this dependency on session be removed?
 		if (!m_finished && m_torrent->session().has_asnum_db())
 		{
 			int lhs_as = lhs.inet_as ? lhs.inet_as->second : 0;
@@ -1528,6 +1530,7 @@ namespace libtorrent
 			if (lhs_as != rhs_as) return lhs_as > rhs_as;
 		}
 #endif
+*/
 		boost::uint32_t lhs_peer_rank = lhs.rank(external, external_port);
 		boost::uint32_t rhs_peer_rank = rhs.rank(external, external_port);
 		if (lhs_peer_rank > rhs_peer_rank) return true;
