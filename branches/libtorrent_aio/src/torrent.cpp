@@ -1392,6 +1392,13 @@ namespace libtorrent
 		m_extensions.push_back(ext);
 	}
 
+	void torrent::remove_extension(boost::shared_ptr<torrent_plugin> ext)
+	{
+		extension_list_t::iterator i = std::find(m_extensions.begin(), m_extensions.end(), ext);
+		if (i == m_extensions.end()) return;
+		m_extensions.erase(i);
+	}
+
 	void torrent::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 		, void* userdata)
 	{

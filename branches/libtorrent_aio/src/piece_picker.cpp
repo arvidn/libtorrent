@@ -1972,8 +1972,8 @@ namespace libtorrent
 				// since we've already picked those
 				while (!can_pick(piece, pieces)
 					|| std::find(suggested_pieces.begin()
-					, suggested_pieces.end(), piece)
-					!= suggested_pieces.end())
+						, suggested_pieces.end(), piece)
+						!= suggested_pieces.end())
 				{
 					++loop_counter;
 					++piece;
