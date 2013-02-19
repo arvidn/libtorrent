@@ -172,7 +172,6 @@ namespace libtorrent
 		TORRENT_ASSERT((src & 0xff) == src);
 	}
 
-	// TOOD: pass in both an IPv6 and IPv4 address here
 	boost::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
 	{
 //TODO: how do we deal with our external address changing?

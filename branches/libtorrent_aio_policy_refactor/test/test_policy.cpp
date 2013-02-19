@@ -34,13 +34,57 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/peer_connection_interface.hpp"
+#include "libtorrent/stat.hpp"
 
 #include "test.hpp"
+#include <vector>
 
 using namespace libtorrent;
 
+tcp::endpoint ep(char const* ip, int port)
+{
+	return tcp::endpoint(address_v4::from_string(ip), port);
+}
+
+struct mock_peer_connection : peer_connection_interface
+{
+	mock_peer_connection(bool out, tcp::endpoint const& ep)
+		: m_choked(false)
+		, m_outgoing(out)
+		, m_tp(NULL)
+		, m_remote(ep)
+	{
+		for (int i = 0; i < 20; ++i) m_id[i] = rand();
+	}
+	virtual ~mock_peer_connection() {}
+
+	libtorrent::stat m_stat;
+	bool m_choked;
+	bool m_outgoing;
+	torrent_peer* m_tp;
+	tcp::endpoint m_remote;
+	peer_id m_id;
+
+	virtual tcp::endpoint const& remote() const { return m_remote; }
+	virtual tcp::endpoint local_endpoint() const { return ep("127.0.0.1", 8080); }
+	virtual void disconnect(error_code const& ec, int error = 0) { /* remove from mock_torrent list */}
+	virtual peer_id const& pid() const { return m_id; }
+	virtual void set_holepunch_mode() {}
+	virtual torrent_peer* peer_info_struct() const { return m_tp; }
+	virtual void set_peer_info(torrent_peer* pi) { m_tp = pi; }
+	virtual bool is_outgoing() const { return m_outgoing; }
+	virtual void add_stat(size_type downloaded, size_type uploaded)
+	{ m_stat.add_stat(downloaded, uploaded); }
+	virtual bool fast_reconnect() const { return true; }
+	virtual bool is_choked() const { return m_choked; }
+	virtual bool failed() const { return false; }
+	virtual libtorrent::stat const& statistics() const { return m_stat; }
+};
+
 struct mock_torrent : torrent_interface
 {
+	virtual ~mock_torrent() {}
 	bool has_picker() const { return false; }
 	bool is_i2p() const { return false; }
 	int port_filter_access(int port) const { return 0; }
@@ -78,9 +122,11 @@ struct mock_torrent : torrent_interface
 #endif
 	bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false)
 	{
-		std::set<torrent_peer*>::iterator i = m_connections.find(peerinfo);
-		if (i != m_connections.end()) return false;
-		m_connections.insert(peerinfo);
+		TORRENT_ASSERT(peerinfo->connection == NULL);
+		if (peerinfo->connection) return false;
+		boost::shared_ptr<mock_peer_connection> c(new mock_peer_connection(true, peerinfo->ip()));
+		m_connections.push_back(c);
+		peerinfo->connection = c.get();
 		return true;
 	}
 
@@ -88,13 +134,8 @@ struct mock_torrent : torrent_interface
 
 private:
 
-	std::set<torrent_peer*> m_connections;
+	std::vector<boost::shared_ptr<mock_peer_connection> > m_connections;
 };
-
-tcp::endpoint ep(char const* ip, int port)
-{
-	return tcp::endpoint(address_v4::from_string(ip), port);
-}
 
 int test_main()
 {
@@ -132,6 +173,32 @@ int test_main()
 		TEST_EQUAL(p.num_peers(), 2);
 		TEST_CHECK(peer1 != peer2);
 		TEST_EQUAL(p.num_connect_candidates(), 2);
+	}
+
+	{
+		mock_torrent t;
+		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+		policy p(&t);
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+
+		TEST_EQUAL(p.num_peers(), 1);
+		bool ok = p.connect_one_peer(0);
+		TEST_EQUAL(ok, true);
+
+		// we only have one peer, we can't
+		// connect another one
+		ok = p.connect_one_peer(0);
+		TEST_EQUAL(ok, false);
+	
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0);
+		TEST_EQUAL(p.num_peers(), 2);
+		TEST_CHECK(peer1 != peer2);
+		TEST_EQUAL(p.num_connect_candidates(), 2);
+
+		ok = p.connect_one_peer(0);
+		TEST_EQUAL(ok, true);
 	}
 
 // TODO: test updating a port that causes a collision

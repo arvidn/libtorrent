@@ -4658,8 +4658,9 @@ retry:
 				--num_opt_unchoke;
 				if (!pi->optimistically_unchoked)
 				{
-					torrent* t = pi->connection->associated_torrent().lock().get();
-					bool ret = t->unchoke_peer(*pi->connection, true);
+					peer_connection* p = static_cast<peer_connection*>(pi->connection);
+					torrent* t = p->associated_torrent().lock().get();
+					bool ret = t->unchoke_peer(*p, true);
 					if (ret)
 					{
 						pi->optimistically_unchoked = true;
@@ -4677,9 +4678,10 @@ retry:
 			{
 				if (pi->optimistically_unchoked)
 				{
-					torrent* t = pi->connection->associated_torrent().lock().get();
+					peer_connection* p = static_cast<peer_connection*>(pi->connection);
+					torrent* t = p->associated_torrent().lock().get();
 					pi->optimistically_unchoked = false;
-					t->choke_peer(*pi->connection);
+					t->choke_peer(*p);
 					--m_num_unchoked;
 				}	
 			}

@@ -3764,8 +3764,9 @@ namespace libtorrent
 			p->trust_points = trust_points;
 			if (p->connection)
 			{
-				TORRENT_ASSERT(p->connection->m_in_use == 1337);
-				p->connection->received_valid_data(index);
+				peer_connection* peer = static_cast<peer_connection*>(peer);
+				TORRENT_ASSERT(peer->m_in_use == 1337);
+				peer->received_valid_data(index);
 			}
 		}
 		// announcing a piece may invalidate the torrent_peer pointers
@@ -3857,7 +3858,8 @@ namespace libtorrent
 			torrent_peer* p = (torrent_peer*)*i;
 			if (p && p->connection)
 			{
-				p->connection->piece_failed = true;
+				peer_connection* peer = static_cast<peer_connection*>(p->connection);
+				peer->piece_failed = true;
 			}
 		}
 #endif
@@ -3884,12 +3886,13 @@ namespace libtorrent
 			bool allow_disconnect = true;
 			if (p->connection)
 			{
-				TORRENT_ASSERT(p->connection->m_in_use == 1337);
+				peer_connection* peer = static_cast<peer_connection*>(p->connection);
+				TORRENT_ASSERT(peer->m_in_use == 1337);
 
 				// the peer implementation can ask not to be disconnected.
 				// this is used for web seeds for instance, to instead of
 				// disconnecting, mark the file as not being haved.
-				allow_disconnect = p->connection->received_invalid_data(index, single_peer);
+				allow_disconnect = peer->received_invalid_data(index, single_peer);
 			}
 
 			if (m_ses.settings().get_bool(settings_pack::use_parole_mode))
@@ -3931,14 +3934,15 @@ namespace libtorrent
 
 				if (p->connection)
 				{
+					peer_connection* peer = static_cast<peer_connection*>(p->connection);
 #ifdef TORRENT_LOGGING
 					debug_log("*** BANNING PEER: \"%s\" Too many corrupt pieces"
 						, print_endpoint(p->ip()).c_str());
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-					p->connection->peer_log("*** BANNING PEER: Too many corrupt pieces");
+					peer->peer_log("*** BANNING PEER: Too many corrupt pieces");
 #endif
-					p->connection->disconnect(errors::too_many_corrupt_pieces);
+					peer->disconnect(errors::too_many_corrupt_pieces);
 				}
 			}
 		}
@@ -3965,7 +3969,8 @@ namespace libtorrent
 			torrent_peer* p = (torrent_peer*)*i;
 			if (p && p->connection)
 			{
-				p->connection->piece_failed = false;
+				peer_connection* peer = static_cast<peer_connection*>(p->connection);
+				peer->piece_failed = false;
 			}
 		}
 #endif
@@ -4490,7 +4495,8 @@ namespace libtorrent
 		{
 			torrent_peer* p = (torrent_peer*)*i;
 			if (p == 0 || p->connection == 0) continue;
-			p->connection->make_time_critical(piece_block(piece, block));
+			peer_connection* peer = static_cast<peer_connection*>(p->connection);
+			peer->make_time_critical(piece_block(piece, block));
 		}
 	}
 
@@ -5229,7 +5235,7 @@ namespace libtorrent
 			web->removed = true;
 			return;
 		}
-		peer_connection * peer = web->peer_info.connection;
+		peer_connection* peer = static_cast<peer_connection*>(web->peer_info.connection);
 		if (peer) {
 			TORRENT_ASSERT(peer->m_in_use == 1337);
 			peer->set_peer_info(0);
@@ -6424,11 +6430,12 @@ namespace libtorrent
 					torrent_peer* p = static_cast<torrent_peer*>(i->info[j].peer);
 					if (p->connection)
 					{
-						bi.set_peer(p->connection->remote());
+						peer_connection* peer = static_cast<peer_connection*>(p->connection);
+						bi.set_peer(peer->remote());
 						if (bi.state == block_info::requested)
 						{
 							boost::optional<piece_block_progress> pbp
-								= p->connection->downloading_piece_progress();
+								= peer->downloading_piece_progress();
 							if (pbp && pbp->piece_index == i->index && pbp->block_index == j)
 							{
 								bi.bytes_progress = pbp->bytes_downloaded;
@@ -9382,8 +9389,9 @@ namespace libtorrent
 					torrent_peer* p = static_cast<torrent_peer*>(info[k].peer);
 					if (p && p->connection)
 					{
+						peer_connection* peer = static_cast<peer_connection*>(p->connection);
 						boost::optional<piece_block_progress> pbp
-							= p->connection->downloading_piece_progress();
+							= peer->downloading_piece_progress();
 						if (pbp && pbp->piece_index == i->index && pbp->block_index == k)
 							block = pbp->bytes_downloaded;
 						TORRENT_ASSERT(block <= block_size());

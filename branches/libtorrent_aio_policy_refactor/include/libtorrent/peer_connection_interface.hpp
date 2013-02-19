@@ -39,15 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct torrent_peer;
+	class stat;
 
+	// TODO: make this interface smaller!
 	struct peer_connection_interface
 	{
 		virtual tcp::endpoint const& remote() const = 0;
 		virtual tcp::endpoint local_endpoint() const = 0;
-		virtual void disconnect(error_code const& ec, int error = 0);
+		virtual void disconnect(error_code const& ec, int error = 0) = 0;
 		virtual peer_id const& pid() const = 0;
 		virtual void set_holepunch_mode() = 0;
-		virtual int download_payload_rate() const = 0;
 		virtual torrent_peer* peer_info_struct() const = 0;
 		virtual void set_peer_info(torrent_peer* pi) = 0;
 		virtual bool is_outgoing() const = 0;
@@ -55,6 +56,7 @@ namespace libtorrent
 		virtual bool fast_reconnect() const = 0;
 		virtual bool is_choked() const = 0;
 		virtual bool failed() const = 0;
+		virtual stat const& statistics() const = 0;
 	};
 }
 
