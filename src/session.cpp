@@ -1247,7 +1247,7 @@ namespace libtorrent
 		, max_pex_peers(50)
 		, ignore_resume_timestamps(false)
 		, no_recheck_incomplete_resume(false)
-		, anonymous_mode(true)
+		, anonymous_mode(false)
 		, force_proxy(false)
 		, tick_interval(100)
 		, report_web_seed_downloads(true)

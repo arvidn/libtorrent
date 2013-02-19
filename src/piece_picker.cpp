@@ -1828,7 +1828,7 @@ namespace libtorrent
 	int piece_picker::blocks_in_piece(int index) const
 	{
 		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < (int)m_piece_map.size());
+		TORRENT_ASSERT(index < (int)m_piece_map.size() || m_piece_map.empty());
 		if (index+1 == (int)m_piece_map.size())
 			return m_blocks_in_last_piece;
 		else
