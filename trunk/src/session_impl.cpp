@@ -2063,6 +2063,13 @@ namespace aux {
 		if (connections_limit_changed) update_connections_limit();
 		if (unchoke_limit_changed) update_unchoke_limit();
 	
+		bool anonymous_mode = (m_settings.anonymous_mode != s.anonymous_mode && s.anonymous_mode);
+		if (anonymous_mode)
+		{
+			m_settings.user_agent.clear();
+			url_random((char*)&m_peer_id[0], (char*)&m_peer_id[0] + 20);
+		}
+	
 		bool force_proxy = (m_settings.force_proxy != s.force_proxy && s.force_proxy);
 
 		m_udp_socket.set_force_proxy(s.force_proxy);
@@ -2071,8 +2078,6 @@ namespace aux {
 		// connections, except through a proxy.
 		if (force_proxy)
 		{
-			m_settings.user_agent.clear();
-			url_random((char*)&m_peer_id[0], (char*)&m_peer_id[0] + 20);
 			stop_lsd();
 			stop_upnp();
 			stop_natpmp();
