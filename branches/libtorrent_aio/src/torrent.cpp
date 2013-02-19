@@ -2709,10 +2709,10 @@ namespace libtorrent
 
 			req.bind_ip = bind_interface;
 
-			if (settings().get_bool(settings_pack::anonymous_mode))
+			if (settings().get_bool(settings_pack::force_proxy))
 			{
-				// in anonymous_mode we don't talk directly to trackers
-				// only if there is a proxy
+				// in force_proxy mode we don't talk directly to trackers
+				// unless there is a proxy
 				std::string protocol = req.url.substr(0, req.url.find(':'));
 				int proxy_type = m_ses.proxy().type;
 	
@@ -5695,7 +5695,7 @@ namespace libtorrent
 
 	bool torrent::resolving_countries() const
 	{
-		return m_resolve_countries && !m_ses.settings().get_bool(settings_pack::anonymous_mode);
+		return m_resolve_countries && !m_ses.settings().get_bool(settings_pack::force_proxy);
 	}
 	
 	void torrent::resolve_peer_country(boost::shared_ptr<peer_connection> const& p) const

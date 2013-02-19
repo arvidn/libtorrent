@@ -721,6 +721,7 @@ namespace libtorrent
 
 			void update_dht_announce_interval();
 			void update_anonymous_mode();
+			void update_force_proxy();
 			void update_rate_settings();
 			void update_half_open();
 			void update_download_rate();

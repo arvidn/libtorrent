@@ -98,6 +98,7 @@ namespace libtorrent
 
 		void set_proxy_settings(proxy_settings const& ps);
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
+		void set_force_proxy(bool f) { m_force_proxy = f; }
 
 		bool is_closed() const { return m_abort; }
 		tcp::endpoint local_endpoint(error_code& ec) const
@@ -221,6 +222,7 @@ namespace libtorrent
 		char m_tmp_buf[270];
 		bool m_queue_packets;
 		bool m_tunnel_packets;
+		bool m_force_proxy;
 		bool m_abort;
 		udp::endpoint m_proxy_addr;
 		// while we're connecting to the proxy
