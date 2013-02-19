@@ -73,6 +73,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_resolver(ios)
 	, m_queue_packets(false)
 	, m_tunnel_packets(false)
+	, m_force_proxy(false)
 	, m_abort(false)
 	, m_outstanding_ops(0)
 #if TORRENT_USE_IPV6
@@ -143,6 +144,10 @@ void udp_socket::send_hostname(char const* hostname, int port
 		wrap(hostname, port, p, len, ec);
 		return;	
 	}
+	else if (m_force_proxy)
+	{
+		return;
+	}
 
 	// this function is only supported when we're using a proxy
 	TORRENT_ASSERT(m_queue_packets);
@@ -175,6 +180,10 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 			wrap(ep, p, len, ec);
 			return;	
 		}
+		else if (m_force_proxy)
+		{
+			return;
+		}
 
 		if (m_queue_packets)
 		{
@@ -186,6 +195,10 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 			qp.buf.insert(qp.buf.begin(), p, p + len);
 			return;
 		}
+	}
+	else if (m_force_proxy)
+	{
+		return;
 	}
 
 #if TORRENT_USE_IPV6
@@ -430,7 +443,7 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 			if (ep == m_proxy_addr)
 				unwrap(e, m_buf, bytes_transferred);
 		}
-		else
+		else if (!m_force_proxy) // block incoming packets that aren't coming via the proxy
 		{
 			call_handler(e, ep, m_buf, bytes_transferred);
 		}

@@ -410,6 +410,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 		TORRENT_SETTING(boolean, no_recheck_incomplete_resume)
 		TORRENT_SETTING(boolean, anonymous_mode)
+		TORRENT_SETTING(boolean, force_proxy)
 		TORRENT_SETTING(integer, tick_interval)
 		TORRENT_SETTING(boolean, report_web_seed_downloads)
 		TORRENT_SETTING(integer, share_mode_target)
@@ -2024,9 +2025,6 @@ namespace aux {
 			|| m_settings.active_limit != s.active_limit))
 			m_auto_manage_time_scaler = 2;
 
-		// if anonymous mode was enabled, clear out the peer ID
-		bool anonymous = (m_settings.anonymous_mode != s.anonymous_mode && s.anonymous_mode);
-
 		if (m_settings.report_web_seed_downloads != s.report_web_seed_downloads)
 		{
 			// if this flag changed, update all web seed connections
@@ -2065,9 +2063,13 @@ namespace aux {
 		if (connections_limit_changed) update_connections_limit();
 		if (unchoke_limit_changed) update_unchoke_limit();
 	
-		// enable anonymous mode. We don't want to accept any incoming
+		bool force_proxy = (m_settings.force_proxy != s.force_proxy && s.force_proxy);
+
+		m_udp_socket.set_force_proxy(s.force_proxy);
+
+		// in force_proxy mode, we don't want to accept any incoming
 		// connections, except through a proxy.
-		if (anonymous)
+		if (force_proxy)
 		{
 			m_settings.user_agent.clear();
 			url_random((char*)&m_peer_id[0], (char*)&m_peer_id[0] + 20);
@@ -5368,10 +5370,10 @@ retry:
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
 			return m_socks_listen_port;
 
-		// if not, don't tell the tracker anything if we're in anonymous
+		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
 		// potentially identify us if it is leaked elsewere
-		if (m_settings.anonymous_mode) return 0;
+		if (m_settings.force_proxy) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		return m_listen_sockets.front().external_port;
 	}
@@ -5386,10 +5388,10 @@ retry:
 			&& m_proxy.hostname == m_proxy.hostname)
 			return m_socks_listen_port;
 
-		// if not, don't tell the tracker anything if we're in anonymous
+		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
 		// potentially identify us if it is leaked elsewere
-		if (m_settings.anonymous_mode) return 0;
+		if (m_settings.force_proxy) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
