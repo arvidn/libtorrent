@@ -165,7 +165,8 @@ void block_cache::bump_lru(cached_piece_entry* p)
 // are in the cache (including the ghost lists)
 void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatile_read)
 {
-	INVARIANT_CHECK;
+// this can be pretty expensive
+//	INVARIANT_CHECK;
 
 	// move the piece into this queue. Whenever we have a cahe
 	// hit, we move the piece into the lru2 queue (i.e. the most
