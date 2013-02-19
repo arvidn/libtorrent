@@ -3764,7 +3764,7 @@ namespace libtorrent
 			p->trust_points = trust_points;
 			if (p->connection)
 			{
-				peer_connection* peer = static_cast<peer_connection*>(peer);
+				peer_connection* peer = static_cast<peer_connection*>(p->connection);
 				TORRENT_ASSERT(peer->m_in_use == 1337);
 				peer->received_valid_data(index);
 			}
