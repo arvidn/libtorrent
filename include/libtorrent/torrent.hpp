@@ -347,7 +347,7 @@ namespace libtorrent
 
 		bool resolving_countries() const
 		{
-			return m_resolve_countries && !m_ses.settings().anonymous_mode;
+			return m_resolve_countries && !m_ses.settings().force_proxy;
 		}
 #endif
 

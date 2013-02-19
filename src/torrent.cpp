@@ -2406,10 +2406,10 @@ namespace libtorrent
 			if (!is_any(bind_interface)) req.bind_ip = bind_interface;
 			else req.bind_ip = m_ses.m_listen_interface.address();
 
-			if (settings().anonymous_mode)
+			if (settings().force_proxy)
 			{
-				// in anonymous_mode we don't talk directly to trackers
-				// only if there is a proxy
+				// in force_proxy mode we don't talk directly to trackers
+				// unless there is a proxy
 				std::string protocol = req.url.substr(0, req.url.find(':'));
 				int proxy_type = m_ses.m_proxy.type;
 	

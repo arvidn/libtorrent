@@ -4592,6 +4592,7 @@ session_settings
 		bool ignore_resume_timestamps;
 		bool no_recheck_incomplete_resume;
 		bool anonymous_mode;
+		bool force_proxy;
 		int tick_interval;
 		int share_mode_target;
 
@@ -5339,14 +5340,17 @@ mode.
 ``anonymous_mode`` defaults to false. When set to true, the client tries
 to hide its identity to a certain degree. The peer-ID will no longer
 include the client's fingerprint. The user-agent will be reset to an
-empty string. Trackers will only be used if they are using a proxy
-server. The listen sockets are closed, and incoming connections will
-only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
-is run on the same machine as the tracker proxy). Since no incoming connections
-are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
-when this setting is enabled.
+empty string.
 
-If you're using I2P, it might make sense to enable anonymous mode as well.
+If you're using I2P, it might make sense to enable anonymous mode.
+
+``force_proxy`` disables any communication that's not going over a proxy.
+Enabling this requires a proxy to be configured as well, see ``set_proxy_settings``.
+The listen sockets are closed, and incoming connections will
+only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
+is run on the same machine as the tracker proxy). This setting also
+disabled peer country lookups, since those are done via DNS lookups that
+aren't supported by proxies.
 
 ``tick_interval`` specifies the number of milliseconds between internal
 ticks. This is the frequency with which bandwidth quota is distributed to
