@@ -1,3 +1,4 @@
+	* break recursion in setup_send (which can cause problems)
 	* always use SO_REUSEADDR
 
 0.15.11 release

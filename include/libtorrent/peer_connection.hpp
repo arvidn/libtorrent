@@ -462,7 +462,7 @@ namespace libtorrent
 		int bandwidth_throttle(int channel) const
 		{ return m_bandwidth_channel[channel].throttle(); }
 
-		void assign_bandwidth(int channel, int amount);
+		void assign_bandwidth(int channel, int amount, bool post = false);
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
