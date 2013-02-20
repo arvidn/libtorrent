@@ -161,7 +161,10 @@ namespace libtorrent
 #endif
 
 	// disconnects and removes all peers that are now filtered
-	void policy::ip_filter_updated()
+	// fills in 'erased' with torrent_peer pointers that were removed
+	// from the peer list. Any references to these peers must be cleared
+	// immediately after this call returns. For instance, in the piece picker.
+	void policy::ip_filter_updated(std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -207,12 +210,12 @@ namespace libtorrent
 					|| (*i)->connection->peer_info_struct() == 0);
 			}
 
-			erase_peer(i);
+			erase_peer(i, erased);
 			i = m_peers.begin() + current;
 		}
 	}
 
-	void policy::erase_peer(torrent_peer* p)
+	void policy::erase_peer(torrent_peer* p, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -223,22 +226,21 @@ namespace libtorrent
 		std::pair<iterator, iterator> range = find_peers(p->address());
 		iterator iter = std::find_if(range.first, range.second, match_peer_endpoint(p->ip()));
 		if (iter == range.second) return;
-		erase_peer(iter);
+		erase_peer(iter, erased);
 	}
 
 	// any peer that is erased from m_peers will be
 	// erased through this function. This way we can make
 	// sure that any references to the peer are removed
 	// as well, such as in the piece picker.
-	void policy::erase_peer(iterator i)
+	void policy::erase_peer(iterator i, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(i != m_peers.end());
 		TORRENT_ASSERT(m_locked_peer != *i);
 
-		if (m_torrent->has_picker())
-			m_torrent->picker().clear_peer(*i);
+		erased.push_back(*i);
 		if ((*i)->seed) --m_num_seeds;
 		if (is_connect_candidate(**i, m_finished))
 			update_connect_candidates(-1);
@@ -283,7 +285,7 @@ namespace libtorrent
 		return pe.connection == 0;
 	}
 
-	void policy::erase_peers(int flags)
+	void policy::erase_peers(std::vector<torrent_peer*>& erased, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -325,7 +327,7 @@ namespace libtorrent
 					if (erase_candidate > current) --erase_candidate;
 					if (force_erase_candidate > current) --force_erase_candidate;
 					TORRENT_ASSERT(current >= 0 && current < int(m_peers.size()));
-					erase_peer(m_peers.begin() + current);
+					erase_peer(m_peers.begin() + current, erased);
 					continue;
 				}
 				else
@@ -346,12 +348,12 @@ namespace libtorrent
 		if (erase_candidate > -1)
 		{
 			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < int(m_peers.size()));
-			erase_peer(m_peers.begin() + erase_candidate);
+			erase_peer(m_peers.begin() + erase_candidate, erased);
 		}
 		else if ((flags & force_erase) && force_erase_candidate > -1)
 		{
 			TORRENT_ASSERT(force_erase_candidate >= 0 && force_erase_candidate < int(m_peers.size()));
-			erase_peer(m_peers.begin() + force_erase_candidate);
+			erase_peer(m_peers.begin() + force_erase_candidate, erased);
 		}
 	}
 
@@ -426,7 +428,7 @@ namespace libtorrent
 		return true;
 	}
 
-	policy::iterator policy::find_connect_candidate(int session_time)
+	policy::iterator policy::find_connect_candidate(int session_time, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -487,7 +489,7 @@ namespace libtorrent
 					{
 						if (erase_candidate > current) --erase_candidate;
 						if (candidate > current) --candidate;
-						erase_peer(m_peers.begin() + current);
+						erase_peer(m_peers.begin() + current, erased);
 						continue;
 					}
 					else
@@ -519,7 +521,7 @@ namespace libtorrent
 		if (erase_candidate > -1)
 		{
 			if (candidate > erase_candidate) --candidate;
-			erase_peer(m_peers.begin() + erase_candidate);
+			erase_peer(m_peers.begin() + erase_candidate, erased);
 		}
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
@@ -539,7 +541,7 @@ namespace libtorrent
 		return m_peers.begin() + candidate;
 	}
 
-	bool policy::new_connection(peer_connection_interface& c, int session_time)
+	bool policy::new_connection(peer_connection_interface& c, int session_time, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 //		TORRENT_ASSERT(!c.is_outgoing());
@@ -696,7 +698,7 @@ namespace libtorrent
 			if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 			{
 				// this may invalidate our iterator!
-				erase_peers(force_erase);
+				erase_peers(erased, force_erase);
 				if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 				{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
@@ -778,7 +780,7 @@ namespace libtorrent
 		return true;
 	}
 
-	bool policy::update_peer_port(int port, torrent_peer* p, int src)
+	bool policy::update_peer_port(int port, torrent_peer* p, int src, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(p->connection);
@@ -820,10 +822,10 @@ namespace libtorrent
 					m_locked_peer = p;
 					p->connection->disconnect(errors::duplicate_peer_id);
 					m_locked_peer = NULL;
-					erase_peer(p);
+					erase_peer(p, erased);
 					return false;
 				}
-				erase_peer(i);
+				erase_peer(i, erased);
 			}
 		}
 #ifdef TORRENT_DEBUG
@@ -877,7 +879,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_seeds <= int(m_peers.size()));
 	}
 
-	bool policy::insert_peer(torrent_peer* p, iterator iter, int flags)
+	bool policy::insert_peer(torrent_peer* p, iterator iter, int flags, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(p);
@@ -892,7 +894,7 @@ namespace libtorrent
 		{
 			if (p->source == peer_info::resume_data) return false;
 
-			erase_peers();
+			erase_peers(erased);
 			if (int(m_peers.size()) >= max_peerlist_size)
 				return 0;
 
@@ -1028,7 +1030,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_I2P
-	torrent_peer* policy::add_i2p_peer(char const* destination, int src, char flags)
+	torrent_peer* policy::add_i2p_peer(char const* destination, int src, char flags, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1056,7 +1058,7 @@ namespace libtorrent
 			p->in_use = true;
 #endif
 
-			if (!insert_peer(p, iter, flags))
+			if (!insert_peer(p, iter, flags, erased))
 			{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				p->in_use = false;
@@ -1076,7 +1078,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_I2P
 
-	torrent_peer* policy::add_peer(tcp::endpoint const& remote, int src, char flags)
+	torrent_peer* policy::add_peer(tcp::endpoint const& remote, int src, char flags, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1181,7 +1183,7 @@ namespace libtorrent
 			p->in_use = true;
 #endif
 
-			if (!insert_peer(p, iter, flags))
+			if (!insert_peer(p, iter, flags, erased))
 			{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				p->in_use = false;
@@ -1206,12 +1208,12 @@ namespace libtorrent
 		return p;
 	}
 
-	bool policy::connect_one_peer(int session_time)
+	bool policy::connect_one_peer(int session_time, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		iterator i = find_connect_candidate(session_time);
+		iterator i = find_connect_candidate(session_time, erased);
 		if (i == m_peers.end()) return false;
 		torrent_peer& p = **i;
 		TORRENT_ASSERT(p.in_use);
@@ -1237,7 +1239,7 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection_interface& c, int session_time)
+	void policy::connection_closed(const peer_connection_interface& c, int session_time, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1301,7 +1303,7 @@ namespace libtorrent
 			&& !p->connectable
 			&& p != m_locked_peer)
 		{
-			erase_peer(p);
+			erase_peer(p, erased);
 		}
 	}
 
@@ -1426,35 +1428,6 @@ namespace libtorrent
 			++num_torrent_peers;
 		}
 */
-		if (m_torrent->has_picker())
-		{
-			piece_picker& p = m_torrent->picker();
-			std::vector<piece_picker::downloading_piece> downloaders = p.get_download_queue();
-
-			std::set<void*> peer_set;
-			std::vector<void*> peers;
-			for (std::vector<piece_picker::downloading_piece>::iterator i = downloaders.begin()
-				, end(downloaders.end()); i != end; ++i)
-			{
-				p.get_downloaders(peers, i->index);
-				std::copy(peers.begin(), peers.end()
-					, std::insert_iterator<std::set<void*> >(peer_set, peer_set.begin()));
-			}
-			
-			for (std::set<void*>::iterator i = peer_set.begin()
-				, end(peer_set.end()); i != end; ++i)
-			{
-				torrent_peer* p = static_cast<torrent_peer*>(*i);
-				if (p == 0) continue;
-				TORRENT_ASSERT(p->in_use);
-				if (p->connection == 0) continue;
-				// web seeds are special, they're not connected via the peer list
-				// so they're not kept in m_peers
-				if (p->web_seed) continue;
-				TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
-					, match_peer_connection_or_endpoint(*p->connection)) != m_peers.end());
-			}
-		}
 #endif // TORRENT_EXPENSIVE_INVARIANT_CHECKS
 
 		// this invariant is a bit complicated.

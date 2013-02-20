@@ -841,7 +841,7 @@ namespace libtorrent
 			m_ses.inc_stats_counter(aux::session_interface::non_filter_torrents);
 		}
 		m_apply_ip_filter = b;
-		m_policy.ip_filter_updated();
+		ip_filter_updated();
 		state_updated();
 	}
 
@@ -2017,8 +2017,10 @@ namespace libtorrent
 				char const* ptr = peers_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
+					std::vector<torrent_peer*> peers;
 					m_policy.add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data, 0);
+						, peer_info::resume_data, 0, peers);
+					peers_erased(peers);
 				}
 				update_want_peers();
 			}
@@ -2029,8 +2031,10 @@ namespace libtorrent
 				char const* ptr = banned_peers_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
+					std::vector<torrent_peer*> peers;
 					torrent_peer* p = m_policy.add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data, 0);
+						, peer_info::resume_data, 0, peers);
+					peers_erased(peers);
 					if (p) m_policy.ban_peer(p);
 				}
 				update_want_peers();
@@ -2043,8 +2047,10 @@ namespace libtorrent
 				char const* ptr = peers6_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
+					std::vector<torrent_peer*> peers;
 					m_policy.add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data, 0);
+						, peer_info::resume_data, 0, peers);
+					peers_erased(peers);
 				}
 				update_want_peers();
 			}
@@ -2055,8 +2061,10 @@ namespace libtorrent
 				char const* ptr = banned_peers6_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
+					std::vector<torrent_peer*> peers;
 					torrent_peer* p = m_policy.add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data, 0);
+						, peer_info::resume_data, 0, peers);
+					peers_erased(peers);
 					if (p) m_policy.ban_peer(p);
 				}
 				update_want_peers();
@@ -2076,7 +2084,9 @@ namespace libtorrent
 					error_code ec;
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
 					if (ec) continue;
-					m_policy.add_peer(a, peer_info::resume_data, 0);
+					std::vector<torrent_peer*> peers;
+					m_policy.add_peer(a, peer_info::resume_data, 0, peers);
+					peers_erased(peers);
 				}
 				update_want_peers();
 			}
@@ -2094,7 +2104,9 @@ namespace libtorrent
 					error_code ec;
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
 					if (ec) continue;
-					torrent_peer* p = m_policy.add_peer(a, peer_info::resume_data, 0);
+					std::vector<torrent_peer*> peers;
+					torrent_peer* p = m_policy.add_peer(a, peer_info::resume_data, 0, peers);
+					peers_erased(peers);
 					if (p) m_policy.ban_peer(p);
 				}
 				update_want_peers();
@@ -2576,8 +2588,10 @@ namespace libtorrent
 		if (torrent_file().priv() || (torrent_file().is_i2p()
 			&& !settings().get_bool(settings_pack::allow_i2p_mixed))) return;
 
+		std::vector<torrent_peer*> erased;
 		std::for_each(peers.begin(), peers.end(), boost::bind(
-			&policy::add_peer, boost::ref(m_policy), _1, peer_info::dht, 0));
+			&policy::add_peer, boost::ref(m_policy), _1, peer_info::dht, 0, boost::ref(erased)));
+		peers_erased(erased);
 
 		do_connect_boost();
 
@@ -2968,7 +2982,9 @@ namespace libtorrent
 					// on the peers returned from the tracker, but just strip
 					// the .i2p and use it as a destination
 					i->ip.resize(i->ip.size() - 4);
-					m_policy.add_i2p_peer(i->ip.c_str(), peer_info::tracker, 0);
+					std::vector<torrent_peer*> peers;
+					m_policy.add_i2p_peer(i->ip.c_str(), peer_info::tracker, 0, peers);
+					peers_erased(peers);
 				}
 				else
 #endif
@@ -2994,7 +3010,9 @@ namespace libtorrent
 				//    trackers records a peer's internal and external IP, and match up
 				//    peers on the same local network
 //				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
-				m_policy.add_peer(a, peer_info::tracker, 0);
+				std::vector<torrent_peer*> peers;
+				m_policy.add_peer(a, peer_info::tracker, 0, peers);
+				peers_erased(peers);
 			}
 		}
 		update_want_peers();
@@ -3062,7 +3080,13 @@ namespace libtorrent
 
 		while (want_peers() && conns > 0)
 		{
-			if (!m_policy.connect_one_peer(m_ses.session_time())) break;
+			std::vector<torrent_peer*> peers;
+			if (!m_policy.connect_one_peer(m_ses.session_time(), peers))
+			{
+				peers_erased(peers);
+				break;
+			}
+			peers_erased(peers);
 			// increase m_ses.m_boost_connections for each connection
 			// attempt. This will be deducted from the connect speed
 			// the next time session_impl::on_tick() is triggered
@@ -3115,7 +3139,9 @@ namespace libtorrent
 #endif
 		if (ec || m_ses.is_aborted()) return;
 
-		m_policy.add_i2p_peer(dest, peer_info::tracker, 0);
+		std::vector<torrent_peer*> peers;
+		m_policy.add_i2p_peer(dest, peer_info::tracker, 0, peers);
+		peers_erased(peers);
 	}
 #endif
 
@@ -3148,7 +3174,9 @@ namespace libtorrent
 			return;
 		}
 			
-		m_policy.add_peer(*host, peer_info::tracker, 0);
+		std::vector<torrent_peer*> peers;
+		m_policy.add_peer(*host, peer_info::tracker, 0, peers);
+		peers_erased(peers);
 		update_want_peers();
 	}
 
@@ -5226,7 +5254,10 @@ namespace libtorrent
 			pp->prev_amount_upload += p->statistics().total_payload_upload() >> 10;
 		}
 
-		m_policy.connection_closed(*p, m_ses.session_time());
+		std::vector<torrent_peer*> peers;
+		m_policy.connection_closed(*p, m_ses.session_time(), peers);
+		peers_erased(peers);
+
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
@@ -6882,8 +6913,10 @@ namespace libtorrent
 				if (pp) p->add_extension(pp);
 			}
 #endif
-			if (!m_policy.new_connection(*p, m_ses.session_time()))
+			std::vector<torrent_peer*> peers;
+			if (!m_policy.new_connection(*p, m_ses.session_time(), peers))
 			{
+				peers_erased(peers);
 #if defined TORRENT_LOGGING
 				debug_log("CLOSING CONNECTION \"%s\" peer list full"
 					, print_endpoint(p->remote()).c_str());
@@ -6891,6 +6924,7 @@ namespace libtorrent
 				p->disconnect(errors::too_many_connections);
 				return false;
 			}
+			peers_erased(peers);
 			update_want_peers();
 		}
 		TORRENT_CATCH (std::exception& e)
@@ -9201,7 +9235,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(want_peers());
 
-		bool ret = m_policy.connect_one_peer(m_ses.session_time());
+		std::vector<torrent_peer*> peers;
+		bool ret = m_policy.connect_one_peer(m_ses.session_time(), peers);
+		peers_erased(peers);
 		update_want_peers();
 
 		return ret;
@@ -9210,7 +9246,9 @@ namespace libtorrent
 	void torrent::add_peer(tcp::endpoint const& adr, int source, int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		m_policy.add_peer(adr, source, 0);
+		std::vector<torrent_peer*> peers;
+		m_policy.add_peer(adr, source, 0, peers);
+		peers_erased(peers);
 
 		update_want_peers();
 		state_updated();
@@ -9257,6 +9295,27 @@ namespace libtorrent
 		}
 	}
 #endif
+
+	void torrent::ip_filter_updated()
+	{
+		std::vector<torrent_peer*> peers;
+		m_policy.ip_filter_updated(peers);
+		peers_erased(peers);
+	}
+
+	// this is called when torrent_peers are removed from the policy
+	// (peer-list). It removes any references we may have to those torrent_peers,
+	// so we don't leave then dangling
+	void torrent::peers_erased(std::vector<torrent_peer*> const& peers)
+	{
+		if (!has_picker()) return;
+
+		for (std::vector<torrent_peer*>::const_iterator i = peers.begin()
+			, end(peers.end()); i != end; ++i)
+		{
+			m_picker->clear_peer(*i);
+		}
+	}
 
 	void torrent::file_progress(std::vector<size_type>& fp, int flags)
 	{

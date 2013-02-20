@@ -72,29 +72,29 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_I2P
-		torrent_peer* add_i2p_peer(char const* destination, int source, char flags);
+		torrent_peer* add_i2p_peer(char const* destination, int src, char flags, std::vector<torrent_peer*>& erased);
 #endif
 
 		// this is called once for every torrent_peer we get from
 		// the tracker, pex, lsd or dht.
 		torrent_peer* add_peer(const tcp::endpoint& remote
-			, int source, char flags);
+			, int source, char flags, std::vector<torrent_peer*>& erased);
 
 		// false means duplicate connection
-		bool update_peer_port(int port, torrent_peer* p, int src);
+		bool update_peer_port(int port, torrent_peer* p, int src, std::vector<torrent_peer*>& erased);
 
 		// called when an incoming connection is accepted
 		// false means the connection was refused or failed
-		bool new_connection(peer_connection_interface& c, int session_time);
+		bool new_connection(peer_connection_interface& c, int session_time, std::vector<torrent_peer*>& erased);
 
 		// the given connection was just closed
-		void connection_closed(const peer_connection_interface& c, int session_time);
+		void connection_closed(const peer_connection_interface& c, int session_time, std::vector<torrent_peer*>& erased);
 
 		bool ban_peer(torrent_peer* p);
 		void set_connection(torrent_peer* p, peer_connection_interface* c);
 		void set_failcount(torrent_peer* p, int f);
 
-		void ip_filter_updated();
+		void ip_filter_updated(std::vector<torrent_peer*>& erased);
 
 		void set_seed(torrent_peer* p, bool s);
 
@@ -132,7 +132,7 @@ namespace libtorrent
 				m_peers.begin(), m_peers.end(), a, peer_address_compare());
 		}
 
-		bool connect_one_peer(int session_time);
+		bool connect_one_peer(int session_time, std::vector<torrent_peer*>& erased);
 
 		bool has_peer(torrent_peer const* p) const;
 
@@ -140,8 +140,8 @@ namespace libtorrent
 		int num_connect_candidates() const { return m_num_connect_candidates; }
 		void recalculate_connect_candidates();
 
-		void erase_peer(torrent_peer* p);
-		void erase_peer(iterator i);
+		void erase_peer(torrent_peer* p, std::vector<torrent_peer*>& erased);
+		void erase_peer(iterator i, std::vector<torrent_peer*>& erased);
 
 	private:
 
@@ -149,13 +149,13 @@ namespace libtorrent
 
 		void update_peer(torrent_peer* p, int src, int flags
 		, tcp::endpoint const& remote, char const* destination);
-		bool insert_peer(torrent_peer* p, iterator iter, int flags);
+		bool insert_peer(torrent_peer* p, iterator iter, int flags, std::vector<torrent_peer*>& erased);
 
 		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;
 		bool compare_peer(torrent_peer const& lhs, torrent_peer const& rhs
 			, external_ip const& external, int source_port) const;
 
-		iterator find_connect_candidate(int session_time);
+		iterator find_connect_candidate(int session_time, std::vector<torrent_peer*>& erased);
 
 		bool is_connect_candidate(torrent_peer const& p, bool finished) const;
 		bool is_erase_candidate(torrent_peer const& p, bool finished) const;
@@ -163,7 +163,7 @@ namespace libtorrent
 		bool should_erase_immediately(torrent_peer const& p) const;
 
 		enum flags_t { force_erase = 1 };
-		void erase_peers(int flags = 0);
+		void erase_peers(std::vector<torrent_peer*>& erased, int flags = 0);
 
 		peers_t m_peers;
 

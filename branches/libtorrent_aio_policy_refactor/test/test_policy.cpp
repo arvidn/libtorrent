@@ -86,11 +86,9 @@ struct mock_peer_connection : peer_connection_interface
 struct mock_torrent : torrent_interface
 {
 	virtual ~mock_torrent() {}
-	bool has_picker() const { return false; }
 	bool is_i2p() const { return false; }
 	int port_filter_access(int port) const { return 0; }
 	int ip_filter_access(address const& addr) const { return 0; }
-	piece_picker& picker() { return *((piece_picker*)NULL); }
 	int num_peers() const { return m_connections.size(); }
 	aux::session_settings const& settings() const { return sett; }
 
@@ -165,15 +163,16 @@ int test_main()
 	// test multiple peers with the same IP
 	// when disallowing it
 	{
+		std::vector<torrent_peer*> peers;
 		mock_torrent t;
 		policy p(&t);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
-		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0);
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
 
 		TEST_EQUAL(p.num_peers(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 
-		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0);
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, peers);
 		TEST_EQUAL(p.num_peers(), 1);
 		TEST_EQUAL(peer1, peer2);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -182,44 +181,46 @@ int test_main()
 	// test multiple peers with the same IP
 	// when allowing it
 	{
+		std::vector<torrent_peer*> peers;
 		mock_torrent t;
 		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 		policy p(&t);
-		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0);
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 
 		TEST_EQUAL(p.num_peers(), 1);
 
-		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0);
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, peers);
 		TEST_EQUAL(p.num_peers(), 2);
 		TEST_CHECK(peer1 != peer2);
 		TEST_EQUAL(p.num_connect_candidates(), 2);
 	}
 
 	{
+		std::vector<torrent_peer*> peers;
 		mock_torrent t;
 		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 		policy p(&t);
-		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0);
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 
 		TEST_EQUAL(p.num_peers(), 1);
-		bool ok = p.connect_one_peer(0);
+		bool ok = p.connect_one_peer(0, peers);
 		TEST_EQUAL(ok, true);
 
 		// we only have one peer, we can't
 		// connect another one
-		ok = p.connect_one_peer(0);
+		ok = p.connect_one_peer(0, peers);
 		TEST_EQUAL(ok, false);
 	
-		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0);
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, peers);
 		TEST_EQUAL(p.num_peers(), 2);
 		TEST_CHECK(peer1 != peer2);
 		TEST_EQUAL(p.num_connect_candidates(), 2);
 
-		ok = p.connect_one_peer(0);
+		ok = p.connect_one_peer(0, peers);
 		TEST_EQUAL(ok, true);
 	}
 

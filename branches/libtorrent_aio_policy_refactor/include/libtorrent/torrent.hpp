@@ -286,7 +286,7 @@ namespace libtorrent
 		void sent_syn(bool ipv6);
 		void received_synack(bool ipv6);
 
-		void ip_filter_updated() { m_policy.ip_filter_updated(); }
+		void ip_filter_updated();
 
 		std::string resolve_filename(int file) const;
 		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
@@ -334,6 +334,7 @@ namespace libtorrent
 		bool should_check_files() const;
 
 		void delete_files();
+		void peers_erased(std::vector<torrent_peer*> const& peers);
 
 		// ============ start deprecation =============
 		void filter_piece(int index, bool filter);

@@ -48,7 +48,6 @@ namespace libtorrent
 
 	struct torrent_interface
 	{
-		virtual piece_picker& picker() = 0;
 		virtual int num_peers() const = 0;
 		virtual aux::session_settings const& settings() const = 0;
 		virtual external_ip const& external_address() const = 0;
@@ -63,8 +62,6 @@ namespace libtorrent
 		virtual void free_peer_entry(torrent_peer* p) = 0;
 
 		virtual alert_manager& alerts() const = 0;
-
-		virtual bool has_picker() const = 0;
 
 		// this is only used to determine the max peer list size. That could be controlled externally
 		virtual bool is_paused() const = 0;
