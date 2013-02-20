@@ -4050,8 +4050,16 @@ namespace libtorrent
 		setup_send();
 	}
 
-	void peer_connection::assign_bandwidth(int channel, int amount)
+	void peer_connection::assign_bandwidth(int channel, int amount, bool post)
 	{
+		if (post)
+		{
+			shared_ptr<torrent> t = m_torrent.lock();
+			if (!t) return;
+			t->session().m_io_service.post(boost::bind(&peer_connection::assign_bandwidth, self(), channel, amount, false));
+			return;
+		}
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		(*m_logger) << "bandwidth [ " << channel << " ] + " << amount << "\n";
 #endif

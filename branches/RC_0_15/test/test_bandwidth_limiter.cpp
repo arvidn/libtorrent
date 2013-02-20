@@ -69,7 +69,7 @@ struct peer_connection: intrusive_ptr_base<peer_connection>
 
 	bool is_disconnecting() const { return false; }
 	bool ignore_bandwidth_limits() { return m_ignore_limits; }
-	void assign_bandwidth(int channel, int amount);
+	void assign_bandwidth(int channel, int amount, bool post);
 
 	void throttle(int limit) { m_bandwidth_channel.throttle(limit); }
 
@@ -86,7 +86,7 @@ struct peer_connection: intrusive_ptr_base<peer_connection>
 	int m_quota;
 };
 
-void peer_connection::assign_bandwidth(int channel, int amount)
+void peer_connection::assign_bandwidth(int channel, int amount, bool post)
 {
 	m_quota += amount;
 #ifdef VERBOSE_LOGGING

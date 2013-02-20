@@ -131,7 +131,7 @@ struct bandwidth_manager
 			// bandwidth channels, or it doesn't belong to any
 			// channels. There's no point in adding it to
 			// the queue, just satisfy the request immediately
-			bwr.peer->assign_bandwidth(m_channel, blk);
+			bwr.peer->assign_bandwidth(m_channel, blk, true);
 			return;
 		}
 		m_queued_bytes += blk;
@@ -233,7 +233,7 @@ struct bandwidth_manager
 		while (!tm.empty())
 		{
 			bw_request<PeerConnection>& bwr = tm.back();
-			bwr.peer->assign_bandwidth(m_channel, bwr.assigned);
+			bwr.peer->assign_bandwidth(m_channel, bwr.assigned, false);
 			tm.pop_back();
 		}
 	}
