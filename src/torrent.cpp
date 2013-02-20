@@ -428,6 +428,11 @@ namespace libtorrent
 		, m_is_active_download(false)
 		, m_is_active_finished(false)
 	{
+		// if there is resume data already, we don't need to trigger the initial save
+		// resume data
+		if (p.resume_data && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
+			m_need_save_resume_data = false;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
 		m_finished_alert_posted = false;
@@ -4302,6 +4307,8 @@ namespace libtorrent
 			prioritize_udp_trackers();
 
 		if (!m_trackers.empty()) announce_with_tracker();
+
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::prioritize_udp_trackers()
@@ -5932,6 +5939,8 @@ namespace libtorrent
 			(*p)->disconnect_if_redundant();
 		}
 
+		m_need_save_resume_data = true;
+
 		return true;
 	}
 
@@ -6780,6 +6789,8 @@ namespace libtorrent
 		if (m_sequential_download == sd) return;
 		m_sequential_download = sd;
 
+		m_need_save_resume_data = true;
+
 		state_updated();
 	}
 
@@ -6888,6 +6899,8 @@ namespace libtorrent
 		if (limit <= 0) limit = (1<<24)-1;
 		if (m_max_uploads != limit && state_update) state_updated();
 		m_max_uploads = limit;
+
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::set_max_connections(int limit, bool state_update)
@@ -6903,6 +6916,8 @@ namespace libtorrent
 			disconnect_peers(num_peers() - m_max_connections
 				, error_code(errors::too_many_connections, get_libtorrent_category()));
 		}
+
+		m_need_save_resume_data = true;
 	}
 
 	int torrent::get_peer_upload_limit(tcp::endpoint ip) const
@@ -6952,6 +6967,8 @@ namespace libtorrent
 			&& state_update)
 			state_updated();
 		m_bandwidth_channel[peer_connection::upload_channel].throttle(limit);
+
+		m_need_save_resume_data = true;
 	}
 
 	int torrent::upload_limit() const
@@ -6971,6 +6988,8 @@ namespace libtorrent
 			&& state_update)
 			state_updated();
 		m_bandwidth_channel[peer_connection::download_channel].throttle(limit);
+
+		m_need_save_resume_data = true;
 	}
 
 	int torrent::download_limit() const
