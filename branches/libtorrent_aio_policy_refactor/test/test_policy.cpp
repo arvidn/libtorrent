@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/ip_voter.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #include "test.hpp"
 #include <vector>
@@ -85,6 +86,7 @@ struct mock_peer_connection : peer_connection_interface
 
 struct mock_torrent : torrent_interface
 {
+	mock_torrent() : m_p(NULL) {}
 	virtual ~mock_torrent() {}
 	bool is_i2p() const { return false; }
 	int port_filter_access(int port) const { return 0; }
@@ -127,7 +129,7 @@ struct mock_torrent : torrent_interface
 		if (peerinfo->connection) return false;
 		boost::shared_ptr<mock_peer_connection> c(new mock_peer_connection(true, peerinfo->ip()));
 		m_connections.push_back(c);
-		peerinfo->connection = c.get();
+		m_p->set_connection(peerinfo, c.get());
 		return true;
 	}
 
@@ -151,6 +153,7 @@ struct mock_torrent : torrent_interface
 
 	external_ip m_ext_ip;
 	aux::session_settings sett;
+	policy* m_p;
 
 private:
 
@@ -166,6 +169,7 @@ int test_main()
 		std::vector<torrent_peer*> peers;
 		mock_torrent t;
 		policy p(&t);
+		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
 
@@ -185,8 +189,8 @@ int test_main()
 		mock_torrent t;
 		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 		policy p(&t);
+		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
-		TEST_EQUAL(p.num_connect_candidates(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 
 		TEST_EQUAL(p.num_peers(), 1);
@@ -197,13 +201,16 @@ int test_main()
 		TEST_EQUAL(p.num_connect_candidates(), 2);
 	}
 
+	// test adding two peers with the same IP, but different ports, to
+	// make sure they can be connected at the same time
+	// with allow_multiple_connections_per_ip enabled
 	{
 		std::vector<torrent_peer*> peers;
 		mock_torrent t;
 		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 		policy p(&t);
+		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
-		TEST_EQUAL(p.num_connect_candidates(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 
 		TEST_EQUAL(p.num_peers(), 1);
@@ -218,11 +225,61 @@ int test_main()
 		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, peers);
 		TEST_EQUAL(p.num_peers(), 2);
 		TEST_CHECK(peer1 != peer2);
-		TEST_EQUAL(p.num_connect_candidates(), 2);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
 
 		ok = p.connect_one_peer(0, peers);
 		TEST_EQUAL(ok, true);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
 	}
+
+	// test adding two peers with the same IP, but different ports, to
+	// make sure they can not be connected at the same time
+	// with allow_multiple_connections_per_ip disabled
+	{
+		std::vector<torrent_peer*> peers;
+		mock_torrent t;
+		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+		policy p(&t);
+		t.m_p = &p;
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		TEST_EQUAL(peer1->port, 3000);
+
+		TEST_EQUAL(p.num_peers(), 1);
+		bool ok = p.connect_one_peer(0, peers);
+		TEST_EQUAL(ok, true);
+
+		// we only have one peer, we can't
+		// connect another one
+		ok = p.connect_one_peer(0, peers);
+		TEST_EQUAL(ok, false);
+	
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, peers);
+		TEST_EQUAL(p.num_peers(), 1);
+		TEST_EQUAL(peer2->port, 9020);
+		TEST_CHECK(peer1 == peer2);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+	}
+
+	// test incoming connection
+	{
+		std::vector<torrent_peer*> peers;
+		mock_torrent t;
+		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+		policy p(&t);
+		t.m_p = &p;
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		boost::shared_ptr<mock_peer_connection> c(new mock_peer_connection(true, ep("10.0.0.1", 8080)));
+		p.new_connection(*c, 0, peers);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		TEST_EQUAL(p.num_peers(), 1);
+
+		p.update_peer_port(4000, c->peer_info_struct(), peer_info::incoming, peers);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		TEST_EQUAL(p.num_peers(), 1);
+		TEST_EQUAL(c->peer_info_struct()->port, 4000);
+	}
+
 
 // TODO: test updating a port that causes a collision
 // TODO: add tests here

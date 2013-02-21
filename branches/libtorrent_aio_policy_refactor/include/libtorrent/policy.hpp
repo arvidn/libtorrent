@@ -167,6 +167,12 @@ namespace libtorrent
 
 		peers_t m_peers;
 
+		// TODO: 3 it would be nice to get rid of this inverse dependency.
+		// instead of calling torrent_interface::connect_to_peer(),
+		// policy::connect_one_peer() could instead return a connect
+		// candidate. It's also used for settings, port_filter, ip_filter
+		// external_address, external_port, is_paused() for peer-list max size
+		// session_log, allocate_peer_entry, state_updated
 		torrent_interface* m_torrent;
 
 		// this shouldbe NULL for the most part. It's set
