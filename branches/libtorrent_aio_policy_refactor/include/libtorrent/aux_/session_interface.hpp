@@ -79,6 +79,7 @@ namespace libtorrent
 	struct socket_type;
 	struct block_info;
 	struct external_ip;
+	struct torrent_handle;
 
 #ifndef TORRENT_DISABLE_DHT
 	namespace dht
@@ -94,8 +95,8 @@ namespace libtorrent { namespace aux
 	struct session_interface
 		: buffer_allocator_interface
 	{
-		// TODO: the IP voting mechanism should be factored out
-		// to its own class
+		// TODO: 2 the IP voting mechanism should be factored out
+		// to its own class, not part of the session
 		enum
 		{
 			source_dht = 1,
@@ -109,6 +110,7 @@ namespace libtorrent { namespace aux
 		virtual external_ip const& external_address() const = 0;
 
 		// --- vv used by policy vv ----
+		// TODO: 2 factor this out into a separate peer_allocator class
 		enum peer_type_t
 		{
 			ipv4_peer,
@@ -135,6 +137,7 @@ namespace libtorrent { namespace aux
 		virtual void done_async_resume() = 0;
 		virtual void evict_torrent(torrent* t) = 0;
 
+		virtual void remove_torrent(torrent_handle const& h, int options = 0) = 0;
 		virtual void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) = 0;
 
 		// ip and port filter

@@ -430,7 +430,7 @@ namespace libtorrent
 		bool is_seeding() const { return m_num_have == int(m_piece_map.size()); }
 
 		// the number of pieces we want and don't have
-		int num_want_left() const { return num_pieces() - m_num_have - m_num_filtered; }
+		int num_want_left() const { return num_pieces() - m_num_have - m_num_filtered + m_num_have_filtered; }
 
 #ifdef TORRENT_DEBUG
 		// used in debug mode

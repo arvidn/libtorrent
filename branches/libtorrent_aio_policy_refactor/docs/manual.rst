@@ -4939,11 +4939,6 @@ These are the available settings:
 .. include:: settings.rst
 
 
-``max_http_recv_buffer_size`` specifies the max number of bytes to receive into
-RAM buffers when downloading stuff over HTTP. Specifically when specifying a
-URL to a .torrent file when adding a torrent or when announcing to an HTTP
-tracker. The default is 2 MiB.
-
 pe_settings
 ===========
 

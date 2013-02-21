@@ -766,11 +766,19 @@ namespace libtorrent
 		bool no_recheck_incomplete_resume;
 
 		// when this is true, libtorrent will take actions to make sure no
-		// privacy sensitive information is leaked out from the client. This
-		// mode is assumed to be combined with using a proxy for all your
-		// traffic. With this option, your true IP address will not be exposed
-		// nor anything that can tie your connection to your true IP
+		// privacy sensitive information is leaked out from the client.
+		// With this option, your IP address will not be exposed over
+		// the wire protocol. Other measures will also be taken to make it
+		// harder to track you.
 		bool anonymous_mode;
+
+		// when this is true, no connection will ever be made without going
+		// through a proxy. If you set up a proxy and prefer connections not
+		// supported by the proxy to fail, rather than circumventing it, set
+		// this to true. For instance, reverse DNS lookups can rarely be
+		// made via a proxy, so resolving peer countries is disabled with
+		// this switch.
+		bool force_proxy;
 
 		// the number of milliseconds between internal ticks. Should be no
 		// more than one second (i.e. 1000).

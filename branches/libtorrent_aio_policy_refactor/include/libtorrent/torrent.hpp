@@ -143,6 +143,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
+		void remove_extension(boost::shared_ptr<torrent_plugin>);
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 			, void* userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
@@ -729,9 +730,13 @@ namespace libtorrent
 		bool is_finished() const
 		{
 			if (is_seed()) return true;
+
+			// this is slightly different from m_picker->is_finished()
+			// because any piece that has *passed* is considered here,
+			// which may be more than the piece we *have* (i.e. written to disk)
 			return valid_metadata() && has_picker()
 				&& m_torrent_file->num_pieces()
-				- m_picker->num_passed() - m_picker->num_filtered() == 0;
+				- m_picker->num_passed() - m_picker->num_filtered() + m_picker->num_have_filtered() == 0;
 		}
 
 		std::string save_path() const;

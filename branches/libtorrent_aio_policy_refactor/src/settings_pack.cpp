@@ -160,7 +160,7 @@ namespace libtorrent
 		SET(enable_incoming_tcp, true, 0),
 		SET(ignore_resume_timestamps, false, 0),
 		SET(no_recheck_incomplete_resume, false, 0),
-		SET(anonymous_mode, false, 0),
+		SET(anonymous_mode, false, &session_impl::update_anonymous_mode),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
 		SET(utp_dynamic_sock_buf, true, 0),
 		DEPRECATED_SET(rate_limit_utp, false, &session_impl::update_rate_limit_utp),
@@ -175,6 +175,7 @@ namespace libtorrent
 		SET(contiguous_recv_buffer, true, 0),
 		SET(ban_web_seeds, true, 0),
 		SET_NOPREV(allow_partial_disk_writes, true, 0),
+		SET(force_proxy, false, &session_impl::update_force_proxy),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =

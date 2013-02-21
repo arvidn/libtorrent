@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/assert.hpp>
-#include <boost/weak_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>

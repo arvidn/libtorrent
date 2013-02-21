@@ -5946,10 +5946,10 @@ retry:
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
 			return m_socks_listen_port;
 
-		// if not, don't tell the tracker anything if we're in anonymous
+		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
 		// potentially identify us if it is leaked elsewere
-		if (m_settings.get_bool(settings_pack::anonymous_mode)) return 0;
+		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		return m_listen_sockets.front().external_port;
 	}
@@ -5964,10 +5964,10 @@ retry:
 			&& m_proxy.hostname == m_proxy.hostname)
 			return m_socks_listen_port;
 
-		// if not, don't tell the tracker anything if we're in anonymous
+		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
 		// potentially identify us if it is leaked elsewere
-		if (m_settings.get_bool(settings_pack::anonymous_mode)) return 0;
+		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
@@ -6603,10 +6603,18 @@ retry:
 	{
 		if (!m_settings.get_bool(settings_pack::anonymous_mode)) return;
 
-		// enable anonymous mode. We don't want to accept any incoming
-		// connections, except through a proxy.
 		m_settings.set_str(settings_pack::user_agent, "");
 		url_random((char*)&m_peer_id[0], (char*)&m_peer_id[0] + 20);
+	}
+
+	void session_impl::update_force_proxy()
+	{
+		m_udp_socket.set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
+
+		if (!m_settings.get_bool(settings_pack::force_proxy)) return;
+
+		// enable force_proxy mode. We don't want to accept any incoming
+		// connections, except through a proxy.
 		stop_lsd();
 		stop_upnp();
 		stop_natpmp();

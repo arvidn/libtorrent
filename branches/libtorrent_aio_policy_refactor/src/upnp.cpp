@@ -351,7 +351,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 */
 	error_code ec;
-	if (time_now() - m_last_if_update > seconds(60))
+	if (time_now_hires() - m_last_if_update > seconds(60))
 	{
 		m_interfaces = enum_net_interfaces(m_io_service, ec);
 		if (ec)
