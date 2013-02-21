@@ -335,6 +335,11 @@ namespace libtorrent
 		, m_have_all(false)
 		, m_current_gauge_state(no_gauge_state)
 	{
+		// if there is resume data already, we don't need to trigger the initial save
+		// resume data
+		if (p.resume_data && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
+			m_need_save_resume_data = false;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
 		m_finished_alert_posted = false;
@@ -5025,6 +5030,8 @@ namespace libtorrent
 			prioritize_udp_trackers();
 
 		if (!m_trackers.empty()) announce_with_tracker();
+
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::prioritize_udp_trackers()
@@ -6724,6 +6731,8 @@ namespace libtorrent
 			}
 		}
 
+		m_need_save_resume_data = true;
+
 		return true;
 	}
 
@@ -7708,6 +7717,8 @@ namespace libtorrent
 		if (m_sequential_download == sd) return;
 		m_sequential_download = sd;
 
+		m_need_save_resume_data = true;
+
 		state_updated();
 	}
 
@@ -7745,6 +7756,8 @@ namespace libtorrent
 		if (limit <= 0) limit = (1<<24)-1;
 		if (m_max_uploads != limit && state_update) state_updated();
 		m_max_uploads = limit;
+
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::set_max_connections(int limit, bool state_update)
@@ -7761,16 +7774,20 @@ namespace libtorrent
 			disconnect_peers(num_peers() - m_max_connections
 				, error_code(errors::too_many_connections, get_libtorrent_category()));
 		}
+
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::set_upload_limit(int limit)
 	{
 		set_limit_impl(limit, peer_connection::upload_channel);
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::set_download_limit(int limit)
 	{
 		set_limit_impl(limit, peer_connection::download_channel);
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::set_limit_impl(int limit, int channel, bool state_update)
@@ -7810,7 +7827,7 @@ namespace libtorrent
 
 	int torrent::upload_limit() const
 	{
-		return limit_impl(peer_connection::download_channel);
+		return limit_impl(peer_connection::upload_channel);
 	}
 
 	int torrent::download_limit() const
