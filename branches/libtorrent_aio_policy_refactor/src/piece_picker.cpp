@@ -2202,8 +2202,8 @@ namespace libtorrent
 		for (std::vector<block_info>::iterator i = m_block_info.begin()
 			, end(m_block_info.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(i->peer == 0 || static_cast<torrent_peer*>(i->peer)->in_use);
 			if (i->peer == peer) i->peer = 0;
+			TORRENT_ASSERT(i->peer == 0 || static_cast<torrent_peer*>(i->peer)->in_use);
 		}
 	}
 
