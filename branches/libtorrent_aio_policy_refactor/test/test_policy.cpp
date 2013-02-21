@@ -37,7 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/ip_voter.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/alert.hpp"
 
 #include "test.hpp"
 #include <vector>
@@ -86,11 +88,11 @@ struct mock_peer_connection : peer_connection_interface
 
 struct mock_torrent : torrent_interface
 {
-	mock_torrent() : m_p(NULL) {}
+	mock_torrent() : m_p(NULL), m_am(m_ios, 0, 0) {}
 	virtual ~mock_torrent() {}
 	bool is_i2p() const { return false; }
 	int port_filter_access(int port) const { return 0; }
-	int ip_filter_access(address const& addr) const { return 0; }
+	int ip_filter_access(address const& addr) const { return m_ip_filter.access(addr); }
 	int num_peers() const { return m_connections.size(); }
 	aux::session_settings const& settings() const { return sett; }
 
@@ -113,7 +115,7 @@ struct mock_torrent : torrent_interface
 	external_ip const& external_address() const { return m_ext_ip; }
 	int listen_port() const { return 9999; }
 
-	alert_manager& alerts() const { return *((alert_manager*)NULL); }
+	alert_manager& alerts() const { return m_am; }
 	bool apply_ip_filter() const { return true; }
 	bool is_paused() const { return false; }
 	bool is_finished() const { return false; }
@@ -151,9 +153,12 @@ struct mock_torrent : torrent_interface
 	}
 #endif
 
+	ip_filter m_ip_filter;
 	external_ip m_ext_ip;
 	aux::session_settings sett;
 	policy* m_p;
+	io_service m_ios;
+	mutable alert_manager m_am;
 
 private:
 
@@ -280,8 +285,50 @@ int test_main()
 		TEST_EQUAL(c->peer_info_struct()->port, 4000);
 	}
 
+	// test ip filter
+	{
+		std::vector<torrent_peer*> peers;
+		mock_torrent t;
+		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+		policy p(&t);
+		t.m_p = &p;
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, peers);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		TEST_EQUAL(peer1->port, 3000);
+
+		torrent_peer* peer2 = p.add_peer(ep("11.0.0.2", 9020), 0, 0, peers);
+		TEST_EQUAL(p.num_peers(), 2);
+		TEST_EQUAL(peer2->port, 9020);
+		TEST_CHECK(peer1 != peer2);
+		TEST_EQUAL(p.num_connect_candidates(), 2);
+
+		// now, filter one of the IPs and make sure the peer is removed
+		t.m_ip_filter.add_rule(address_v4::from_string("11.0.0.0"), address_v4::from_string("255.255.255.255"), 1);
+		p.ip_filter_updated(peers);
+		TEST_EQUAL(peers.size(), 1);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		TEST_EQUAL(p.num_peers(), 1);
+	}
 
 // TODO: test updating a port that causes a collision
+// TODO: test banning peers
+// TODO: test erasing peers
+// TODO: test using port and ip filter
+// TODO: test incrementing failcount (and make sure we no longer consider the peer a connect canidate)
+// TODO: test no_connect_privileged_ports
+// TODO: test max peerlist size
+// TODO: test logic for which connection to keep when receiving an incoming connection to the same peer as we just made an outgoing connection to
+// TODO: test update_peer_port with allow_multiple_connections_per_ip
+// TODO: test set_seed
+// TODO: test has_peer
+// TODO: test insert_peer with a full list
+// TODO: test add i2p peers
+// TODO: test allow_i2p_mixed
+// TODO: test insert_peer failing
+// TODO: test IPv6
+// TODO: test connect_to_peer() failing
+// TODO: test connection_closed
+// TODO: test recalculate connect candidates
 // TODO: add tests here
 
 	return 0;

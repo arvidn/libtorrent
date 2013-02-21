@@ -173,6 +173,7 @@ namespace libtorrent
 
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
+			// TODO: 2 the IP filter could be passed in to this function
 			if ((m_torrent->ip_filter_access((*i)->address()) & ip_filter::blocked) == 0)
 			{
 				++i;
@@ -1097,6 +1098,7 @@ namespace libtorrent
 
 		// if this is an i2p torrent, and we don't allow mixed mode
 		// no regular peers should ever be added!
+		// TODO: 2 this filtering could be done outside of the policy class
 		if (!m_torrent->settings().get_bool(settings_pack::allow_i2p_mixed)
 			&& m_torrent->is_i2p())
 		{
@@ -1105,6 +1107,7 @@ namespace libtorrent
 			return 0;
 		}
 
+		// TODO: 2 this filtering could be done outside of the policy class
 		if (m_torrent->port_filter_access(remote.port()) & port_filter::blocked)
 		{
 			if (m_torrent->alerts().should_post<peer_blocked_alert>())
@@ -1115,6 +1118,7 @@ namespace libtorrent
 			return 0;
 		}
 
+		// TODO: 2 this filtering could be done outside of the policy class
 		if (m_torrent->settings().get_bool(settings_pack::no_connect_privileged_ports)
 			&& remote.port() < 1024)
 		{
@@ -1127,6 +1131,7 @@ namespace libtorrent
 		}
 
 		// if the IP is blocked, don't add it
+		// TODO: 2 this filtering could be done outside of the policy class
 		if (m_torrent->apply_ip_filter()
 			&& (m_torrent->ip_filter_access(remote.address()) & ip_filter::blocked))
 		{
