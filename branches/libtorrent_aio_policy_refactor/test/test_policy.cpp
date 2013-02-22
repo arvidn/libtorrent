@@ -72,7 +72,7 @@ struct mock_peer_connection : peer_connection_interface
 
 	virtual tcp::endpoint const& remote() const { return m_remote; }
 	virtual tcp::endpoint local_endpoint() const { return ep("127.0.0.1", 8080); }
-	virtual void disconnect(error_code const& ec, int error = 0) { /* remove from mock_torrent list */}
+	virtual void disconnect(error_code const& ec, int error = 0) { /* remove from mock_torrent list */ m_tp = 0; }
 	virtual peer_id const& pid() const { return m_id; }
 	virtual void set_holepunch_mode() {}
 	virtual torrent_peer* peer_info_struct() const { return m_tp; }
@@ -267,6 +267,7 @@ int test_main()
 	}
 
 	// test incoming connection
+	// and update_peer_port
 	{
 		std::vector<torrent_peer*> peers;
 		mock_torrent t;
@@ -281,6 +282,34 @@ int test_main()
 
 		p.update_peer_port(4000, c->peer_info_struct(), peer_info::incoming, peers);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
+		TEST_EQUAL(p.num_peers(), 1);
+		TEST_EQUAL(c->peer_info_struct()->port, 4000);
+	}
+
+	// test incoming connection
+	// and update_peer_port, causing collission
+	{
+		std::vector<torrent_peer*> peers;
+		mock_torrent t;
+		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+		policy p(&t);
+		t.m_p = &p;
+
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.1", 4000), 0, 0, peers);
+		TEST_CHECK(peer2);
+
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		boost::shared_ptr<mock_peer_connection> c(new mock_peer_connection(true, ep("10.0.0.1", 8080)));
+		p.new_connection(*c, 0, peers);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		// at this point we have two peers, because we think they have different 
+		// ports
+		TEST_EQUAL(p.num_peers(), 2);
+
+		// this peer will end up having the same port as the existing peer in the list
+		p.update_peer_port(4000, c->peer_info_struct(), peer_info::incoming, peers);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		// the expected behavior is to replace that one
 		TEST_EQUAL(p.num_peers(), 1);
 		TEST_EQUAL(c->peer_info_struct()->port, 4000);
 	}
@@ -302,20 +331,93 @@ int test_main()
 		TEST_CHECK(peer1 != peer2);
 		TEST_EQUAL(p.num_connect_candidates(), 2);
 
+		// connect both peers
+		bool ok = p.connect_one_peer(0, peers);
+		TEST_CHECK(ok);
+
+		ok = p.connect_one_peer(0, peers);
+		TEST_CHECK(ok);
+		TEST_EQUAL(p.num_peers(), 2);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+
 		// now, filter one of the IPs and make sure the peer is removed
 		t.m_ip_filter.add_rule(address_v4::from_string("11.0.0.0"), address_v4::from_string("255.255.255.255"), 1);
 		p.ip_filter_updated(peers);
+		// we just erased a peer, because it was filtered by the ip filter
 		TEST_EQUAL(peers.size(), 1);
-		TEST_EQUAL(p.num_connect_candidates(), 1);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
 		TEST_EQUAL(p.num_peers(), 1);
+
+		// try to re-add it, to see it fail
+		peer2 = p.add_peer(ep("11.0.0.2", 9020), 0, 0, peers);
+		TEST_EQUAL(peer2, NULL);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		TEST_EQUAL(p.num_peers(), 1);
+
+		t.sett.set_bool(settings_pack::no_connect_privileged_ports, true);
+
+		// this should fail because it's using port 80 (privileged)
+		peer2 = p.add_peer(ep("10.0.0.4", 80), 0, 0, peers);
+		TEST_EQUAL(peer2, NULL);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		TEST_EQUAL(p.num_peers(), 1);
+
+		// whereas this should succeed
+		peer2 = p.add_peer(ep("10.0.0.5", 8080), 0, 0, peers);
+		TEST_CHECK(peer2 != NULL);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		TEST_EQUAL(p.num_peers(), 2);
+
+		// disabling the feature should make the first one work though
+		t.sett.set_bool(settings_pack::no_connect_privileged_ports, false);
+
+		// this should fail because it's using port 80 (privileged)
+		peer2 = p.add_peer(ep("10.0.0.6", 80), 0, 0, peers);
+		TEST_CHECK(peer2);
+		TEST_EQUAL(p.num_connect_candidates(), 2);
+		TEST_EQUAL(p.num_peers(), 3);
 	}
 
-// TODO: test updating a port that causes a collision
-// TODO: test banning peers
+	// test banning peers
+	{
+		std::vector<torrent_peer*> peers;
+		mock_torrent t;
+		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+		policy p(&t);
+		t.m_p = &p;
+
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.1", 4000), 0, 0, peers);
+		TEST_CHECK(peer1);
+
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+		boost::shared_ptr<mock_peer_connection> c(new mock_peer_connection(true, ep("10.0.0.1", 8080)));
+		p.new_connection(*c, 0, peers);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		TEST_EQUAL(p.num_peers(), 1);
+
+		// now, ban the peer
+		bool ok = p.ban_peer(c->peer_info_struct());
+		TEST_EQUAL(ok, true);
+		TEST_EQUAL(peer1->banned, true);
+		// we still have it in the list
+		TEST_EQUAL(p.num_peers(), 1);
+		// it's just not a connect candidate, nor allowed to receive incoming connections
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+
+		p.connection_closed(*c, 0, peers);
+		TEST_EQUAL(p.num_peers(), 1);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+
+		c.reset(new mock_peer_connection(true, ep("10.0.0.1", 8080)));
+		ok = p.new_connection(*c, 0, peers);
+		// since it's banned, we should not allow this incoming connection
+		TEST_EQUAL(ok, false);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+	}
+
 // TODO: test erasing peers
 // TODO: test using port and ip filter
 // TODO: test incrementing failcount (and make sure we no longer consider the peer a connect canidate)
-// TODO: test no_connect_privileged_ports
 // TODO: test max peerlist size
 // TODO: test logic for which connection to keep when receiving an incoming connection to the same peer as we just made an outgoing connection to
 // TODO: test update_peer_port with allow_multiple_connections_per_ip
