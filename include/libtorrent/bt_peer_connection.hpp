@@ -105,10 +105,14 @@ namespace libtorrent
 
 		enum
 		{
-			upload_only_msg = 2,
-			holepunch_msg = 3,
-			share_mode_msg = 4,
-			dont_have_msg = 5,
+			// pex_msg = 1,
+			// metadata_msg = 2,
+			upload_only_msg = 3,
+			holepunch_msg = 4,
+			// recommend_msg = 5,
+			// comment_msg = 6,
+			dont_have_msg = 7,
+			share_mode_msg = 8,
 		};
 
 		~bt_peer_connection();
