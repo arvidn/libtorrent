@@ -131,17 +131,27 @@ namespace libtorrent
 			url += "&";
 		else
 			url += "?";
-
-		url += "info_hash=";
-		url += escape_string((const char*)&tracker_req().info_hash[0], 20);
 		
 		if (tracker_req().kind == tracker_request::announce_request)
 		{
+			const char* event_string[] = {"completed", "started", "stopped", "paused"};
+
 			char str[1024];
 			const bool stats = tracker_req().send_stats;
-			snprintf(str, sizeof(str), "&peer_id=%s&port=%d&uploaded=%"PRId64
-				"&downloaded=%"PRId64"&left=%"PRId64"&corrupt=%"PRId64"&redundant=%"PRId64
-				"&compact=1&numwant=%d&key=%x&no_peer_id=1"
+			snprintf(str, sizeof(str)
+				, "info_hash=%s"
+				"&peer_id=%s"
+				"&port=%d"
+				"&uploaded=%"PRId64
+				"&downloaded=%"PRId64
+				"&left=%"PRId64
+				"&corrupt=%"PRId64
+				"&key=%x"
+				"%s%s" // event
+				"&numwant=%d"
+				"&compact=1"
+				"&no_peer_id=1"
+				, escape_string((const char*)&tracker_req().info_hash[0], 20).c_str()
 				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
@@ -150,26 +160,25 @@ namespace libtorrent
 				, stats ? tracker_req().downloaded : 0
 				, stats ? tracker_req().left : 0
 				, stats ? tracker_req().corrupt : 0
-				, stats ? tracker_req().redundant: 0
-				, tracker_req().num_want
-				, tracker_req().key);
+				, tracker_req().key
+				, (tracker_req().event != tracker_request::none) ? "&event=" : ""
+				, (tracker_req().event != tracker_request::none) ? event_string[tracker_req().event - 1] : ""
+				, tracker_req().num_want);
 			url += str;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			if (m_ses.get_pe_settings().in_enc_policy != pe_settings::disabled)
 				url += "&supportcrypto=1";
 #endif
+			if (stats && m_ses.settings().get_bool(settings_pack::report_redundant_bytes))
+			{
+				url += "&redundant=";
+				url += to_string(tracker_req().redundant).elems;
+			}
 			if (!tracker_req().trackerid.empty())
 			{
 				std::string id = tracker_req().trackerid;
 				url += "&trackerid=";
 				url += escape_string(id.c_str(), id.length());
-			}
-
-			if (tracker_req().event != tracker_request::none)
-			{
-				const char* event_string[] = {"completed", "started", "stopped", "paused"};
-				url += "&event=";
-				url += event_string[tracker_req().event - 1];
 			}
 
 #if TORRENT_USE_I2P
