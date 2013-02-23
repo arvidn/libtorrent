@@ -146,7 +146,7 @@ namespace libtorrent
 				"&downloaded=%"PRId64
 				"&left=%"PRId64
 				"&corrupt=%"PRId64
-				"&key=%x"
+				"&key=%X"
 				"%s%s" // event
 				"&numwant=%d"
 				"&compact=1"
