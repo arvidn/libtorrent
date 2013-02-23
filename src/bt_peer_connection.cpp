@@ -729,8 +729,11 @@ namespace libtorrent
 		*(ptr + 5) |= 0x10;
 #endif
 
-		// we support merkle torrents
-		*(ptr + 5) |= 0x08;
+		if (m_ses.m_settings.support_merkle_torrents)
+		{
+			// we support merkle torrents
+			*(ptr + 5) |= 0x08;
+		}
 
 		// we support FAST extension
 		*(ptr + 7) |= 0x04;
@@ -745,7 +748,7 @@ namespace libtorrent
 				else bitmask += '0';
 			}
 		}
-		peer_log(">>> EXTENSION_BITS [ %s ]", bitmask.c_str());
+		peer_log("==> EXTENSION [ %s ]", bitmask.c_str());
 #endif
 		ptr += 8;
 
@@ -1746,7 +1749,8 @@ namespace libtorrent
 		if (root.dict_find_int_value("upload_only", 0))
 			set_upload_only(true);
 
-		if (root.dict_find_int_value("share_mode", 0))
+		if (m_ses.m_settings.support_share_mode
+			&& root.dict_find_int_value("share_mode", 0))
 			set_share_mode(true);
 
 		std::string myip = root.dict_find_string_value("yourip");
@@ -1801,7 +1805,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(recv_buffer.left() >= 1);
 		int packet_type = (unsigned char)recv_buffer[0];
-		if (packet_type == 250) packet_type = msg_piece;
+
+		if (m_ses.m_settings.support_merkle_torrents
+			&& packet_type == 250) packet_type = msg_piece;
+
 		if (packet_type < 0
 			|| packet_type >= num_supported_messages
 			|| m_message_handler[packet_type] == 0)
@@ -2095,7 +2102,8 @@ namespace libtorrent
 		if (!m_ses.m_settings.anonymous_mode)
 		{
 			if (is_outgoing()) handshake["p"] = m_ses.listen_port();
-			handshake["v"] = m_ses.settings().user_agent;
+			handshake["v"] = m_ses.settings().handshake_client_version.empty()
+				? m_ses.settings().user_agent : m_ses.settings().handshake_client_version;
 		}
 
 		std::string remote_address;
@@ -2108,7 +2116,8 @@ namespace libtorrent
 
 		m["upload_only"] = upload_only_msg;
 		m["ut_holepunch"] = holepunch_msg;
-		m["share_mode"] = share_mode_msg;
+		if (m_ses.m_settings.support_share_mode)
+			m["share_mode"] = share_mode_msg;
 		m["lt_donthave"] = dont_have_msg;
 
 		int complete_ago = -1;
@@ -2134,7 +2143,8 @@ namespace libtorrent
 			))
 			handshake["upload_only"] = 1;
 
-		if (t->share_mode())
+		if (m_ses.m_settings.support_share_mode
+			&& t->share_mode())
 			handshake["share_mode"] = 1;
 
 		if (!m_ses.m_settings.anonymous_mode)
@@ -2268,7 +2278,7 @@ namespace libtorrent
 		char* ptr = msg;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		detail::write_int32(r.length + 1 + 4 + 4, ptr);
-		if (merkle)
+		if (m_ses.m_settings.support_merkle_torrents && merkle)
 			detail::write_uint8(250, ptr);
 		else
 			detail::write_uint8(msg_piece, ptr);

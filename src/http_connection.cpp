@@ -183,14 +183,14 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 //	APPEND_FMT("Accept: */*\r\n");
 
-	if (!auth.empty())
-		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
-
 	if (!m_user_agent.empty())
 		APPEND_FMT1("User-Agent: %s\r\n", m_user_agent.c_str());
 	
 	if (m_bottled)
 		APPEND_FMT("Accept-Encoding: gzip\r\n");
+
+	if (!auth.empty())
+		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
 
 	APPEND_FMT("Connection: close\r\n\r\n");
 
