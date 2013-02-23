@@ -32,6 +32,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* make need_save_resume() a bit more robust
 	* fixed sparse flag manipulation on windows
 	* fixed streaming piece picking issue
 

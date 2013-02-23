@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/entry.hpp"
 
+#include <iostream>
+
 using namespace libtorrent;
 using namespace libtorrent::aux;
 

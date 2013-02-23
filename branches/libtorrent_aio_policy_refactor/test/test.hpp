@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TEST_HPP
 
 #include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
 
 void report_failure(char const* str, char const* file, int line);
 

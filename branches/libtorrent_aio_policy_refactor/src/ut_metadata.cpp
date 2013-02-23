@@ -230,7 +230,7 @@ namespace libtorrent { namespace
 		virtual void add_handshake(entry& h)
 		{
 			entry& messages = h["m"];
-			messages["ut_metadata"] = 15;
+			messages["ut_metadata"] = 2;
 			if (m_torrent.valid_metadata())
 				h["metadata_size"] = m_tp.get_metadata_size();
 		}
@@ -323,7 +323,7 @@ namespace libtorrent { namespace
 		virtual bool on_extended(int length
 			, int extended_msg, buffer::const_interval body)
 		{
-			if (extended_msg != 15) return false;
+			if (extended_msg != 2) return false;
 			if (m_message_index == 0) return false;
 
 			if (length > 17 * 1024)
