@@ -829,7 +829,7 @@ namespace libtorrent
 		else
 		{
 			std::pair<iterator, iterator> range = find_peers(p->address());
-			TORRENT_ASSERT(range.second - range.first == 1);
+			TORRENT_ASSERT(std::distance(range.first, range.second) == 1);
 		}
 #endif
 
@@ -1386,7 +1386,7 @@ namespace libtorrent
 			if (!m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 			{
 				std::pair<const_iterator, const_iterator> range = find_peers(p.address());
-				TORRENT_ASSERT(range.second - range.first == 1);
+				TORRENT_ASSERT(std::distance(range.first, range.second) == 1);
 			}
 			else
 			{
