@@ -1120,6 +1120,21 @@ int test_main()
 	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
 		== make_tuple("http", "", "[2001:ff00::1]", 42, "/path/to/file"));
 
+	// leading spaces are supposed to be stripped
+	TEST_CHECK(parse_url_components(" \thttp://[2001:ff00::1]:42/path/to/file", ec)
+		== make_tuple("http", "", "[2001:ff00::1]", 42, "/path/to/file"));
+
+	parse_url_components("http://[2001:ff00::1:42/path/to/file", ec);
+	TEST_CHECK(ec == error_code(errors::expected_close_bracket_in_address));
+
+	parse_url_components("http:/", ec);
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+	ec.clear();
+
+	parse_url_components("http:", ec);
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+	ec.clear();
+
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
 	TEST_CHECK(base64encode("") == "");
@@ -1181,6 +1196,7 @@ int test_main()
 
 	TEST_CHECK(unescape_string(escape_path(test_string, strlen(test_string)), ec) == test_string);
 	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
 	// need_encoding
 	char const* test_string2 = "!@$&()-_/,.%?";
@@ -1197,6 +1213,27 @@ int test_main()
 	TEST_CHECK(unescape_string(escape_string(test_string, strlen(test_string)), ec)
 		== test_string);
 	std::cerr << unescape_string(escape_string(test_string, strlen(test_string)), ec) << std::endl;
+	// prematurely terminated string
+	unescape_string("%", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));
+	unescape_string("%0", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));
+
+	// invalid hex character
+	unescape_string("%GE", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));
+	unescape_string("%eg", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));
+	ec.clear();
+
+	std::string path = "a\\b\\c";
+	convert_path_to_posix(path);
+	TEST_EQUAL(path, "a/b/c");
+
+#ifdef TORRENT_WINDOWS
+	convert_path_to_windows(path);
+	TEST_EQUAL(path, "a\\b\\c");
+#endif
 
 	// verify_encoding
 	test = "\b?filename=4";
@@ -1219,6 +1256,7 @@ int test_main()
 	TEST_CHECK(f.open("test_file", file::read_write, ec));
 #endif
 	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 	file::iovec_t b = {(void*)"test", 4};
 	TEST_CHECK(f.writev(0, &b, 1, ec) == 4);
 	TEST_CHECK(!ec);
