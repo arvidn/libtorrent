@@ -63,6 +63,19 @@ int test_main()
 	sc.set_cache(3, 101, 5555);
 	TEST_CHECK(sc.get_filesize(3) == 101);
 	TEST_CHECK(sc.get_filetime(3) == 5555);
+
+	sc.set_error(11);
+	TEST_CHECK(sc.get_filesize(10) == stat_cache::not_in_cache);
+	TEST_CHECK(sc.get_filesize(11) == stat_cache::cache_error);
+
+	sc.set_noexist(13);
+	TEST_CHECK(sc.get_filesize(12) == stat_cache::not_in_cache);
+	TEST_CHECK(sc.get_filesize(13) == stat_cache::no_exist);
+
+	sc.set_cache(15, 1000, 3000);
+	TEST_CHECK(sc.get_filesize(14) == stat_cache::not_in_cache);
+	TEST_CHECK(sc.get_filesize(15) == 1000);
+	TEST_CHECK(sc.get_filetime(15) == 3000);
 	return 0;
 }
 
