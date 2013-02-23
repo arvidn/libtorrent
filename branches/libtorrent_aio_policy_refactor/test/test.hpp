@@ -33,7 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEST_HPP
 #define TEST_HPP
 
+#include "libtorrent/address.hpp"
+
 void report_failure(char const* str, char const* file, int line);
+
+libtorrent::address rand_v4();
+libtorrent::address rand_v6();
+libtorrent::tcp::endpoint rand_tcp_ep();
+libtorrent::udp::endpoint rand_udp_ep();
 
 #include <boost/config.hpp>
 #include <exception>

@@ -880,6 +880,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_seeds <= int(m_peers.size()));
 	}
 
+	// this is an internal function
 	bool policy::insert_peer(torrent_peer* p, iterator iter, int flags, std::vector<torrent_peer*>& erased)
 	{
 		TORRENT_ASSERT(is_single_thread());

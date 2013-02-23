@@ -415,6 +415,35 @@ int test_main()
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 	}
 
+	// test erase_peers when we fill up the peer list
+	{
+		std::vector<torrent_peer*> peers;
+		mock_torrent t;
+		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+		t.sett.set_bool(settings_pack::no_connect_privileged_ports, false);
+		t.sett.set_int(settings_pack::max_peerlist_size, 100);
+		policy p(&t);
+		t.m_p = &p;
+
+		for (int i = 0; i < 100; ++i)
+		{
+			torrent_peer* peer = p.add_peer(rand_tcp_ep(), 0, 0, peers);
+			TEST_EQUAL(peers.size(), 0);
+			TEST_CHECK(peer);
+			if (peer == NULL || peers.size() > 0)
+			{
+				fprintf(stderr, "unexpected rejection of peer: %d in list. added peer %p, erased peers %d\n"
+					, p.num_peers(), peer, int(peers.size()));
+			}
+		}
+		TEST_EQUAL(p.num_peers(), 100);
+
+		// trigger the eviction of one peer
+		torrent_peer* peer = p.add_peer(rand_tcp_ep(), 0, 0, peers);
+		// we either removed an existing peer, or rejected this one
+		TEST_CHECK(peers.size() == 1 || peer == NULL);
+	}
+
 // TODO: test erasing peers
 // TODO: test using port and ip filter
 // TODO: test incrementing failcount (and make sure we no longer consider the peer a connect canidate)
