@@ -1202,7 +1202,15 @@ namespace libtorrent
 		{
 			mutex::scoped_lock l(m_cache_mutex);
 
-			cached_piece_entry* pe = m_disk_cache.add_dirty_block(j);
+			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			if (pe && pe->hashing_done)
+			{
+				j->error.ec = error::operation_aborted;
+				j->error.operation = storage_error::write;
+				return -1;
+			}
+
+			pe = m_disk_cache.add_dirty_block(j);
 
 			if (pe)
 			{

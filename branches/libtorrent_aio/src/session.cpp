@@ -202,19 +202,19 @@ namespace libtorrent
 
 		// as a seed box, we must accept multiple peers behind
 		// the same NAT
-		set.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+//		set.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
 		// connect to 50 peers per second
-		set.set_int(settings_pack::connection_speed, 50);
+		set.set_int(settings_pack::connection_speed, 500);
 
 		// allow 8000 peer connections
 		set.set_int(settings_pack::connections_limit, 8000);
 
 		// allow lots of peers to try to connect simultaneously
-		set.set_int(settings_pack::listen_queue_size, 200);
+		set.set_int(settings_pack::listen_queue_size, 3000);
 
 		// unchoke many peers
-		set.set_int(settings_pack::unchoke_slots_limit, 500);
+		set.set_int(settings_pack::unchoke_slots_limit, 2000);
 
 		// we need more DHT capacity to ping more peers
 		// candidates before trying to connect
