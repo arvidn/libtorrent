@@ -984,8 +984,8 @@ parse_message:
 void deluge::write_response(rencoder const& output, ssl_socket* sock, error_code& ec)
 {
 	// ----
-	rtok_t tmp[200];
-	int r = rdecode(tmp, 200, output.data(), output.len());
+	rtok_t tmp[2000];
+	int r = rdecode(tmp, 2000, output.data(), output.len());
 	TORRENT_ASSERT(r > 0);
 	printf("==> ");
 	print_rtok(tmp, output.data());
