@@ -207,18 +207,6 @@ namespace libtorrent
 					// source IP to determine our origin
 					url += "&ip=" + print_address(m_ses.listen_address());
 				}
-   
-				if (!tracker_req().ipv6.empty() && !i2p)
-				{
-					url += "&ipv6=";
-					url += tracker_req().ipv6;
-				}
-   
-				if (!tracker_req().ipv4.empty() && !i2p)
-				{
-					url += "&ipv4=";
-					url += tracker_req().ipv4;
-				}
 			}
 		}
 

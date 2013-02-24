@@ -2646,14 +2646,6 @@ namespace libtorrent
 
 		req.event = e;
 		error_code ec;
-		if (!m_ses.settings().get_bool(settings_pack::anonymous_mode))
-		{
-			tcp::endpoint ep;
-			ep = m_ses.get_ipv6_interface();
-			if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_string(ec);
-			ep = m_ses.get_ipv4_interface();
-			if (ep != tcp::endpoint()) req.ipv4 = ep.address().to_string(ec);
-		}
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)

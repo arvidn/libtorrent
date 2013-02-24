@@ -128,8 +128,6 @@ namespace libtorrent
 		std::string trackerid;
 		int key;
 		int num_want;
-		std::string ipv6;
-		std::string ipv4;
 		address bind_ip;
 		bool send_stats;
 		bool apply_ip_filter;
