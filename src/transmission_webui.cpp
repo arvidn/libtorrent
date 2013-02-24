@@ -34,6 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "json_util.hpp"
 #include "disk_space.hpp"
 #include "base64.hpp"
+#include "auth_interface.hpp"
+#include "auth.hpp"
+#include "no_auth.hpp"
 
 #include <string.h> // for strcmp() 
 #include <stdio.h>
@@ -82,7 +85,8 @@ void return_failure(std::vector<char>& buf, char const* msg, boost::int64_t tag)
 struct method_handler
 {
 	char const* method_name;
-	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
+	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, boost::int64_t tag
+		, char* buffer, permissions_interface const* p);
 };
 
 static method_handler handlers[] =
@@ -101,7 +105,8 @@ static method_handler handlers[] =
 	{"session-set", &transmission_webui::set_session},
 };
 
-void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer)
+void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens
+	, char* buffer, permissions_interface const* p)
 {
 	// we expect a "method" in the top level
 	jsmntok_t* method = find_key(tokens, buffer, "method", JSMN_STRING);
@@ -126,7 +131,7 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 		if (args) buffer[args->end] = 0;
 //		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
 
-		(this->*handlers[i].fun)(buf, args, tag, buffer);
+		(this->*handlers[i].fun)(buf, args, tag, buffer, p);
 		break;
 	}
 	if (!handled)
@@ -134,8 +139,14 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 }
 
 void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_add())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	jsmntok_t* cookies = find_key(args, buffer, "cookies", JSMN_STRING);
 
 	add_torrent_params params = m_params_model;
@@ -307,8 +318,13 @@ void transmission_webui::parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmnt
 }
 
 void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_list())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
 	jsmntok_t* field_ent = find_key(args, buffer, "fields", JSMN_ARRAY);
 	if (field_ent == NULL)
 	{
@@ -629,8 +645,14 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_set_settings())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	std::vector<torrent_handle> handles;
 	get_torrents(handles, args, buffer);
 
@@ -763,8 +785,14 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::start_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_start())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	std::vector<torrent_handle> handles;
 	get_torrents(handles, args, buffer);
 	for (std::vector<torrent_handle>::iterator i = handles.begin()
@@ -778,8 +806,14 @@ void transmission_webui::start_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::start_torrent_now(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_start())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	std::vector<torrent_handle> handles;
 	get_torrents(handles, args, buffer);
 	for (std::vector<torrent_handle>::iterator i = handles.begin()
@@ -793,8 +827,14 @@ void transmission_webui::start_torrent_now(std::vector<char>& buf, jsmntok_t* ar
 }
 
 void transmission_webui::stop_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_stop())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	std::vector<torrent_handle> handles;
 	get_torrents(handles, args, buffer);
 	for (std::vector<torrent_handle>::iterator i = handles.begin()
@@ -808,8 +848,14 @@ void transmission_webui::stop_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::verify_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_recheck())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	std::vector<torrent_handle> handles;
 	get_torrents(handles, args, buffer);
 	for (std::vector<torrent_handle>::iterator i = handles.begin()
@@ -822,8 +868,14 @@ void transmission_webui::verify_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::reannounce_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_start())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	std::vector<torrent_handle> handles;
 	get_torrents(handles, args, buffer);
 	for (std::vector<torrent_handle>::iterator i = handles.begin()
@@ -836,8 +888,14 @@ void transmission_webui::reannounce_torrent(std::vector<char>& buf, jsmntok_t* a
 }
 
 void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_remove())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	bool delete_data = find_bool(args, buffer, "delete-local-data");
 
 	std::vector<torrent_handle> handles;
@@ -852,8 +910,14 @@ void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_list())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	session_status st = m_ses.status();
 
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
@@ -898,8 +962,14 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer)
+	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_get_settings())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	session_status st = m_ses.status();
 	aux::session_settings sett = m_ses.get_settings();
 
@@ -964,8 +1034,15 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 	);
 }
 
-void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag, char* buffer)
+void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag
+	, char* buffer, permissions_interface const* p)
 {
+	if (!p->allow_set_settings())
+	{
+		return_failure(buf, "permission denied", tag);
+		return;
+	}
+
 	settings_pack pack;
 
 	int num_keys = args->size / 2;
@@ -1178,10 +1255,17 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 	}
 }
 
-transmission_webui::transmission_webui(session& s, save_settings_interface* sett)
+transmission_webui::transmission_webui(session& s, save_settings_interface* sett, auth_interface const* auth)
 	: m_ses(s)
 	, m_settings(sett)
+	, m_auth(auth)
 {
+	if (m_auth == NULL)
+	{
+		const static no_auth n;
+		m_auth = &n;
+	}
+
 	m_params_model.save_path = ".";
 	m_start_time = time(NULL);
 
@@ -1201,9 +1285,24 @@ transmission_webui::~transmission_webui() {}
 
 bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
 {
+	permissions_interface const* perms = parse_http_auth(conn, m_auth);
+	if (perms == NULL)
+	{
+		mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+			"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+			"Content-Length: 0\r\n\r\n");
+		return true;
+	}
 
 	if (strcmp(request_info->uri, "/upload") == 0)
 	{
+		if (!perms->allow_add())
+		{
+			mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+				"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+				"Content-Length: 0\r\n\r\n");
+			return true;
+		}
 		add_torrent_params p = m_params_model;
 		error_code ec;
 		if (!parse_torrent_post(conn, p, ec))
@@ -1283,7 +1382,7 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		return true;
 	}
 
-	handle_json_rpc(response, tokens, &post_body[0]);
+	handle_json_rpc(response, tokens, &post_body[0], perms);
 
 	// we need a null terminator
 	response.push_back('\0');

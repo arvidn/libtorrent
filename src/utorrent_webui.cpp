@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utorrent_webui.hpp"
 #include "disk_space.hpp"
 #include "base64.hpp"
+#include "auth.hpp"
+#include "no_auth.hpp"
 
 #include <string.h> // for strcmp() 
 #include <stdio.h>
@@ -66,12 +68,19 @@ namespace libtorrent
 {
 
 utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
-		, auto_load* al, torrent_history* hist)
+	, auto_load* al, torrent_history* hist, auth_interface const* auth)
 	: m_ses(s)
 	, m_settings(sett)
 	, m_al(al)
+	, m_auth(auth)
 	, m_hist(hist)
 {
+	if (m_auth == NULL)
+	{
+		const static no_auth n;
+		m_auth = &n;
+	}
+
 	m_start_time = time(NULL);
 	m_version = 1;
 
@@ -99,7 +108,7 @@ utorrent_webui::~utorrent_webui() {}
 struct method_handler
 {
 	char const* action_name;
-	void (utorrent_webui::*fun)(std::vector<char>&, char const* args);
+	void (utorrent_webui::*fun)(std::vector<char>&, char const* args, permissions_interface const* p);
 };
 
 static method_handler handlers[] =
@@ -107,8 +116,8 @@ static method_handler handlers[] =
 	{ "start", &utorrent_webui::start },
 	{ "forcestart", &utorrent_webui::force_start },
 	{ "stop", &utorrent_webui::stop },
-	{ "pause", &utorrent_webui::stop},
-	{ "unpause", &utorrent_webui::start},
+	{ "pause", &utorrent_webui::stop },
+	{ "unpause", &utorrent_webui::start },
 
 	{ "queueup", &utorrent_webui::queue_up },
 	{ "queuedown", &utorrent_webui::queue_down },
@@ -145,6 +154,15 @@ void return_error(mg_connection* conn)
 
 bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
 {
+	permissions_interface const* perms = parse_http_auth(conn, m_auth);
+	if (!perms)
+	{
+		mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+			"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+			"Content-Length: 0\r\n\r\n");
+		return true;
+	}
+
 	// redirect to /gui/
 	if (strcmp(request_info->uri, "/gui") == 0
 		|| (strcmp(request_info->uri, "/gui/") == 0
@@ -213,6 +231,13 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		// add-file is special, since it posts the torrent
 		if (strcmp(action, "add-file") == 0)
 		{
+			if (!perms->allow_add())
+			{
+				mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+					"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+					"Content-Length: 0\r\n\r\n");
+				return true;
+			}
 			add_torrent_params p = m_params_model;
 			error_code ec;
 			if (!parse_torrent_post(conn, p, ec))
@@ -230,7 +255,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 			{
 				if (strcmp(action, handlers[i].action_name)) continue;
 
-				(this->*handlers[i].fun)(response, request_info->query_string);
+				(this->*handlers[i].fun)(response, request_info->query_string, perms);
 				break;
 			}
 		}
@@ -241,7 +266,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		, "list", buf, sizeof(buf)) > 0
 		&& atoi(buf) > 0)
 	{
-		send_torrent_list(response, request_info->query_string);
+		send_torrent_list(response, request_info->query_string, perms);
 	}
 
 	// we need a null terminator
@@ -258,8 +283,10 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 	return true;
 }
 
-void utorrent_webui::start(std::vector<char>&, char const* args)
+void utorrent_webui::start(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_start()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -269,8 +296,10 @@ void utorrent_webui::start(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::stop(std::vector<char>&, char const* args)
+void utorrent_webui::stop(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_stop()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -280,8 +309,10 @@ void utorrent_webui::stop(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::force_start(std::vector<char>&, char const* args)
+void utorrent_webui::force_start(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_start()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -291,8 +322,10 @@ void utorrent_webui::force_start(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::recheck(std::vector<char>&, char const* args)
+void utorrent_webui::recheck(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_recheck()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -301,8 +334,10 @@ void utorrent_webui::recheck(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::queue_up(std::vector<char>&, char const* args)
+void utorrent_webui::queue_up(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_queue_change()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -311,8 +346,10 @@ void utorrent_webui::queue_up(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::queue_down(std::vector<char>&, char const* args)
+void utorrent_webui::queue_down(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_queue_change()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -321,8 +358,10 @@ void utorrent_webui::queue_down(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::queue_top(std::vector<char>&, char const* args)
+void utorrent_webui::queue_top(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_queue_change()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -331,8 +370,10 @@ void utorrent_webui::queue_top(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::queue_bottom(std::vector<char>&, char const* args)
+void utorrent_webui::queue_bottom(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_queue_change()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -341,8 +382,10 @@ void utorrent_webui::queue_bottom(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::remove_torrent(std::vector<char>&, char const* args)
+void utorrent_webui::remove_torrent(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_remove()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -351,8 +394,10 @@ void utorrent_webui::remove_torrent(std::vector<char>&, char const* args)
 	}
 }
 
-void utorrent_webui::remove_torrent_and_data(std::vector<char>&, char const* args)
+void utorrent_webui::remove_torrent_and_data(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_remove() || !p->allow_remove_data()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
@@ -366,8 +411,10 @@ char const* settings_name(int s)
 	return name_for_setting(s);
 }
 
-void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
+void utorrent_webui::get_settings(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_get_settings()) return;
+
 	appendf(response, ", \"settings\": [");
 
 	libtorrent::aux::session_settings sett = m_ses.get_settings();
@@ -458,8 +505,10 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 		, escape_json(m_webui_cookie).c_str());
 }
 
-void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
+void utorrent_webui::set_settings(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_set_settings()) return;
+
 	settings_pack pack;
 
 	std::set<std::string> duplicates;
@@ -557,8 +606,10 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 	if (m_settings) m_settings->save(ec);
 }
 
-void utorrent_webui::send_file_list(std::vector<char>& response, char const* args)
+void utorrent_webui::send_file_list(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_list()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	appendf(response, ",\"files\":[");
 	int first = 1;
@@ -621,8 +672,10 @@ std::string trackers_as_string(torrent_handle h)
 	return ret;
 }
 
-void utorrent_webui::add_url(std::vector<char>&, char const* args)
+void utorrent_webui::add_url(std::vector<char>&, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_add()) return;
+
 	char url[4096];
 	if (mg_get_var(args, strlen(args)
 		, "url", url, sizeof(url)) <= 0)
@@ -634,14 +687,16 @@ void utorrent_webui::add_url(std::vector<char>&, char const* args)
 		}
 	}
 
-	add_torrent_params p = m_params_model;
-	p.url = url;
+	add_torrent_params atp = m_params_model;
+	atp.url = url;
 
-	m_ses.async_add_torrent(p);
+	m_ses.async_add_torrent(atp);
 }
 
-void utorrent_webui::get_properties(std::vector<char>& response, char const* args)
+void utorrent_webui::get_properties(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_get_settings()) return;
+
 	std::vector<torrent_handle> t = parse_torrents(args);
 	appendf(response, ",\"props\":[");
 	int first = 1;
@@ -724,8 +779,10 @@ std::string utorrent_peer_flags(peer_info const& pi)
 	return ret;
 }
 
-void utorrent_webui::send_peer_list(std::vector<char>& response, char const* args)
+void utorrent_webui::send_peer_list(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_list()) return;
+
 	std::vector<torrent_handle> torrents = parse_torrents(args);
 	appendf(response, ",\"peers\":[");
 	int first = 1;
@@ -859,8 +916,10 @@ std::string utorrent_message(torrent_status const& st)
 	return "??";
 }
 
-void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* args)
+void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	if (!p->allow_list()) return;
+
 	int cid = 0;
 	char buf[50];
 	// first, find the action

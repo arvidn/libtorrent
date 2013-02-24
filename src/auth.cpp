@@ -40,59 +40,115 @@ extern "C" {
 #include "local_mongoose.h"
 }
 
+#include <vector>
 #include <string.h> // for strcmp() 
 #include <stdio.h>
 
 namespace libtorrent
 {
-auth::auth(save_settings* sett)
-	: m_sett(sett)
+auth::auth()
 {
-	if (m_sett)
+}
+
+std::vector<std::string> auth::accounts() const
+{
+	std::vector<std::string> users;
+	for (std::map<std::string, account_t>::const_iterator i = m_accounts.begin()
+		, end(m_accounts.end()); i != end; ++i)
 	{
-		m_username = sett->get_str("remote.user");
-		std::string pwdhash = sett->get_str("remote.password_hash");
-		memcpy(&m_password_hash[0], pwdhash.c_str(), (std::min)(pwdhash.size(), size_t(20)));
-		std::string salt = sett->get_str("remote.password_salt");
-		memcpy(m_salt, salt.c_str(), (std::min)(salt.size(), sizeof(m_salt)));
-		if (salt.empty())
-		{
-			for (int i = 0; i < sizeof(m_salt); ++i)
-				m_salt[i] = rand();
-			sett->set_str("remote.password_salt", std::string(m_salt, &m_salt[sizeof(salt)]));
-		}
+		users.push_back(i->first);
+	}
+	return users;
+}
+
+void auth::add_account(std::string const& user, std::string const& pwd, bool read_only)
+{
+	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
+	if (i == m_accounts.end())
+	{
+		account_t acct;
+		for (int i = 0; i < sizeof(acct.salt); ++i)
+			acct.salt[i] = rand();
+		acct.read_only = read_only;
+		acct.hash = acct.password_hash(pwd);
+		m_accounts.insert(std::make_pair(user, acct));
 	}
 	else
 	{
-		for (int i = 0; i < sizeof(m_salt); ++i)
-			m_salt[i] = rand();
+		i->second.hash = i->second.password_hash(pwd);
+		i->second.read_only = read_only;
 	}
 }
 
-void auth::set_password(std::string const& pwd)
+void auth::remove_account(std::string const& user)
 {
-	m_password_hash = password_hash(pwd);
-	if (m_sett) m_sett->set_str("remote.password_hash", m_password_hash.to_string());
+	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
+	if (i == m_accounts.end()) return;
+	m_accounts.erase(i);
 }
 
-void auth::set_username(std::string const& user)
+struct read_only_permissions : permissions_interface
 {
-	m_username = user;
-	if (m_sett) m_sett->set_str("remote.user", m_username);
+	read_only_permissions() {}
+	bool allow_start() const { return false; }
+	bool allow_stop() const { return false; }
+	bool allow_recheck() const { return false; }
+	bool allow_list() const { return true; }
+	bool allow_add() const { return false; }
+	bool allow_remove() const { return false; }
+	bool allow_remove_data() const { return false; }
+	bool allow_queue_change() const { return false; }
+	bool allow_get_settings() const { return true; }
+	bool allow_set_settings() const { return false; }
+	bool allow_get_data() const { return true; }
+};
+
+struct full_permissions : permissions_interface
+{
+	full_permissions() {}
+	bool allow_start() const { return true; }
+	bool allow_stop() const { return true; }
+	bool allow_recheck() const { return true; }
+	bool allow_list() const { return true; }
+	bool allow_add() const { return true; }
+	bool allow_remove() const { return true; }
+	bool allow_remove_data() const { return true; }
+	bool allow_queue_change() const { return true; }
+	bool allow_get_settings() const { return true; }
+	bool allow_set_settings() const { return true; }
+	bool allow_get_data() const { return true; }
+};
+
+permissions_interface const* auth::find_user(std::string username, std::string password) const
+{
+	const static read_only_permissions read_perms;
+	const static full_permissions full_perms;
+
+	std::map<std::string, account_t>::const_iterator i = m_accounts.find(username);
+	if (i == m_accounts.end()) return NULL;
+
+	sha1_hash ph = i->second.password_hash(password);
+	if (ph != i->second.hash) return NULL;
+
+	return i->second.read_only
+		? (permissions_interface const*)&read_perms
+		: (permissions_interface const*)&full_perms;
 }
 
-sha1_hash auth::password_hash(std::string const& pwd) const
+sha1_hash auth::account_t::password_hash(std::string const& pwd) const
 {
 	hasher h;
 	if (pwd.size()) h.update(pwd);
-	h.update(m_salt, sizeof(m_salt));
+	h.update(salt, sizeof(salt));
 	sha1_hash ret = h.final();
 
 	return ret;
 }
 
-bool auth::handle_http(mg_connection* conn, mg_request_info const* request_info)
+permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth)
 {
+	std::string user;
+	std::string pwd;
 	char const* authorization = mg_get_header(conn, "authorization");
 	if (authorization)
 	{
@@ -106,23 +162,14 @@ bool auth::handle_http(mg_connection* conn, mg_request_info const* request_info)
 				++authorization;
 
 			std::string cred = base64decode(authorization);
-			std::string user = cred.substr(0, cred.find_first_of(':'));
-			std::string pwd = cred.substr(user.size()+1);
-			if (authenticate(user, pwd)) return false;
+			user = cred.substr(0, cred.find_first_of(':'));
+			pwd = cred.substr(user.size()+1);
 		}
 	}
 
-	mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
-		"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
-		"Content-Length: 0\r\n\r\n");
-	return true;
-}
-
-bool auth::authenticate(std::string const& username, std::string const& password) const
-{
-	if (username != m_username) return false;
-	if (password_hash(password) != m_password_hash) return false;
-	return true;
+	permissions_interface const* perms = auth->find_user(user, pwd);
+	if (perms == NULL) return NULL;
+	return perms;
 }
 
 }

@@ -33,16 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FILE_DOWNLOADER_HPP
 #define TORRENT_FILE_DOWNLOADER_HPP
 
+#include <boost/shared_ptr.hpp>
 #include "webui.hpp"
-#include "libtorrent/session.hpp"
 
 namespace libtorrent
 {
 	struct piece_alert_dispatch;
+	struct auth_interface;
+	class session;
 
 	struct file_downloader : http_handler
 	{
-		file_downloader(session& s);
+		file_downloader(session& s, auth_interface const* auth = NULL);
 
 		virtual bool handle_http(mg_connection* conn,
 			mg_request_info const* request_info);
@@ -50,6 +52,7 @@ namespace libtorrent
 	private:
 
 		session& m_ses;
+		auth_interface const* m_auth;
 
 		boost::shared_ptr<piece_alert_dispatch> m_dispatch;
 

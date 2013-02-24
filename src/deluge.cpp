@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/puff.hpp"
 #include "disk_space.hpp"
+#include "no_auth.hpp"
 #include "deluge.hpp"
 #include "rencode.hpp"
 #include "base64.hpp"
@@ -58,13 +59,20 @@ enum rpc_type_t
 	RPC_EVENT = 3
 };
 
-deluge::deluge(session& s, std::string pem_path)
+deluge::deluge(session& s, std::string pem_path, auth_interface const* auth)
 	: m_ses(s)
+	, m_auth(auth)
 	, m_listen_socket(NULL)
 	, m_accept_thread(NULL)
 	, m_context(m_ios, boost::asio::ssl::context::sslv23)
 	, m_shutdown(false)
 {
+	if (m_auth == NULL)
+	{
+		const static no_auth n;
+		m_auth = &n;
+	}
+
 	m_params_model.save_path = ".";
 
 	m_context.set_options(
@@ -177,7 +185,7 @@ struct handler_map_t
 {
 	char const* method;
 	char const* args;
-	void (deluge::*fun)(rtok_t const*, char const* buf, rencoder&);
+	void (deluge::*fun)(deluge::conn_state* st);
 };
 
 handler_map_t handlers[] =
@@ -196,8 +204,12 @@ handler_map_t handlers[] =
 	{"core.get_filter_tree", "[b]{}", &deluge::handle_get_filter_tree},
 };
 
-void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& output)
+void deluge::incoming_rpc(deluge::conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
 	printf("<== ");
 	print_rtok(tokens, buf);
 	printf("\n");
@@ -213,7 +225,7 @@ void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& outpu
 		if (tokens[1].type() == type_integer)
 			id = tokens[1].integer(buf);
 
-		output_error(id, "invalid RPC format", output);
+		output_error(id, "invalid RPC format", out);
 		return;
 	}
 
@@ -225,67 +237,122 @@ void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& outpu
 
 		if (!validate_structure(tokens+3, handlers[i].args))
 		{
-			output_error(tokens[1].integer(buf), "invalid arguments", output);
+			output_error(tokens[1].integer(buf), "invalid arguments", out);
 			return;
 		}
 
-		(this->*handlers[i].fun)(tokens, buf, output);
+		(this->*handlers[i].fun)(st);
 		return;
 	}
 
-	output_error(tokens[1].integer(buf), "unknown method", output);
+	output_error(tokens[1].integer(buf), "unknown method", out);
 }
 
-void deluge::handle_login(rtok_t const* tokens, char const* buf, rencoder& output)
+struct full_permissions : permissions_interface
 {
+	full_permissions() {}
+	bool allow_start() const { return true; }
+	bool allow_stop() const { return true; }
+	bool allow_recheck() const { return true; }
+	bool allow_list() const { return true; }
+	bool allow_add() const { return true; }
+	bool allow_remove() const { return true; }
+	bool allow_remove_data() const { return true; }
+	bool allow_queue_change() const { return true; }
+	bool allow_get_settings() const { return true; }
+	bool allow_set_settings() const { return true; }
+	bool allow_get_data() const { return true; }
+};
+
+void deluge::handle_login(conn_state* st)
+{
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+//#error temp
+	//st->perms = m_auth->find_user(...);
+	const static full_permissions n;
+	st->perms = &n;
+
 	int id = tokens[1].integer(buf);
 
 	// [ RPC_RESPONSE, req-id, [5] ]
 
-	output.append_list(3);
-	output.append_int(RPC_RESPONSE);
-	output.append_int(id);
-	output.append_list(1);
-	output.append_int(5); // auth-level
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	out.append_int(5); // auth-level
 }
 
-void deluge::handle_set_event_interest(rtok_t const* tokens, char const* buf, rencoder& output)
+void deluge::handle_set_event_interest(conn_state* st)
 {
-	int id = tokens[1].integer(buf);
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_list())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
+	int id = st->tokens[1].integer(st->buf);
 
 	// [ RPC_RESPONSE, req-id, [True] ]
 
-	output.append_list(3);
-	output.append_int(RPC_RESPONSE);
-	output.append_int(id);
-	output.append_list(1);
-	output.append_bool(true); // success
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	out.append_bool(true); // success
 }
 
-void deluge::handle_info(rtok_t const* tokens, char const* buf, rencoder& output)
+void deluge::handle_info(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_get_settings())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	// [ RPC_RESPONSE, req-id, ["1.0"] ]
 
-	output.append_list(3);
-	output.append_int(RPC_RESPONSE);
-	output.append_int(id);
-	output.append_list(1);
-	output.append_string(m_ses.get_settings().get_str(settings_pack::user_agent)); // version
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	out.append_string(m_ses.get_settings().get_str(settings_pack::user_agent)); // version
 }
 
-void deluge::handle_get_enabled_plugins(rtok_t const* tokens, char const* buf, rencoder& output)
+void deluge::handle_get_enabled_plugins(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_get_settings())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	// [ RPC_RESPONSE, req-id, [[]] ]
 
-	output.append_list(3);
-	output.append_int(RPC_RESPONSE);
-	output.append_int(id);
-	output.append_list(1);
-	output.append_list(0);
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	out.append_list(0);
 }
 
 char const* map_deluge_setting(std::string const& name)
@@ -350,8 +417,18 @@ void deluge::output_config_value(std::string set_name, aux::session_settings con
 	};
 }
 
-void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out)
+void deluge::handle_get_config_value(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_get_settings())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	aux::session_settings sett = m_ses.get_settings();
@@ -364,8 +441,18 @@ void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, renc
 	output_config_value(tokens[4].string(buf), sett, out);
 }
 
-void deluge::handle_get_free_space(rtok_t const* tokens, char const* buf, rencoder& out)
+void deluge::handle_get_free_space(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_get_settings())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	std::string path = tokens[4].type() == type_string
@@ -385,18 +472,28 @@ void deluge::handle_get_free_space(rtok_t const* tokens, char const* buf, rencod
 	out.append_int(ret);
 }
 
-void deluge::handle_get_num_connections(rtok_t const* tokens, char const* buf, rencoder& out)
+void deluge::handle_get_num_connections(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_get_settings())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	// [ RPC_RESPONSE, req-id, [num-connections] ]
 
-	session_status st = m_ses.status();
+	session_status sst = m_ses.status();
 
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
-	out.append_int(st.num_peers);
+	out.append_int(sst.num_peers);
 }
 
 char const* deluge_state_str(torrent_status const& st)
@@ -487,8 +584,18 @@ bool yes(torrent_status const& st) { return true;}
 
 // input [id, method, [ { ... }, [ ... ], bool ] ]
 //                   filter_dict  keys    diff
-void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, rencoder& out)
+void deluge::handle_get_torrents_status(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_list())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	rtok_t const* filter_dict = &tokens[4];
@@ -633,8 +740,18 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 }
 
 // [id, method, [filename, torrent_file, options-dict], {}]
-void deluge::handle_add_torrent_file(rtok_t const* tokens, char const* buf, rencoder& out)
+void deluge::handle_add_torrent_file(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_add())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	std::string filename = tokens[4].string(buf);
@@ -713,11 +830,21 @@ void deluge::handle_add_torrent_file(rtok_t const* tokens, char const* buf, renc
 	out.append_int(h.id());
 }
 
-void deluge::handle_get_filter_tree(rtok_t const* tokens, char const* buf, rencoder& out)
+void deluge::handle_get_filter_tree(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_list())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
-	session_status st = m_ses.status();
+	session_status sst = m_ses.status();
 
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
@@ -726,17 +853,27 @@ void deluge::handle_get_filter_tree(rtok_t const* tokens, char const* buf, renco
 	out.append_string("state");
 	out.append_list(2);
 
-		out.append_list(2);
-		out.append_string("All");
-		out.append_int(st.num_torrents);
+	out.append_list(2);
+	out.append_string("All");
+	out.append_int(sst.num_torrents);
 
-		out.append_list(2);
-		out.append_string("Paused");
-		out.append_int(st.num_paused_torrents);
+	out.append_list(2);
+	out.append_string("Paused");
+	out.append_int(sst.num_paused_torrents);
 }
 
-void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out)
+void deluge::handle_get_config_values(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_get_settings())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 
 	aux::session_settings sett = m_ses.get_settings();
@@ -765,45 +902,55 @@ void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, ren
 	}
 }
 
-void deluge::handle_get_session_status(rtok_t const* tokens, char const* buf, rencoder& output)
+void deluge::handle_get_session_status(conn_state* st)
 {
+	rencoder& out = *st->out;
+	char const* buf = st->buf;
+	rtok_t const*tokens = st->tokens;
+
+	if (!st->perms->allow_get_settings())
+	{
+		output_error(tokens[1].integer(buf), "permission denied", out);
+		return;
+	}
+
 	int id = tokens[1].integer(buf);
 	
 	rtok_t const* keys = &tokens[4];
 	int num_keys = keys->num_items();
 	++keys;
 
-	session_status st = m_ses.status();
+	session_status sst = m_ses.status();
 
-	output.append_list(3);
-	output.append_int(RPC_RESPONSE);
-	output.append_int(id);
-	bool need_term = output.append_dict(num_keys);
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	bool need_term = out.append_dict(num_keys);
 	for (int i = 0; i < num_keys; ++i, keys = skip_item(keys))
 	{
 		if (keys->type() != type_string)
 			continue;
 		std::string k = keys->string(buf);
-		output.append_string(k);
+		out.append_string(k);
 
 		if (k == "payload_upload_rate")
-			output.append_int(st.payload_upload_rate);
+			out.append_int(sst.payload_upload_rate);
 		else if (k == "payload_download_rate")
-			output.append_int(st.payload_download_rate);
+			out.append_int(sst.payload_download_rate);
 		else if (k == "payload_download_rate")
-			output.append_int(st.payload_download_rate);
+			out.append_int(sst.payload_download_rate);
 		else if (k == "download_rate")
-			output.append_int(st.download_rate);
+			out.append_int(sst.download_rate);
 		else if (k == "upload_rate")
-			output.append_int(st.upload_rate);
+			out.append_int(sst.upload_rate);
 		else if (k == "has_incoming_connections")
-			output.append_bool(st.has_incoming_connections);
+			out.append_bool(sst.has_incoming_connections);
 		else if (k == "dht_nodes")
-			output.append_int(st.dht_nodes);
+			out.append_int(sst.dht_nodes);
 		else
-			output.append_none();
+			out.append_none();
 	}
-	if (need_term) output.append_term();
+	if (need_term) out.append_term();
 }
 
 void deluge::output_error(int id, char const* msg, rencoder& out)
@@ -819,8 +966,31 @@ void deluge::output_error(int id, char const* msg, rencoder& out)
 	out.append_string(""); // stack-trace
 }
 
+struct no_permissions : permissions_interface
+{
+	no_permissions() {}
+	bool allow_start() const { return false; }
+	bool allow_stop() const { return false; }
+	bool allow_recheck() const { return false; }
+	bool allow_list() const { return false; }
+	bool allow_add() const { return false; }
+	bool allow_remove() const { return false; }
+	bool allow_remove_data() const { return false; }
+	bool allow_queue_change() const { return false; }
+	bool allow_get_settings() const { return false; }
+	bool allow_set_settings() const { return false; }
+	bool allow_get_data() const { return false; }
+};
+
+const static no_permissions no_perms;
+
 void deluge::connection_thread()
 {
+	conn_state st;
+	// initialize to no-permissions. The only way to
+	// increase the permission level is to log in
+	st.perms = &no_perms;
+
 	mutex::scoped_lock l(m_mutex);
 	while (!m_shutdown)
 	{
@@ -926,7 +1096,7 @@ parse_message:
 
 //			fprintf(stderr, "rdecode: %d\n", ret);
 
-			rencoder output;
+			rencoder out;
 
 			// an RPC call is at least 5 tokens
 			// list, ID, method, args, kwargs
@@ -937,22 +1107,26 @@ parse_message:
 			// in a list.
 			if (tokens[0].type() != type_list) break;
 
+			st.tokens = tokens;
+			st.buf = &inflated[0];
+			st.out = &out;
+
 			if (tokens[1].type() == type_list)
 			{
 				int num_items = tokens->num_items();
 				for (rtok_t* rpc = &tokens[1]; num_items; --num_items, rpc = skip_item(rpc))
 				{
-					incoming_rpc(rpc, &inflated[0], output);
-					write_response(output, sock, ec);
-					output.clear();
+					incoming_rpc(&st);
+					write_response(out, sock, ec);
+					out.clear();
 					if (ec) break;
 				}
 				if (ec) break;
 			}
 			else
 			{
-				incoming_rpc(&tokens[0], &inflated[0], output);
-				write_response(output, sock, ec);
+				incoming_rpc(&st);
+				write_response(out, sock, ec);
 				if (ec) break;
 			}
 
@@ -981,14 +1155,14 @@ parse_message:
 
 }
 
-void deluge::write_response(rencoder const& output, ssl_socket* sock, error_code& ec)
+void deluge::write_response(rencoder const& out, ssl_socket* sock, error_code& ec)
 {
 	// ----
 	rtok_t tmp[2000];
-	int r = rdecode(tmp, 2000, output.data(), output.len());
+	int r = rdecode(tmp, 2000, out.data(), out.len());
 	TORRENT_ASSERT(r > 0);
 	printf("==> ");
-	print_rtok(tmp, output.data());
+	print_rtok(tmp, out.data());
 	printf("\n");
 	// ----
 
@@ -997,9 +1171,9 @@ void deluge::write_response(rencoder const& output, ssl_socket* sock, error_code
 	int ret = deflateInit(&strm, 9);
 	if (ret != Z_OK) return;
 
-	std::vector<char> deflated(output.len() * 3);
-	strm.next_in = (Bytef*)output.data();
-	strm.avail_in = output.len();
+	std::vector<char> deflated(out.len() * 3);
+	strm.next_in = (Bytef*)out.data();
+	strm.avail_in = out.len();
 	strm.next_out = (Bytef*)&deflated[0];
 	strm.avail_out = deflated.size();
 
