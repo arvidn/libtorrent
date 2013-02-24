@@ -160,7 +160,7 @@ namespace libtorrent
 			}
 
 			// valid 4-byte utf-8 character
-			if ((i[0] & 0xf0) == 0xe0
+			if ((i[0] & 0xf8) == 0xf0
 				&& (i[1] & 0xc0) == 0x80
 				&& (i[2] & 0xc0) == 0x80
 				&& (i[3] & 0xc0) == 0x80)
@@ -354,6 +354,13 @@ namespace libtorrent
 	{
 		if (list.type() != lazy_entry::list_t) return false;
 		target.reserve(list.list_size());
+
+		// TODO: 1 this logic should be a separate step
+		// done once the torrent is loaded, and the original
+		// filenames should be preserved!
+		int cnt = 0;
+		std::set<std::string, string_less_no_case> files;
+
 		for (int i = 0, end(list.list_size()); i < end; ++i)
 		{
 			lazy_entry const* file_hash = 0;
@@ -364,19 +371,13 @@ namespace libtorrent
 				, &file_hash, &fee, &mtime))
 				return false;
 
-			// TODO: this logic should be a separate step
-			// done once the torrent is loaded, and the original
-			// filenames should be preserved!
-			int cnt = 0;
-			std::set<std::string, string_less_no_case> files;
-
 			// as long as this file already exists
 			// increase the counter
 			while (!files.insert(e.path).second)
 			{
 				++cnt;
 				char suffix[50];
-				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(e.path).c_str());
+				snprintf(suffix, sizeof(suffix), "%d%s", cnt, extension(e.path).c_str());
 				replace_extension(e.path, suffix);
 			}
 			target.add_file(e, file_hash ? file_hash->string_ptr() + info_ptr_diff : 0);
