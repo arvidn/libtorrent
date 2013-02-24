@@ -1207,6 +1207,12 @@ int test_main()
 	TEST_CHECK(verify_encoding(test));
 	TEST_CHECK(test == "filename=4");
 
+
+	// replace_extension
+	test = "foo.bar";
+	replace_extension(test, "txt");
+	TEST_EQUAL(test, "foo.txt");
+
 	// file class
 	file f;
 #if TORRENT_USE_UNC_PATHS || !defined WIN32
