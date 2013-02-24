@@ -120,7 +120,7 @@ namespace libtorrent
 			{
 				convert_to_utf8(tmp_path, *i);
 				valid_encoding = false;
-				continue;
+				break;
 			}
 			
 			// valid 2-byte utf-8 character
@@ -137,7 +137,7 @@ namespace libtorrent
 			{
 				convert_to_utf8(tmp_path, *i);
 				valid_encoding = false;
-				continue;
+				break;
 			}
 
 			// valid 3-byte utf-8 character
@@ -156,7 +156,7 @@ namespace libtorrent
 			{
 				convert_to_utf8(tmp_path, *i);
 				valid_encoding = false;
-				continue;
+				break;
 			}
 
 			// valid 4-byte utf-8 character
@@ -195,7 +195,7 @@ namespace libtorrent
 		return true;
 	}
 
-	void trim_path_element(std::string& path_element)
+	TORRENT_EXTRA_EXPORT void trim_path_element(std::string& path_element)
 	{
 		const int max_path_len = TORRENT_MAX_PATH;
 		if (int(path_element.size()) > max_path_len)
@@ -372,6 +372,7 @@ namespace libtorrent
 
 			// as long as this file already exists
 			// increase the counter
+			fprintf(stderr, "adding file: %s\n", e.path.c_str());
 			while (!files.insert(e.path).second)
 			{
 				++cnt;

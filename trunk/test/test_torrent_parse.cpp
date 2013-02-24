@@ -56,8 +56,32 @@ test_torrent_t test_torrents[] =
 	{ "httpseed.torrent" },
 	{ "empty_httpseed.torrent" },
 	{ "long_name.torrent" },
+	{ "whitespace_url.torrent" },
+	{ "duplicate_files.torrent" },
 //	{ "" },
 };
+
+// TODO: create a separate list of all torrents that should
+// fail to parse, and include the expected error code in that list
+
+// TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
+// TODO: torrent where info-section is not a dict
+// TODO: torrent with "piece length" <= 0
+// TODO: torrent with no "name" nor "name.utf8"
+// TODO: torrent with "name" refering to an invalid path
+// TODO: torrent with 'p' (padfile) attribute
+// TODO: torrent with 'h' (hidden) attribute
+// TODO: torrent with 'x' (executable) attribute
+// TODO: torrent with 'l' (symlink) attribute
+// TODO: torrent with bitcomet style padfiles (name convention)
+// TODO: torrent with a negative file size
+// TODO: torrent with a negative total size
+// TODO: torrent with a pieces field that's not a string
+// TODO: torrent with a pieces field whose length is not divisible by 20
+// TODO: creating a merkle torrent (torrent_info::build_merkle_list)
+// TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
+// TODO: torrent with web seed. make sure we append '/' for multifile torrents
+// TODO: test that creation date is parsed correctly
 
 int test_main()
 {
@@ -68,6 +92,19 @@ int test_main()
 		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path("test_torrents", test_torrents[i].file), ec));
 		TEST_CHECK(!ec);
 		if (ec) fprintf(stderr, "  -> failed %s\n", ec.message().c_str());
+
+		if (std::string(test_torrents[i].file) == "whitespace_url.torrent")
+		{
+			// make sure we trimmed the url
+			TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
+		}
+		else if (std::string(test_torrents[i].file) == "duplicate_files.torrent")
+		{
+			// make sure we disambiguated the files
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_CHECK(ti->file_at(0).path == "temp/foo/bar.txt");
+			TEST_CHECK(ti->file_at(1).path == "temp/foo/bar.1.txt");
+		}
 
 		int index = 0;
 		for (torrent_info::file_iterator i = ti->begin_files();
@@ -88,6 +125,7 @@ int test_main()
 				, i->symlink_attribute ? "-> ": ""
 				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
 		}
+
 	}
 	return 0;
 }
