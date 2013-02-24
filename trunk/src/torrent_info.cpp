@@ -444,7 +444,7 @@ namespace libtorrent
 		}
 		v.resize(s);
 		if (s == 0) return 0;
-		file::iovec_t b = {&v[0], s};
+		file::iovec_t b = {&v[0], size_t(s) };
 		size_type read = f.readv(0, &b, 1, ec);
 		if (read != s) return -3;
 		if (ec) return -3;
