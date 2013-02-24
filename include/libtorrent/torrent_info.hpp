@@ -78,6 +78,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
+	TORRENT_EXTRA_EXPORT void trim_path_element(std::string& path_element);
 
 	struct TORRENT_EXPORT announce_entry
 	{

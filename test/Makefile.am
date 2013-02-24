@@ -51,7 +51,9 @@ EXTRA_DIST = Jamfile \
   test_torrents/url_list3.torrent \
   test_torrents/httpseed.torrent \
   test_torrents/empty_httpseed.torrent \
-  test_torrents/long_name.torrent
+  test_torrents/long_name.torrent \
+  test_torrents/whitespace_url.torrent \
+  test_torrents/duplicate_files.torrent
 
 EXTRA_PROGRAMS = $(test_programs)
 
