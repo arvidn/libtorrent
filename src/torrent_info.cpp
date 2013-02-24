@@ -336,7 +336,7 @@ namespace libtorrent
 			char const* s1 = lhs.c_str();
 			char const* s2 = rhs.c_str();
 	
-			while (*s1 != 0 && *s2 != 0)
+			while (*s1 != 0 || *s2 != 0)
 			{
 				c1 = to_lower(*s1);
 				c2 = to_lower(*s2);
