@@ -1392,6 +1392,12 @@ int test_main()
 	comparison.resize(TORRENT_MAX_PATH);
 	TEST_EQUAL(test, comparison);
 
+
+	// replace_extension
+	test = "foo.bar";
+	replace_extension(test, "txt");
+	TEST_EQUAL(test, "foo.txt");
+
 	// file class
 	file f;
 #if TORRENT_USE_UNC_PATHS || !defined WIN32
