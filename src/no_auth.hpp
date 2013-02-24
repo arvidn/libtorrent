@@ -42,6 +42,7 @@ namespace libtorrent
 
 struct no_auth : auth_interface
 {
+	no_auth() {}
 	virtual permissions_interface const* find_user(std::string username, std::string password) const;
 };
 
