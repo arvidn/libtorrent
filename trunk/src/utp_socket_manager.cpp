@@ -136,6 +136,17 @@ namespace libtorrent
 			else mtu = TORRENT_ETHERNET_MTU;
 		}
 
+#if defined __APPLE__
+		// apple has a very strange loopback. It appears you can't
+		// send messages of the reported MTU size, and you don't get
+		// EWOULDBLOCK either.
+		if (is_loopback(addr))
+		{
+			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
+			else mtu = TORRENT_ETHERNET_MTU;
+		}
+#endif
+
 		// clamp the MTU within reasonable bounds
 		if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
 		else if (mtu > TORRENT_INET_MAX_MTU) mtu = TORRENT_INET_MAX_MTU;

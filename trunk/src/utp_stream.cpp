@@ -1850,14 +1850,31 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	if (ec == error::message_size)
 	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: error sending packet: %s\n", this, ec.message().c_str());
+#endif
+		// if we fail even though this is not a probe, we're screwed
+		// since we'd have to repacketize
+		TORRENT_ASSERT(p->mtu_probe);
 		m_mtu_ceiling = p->size - 1;
 		if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
 		update_mtu_limits();
 		// TODO: 2 we might want to do something else here
 		// as well, to resend the packet immediately without
 		// it being an MTU probe
+		p->mtu_probe = false;
+		if (m_mtu_seq == m_ack_nr)
+			m_mtu_seq = 0;
+		ec.clear();
+
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: re-sending\n", this);
+#endif
+		m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+			, (char const*)h, p->size, ec, 0);
 	}
-	else if (ec == error::would_block || ec == error::try_again)
+
+	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", this);
@@ -1963,8 +1980,13 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 
 	// we can only resend the packet if there's
 	// enough space in our congestion window
+	// since we can't re-packetize, some packets that are
+	// larger than the congestion window must be allowed through
+	// but only if we don't have any outstanding bytes
 	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - m_bytes_in_flight;
-	if (!fast_resend && p->size - p->header_size > window_size_left)
+	if (!fast_resend
+		&& p->size - p->header_size > window_size_left
+		&& m_bytes_in_flight > 0)
 	{
 		m_last_cwnd_hit = time_now_hires();
 		m_cwnd_full = true;
