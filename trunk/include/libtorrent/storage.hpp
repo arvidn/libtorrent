@@ -460,11 +460,11 @@ namespace libtorrent
 		int move_storage_impl(std::string const& save_path);
 
 		int allocate_slot_for_piece(int piece_index);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		void check_invariant() const;
+#endif
 #ifdef TORRENT_STORAGE_DEBUG
 		void debug_log() const;
-#endif
 #endif
 		boost::intrusive_ptr<torrent_info const> m_info;
 		file_storage const& m_files;

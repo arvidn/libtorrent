@@ -1341,7 +1341,7 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const
 	{
 		for (file_storage::iterator i = m_files.begin()

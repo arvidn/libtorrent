@@ -1713,7 +1713,7 @@ namespace libtorrent
 	}
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void policy::check_invariant() const
 	{
 		TORRENT_ASSERT(m_num_connect_candidates >= 0);

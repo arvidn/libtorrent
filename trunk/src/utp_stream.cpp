@@ -326,7 +326,7 @@ struct utp_socket_impl
 
 	void check_receive_buffers() const;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 
@@ -1478,8 +1478,6 @@ void utp_socket_impl::write_payload(boost::uint8_t* ptr, int size)
 	std::vector<iovec_t>::iterator i = m_write_buffer.begin();
 
 	if (size == 0) return;
-
-	ptime now = time_now_hires();
 
 	int buffers_to_clear = 0;
 	while (size > 0)
@@ -3309,7 +3307,7 @@ void utp_socket_impl::check_receive_buffers() const
 	TORRENT_ASSERT(int(size) == m_receive_buffer_size);
 }
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 void utp_socket_impl::check_invariant() const
 {
 	for (int i = m_outbuf.cursor();

@@ -362,9 +362,11 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
-		void check_invariant(const torrent* t = 0) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
+#endif
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		void check_invariant(const torrent* t = 0) const;
 #endif
 #if defined TORRENT_PICKER_LOG
 		void print_pieces() const;
