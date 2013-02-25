@@ -73,12 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	
-	void convert_to_utf8(std::string& str, unsigned char chr)
-	{
-		str += 0xc0 | ((chr & 0xff) >> 6);
-		str += 0x80 | (chr & 0x3f);
-	}
-
 	bool valid_path_character(char c)
 	{
 #ifdef TORRENT_WINDOWS
@@ -103,7 +97,7 @@ namespace libtorrent
 			// valid ascii-character
 			if ((*i & 0x80) == 0)
 			{
-				// replace invalid characters with '.'
+				// replace invalid characters with '_'
 				if (!fix_paths || valid_path_character(*i))
 				{
 					tmp_path += *i;
@@ -118,9 +112,9 @@ namespace libtorrent
 			
 			if (end - i < 2)
 			{
-				convert_to_utf8(tmp_path, *i);
+				tmp_path += "_";
 				valid_encoding = false;
-				continue;
+				break;
 			}
 			
 			// valid 2-byte utf-8 character
@@ -135,9 +129,9 @@ namespace libtorrent
 
 			if (end - i < 3)
 			{
-				convert_to_utf8(tmp_path, *i);
+				tmp_path += "_";
 				valid_encoding = false;
-				continue;
+				break;
 			}
 
 			// valid 3-byte utf-8 character
@@ -154,9 +148,9 @@ namespace libtorrent
 
 			if (end - i < 4)
 			{
-				convert_to_utf8(tmp_path, *i);
+				tmp_path += "_";
 				valid_encoding = false;
-				continue;
+				break;
 			}
 
 			// valid 4-byte utf-8 character
@@ -173,7 +167,7 @@ namespace libtorrent
 				continue;
 			}
 
-			convert_to_utf8(tmp_path, *i);
+			tmp_path += "_";
 			valid_encoding = false;
 		}
 		// the encoding was not valid utf-8
@@ -184,7 +178,7 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	// TODO: should this take a char const*?
+	// TODO: 1 we might save constructing a std::string if this would take a char const* instead
 	bool valid_path_element(std::string const& element)
 	{
 		if (element.empty()
@@ -261,6 +255,8 @@ namespace libtorrent
 		if (length == 0 || length->type() != lazy_entry::int_t)
 			return false;
 		target.size = length->int_value();
+		if (target.size < 0)
+			return false;
 
 		size_type ts = dict.dict_find_int_value("mtime", -1);
 		if (ts > 0) *mtime = std::time_t(ts);
@@ -358,7 +354,6 @@ namespace libtorrent
 		// TODO: 1 this logic should be a separate step
 		// done once the torrent is loaded, and the original
 		// filenames should be preserved!
-		int cnt = 0;
 		std::set<std::string, string_less_no_case> files;
 
 		for (int i = 0, end(list.list_size()); i < end; ++i)
@@ -373,6 +368,7 @@ namespace libtorrent
 
 			// as long as this file already exists
 			// increase the counter
+			int cnt = 0;
 			while (!files.insert(e.path).second)
 			{
 				++cnt;
@@ -904,6 +900,11 @@ namespace libtorrent
 			e.path = name;
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
+			if (e.size < 0)
+			{
+				ec = errors::torrent_file_parse_failed;
+				return false;
+			}
 			e.mtime = info.dict_find_int_value("mtime", 0);
 			lazy_entry const* attr = info.dict_find_string("attr");
 			if (attr)

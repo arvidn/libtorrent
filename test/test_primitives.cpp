@@ -1207,6 +1207,53 @@ int test_main()
 	TEST_CHECK(verify_encoding(test));
 	TEST_CHECK(test == "filename=4");
 
+	// valid 2-byte sequence
+	test = "filename\xc2\xa1";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xc2\xa1");
+
+	// truncated 2-byte sequence
+	test = "filename\xc2";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// valid 3-byte sequence
+	test = "filename\xe2\x9f\xb9";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xe2\x9f\xb9");
+
+	// truncated 3-byte sequence
+	test = "filename\xe2\x9f";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// truncated 3-byte sequence
+	test = "filename\xe2";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// valid 4-byte sequence
+	test = "filename\xf0\x9f\x92\x88";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xf0\x9f\x92\x88");
+
+	// truncated 4-byte sequence
+	test = "filename\xf0\x9f\x92";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// 5-byte utf-8 sequence (not allowed)
+	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_____foobar");
 
 	// replace_extension
 	test = "foo.bar";

@@ -1,3 +1,5 @@
+	* improve handling of invalid utf-8 sequences in strings in torrent files
+	* handle more cases of broken .torrent files
 	* fix bug filename collision resolver
 	* fix bug in filename utf-8 verification
 	* make need_save_resume() a bit more robust
