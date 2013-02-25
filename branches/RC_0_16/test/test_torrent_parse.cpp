@@ -56,8 +56,45 @@ test_torrent_t test_torrents[] =
 	{ "httpseed.torrent" },
 	{ "empty_httpseed.torrent" },
 	{ "long_name.torrent" },
-//	{ "" },
+	{ "pad_file.torrent" },
+	{ "creation_date.torrent" },
 };
+
+struct test_failing_torrent_t
+{
+	char const* file;
+	error_code error; // the expected error
+};
+
+test_failing_torrent_t test_error_torrents[] =
+{
+	{ "missing_piece_len.torrent", errors::torrent_missing_piece_length },
+	{ "invalid_piece_len.torrent", errors::torrent_missing_piece_length },
+	{ "negative_piece_len.torrent", errors::torrent_missing_piece_length },
+	{ "no_name.torrent", errors::torrent_missing_name },
+	{ "invalid_name.torrent", errors::torrent_missing_name },
+	{ "invalid_name2.torrent", errors::torrent_invalid_name },
+	{ "invalid_info.torrent", errors::torrent_missing_info },
+	{ "string.torrent", errors::torrent_is_no_dict },
+	{ "negative_size.torrent", errors::torrent_file_parse_failed},
+	{ "negative_file_size.torrent", errors::torrent_file_parse_failed },
+	{ "invalid_path_list.torrent", errors::torrent_file_parse_failed },
+	{ "missing_path_list.torrent", errors::torrent_file_parse_failed },
+	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
+	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
+};
+
+// TODO: create a separate list of all torrents that should
+// fail to parse, and include the expected error code in that list
+
+// TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
+// TODO: torrent with 'p' (padfile) attribute
+// TODO: torrent with 'h' (hidden) attribute
+// TODO: torrent with 'x' (executable) attribute
+// TODO: torrent with 'l' (symlink) attribute
+// TODO: creating a merkle torrent (torrent_info::build_merkle_list)
+// TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
+// TODO: torrent with web seed. make sure we append '/' for multifile torrents
 
 int test_main()
 {
@@ -68,6 +105,29 @@ int test_main()
 		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path("test_torrents", test_torrents[i].file), ec));
 		TEST_CHECK(!ec);
 		if (ec) fprintf(stderr, "  -> failed %s\n", ec.message().c_str());
+
+		if (std::string(test_torrents[i].file) == "whitespace_url.torrent")
+		{
+			// make sure we trimmed the url
+			TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
+		}
+		else if (std::string(test_torrents[i].file) == "duplicate_files.torrent")
+		{
+			// make sure we disambiguated the files
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_CHECK(ti->file_at(0).path == "temp/foo/bar.txt");
+			TEST_CHECK(ti->file_at(1).path == "temp/foo/bar.1.txt");
+		}
+		else if (std::string(test_torrents[i].file) == "pad_file.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_CHECK(ti->file_at(0).pad_file == false);
+			TEST_CHECK(ti->file_at(1).pad_file == true);
+		}
+		else if (std::string(test_torrents[i].file) == "creation_date.torrent")
+		{
+			TEST_CHECK(*ti->creation_date() == 1234567);
+		}
 
 		int index = 0;
 		for (torrent_info::file_iterator i = ti->begin_files();
@@ -89,6 +149,16 @@ int test_main()
 				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
 		}
 	}
+
+	for (int i = 0; i < sizeof(test_error_torrents)/sizeof(test_error_torrents[0]); ++i)
+	{
+		error_code ec;
+		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path("test_torrents", test_error_torrents[i].file), ec));
+		fprintf(stderr, "E: %s\nexpected: %s\n", ec.message().c_str(), test_error_torrents[i].error.message().c_str());
+		TEST_EQUAL(ec, test_error_torrents[i].error);
+	}
+
 	return 0;
 }
 
