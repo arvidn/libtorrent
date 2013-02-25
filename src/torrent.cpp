@@ -6598,7 +6598,7 @@ namespace libtorrent
 		return m_ses.settings();
 	}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
 		for (std::deque<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()

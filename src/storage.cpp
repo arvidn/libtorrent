@@ -2894,7 +2894,7 @@ ret:
 		return m_slot_to_piece[slot];
 	}
 		
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void piece_manager::check_invariant() const
 	{
 		TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
