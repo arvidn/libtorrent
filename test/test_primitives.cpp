@@ -1314,14 +1314,14 @@ int test_main()
 	// valid 2-byte sequence
 	test = "filename\xc2\xa1";
 	TEST_CHECK(verify_encoding(test));
-	fprintf(stderr, "%s %x %x\n", test.c_str(), test[test.size()-2], test[test.size()-1]);
+	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename\xc2\xa1");
 
 	// truncated 2-byte sequence
 	test = "filename\xc2";
 	TEST_CHECK(!verify_encoding(test));
-	fprintf(stderr, "%s %x %x\n", test.c_str(), test[test.size()-2], test[test.size()-1]);
-	TEST_CHECK(test == "filename\xc3\x82");
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
 
 	// valid 3-byte sequence
 	test = "filename\xe2\x9f\xb9";
@@ -1332,26 +1332,32 @@ int test_main()
 	// truncated 3-byte sequence
 	test = "filename\xe2\x9f";
 	TEST_CHECK(!verify_encoding(test));
-	fprintf(stderr, "%s %x %x\n", test.c_str(), test[test.size()-2], test[test.size()-1]);
-	TEST_CHECK(test == "filename\xc3\xa2");
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
 
 	// truncated 3-byte sequence
 	test = "filename\xe2";
 	TEST_CHECK(!verify_encoding(test));
-	fprintf(stderr, "%s %x %x\n", test.c_str(), test[test.size()-2], test[test.size()-1]);
-	TEST_CHECK(test == "filename\xc3\xa2");
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
 
 	// valid 4-byte sequence
 	test = "filename\xf0\x9f\x92\x88";
 	TEST_CHECK(verify_encoding(test));
-	fprintf(stderr, "%s %x %x\n", test.c_str(), test[test.size()-2], test[test.size()-1]);
+	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename\xf0\x9f\x92\x88");
 
 	// truncated 4-byte sequence
 	test = "filename\xf0\x9f\x92";
 	TEST_CHECK(!verify_encoding(test));
-	fprintf(stderr, "%s %x %x\n", test.c_str(), test[test.size()-2], test[test.size()-1]);
-	TEST_CHECK(test == "filename\xc3\xb0");
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// 5-byte utf-8 sequence (not allowed)
+	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_____foobar");
 
 	// trim_path_element
 
