@@ -28,6 +28,7 @@ SOURCES =
 	auth
 	no_auth
 	auth_localhost
+	load_config
 	;
 
 lib torrent-webui

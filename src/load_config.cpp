@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,53 +30,68 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_WEBUI_HPP
-#define TORRENT_WEBUI_HPP
-
-#include <vector>
 #include <string>
+#include <sys/stat.h>
+#include <syslog.h>
+#include <stdio.h>
+#include "libtorrent/session.hpp"
+#include "libtorrent/settings_pack.hpp"
 
-struct mg_context;
-struct mg_connection;
-struct mg_request_info;
+using namespace libtorrent;
 
-struct http_handler
+// this function lets you load libtorrent configurations straight from a
+// simple text file, where each line is a key value pair. The keys are
+// the keys used by libtorrent. The values are either strings, integers
+// or booleans.
+void load_config(std::string const& config_file, session* ses, error_code& ec)
 {
-	virtual bool handle_http(mg_connection* conn,
-		mg_request_info const* request_info) = 0;
-};
+	static time_t last_load = 0;
 
-namespace libtorrent
-{
-	class session;
-
-	struct webui_base
+	struct stat st;
+	if (stat(config_file.c_str(), &st) < 0)
 	{
-		webui_base();
-		~webui_base();
+		ec = error_code(errno, get_system_category());
+		return;
+	}
 
-		void add_handler(http_handler* h)
-		{ m_handlers.push_back(h); }
+	// if the config file hasn't changed, don't do anything
+	if (st.st_mtime == last_load) return;
+	last_load = st.st_mtime;
 
-		void remove_handler(http_handler* h);
+	FILE* f = fopen(config_file.c_str(), "r");
+	if (f == NULL)
+	{
+		ec = error_code(errno, get_system_category());
+		return;
+	}
 
-		void start(int port, char const* cert_path = 0);
-		void stop();
+	settings_pack p;
 
-		bool handle_http(mg_connection* conn
-			, mg_request_info const* request_info);
-	
-		void set_document_root(std::string r) { m_document_root = r; }
+	char key[512];
+	char value[512];
 
-	private:
+	while (fscanf(f, "%512s %512s\n", key, value) == 2)
+	{
+		int setting_name = setting_by_name(key);
+		if (setting_name < 0) continue;
 
-		std::vector<http_handler*> m_handlers;
-		std::string m_document_root;
+		int type = setting_name & settings_pack::type_mask;
+		switch (type)
+		{
+			case settings_pack::string_type_base:
+				p.set_str(setting_name, value);
+				break;
+			case settings_pack::int_type_base:
+				p.set_int(setting_name, atoi(value));
+				break;
+			case settings_pack::bool_type_base:
+				p.set_bool(setting_name, atoi(value));
+				break;
+		};
+	}
 
-		mg_context* m_ctx;
-	};
+	fclose(f);
 
+	ses->apply_settings(p);
 }
-
-#endif
 

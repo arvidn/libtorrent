@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,59 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_TORRENT_HISTORY_HPP
-#define TORRENT_TORRENT_HISTORY_HPP
+#ifndef TORRENT_LOAD_CONFIG_HPP
+#define TORRENT_LOAD_CONFIG_HPP
 
-#include "libtorrent/alert_observer.hpp"
-#include "libtorrent/torrent_handle.hpp"
-#include <boost/bimap.hpp>
-#include <boost/bimap/list_of.hpp>
-#include <boost/bimap/unordered_set_of.hpp>
-#include <deque>
+#include <string>
+
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
-	struct alert_handler;
+	class session;
 
-	struct torrent_history : alert_observer
-	{
+	void load_config(std::string const& config_file, session* ses, error_code& ec);
 
-		torrent_history(alert_handler* h);
-		~torrent_history();
-
-		// returns the info-hashes of the torrents that have been
-		// removed since the specified frame number
-		void removed_since(int frame, std::vector<sha1_hash>& torrents) const;
-
-		// returns the torrent_status structures for the torrents
-		// that have changed since the specified frame number
-		void updated_since(int frame, std::vector<torrent_status>& torrents) const;
-
-		// the current frame number
-		int frame() const { return m_frame; }
-
-		virtual void handle_alert(alert const* a);
-
-	private:	
-
-		// first is the frame this torrent was last
-		// seen modified in, second is the information
-		// about the torrent that was modified
-		typedef boost::bimap<boost::bimaps::list_of<int>
-			, boost::bimaps::unordered_set_of<torrent_status> > queue_t;
-
-		mutable mutex m_mutex;
-
-		queue_t m_queue;
-
-		std::deque<std::pair<int, sha1_hash> > m_removed;
-
-		alert_handler* m_alerts;
-
-		// frame counter. This is incremented every
-		// time we get a status update for torrents
-		int m_frame;
-	};
 }
 
 #endif
