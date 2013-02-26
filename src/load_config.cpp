@@ -36,8 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include "libtorrent/session.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "load_config.hpp"
 
-using namespace libtorrent;
+
+namespace libtorrent
+{
 
 // this function lets you load libtorrent configurations straight from a
 // simple text file, where each line is a key value pair. The keys are
@@ -93,5 +96,7 @@ void load_config(std::string const& config_file, session* ses, error_code& ec)
 	fclose(f);
 
 	ses->apply_settings(p);
+}
+
 }
 
