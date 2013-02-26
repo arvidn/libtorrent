@@ -485,7 +485,7 @@ namespace libtorrent
 		*out = '\0';
 	}
 
-	int hex_to_int(char in)
+	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
 	{
 		if (in >= '0' && in <= '9') return int(in) - '0';
 		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;

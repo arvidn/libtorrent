@@ -2804,7 +2804,7 @@ namespace libtorrent
 		if (uncork) uncork->do_delayed_uncork();
 	}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void disk_io_thread::check_invariant() const
 	{
 	}

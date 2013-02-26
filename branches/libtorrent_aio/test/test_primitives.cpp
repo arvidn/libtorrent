@@ -641,6 +641,10 @@ int test_main()
 		// test that wrapping of the timestamp is properly handled
 		h.add_sample(0xfffffff3, false);
 		TEST_EQUAL(h.base(), 0xfffffff3);
+
+
+		// TODO: test the case where we have > 120 samples (and have the base delay actually be updated)
+		// TODO: test the case where a sample is lower than the history entry but not lower than the base
 	}
 
 	// test packet_buffer
@@ -742,7 +746,28 @@ int test_main()
 		TEST_CHECK(pb.at(new_index) == (void*)2);
 	}
 
-	// make sure the error codes and error strings are aligned
+	{
+		// test wrapping the indices backwards
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.size(), 0);
+
+		pb.insert(0xfff3, (void*)1);
+		TEST_CHECK(pb.at(0xfff3) == (void*)1);
+
+		int new_index = (0xfff3 + pb.capacity()) & 0xffff;
+		pb.insert(new_index, (void*)2);
+		TEST_CHECK(pb.at(new_index) == (void*)2);
+
+		void* old = pb.remove(0xfff3);
+		TEST_CHECK(old == (void*)1);
+		TEST_CHECK(pb.at(0xfff3) == (void*)0);
+		TEST_CHECK(pb.at(new_index) == (void*)2);
+
+		pb.insert(0xffff, (void*)0xffff);
+	}
+
+	// test error codes
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
 	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
@@ -750,9 +775,13 @@ int test_main()
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 
+	// make sure the error codes and error strings are aligned
 	TEST_CHECK(errors::reserved129 == 129);
 	TEST_CHECK(errors::reserved159 == 159);
 	TEST_CHECK(errors::reserved114 == 114);
+
+	TEST_CHECK(error_code(errors::unauthorized, get_http_category()).message() == "401 Unauthorized");
+	TEST_CHECK(error_code(errors::service_unavailable, get_http_category()).message() == "503 Service Unavailable");
 
 	{
 	// test session state load/restore
@@ -874,6 +903,24 @@ int test_main()
 	TEST_CHECK(ret == 0);
 
 	fprintf(stderr, "session_state\n%s\n", print_entry(session_state2).c_str());
+
+	// parse_magnet_uri
+	parse_magnet_uri("magnet:?dn=foo&dht=127.0.0.1:43", p, ec);
+	TEST_CHECK(ec == error_code(errors::missing_info_hash_in_uri));
+	ec.clear();
+
+	parse_magnet_uri("magnet:?xt=blah&dn=foo&dht=127.0.0.1:43", p, ec);
+	TEST_CHECK(ec == error_code(errors::missing_info_hash_in_uri));
+	ec.clear();
+
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&dn=foo&dht=127.0.0.1:43", p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+	ec.clear();
+
+	TEST_CHECK(p.dht_nodes.size() == 1);
+	TEST_CHECK(p.dht_nodes[0].first == "127.0.0.1");
+	TEST_CHECK(p.dht_nodes[0].second == 43);
 
 	// make sure settings that haven't been changed from their defaults are not saved
 	TEST_CHECK(session_state2.dict_find("settings")->dict_find("optimistic_disk_retry") == 0);
@@ -1317,6 +1364,22 @@ int test_main()
 	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));
 	ec.clear();
 
+	char hex_chars[] = "0123456789abcdefABCDEF";
+
+	for (int i = 1; i < 255; ++i)
+	{
+		bool hex = strchr(hex_chars, i) != NULL;
+		TEST_EQUAL(is_hex((char const*)&i, 1), hex);
+	}
+
+	TEST_EQUAL(hex_to_int('0'), 0);
+	TEST_EQUAL(hex_to_int('7'), 7);
+	TEST_EQUAL(hex_to_int('a'), 10);
+	TEST_EQUAL(hex_to_int('f'), 15);
+	TEST_EQUAL(hex_to_int('b'), 11);
+	TEST_EQUAL(hex_to_int('t'), -1);
+	TEST_EQUAL(hex_to_int('g'), -1);
+
 	path = "a\\b\\c";
 	convert_path_to_posix(path);
 	TEST_EQUAL(path, "a/b/c");
@@ -1338,6 +1401,59 @@ int test_main()
 	test = "filename=4";
 	TEST_CHECK(verify_encoding(test));
 	TEST_CHECK(test == "filename=4");
+
+	// valid 2-byte sequence
+	test = "filename\xc2\xa1";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xc2\xa1");
+
+	// truncated 2-byte sequence
+	test = "filename\xc2";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// valid 3-byte sequence
+	test = "filename\xe2\x9f\xb9";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xe2\x9f\xb9");
+
+	// truncated 3-byte sequence
+	test = "filename\xe2\x9f";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// truncated 3-byte sequence
+	test = "filename\xe2";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// valid 4-byte sequence
+	test = "filename\xf0\x9f\x92\x88";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xf0\x9f\x92\x88");
+
+	// truncated 4-byte sequence
+	test = "filename\xf0\x9f\x92";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// 5-byte utf-8 sequence (not allowed)
+	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_____foobar");
+
+	// replace_extension
+	test = "foo.bar";
+	replace_extension(test, "txt");
+	TEST_EQUAL(test, "foo.txt");
 
 	// file class
 	file f;

@@ -7502,7 +7502,7 @@ namespace libtorrent
 		return m_ses.settings();
 	}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
 		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + aux::session_interface::num_checking_torrents

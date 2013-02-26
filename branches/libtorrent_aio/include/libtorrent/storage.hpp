@@ -403,7 +403,9 @@ namespace libtorrent
 
 #ifdef TORRENT_DEBUG
 		std::string name() const { return m_files.name(); }
+#endif
 
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 		file_storage const& m_files;

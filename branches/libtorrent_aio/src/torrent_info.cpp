@@ -77,12 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	
-	void convert_to_utf8(std::string& str, unsigned char chr)
-	{
-		str += 0xc0 | ((chr & 0xff) >> 6);
-		str += 0x80 | (chr & 0x3f);
-	}
-
 	bool valid_path_character(char c)
 	{
 #ifdef TORRENT_WINDOWS
@@ -108,7 +102,7 @@ namespace libtorrent
 			// valid ascii-character
 			if ((*i & 0x80) == 0)
 			{
-				// replace invalid characters with '.'
+				// replace invalid characters with '_'
 				if (!fix_paths || valid_path_character(*i))
 				{
 					tmp_path += *i;
@@ -123,9 +117,9 @@ namespace libtorrent
 			
 			if (end - i < 2)
 			{
-				convert_to_utf8(tmp_path, *i);
+				tmp_path += "_";
 				valid_encoding = false;
-				continue;
+				break;
 			}
 			
 			// valid 2-byte utf-8 character
@@ -140,9 +134,9 @@ namespace libtorrent
 
 			if (end - i < 3)
 			{
-				convert_to_utf8(tmp_path, *i);
+				tmp_path += "_";
 				valid_encoding = false;
-				continue;
+				break;
 			}
 
 			// valid 3-byte utf-8 character
@@ -159,13 +153,13 @@ namespace libtorrent
 
 			if (end - i < 4)
 			{
-				convert_to_utf8(tmp_path, *i);
+				tmp_path += "_";
 				valid_encoding = false;
-				continue;
+				break;
 			}
 
 			// valid 4-byte utf-8 character
-			if ((i[0] & 0xf0) == 0xe0
+			if ((i[0] & 0xf8) == 0xf0
 				&& (i[1] & 0xc0) == 0x80
 				&& (i[2] & 0xc0) == 0x80
 				&& (i[3] & 0xc0) == 0x80)
@@ -178,7 +172,7 @@ namespace libtorrent
 				continue;
 			}
 
-			convert_to_utf8(tmp_path, *i);
+			tmp_path += "_";
 			valid_encoding = false;
 		}
 		// the encoding was not valid utf-8
@@ -302,6 +296,8 @@ namespace libtorrent
 		if (length == 0 || length->type() != lazy_entry::int_t)
 			return false;
 		target.size = length->int_value();
+		if (target.size < 0)
+			return false;
 
 		size_type ts = dict.dict_find_int_value("mtime", -1);
 		if (ts > 0) *mtime = std::time_t(ts);
@@ -411,7 +407,7 @@ namespace libtorrent
 			char const* s1 = lhs.c_str();
 			char const* s2 = rhs.c_str();
 	
-			while (*s1 != 0 && *s2 != 0)
+			while (*s1 != 0 || *s2 != 0)
 			{
 				c1 = to_lower(*s1);
 				c2 = to_lower(*s2);
@@ -430,6 +426,7 @@ namespace libtorrent
 	{
 		if (list.type() != lazy_entry::list_t) return false;
 		target.reserve(list.list_size());
+
 		for (int i = 0, end(list.list_size()); i < end; ++i)
 		{
 			lazy_entry const* file_hash = 0;
@@ -500,7 +497,7 @@ namespace libtorrent
 		}
 		v.resize(s);
 		if (s == 0) return 0;
-		file::iovec_t b = {&v[0], s};
+		file::iovec_t b = {&v[0], size_t(s) };
 		size_type read = f.readv(0, &b, 1, ec);
 		if (read != s) return -3;
 		if (ec) return -3;
@@ -1041,6 +1038,11 @@ namespace libtorrent
 			e.path = name;
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
+			if (e.size < 0)
+			{
+				ec = errors::torrent_file_parse_failed;
+				return false;
+			}
 			e.mtime = info.dict_find_int_value("mtime", 0);
 			lazy_entry const* attr = info.dict_find_string("attr");
 			if (attr)
@@ -1486,7 +1488,7 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const
 	{
 		for (file_storage::iterator i = m_files.begin()

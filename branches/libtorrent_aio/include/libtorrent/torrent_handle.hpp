@@ -448,7 +448,7 @@ namespace libtorrent
 		torrent_handle(boost::weak_ptr<torrent> const& t)
 		{ if (!t.expired()) m_torrent = t; }
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
