@@ -69,6 +69,7 @@ test_torrent_t test_torrents[] =
 	{ "url_seed_multi.torrent" },
 	{ "url_seed_multi_space.torrent" },
 	{ "url_seed_multi_space_nolist.torrent" },
+	{ "root_hash.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -87,17 +88,18 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_name2.torrent", errors::torrent_invalid_name },
 	{ "invalid_info.torrent", errors::torrent_missing_info },
 	{ "string.torrent", errors::torrent_is_no_dict },
-	{ "negative_size.torrent", errors::torrent_file_parse_failed},
+	{ "negative_size.torrent", errors::torrent_invalid_length },
 	{ "negative_file_size.torrent", errors::torrent_file_parse_failed },
 	{ "invalid_path_list.torrent", errors::torrent_file_parse_failed },
 	{ "missing_path_list.torrent", errors::torrent_file_parse_failed },
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
+	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
+	{ "invalid_root_hash2.torrent", errors::torrent_invalid_hashes },
+	{ "invalid_file_size.torrent", errors::torrent_file_parse_failed },
 };
 
-// TODO: create a separate list of all torrents that should
-// fail to parse, and include the expected error code in that list
-
+// TODO: test remap_files
 // TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
 // TODO: torrent with 'p' (padfile) attribute
 // TODO: torrent with 'h' (hidden) attribute
