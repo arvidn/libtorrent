@@ -121,6 +121,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		= parse_url_components(url, ec);
 
 	int default_port = protocol == "https" ? 443 : 80;
+	if (port == -1) port = default_port;
 
 	// keep ourselves alive even if the callback function
 	// deletes this object

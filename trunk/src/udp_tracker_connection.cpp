@@ -84,12 +84,14 @@ namespace libtorrent
 	void udp_tracker_connection::start()
 	{
 		std::string hostname;
+		std::string protocol;
 		int port;
 		error_code ec;
 
 		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, hostname, port, ignore)
+		boost::tie(protocol, ignore, hostname, port, ignore)
 			= parse_url_components(tracker_req().url, ec);
+		if (port == -1) port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
