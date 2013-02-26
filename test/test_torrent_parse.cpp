@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
 
+#if TORRENT_USE_IOSTREAM
+#include <sstream>
+#endif
+
 struct test_torrent_t
 {
 	char const* file;
@@ -60,6 +64,11 @@ test_torrent_t test_torrents[] =
 	{ "duplicate_files.torrent" },
 	{ "pad_file.torrent" },
 	{ "creation_date.torrent" },
+	{ "no_creation_date.torrent" },
+	{ "url_seed.torrent" },
+	{ "url_seed_multi.torrent" },
+	{ "url_seed_multi_space.torrent" },
+	{ "url_seed_multi_space_nolist.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -96,7 +105,6 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with 'l' (symlink) attribute
 // TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
-// TODO: torrent with web seed. make sure we append '/' for multifile torrents
 
 int test_main()
 {
@@ -130,6 +138,41 @@ int test_main()
 		{
 			TEST_CHECK(*ti->creation_date() == 1234567);
 		}
+		else if (std::string(test_torrents[i].file) == "no_creation_date.torrent")
+		{
+			TEST_CHECK(!ti->creation_date());
+		}
+		else if (std::string(test_torrents[i].file) == "url_seed.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");
+#ifndef TORRENT_NO_DEPRECATE
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file");
+#endif
+		}
+		else if (std::string(test_torrents[i].file) == "url_seed_multi.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/");
+#ifndef TORRENT_NO_DEPRECATE
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file/");
+#endif
+		}
+		else if (std::string(test_torrents[i].file) == "url_seed_multi_space.torrent"
+			|| std::string(test_torrents[i].file) == "url_seed_multi_space_nolist.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
+#ifndef TORRENT_NO_DEPRECATE
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
+#endif
+		}
 
 		int index = 0;
 		for (torrent_info::file_iterator i = ti->begin_files();
@@ -150,6 +193,19 @@ int test_main()
 				, i->symlink_attribute ? "-> ": ""
 				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
 		}
+
+		// test swap
+#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
+		std::stringstream str1;
+		ti->print(str1);
+
+		torrent_info temp("temp", ec);
+		temp.swap(*ti);
+
+		std::stringstream str2;
+		temp.print(str2);
+		TEST_EQUAL(str1.str(), str2.str());
+#endif
 
 	}
 

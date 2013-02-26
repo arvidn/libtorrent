@@ -87,8 +87,15 @@ namespace libtorrent
 			= parse_url_components(url, ec);
 		TORRENT_ASSERT(!ec);
 
+		if (m_port == -1 && protocol == "http")
+			m_port = 80;
+
 #ifdef TORRENT_USE_OPENSSL
-		if (protocol == "https") m_ssl = true;
+		if (protocol == "https")
+		{
+			m_ssl = true;
+			if (m_port == -1) m_port = 443;
+		}
 #endif
 
 		if (!m_basic_auth.empty())

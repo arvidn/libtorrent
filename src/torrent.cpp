@@ -4554,6 +4554,10 @@ namespace libtorrent
 		error_code ec;
 		boost::tie(protocol, auth, hostname, port, path)
 			= parse_url_components(web->url, ec);
+		if (port == -1)
+		{
+			port = protocol == "http" ? 80 : 443;
+		}
 
 		if (ec)
 		{
@@ -4732,8 +4736,10 @@ namespace libtorrent
 		std::string hostname;
 		int port;
 		error_code ec;
-		boost::tie(ignore, ignore, hostname, port, ignore)
+		std::string protocol;
+		boost::tie(protocol, ignore, hostname, port, ignore)
 			= parse_url_components(web->url, ec);
+		if (port == -1) port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
