@@ -29,6 +29,7 @@ SOURCES =
 	no_auth
 	auth_localhost
 	load_config
+	http_whitelist
 	;
 
 lib torrent-webui
