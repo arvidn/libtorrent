@@ -56,8 +56,7 @@ namespace libtorrent
 
 		if (m_whitelist.count(first_element) == 0)
 		{
-			mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
-				"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+			mg_printf(conn, "HTTP/1.1 404 Not Found\r\n"
 				"Content-Length: 0\r\n\r\n");
 			return true;
 		}
