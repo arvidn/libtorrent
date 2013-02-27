@@ -402,7 +402,7 @@ namespace libtorrent
 			}
 		}
 
-		bool is_loaded() const { return m_piece_hashes; }
+		bool is_loaded() const { return m_piece_hashes || !m_merkle_tree.empty(); }
 
 		boost::optional<time_t> creation_date() const;
 

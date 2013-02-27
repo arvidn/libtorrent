@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
 
+#if TORRENT_USE_IOSTREAM
+#include <sstream>
+#endif
+
 struct test_torrent_t
 {
 	char const* file;
@@ -60,6 +64,12 @@ test_torrent_t test_torrents[] =
 	{ "duplicate_files.torrent" },
 	{ "pad_file.torrent" },
 	{ "creation_date.torrent" },
+	{ "no_creation_date.torrent" },
+	{ "url_seed.torrent" },
+	{ "url_seed_multi.torrent" },
+	{ "url_seed_multi_space.torrent" },
+	{ "url_seed_multi_space_nolist.torrent" },
+	{ "root_hash.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -78,17 +88,18 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_name2.torrent", errors::torrent_invalid_name },
 	{ "invalid_info.torrent", errors::torrent_missing_info },
 	{ "string.torrent", errors::torrent_is_no_dict },
-	{ "negative_size.torrent", errors::torrent_file_parse_failed},
+	{ "negative_size.torrent", errors::torrent_invalid_length },
 	{ "negative_file_size.torrent", errors::torrent_file_parse_failed },
 	{ "invalid_path_list.torrent", errors::torrent_file_parse_failed },
 	{ "missing_path_list.torrent", errors::torrent_file_parse_failed },
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
+	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
+	{ "invalid_root_hash2.torrent", errors::torrent_invalid_hashes },
+	{ "invalid_file_size.torrent", errors::torrent_file_parse_failed },
 };
 
-// TODO: create a separate list of all torrents that should
-// fail to parse, and include the expected error code in that list
-
+// TODO: test remap_files
 // TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
 // TODO: torrent with 'p' (padfile) attribute
 // TODO: torrent with 'h' (hidden) attribute
@@ -96,7 +107,6 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with 'l' (symlink) attribute
 // TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
-// TODO: torrent with web seed. make sure we append '/' for multifile torrents
 
 int test_main()
 {
@@ -130,6 +140,41 @@ int test_main()
 		{
 			TEST_CHECK(*ti->creation_date() == 1234567);
 		}
+		else if (std::string(test_torrents[i].file) == "no_creation_date.torrent")
+		{
+			TEST_CHECK(!ti->creation_date());
+		}
+		else if (std::string(test_torrents[i].file) == "url_seed.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");
+#ifndef TORRENT_NO_DEPRECATE
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file");
+#endif
+		}
+		else if (std::string(test_torrents[i].file) == "url_seed_multi.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/");
+#ifndef TORRENT_NO_DEPRECATE
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file/");
+#endif
+		}
+		else if (std::string(test_torrents[i].file) == "url_seed_multi_space.torrent"
+			|| std::string(test_torrents[i].file) == "url_seed_multi_space_nolist.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 1);
+			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
+#ifndef TORRENT_NO_DEPRECATE
+			TEST_EQUAL(ti->http_seeds().size(), 0);
+			TEST_EQUAL(ti->url_seeds().size(), 1);
+			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
+#endif
+		}
 
 		int index = 0;
 		for (torrent_info::file_iterator i = ti->begin_files();
@@ -150,6 +195,19 @@ int test_main()
 				, i->symlink_attribute ? "-> ": ""
 				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
 		}
+
+		// test swap
+#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
+		std::stringstream str1;
+		ti->print(str1);
+
+		torrent_info temp("temp", ec);
+		temp.swap(*ti);
+
+		std::stringstream str2;
+		temp.print(str2);
+		TEST_EQUAL(str1.str(), str2.str());
+#endif
 
 	}
 

@@ -480,6 +480,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		// we don't have this device in our list. Add it
 		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
+		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
@@ -938,6 +939,7 @@ void upnp::on_upnp_xml(error_code const& e
 	{
 		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
+		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 		d.control_url = protocol + "://" + d.hostname + ":"
 			+ to_string(d.port).elems + s.control_url;
 	}
@@ -951,6 +953,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	boost::tie(protocol, auth, d.hostname, d.port, d.path)
 		= parse_url_components(d.control_url, ec);
+	if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 
 	if (ec)
 	{

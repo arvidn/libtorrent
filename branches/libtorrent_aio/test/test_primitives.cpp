@@ -1065,9 +1065,10 @@ int test_main()
 	TEST_CHECK(strcmp(msg, "too long ") == 0);
 
 	// test maybe_url_encode
-
-	TEST_EQUAL(maybe_url_encode("http://test:test@abc.com/abc<>abc"), "http://test:test@abc.com:80/abc%3c%3eabc");
-	TEST_EQUAL(maybe_url_encode("http://abc.com/foo bar"), "http://abc.com:80/foo%20bar");
+	TEST_EQUAL(maybe_url_encode("http://test:test@abc.com/abc<>abc"), "http://test:test@abc.com/abc%3c%3eabc");
+	TEST_EQUAL(maybe_url_encode("http://abc.com/foo bar"), "http://abc.com/foo%20bar");
+	TEST_EQUAL(maybe_url_encode("http://abc.com:80/foo bar"), "http://abc.com:80/foo%20bar");
+	TEST_EQUAL(maybe_url_encode("http://abc.com:8080/foo bar"), "http://abc.com:8080/foo%20bar");
 	TEST_EQUAL(maybe_url_encode("abc"), "abc");
 	TEST_EQUAL(maybe_url_encode("http://abc.com/abc"), "http://abc.com/abc");
 	
@@ -1244,16 +1245,16 @@ int test_main()
 		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://host.com/path/to/file", ec)
-		== make_tuple("http", "", "host.com", 80, "/path/to/file"));
+		== make_tuple("http", "", "host.com", -1, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file", ec)
 		== make_tuple("ftp", "", "host.com", 21, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:", ec)
-		== make_tuple("http", "", "host.com", 80, "/path?foo:bar@foo:"));
+		== make_tuple("http", "", "host.com", -1, "/path?foo:bar@foo:"));
 
 	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file", ec)
-		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file"));
+		== make_tuple("http", "", "192.168.0.1", -1, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
 		== make_tuple("http", "", "[2001:ff00::1]", 42, "/path/to/file"));
@@ -1343,7 +1344,7 @@ int test_main()
 	TEST_CHECK(need_encoding("\n", 1) == true);
 
 	// maybe_url_encode
-	TEST_CHECK(maybe_url_encode("http://bla.com/\n") == "http://bla.com:80/%0a");
+	TEST_CHECK(maybe_url_encode("http://bla.com/\n") == "http://bla.com/%0a");
 	std::cerr << maybe_url_encode("http://bla.com/\n") << std::endl;
 	TEST_CHECK(maybe_url_encode("?&") == "?&");
 

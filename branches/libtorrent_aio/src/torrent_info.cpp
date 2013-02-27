@@ -1040,7 +1040,7 @@ namespace libtorrent
 			e.size = info.dict_find_int_value("length", -1);
 			if (e.size < 0)
 			{
-				ec = errors::torrent_file_parse_failed;
+				ec = errors::torrent_invalid_length;
 				return false;
 			}
 			e.mtime = info.dict_find_int_value("mtime", 0);
@@ -1074,11 +1074,6 @@ namespace libtorrent
 			// bitcomet pad file
 			if (e.path.find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;
-			if (e.size < 0)
-			{
-				ec = errors::torrent_invalid_length;
-				return false;
-			}
 			files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0);
 			m_multifile = false;
 		}

@@ -43,7 +43,7 @@ namespace libtorrent
 		std::string hostname; // hostname only
 		std::string auth; // user:pass
 		std::string protocol; // http or https for instance
-		int port = 80;
+		int port = -1;
 
 		std::string::iterator at;
 		std::string::iterator colon;
@@ -57,8 +57,6 @@ namespace libtorrent
 		std::string::iterator end
 			= std::find(url.begin(), url.end(), ':');
 		protocol.assign(start, end);
-
-		if (protocol == "https") port = 443;
 
 		if (end == url.end())
 		{

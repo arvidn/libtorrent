@@ -79,7 +79,16 @@ EXTRA_DIST = Jamfile \
   test_torrents/missing_path_list.torrent \
   test_torrents/invalid_pieces.torrent \
   test_torrents/unaligned_pieces.torrent \
-  test_torrents/creation_date.torrent
+  test_torrents/creation_date.torrent \
+  test_torrents/no_creation_date.torrent \
+  test_torrents/url_seed.torrent \
+  test_torrents/url_seed_multi.torrent \
+  test_torrents/url_seed_multi_space.torrent \
+  test_torrents/url_seed_multi_space_nolist.torrent \
+  test_torrents/invalid_root_hash.torrent \
+  test_torrents/invalid_root_hash2.torrent \
+  test_torrents/root_hash.torrent \
+  test_torrents/invalid_file_size.torrent
 
 EXTRA_PROGRAMS = $(test_programs)
 
