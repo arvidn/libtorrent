@@ -61,6 +61,7 @@ auto_load::auto_load(session& s, save_settings_interface* sett)
 		if (!path.empty()) set_auto_load_dir(path);
 		int remove_files = m_settings->get_int("autoload_remove", -1);
 		if (remove_files != -1) set_remove_files(remove_files);
+		m_params_model.save_path = m_settings->get_str("save_path", ".");
 	}
 }
 
