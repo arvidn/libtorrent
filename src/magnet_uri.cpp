@@ -143,6 +143,7 @@ namespace libtorrent
 
 	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec)
 	{
+		ec.clear();
 		std::string name;
 		std::string tracker;
 
