@@ -1704,6 +1704,7 @@ int main(int argc, char* argv[])
 			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 			{
 				add_torrent_params tmp;
+				ec.clear();
 				parse_magnet_uri(*i, tmp, ec);
 
 				if (ec) continue;
