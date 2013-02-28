@@ -1075,6 +1075,31 @@ int test_main()
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, true));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, false));
 
+	file_storage fs;
+	fs.set_piece_length(512);
+	fs.add_file("temp_storage/test1.tmp", 17);
+	fs.add_file("temp_storage/test2.tmp", 612);
+	fs.add_file("temp_storage/test3.tmp", 0);
+	fs.add_file("temp_storage/test4.tmp", 0);
+	fs.add_file("temp_storage/test5.tmp", 3253);
+	// size: 3882
+	fs.add_file("temp_storage/test6.tmp", 841);
+	// size: 4723
+
+	peer_request rq = fs.map_file(0, 0, 10);
+	TEST_EQUAL(rq.piece, 0);
+	TEST_EQUAL(rq.start, 0);
+	TEST_EQUAL(rq.length, 10);
+	rq = fs.map_file(5, 0, 10);
+	TEST_EQUAL(rq.piece, 7);
+	TEST_EQUAL(rq.start, 298);
+	TEST_EQUAL(rq.length, 10);
+	rq = fs.map_file(5, 0, 1000);
+	TEST_EQUAL(rq.piece, 7);
+	TEST_EQUAL(rq.start, 298);
+	TEST_EQUAL(rq.length, 841);
+
+
 	return 0;
 }
 
