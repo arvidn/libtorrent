@@ -283,12 +283,32 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(file_index < num_files());
 		TORRENT_ASSERT(file_index >= 0);
-		size_type offset = file_offset + internal_at(file_index).offset;
 
 		peer_request ret;
-		ret.piece = int(offset / piece_length());
-		ret.start = int(offset % piece_length());
-		ret.length = size;
+		if (file_index < 0 || file_index >= num_files())
+		{
+			ret.piece = m_num_pieces;
+			ret.start = 0;
+			ret.length = 0;
+			return ret;
+		}
+
+		size_type offset = file_offset + internal_at(file_index).offset;
+
+		if (offset >= total_size())
+		{
+			ret.piece = m_num_pieces;
+			ret.start = 0;
+			ret.length = 0;
+		}
+		else
+		{
+			ret.piece = int(offset / piece_length());
+			ret.start = int(offset % piece_length());
+			ret.length = size;
+			if (offset + size > total_size())
+				ret.length = total_size() - offset;
+		}
 		return ret;
 	}
 
