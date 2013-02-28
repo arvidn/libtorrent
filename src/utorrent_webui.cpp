@@ -70,9 +70,9 @@ namespace libtorrent
 utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	, auto_load* al, torrent_history* hist, auth_interface const* auth)
 	: m_ses(s)
-	, m_settings(sett)
 	, m_al(al)
 	, m_auth(auth)
+	, m_settings(sett)
 	, m_hist(hist)
 {
 	if (m_auth == NULL)
@@ -459,6 +459,16 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			sname = "cache.override_size";
 			value = boost::int64_t(sett.get_int(s)) * 16 / 1024;
 		}
+		else if (s == settings_pack::upload_rate_limit)
+		{
+			sname = "max_ul_rate";
+			value = boost::int64_t(sett.get_int(s)) / 1024;
+		}
+		else if (s == settings_pack::download_rate_limit)
+		{
+			sname = "max_dl_rate";
+			value = boost::int64_t(sett.get_int(s)) / 1024;
+		}
 		else
 		{
 			sname = settings_name(s);
@@ -577,6 +587,14 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		{
 			int size = atoi(value.c_str()) * 1024 / 16;
 			pack.set_int(settings_pack::cache_size, size);
+		}
+		else if (key == "max_ul_rate")
+		{
+			pack.set_int(settings_pack::upload_rate_limit, atoi(value.c_str()) * 1024);
+		}
+		else if (key == "max_dl_rate")
+		{
+			pack.set_int(settings_pack::download_rate_limit, atoi(value.c_str()) * 1024);
 		}
 		else
 		{
