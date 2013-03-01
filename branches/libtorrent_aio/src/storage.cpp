@@ -870,7 +870,9 @@ namespace libtorrent
 		, int slot, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::readv
-			, m_settings ? settings().get_int(settings_pack::disk_io_read_mode) : 0, file::read_only };
+			, m_settings ? settings().get_int(settings_pack::disk_io_read_mode) : 0
+			, file::read_only
+			, flags };
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
@@ -882,7 +884,9 @@ namespace libtorrent
 		, int slot, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::writev
-			, m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0, file::read_write };
+			, m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0
+			, file::read_write
+			, flags };
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
