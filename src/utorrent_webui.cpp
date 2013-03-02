@@ -413,8 +413,6 @@ char const* settings_name(int s)
 
 void utorrent_webui::get_settings(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
-	if (!p->allow_get_settings()) return;
-
 	appendf(response, ", \"settings\": [");
 
 	libtorrent::aux::session_settings sett = m_ses.get_settings();
@@ -423,6 +421,8 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 	int first = 1;
 	for (int i = 0; i < settings_pack::num_string_settings; ++i)
 	{
+		if (!p->allow_get_settings(settings_pack::string_type_base + i)) continue;
+
 		int s = settings_pack::string_type_base + i;
 		appendf(response, ",[\"%s\",2,\"%s\",{\"access\":\"Y\"}]\n" + first
 			, settings_name(s), escape_json(sett.get_str(s)).c_str());
@@ -432,6 +432,8 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 	for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 	{
 		int s = settings_pack::bool_type_base + i;
+		if (!p->allow_get_settings(s)) continue;
+
 		char const* sname;
 		bool value;
 		if (s == settings_pack::use_read_cache)
@@ -452,6 +454,8 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 	for (int i = 0; i < settings_pack::num_int_settings; ++i)
 	{
 		int s = settings_pack::int_type_base + i;
+		if (!p->allow_get_settings(s)) continue;
+
 		char const* sname;
 		boost::int64_t value;
 		if (s == settings_pack::cache_size)
@@ -490,10 +494,32 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		first = 0;
 	}
 
+	if (p->allow_set_settings(settings_pack::enable_outgoing_tcp)
+		&& p->allow_set_settings(settings_pack::enable_outgoing_utp)
+		&& p->allow_set_settings(settings_pack::enable_incoming_tcp)
+		&& p->allow_set_settings(settings_pack::enable_incoming_utp))
+	{
+		appendf(response,
+			",[\"bt.transp_disposition\",0,\"%d\",{\"access\":\"Y\"}]\n" + first
+			, (sett.get_bool(settings_pack::enable_outgoing_tcp) ? 1 : 0)
+				+ (sett.get_bool(settings_pack::enable_outgoing_utp) ? 2 : 0)
+				+ (sett.get_bool(settings_pack::enable_incoming_tcp) ? 4 : 0)
+				+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 8 : 0));
+		first = 0;
+	}
+
+
+	if (p->allow_set_settings(-1))
+	{
+		appendf(response,
+			",[\"dir_active_download\",2,\"%s\",{\"access\":\"Y\"}]\n"
+			",[\"bind_port\",0,\"%d\",{\"access\":\"Y\"}]\n"
+			+ first
+			, escape_json(m_params_model.save_path).c_str()
+			, m_ses.listen_port());
+	}
+
 	appendf(response,
-		",[\"dir_active_download\",2,\"%s\",{\"access\":\"Y\"}]\n"
-		",[\"bind_port\",0,\"%d\",{\"access\":\"Y\"}]\n"
-		",[\"bt.transp_disposition\",0,\"%d\",{\"access\":\"Y\"}]\n"
 		",[\"webui.cookie\",2,\"%s\",{\"access\":\"Y\"}]\n"
 		",[\"language\",0,\"0\",{\"access\":\"Y\"}]\n"
 		",[\"webui.enable_listen\",1,\"true\",{\"access\":\"Y\"}]\n"
@@ -506,19 +532,12 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		",[\"webui.uconnect_enable\",1,\"false\",{\"access\":\"Y\"}]\n"
 		"]"
 		 + first
-		, escape_json(m_params_model.save_path).c_str()
-		, m_ses.listen_port()
-		, (sett.get_bool(settings_pack::enable_outgoing_tcp) ? 1 : 0)
-			+ (sett.get_bool(settings_pack::enable_outgoing_utp) ? 2 : 0)
-			+ (sett.get_bool(settings_pack::enable_incoming_tcp) ? 4 : 0)
-			+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 8 : 0)
 		, escape_json(m_webui_cookie).c_str());
+	first = 0;
 }
 
 void utorrent_webui::set_settings(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
-	if (!p->allow_set_settings()) return;
-
 	settings_pack pack;
 
 	std::set<std::string> duplicates;
@@ -546,11 +565,15 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 
 		if (key == "webui.cookie")
 		{
+			// TODO: store this in some session-specific store, so multiple
+			// users don't clobber each other
+			if (!p->allow_set_settings(-1)) continue;
 			m_webui_cookie = value;
 			if (m_settings) m_settings->set_str("ut_webui_cookie", value);
 		}
 		else if (key == "bind_port")
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			int port = atoi(value.c_str());
 			error_code ec;
 			m_ses.listen_on(std::make_pair(port, port+1), ec);
@@ -558,6 +581,12 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		}
 		else if (key == "bt.transp_disposition")
 		{
+			if (!p->allow_set_settings(settings_pack::enable_outgoing_tcp)
+			|| !p->allow_set_settings(settings_pack::enable_outgoing_utp)
+			|| !p->allow_set_settings(settings_pack::enable_incoming_tcp)
+			|| !p->allow_set_settings(settings_pack::enable_incoming_utp))
+				continue;
+
 			int mask = atoi(value.c_str());
 			pack.set_bool(settings_pack::enable_outgoing_tcp, mask & 1);
 			pack.set_bool(settings_pack::enable_outgoing_utp, mask & 2);
@@ -566,14 +595,17 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		}
 		else if (key == "dir_autoload" && m_al)
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			m_al->set_auto_load_dir(value);
 		}
 		else if (key == "dir_autoload_flag" && m_al)
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			m_al->set_scan_interval(value == "false" ? 0 : 20);
 		}
 		else if (key == "dir_active_download")
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			m_params_model.save_path = value;
 			if (m_al)
 			{
@@ -585,15 +617,19 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		}
 		else if (key == "cache.override_size")
 		{
+			if (!p->allow_set_settings(settings_pack::cache_size)) continue;
+
 			int size = atoi(value.c_str()) * 1024 / 16;
 			pack.set_int(settings_pack::cache_size, size);
 		}
 		else if (key == "max_ul_rate")
 		{
+			if (!p->allow_set_settings(settings_pack::upload_rate_limit)) continue;
 			pack.set_int(settings_pack::upload_rate_limit, atoi(value.c_str()) * 1024);
 		}
 		else if (key == "max_dl_rate")
 		{
+			if (!p->allow_set_settings(settings_pack::download_rate_limit)) continue;
 			pack.set_int(settings_pack::download_rate_limit, atoi(value.c_str()) * 1024);
 		}
 		else
@@ -607,12 +643,15 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 			switch (field & settings_pack::type_mask)
 			{
 				case settings_pack::string_type_base:
+					if (!p->allow_set_settings(field)) continue;
 					pack.set_str(field, value.c_str());
 					break;
 				case settings_pack::int_type_base:
+					if (!p->allow_set_settings(field)) continue;
 					pack.set_int(field, atoi(value.c_str()));
 					break;
 				case settings_pack::bool_type_base:
+					if (!p->allow_set_settings(field)) continue;
 					pack.set_bool(field, value == "true");
 					break;
 			}
@@ -713,7 +752,7 @@ void utorrent_webui::add_url(std::vector<char>&, char const* args, permissions_i
 
 void utorrent_webui::get_properties(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
-	if (!p->allow_get_settings()) return;
+	if (!p->allow_list()) return;
 
 	std::vector<torrent_handle> t = parse_torrents(args);
 	appendf(response, ",\"props\":[");

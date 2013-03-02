@@ -88,7 +88,7 @@ namespace libtorrent
 		void incoming_rpc(conn_state* st);
 		void output_error(int id, char const* msg, rencoder& out);
 		void output_config_value(std::string set_name, aux::session_settings const& sett
-			, rencoder& out);
+			, rencoder& out, permissions_interface const* p);
 
 		void write_response(rencoder const& output, ssl_socket* sock, error_code& ec);
 

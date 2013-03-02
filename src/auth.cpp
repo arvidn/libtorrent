@@ -98,9 +98,10 @@ struct read_only_permissions : permissions_interface
 	bool allow_remove() const { return false; }
 	bool allow_remove_data() const { return false; }
 	bool allow_queue_change() const { return false; }
-	bool allow_get_settings() const { return true; }
-	bool allow_set_settings() const { return false; }
+	bool allow_get_settings(int) const { return true; }
+	bool allow_set_settings(int) const { return false; }
 	bool allow_get_data() const { return true; }
+	bool allow_session_status() const { return true; }
 };
 
 struct full_permissions : permissions_interface
@@ -114,9 +115,10 @@ struct full_permissions : permissions_interface
 	bool allow_remove() const { return true; }
 	bool allow_remove_data() const { return true; }
 	bool allow_queue_change() const { return true; }
-	bool allow_get_settings() const { return true; }
-	bool allow_set_settings() const { return true; }
+	bool allow_get_settings(int) const { return true; }
+	bool allow_set_settings(int) const { return true; }
 	bool allow_get_data() const { return true; }
+	bool allow_session_status() const { return true; }
 };
 
 permissions_interface const* auth::find_user(std::string username, std::string password) const

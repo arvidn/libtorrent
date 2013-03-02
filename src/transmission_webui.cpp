@@ -647,7 +647,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
-	if (!p->allow_set_settings())
+	if (!p->allow_set_settings(-1))
 	{
 		return_failure(buf, "permission denied", tag);
 		return;
@@ -912,7 +912,7 @@ void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
 void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
-	if (!p->allow_list())
+	if (!p->allow_session_status())
 	{
 		return_failure(buf, "permission denied", tag);
 		return;
@@ -964,7 +964,7 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer, permissions_interface const* p)
 {
-	if (!p->allow_get_settings())
+	if (!p->allow_get_settings(-1))
 	{
 		return_failure(buf, "permission denied", tag);
 		return;
@@ -1037,12 +1037,6 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag
 	, char* buffer, permissions_interface const* p)
 {
-	if (!p->allow_set_settings())
-	{
-		return_failure(buf, "permission denied", tag);
-		return;
-	}
-
 	settings_pack pack;
 
 	int num_keys = args->size / 2;
@@ -1096,6 +1090,7 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		}
 */		else if (strcmp(key, "cache-size-mb") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::cache_size)) continue;
 			int val = atoi(value);
 			// convert Megabytes to 16 kiB blocks
 			pack.set_int(settings_pack::cache_size, val * 1024 / 16);
@@ -1106,11 +1101,13 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		}
 */		else if (strcmp(key, "download-dir") == 0)
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			m_params_model.save_path = value;
 			if (m_settings) m_settings->set_str("save_path", value);
 		}
 		else if (strcmp(key, "download-queue-size") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::active_downloads)) continue;
 			int val = atoi(value);
 			pack.set_int(settings_pack::active_downloads, val);
 		}
@@ -1120,6 +1117,7 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		}
 */		else if (strcmp(key, "seed-queue-size") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::active_seeds)) continue;
 			int val = atoi(value);
 			pack.set_int(settings_pack::active_seeds, val);
 		}
@@ -1129,16 +1127,19 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		}
 */		else if (strcmp(key, "speed-limit-down") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::download_rate_limit)) continue;
 			int val = atoi(value) * 1000;
 			pack.set_int(settings_pack::download_rate_limit, val);
 		}
 		else if (strcmp(key, "speed-limit-up") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::upload_rate_limit)) continue;
 			int val = atoi(value) * 1000;
 			pack.set_int(settings_pack::upload_rate_limit, val);
 		}
 		else if (strcmp(key, "speed-limit-down-enabled") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::download_rate_limit)) continue;
 			if (strcmp(value, "true") == 0)
 			{
 				// libtorrent uses a single value to specify the rate limit
@@ -1153,6 +1154,7 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		}
 		else if (strcmp(key, "speed-limit-up-enabled") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::upload_rate_limit)) continue;
 			if (strcmp(value, "true") == 0)
 			{
 				// libtorrent uses a single value to specify the rate limit
@@ -1167,12 +1169,14 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		}
 		else if (strcmp(key, "start-added-torrents") == 0)
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			bool start = strcmp(value, "true") == 0;
 			m_params_model.flags |= start ? 0 : add_torrent_params::flag_paused;
 			m_params_model.flags &= ~(start ? 0 : add_torrent_params::flag_auto_managed);
 		}
 		else if (strcmp(key, "peer-port") == 0)
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			int port = atoi(value);
 			error_code ec;
 			m_ses.listen_on(std::make_pair(port, port+1), ec);
@@ -1180,17 +1184,21 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		}
 		else if (strcmp(key, "utp-enabled") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::enable_outgoing_utp)
+				|| !p->allow_set_settings(settings_pack::enable_outgoing_utp)) continue;
 			bool utp = strcmp(value, "true") == 0;
 			pack.set_bool(settings_pack::enable_outgoing_utp, utp);
 			pack.set_bool(settings_pack::enable_incoming_utp, utp);
 		}
 		else if (strcmp(key, "peer-limit-global") == 0)
 		{
+			if (!p->allow_set_settings(settings_pack::connections_limit)) continue;
 			int num = atoi(value);
 			pack.set_int(settings_pack::connections_limit, num);
 		}
 		else if (strcmp(key, "encryption") == 0)
 		{
+			if (!p->allow_set_settings(-1)) continue;
 			pe_settings pes = m_ses.get_pe_settings();
 			if (strcmp(value, "required") == 0)
 			{
