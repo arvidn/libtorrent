@@ -7581,7 +7581,7 @@ namespace libtorrent
 			peer_connection const& p = *(*i);
 			for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 				, end(p.request_queue().end()); i != end; ++i)
-				++num_requests[i->block];
+				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
 			for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 				, end(p.download_queue().end()); i != end; ++i)
 				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
@@ -7617,7 +7617,14 @@ namespace libtorrent
 							for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 								, end(p.request_queue().end()); i != end; ++i)
 							{
-								fprintf(stderr, "  (%d, %d) skipped: %d %s %s %s\n", i->block.piece_index
+								fprintf(stderr, "  rq: (%d, %d) skipped: %d %s %s %s\n", i->block.piece_index
+									, i->block.block_index, int(i->skipped), i->not_wanted ? "not-wanted" : ""
+									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
+							}
+							for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
+								, end(p.download_queue().end()); i != end; ++i)
+							{
+								fprintf(stderr, "  dq: (%d, %d) skipped: %d %s %s %s\n", i->block.piece_index
 									, i->block.block_index, int(i->skipped), i->not_wanted ? "not-wanted" : ""
 									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
 							}
