@@ -528,13 +528,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_sequential_download, sd);
 	}
 
-	std::string torrent_handle::name() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(std::string, "", name);
-		return r;
-	}
-
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
 	{
 		INVARIANT_CHECK;
@@ -882,7 +875,6 @@ namespace libtorrent
 
 		return ret;
 	}
-#endif
 
 	std::string torrent_handle::save_path() const
 	{
@@ -890,6 +882,15 @@ namespace libtorrent
 		TORRENT_SYNC_CALL_RET(std::string, "", save_path);
 		return r;
 	}
+
+	std::string torrent_handle::name() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(std::string, "", name);
+		return r;
+	}
+
+#endif
 
 	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
 	{
