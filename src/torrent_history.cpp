@@ -40,7 +40,8 @@ namespace libtorrent
 		: m_alerts(h)
 		, m_frame(0)
 	{
-		m_alerts->subscribe(this, 0, add_torrent_alert::alert_type
+		m_alerts->subscribe(this, 0
+			, add_torrent_alert::alert_type
 			, torrent_removed_alert::alert_type
 			, state_update_alert::alert_type, 0);
 	}

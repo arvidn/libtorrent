@@ -993,11 +993,11 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		boost::intrusive_ptr<torrent_info> ti = i->handle.torrent_file();
+		boost::intrusive_ptr<const torrent_info> ti = i->torrent_file;
 		appendf(response, ",[\"%s\",%d,\"%s\",%"PRId64",%d,%"PRId64",%"PRId64",%f,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,%"PRId64"" + first
-			, to_hex(i->handle.info_hash().to_string()).c_str()
+			, to_hex(i->info_hash.to_string()).c_str()
 			, utorrent_status(*i)
-			, escape_json(i->handle.name()).c_str()
+			, escape_json(i->name).c_str()
 			, ti ? ti->total_size() : 0
 			, i->progress_ppm / 1000
 			, i->total_payload_download
@@ -1023,11 +1023,11 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 			, "" // url this torrent came from
 			, "" // feed URL this torrent belongs to
 			, utorrent_message(*i).c_str()
-			, to_hex(i->handle.info_hash().to_string()).c_str()
+			, to_hex(i->info_hash.to_string()).c_str()
 			, i->added_time
 			, i->completed_time
 			, "" // app
-			, escape_json(i->handle.save_path()).c_str()
+			, escape_json(i->save_path).c_str()
 			, 0
 			, "");
 		}
