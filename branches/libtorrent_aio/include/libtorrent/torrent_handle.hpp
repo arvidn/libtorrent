@@ -185,7 +185,10 @@ namespace libtorrent
 			query_accurate_download_counters = 2,
 			query_last_seen_complete = 4,
 			query_pieces = 8,
-			query_verified_pieces = 16
+			query_verified_pieces = 16,
+			query_torrent_file = 32,
+			query_name = 64,
+			query_save_path = 128,
 		};
 
 		// the flags specify which fields are calculated. By default everything
@@ -280,6 +283,19 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 
 		// ================ start deprecation ============
+
+		// deprecated in 1.0
+		// use status() instead (with query_save_path)
+		TORRENT_DEPRECATED_PREFIX
+		std::string save_path() const TORRENT_DEPRECATED;
+
+		// deprecated in 1.0
+		// use status() instead (with query_name)
+		// returns the name of this torrent, in case it doesn't
+		// have metadata it returns the name assigned to it
+		// when it was added.
+		TORRENT_DEPRECATED_PREFIX
+		std::string name() const TORRENT_DEPRECATED;
 
 		// use torrent_file() instead
 		TORRENT_DEPRECATED_PREFIX
@@ -380,12 +396,6 @@ namespace libtorrent
 		// performs a scrape request
 		void scrape_tracker() const;
 
-		// returns the name of this torrent, in case it doesn't
-		// have metadata it returns the name assigned to it
-		// when it was added.
-		// TODO: name should be part of torrent_status
-		std::string name() const;
-
 		void set_upload_limit(int limit) const;
 		int upload_limit() const;
 		void set_download_limit(int limit) const;
@@ -396,9 +406,6 @@ namespace libtorrent
 
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr, int source = 0, int flags = 0) const;
-
-		// save_path should be part of torrent_status
-		std::string save_path() const;
 
 		// -1 means unlimited unchokes
 		void set_max_uploads(int max_uploads) const;
@@ -498,6 +505,19 @@ namespace libtorrent
 		// the only option to query progress
 		int progress_ppm;
 		std::string error;
+
+		// save path of where the torrent's files are saved
+		// only set when status is queried with query_save_path
+		std::string save_path;
+
+		// name of the torrent, or empty if the torrent's name
+		// cannot be established yet
+		// only set when status is queried with query_name
+		std::string name;
+
+		// the torrent file for this torrent
+		// only set when status is queried with query_torrent_file
+		boost::intrusive_ptr<const torrent_info> torrent_file;
 
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
