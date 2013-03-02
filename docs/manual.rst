@@ -2338,7 +2338,10 @@ Its declaration looks like this::
 			query_accurate_download_counters = 2,
 			query_last_seen_complete = 4,
 			query_pieces = 8,
-			query_verified_pieces = 16
+			query_verified_pieces = 16,
+			query_torrent_file = 32,
+			query_name = 64,
+			query_save_path = 128,
 		};
 
 		torrent_status status(boost::uint32_t flags = 0xffffffff);
@@ -2430,7 +2433,6 @@ Its declaration looks like this::
 
 		bool set_metadata(char const* buf, int size) const;
 
-		std::string save_path() const;
 		void move_storage(std::string const& save_path) const;
 		void move_storage(std::wstring const& save_path) const;
 		void rename_file(int index, std::string) const;
@@ -2610,16 +2612,6 @@ the operation is a lot cheaper, since libtorrent already keeps track of this int
 and no calculation is required.
 
 
-save_path()
------------
-
-	::
-
-		std::string save_path() const;
-
-``save_path()`` returns the path that was given to `async_add_torrent() add_torrent()`_ when this torrent
-was started.
-
 move_storage()
 --------------
 
@@ -2767,17 +2759,6 @@ will throw libtorrent_exception_. The second (optional) argument will be bitwise
 the source mask of this peer. Typically this is one of the source flags in peer_info_.
 i.e. ``tracker``, ``pex``, ``dht`` etc.
 
-
-name()
-------
-
-	::
-
-		std::string name() const;
-
-Returns the name of the torrent. i.e. the name from the metadata associated with it. In
-case the torrent was started without metadata, and hasn't completely received it yet,
-it returns the name given to it when added to the session. See ``session::add_torrent``.
 
 
 set_upload_limit() set_download_limit() upload_limit() download_limit()
@@ -3247,7 +3228,7 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		}
 		
 		torrent_handle h = rd->handle;
-		std::ofstream out((h.save_path() + "/" + h.torrent_file()->name() + ".fastresume").c_str()
+		std::ofstream out((h.status().save_path + "/" + h.torrent_file()->name() + ".fastresume").c_str()
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
@@ -3309,6 +3290,16 @@ By default everything is included. The flags you can use to decide what to *incl
 * ``query_verified_pieces``
 	includes ``verified_pieces`` (only applies to torrents in *seed mode*).
 
+* ``query_torrent_file``
+	includes ``torrent_file``, which is all the static information from the .torrent file.
+
+* ``query_name``
+	includes ``name``, the name of the torrent. This is either derived from the .torrent
+	file, or from the ``&dn=`` magnet link argument or possibly some other source. If the
+	name of the torrent is not known, this is an empty string.
+
+* ``query_save_path``
+	includes ``save_path``, the path to the directory the files of the torrent are saved to.
 
 get_download_queue()
 --------------------
@@ -3493,6 +3484,10 @@ It contains the following fields::
 		float progress;
 		int progress_ppm;
 		std::string error;
+		std::string save_path;
+		std::string name;
+
+		boost::intrusive_ptr<const torrent_info> torrent_file;
 
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
@@ -3664,6 +3659,19 @@ ip, a magnet link for instance).
 ``error`` may be set to an error message describing why the torrent was paused, in
 case it was paused by an error. If the torrent is not paused or if it's paused but
 not because of an error, this string is empty.
+
+``save_path`` is the path to the directory where this torrent's files are stored.
+It's typically the path as was given to `async_add_torrent() add_torrent()`_ when this torrent
+was started. This field is only included if the torrent status is queried with
+``torrent_handle::query_save_path``.
+
+``name`` is the name of the torrent. Typically this is derived from the .torrent file.
+In case the torrent was started without metadata, and hasn't completely received it yet,
+it returns the name given to it when added to the session. See ``session::add_torrent``.
+This field is only included if the torrent status is queried with ``torrent_handle::query_name``.
+
+``torrent_file`` is set to point to the ``torrent_info`` object for this torrent. It's
+only included if the torrent status is queried with ``torrent_handle::query_torrent_file``.
 
 ``next_announce`` is the time until the torrent will announce itself to the tracker. And
 ``announce_interval`` is the time the tracker want us to wait until we announce ourself

@@ -8671,6 +8671,15 @@ namespace libtorrent
 		st->handle = get_handle();
 		st->info_hash = info_hash();
 
+		if (flags & torrent_handle::query_name)
+			st->name = name();
+
+		if (flags & torrent_handle::query_save_path)
+			st->save_path = save_path();
+
+		if (flags & torrent_handle::query_torrent_file)
+			st->torrent_file = m_torrent_file;
+
 		st->listen_port = 0;
 #ifdef TORRENT_USE_OPENSSL
 		if (is_ssl_torrent()) st->listen_port = m_ses.ssl_listen_port();
