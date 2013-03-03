@@ -1,6 +1,9 @@
 import modules ;
+import feature : feature ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+feature pam : off on : composite ;
 
 use-project /torrent : ../libtorrent_aio ;
 
@@ -27,7 +30,6 @@ SOURCES =
 	torrent_history
 	auth
 	no_auth
-	pam_auth
 	auth_localhost
 	load_config
 	http_whitelist
@@ -40,7 +42,8 @@ lib torrent-webui
 	: # requirements
 	<library>/torrent//torrent
 	<library>zlib
-	<library>pam
+	<pam>on:<library>pam
+	<pam>on:<source>src/pam_auth.cpp
 
 	: # default build
 	<link>static
@@ -57,4 +60,5 @@ lib rt : : <name>rt <search>/usr/local/lib <link>shared ;
 lib pam : : <name>pam <search>/usr/local/lib ;
 
 exe webui_test : test.cpp : <library>torrent-webui <library>/torrent//torrent ;
+exe add_user : tools/add_user.cpp : <library>torrent-webui ;
 

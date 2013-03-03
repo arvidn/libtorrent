@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "auth_interface.hpp"
 
 #include "libtorrent/peer_id.hpp" // sha1_hash
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/thread.hpp" // for mutex
 #include <string>
 #include <map>
 #include <vector>
@@ -49,10 +51,16 @@ namespace libtorrent
 	struct auth : auth_interface
 	{
 		auth();
-		void add_account(std::string const& user, std::string const& pwd, bool read_only = false);
+		void add_account(std::string const& user, std::string const& pwd, int group);
 		void remove_account(std::string const& user);
+		std::vector<std::string> users() const;
+
+		void save_accounts(std::string const& filename, error_code& ec) const;
+		void load_accounts(std::string const& filename, error_code& ec);
+
+		void set_group(int g, permissions_interface const* perms);
+
 		permissions_interface const* find_user(std::string username, std::string password) const;
-		std::vector<std::string> accounts() const;
 
 	private:
 
@@ -62,10 +70,14 @@ namespace libtorrent
 
 			sha1_hash hash;
 			char salt[10];
-			bool read_only;
+			int group;
 		};
 
+		mutable mutex m_mutex;
 		std::map<std::string, account_t> m_accounts;
+
+		// the permissions for each group
+		std::vector<permissions_interface const*> m_groups;
 	};
 }
 

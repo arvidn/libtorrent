@@ -45,10 +45,13 @@ int main(int argc, char *const argv[])
 	sett.load(ec);
 
 	torrent_history hist(&alerts);
-//	auth authorizer;
-//	authorizer.add_account("admin", "test");
-//	authorizer.add_account("guest", "test", true);
-	pam_auth authorizer("bittorrent");
+	auth authorizer;
+	ec.clear();
+	authorizer.load_accounts("users.conf", ec);
+	if (ec)
+		authorizer.add_account("admin", "test", 0);
+	ec.clear();
+//	pam_auth authorizer("bittorrent");
 
 	save_resume resume(ses, ".resume", &alerts);
 	add_torrent_params p;
