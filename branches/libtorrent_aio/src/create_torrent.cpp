@@ -167,7 +167,7 @@ namespace libtorrent
 		++(*completed_piece);
 		if (*piece_counter < t->num_pieces())
 		{
-			iothread->async_hash(storage.get(), *piece_counter, file::sequential_access
+			iothread->async_hash(storage.get(), *piece_counter, disk_io_job::sequential_access
 				, boost::bind(&on_hash, _1, t, storage, iothread
 				, piece_counter, completed_piece, f, ec), (void*)0);
 			++(*piece_counter);
@@ -220,7 +220,7 @@ namespace libtorrent
 
 		for (int i = 0; i < piece_read_ahead; ++i)
 		{
-			disk_thread.async_hash(storage.get(), i, file::sequential_access
+			disk_thread.async_hash(storage.get(), i, disk_io_job::sequential_access
 				, boost::bind(&on_hash, _1, &t, storage, &disk_thread
 				, &piece_counter, &completed_piece, &f, &ec), (void*)0);
 			++piece_counter;

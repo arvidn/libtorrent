@@ -188,8 +188,9 @@ namespace libtorrent
 				, file::iovec_t const* bufs, int num_bufs, error_code& ec, int flags);
 			int cache_setting;
 			// file open mode (file::read_only, file::write_only etc.)
+			// this is used to open the file, but also passed along as the
+			// flags argument to the file operation (readv or writev)
 			int mode;
-			int flags;
 			// used for error reporting
 			int operation_type;
 		};
@@ -213,7 +214,7 @@ namespace libtorrent
 
 		// helper function to open a file in the file pool with the right mode
 		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
-			, int flags, error_code& ec) const;
+			, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
 		std::string m_save_path;

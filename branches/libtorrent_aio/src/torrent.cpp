@@ -2342,7 +2342,7 @@ namespace libtorrent
 		{
 			inc_refcount();
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
-				, file::sequential_access | disk_io_job::volatile_read
+				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
 					, shared_from_this(), _1), (void*)1);
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
@@ -2443,7 +2443,7 @@ namespace libtorrent
 
 			if (!need_loaded()) return;
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
-				, file::sequential_access | disk_io_job::volatile_read
+				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
 					, shared_from_this(), _1), (void*)1);
 			return;
