@@ -87,40 +87,6 @@ void auth::remove_account(std::string const& user)
 	m_accounts.erase(i);
 }
 
-struct read_only_permissions : permissions_interface
-{
-	read_only_permissions() {}
-	bool allow_start() const { return false; }
-	bool allow_stop() const { return false; }
-	bool allow_recheck() const { return false; }
-	bool allow_list() const { return true; }
-	bool allow_add() const { return false; }
-	bool allow_remove() const { return false; }
-	bool allow_remove_data() const { return false; }
-	bool allow_queue_change() const { return false; }
-	bool allow_get_settings(int) const { return true; }
-	bool allow_set_settings(int) const { return false; }
-	bool allow_get_data() const { return true; }
-	bool allow_session_status() const { return true; }
-};
-
-struct full_permissions : permissions_interface
-{
-	full_permissions() {}
-	bool allow_start() const { return true; }
-	bool allow_stop() const { return true; }
-	bool allow_recheck() const { return true; }
-	bool allow_list() const { return true; }
-	bool allow_add() const { return true; }
-	bool allow_remove() const { return true; }
-	bool allow_remove_data() const { return true; }
-	bool allow_queue_change() const { return true; }
-	bool allow_get_settings(int) const { return true; }
-	bool allow_set_settings(int) const { return true; }
-	bool allow_get_data() const { return true; }
-	bool allow_session_status() const { return true; }
-};
-
 permissions_interface const* auth::find_user(std::string username, std::string password) const
 {
 	const static read_only_permissions read_perms;

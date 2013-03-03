@@ -961,23 +961,6 @@ void deluge::output_error(int id, char const* msg, rencoder& out)
 	out.append_string(""); // stack-trace
 }
 
-struct no_permissions : permissions_interface
-{
-	no_permissions() {}
-	bool allow_start() const { return false; }
-	bool allow_stop() const { return false; }
-	bool allow_recheck() const { return false; }
-	bool allow_list() const { return false; }
-	bool allow_add() const { return false; }
-	bool allow_remove() const { return false; }
-	bool allow_remove_data() const { return false; }
-	bool allow_queue_change() const { return false; }
-	bool allow_get_settings(int) const { return false; }
-	bool allow_set_settings(int) const { return false; }
-	bool allow_get_data() const { return false; }
-	bool allow_session_status() const { return false; }
-};
-
 const static no_permissions no_perms;
 
 void deluge::connection_thread()

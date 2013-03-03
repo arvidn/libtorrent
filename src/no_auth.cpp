@@ -36,23 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-struct full_permissions : permissions_interface
-{
-	full_permissions() {}
-	bool allow_start() const { return true; }
-	bool allow_stop() const { return true; }
-	bool allow_recheck() const { return true; }
-	bool allow_list() const { return true; }
-	bool allow_add() const { return true; }
-	bool allow_remove() const { return true; }
-	bool allow_remove_data() const { return true; }
-	bool allow_queue_change() const { return true; }
-	bool allow_get_settings(int) const { return true; }
-	bool allow_set_settings(int) const { return true; }
-	bool allow_get_data() const { return true; }
-	bool allow_session_status() const { return true; }
-};
-
 permissions_interface const* no_auth::find_user(std::string username, std::string password) const
 {
 	const static full_permissions full_perms;

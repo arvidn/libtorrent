@@ -7,6 +7,7 @@
 #include "save_resume.hpp"
 #include "torrent_history.hpp"
 #include "auth.hpp"
+#include "pam_auth.hpp"
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_handler.hpp"
@@ -44,9 +45,10 @@ int main(int argc, char *const argv[])
 	sett.load(ec);
 
 	torrent_history hist(&alerts);
-	auth authorizer;
-	authorizer.add_account("admin", "test");
-	authorizer.add_account("guest", "test", true);
+//	auth authorizer;
+//	authorizer.add_account("admin", "test");
+//	authorizer.add_account("guest", "test", true);
+	pam_auth authorizer("bittorrent");
 
 	save_resume resume(ses, ".resume", &alerts);
 	add_torrent_params p;

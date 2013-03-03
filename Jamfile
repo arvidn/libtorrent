@@ -27,6 +27,7 @@ SOURCES =
 	torrent_history
 	auth
 	no_auth
+	pam_auth
 	auth_localhost
 	load_config
 	http_whitelist
@@ -39,6 +40,7 @@ lib torrent-webui
 	: # requirements
 	<library>/torrent//torrent
 	<library>zlib
+	<library>pam
 
 	: # default build
 	<link>static
@@ -52,6 +54,7 @@ lib torrent-webui
 lib zlib : : <name>z <search>/usr/local/lib ;
 lib pthread : : <name>pthread <search>/usr/local/lib <link>shared ;
 lib rt : : <name>rt <search>/usr/local/lib <link>shared ;
+lib pam : : <name>pam <search>/usr/local/lib ;
 
 exe webui_test : test.cpp : <library>torrent-webui <library>/torrent//torrent ;
 
