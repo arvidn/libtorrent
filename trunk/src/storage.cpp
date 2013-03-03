@@ -203,7 +203,7 @@ namespace libtorrent
 	// writev implementations be implemented in terms of the
 	// old read and write
 	int storage_interface::readv(file::iovec_t const* bufs
-		, int slot, int offset, int num_bufs)
+		, int slot, int offset, int num_bufs, int flags)
 	{
 		int ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -217,7 +217,7 @@ namespace libtorrent
 	}
 
 	int storage_interface::writev(file::iovec_t const* bufs, int slot
-		, int offset, int num_bufs)
+		, int offset, int num_bufs, int flags)
 	{
 		int ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -321,7 +321,8 @@ namespace libtorrent
 					bufs[i].iov_len = (std::min)(block_size, size);
 					size -= bufs[i].iov_len;
 				}
-				num_read = m_storage->readv(bufs, slot, ph.offset, num_blocks);
+				// deliberately pass in 0 as flags, to disable random_access
+				num_read = m_storage->readv(bufs, slot, ph.offset, num_blocks, 0);
 				// TODO: if the read fails, set error and exit immediately
 
 				for (int i = 0; i < num_blocks; ++i)
@@ -353,7 +354,8 @@ namespace libtorrent
 				for (int i = 0; i < num_blocks; ++i)
 				{
 					buf.iov_len = (std::min)(block_size, size);
-					int ret = m_storage->readv(&buf, slot, ph.offset, 1);
+					// deliberately pass in 0 as flags, to disable random_access
+					int ret = m_storage->readv(&buf, slot, ph.offset, 1, 0);
 					if (ret > 0) num_read += ret;
 					// TODO: if the read fails, set error and exit immediately
 
@@ -448,7 +450,7 @@ namespace libtorrent
 				}
 				ec.clear();
 
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, ec);
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write | file::random_access, ec);
 				if (ec) set_error(file_path, ec);
 				else if (f)
 				{
@@ -920,7 +922,7 @@ ret:
 	}
 
 	int default_storage::writev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs)
+		, int num_bufs, int flags)
 	{
 #ifdef TORRENT_DISK_STATS
 		disk_buffer_pool* pool = disk_pool();
@@ -931,7 +933,7 @@ ret:
 		}
 #endif
 		fileop op = { &file::writev, &default_storage::write_unaligned
-			, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
+			, m_settings ? settings().disk_io_write_mode : 0, file::read_write | flags };
 #ifdef TORRENT_DISK_STATS
 		int ret = readwritev(bufs, slot, offset, num_bufs, op);
 		if (pool)
@@ -971,7 +973,7 @@ ret:
 		// open the file read only to avoid re-opening
 		// it in case it's already opened in read-only mode
 		error_code ec;
-		boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only, ec);
+		boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only | file::random_access, ec);
 
 		size_type ret = 0;
 		if (f && !ec) ret = f->phys_offset(file_offset);
@@ -1019,7 +1021,7 @@ ret:
 			if (file_iter->pad_file) continue;
 
 			error_code ec;
-			file_handle = open_file(file_iter, file::read_only, ec);
+			file_handle = open_file(file_iter, file::read_only | file::random_access, ec);
 
 			// failing to hint that we want to read is not a big deal
 			// just swollow the error and keep going
@@ -1031,7 +1033,7 @@ ret:
 	}
 
 	int default_storage::readv(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs)
+		, int num_bufs, int flags)
 	{
 #ifdef TORRENT_DISK_STATS
 		disk_buffer_pool* pool = disk_pool();
@@ -1042,7 +1044,7 @@ ret:
 		}
 #endif
 		fileop op = { &file::readv, &default_storage::read_unaligned
-			, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
+			, m_settings ? settings().disk_io_read_mode : 0, file::read_only | flags };
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
@@ -1138,7 +1140,7 @@ ret:
 
 			if (file_iter->pad_file)
 			{
-				if (op.mode == file::read_only)
+				if ((op.mode & file::rw_mask) == file::read_only)
 				{
 					int num_tmp_bufs = copy_bufs(current_buf, file_bytes_left, tmp_bufs);
 					TORRENT_ASSERT(count_bufs(tmp_bufs, file_bytes_left) == num_tmp_bufs);
@@ -1153,7 +1155,7 @@ ret:
 
 			error_code ec;
 			file_handle = open_file(file_iter, op.mode, ec);
-			if ((op.mode == file::read_write) && ec == boost::system::errc::no_such_file_or_directory)
+			if (((op.mode & file::rw_mask) == file::read_write) && ec == boost::system::errc::no_such_file_or_directory)
 			{
 				// this means the directory the file is in doesn't exist.
 				// so create it
@@ -1188,7 +1190,7 @@ ret:
 			{
 				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
 					, tmp_bufs, num_tmp_bufs, ec);
-				if (op.mode == file::read_write
+				if ((op.mode & file::rw_mask) == file::read_write
 					&& adjusted_offset + bytes_transferred >= file_iter->size
 					&& (file_handle->pos_alignment() > 0 || file_handle->size_alignment() > 0))
 				{
@@ -1332,7 +1334,7 @@ ret:
 		, int size)
 	{
 		file::iovec_t b = { (file::iovec_base_t)buf, size_t(size) };
-		return writev(&b, slot, offset, 1);
+		return writev(&b, slot, offset, 1, 0);
 	}
 
 	int default_storage::read(
@@ -1368,7 +1370,7 @@ ret:
 		return new default_storage(fs, mapped, path, fp, file_prio);
 	}
 
-	int disabled_storage::readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+	int disabled_storage::readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags)
 	{
 #ifdef TORRENT_DISK_STATS
 		disk_buffer_pool* pool = disk_pool();
@@ -1391,7 +1393,7 @@ ret:
 		return ret;
 	}
 
-	int disabled_storage::writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+	int disabled_storage::writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags)
 	{
 #ifdef TORRENT_DISK_STATS
 		disk_buffer_pool* pool = disk_pool();

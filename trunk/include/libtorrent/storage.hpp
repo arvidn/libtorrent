@@ -111,8 +111,8 @@ namespace libtorrent
 
 		virtual bool has_any_file() = 0;
 
-		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
-		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
+		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 
 		virtual void hint_read(int, int, int) {}
 		// negative return value indicates an error
@@ -202,8 +202,8 @@ namespace libtorrent
 		int write(char const* buf, int slot, int offset, int size);
 		int sparse_end(int start) const;
 		void hint_read(int slot, int offset, int len);
-		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
-		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs);
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
+		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs, int flags = file::random_access);
 		size_type physical_offset(int slot, int offset);
 		bool move_slot(int src_slot, int dst_slot);
 		bool swap_slots(int slot1, int slot2);
@@ -275,8 +275,8 @@ namespace libtorrent
 		int read(char*, int, int, int size) { return size; }
 		int write(char const*, int, int, int size) { return size; }
 		size_type physical_offset(int, int) { return 0; }
-		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
-		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
+		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 		bool move_slot(int, int) { return false; }
 		bool swap_slots(int, int) { return false; }
 		bool swap_slots3(int, int, int) { return false; }

@@ -1411,7 +1411,7 @@ namespace libtorrent
 		, 0 // release_files
 		, 0 // delete_files
 		, 0 // check_fastresume
-		, read_operation + cancel_on_abort // check_files
+		, cancel_on_abort // check_files
 		, 0 // save_resume_data
 		, 0 // rename_file
 		, 0 // abort_thread
