@@ -135,12 +135,12 @@ struct test_storage : storage_interface
 	virtual bool has_any_file()
 	{ return m_lower_layer->has_any_file(); }
 
-	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
-	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs); }
+	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags)
+	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs, flags); }
 
-	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags)
 	{
-		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs);
+		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs, flags);
 		if (ret > 0) m_written += ret;
 		if (m_written > m_limit)
 		{
