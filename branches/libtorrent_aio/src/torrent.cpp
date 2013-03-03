@@ -4001,6 +4001,31 @@ namespace libtorrent
 		m_picker->piece_failed(j->piece);
 
 		TORRENT_ASSERT(m_picker->have_piece(j->piece) == false);
+
+		// loop over all peers and re-request potential duplicate
+		// blocks to this piece
+		for (std::vector<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			peer_connection* p = *i;
+			std::vector<pending_block> const& dq = p->download_queue();
+			std::vector<pending_block> const& rq = p->request_queue();
+			for (std::vector<pending_block>::const_iterator k = dq.begin()
+				, end(dq.end()); k != end; ++k)
+			{
+				if (k->timed_out || k->not_wanted) continue;
+				if (int(k->block.piece_index) != j->piece) continue;
+				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
+					, (piece_picker::piece_state_t)p->peer_speed());
+			}
+			for (std::vector<pending_block>::const_iterator k = rq.begin()
+				, end(rq.end()); k != end; ++k)
+			{
+				if (int(k->block.piece_index) != j->piece) continue;
+				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
+					, (piece_picker::piece_state_t)p->peer_speed());
+			}
+		}
 	}
 
 	void torrent::peer_has(int index, peer_connection const* peer)
