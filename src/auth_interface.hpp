@@ -47,9 +47,13 @@ namespace libtorrent
 		virtual bool allow_remove() const = 0;
 		virtual bool allow_remove_data() const = 0;
 		virtual bool allow_queue_change() const = 0;
-		virtual bool allow_get_settings() const = 0;
-		virtual bool allow_set_settings() const = 0;
+		// the name is the constant used in settings_pack
+		// or -1 for settings that don't fit a libtorrent setting
+		virtual bool allow_get_settings(int name) const = 0;
+		virtual bool allow_set_settings(int name) const = 0;
 		virtual bool allow_get_data() const = 0;
+		// TODO: separate permissions to alter torrent state. separate different categories of settings?
+		virtual bool allow_session_status() const = 0;
 	};
 
 	struct auth_interface

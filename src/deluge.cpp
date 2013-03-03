@@ -259,9 +259,10 @@ struct full_permissions : permissions_interface
 	bool allow_remove() const { return true; }
 	bool allow_remove_data() const { return true; }
 	bool allow_queue_change() const { return true; }
-	bool allow_get_settings() const { return true; }
-	bool allow_set_settings() const { return true; }
+	bool allow_get_settings(int) const { return true; }
+	bool allow_set_settings(int) const { return true; }
 	bool allow_get_data() const { return true; }
+	bool allow_session_status() const { return true; }
 };
 
 void deluge::handle_login(conn_state* st)
@@ -315,7 +316,7 @@ void deluge::handle_info(conn_state* st)
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
 
-	if (!st->perms->allow_get_settings())
+	if (!st->perms->allow_get_settings(settings_pack::user_agent))
 	{
 		output_error(tokens[1].integer(buf), "permission denied", out);
 		return;
@@ -337,12 +338,6 @@ void deluge::handle_get_enabled_plugins(conn_state* st)
 	rencoder& out = *st->out;
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
-
-	if (!st->perms->allow_get_settings())
-	{
-		output_error(tokens[1].integer(buf), "permission denied", out);
-		return;
-	}
 
 	int id = tokens[1].integer(buf);
 
@@ -368,12 +363,18 @@ char const* map_deluge_setting(std::string const& name)
 }
 
 void deluge::output_config_value(std::string set_name, aux::session_settings const& sett
-	, rencoder& out)
+	, rencoder& out, permissions_interface const* p)
 {
 	char const* lt_name = map_deluge_setting(set_name);
 	int name = setting_by_name(lt_name);
 	if (name < 0)
 	{
+		if (!p->allow_get_settings(-1))
+		{
+			out.append_none();
+			return;
+		}
+
 		if (set_name == "dht")
 			out.append_bool(m_ses.is_dht_running());
 		else if (set_name == "add_paused")
@@ -401,6 +402,12 @@ void deluge::output_config_value(std::string set_name, aux::session_settings con
 		return;
 	}
 
+	if (!p->allow_get_settings(name))
+	{
+		out.append_none();
+		return;
+	}
+
 	switch (name & settings_pack::type_mask)
 	{
 		case settings_pack::string_type_base:
@@ -423,12 +430,6 @@ void deluge::handle_get_config_value(conn_state* st)
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
 
-	if (!st->perms->allow_get_settings())
-	{
-		output_error(tokens[1].integer(buf), "permission denied", out);
-		return;
-	}
-
 	int id = tokens[1].integer(buf);
 
 	aux::session_settings sett = m_ses.get_settings();
@@ -438,7 +439,7 @@ void deluge::handle_get_config_value(conn_state* st)
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
-	output_config_value(tokens[4].string(buf), sett, out);
+	output_config_value(tokens[4].string(buf), sett, out, st->perms);
 }
 
 void deluge::handle_get_free_space(conn_state* st)
@@ -447,7 +448,7 @@ void deluge::handle_get_free_space(conn_state* st)
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
 
-	if (!st->perms->allow_get_settings())
+	if (!st->perms->allow_session_status())
 	{
 		output_error(tokens[1].integer(buf), "permission denied", out);
 		return;
@@ -478,7 +479,7 @@ void deluge::handle_get_num_connections(conn_state* st)
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
 
-	if (!st->perms->allow_get_settings())
+	if (!st->perms->allow_session_status())
 	{
 		output_error(tokens[1].integer(buf), "permission denied", out);
 		return;
@@ -868,12 +869,6 @@ void deluge::handle_get_config_values(conn_state* st)
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
 
-	if (!st->perms->allow_get_settings())
-	{
-		output_error(tokens[1].integer(buf), "permission denied", out);
-		return;
-	}
-
 	int id = tokens[1].integer(buf);
 
 	aux::session_settings sett = m_ses.get_settings();
@@ -898,7 +893,7 @@ void deluge::handle_get_config_values(conn_state* st)
 		}
 		std::string config_name = keys->string(buf);
 		out.append_string(config_name);
-		output_config_value(config_name, sett, out);
+		output_config_value(config_name, sett, out, st->perms);
 	}
 }
 
@@ -908,7 +903,7 @@ void deluge::handle_get_session_status(conn_state* st)
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
 
-	if (!st->perms->allow_get_settings())
+	if (!st->perms->allow_session_status())
 	{
 		output_error(tokens[1].integer(buf), "permission denied", out);
 		return;
@@ -977,9 +972,10 @@ struct no_permissions : permissions_interface
 	bool allow_remove() const { return false; }
 	bool allow_remove_data() const { return false; }
 	bool allow_queue_change() const { return false; }
-	bool allow_get_settings() const { return false; }
-	bool allow_set_settings() const { return false; }
+	bool allow_get_settings(int) const { return false; }
+	bool allow_set_settings(int) const { return false; }
 	bool allow_get_data() const { return false; }
+	bool allow_session_status() const { return false; }
 };
 
 const static no_permissions no_perms;
