@@ -1,3 +1,4 @@
+	* distinguish file open mode when checking files and downloading/seeding with bittorrent. updates storage interface
 	* improve file_storage::map_file when dealing with invalid input
 	* improve handling of invalid utf-8 sequences in strings in torrent files
 	* handle more cases of broken .torrent files
