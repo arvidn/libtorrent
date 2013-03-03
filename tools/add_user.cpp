@@ -24,6 +24,13 @@ int main(int argc, char* argv[])
 	if (fgets(password, 1024, stdin) == NULL)
 		return 1;
 
+	int pwdlen = strlen(password);
+	while (pwdlen > 0 && password[pwdlen-1] == '\n')
+	{
+		--pwdlen;
+		password[pwdlen] = '\0';
+	}
+
 	error_code ec;
 	authorizer.load_accounts("./users.conf", ec);
 	authorizer.add_account(argv[1], password, atoi(argv[2]));
