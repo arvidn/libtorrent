@@ -43,6 +43,7 @@ extern "C" {
 #include <vector>
 #include <string.h> // for strcmp() 
 #include <stdio.h>
+#include <sys/time.h>
 
 namespace libtorrent
 {
@@ -59,6 +60,10 @@ auth::auth()
 	// this is configurable via the set_group() function
 	m_groups.push_back(&full_perms);
 	m_groups.push_back(&read_perms);
+	struct timeval tv;
+	struct timezone tz;
+	gettimeofday(&tv, &tz);
+	srand(tv.tv_usec);
 }
 
 std::vector<std::string> auth::users() const
