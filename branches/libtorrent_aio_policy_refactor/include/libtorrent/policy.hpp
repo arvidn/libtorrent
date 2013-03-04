@@ -53,6 +53,7 @@ namespace libtorrent
 
 	struct logger;
 	struct external_ip;
+	class alert_manager;
 
 	enum
 	{
@@ -78,7 +79,8 @@ namespace libtorrent
 		// this is called once for every torrent_peer we get from
 		// the tracker, pex, lsd or dht.
 		torrent_peer* add_peer(const tcp::endpoint& remote
-			, int source, char flags, std::vector<torrent_peer*>& erased);
+			, int source, char flags, std::vector<torrent_peer*>& erased
+			, alert_manager* alerts);
 
 		// false means duplicate connection
 		bool update_peer_port(int port, torrent_peer* p, int src, std::vector<torrent_peer*>& erased);
@@ -94,7 +96,7 @@ namespace libtorrent
 		void set_connection(torrent_peer* p, peer_connection_interface* c);
 		void set_failcount(torrent_peer* p, int f);
 
-		void ip_filter_updated(std::vector<torrent_peer*>& erased);
+		void ip_filter_updated(std::vector<torrent_peer*>& erased, alert_manager* alerts);
 
 		void set_seed(torrent_peer* p, bool s);
 

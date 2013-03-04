@@ -1498,7 +1498,7 @@ namespace libtorrent
 			{
 				// add or find the peer with this endpoint
 				std::vector<torrent_peer*> peers;
-				torrent_peer* p = t->get_policy().add_peer(ep, peer_info::pex, 0, peers);
+				torrent_peer* p = t->get_policy().add_peer(ep, peer_info::pex, 0, peers, &t->alerts());
 				t->peers_erased(peers);
 				if (p == 0 || p->connection)
 				{

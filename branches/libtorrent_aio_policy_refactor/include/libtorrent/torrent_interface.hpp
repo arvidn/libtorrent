@@ -39,7 +39,6 @@ namespace libtorrent
 	class peer_connection;
 	class torrent_info;
 	struct torrent_handle;
-	class alert_manager;
 
 	namespace aux
 	{
@@ -61,9 +60,8 @@ namespace libtorrent
 		virtual torrent_peer* allocate_peer_entry(int type) = 0;
 		virtual void free_peer_entry(torrent_peer* p) = 0;
 
-		virtual alert_manager& alerts() const = 0;
-
 		// this is only used to determine the max peer list size. That could be controlled externally
+		// or this feature could be removed
 		virtual bool is_paused() const = 0;
 
 		// some of these properties are really only used to determine which kinds of peers are connect

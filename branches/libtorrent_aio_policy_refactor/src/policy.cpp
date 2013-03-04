@@ -164,7 +164,7 @@ namespace libtorrent
 	// fills in 'erased' with torrent_peer pointers that were removed
 	// from the peer list. Any references to these peers must be cleared
 	// immediately after this call returns. For instance, in the piece picker.
-	void policy::ip_filter_updated(std::vector<torrent_peer*>& erased)
+	void policy::ip_filter_updated(std::vector<torrent_peer*>& erased, alert_manager* alerts)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -185,8 +185,8 @@ namespace libtorrent
 				continue;
 			}
 		
-			if (m_torrent->alerts().should_post<peer_blocked_alert>())
-				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+			if (alerts && alerts->should_post<peer_blocked_alert>())
+				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
 
 			int current = i - m_peers.begin();
 			TORRENT_ASSERT(current >= 0);
@@ -1080,7 +1080,8 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_I2P
 
-	torrent_peer* policy::add_peer(tcp::endpoint const& remote, int src, char flags, std::vector<torrent_peer*>& erased)
+	torrent_peer* policy::add_peer(tcp::endpoint const& remote, int src, char flags
+		, std::vector<torrent_peer*>& erased, alert_manager* alerts)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1103,16 +1104,16 @@ namespace libtorrent
 		if (!m_torrent->settings().get_bool(settings_pack::allow_i2p_mixed)
 			&& m_torrent->is_i2p())
 		{
-			if (m_torrent->alerts().should_post<peer_blocked_alert>())
-				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (alerts && alerts->should_post<peer_blocked_alert>())
+				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 			return 0;
 		}
 
 		// TODO: 2 this filtering could be done outside of the policy class
 		if (m_torrent->port_filter_access(remote.port()) & port_filter::blocked)
 		{
-			if (m_torrent->alerts().should_post<peer_blocked_alert>())
-				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (alerts && alerts->should_post<peer_blocked_alert>())
+				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
@@ -1123,8 +1124,8 @@ namespace libtorrent
 		if (m_torrent->settings().get_bool(settings_pack::no_connect_privileged_ports)
 			&& remote.port() < 1024)
 		{
-			if (m_torrent->alerts().should_post<peer_blocked_alert>())
-				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (alerts && alerts->should_post<peer_blocked_alert>())
+				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
@@ -1136,8 +1137,8 @@ namespace libtorrent
 		if (m_torrent->apply_ip_filter()
 			&& (m_torrent->ip_filter_access(remote.address()) & ip_filter::blocked))
 		{
-			if (m_torrent->alerts().should_post<peer_blocked_alert>())
-				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (alerts && alerts->should_post<peer_blocked_alert>())
+				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
