@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,54 +30,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_AUTH_HPP
-#define TORRENT_AUTH_HPP
+#ifndef TORRENT_PAM_AUTH_HPP
+#define TORRENT_PAM_AUTH_HPP
 
 #include "auth_interface.hpp"
-
-#include "libtorrent/peer_id.hpp" // sha1_hash
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/thread.hpp" // for mutex
 #include <string>
 #include <map>
-#include <vector>
-
-struct mg_connection;
 
 namespace libtorrent
 {
-	permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth);
-
-	struct auth : auth_interface
+	struct pam_auth : auth_interface
 	{
-		auth();
-		void add_account(std::string const& user, std::string const& pwd, int group);
-		void remove_account(std::string const& user);
-		std::vector<std::string> users() const;
+		pam_auth(std::string service_name);
+		~pam_auth();
 
-		void save_accounts(std::string const& filename, error_code& ec) const;
-		void load_accounts(std::string const& filename, error_code& ec);
+		// these are the permissions the user receives
+		// if successfully authenticated
+		void set_permissions(permissions_interface* perms) { m_perms = perms; }
 
-		void set_group(int g, permissions_interface const* perms);
+		void set_user_permissions(std::string username, permissions_interface* p)
+		{ m_users[username] = p; }
 
 		permissions_interface const* find_user(std::string username, std::string password) const;
 
 	private:
 
-		struct account_t
-		{
-			sha1_hash password_hash(std::string const& pwd) const;
-
-			sha1_hash hash;
-			char salt[10];
-			int group;
-		};
-
-		mutable mutex m_mutex;
-		std::map<std::string, account_t> m_accounts;
-
-		// the permissions for each group
-		std::vector<permissions_interface const*> m_groups;
+		permissions_interface* m_perms;
+		std::string m_service_name;
+		// if some users have different permissions than the default
+		// users, they have an entry in this map. Users not in this
+		// map that successfully authenticate will still get the
+		// default permissions in m_perms (which defaults to full permissions)
+		std::map<std::string, permissions_interface*> m_users;
 	};
 }
 

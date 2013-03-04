@@ -1002,7 +1002,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 			, i->progress_ppm / 1000
 			, i->total_payload_download
 			, i->total_payload_upload
-			, i->all_time_download == 0 ? 0 : float(i->all_time_upload) / i->all_time_download
+			, i->all_time_download == 0 ? 0 : float(i->all_time_upload) * 100.f / i->all_time_download
 			, i->upload_rate
 			, i->download_rate
 			, i->download_rate == 0 ? 0 : (i->total_wanted - i->total_wanted_done) / i->download_rate

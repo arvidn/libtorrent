@@ -43,15 +43,33 @@ extern "C" {
 #include <vector>
 #include <string.h> // for strcmp() 
 #include <stdio.h>
+#include <sys/time.h>
 
 namespace libtorrent
 {
+
+const static no_permissions no_perms;
+const static read_only_permissions read_perms;
+const static full_permissions full_perms;
+
 auth::auth()
 {
+	// default groups are:
+	// 0: full permissions
+	// 1: read-only permissions
+	// this is configurable via the set_group() function
+	m_groups.push_back(&full_perms);
+	m_groups.push_back(&read_perms);
+	struct timeval tv;
+	struct timezone tz;
+	gettimeofday(&tv, &tz);
+	srand(tv.tv_usec);
 }
 
-std::vector<std::string> auth::accounts() const
+std::vector<std::string> auth::users() const
 {
+	mutex::scoped_lock l(m_mutex);
+
 	std::vector<std::string> users;
 	for (std::map<std::string, account_t>::const_iterator i = m_accounts.begin()
 		, end(m_accounts.end()); i != end; ++i)
@@ -61,70 +79,50 @@ std::vector<std::string> auth::accounts() const
 	return users;
 }
 
-void auth::add_account(std::string const& user, std::string const& pwd, bool read_only)
+void auth::add_account(std::string const& user, std::string const& pwd, int group)
 {
+	mutex::scoped_lock l(m_mutex);
+
 	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
 	if (i == m_accounts.end())
 	{
 		account_t acct;
 		for (int i = 0; i < sizeof(acct.salt); ++i)
 			acct.salt[i] = rand();
-		acct.read_only = read_only;
+		acct.group = group;
 		acct.hash = acct.password_hash(pwd);
 		m_accounts.insert(std::make_pair(user, acct));
 	}
 	else
 	{
 		i->second.hash = i->second.password_hash(pwd);
-		i->second.read_only = read_only;
+		i->second.group = group;
 	}
 }
 
 void auth::remove_account(std::string const& user)
 {
+	mutex::scoped_lock l(m_mutex);
+
 	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
 	if (i == m_accounts.end()) return;
 	m_accounts.erase(i);
 }
 
-struct read_only_permissions : permissions_interface
+void auth::set_group(int g, permissions_interface const* perms)
 {
-	read_only_permissions() {}
-	bool allow_start() const { return false; }
-	bool allow_stop() const { return false; }
-	bool allow_recheck() const { return false; }
-	bool allow_list() const { return true; }
-	bool allow_add() const { return false; }
-	bool allow_remove() const { return false; }
-	bool allow_remove_data() const { return false; }
-	bool allow_queue_change() const { return false; }
-	bool allow_get_settings(int) const { return true; }
-	bool allow_set_settings(int) const { return false; }
-	bool allow_get_data() const { return true; }
-	bool allow_session_status() const { return true; }
-};
+	if (g < 0) return;
 
-struct full_permissions : permissions_interface
-{
-	full_permissions() {}
-	bool allow_start() const { return true; }
-	bool allow_stop() const { return true; }
-	bool allow_recheck() const { return true; }
-	bool allow_list() const { return true; }
-	bool allow_add() const { return true; }
-	bool allow_remove() const { return true; }
-	bool allow_remove_data() const { return true; }
-	bool allow_queue_change() const { return true; }
-	bool allow_get_settings(int) const { return true; }
-	bool allow_set_settings(int) const { return true; }
-	bool allow_get_data() const { return true; }
-	bool allow_session_status() const { return true; }
-};
+	mutex::scoped_lock l(m_mutex);
+
+	if (g >= m_groups.size())
+		m_groups.resize(g+1, &no_perms);
+	m_groups[g] = perms;
+}
 
 permissions_interface const* auth::find_user(std::string username, std::string password) const
 {
-	const static read_only_permissions read_perms;
-	const static full_permissions full_perms;
+	mutex::scoped_lock l(m_mutex);
 
 	std::map<std::string, account_t>::const_iterator i = m_accounts.find(username);
 	if (i == m_accounts.end()) return NULL;
@@ -132,19 +130,74 @@ permissions_interface const* auth::find_user(std::string username, std::string p
 	sha1_hash ph = i->second.password_hash(password);
 	if (ph != i->second.hash) return NULL;
 
-	return i->second.read_only
-		? (permissions_interface const*)&read_perms
-		: (permissions_interface const*)&full_perms;
+	if (i->second.group < 0 || i->second.group >= m_groups.size())
+		return &no_perms;
+
+	return m_groups[i->second.group];
 }
 
 sha1_hash auth::account_t::password_hash(std::string const& pwd) const
 {
 	hasher h;
-	if (pwd.size()) h.update(pwd);
 	h.update(salt, sizeof(salt));
+	if (pwd.size()) h.update(pwd);
 	sha1_hash ret = h.final();
 
 	return ret;
+}
+
+void auth::save_accounts(std::string const& filename, error_code& ec) const
+{
+	FILE* f = fopen(filename.c_str(), "w+");
+	if (f == NULL)
+	{
+		ec = error_code(errno, get_system_category());
+		return;
+	}
+
+	mutex::scoped_lock l(m_mutex);
+
+	for (std::map<std::string, account_t>::const_iterator i = m_accounts.begin()
+		, end(m_accounts.end()); i != end; ++i)
+	{
+		account_t const& a = i->second;
+		char salthash[21];
+		to_hex(a.salt, 10, salthash);
+		fprintf(f, "%s\t%s\t%s\t%d\n", i->first.c_str(), to_hex(a.hash.to_string()).c_str(), salthash, i->second.group);
+	}
+
+	fclose(f);
+}
+
+void auth::load_accounts(std::string const& filename, error_code& ec)
+{
+	FILE* f = fopen(filename.c_str(), "r");
+	if (f == NULL)
+	{
+		ec = error_code(errno, get_system_category());
+		return;
+	}
+
+	mutex::scoped_lock l(m_mutex);
+
+	m_accounts.clear();
+
+	char username[512];
+	char pwdhash[41];
+	char salt[21];
+	int group;
+
+	while (fscanf(f, "%512s\t%41s\t%21s\t%d\n", username, pwdhash, salt, &group) == 4)
+	{
+		account_t a;
+		if (!from_hex(pwdhash, 40, (char*)&a.hash[0])) continue;
+		if (!from_hex(salt, 20, a.salt)) continue;
+		if (group < 0) continue;
+		a.group = group;
+		m_accounts[username] = a;
+	}
+
+	fclose(f);
 }
 
 permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth)
