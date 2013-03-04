@@ -82,7 +82,7 @@ bool webui_base::handle_http(mg_connection* conn
 	return false;
 }
 
-void webui_base::start(int port, char const* cert_path)
+void webui_base::start(int port, char const* cert_path, int num_threads)
 {
 	if (m_ctx) mg_stop(m_ctx);
 
@@ -101,6 +101,11 @@ void webui_base::start(int port, char const* cert_path)
 	}
 	options[i++] = "listening_ports";
 	options[i++] = port_str;
+
+	char threads_str[20];
+	snprintf(threads_str, sizeof(threads_str), "%d", num_threads);
+	options[i++] = "num_threads";
+	options[i++] = threads_str;
 
 	m_ctx = mg_start(&::handle_http, this, options);
 	TORRENT_ASSERT(m_ctx);
