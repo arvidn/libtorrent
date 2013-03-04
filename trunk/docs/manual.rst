@@ -2351,8 +2351,6 @@ Its declaration looks like this::
 		boost::intrusive_ptr<torrent_info> torrent_file() const;
 		bool is_valid() const;
 
-		std::string name() const;
-
 		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
@@ -3228,7 +3226,9 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		}
 		
 		torrent_handle h = rd->handle;
-		std::ofstream out((h.status().save_path + "/" + h.torrent_file()->name() + ".fastresume").c_str()
+		torrent_status st = h.status(torrent_handle::query_save_path | torrent_handle::query_name);
+		std::ofstream out((st.save_path
+			+ "/" + st.name + ".fastresume").c_str()
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), *rd->resume_data);

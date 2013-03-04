@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
 		{
 			torrent_status st = i->status();
 			std::string const& progress = progress_bar(st.progress_ppm / 1000, 40);
-			std::string name = i->name();
+			std::string name = st.name;
 			if (name.size() > 70) name.resize(70);
 			std::string error = st.error;
 			if (error.size() > 40) error.resize(40);
