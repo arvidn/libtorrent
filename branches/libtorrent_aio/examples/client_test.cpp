@@ -1142,8 +1142,9 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), combine_path(".resume", libtorrent::filename(
-				hash_to_filename[h.info_hash()]) + ".resume")), out);
+			torrent_status st = h.status(torrent_handle::query_save_path);
+			save_file(combine_path(st.save_path, combine_path(".resume", libtorrent::filename(
+				hash_to_filename[st.info_hash]) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()
@@ -1871,48 +1872,22 @@ int main(int argc, char* argv[])
 				ses.async_add_torrent(p);
 			}
 
-			if (c == 'M')
-			{
-				printf("saving peers for torrents\n");
-
-				std::vector<peer_list_entry> peers;
-				std::vector<torrent_handle> torrents = ses.get_torrents();
-				for (std::vector<torrent_handle>::iterator i = torrents.begin();
-					i != torrents.end(); ++i)
-				{
-					i->get_full_peer_list(peers);
-					FILE* f = fopen(("peers_" + i->name()).c_str(), "w+");
-					if (!f) break;
-					for (std::vector<peer_list_entry>::iterator k = peers.begin()
-						, end(peers.end()); k != end; ++k)
-					{
-						fprintf(f, "%s\t%d\n", print_address(k->ip.address()).c_str()
-#ifndef TORRENT_DISABLE_GEO_IP
-							, ses.as_for_ip(k->ip.address())
-#else
-							, 0
-#endif
-							);
-					}
-				}
-			}
-
 			if (c == 'q') break;
 
 			if (c == 'D')
 			{
-				torrent_handle h = get_active_torrent(filtered_handles).handle;
-				if (h.is_valid())
+				torrent_status const& st = get_active_torrent(filtered_handles);
+				if (st.handle.is_valid())
 				{
 					printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
-						, h.name().c_str());
+						, st.name.c_str());
 					char response = 'n';
 					scanf("%c", &response);
 					if (response == 'y')
 					{
 						// also delete the .torrent file from the torrent directory
 						handles_t::iterator i = std::find_if(files.begin(), files.end()
-							, boost::bind(&handles_t::value_type::second, _1) == h);
+							, boost::bind(&handles_t::value_type::second, _1) == st.handle);
 						if (i != files.end())
 						{
 							error_code ec;
@@ -1923,8 +1898,8 @@ int main(int argc, char* argv[])
 							if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
 							files.erase(i);
 						}
-						if (h.is_valid())
-							ses.remove_torrent(h, session::delete_files);
+						if (st.handle.is_valid())
+							ses.remove_torrent(st.handle, session::delete_files);
 					}
 				}
 			}
@@ -2221,7 +2196,7 @@ int main(int argc, char* argv[])
 			if (s.paused) out += esc("34");
 			else out += esc("37");
 
-			std::string name = s.handle.name();
+			std::string name = s.name;
 			if (name.size() > 40) name.resize(40);
 			snprintf(str, sizeof(str), "%-40s %s ", name.c_str(), term);
 			out += str;
@@ -2452,7 +2427,7 @@ int main(int argc, char* argv[])
 				h.get_peer_info(peers);
 
 			out += "====== ";
-			out += h.name();
+			out += st->name;
 			out += " ======\n";
 
 			if (print_peers && !peers.empty())
@@ -2612,12 +2587,12 @@ int main(int argc, char* argv[])
 		}
 		if (!st.has_metadata)
 		{
-			printf("  skipping %s, no metadata\n", st.handle.name().c_str());
+			printf("  skipping %s, no metadata\n", st.name.c_str());
 			continue;
 		}
 		if (!st.need_save_resume)
 		{
-			printf("  skipping %s, resume file up-to-date\n", st.handle.name().c_str());
+			printf("  skipping %s, resume file up-to-date\n", st.name.c_str());
 			continue;
 		}
 
@@ -2669,10 +2644,11 @@ int main(int argc, char* argv[])
 			if (!rd->resume_data) continue;
 
 			torrent_handle h = rd->handle;
+			torrent_status st = h.status(torrent_handle::query_save_path);
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *rd->resume_data);
-			save_file(combine_path(h.save_path(), combine_path(".resume", libtorrent::filename(
-				hash_to_filename[h.info_hash()]) + ".resume")), out);
+			save_file(combine_path(st.save_path, combine_path(".resume", libtorrent::filename(
+				hash_to_filename[st.info_hash]) + ".resume")), out);
 		}
 	}
 
