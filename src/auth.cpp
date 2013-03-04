@@ -48,7 +48,6 @@ extern "C" {
 namespace libtorrent
 {
 
-const static no_permissions no_perms;
 const static read_only_permissions read_perms;
 const static full_permissions full_perms;
 
@@ -66,6 +65,10 @@ auth::auth()
 	srand(tv.tv_usec);
 }
 
+/**
+	Queries the object for users it currently recognizes.
+	\return a vector of usernames of all users currently in the account list
+*/
 std::vector<std::string> auth::users() const
 {
 	mutex::scoped_lock l(m_mutex);
@@ -79,6 +82,16 @@ std::vector<std::string> auth::users() const
 	return users;
 }
 
+/**
+	Adds an account to the account list. To determine the access permissions for
+	this user, user set_group() with the same group number to associate a permissions_interface
+	object.
+	\param user The user name of the new account. If the user already exists, its
+	            password and group number will be updated to the ones passed in.
+	\param pwd The password for this account.
+	\param group The group number for this account. Group numbers may not be negative,
+	             they should also be relatively small.
+*/
 void auth::add_account(std::string const& user, std::string const& pwd, int group)
 {
 	mutex::scoped_lock l(m_mutex);
@@ -100,6 +113,11 @@ void auth::add_account(std::string const& user, std::string const& pwd, int grou
 	}
 }
 
+/**
+	Remove an account from the account list.
+	\param user the username of the account to remove. If there is not
+	            account with this name, nothing is done.
+*/
 void auth::remove_account(std::string const& user)
 {
 	mutex::scoped_lock l(m_mutex);
@@ -109,6 +127,14 @@ void auth::remove_account(std::string const& user)
 	m_accounts.erase(i);
 }
 
+/**
+	Set permissions for a group.
+	\param g The group number to update permissions for.
+	\param perms A pointer to an object implementing the permissions_interface.
+	             It is the callers responsibility to make sure this object
+	             stays alive for as long as it is in use. It may be a good idea
+	             to allocate permission objects statically.
+*/
 void auth::set_group(int g, permissions_interface const* perms)
 {
 	if (g < 0) return;
@@ -116,10 +142,18 @@ void auth::set_group(int g, permissions_interface const* perms)
 	mutex::scoped_lock l(m_mutex);
 
 	if (g >= m_groups.size())
-		m_groups.resize(g+1, &no_perms);
+		m_groups.resize(g+1, NULL);
 	m_groups[g] = perms;
 }
 
+/**
+	Finds appropriate permissions for the given user. If authentication fails, or the user
+	doesn't exist, NULL is returned, which is interpreted as authentication failure.
+	\param username The username to authenticate
+	\param password The password for this user
+	\return The permissions_interface appropriate for this user's access permissions, or NULL
+	        if authentication failed.
+*/
 permissions_interface const* auth::find_user(std::string username, std::string password) const
 {
 	mutex::scoped_lock l(m_mutex);
@@ -131,7 +165,7 @@ permissions_interface const* auth::find_user(std::string username, std::string p
 	if (ph != i->second.hash) return NULL;
 
 	if (i->second.group < 0 || i->second.group >= m_groups.size())
-		return &no_perms;
+		return NULL;
 
 	return m_groups[i->second.group];
 }
@@ -146,6 +180,11 @@ sha1_hash auth::account_t::password_hash(std::string const& pwd) const
 	return ret;
 }
 
+/**
+  Save the accounts in the account list to disk.
+  \param filename The file to save the accounts to. If the file exists, it will be overwritten.
+  \param ec The error code descibing the error, if the function fails
+*/
 void auth::save_accounts(std::string const& filename, error_code& ec) const
 {
 	FILE* f = fopen(filename.c_str(), "w+");
@@ -169,6 +208,11 @@ void auth::save_accounts(std::string const& filename, error_code& ec) const
 	fclose(f);
 }
 
+/**
+	Load accounts from disk.
+	\param filename The filename of the file to load accounts from.
+	\param ec The error code describing the error if the function fail.
+*/
 void auth::load_accounts(std::string const& filename, error_code& ec)
 {
 	FILE* f = fopen(filename.c_str(), "r");
@@ -200,6 +244,13 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 	fclose(f);
 }
 
+/**
+	Parses the basic authorization header from a mongoose connection and queries the
+	provided auth_interface for a permissions object.
+	\param conn the mongoos connection object
+	\param auth the auth_interface object
+	\return the permission object appropriate for the user, or NULL in case authentication failed.
+*/
 permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth)
 {
 	std::string user;

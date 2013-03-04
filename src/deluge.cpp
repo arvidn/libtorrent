@@ -248,33 +248,13 @@ void deluge::incoming_rpc(deluge::conn_state* st)
 	output_error(tokens[1].integer(buf), "unknown method", out);
 }
 
-struct full_permissions : permissions_interface
-{
-	full_permissions() {}
-	bool allow_start() const { return true; }
-	bool allow_stop() const { return true; }
-	bool allow_recheck() const { return true; }
-	bool allow_list() const { return true; }
-	bool allow_add() const { return true; }
-	bool allow_remove() const { return true; }
-	bool allow_remove_data() const { return true; }
-	bool allow_queue_change() const { return true; }
-	bool allow_get_settings(int) const { return true; }
-	bool allow_set_settings(int) const { return true; }
-	bool allow_get_data() const { return true; }
-	bool allow_session_status() const { return true; }
-};
-
 void deluge::handle_login(conn_state* st)
 {
 	rencoder& out = *st->out;
 	char const* buf = st->buf;
 	rtok_t const*tokens = st->tokens;
 
-//#error temp
-	//st->perms = m_auth->find_user(...);
-	const static full_permissions n;
-	st->perms = &n;
+	st->perms = m_auth->find_user(...);
 
 	int id = tokens[1].integer(buf);
 

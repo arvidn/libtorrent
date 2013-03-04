@@ -48,6 +48,14 @@ namespace libtorrent
 {
 	permissions_interface const* parse_http_auth(mg_connection* conn, auth_interface const* auth);
 
+	/**
+		Implements simple access control. Users can be added, removed, saved and load from
+		a plain text file. Access permissions are controlled via groups. There are two default
+		groups. 0=full access, 1=read-only access. Groups can be re-definied using the set_group()
+		function. Any user belonging to an undefined group will be denied any access.
+
+		This object is thread safe. It is synchronized internally.
+	*/
 	struct auth : auth_interface
 	{
 		auth();
