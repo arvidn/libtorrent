@@ -57,6 +57,7 @@ extern "C" {
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
 #include "libtorrent/escape_string.hpp" // for unescape_string
+#include "libtorrent/string_util.hpp" // for string_begins_no_case
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp"
 #include "escape_json.hpp"
@@ -154,15 +155,6 @@ void return_error(mg_connection* conn)
 
 bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
 {
-	permissions_interface const* perms = parse_http_auth(conn, m_auth);
-	if (!perms)
-	{
-		mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
-			"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
-			"Content-Length: 0\r\n\r\n");
-		return true;
-	}
-
 	// redirect to /gui/
 	if (strcmp(request_info->uri, "/gui") == 0
 		|| (strcmp(request_info->uri, "/gui/") == 0
@@ -171,6 +163,18 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		mg_printf(conn, "HTTP/1.1 301 Moved Permanently\r\n"
 			"Content: close\r\n"
 			"Location: /gui/index.html\r\n\r\n");
+		return true;
+	}
+
+	// we only provide access to paths under /gui
+	if (!string_begins_no_case("/gui/", request_info->uri)) return false;
+
+	permissions_interface const* perms = parse_http_auth(conn, m_auth);
+	if (!perms)
+	{
+		mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
+			"WWW-Authenticate: Basic realm=\"BitTorrent\"\r\n"
+			"Content-Length: 0\r\n\r\n");
 		return true;
 	}
 
@@ -190,7 +194,6 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		return true;
 	}
 
-	// all other requests use the path /gui/ with varying query strings
 	if (strcmp(request_info->uri, "/gui/") != 0) return false;
 
 	if (request_info->query_string == NULL)
