@@ -1228,7 +1228,7 @@ namespace libtorrent
 			// get to download again after the disk has been
 			// blocked
 			connection_map::iterator m_next_disk_peer;
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 			void check_invariant() const;
 #endif
 

@@ -212,7 +212,7 @@ namespace libtorrent
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, 0, ec.ec);
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write | file::random_access, ec.ec);
 				if (ec || !f)
 				{
 					ec.file = i;
@@ -240,7 +240,7 @@ namespace libtorrent
 				if (exists(combine_path(m_save_path, fp)))
 					new_prio = 1;
 /*
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only, 0, ec.ec);
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only | file::random_access, ec.ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
 					if (ec || !f)
@@ -346,7 +346,7 @@ namespace libtorrent
 					}
 				}
 				ec.ec.clear();
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, 0, ec.ec);
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write | file::random_access, ec.ec);
 				if (ec || !f)
 				{
 					ec.file = file_index;
@@ -602,7 +602,7 @@ namespace libtorrent
 		}
 	
 		error_code ec;
-		boost::intrusive_ptr<file> file_handle = open_file(file_iter, file::read_only, 0, ec);
+		boost::intrusive_ptr<file> file_handle = open_file(file_iter, file::read_only, ec);
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
@@ -870,7 +870,8 @@ namespace libtorrent
 		, int slot, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::readv
-			, m_settings ? settings().get_int(settings_pack::disk_io_read_mode) : 0, file::read_only };
+			, m_settings ? settings().get_int(settings_pack::disk_io_read_mode) : 0
+			, file::read_only | flags };
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
@@ -882,7 +883,8 @@ namespace libtorrent
 		, int slot, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::writev
-			, m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0, file::read_write };
+			, m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0
+			, file::read_write | flags };
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
@@ -956,7 +958,7 @@ namespace libtorrent
 
 			if (file_iter->pad_file)
 			{
-				if (op.mode == file::read_only)
+				if ((op.mode & file::rw_mask) == file::read_only)
 				{
 					int num_tmp_bufs = copy_bufs(current_buf, file_bytes_left, tmp_bufs);
 					TORRENT_ASSERT(count_bufs(tmp_bufs, file_bytes_left) == num_tmp_bufs);
@@ -975,7 +977,7 @@ namespace libtorrent
 			int bytes_transferred = 0;
 			error_code e;
 
-			if (op.mode == file::read_write)
+			if ((op.mode & file::rw_mask) == file::read_write)
 			{
 				// invalidate our stat cache for this file, since
 				// we're writing to it
@@ -987,7 +989,7 @@ namespace libtorrent
 			{
 				need_partfile();
 
-				if (op.mode == file::read_write)
+				if ((op.mode & file::rw_mask) == file::read_write)
 				{
 					// write
 					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs, slot, offset, e);
@@ -1000,8 +1002,8 @@ namespace libtorrent
 			}
 			else
 			{
-				file_handle = open_file(file_iter, op.mode, op.flags, e);
-				if ((op.mode == file::read_write) && e == boost::system::errc::no_such_file_or_directory)
+				file_handle = open_file(file_iter, op.mode, e);
+				if (((op.mode & file::rw_mask) == file::read_write) && e == boost::system::errc::no_such_file_or_directory)
 				{
 					// this means the directory the file is in doesn't exist.
 					// so create it
@@ -1010,7 +1012,7 @@ namespace libtorrent
 					create_directories(parent_path(path), e);
 					// if the directory creation failed, don't try to open the file again
 					// but actually just fail
-					if (!e) file_handle = open_file(file_iter, op.mode, op.flags, e);
+					if (!e) file_handle = open_file(file_iter, op.mode, e);
 				}
 
 				if (!file_handle || e)
@@ -1023,7 +1025,7 @@ namespace libtorrent
 
 				size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
 				bytes_transferred = (int)((*file_handle).*op.op)(adjusted_offset
-					, tmp_bufs, num_tmp_bufs, e, op.flags);
+					, tmp_bufs, num_tmp_bufs, e, op.mode);
 				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
 			}
 			file_offset = 0;
@@ -1032,7 +1034,7 @@ namespace libtorrent
 			{
 				ec.ec = e;
 				ec.file = file_iter - files().begin();
-				ec.operation = op.mode == file::read_only ? storage_error::read : storage_error::write;
+				ec.operation = (op.mode & file::rw_mask) == file::read_only ? storage_error::read : storage_error::write;
 				return -1;
 			}
 
@@ -1047,11 +1049,8 @@ namespace libtorrent
 
 
 	boost::intrusive_ptr<file> default_storage::open_file(file_storage::iterator fe, int mode
-		, int flags, error_code& ec) const
+		, error_code& ec) const
 	{
-		if (!(flags & file::sequential_access))
-			mode |= file::random_access;
-
 		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
 		if (lock_files) mode |= file::lock_file;
 		if (!m_allocate_files) mode |= file::sparse;

@@ -117,6 +117,10 @@ namespace libtorrent
 			// this setting is ignored.
 			mmap_cache,
 
+			// this is the client name and version identifier sent to peers in the handshake
+			// message. If this is an empty string, the user_agent is used instead
+			handshake_client_version,
+
 			max_string_setting_internal,
 			num_string_settings = max_string_setting_internal - string_type_base
 		};
@@ -499,7 +503,7 @@ namespace libtorrent
 			// disk cache.
 			allow_partial_disk_writes,
 
-			// disables any communication that's not going over a proxy.
+			// If true, disables any communication that's not going over a proxy.
 			// Enabling this requires a proxy to be configured as well, see ``set_proxy_settings``.
 			// The listen sockets are closed, and incoming connections will
 			// only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
@@ -507,6 +511,17 @@ namespace libtorrent
 			// disabled peer country lookups, since those are done via DNS lookups that
 			// aren't supported by proxies.
 			force_proxy,
+
+			// if false, prevents libtorrent to advertise share-mode support
+			support_share_mode,
+
+			// if this is false, don't advertise support for
+			// the Tribler merkle tree piece message
+			support_merkle_torrents,
+
+			// if this is true, the number of redundant bytes
+			// is sent to the tracker
+			report_redundant_bytes,
 
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base

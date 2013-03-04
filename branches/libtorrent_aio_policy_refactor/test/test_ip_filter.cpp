@@ -59,16 +59,26 @@ bool compare(ip_range<Addr> const& lhs
 
 #define IP(x) address::from_string(x, ec)
 #define IP4(x) address_v4::from_string(x, ec)
+#define IP6(x) address_v6::from_string(x, ec)
 
-void test_rules_invariant(std::vector<ip_range<address_v4> > const& r, ip_filter const& f)
+template <class T>
+void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f)
 {
-	typedef std::vector<ip_range<address_v4> >::const_iterator iterator;
+	typedef typename std::vector<ip_range<T> >::const_iterator iterator;
 	TEST_CHECK(!r.empty());
 	if (r.empty()) return;
 
 	error_code ec;
-	TEST_CHECK(r.front().first == IP("0.0.0.0"));
-	TEST_CHECK(r.back().last == IP("255.255.255.255"));
+	if (sizeof(r.front().first) == sizeof(address_v4))
+	{
+		TEST_CHECK(r.front().first == IP("0.0.0.0"));
+		TEST_CHECK(r.back().last == IP("255.255.255.255"));
+	}
+	else
+	{
+		TEST_CHECK(r.front().first == IP("::0"));
+		TEST_CHECK(r.back().last == IP("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+	}
 	
 	iterator i = r.begin();
 	iterator j = boost::next(i);
@@ -77,7 +87,7 @@ void test_rules_invariant(std::vector<ip_range<address_v4> > const& r, ip_filter
 	{
 		TEST_CHECK(f.access(i->last) == i->flags);
 		TEST_CHECK(f.access(j->first) == j->flags);
-		TEST_CHECK(i->last.to_ulong() + 1 == j->first.to_ulong());
+		TEST_CHECK(detail::plus_one(i->last.to_bytes()) == j->first.to_bytes());
 	}
 }
 
@@ -231,7 +241,33 @@ int test_main()
 	
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare<address_v4>));
 
+	}
+
+	// **** test IPv6 ****
+
+#if TORRENT_USE_IPV6
+
+	ip_range<address_v6> expected2[] =
+	{
+		{IP6("::0"), IP6("0:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
+		, {IP6("1::"), IP6("3::"), ip_filter::blocked}
+		, {IP6("3::1"), IP6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
+	};
+	
+	{
+		ip_filter f;
+		f.add_rule(IP("2::1"), IP("3::"), ip_filter::blocked);
+		f.add_rule(IP("1::"), IP("2::"), ip_filter::blocked);
+
+		std::vector<ip_range<address_v6> > range;
+		range = boost::get<1>(f.export_filter());
+		test_rules_invariant(range, f);
+
+		TEST_CHECK(range.size() == 3);
+		TEST_CHECK(std::equal(range.begin(), range.end(), expected2, &compare<address_v6>));
+
 	}	
+#endif
 
 	port_filter pf;
 

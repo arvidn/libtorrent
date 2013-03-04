@@ -1416,6 +1416,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
+			// TODO: 3 use vm_copy here, if available, and if buffers are aligned
 			memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
 			offset += bufs[i].iov_len;
 		}
@@ -1426,6 +1427,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
+			// TODO: 3 use vm_copy here, if available, and if buffers are aligned
 			memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);
 			offset += bufs[i].iov_len;
 		}

@@ -100,30 +100,34 @@ namespace libtorrent
 			, num_job_ids
 		};
 
-		// these flags coexist with flags from file class
 		enum flags_t
 		{
+			sequential_access = 0x1,
+
 			// this flag is set on a job when a read operation did
 			// not hit the disk, but found the data in the read cache.
-			cache_hit = 0x100,
+			cache_hit = 0x2,
 
 			// force making a copy of the cached block, rather
 			// than getting a reference to the block already in
 			// the cache.
-			force_copy = 0x200,
+			force_copy = 0x4,
 
 			// this is set by the storage object when a fence is raised
 			// for this job. It means that this no other jobs on the same
 			// storage will execute in parallel with this one. It's used
 			// to lower the fence when the job has completed
-			fence = 0x400,
+			fence = 0x8,
 
 			// don't keep the read block in cache
-			volatile_read = 0x800,
+			volatile_read = 0x10,
 
 			// this job is currently being performed, or it's hanging
 			// on a cache piece that may be flushed soon
-			in_progress = 0x1000,
+			in_progress = 0x20,
+
+			// turns into file::coalesce_buffers in the file operation
+			coalesce_buffers = 0x40,
 		};
 
 		// for write jobs, returns true if its block
@@ -198,7 +202,7 @@ namespace libtorrent
 		boost::int32_t ret;
 
 		// flags controlling this job
-		boost::uint16_t flags;
+		boost::uint8_t flags;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool in_use:1;

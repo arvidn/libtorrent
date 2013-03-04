@@ -2360,7 +2360,7 @@ namespace libtorrent
 		{
 			inc_refcount();
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
-				, file::sequential_access | disk_io_job::volatile_read
+				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
 					, shared_from_this(), _1), (void*)1);
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
@@ -2461,7 +2461,7 @@ namespace libtorrent
 
 			if (!need_loaded()) return;
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
-				, file::sequential_access | disk_io_job::volatile_read
+				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
 					, shared_from_this(), _1), (void*)1);
 			return;
@@ -2667,14 +2667,6 @@ namespace libtorrent
 
 		req.event = e;
 		error_code ec;
-		if (!m_ses.settings().get_bool(settings_pack::anonymous_mode))
-		{
-			tcp::endpoint ep;
-			ep = m_ses.get_ipv6_interface();
-			if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_string(ec);
-			ep = m_ses.get_ipv4_interface();
-			if (ep != tcp::endpoint()) req.ipv4 = ep.address().to_string(ec);
-		}
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
@@ -4049,6 +4041,31 @@ namespace libtorrent
 		m_picker->piece_failed(j->piece);
 
 		TORRENT_ASSERT(m_picker->have_piece(j->piece) == false);
+
+		// loop over all peers and re-request potential duplicate
+		// blocks to this piece
+		for (std::vector<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			peer_connection* p = *i;
+			std::vector<pending_block> const& dq = p->download_queue();
+			std::vector<pending_block> const& rq = p->request_queue();
+			for (std::vector<pending_block>::const_iterator k = dq.begin()
+				, end(dq.end()); k != end; ++k)
+			{
+				if (k->timed_out || k->not_wanted) continue;
+				if (int(k->block.piece_index) != j->piece) continue;
+				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
+					, (piece_picker::piece_state_t)p->peer_speed());
+			}
+			for (std::vector<pending_block>::const_iterator k = rq.begin()
+				, end(rq.end()); k != end; ++k)
+			{
+				if (int(k->block.piece_index) != j->piece) continue;
+				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
+					, (piece_picker::piece_state_t)p->peer_speed());
+			}
+		}
 	}
 
 	void torrent::peer_has(int index, peer_connection const* peer)
@@ -5323,6 +5340,10 @@ namespace libtorrent
 		error_code ec;
 		boost::tie(protocol, auth, hostname, port, path)
 			= parse_url_components(web->url, ec);
+		if (port == -1)
+		{
+			port = protocol == "http" ? 80 : 443;
+		}
 
 		if (ec)
 		{
@@ -5501,8 +5522,10 @@ namespace libtorrent
 		std::string hostname;
 		int port;
 		error_code ec;
-		boost::tie(ignore, ignore, hostname, port, ignore)
+		std::string protocol;
+		boost::tie(protocol, ignore, hostname, port, ignore)
 			= parse_url_components(web->url, ec);
+		if (port == -1) port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
@@ -7558,7 +7581,7 @@ namespace libtorrent
 		return m_ses.settings();
 	}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
 		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + aux::session_interface::num_checking_torrents
@@ -7631,7 +7654,7 @@ namespace libtorrent
 			peer_connection const& p = *(*i);
 			for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 				, end(p.request_queue().end()); i != end; ++i)
-				++num_requests[i->block];
+				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
 			for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
 				, end(p.download_queue().end()); i != end; ++i)
 				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
@@ -7667,7 +7690,14 @@ namespace libtorrent
 							for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 								, end(p.request_queue().end()); i != end; ++i)
 							{
-								fprintf(stderr, "  (%d, %d) skipped: %d %s %s %s\n", i->block.piece_index
+								fprintf(stderr, "  rq: (%d, %d) skipped: %d %s %s %s\n", i->block.piece_index
+									, i->block.block_index, int(i->skipped), i->not_wanted ? "not-wanted" : ""
+									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
+							}
+							for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
+								, end(p.download_queue().end()); i != end; ++i)
+							{
+								fprintf(stderr, "  dq: (%d, %d) skipped: %d %s %s %s\n", i->block.piece_index
 									, i->block.block_index, int(i->skipped), i->not_wanted ? "not-wanted" : ""
 									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
 							}
@@ -9641,6 +9671,15 @@ namespace libtorrent
 		st->handle = get_handle();
 		st->info_hash = info_hash();
 		st->is_loaded = is_loaded();
+
+		if (flags & torrent_handle::query_name)
+			st->name = name();
+
+		if (flags & torrent_handle::query_save_path)
+			st->save_path = save_path();
+
+		if (flags & torrent_handle::query_torrent_file)
+			st->torrent_file = m_torrent_file;
 
 		st->listen_port = 0;
 #ifdef TORRENT_USE_OPENSSL

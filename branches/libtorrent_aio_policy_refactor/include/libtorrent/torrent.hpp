@@ -793,7 +793,7 @@ namespace libtorrent
 #endif
 
 		// DEBUG
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 

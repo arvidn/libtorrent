@@ -61,7 +61,34 @@ EXTRA_DIST = Jamfile \
   test_torrents/url_list3.torrent \
   test_torrents/httpseed.torrent \
   test_torrents/empty_httpseed.torrent \
-  test_torrents/long_name.torrent
+  test_torrents/long_name.torrent \
+  test_torrents/whitespace_url.torrent \
+  test_torrents/duplicate_files.torrent \
+  test_torrents/invalid_piece_len.torrent \
+  test_torrents/missing_piece_len.torrent \
+  test_torrents/negative_piece_len.torrent \
+  test_torrents/no_name.torrent \
+  test_torrents/invalid_name.torrent \
+  test_torrents/invalid_name2.torrent \
+  test_torrents/invalid_info.torrent \
+  test_torrents/string.torrent \
+  test_torrents/negative_size.torrent \
+  test_torrents/negative_file_size.torrent \
+  test_torrents/pad_file.torrent \
+  test_torrents/invalid_path_list.torrent \
+  test_torrents/missing_path_list.torrent \
+  test_torrents/invalid_pieces.torrent \
+  test_torrents/unaligned_pieces.torrent \
+  test_torrents/creation_date.torrent \
+  test_torrents/no_creation_date.torrent \
+  test_torrents/url_seed.torrent \
+  test_torrents/url_seed_multi.torrent \
+  test_torrents/url_seed_multi_space.torrent \
+  test_torrents/url_seed_multi_space_nolist.torrent \
+  test_torrents/invalid_root_hash.torrent \
+  test_torrents/invalid_root_hash2.torrent \
+  test_torrents/root_hash.torrent \
+  test_torrents/invalid_file_size.torrent
 
 EXTRA_PROGRAMS = $(test_programs)
 

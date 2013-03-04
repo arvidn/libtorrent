@@ -189,14 +189,14 @@ namespace libtorrent
 	{
 		enum
 		{
-			read_only = 0,
-			write_only = 1,
-			read_write = 2,
+			read_only = 0x0,
+			write_only = 0x1,
+			read_write = 0x2,
 			rw_mask = read_only | write_only | read_write,
-			sparse = 4,
-			no_atime = 8,
-			random_access = 16,
-			lock_file = 32,
+			sparse = 0x4,
+			no_atime = 0x8,
+			random_access = 0x10,
+			lock_file = 0x20,
 
 			// don't put any pressure on the OS disk cache
 			// because of access to this file. We expect our
@@ -204,14 +204,17 @@ namespace libtorrent
 			// a cache at the bittorrent block level. This
 			// may improve overall system performance by
 			// leaving running applications in the page cache
-			no_cache = 64,
+			no_cache = 0x40,
 
 			// this corresponds to Linux' O_DIRECT flag
 			// and may impose alignment restrictions
-			direct_io = 128,
+			direct_io = 0x80,
 
-			attribute_hidden = 0x1000,
-			attribute_executable = 0x2000,
+			// this is only used for readv/writev flags
+			coalesce_buffers = 0x100,
+
+			attribute_hidden = 0x200,
+			attribute_executable = 0x400,
 			attribute_mask = attribute_hidden | attribute_executable
 		};
 
@@ -243,12 +246,6 @@ namespace libtorrent
 		bool set_size(size_type size, error_code& ec);
 
 		int open_mode() const { return m_open_mode; }
-
-		// flags for writev and readv
-		enum {
-			coalesce_buffers = 1,
-			sequential_access = 2
-		};
 
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs
 			, error_code& ec, int flags = 0);

@@ -1001,6 +1001,22 @@ namespace libtorrent
 		// http_connection maximum receive buffer size
 		// limits torrent file size for URL torrents
 		int max_http_recv_buffer_size;
+
+		// enables/disables the share-mode extension
+		bool support_share_mode;
+
+		// if this is false, don't advertise support for
+		// the Tribler merkle tree piece message
+		bool support_merkle_torrents;
+
+		// if this is true, the number of redundant bytes
+		// is sent to the tracker
+		bool report_redundant_bytes;
+
+		// the version string to advertise for this client
+		// in the peer protocol handshake. If this is empty
+		// the user_agent is used
+		std::string handshake_client_version;
 	};
 #endif
 

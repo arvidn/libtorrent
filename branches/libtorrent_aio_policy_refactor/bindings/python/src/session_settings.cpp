@@ -176,6 +176,10 @@ void bind_session_settings()
         .def_readwrite("tracker_backoff", &session_settings::tracker_backoff)
         .def_readwrite("ban_web_seeds", &session_settings::ban_web_seeds)
         .def_readwrite("max_http_recv_buffer_size", &session_settings::max_http_recv_buffer_size)
+		  .def_readwrite("support_share_mode", &session_settings::support_share_mode)
+		  .def_readwrite("support_merkle_torrents", &session_settings::support_merkle_torrents)
+		  .def_readwrite("handshake_client_version", &session_settings::handshake_client_version)
+		  .def_readwrite("report_redundant_bytes", &session_settings::report_redundant_bytes)
     ;
 
     enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")

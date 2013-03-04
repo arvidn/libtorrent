@@ -96,6 +96,15 @@ namespace libtorrent
 		delete a;
 	}
 
+	static int file_flags_for_job(disk_io_job* j)
+	{
+		int ret = 0;
+
+		if (!(j->flags & disk_io_job::sequential_access)) ret |= file::random_access;
+		if (j->flags & disk_io_job::coalesce_buffers) ret |= file::coalesce_buffers;
+		return ret;
+	}
+
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
@@ -1202,7 +1211,15 @@ namespace libtorrent
 		{
 			mutex::scoped_lock l(m_cache_mutex);
 
-			cached_piece_entry* pe = m_disk_cache.add_dirty_block(j);
+			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			if (pe && pe->hashing_done)
+			{
+				j->error.ec = error::operation_aborted;
+				j->error.operation = storage_error::write;
+				return -1;
+			}
+
+			pe = m_disk_cache.add_dirty_block(j);
 
 			if (pe)
 			{
@@ -1782,6 +1799,7 @@ namespace libtorrent
 		int piece_size = j->storage->files()->piece_size(j->piece);
 		int block_size = m_disk_cache.block_size();
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
+		int file_flags = file_flags_for_job(j);
 
 		file::iovec_t iov;
 		iov.iov_base = m_disk_cache.allocate_buffer("hashing");
@@ -1797,7 +1815,7 @@ namespace libtorrent
 
 			iov.iov_len = (std::min)(block_size, piece_size - offset);
 			ret = j->storage->get_storage_impl()->readv(&iov, 1, j->piece
-				, offset, j->flags, j->error);
+				, offset, file_flags, j->error);
 			if (ret < 0) break;
 
 			if (!j->error.ec)
@@ -1828,6 +1846,7 @@ namespace libtorrent
 			return do_uncached_hash(j);
 
 		int piece_size = j->storage->files()->piece_size(j->piece);
+		int file_flags = file_flags_for_job(j);
 
 		mutex::scoped_lock l(m_cache_mutex);
 
@@ -1984,7 +2003,7 @@ namespace libtorrent
 
 				TORRENT_ASSERT(ph->offset == i * block_size);
 				ret = j->storage->get_storage_impl()->readv(&iov, 1, j->piece
-						, ph->offset, j->flags, j->error);
+						, ph->offset, file_flags, j->error);
 
 				if (ret < 0)
 				{
@@ -2142,6 +2161,7 @@ namespace libtorrent
 			|| m_settings.get_bool(settings_pack::use_read_cache) == false)
 			return 0;
 
+		int file_flags = file_flags_for_job(j);
 
 		mutex::scoped_lock l(m_cache_mutex);
 
@@ -2201,7 +2221,7 @@ namespace libtorrent
 			ptime start_time = time_now_hires();
 
 			ret = j->storage->get_storage_impl()->readv(&iov, 1, j->piece
-				, offset, j->flags, j->error);
+				, offset, file_flags, j->error);
 
 			if (ret < 0)
 			{
@@ -2796,7 +2816,7 @@ namespace libtorrent
 		if (uncork) uncork->do_delayed_uncork();
 	}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void disk_io_thread::check_invariant() const
 	{
 	}

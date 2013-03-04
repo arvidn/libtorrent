@@ -247,8 +247,10 @@ namespace libtorrent
 			return url;
 
 		char msg[TORRENT_MAX_PATH*4];
-		snprintf(msg, sizeof(msg), "%s://%s%s%s:%d%s", protocol.c_str(), auth.c_str()
-			, auth.empty()?"":"@", host.c_str(), port
+		snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
+			, auth.empty()?"":"@", host.c_str()
+			, port == -1 ? "" : ":"
+			, port == -1 ? "" : to_string(port).elems
 			, escape_path(path.c_str(), path.size()).c_str());
 		return msg;
 	}
@@ -485,7 +487,7 @@ namespace libtorrent
 		*out = '\0';
 	}
 
-	int hex_to_int(char in)
+	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
 	{
 		if (in >= '0' && in <= '9') return int(in) - '0';
 		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;

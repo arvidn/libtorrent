@@ -833,7 +833,7 @@ namespace libtorrent
 		else
 		{
 			std::pair<iterator, iterator> range = find_peers(p->address());
-			TORRENT_ASSERT(range.second - range.first == 1);
+			TORRENT_ASSERT(std::distance(range.first, range.second) == 1);
 		}
 #endif
 
@@ -1360,7 +1360,7 @@ namespace libtorrent
 	}
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void policy::check_invariant() const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1397,7 +1397,7 @@ namespace libtorrent
 			if (!m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 			{
 				std::pair<const_iterator, const_iterator> range = find_peers(p.address());
-				TORRENT_ASSERT(range.second - range.first == 1);
+				TORRENT_ASSERT(std::distance(range.first, range.second) == 1);
 			}
 			else
 			{

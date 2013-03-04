@@ -114,6 +114,7 @@ namespace libtorrent
 		SET(user_agent, "libtorrent/"LIBTORRENT_VERSION, &session_impl::update_user_agent),
 		SET(announce_ip, 0, 0),
 		SET(mmap_cache, 0, 0),
+		SET(handshake_client_version, 0, 0),
 	};
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
@@ -176,6 +177,9 @@ namespace libtorrent
 		SET(ban_web_seeds, true, 0),
 		SET_NOPREV(allow_partial_disk_writes, true, 0),
 		SET(force_proxy, false, &session_impl::update_force_proxy),
+		SET(support_share_mode, true, 0),
+		SET(support_merkle_torrents, true, 0),
+		SET(report_redundant_bytes, true, 0),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =

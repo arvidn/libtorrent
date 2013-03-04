@@ -16,6 +16,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* include name, save_path and torrent_file in torrent_status, for improved performance
 	* separate anonymous mode and force-proxy mode, and tighten it up a bit
 	* add per-tracker scrape information to announce_entry
 	* report errors in read_piece_alert
@@ -32,6 +33,12 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* distinguish file open mode when checking files and downloading/seeding with bittorrent. updates storage interface
+	* improve file_storage::map_file when dealing with invalid input
+	* improve handling of invalid utf-8 sequences in strings in torrent files
+	* handle more cases of broken .torrent files
+	* fix bug filename collision resolver
+	* fix bug in filename utf-8 verification
 	* make need_save_resume() a bit more robust
 	* fixed sparse flag manipulation on windows
 	* fixed streaming piece picking issue

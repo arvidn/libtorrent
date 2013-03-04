@@ -116,7 +116,7 @@ namespace libtorrent
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "new piece_picker" << std::endl;
 #endif
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_invariant();
 #endif
 	}
@@ -365,8 +365,10 @@ namespace libtorrent
 		}
 		std::cerr << std::endl;
 	}
-#endif
+#endif // TORRENT_PIECE_PICKER
+#endif // TORRENT_DEBUG
 
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void piece_picker::check_invariant(const torrent* t) const
 	{
 #ifndef TORRENT_DEBUG_REFCOUNTS
