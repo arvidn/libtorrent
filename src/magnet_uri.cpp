@@ -47,9 +47,10 @@ namespace libtorrent
 		char ret[1024];
 		sha1_hash const& ih = handle.info_hash();
 		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, base32encode(std::string((char const*)&ih[0], 20)).c_str());
+			, to_hex(ih.to_string()).c_str());
 
-		std::string name = handle.name();
+		torrent_status st = handle.status(torrent_handle::query_name);
+		std::string name = st.name;
 
 		if (!name.empty())
 			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
@@ -71,7 +72,7 @@ namespace libtorrent
 		char ret[1024];
 		sha1_hash const& ih = info.info_hash();
 		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, base32encode(std::string((char*)&ih[0], 20)).c_str());
+			, to_hex(ih.to_string()).c_str());
 
 		std::string const& name = info.name();
 
