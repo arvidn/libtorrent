@@ -95,7 +95,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
 	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash2.torrent", errors::torrent_invalid_hashes },
+	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces},
 	{ "invalid_file_size.torrent", errors::torrent_file_parse_failed },
 };
 
