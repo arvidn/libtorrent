@@ -3818,7 +3818,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
-		TORRENT_ASSERT(m_storage->refcount() > 0);
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
 	  	TORRENT_ASSERT(index < m_torrent_file->num_pieces());
@@ -3846,7 +3845,8 @@ namespace libtorrent
 		add_failed_bytes(m_torrent_file->piece_size(index));
 
 		std::vector<void*> downloaders;
-		m_picker->get_downloaders(downloaders, index);
+		if (m_picker)
+			m_picker->get_downloaders(downloaders, index);
 
 		// decrease the trust point of all peers that sent
 		// parts of this piece.
