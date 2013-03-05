@@ -570,7 +570,6 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		{
 			// TODO: store this in some session-specific store, so multiple
 			// users don't clobber each other
-			if (!p->allow_set_settings(-1)) continue;
 			m_webui_cookie = value;
 			if (m_settings) m_settings->set_str("ut_webui_cookie", value);
 		}
