@@ -1095,10 +1095,9 @@ namespace libtorrent
 		files.set_num_pieces(int((files.total_size() + files.piece_length() - 1)
 			/ files.piece_length()));
 
-		lazy_entry const* pieces = info.dict_find("pieces");
-		lazy_entry const* root_hash = info.dict_find("root hash");
-		if ((pieces == 0 || pieces->type() != lazy_entry::string_t)
-			&& (root_hash == 0 || root_hash->type() != lazy_entry::string_t))
+		lazy_entry const* pieces = info.dict_find_string("pieces");
+		lazy_entry const* root_hash = info.dict_find_string("root hash");
+		if (pieces == 0 && root_hash == 0)
 		{
 			ec = errors::torrent_missing_pieces;
 			return false;
