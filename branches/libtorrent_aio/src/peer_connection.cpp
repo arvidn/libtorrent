@@ -1773,7 +1773,7 @@ namespace libtorrent
 			if (is_disconnecting()) return;
 		}
 
-		if (!t->have_piece(index)
+		if (!t->has_piece_passed(index)
 			&& !t->is_seed()
 			&& !is_interesting()
 			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
