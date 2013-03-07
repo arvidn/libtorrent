@@ -1315,20 +1315,22 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+		if (!t->has_picker())
+		{
+			m_request_queue.clear();
+			return;
+		}
 
 		// clear the requests that haven't been sent yet
 		if (peer_info_struct() == 0 || !peer_info_struct()->on_parole)
 		{
 			// if the peer is not in parole mode, clear the queued
 			// up block requests
-			if (!t->is_seed())
+			piece_picker& p = t->picker();
+			for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
+				, end(m_request_queue.end()); i != end; ++i)
 			{
-				piece_picker& p = t->picker();
-				for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
-					, end(m_request_queue.end()); i != end; ++i)
-				{
-					p.abort_download(i->block, peer_info_struct());
-				}
+				p.abort_download(i->block, peer_info_struct());
 			}
 			m_request_queue.clear();
 			m_queued_time_critical = 0;
@@ -1770,7 +1772,7 @@ namespace libtorrent
 			if (is_disconnecting()) return;
 		}
 
-		if (!t->have_piece(index)
+		if (!t->has_piece_passed(index)
 			&& !t->is_seed()
 			&& !is_interesting()
 			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))

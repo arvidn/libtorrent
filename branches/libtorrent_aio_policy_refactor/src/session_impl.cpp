@@ -5882,6 +5882,9 @@ retry:
 		if (m_next_lsd_torrent == m_torrents.end())
 			m_next_lsd_torrent = m_torrents.begin();
 
+		// this torrent may open up a slot for a queued torrent
+		trigger_auto_manage();
+
 		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 	}
 

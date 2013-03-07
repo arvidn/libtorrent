@@ -55,13 +55,14 @@ namespace libtorrent {
 	std::string torrent_alert::message() const
 	{
 		if (!handle.is_valid()) return " - ";
-		if (handle.name().empty())
+		torrent_status st = handle.status(torrent_handle::query_name);
+		if (st.name.empty())
 		{
 			char msg[41];
-			to_hex((char const*)&handle.info_hash()[0], 20, msg);
+			to_hex((char const*)&st.info_hash[0], 20, msg);
 			return msg;
 		}
-		return handle.name();
+		return st.name;
 	}
 
 	std::string peer_alert::message() const

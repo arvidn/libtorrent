@@ -717,7 +717,7 @@ namespace libtorrent
 		void add_redundant_bytes(int b, wasted_reason_t reason);
 		void add_failed_bytes(int b);
 
-		// this is true if we have all the pieces
+		// this is true if we have all the pieces, but not necessarily flushed them to disk
 		bool is_seed() const
 		{
 			if (!valid_metadata()) return false;
@@ -727,6 +727,7 @@ namespace libtorrent
 		}
 
 		// this is true if we have all the pieces that we want
+		// the pieces don't necessarily need to be flushed to disk
 		bool is_finished() const
 		{
 			if (is_seed()) return true;

@@ -420,8 +420,12 @@ namespace libtorrent
 		// the number of filtered pieces we already have
 		int num_have_filtered() const { return m_num_have_filtered; }
 
+		// number of pieces whose hash has passed _and_ they have
+		// been successfully flushed to disk
 		int num_have() const { return m_num_have; }
 
+		// number of pieces whose hash has passed (but haven't necessarily
+		// been flushed to disk yet)
 		int num_passed() const { return m_num_passed; }
 
 		// return true if we have all the pieces we wanted

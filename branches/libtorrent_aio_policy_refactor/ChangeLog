@@ -16,6 +16,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* use hex encoding instead of base32 in create_magnet_uri
 	* include name, save_path and torrent_file in torrent_status, for improved performance
 	* separate anonymous mode and force-proxy mode, and tighten it up a bit
 	* add per-tracker scrape information to announce_entry
