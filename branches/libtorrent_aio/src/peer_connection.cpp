@@ -1317,7 +1317,6 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 		if (!t->has_picker())
 		{
-			TORRENT_ASSERT(m_request_queue.empty());
 			m_request_queue.clear();
 			return;
 		}
