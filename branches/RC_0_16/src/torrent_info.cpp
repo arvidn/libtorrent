@@ -189,23 +189,48 @@ namespace libtorrent
 		return true;
 	}
 
-	void trim_path_element(std::string& path_element)
+	void trim_path_element(std::string& element)
 	{
 		const int max_path_len = TORRENT_MAX_PATH;
-		if (int(path_element.size()) > max_path_len)
+
+		// on windows, the max path is expressed in
+		// unicode characters, not bytes
+#if defined TORRENT_WINDOWS
+		std::wstring path_element;
+		utf8_wchar(element, path_element);
+		if (path_element.size() <= max_path_len) return;
+
+		// truncate filenames that are too long. But keep extensions!
+		std::wstring ext;
+		wchar_t const* ext1 = wcsrchr(path_element.c_str(), '.');
+		if (ext1 != NULL) ext = ext1;
+
+		if (ext.size() > 15)
 		{
-			// truncate filenames that are too long. But keep extensions!
-			std::string ext = extension(path_element);
-			if (ext.size() > 15)
-			{
-				path_element.resize(max_path_len);
-			}
-			else
-			{
-				path_element.resize(max_path_len - ext.size());
-				path_element += ext;
-			}
+			path_element.resize(max_path_len);
 		}
+		else
+		{
+			path_element.resize(max_path_len - ext.size());
+			path_element += ext;
+		}
+		wchar_utf8(path_element, element);
+#else
+		std::string& path_element = element;
+		if (int(path_element.size()) <= max_path_len) return;
+
+		// truncate filenames that are too long. But keep extensions!
+		std::string ext = extension(path_element);
+		if (ext.size() > 15)
+		{
+			path_element.resize(max_path_len);
+		}
+		else
+		{
+			path_element.resize(max_path_len - ext.size());
+			path_element += ext;
+		}
+#endif
 	}
 
 	TORRENT_EXTRA_EXPORT std::string sanitize_path(std::string const& p)
