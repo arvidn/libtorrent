@@ -682,8 +682,6 @@ namespace libtorrent
 			// implements session_interface
 			virtual tcp::endpoint get_interface() const;
 
-			void use_outgoing_interfaces(std::string net_interfaces);
-
 			bool has_lsd() const { return m_lsd; }
 
 			std::vector<block_info>& block_info_storage() { return m_block_info_storage; }
@@ -716,6 +714,7 @@ namespace libtorrent
 			void update_cache_buffer_chunk_size();
 			void update_report_web_seed_downloads();
 			void trigger_auto_manage();
+			void update_outgoing_interfaces();
 
 			void on_trigger_auto_manage();
 

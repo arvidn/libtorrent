@@ -988,6 +988,13 @@ namespace libtorrent
 		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
 		return !!ec;
 	}
+
+	void session::use_interfaces(char const* interfaces)
+	{
+		settings_pack pack;
+		pack.set_str(settings_pack::outgoing_interfaces, interfaces);
+		apply_settings(pack);
+	}
 #endif
 
 	void session::listen_on(
@@ -1002,12 +1009,6 @@ namespace libtorrent
 	{
 		TORRENT_SYNC_CALL_RET(unsigned short, listen_port);
 		return r;
-	}
-
-	void session::use_interfaces(char const* interfaces)
-	{
-		std::string ifaces = interfaces;
-		TORRENT_ASYNC_CALL1(use_outgoing_interfaces, ifaces);
 	}
 
 	session_status session::status() const

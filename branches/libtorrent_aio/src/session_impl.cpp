@@ -5768,10 +5768,11 @@ retry:
 		return torrent_handle(torrent_ptr);
 	}
 
-	void session_impl::use_outgoing_interfaces(std::string net_interfaces)
+	void session_impl::update_outgoing_interfaces()
 	{
 		INVARIANT_CHECK;
 		m_net_interfaces.clear();
+		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
 		char* str = allocate_string_copy(net_interfaces.c_str());
 		char* ptr = str;
@@ -5786,6 +5787,8 @@ retry:
 			if (ec) continue;
 			m_net_interfaces.push_back(tcp::endpoint(a, 0));
 		}
+		if (m_net_interfaces.empty())
+			m_net_interfaces.push_back(tcp::endpoint(address_v4::any(), 0));
 		free(str);
 	}
 

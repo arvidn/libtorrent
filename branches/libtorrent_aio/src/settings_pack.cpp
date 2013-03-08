@@ -115,6 +115,7 @@ namespace libtorrent
 		SET(announce_ip, 0, 0),
 		SET(mmap_cache, 0, 0),
 		SET(handshake_client_version, 0, 0),
+		SET_NOPREV(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
 	};
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =

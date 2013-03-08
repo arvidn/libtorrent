@@ -121,6 +121,16 @@ namespace libtorrent
 			// message. If this is an empty string, the user_agent is used instead
 			handshake_client_version,
 
+
+			// sets the network interface this session will use when it opens outgoing
+			// connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
+			// OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
+			// (either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
+			// in round-robin order. This may be useful for clients that are multi-homed.
+			// Binding an outgoing connection to a local IP does not necessarily make the connection via the associated
+			// NIC/Adapter. Setting this to an empty string will disable binding of outgoing connections.
+			outgoing_interfaces,
+
 			max_string_setting_internal,
 			num_string_settings = max_string_setting_internal - string_type_base
 		};

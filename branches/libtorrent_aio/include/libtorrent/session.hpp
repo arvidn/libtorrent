@@ -388,6 +388,11 @@ namespace libtorrent
 			std::pair<int, int> const& port_range
 			, const char* net_interface = 0
 			, int flags = 0) TORRENT_DEPRECATED;
+
+		// specify which interfaces to bind outgoing connections to
+		// This has been moved to a session setting
+		TORRENT_DEPRECATED_PREFIX
+		void use_interfaces(char const* interfaces) TORRENT_DEPRECATED;
 #endif
 
 		void listen_on(
@@ -399,9 +404,6 @@ namespace libtorrent
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;
 		bool is_listening() const;
-
-		// specify which interfaces to bind outgoing connections to
-		void use_interfaces(char const* interfaces);
 
 		enum options_t
 		{
