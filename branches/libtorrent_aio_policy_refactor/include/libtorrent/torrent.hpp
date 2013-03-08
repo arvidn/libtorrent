@@ -889,7 +889,6 @@ namespace libtorrent
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
 		int port_filter_access(int port) const { return m_ses.port_filter_access(port); }
-		int ip_filter_access(address const& addr) const { return m_ses.ip_filter_access(addr); }
 
 		std::vector<int> const& predictive_pieces() const
 		{ return m_predictive_pieces; }

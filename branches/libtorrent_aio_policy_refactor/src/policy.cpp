@@ -164,17 +164,14 @@ namespace libtorrent
 	// fills in 'erased' with torrent_peer pointers that were removed
 	// from the peer list. Any references to these peers must be cleared
 	// immediately after this call returns. For instance, in the piece picker.
-	void policy::ip_filter_updated(std::vector<torrent_peer*>& erased, alert_manager* alerts)
+	void policy::apply_ip_filter(ip_filter const& filter, std::vector<torrent_peer*>& erased, std::vector<address>& banned)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (!m_torrent->apply_ip_filter()) return;
-
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
-			// TODO: 2 the IP filter could be passed in to this function
-			if ((m_torrent->ip_filter_access((*i)->address()) & ip_filter::blocked) == 0)
+			if ((filter.access((*i)->address()) & ip_filter::blocked) == 0)
 			{
 				++i;
 				continue;
@@ -185,9 +182,6 @@ namespace libtorrent
 				continue;
 			}
 		
-			if (alerts && alerts->should_post<peer_blocked_alert>())
-				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
-
 			int current = i - m_peers.begin();
 			TORRENT_ASSERT(current >= 0);
 			TORRENT_ASSERT(m_peers.size() > 0);
@@ -200,6 +194,8 @@ namespace libtorrent
 				int count = m_peers.size();
 				peer_connection_interface* p = (*i)->connection;
 				
+				banned.push_back(p->remote().address());
+
 				p->disconnect(errors::banned_by_ip_filter);
 				// what *i refers to has changed, i.e. cur was deleted
 				if (m_peers.size() < count)
@@ -418,6 +414,7 @@ namespace libtorrent
 			|| int(p.failcount) >= m_torrent->settings().get_int(settings_pack::max_failcount))
 			return false;
 		
+		// TODO: 3 filter these outside of policy, just like ip filter
 		if (m_torrent->port_filter_access(p.port) & port_filter::blocked)
 			return false;
 
@@ -1126,19 +1123,6 @@ namespace libtorrent
 		// TODO: 2 this filtering could be done outside of the policy class
 		if (m_torrent->settings().get_bool(settings_pack::no_connect_privileged_ports)
 			&& remote.port() < 1024)
-		{
-			if (alerts && alerts->should_post<peer_blocked_alert>())
-				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
-#ifndef TORRENT_DISABLE_EXTENSIONS
-			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
-#endif
-			return 0;
-		}
-
-		// if the IP is blocked, don't add it
-		// TODO: 2 this filtering could be done outside of the policy class
-		if (m_torrent->apply_ip_filter()
-			&& (m_torrent->ip_filter_access(remote.address()) & ip_filter::blocked))
 		{
 			if (alerts && alerts->should_post<peer_blocked_alert>())
 				alerts->post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));

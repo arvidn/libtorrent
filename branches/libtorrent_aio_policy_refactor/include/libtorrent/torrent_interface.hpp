@@ -51,11 +51,9 @@ namespace libtorrent
 		virtual aux::session_settings const& settings() const = 0;
 		virtual external_ip const& external_address() const = 0;
 		virtual int listen_port() const = 0;
-		virtual bool apply_ip_filter() const = 0;
 		virtual bool is_i2p() const = 0;
 
 		virtual int port_filter_access(int port) const = 0;
-		virtual int ip_filter_access(address const& addr) const = 0;
 
 		virtual torrent_peer* allocate_peer_entry(int type) = 0;
 		virtual void free_peer_entry(torrent_peer* p) = 0;

@@ -92,7 +92,6 @@ struct mock_torrent : torrent_interface
 	virtual ~mock_torrent() {}
 	bool is_i2p() const { return false; }
 	int port_filter_access(int port) const { return 0; }
-	int ip_filter_access(address const& addr) const { return m_ip_filter.access(addr); }
 	int num_peers() const { return m_connections.size(); }
 	aux::session_settings const& settings() const { return sett; }
 
@@ -116,7 +115,6 @@ struct mock_torrent : torrent_interface
 	int listen_port() const { return 9999; }
 
 	alert_manager& alerts() const { return m_am; }
-	bool apply_ip_filter() const { return true; }
 	bool is_paused() const { return false; }
 	bool is_finished() const { return false; }
 	void update_want_peers() {}
@@ -153,7 +151,6 @@ struct mock_torrent : torrent_interface
 	}
 #endif
 
-	ip_filter m_ip_filter;
 	external_ip m_ext_ip;
 	aux::session_settings sett;
 	policy* m_p;
@@ -341,18 +338,16 @@ int test_main()
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 
 		// now, filter one of the IPs and make sure the peer is removed
-		t.m_ip_filter.add_rule(address_v4::from_string("11.0.0.0"), address_v4::from_string("255.255.255.255"), 1);
-		p.ip_filter_updated(peers, NULL);
+		ip_filter filter;
+		filter.add_rule(address_v4::from_string("11.0.0.0"), address_v4::from_string("255.255.255.255"), 1);
+		std::vector<address> banned;
+		p.apply_ip_filter(filter, peers, banned);
 		// we just erased a peer, because it was filtered by the ip filter
 		TEST_EQUAL(peers.size(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		TEST_EQUAL(p.num_peers(), 1);
-
-		// try to re-add it, to see it fail
-		peer2 = p.add_peer(ep("11.0.0.2", 9020), 0, 0, peers, NULL, false);
-		TEST_EQUAL(peer2, NULL);
-		TEST_EQUAL(p.num_connect_candidates(), 0);
-		TEST_EQUAL(p.num_peers(), 1);
+		TEST_EQUAL(banned.size(), 1);
+		TEST_EQUAL(banned[0], address_v4::from_string("11.0.0.2"));
 
 		t.sett.set_bool(settings_pack::no_connect_privileged_ports, true);
 

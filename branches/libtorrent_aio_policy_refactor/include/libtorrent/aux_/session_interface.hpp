@@ -80,6 +80,7 @@ namespace libtorrent
 	struct block_info;
 	struct external_ip;
 	struct torrent_handle;
+	struct ip_filter;
 
 #ifndef TORRENT_DISABLE_DHT
 	namespace dht
@@ -141,7 +142,7 @@ namespace libtorrent { namespace aux
 		virtual void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) = 0;
 
 		// ip and port filter
-		virtual int ip_filter_access(address const& addr) const = 0;
+		virtual ip_filter const& get_ip_filter() const = 0;
 		virtual int port_filter_access(int port) const = 0;
 
 		virtual int session_time() const = 0;

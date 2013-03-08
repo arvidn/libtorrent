@@ -54,6 +54,7 @@ namespace libtorrent
 	struct logger;
 	struct external_ip;
 	class alert_manager;
+	struct ip_filter;
 
 	enum
 	{
@@ -96,7 +97,7 @@ namespace libtorrent
 		void set_connection(torrent_peer* p, peer_connection_interface* c);
 		void set_failcount(torrent_peer* p, int f);
 
-		void ip_filter_updated(std::vector<torrent_peer*>& erased, alert_manager* alerts);
+		void apply_ip_filter(ip_filter const& filter, std::vector<torrent_peer*>& erased, std::vector<address>& banned);
 
 		void set_seed(torrent_peer* p, bool s);
 

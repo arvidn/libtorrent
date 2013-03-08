@@ -2603,12 +2603,8 @@ namespace libtorrent
 		if (torrent_file().priv() || (torrent_file().is_i2p()
 			&& !settings().get_bool(settings_pack::allow_i2p_mixed))) return;
 
-		std::vector<torrent_peer*> erased;
 		std::for_each(peers.begin(), peers.end(), boost::bind(
-			&policy::add_peer, boost::ref(m_policy), _1, peer_info::dht, 0
-			, boost::ref(erased), &alerts(), is_finished()));
-		peers_erased(erased);
-		state_updated();
+			&torrent::add_peer, this, _1, peer_info::dht, 0));
 
 		do_connect_boost();
 
@@ -3175,7 +3171,7 @@ namespace libtorrent
 			m_ses.is_aborted()) return;
 
 		if (m_apply_ip_filter
-			&& m_ses.ip_filter_access(host->endpoint().address()) & ip_filter::blocked)
+			&& m_ses.get_ip_filter().access(host->endpoint().address()) & ip_filter::blocked)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			error_code ec;
@@ -5547,7 +5543,7 @@ namespace libtorrent
 		}
 
 		if (m_apply_ip_filter
-			&& m_ses.ip_filter_access(a.address()) & ip_filter::blocked)
+			&& m_ses.get_ip_filter().access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), a.address()));
@@ -5611,7 +5607,7 @@ namespace libtorrent
 		if (m_abort) return;
 
 		if (m_apply_ip_filter
-			&& m_ses.ip_filter_access(a.address()) & ip_filter::blocked)
+			&& m_ses.get_ip_filter().access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), a.address()));
@@ -6585,7 +6581,7 @@ namespace libtorrent
 
 		tcp::endpoint a(peerinfo->ip());
 		TORRENT_ASSERT(!m_apply_ip_filter
-			|| (m_ses.ip_filter_access(peerinfo->address()) & ip_filter::blocked) == 0);
+			|| (m_ses.get_ip_filter().access(peerinfo->address()) & ip_filter::blocked) == 0);
 
 		boost::shared_ptr<socket_type> s(new socket_type(m_ses.get_io_service()));
 
@@ -6872,7 +6868,7 @@ namespace libtorrent
 		m_has_incoming = true;
 
 		if (m_apply_ip_filter
-			&& m_ses.ip_filter_access(p->remote().address()) & ip_filter::blocked)
+			&& m_ses.get_ip_filter().access(p->remote().address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), p->remote().address()));
@@ -9301,6 +9297,19 @@ namespace libtorrent
 	torrent_peer* torrent::add_peer(tcp::endpoint const& adr, int source, int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
+
+		if (m_apply_ip_filter
+			&& m_ses.get_ip_filter().access(adr.address()) & ip_filter::blocked)
+		{
+			if (m_ses.alerts().should_post<peer_blocked_alert>())
+				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), adr.address()));
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
+#endif
+			return NULL;
+		}
+
 		std::vector<torrent_peer*> peers;
 		torrent_peer* p = m_policy.add_peer(adr, source, 0, peers, &alerts(), is_finished());
 		peers_erased(peers);
@@ -9353,8 +9362,19 @@ namespace libtorrent
 
 	void torrent::ip_filter_updated()
 	{
+		if (!m_apply_ip_filter) return;
+
 		std::vector<torrent_peer*> peers;
-		m_policy.ip_filter_updated(peers, &alerts());
+		std::vector<address> banned;
+		m_policy.apply_ip_filter(m_ses.get_ip_filter(), peers, banned);
+
+		if (alerts().should_post<peer_blocked_alert>())
+		{
+			for (std::vector<address>::iterator i = banned.begin()
+				, end(banned.end()); i != end; ++i)
+				alerts().post_alert(peer_blocked_alert(get_handle(), *i));
+		}
+
 		peers_erased(peers);
 	}
 
