@@ -468,7 +468,7 @@ namespace libtorrent
 		void update_gauge();
 
 		bool try_connect_peer();
-		void add_peer(tcp::endpoint const& adr, int source, int flags = 0);
+		torrent_peer* add_peer(tcp::endpoint const& adr, int source, int flags = 0);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }

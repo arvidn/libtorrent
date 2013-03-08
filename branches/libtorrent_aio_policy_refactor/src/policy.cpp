@@ -291,6 +291,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
+		// TODO: this is probably not necessary
 		int max_peerlist_size = m_torrent->is_paused()
 			? m_torrent->settings().get_int(settings_pack::max_paused_peerlist_size)
 			: m_torrent->settings().get_int(settings_pack::max_peerlist_size);
@@ -451,6 +452,7 @@ namespace libtorrent
 		bool pinged = false;
 #endif
 
+		// TODO: this is probbly not necessary
 		int max_peerlist_size = m_torrent->is_paused()
 			?m_torrent->settings().get_int(settings_pack::max_paused_peerlist_size)
 			:m_torrent->settings().get_int(settings_pack::max_peerlist_size);
@@ -779,7 +781,6 @@ namespace libtorrent
 		// this cannot be a connect candidate anymore, since i->connection is set
 		TORRENT_ASSERT(!is_connect_candidate(*i, m_finished));
 		TORRENT_ASSERT(has_connection(&c));
-		m_torrent->state_updated();
 		return true;
 	}
 
@@ -947,9 +948,6 @@ namespace libtorrent
 		if (is_connect_candidate(*p, m_finished))
 			update_connect_candidates(1);
 
-		// TODO: 4 this could probably be moved out to the caller of this function
-		m_torrent->state_updated();
-
 		return true;
 	}
 
@@ -1080,12 +1078,11 @@ namespace libtorrent
 			p = *iter;
 			update_peer(p, src, flags, tcp::endpoint(), destination);
 		}
-		// TODO: 4 this could probably be moved out to be the responsibility of the caller
-		m_torrent->state_updated();
 		return p;
 	}
 #endif // TORRENT_USE_I2P
 
+	// if this returns non-NULL, the torrent need to post status update
 	torrent_peer* policy::add_peer(tcp::endpoint const& remote, int src, char flags
 		, std::vector<torrent_peer*>& erased, alert_manager* alerts, bool is_finished)
 	{
