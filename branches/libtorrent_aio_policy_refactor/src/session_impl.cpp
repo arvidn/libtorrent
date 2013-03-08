@@ -6005,7 +6005,7 @@ retry:
 		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
 		std::vector<torrent_peer*> peers;
-		t->get_policy().add_peer(peer, peer_info::lsd, 0, peers, &m_alerts);
+		t->get_policy().add_peer(peer, peer_info::lsd, 0, peers, &m_alerts, t->is_finished());
 		t->peers_erased(peers);
 		t->update_want_peers();
 		if (m_alerts.should_post<lsd_peer_alert>())
