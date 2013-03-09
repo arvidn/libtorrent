@@ -131,6 +131,10 @@ namespace libtorrent
 			// NIC/Adapter. Setting this to an empty string will disable binding of outgoing connections.
 			outgoing_interfaces,
 
+			// a comma-separated list of (IP, port) pairs. These are the listen ports that will be opened
+			// for accepting incoming uTP and TCP connections.
+			listen_interfaces,
+
 			max_string_setting_internal,
 			num_string_settings = max_string_setting_internal - string_type_base
 		};
@@ -532,6 +536,11 @@ namespace libtorrent
 			// if this is true, the number of redundant bytes
 			// is sent to the tracker
 			report_redundant_bytes,
+
+			// if this is true, libtorrent will fall back to listening on a port chosen
+			// by the operating system (i.e. binding to port 0). If a failure is preferred,
+			// set this to false.
+			listen_system_port_fallback,
 
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
@@ -1328,6 +1337,11 @@ namespace libtorrent
 			// announcing to trackers or downloading .torrent files via
 			// the ``url`` provided in ``add_torrent_params``.
 			max_http_recv_buffer_size,
+
+			// if binding to a specific port fails, should the port be incremented
+			// by one and tried again? This setting specifies how many times to
+			// retry a failed port bind
+			max_retry_port_bind,
 
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base

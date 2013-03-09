@@ -361,6 +361,7 @@ namespace libtorrent
 		peer_class_info get_peer_class(int cid);
 		void set_peer_class(int cid, peer_class_info const& pci);
 
+#ifndef TORRENT_NO_DEPRECATE
 		// if the listen port failed in some way
 		// you can retry to listen on another port-
 		// range with this function. If the listener
@@ -374,14 +375,11 @@ namespace libtorrent
 		// the error. It will return true on success.
 		enum listen_on_flags_t
 		{
-#ifndef TORRENT_NO_DEPRECATE
 			// this is always on starting with 0.16.2
 			listen_reuse_address = 0x01,
-#endif
 			listen_no_system_port = 0x02
 		};
 
-#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16
 		TORRENT_DEPRECATED_PREFIX
 		bool listen_on(
@@ -393,13 +391,15 @@ namespace libtorrent
 		// This has been moved to a session setting
 		TORRENT_DEPRECATED_PREFIX
 		void use_interfaces(char const* interfaces) TORRENT_DEPRECATED;
-#endif
 
+		TORRENT_DEPRECATED_PREFIX
 		void listen_on(
 			std::pair<int, int> const& port_range
 			, error_code& ec
 			, const char* net_interface = 0
-			, int flags = 0);
+			, int flags = 0) TORRENT_DEPRECATED;
+
+#endif
 
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;

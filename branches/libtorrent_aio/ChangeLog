@@ -1,3 +1,4 @@
+	* move listen interface and port to the settings
 	* move use_interfaces() to be a setting
 	* extend storage interface to allow deferred flushing and flush the part-file metadata periodically
 	* make statistics propagate instantly rather than on the second tick

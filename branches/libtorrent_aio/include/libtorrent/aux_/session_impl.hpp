@@ -275,7 +275,7 @@ namespace libtorrent
 
 			void main_thread();
 
-			void open_listen_port(int flags, error_code& ec);
+			void open_listen_port();
 			
 			io_service& get_io_service() { return m_io_service; }
 
@@ -420,11 +420,6 @@ namespace libtorrent
 			peer_class_info get_peer_class(int cid);
 			void set_peer_class(int cid, peer_class_info const& pci);
 
-			void  listen_on(
-				std::pair<int, int> const& port_range
-				, error_code& ec
-				, const char* net_interface = 0
-				, int flags = 0);
 			bool is_listening() const;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -715,6 +710,7 @@ namespace libtorrent
 			void update_report_web_seed_downloads();
 			void trigger_auto_manage();
 			void update_outgoing_interfaces();
+			void update_listen_interfaces();
 
 			void on_trigger_auto_manage();
 
