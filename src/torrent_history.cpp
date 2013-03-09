@@ -110,7 +110,7 @@ namespace libtorrent
 		for (std::deque<std::pair<int, sha1_hash> >::const_iterator i = m_removed.begin()
 			, end(m_removed.end()); i != end; ++i)
 		{
-			if (i->first <= frame) break;
+			if (i->first < frame) break;
 			torrents.push_back(i->second);
 		}
 	}
@@ -121,7 +121,7 @@ namespace libtorrent
 		for (queue_t::left_const_iterator i = m_queue.left.begin()
 			, end(m_queue.left.end()); i != end; ++i)
 		{
-			if (i->first <= frame) break;
+			if (i->first < frame) break;
 			torrents.push_back(i->second);
 		}
 	}
