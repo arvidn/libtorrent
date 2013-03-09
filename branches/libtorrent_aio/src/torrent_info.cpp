@@ -231,6 +231,11 @@ namespace libtorrent
 			element_len = pe.size();
 		}
 #endif
+		// this counts the number of unicode characters
+		// we've added (which is different from the number
+		// of bytes)
+		int unicode_chars = 0;
+
 		int added = 0;
 		// the number of dots we've added
 		char num_dots = 0;
@@ -247,16 +252,86 @@ namespace libtorrent
 
 			if (element[i] == '.') ++num_dots;
 		
-			path += element[i];
-			++added;
+			int last_len = 0;
+
+			if ((element[i] & 0x80) == 0)
+			{
+				// 1 byte
+				path += element[i];
+				last_len = 1;
+			}
+			else if ((element[i] & 0xe0) == 0xc0)
+			{
+				// 2 bytes
+				if (element_len - i < 2
+					|| (element[i+1] & 0xc0) != 0x80)
+				{
+					path += '?';
+					last_len = 1;
+				}
+				else
+				{
+					path += element[i];
+					path += element[i+1];
+					last_len = 2;
+				}
+				i += 1;
+			}
+			else if ((element[i] & 0xf0) == 0xe0)
+			{
+				// 3 bytes
+				if (element_len - i < 3
+					|| (element[i+1] & 0xc0) != 0x80
+					|| (element[i+2] & 0xc0) != 0x80
+					)
+				{
+					path += '?';
+					last_len = 1;
+				}
+				else
+				{
+					path += element[i];
+					path += element[i+1];
+					path += element[i+2];
+					last_len = 3;
+				}
+				i += 2;
+			}
+			else if ((element[i] & 0xf8) == 0xf0)
+			{
+				// 4 bytes
+				if (element_len - i < 4
+					|| (element[i+1] & 0xc0) != 0x80
+					|| (element[i+2] & 0xc0) != 0x80
+					|| (element[i+3] & 0xc0) != 0x80
+					)
+				{
+					path += '?';
+					last_len = 1;
+				}
+				else
+				{
+					path += element[i];
+					path += element[i+1];
+					path += element[i+2];
+					path += element[i+3];
+					last_len = 4;
+				}
+				i += 3;
+			}
+
+			added += last_len;
+			++unicode_chars;
 
 			// any given path element should not
 			// be more than 255 characters
-			// if we exceed 200, pick up any potential
+			// if we exceed 240, pick up any potential
 			// file extension and add that too
-			// TODO: this may corrupt utf-8 encoding. We should find a
-			// proper breaking point between characters
-			if (added >= 200 && !found_extension)
+#ifdef TORRENT_WINDOWS
+			if (unicode_chars >= 240 && !found_extension)
+#else
+			if (added >= 240 && !found_extension)
+#endif
 			{
 				int dot = -1;
 				for (int j = element_len-1; j > (std::max)(element_len - 10, i); --j)
@@ -322,7 +397,6 @@ namespace libtorrent
 			sanitize_append_path_element(path
 				, p->list_at(i)->string_ptr(), p->list_at(i)->string_length());
 		}
-		verify_encoding(path, true);
 
 		// bitcomet pad file
 		if (path.find("_____padding_file_") != std::string::npos)
@@ -1025,9 +1099,6 @@ namespace libtorrent
 	
 		if (name.empty()) name = to_hex(m_info_hash.to_string());
 
-		// correct utf-8 encoding errors
-		verify_encoding(name, true);
-	
 		// extract file list
 		lazy_entry const* i = info.dict_find_list("files");
 		if (i == 0)

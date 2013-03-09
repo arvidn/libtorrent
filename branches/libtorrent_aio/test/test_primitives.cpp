@@ -1095,26 +1095,30 @@ int test_main()
 	std::string path;
 
 	path.clear();
-	sanitize_append_path_element(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_", 210);
-	sanitize_append_path_element(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test", 210);
+	sanitize_append_path_element(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_", 250);
+	sanitize_append_path_element(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test", 250);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_\\"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_\\"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
 #else
-	TEST_EQUAL(path, "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_/"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_/"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
 #endif
 
 	path.clear();
