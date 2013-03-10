@@ -81,6 +81,7 @@ namespace libtorrent
 	struct external_ip;
 	struct torrent_handle;
 	struct ip_filter;
+	struct settings_pack;
 
 #ifndef TORRENT_DISABLE_DHT
 	namespace dht
@@ -222,6 +223,7 @@ namespace libtorrent { namespace aux
 
 		virtual void trigger_auto_manage() = 0;
 
+		virtual void apply_settings_pack(settings_pack* pack) = 0;
 		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request& req
@@ -288,10 +290,6 @@ namespace libtorrent { namespace aux
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
 	
-#ifndef TORRENT_NO_DEPRECATED
-		virtual void use_outgoing_interfaces(std::string net_interfaces) = 0;
-#endif
-
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		virtual pe_settings const& get_pe_settings() const = 0;
 		virtual torrent const* find_encrypted_torrent(

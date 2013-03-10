@@ -115,6 +115,8 @@ namespace libtorrent
 		SET(announce_ip, 0, 0),
 		SET(mmap_cache, 0, 0),
 		SET(handshake_client_version, 0, 0),
+		SET_NOPREV(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
+		SET_NOPREV(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
 	};
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
@@ -180,6 +182,7 @@ namespace libtorrent
 		SET(support_share_mode, true, 0),
 		SET(support_merkle_torrents, true, 0),
 		SET(report_redundant_bytes, true, 0),
+		SET_NOPREV(listen_system_port_fallback, true, 0),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
@@ -305,7 +308,8 @@ namespace libtorrent
 		SET_NOPREV(peer_turnover_cutoff, 90, 0),
 		SET(peer_turnover_interval, 300, 0),
 		SET_NOPREV(connect_seed_every_n_download, 10, 0),
-		SET(max_http_recv_buffer_size, 2*1024*204, 0)
+		SET(max_http_recv_buffer_size, 2*1024*204, 0),
+		SET_NOPREV(max_retry_port_bind, 0, 0)
 	};
 
 #undef SET

@@ -1,3 +1,5 @@
+	* move listen interface and port to the settings
+	* move use_interfaces() to be a setting
 	* extend storage interface to allow deferred flushing and flush the part-file metadata periodically
 	* make statistics propagate instantly rather than on the second tick
 	* support for partfiles, where partial pieces belonging to skipped files are put
@@ -34,6 +36,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix long filename truncation on windows
 	* distinguish file open mode when checking files and downloading/seeding with bittorrent. updates storage interface
 	* improve file_storage::map_file when dealing with invalid input
 	* improve handling of invalid utf-8 sequences in strings in torrent files

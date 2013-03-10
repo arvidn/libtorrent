@@ -243,8 +243,6 @@ The ``session`` class has the following synopsis::
 			, char const* interface = 0
 			, int flags = 0);
 
-		void use_interfaces(char const* net_interface) const;
-
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_mask(int m);
@@ -1489,18 +1487,6 @@ with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).
 
-use_interfaces()
-----------------
-
-	::
-
-		void use_interfaces(char const* net_interface) const;
-
-``use_interfaces()`` sets the network interface this torrent will use when it opens outgoing
-connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
-OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
-(either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
-in round-robin order. This may be useful for clients that are multi-homed.
 
 set_alert_mask()
 ----------------

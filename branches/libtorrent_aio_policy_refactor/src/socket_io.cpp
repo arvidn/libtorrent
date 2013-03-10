@@ -93,6 +93,54 @@ namespace libtorrent
 		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
 	}
 
+	tcp::endpoint parse_endpoint(std::string str, error_code& ec)
+	{
+		tcp::endpoint ret;
+
+		std::string::iterator start = str.begin();
+		std::string::iterator port_pos;
+		// remove white spaces in front of the string
+		while (start != str.end() && is_space(*start))
+			++start;
+
+		// this is for IPv6 addresses
+		if (start != str.end() && *start == '[')
+		{
+			++start;
+			port_pos = std::find(start, str.end(), ']');
+			if (port_pos == str.end())
+			{
+				ec = errors::expected_close_bracket_in_address;
+				return ret;
+			}
+			*port_pos = '\0';
+			++port_pos;
+			ret.address(address_v6::from_string(&*start, ec));
+			if (ec) return ret;
+		}
+		else
+		{
+			port_pos = std::find(start, str.end(), ':');
+			if (port_pos == str.end())
+			{
+				ec = errors::invalid_port;
+				return ret;
+			}
+			*port_pos = '\0';
+			ret.address(address_v4::from_string(&*start, ec));
+			if (ec) return ret;
+		}
+
+		if (port_pos == str.end())
+		{
+			ec = errors::invalid_port;
+			return ret;
+		}
+		++port_pos;
+		ret.port(std::atoi(&*port_pos));
+		return ret;
+	}
+
 	void hash_address(address const& ip, sha1_hash& h)
 	{
 #if TORRENT_USE_IPV6

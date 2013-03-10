@@ -985,29 +985,41 @@ namespace libtorrent
 		, const char* net_interface, int flags)
 	{
 		error_code ec;
-		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
-		return !!ec;
+		listen_on(port_range, ec, net_interface, flags);
+		return ec;
 	}
-#endif
 
 	void session::listen_on(
 		std::pair<int, int> const& port_range
 		, error_code& ec
 		, const char* net_interface, int flags)
 	{
-		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
+		settings_pack p;
+		std::string interfaces_str;
+		if (net_interface == NULL || strlen(net_interface) == 0)
+			net_interface = "0.0.0.0";
+
+		interfaces_str = print_endpoint(tcp::endpoint(address::from_string(net_interface, ec), port_range.first));
+		if (ec) return;
+
+		p.set_str(settings_pack::listen_interfaces, interfaces_str);
+		p.set_int(settings_pack::max_retry_port_bind, port_range.second - port_range.first);
+		p.set_bool(settings_pack::listen_system_port_fallback, (flags & session::listen_no_system_port) == 0);
+		apply_settings(p);
 	}
+
+	void session::use_interfaces(char const* interfaces)
+	{
+		settings_pack pack;
+		pack.set_str(settings_pack::outgoing_interfaces, interfaces);
+		apply_settings(pack);
+	}
+#endif
 
 	unsigned short session::listen_port() const
 	{
 		TORRENT_SYNC_CALL_RET(unsigned short, listen_port);
 		return r;
-	}
-
-	void session::use_interfaces(char const* interfaces)
-	{
-		std::string ifaces = interfaces;
-		TORRENT_ASYNC_CALL1(use_outgoing_interfaces, ifaces);
 	}
 
 	session_status session::status() const

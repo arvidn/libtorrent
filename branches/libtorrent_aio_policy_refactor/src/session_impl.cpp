@@ -1468,7 +1468,8 @@ namespace aux {
 		session_log(" open listen port");
 #endif
 		// no reuse_address and allow system defined port
-		open_listen_port(0, ec);
+		open_listen_port();
+
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		session_log(" done starting session");
 #endif
@@ -2348,6 +2349,8 @@ namespace aux {
 		return m_ipv4_interface;
 	}
 
+	enum { listen_no_system_port = 0x02 };
+
 	void session_impl::setup_listener(listen_socket_t* s, tcp::endpoint ep
 		, int& retries, bool v6_only, int flags, error_code& ec)
 	{
@@ -2395,7 +2398,7 @@ namespace aux {
 			ep.port(ep.port() + 1);
 			s->sock->bind(ep, ec);
 		}
-		if (ec && !(flags & session::listen_no_system_port))
+		if (ec && !(flags & listen_no_system_port))
 		{
 			// instead of giving up, trying
 			// let the OS pick a port
@@ -2441,11 +2444,14 @@ namespace aux {
 #endif
 	}
 	
-	void session_impl::open_listen_port(int flags, error_code& ec)
+	void session_impl::open_listen_port()
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		TORRENT_ASSERT(!m_abort);
+		int flags = m_settings.get_bool(settings_pack::listen_system_port_fallback) ? 0 : listen_no_system_port;
+		error_code ec;
+
 retry:
 
 		// close the open listen sockets
@@ -5775,10 +5781,11 @@ retry:
 		return torrent_handle(torrent_ptr);
 	}
 
-	void session_impl::use_outgoing_interfaces(std::string net_interfaces)
+	void session_impl::update_outgoing_interfaces()
 	{
 		INVARIANT_CHECK;
 		m_net_interfaces.clear();
+		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
 		char* str = allocate_string_copy(net_interfaces.c_str());
 		char* ptr = str;
@@ -5793,6 +5800,8 @@ retry:
 			if (ec) continue;
 			m_net_interfaces.push_back(tcp::endpoint(a, 0));
 		}
+		if (m_net_interfaces.empty())
+			m_net_interfaces.push_back(tcp::endpoint(address_v4::any(), 0));
 		free(str);
 	}
 
@@ -5888,19 +5897,22 @@ retry:
 		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 	}
 
-	void session_impl::listen_on(
-		std::pair<int, int> const& port_range
-		, error_code& ec
-		, const char* net_interface, int flags)
+	void session_impl::update_listen_interfaces()
 	{
 		INVARIANT_CHECK;
 
+		std::string net_interface = m_settings.get_str(settings_pack::listen_interfaces);
+
+		// TODO: make m_listen_interface a list of interfaces we're listening on
 		tcp::endpoint new_interface;
-		if (net_interface && std::strlen(net_interface) > 0)
+		if (!net_interface.empty())
 		{
-			new_interface = tcp::endpoint(address::from_string(net_interface, ec), port_range.first);
+			error_code ec;
+			new_interface = parse_endpoint(net_interface, ec);
 			if (ec)
 			{
+				if (m_alerts.should_post<listen_failed_alert>())
+					m_alerts.post_alert(listen_failed_alert(new_interface, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				session_log("listen_on: %s failed: %s"
 					, net_interface, ec.message().c_str());
@@ -5910,10 +5922,10 @@ retry:
 		}
 		else
 		{
-			new_interface = tcp::endpoint(address_v4::any(), port_range.first);
+			new_interface = tcp::endpoint(address_v4::any(), 6881);
 		}
 
-		m_listen_port_retries = port_range.second - port_range.first;
+		m_listen_port_retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
 		// if the interface is the same and the socket is open
 		// don't do anything
@@ -5923,7 +5935,7 @@ retry:
 
 		m_listen_interface = new_interface;
 
-		open_listen_port(flags, ec);
+		open_listen_port();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);

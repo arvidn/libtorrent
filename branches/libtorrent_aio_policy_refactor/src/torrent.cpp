@@ -2485,7 +2485,9 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATED
 	void torrent::use_interface(std::string net_interfaces)
 	{
-		m_ses.use_outgoing_interfaces(net_interfaces);
+		settings_pack* p = new settings_pack;
+		p->set_str(settings_pack::outgoing_interfaces, net_interfaces);
+		m_ses.apply_settings_pack(p);
 	}
 #endif
 
