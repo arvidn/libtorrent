@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/policy.hpp"
-//#include "libtorrent/torrent.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -58,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/torrent_peer_allocator.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
@@ -163,7 +163,7 @@ namespace libtorrent
 	// fills in 'erased' with torrent_peer pointers that were removed
 	// from the peer list. Any references to these peers must be cleared
 	// immediately after this call returns. For instance, in the piece picker.
-	void policy::apply_ip_filter(ip_filter const& filter, std::vector<torrent_peer*>& erased, std::vector<address>& banned)
+	void policy::apply_ip_filter(ip_filter const& filter, torrent_state* state, std::vector<address>& banned)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -206,7 +206,7 @@ namespace libtorrent
 					|| (*i)->connection->peer_info_struct() == 0);
 			}
 
-			erase_peer(i, erased);
+			erase_peer(i, state);
 			i = m_peers.begin() + current;
 		}
 	}
@@ -215,7 +215,7 @@ namespace libtorrent
 	// fills in 'erased' with torrent_peer pointers that were removed
 	// from the peer list. Any references to these peers must be cleared
 	// immediately after this call returns. For instance, in the piece picker.
-	void policy::apply_port_filter(port_filter const& filter, std::vector<torrent_peer*>& erased, std::vector<address>& banned)
+	void policy::apply_port_filter(port_filter const& filter, torrent_state* state, std::vector<address>& banned)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -258,12 +258,12 @@ namespace libtorrent
 					|| (*i)->connection->peer_info_struct() == 0);
 			}
 
-			erase_peer(i, erased);
+			erase_peer(i, state);
 			i = m_peers.begin() + current;
 		}
 	}
 
-	void policy::erase_peer(torrent_peer* p, std::vector<torrent_peer*>& erased)
+	void policy::erase_peer(torrent_peer* p, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -274,21 +274,21 @@ namespace libtorrent
 		std::pair<iterator, iterator> range = find_peers(p->address());
 		iterator iter = std::find_if(range.first, range.second, match_peer_endpoint(p->ip()));
 		if (iter == range.second) return;
-		erase_peer(iter, erased);
+		erase_peer(iter, state);
 	}
 
 	// any peer that is erased from m_peers will be
 	// erased through this function. This way we can make
 	// sure that any references to the peer are removed
 	// as well, such as in the piece picker.
-	void policy::erase_peer(iterator i, std::vector<torrent_peer*>& erased)
+	void policy::erase_peer(iterator i, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(i != m_peers.end());
 		TORRENT_ASSERT(m_locked_peer != *i);
 
-		erased.push_back(*i);
+		state->erased.push_back(*i);
 		if ((*i)->seed) --m_num_seeds;
 		if (is_connect_candidate(**i, m_finished))
 			update_connect_candidates(-1);
@@ -301,7 +301,7 @@ namespace libtorrent
 		(*i)->in_use = false;
 #endif
 
-		m_torrent->free_peer_entry(*i);
+		state->peer_allocator->free_peer_entry(*i);
 		m_peers.erase(i);
 	}
 
@@ -374,7 +374,7 @@ namespace libtorrent
 					if (erase_candidate > current) --erase_candidate;
 					if (force_erase_candidate > current) --force_erase_candidate;
 					TORRENT_ASSERT(current >= 0 && current < int(m_peers.size()));
-					erase_peer(m_peers.begin() + current, state->erased);
+					erase_peer(m_peers.begin() + current, state);
 					continue;
 				}
 				else
@@ -395,12 +395,12 @@ namespace libtorrent
 		if (erase_candidate > -1)
 		{
 			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < int(m_peers.size()));
-			erase_peer(m_peers.begin() + erase_candidate, state->erased);
+			erase_peer(m_peers.begin() + erase_candidate, state);
 		}
 		else if ((flags & force_erase) && force_erase_candidate > -1)
 		{
 			TORRENT_ASSERT(force_erase_candidate >= 0 && force_erase_candidate < int(m_peers.size()));
-			erase_peer(m_peers.begin() + force_erase_candidate, state->erased);
+			erase_peer(m_peers.begin() + force_erase_candidate, state);
 		}
 	}
 
@@ -532,7 +532,7 @@ namespace libtorrent
 					{
 						if (erase_candidate > current) --erase_candidate;
 						if (candidate > current) --candidate;
-						erase_peer(m_peers.begin() + current, state->erased);
+						erase_peer(m_peers.begin() + current, state);
 						continue;
 					}
 					else
@@ -564,7 +564,7 @@ namespace libtorrent
 		if (erase_candidate > -1)
 		{
 			if (candidate > erase_candidate) --candidate;
-			erase_peer(m_peers.begin() + erase_candidate, state->erased);
+			erase_peer(m_peers.begin() + erase_candidate, state);
 		}
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
@@ -769,8 +769,9 @@ namespace libtorrent
 #else
 			bool is_v6 = false;
 #endif
-			torrent_peer* p = m_torrent->allocate_peer_entry(
-				is_v6 ? aux::session_interface::ipv6_peer : aux::session_interface::ipv4_peer);
+			torrent_peer* p = state->peer_allocator->allocate_peer_entry(
+				is_v6 ? torrent_peer_allocator_interface::ipv6_peer
+				: torrent_peer_allocator_interface::ipv4_peer);
 			if (p == 0) return false;
 
 #if TORRENT_USE_IPV6
@@ -853,10 +854,10 @@ namespace libtorrent
 					m_locked_peer = p;
 					p->connection->disconnect(errors::duplicate_peer_id);
 					m_locked_peer = NULL;
-					erase_peer(p, state->erased);
+					erase_peer(p, state);
 					return false;
 				}
-				erase_peer(i, state->erased);
+				erase_peer(i, state);
 			}
 		}
 #ifdef TORRENT_DEBUG
@@ -1069,8 +1070,7 @@ namespace libtorrent
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			// TODO: 4 this should be done via a smaller interface, not related to torrents
-			p = m_torrent->allocate_peer_entry(aux::session_interface::i2p_peer);
+			p = state->peer_allocator->allocate_peer_entry(torrent_peer_allocator_interface::i2p_peer);
 			if (p == 0) return 0;
 			new (p) i2p_peer(destination, true, src);
 
@@ -1084,7 +1084,7 @@ namespace libtorrent
 				p->in_use = false;
 #endif
 
-				m_torrent->free_peer_entry(p);
+				state->peer_allocator->free_peer_entry(p);
 				return 0;
 			}
 		}
@@ -1146,8 +1146,9 @@ namespace libtorrent
 #else
 			bool is_v6 = false;
 #endif
-			p = m_torrent->allocate_peer_entry(
-				is_v6 ? aux::session_interface::ipv6_peer : aux::session_interface::ipv4_peer);
+			p = state->peer_allocator->allocate_peer_entry(
+				is_v6 ? torrent_peer_allocator_interface::ipv6_peer
+				: torrent_peer_allocator_interface::ipv4_peer);
 			if (p == 0) return 0;
 
 #if TORRENT_USE_IPV6
@@ -1166,7 +1167,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				p->in_use = false;
 #endif
-				m_torrent->free_peer_entry(p);
+				state->peer_allocator->free_peer_entry(p);
 				return 0;
 			}
 			state->first_time_seen = true;
@@ -1215,7 +1216,7 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection_interface& c, int session_time, std::vector<torrent_peer*>& erased)
+	void policy::connection_closed(const peer_connection_interface& c, int session_time, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1279,7 +1280,7 @@ namespace libtorrent
 			&& !p->connectable
 			&& p != m_locked_peer)
 		{
-			erase_peer(p, erased);
+			erase_peer(p, state);
 		}
 	}
 

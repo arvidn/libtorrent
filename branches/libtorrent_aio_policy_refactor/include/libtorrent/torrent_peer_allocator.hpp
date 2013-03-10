@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2013, Arvid Norberg
+Copyright (c) 2003-2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,40 +30,53 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_TORRENT_INTERFACE_HPP_INCLUDED
-#define TORRENT_TORRENT_INTERFACE_HPP_INCLUDED
+#ifndef TORRENT_PEER_ALLOCATOR_HPP_INCLUDED
+#define TORRENT_PEER_ALLOCATOR_HPP_INCLUDED
+
+#include "libtorrent/config.hpp"
+#include "libtorrent/torrent_peer.hpp"
+
+#include <boost/pool/object_pool.hpp>
 
 namespace libtorrent
 {
 
-	class peer_connection;
-	class torrent_info;
-	struct torrent_handle;
-
-	namespace aux
+	struct torrent_peer_allocator_interface
 	{
-		struct session_settings;
-	}
+		enum peer_type_t
+		{
+			ipv4_peer,
+			ipv6_peer,
+			i2p_peer
+		};
 
-	struct torrent_interface
-	{
-		virtual aux::session_settings const& settings() const = 0;
-		virtual external_ip const& external_address() const = 0;
-		virtual int listen_port() const = 0;
-
-		// this is only used when recalculating or altering the number of connect candidates.
-		// it could be done by the caller instead
-		virtual void update_want_peers() = 0;
-
-		virtual bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false) = 0;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		virtual int num_peers() const = 0;
-		virtual std::string name() const = 0;
-		virtual void debug_log(const char* fmt, ...) const = 0;
-		virtual void session_log(char const* fmt, ...) const = 0;
-#endif
+		virtual torrent_peer* allocate_peer_entry(int type) = 0;
+		virtual void free_peer_entry(torrent_peer* p) = 0;
 	};
 
+	struct torrent_peer_allocator : torrent_peer_allocator_interface
+	{
+		torrent_peer_allocator();
+
+		torrent_peer* allocate_peer_entry(int type);
+		void free_peer_entry(torrent_peer* p);
+
+	private:
+	
+		// this is a shared pool where torrent_peer objects
+		// are allocated. It's a pool since we're likely
+		// to have tens of thousands of peers, and a pool
+		// saves significant overhead
+
+		// TODO: 3 this should be a normal pool rather than an object_pool
+		boost::object_pool<libtorrent::ipv4_peer> m_ipv4_peer_pool;
+#if TORRENT_USE_IPV6
+		boost::object_pool<libtorrent::ipv6_peer> m_ipv6_peer_pool;
+#endif
+#if TORRENT_USE_I2P
+		boost::object_pool<libtorrent::i2p_peer> m_i2p_peer_pool;
+#endif
+	};
 }
 
 #endif

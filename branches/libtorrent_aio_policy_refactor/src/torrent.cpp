@@ -5288,9 +5288,9 @@ namespace libtorrent
 			pp->prev_amount_upload += p->statistics().total_payload_upload() >> 10;
 		}
 
-		std::vector<torrent_peer*> peers;
-		m_policy.connection_closed(*p, m_ses.session_time(), peers);
-		peers_erased(peers);
+		torrent_state st = get_policy_state();
+		m_policy.connection_closed(*p, m_ses.session_time(), &st);
+		peers_erased(st.erased);
 
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
@@ -9288,6 +9288,7 @@ namespace libtorrent
 		ret.max_peerlist_size = is_paused()
 			? settings().get_int(settings_pack::max_paused_peerlist_size)
 			: settings().get_int(settings_pack::max_peerlist_size);
+		ret.peer_allocator = m_ses.get_peer_allocator();
 		return ret;
 	}
 
@@ -9423,9 +9424,9 @@ namespace libtorrent
 	{
 		if (!m_apply_ip_filter) return;
 
-		std::vector<torrent_peer*> peers;
+		torrent_state st = get_policy_state();
 		std::vector<address> banned;
-		m_policy.apply_ip_filter(m_ses.get_ip_filter(), peers, banned);
+		m_policy.apply_ip_filter(m_ses.get_ip_filter(), &st, banned);
 
 		if (alerts().should_post<peer_blocked_alert>())
 		{
@@ -9434,16 +9435,16 @@ namespace libtorrent
 				alerts().post_alert(peer_blocked_alert(get_handle(), *i));
 		}
 
-		peers_erased(peers);
+		peers_erased(st.erased);
 	}
 
 	void torrent::port_filter_updated()
 	{
 		if (!m_apply_ip_filter) return;
 
-		std::vector<torrent_peer*> peers;
+		torrent_state st = get_policy_state();
 		std::vector<address> banned;
-		m_policy.apply_port_filter(m_ses.get_port_filter(), peers, banned);
+		m_policy.apply_port_filter(m_ses.get_port_filter(), &st, banned);
 
 		if (alerts().should_post<peer_blocked_alert>())
 		{
@@ -9452,7 +9453,7 @@ namespace libtorrent
 				alerts().post_alert(peer_blocked_alert(get_handle(), *i));
 		}
 
-		peers_erased(peers);
+		peers_erased(st.erased);
 	}
 
 	// this is called when torrent_peers are removed from the policy

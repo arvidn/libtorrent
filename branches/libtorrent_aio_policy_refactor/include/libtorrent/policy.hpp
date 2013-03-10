@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003-2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,11 @@ namespace libtorrent
 	struct external_ip;
 	struct ip_filter;
 	class port_filter;
+	struct torrent_peer_allocator_interface;
 
+	// this object is used to communicate torrent state and
+	// some configuration to the policy object. This make
+	// the polict type not depend on the torrent type directly.
 	struct torrent_state
 	{
 		bool is_paused;
@@ -67,6 +71,9 @@ namespace libtorrent
 		// true means the peer we just added was new, false means
 		// we already knew about the peer
 		bool first_time_seen;
+
+		// this must be set to a torrent_peer allocator
+		torrent_peer_allocator_interface* peer_allocator;
 
 		// if any peer were removed during this call, they are returned in
 		// this vector. The caller would want to make sure there are no
@@ -113,14 +120,14 @@ namespace libtorrent
 		bool new_connection(peer_connection_interface& c, int session_time, torrent_state* state);
 
 		// the given connection was just closed
-		void connection_closed(const peer_connection_interface& c, int session_time, std::vector<torrent_peer*>& erased);
+		void connection_closed(const peer_connection_interface& c, int session_time, torrent_state* state);
 
 		bool ban_peer(torrent_peer* p);
 		void set_connection(torrent_peer* p, peer_connection_interface* c);
 		void set_failcount(torrent_peer* p, int f);
 
-		void apply_ip_filter(ip_filter const& filter, std::vector<torrent_peer*>& erased, std::vector<address>& banned);
-		void apply_port_filter(port_filter const& filter, std::vector<torrent_peer*>& erased, std::vector<address>& banned);
+		void apply_ip_filter(ip_filter const& filter, torrent_state* state, std::vector<address>& banned);
+		void apply_port_filter(port_filter const& filter, torrent_state* state, std::vector<address>& banned);
 
 		void set_seed(torrent_peer* p, bool s);
 
@@ -165,8 +172,8 @@ namespace libtorrent
 		int num_seeds() const { return m_num_seeds; }
 		int num_connect_candidates() const { return m_num_connect_candidates; }
 
-		void erase_peer(torrent_peer* p, std::vector<torrent_peer*>& erased);
-		void erase_peer(iterator i, std::vector<torrent_peer*>& erased);
+		void erase_peer(torrent_peer* p, torrent_state* state);
+		void erase_peer(iterator i, torrent_state* state);
 
 	private:
 

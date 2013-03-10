@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2013, Arvid Norberg
+Copyright (c) 2003-2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,41 +30,69 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_TORRENT_INTERFACE_HPP_INCLUDED
-#define TORRENT_TORRENT_INTERFACE_HPP_INCLUDED
+
+#include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/torrent_peer_allocator.hpp"
 
 namespace libtorrent
 {
 
-	class peer_connection;
-	class torrent_info;
-	struct torrent_handle;
-
-	namespace aux
+	torrent_peer_allocator::torrent_peer_allocator()
+		: m_ipv4_peer_pool(500)
+#if TORRENT_USE_IPV6
+		  , m_ipv6_peer_pool(500)
+#endif
 	{
-		struct session_settings;
+
 	}
 
-	struct torrent_interface
+	torrent_peer* torrent_peer_allocator::allocate_peer_entry(int type)
 	{
-		virtual aux::session_settings const& settings() const = 0;
-		virtual external_ip const& external_address() const = 0;
-		virtual int listen_port() const = 0;
-
-		// this is only used when recalculating or altering the number of connect candidates.
-		// it could be done by the caller instead
-		virtual void update_want_peers() = 0;
-
-		virtual bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false) = 0;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		virtual int num_peers() const = 0;
-		virtual std::string name() const = 0;
-		virtual void debug_log(const char* fmt, ...) const = 0;
-		virtual void session_log(char const* fmt, ...) const = 0;
+		torrent_peer* p = NULL;
+		switch(type)
+		{
+			case torrent_peer_allocator_interface::ipv4_peer:
+				p = (torrent_peer*)m_ipv4_peer_pool.malloc();
+				m_ipv4_peer_pool.set_next_size(500);
+				break;
+#if TORRENT_USE_IPV6
+			case torrent_peer_allocator_interface::ipv6_peer:
+				p = (torrent_peer*)m_ipv6_peer_pool.malloc();
+				m_ipv6_peer_pool.set_next_size(500);
+				break;
 #endif
-	};
+#if TORRENT_USE_I2P
+			case torrent_peer_allocator_interface::i2p_peer:
+				p = (torrent_peer*)m_i2p_peer_pool.malloc();
+				m_i2p_peer_pool.set_next_size(500);
+				break;
+#endif
+		}
+		return p;
+	}
+
+	void torrent_peer_allocator::free_peer_entry(torrent_peer* p)
+	{
+#if TORRENT_USE_IPV6
+		if (p->is_v6_addr)
+		{
+			TORRENT_ASSERT(m_ipv6_peer_pool.is_from((libtorrent::ipv6_peer*)p));
+			m_ipv6_peer_pool.destroy((libtorrent::ipv6_peer*)p);
+			return;
+		}
+#endif
+#if TORRENT_USE_I2P
+		if (p->is_i2p_addr)
+		{
+			TORRENT_ASSERT(m_i2p_peer_pool.is_from((libtorrent::i2p_peer*)p));
+			m_i2p_peer_pool.destroy((libtorrent::i2p_peer*)p);
+			return;
+		}
+#endif
+		TORRENT_ASSERT(m_ipv4_peer_pool.is_from((libtorrent::ipv4_peer*)p));
+		m_ipv4_peer_pool.destroy((libtorrent::ipv4_peer*)p);
+	}
 
 }
-
-#endif
 

@@ -506,14 +506,12 @@ namespace aux {
 		, std::string const& logpath
 #endif
 		)
-		: m_ipv4_peer_pool(500)
-#if TORRENT_USE_IPV6
-		, m_ipv6_peer_pool(500)
-#endif
+		:
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_send_buffers(send_buffer_size())
+		m_send_buffers(send_buffer_size())
+		,
 #endif
-		, m_io_service()
+		m_io_service()
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
@@ -1077,52 +1075,6 @@ namespace aux {
 		update_choking_algorithm();
 		update_disk_threads();
 		update_network_threads();
-	}
-
-	torrent_peer* session_impl::allocate_peer_entry(int type)
-	{
-		torrent_peer* p = NULL;
-		switch(type)
-		{
-			case session_interface::ipv4_peer:
-				p = (torrent_peer*)m_ipv4_peer_pool.malloc();
-				m_ipv4_peer_pool.set_next_size(500);
-				break;
-#if TORRENT_USE_IPV6
-			case session_interface::ipv6_peer:
-				p = (torrent_peer*)m_ipv6_peer_pool.malloc();
-				m_ipv6_peer_pool.set_next_size(500);
-				break;
-#endif
-#if TORRENT_USE_I2P
-			case session_interface::i2p_peer:
-				p = (torrent_peer*)m_i2p_peer_pool.malloc();
-				m_i2p_peer_pool.set_next_size(500);
-				break;
-#endif
-		}
-		return p;
-	}
-	void session_impl::free_peer_entry(torrent_peer* p)
-	{
-#if TORRENT_USE_IPV6
-		if (p->is_v6_addr)
-		{
-			TORRENT_ASSERT(m_ipv6_peer_pool.is_from((libtorrent::ipv6_peer*)p));
-			m_ipv6_peer_pool.destroy((libtorrent::ipv6_peer*)p);
-			return;
-		}
-#endif
-#if TORRENT_USE_I2P
-		if (p->is_i2p_addr)
-		{
-			TORRENT_ASSERT(m_i2p_peer_pool.is_from((libtorrent::i2p_peer*)p));
-			m_i2p_peer_pool.destroy((libtorrent::i2p_peer*)p);
-			return;
-		}
-#endif
-		TORRENT_ASSERT(m_ipv4_peer_pool.is_from((libtorrent::ipv4_peer*)p));
-		m_ipv4_peer_pool.destroy((libtorrent::ipv4_peer*)p);
 	}
 
 #ifdef TORRENT_STATS

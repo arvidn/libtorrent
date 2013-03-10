@@ -149,9 +149,6 @@ namespace libtorrent
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
 
-		torrent_peer* allocate_peer_entry(int type) { return m_ses.allocate_peer_entry(type); }
-		void free_peer_entry(torrent_peer* p) { m_ses.free_peer_entry(p); }
-
 		peer_connection* find_lowest_ranking_peer() const;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
