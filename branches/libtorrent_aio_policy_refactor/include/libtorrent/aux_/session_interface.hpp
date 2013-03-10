@@ -81,6 +81,7 @@ namespace libtorrent
 	struct external_ip;
 	struct torrent_handle;
 	struct ip_filter;
+	class port_filter;
 	struct settings_pack;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -144,7 +145,7 @@ namespace libtorrent { namespace aux
 
 		// ip and port filter
 		virtual ip_filter const& get_ip_filter() const = 0;
-		virtual int port_filter_access(int port) const = 0;
+		virtual port_filter const& get_port_filter() const = 0;
 
 		virtual int session_time() const = 0;
 	

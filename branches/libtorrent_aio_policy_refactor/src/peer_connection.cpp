@@ -78,6 +78,13 @@ using boost::shared_ptr;
 
 namespace libtorrent
 {
+
+	enum
+	{
+		// the limits of the download queue size
+		min_request_queue = 2,
+	};
+
 	int round_up8(int v)
 	{
 		return ((v & 7) == 0) ? v : v + (8 - (v & 7));

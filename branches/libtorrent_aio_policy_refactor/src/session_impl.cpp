@@ -397,16 +397,6 @@ namespace aux {
 	int session_impl::logging_allocator::allocated_bytes = 0;
 #endif
 
-	int session_impl::ip_filter_access(address const& addr) const
-	{
-		return m_ip_filter.access(addr);
-	}
-
-	int session_impl::port_filter_access(int port) const
-	{
-		return m_port_filter.access(port);
-	}
-
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -1974,7 +1964,11 @@ namespace aux {
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
-		// TODO: recalculate all connect candidates for all torrents
+		// Close connections whose endpoint is filtered
+		// by the new ip-filter
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+			i->second->ip_filter_updated();
 	}
 
 	void session_impl::set_ip_filter(ip_filter const& f)
@@ -1993,6 +1987,11 @@ namespace aux {
 	ip_filter const& session_impl::get_ip_filter() const
 	{
 		return m_ip_filter;
+	}
+
+	port_filter const& session_impl::get_port_filter() const
+	{
+		return m_port_filter;
 	}
 
 	int session_impl::create_peer_class(char const* name)
@@ -6016,9 +6015,7 @@ retry:
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
-		std::vector<torrent_peer*> peers;
-		t->get_policy().add_peer(peer, peer_info::lsd, 0, peers, &m_alerts, t->is_finished());
-		t->peers_erased(peers);
+		t->add_peer(peer, peer_info::lsd);
 		t->update_want_peers();
 		if (m_alerts.should_post<lsd_peer_alert>())
 			m_alerts.post_alert(lsd_peer_alert(t->get_handle(), peer));

@@ -162,7 +162,7 @@ namespace libtorrent
 			"invalid dont-have message",
 			"SSL connection required",
 			"invalid SSL certificate",
-			"",
+			"banned by port filter",
 			"",
 			"",
 			"",

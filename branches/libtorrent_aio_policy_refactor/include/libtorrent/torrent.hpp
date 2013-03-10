@@ -288,6 +288,7 @@ namespace libtorrent
 		void received_synack(bool ipv6);
 
 		void ip_filter_updated();
+		void port_filter_updated();
 
 		std::string resolve_filename(int file) const;
 		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
@@ -469,6 +470,7 @@ namespace libtorrent
 
 		bool try_connect_peer();
 		torrent_peer* add_peer(tcp::endpoint const& adr, int source, int flags = 0);
+		void update_peer_port(int port, torrent_peer* p, int src);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -888,8 +890,6 @@ namespace libtorrent
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
-		int port_filter_access(int port) const { return m_ses.port_filter_access(port); }
-
 		std::vector<int> const& predictive_pieces() const
 		{ return m_predictive_pieces; }
 
@@ -933,6 +933,11 @@ namespace libtorrent
 #endif
 
 	private:
+
+		// initialize the torrent_state structure passed to policy
+		// member functions. Don't forget to also call peers_erased()
+		// on the erased member after the policy call
+		torrent_state get_policy_state();
 
 		void construct_storage();
 		void update_list(int list, bool in);

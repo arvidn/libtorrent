@@ -47,40 +47,20 @@ namespace libtorrent
 
 	struct torrent_interface
 	{
-		virtual int num_peers() const = 0;
 		virtual aux::session_settings const& settings() const = 0;
 		virtual external_ip const& external_address() const = 0;
 		virtual int listen_port() const = 0;
-		virtual bool is_i2p() const = 0;
-
-		virtual int port_filter_access(int port) const = 0;
 
 		virtual torrent_peer* allocate_peer_entry(int type) = 0;
 		virtual void free_peer_entry(torrent_peer* p) = 0;
-
-		// this is only used to determine the max peer list size. That could be controlled externally
-		// or this feature could be removed
-		virtual bool is_paused() const = 0;
-
-		// some of these properties are really only used to determine which kinds of peers are connect
-		// candidates. raise the abstraction level to hand the peer to the torrent and ask it if
-		// it's a connect candidate or not.. maybe?
-		virtual bool is_finished() const = 0;
 
 		// this is only used when recalculating or altering the number of connect candidates.
 		// it could be done by the caller instead
 		virtual void update_want_peers() = 0;
 
-		// this is used when we add a new connection, and it succeeds to actually be added
-		virtual void state_updated() = 0;
-
-		// this is only used to post alerts. raise the abstraction level, don't do that from within policy
-		virtual torrent_handle get_handle() = 0;
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		virtual void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags) = 0;
-#endif
 		virtual bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false) = 0;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		virtual int num_peers() const = 0;
 		virtual std::string name() const = 0;
 		virtual void debug_log(const char* fmt, ...) const = 0;
 		virtual void session_log(char const* fmt, ...) const = 0;

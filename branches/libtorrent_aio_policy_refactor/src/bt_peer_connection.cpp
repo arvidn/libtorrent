@@ -1500,9 +1500,7 @@ namespace libtorrent
 			case hp_connect:
 			{
 				// add or find the peer with this endpoint
-				std::vector<torrent_peer*> peers;
-				torrent_peer* p = t->get_policy().add_peer(ep, peer_info::pex, 0, peers, &t->alerts(), t->is_finished());
-				t->peers_erased(peers);
+				torrent_peer* p = t->add_peer(ep, peer_info::pex);
 				if (p == 0 || p->connection)
 				{
 #if defined TORRENT_VERBOSE_LOGGING
@@ -1767,11 +1765,7 @@ namespace libtorrent
 		int listen_port = int(root.dict_find_int_value("p"));
 		if (listen_port > 0 && peer_info_struct() != 0)
 		{
-			std::vector<torrent_peer*> peers;
-			t->get_policy().update_peer_port(listen_port
-				, peer_info_struct(), peer_info::incoming, peers);
-			t->peers_erased(peers);
-			t->update_want_peers();
+			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
 			if (is_disconnecting()) return;
 		}

@@ -392,6 +392,8 @@ namespace libtorrent
 			ip_filter const& get_ip_filter() const;
 			
 			void set_port_filter(port_filter const& f);
+			port_filter const& get_port_filter() const;
+
 
 			// TODO: move the login info into the tracker_request object
 			void queue_tracker_request(tracker_request& req
@@ -1083,9 +1085,6 @@ namespace libtorrent
 
 			ptime m_created;
 			int session_time() const { return total_seconds(time_now() - m_created); }
-
-			int ip_filter_access(address const& addr) const;
-			int port_filter_access(int port) const;
 
 			ptime m_last_tick;
 			ptime m_last_second_tick;
