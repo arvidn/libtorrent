@@ -66,6 +66,7 @@ namespace libtorrent
 		bool is_finished;
 		bool allow_multiple_connections_per_ip;
 		int max_peerlist_size;
+		int min_reconnect_time;
 
 		// this is set by policy::add_peer to either true or false
 		// true means the peer we just added was new, false means

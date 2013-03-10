@@ -3199,7 +3199,7 @@ namespace libtorrent
 			// since it most likely is ourself then
 			if (pid == m_ses.get_peer_id())
 			{
-				if (peer_info_struct()) t->get_policy().ban_peer(peer_info_struct());
+				if (peer_info_struct()) t->ban_peer(peer_info_struct());
 				disconnect(errors::self_connection, 1);
 				return;
 			}

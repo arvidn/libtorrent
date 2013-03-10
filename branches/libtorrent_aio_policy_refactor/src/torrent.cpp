@@ -1992,10 +1992,15 @@ namespace libtorrent
 		return 0;
 	}
 
-	void torrent::ban_peer(torrent_peer* tp)
+	bool torrent::ban_peer(torrent_peer* tp)
 	{
-		if (m_policy.ban_peer(tp))
-			m_ses.inc_stats_counter(aux::session_interface::num_banned_peers);
+		if (!settings().get_bool(settings_pack::ban_web_seeds) && tp->web_seed)
+			return false;
+
+		if (!m_policy.ban_peer(tp)) return false;
+
+		m_ses.inc_stats_counter(aux::session_interface::num_banned_peers);
+		return true;
 	}
 
 	void torrent::on_resume_data_checked(disk_io_job const* j)
@@ -2049,7 +2054,7 @@ namespace libtorrent
 					if (p)
 					{
 						state_updated();
-						m_policy.ban_peer(p);
+						ban_peer(p);
 					}
 				}
 				update_want_peers();
@@ -2080,7 +2085,7 @@ namespace libtorrent
 					if (p)
 					{
 						state_updated();
-						m_policy.ban_peer(p);
+						ban_peer(p);
 					}
 				}
 				update_want_peers();
@@ -2123,7 +2128,7 @@ namespace libtorrent
 					if (p)
 					{
 						state_updated();
-						m_policy.ban_peer(p);
+						ban_peer(p);
 					}
 				}
 				update_want_peers();
@@ -3969,7 +3974,7 @@ namespace libtorrent
 				}
 
 				// mark the peer as banned
-				m_policy.ban_peer(p);
+				ban_peer(p);
 				update_want_peers();
 				m_ses.inc_stats_counter(aux::session_interface::banned_for_hash_failure);
 
@@ -9288,6 +9293,7 @@ namespace libtorrent
 		ret.max_peerlist_size = is_paused()
 			? settings().get_int(settings_pack::max_paused_peerlist_size)
 			: settings().get_int(settings_pack::max_peerlist_size);
+		ret.min_reconnect_time = settings().get_int(settings_pack::min_reconnect_time);
 		ret.peer_allocator = m_ses.get_peer_allocator();
 		return ret;
 	}

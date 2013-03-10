@@ -412,9 +412,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(p->in_use);
 
-		if (!m_torrent->settings().get_bool(settings_pack::ban_web_seeds) && p->web_seed)
-			return false;
-
 		if (is_connect_candidate(*p, m_finished))
 			update_connect_candidates(-1);
 
@@ -483,7 +480,6 @@ namespace libtorrent
 		if (m_finished != state->is_finished)
 			recalculate_connect_candidates(state);
 
-		int min_reconnect_time = m_torrent->settings().get_int(settings_pack::min_reconnect_time);
 		external_ip const& external = m_torrent->external_address();
 		int external_port = m_torrent->listen_port();
 
@@ -555,7 +551,7 @@ namespace libtorrent
 
 			if (pe.last_connected
 				&& session_time - pe.last_connected <
-				(int(pe.failcount) + 1) * min_reconnect_time)
+				(int(pe.failcount) + 1) * state->min_reconnect_time)
 				continue;
 
 			candidate = current;

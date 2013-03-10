@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/ip_voter.hpp"
@@ -97,12 +97,12 @@ struct mock_torrent : torrent_interface
 	{
 		switch(type)
 		{
-			case aux::session_interface::ipv4_peer: return (torrent_peer*)malloc(sizeof(ipv4_peer));
+			case torrent_peer_allocator_interface::ipv4_peer: return (torrent_peer*)malloc(sizeof(ipv4_peer));
 #if TORRENT_USE_IPV6
-			case aux::session_interface::ipv6_peer: return (torrent_peer*)malloc(sizeof(ipv6_peer));
+			case torrent_peer_allocator_interface::ipv6_peer: return (torrent_peer*)malloc(sizeof(ipv6_peer));
 #endif
 #if TORRENT_USE_I2P
-			case aux::session_interface::i2p_peer: return (torrent_peer*)malloc(sizeof(i2p_peer));
+			case torrent_peer_allocator_interface::i2p_peer: return (torrent_peer*)malloc(sizeof(i2p_peer));
 #endif
 		}
 		return NULL;
@@ -151,7 +151,6 @@ struct mock_torrent : torrent_interface
 	external_ip m_ext_ip;
 	aux::session_settings sett;
 	policy* m_p;
-	io_service m_ios;
 
 private:
 
@@ -160,11 +159,14 @@ private:
 
 int test_main()
 {
+	torrent_peer_allocator allocator;
+
 	torrent_state st;
 	st.is_finished = false;
 	st.is_paused = false;
 	st.max_peerlist_size = 1000;
 	st.allow_multiple_connections_per_ip = false;
+	st.peer_allocator = &allocator;
 
 	// test multiple peers with the same IP
 	// when disallowing it
@@ -324,7 +326,6 @@ int test_main()
 
 	// test ip filter
 	{
-		std::vector<torrent_peer*> peers;
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
 		policy p(&t);
@@ -356,9 +357,9 @@ int test_main()
 		ip_filter filter;
 		filter.add_rule(address_v4::from_string("11.0.0.0"), address_v4::from_string("255.255.255.255"), 1);
 		std::vector<address> banned;
-		p.apply_ip_filter(filter, peers, banned);
+		p.apply_ip_filter(filter, &st, banned);
 		// we just erased a peer, because it was filtered by the ip filter
-		TEST_EQUAL(peers.size(), 1);
+		TEST_EQUAL(st.erased.size(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		TEST_EQUAL(p.num_peers(), 1);
 		TEST_EQUAL(banned.size(), 1);
@@ -367,7 +368,6 @@ int test_main()
 
 	// test banning peers
 	{
-		std::vector<torrent_peer*> peers;
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
 		policy p(&t);
@@ -393,9 +393,10 @@ int test_main()
 		// it's just not a connect candidate, nor allowed to receive incoming connections
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 
-		p.connection_closed(*c, 0, peers);
+		p.connection_closed(*c, 0, &st);
 		TEST_EQUAL(p.num_peers(), 1);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
+		st.erased.clear();
 
 		c.reset(new mock_peer_connection(true, ep("10.0.0.1", 8080)));
 		ok = p.new_connection(*c, 0, &st);
