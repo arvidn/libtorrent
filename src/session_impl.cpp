@@ -597,9 +597,6 @@ namespace aux {
 		, fingerprint const& cl_fprint
 		, char const* listen_interface
 		, boost::uint32_t alert_mask
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, std::string const& logpath
-#endif
 		)
 		: m_ipv4_peer_pool(500)
 #if TORRENT_USE_IPV6
@@ -666,7 +663,7 @@ namespace aux {
 		, m_tick_residual(0)
 		, m_non_filtered_torrents(0)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, m_logpath(logpath)
+		, m_logpath(".")
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
 		, m_asnum_db(0)
@@ -704,6 +701,33 @@ namespace aux {
 		}
 #endif
 
+		error_code ec;
+		if (!listen_interface) listen_interface = "0.0.0.0";
+		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
+		TORRENT_ASSERT_VAL(!ec, ec);
+
+		// ---- generate a peer id ----
+		static seed_random_generator seeder;
+
+		m_key = random() + (random() << 15) + (random() << 30);
+		std::string print = cl_fprint.to_string();
+		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
+
+		// the client's fingerprint
+		std::copy(
+			print.begin()
+			, print.begin() + print.length()
+			, m_peer_id.begin());
+
+		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
+
+		update_rate_settings();
+		update_connections_limit();
+		update_unchoke_limit();
+	}
+
+	void session_impl::start_session()
+	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		session_log("log created");
@@ -726,10 +750,6 @@ namespace aux {
 		m_next_lsd_torrent = m_torrents.begin();
 		m_next_connect_torrent = m_torrents.begin();
 		m_next_disk_peer = m_connections.begin();
-
-		if (!listen_interface) listen_interface = "0.0.0.0";
-		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
-		TORRENT_ASSERT_VAL(!ec, ec);
 
 		m_tcp_mapping[0] = -1;
 		m_tcp_mapping[1] = -1;
@@ -1063,28 +1083,14 @@ namespace aux {
 #endif // TORRENT_BSD || TORRENT_LINUX
 
 
-		// ---- generate a peer id ----
-		static seed_random_generator seeder;
-
-		m_key = random() + (random() << 15) + (random() << 30);
-		std::string print = cl_fprint.to_string();
-		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
-
-		// the client's fingerprint
-		std::copy(
-			print.begin()
-			, print.begin() + print.length()
-			, m_peer_id.begin());
-
-		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
-		update_rate_settings();
-		update_connections_limit();
-		update_unchoke_limit();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		session_log(" spawning network thread");
+#endif
+		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
 #ifdef TORRENT_STATS
@@ -1304,14 +1310,6 @@ namespace aux {
 			"\n\n", m_stats_logger);
 	}
 #endif
-
-	void session_impl::start_session()
-	{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		session_log(" spawning network thread");
-#endif
-		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
-	}
 
 	void session_impl::trigger_auto_manage()
 	{

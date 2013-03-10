@@ -75,14 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CFG_POOL pools_
 #endif
 
-#ifdef TORRENT_VERBOSE_LOGGING
-#define TORRENT_CFG_LOG verboselog_
-#elif defined TORRENT_LOGGING
-#define TORRENT_CFG_LOG log_
-#else
-#define TORRENT_CFG_LOG nolog_
-#endif
-
 #ifdef _UNICODE
 #define TORRENT_CFG_UNICODE unicode_
 #else

@@ -215,15 +215,14 @@ namespace libtorrent
 				std::pair<int, int> listen_port_range
 				, fingerprint const& cl_fprint
 				, char const* listen_interface
-				, boost::uint32_t alert_mask
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				, std::string const& logpath
-#endif
-				);
+				, boost::uint32_t alert_mask);
 			virtual ~session_impl();
 			void update_dht_announce_interval();
 			void init();
 			void start_session();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			void set_log_path(std::string const& p) { m_logpath = p; }
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
