@@ -459,13 +459,6 @@ namespace libtorrent
 			|| int(p.failcount) >= m_torrent->settings().get_int(settings_pack::max_failcount))
 			return false;
 		
-		// only apply this to peers we've only heard
-		// about from the DHT
-		if (m_torrent->settings().get_bool(settings_pack::no_connect_privileged_ports)
-			&& p.port < 1024
-			&& p.source == peer_info::dht)
-			return false;
-
 		return true;
 	}
 

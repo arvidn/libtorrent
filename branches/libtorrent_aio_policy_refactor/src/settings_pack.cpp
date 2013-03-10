@@ -169,7 +169,7 @@ namespace libtorrent
 		DEPRECATED_SET(rate_limit_utp, false, &session_impl::update_rate_limit_utp),
 		SET(announce_double_nat, false, 0),
 		SET(seeding_outgoing_connections, true, 0),
-		SET(no_connect_privileged_ports, true, 0),
+		SET(no_connect_privileged_ports, false, &session_impl::update_privileged_ports),
 		SET(smooth_connects, true, 0),
 		SET(always_send_user_agent, false, 0),
 		SET(apply_ip_filter_to_trackers, true, 0),

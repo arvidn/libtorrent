@@ -1911,6 +1911,8 @@ namespace aux {
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
+		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
+			m_port_filter.add_rule(0, 1024, port_filter::blocked);
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -5887,6 +5889,24 @@ retry:
 		m_logger = create_log("main_session", listen_port(), false);
 		session_log("log created");
 #endif
+	}
+
+	void session_impl::update_privileged_ports()
+	{
+		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
+		{
+			m_port_filter.add_rule(0, 1024, port_filter::blocked);
+
+			// Close connections whose endpoint is filtered
+			// by the new ip-filter
+			for (torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+				i->second->ip_filter_updated();
+		}
+		else
+		{
+			m_port_filter.add_rule(0, 1024, 0);
+		}
 	}
 
 	address session_impl::listen_address() const

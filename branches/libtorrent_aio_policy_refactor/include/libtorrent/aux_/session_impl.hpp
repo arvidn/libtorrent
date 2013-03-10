@@ -714,6 +714,7 @@ namespace libtorrent
 			void trigger_auto_manage();
 			void update_outgoing_interfaces();
 			void update_listen_interfaces();
+			void update_privileged_ports();
 
 			void on_trigger_auto_manage();
 
