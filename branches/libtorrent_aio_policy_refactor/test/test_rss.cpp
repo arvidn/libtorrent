@@ -88,11 +88,7 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 		"\r\n";
 
 	boost::shared_ptr<aux::session_impl> s = boost::shared_ptr<aux::session_impl>(new aux::session_impl(
-		std::make_pair(100, 200), fingerprint("TT", 0, 0, 0 ,0), NULL, 0
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				, "."
-#endif
-		));
+		std::make_pair(100, 200), fingerprint("TT", 0, 0, 0 ,0), NULL, 0));
 	s->start_session();
 
 	feed_settings sett;
