@@ -2995,7 +2995,7 @@ namespace libtorrent
 					// the .i2p and use it as a destination
 					i->ip.resize(i->ip.size() - 4);
 					torrent_state st = get_policy_state();
-					if (m_policy.add_i2p_peer(i->ip.c_str(), peer_info::tracker, 0, &st));
+					if (m_policy.add_i2p_peer(i->ip.c_str(), peer_info::tracker, 0, &st))
 						state_updated();
 					peers_erased(st.erased);
 				}
