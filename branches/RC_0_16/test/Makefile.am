@@ -45,7 +45,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/slash_path.torrent \
   test_torrents/backslash_path.torrent \
   test_torrents/url_list.torrent \
-  test_torrents/url_list2.torrent \ 
+  test_torrents/url_list2.torrent \
   test_torrents/url_list3.torrent \
   test_torrents/httpseed.torrent \
   test_torrents/empty_httpseed.torrent \
