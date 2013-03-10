@@ -239,15 +239,14 @@ namespace libtorrent
 				std::pair<int, int> listen_port_range
 				, fingerprint const& cl_fprint
 				, char const* listen_interface
-				, boost::uint32_t alert_mask
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				, std::string const& logpath
-#endif
-				);
+				, boost::uint32_t alert_mask);
 			virtual ~session_impl();
 
 			void init();
 			void start_session();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			void set_log_path(std::string const& p) { m_logpath = p; }
+#endif
 
 			void set_load_function(user_load_function_t fun)
 			{ m_user_load_torrent = fun; }
@@ -717,7 +716,6 @@ namespace libtorrent
 			void update_dht_announce_interval();
 			void update_anonymous_mode();
 			void update_force_proxy();
-			void update_rate_settings();
 			void update_half_open();
 			void update_download_rate();
 			void update_upload_rate();
@@ -729,7 +727,6 @@ namespace libtorrent
 			void update_rate_limit_utp();
 			void update_ignore_rate_limits_on_local_network();
 #endif
-			void update_unchoke_limit();
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
