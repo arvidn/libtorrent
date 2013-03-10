@@ -645,13 +645,24 @@ namespace libtorrent
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
 	void session::init(std::pair<int, int> listen_range, char const* listen_interface
-		, fingerprint const& id, int flags, boost::uint32_t alert_mask TORRENT_LOGPATH_ARG)
+		, fingerprint const& id, boost::uint32_t alert_mask)
 	{
-		m_impl.reset(new session_impl(listen_range, id, listen_interface, alert_mask TORRENT_LOGPATH));
+		m_impl.reset(new session_impl(listen_range, id, listen_interface, alert_mask));
 
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
 #endif
+	}
+
+	void session::set_log_path(std::string const& p)
+	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_impl->set_log_path(p);
+#endif
+	}
+
+	void session::start(int flags)
+	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{

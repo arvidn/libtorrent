@@ -3575,8 +3575,6 @@ namespace libtorrent
 		else
 		{
 			TORRENT_ASSERT(ret == -1);
-			m_picker->restore_piece(j->piece);
-//			restore_piece_state(j->piece);
 			update_gauge();
 		}
 
