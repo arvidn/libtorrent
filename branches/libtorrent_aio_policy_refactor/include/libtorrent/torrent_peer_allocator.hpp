@@ -61,6 +61,11 @@ namespace libtorrent
 		torrent_peer* allocate_peer_entry(int type);
 		void free_peer_entry(torrent_peer* p);
 
+		boost::uint64_t total_bytes() const { return m_total_bytes; }
+		boost::uint64_t total_allocations() const { return m_total_allocations; }
+		int live_bytes() const { return m_live_bytes; }
+		int live_allocations() const { return m_live_allocations; }
+
 	private:
 	
 		// this is a shared pool where torrent_peer objects
@@ -76,6 +81,15 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 		boost::object_pool<libtorrent::i2p_peer> m_i2p_peer_pool;
 #endif
+
+		// the total number of bytes allocated (cumulative)
+		boost::uint64_t m_total_bytes;
+		// the total number of allocations (cumulative)
+		boost::uint64_t m_total_allocations;
+		// the number of currently live bytes
+		int m_live_bytes;
+		// the number of currently live allocations
+		int m_live_allocations;
 	};
 }
 

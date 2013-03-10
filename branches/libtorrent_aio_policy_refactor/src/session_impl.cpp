@@ -392,11 +392,6 @@ namespace aux {
 */
 #undef lenof
 
-#ifdef TORRENT_STATS
-	int session_impl::logging_allocator::allocations = 0;
-	int session_impl::logging_allocator::allocated_bytes = 0;
-#endif
-
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -3979,8 +3974,8 @@ retry:
 			STAT_LOG(d, num_half_open);
 			STAT_LOG(d, cs.total_used_buffers);
 			STAT_LOG(d, num_peers);
-			STAT_LOG(d, logging_allocator::allocations);
-			STAT_LOG(d, logging_allocator::allocated_bytes);
+			STAT_LOG(d, m_peer_allocator.live_allocations());
+			STAT_LOG(d, m_peer_allocator.live_bytes());
 			STAT_LOG(d, m_stats_counter[session_interface::num_checking_torrents]);
 			STAT_LOG(d, m_stats_counter[session_interface::num_stopped_torrents]);
 			STAT_LOG(d, m_stats_counter[session_interface::num_upload_only_torrents]);
