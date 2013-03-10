@@ -740,16 +740,6 @@ namespace libtorrent
 				erase_peers(state, force_erase);
 				if (int(m_peers.size()) >= state->max_peerlist_size)
 				{
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-					m_torrent->session_log(" *** TOO MANY PEERS IN LIST ["
-						" torrent: %s torrent peers: %d "
-						"global limit: %d global list peers: %d global list limit: %d ]"
-						, m_torrent->name().c_str()
-						, m_torrent->num_peers()
-						, m_torrent->settings().get_int(settings_pack::connections_limit)
-						, int(m_peers.size())
-						, state->max_peerlist_size);
-#endif
 					c.disconnect(errors::too_many_connections);
 					return false;
 				}
@@ -995,25 +985,6 @@ namespace libtorrent
 			p->supports_utp = true;
 		if (flags & flag_holepunch)
 			p->supports_holepunch = true;
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		if (p->connection)
-		{
-			// this means we're already connected
-			// to this peer. don't connect to
-			// it again.
-
-			error_code ec;
-			char hex_pid[41];
-			to_hex((char*)&p->connection->pid()[0], 20, hex_pid);
-			char msg[200];
-			snprintf(msg, 200, "already connected to peer: %s %s"
-				, print_endpoint(remote).c_str(), hex_pid);
-			m_torrent->debug_log(msg);
-
-			TORRENT_ASSERT(p->connection->associated_torrent().lock().get() == m_torrent);
-		}
-#endif
 
 		if (was_conn_cand != is_connect_candidate(*p, m_finished))
 		{
@@ -1272,7 +1243,7 @@ namespace libtorrent
 		// port, we don't really know which peer it was. In order
 		// to avoid adding one entry for every single connection
 		// the peer makes to us, don't save this entry
-		if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip)
+		if (state->allow_multiple_connections_per_ip
 			&& !p->connectable
 			&& p != m_locked_peer)
 		{
