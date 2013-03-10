@@ -457,6 +457,7 @@ void stop_tracker()
 		tracker_ios->stop();
 		tracker_server->join();
 		tracker_server.reset();
+		delete tracker_ios;
 		tracker_ios = 0;
 	}
 }
@@ -539,8 +540,9 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 void udp_tracker_thread(int* port)
 {
-	io_service ios;
-	udp::socket acceptor(ios);
+	tracker_ios = new io_service;
+
+	udp::socket acceptor(*tracker_ios);
 	error_code ec;
 	acceptor.open(udp::v4(), ec);
 	if (ec)
@@ -560,8 +562,6 @@ void udp_tracker_thread(int* port)
 	}
 	*port = acceptor.local_endpoint().port();
 
-	tracker_ios = &ios;
-
 	fprintf(stderr, "UDP tracker initialized on port %d\n", *port);
 
 	{
@@ -579,7 +579,7 @@ void udp_tracker_thread(int* port)
 		acceptor.async_receive_from(
 			asio::buffer(buffer, sizeof(buffer)), from, boost::bind(
 				&on_udp_receive, _1, _2, &from, &buffer[0], &acceptor));
-		ios.run_one(ec);
+		tracker_ios->run_one(ec);
 		if (udp_failed) return;
 
 		if (ec)
@@ -589,7 +589,7 @@ void udp_tracker_thread(int* port)
 			tracker_initialized.signal(l);
 			return;
 		}
-		ios.reset();
+		tracker_ios->reset();
 	}
 }
 
