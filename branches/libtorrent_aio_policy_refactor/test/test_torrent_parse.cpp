@@ -70,6 +70,7 @@ test_torrent_t test_torrents[] =
 	{ "url_seed_multi_space.torrent" },
 	{ "url_seed_multi_space_nolist.torrent" },
 	{ "root_hash.torrent" },
+	{ "invalid_name2.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -85,7 +86,6 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "negative_piece_len.torrent", errors::torrent_missing_piece_length },
 	{ "no_name.torrent", errors::torrent_missing_name },
 	{ "invalid_name.torrent", errors::torrent_missing_name },
-	{ "invalid_name2.torrent", errors::torrent_invalid_name },
 	{ "invalid_info.torrent", errors::torrent_missing_info },
 	{ "string.torrent", errors::torrent_is_no_dict },
 	{ "negative_size.torrent", errors::torrent_invalid_length },
@@ -174,6 +174,13 @@ int test_main()
 			TEST_EQUAL(ti->url_seeds().size(), 1);
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
 #endif
+		}
+		else if (std::string(test_torrents[i].file) == "invalid_name2.torrent")
+		{
+			// if, after all invalid characters are removed from the name, it ends up
+			// being empty, it's set to the info-hash. Some torrents also have an empty name
+			// in which case it's also set to the info-hash
+			TEST_EQUAL(ti->name(), "b61560c2918f463768cd122b6d2fdd47b77bdb35");
 		}
 
 		int index = 0;

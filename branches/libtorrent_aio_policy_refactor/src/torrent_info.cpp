@@ -986,7 +986,14 @@ namespace libtorrent
 
 	void torrent_info::unload()
 	{
-		TORRENT_ASSERT(m_info_section.unique());
+		// TODO: 4 since we may pass a reference to the torrent_info
+		// object in state updates in torrent_status, this
+		// reference isn't likely to be the only one.
+		// this needs to be resolved somehow.
+		// now the torrent_info object may be pulled out from
+		// under the client's feed asynchronously. Maybe some
+		// kind of copy-on-write style mechanism?
+//		TORRENT_ASSERT(m_info_section.unique());
 		m_info_section.reset();
 		m_info_section_size = 0;
 
