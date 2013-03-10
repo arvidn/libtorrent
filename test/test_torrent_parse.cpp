@@ -57,6 +57,7 @@ test_torrent_t test_torrents[] =
 	{ "empty_httpseed.torrent" },
 	{ "long_name.torrent" },
 	{ "whitespace_url.torrent" },
+	{ "duplicate_files.torrent" },
 	{ "pad_file.torrent" },
 	{ "creation_date.torrent" },
 };
