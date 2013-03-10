@@ -290,7 +290,7 @@ namespace libtorrent
 
 		state->erased.push_back(*i);
 		if ((*i)->seed) --m_num_seeds;
-		if (is_connect_candidate(**i, m_finished))
+		if (is_connect_candidate(**i))
 			update_connect_candidates(-1);
 		TORRENT_ASSERT(m_num_connect_candidates < int(m_peers.size()));
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
@@ -313,13 +313,13 @@ namespace libtorrent
 		return p.source == peer_info::resume_data;
 	}
 
-	bool policy::is_erase_candidate(torrent_peer const& pe, bool finished) const
+	bool policy::is_erase_candidate(torrent_peer const& pe) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(pe.in_use);
 		if (&pe == m_locked_peer) return false;
 		if (pe.connection) return false;
-		if (is_connect_candidate(pe, finished)) return false;
+		if (is_connect_candidate(pe)) return false;
 
 		return (pe.failcount > 0)
 			|| (pe.source == peer_info::resume_data);
@@ -365,7 +365,7 @@ namespace libtorrent
 			TORRENT_ASSERT(pe.in_use);
 			int current = round_robin;
 
-			if (is_erase_candidate(pe, m_finished)
+			if (is_erase_candidate(pe)
 				&& (erase_candidate == -1
 					|| !compare_peer_erase(*m_peers[erase_candidate], pe)))
 			{
@@ -412,11 +412,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(p->in_use);
 
-		if (is_connect_candidate(*p, m_finished))
+		if (is_connect_candidate(*p))
 			update_connect_candidates(-1);
 
 		p->banned = true;
-		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
+		TORRENT_ASSERT(!is_connect_candidate(*p));
 		return true;
 	}
 
@@ -428,7 +428,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->in_use);
 		TORRENT_ASSERT(c);
 
-		const bool was_conn_cand = is_connect_candidate(*p, m_finished);
+		const bool was_conn_cand = is_connect_candidate(*p);
 		p->connection = c;
 		if (was_conn_cand) update_connect_candidates(-1);
 	}
@@ -439,15 +439,15 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(p->in_use);
-		const bool was_conn_cand = is_connect_candidate(*p, m_finished);
+		const bool was_conn_cand = is_connect_candidate(*p);
 		p->failcount = f;
-		if (was_conn_cand != is_connect_candidate(*p, m_finished))
+		if (was_conn_cand != is_connect_candidate(*p))
 		{
 			update_connect_candidates(was_conn_cand ? -1 : 1);
 		}
 	}
 
-	bool policy::is_connect_candidate(torrent_peer const& p, bool finished) const
+	bool policy::is_connect_candidate(torrent_peer const& p) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(p.in_use);
@@ -455,8 +455,8 @@ namespace libtorrent
 			|| p.banned
 			|| p.web_seed
 			|| !p.connectable
-			|| (p.seed && finished)
-			|| int(p.failcount) >= m_torrent->settings().get_int(settings_pack::max_failcount))
+			|| (p.seed && m_finished)
+			|| int(p.failcount) >= 3)
 			return false;
 		
 		return true;
@@ -473,8 +473,8 @@ namespace libtorrent
 		if (m_finished != state->is_finished)
 			recalculate_connect_candidates(state);
 
-		external_ip const& external = m_torrent->external_address();
-		int external_port = m_torrent->listen_port();
+		external_ip const& external = *state->ip;
+		int external_port = state->port;
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
@@ -493,6 +493,8 @@ namespace libtorrent
 			TORRENT_ASSERT(pe.in_use);
 			int current = m_round_robin;
 
+			// TODO: 4 this logic does not belong in here. It should be moved out into torrent
+/*
 #ifndef TORRENT_DISABLE_DHT
 			// try to send a DHT ping to this peer
 			// as well, to figure out if it supports
@@ -501,19 +503,19 @@ namespace libtorrent
 			if (!pinged && !pe.added_to_dht)
 			{
 				udp::endpoint node(pe.address(), pe.port);
-				// TODO: 3 how can this dependency on session be removed? Maybe it could be returned in a vector as part of torrent_state
-//				m_torrent->session().add_dht_node(node);
+				m_torrent->session().add_dht_node(node);
 				pe.added_to_dht = true;
 				pinged = true;
 			}
 #endif
+*/
 			// if the number of peers is growing large
 			// we need to start weeding.
 
 			if (int(m_peers.size()) >= max_peerlist_size * 0.95
 				&& max_peerlist_size > 0)
 			{
-				if (is_erase_candidate(pe, m_finished)
+				if (is_erase_candidate(pe)
 					&& (erase_candidate == -1
 						|| !compare_peer_erase(*m_peers[erase_candidate], pe)))
 				{
@@ -533,7 +535,7 @@ namespace libtorrent
 
 			++m_round_robin;
 
-			if (!is_connect_candidate(pe, m_finished)) continue;
+			if (!is_connect_candidate(pe)) continue;
 
 			// compare peer returns true if lhs is better than rhs. In this
 			// case, it returns true if the current candidate is better than
@@ -559,7 +561,7 @@ namespace libtorrent
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		if (candidate != -1)
 		{
-			m_torrent->session_log(" *** FOUND CONNECTION CANDIDATE ["
+			m_torrent->debug_log(" *** FOUND CONNECTION CANDIDATE ["
 				" ip: %s d: %d rank: %u external: %s t: %d ]"
 				, print_endpoint(m_peers[candidate]->ip()).c_str()
 				, cidr_distance(external.external_address(m_peers[candidate]->address()), m_peers[candidate]->address())
@@ -718,7 +720,7 @@ namespace libtorrent
 				}
 			}
 
-			if (is_connect_candidate(*i, m_finished))
+			if (is_connect_candidate(*i))
 				update_connect_candidates(-1);
 		}
 		else
@@ -786,7 +788,7 @@ namespace libtorrent
 			i->last_connected = session_time;
 
 		// this cannot be a connect candidate anymore, since i->connection is set
-		TORRENT_ASSERT(!is_connect_candidate(*i, m_finished));
+		TORRENT_ASSERT(!is_connect_candidate(*i));
 		TORRENT_ASSERT(has_connection(&c));
 		return true;
 	}
@@ -814,12 +816,12 @@ namespace libtorrent
 				TORRENT_ASSERT(pp.in_use);
 				if (pp.connection)
 				{
-					bool was_conn_cand = is_connect_candidate(pp, m_finished);
+					bool was_conn_cand = is_connect_candidate(pp);
 					// if we already have an entry with this
 					// new endpoint, disconnect this one
 					pp.connectable = true;
 					pp.source |= src;
-					if (!was_conn_cand && is_connect_candidate(pp, m_finished))
+					if (!was_conn_cand && is_connect_candidate(pp))
 						update_connect_candidates(1);
 					// calling disconnect() on a peer, may actually end
 					// up "garbage collecting" its torrent_peer entry
@@ -847,12 +849,12 @@ namespace libtorrent
 		}
 #endif
 
-		bool was_conn_cand = is_connect_candidate(*p, m_finished);
+		bool was_conn_cand = is_connect_candidate(*p);
 		p->port = port;
 		p->source |= src;
 		p->connectable = true;
 
-		if (was_conn_cand != is_connect_candidate(*p, m_finished))
+		if (was_conn_cand != is_connect_candidate(*p))
 			update_connect_candidates(was_conn_cand ? -1 : 1);
 		return true;
 	}
@@ -878,9 +880,9 @@ namespace libtorrent
 		if (p == 0) return;
 		TORRENT_ASSERT(p->in_use);
 		if (p->seed == s) return;
-		bool was_conn_cand = is_connect_candidate(*p, m_finished);
+		bool was_conn_cand = is_connect_candidate(*p);
 		p->seed = s;
-		if (was_conn_cand && !is_connect_candidate(*p, m_finished))
+		if (was_conn_cand && !is_connect_candidate(*p))
 			update_connect_candidates(-1);
 
 		if (p->web_seed) return;
@@ -940,7 +942,7 @@ namespace libtorrent
 			p->supports_utp = true;
 		if (flags & flag_holepunch)
 			p->supports_holepunch = true;
-		if (is_connect_candidate(*p, m_finished))
+		if (is_connect_candidate(*p))
 			update_connect_candidates(1);
 
 		return true;
@@ -950,7 +952,7 @@ namespace libtorrent
 		, tcp::endpoint const& remote, char const* destination)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		bool was_conn_cand = is_connect_candidate(*p, m_finished);
+		bool was_conn_cand = is_connect_candidate(*p);
 
 		TORRENT_ASSERT(p->in_use);
 		p->connectable = true;
@@ -979,7 +981,7 @@ namespace libtorrent
 		if (flags & flag_holepunch)
 			p->supports_holepunch = true;
 
-		if (was_conn_cand != is_connect_candidate(*p, m_finished))
+		if (was_conn_cand != is_connect_candidate(*p))
 		{
 			update_connect_candidates(was_conn_cand ? -1 : 1);
 		}
@@ -990,22 +992,10 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		if (delta == 0) return;
 		m_num_connect_candidates += delta;
-		if (delta > 0)
-		{
-			// if we went from 0 to > 0, we need to
-			// update 'want-more-peers' state
-			// TODO: 4 this could probably be moved out to be the responsibility of the caller, by returning whether or not it needs to be done
-			if (m_num_connect_candidates == delta)
-				m_torrent->update_want_peers();
-		}
-		else
+		if (delta < 0)
 		{
 			TORRENT_ASSERT(m_num_connect_candidates >= 0);
 			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
-			// if we went from > 0 to 0, we also need
-			// to update 'want-more-peers' state
-			if (m_num_connect_candidates == 0)
-				m_torrent->update_want_peers();
 		}
 	}
 
@@ -1160,18 +1150,18 @@ namespace libtorrent
 		// this should hold because find_connect_candidate should have done this
 		TORRENT_ASSERT(m_finished == state->is_finished);
 
-		TORRENT_ASSERT(is_connect_candidate(p, m_finished));
+		TORRENT_ASSERT(is_connect_candidate(p));
 		if (!m_torrent->connect_to_peer(&p))
 		{
 			// failcount is a 5 bit value
-			const bool was_conn_cand = is_connect_candidate(p, m_finished);
+			const bool was_conn_cand = is_connect_candidate(p);
 			if (p.failcount < 31) ++p.failcount;
-			if (was_conn_cand && !is_connect_candidate(p, m_finished))
+			if (was_conn_cand && !is_connect_candidate(p))
 				update_connect_candidates(-1);
 			return false;
 		}
 		TORRENT_ASSERT(p.connection);
-		TORRENT_ASSERT(!is_connect_candidate(p, m_finished));
+		TORRENT_ASSERT(!is_connect_candidate(p));
 		return true;
 	}
 
@@ -1198,7 +1188,7 @@ namespace libtorrent
 				!= m_peers.end());
 		
 		TORRENT_ASSERT(p->connection == &c);
-		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
+		TORRENT_ASSERT(!is_connect_candidate(*p));
 
 		p->connection = 0;
 		p->optimistically_unchoked = false;
@@ -1215,7 +1205,7 @@ namespace libtorrent
 			if (p->failcount < 31) ++p->failcount;
 		}
 
-		if (is_connect_candidate(*p, m_finished))
+		if (is_connect_candidate(*p))
 			update_connect_candidates(1);
 
 		// if we're already a seed, it's not as important
@@ -1258,13 +1248,8 @@ namespace libtorrent
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
-			m_num_connect_candidates += is_connect_candidate(**i, m_finished);
+			m_num_connect_candidates += is_connect_candidate(**i);
 		}
-
-		// if we dropped to 0 or increased from 0, we need to update
-		// the 'want_peers' state of the torrent
-		if ((prev_candidates == 0) != (m_num_connect_candidates == 0))
-			m_torrent->update_want_peers();
 	}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -1313,7 +1298,7 @@ namespace libtorrent
 			}
 			torrent_peer const& p = **i;
 			TORRENT_ASSERT(p.in_use);
-			if (is_connect_candidate(p, m_finished)) ++connect_candidates;
+			if (is_connect_candidate(p)) ++connect_candidates;
 #ifndef TORRENT_DISABLE_GEO_IP
 			TORRENT_ASSERT(p.inet_as == 0 || p.inet_as->first == p.inet_as_num);
 #endif

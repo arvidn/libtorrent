@@ -1998,6 +1998,7 @@ namespace libtorrent
 			return false;
 
 		if (!m_policy.ban_peer(tp)) return false;
+		update_want_peers();
 
 		m_ses.inc_stats_counter(aux::session_interface::num_banned_peers);
 		return true;
@@ -3104,6 +3105,7 @@ namespace libtorrent
 			// the next time session_impl::on_tick() is triggered
 			--conns;
 			m_ses.inc_boost_connections();
+			update_want_peers();
 		}
 
 		update_want_peers();
@@ -9292,7 +9294,10 @@ namespace libtorrent
 			? settings().get_int(settings_pack::max_paused_peerlist_size)
 			: settings().get_int(settings_pack::max_peerlist_size);
 		ret.min_reconnect_time = settings().get_int(settings_pack::min_reconnect_time);
+
 		ret.peer_allocator = m_ses.get_peer_allocator();
+		ret.ip = &m_ses.external_address();
+		ret.port = m_ses.listen_port();
 		return ret;
 	}
 

@@ -62,11 +62,26 @@ namespace libtorrent
 	// the polict type not depend on the torrent type directly.
 	struct torrent_state
 	{
+		torrent_state()
+			: is_paused(false), is_finished(false)
+			  , allow_multiple_connections_per_ip(false)
+			  , max_peerlist_size(1000)
+			  , min_reconnect_time(60)
+			  , ip(NULL), port(0)
+			  , first_time_seen(false)
+			  , peer_allocator(NULL)
+		{}
 		bool is_paused;
 		bool is_finished;
 		bool allow_multiple_connections_per_ip;
 		int max_peerlist_size;
 		int min_reconnect_time;
+
+		// these are used only by find_connect_candidate in order
+		// to implement peer ranking. See:
+		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
+		external_ip const* ip;
+		int port;
 
 		// this is set by policy::add_peer to either true or false
 		// true means the peer we just added was new, false means
@@ -192,8 +207,8 @@ namespace libtorrent
 
 		iterator find_connect_candidate(int session_time, torrent_state* state);
 
-		bool is_connect_candidate(torrent_peer const& p, bool finished) const;
-		bool is_erase_candidate(torrent_peer const& p, bool finished) const;
+		bool is_connect_candidate(torrent_peer const& p) const;
+		bool is_erase_candidate(torrent_peer const& p) const;
 		bool is_force_erase_candidate(torrent_peer const& pe) const;
 		bool should_erase_immediately(torrent_peer const& p) const;
 

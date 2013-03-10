@@ -48,19 +48,10 @@ namespace libtorrent
 	struct torrent_interface
 	{
 		virtual aux::session_settings const& settings() const = 0;
-		virtual external_ip const& external_address() const = 0;
-		virtual int listen_port() const = 0;
-
-		// this is only used when recalculating or altering the number of connect candidates.
-		// it could be done by the caller instead
-		virtual void update_want_peers() = 0;
 
 		virtual bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false) = 0;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		virtual int num_peers() const = 0;
-		virtual std::string name() const = 0;
 		virtual void debug_log(const char* fmt, ...) const = 0;
-		virtual void session_log(char const* fmt, ...) const = 0;
 #endif
 	};
 
