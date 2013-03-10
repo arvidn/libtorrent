@@ -9318,6 +9318,15 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+#ifndef TORRENT_DISABLE_DHT
+		// try to send a DHT ping to this peer
+		// as well, to figure out if it supports
+		// DHT (uTorrent and BitComet doesn't
+		// advertise support)
+		udp::endpoint node(adr.address(), adr.port());
+		session().add_dht_node(node);
+#endif
+
 		if (m_apply_ip_filter
 			&& m_ses.get_ip_filter().access(adr.address()) & ip_filter::blocked)
 		{

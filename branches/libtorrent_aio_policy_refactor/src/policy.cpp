@@ -478,10 +478,6 @@ namespace libtorrent
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
-#ifndef TORRENT_DISABLE_DHT
-		bool pinged = false;
-#endif
-
 		int max_peerlist_size = state->max_peerlist_size;
 
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
@@ -493,22 +489,6 @@ namespace libtorrent
 			TORRENT_ASSERT(pe.in_use);
 			int current = m_round_robin;
 
-			// TODO: 4 this logic does not belong in here. It should be moved out into torrent
-/*
-#ifndef TORRENT_DISABLE_DHT
-			// try to send a DHT ping to this peer
-			// as well, to figure out if it supports
-			// DHT (uTorrent and BitComet doesn't
-			// advertise support)
-			if (!pinged && !pe.added_to_dht)
-			{
-				udp::endpoint node(pe.address(), pe.port);
-				m_torrent->session().add_dht_node(node);
-				pe.added_to_dht = true;
-				pinged = true;
-			}
-#endif
-*/
 			// if the number of peers is growing large
 			// we need to start weeding.
 

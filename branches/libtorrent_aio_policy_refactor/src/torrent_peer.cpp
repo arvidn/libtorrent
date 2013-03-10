@@ -158,9 +158,6 @@ namespace libtorrent
 #endif
 		, on_parole(false)
 		, banned(false)
-#ifndef TORRENT_DISABLE_DHT
-		, added_to_dht(false)
-#endif
 		, supports_utp(true) // assume peers support utp
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
