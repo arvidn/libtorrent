@@ -248,7 +248,7 @@ namespace libtorrent
 		, int seq
 		, add_torrent_params const& p
 		, sha1_hash const& info_hash)
-		: m_policy(this)
+		: m_policy()
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
@@ -3093,22 +3093,41 @@ namespace libtorrent
 
 		while (want_peers() && conns > 0)
 		{
-			torrent_state st = get_policy_state();
-			if (!m_policy.connect_one_peer(m_ses.session_time(), &st))
-			{
-				peers_erased(st.erased);
-				break;
-			}
-			peers_erased(st.erased);
-			// increase m_ses.m_boost_connections for each connection
-			// attempt. This will be deducted from the connect speed
-			// the next time session_impl::on_tick() is triggered
 			--conns;
-			m_ses.inc_boost_connections();
-			update_want_peers();
-		}
+			torrent_state st = get_policy_state();
+			torrent_peer* p = m_policy.connect_one_peer(m_ses.session_time(), &st);
+			peers_erased(st.erased);
+			if (p == NULL)
+			{
+				update_want_peers();
+				continue;
+			}
 
-		update_want_peers();
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+			external_ip const& external = m_ses.external_address();
+			debug_log(" *** FOUND CONNECTION CANDIDATE ["
+				" ip: %s d: %d rank: %u external: %s t: %d ]"
+				, print_endpoint(p->ip()).c_str()
+				, cidr_distance(external.external_address(p->address()), p->address())
+				, p->rank(external, m_ses.listen_port())
+				, print_address(external.external_address(p->address())).c_str()
+				, m_ses.session_time() - p->last_connected);
+#endif
+
+			if (!connect_to_peer(p))
+			{
+				m_policy.inc_failcount(p);
+				update_want_peers();
+			}
+			else
+			{
+				// increase m_ses.m_boost_connections for each connection
+				// attempt. This will be deducted from the connect speed
+				// the next time session_impl::on_tick() is triggered
+				m_ses.inc_boost_connections();
+				update_want_peers();
+			}
+		}
 
 		if (want_peers()) m_ses.prioritize_connections(shared_from_this());
 	}
@@ -9307,11 +9326,24 @@ namespace libtorrent
 		TORRENT_ASSERT(want_peers());
 
 		torrent_state st = get_policy_state();
-		bool ret = m_policy.connect_one_peer(m_ses.session_time(), &st);
+		torrent_peer* p = m_policy.connect_one_peer(m_ses.session_time(), &st);
 		peers_erased(st.erased);
+
+		if (p == NULL)
+		{
+			update_want_peers();
+			return false;
+		}
+
+		if (!connect_to_peer(p))
+		{
+			m_policy.inc_failcount(p);
+			update_want_peers();
+			return false;
+		}
 		update_want_peers();
 
-		return ret;
+		return true;
 	}
 
 	torrent_peer* torrent::add_peer(tcp::endpoint const& adr, int source, int flags)
@@ -9319,12 +9351,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifndef TORRENT_DISABLE_DHT
-		// try to send a DHT ping to this peer
-		// as well, to figure out if it supports
-		// DHT (uTorrent and BitComet doesn't
-		// advertise support)
-		udp::endpoint node(adr.address(), adr.port());
-		session().add_dht_node(node);
+		if (source != peer_info::resume_data)
+		{
+			// try to send a DHT ping to this peer
+			// as well, to figure out if it supports
+			// DHT (uTorrent and BitComet doesn't
+			// advertise support)
+			udp::endpoint node(adr.address(), adr.port());
+			session().add_dht_node(node);
+		}
 #endif
 
 		if (m_apply_ip_filter

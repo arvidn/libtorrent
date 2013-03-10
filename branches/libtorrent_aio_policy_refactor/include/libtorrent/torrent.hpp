@@ -120,7 +120,6 @@ namespace libtorrent
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
 		, public list_node // used for torrent activity LRU
-		, public torrent_interface // temporarily defined in policy.hpp
 	{
 	public:
 

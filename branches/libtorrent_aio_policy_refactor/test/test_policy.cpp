@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/policy.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
@@ -61,6 +60,15 @@ struct mock_peer_connection : peer_connection_interface
 		for (int i = 0; i < 20; ++i) m_id[i] = rand();
 	}
 	virtual ~mock_peer_connection() {}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+	virtual void peer_log(char const* fmt, ...) const
+	{
+		va_list v;	
+		va_start(v, fmt);
+		vprintf(fmt, v);
+		va_end(v);
+	}
+#endif
 
 	libtorrent::stat m_stat;
 	bool m_choked;
@@ -69,6 +77,7 @@ struct mock_peer_connection : peer_connection_interface
 	tcp::endpoint m_remote;
 	peer_id m_id;
 
+	virtual void get_peer_info(peer_info& p) const {}
 	virtual tcp::endpoint const& remote() const { return m_remote; }
 	virtual tcp::endpoint local_endpoint() const { return ep("127.0.0.1", 8080); }
 	virtual void disconnect(error_code const& ec, int error = 0) { /* remove from mock_torrent list */ m_tp = 0; }
@@ -85,41 +94,11 @@ struct mock_peer_connection : peer_connection_interface
 	virtual libtorrent::stat const& statistics() const { return m_stat; }
 };
 
-struct mock_torrent : torrent_interface
+struct mock_torrent
 {
 	mock_torrent() : m_p(NULL) {}
 	virtual ~mock_torrent() {}
-	bool is_i2p() const { return false; }
-	int num_peers() const { return m_connections.size(); }
-	aux::session_settings const& settings() const { return sett; }
 
-	torrent_peer* allocate_peer_entry(int type)
-	{
-		switch(type)
-		{
-			case torrent_peer_allocator_interface::ipv4_peer: return (torrent_peer*)malloc(sizeof(ipv4_peer));
-#if TORRENT_USE_IPV6
-			case torrent_peer_allocator_interface::ipv6_peer: return (torrent_peer*)malloc(sizeof(ipv6_peer));
-#endif
-#if TORRENT_USE_I2P
-			case torrent_peer_allocator_interface::i2p_peer: return (torrent_peer*)malloc(sizeof(i2p_peer));
-#endif
-		}
-		return NULL;
-	}
-	void free_peer_entry(torrent_peer* p) { free(p); }
-
-	external_ip const& external_address() const { return m_ext_ip; }
-	int listen_port() const { return 9999; }
-
-	bool is_paused() const { return false; }
-	bool is_finished() const { return false; }
-	void update_want_peers() {}
-	void state_updated() {}
-	torrent_handle get_handle() { return torrent_handle(); }
-#ifndef TORRENT_DISABLE_EXTENSIONS
-	void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags) {}
-#endif
 	bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false)
 	{
 		TORRENT_ASSERT(peerinfo->connection == NULL);
@@ -131,25 +110,15 @@ struct mock_torrent : torrent_interface
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-	std::string name() const { return "mock"; }
 	void debug_log(const char* fmt, ...) const
 	{
 		va_list v;
-		va_start(v);
-		vprintf(fmt, v);
-		va_end(v);
-	}
-	void session_log(char const* fmt, ...) const
-	{
-		va_list v;
-		va_start(v);
+		va_start(v, fmt);
 		vprintf(fmt, v);
 		va_end(v);
 	}
 #endif
 
-	external_ip m_ext_ip;
-	aux::session_settings sett;
 	policy* m_p;
 
 private:
@@ -160,6 +129,7 @@ private:
 int test_main()
 {
 	torrent_peer_allocator allocator;
+	external_ip ext_ip;
 
 	torrent_state st;
 	st.is_finished = false;
@@ -167,12 +137,14 @@ int test_main()
 	st.max_peerlist_size = 1000;
 	st.allow_multiple_connections_per_ip = false;
 	st.peer_allocator = &allocator;
+	st.ip = &ext_ip;
+	st.port = 9999;
 
 	// test multiple peers with the same IP
 	// when disallowing it
 	{
 		mock_torrent t;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
@@ -193,7 +165,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = true;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -213,21 +185,22 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = true;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		st.erased.clear();
 
 		TEST_EQUAL(p.num_peers(), 1);
-		bool ok = p.connect_one_peer(0, &st);
-		TEST_EQUAL(ok, true);
+		torrent_peer* tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp);
+		t.connect_to_peer(tp);
 		st.erased.clear();
 
 		// we only have one peer, we can't
 		// connect another one
-		ok = p.connect_one_peer(0, &st);
-		TEST_EQUAL(ok, false);
+		tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp == NULL);
 		st.erased.clear();
 	
 		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
@@ -236,8 +209,9 @@ int test_main()
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		st.erased.clear();
 
-		ok = p.connect_one_peer(0, &st);
-		TEST_EQUAL(ok, true);
+		tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp);
+		t.connect_to_peer(tp);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		st.erased.clear();
 	}
@@ -248,7 +222,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -256,14 +230,15 @@ int test_main()
 		st.erased.clear();
 
 		TEST_EQUAL(p.num_peers(), 1);
-		bool ok = p.connect_one_peer(0, &st);
-		TEST_EQUAL(ok, true);
+		torrent_peer* tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp);
+		t.connect_to_peer(tp);
 		st.erased.clear();
 
 		// we only have one peer, we can't
 		// connect another one
-		ok = p.connect_one_peer(0, &st);
-		TEST_EQUAL(ok, false);
+		tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp == NULL);
 		st.erased.clear();
 	
 		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
@@ -279,7 +254,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		boost::shared_ptr<mock_peer_connection> c(new mock_peer_connection(true, ep("10.0.0.1", 8080)));
@@ -300,7 +275,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = true;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 
 		torrent_peer* peer2 = p.add_peer(ep("10.0.0.1", 4000), 0, 0, &st);
@@ -328,7 +303,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -343,12 +318,14 @@ int test_main()
 		st.erased.clear();
 
 		// connect both peers
-		bool ok = p.connect_one_peer(0, &st);
-		TEST_CHECK(ok);
+		torrent_peer* tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp);
+		t.connect_to_peer(tp);
 		st.erased.clear();
 
-		ok = p.connect_one_peer(0, &st);
-		TEST_CHECK(ok);
+		tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp);
+		t.connect_to_peer(tp);
 		TEST_EQUAL(p.num_peers(), 2);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		st.erased.clear();
@@ -370,7 +347,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.1", 4000), 0, 0, &st);
@@ -409,10 +386,9 @@ int test_main()
 	// test erase_peers when we fill up the peer list
 	{
 		mock_torrent t;
-		t.sett.set_bool(settings_pack::no_connect_privileged_ports, false);
 		st.max_peerlist_size = 100;
 		st.allow_multiple_connections_per_ip = true;
-		policy p(&t);
+		policy p;
 		t.m_p = &p;
 
 		for (int i = 0; i < 100; ++i)

@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
-#include "libtorrent/torrent_interface.hpp"
 
 namespace libtorrent
 {
@@ -64,12 +63,12 @@ namespace libtorrent
 	{
 		torrent_state()
 			: is_paused(false), is_finished(false)
-			  , allow_multiple_connections_per_ip(false)
-			  , max_peerlist_size(1000)
-			  , min_reconnect_time(60)
-			  , ip(NULL), port(0)
-			  , first_time_seen(false)
-			  , peer_allocator(NULL)
+			, allow_multiple_connections_per_ip(false)
+			, max_peerlist_size(1000)
+			, min_reconnect_time(60)
+			, ip(NULL), port(0)
+			, first_time_seen(false)
+			, peer_allocator(NULL)
 		{}
 		bool is_paused;
 		bool is_finished;
@@ -102,7 +101,7 @@ namespace libtorrent
 	{
 	public:
 
-		policy(torrent_interface* t);
+		policy();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		static void print_size(logger& l);
@@ -141,6 +140,7 @@ namespace libtorrent
 		bool ban_peer(torrent_peer* p);
 		void set_connection(torrent_peer* p, peer_connection_interface* c);
 		void set_failcount(torrent_peer* p, int f);
+		void inc_failcount(torrent_peer* p);
 
 		void apply_ip_filter(ip_filter const& filter, torrent_state* state, std::vector<address>& banned);
 		void apply_port_filter(port_filter const& filter, torrent_state* state, std::vector<address>& banned);
@@ -181,7 +181,7 @@ namespace libtorrent
 				m_peers.begin(), m_peers.end(), a, peer_address_compare());
 		}
 
-		bool connect_one_peer(int session_time, torrent_state* state);
+		torrent_peer* connect_one_peer(int session_time, torrent_state* state);
 
 		bool has_peer(torrent_peer const* p) const;
 
@@ -217,14 +217,6 @@ namespace libtorrent
 
 		peers_t m_peers;
 
-		// TODO: 3 it would be nice to get rid of this inverse dependency.
-		// instead of calling torrent_interface::connect_to_peer(),
-		// policy::connect_one_peer() could instead return a connect
-		// candidate. It's also used for settings, port_filter, ip_filter
-		// external_address, external_port, is_paused() for peer-list max size
-		// session_log, allocate_peer_entry, state_updated
-		torrent_interface* m_torrent;
-
 		// this shouldbe NULL for the most part. It's set
 		// to point to a valid torrent_peer object if that
 		// object needs to be kept alive. If we ever feel
@@ -246,7 +238,7 @@ namespace libtorrent
 		int m_num_connect_candidates;
 
 		// the number of seeds in the torrent_peer list
-		int m_num_seeds;
+		boost::uint32_t m_num_seeds:31;
 
 		// this was the state of the torrent the
 		// last time we recalculated the number of
@@ -256,7 +248,7 @@ namespace libtorrent
 		// this state. Every time m_torrent->is_finished()
 		// is different from this state, we need to
 		// recalculate the connect candidates.
-		bool m_finished:1;
+		boost::uint32_t m_finished:1;
 	};
 
 }

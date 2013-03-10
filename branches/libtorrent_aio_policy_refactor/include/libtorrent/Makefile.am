@@ -130,7 +130,6 @@ nobase_include_HEADERS = \
   torrent_handle.hpp           \
   torrent.hpp                  \
   torrent_info.hpp             \
-  torrent_interface.hpp        \
   torrent_peer.hpp             \
   torrent_peer_allocator.hpp   \
   tracker_manager.hpp          \

@@ -126,16 +126,14 @@ namespace
 
 namespace libtorrent
 {
-	policy::policy(torrent_interface* t)
-		: m_torrent(t)
-		, m_locked_peer(NULL)
+	policy::policy()
+		: m_locked_peer(NULL)
 		, m_round_robin(0)
 		, m_num_connect_candidates(0)
 		, m_num_seeds(0)
-		, m_finished(false)
+		, m_finished(0)
 	{
 		thread_started();
-		TORRENT_ASSERT(t);
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -148,10 +146,7 @@ namespace libtorrent
 		PRINT_SIZEOF(policy)
 
 		PRINT_OFFSETOF(policy, m_peers)
-		PRINT_OFFSETOF(policy, m_torrent)
 		PRINT_OFFSETOF(policy, m_round_robin)
-		PRINT_OFFSETOF(policy, m_num_connect_candidates)
-		PRINT_OFFSETOF(policy, m_num_seeds)
 		PRINT_OFFSETOF_END(policy)
 	}
 #undef PRINT_SIZEOF
@@ -433,6 +428,17 @@ namespace libtorrent
 		if (was_conn_cand) update_connect_candidates(-1);
 	}
 
+	void policy::inc_failcount(torrent_peer* p)
+	{
+		// failcount is a 5 bit value
+		if (p->failcount == 31) return;
+
+		const bool was_conn_cand = is_connect_candidate(*p);
+		++p->failcount;
+		if (was_conn_cand && !is_connect_candidate(*p))
+			update_connect_candidates(-1);
+	}
+
 	void policy::set_failcount(torrent_peer* p, int f)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -537,19 +543,6 @@ namespace libtorrent
 			if (candidate > erase_candidate) --candidate;
 			erase_peer(m_peers.begin() + erase_candidate, state);
 		}
-
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		if (candidate != -1)
-		{
-			m_torrent->debug_log(" *** FOUND CONNECTION CANDIDATE ["
-				" ip: %s d: %d rank: %u external: %s t: %d ]"
-				, print_endpoint(m_peers[candidate]->ip()).c_str()
-				, cidr_distance(external.external_address(m_peers[candidate]->address()), m_peers[candidate]->address())
-				, m_peers[candidate]->rank(external, external_port)
-				, print_address(external.external_address(m_peers[candidate]->address())).c_str()
-				, session_time - m_peers[candidate]->last_connected);
-		}
-#endif
 
 		if (candidate == -1) return m_peers.end();
 		return m_peers.begin() + candidate;
@@ -1113,13 +1106,13 @@ namespace libtorrent
 		return p;
 	}
 
-	bool policy::connect_one_peer(int session_time, torrent_state* state)
+	torrent_peer* policy::connect_one_peer(int session_time, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		iterator i = find_connect_candidate(session_time, state);
-		if (i == m_peers.end()) return false;
+		if (i == m_peers.end()) return NULL;
 		torrent_peer& p = **i;
 		TORRENT_ASSERT(p.in_use);
 
@@ -1131,18 +1124,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_finished == state->is_finished);
 
 		TORRENT_ASSERT(is_connect_candidate(p));
-		if (!m_torrent->connect_to_peer(&p))
-		{
-			// failcount is a 5 bit value
-			const bool was_conn_cand = is_connect_candidate(p);
-			if (p.failcount < 31) ++p.failcount;
-			if (was_conn_cand && !is_connect_candidate(p))
-				update_connect_candidates(-1);
-			return false;
-		}
-		TORRENT_ASSERT(p.connection);
-		TORRENT_ASSERT(!is_connect_candidate(p));
-		return true;
+		return &p;
 	}
 
 	// this is called whenever a peer connection is closed
