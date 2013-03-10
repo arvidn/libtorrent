@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 
 #include <map>
+#include <cstring>
 
 std::string demangle(char const* name);
 

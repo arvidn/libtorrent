@@ -34,20 +34,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
+#include <string>
+std::string demangle(char const* name);
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
+#endif
+
 #if (!defined TORRENT_DEBUG && !TORRENT_RELEASE_ASSERTS) \
 	|| TORRENT_NO_ASSERTS
+
 #define TORRENT_ASSERT(a) do {} while(false)
 #define TORRENT_ASSERT_VAL(a, b) do {} while(false)
+
 #else
 
 #if TORRENT_PRODUCTION_ASSERTS
 extern char const* libtorrent_assert_log;
 #endif
-
-#include <string>
-
-std::string demangle(char const* name);
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 
 #if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !TORRENT_USE_SYSTEM_ASSERT
 
