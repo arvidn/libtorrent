@@ -184,7 +184,6 @@ namespace libtorrent {
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
-		io_service& m_ios;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
