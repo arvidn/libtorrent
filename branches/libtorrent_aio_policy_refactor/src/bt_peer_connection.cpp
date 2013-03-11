@@ -3124,8 +3124,6 @@ namespace libtorrent
 
 			if (is_disconnecting()) return;
 
-			TORRENT_ASSERT(t->get_policy().has_connection(this));
-
 			m_state = read_peer_id;
  			reset_recv_buffer(20);
 		}

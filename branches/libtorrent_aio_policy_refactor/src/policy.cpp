@@ -1205,7 +1205,6 @@ namespace libtorrent
 
 		m_num_connect_candidates = 0;
 		m_finished = state->is_finished;
-		int prev_candidates = m_num_connect_candidates;
 
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)

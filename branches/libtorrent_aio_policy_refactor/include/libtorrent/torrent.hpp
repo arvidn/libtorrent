@@ -187,8 +187,6 @@ namespace libtorrent
 		// only count BitTorrent peers
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 
-		bool ban_peer(torrent_peer* tp);
-
 		void on_resume_data_checked(disk_io_job const* j);
 		void on_force_recheck(disk_io_job const* j);
 		void on_piece_hashed(disk_io_job const* j);
@@ -464,7 +462,9 @@ namespace libtorrent
 
 		bool try_connect_peer();
 		torrent_peer* add_peer(tcp::endpoint const& adr, int source, int flags = 0);
+		bool ban_peer(torrent_peer* tp);
 		void update_peer_port(int port, torrent_peer* p, int src);
+		void set_seed(torrent_peer* p, bool s);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }

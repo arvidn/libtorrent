@@ -1992,18 +1992,6 @@ namespace libtorrent
 		return 0;
 	}
 
-	bool torrent::ban_peer(torrent_peer* tp)
-	{
-		if (!settings().get_bool(settings_pack::ban_web_seeds) && tp->web_seed)
-			return false;
-
-		if (!m_policy.ban_peer(tp)) return false;
-		update_want_peers();
-
-		m_ses.inc_stats_counter(aux::session_interface::num_banned_peers);
-		return true;
-	}
-
 	void torrent::on_resume_data_checked(disk_io_job const* j)
 	{
 		// hold a reference until this function returns
@@ -8032,9 +8020,8 @@ namespace libtorrent
 
 	void torrent::step_session_time(int seconds)
 	{
-		policy& p = get_policy();
-		for (policy::iterator j = p.begin_peer()
-			, end(p.end_peer()); j != end; ++j)
+		for (policy::iterator j = m_policy.begin_peer()
+			, end(m_policy.end_peer()); j != end; ++j)
 		{
 			torrent_peer* pe = *j;
 
@@ -9407,6 +9394,23 @@ namespace libtorrent
 		update_want_peers();
 		state_updated();
 		return p;
+	}
+
+	bool torrent::ban_peer(torrent_peer* tp)
+	{
+		if (!settings().get_bool(settings_pack::ban_web_seeds) && tp->web_seed)
+			return false;
+
+		if (!m_policy.ban_peer(tp)) return false;
+		update_want_peers();
+
+		m_ses.inc_stats_counter(aux::session_interface::num_banned_peers);
+		return true;
+	}
+
+	void torrent::set_seed(torrent_peer* p, bool s)
+	{
+		m_policy.set_seed(p, s);
 	}
 
 	void torrent::update_peer_port(int port, torrent_peer* p, int src)

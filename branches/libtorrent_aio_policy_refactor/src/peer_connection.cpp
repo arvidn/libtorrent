@@ -779,7 +779,7 @@ namespace libtorrent
 			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 			// if this is a web seed. we don't have a peer_info struct
-			t->get_policy().set_seed(m_peer_info, true);
+			t->set_seed(m_peer_info, true);
 			m_upload_only = true;
 
 			t->peer_has_all(this);
@@ -1773,7 +1773,7 @@ namespace libtorrent
 			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 			t->seen_complete();
-			t->get_policy().set_seed(m_peer_info, true);
+			t->set_seed(m_peer_info, true);
 			m_upload_only = true;
 			disconnect_if_redundant();
 			if (is_disconnecting()) return;
@@ -1859,7 +1859,7 @@ namespace libtorrent
 		t->peer_lost(index, this);
 
 		if (was_seed)
-			t->get_policy().set_seed(m_peer_info, false);
+			t->set_seed(m_peer_info, false);
 	}
 
 	// -----------------------------
@@ -1926,7 +1926,7 @@ namespace libtorrent
 #endif
 			m_have_piece = bits;
 			m_num_pieces = bits.count();
-			t->get_policy().set_seed(m_peer_info, m_num_pieces == int(bits.size()));
+			t->set_seed(m_peer_info, m_num_pieces == int(bits.size()));
 			return;
 		}
 
@@ -1939,7 +1939,7 @@ namespace libtorrent
 			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 			// if this is a web seed. we don't have a peer_info struct
-			t->get_policy().set_seed(m_peer_info, true);
+			t->set_seed(m_peer_info, true);
 			m_upload_only = true;
 
 			m_have_piece.set_all();
@@ -2879,7 +2879,7 @@ namespace libtorrent
 		peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 
-		t->get_policy().set_seed(m_peer_info, true);
+		t->set_seed(m_peer_info, true);
 		m_upload_only = true;
 		m_bitfield_received = true;
 
@@ -2942,7 +2942,7 @@ namespace libtorrent
 		if (m_bitfield_received)
 			t->peer_lost(m_have_piece, this);
 
-		t->get_policy().set_seed(m_peer_info, false);
+		t->set_seed(m_peer_info, false);
 		m_bitfield_received = true;
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -6363,7 +6363,7 @@ namespace libtorrent
 
 		m_upload_only = u;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		t->get_policy().set_seed(m_peer_info, u);
+		t->set_seed(m_peer_info, u);
 		disconnect_if_redundant();
 	}
 
