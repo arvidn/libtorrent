@@ -2035,9 +2035,8 @@ namespace libtorrent
 				char const* ptr = peers_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
-					if (add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data))
-						state_updated();
+					add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
+						, peer_info::resume_data);
 				}
 				update_want_peers();
 			}
@@ -2052,11 +2051,7 @@ namespace libtorrent
 					torrent_peer* p = add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
 						, peer_info::resume_data);
 					peers_erased(peers);
-					if (p)
-					{
-						state_updated();
-						ban_peer(p);
-					}
+					if (p) ban_peer(p);
 				}
 				update_want_peers();
 			}
@@ -2068,9 +2063,8 @@ namespace libtorrent
 				char const* ptr = peers6_entry->string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
-					if (add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data))
-						state_updated();
+					add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
+						, peer_info::resume_data);
 				}
 				update_want_peers();
 			}
@@ -2083,11 +2077,7 @@ namespace libtorrent
 				{
 					torrent_peer* p = add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
 						, peer_info::resume_data);
-					if (p)
-					{
-						state_updated();
-						ban_peer(p);
-					}
+					if (p) ban_peer(p);
 				}
 				update_want_peers();
 			}
@@ -2106,8 +2096,7 @@ namespace libtorrent
 					error_code ec;
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
 					if (ec) continue;
-					if (add_peer(a, peer_info::resume_data))
-						state_updated();
+					add_peer(a, peer_info::resume_data);
 				}
 				update_want_peers();
 			}
@@ -2126,11 +2115,7 @@ namespace libtorrent
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
 					if (ec) continue;
 					torrent_peer* p = add_peer(a, peer_info::resume_data);
-					if (p)
-					{
-						state_updated();
-						ban_peer(p);
-					}
+					if (p) ban_peer(p);
 				}
 				update_want_peers();
 			}
@@ -9400,7 +9385,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
-			return 0;
+			return NULL;
 		}
 
 		torrent_state st = get_policy_state();
@@ -9420,6 +9405,7 @@ namespace libtorrent
 #endif
 		}
 		update_want_peers();
+		state_updated();
 		return p;
 	}
 
@@ -10139,14 +10125,6 @@ namespace libtorrent
 		char buf[450];
 		snprintf(buf, sizeof(buf), "%"PRId64": %s\n", total_microseconds(time_now_hires() - m_logger_time), usr);
 		(*m_logger) << buf;
-	}
-
-	void torrent::session_log(char const* fmt, ...) const
-	{
-		va_list v;
-		va_start(v, fmt);
-		m_ses.session_vlog();
-		va_end(v);
 	}
 #endif
 

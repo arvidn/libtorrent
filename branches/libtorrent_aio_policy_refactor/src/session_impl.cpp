@@ -914,6 +914,7 @@ namespace aux {
 		PRINT_OFFSETOF(torrent_peer, prev_amount_upload)
 		PRINT_OFFSETOF(torrent_peer, prev_amount_download)
 		PRINT_OFFSETOF(torrent_peer, connection)
+		PRINT_OFFSETOF(torrent_peer, peer_rank)
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef TORRENT_DEBUG
 		PRINT_OFFSETOF(torrent_peer, inet_as_num)
@@ -5861,7 +5862,7 @@ retry:
 					m_alerts.post_alert(listen_failed_alert(new_interface, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				session_log("listen_on: %s failed: %s"
-					, net_interface, ec.message().c_str());
+					, net_interface.c_str(), ec.message().c_str());
 #endif
 				return;
 			}
@@ -5981,7 +5982,8 @@ retry:
 		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
 		t->add_peer(peer, peer_info::lsd);
-		t->update_want_peers();
+		t->do_connect_boost();
+
 		if (m_alerts.should_post<lsd_peer_alert>())
 			m_alerts.post_alert(lsd_peer_alert(t->get_handle(), peer));
 	}

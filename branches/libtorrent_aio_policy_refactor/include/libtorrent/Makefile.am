@@ -26,7 +26,6 @@ nobase_include_HEADERS = \
   bloom_filter.hpp             \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
-  bt_peer_connection_interface.hpp       \
   buffer.hpp                   \
   build_config.hpp             \
   chained_buffer.hpp           \
@@ -86,6 +85,7 @@ nobase_include_HEADERS = \
   pch.hpp                      \
   pe_crypto.hpp                \
   peer_connection.hpp          \
+  peer_connection_interface.hpp \
   peer.hpp                     \
   peer_class.hpp               \
   peer_class_set.hpp           \

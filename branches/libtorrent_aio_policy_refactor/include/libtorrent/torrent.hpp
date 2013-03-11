@@ -748,6 +748,8 @@ namespace libtorrent
 		{
 			return m_picker.get() != 0;
 		}
+
+		// TODO: 3 it would be nice it the policy was private
 		policy& get_policy() { return m_policy; }
 
 		piece_manager& storage();
