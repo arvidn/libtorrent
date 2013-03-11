@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.8</td></tr>
+<td>0.16.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -303,9 +303,9 @@ class session: public boost::noncopyable
                 size_t queue_size_limit_);
         void set_alert_dispatch(boost::function&lt;void(std::auto_ptr&lt;alert&gt;)&gt; const&amp; fun);
 
-        feed_handle session::add_feed(feed_settings const&amp; feed);
-        void session::remove_feed(feed_handle h);
-        void session::get_feeds(std::vector&lt;feed_handle&gt;&amp; f) const;
+        feed_handle add_feed(feed_settings const&amp; feed);
+        void remove_feed(feed_handle h);
+        void get_feeds(std::vector&lt;feed_handle&gt;&amp; f) const;
 
         void add_extension(boost::function&lt;
                 boost::shared_ptr&lt;torrent_plugin&gt;(torrent*)&gt; ext);
@@ -1151,7 +1151,7 @@ on linux, write to a pipe or an eventfd.</p>
 <h2>add_feed()</h2>
 <blockquote>
 <pre class="literal-block">
-feed_handle session::add_feed(feed_settings const&amp; feed);
+feed_handle add_feed(feed_settings const&amp; feed);
 </pre>
 </blockquote>
 <p>This adds an RSS feed to the session. The feed will be refreshed
@@ -1204,7 +1204,7 @@ see <a class="reference internal" href="#feed-handle">feed_handle</a>.</p>
 <h2>remove_feed()</h2>
 <blockquote>
 <pre class="literal-block">
-void session::remove_feed(feed_handle h);
+void remove_feed(feed_handle h);
 </pre>
 </blockquote>
 <p>Removes a feed from being watched by the session. When this
@@ -1215,7 +1215,7 @@ to any feed.</p>
 <h2>get_feeds()</h2>
 <blockquote>
 <pre class="literal-block">
-void session::get_feeds(std::vector&lt;feed_handle&gt;&amp; f) const;
+void get_feeds(std::vector&lt;feed_handle&gt;&amp; f) const;
 </pre>
 </blockquote>
 <p>Returns a list of all RSS feeds that are being watched by the session.</p>
