@@ -931,6 +931,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 
 void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
+	TORRENT_ASSERT(pe->blocks[block].buf != NULL);
 	++pe->blocks[block].refcount;
 	if (pe->blocks[block].refcount == 1)
 		++m_pinned_blocks;
@@ -947,6 +948,7 @@ void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 
 void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
+	TORRENT_ASSERT(pe->blocks[block].buf != NULL);
 	TORRENT_ASSERT(pe->blocks[block].refcount > 0);
 	--pe->blocks[block].refcount;
 	TORRENT_ASSERT(pe->refcount > 0);
@@ -1046,8 +1048,19 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 		p.blocks[i].buf = 0;
 		TORRENT_ASSERT(p.num_blocks > 0);
 		--p.num_blocks;
-		TORRENT_ASSERT(m_read_cache_size > 0);
-		--m_read_cache_size;
+
+		if (p.blocks[i].dirty)
+		{
+			TORRENT_ASSERT(m_write_cache_size > 0);
+			--m_write_cache_size;
+			TORRENT_ASSERT(p.num_dirty > 0);
+			--p.num_dirty;
+		}
+		else
+		{
+			TORRENT_ASSERT(m_read_cache_size > 0);
+			--m_read_cache_size;
+		}
 	}
 	update_cache_state(&p);
 	return ret;
