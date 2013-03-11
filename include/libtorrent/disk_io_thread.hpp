@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -259,7 +259,7 @@ namespace libtorrent
 
 		void thread_fun();
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		

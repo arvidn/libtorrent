@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -174,6 +174,14 @@ namespace libtorrent
 			, policy::peer* peerinfo
 			, bool outgoing = true);
 
+		// with this constructor we have been contacted and we still don't
+		// know which torrent the connection belongs to
+		peer_connection(
+			aux::session_impl& ses
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, policy::peer* peerinfo);
+
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
 		// and schedule events with references to itself (that is not safe to
@@ -187,19 +195,6 @@ namespace libtorrent
 			TORRENT_ASSERT(m_peer_info == 0 || pi == 0 );
 			m_peer_info = pi;
 		}
-
-		// this is called when the peer object is created, in case
-		// it was let in by the connections limit slack. This means
-		// the peer needs to, as soon as the handshake is done, either
-		// disconnect itself or another peer.
-		void peer_exceeds_limit()
-		{ m_exceeded_limit = true; }
-
-		// this is called if this peer causes another peer
-		// to be disconnected, in which case it has fulfilled
-		// its requirement.
-		void peer_disconnected_other()
-		{ m_exceeded_limit = false; }
 
 		policy::peer* peer_info_struct() const
 		{ return m_peer_info; }
@@ -271,8 +266,6 @@ namespace libtorrent
 			m_priority = p;
 		}
 
-		boost::uint32_t peer_rank() const;
-
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
 
@@ -282,12 +275,8 @@ namespace libtorrent
 		
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
-		void superseed_piece(int replace_piece, int new_piece);
-		bool super_seeded_piece(int index) const
-		{
-			return m_superseed_piece[0] == index
-				|| m_superseed_piece[1] == index;
-		}
+		void superseed_piece(int index);
+		int superseed_piece() const { return m_superseed_piece; }
 
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -403,10 +392,8 @@ namespace libtorrent
 		void add_free_upload(size_type free_upload);
 
 		// trust management.
-		virtual void received_valid_data(int index);
-		// returns false if the peer should not be
-		// disconnected
-		virtual bool received_invalid_data(int index, bool single_peer);
+		void received_valid_data(int index);
+		void received_invalid_data(int index);
 
 		size_type share_diff() const;
 
@@ -533,10 +520,8 @@ namespace libtorrent
 
 		void assign_bandwidth(int channel, int amount);
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
-#endif
-#if defined TORRENT_DEBUG
 		ptime m_last_choke;
 #endif
 
@@ -1010,12 +995,12 @@ namespace libtorrent
 		// once the connection completes
 		int m_connection_ticket;
 
-		// if [0] is -1, superseeding is not active. If it is >= 0
+		// if this is -1, superseeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
-		// these two pieces can be downloaded from us by this peer.
+		// this piece can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
-		int m_superseed_piece[2];
+		int m_superseed_piece;
 
 		// bytes downloaded since last second
 		// timer timeout; used for determining 
@@ -1188,14 +1173,6 @@ namespace libtorrent
 		// set to true if this peer has metadata, and false
 		// otherwise.
 		bool m_has_metadata:1;
-
-		// this is set to true if this peer was accepted exceeding
-		// the connection limit. It means it has to disconnect
-		// itself, or some other peer, as soon as it's completed
-		// the handshake. We need to wait for the handshake in
-		// order to know which torrent it belongs to, to know which
-		// other peers to compare it to.
-		bool m_exceeded_limit:1;
 
 		template <std::size_t Size>
 		struct handler_storage

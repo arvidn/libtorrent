@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2012, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -615,7 +615,7 @@ int feed::next_update(time_t now) const
 }
 
 // defined in session.cpp
-void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(void)> f);
+void fun_wrap(bool* done, condition* e, mutex* m, boost::function<void(void)> f);
 
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \

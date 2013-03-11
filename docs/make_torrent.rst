@@ -3,7 +3,7 @@ creating torrents
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.9
 
 .. contents:: Table of contents
   :depth: 2
@@ -173,30 +173,12 @@ file structure. Its synopsis::
 		int piece_length() const;
 		int piece_size(int index) const;
 
-		// index accessors
 		sha1_hash const& hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
+		int file_index(int index) const;
 		size_type file_base(int index) const;
 		void set_file_base(int index, size_type off);
-		std::string file_path(int index) const;
-		std::string file_name(int index) const;
-		size_type file_size(int index) const;
-		bool pad_file_at(int index) const;
-		size_type file_offset(int index) const;
-
-		// iterator accessors
-		sha1_hash hash(internal_file_entry const& fe) const;
-		std::string const& symlink(internal_file_entry const& fe) const;
-		time_t mtime(internal_file_entry const& fe) const;
-		int file_index(internal_file_entry const& fe) const;
-		size_type file_base(internal_file_entry const& fe) const;
-		void set_file_base(internal_file_entry const& fe, size_type off);
-		std::string file_path(internal_file_entry const& fe) const;
-		std::string file_name(internal_file_entry const& fe) const;
-		size_type file_size(internal_file_entry const& fe) const;
-		bool pad_file_at(internal_file_entry const& fe) const;
-		size_type file_offset(internal_file_entry const& fe) const;
 
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
@@ -232,35 +214,28 @@ can be changed by calling ``set_name``.
 The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.
 
-hash() symlink() mtime() file_path() file_size() pad_file_at()
---------------------------------------------------------------
+hash() symlink() mtime() file_index()
+-------------------------------------
 
 	::
 
 		sha1_hash hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
-		std::string file_path(int index) const;
-		size_type file_size(int index) const;
-		bool pad_file_at(int index) const;
+		int file_index(int index) const;
 
-These functions are used to query attributes of files at
-a given index.
+These functions are used to query the symlink, file hash,
+modification time and the file-index from a file index.
 
-The ``file_hash()`` is a sha-1 hash of the file, or 0 if none was
+The file hash is a sha-1 hash of the file, or 0 if none was
 provided in the torrent file. This can potentially be used to
 join a bittorrent network with other file sharing networks.
 
-The ``mtime()`` is the modification time is the posix
-time when a file was last modified when the torrent
-was created, or 0 if it was not included in the torrent file.
+The modification time is the posix time when a file was last
+modified when the torrent was created, or 0 if it was not provided.
 
-``file_path()`` returns the full path to a file.
-
-``file_size()`` returns the size of a file.
-
-``pad_file_at()`` returns true if the file at the given
-index is a pad-file.
+The file index of a file is simply a 0 based index of the
+file as they are ordered in the torrent file.
 
 file_base() set_file_base()
 ---------------------------
@@ -293,7 +268,7 @@ The ``create_torrent`` class has the following synopsis::
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize, int alignment = 0x4000);
+			, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 		entry generate() const;
@@ -330,7 +305,7 @@ create_torrent()
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize, int alignment = 0x4000);
+			, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 The ``piece_size`` is the size of each piece in bytes. It must
@@ -386,10 +361,6 @@ calculate_file_hashes
 	the piece hashes, also calculate the file hashes and add those associated
 	with each file. Note that unless you use the `set_piece_hashes()`_ function,
 	this flag will have no effect.
-
-``alignment`` is used when pad files are enabled. This is the size eligible
-files are aligned to. The default is the default bittorrent block size of
-16 kiB. It is common to align to the piece size of the torrent.
 
 generate()
 ----------

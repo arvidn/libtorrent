@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -425,6 +425,13 @@ namespace libtorrent
 		typedef std::pair<char const*, int> return_t;
 		return return_t(m_begin, m_len);
 	}
+
+#if TORRENT_USE_IOSTREAM
+	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
+	{
+		return os << print_entry(e);
+	}
+#endif // TORRENT_USE_IOSTREAM
 
 	int line_longer_than(lazy_entry const& e, int limit)
 	{

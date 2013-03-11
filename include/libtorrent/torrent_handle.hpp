@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -176,10 +176,7 @@ namespace libtorrent
 			query_accurate_download_counters = 2,
 			query_last_seen_complete = 4,
 			query_pieces = 8,
-			query_verified_pieces = 16,
-			query_torrent_file = 32,
-			query_name = 64,
-			query_save_path = 128,
+			query_verified_pieces = 16
 		};
 
 		// the flags specify which fields are calculated. By default everything
@@ -229,7 +226,7 @@ namespace libtorrent
 #endif
 
 		bool set_metadata(char const* metadata, int size) const;
-
+		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
 		enum pause_flags_t { graceful_pause = 1 };
@@ -267,29 +264,12 @@ namespace libtorrent
 
 		storage_interface* get_storage_impl() const;
 
-		boost::intrusive_ptr<torrent_info> torrent_file() const;
-
-#ifndef TORRENT_NO_DEPRECATE
+		// all these are deprecated, use piece
+		// priority functions instead
 
 		// ================ start deprecation ============
 
-		// deprecated in 1.0
-		// use status() instead (with query_save_path)
-		TORRENT_DEPRECATED_PREFIX
-		std::string save_path() const TORRENT_DEPRECATED;
-
-		// deprecated in 1.0
-		// use status() instead (with query_name)
-		// returns the name of this torrent, in case it doesn't
-		// have metadata it returns the name assigned to it
-		// when it was added.
-		TORRENT_DEPRECATED_PREFIX
-		std::string name() const TORRENT_DEPRECATED;
-
-		// use torrent_file() instead
-		TORRENT_DEPRECATED_PREFIX
-		const torrent_info& get_torrent_info() const TORRENT_DEPRECATED;
-
+#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16, feature will be removed
 		TORRENT_DEPRECATED_PREFIX
 		int get_peer_upload_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
@@ -321,8 +301,6 @@ namespace libtorrent
 		bool super_seeding() const TORRENT_DEPRECATED;
 
 		// deprecated in 0.13
-		// all these are deprecated, use piece
-		// priority functions instead
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		TORRENT_DEPRECATED_PREFIX
@@ -338,14 +316,6 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
 
-		TORRENT_DEPRECATED_PREFIX
-		void use_interface(const char* net_interface) const TORRENT_DEPRECATED;
-
-		// deprecated in 0.14
-		// use save_resume_data() instead. It is async. and
-		// will return the resume data in an alert
-		TORRENT_DEPRECATED_PREFIX
-		entry write_resume_data() const TORRENT_DEPRECATED;
 		// ================ end deprecation ============
 #endif
 
@@ -365,6 +335,18 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
+		// set the interface to bind outgoing connections
+		// to.
+		void use_interface(const char* net_interface) const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.14
+		// use save_resume_data() instead. It is async. and
+		// will return the resume data in an alert
+		TORRENT_DEPRECATED_PREFIX
+		entry write_resume_data() const TORRENT_DEPRECATED;
+#endif
+
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)
 		void force_reannounce() const;
@@ -382,6 +364,15 @@ namespace libtorrent
 		// performs a scrape request
 		void scrape_tracker() const;
 
+		// returns the name of this torrent, in case it doesn't
+		// have metadata it returns the name assigned to it
+		// when it was added.
+		std::string name() const;
+
+		// TODO: add a feature where the user can tell the torrent
+		// to finish all pieces currently in the pipeline, and then
+		// abort the torrent.
+
 		void set_upload_limit(int limit) const;
 		int upload_limit() const;
 		void set_download_limit(int limit) const;
@@ -391,6 +382,8 @@ namespace libtorrent
 
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
+
+		std::string save_path() const;
 
 		// -1 means unlimited unchokes
 		void set_max_uploads(int max_uploads) const;
@@ -433,7 +426,7 @@ namespace libtorrent
 			: m_torrent(t)
 		{}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 
@@ -478,19 +471,6 @@ namespace libtorrent
 		// the only option to query progress
 		int progress_ppm;
 		std::string error;
-
-		// save path of where the torrent's files are saved
-		// only set when status is queried with query_save_path
-		std::string save_path;
-
-		// name of the torrent, or empty if the torrent's name
-		// cannot be established yet
-		// only set when status is queried with query_name
-		std::string name;
-
-		// the torrent file for this torrent
-		// only set when status is queried with query_torrent_file
-		boost::intrusive_ptr<const torrent_info> torrent_file;
 
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;

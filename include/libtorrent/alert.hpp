@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -150,11 +150,6 @@ namespace libtorrent {
 			return (m_alert_mask & T::static_category) != 0;
 		}
 
-		bool should_post(alert const* a) const
-		{
-			return m_alert_mask & a->category();
-		}
-
 		alert const* wait_for_alert(time_duration max_wait);
 
 		void set_alert_mask(boost::uint32_t m)
@@ -175,11 +170,11 @@ namespace libtorrent {
 #endif
 
 	private:
-		void post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l);
+		void post_impl(std::auto_ptr<alert>& alert_);
 
 		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
-		condition_variable m_condition;
+//		event m_condition;
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;

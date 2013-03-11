@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -103,8 +103,6 @@ namespace libtorrent
 
 		void write_request(peer_request const& r);
 
-		virtual bool received_invalid_data(int index, bool single_peer);
-
 	private:
 
 		bool maybe_harvest_block();
@@ -124,7 +122,7 @@ namespace libtorrent
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
-		// TODO: 1 if we make this be a disk_buffer_holder instead
+		// TODO: if we make this be a disk_buffer_holder instead
 		// we would save a copy sometimes
 		// use allocate_disk_receive_buffer and release_disk_receive_buffer
 		std::vector<char> m_piece;

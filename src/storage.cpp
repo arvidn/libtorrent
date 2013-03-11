@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,6 +71,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 //#define TORRENT_PARTIAL_HASH_LOG
 
+#if TORRENT_USE_IOSTREAM
+#include <ios>
+#include <iostream>
+#include <iomanip>
+#endif
+
 #if defined(__APPLE__)
 // for getattrlist()
 #include <sys/attr.h>
@@ -92,6 +98,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
+
+#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
+namespace
+{
+	using namespace libtorrent;
+
+	void print_to_log(std::string const& s)
+	{
+		static std::ofstream log("log.txt");
+		log << s;
+		log.flush();
+	}
+}
+#endif
 
 namespace libtorrent
 {
@@ -992,11 +1012,19 @@ ret:
 		size_type start = slot * (size_type)m_files.piece_length() + offset;
 		TORRENT_ASSERT(start + size <= m_files.total_size());
 
-		file_storage::iterator file_iter = files().file_at_offset(start);
-		TORRENT_ASSERT(file_iter != files().end());
-		TORRENT_ASSERT(start >= files().file_offset(*file_iter));
-		TORRENT_ASSERT(start < files().file_offset(*file_iter) + files().file_size(*file_iter));
-		size_type file_offset = start - files().file_offset(*file_iter);
+		size_type file_offset = start;
+		file_storage::iterator file_iter;
+
+		// TODO: use binary search!
+		for (file_iter = files().begin();;)
+		{
+			if (file_offset < file_iter->size)
+				break;
+
+			file_offset -= file_iter->size;
+			++file_iter;
+			TORRENT_ASSERT(file_iter != files().end());
+		}
 
 		boost::intrusive_ptr<file> file_handle;
 		int bytes_left = size;
@@ -1090,11 +1118,19 @@ ret:
 		TORRENT_ASSERT(start + size <= m_files.total_size());
 
 		// find the file iterator and file offset
-		file_storage::iterator file_iter = files().file_at_offset(start);
-		TORRENT_ASSERT(file_iter != files().end());
-		TORRENT_ASSERT(start >= files().file_offset(*file_iter));
-		TORRENT_ASSERT(start < files().file_offset(*file_iter) + files().file_size(*file_iter));
-		size_type file_offset = start - files().file_offset(*file_iter);
+		size_type file_offset = start;
+		file_storage::iterator file_iter;
+
+		// TODO: use binary search!
+		for (file_iter = files().begin();;)
+		{
+			if (file_offset < file_iter->size)
+				break;
+
+			file_offset -= file_iter->size;
+			++file_iter;
+			TORRENT_ASSERT(file_iter != files().end());
+		}
 
 		int buf_pos = 0;
 		error_code ec;
@@ -1198,9 +1234,8 @@ ret:
 					// we likely wrote a bit too much, since we're restricted to
 					// a specific alignment for writes. Make sure to truncate the size
 
-					// TODO: 0 what if file_base is used to merge several virtual files
-					// into a single physical file? We should probably disable this
-					// if file_base is used. This is not a widely used feature though
+					// TODO: what if file_base is used to merge several virtual files
+					// into a single physical file?
 					file_handle->set_size(file_iter->size, ec);
 				}
 			}
@@ -1250,7 +1285,7 @@ ret:
 
 		// allocate a temporary, aligned, buffer
 		aligned_holder aligned_buf(aligned_size);
-		file::iovec_t b = {aligned_buf.get(), size_t(aligned_size) };
+		file::iovec_t b = {aligned_buf.get(), aligned_size};
 		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
 		if (ret < 0)
 		{
@@ -1291,7 +1326,7 @@ ret:
 
 		// allocate a temporary, aligned, buffer
 		aligned_holder aligned_buf(aligned_size);
-		file::iovec_t b = {aligned_buf.get(), size_t(aligned_size) };
+		file::iovec_t b = {aligned_buf.get(), aligned_size};
 		// we have something to read
 		if (aligned_start < actual_file_size && !ec)
 		{
@@ -1333,7 +1368,7 @@ ret:
 		, int offset
 		, int size)
 	{
-		file::iovec_t b = { (file::iovec_base_t)buf, size_t(size) };
+		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return writev(&b, slot, offset, 1, 0);
 	}
 
@@ -1343,7 +1378,7 @@ ret:
 		, int offset
 		, int size)
 	{
-		file::iovec_t b = { (file::iovec_base_t)buf, size_t(size) };
+		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return readv(&b, slot, offset, 1);
 	}
 
@@ -1767,6 +1802,10 @@ ret:
 
 		if (m_storage->settings().disable_hash_checks) return ret;
 
+#if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
+		std::ofstream out("partial_hash.log", std::ios::app);
+#endif
+
 		if (offset == 0)
 		{
 			partial_hash& ph = m_piece_hasher[piece_index];
@@ -1776,6 +1815,15 @@ ret:
 			for (file::iovec_t* i = iov, *end(iov + num_bufs); i < end; ++i)
 				ph.h.update((char const*)i->iov_base, i->iov_len);
 
+#if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
+			out << time_now_string() << " NEW ["
+				" s: " << this
+				<< " p: " << piece_index
+				<< " off: " << offset
+				<< " size: " << size
+				<< " entries: " << m_piece_hasher.size()
+				<< " ]" << std::endl;
+#endif
 		}
 		else
 		{
@@ -2265,7 +2313,7 @@ ret:
 						m_scratch_buffer2.reset(page_aligned_allocator::malloc(m_files.piece_length()));
 
 					int piece_size = m_files.piece_size(other_piece);
-					file::iovec_t b = {m_scratch_buffer2.get(), size_t(piece_size) };
+					file::iovec_t b = {m_scratch_buffer2.get(), piece_size};
 					if (m_storage->readv(&b, piece, 0, 1) != piece_size)
 					{
 						error = m_storage->error();
@@ -2279,7 +2327,7 @@ ret:
 				// the slot where this piece belongs is
 				// free. Just move the piece there.
 				int piece_size = m_files.piece_size(piece);
-				file::iovec_t b = {m_scratch_buffer.get(), size_t(piece_size) };
+				file::iovec_t b = {m_scratch_buffer.get(), piece_size};
 				if (m_storage->writev(&b, piece, 0, 1) != piece_size)
 				{
 					error = m_storage->error();
@@ -2321,7 +2369,7 @@ ret:
 					m_scratch_buffer.reset(page_aligned_allocator::malloc(m_files.piece_length()));
 			
 				int piece_size = m_files.piece_size(other_piece);
-				file::iovec_t b = {m_scratch_buffer.get(), size_t(piece_size) };
+				file::iovec_t b = {m_scratch_buffer.get(), piece_size};
 				if (m_storage->readv(&b, piece, 0, 1) != piece_size)
 				{
 					error = m_storage->error();
@@ -2808,6 +2856,24 @@ ret:
 		if (slot_index != piece_index
 			&& m_slot_to_piece[piece_index] >= 0)
 		{
+
+#if defined TORRENT_DEBUG && defined TORRENT_STORAGE_DEBUG && TORRENT_USE_IOSTREAM
+			std::stringstream s;
+
+			s << "there is another piece at our slot, swapping..";
+
+			s << "\n   piece_index: ";
+			s << piece_index;
+			s << "\n   slot_index: ";
+			s << slot_index;
+			s << "\n   piece at our slot: ";
+			s << m_slot_to_piece[piece_index];
+			s << "\n";
+
+			print_to_log(s.str());
+			debug_log();
+#endif
+
 			int piece_at_our_slot = m_slot_to_piece[piece_index];
 			TORRENT_ASSERT(m_piece_to_slot[piece_at_our_slot] == piece_index);
 
@@ -2896,7 +2962,7 @@ ret:
 		return m_slot_to_piece[slot];
 	}
 		
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void piece_manager::check_invariant() const
 	{
 		TORRENT_ASSERT(m_current_slot <= m_files.num_pieces());
@@ -3031,6 +3097,24 @@ ret:
 		}
 	}
 
+#if defined(TORRENT_STORAGE_DEBUG) && TORRENT_USE_IOSTREAM
+	void piece_manager::debug_log() const
+	{
+		std::stringstream s;
+
+		s << "index\tslot\tpiece\n";
+
+		for (int i = 0; i < m_files.num_pieces(); ++i)
+		{
+			s << i << "\t" << m_slot_to_piece[i] << "\t";
+			s << m_piece_to_slot[i] << "\n";
+		}
+
+		s << "---------------------------------\n";
+
+		print_to_log(s.str());
+	}
+#endif
 #endif
 } // namespace libtorrent
 

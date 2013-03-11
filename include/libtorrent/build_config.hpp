@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2012, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -73,6 +73,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CFG_POOL nopools_
 #else
 #define TORRENT_CFG_POOL pools_
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+#define TORRENT_CFG_LOG verboselog_
+#elif defined TORRENT_LOGGING
+#define TORRENT_CFG_LOG log_
+#else
+#define TORRENT_CFG_LOG nolog_
 #endif
 
 #ifdef _UNICODE

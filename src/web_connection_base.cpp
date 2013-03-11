@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,15 +87,8 @@ namespace libtorrent
 			= parse_url_components(url, ec);
 		TORRENT_ASSERT(!ec);
 
-		if (m_port == -1 && protocol == "http")
-			m_port = 80;
-
 #ifdef TORRENT_USE_OPENSSL
-		if (protocol == "https")
-		{
-			m_ssl = true;
-			if (m_port == -1) m_port = 443;
-		}
+		if (protocol == "https") m_ssl = true;
 #endif
 
 		if (!m_basic_auth.empty())
@@ -195,7 +188,7 @@ namespace libtorrent
 	}
 
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void web_connection_base::check_invariant() const
 	{
 /*

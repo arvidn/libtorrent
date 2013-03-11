@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -284,6 +284,10 @@ namespace libtorrent
 
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
+#if TORRENT_USE_IOSTREAM
+	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, lazy_entry const& e);
+#endif
+
 }
 
 

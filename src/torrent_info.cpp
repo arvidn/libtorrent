@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003-2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -189,7 +189,7 @@ namespace libtorrent
 		return true;
 	}
 
-	TORRENT_EXTRA_EXPORT void trim_path_element(std::string& element)
+	void trim_path_element(std::string& element)
 	{
 		const int max_path_len = TORRENT_MAX_PATH;
 
@@ -407,7 +407,7 @@ namespace libtorrent
 			// each entry keep a string for its filename, make it
 			// simply point into the info-section buffer
 			internal_file_entry const& fe = *target.rbegin();
-			// TODO: 1 once the filename renaming is removed from here
+			// TODO: once the filename renaming is removed from here
 			// this check can be removed as well
 			if (fee && fe.filename() == fee->string_value())
 			{
@@ -465,7 +465,7 @@ namespace libtorrent
 		}
 		v.resize(s);
 		if (s == 0) return 0;
-		file::iovec_t b = {&v[0], size_t(s) };
+		file::iovec_t b = {&v[0], s};
 		size_type read = f.readv(0, &b, 1, ec);
 		if (read != s) return -3;
 		if (ec) return -3;
@@ -476,9 +476,6 @@ namespace libtorrent
 		: url(u)
 		, next_announce(min_time())
 		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
 		, tier(0)
 		, fail_limit(0)
 		, fails(0)
@@ -572,9 +569,6 @@ namespace libtorrent
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
 			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
-#ifndef BOOST_NO_EXCEPTIONS
-			if (ret != 0) throw libtorrent_exception(ec);
-#endif
 			TORRENT_ASSERT(ret == 0);
 
 			ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
@@ -621,7 +615,7 @@ namespace libtorrent
 		if (tmp.size() == 0 || lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file(ec);
+			throw invalid_torrent_file(errors::invalid_bencoding);
 #endif
 			return;
 		}
@@ -933,7 +927,7 @@ namespace libtorrent
 			e.size = info.dict_find_int_value("length", -1);
 			if (e.size < 0)
 			{
-				ec = errors::torrent_invalid_length;
+				ec = errors::torrent_file_parse_failed;
 				return false;
 			}
 			e.mtime = info.dict_find_int_value("mtime", 0);
@@ -968,6 +962,11 @@ namespace libtorrent
 			// bitcomet pad file
 			if (e.path.find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;
+			if (e.size < 0)
+			{
+				ec = errors::torrent_invalid_length;
+				return false;
+			}
 			m_files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0);
 			m_multifile = false;
 		}
@@ -989,9 +988,10 @@ namespace libtorrent
 		m_files.set_num_pieces(int((m_files.total_size() + m_files.piece_length() - 1)
 			/ m_files.piece_length()));
 
-		lazy_entry const* pieces = info.dict_find_string("pieces");
-		lazy_entry const* root_hash = info.dict_find_string("root hash");
-		if (pieces == 0 && root_hash == 0)
+		lazy_entry const* pieces = info.dict_find("pieces");
+		lazy_entry const* root_hash = info.dict_find("root hash");
+		if ((pieces == 0 || pieces->type() != lazy_entry::string_t)
+			&& (root_hash == 0 || root_hash->type() != lazy_entry::string_t))
 		{
 			ec = errors::torrent_missing_pieces;
 			return false;
@@ -1360,7 +1360,7 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void torrent_info::check_invariant() const
 	{
 		for (file_storage::iterator i = m_files.begin()

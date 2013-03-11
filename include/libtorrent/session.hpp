@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -124,8 +124,12 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #define TORRENT_LOGPATH_ARG_DEFAULT , std::string logpath = "."
+#define TORRENT_LOGPATH_ARG , std::string logpath
+#define TORRENT_LOGPATH , logpath
 #else
 #define TORRENT_LOGPATH_ARG_DEFAULT
+#define TORRENT_LOGPATH_ARG
+#define TORRENT_LOGPATH
 #endif
 
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
@@ -139,11 +143,7 @@ namespace libtorrent
 			TORRENT_LOGPATH_ARG_DEFAULT)
 		{
 			TORRENT_CFG();
-			init(std::make_pair(0, 0), "0.0.0.0", print, alert_mask);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			set_log_path(logpath);
-#endif
-			start(flags);
+			init(std::make_pair(0, 0), "0.0.0.0", print, flags, alert_mask TORRENT_LOGPATH);
 		}
 
 		session(
@@ -157,11 +157,7 @@ namespace libtorrent
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
 			TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
-			init(listen_port_range, listen_interface, print, alert_mask);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			set_log_path(logpath);
-#endif
-			start(flags);
+			init(listen_port_range, listen_interface, print, flags, alert_mask TORRENT_LOGPATH);
 		}
 			
 		~session();
@@ -496,9 +492,7 @@ namespace libtorrent
 	private:
 
 		void init(std::pair<int, int> listen_range, char const* listen_interface
-			, fingerprint const& id, boost::uint32_t alert_mask);
-		void set_log_path(std::string const& p);
-		void start(int flags);
+			, fingerprint const& id, int flags, boost::uint32_t alert_mask TORRENT_LOGPATH_ARG);
 
 		// data shared between the main thread
 		// and the working thread
