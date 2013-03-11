@@ -1928,7 +1928,7 @@ namespace aux {
 		// by the new ip-filter
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
-			i->second->ip_filter_updated();
+			i->second->port_filter_updated();
 	}
 
 	ip_filter const& session_impl::get_ip_filter() const
