@@ -5906,7 +5906,7 @@ retry:
 					m_alerts.post_alert(listen_failed_alert(new_interface, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				session_log("listen_on: %s failed: %s"
-					, net_interface, ec.message().c_str());
+					, net_interface.c_str(), ec.message().c_str());
 #endif
 				return;
 			}
