@@ -3028,6 +3028,7 @@ namespace libtorrent
 			&& m_have_piece[index]
 			&& t->valid_metadata()
 			&& t->has_picker()
+			&& !t->has_piece_passed(index)
 			&& t->picker().piece_priority(index) > 0)
 		{
 			t->peer_is_interesting(*this);
