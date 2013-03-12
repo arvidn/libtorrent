@@ -1956,7 +1956,10 @@ namespace aux {
 		m_country_db = 0;
 #endif
 
-		m_disk_thread.set_num_threads(0);
+		// it's OK to detach the threads here. The disk_io_thread
+		// has an internal counter and won't release the network
+		// thread until they're all dead (via m_work).
+		m_disk_thread.set_num_threads(0, false);
 	}
 
 	bool session_impl::has_connection(peer_connection* p) const
