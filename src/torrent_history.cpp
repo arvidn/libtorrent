@@ -38,7 +38,8 @@ namespace libtorrent
 {
 	torrent_history::torrent_history(alert_handler* h)
 		: m_alerts(h)
-		, m_frame(0)
+		, m_frame(1)
+		, m_deferred_frame_count(false)
 	{
 		m_alerts->subscribe(this, 0
 			, add_torrent_alert::alert_type
@@ -58,15 +59,15 @@ namespace libtorrent
 		state_update_alert const* su = alert_cast<state_update_alert>(a);
 		if (ta)
 		{
-			printf("added torrent: %s\n", ta->handle.name().c_str());
 			mutex::scoped_lock l(m_mutex);
-			m_queue.left.push_front(std::make_pair(m_frame, ta->handle.status()));
+			m_queue.left.push_front(std::make_pair(m_frame + 1, ta->handle.status()));
+			m_deferred_frame_count = true;
 		}
 		else if (td)
 		{
 			mutex::scoped_lock l(m_mutex);
 
-			m_removed.push_front(std::make_pair(m_frame, td->info_hash));
+			m_removed.push_front(std::make_pair(m_frame + 1, td->info_hash));
 			torrent_status st;
 			st.handle = td->handle;
 			m_queue.right.erase(st);
@@ -75,6 +76,7 @@ namespace libtorrent
 			{
 				m_removed.pop_back();
 			}
+			m_deferred_frame_count = true;
 		}
 		else if (su)
 		{
@@ -92,6 +94,7 @@ namespace libtorrent
 				m_queue.left.relocate(m_queue.left.begin(), m_queue.project_left(it));
 			}
 			++m_frame;
+			m_deferred_frame_count = false;
 /*
 			printf("===== frame: %d =====\n", m_frame);
 			for (queue_t::left_iterator i = m_queue.left.begin()
@@ -110,7 +113,7 @@ namespace libtorrent
 		for (std::deque<std::pair<int, sha1_hash> >::const_iterator i = m_removed.begin()
 			, end(m_removed.end()); i != end; ++i)
 		{
-			if (i->first < frame) break;
+			if (i->first <= frame) break;
 			torrents.push_back(i->second);
 		}
 	}
@@ -121,9 +124,20 @@ namespace libtorrent
 		for (queue_t::left_const_iterator i = m_queue.left.begin()
 			, end(m_queue.left.end()); i != end; ++i)
 		{
-			if (i->first < frame) break;
+			if (i->first <= frame) break;
 			torrents.push_back(i->second);
 		}
+	}
+
+	int torrent_history::frame() const
+	{
+		mutex::scoped_lock l(m_mutex);
+		if (m_deferred_frame_count)
+		{
+			m_deferred_frame_count = false;
+			++m_frame;
+		}
+		return m_frame;
 	}
 }
 

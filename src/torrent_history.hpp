@@ -59,7 +59,7 @@ namespace libtorrent
 		void updated_since(int frame, std::vector<torrent_status>& torrents) const;
 
 		// the current frame number
-		int frame() const { return m_frame; }
+		int frame() const;
 
 		virtual void handle_alert(alert const* a);
 
@@ -81,7 +81,17 @@ namespace libtorrent
 
 		// frame counter. This is incremented every
 		// time we get a status update for torrents
-		int m_frame;
+		mutable int m_frame;
+
+		// if we haven't gotten any status updates
+		// but we have received add or delete alerts,
+		// we increment the frame counter on access,
+		// in order to maek added and deleted event also
+		// fall into distinct time-slots, instead of being
+		// potentially returned twice, once when they
+		// happen and once after we've received an
+		// update and increment the frame counter
+		mutable bool m_deferred_frame_count;
 	};
 }
 
