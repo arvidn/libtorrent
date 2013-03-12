@@ -1508,9 +1508,6 @@ namespace libtorrent
 	public:
 		// set to false until we've loaded resume data
 		bool m_resume_data_loaded;
-
-		// set to true when the finished alert is posted
-		bool m_finished_alert_posted;
 #endif
 	};
 

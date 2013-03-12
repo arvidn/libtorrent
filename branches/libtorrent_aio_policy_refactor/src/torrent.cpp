@@ -342,7 +342,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
-		m_finished_alert_posted = false;
 #endif
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
@@ -2273,9 +2272,6 @@ namespace libtorrent
 		// asks for it
 		std::vector<boost::uint64_t>().swap(m_file_progress);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_finished_alert_posted = false;
-#endif
 		// assume that we don't have anything
 		m_files_checked = false;
 
@@ -4943,11 +4939,6 @@ namespace libtorrent
 		}
 		else if (!is_finished() && was_finished)
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			// it's OK to post the finished alert multiple times
-			// we the piece/file priorities are changed around
-			m_finished_alert_posted = false;
-#endif
 			// if we used to be finished, but we aren't anymore
 			// we may need to connect to peers again
 			resume_download();
@@ -7212,21 +7203,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		// TODO: this assert fails if we set all file priorities to 0 while
-		// checking the resume data, since that will make the torrent finished.
-		// we expect to make that transition here, and not before
-//		TORRENT_ASSERT(!m_finished_alert_posted);
 		TORRENT_ASSERT(is_finished());
-		TORRENT_ASSERT(m_state != torrent_status::finished && m_state != torrent_status::seeding);
-
-		if (alerts().should_post<torrent_finished_alert>())
-		{
-			alerts().post_alert(torrent_finished_alert(
-				get_handle()));
-		}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_finished_alert_posted = true;
-#endif
 
 		set_state(torrent_status::finished);
 		set_queue_position(-1);
@@ -7291,9 +7268,6 @@ namespace libtorrent
 		// to be in downloading state (which it will be set to shortly)
 //		INVARIANT_CHECK;
 	
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_finished_alert_posted = false;
-#endif
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());
@@ -7588,12 +7562,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(!is_seed());
 			TORRENT_ASSERT(!has_picker() || !m_picker->have_piece(i->piece));
-		}
-
-		if (!m_finished_alert_posted)
-		{
-			TORRENT_ASSERT(m_state != torrent_status::seeding
-				&& m_state != torrent_status::finished);
 		}
 
 		switch (current_stats_state())
@@ -9712,12 +9680,6 @@ namespace libtorrent
 		if (s == torrent_status::seeding)
 			TORRENT_ASSERT(is_seed());
 
-		if (!m_finished_alert_posted)
-		{
-			TORRENT_ASSERT(s != torrent_status::seeding
-				&& s != torrent_status::finished);
-		}
-
 		if (s == torrent_status::seeding)
 		{
 			TORRENT_ASSERT(is_seed());
@@ -9732,6 +9694,15 @@ namespace libtorrent
 		if (int(m_state) == s) return;
 		if (m_ses.alerts().should_post<state_changed_alert>())
 			m_ses.alerts().post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
+
+		if (m_state != torrent_status::finished && s == torrent_status::finished)
+		{
+			if (alerts().should_post<torrent_finished_alert>())
+			{
+				alerts().post_alert(torrent_finished_alert(
+					get_handle()));
+			}
+		}
 
 		m_state = s;
 
