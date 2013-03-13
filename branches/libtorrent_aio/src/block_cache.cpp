@@ -43,6 +43,74 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
 
+/*
+
+	The disk cache mimics ARC (adaptive replacement cache).
+	See paper: http://dbs.uni-leipzig.de/file/ARC.pdf
+	See slides: http://www-vlsi.stanford.edu/smart_memories/protected/meetings/spring2004/arc-fast.pdf
+
+	This cache has a few modifications to make it fit the bittorrent use
+	case better. It has a few more lists lists and it deferres the eviction
+	of pieces.
+
+	read_lru1
+		This is a plain LRU for items that have been requested once.
+		If a piece in this list gets accessed again, by someone other
+		than the first accessor, the piece is promoted into LRU2.
+		which holds pieces that are more frequently used, and more
+		important to keep around as this LRU list takes churn.
+	
+	read_lru1_ghost
+		This is a list of pieces that were least recently evicted from
+		read_lru1. These pieces don't hold any actual blocks in the cache,
+		they are just here to extend the reach and probability for pieces
+		to be promoted into read_lru2. Any piece in this list that
+		get one more access is promoted to read_lru2. This is technically
+		a cache-miss, since there's no cached blocks here, but for the
+		purposes of promoting the piece from infrequently used to frequently
+		used), it's considered a cache-hit.
+
+	read_lru2
+		TODO
+
+	read_lru2_ghost
+		TODO
+
+	volatile_read_lru
+		TODO
+
+	write_lru
+		TODO
+
+	Cache hits
+	..........
+
+	When a piece get a cache hit, it's promoted, either to the beginning of the
+	lru2 or into lru2. Since this ARC implementation operates on pieces instead
+	of blocks, any one peer requesting blocks from one piece would essentially
+	always produce a "cache hit" the second block it requests. In order to make
+	the promotions make more sense, and be more in the spirit of the ARC algorithm,
+	each access contains a token, unique to each peer. If any access has a different
+	token than the last one, it's considered a cache hit. This is because at least
+	two peers requested blocks from the same piece.
+
+	Deferred evictions
+	..................
+
+	Since pieces and blocks can be pinned in the cache, and it's not always practical,
+	or possible, to evict a piece at the point where a new block is allocated (because
+	it's not known what the block will be used for), evictions are not done at the time
+	of allocating blocks. Instead, whenever an operation requires to add a new piece to
+	the cache, it also records the cache event leading to it, in m_last_cache_op. This
+	is one of cache_miss (piece did not exist in cache), lru1_ghost_hit (the piece was found
+	in lru1_ghost and it was promoted) or lru2_ghost_hit (the piece was found in lru2_ghost
+	and it was promoted). This cache operation then guides the cache eviction algorithm
+	to know which list to evict from. The volatile list is always the first one to be
+	evicted however.
+
+*/
+
+
 #define DEBUG_CACHE 0
 
 #define DLOG if (DEBUG_CACHE) fprintf

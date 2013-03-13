@@ -171,7 +171,8 @@ The disk cache implements *ARC*, Adaptive Replacement Cache. This consists of a 
 2. lru L1 ghost (recently evicted)
 3. lru L2 (frequently used)
 4. lru L2 ghost (recently evicted)
-5. write cache (blocks waiting to be flushed to disk)
+5. volatile read blocks
+6. write cache (blocks waiting to be flushed to disk)
 
 .. parsed-literal::
 	
