@@ -244,6 +244,24 @@ void test_evict()
 	TEST_EQUAL(status.arc_volatile_size, 0);
 
 	tailqueue jobs;
+	// this should make it not be evicted
+	// just free the buffers
+	++pe->piece_refcount;
+	bc.evict_piece(pe, jobs);
+
+	bc.get_stats(&status);
+	TEST_EQUAL(status.blocks_read_hit, 0);
+	TEST_EQUAL(status.write_cache_size, 0);
+	TEST_EQUAL(status.read_cache_size, 0);
+	TEST_EQUAL(status.pinned_blocks, 0);
+	TEST_EQUAL(status.arc_mru_size, 1);
+	TEST_EQUAL(status.arc_mru_ghost_size, 0);
+	TEST_EQUAL(status.arc_mfu_size, 0);
+	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
+	TEST_EQUAL(status.arc_write_size, 0);
+	TEST_EQUAL(status.arc_volatile_size, 0);
+
+	--pe->piece_refcount;
 	bc.evict_piece(pe, jobs);
 
 	bc.get_stats(&status);
@@ -263,7 +281,7 @@ void test_evict()
 
 // test to have two different requestors read a block and
 // make sure it moves into the MFU list
-void test_arc()
+void test_arc_promote()
 {
 	TEST_SETUP;
 
@@ -323,6 +341,60 @@ void test_arc()
 	bc.clear(jobs);
 }
 
+void test_arc_unghost()
+{
+	TEST_SETUP;
+
+	INSERT(0, 0);
+
+	bc.get_stats(&status);
+	TEST_EQUAL(status.blocks_read_hit, 0);
+	TEST_EQUAL(status.write_cache_size, 0);
+	TEST_EQUAL(status.read_cache_size, 1);
+	TEST_EQUAL(status.pinned_blocks, 0);
+	TEST_EQUAL(status.arc_mru_size, 1);
+	TEST_EQUAL(status.arc_mru_ghost_size, 0);
+	TEST_EQUAL(status.arc_mfu_size, 0);
+	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
+	TEST_EQUAL(status.arc_write_size, 0);
+	TEST_EQUAL(status.arc_volatile_size, 0);
+
+	tailqueue jobs;
+	bc.evict_piece(pe, jobs);
+
+	bc.get_stats(&status);
+	TEST_EQUAL(status.blocks_read_hit, 0);
+	TEST_EQUAL(status.write_cache_size, 0);
+	TEST_EQUAL(status.read_cache_size, 0);
+	TEST_EQUAL(status.pinned_blocks, 0);
+	TEST_EQUAL(status.arc_mru_size, 0);
+	TEST_EQUAL(status.arc_mru_ghost_size, 1);
+	TEST_EQUAL(status.arc_mfu_size, 0);
+	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
+	TEST_EQUAL(status.arc_write_size, 0);
+	TEST_EQUAL(status.arc_volatile_size, 0);
+
+	// the block is now a ghost. If we cache-hit it,
+	// it should be promoted back to the main list
+	bc.cache_hit(pe, (void*)1, false);
+
+	bc.get_stats(&status);
+	TEST_EQUAL(status.blocks_read_hit, 0);
+	TEST_EQUAL(status.write_cache_size, 0);
+	// we didn't actually read in any blocks, so the cache size
+	// is still 0
+	TEST_EQUAL(status.read_cache_size, 0);
+	TEST_EQUAL(status.pinned_blocks, 0);
+	TEST_EQUAL(status.arc_mru_size, 1);
+	TEST_EQUAL(status.arc_mru_ghost_size, 0);
+	TEST_EQUAL(status.arc_mfu_size, 0);
+	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
+	TEST_EQUAL(status.arc_write_size, 0);
+	TEST_EQUAL(status.arc_volatile_size, 0);
+
+	bc.clear(jobs);
+}
+
 void test_iovec()
 {
 	TEST_SETUP;
@@ -365,12 +437,14 @@ int test_main()
 	test_flush();
 	test_insert();
 	test_evict();
-	test_arc();
+	test_arc_promote();
+	test_arc_unghost();
 	test_iovec();
 	test_unaligned_read();
 
 	// TODO: test try_evict_blocks
 	// TODO: test evicting volatile pieces, to see them be removed
+	// TODO: test evicting dirty pieces
 	// TODO: test free_piece
 	// TODO: test abort_dirty
 	// TODO: test unaligned reads

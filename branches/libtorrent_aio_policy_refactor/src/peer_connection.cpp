@@ -3026,6 +3026,7 @@ namespace libtorrent
 		// to download it, request it
 		if (int(m_have_piece.size()) > index
 			&& m_have_piece[index]
+			&& !t->has_piece_passed(index)
 			&& t->valid_metadata()
 			&& t->has_picker()
 			&& !t->has_piece_passed(index)
