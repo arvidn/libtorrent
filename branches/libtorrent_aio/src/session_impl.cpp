@@ -392,21 +392,6 @@ namespace aux {
 */
 #undef lenof
 
-#ifdef TORRENT_STATS
-	int session_impl::logging_allocator::allocations = 0;
-	int session_impl::logging_allocator::allocated_bytes = 0;
-#endif
-
-	int session_impl::ip_filter_access(address const& addr) const
-	{
-		return m_ip_filter.access(addr);
-	}
-
-	int session_impl::port_filter_access(int port) const
-	{
-		return m_port_filter.access(port);
-	}
-
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -513,14 +498,12 @@ namespace aux {
 		, char const* listen_interface
 		, boost::uint32_t alert_mask
 		)
-		: m_ipv4_peer_pool(500)
-#if TORRENT_USE_IPV6
-		, m_ipv6_peer_pool(500)
-#endif
+		:
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_send_buffers(send_buffer_size())
+		m_send_buffers(send_buffer_size())
+		,
 #endif
-		, m_io_service()
+		m_io_service()
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
@@ -931,6 +914,7 @@ namespace aux {
 		PRINT_OFFSETOF(torrent_peer, prev_amount_upload)
 		PRINT_OFFSETOF(torrent_peer, prev_amount_download)
 		PRINT_OFFSETOF(torrent_peer, connection)
+		PRINT_OFFSETOF(torrent_peer, peer_rank)
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef TORRENT_DEBUG
 		PRINT_OFFSETOF(torrent_peer, inet_as_num)
@@ -1093,52 +1077,6 @@ namespace aux {
 		session_log(" spawning network thread");
 #endif
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
-	}
-
-	torrent_peer* session_impl::allocate_peer_entry(int type)
-	{
-		torrent_peer* p = NULL;
-		switch(type)
-		{
-			case session_interface::ipv4_peer:
-				p = (torrent_peer*)m_ipv4_peer_pool.malloc();
-				m_ipv4_peer_pool.set_next_size(500);
-				break;
-#if TORRENT_USE_IPV6
-			case session_interface::ipv6_peer:
-				p = (torrent_peer*)m_ipv6_peer_pool.malloc();
-				m_ipv6_peer_pool.set_next_size(500);
-				break;
-#endif
-#if TORRENT_USE_I2P
-			case session_interface::i2p_peer:
-				p = (torrent_peer*)m_i2p_peer_pool.malloc();
-				m_i2p_peer_pool.set_next_size(500);
-				break;
-#endif
-		}
-		return p;
-	}
-	void session_impl::free_peer_entry(torrent_peer* p)
-	{
-#if TORRENT_USE_IPV6
-		if (p->is_v6_addr)
-		{
-			TORRENT_ASSERT(m_ipv6_peer_pool.is_from((libtorrent::ipv6_peer*)p));
-			m_ipv6_peer_pool.destroy((libtorrent::ipv6_peer*)p);
-			return;
-		}
-#endif
-#if TORRENT_USE_I2P
-		if (p->is_i2p_addr)
-		{
-			TORRENT_ASSERT(m_i2p_peer_pool.is_from((libtorrent::i2p_peer*)p));
-			m_i2p_peer_pool.destroy((libtorrent::i2p_peer*)p);
-			return;
-		}
-#endif
-		TORRENT_ASSERT(m_ipv4_peer_pool.is_from((libtorrent::ipv4_peer*)p));
-		m_ipv4_peer_pool.destroy((libtorrent::ipv4_peer*)p);
 	}
 
 #ifdef TORRENT_STATS
@@ -1975,7 +1913,13 @@ namespace aux {
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
-		// TODO: recalculate all connect candidates for all torrents
+		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
+			m_port_filter.add_rule(0, 1024, port_filter::blocked);
+		// Close connections whose endpoint is filtered
+		// by the new ip-filter
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+			i->second->ip_filter_updated();
 	}
 
 	void session_impl::set_ip_filter(ip_filter const& f)
@@ -1988,12 +1932,17 @@ namespace aux {
 		// by the new ip-filter
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
-			i->second->ip_filter_updated();
+			i->second->port_filter_updated();
 	}
 
 	ip_filter const& session_impl::get_ip_filter() const
 	{
 		return m_ip_filter;
+	}
+
+	port_filter const& session_impl::get_port_filter() const
+	{
+		return m_port_filter;
 	}
 
 	int session_impl::create_peer_class(char const* name)
@@ -4029,8 +3978,8 @@ retry:
 			STAT_LOG(d, num_half_open);
 			STAT_LOG(d, cs.total_used_buffers);
 			STAT_LOG(d, num_peers);
-			STAT_LOG(d, logging_allocator::allocations);
-			STAT_LOG(d, logging_allocator::allocated_bytes);
+			STAT_LOG(d, m_peer_allocator.live_allocations());
+			STAT_LOG(d, m_peer_allocator.live_bytes());
 			STAT_LOG(d, m_stats_counter[session_interface::num_checking_torrents]);
 			STAT_LOG(d, m_stats_counter[session_interface::num_stopped_torrents]);
 			STAT_LOG(d, m_stats_counter[session_interface::num_upload_only_torrents]);
@@ -4665,8 +4614,9 @@ retry:
 				--num_opt_unchoke;
 				if (!pi->optimistically_unchoked)
 				{
-					torrent* t = pi->connection->associated_torrent().lock().get();
-					bool ret = t->unchoke_peer(*pi->connection, true);
+					peer_connection* p = static_cast<peer_connection*>(pi->connection);
+					torrent* t = p->associated_torrent().lock().get();
+					bool ret = t->unchoke_peer(*p, true);
 					if (ret)
 					{
 						pi->optimistically_unchoked = true;
@@ -4684,9 +4634,10 @@ retry:
 			{
 				if (pi->optimistically_unchoked)
 				{
-					torrent* t = pi->connection->associated_torrent().lock().get();
+					peer_connection* p = static_cast<peer_connection*>(pi->connection);
+					torrent* t = p->associated_torrent().lock().get();
 					pi->optimistically_unchoked = false;
-					t->choke_peer(*pi->connection);
+					t->choke_peer(*p);
 					--m_num_unchoked;
 				}	
 			}
@@ -5354,9 +5305,14 @@ retry:
 	{
 		if (!m_logger) return;
 
-		va_list v;	
+		va_list v;
 		va_start(v, fmt);
+		session_vlog(fmt, v);
+		va_end(v);
+	}
 	
+	void session_impl::session_vlog(char const* fmt, va_list& v) const
+	{
 		char usr[400];
 		vsnprintf(usr, sizeof(usr), fmt, v);
 		va_end(v);
@@ -5937,6 +5893,24 @@ retry:
 #endif
 	}
 
+	void session_impl::update_privileged_ports()
+	{
+		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
+		{
+			m_port_filter.add_rule(0, 1024, port_filter::blocked);
+
+			// Close connections whose endpoint is filtered
+			// by the new ip-filter
+			for (torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+				i->second->ip_filter_updated();
+		}
+		else
+		{
+			m_port_filter.add_rule(0, 1024, 0);
+		}
+	}
+
 	address session_impl::listen_address() const
 	{
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
@@ -6010,8 +5984,9 @@ retry:
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
-		t->get_policy().add_peer(peer, peer_info::lsd, 0);
-		t->update_want_peers();
+		t->add_peer(peer, peer_info::lsd);
+		t->do_connect_boost();
+
 		if (m_alerts.should_post<lsd_peer_alert>())
 			m_alerts.post_alert(lsd_peer_alert(t->get_handle(), peer));
 	}

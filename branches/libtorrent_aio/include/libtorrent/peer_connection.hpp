@@ -82,6 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/connection_interface.hpp"
+#include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/piece_picker.hpp" // for piece_block
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 
@@ -151,6 +152,7 @@ namespace libtorrent
 		, public peer_class_set
 		, public disk_observer
 		, public connection_interface 
+		, public peer_connection_interface 
 		, public boost::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
@@ -442,6 +444,7 @@ namespace libtorrent
 		// returns true if this is more eligible
 		bool unchoke_compare(peer_connection const* p) const;
 		bool upload_rate_compare(peer_connection const* p) const;
+		int download_payload_rate() const { return m_statistics.download_payload_rate(); }
 
 		// resets the byte counters that are used to measure
 		// the number of bytes transferred within unchoke cycles
@@ -457,7 +460,7 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		void peer_log(char const* fmt, ...) const;
+		virtual void peer_log(char const* fmt, ...) const;
 		boost::shared_ptr<logger> m_logger;
 #endif
 

@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h> // for exit()
+#include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
 
 int test_main();
 
@@ -42,6 +44,30 @@ extern bool tests_failure;
 
 #include "libtorrent/assert.hpp"
 #include <signal.h>
+
+using namespace libtorrent;
+
+address rand_v4()
+{
+	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+}
+
+address rand_v6()
+{
+	address_v6::bytes_type bytes;
+	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
+	return address_v6(bytes);
+}
+
+tcp::endpoint rand_tcp_ep()
+{
+	return tcp::endpoint(rand_v4(), rand() + 1024);
+}
+
+udp::endpoint rand_udp_ep()
+{
+	return udp::endpoint(rand_v4(), rand() + 1024);
+}
 
 void sig_handler(int sig)
 {

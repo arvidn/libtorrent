@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,52 +30,40 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "test.hpp"
-#include "libtorrent/settings_pack.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/entry.hpp"
-#include <iostream>
+#ifndef TORRENT_PEER_CONNECTION_INTERFACE_HPP
+#define TORRENT_PEER_CONNECTION_INTERFACE_HPP
 
-#include <iostream>
+#include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 
-using namespace libtorrent;
-using namespace libtorrent::aux;
-
-int test_main()
+namespace libtorrent
 {
-	settings_pack sp;
+	struct torrent_peer;
+	class stat;
+	struct peer_info;
 
-	sp.set_int(settings_pack::max_out_request_queue, 1337);
-
-	aux::session_settings sett;
-	initialize_default_settings(sett);
-
-	entry e;
-	save_settings_to_dict(sett, e.dict());
-	// all default values are supposed to be skipped
-	// by save_settings
-	TEST_EQUAL(e.dict().size(), 0);
-	if (e.dict().size() > 0)
-		std::cerr << e << std::endl;
-
-	apply_pack(&sp, sett);
-
-	TEST_EQUAL(sett.get_int(settings_pack::max_out_request_queue), 1337);
-	save_settings_to_dict(sett, e.dict());
-	TEST_EQUAL(e.dict().size(), 1);
-
-
-#define TEST_NAME(n) \
-	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
-	TEST_CHECK(strcmp(name_for_setting(settings_pack:: n), #n) == 0)
-
-	TEST_NAME(contiguous_recv_buffer);
-	TEST_NAME(choking_algorithm);
-	TEST_NAME(seeding_piece_quota);
-	TEST_NAME(half_open_limit);
-	TEST_NAME(peer_turnover_interval);
-	TEST_NAME(mmap_cache);
-
-	return 0;
+	// TODO: make this interface smaller!
+	struct peer_connection_interface
+	{
+		virtual tcp::endpoint const& remote() const = 0;
+		virtual tcp::endpoint local_endpoint() const = 0;
+		virtual void disconnect(error_code const& ec, int error = 0) = 0;
+		virtual peer_id const& pid() const = 0;
+		virtual void set_holepunch_mode() = 0;
+		virtual torrent_peer* peer_info_struct() const = 0;
+		virtual void set_peer_info(torrent_peer* pi) = 0;
+		virtual bool is_outgoing() const = 0;
+		virtual void add_stat(size_type downloaded, size_type uploaded) = 0;
+		virtual bool fast_reconnect() const = 0;
+		virtual bool is_choked() const = 0;
+		virtual bool failed() const = 0;
+		virtual stat const& statistics() const = 0;
+		virtual void get_peer_info(peer_info& p) const = 0;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		virtual void peer_log(char const* fmt, ...) const = 0;
+#endif
+	};
 }
+
+#endif
 

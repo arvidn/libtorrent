@@ -170,7 +170,7 @@ namespace libtorrent
 			invalid_dont_have,
 			requires_ssl_connection,
 			invalid_ssl_cert,
-			reserved113,
+			banned_by_port_filter,
 			reserved114,
 			reserved115,
 			reserved116,

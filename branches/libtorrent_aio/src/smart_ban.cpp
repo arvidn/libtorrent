@@ -296,7 +296,7 @@ namespace
 						, to_hex(e.digest.to_string()).c_str()
 						, print_endpoint(p->ip()).c_str());
 #endif
-					m_torrent.get_policy().ban_peer(p);
+					m_torrent.ban_peer(p);
 					if (p->connection) p->connection->disconnect(
 						errors::peer_banned);
 				}
@@ -364,7 +364,7 @@ namespace
 				, to_hex(b.second.digest.to_string()).c_str()
 				, print_address(p->ip().address()).c_str());
 #endif
-			m_torrent.get_policy().ban_peer(p);
+			m_torrent.ban_peer(p);
 			if (p->connection) p->connection->disconnect(
 				errors::peer_banned);
 		}

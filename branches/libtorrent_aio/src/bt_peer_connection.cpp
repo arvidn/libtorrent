@@ -1500,7 +1500,7 @@ namespace libtorrent
 			case hp_connect:
 			{
 				// add or find the peer with this endpoint
-				torrent_peer* p = t->get_policy().add_peer(ep, peer_info::pex, 0);
+				torrent_peer* p = t->add_peer(ep, peer_info::pex);
 				if (p == 0 || p->connection)
 				{
 #if defined TORRENT_VERBOSE_LOGGING
@@ -1765,9 +1765,7 @@ namespace libtorrent
 		int listen_port = int(root.dict_find_int_value("p"));
 		if (listen_port > 0 && peer_info_struct() != 0)
 		{
-			t->get_policy().update_peer_port(listen_port
-				, peer_info_struct(), peer_info::incoming);
-			t->update_want_peers();
+			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
 			if (is_disconnecting()) return;
 		}
@@ -3126,8 +3124,6 @@ namespace libtorrent
 
 			if (is_disconnecting()) return;
 
-			TORRENT_ASSERT(t->get_policy().has_connection(this));
-
 			m_state = read_peer_id;
  			reset_recv_buffer(20);
 		}
@@ -3201,7 +3197,7 @@ namespace libtorrent
 			// since it most likely is ourself then
 			if (pid == m_ses.get_peer_id())
 			{
-				if (peer_info_struct()) t->get_policy().ban_peer(peer_info_struct());
+				if (peer_info_struct()) t->ban_peer(peer_info_struct());
 				disconnect(errors::self_connection, 1);
 				return;
 			}

@@ -120,7 +120,6 @@ namespace libtorrent
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
 		, public list_node // used for torrent activity LRU
-		, public torrent_interface // temporarily defined in policy.hpp
 	{
 	public:
 
@@ -148,9 +147,6 @@ namespace libtorrent
 			, void* userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
-
-		torrent_peer* allocate_peer_entry(int type) { return m_ses.allocate_peer_entry(type); }
-		void free_peer_entry(torrent_peer* p) { m_ses.free_peer_entry(p); }
 
 		peer_connection* find_lowest_ranking_peer() const;
 
@@ -283,7 +279,8 @@ namespace libtorrent
 		void sent_syn(bool ipv6);
 		void received_synack(bool ipv6);
 
-		void ip_filter_updated() { m_policy.ip_filter_updated(); }
+		void ip_filter_updated();
+		void port_filter_updated();
 
 		std::string resolve_filename(int file) const;
 		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
@@ -331,6 +328,7 @@ namespace libtorrent
 		bool should_check_files() const;
 
 		void delete_files();
+		void peers_erased(std::vector<torrent_peer*> const& peers);
 
 		// ============ start deprecation =============
 		void filter_piece(int index, bool filter);
@@ -463,7 +461,10 @@ namespace libtorrent
 		void update_gauge();
 
 		bool try_connect_peer();
-		void add_peer(tcp::endpoint const& adr, int source, int flags = 0);
+		torrent_peer* add_peer(tcp::endpoint const& adr, int source, int flags = 0);
+		bool ban_peer(torrent_peer* tp);
+		void update_peer_port(int port, torrent_peer* p, int src);
+		void set_seed(torrent_peer* p, bool s);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -747,6 +748,8 @@ namespace libtorrent
 		{
 			return m_picker.get() != 0;
 		}
+
+		// TODO: 3 it would be nice it the policy was private
 		policy& get_policy() { return m_policy; }
 
 		piece_manager& storage();
@@ -883,9 +886,6 @@ namespace libtorrent
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
-		int port_filter_access(int port) const { return m_ses.port_filter_access(port); }
-		int ip_filter_access(address const& addr) const { return m_ses.ip_filter_access(addr); }
-
 		std::vector<int> const& predictive_pieces() const
 		{ return m_predictive_pieces; }
 
@@ -929,6 +929,11 @@ namespace libtorrent
 #endif
 
 	private:
+
+		// initialize the torrent_state structure passed to policy
+		// member functions. Don't forget to also call peers_erased()
+		// on the erased member after the policy call
+		torrent_state get_policy_state();
 
 		void construct_storage();
 		void update_list(int list, bool in);
@@ -1503,9 +1508,6 @@ namespace libtorrent
 	public:
 		// set to false until we've loaded resume data
 		bool m_resume_data_loaded;
-
-		// set to true when the finished alert is posted
-		bool m_finished_alert_posted;
 #endif
 	};
 

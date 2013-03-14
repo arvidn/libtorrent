@@ -408,18 +408,6 @@ namespace libtorrent
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
 
-address rand_v4()
-{
-	return address_v4((rand() << 16 | rand()) & 0xffffffff);
-}
-
-address rand_v6()
-{
-	address_v6::bytes_type bytes;
-	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
-	return address_v6(bytes);
-}
-
 int test_main()
 {
 	using namespace libtorrent;

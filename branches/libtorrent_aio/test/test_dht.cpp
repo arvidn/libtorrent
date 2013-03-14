@@ -57,16 +57,6 @@ struct mock_socket : udp_socket_interface
 	}
 };
 
-address rand_v4()
-{
-	return address_v4((rand() << 16 | rand()) & 0xffffffff);
-}
-
-udp::endpoint rand_ep()
-{
-	return udp::endpoint(rand_v4(), rand());
-}
-
 sha1_hash generate_next()
 {
 	sha1_hash ret;
@@ -616,7 +606,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_ep(), 50);
+			tbl.node_seen(id, rand_udp_ep(), 50);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
@@ -632,7 +622,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_ep(), 50);
+			tbl.node_seen(id, rand_udp_ep(), 50);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 

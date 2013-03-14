@@ -80,7 +80,10 @@ namespace libtorrent
 	struct block_info;
 	struct external_ip;
 	struct torrent_handle;
+	struct ip_filter;
+	class port_filter;
 	struct settings_pack;
+	struct torrent_peer_allocator_interface;
 
 #ifndef TORRENT_DISABLE_DHT
 	namespace dht
@@ -110,22 +113,11 @@ namespace libtorrent { namespace aux
 			, int source_type, address const& source) = 0;
 		virtual external_ip const& external_address() const = 0;
 
-		// --- vv used by policy vv ----
-		// TODO: 2 factor this out into a separate peer_allocator class
-		enum peer_type_t
-		{
-			ipv4_peer,
-			ipv6_peer,
-			i2p_peer
-		};
-		virtual torrent_peer* allocate_peer_entry(int type) = 0;
-		virtual void free_peer_entry(torrent_peer* p) = 0;
-		// --- ^^ used by policy ^^ ----
-
 		virtual disk_interface& disk_thread() = 0;
 
 		virtual alert_manager& alerts() = 0;
 
+		virtual torrent_peer_allocator_interface* get_peer_allocator() = 0;
 		virtual io_service& get_io_service() = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;
@@ -142,8 +134,8 @@ namespace libtorrent { namespace aux
 		virtual void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) = 0;
 
 		// ip and port filter
-		virtual int ip_filter_access(address const& addr) const = 0;
-		virtual int port_filter_access(int port) const = 0;
+		virtual ip_filter const& get_ip_filter() const = 0;
+		virtual port_filter const& get_port_filter() const = 0;
 
 		virtual int session_time() const = 0;
 	
@@ -326,6 +318,7 @@ namespace libtorrent { namespace aux
 		virtual boost::shared_ptr<logger> create_log(std::string const& name
 			, int instance, bool append = true) = 0;
 		virtual void session_log(char const* fmt, ...) const = 0;
+		virtual void session_vlog(char const* fmt, va_list& va) const = 0;
 		virtual std::string get_log_path() const = 0;
 #if defined TORRENT_VERBOSE_LOGGING
 		virtual void log_all_torrents(peer_connection* p) = 0;

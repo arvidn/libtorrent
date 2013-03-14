@@ -129,7 +129,6 @@ namespace libtorrent
 	private:
 		// the type of the addr union
 		unsigned is_v6_addr:1;
-		unsigned unused:1;
 	public:
 		// the state this block is in (see block_state_t)
 		unsigned state:2;

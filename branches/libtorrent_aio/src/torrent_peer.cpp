@@ -158,9 +158,6 @@ namespace libtorrent
 #endif
 		, on_parole(false)
 		, banned(false)
-#ifndef TORRENT_DISABLE_DHT
-		, added_to_dht(false)
-#endif
 		, supports_utp(true) // assume peers support utp
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
@@ -172,7 +169,6 @@ namespace libtorrent
 		TORRENT_ASSERT((src & 0xff) == src);
 	}
 
-	// TOOD: pass in both an IPv6 and IPv4 address here
 	boost::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
 	{
 //TODO: how do we deal with our external address changing?

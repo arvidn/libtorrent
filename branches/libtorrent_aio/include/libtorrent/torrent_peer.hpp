@@ -50,12 +50,12 @@ namespace libtorrent
 // 19     1     1         failcount, connectable, optimistically_unchoked, seed
 // 20     1     1         fast_reconnects, trust_points
 // 21     1     1         source, pe_support, is_v6_addr
-// 22     1     1         on_parole, banned, added_to_dht, supports_utp,
+// 22     1     1         on_parole, banned, supports_utp,
 //                        supports_holepunch, web_seed
 // 23     2     1         <padding>
 // 24
 
-	class peer_connection;
+	struct peer_connection_interface;
 	struct external_ip;
 
 	// calculate the priority of a peer based on its address. One of the
@@ -95,7 +95,7 @@ namespace libtorrent
 
 		// if the torrent_peer is connected now, this
 		// will refer to a valid peer_connection
-		peer_connection* connection;
+		peer_connection_interface* connection;
 
 		// as computed by hashing our IP with the remote
 		// IP of this peer
@@ -202,11 +202,6 @@ namespace libtorrent
 		// is set to true if this torrent_peer has been banned
 		bool banned:1;
 
-#ifndef TORRENT_DISABLE_DHT
-		// this is set to true when this torrent_peer as been
-		// pinged by the DHT
-		bool added_to_dht:1;
-#endif
 		// we think this torrent_peer supports uTP
 		bool supports_utp:1;
 		// we have been connected via uTP at least once

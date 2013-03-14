@@ -85,6 +85,7 @@ nobase_include_HEADERS = \
   pch.hpp                      \
   pe_crypto.hpp                \
   peer_connection.hpp          \
+  peer_connection_interface.hpp \
   peer.hpp                     \
   peer_class.hpp               \
   peer_class_set.hpp           \
@@ -130,6 +131,7 @@ nobase_include_HEADERS = \
   torrent.hpp                  \
   torrent_info.hpp             \
   torrent_peer.hpp             \
+  torrent_peer_allocator.hpp   \
   tracker_manager.hpp          \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \

@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/uncork_interface.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/torrent_peer_allocator.hpp"
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -57,8 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
-
-#include <boost/pool/object_pool.hpp>
 
 #if TORRENT_HAS_BOOST_UNORDERED
 #include <boost/unordered_map.hpp>
@@ -276,6 +275,8 @@ namespace libtorrent
 
 			void open_listen_port();
 			
+			torrent_peer_allocator_interface* get_peer_allocator() { return &m_peer_allocator; }
+
 			io_service& get_io_service() { return m_io_service; }
 
 			std::vector<torrent*>& torrent_list(int i)
@@ -391,6 +392,8 @@ namespace libtorrent
 			ip_filter const& get_ip_filter() const;
 			
 			void set_port_filter(port_filter const& f);
+			port_filter const& get_port_filter() const;
+
 
 			// TODO: move the login info into the tracker_request object
 			void queue_tracker_request(tracker_request& req
@@ -505,9 +508,6 @@ namespace libtorrent
 			boost::uint16_t listen_port() const;
 			boost::uint16_t ssl_listen_port() const;
 			
-			torrent_peer* allocate_peer_entry(int type);
-			void free_peer_entry(torrent_peer* p);
-
 			alert_manager& alerts() { return m_alerts; }
 			disk_interface& disk_thread() { return m_disk_thread; }
 
@@ -621,6 +621,9 @@ namespace libtorrent
 			void deferred_submit_jobs();
 
 			char* allocate_buffer();
+			torrent_peer* allocate_peer_entry(int type);
+			void free_peer_entry(torrent_peer* p);
+
 			void free_buffer(char* buf);
 			int send_buffer_size() const { return send_buffer_size_impl; }
 
@@ -710,6 +713,7 @@ namespace libtorrent
 			void trigger_auto_manage();
 			void update_outgoing_interfaces();
 			void update_listen_interfaces();
+			void update_privileged_ports();
 
 			void on_trigger_auto_manage();
 
@@ -734,53 +738,8 @@ namespace libtorrent
 			// the settings for the client
 			aux::session_settings m_settings;
 
-			// this is a shared pool where torrent_peer objects
-			// are allocated. It's a pool since we're likely
-			// to have tens of thousands of peers, and a pool
-			// saves significant overhead
-#ifdef TORRENT_STATS
-			struct logging_allocator
-			{
-				typedef std::size_t size_type;
-				typedef std::ptrdiff_t difference_type;
-
-				static char* malloc(const size_type bytes)
-				{
-					allocated_bytes += bytes;
-					++allocations;
-					return (char*)::malloc(bytes);
-				}
-
-				static void free(char* const block)
-				{
-					--allocations;
-					return ::free(block);
-				}
-			
-				static int allocations;
-				static int allocated_bytes;
-			};
-
-			// TODO: these should be a plain boost::pool rather than an object_pool
-			boost::object_pool<
-				libtorrent::ipv4_peer, logging_allocator> m_ipv4_peer_pool;
-#if TORRENT_USE_IPV6
-			boost::object_pool<
-				libtorrent::ipv6_peer, logging_allocator> m_ipv6_peer_pool;
-#endif
-#if TORRENT_USE_I2P
-			boost::object_pool<
-				libtorrent::i2p_peer, logging_allocator> m_i2p_peer_pool;
-#endif
-#else
-			boost::object_pool<libtorrent::ipv4_peer> m_ipv4_peer_pool;
-#if TORRENT_USE_IPV6
-			boost::object_pool<libtorrent::ipv6_peer> m_ipv6_peer_pool;
-#endif
-#if TORRENT_USE_I2P
-			boost::object_pool<libtorrent::i2p_peer> m_i2p_peer_pool;
-#endif
-#endif
+			// this is a pool allocator for torrent_peer objects
+			torrent_peer_allocator m_peer_allocator;
 
 			// this vector is used to store the block_info
 			// objects pointed to by partial_piece_info returned
@@ -1081,9 +1040,6 @@ namespace libtorrent
 			ptime m_created;
 			int session_time() const { return total_seconds(time_now() - m_created); }
 
-			int ip_filter_access(address const& addr) const;
-			int port_filter_access(int port) const;
-
 			ptime m_last_tick;
 			ptime m_last_second_tick;
 			// used to limit how often disk warnings are generated
@@ -1308,6 +1264,7 @@ namespace libtorrent
 				, int instance, bool append = true);
 			
 			virtual void session_log(char const* fmt, ...) const;
+			virtual void session_vlog(char const* fmt, va_list& va) const;
 
 #if defined TORRENT_VERBOSE_LOGGING
 			void log_all_torrents(peer_connection* p);
