@@ -190,6 +190,9 @@ namespace libtorrent
 		// plenty of bandwidth
 		set.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 
+		set.set_int(settings_pack::max_out_request_queue, 1500);
+		set.set_int(settings_pack::max_allowed_in_request_queue, 2000);
+
 		// we will probably see a high rate of alerts, make it less
 		// likely to loose alerts
 		set.set_int(settings_pack::alert_queue_size, 10000);
@@ -416,6 +419,12 @@ namespace libtorrent
 	TORRENT_EXPORT session_settings high_performance_seed()
 	{
 		session_settings set;
+
+		// allow peers to request a lot of blocks at a time,
+		// to be more likely to saturate the bandwidth-delay-
+		// product.
+		set.max_out_request_queue = 1500;
+		set.max_allowed_in_request_queue = 2000;
 
 		// don't throttle TCP, assume there is
 		// plenty of bandwidth

@@ -9692,16 +9692,18 @@ namespace libtorrent
 #endif
 
 		if (int(m_state) == s) return;
-		if (m_ses.alerts().should_post<state_changed_alert>())
-			m_ses.alerts().post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 
-		if (m_state != torrent_status::finished && s == torrent_status::finished)
+		if (m_ses.alerts().should_post<state_changed_alert>())
 		{
-			if (alerts().should_post<torrent_finished_alert>())
-			{
-				alerts().post_alert(torrent_finished_alert(
-					get_handle()));
-			}
+			m_ses.alerts().post_alert(state_changed_alert(get_handle()
+				, s, (torrent_status::state_t)m_state));
+		}
+
+		if (s == torrent_status::finished
+			&& alerts().should_post<torrent_finished_alert>())
+		{
+			alerts().post_alert(torrent_finished_alert(
+				get_handle()));
 		}
 
 		m_state = s;
