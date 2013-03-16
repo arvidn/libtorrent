@@ -80,7 +80,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 	out = open(script, 'wb')
 	print >>out, "set term png size 1200,700"
 	print >>out, 'set output "%s"' % filename
-	if 'allow-negative' in options:
+	if not 'allow-negative' in options:
 		print >>out, 'set yrange [0:*]'
 	print >>out, "set tics nomirror"
 	print >>out, "set key box"
