@@ -185,6 +185,12 @@ namespace libtorrent
 	{
 		session_settings set;
 
+		// allow peers to request a lot of blocks at a time,
+		// to be more likely to saturate the bandwidth-delay-
+		// product.
+		set.max_out_request_queue = 1500;
+		set.max_allowed_in_request_queue = 2000;
+
 		// don't throttle TCP, assume there is
 		// plenty of bandwidth
 		set.mixed_mode_algorithm = session_settings::prefer_tcp;
