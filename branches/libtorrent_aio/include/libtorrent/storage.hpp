@@ -186,7 +186,6 @@ namespace libtorrent
 			// file operation
 			size_type (file::*op)(size_type file_offset
 				, file::iovec_t const* bufs, int num_bufs, error_code& ec, int flags);
-			int cache_setting;
 			// file open mode (file::read_only, file::write_only etc.)
 			// this is used to open the file, but also passed along as the
 			// flags argument to the file operation (readv or writev)

@@ -829,14 +829,12 @@ namespace libtorrent
 			// * enable_os_cache
 			// 	This is the default and files are opened normally, with the OS caching
 			// 	reads and writes.
-			// * disable_os_cache_for_aligned_files
-			// 	This will open files in unbuffered mode for files where every read and
-			// 	write would be sector aligned. Using aligned disk offsets is a requirement
-			// 	on some operating systems.
 			// * disable_os_cache
-			// 	This opens all files in unbuffered mode (if allowed by the operating system).
-			// 	Linux and Windows, for instance, require disk offsets to be sector aligned,
-			// 	and in those cases, this option is the same as ``disable_os_caches_for_aligned_files``.
+			// 	This opens all files in no-cache mode. This corresponds to the OS not letting
+			//    blocks for the files linger in the cache. This makes sense in order to avoid
+			//    the bittorrent client to potentially evict all other processes' cache by simply
+			//    handling high throughput and large files. If libtorrent's read cache is disabled,
+			//    enabling this may reduce performance.
 			// 
 			// One reason to disable caching is that it may help the operating system from growing
 			// its file cache indefinitely. Since some OSes only allow aligned files to be opened
@@ -1367,7 +1365,11 @@ namespace libtorrent
 		enum io_buffer_mode_t
 		{
 			enable_os_cache = 0,
-			disable_os_cache_for_aligned_files = 1,
+#ifndef TORRENT_NO_DEPRECATE
+			disable_os_cache_for_aligned_files = 2,
+#else
+			deprecated = 1,
+#endif
 			disable_os_cache = 2
 		};
 

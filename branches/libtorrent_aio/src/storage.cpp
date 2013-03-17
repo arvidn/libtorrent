@@ -870,7 +870,6 @@ namespace libtorrent
 		, int slot, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::readv
-			, m_settings ? settings().get_int(settings_pack::disk_io_read_mode) : 0
 			, file::read_only | flags };
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
@@ -883,7 +882,6 @@ namespace libtorrent
 		, int slot, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::writev
-			, m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0
 			, file::read_write | flags };
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
@@ -1057,7 +1055,12 @@ namespace libtorrent
 		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
-		if (m_settings && settings().get_bool(settings_pack::use_read_cache)) mode |= file::no_cache;
+		if (m_settings
+			&& settings().get_int(settings_pack::disk_io_write_mode)
+			== settings_pack::disable_os_cache)
+		{
+			mode |= file::no_cache;
+		}
 
 		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path, fe, files(), mode, ec);
 	}
