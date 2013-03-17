@@ -1185,7 +1185,8 @@ namespace libtorrent
 
 		DWORD flags = ((mode & random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL) | FILE_FLAG_OVERLAPPED
-			| (mode & direct_io) ? FILE_FLAG_NO_BUFFERING : 0;
+			| (mode & direct_io) ? FILE_FLAG_NO_BUFFERING : 0
+			| (mode & no_cache) ? FILE_FLAG_WRITE_THROUGH : 0;
 
 		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode
 			, (mode & lock_file) ? 0 : share_array[mode & rw_mask]
@@ -1651,6 +1652,19 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (flags & file::coalesce_buffers)
 			free(tmp.iov_base);
 
+#endif
+#if TORRENT_HAVE_FDATASYNC \
+	&& !defined F_NOCACHE && \
+	!defined DIRECTIO_ON
+		if (m_open_mode & no_cache)
+		{
+			if (fdatasync(native_handle()) != 0
+				&& errno != EINVAL
+				&& errno != ENOSYS)
+			{
+				ec.assign(errno, get_posix_category());
+			}
+		}
 #endif
 		return ret;
 	}

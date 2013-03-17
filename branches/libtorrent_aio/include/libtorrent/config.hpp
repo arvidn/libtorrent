@@ -215,6 +215,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_HAVE_MMAP 1
+#define TORRENT_HAVE_FDATASYNC 1
 
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_NETLINK 1
@@ -459,6 +460,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
+#endif
+
+#ifndef TORRENT_USE_FDATASYNC
+#define TORRENT_USE_FDATASYNC 0
 #endif
 
 #ifndef TORRENT_USE_UNC_PATHS
