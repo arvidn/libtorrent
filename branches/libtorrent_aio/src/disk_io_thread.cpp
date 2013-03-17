@@ -160,6 +160,7 @@ namespace libtorrent
 #endif
 	}
 
+	// TODO: 3 it would be nice to have the number of threads be set dynamically
 	void disk_io_thread::set_num_threads(int i, bool wait)
 	{
 		if (i == m_num_threads) return;
@@ -2589,7 +2590,7 @@ namespace libtorrent
 				TORRENT_ASSERT(l.locked());
 				while (m_queued_jobs.empty() && thread_id < m_num_threads) m_job_cond.wait(l);
 
-				// if the number of wanted thread is decreased,
+				// if the number of wanted threads is decreased,
 				// we may stop this thread
 				// when we're terminating the last thread (id=0), make sure
 				// we finish up all queued jobs first
