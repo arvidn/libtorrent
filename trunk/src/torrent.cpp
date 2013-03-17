@@ -6976,7 +6976,7 @@ namespace libtorrent
 		return limit;
 	}
 
-	void torrent::delete_files()
+	bool torrent::delete_files()
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -6992,7 +6992,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_storage);
 			m_storage->async_delete_files(
 				boost::bind(&torrent::on_files_deleted, shared_from_this(), _1, _2));
+			return true;
 		}
+		return false;
 	}
 
 	void torrent::clear_error()
