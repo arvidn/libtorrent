@@ -788,10 +788,11 @@ namespace libtorrent
 			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
 			if (pe == NULL) continue;
 
-			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+			// another thread may flush this piece while we're looping and
+			// evict it into a read piece and then also evict it to ghost
+			if (pe->cache_state != cached_piece_entry::write_lru) continue;
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
-			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 			num -= try_flush_hashed(pe, 1, l);
 			--pe->piece_refcount;
 		}
@@ -812,7 +813,10 @@ namespace libtorrent
 			if (pe == NULL) continue;
 			if (pe->num_dirty == 0) continue;
 
-			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+			// another thread may flush this piece while we're looping and
+			// evict it into a read piece and then also evict it to ghost
+			if (pe->cache_state != cached_piece_entry::write_lru) continue;
+
 			++pe->piece_refcount;
 			// don't flush blocks that are being hashed by another thread
 			if (pe->num_dirty == 0 || pe->hashing) continue;
