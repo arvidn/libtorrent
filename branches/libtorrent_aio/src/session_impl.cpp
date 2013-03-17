@@ -5806,8 +5806,8 @@ retry:
 		{
 			if (!t.delete_files())
 			{
-				if (alerts().should_post<torrent_delete_failed_alert>())
-					alerts().post_alert(torrent_delete_failed_alert(t.get_handle(), error_code()));
+				if (m_alerts.should_post<torrent_delete_failed_alert>())
+					m_alerts.post_alert(torrent_delete_failed_alert(t.get_handle(), error_code()));
 			}
 		}
 
