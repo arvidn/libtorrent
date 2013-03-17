@@ -39,11 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-#include <boost/pool/pool.hpp>
-#include "libtorrent/allocator.hpp"
-#endif
-
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #include <set>
 #endif
@@ -137,12 +132,6 @@ namespace libtorrent
 		void check_buffer_level(mutex::scoped_lock& l);
 
 		mutable mutex m_pool_mutex;
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
 
 		int m_cache_buffer_chunk_size;
 		bool m_lock_disk_cache;

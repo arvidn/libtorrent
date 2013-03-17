@@ -5803,7 +5803,13 @@ retry:
 
 		torrent& t = *i->second;
 		if (options & session::delete_files)
-			t.delete_files();
+		{
+			if (!t.delete_files())
+			{
+				if (alerts().should_post<torrent_delete_failed_alert>())
+					alerts().post_alert(torrent_delete_failed_alert(t.get_handle(), error_code()));
+			}
+		}
 
 		if (m_torrent_lru.size() > 0
 			&& (t.prev != NULL || t.next != NULL || m_torrent_lru.front() == &t))

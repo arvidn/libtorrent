@@ -79,9 +79,6 @@ namespace libtorrent
 		, m_low_watermark((std::max)(m_max_use - 32, 0))
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(block_size, 32)
-#endif
 		, m_cache_buffer_chunk_size(0)
 		, m_lock_disk_cache(false)
 #if TORRENT_HAVE_MMAP
@@ -173,18 +170,16 @@ namespace libtorrent
 #endif
 
 		return m_buffers_in_use.count(buffer) == 1;
+
 #ifdef TORRENT_BUFFER_STATS
 		if (m_buf_to_category.find(buffer)
 			== m_buf_to_category.end()) return false;
 #endif
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+
 #ifdef TORRENT_DEBUG_BUFFERS
 		return page_aligned_allocator::in_use(buffer);
 #else
 		return true;
-#endif
-#else
-		return m_pool.is_from(buffer);
 #endif
 	}
 
@@ -242,15 +237,7 @@ namespace libtorrent
 		else
 #endif
 		{
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 			ret = page_aligned_allocator::malloc(m_block_size);
-#else
-			ret = (char*)m_pool.malloc();
-			int effective_block_size = m_cache_buffer_chunk_size
-				? m_cache_buffer_chunk_size
-				: (std::max)(m_max_use / 20, 1);
-			m_pool.set_next_size(effective_block_size);
-#endif
 			if (ret == 0)
 			{
 				m_exceeded_max_size = true;
@@ -482,11 +469,7 @@ namespace libtorrent
 		else
 #endif
 		{
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 			page_aligned_allocator::free(buf);
-#else
-			m_pool.free(buf);
-#endif
 		}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -500,10 +483,6 @@ namespace libtorrent
 	void disk_buffer_pool::release_memory()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		mutex::scoped_lock l(m_pool_mutex);
-		m_pool.release_memory();
-#endif
 	}
 
 }
