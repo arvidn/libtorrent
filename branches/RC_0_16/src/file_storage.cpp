@@ -427,7 +427,7 @@ namespace libtorrent
 	void file_storage::set_file_base(int index, size_type off)
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
-		if (int(m_file_base.size()) <= index) m_file_base.resize(index);
+		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
 		m_file_base[index] = off;
 	}
 
@@ -483,7 +483,7 @@ namespace libtorrent
 	{
 		int index = &fe - &m_files[0];
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
-		if (int(m_file_base.size()) <= index) m_file_base.resize(index);
+		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
 		m_file_base[index] = off;
 	}
 
