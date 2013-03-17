@@ -60,6 +60,7 @@ struct test_connection : libtorrent::connection_interface
 		++num_queued;
 		m_cq.enqueue(this, milliseconds(100), 0);
 	}
+
 	io_service& m_ios;
 	connection_queue& m_cq;
 	int m_ticket;
@@ -97,7 +98,7 @@ struct test_connection : libtorrent::connection_interface
 		if (m_type == half_open_test) m_done = true;
 	}
 
-	~test_connection()
+	virtual ~test_connection()
 	{
 		if (!m_done)
 		{
