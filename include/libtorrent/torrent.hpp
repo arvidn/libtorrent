@@ -280,7 +280,7 @@ namespace libtorrent
 
 		bool should_check_files() const;
 
-		void delete_files();
+		bool delete_files();
 
 		// ============ start deprecation =============
 		void filter_piece(int index, bool filter);
