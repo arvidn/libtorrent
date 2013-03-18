@@ -7522,12 +7522,13 @@ namespace libtorrent
 #endif
 		if (next_announce <= now) next_announce = now;
 
+		// don't re-issue the timer if it's the same expiration time as last time
+		// if m_waiting_tracker is false, expires_at() is undefined
+		if (m_waiting_tracker && m_tracker_timer.expires_at() == next_announce) return;
+
 		m_waiting_tracker = true;
 		error_code ec;
 		boost::weak_ptr<torrent> self(shared_from_this());
-
-		// don't re-issue the timer if it's the same expiration time as last time
-		if (m_tracker_timer.expires_at() == next_announce) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("tracker::on_tracker_announce_disp");
