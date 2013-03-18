@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
+#include "libtorrent/assert.hpp" // for print_backtrace
 
 #ifdef TORRENT_WINDOWS
 #include <windows.h>
@@ -59,10 +59,6 @@ struct alloc_header
 	char stack[3072];
 };
 
-#endif
-
-#if defined TORRENT_DEBUG_BUFFERS && (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
-	void print_backtrace(char* out, int len);
 #endif
 
 namespace libtorrent
