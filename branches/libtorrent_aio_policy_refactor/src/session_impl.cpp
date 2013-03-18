@@ -583,6 +583,8 @@ namespace aux {
 #endif
 	{
 		memset(m_stats_counter, 0, sizeof(m_stats_counter));
+		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
+		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_posting_torrent_updates = false;
