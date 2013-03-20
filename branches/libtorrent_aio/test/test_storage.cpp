@@ -70,17 +70,17 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
-void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
+void on_check_resume_data(disk_io_job const* j, bool* done)
 {
-	std::cerr << "on_check_resume_data ret: " << ret;
-	switch (ret)
+	std::cerr << "on_check_resume_data ret: " << j->ret;
+	switch (j->ret)
 	{
 		case piece_manager::no_error:
 			std::cerr << " success" << std::endl;
 			break;
 		case piece_manager::fatal_disk_error:
-			std::cerr << " disk error: " << j.str
-				<< " file: " << j.error.file << std::endl;
+			std::cerr << " disk error: " << j->error.ec.message()
+				<< " file: " << j->error.file << std::endl;
 			break;
 		case piece_manager::need_full_check:
 			std::cerr << " need full check" << std::endl;
@@ -92,51 +92,13 @@ void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
 	*done = true;
 }
 
-void on_check_files(int ret, disk_io_job const& j, bool* done)
-{
-	std::cerr << "on_check_files ret: " << ret;
-
-	switch (ret)
-	{
-		case piece_manager::no_error:
-			std::cerr << " done" << std::endl;
-			*done = true;
-			break;
-		case piece_manager::fatal_disk_error:
-			std::cerr << " disk error: " << j.str
-				<< " file: " << j.error.file << std::endl;
-			*done = true;
-			break;
-		case piece_manager::need_full_check:
-			std::cerr << " current slot: " << j.piece
-				<< " have: " << j.offset << std::endl;
-			break;
-		case piece_manager::disk_check_aborted:
-			std::cerr << " aborted" << std::endl;
-			*done = true;
-			break;
-	}
-}
-
-void on_read(int ret, disk_io_job const& j, bool* done)
-{
-	std::cerr << "on_read ret: " << ret << std::endl;
-	*done = true;
-
-	if (ret < 0)
-	{
-		std::cerr << j.error.ec.message() << std::endl;
-		std::cerr << j.error.file << std::endl;
-
-	}
-}
-
 void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path)
 {
-	std::cerr << "on_move_storage ret: " << ret << " path: " << j.str << std::endl;
+	std::cerr << "on_move_storage ret: " << ret << " path: " << (char const*)j.buffer << std::endl;
 	TEST_EQUAL(ret, 0);
-	TEST_EQUAL(j.str, path);
+	TEST_EQUAL((char const*)j.buffer, path);
 	*done = true;
+	free(j.buffer);
 }
 
 void print_error(int ret, storage_error const& ec)
@@ -144,321 +106,8 @@ void print_error(int ret, storage_error const& ec)
 	std::cerr << "returned: " << ret
 		<< " error: " << ec.ec.message()
 		<< " in file: " << ec.file
-		<< " operation: " << (ec.operation?ec.operation:"")
+		<< " operation: " << ec.operation
 		<< std::endl;
-}
-
-namespace libtorrent
-{
-	int bufs_size(file::iovec_t const* bufs, int num_bufs);
-}
-
-// simulate a very slow first read
-struct test_storage : storage_interface
-{
-	test_storage(): m_started(false), m_ready(false) {}
-
-	virtual void initialize(bool allocate_files, storage_error& ec) {}
-	virtual bool has_any_file(storage_error& ec) { return true; }
-
-/*
-	int write(
-		const char* buf
-		, int slot
-		, int offset
-		, int size
-		, storage_error& ec)
-	{
-		return size;
-	}
-
-	int read(
-		char* buf
-		, int slot
-		, int offset
-		, int size
-		, storage_error& ec)
-	{
-		if (slot == 0 || slot == 5999)
-		{
-			libtorrent::mutex::scoped_lock l(m_mutex);
-			std::cerr << "--- starting job " << slot << " waiting for main thread ---\n" << std::endl;
-			m_ready = true;
-			m_ready_condition.signal(l);
-
-			while (!m_started)
-				m_condition.wait(l);
-
-			m_condition.clear(l);
-			m_ready_condition.clear(l);
-			m_ready = false;
-			m_started = false;
-			std::cerr << "--- starting ---\n" << std::endl;
-		}
-		return size;
-	}
-
-*/
-	file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
-		, int slot, int offset, int flags, async_handler* handler)
-	{
-/*
-		error_code ec;
-		int ret = bufs_size(bufs, num_bufs);
-		TORRENT_ASSERT(m_disk_io_service);
-		m_disk_io_service->post(boost::bind(handler, ec, ret));
-*/
-		return 0;
-	}
-
-	// #error instead of passing in a boost::function, pass in the async_handler
-	// and if this function doesn't add any references to it, the caller will
-	// invoke the callback
-	file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
-		, int slot, int offset, int flags, async_handler*  handler)
-	{
-/*
-		error_code ec;
-		int ret = bufs_size(bufs, num_bufs);
-		TORRENT_ASSERT(m_disk_io_service);
-		m_disk_io_service->post(boost::bind(handler, ec, ret));
-*/
-
-		if (slot == 0 || slot == 5999)
-		{
-			libtorrent::mutex::scoped_lock l(m_mutex);
-			std::cerr << "--- starting job " << slot << " waiting for main thread ---\n" << std::endl;
-			m_ready = true;
-			m_ready_condition.signal(l);
-
-			while (!m_started)
-				m_condition.wait(l);
-
-			m_condition.clear(l);
-			m_ready_condition.clear(l);
-			m_ready = false;
-			m_started = false;
-			std::cerr << "--- starting ---\n" << std::endl;
-		}
-		return 0;
-	}
-
-	size_type physical_offset(int slot, int offset)
-	{ return slot * 16 * 1024 + offset; }
-
-	virtual int sparse_end(int start) const
-	{ return start; }
-
-	virtual void move_storage(std::string const& save_path, storage_error& ec) {}
-
-	virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error)
-	{ return false; }
-
-	virtual void write_resume_data(entry& rd, storage_error& ec) const {}
-	virtual void move_slot(int src_slot, int dst_slot, storage_error& ec) {}
-	virtual void swap_slots(int slot1, int slot2, storage_error& ec) {}
-	virtual void swap_slots3(int slot1, int slot2, int slot3, storage_error& ec) {}
-	virtual void release_files(storage_error& ec) {}
-	virtual void rename_file(int index, std::string const& new_filename, storage_error& ec) {}
-	virtual void delete_files(storage_error& ec) {}
-	virtual ~test_storage() {}
-
-	void wait_for_ready()
-	{
-		libtorrent::mutex::scoped_lock l(m_mutex);
-		while (!m_ready)
-			m_ready_condition.wait(l);
-	}
-
-	void start()
-	{
-		libtorrent::mutex::scoped_lock l(m_mutex);
-		m_started = true;
-		m_condition.signal(l);
-	}
-
-private:
-	event m_ready_condition;
-	event m_condition;
-	libtorrent::mutex m_mutex;
-	bool m_started;
-	bool m_ready;
-
-};
-
-storage_interface* create_test_storage(file_storage const& fs
-	, file_storage const* mapped, std::string const& path, file_pool& fp
-	, std::vector<boost::uint8_t> const&)
-{
-	return new test_storage;
-}
-
-int job_counter = 0;
-// the number of elevator turns
-int turns = 0;
-int direction = 0;
-int last_job = 0;
-
-void callback(int ret, disk_io_job const& j)
-{
-	if (j.piece > last_job && direction <= 0)
-	{
-		if (direction == -1)
-		{
-			++turns;
-			std::cerr << " === ELEVATOR TURN dir: " << direction << std::endl;
-		}
-		direction = 1;
-	}
-	else if (j.piece < last_job && direction >= 0)
-	{
-		if (direction == 1)
-		{
-			++turns;
-			std::cerr << " === ELEVATOR TURN dir: " << direction << std::endl;
-		}
-		direction = -1;
-	}
-	last_job = j.piece;
-	std::cerr << "completed job #" << j.piece << std::endl;
-	--job_counter;
-}
-
-void add_job(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
-{
-	disk_io_job* j = dio.aiocbs()->allocate_job(disk_io_job::read);
-	j->storage = pm;
-	j->piece = piece;
-	j->callback = boost::bind(&callback, _1, _2);
-	++job_counter;
-	dio.add_job(j);
-}
-
-void nop() {}
-
-void run_elevator_test()
-{
-	io_service ios;
-	file_pool fp;
-	boost::intrusive_ptr<torrent_info> ti = ::create_torrent(0, 16, 6000);
-
-	{
-		error_code ec;
-		disk_io_thread dio(ios, boost::bind(&nop), boost::bind(&nop));
-		boost::intrusive_ptr<piece_manager> pm(new piece_manager(boost::shared_ptr<void>()
-			, (file_storage*)&ti->files(), 0, "", dio, &create_test_storage, storage_mode_sparse
-			, std::vector<boost::uint8_t>()));
-
-		// we must disable the read cache in order to
-		// verify that the elevator algorithm works.
-		// since any read cache hit will circumvent
-		// the elevator order
-		session_settings set;
-		set.use_read_cache = false;
-
-		disk_io_job* j = dio.aiocbs()->allocate_job(disk_io_job::update_settings);
-		j->buffer = (char*)&set;
-		++job_counter;
-		dio.add_job(j);
-
-		// test the elevator going up
-		turns = 0;
-		direction = 1;
-		last_job = 0;
-		add_job(dio, 0, pm); // trigger delay in storage
-		// make sure the job is processed
-		((test_storage*)pm->get_storage_impl())->wait_for_ready();
-
-		boost::uint32_t p = 1234513;
-		for (int i = 0; i < 100; ++i)
-		{
-			p *= 123;
-			int job = (p % 5998) + 1;
-			std::cerr << "starting job #" << job << std::endl;
-			add_job(dio, job, pm);
-		}
-
-		((test_storage*)pm->get_storage_impl())->start();
-
-		for (int i = 0; i < 101; ++i)
-		{
-			ios.run_one(ec);
-			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
-			if (job_counter == 0) break;
-		}
-
-		TEST_CHECK(turns == 0);
-		TEST_EQUAL(job_counter, 0);
-		std::cerr << "number of elevator turns: " << turns << std::endl;
-
-		// test the elevator going down
-		turns = 0;
-		direction = -1;
-		last_job = 6000;
-		add_job(dio, 5999, pm); // trigger delay in storage
-		// make sure the job is processed
-		((test_storage*)pm->get_storage_impl())->wait_for_ready();
-
-		for (int i = 0; i < 100; ++i)
-		{
-			p *= 123;
-			int job = (p % 5998) + 1;
-			std::cerr << "starting job #" << job << std::endl;
-			add_job(dio, job, pm);
-		}
-
-		((test_storage*)pm->get_storage_impl())->start();
-
-		for (int i = 0; i < 101; ++i)
-		{
-			ios.run_one(ec);
-			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
-			if (job_counter == 0) break;
-		}
-
-		TEST_CHECK(turns == 0);
-		TEST_EQUAL(job_counter, 0);
-		std::cerr << "number of elevator turns: " << turns << std::endl;
-
-		// test disabling disk-reordering
-		set.allow_reordered_disk_operations = false;
-		j = dio.aiocbs()->allocate_job(disk_io_job::update_settings);
-		j->buffer = (char*)&set;
-		++job_counter;
-		dio.add_job(j);
-
-		turns = 0;
-		direction = 0;
-		add_job(dio, 0, pm); // trigger delay in storage
-		// make sure the job is processed
-		((test_storage*)pm->get_storage_impl())->wait_for_ready();
-
-		for (int i = 0; i < 100; ++i)
-		{
-			p *= 123;
-			int job = (p % 5998) + 1;
-			std::cerr << "starting job #" << job << std::endl;
-			add_job(dio, job, pm);
-		}
-
-		((test_storage*)pm->get_storage_impl())->start();
-
-		for (int i = 0; i < 101; ++i)
-		{
-			ios.run_one(ec);
-			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
-			if (job_counter == 0) break;
-		}
-
-		TEST_EQUAL(job_counter, 0);
-		std::cerr << "number of elevator turns: " << turns << std::endl;
-
-		// this is not guaranteed, but very very likely
-		TEST_CHECK(turns > 20);
-
-		dio.abort();
-		dio.join();
-	}
 }
 
 void run_until(io_service& ios, bool const& done)
@@ -498,170 +147,90 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	int num_pieces = fs.num_pieces();
 	TEST_CHECK(info->num_pieces() == num_pieces);
 
-	session_settings set;
-	set.disk_io_write_mode = set.disk_io_read_mode
-		= unbuffered ? session_settings::disable_os_cache_for_aligned_files
-		: session_settings::enable_os_cache;
+	aux::session_settings set;
+	set.set_int(settings_pack::disk_io_write_mode
+		, unbuffered ? session_settings::disable_os_cache
+		: session_settings::enable_os_cache);
+	set.set_int(settings_pack::disk_io_read_mode
+		, unbuffered ? session_settings::disable_os_cache
+		: session_settings::enable_os_cache);
 
 	char* piece = page_aligned_allocator::malloc(piece_size);
 
 	{ // avoid having two storages use the same files	
 	file_pool fp;
-	disk_buffer_pool dp(16 * 1024);
-	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, 0, test_path, fp, std::vector<boost::uint8_t>()));
+	libtorrent::asio::io_service ios;
+	disk_buffer_pool dp(16 * 1024, ios, NULL);
+	storage_params p;
+	p.files = &fs;
+	p.pool = &fp;
+	p.mode = storage_mode;
+	boost::scoped_ptr<storage_interface> s(default_storage_constructor(p));
 	s->m_settings = &set;
-	s->m_disk_pool = &dp;
 
 	int ret = 0;
 
 	// write piece 1 (in slot 0)
+	file::iovec_t iov = { piece1, half};
 	storage_error ec;
-	ret = s->write(piece1, 0, 0, half, ec);
+	ret = s->writev(&iov, 1, 0, 0, 0, ec);
 	if (ret != half) print_error(ret, ec);
-	ret = s->write(piece1 + half, 0, half, half, ec);
+
+	iov.iov_base = piece1 + half;
+	iov.iov_len = half;
+	ret = s->writev(&iov, 1, 0, half, 0, ec);
 	if (ret != half) print_error(ret, ec);
 
 	// test unaligned read (where the bytes are aligned)
-	ret = s->read(piece + 3, 0, 3, piece_size-9, ec);
+	iov.iov_base = piece + 3;
+	iov.iov_len = piece_size - 9;
+	ret = s->readv(&iov, 1, 0, 3, 0, ec);
 	if (ret != piece_size - 9) print_error(ret, ec);
 	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1+3));
 	
 	// test unaligned read (where the bytes are not aligned)
-	ret = s->read(piece, 0, 3, piece_size-9, ec);
+	iov.iov_base = piece;
+	iov.iov_len = piece_size - 9;
+	ret = s->readv(&iov, 1, 0, 3, 0, ec);
 	TEST_CHECK(ret == piece_size - 9);
 	if (ret != piece_size - 9) print_error(ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1+3));
 
 	// verify piece 1
-	ret = s->read(piece, 0, 0, piece_size, ec);
+	iov.iov_base = piece;
+	iov.iov_len = piece_size;
+	ret = s->readv(&iov, 1, 0, 0, 0, ec);
 	TEST_CHECK(ret == piece_size);
 	if (ret != piece_size) print_error(ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 	
 	// do the same with piece 0 and 2 (in slot 1 and 2)
-	ret = s->write(piece0, 1, 0, piece_size, ec);
+	iov.iov_base = piece0;
+	iov.iov_len = piece_size;
+	ret = s->writev(&iov, 1, 1, 0, 0, ec);
 	if (ret != piece_size) print_error(ret, ec);
-	ret = s->write(piece2, 2, 0, piece_size, ec);
+
+	iov.iov_base = piece0;
+	iov.iov_len = piece_size;
+	ret = s->writev(&iov, 1, 2, 0, 0, ec);
 	if (ret != piece_size) print_error(ret, ec);
 
 	// verify piece 0 and 2
-	ret = s->read(piece, 1, 0, piece_size, ec);
+	iov.iov_base = piece;
+	iov.iov_len = piece_size;
+	ret = s->readv(&iov, 1, 1, 0, 0, ec);
 	if (ret != piece_size) print_error(ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 
-	ret = s->read(piece, 2, 0, piece_size, ec);
+	iov.iov_base = piece;
+	iov.iov_len = piece_size;
+	ret = s->readv(&iov, 1, 2, 0, 0, ec);
 	if (ret != piece_size) print_error(ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 
 	s->release_files(ec);
 	}
 
-	// make sure the piece_manager can identify the pieces
-	{
-	libtorrent::asio::io_service ios;
-	disk_io_thread io(ios, boost::bind(&nop), boost::bind(&nop));
-	boost::shared_ptr<int> dummy(new int);
-	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, (file_storage&)info.files()
-		, 0, test_path, io, default_storage_constructor, storage_mode, std::vector<boost::uint8_t>());
-	libtorrent::mutex lock;
-
-	error_code ec;
-	bool done = false;
-	lazy_entry frd;
-	pm->async_check_fastresume(&frd, boost::bind(&on_check_resume_data, _1, _2, &done));
-	ios.reset();
-	run_until(ios, done);
-
-	done = false;
-	pm->async_hash(boost::bind(&on_check_files, _1, _2, &done));
-	run_until(ios, done);
-
-	done = false;
-	peer_request r;
-	r.piece = 0;
-	r.start = 10;
-	r.length = 16 * 1024;
-	pm->async_read(r, boost::bind(&on_read, _1, _2, &done));
-	run_until(ios, done);
-
-	// test rename_file
-	remove(combine_path(test_path, "part0"), ec);
-	if (ec) std::cerr << "remove: " << ec.message() << std::endl;
-	remove_all(combine_path(test_path, "test_dir"), ec);
-	if (ec) std::cerr << "remove: " << ec.message() << std::endl;
-	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))));
-	TEST_CHECK(!exists(combine_path(test_path, "part0")));	
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("test_dir", combine_path("subdir", "part0")))));	
-
-	// test that we can create missing directories when we rename a file
-	done = false;
-	pm->async_rename_file(0, "test_dir/subdir/part0", boost::bind(&signal_bool, &done, "rename_file"));
-	run_until(ios, done);
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))));
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2")));
-	TEST_CHECK(exists(combine_path(test_path, combine_path("test_dir", combine_path("subdir", "part0")))));
-
-	done = false;
-	pm->async_rename_file(0, "part0", boost::bind(&signal_bool, &done, "rename_file"));
-	run_until(ios, done);
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))));
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage2")));
-	TEST_CHECK(exists(combine_path(test_path, "part0")));
-
-	// test move_storage with two files in the root directory
-	TEST_CHECK(exists(combine_path(test_path, "temp_storage")));
-
-	done = false;
-	pm->async_move_storage(combine_path(test_path, "temp_storage2")
-		, boost::bind(on_move_storage, _1, &done, _2, combine_path(test_path, "temp_storage2")));
-	run_until(ios, done);
-
-	if (fs.num_files() > 1)
-	{
-		TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
-		TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));
-	}
-	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
-
-	done = false;
-	pm->async_move_storage(test_path, boost::bind(on_move_storage, _1, &done, _2, test_path));
-	run_until(ios, done);
-
-	TEST_CHECK(exists(combine_path(test_path, "part0")));	
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));	
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
-
-	r.piece = 0;
-	r.start = 0;
-	r.length = block_size;
-	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece0, block_size));
-	r.piece = 1;
-	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece1, block_size));
-	r.piece = 2;
-	pm->async_read(r, boost::bind(&on_read_piece, _1, _2, piece2, block_size));
-	std::cerr << "async_release_files" << std::endl;
-	done = false;
-	pm->async_release_files(boost::bind(&signal_bool, &done, "async_release_files"));
-	run_until(ios, done);
-
-	std::cerr << "async_rename_file" << std::endl;
-	done = false;
-	pm->async_rename_file(0, "temp_storage/test1.tmp", boost::bind(&signal_bool, &done, "rename_file"));
-	run_until(ios, done);
-
-	TEST_CHECK(!exists(combine_path(test_path, "part0")));	
-	TEST_CHECK(exists(combine_path(test_path, "temp_storage/test1.tmp")));
-
-	io.abort();
-	io.join();
-	remove_all(combine_path(test_path, "temp_storage2"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage2")
-		<< "': " << ec.message() << std::endl;
-	remove_all(combine_path(test_path, "part0"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "part0")
-		<< "': " << ec.message() << std::endl;
-	}
 	page_aligned_allocator::free(piece);
 }
 
@@ -688,21 +257,28 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	bencode(std::back_inserter(buf), t.generate());
 	boost::intrusive_ptr<torrent_info> info(new torrent_info(&buf[0], buf.size(), ec));
 
-	session_settings set;
-	set.disk_io_write_mode = set.disk_io_read_mode
-		= unbuffered ? session_settings::disable_os_cache_for_aligned_files
-		: session_settings::enable_os_cache;
+	aux::session_settings set;
+	set.set_int(settings_pack::disk_io_write_mode
+		, unbuffered ? session_settings::disable_os_cache
+		: session_settings::enable_os_cache);
+	set.set_int(settings_pack::disk_io_read_mode
+		, unbuffered ? session_settings::disable_os_cache
+		: session_settings::enable_os_cache);
 
 	file_pool fp;
-	disk_buffer_pool dp(16 * 1024);
-	boost::scoped_ptr<storage_interface> s(
-		default_storage_constructor(fs, 0, test_path, fp, std::vector<boost::uint8_t>()));
+	io_service ios;
+	disk_buffer_pool dp(16 * 1024, ios, NULL);
+
+	storage_params p;
+	p.files = &fs;
+	p.pool = &fp;
+	p.mode = storage_mode_sparse;
+	boost::scoped_ptr<storage_interface> s(default_storage_constructor(p));
 	s->m_settings = &set;
-	s->m_disk_pool = &dp;
 
 	// allocate the files and create the directories
 	storage_error se;
-	s->initialize(true, se);
+	s->initialize(se);
 	if (se) std::cerr << "initialize: " << se.ec.message() << std::endl;
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
@@ -712,25 +288,6 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	if (se) std::cerr << "delete_files: " << se.ec.message() << std::endl;
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
-}
-
-namespace
-{
-	void check_files_fill_array(int ret, disk_io_job const& j, bool* array, bool* done)
-	{
-		std::cerr << "check_files_fill_array ret: " << ret
-			<< " piece: " << j.piece
-			<< " have: " << j.offset
-			<< " str: " << j.str
-			<< " e: " << j.error.ec.message()
-			<< std::endl;
-
-		if (j.offset >= 0) array[j.offset] = true;
-		if (ret != piece_manager::need_full_check)
-		{
-			*done = true;
-		}
-	}
 }
 
 void test_check_files(std::string const& test_path
@@ -778,30 +335,28 @@ void test_check_files(std::string const& test_path
 	bencode(std::back_inserter(buf), t.generate());
 	info = new torrent_info(&buf[0], buf.size(), ec);
 
+	aux::session_settings set;
+	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_io_thread io(ios, boost::bind(&nop), boost::bind(&nop));
-	boost::shared_ptr<int> dummy(new int);
-	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
-		, test_path, io, default_storage_constructor, storage_mode, std::vector<boost::uint8_t>());
+	disk_io_thread io(ios, NULL, NULL);
+	disk_buffer_pool dp(16 * 1024, ios, NULL);
+	storage_params p;
+	p.files = &fs;
+	p.pool = &fp;
+	p.mode = storage_mode;
+
+	boost::shared_ptr<void> dummy(new int);
+	boost::intrusive_ptr<piece_manager> pm = new piece_manager(new default_storage(p), dummy, &fs);
 	libtorrent::mutex lock;
 
 	bool done = false;
 	lazy_entry frd;
-	pm->async_check_fastresume(&frd, boost::bind(&on_check_resume_data, _1, _2, &done));
+	io.async_check_fastresume(pm.get(), &frd, boost::bind(&on_check_resume_data, _1, &done));
+	io.submit_jobs();
 	ios.reset();
 	run_until(ios, done);
 
-	bool pieces[4] = {false, false, false, false};
-	done = false;
-	pm->async_check_files(boost::bind(&check_files_fill_array, _1, _2, pieces, &done));
-	run_until(ios, done);
-
-	TEST_EQUAL(pieces[0], true);
-	TEST_EQUAL(pieces[1], false);
-	TEST_EQUAL(pieces[2], false);
-	TEST_EQUAL(pieces[3], true);
-	io.abort();
-	io.join();
+	io.set_num_threads(0);
 }
 
 #ifdef TORRENT_NO_DEPRECATE
@@ -1084,181 +639,8 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		<< "': " << ec.message() << std::endl;
 }
 
-void test_disk_job_empty_fence()
-{
-	libtorrent::disk_job_fence fence;
-
-	disk_io_job test_job[10];
-
-	// issue 5 jobs. None of them should be blocked by a fence
-	bool ret = false;
-	// add a fence job
-	ret = fence.raise_fence(&test_job[5]);
-
-	// since we don't have any outstanding jobs
-	// we need to post this job
-	TEST_CHECK(ret == true);
-
-	ret = fence.is_blocked(&test_job[6]);
-	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[7]);
-	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[8]);
-	TEST_CHECK(ret == true);
-
-	tailqueue jobs;
-
-	// complete the fence job
-	fence.job_complete(&test_job[5], jobs);
-
-	// now it's fine to post the blocked jobs
-	TEST_CHECK(jobs.size() == 3);
-}
-
-void test_disk_job_fence()
-{
-	libtorrent::disk_job_fence fence;
-
-	disk_io_job test_job[10];
-
-	// issue 5 jobs. None of them should be blocked by a fence
-	bool ret = false;
-	TEST_CHECK(fence.has_outstanding_jobs() == false);
-	ret = fence.is_blocked(&test_job[0]);
-	TEST_CHECK(ret == false);
-	TEST_CHECK(fence.has_outstanding_jobs() == true);
-	ret = fence.is_blocked(&test_job[1]);
-	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[2]);
-	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[3]);
-	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[4]);
-	TEST_CHECK(ret == false);
-
-	TEST_CHECK(fence.has_outstanding_jobs() == true);
-	TEST_CHECK(fence.num_blocked() == 0);
-
-	// add a fence job
-	ret = fence.raise_fence(&test_job[5]);
-
-	// since we have outstanding jobs, no need
-	// to post anything
-	TEST_CHECK(ret == false);
-
-	ret = fence.is_blocked(&test_job[6]);
-	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[7]);
-	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[8]);
-	TEST_CHECK(ret == true);
-
-	tailqueue jobs;
-
-	fence.job_complete(&test_job[3], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[2], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[4], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[1], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[0], jobs);
-	// this was the last job. Now we should be
-	// able to run the fence job
-	TEST_CHECK(jobs.size() == 1);
-
-	TEST_CHECK(jobs.first() == test_job[5]);
-	jobs.pop_front();
-
-	// complete the fence job
-	fence.job_complete(&test_job[5], jobs);
-
-	// now it's fine to post the blocke jobs
-	TEST_CHECK(jobs.size() == 3);
-}
-
-void test_disk_job_double_fence()
-{
-	libtorrent::disk_job_fence fence;
-
-	disk_io_job test_job[10];
-
-	// issue 5 jobs. None of them should be blocked by a fence
-	bool ret = false;
-	TEST_CHECK(fence.has_outstanding_jobs() == false);
-	ret = fence.is_blocked(&test_job[0]);
-	TEST_CHECK(ret == false);
-	TEST_CHECK(fence.has_outstanding_jobs() == true);
-	ret = fence.is_blocked(&test_job[1]);
-	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[2]);
-	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[3]);
-	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[4]);
-	TEST_CHECK(ret == false);
-
-	TEST_CHECK(fence.has_outstanding_jobs() == true);
-	TEST_CHECK(fence.num_blocked() == 0);
-
-	// add two fence jobs
-	ret = fence.raise_fence(&test_job[5]);
-	// since we have outstanding jobs, no need
-	// to post anything
-	TEST_CHECK(ret == false);
-	ret = fence.raise_fence(&test_job[6]);
-	// since we have outstanding jobs, no need
-	// to post anything
-	TEST_CHECK(ret == false);
-
-	ret = fence.is_blocked(&test_job[7]);
-	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[8]);
-	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[9]);
-	TEST_CHECK(ret == true);
-
-	tailqueue jobs;
-
-	fence.job_complete(&test_job[3], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[2], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[4], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[1], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[0], jobs);
-	// this was the last job. Now we should be
-	// able to run the fence job
-	TEST_CHECK(jobs.size() == 1);
-
-	TEST_CHECK(jobs.first() == test_job[5]);
-	jobs.pop_front();
-
-	// complete the fence job
-	fence.job_complete(&test_job[5], jobs);
-
-	// now it's fine to run the next fence job
-	TEST_CHECK(jobs.size() == 1);
-	TEST_CHECK(jobs.first() == test_job[6]);
-	jobs.pop_front();
-
-	fence.job_complete(&test_job[6], jobs);
-
-	// and now we can run the remaining 3 blocked jobs
-	TEST_CHECK(jobs.size() == 3);
-}
-
 int test_main()
 {
-	test_disk_job_fence();
-	test_disk_job_double_fence();
-	test_disk_job_empty_fence();
-
-//	run_elevator_test();
-
 	// initialize test pieces
 	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
 		*p = rand();
