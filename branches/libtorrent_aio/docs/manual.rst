@@ -168,7 +168,7 @@ The ``session`` class has the following synopsis::
 			, boost::uint32_t flags) const;
 		void post_torrent_updates();
 
-		stats_metrics session_stats_metrics() const;
+		std::vector<stats_metrics> session_stats_metrics() const;
 		void post_session_stats();
 
 	#ifndef TORRENT_NO_DEPRECATE

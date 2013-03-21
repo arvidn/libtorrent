@@ -9384,6 +9384,17 @@ namespace libtorrent
 		m_policy.set_seed(p, s);
 	}
 
+	void torrent::clear_failcount(torrent_peer* p)
+	{
+		m_policy.set_failcount(p, 0);
+		update_want_peers();
+	}
+
+	std::pair<policy::iterator, policy::iterator> torrent::find_peers(address const& a)
+	{
+		return m_policy.find_peers(a);
+	}
+
 	void torrent::update_peer_port(int port, torrent_peer* p, int src)
 	{
 		torrent_state st = get_policy_state();

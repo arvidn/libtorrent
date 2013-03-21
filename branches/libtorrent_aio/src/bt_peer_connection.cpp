@@ -3233,10 +3233,7 @@ namespace libtorrent
 #endif
 			// consider this a successful connection, reset the failcount
 			if (peer_info_struct())
-			{
-				t->get_policy().set_failcount(peer_info_struct(), 0);
-				t->update_want_peers();
-			}
+				t->clear_failcount(peer_info_struct());
 			
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			// Toggle pe_support back to false if this is a

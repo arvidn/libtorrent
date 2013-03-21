@@ -6218,16 +6218,6 @@ namespace libtorrent
 					TORRENT_ASSERT(picker_count == count);
 			}
 		}
-		if (m_peer_info && type() == bittorrent_connection)
-		{
-			policy::const_iterator i = t->get_policy().begin_peer();
-			policy::const_iterator end = t->get_policy().end_peer();
-			for (; i != end; ++i)
-			{
-				if (*i == m_peer_info) break;
-			}
-			TORRENT_ASSERT(i != end);
-		}
 #endif
 		if (t->has_picker() && !t->is_aborted())
 		{

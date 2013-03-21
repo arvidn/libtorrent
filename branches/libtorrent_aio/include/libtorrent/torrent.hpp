@@ -465,6 +465,8 @@ namespace libtorrent
 		bool ban_peer(torrent_peer* tp);
 		void update_peer_port(int port, torrent_peer* p, int src);
 		void set_seed(torrent_peer* p, bool s);
+		void clear_failcount(torrent_peer* p);
+		std::pair<policy::iterator, policy::iterator> find_peers(address const& a);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }

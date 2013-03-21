@@ -159,7 +159,7 @@ namespace
 				{
 					m_torrent.session().disk_thread().async_read(&m_torrent.storage()
 						, r, boost::bind(&smart_ban_plugin::on_read_ok_block
-						, shared_from_this(), *i, _1), (void*)1);
+						, shared_from_this(), *i, i->second.peer->address(), _1), (void*)1);
 					m_block_hashes.erase(i++);
 				}
 				else
@@ -251,7 +251,7 @@ namespace
 			h.update((char const*)&m_salt, sizeof(m_salt));
 
 			std::pair<policy::iterator, policy::iterator> range
-				= m_torrent.get_policy().find_peers(a);
+				= m_torrent.find_peers(a);
 
 			// there is no peer with this address anymore
 			if (range.first == range.second) return;
@@ -269,18 +269,13 @@ namespace
 			if (i != m_block_hashes.end() && i->first == b && i->second.peer == p)
 			{
 				// this peer has sent us this block before
-				if (i->second.digest != e.digest)
+				// if the peer is already banned, it doesn't matter if it sent
+				// good or bad data. Nothings going to change it
+				if (!p->banned && i->second.digest != e.digest)
 				{
 					// this time the digest of the block is different
 					// from the first time it sent it
 					// at least one of them must be bad
-
-					// verify that this is not a dangling pointer
-					// if the pointer is in the policy's list, it
-					// still live, if it's not, it has been removed
-					// and we can't use this pointer
-					if (!m_torrent.get_policy().has_peer(p)) return;
-
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 					char const* client = "-";
 					peer_info info;
@@ -323,7 +318,7 @@ namespace
 #endif
 		}
 		
-		void on_read_ok_block(std::pair<piece_block, block_entry> b, disk_io_job const* j)
+		void on_read_ok_block(std::pair<piece_block, block_entry> b, address a, disk_io_job const* j)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
@@ -337,17 +332,24 @@ namespace
 			h.update((char const*)&m_salt, sizeof(m_salt));
 			sha1_hash ok_digest = h.final();
 
-			torrent_peer* p = b.second.peer;
-
 			if (b.second.digest == ok_digest) return;
-			if (p == 0) return;
 
 #ifdef TORRENT_LOG_HASH_FAILURES
 			log_hash_block(&m_log_file, m_torrent, b.first.piece_index
-				, b.first.block_index, p->address(), j->buffer, j->buffer_size, false);
+				, b.first.block_index, a, j->buffer, j->buffer_size, false);
 #endif
 
-			if (!m_torrent.get_policy().has_peer(p)) return;
+			// find the peer
+			std::pair<policy::iterator, policy::iterator> range
+				= m_torrent.find_peers(a);
+			if (range.first == range.second) return;
+			torrent_peer* p = NULL;
+			for (; range.first != range.second; ++range.first)
+			{
+				if (b.second.peer != *range.first) continue;
+				p = *range.first;
+			}
+			if (p == NULL) return;
 
 #ifdef TORRENT_LOGGING
 			char const* client = "-";
