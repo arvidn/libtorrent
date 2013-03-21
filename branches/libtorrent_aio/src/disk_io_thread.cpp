@@ -942,7 +942,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::perform_async_job(disk_io_job* j)
+	void disk_io_thread::perform_job(disk_io_job* j)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->next == 0);
@@ -952,7 +952,7 @@ namespace libtorrent
 
 		check_cache_level(l);
 
-		DLOG("perform_async_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
+		DLOG("perform_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
 			, job_action_name[j->action]
 			, (j->flags & disk_io_job::fence) ? "fence ": ""
 			, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
@@ -2632,7 +2632,7 @@ namespace libtorrent
 				}
 			}
 
-			perform_async_job(j);
+			perform_job(j);
 
 			mutex::scoped_lock l2(m_cache_mutex);
 			check_cache_level(l2);
