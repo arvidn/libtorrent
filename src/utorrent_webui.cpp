@@ -1005,9 +1005,9 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 			, i->all_time_download
 			, i->all_time_upload
 			, i->all_time_download == 0 ? 0 : float(i->all_time_upload) * 100.f / i->all_time_download
-			, i->upload_rate
-			, i->download_rate
-			, i->download_rate == 0 ? 0 : (i->total_wanted - i->total_wanted_done) / i->download_rate
+			, i->payload_upload_rate
+			, i->payload_download_rate
+			, i->payload_download_rate == 0 ? 0 : (i->total_wanted - i->total_wanted_done) / i->payload_download_rate
 			, "" // label
 			, i->num_peers - i->num_seeds
 			, i->list_peers - i->list_seeds
