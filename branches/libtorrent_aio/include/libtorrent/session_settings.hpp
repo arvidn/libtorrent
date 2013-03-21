@@ -1017,6 +1017,14 @@ namespace libtorrent
 		// in the peer protocol handshake. If this is empty
 		// the user_agent is used
 		std::string handshake_client_version;
+
+		// if this is true, the disk cache uses a pool allocator
+		// for disk cache blocks. Enabling this improves
+		// performance of the disk cache with the side effect
+		// that the disk cache is less likely and slower at
+		// returning memory to the kernel when cache pressure
+		// is low.
+		bool use_disk_cache_pool;
 	};
 #endif
 

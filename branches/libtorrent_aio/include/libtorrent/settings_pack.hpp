@@ -542,6 +542,12 @@ namespace libtorrent
 			// set this to false.
 			listen_system_port_fallback,
 
+			// ``use_disk_cache_pool`` enables using a pool allocator for disk cache blocks.
+			// Enabling it makes the cache perform better at high throughput.
+			// It also makes the cache less likely and slower at returning memory back to the system,
+			// once allocated.
+			use_disk_cache_pool,
+
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
 		};

@@ -18,6 +18,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* make disk cache pool allocator configurable
 	* fix library ABI to not depend on logging being enabled
 	* use hex encoding instead of base32 in create_magnet_uri
 	* include name, save_path and torrent_file in torrent_status, for improved performance

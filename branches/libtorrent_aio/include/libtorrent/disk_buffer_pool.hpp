@@ -43,6 +43,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+#include "libtorrent/allocator.hpp" // for page_aligned_allocator
+#include <boost/pool/pool.hpp>
+#endif
+
 #ifdef TORRENT_BUFFER_STATS
 #include <map>
 #include <fstream>
@@ -150,9 +155,32 @@ namespace libtorrent
 
 		alert_dispatcher* m_post_alert;
 
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		// if this is true, all buffers are allocated
+		// from m_pool. If this is false, all buffers
+		// are allocated using page_aligned_allocator.
+		// if the settings change to prefer the other
+		// allocator, this bool will not switch over
+		// to match the settings until all buffers have
+		// been freed. That way, we never have a mixture
+		// of buffers allocated from different sources.
+		// in essence, this make the setting only take
+		// effect after a restart (which seems fine).
+		// or once the client goes idle for a while.
+		bool m_using_pool_allocator;
+
+		// this is the actual user setting
+		bool m_want_pool_allocator;
+
+		// memory pool for read and write operations
+		// and disk cache
+		boost::pool<page_aligned_allocator> m_pool;
+#endif
+
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		int m_allocations;
 #endif
+
 #ifdef TORRENT_BUFFER_STATS
 	public:
 		void rename_buffer(char* buf, char const* category);

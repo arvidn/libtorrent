@@ -317,6 +317,9 @@ namespace libtorrent
 		// keep 5 MiB outstanding when checking hashes
 		// of a resumed file
 		set.set_int(settings_pack::checking_mem_usage, 320);
+
+		// the disk cache performs better with the pool allocator
+		set.set_bool(settings_pack::use_disk_cache_pool, true);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -557,6 +560,9 @@ namespace libtorrent
 
 		// max 'bottled' http receive buffer/url torrent size
 		set.max_http_recv_buffer_size = 6 * 1024 * 1024;
+
+		// the disk cache performs better with the pool allocator
+		set.use_disk_cache_pool = true;
 
 		return set;
 	}

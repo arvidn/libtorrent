@@ -4919,7 +4919,6 @@ settings_pack
 			prefer_tcp = 0,
 			peer_proportional = 1
 		};
-		int max_http_recv_buffer_size;
 	};
 
 The ``settings_pack`` struct, contains the names of all settings as

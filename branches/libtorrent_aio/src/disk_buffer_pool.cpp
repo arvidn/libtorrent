@@ -86,6 +86,10 @@ namespace libtorrent
 		, m_cache_pool(0)
 #endif
 		, m_post_alert(alert_disp)
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		, m_using_pool_allocator(false)
+		, m_pool(block_size, 32)
+#endif
 	{
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		m_allocations = 0;
@@ -178,8 +182,15 @@ namespace libtorrent
 
 #ifdef TORRENT_DEBUG_BUFFERS
 		return page_aligned_allocator::in_use(buffer);
-#else
+#endif
+
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		return true;
+#else
+		if (m_using_pool_allocator)
+			return m_pool.is_from(buffer);
+		else
+			return true;
 #endif
 	}
 
@@ -237,8 +248,23 @@ namespace libtorrent
 		else
 #endif
 		{
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 			ret = page_aligned_allocator::malloc(m_block_size);
-			if (ret == 0)
+#else
+			if (m_using_pool_allocator)
+			{
+				ret = (char*)m_pool.malloc();
+				int effective_block_size = m_cache_buffer_chunk_size
+					? m_cache_buffer_chunk_size
+					: (std::max)(m_max_use / 20, 1);
+				m_pool.set_next_size(effective_block_size);
+			}
+			else
+			{
+				ret = page_aligned_allocator::malloc(m_block_size);
+			}
+#endif
+			if (ret == NULL)
 			{
 				m_exceeded_max_size = true;
 				return 0;
@@ -249,6 +275,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
 		m_buffers_in_use.insert(ret);
 #endif
+
 		++m_in_use;
 		if (m_in_use >= m_low_watermark + (m_max_use - m_low_watermark) / 2)
 			m_exceeded_max_size = true;
@@ -261,11 +288,12 @@ namespace libtorrent
 			mlock(ret, m_block_size);
 #endif
 		}
-#endif
+#endif // TORRENT_USE_MLOCK
 
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		++m_allocations;
 #endif
+
 #ifdef TORRENT_BUFFER_STATS
 		++m_categories[category];
 		m_buf_to_category[ret] = category;
@@ -327,6 +355,7 @@ namespace libtorrent
 		// proportional to the total disk cache size)
 		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
 		m_lock_disk_cache = sett.get_bool(settings_pack::lock_disk_cache);
+		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool);
 
 #if TORRENT_HAVE_MMAP
 		// if we've already allocated an mmap, we can't change
@@ -469,7 +498,14 @@ namespace libtorrent
 		else
 #endif
 		{
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		page_aligned_allocator::free(buf);
+#else
+		if (m_using_pool_allocator)
+			m_pool.free(buf);
+		else
 			page_aligned_allocator::free(buf);
+#endif // TORRENT_DISABLE_POOL_ALLOCATOR
 		}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -477,12 +513,27 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_buffers_in_use.end());
 		m_buffers_in_use.erase(i);
 #endif
+
 		--m_in_use;
+
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		// should we switch which allocator to use?
+		if (m_in_use == 0 && m_want_pool_allocator != m_using_pool_allocator)
+		{
+			m_pool.release_memory();
+			m_using_pool_allocator = m_want_pool_allocator;
+		}
+#endif
 	}
 
 	void disk_buffer_pool::release_memory()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		mutex::scoped_lock l(m_pool_mutex);
+		if (m_using_pool_allocator)
+			m_pool.release_memory();
+#endif
 	}
 
 }
