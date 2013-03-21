@@ -304,6 +304,9 @@ namespace libtorrent
 		// max 'bottled' http receive buffer/url torrent size
 		set.max_http_recv_buffer_size = 6 * 1024 * 1024;
 
+		// the disk cache performs better with the pool allocator
+		set.use_disk_cache_pool = true;
+
 		return set;
 	}
 
@@ -1312,6 +1315,7 @@ namespace libtorrent
 		, support_share_mode(true)
 		, support_merkle_torrents(false)
 		, report_redundant_bytes(true)
+		, use_disk_cache_pool(false)
 	{}
 
 	session_settings::~session_settings() {}
