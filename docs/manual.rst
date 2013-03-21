@@ -4654,6 +4654,12 @@ session_settings
 
 		bool ban_web_seeds;
 		int max_http_recv_buffer_size;
+
+		bool support_share_mode;
+		bool support_merkle_torrents;
+		bool report_redundant_bytes;
+		std::string handshake_client_version;
+		bool use_disk_cache_pool;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5555,6 +5561,23 @@ corrupt data are banned.
 RAM buffers when downloading stuff over HTTP. Specifically when specifying a
 URL to a .torrent file when adding a torrent or when announcing to an HTTP
 tracker. The default is 2 MiB.
+
+``support_share_mode`` enables or disables the share mode extension. This is
+enabled by default.
+
+``support_merkle_torrents`` enables or disables the merkle tree torrent support.
+This is enabled by default.
+
+``report_redundant_bytes`` enables or disables reporting redundant bytes to the tracker.
+This is enabled by default.
+
+``handshake_client_version`` is the client name advertized in the peer handshake. If
+set to an empty string, the user_agent string is used.
+
+``use_disk_cache_pool`` enables using a pool allocator for disk cache blocks. This is
+disabled by default. Enabling it makes the cache perform better at high throughput.
+It also makes the cache less likely and slower at returning memory back to the system
+once allocated.
 
 pe_settings
 ===========
