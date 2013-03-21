@@ -105,6 +105,9 @@ namespace libtorrent
 		// kqueue(), but saves RAM.
 		set.set_bool(settings_pack::contiguous_recv_buffer, false);
 
+		set.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
+		set.set_int(settings_pack::disk_io_read_mode, settings_pack::disable_os_cache);
+
 		// keep 2 blocks outstanding when hashing
 		set.set_int(settings_pack::checking_mem_usage, 2);
 
