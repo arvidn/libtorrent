@@ -309,6 +309,12 @@ int test_main()
 	p->write_failed(piece_block(0,0));
 	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
 		, options, empty_vector);
+	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(1,0)) != picked.end()
+		|| std::find(picked.begin(), picked.end(), piece_block(2,0)) != picked.end());
+	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) == picked.end());
+	p->restore_piece(0);
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
 

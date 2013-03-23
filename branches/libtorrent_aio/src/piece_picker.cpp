@@ -947,15 +947,8 @@ namespace libtorrent
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
 
 		TORRENT_ASSERT(i != m_downloads[state - 1].end());
-#ifdef TORRENT_DEBUG
-		int num_blocks = blocks_in_piece(i->index);
-		for (int k = 0; k < num_blocks; ++k)
-		{
-			TORRENT_ASSERT(i->info[k].piece_index == index);
-			TORRENT_ASSERT(i->info[k].state == block_info::state_finished);
-			TORRENT_ASSERT(i->info[k].num_peers == 0);
-		}
-#endif
+
+		i->failed_write = false;
 
 		piece_pos& p = m_piece_map[index];
 		int prev_priority = p.priority(this);
@@ -1412,7 +1405,8 @@ namespace libtorrent
 		}
 		if (i->finished < blocks_in_piece(index)) return;
 		
-		we_have(index);
+		if (!i->failed_write)
+			we_have(index);
 	}
 
 	void piece_picker::piece_failed(int index)
@@ -2324,6 +2318,10 @@ namespace libtorrent
 		if (!pieces[dp.index]) return num_blocks;
 		if (m_piece_map[dp.index].filtered()) return num_blocks;
 
+		// this piece failed to write. We're currently restoring
+		// it. It's not OK to send more requests to it right now.
+		if (dp.failed_write) return num_blocks;
+
 		int num_blocks_in_piece = blocks_in_piece(dp.index);
 
 		// is true if all the other pieces that are currently
@@ -2877,12 +2875,10 @@ namespace libtorrent
 			TORRENT_ASSERT(m_num_passed > 0);
 			--m_num_passed;
 		}
-		else if (i->outstanding_hash_check)
-		{
-			// prevent this hash job from actually completing
-			// this piece, by setting the failure state.
-			i->failed_write = true;
-		}
+
+		// prevent this hash job from actually completing
+		// this piece, by setting the failure state.
+		i->failed_write = true;
 
 		i = update_piece_state(i);
 

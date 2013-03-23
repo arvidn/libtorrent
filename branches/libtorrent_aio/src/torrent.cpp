@@ -1099,18 +1099,20 @@ namespace libtorrent
 			// we failed to write j->piece to disk tell the piece picker
 			if (j->piece >= 0)
 			{
+				if (has_picker())
+				{
+					// this will block any other peer from issuing requests
+					// to this piece, until we've cleared it.
+					picker().write_failed(block_finished);
+					update_gauge();
+				}
 				if (m_storage)
 				{
+					// when this returns, all outstanding jobs to the
+					// piece are done, and we can restore it, allowing
+					// new requests to it
 					m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
 						, boost::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
-				}
-				else
-				{
-					if (has_picker())
-					{
-						picker().write_failed(block_finished);
-						update_gauge();
-					}
 				}
 			}
 		}
@@ -1170,7 +1172,7 @@ namespace libtorrent
 	void torrent::on_piece_fail_sync(disk_io_job const* j, piece_block b)
 	{
 		if (!has_picker()) return;
-		picker().write_failed(b);
+		picker().restore_piece(b.piece_index);
 		update_gauge();
 	}
 
