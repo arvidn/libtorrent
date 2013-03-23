@@ -355,7 +355,9 @@ namespace libtorrent
 		// proportional to the total disk cache size)
 		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
 		m_lock_disk_cache = sett.get_bool(settings_pack::lock_disk_cache);
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool);
+#endif
 
 #if TORRENT_HAVE_MMAP
 		// if we've already allocated an mmap, we can't change
