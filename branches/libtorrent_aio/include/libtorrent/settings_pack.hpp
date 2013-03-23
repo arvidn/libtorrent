@@ -780,7 +780,7 @@ namespace libtorrent
 			//   but shuffles it around to the best peers first. For this choker to be
 			//   efficient, you need to set a global upload rate limit
 			//   (``session::set_upload_rate_limit()``). For more information about this
-			//   choker, see the paper_.
+			//   choker, see the paper_. This choker is not fully implemented nor tested.
 			// 
 			// .. _paper: http://bittyrant.cs.washington.edu/#papers
 			// 
