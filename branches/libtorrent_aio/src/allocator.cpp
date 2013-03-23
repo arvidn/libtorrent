@@ -100,7 +100,7 @@ namespace libtorrent
 
 		char* ret;
 #if TORRENT_USE_POSIX_MEMALIGN
-		if (posix_memalign((void*)&ret, page_size(), bytes) != 0) ret = NULL;
+		if (posix_memalign((void**)&ret, page_size(), bytes) != 0) ret = NULL;
 #elif TORRENT_USE_MEMALIGN
 		ret = (char*)memalign(page_size(), bytes);
 #elif defined TORRENT_WINDOWS
