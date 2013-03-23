@@ -46,9 +46,6 @@ namespace libtorrent
 	void bandwidth_channel::throttle(int limit)
 	{
 		TORRENT_ASSERT(limit >= 0);
-		// if the throttle is more than this, we might overflow
-		// TODO: 3 this is only 66 MB/s. fix this potential overflow
-		if (limit >= INT_MAX / 31) limit = INT_MAX / 31;
 		m_limit = limit;
 	}
 	
