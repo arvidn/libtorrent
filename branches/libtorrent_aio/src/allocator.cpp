@@ -98,15 +98,14 @@ namespace libtorrent
 		bytes = num_pages * page;
 #endif
 
-		void* ret;
+		char* ret;
 #if TORRENT_USE_POSIX_MEMALIGN
-		if (posix_memalign(&ret, page_size(), bytes) != 0) ret = NULL;
+		if (posix_memalign((void*)&ret, page_size(), bytes) != 0) ret = NULL;
 #elif TORRENT_USE_MEMALIGN
 		ret = (char*)memalign(page_size(), bytes);
 #elif defined TORRENT_WINDOWS
 		ret = (char*)VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 #elif defined TORRENT_BEOS
-		void* ret = 0;
 		area_id id = create_area("", &ret, B_ANY_ADDRESS
 			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
 		if (id < B_OK) return NULL;
@@ -126,11 +125,11 @@ namespace libtorrent
 		mprotect(ret + (num_pages-1) * page, page, PROT_READ);
 //		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
 
-		return (char*)(ret) + page;
+		return ret + page;
 #endif
 
 
-		return (char*)ret;
+		return ret;
 	}
 
 #ifdef TORRENT_DEBUG_BUFFERS
