@@ -4574,6 +4574,18 @@ namespace libtorrent
 		, bandwidth_channel* bwc3
 		, bandwidth_channel* bwc4)
 	{
+		// we can only have one outstanding bandwidth request at a time
+		if (m_channel_state[upload_channel] & peer_info::bw_limit) return 0;
+
+		int bytes = (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
+				* m_ses.m_settings.tick_interval / 1000);
+
+		// we already have quota for the bytes we want to send
+		if (m_quota[upload_channel] >= bytes) return 0;
+
+		// deduct the bytes we already have quota for
+		bytes -= m_quota[upload_channel];
+
 		shared_ptr<torrent> t = m_torrent.lock();
 		int priority;
 		if (t && m_ses.m_settings.choking_algorithm == session_settings::bittyrant_choker
@@ -4608,7 +4620,6 @@ namespace libtorrent
 		TORRENT_ASSERT(priority <= 0xffff);
 
 		// peers that we are not interested in are non-prioritized
-		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
 			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
@@ -4620,11 +4631,24 @@ namespace libtorrent
 			, (bwc4?bwc4->throttle():0)
 			, m_ignore_bandwidth_limits);
 #endif
-		return m_ses.m_upload_rate.request_bandwidth(self()
-			, (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
-				* m_ses.m_settings.tick_interval / 1000)
+
+		int ret = m_ses.m_upload_rate.request_bandwidth(self()
+			, bytes
 			, priority
 			, bwc1, bwc2, bwc3, bwc4);
+
+		if (ret == 0)
+		{
+			m_channel_state[upload_channel] |= peer_info::bw_limit;
+		}
+		else 
+		{
+			m_quota[upload_channel] += ret;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log(">>> ASSIGN BANDWIDTH [ bytes: %d ]", ret);
+#endif
+		}
+		return ret;
 	}
 
 	int peer_connection::request_download_bandwidth(
@@ -4633,6 +4657,18 @@ namespace libtorrent
 		, bandwidth_channel* bwc3
 		, bandwidth_channel* bwc4)
 	{
+		// we can only have one outstanding bandwidth request at a time
+		if (m_channel_state[download_channel] & peer_info::bw_limit) return 0;
+
+		int bytes = (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
+				, m_statistics.download_rate() * 2 * m_ses.m_settings.tick_interval / 1000);
+
+		// we already have enough quota
+		if (m_quota[download_channel] >= bytes) return 0;
+
+		// deduct the bytes we already have quota for
+		bytes -= m_quota[download_channel];
+	
 		shared_ptr<torrent> t = m_torrent.lock();
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4652,10 +4688,21 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
-		return m_ses.m_download_rate.request_bandwidth(self()
-			, (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
-				, m_statistics.download_rate() * 2 * m_ses.m_settings.tick_interval / 1000)
-			, priority , bwc1, bwc2, bwc3, bwc4);
+
+		int ret = m_ses.m_download_rate.request_bandwidth(self()
+			, bytes, priority, bwc1, bwc2, bwc3, bwc4);
+		if (ret == 0)
+		{
+			m_channel_state[download_channel] |= peer_info::bw_limit;
+		}
+		else
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<<< ASSIGN BANDWIDTH [ bytes: %d ]", ret);
+#endif
+			m_quota[download_channel] += ret;
+		}
+		return ret;
 	}
 
 	void peer_connection::uncork_socket()
@@ -4669,52 +4716,42 @@ namespace libtorrent
 	{
 		if (m_disconnecting) return;
 
-		if (m_channel_state[upload_channel] & (peer_info::bw_network | peer_info::bw_limit)) return;
-		
 		shared_ptr<torrent> t = m_torrent.lock();
 
+		// we may want to request more quota at this point
+		int ret = 0;
+		bool utp = m_socket->get<utp_stream>() != 0;
+		bool ignore_limits = m_ignore_bandwidth_limits
+			|| (!m_ses.m_settings.rate_limit_utp && utp);
+		if (!ignore_limits)
+		{
+			// in this case, we have data to send, but no
+			// bandwidth. So, we simply request bandwidth
+			// from the bandwidth manager
+			ret = request_upload_bandwidth(
+				&m_ses.m_upload_channel
+				, t ? &t->m_bandwidth_channel[upload_channel] : 0
+				, &m_bandwidth_channel[upload_channel]
+				, !utp ? &m_ses.m_tcp_upload_channel : 0);
+		}
+		else
+		{
+			// in this case, we're a local peer, and the settings
+			// are set to ignore rate limits for local peers. So,
+			// instead we rate limit ourself against the special
+			// global bandwidth channel for local peers, which defaults
+			// to unthrottled
+			ret = request_upload_bandwidth(&m_ses.m_local_upload_channel
+				, &m_bandwidth_channel[upload_channel]);
+		}
+
+		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
+		
 		if (m_quota[upload_channel] == 0
 			&& !m_send_buffer.empty()
 			&& !m_connecting)
 		{
-			int ret = 0;
-			bool utp = m_socket->get<utp_stream>() != 0;
-			bool ignore_limits = m_ignore_bandwidth_limits
-				|| (!m_ses.m_settings.rate_limit_utp && utp);
-			if (!ignore_limits)
-			{
-				// in this case, we have data to send, but no
-				// bandwidth. So, we simply request bandwidth
-				// from the bandwidth manager
-				ret = request_upload_bandwidth(
-					&m_ses.m_upload_channel
-					, t ? &t->m_bandwidth_channel[upload_channel] : 0
-					, &m_bandwidth_channel[upload_channel]
-					, !utp ? &m_ses.m_tcp_upload_channel : 0);
-			}
-			else
-			{
-				// in this case, we're a local peer, and the settings
-				// are set to ignore rate limits for local peers. So,
-				// instead we rate limit ourself against the special
-				// global bandwidth channel for local peers, which defaults
-				// to unthrottled
-				ret = request_upload_bandwidth(&m_ses.m_local_upload_channel
-					, &m_bandwidth_channel[upload_channel]);
-			}
-			if (ret == 0)
-			{
-				m_channel_state[upload_channel] |= peer_info::bw_limit;
-				return;
-			}
-
-			// we were just assigned 'ret' quota
-			TORRENT_ASSERT(ret > 0);
-			m_quota[upload_channel] += ret;
-
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<<< ASSIGN BANDWIDTH [ bytes: %d ]", ret);
-#endif
+			return;
 		}
 
 		int quota_left = m_quota[upload_channel];
@@ -4823,51 +4860,42 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_disconnecting) return;
-		if (m_channel_state[download_channel] & (peer_info::bw_network | peer_info::bw_limit)) return;
 
 		shared_ptr<torrent> t = m_torrent.lock();
 		
+		// we may want to request more quota at this point
+		int ret = 0;
+		bool utp = m_socket->get<utp_stream>() != 0;
+		bool ignore_limits = m_ignore_bandwidth_limits
+			|| (!m_ses.m_settings.rate_limit_utp && utp);
+		if (!ignore_limits)
+		{
+			// in this case, we have outstanding data to
+			// receive, but no bandwidth quota. So, we simply
+			// request bandwidth from the bandwidth manager
+			ret = request_download_bandwidth(
+				&m_ses.m_download_channel
+				, t ? &t->m_bandwidth_channel[download_channel] : 0
+				, &m_bandwidth_channel[download_channel]
+				, !utp ? &m_ses.m_tcp_download_channel : 0);
+		}
+		else
+		{
+			// in this case, we're a local peer, and the settings
+			// are set to ignore rate limits for local peers. So,
+			// instead we rate limit ourself against the special
+			// global bandwidth channel for local peers, which defaults
+			// to unthrottled
+			ret = request_download_bandwidth(&m_ses.m_local_download_channel
+				, &m_bandwidth_channel[download_channel]);
+		}
+
+		if (m_channel_state[download_channel] & peer_info::bw_network) return;
+
 		if (m_quota[download_channel] == 0
 			&& !m_connecting)
 		{
-			int ret = 0;
-			bool utp = m_socket->get<utp_stream>() != 0;
-			bool ignore_limits = m_ignore_bandwidth_limits
-				|| (!m_ses.m_settings.rate_limit_utp && utp);
-			if (!ignore_limits)
-			{
-				// in this case, we have outstanding data to
-				// receive, but no bandwidth quota. So, we simply
-				// request bandwidth from the bandwidth manager
-				ret = request_download_bandwidth(
-					&m_ses.m_download_channel
-					, t ? &t->m_bandwidth_channel[download_channel] : 0
-					, &m_bandwidth_channel[download_channel]
-					, !utp ? &m_ses.m_tcp_download_channel : 0);
-			}
-			else
-			{
-				// in this case, we're a local peer, and the settings
-				// are set to ignore rate limits for local peers. So,
-				// instead we rate limit ourself against the special
-				// global bandwidth channel for local peers, which defaults
-				// to unthrottled
-				ret = request_download_bandwidth(&m_ses.m_local_download_channel
-					, &m_bandwidth_channel[download_channel]);
-			}
-			if (ret == 0)
-			{
-				m_channel_state[download_channel] |= peer_info::bw_limit;
-				return;
-			}
-
-			// we were just assigned 'ret' quota
-			TORRENT_ASSERT(ret > 0);
-			m_quota[download_channel] += ret;
-
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log(">>> ASSIGN BANDWIDTH [ bytes: %d ]", ret);
-#endif
+			return;
 		}
 		
 		if (!can_read(&m_channel_state[download_channel]))
@@ -5667,12 +5695,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(m_outstanding_bytes == outstanding_bytes);
 		}
-/*
-		if (m_channel_state[download_channel] == peer_info::bw_limit)
-			TORRENT_ASSERT(m_quota[download_channel] == 0);
-		if (m_channel_state[upload_channel] == peer_info::bw_limit)
-			TORRENT_ASSERT(m_quota[upload_channel] == 0);
-*/
+
 		std::set<piece_block> unique;
 		std::transform(m_download_queue.begin(), m_download_queue.end()
 			, std::inserter(unique, unique.begin()), boost::bind(&pending_block::block, _1));

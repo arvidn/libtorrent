@@ -1,3 +1,4 @@
+	* optimized rate limiter
 	* make disk cache pool allocator configurable
 	* fix library ABI to not depend on logging being enabled
 	* use hex encoding instead of base32 in create_magnet_uri
