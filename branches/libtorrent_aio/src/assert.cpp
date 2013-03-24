@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstring>
 #include <stdlib.h>
+#include <stdarg.h>
 
 // uClibc++ doesn't have cxxabi.h
 #if defined __GNUC__ && __GNUC__ >= 3 \
