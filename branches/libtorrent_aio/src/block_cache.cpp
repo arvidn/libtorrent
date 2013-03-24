@@ -1283,7 +1283,7 @@ void block_cache::check_invariant() const
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
-	TORRENT_ASSERT(m_pinned_blocks == num_pinnedp);
+	TORRENT_ASSERT(m_pinned_blocks == num_pinned);
 	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size <= in_use());
 
 #ifdef TORRENT_BUFFER_STATS
