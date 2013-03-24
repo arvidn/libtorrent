@@ -852,7 +852,7 @@ namespace libtorrent
 		ptime now = time_now();
 		time_duration expiration_limit = seconds(m_settings.get_int(settings_pack::cache_expiry));
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		ptime timeout = min_time();
 #endif
 
