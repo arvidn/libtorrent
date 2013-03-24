@@ -2848,7 +2848,6 @@ namespace libtorrent
 #endif
 
 		int state = m_piece_map[block.piece_index].state;
-		TORRENT_ASSERT(state != piece_pos::piece_open);
 		if (state == piece_pos::piece_open) return;
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, block.piece_index);
 		if (i == m_downloads[state - 1].end()) return;
