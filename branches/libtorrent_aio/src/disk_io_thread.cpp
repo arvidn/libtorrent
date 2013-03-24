@@ -61,6 +61,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	void assert_print_piece(cached_piece_entry const* pe)
+	{
+		assert_print("piece:\nrefcount: %d\npiece_refcount: %d\n"
+			"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\npiece_log:\n"
+			, pe->refcount, pe->piece_refcount, pe->num_blocks, int(pe->hashing)
+			, pe->hash, pe->hash ? pe->hash->offset : -1);
+		for (int i = 0; i < pe->piece_log.size(); ++i)
+		{
+			assert_print(", %d (%d)" + (i==0), pe->piece_log[i].job, pe->piece_log[i].block);
+		}
+		assert_print("\n");
+	}
+
+#define TORRENT_PIECE_ASSERT(cond, piece) \
+	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, __PRETTY_FUNCTION__, 0); } } while(false)
+
+#else
+#define TORRENT_PIECE_ASSERT(cond, piece) do {} while(false)
+#endif
 
 	void debug_log(char const* fmt, ...)
 	{
@@ -432,13 +452,13 @@ namespace libtorrent
 			if (pe == NULL)
 			{
 				DLOG("iovec_flushed: piece %d gone!\n", range_start + i);
-				TORRENT_ASSERT(refcount_pieces[i] == 0);
+				TORRENT_PIECE_ASSERT(refcount_pieces[i] == 0, pe);
 				block_start += p->blocks_in_piece;
 				continue;
 			}
 			if (refcount_pieces[i])
 			{
-				TORRENT_ASSERT(pe->piece_refcount > 0);
+				TORRENT_PIECE_ASSERT(pe->piece_refcount > 0, pe);
 				--pe->piece_refcount;
 			}
 			int num_blocks = iovec_offset[i+1] - iovec_offset[i];
@@ -473,12 +493,12 @@ namespace libtorrent
 
 		DLOG("build_iovec: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
-		TORRENT_ASSERT(start >= 0);
-		TORRENT_ASSERT(start < end);
+		TORRENT_PIECE_ASSERT(start >= 0, pe);
+		TORRENT_PIECE_ASSERT(start < end, pe);
 		end = (std::min)(end, int(pe->blocks_in_piece));
 
 		int piece_size = pe->storage->files()->piece_size(pe->piece);
-		TORRENT_ASSERT(piece_size > 0);
+		TORRENT_PIECE_ASSERT(piece_size > 0, pe);
 		
 		int iov_len = 0;
 		// the blocks we're flushing
@@ -493,7 +513,7 @@ namespace libtorrent
 		int size_left = piece_size;
 		for (int i = start; i < end; ++i, size_left -= block_size)
 		{
-			TORRENT_ASSERT(size_left > 0);
+			TORRENT_PIECE_ASSERT(size_left > 0, pe);
 			// don't flush blocks that are empty (buf == 0), not dirty
 			// (read cache blocks), or pending (already being written)
 			if (pe->blocks[i].buf == NULL
@@ -515,7 +535,7 @@ namespace libtorrent
 		}
 		DLOG("]\n");
 
-		TORRENT_ASSERT(iov_len == num_flushing);
+		TORRENT_PIECE_ASSERT(iov_len == num_flushing, pe);
 		return iov_len;
 	}
 
@@ -526,8 +546,8 @@ namespace libtorrent
 		, file::iovec_t const* iov, int const* flushing
 		, int num_blocks, storage_error& error)
 	{
-		TORRENT_ASSERT(!error);
-		TORRENT_ASSERT(num_blocks > 0);
+		TORRENT_PIECE_ASSERT(!error, pe);
+		TORRENT_PIECE_ASSERT(num_blocks > 0, pe);
 		++m_num_writing_threads;
 
 		ptime start_time = time_now_hires();
@@ -561,7 +581,7 @@ namespace libtorrent
 
 		if (!failed)
 		{
-			TORRENT_ASSERT(!error);
+			TORRENT_PIECE_ASSERT(!error, pe);
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - start_time);
 			m_write_time.add_sample(write_time / num_blocks);
 			m_cache_stats.cumulative_write_time += write_time;
@@ -610,7 +630,7 @@ namespace libtorrent
 			for (tailqueue_iterator i = jobs.iterate(); i .get(); i.next())
 			{
 				disk_io_job* j = (disk_io_job*)i.get();
-				TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
+				TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
 				j->ret = -1;
 				j->error = error;
 			}
@@ -622,7 +642,7 @@ namespace libtorrent
 			{
 				disk_io_job* next = (disk_io_job*)j->next;
 				j->next = NULL;
-				TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
+				TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
 				if (j->completed(pe, block_size))
 				{
 					j->ret = j->d.io.buffer_size;
@@ -647,15 +667,15 @@ namespace libtorrent
 
 		DLOG("flush_range: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
-		TORRENT_ASSERT(start >= 0);
-		TORRENT_ASSERT(start < end);
+		TORRENT_PIECE_ASSERT(start >= 0, pe);
+		TORRENT_PIECE_ASSERT(start < end, pe);
 		
 		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe->blocks_in_piece);
 		int* flushing = TORRENT_ALLOCA(int, pe->blocks_in_piece);
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
 
-		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 
 		l.unlock();
@@ -665,7 +685,7 @@ namespace libtorrent
 
 		l.lock();
 
-		TORRENT_ASSERT(pe->piece_refcount > 0);
+		TORRENT_PIECE_ASSERT(pe->piece_refcount > 0, pe);
 		--pe->piece_refcount;
 		iovec_flushed(pe, flushing, iov_len, 0, error);
 
@@ -739,7 +759,7 @@ namespace libtorrent
 			{
 				cached_piece_entry* pe = m_disk_cache.find_piece(storage, *i);
 				if (pe == NULL) continue;
-				TORRENT_ASSERT(pe->storage == storage);
+				TORRENT_PIECE_ASSERT(pe->storage == storage, pe);
 				flush_piece(pe, flags, l);
 			}
 		}
@@ -842,8 +862,8 @@ namespace libtorrent
 		for (list_iterator p = m_disk_cache.write_lru_pieces(); p.get(); p.next())
 		{
 			cached_piece_entry* e = (cached_piece_entry*)p.get();
-#ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(e->expire >= timeout);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			TORRENT_PIECE_ASSERT(e->expire >= timeout, e);
 			timeout = e->expire;
 #endif
 
@@ -852,7 +872,7 @@ namespace libtorrent
 			if (now - e->expire < expiration_limit) break;
 			if (e->num_dirty == 0) continue;
 
-			TORRENT_ASSERT(e->cache_state <= cached_piece_entry::read_lru1 || e->cache_state == cached_piece_entry::read_lru2);
+			TORRENT_PIECE_ASSERT(e->cache_state <= cached_piece_entry::read_lru1 || e->cache_state == cached_piece_entry::read_lru2, e);
 			++e->piece_refcount;
 			// We can rely on the piece entry not being removed by
 			// incrementing the piece_refcount
@@ -1017,7 +1037,7 @@ namespace libtorrent
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
 			if (pe != NULL)
 			{
-				TORRENT_ASSERT(pe->hash == NULL);
+				TORRENT_PIECE_ASSERT(pe->hash == NULL, pe);
 			}
 			l.unlock();
 		}
@@ -1240,13 +1260,13 @@ namespace libtorrent
 					m_disk_cache.update_cache_state(pe);
 				}
 
-				TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+				TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 				++pe->piece_refcount;
 
 				// see if we can progress the hash cursor with this new block
 				kick_hasher(pe, l);
 
-				TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+				TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 				// flushes the piece to disk in case
 				// it satisfies the condition for a write
@@ -1369,7 +1389,7 @@ namespace libtorrent
 			int piece_size = p.storage->files()->piece_size(p.piece);
 			int blocks_in_piece = (piece_size + bs - 1) / bs;
 			for (int k = 0; k < blocks_in_piece; ++k)
-				TORRENT_ASSERT(p.blocks[k].buf != j->buffer);
+				TORRENT_PIECE_ASSERT(p.blocks[k].buf != j->buffer, &p);
 		}
 		l2_.unlock();
 #endif
@@ -1622,7 +1642,7 @@ namespace libtorrent
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(storage, index);
 		if (pe == 0) return;
-		TORRENT_ASSERT(pe->hashing == false);
+		TORRENT_PIECE_ASSERT(pe->hashing == false, pe);
 		pe->hashing_done = 0;
 		delete pe->hash;
 		pe->hash = NULL;
@@ -1635,7 +1655,7 @@ namespace libtorrent
 		// at this point
 		tailqueue jobs;
 		bool ok = m_disk_cache.evict_piece(pe, jobs);
-		TORRENT_ASSERT(ok);
+		TORRENT_PIECE_ASSERT(ok, pe);
 		abort_jobs(jobs);
 	}
 
@@ -1711,7 +1731,7 @@ namespace libtorrent
 		int block_size = m_disk_cache.block_size();
 		int cursor = ph->offset / block_size;
 		int end = cursor;
-		TORRENT_ASSERT(ph->offset % block_size == 0);
+		TORRENT_PIECE_ASSERT(ph->offset % block_size == 0, pe);
 
 		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
@@ -1745,8 +1765,8 @@ namespace libtorrent
 
 		l.lock();
 
-		TORRENT_ASSERT(pe->hashing);
-		TORRENT_ASSERT(pe->hash);
+		TORRENT_PIECE_ASSERT(pe->hashing, pe);
+		TORRENT_PIECE_ASSERT(pe->hash, pe);
 
 		m_hash_time.add_sample(hash_time / (end - cursor));
 		m_cache_stats.cumulative_hash_time += hash_time;
@@ -1767,7 +1787,7 @@ namespace libtorrent
 		tailqueue hash_jobs;
 		while (j)
 		{
-			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
+			TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
 			disk_io_job* next = (disk_io_job*)j->next;
 			j->next = NULL;
 			if (j->action == disk_io_job::hash) hash_jobs.push_back(j);
@@ -1863,12 +1883,12 @@ namespace libtorrent
 #endif
 			m_disk_cache.cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
 
-			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
 			--pe->piece_refcount;
 
-			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 			// are we already done hashing?
 			if (pe->hash && !pe->hashing && pe->hash->offset == piece_size)
@@ -1914,7 +1934,7 @@ namespace libtorrent
 
 		if (pe->hashing)
 		{
-			TORRENT_ASSERT(pe->hash);
+			TORRENT_PIECE_ASSERT(pe->hash, pe);
 			// another thread is hashing this piece right now
 			// try again in a little bit
 			DLOG("do_hash: retry\n");
@@ -1924,7 +1944,7 @@ namespace libtorrent
 
 		pe->hashing = 1;
 
-		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 
 		if (pe->hash == NULL)
@@ -1949,7 +1969,7 @@ namespace libtorrent
 
 		// increment the refcounts of all
 		// blocks up front, and then hash them without holding the lock
-		TORRENT_ASSERT(ph->offset % block_size == 0);
+		TORRENT_PIECE_ASSERT(ph->offset % block_size == 0, pe);
 		for (int i = ph->offset / block_size; i < blocks_in_piece; ++i)
 		{
 			iov.iov_len = (std::min)(block_size, piece_size - ph->offset);
@@ -1973,8 +1993,8 @@ namespace libtorrent
 				&& locked_blocks[next_locked_block] == i)
 			{
 				++next_locked_block;
-				TORRENT_ASSERT(pe->blocks[i].buf);
-				TORRENT_ASSERT(ph->offset == i * block_size);
+				TORRENT_PIECE_ASSERT(pe->blocks[i].buf, pe);
+				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ph->offset += iov.iov_len;
 				ph->h.update(pe->blocks[i].buf, iov.iov_len);
 			}
@@ -2006,7 +2026,7 @@ namespace libtorrent
 
 				ptime start_time = time_now_hires();
 
-				TORRENT_ASSERT(ph->offset == i * block_size);
+				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ret = j->storage->get_storage_impl()->readv(&iov, 1, j->piece
 						, ph->offset, file_flags, j->error);
 
@@ -2027,7 +2047,7 @@ namespace libtorrent
 					++m_cache_stats.blocks_read;
 				}
 
-				TORRENT_ASSERT(ph->offset == i * block_size);
+				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ph->offset += iov.iov_len;
 				ph->h.update((char const*)iov.iov_base, iov.iov_len);
 
@@ -2188,7 +2208,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
 #endif
-		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 
 		int block_size = m_disk_cache.block_size();
@@ -2366,13 +2386,13 @@ namespace libtorrent
 		if (pe == NULL) return 0;
 		if (pe->num_dirty == 0) return 0;
 
-		TORRENT_ASSERT(pe->outstanding_flush == 1);
+		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
 		pe->outstanding_flush = 0;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
 #endif
-		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 
 		if (!pe->hashing_done)
@@ -2386,7 +2406,7 @@ namespace libtorrent
 			// see if we can progress the hash cursor with this new block
 			kick_hasher(pe, l);
 
-			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 		}
 
 		// flushes the piece to disk in case
@@ -2448,7 +2468,7 @@ namespace libtorrent
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == 0) return 0;
-		TORRENT_ASSERT(pe->hashing == false);
+		TORRENT_PIECE_ASSERT(pe->hashing == false, pe);
 		pe->hashing_done = 0;
 		delete pe->hash;
 		pe->hash = NULL;
@@ -2469,13 +2489,7 @@ namespace libtorrent
 		}
 		// we should always be able to evict the piece, since
 		// this is a fence job
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		assert_print("failed to evict piece:\nrefcount: %d\npiece_refcount: %d\n"
-			"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n\n"
-			, pe->refcount, pe->piece_refcount, pe->num_blocks, int(pe->hashing)
-			, pe->hash, pe->hash ? pe->hash->offset : -1);
-#endif
-		TORRENT_ASSERT(false);
+		TORRENT_PIECE_ASSERT(false, pe);
 		return retry_job;
 	}
 

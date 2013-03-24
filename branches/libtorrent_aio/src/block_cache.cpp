@@ -133,6 +133,18 @@ void log_refcounts(cached_piece_entry const* pe)
 }
 #endif
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+
+// defined in disk_io_thread.cpp
+	void assert_print_piece(cached_piece_entry const* pe);
+
+#define TORRENT_PIECE_ASSERT(cond, piece) \
+	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, __PRETTY_FUNCTION__, 0); } } while(false)
+
+#else
+#define TORRENT_PIECE_ASSERT(cond, piece) do {} while(false)
+#endif
+
 cached_piece_entry::cached_piece_entry()
 	: storage()
 	, hash(0)
@@ -220,7 +232,7 @@ int block_cache::try_read(disk_io_job* j)
 void block_cache::bump_lru(cached_piece_entry* p)
 {
 	// move to the top of the LRU list
-	TORRENT_ASSERT(p->cache_state == cached_piece_entry::write_lru);
+	TORRENT_PIECE_ASSERT(p->cache_state == cached_piece_entry::write_lru, p);
 	linked_list* lru_list = &m_lru[p->cache_state];
 
 	// move to the back (MRU) of the list
@@ -314,8 +326,8 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 
 	if (desired_state == state) return;
 
-	TORRENT_ASSERT(state < cached_piece_entry::num_lrus);
-	TORRENT_ASSERT(desired_state < cached_piece_entry::num_lrus);
+	TORRENT_PIECE_ASSERT(state < cached_piece_entry::num_lrus, p);
+	TORRENT_PIECE_ASSERT(desired_state < cached_piece_entry::num_lrus, p);
 	linked_list* src = &m_lru[state];
 	linked_list* dst = &m_lru[desired_state];
 
@@ -350,13 +362,13 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		pe.cache_state = cache_state;
 		pe.last_requester = j->requester;
-		TORRENT_ASSERT(pe.blocks);
+		TORRENT_PIECE_ASSERT(pe.blocks, &pe);
 		if (!pe.blocks) return 0;
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(pe).first);
 
 		j->storage->add_piece(p);
 
-		TORRENT_ASSERT(p->cache_state < cached_piece_entry::num_lrus);
+		TORRENT_PIECE_ASSERT(p->cache_state < cached_piece_entry::num_lrus, p);
 		linked_list* lru_list = &m_lru[p->cache_state];
 		lru_list->push_back(p);
 
@@ -422,22 +434,22 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	// we should never add a new dirty block on a piece
 	// that has checked the hash. Before we add it, the
 	// piece need to be cleared (with async_clear_piece)
-	TORRENT_ASSERT(pe->hashing_done == 0);
+	TORRENT_PIECE_ASSERT(pe->hashing_done == 0, pe);
 
 	// this only evicts read blocks
 
 	int evict = num_to_evict(1);
 	if (evict > 0) try_evict_blocks(evict, pe);
 
-	TORRENT_ASSERT(block < pe->blocks_in_piece);
-	TORRENT_ASSERT(j->piece == pe->piece);
-	TORRENT_ASSERT(!pe->marked_for_deletion);
+	TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
+	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
+	TORRENT_PIECE_ASSERT(!pe->marked_for_deletion, pe);
 
-	TORRENT_ASSERT(pe->blocks[block].refcount == 0);
+	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount == 0, pe);
 
 	cached_block_entry& b = pe->blocks[block];
 
-	TORRENT_ASSERT(b.buf != j->buffer);
+	TORRENT_PIECE_ASSERT(b.buf != j->buffer, pe);
 
 	// we might have a left-over read block from
 	// hash checking
@@ -445,9 +457,9 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	// we're still waiting for to be written
 	if (b.buf != 0 && b.buf != j->buffer)
 	{
-		TORRENT_ASSERT(b.refcount == 0 && !b.pending);
+		TORRENT_PIECE_ASSERT(b.refcount == 0 && !b.pending, pe);
 		free_block(pe, block);
-		TORRENT_ASSERT(b.dirty == 0);
+		TORRENT_PIECE_ASSERT(b.dirty == 0, pe);
 	}
 
 	b.buf = j->buffer;
@@ -460,8 +472,8 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	++pe->num_dirty;
 	++m_write_cache_size;
 	j->buffer = 0;
-	TORRENT_ASSERT(j->piece == pe->piece);
-	TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
+	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
+	TORRENT_PIECE_ASSERT(j->flags & disk_io_job::in_progress, pe);
 	pe->jobs.push_back(j);
 
 	if (block == 0 && pe->hash == NULL && pe->hashing_done == false)
@@ -485,10 +497,10 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 	for (int i = 0; i < num_flushed; ++i)
 	{
 		int block = flushed[i];
-		TORRENT_ASSERT(block >= 0);
-		TORRENT_ASSERT(block < pe->blocks_in_piece);
-		TORRENT_ASSERT(pe->blocks[block].dirty);
-		TORRENT_ASSERT(pe->blocks[block].pending);
+		TORRENT_PIECE_ASSERT(block >= 0, pe);
+		TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
+		TORRENT_PIECE_ASSERT(pe->blocks[block].dirty, pe);
+		TORRENT_PIECE_ASSERT(pe->blocks[block].pending, pe);
 		pe->blocks[block].pending = false;
 		pe->blocks[block].dirty = false;
 		dec_block_refcount(pe, block, block_cache::ref_flushing);
@@ -512,28 +524,28 @@ std::pair<block_cache::iterator, block_cache::iterator> block_cache::all_pieces(
 void block_cache::free_block(cached_piece_entry* pe, int block)
 {
 	TORRENT_ASSERT(pe != 0);
-	TORRENT_ASSERT(block < pe->blocks_in_piece);
-	TORRENT_ASSERT(block >= 0);
+	TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
+	TORRENT_PIECE_ASSERT(block >= 0, pe);
 
 	cached_block_entry& b = pe->blocks[block];
 
-	TORRENT_ASSERT(b.refcount == 0);
-	TORRENT_ASSERT(!b.pending);
-	TORRENT_ASSERT(b.buf);
+	TORRENT_PIECE_ASSERT(b.refcount == 0, pe);
+	TORRENT_PIECE_ASSERT(!b.pending, pe);
+	TORRENT_PIECE_ASSERT(b.buf, pe);
 
 	if (b.dirty)
 	{
 		--pe->num_dirty;
 		b.dirty = false;
-		TORRENT_ASSERT(m_write_cache_size > 0);
+		TORRENT_PIECE_ASSERT(m_write_cache_size > 0, pe);
 		--m_write_cache_size;
 	}
 	else
 	{
-		TORRENT_ASSERT(m_read_cache_size > 0);
+		TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
 		--m_read_cache_size;
 	}
-	TORRENT_ASSERT(pe->num_blocks > 0);
+	TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 	--pe->num_blocks;
 	free_buffer(b.buf);
 	b.buf = 0;
@@ -548,24 +560,24 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue& jobs)
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0 || pe->blocks[i].refcount > 0) continue;
-		TORRENT_ASSERT(!pe->blocks[i].pending);
-		TORRENT_ASSERT(pe->blocks[i].buf != 0);
-		TORRENT_ASSERT(num_to_delete < pe->blocks_in_piece);
+		TORRENT_PIECE_ASSERT(!pe->blocks[i].pending, pe);
+		TORRENT_PIECE_ASSERT(pe->blocks[i].buf != 0, pe);
+		TORRENT_PIECE_ASSERT(num_to_delete < pe->blocks_in_piece, pe);
 		to_delete[num_to_delete++] = pe->blocks[i].buf;
 		pe->blocks[i].buf = 0;
-		TORRENT_ASSERT(pe->num_blocks > 0);
+		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 		--pe->num_blocks;
 		if (!pe->blocks[i].dirty)
 		{
-			TORRENT_ASSERT(m_read_cache_size > 0);
+			TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
 			--m_read_cache_size;
 		}
 		else
 		{
-			TORRENT_ASSERT(pe->num_dirty > 0);
+			TORRENT_PIECE_ASSERT(pe->num_dirty > 0, pe);
 			--pe->num_dirty;
 			pe->blocks[i].dirty = false;
-			TORRENT_ASSERT(m_write_cache_size > 0);
+			TORRENT_PIECE_ASSERT(m_write_cache_size > 0, pe);
 			--m_write_cache_size;
 		}
 		if (pe->num_blocks == 0) break;
@@ -600,7 +612,7 @@ void block_cache::mark_for_deletion(cached_piece_entry* p)
 	DLOG(stderr, "[%p] block_cache mark-for-deletion "
 		"piece: %d\n", this, int(p->piece));
 
-	TORRENT_ASSERT(p->jobs.empty());
+	TORRENT_PIECE_ASSERT(p->jobs.empty(), p);
 	tailqueue jobs;
 	if (!evict_piece(p, jobs))
 	{
@@ -612,13 +624,13 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 {
 	INVARIANT_CHECK;
 
-	TORRENT_ASSERT(pe->ok_to_evict());
-	TORRENT_ASSERT(pe->cache_state < cached_piece_entry::num_lrus);
-	TORRENT_ASSERT(pe->jobs.empty());
+	TORRENT_PIECE_ASSERT(pe->ok_to_evict(), pe);
+	TORRENT_PIECE_ASSERT(pe->cache_state < cached_piece_entry::num_lrus, pe);
+	TORRENT_PIECE_ASSERT(pe->jobs.empty(), pe);
 	linked_list* lru_list = &m_lru[pe->cache_state];
 	if (pe->hash)
 	{
-		TORRENT_ASSERT(pe->hash->offset == 0);
+		TORRENT_PIECE_ASSERT(pe->hash->offset == 0, pe);
 		delete pe->hash;
 		pe->hash = NULL;
 	}
@@ -708,15 +720,15 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 			{
 #ifdef TORRENT_DEBUG
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
-					TORRENT_ASSERT(pe->blocks[j].buf == 0);
+					TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
-				TORRENT_ASSERT(pe->refcount == 0);
+				TORRENT_PIECE_ASSERT(pe->refcount == 0, pe);
 				i.next();
 				move_to_ghost(pe);
 				continue;
 			}
 
-			TORRENT_ASSERT(pe->num_dirty == 0);
+			TORRENT_PIECE_ASSERT(pe->num_dirty == 0, pe);
 
 			// go through the blocks and evict the ones
 			// that are not dirty and not referenced
@@ -728,9 +740,9 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 				to_delete[num_to_delete++] = b.buf;
 				b.buf = 0;
-				TORRENT_ASSERT(pe->num_blocks > 0);
+				TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 				--pe->num_blocks;
-				TORRENT_ASSERT(m_read_cache_size > 0);
+				TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
 				--m_read_cache_size;
 				--num;
 			}
@@ -739,7 +751,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 			{
 #ifdef TORRENT_DEBUG
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
-					TORRENT_ASSERT(pe->blocks[j].buf == 0);
+					TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
 				i.next();
 
@@ -776,9 +788,9 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				{
 #ifdef TORRENT_DEBUG
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
-						TORRENT_ASSERT(pe->blocks[j].buf == 0);
+						TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
-					TORRENT_ASSERT(pe->refcount == 0);
+					TORRENT_PIECE_ASSERT(pe->refcount == 0, pe);
 					i.next();
 					erase_piece(pe);
 					continue;
@@ -808,9 +820,9 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 					to_delete[num_to_delete++] = b.buf;
 					b.buf = 0;
-					TORRENT_ASSERT(pe->num_blocks > 0);
+					TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 					--pe->num_blocks;
-					TORRENT_ASSERT(m_read_cache_size > 0);
+					TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
 					--m_read_cache_size;
 					--num;
 				}
@@ -819,7 +831,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				{
 #ifdef TORRENT_DEBUG
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
-						TORRENT_ASSERT(pe->blocks[j].buf == 0);
+						TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
 					i.next();
 
@@ -874,9 +886,9 @@ void block_cache::clear(tailqueue& jobs)
 
 void block_cache::move_to_ghost(cached_piece_entry* pe)
 {
-	TORRENT_ASSERT(pe->refcount == 0);
-	TORRENT_ASSERT(pe->piece_refcount == 0);
-	TORRENT_ASSERT(pe->num_blocks == 0);
+	TORRENT_PIECE_ASSERT(pe->refcount == 0, pe);
+	TORRENT_PIECE_ASSERT(pe->piece_refcount == 0, pe);
+	TORRENT_PIECE_ASSERT(pe->num_blocks == 0, pe);
 
 	if (pe->cache_state == cached_piece_entry::volatile_read_lru)
 	{
@@ -884,8 +896,8 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 		return;
 	}
 
-	TORRENT_ASSERT(pe->cache_state == cached_piece_entry::read_lru1
-		|| pe->cache_state == cached_piece_entry::read_lru2);
+	TORRENT_PIECE_ASSERT(pe->cache_state == cached_piece_entry::read_lru1
+		|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 	// if the piece is in L1 or L2, move it into the ghost list
 	// i.e. recently evicted
@@ -898,10 +910,10 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 	while (ghost_list->size() >= m_ghost_size)
 	{
 		cached_piece_entry* p = (cached_piece_entry*)ghost_list->front();
-		TORRENT_ASSERT(p != pe);
-		TORRENT_ASSERT(p->num_blocks == 0);
-		TORRENT_ASSERT(p->refcount == 0);
-		TORRENT_ASSERT(p->piece_refcount == 0);
+		TORRENT_PIECE_ASSERT(p != pe, p);
+		TORRENT_PIECE_ASSERT(p->num_blocks == 0, p);
+		TORRENT_PIECE_ASSERT(p->refcount == 0, p);
+		TORRENT_PIECE_ASSERT(p->piece_refcount == 0, p);
 		erase_piece(p);
 	}
 
@@ -959,7 +971,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	INVARIANT_CHECK;
 
 	TORRENT_ASSERT(pe);
-	TORRENT_ASSERT(iov_len > 0);
+	TORRENT_PIECE_ASSERT(iov_len > 0, pe);
 	int start = block;
 
 	cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
@@ -967,11 +979,11 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	for (int i = 0; i < iov_len; ++i)
 	{
 		// each iovec buffer has to be the size of a block (or the size of the last block)
-		TORRENT_ASSERT(iov[i].iov_len == (std::min)(block_size()
-			, pe->storage->files()->piece_size(pe->piece) - (start + i) * block_size()));
+		TORRENT_PIECE_ASSERT(iov[i].iov_len == (std::min)(block_size()
+			, pe->storage->files()->piece_size(pe->piece) - (start + i) * block_size()), pe);
 
 #ifdef TORRENT_DEBUG_BUFFERS
-		TORRENT_ASSERT(is_disk_buffer((char*)iov[i].iov_base));
+		TORRENT_PIECE_ASSERT(is_disk_buffer((char*)iov[i].iov_base), pe);
 #endif
 
 		// either free the block or insert it. Never replace a block
@@ -986,20 +998,20 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 #ifdef TORRENT_BUFFER_STATS
 			rename_buffer(pe->blocks[start + i].buf, "read cache");
 #endif
-			TORRENT_ASSERT(iov[i].iov_base != NULL);
-			TORRENT_ASSERT(pe->blocks[start + i].dirty == false);
+			TORRENT_PIECE_ASSERT(iov[i].iov_base != NULL, pe);
+			TORRENT_PIECE_ASSERT(pe->blocks[start + i].dirty == false, pe);
 			++pe->num_blocks;
 			++m_read_cache_size;
 		}
 	}
 
-	TORRENT_ASSERT(pe->cache_state != cached_piece_entry::read_lru1_ghost);
-	TORRENT_ASSERT(pe->cache_state != cached_piece_entry::read_lru2_ghost);
+	TORRENT_PIECE_ASSERT(pe->cache_state != cached_piece_entry::read_lru1_ghost, pe);
+	TORRENT_PIECE_ASSERT(pe->cache_state != cached_piece_entry::read_lru2_ghost, pe);
 }
 
 void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
-	TORRENT_ASSERT(pe->blocks[block].buf != NULL);
+	TORRENT_PIECE_ASSERT(pe->blocks[block].buf != NULL, pe);
 	++pe->blocks[block].refcount;
 	if (pe->blocks[block].refcount == 1)
 		++m_pinned_blocks;
@@ -1016,14 +1028,14 @@ void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 
 void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
-	TORRENT_ASSERT(pe->blocks[block].buf != NULL);
-	TORRENT_ASSERT(pe->blocks[block].refcount > 0);
+	TORRENT_PIECE_ASSERT(pe->blocks[block].buf != NULL, pe);
+	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount > 0, pe);
 	--pe->blocks[block].refcount;
-	TORRENT_ASSERT(pe->refcount > 0);
+	TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
 	--pe->refcount;
 	if (pe->blocks[block].refcount == 0)
 	{
-		TORRENT_ASSERT(m_pinned_blocks > 0);
+		TORRENT_PIECE_ASSERT(m_pinned_blocks > 0, pe);
 		--m_pinned_blocks;
 	}
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -1046,16 +1058,16 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 			|| pe->blocks[i].refcount > 0
 			|| pe->blocks[i].buf == NULL) continue;
 
-		TORRENT_ASSERT(!pe->blocks[i].pending);
-		TORRENT_ASSERT(pe->blocks[i].dirty);
+		TORRENT_PIECE_ASSERT(!pe->blocks[i].pending, pe);
+		TORRENT_PIECE_ASSERT(pe->blocks[i].dirty, pe);
 		free_buffer(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
 		pe->blocks[i].dirty = false;
-		TORRENT_ASSERT(pe->num_blocks > 0);
+		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 		--pe->num_blocks;
-		TORRENT_ASSERT(m_write_cache_size > 0);
+		TORRENT_PIECE_ASSERT(m_write_cache_size > 0, pe);
 		--m_write_cache_size;
-		TORRENT_ASSERT(pe->num_dirty > 0);
+		TORRENT_PIECE_ASSERT(pe->num_dirty > 0, pe);
 		--pe->num_dirty;
 	}
 
@@ -1068,8 +1080,8 @@ void block_cache::free_piece(cached_piece_entry* pe)
 {
 	INVARIANT_CHECK;
 
-	TORRENT_ASSERT(pe->refcount == 0);
-	TORRENT_ASSERT(pe->piece_refcount == 0);
+	TORRENT_PIECE_ASSERT(pe->refcount == 0, pe);
+	TORRENT_PIECE_ASSERT(pe->piece_refcount == 0, pe);
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
 	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
@@ -1077,23 +1089,23 @@ void block_cache::free_piece(cached_piece_entry* pe)
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0) continue;
-		TORRENT_ASSERT(pe->blocks[i].pending == false);
-		TORRENT_ASSERT(pe->blocks[i].refcount == 0);
-		TORRENT_ASSERT(num_to_delete < pe->blocks_in_piece);
+		TORRENT_PIECE_ASSERT(pe->blocks[i].pending == false, pe);
+		TORRENT_PIECE_ASSERT(pe->blocks[i].refcount == 0, pe);
+		TORRENT_PIECE_ASSERT(num_to_delete < pe->blocks_in_piece, pe);
 		to_delete[num_to_delete++] = pe->blocks[i].buf;
 		pe->blocks[i].buf = 0;
-		TORRENT_ASSERT(pe->num_blocks > 0);
+		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 		--pe->num_blocks;
 		if (pe->blocks[i].dirty)
 		{
-			TORRENT_ASSERT(m_write_cache_size > 0);
+			TORRENT_PIECE_ASSERT(m_write_cache_size > 0, pe);
 			--m_write_cache_size;
-			TORRENT_ASSERT(pe->num_dirty > 0);
+			TORRENT_PIECE_ASSERT(pe->num_dirty > 0, pe);
 			--pe->num_dirty;
 		}
 		else
 		{
-			TORRENT_ASSERT(m_read_cache_size > 0);
+			TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
 			--m_read_cache_size;
 		}
 	}
@@ -1110,18 +1122,18 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 	for (int i = 0; i < blocks_in_piece; ++i)
 	{
 		if (p.blocks[i].buf == 0) continue;
-		TORRENT_ASSERT(p.blocks[i].refcount == 0);
+		TORRENT_PIECE_ASSERT(p.blocks[i].refcount == 0, &p);
 		buf.push_back(p.blocks[i].buf);
 		++ret;
 		p.blocks[i].buf = 0;
-		TORRENT_ASSERT(p.num_blocks > 0);
+		TORRENT_PIECE_ASSERT(p.num_blocks > 0, &p);
 		--p.num_blocks;
 
 		if (p.blocks[i].dirty)
 		{
 			TORRENT_ASSERT(m_write_cache_size > 0);
 			--m_write_cache_size;
-			TORRENT_ASSERT(p.num_dirty > 0);
+			TORRENT_PIECE_ASSERT(p.num_dirty > 0, &p);
 			--p.num_dirty;
 		}
 		else
@@ -1180,9 +1192,9 @@ void block_cache::check_invariant() const
 		for (list_iterator p = m_lru[i].iterate(); p.get(); p.next())
 		{
 			cached_piece_entry* pe = (cached_piece_entry*)p.get();
-			TORRENT_ASSERT(pe->cache_state == i);
+			TORRENT_PIECE_ASSERT(pe->cache_state == i, pe);
 			if (pe->num_dirty > 0)
-				TORRENT_ASSERT(i == cached_piece_entry::write_lru);
+				TORRENT_PIECE_ASSERT(i == cached_piece_entry::write_lru, pe);
 
 //			if (i == cached_piece_entry::write_lru)
 //				TORRENT_ASSERT(pe->num_dirty > 0);
@@ -1190,15 +1202,15 @@ void block_cache::check_invariant() const
 			if (i != cached_piece_entry::read_lru1_ghost
 				&& i != cached_piece_entry::read_lru2_ghost)
 			{
-				TORRENT_ASSERT(pe->storage->has_piece(pe));
-				TORRENT_ASSERT(pe->expire >= timeout);
+				TORRENT_PIECE_ASSERT(pe->storage->has_piece(pe), pe);
+				TORRENT_PIECE_ASSERT(pe->expire >= timeout, pe);
 				timeout = pe->expire;
 			}
 			else
 			{
 				// pieces in the ghost lists should never have any blocks
-				TORRENT_ASSERT(pe->num_blocks == 0);
-				TORRENT_ASSERT(pe->storage->has_piece(pe) == false);
+				TORRENT_PIECE_ASSERT(pe->num_blocks == 0, pe);
+				TORRENT_PIECE_ASSERT(pe->storage->has_piece(pe) == false, pe);
 			}
 
 			storages.insert(pe->storage.get());
@@ -1212,7 +1224,7 @@ void block_cache::check_invariant() const
 			, end((*i)->cached_pieces().end()); j != end; ++j)
 		{
 			cached_piece_entry* pe = *j;
-			TORRENT_ASSERT(pe->storage == *i);
+			TORRENT_PIECE_ASSERT(pe->storage == *i, pe);
 		}
 	}
 
@@ -1220,26 +1232,26 @@ void block_cache::check_invariant() const
 	for (iterator i = m_pieces.begin(), end(m_pieces.end()); i != end; ++i)
 	{
 		cached_piece_entry const& p = *i;
-		TORRENT_ASSERT(p.blocks);
+		TORRENT_PIECE_ASSERT(p.blocks, &p);
 		
-		TORRENT_ASSERT(p.storage);
+		TORRENT_PIECE_ASSERT(p.storage, &p);
 		int piece_size = p.storage->files()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 		int num_blocks = 0;
 		int num_dirty = 0;
 		int num_pending = 0;
 		int num_refcount = 0;
-		TORRENT_ASSERT(blocks_in_piece == p.blocks_in_piece);
+		TORRENT_PIECE_ASSERT(blocks_in_piece == p.blocks_in_piece, &p);
 		for (int k = 0; k < blocks_in_piece; ++k)
 		{
 			if (p.blocks[k].buf)
 			{
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-				TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
+				TORRENT_PIECE_ASSERT(is_disk_buffer(p.blocks[k].buf), &p);
 
 				// make sure we don't have the same buffer
 				// in the cache twice
-				TORRENT_ASSERT(buffers.count(p.blocks[k].buf) == 0);
+				TORRENT_PIECE_ASSERT(buffers.count(p.blocks[k].buf) == 0, &p);
 				buffers.insert(p.blocks[k].buf);
 #endif
 				++num_blocks;
@@ -1257,21 +1269,21 @@ void block_cache::check_invariant() const
 			}
 			else
 			{
-				TORRENT_ASSERT(!p.blocks[k].dirty);
-				TORRENT_ASSERT(!p.blocks[k].pending);
-				TORRENT_ASSERT(p.blocks[k].refcount == 0);
+				TORRENT_PIECE_ASSERT(!p.blocks[k].dirty, &p);
+				TORRENT_PIECE_ASSERT(!p.blocks[k].pending, &p);
+				TORRENT_PIECE_ASSERT(p.blocks[k].refcount == 0, &p);
 			}
-			TORRENT_ASSERT(p.blocks[k].refcount >= 0);
+			TORRENT_PIECE_ASSERT(p.blocks[k].refcount >= 0, &p);
 			num_refcount += p.blocks[k].refcount;
 		}
-		TORRENT_ASSERT(num_blocks == p.num_blocks);
-		TORRENT_ASSERT(num_pending <= p.refcount);
-		TORRENT_ASSERT(num_refcount == p.refcount);
-		TORRENT_ASSERT(num_dirty == p.num_dirty);
+		TORRENT_PIECE_ASSERT(num_blocks == p.num_blocks, &p);
+		TORRENT_PIECE_ASSERT(num_pending <= p.refcount, &p);
+		TORRENT_PIECE_ASSERT(num_refcount == p.refcount, &p);
+		TORRENT_PIECE_ASSERT(num_dirty == p.num_dirty, &p);
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
-	TORRENT_ASSERT(m_pinned_blocks == num_pinned);
+	TORRENT_ASSERT(m_pinned_blocks == num_pinnedp);
 	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size <= in_use());
 
 #ifdef TORRENT_BUFFER_STATS
@@ -1291,7 +1303,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 {
 	INVARIANT_CHECK;
 
-	TORRENT_ASSERT(j->buffer == 0);
+	TORRENT_PIECE_ASSERT(j->buffer == 0, pe);
 
 	// copy from the cache and update the last use timestamp
 	int block = j->d.io.offset / block_size();
@@ -1299,7 +1311,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 	int buffer_offset = 0;
 	int size = j->d.io.buffer_size;
 	int blocks_to_read = block_offset > 0 && (size > block_size() - block_offset) ? 2 : 1;
-	TORRENT_ASSERT(size <= block_size());
+	TORRENT_PIECE_ASSERT(size <= block_size(), pe);
 	int start_block = block;
 
 	cached_block_entry* bl = &pe->blocks[start_block];
@@ -1314,7 +1326,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 #ifdef TORRENT_DEBUG	
 	int piece_size = j->storage->files()->piece_size(j->piece);
 	int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
-	TORRENT_ASSERT(start_block < blocks_in_piece);
+	TORRENT_PIECE_ASSERT(start_block < blocks_in_piece, pe);
 #endif
 
 	// if there's no buffer, we don't have this block in
@@ -1332,9 +1344,13 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		// the existing block
 		if (bl->refcount == 0) ++m_pinned_blocks;
 		++pe->blocks[start_block].refcount;
-		TORRENT_ASSERT(pe->blocks[start_block].refcount > 0); // make sure it didn't wrap
+
+		// make sure it didn't wrap
+		TORRENT_PIECE_ASSERT(pe->blocks[start_block].refcount > 0, pe);
 		++pe->refcount;
-		TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
+
+		// make sure it didn't wrap
+		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
 		j->d.io.ref.storage = j->storage.get();
 		j->d.io.ref.piece = pe->piece;
 		j->d.io.ref.block = start_block;
@@ -1351,7 +1367,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 
 	while (size > 0)
 	{
-		TORRENT_ASSERT(pe->blocks[block].buf);
+		TORRENT_PIECE_ASSERT(pe->blocks[block].buf, pe);
 		int to_copy = (std::min)(block_size()
 			- block_offset, size);
 		std::memcpy(j->buffer + buffer_offset
@@ -1371,10 +1387,10 @@ void block_cache::reclaim_block(block_cache_reference const& ref)
 	cached_piece_entry* pe = find_piece(ref);
 	if (pe == NULL) return;
 
-	TORRENT_ASSERT(pe->blocks[ref.block].buf);
+	TORRENT_PIECE_ASSERT(pe->blocks[ref.block].buf, pe);
 	dec_block_refcount(pe, ref.block, block_cache::ref_reading);
 
-	TORRENT_ASSERT(m_send_buffer_blocks > 0);
+	TORRENT_PIECE_ASSERT(m_send_buffer_blocks > 0, pe);
 	--m_send_buffer_blocks;
 
 	maybe_free_piece(pe);
@@ -1395,8 +1411,8 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 
 	tailqueue jobs;
 	bool removed = evict_piece(pe, jobs);
-	TORRENT_ASSERT(removed);
-	TORRENT_ASSERT(jobs.empty());
+	TORRENT_PIECE_ASSERT(removed, pe);
+	TORRENT_PIECE_ASSERT(jobs.empty(), pe);
 
 	return true;
 }
