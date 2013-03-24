@@ -58,6 +58,7 @@ extern char const* libtorrent_assert_log;
 #include <sstream>
 #endif
 
+TORRENT_EXPORT void assert_print(char const* fmt, ...);
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
 	, char const* function, char const* val);
 

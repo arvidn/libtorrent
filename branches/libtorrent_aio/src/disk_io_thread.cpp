@@ -2470,7 +2470,7 @@ namespace libtorrent
 		// we should always be able to evict the piece, since
 		// this is a fence job
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		fprintf(stderr, "failed to evict piece:\nrefcount: %d\npiece_refcount: %d\n"
+		assert_print("failed to evict piece:\nrefcount: %d\npiece_refcount: %d\n"
 			"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n\n"
 			, pe->refcount, pe->piece_refcount, pe->num_blocks, int(pe->hashing)
 			, pe->hash, pe->hash ? pe->hash->offset : -1);

@@ -206,8 +206,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 char const* libtorrent_assert_log = "asserts.log";
 #endif
 
-TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
-	, char const* function, char const* value)
+TORRENT_EXPORT void assert_print(char const* fmt, ...)
 {
 #if TORRENT_PRODUCTION_ASSERTS
 	FILE* out = fopen(libtorrent_assert_log, "a+");
@@ -215,11 +214,23 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 #else
 	FILE* out = stderr;
 #endif
+	va_list va;
+	va_start(va, fmt);
+	vfprintf(out, fmt, va);
+	va_end(va);
 
+#if TORRENT_PRODUCTION_ASSERTS
+	if (out != stderr) fclose(out);
+#endif
+}
+
+TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
+	, char const* function, char const* value)
+{
 	char stack[8192];
 	print_backtrace(stack, sizeof(stack), 0);
 
-	fprintf(out, "assertion failed. Please file a bugreport at "
+	assert_print("assertion failed. Please file a bugreport at "
 		"http://code.google.com/p/libtorrent/issues\n"
 		"Please include the following information:\n\n"
 		"version: " LIBTORRENT_VERSION "\n"
@@ -236,9 +247,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 		, stack);
 
 	// if production asserts are defined, don't abort, just print the error
-#if TORRENT_PRODUCTION_ASSERTS
-	if (out != stderr) fclose(out);
-#else
+#ifndef TORRENT_PRODUCTION_ASSERTS
  	// send SIGINT to the current process
  	// to break into the debugger
  	raise(SIGINT);
@@ -248,6 +257,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 
 #else
 
+TORRENT_EXPORT void assert_print(char const* fmt, ...) {}
 TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file, char const* function) {}
 
 #endif
