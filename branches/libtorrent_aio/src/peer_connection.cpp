@@ -4339,7 +4339,7 @@ namespace libtorrent
 		}
 
 		// disconnect peers that we unchoked, but
-		// they didn't send a request within 20 seconds.
+		// they didn't send a request within 60 seconds.
 		// but only if we're a seed
 		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
 		if (may_timeout
@@ -4349,7 +4349,7 @@ namespace libtorrent
 			&& !m_choked
 			&& m_peer_interested
 			&& t && t->is_upload_only()
-			&& d > seconds(20))
+			&& d > seconds(60))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** NO REQUEST [ waited %d seconds ] ***", int(total_seconds(d)));
