@@ -37,9 +37,7 @@ using namespace libtorrent;
 
 int main()
 {
-	session ses;
-
-	std::vector<stats_metric> m = ses.session_stats_metrics();
+	std::vector<stats_metric> m = session_stats_metrics();
 	for (int i = 0; i < int(m.size()); ++i)
 	{
 		printf("%s: %s (%d)\n"
