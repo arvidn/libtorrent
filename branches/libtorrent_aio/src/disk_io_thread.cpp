@@ -421,6 +421,9 @@ namespace libtorrent
 			iovec_offset[i] = iov_len;
 			refcount_pieces[i] = 1;
 			TORRENT_ASSERT_VAL(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::flushing, -1));
+#endif
 			++pe->piece_refcount;
 
 			iov_len += build_iovec(pe, 0, p->blocks_in_piece
@@ -684,6 +687,9 @@ namespace libtorrent
 		if (iov_len == 0) return 0;
 
 		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		pe->piece_log.push_back(piece_log_t(piece_log_t::flush_range, -1));
+#endif
 		++pe->piece_refcount;
 
 		l.unlock();
@@ -819,6 +825,10 @@ namespace libtorrent
 			// another thread may flush this piece while we're looping and
 			// evict it into a read piece and then also evict it to ghost
 			if (pe->cache_state != cached_piece_entry::write_lru) continue;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::try_flush_write_blocks, -1));
+#endif
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
 			num -= try_flush_hashed(pe, 1, l);
@@ -845,6 +855,9 @@ namespace libtorrent
 			// evict it into a read piece and then also evict it to ghost
 			if (pe->cache_state != cached_piece_entry::write_lru) continue;
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::try_flush_write_blocks2, -1));
+#endif
 			++pe->piece_refcount;
 			// don't flush blocks that are being hashed by another thread
 			if (pe->num_dirty == 0 || pe->hashing) continue;
@@ -881,6 +894,9 @@ namespace libtorrent
 			if (e->num_dirty == 0) continue;
 
 			TORRENT_PIECE_ASSERT(e->cache_state <= cached_piece_entry::read_lru1 || e->cache_state == cached_piece_entry::read_lru2, e);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			e->piece_log.push_back(piece_log_t(piece_log_t::flush_expired, -1));
+#endif
 			++e->piece_refcount;
 			// We can rely on the piece entry not being removed by
 			// incrementing the piece_refcount
@@ -1268,6 +1284,9 @@ namespace libtorrent
 					m_disk_cache.update_cache_state(pe);
 				}
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+				pe->piece_log.push_back(piece_log_t(piece_log_t::do_write, -1));
+#endif
 				TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 				++pe->piece_refcount;
 
@@ -1952,6 +1971,9 @@ namespace libtorrent
 
 		pe->hashing = 1;
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		pe->piece_log.push_back(piece_log_t(piece_log_t::do_hash, -1));
+#endif
 		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 

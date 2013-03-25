@@ -51,6 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#include "libtorrent/disk_io_job.hpp"
+#endif
+
 namespace libtorrent
 {
 	struct disk_io_job;
@@ -67,6 +71,20 @@ namespace libtorrent
 		piece_log_t(int j, int b= -1): job(j), block(b) {}
 		int job;
 		int block;
+
+		// these are "jobs" thar cause piece_refcount
+		// to be incremented
+		enum artificial_jobs
+		{
+			flushing = disk_io_job::num_job_ids,
+			do_write,
+			do_hash,
+			flush_expired,
+			try_flush_write_blocks,
+			try_flush_write_blocks2,
+			flush_range,
+
+		};
 	};
 #endif
 
