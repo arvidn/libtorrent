@@ -698,10 +698,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"token", lazy_entry::string_t, 0, 0},
 			{"n", lazy_entry::string_t, 0, key_desc_t::optional},
 			{"seed", lazy_entry::int_t, 0, key_desc_t::optional},
+			{"implied_port", lazy_entry::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[5];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 5, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[6];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
@@ -711,6 +712,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		}
 
 		int port = int(msg_keys[1]->int_value());
+
+		// is the announcer asking to ignore the explicit
+		// listen port and instead use the source port of the packet?
+		if (msg_keys[5] && msg_keys[5]->int_value() != 0)
+			port = m.addr.port();
+
 		if (port < 0 || port >= 65536)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING

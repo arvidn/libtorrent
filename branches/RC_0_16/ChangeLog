@@ -1,3 +1,4 @@
+	* support 'implied_port' in DHT announce_peer
 	* don't use pool allocator for disk blocks (cache may now return pages to the kernel)
 
 0.16.9 release

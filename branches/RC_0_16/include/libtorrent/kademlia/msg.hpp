@@ -46,55 +46,6 @@ namespace libtorrent {
 namespace dht {
 
 typedef std::vector<char> packet_t;
-/*
-namespace messages
-{
-	enum { ping = 0, find_node = 1, get_peers = 2, announce_peer = 3, error = 4 };
-	char const* const ids[] = { "ping", "find_node", "get_peers", "announce_peer", "error" }; 
-} // namespace messages
-
-struct msg
-{
-	msg()
-		: reply(false)
-		, message_id(-1)
-		, port(0)
-	{}
-
-	// true if this message is a reply
-	bool reply;
-	// the kind if message
-	int message_id;
-	// if this is a reply, a copy of the transaction id
-	// from the request. If it's a request, a transaction
-	// id that should be sent back in the reply
-	std::string transaction_id;
-	// the node id of the process sending the message
-	node_id id;
-	// the address of the process sending or receiving
-	// the message.
-	udp::endpoint addr;
-	// if this is a nodes response, these are the nodes
-	nodes_t nodes;
-
-	peers_t peers;
-	
-	// similar to transaction_id but for write operations.
-	std::string write_token;
-
-	// the info has for peer_requests, announce_peer
-	// and responses
-	node_id info_hash;
-	
-	// port for announce_peer messages
-	int port;
-	
-	// ERROR MESSAGES
-	int error_code;
-	std::string error_msg;
-};
-*/
-
 typedef std::vector<node_entry> nodes_t;
 typedef std::vector<tcp::endpoint> peers_t;
 
