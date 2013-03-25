@@ -61,4 +61,8 @@ lib pam : : <name>pam <search>/usr/local/lib ;
 
 exe webui_test : test.cpp : <library>torrent-webui <library>/torrent//torrent ;
 exe add_user : tools/add_user.cpp : <library>torrent-webui ;
+exe snmp_test : snmp.cpp
+	: <library>/torrent//torrent
+	<cxxflags>"-DNETSNMP_ENABLE_IPV6 -fno-strict-aliasing -pipe -O2 -Udarwin12 -Ddarwin12=darwin12 -pipe -O2 -fno-common -DPERL_DARWIN -I/opt/local/include -no-cpp-precomp -fno-strict-aliasing -fstack-protector -I/opt/local/include -I/opt/local/lib/perl5/5.12.4/darwin-thread-multi-2level/CORE -I/opt/local/include -I/opt/local/include -I. -I/opt/local/include"
+	<linkflags>"-L/opt/local/lib -L/opt/local/lib -L/opt/local/lib -lnetsnmpmibs -lnetsnmpagent -lnetsnmp -lcrypto" ;
 
