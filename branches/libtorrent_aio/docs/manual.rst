@@ -93,6 +93,10 @@ For documentation on these types, please refer to the `asio documentation`_.
 
 .. _`asio documentation`: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
 
+::
+
+	std::vector<stats_metrics> session_stats_metrics();
+
 session
 =======
 
@@ -168,7 +172,6 @@ The ``session`` class has the following synopsis::
 			, boost::uint32_t flags) const;
 		void post_torrent_updates();
 
-		std::vector<stats_metrics> session_stats_metrics() const;
 		void post_session_stats();
 
 	#ifndef TORRENT_NO_DEPRECATE
@@ -322,6 +325,31 @@ If some trackers are down, they will time out. All this before the destructor of
 returns. So, it's advised that any kind of interface (such as windows) are closed before
 destructing the session object. Because it can take a few second for it to finish. The
 timeout can be set with `apply_settings()`_.
+
+session_stats_metrics()
+-----------------------
+
+::
+
+		std::vector<stats_metric> session_stats_metrics() const;
+
+This free function returns the list of available metrics exposed by libtorrent's
+statistics API. Each metric has a name and a *value index*. The value index is
+the index into the array in `session_stats_alert`_ where this metric's value
+can be found when the session stats is sampled (by calling `post_session_stats()`_).
+
+The ``stats_metric`` struct has the following fields::
+
+	struct stats_metric
+	{
+		char const* name;
+		int value_index;
+		enum { type_counter, type_gauge };
+		int type;
+	};
+
+For more information, see the `session statistics`_ section.
+
 
 load_state() save_state()
 -------------------------
@@ -778,31 +806,6 @@ was called.
 
 Only torrents who has the state subscription flag set will be included. This flag
 is on by default. See ``add_torrent_params`` under `async_add_torrent() add_torrent()`_.
-
-session_stats_metrics()
------------------------
-
-::
-
-		std::vector<stats_metric> session_stats_metrics() const;
-
-This function returns the list of available metrics exposed by libtorrent's
-statistics API. Each metric has a name and a *value index*. The value index is
-the index into the array in `session_stats_alert`_ where this metric's value
-can be found when the session stats is sampled (by calling `post_session_stats()`_).
-
-The ``stats_metric`` struct has the following fields::
-
-	struct stats_metric
-	{
-		char const* name;
-		int value_index;
-		enum { type_counter, type_gauge };
-		int type;
-	};
-
-For more information, see the `session statistics`_ section.
-
 
 post_session_stats()
 --------------------

@@ -147,6 +147,8 @@ namespace libtorrent
 #define TORRENT_LOGPATH_ARG_DEFAULT
 #endif
 
+	std::vector<stats_metric> session_stats_metrics();
+
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:
@@ -214,7 +216,6 @@ namespace libtorrent
 			, boost::uint32_t flags = 0) const;
 		void post_torrent_updates();
 
-		std::vector<stats_metric> session_stats_metrics() const;
 		void post_session_stats();
 
 		// returns a list of all torrents in this session
