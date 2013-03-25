@@ -18,6 +18,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* optimized rate limiter
 	* make disk cache pool allocator configurable
 	* fix library ABI to not depend on logging being enabled
 	* use hex encoding instead of base32 in create_magnet_uri
@@ -38,6 +39,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* support 'implied_port' in DHT announce_peer
 	* don't use pool allocator for disk blocks (cache may now return pages to the kernel)
 
 0.16.9 release
