@@ -64,21 +64,28 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	void assert_print_piece(cached_piece_entry const* pe)
 	{
-		assert_print("piece:\nrefcount: %d\npiece_refcount: %d\n"
-			"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n"
-			"cache_state: %d\noutstanding_flush: %d\npiece: %d\n"
-			"num_dirty: %d\nnum_blocks: %d\nblocks_in_piece: %d\n"
-			"hashing_done: %d\nmarked_for_deletion: %d\nneed_readback: %d\n"
-			"hash_passed: %d\n"
-			"piece_log:\n"
-			, pe->refcount, pe->piece_refcount, pe->num_blocks, int(pe->hashing)
-			, pe->hash, pe->hash ? pe->hash->offset : -1, int(pe->cache_state)
-			, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
-			, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
-			, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes);
-		for (int i = 0; i < pe->piece_log.size(); ++i)
+		if (pe == NULL)
 		{
-			assert_print(", %d (%d)" + (i==0), pe->piece_log[i].job, pe->piece_log[i].block);
+			assert_print("piece: NULL\n");
+		}
+		else
+		{
+			assert_print("piece:\nrefcount: %d\npiece_refcount: %d\n"
+				"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n"
+				"cache_state: %d\noutstanding_flush: %d\npiece: %d\n"
+				"num_dirty: %d\nnum_blocks: %d\nblocks_in_piece: %d\n"
+				"hashing_done: %d\nmarked_for_deletion: %d\nneed_readback: %d\n"
+				"hash_passed: %d\n"
+				"piece_log:\n"
+				, pe->refcount, pe->piece_refcount, pe->num_blocks, int(pe->hashing)
+				, pe->hash, pe->hash ? pe->hash->offset : -1, int(pe->cache_state)
+				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
+				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
+				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes);
+			for (int i = 0; i < pe->piece_log.size(); ++i)
+			{
+				assert_print(", %d (%d)" + (i==0), pe->piece_log[i].job, pe->piece_log[i].block);
+			}
 		}
 		assert_print("\n");
 	}
