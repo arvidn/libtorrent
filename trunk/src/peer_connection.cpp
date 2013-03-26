@@ -112,12 +112,7 @@ namespace libtorrent
 		, tcp::endpoint const& endp
 		, policy::peer* peerinfo
 		, bool outgoing)
-		:
-#ifdef TORRENT_DEBUG
-		m_last_choke(time_now() - hours(1))
-		,
-#endif
-		  m_ses(ses)
+		: m_ses(ses)
 		, m_max_out_request_queue(m_ses.settings().max_out_request_queue)
 		, m_work(ses.m_io_service)
 		, m_last_piece(time_now())
@@ -125,6 +120,7 @@ namespace libtorrent
 		, m_last_incoming_request(min_time())
 		, m_last_unchoke(time_now())
 		, m_last_unchoked(time_now())
+		, m_last_choke(min_time())
 		, m_last_receive(time_now())
 		, m_last_sent(time_now())
 		, m_requested(min_time())
@@ -167,7 +163,6 @@ namespace libtorrent
 		, m_rtt(0)
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
-		, m_choke_rejects(0)
 		, m_fast_reconnect(false)
 		, m_outgoing(outgoing)
 		, m_received_listen_port(false)
@@ -1986,26 +1981,19 @@ namespace libtorrent
 				++m_ses.m_choked_piece_requests;
 #endif
 				write_reject_request(r);
-				++m_choke_rejects;
 
-				if (m_choke_rejects > m_ses.settings().max_rejects)
+				time_duration since_choked = time_now() - m_last_choke;
+
+				// allow peers to send request up to 2 seconds after getting choked,
+				// the disconnect them
+				if (total_milliseconds(since_choked) > 2000)
 				{
 					disconnect(errors::too_many_requests_when_choked, 2);
 					return;
 				}
-				else if ((m_choke_rejects & 0xf) == 0)
-				{
-					// tell the peer it's choked again
-					// every 16 requests in a row
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-					peer_log("==> CHOKE [ peer keeps sending request when choked ]");
-#endif
-					write_choke();
-				}
 			}
 			else
 			{
-				m_choke_rejects = 0;
 				m_requests.push_back(r);
 #ifdef TORRENT_REQUEST_LOGGING
 				if (m_ses.m_request_log)
@@ -3048,9 +3036,7 @@ namespace libtorrent
 		write_choke();
 		m_choked = true;
 
-#ifdef TORRENT_DEBUG
 		m_last_choke = time_now();
-#endif
 		m_num_invalid_requests = 0;
 
 		// reject the requests we have in the queue

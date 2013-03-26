@@ -1,3 +1,4 @@
+	* fix choking issue at high upload rates
 	* optimized rate limiter
 	* make disk cache pool allocator configurable
 	* fix library ABI to not depend on logging being enabled
