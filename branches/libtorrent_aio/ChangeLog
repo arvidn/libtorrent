@@ -18,6 +18,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix choking issue at high upload rates
 	* optimized rate limiter
 	* make disk cache pool allocator configurable
 	* fix library ABI to not depend on logging being enabled

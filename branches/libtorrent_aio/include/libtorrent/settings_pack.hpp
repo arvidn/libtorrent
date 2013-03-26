@@ -993,6 +993,7 @@ namespace libtorrent
 			// to 0 on all platforms except windows.
 			max_sparse_regions,
 
+			// TODO: deprecate this
 			// ``max_rejects`` is the number of piece requests we will reject in a row
 			// while a peer is choked before the peer is considered abusive and is
 			// disconnected.
