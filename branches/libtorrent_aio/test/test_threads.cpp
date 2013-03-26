@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <list>
 #include "libtorrent/thread.hpp"
+#include "libtorrent/atomic.hpp"
 #include "test.hpp"
 
 using namespace libtorrent;
@@ -43,6 +44,18 @@ void fun(condition_variable* s, libtorrent::mutex* m, int i)
 	libtorrent::mutex::scoped_lock l(*m);
 	s->wait(l);
 	fprintf(stderr, "thread %d done\n", i);
+}
+
+void increment(atomic_count& c)
+{
+	for (int i = 0; i < 1000000; ++i)
+		++c;
+}
+
+void decrement(atomic_count& c)
+{
+	for (int i = 0; i < 1000000; ++i)
+		--c;
 }
 
 int test_main()
@@ -67,6 +80,15 @@ int test_main()
 		(*i)->join();
 		delete *i;
 	}
+
+	atomic_count c;
+	thread t1(boost::bind(&increment, boost::ref(c)));
+	thread t2(boost::bind(&decrement, boost::ref(c)));
+
+	t1.join();
+	t2.join();
+
+	TEST_CHECK(c == 0);
 
 	return 0;
 }
