@@ -80,7 +80,9 @@ struct mock_peer_connection : peer_connection_interface
 	virtual void get_peer_info(peer_info& p) const {}
 	virtual tcp::endpoint const& remote() const { return m_remote; }
 	virtual tcp::endpoint local_endpoint() const { return ep("127.0.0.1", 8080); }
-	virtual void disconnect(error_code const& ec, int error = 0) { /* remove from mock_torrent list */ m_tp = 0; }
+	virtual void disconnect(error_code const& ec
+		, peer_connection_interface::operation_t op, int error = 0)
+	{ /* remove from mock_torrent list */ m_tp = 0; }
 	virtual peer_id const& pid() const { return m_id; }
 	virtual void set_holepunch_mode() {}
 	virtual torrent_peer* peer_info_struct() const { return m_tp; }
