@@ -536,10 +536,6 @@ namespace libtorrent
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
-#if defined TORRENT_DEBUG
-		ptime m_last_choke;
-#endif
-
 
 		// is true until we can be sure that the other end
 		// speaks our protocol (be it bittorrent or http).
@@ -811,6 +807,10 @@ namespace libtorrent
 		// was the time
 		ptime m_last_unchoked;
 
+		// the time we last choked this peer. min_time() in
+		// case we never unchoked it
+		ptime m_last_choke;
+
 		// timeouts
 		ptime m_last_receive;
 		ptime m_last_sent;
@@ -1056,14 +1056,6 @@ namespace libtorrent
 		// the number of request we should queue up
 		// at the remote end.
 		boost::uint8_t m_desired_queue_size;
-
-		// the number of piece requests we have rejected
-		// in a row because the peer is choked. This is
-		// used to re-send the choked message in case the
-		// other end keeps requesting pieces while being
-		// choked, and eventuelly disconnect if it keeps
-		// requesting too many pieces while being choked
-		boost::uint8_t m_choke_rejects;
 
 		// if this is true, the disconnection
 		// timestamp is not updated when the connection
