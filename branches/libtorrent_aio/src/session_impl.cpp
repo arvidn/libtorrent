@@ -1867,7 +1867,7 @@ namespace aux {
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			int conn = m_connections.size();
 #endif
-			(*m_connections.begin())->disconnect(errors::stopping_torrent);
+			(*m_connections.begin())->disconnect(errors::stopping_torrent, peer_connection::op_bittorrent);
 			TORRENT_ASSERT_VAL(conn == int(m_connections.size()) + 1, conn);
 		}
 
@@ -2855,7 +2855,7 @@ retry:
 			if (m_alerts.should_post<peer_error_alert>())
 			{
 				m_alerts.post_alert(peer_error_alert(torrent_handle(), endp
-					, peer_id(), ec));
+					, peer_id(), peer_connection::op_ssl_handshake, ec));
 			}
 			return;
 		}
@@ -2990,6 +2990,7 @@ retry:
 			{
 				m_alerts.post_alert(
 					peer_disconnected_alert(torrent_handle(), endp, peer_id()
+						, peer_connection::op_bittorrent
 						, error_code(errors::too_many_connections, get_libtorrent_category())));
 			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -3469,7 +3470,7 @@ retry:
 			// TODO: have a separate list for these connections, instead of having to loop through all of them
 			if (m_last_tick - p->connected_time()
 				> seconds(m_settings.get_int(settings_pack::handshake_timeout)))
-				p->disconnect(errors::timed_out);
+				p->disconnect(errors::timed_out, peer_connection::op_bittorrent);
 		}
 
 		// --------------------------------------------------------------

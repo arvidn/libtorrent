@@ -293,7 +293,7 @@ namespace
 #endif
 					m_torrent.ban_peer(p);
 					if (p->connection) p->connection->disconnect(
-						errors::peer_banned);
+						errors::peer_banned, peer_connection_interface::op_bittorrent);
 				}
 				// we already have this exact entry in the map
 				// we don't have to insert it
@@ -368,7 +368,7 @@ namespace
 #endif
 			m_torrent.ban_peer(p);
 			if (p->connection) p->connection->disconnect(
-				errors::peer_banned);
+				errors::peer_banned, peer_connection_interface::op_bittorrent);
 		}
 		
 		torrent& m_torrent;

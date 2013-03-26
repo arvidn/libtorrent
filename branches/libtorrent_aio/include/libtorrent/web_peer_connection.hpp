@@ -93,7 +93,7 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, int error = 0);
+		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
 
 		void write_request(peer_request const& r);
 

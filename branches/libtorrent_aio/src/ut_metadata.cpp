@@ -285,7 +285,7 @@ namespace libtorrent { namespace
 					m_pc.peer_log("*** UT_METADATA [ invalid piece %d metadata size: %d ]"
 						, piece, int(m_tp.get_metadata_size()));
 #endif
-					m_pc.disconnect(errors::invalid_metadata_message, 2);
+					m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
 					return;
 				}
 
@@ -331,7 +331,7 @@ namespace libtorrent { namespace
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("<== UT_METADATA [ packet too big %d ]", length);
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
 				return true;
 			}
 
@@ -344,7 +344,7 @@ namespace libtorrent { namespace
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("<== UT_METADATA [ not a dictionary ]");
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
 				return true;
 			}
 
@@ -356,7 +356,7 @@ namespace libtorrent { namespace
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("<== UT_METADATA [ missing or invalid keys ]");
 #endif
-				m_pc.disconnect(errors::invalid_metadata_message, 2);
+				m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
 				return true;
 			}
 			int type = type_ent->integer();

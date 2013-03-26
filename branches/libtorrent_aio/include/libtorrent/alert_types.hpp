@@ -43,16 +43,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/rss.hpp" // for feed_handle
 
-// lines reserved for future includes
-// the type-ids of the alert types
-// are derived from the line on which
-// they are declared
-
-
-
-
 namespace libtorrent
 {
+
+	// maps an operation id (from peer_erro_alert and peer_disconnected_alert)
+	// to its name. See peer_connection for the constants
+	TORRENT_EXPORT char const* operation_name(int op);
 
 	// user defined alerts should use IDs greater than this
 	const static int user_alert_id = 10000;
@@ -469,8 +465,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_error_alert: peer_alert
 	{
 		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, error_code const& e)
+			, peer_id const& peer_id, int op, error_code const& e)
 			: peer_alert(h, ep, peer_id)
+			, operation(op)
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
@@ -481,11 +478,9 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(peer_error_alert, 22);
 
 		const static int static_category = alert::peer_notification;
-		virtual std::string message() const
-		{
-			return peer_alert::message() + " peer error: " + error.message();
-		}
+		virtual std::string message() const;
 
+		int operation;
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -510,8 +505,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
 	{
 		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, error_code const& e)
+			, peer_id const& peer_id, int op, error_code const& e)
 			: peer_alert(h, ep, peer_id)
+			, operation(op)
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
@@ -522,9 +518,9 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(peer_disconnected_alert, 24);
 
 		const static int static_category = alert::debug_notification;
-		virtual std::string message() const
-		{ return peer_alert::message() + " disconnecting: " + error.message(); }
+		virtual std::string message() const;
 
+		int operation;
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE

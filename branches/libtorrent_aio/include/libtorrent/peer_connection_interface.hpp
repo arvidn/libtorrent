@@ -45,9 +45,34 @@ namespace libtorrent
 	// TODO: make this interface smaller!
 	struct peer_connection_interface
 	{
+		// these constants are used to identify the operation
+		// that failed, causing a peer to disconnect
+		enum operation_t
+		{
+			// this is used when the bittorrent logic
+			// determines to disconnect
+			op_bittorrent = 0,
+			op_iocontrol,
+			op_getpeername,
+			op_getname,
+			op_alloc_recvbuf,
+			op_alloc_sndbuf,
+			op_file_write,
+			op_file_read,
+			op_file,
+			op_sock_write,
+			op_sock_read,
+			op_sock_open,
+			op_sock_bind,
+			op_available,
+			op_encryption,
+			op_connect,
+			op_ssl_handshake,
+		};
+
 		virtual tcp::endpoint const& remote() const = 0;
 		virtual tcp::endpoint local_endpoint() const = 0;
-		virtual void disconnect(error_code const& ec, int error = 0) = 0;
+		virtual void disconnect(error_code const& ec, operation_t op, int error = 0) = 0;
 		virtual peer_id const& pid() const = 0;
 		virtual void set_holepunch_mode() = 0;
 		virtual torrent_peer* peer_info_struct() const = 0;
@@ -62,6 +87,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void peer_log(char const* fmt, ...) const = 0;
 #endif
+
 	};
 }
 

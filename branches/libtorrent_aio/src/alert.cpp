@@ -647,5 +647,49 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string peer_disconnected_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s disconnecting [%s]: %s", peer_alert::message().c_str()
+			, operation_name(operation), error.message().c_str());
+		return msg;
+	}
+
+	std::string peer_error_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s peer error [%s]: %s", peer_alert::message().c_str()
+			, operation_name(operation), error.message().c_str());
+		return msg;
+	}
+
+	char const* operation_name(int op)
+	{
+		static char const* names[] = {
+			"bittorrent",
+			"iocontrol",
+			"getpeername",
+			"getname",
+			"alloc_recvbuf",
+			"alloc_sndbuf",
+			"file_write",
+			"file_read",
+			"file",
+			"sock_write",
+			"sock_read",
+			"sock_open",
+			"sock_bind",
+			"available",
+			"encryption",
+			"connect",
+			"ssl_handshake",
+		};
+
+		if (op < 0 || op >= sizeof(names)/sizeof(names[0]))
+			return "unknown operation";
+
+		return names[op];
+	}
+
 } // namespace libtorrent
 

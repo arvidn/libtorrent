@@ -101,10 +101,10 @@ namespace libtorrent
 #endif
 	}
 
-	void web_peer_connection::disconnect(error_code const& ec, int error)
+	void web_peer_connection::disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error)
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		peer_connection::disconnect(ec, error);
+		peer_connection::disconnect(ec, op, error);
 		if (t) t->disconnect_web_seed(this);
 	}
 	
@@ -220,7 +220,7 @@ namespace libtorrent
 		{
 			if (!t->need_loaded())
 			{
-				disconnect(errors::torrent_aborted);
+				disconnect(errors::torrent_aborted, op_bittorrent);
 				return;
 			}
 
@@ -422,7 +422,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					peer_log("*** %s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
 #endif
-					disconnect(errors::http_parse_error, 2);
+					disconnect(errors::http_parse_error, op_bittorrent, 2);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
@@ -489,7 +489,7 @@ namespace libtorrent
 							, error_msg));
 					}
 					received_bytes(0, bytes_transferred);
-					disconnect(error_code(m_parser.status_code(), get_http_category()), 1);
+					disconnect(error_code(m_parser.status_code(), get_http_category()), op_bittorrent, 1);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
@@ -508,7 +508,7 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_web_seed(this);
-						disconnect(errors::missing_location, 2);
+						disconnect(errors::missing_location, op_bittorrent, 2);
 #ifdef TORRENT_DEBUG
 						TORRENT_ASSERT(statistics().last_payload_downloaded()
 							+ statistics().last_protocol_downloaded()
@@ -529,7 +529,7 @@ namespace libtorrent
 
 						if (!t->need_loaded())
 						{
-							disconnect(errors::torrent_aborted);
+							disconnect(errors::torrent_aborted, op_bittorrent);
 							return;
 						}
 						torrent_info const& info = t->torrent_file();
@@ -542,7 +542,7 @@ namespace libtorrent
 						if (i == std::string::npos)
 						{
 							t->remove_web_seed(this);
-							disconnect(errors::invalid_redirection, 2);
+							disconnect(errors::invalid_redirection, op_bittorrent, 2);
 #ifdef TORRENT_DEBUG
 							TORRENT_ASSERT(statistics().last_payload_downloaded()
 								+ statistics().last_protocol_downloaded()
@@ -557,7 +557,7 @@ namespace libtorrent
 #endif
 					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
 					t->remove_web_seed(this);
-					disconnect(errors::redirecting, 2);
+					disconnect(errors::redirecting, op_bittorrent, 2);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
@@ -604,7 +604,7 @@ namespace libtorrent
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this);
-					disconnect(errors::invalid_range);
+					disconnect(errors::invalid_range, op_bittorrent);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
@@ -624,7 +624,7 @@ namespace libtorrent
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this);
-					disconnect(errors::no_content_length, 2);
+					disconnect(errors::no_content_length, op_bittorrent, 2);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
@@ -637,7 +637,7 @@ namespace libtorrent
 			if (m_requests.empty() || m_file_requests.empty())
 			{
 				received_bytes(0, bytes_transferred);
-				disconnect(errors::http_error, 2);
+				disconnect(errors::http_error, op_bittorrent, 2);
 #ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(statistics().last_payload_downloaded()
 					+ statistics().last_protocol_downloaded()
@@ -724,7 +724,7 @@ namespace libtorrent
 
 			if (!t->need_loaded())
 			{
-				disconnect(errors::torrent_aborted);
+				disconnect(errors::torrent_aborted, op_bittorrent);
 				return;
 			}
 			int file_index = m_file_requests.front();
@@ -760,7 +760,7 @@ namespace libtorrent
 				received_bytes(0, bytes_transferred);
 				// this means the end of the incoming request ends _before_ the
 				// first expected byte (fs + m_piece.size())
-				disconnect(errors::invalid_range, 2);
+				disconnect(errors::invalid_range, op_bittorrent, 2);
 				return;
 			}
 
@@ -885,7 +885,7 @@ namespace libtorrent
 				
 				if (!t->need_loaded())
 				{
-					disconnect(errors::torrent_aborted);
+					disconnect(errors::torrent_aborted, op_bittorrent);
 					return;
 				}
 

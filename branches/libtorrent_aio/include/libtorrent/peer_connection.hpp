@@ -376,7 +376,7 @@ namespace libtorrent
 		ptime last_received() const { return m_last_receive; }
 
 		// this will cause this peer_connection to be disconnected.
-		virtual void disconnect(error_code const& ec, int error = 0);
+		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
 		// called when a connect attempt fails (not when an
 		// established connection fails)
 		void connect_failed(error_code const& e);

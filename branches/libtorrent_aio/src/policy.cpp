@@ -190,7 +190,7 @@ namespace libtorrent
 				
 				banned.push_back(p->remote().address());
 
-				p->disconnect(errors::banned_by_ip_filter);
+				p->disconnect(errors::banned_by_ip_filter, peer_connection_interface::op_bittorrent);
 				// what *i refers to has changed, i.e. cur was deleted
 				if (m_peers.size() < count)
 				{
@@ -242,7 +242,7 @@ namespace libtorrent
 				
 				banned.push_back(p->remote().address());
 
-				p->disconnect(errors::banned_by_port_filter);
+				p->disconnect(errors::banned_by_port_filter, peer_connection_interface::op_bittorrent);
 				// what *i refers to has changed, i.e. cur was deleted
 				if (m_peers.size() < count)
 				{
@@ -603,7 +603,7 @@ namespace libtorrent
 
 			if (i->banned)
 			{
-				c.disconnect(errors::peer_banned);
+				c.disconnect(errors::peer_banned, peer_connection_interface::op_bittorrent);
 				return false;
 			}
 
@@ -615,8 +615,8 @@ namespace libtorrent
 
 				if (self_connection)
 				{
-					c.disconnect(errors::self_connection, 1);
-					i->connection->disconnect(errors::self_connection, 1);
+					c.disconnect(errors::self_connection, peer_connection_interface::op_bittorrent, 1);
+					i->connection->disconnect(errors::self_connection, peer_connection_interface::op_bittorrent, 1);
 					TORRENT_ASSERT(i->connection == 0);
 					return false;
 				}
@@ -628,7 +628,7 @@ namespace libtorrent
 				{
 					// if the other end connected to us both times, just drop
 					// the second one. Or if we made both connections.
-					c.disconnect(errors::duplicate_peer_id);
+					c.disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);
 					return false;
 				}
 				else
@@ -663,12 +663,12 @@ namespace libtorrent
 						// we should keep our outgoing connection
 						if (!outgoing1)
 						{
-							c.disconnect(errors::duplicate_peer_id);
+							c.disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);
 							return false;
 						}
 						TORRENT_ASSERT(m_locked_peer == NULL);
 						m_locked_peer = i;
-						i->connection->disconnect(errors::duplicate_peer_id);
+						i->connection->disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);
 						m_locked_peer = NULL;
 					}
 					else
@@ -682,12 +682,12 @@ namespace libtorrent
 						// they should keep their outgoing connection
 						if (outgoing1)
 						{
-							c.disconnect(errors::duplicate_peer_id);
+							c.disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);
 							return false;
 						}
 						TORRENT_ASSERT(m_locked_peer == NULL);
 						m_locked_peer = i;
-						i->connection->disconnect(errors::duplicate_peer_id);
+						i->connection->disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);
 						m_locked_peer = NULL;
 					}
 				}
@@ -708,7 +708,7 @@ namespace libtorrent
 				erase_peers(state, force_erase);
 				if (int(m_peers.size()) >= state->max_peerlist_size)
 				{
-					c.disconnect(errors::too_many_connections);
+					c.disconnect(errors::too_many_connections, peer_connection_interface::op_bittorrent);
 					return false;
 				}
 				// restore it
@@ -806,7 +806,7 @@ namespace libtorrent
 					p->connection->set_peer_info(0);
 					TORRENT_ASSERT(m_locked_peer == NULL);
 					m_locked_peer = p;
-					p->connection->disconnect(errors::duplicate_peer_id);
+					p->connection->disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);
 					m_locked_peer = NULL;
 					erase_peer(p, state);
 					return false;
