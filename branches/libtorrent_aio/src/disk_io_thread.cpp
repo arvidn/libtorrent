@@ -2524,6 +2524,7 @@ namespace libtorrent
 			abort_jobs(jobs);
 			return 0;
 		}
+//#error we may fail to evict if this piece is currently being flushed by another thread. should out-of-line flushing count against fence jobs?
 		// we should always be able to evict the piece, since
 		// this is a fence job
 		TORRENT_PIECE_ASSERT(false, pe);
@@ -2588,7 +2589,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::add_job(disk_io_job* j, bool ignore_fence)
+	void disk_io_thread::add_job(disk_io_job* j)
 	{
 		TORRENT_ASSERT(j->next == NULL);
 		// if this happens, it means we started to shut down
@@ -2596,8 +2597,8 @@ namespace libtorrent
 		// before the disk threads are shut down
 		TORRENT_ASSERT(m_num_threads > 0 || j->action == disk_io_job::flush_piece);
 
-		DLOG("add_job: %s (ignore_fence: %d outstanding: %d)\n"
-			, job_action_name[j->action], ignore_fence
+		DLOG("add_job: %s (outstanding: %d)\n"
+			, job_action_name[j->action]
 			, j->storage ? j->storage->num_outstanding_jobs() : 0);
 
 		// is the fence up for this storage?
@@ -2605,7 +2606,7 @@ namespace libtorrent
 		// will take ownership of the job and queue it up, in case the fence is up
 		// if the fence flag is set, this job just raised the fence on the storage
 		// and should be scheduled
-		if (j->storage && j->storage->is_blocked(j, ignore_fence))
+		if (j->storage && j->storage->is_blocked(j))
 		{
 			++m_num_blocked_jobs;
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"

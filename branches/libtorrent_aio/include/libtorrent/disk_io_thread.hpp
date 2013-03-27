@@ -375,7 +375,7 @@ namespace libtorrent
 		void perform_job(disk_io_job* j);
 
 		// this queues up another job to be submitted
-		void add_job(disk_io_job* j, bool ignore_fence = false);
+		void add_job(disk_io_job* j);
 		void add_fence_job(piece_manager* storage, disk_io_job* j);
 
 		// assumes l is locked (cache mutex).

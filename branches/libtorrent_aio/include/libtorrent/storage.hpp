@@ -314,7 +314,7 @@ namespace libtorrent
 
 		// if there is a fence up, returns true and adds the job
 		// to the queue of blocked jobs
-		bool is_blocked(disk_io_job* j, bool ignore_fence = false);
+		bool is_blocked(disk_io_job* j);
 		
 		// the number of blocked jobs
 		int num_blocked() const;

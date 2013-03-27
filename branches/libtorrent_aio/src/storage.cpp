@@ -1330,7 +1330,7 @@ namespace libtorrent
 		return 1;
 	}
 
-	bool disk_job_fence::is_blocked(disk_io_job* j, bool ignore_fence)
+	bool disk_job_fence::is_blocked(disk_io_job* j)
 	{
 		mutex::scoped_lock l(m_mutex);
 		DLOG(stderr, "[%p] is_blocked: fence: %d num_outstanding: %d\n"
@@ -1339,7 +1339,7 @@ namespace libtorrent
 		// if this is the job that raised the fence, don't block it
 		// ignore fence can only ignore one fence. If there are several,
 		// this job still needs to get queued up
-		if ((ignore_fence && m_has_fence <= 1) || m_has_fence == 0)
+		if (m_has_fence == 0)
 		{
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) == 0);
 			j->flags |= disk_io_job::in_progress;
