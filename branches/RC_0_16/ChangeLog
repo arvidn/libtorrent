@@ -1,3 +1,4 @@
+	* add missing functions to python binding (flush_cache() and remap_files())
 	* improve handling of filenames that are invalid on windows
 	* support 'implied_port' in DHT announce_peer
 	* don't use pool allocator for disk blocks (cache may now return pages to the kernel)
