@@ -229,7 +229,7 @@ namespace libtorrent
 				torrent*, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool has_peer(peer_connection const* p) const
 			{
 				TORRENT_ASSERT(is_network_thread());
