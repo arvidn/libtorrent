@@ -360,6 +360,13 @@ namespace libtorrent
 			path.erase(path.end()-1);
 			return;
 		}
+
+		// remove trailing spaces and dots. These aren't allowed in filenames on windows
+		for (int i = path.size() - 1; i >= 0; --i)
+		{
+			if (element[i] != ' ' && path[i] != '.') break;
+			path[i] = '_';
+		}
 	}
 
 	bool extract_single_file(lazy_entry const& dict, file_entry& target

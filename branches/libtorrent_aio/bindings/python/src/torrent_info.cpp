@@ -52,7 +52,14 @@ namespace
         return i.end_files();
     }
 
-    //list files(torrent_info const& ti, bool storage) {
+    void remap_files(torrent_info& ti, list files) {
+        file_storage st;
+        for (int i = 0, e = len(files); i < e; ++i)
+            st.add_file(extract<file_entry>(files[i]));
+
+        ti.remap_files(st);
+    }
+
     list files(torrent_info const& ti, bool storage) {
         list result;
 
@@ -138,6 +145,7 @@ void bind_torrent_info()
         .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
 #endif
 
+        .def("remap_files", &remap_files)
         .def("add_tracker", &torrent_info::add_tracker, arg("url"))
         .def("add_url_seed", &torrent_info::add_url_seed)
 
