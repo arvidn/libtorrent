@@ -71,6 +71,17 @@ namespace
         return result;
     }
 
+    list orig_files(torrent_info const& ti, bool storage) {
+        list result;
+
+        file_storage const& st = ti.orig_files();
+
+        for (int i = 0; i < st.num_files(); ++i)
+            result.append(st.at(i));
+
+        return result;
+    }
+
     std::string hash_for_piece(torrent_info const& ti, int i)
     {
         return ti.hash_for_piece(i).to_string();
@@ -111,6 +122,8 @@ namespace
 
     size_type get_size(file_entry const& fe) { return fe.size; }
     size_type get_offset(file_entry const& fe) { return fe.offset; }
+    size_type get_file_base(file_entry const& fe) { return fe.file_base; }
+    void set_file_base(file_entry& fe, int b) { fe.file_base = b; }
     bool get_pad_file(file_entry const& fe) { return fe.pad_file; }
     bool get_executable_attribute(file_entry const& fe) { return fe.executable_attribute; }
     bool get_hidden_attribute(file_entry const& fe) { return fe.hidden_attribute; }
@@ -162,9 +175,10 @@ void bind_torrent_info()
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
-        .def("file_at", &torrent_info::file_at) 
+        .def("file_at", &torrent_info::file_at)
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
+        .def("orig_files", &orig_files, (arg("storage")=false))
         .def("rename_file", rename_file0)
 #if TORRENT_USE_WSTRING
         .def("rename_file", rename_file1)
@@ -194,6 +208,7 @@ void bind_torrent_info()
         .add_property("symlink_attribute", &get_symlink_attribute)
         .add_property("offset", &get_offset)
         .add_property("size", &get_size)
+        .add_property("file_base", &get_file_base, &set_file_base)
         ;
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
