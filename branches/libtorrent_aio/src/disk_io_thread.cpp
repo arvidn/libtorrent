@@ -2524,7 +2524,10 @@ namespace libtorrent
 			abort_jobs(jobs);
 			return 0;
 		}
-//#error we may fail to evict if this piece is currently being flushed by another thread. should out-of-line flushing count against fence jobs?
+
+		m_disk_cache.mark_for_deletion(pe);
+		if (pe->num_blocks == 0) return 0;
+
 		// we should always be able to evict the piece, since
 		// this is a fence job
 		TORRENT_PIECE_ASSERT(false, pe);
