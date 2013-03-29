@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Copyright Daniel Wallin 2006. Use, modification and distribution is
 # subject to the Boost Software License, Version 1.0. (See accompanying
@@ -117,11 +117,11 @@ def print_peer_info(console, peers):
             out += progress_bar(0, 15)
         out += ' '
 
-        if p.flags & lt.peer_info.handshake: 
+        if p.flags & lt.peer_info.handshake:
             id = 'waiting for handshake'
-        elif p.flags & lt.peer_info.connecting: 
+        elif p.flags & lt.peer_info.connecting:
             id =  'connecting to peer'
-        elif p.flags & lt.peer_info.queued: 
+        elif p.flags & lt.peer_info.queued:
             id =  'queued'
         else:
             id = p.client
@@ -156,22 +156,22 @@ def main():
 
     parser = OptionParser()
 
-    parser.add_option('-p', '--port', 
+    parser.add_option('-p', '--port',
         type='int', help='set listening port')
 
-    parser.add_option('-d', '--max-download-rate', 
+    parser.add_option('-d', '--max-download-rate',
         type='float', help='the maximum download rate given in kB/s. 0 means infinite.')
 
-    parser.add_option('-u', '--max-upload-rate', 
+    parser.add_option('-u', '--max-upload-rate',
         type='float', help='the maximum upload rate given in kB/s. 0 means infinite.')
 
-    parser.add_option('-s', '--save-path', 
+    parser.add_option('-s', '--save-path',
         type='string', help='the path where the downloaded file/folder should be placed.')
 
-    parser.add_option('-a', '--allocation-mode', 
+    parser.add_option('-a', '--allocation-mode',
         type='string', help='sets mode used for allocating the downloaded files on disk. Possible options are [full | compact]')
 
-    parser.add_option('-r', '--proxy-host', 
+    parser.add_option('-r', '--proxy-host',
         type='string', help='sets HTTP proxy host and port (separated by \':\')')
 
     parser.set_defaults(
