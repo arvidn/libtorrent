@@ -1428,7 +1428,7 @@ namespace libtorrent
 		l2_.unlock();
 #endif
 
-#if !defined TORRENT_DISABLE_POOL_ALLOCATOR
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS)
 		mutex::scoped_lock l_(m_cache_mutex);
 		TORRENT_ASSERT(m_disk_cache.is_disk_buffer(j->buffer));
 		l_.unlock();
