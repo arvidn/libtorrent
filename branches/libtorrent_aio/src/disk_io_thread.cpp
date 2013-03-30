@@ -2424,7 +2424,6 @@ namespace libtorrent
 		if (pe->num_dirty == 0) return 0;
 
 		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
-		pe->outstanding_flush = 0;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
@@ -2452,6 +2451,10 @@ namespace libtorrent
 		// #error if hash checks are disabled, always just flush
 		try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
 
+		TORRENT_ASSERT(l.locked());
+
+		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
+		pe->outstanding_flush = 0;
 		--pe->piece_refcount;
 		return 0;
 	}
