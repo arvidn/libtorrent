@@ -173,7 +173,9 @@ namespace libtorrent
 		}
 #endif
 
+#if defined TORRENT_DEBUG
 		return m_buffers_in_use.count(buffer) == 1;
+#endif
 
 #ifdef TORRENT_BUFFER_STATS
 		if (m_buf_to_category.find(buffer)
@@ -271,7 +273,7 @@ namespace libtorrent
 			}
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
 		m_buffers_in_use.insert(ret);
 #endif
@@ -510,7 +512,7 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_POOL_ALLOCATOR
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG
 		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
 		TORRENT_ASSERT(i != m_buffers_in_use.end());
 		m_buffers_in_use.erase(i);
