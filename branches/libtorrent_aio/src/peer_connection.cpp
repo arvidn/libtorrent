@@ -5472,7 +5472,7 @@ namespace libtorrent
 			if (buffer_size == 0)
 			{
 				// try to read one byte. The socket is non-blocking anyway
-				// so worst case, we'll failed with EWOULDBLOCK
+				// so worst case, we'll fail with EWOULDBLOCK
 				buffer_size = 1;
 			}
 			else
@@ -5486,6 +5486,8 @@ namespace libtorrent
 				// quota from the bandwidth manager
 				if (buffer_size == 0) return;
 			}
+
+			if (buffer_size > 2097152) buffer_size = 2097152;
 
 			// TODO: cap the size of the receive buffer? Maybe we can just rely
 			// on the OS buffer size limit on TCP buffers and assume it won't
