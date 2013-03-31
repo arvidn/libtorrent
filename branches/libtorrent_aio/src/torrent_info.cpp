@@ -364,7 +364,7 @@ namespace libtorrent
 		// remove trailing spaces and dots. These aren't allowed in filenames on windows
 		for (int i = path.size() - 1; i >= 0; --i)
 		{
-			if (element[i] != ' ' && path[i] != '.') break;
+			if (path[i] != ' ' && path[i] != '.') break;
 			path[i] = '_';
 		}
 	}
@@ -701,6 +701,7 @@ namespace libtorrent
 
 	void torrent_info::resolve_duplicate_filenames()
 	{
+		INVARIANT_CHECK;
 		int cnt = 0;
 
 #if TORRENT_HAS_BOOST_UNORDERED
@@ -712,7 +713,6 @@ namespace libtorrent
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
-		// TODO: what about directories with the same name?
 		for (std::vector<std::string>::const_iterator i = paths.begin()
 			, end(paths.end()); i != end; ++i)
 		{

@@ -1120,6 +1120,18 @@ int test_main()
 #endif
 
 	path.clear();
+	sanitize_append_path_element(path, "a...", 4);
+	TEST_EQUAL(path, "a___");
+
+	path.clear();
+	sanitize_append_path_element(path, "a   ", 4);
+	TEST_EQUAL(path, "a___");
+
+	path.clear();
+	sanitize_append_path_element(path, "a...b", 5);
+	TEST_EQUAL(path, "a...b");
+
+	path.clear();
 	sanitize_append_path_element(path, "a", 1);
 	sanitize_append_path_element(path, "..", 2);
 	sanitize_append_path_element(path, "c", 1);
