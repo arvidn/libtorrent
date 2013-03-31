@@ -640,6 +640,10 @@ namespace libtorrent
 			return shared_from_this();
 		}
 
+		// TODO: 2 temporary hack until the stats counters are moved out
+		// from the session_interface.
+		aux::session_interface& ses() { return m_ses; }
+
 	protected:
 
 		size_t try_read(sync_t s, error_code& ec);

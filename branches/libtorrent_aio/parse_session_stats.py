@@ -248,9 +248,25 @@ reports = [
 	('recv_buffer_sizes', 'num', '', '', ['down 8', 'down 16', 'down 32', 'down 64', 'down 128', \
 		'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', \
 		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked}),
-	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True, 'type': 'lines'}),
-	('torrent churn', 'num torrents', '', '', ['loaded torrents', 'loaded torrent churn'], {'type': 'lines'}),
-	('requests', '', '', '', ['outstanding requests'], {'type': 'lines'}),
+	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True}),
+	('torrent churn', 'num torrents', '', '', ['loaded torrents', 'loaded torrent churn']),
+	('requests', '', '', '', ['outstanding requests']),
+	('incoming messages', 'num', '', 'number of received bittorrent messages, by type', [ \
+		'num_incoming_choke', 'num_incoming_unchoke', 'num_incoming_interested', \
+		'num_incoming_not_interested', 'num_incoming_have', 'num_incoming_bitfield', \
+		'num_incoming_request', 'num_incoming_piece', 'num_incoming_cancel', \
+		'num_incoming_dht_port', 'num_incoming_suggest', 'num_incoming_have_all', \
+		'num_incoming_have_none', 'num_incoming_reject', 'num_incoming_allowed_fast', \
+		'num_incoming_ext_handshake', 'num_incoming_pex', 'num_incoming_metadata', 'num_incoming_extended' \
+	 ], {'type': stacked}),
+	('outgoing messages', 'num', '', 'number of sent bittorrent messages, by type', [ \
+		'num_outgoing_choke', 'num_outgoing_unchoke', 'num_outgoing_interested', \
+		'num_outgoing_not_interested', 'num_outgoing_have', 'num_outgoing_bitfield', \
+		'num_outgoing_request', 'num_outgoing_piece', 'num_outgoing_cancel', \
+		'num_outgoing_dht_port', 'num_outgoing_suggest', 'num_outgoing_have_all', \
+		'num_outgoing_have_none', 'num_outgoing_reject', 'num_outgoing_allowed_fast', \
+		'num_outgoing_ext_handshake', 'num_outgoing_pex', 'num_outgoing_metadata', 'num_outgoing_extended' \
+	 ], {'type': stacked}),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats
@@ -279,9 +295,11 @@ scripts = []
 while os.path.exists(os.path.join(log_file_path, log_file)):
 	print '[%s] %04d\r[' % (' ' * len(reports), g),
 	for i in reports:
-		options = {'type': line_graph}
 		try: options = i[5]
-		except: pass
+		except: options = {}
+		if not 'type' in options:
+			options['type'] = line_graph
+
 		script = gen_report(i[0], i[1], i[4], i[2], g, os.path.join(log_file_path, log_file), options)
 		if script != None: scripts.append(script)
 	generations.append(g)

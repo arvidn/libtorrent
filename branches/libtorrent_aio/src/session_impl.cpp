@@ -1313,6 +1313,46 @@ namespace aux {
 			":loaded torrents"
 			":loaded torrent churn"
 
+			":num_incoming_choke"
+			":num_incoming_unchoke"
+			":num_incoming_interested"
+			":num_incoming_not_interested"
+			":num_incoming_have"
+			":num_incoming_bitfield"
+			":num_incoming_request"
+			":num_incoming_piece"
+			":num_incoming_cancel"
+			":num_incoming_dht_port"
+			":num_incoming_suggest"
+			":num_incoming_have_all"
+			":num_incoming_have_none"
+			":num_incoming_reject"
+			":num_incoming_allowed_fast"
+			":num_incoming_ext_handshake"
+			":num_incoming_pex"
+			":num_incoming_metadata"
+			":num_incoming_extended"
+
+			":num_outgoing_choke"
+			":num_outgoing_unchoke"
+			":num_outgoing_interested"
+			":num_outgoing_not_interested"
+			":num_outgoing_have"
+			":num_outgoing_bitfield"
+			":num_outgoing_request"
+			":num_outgoing_piece"
+			":num_outgoing_cancel"
+			":num_outgoing_dht_port"
+			":num_outgoing_suggest"
+			":num_outgoing_have_all"
+			":num_outgoing_have_none"
+			":num_outgoing_reject"
+			":num_outgoing_allowed_fast"
+			":num_outgoing_ext_handshake"
+			":num_outgoing_pex"
+			":num_outgoing_metadata"
+			":num_outgoing_extended"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -4190,6 +4230,46 @@ retry:
 			// loaded torrents
 			STAT_LOG(d, m_torrent_lru.size());
 			STAT_LOG(d, m_stats_counter[torrent_evicted_counter]);
+
+			STAT_LOG(d, m_stats_counter[num_incoming_choke]);
+			STAT_LOG(d, m_stats_counter[num_incoming_unchoke]);
+			STAT_LOG(d, m_stats_counter[num_incoming_interested]);
+			STAT_LOG(d, m_stats_counter[num_incoming_not_interested]);
+			STAT_LOG(d, m_stats_counter[num_incoming_have]);
+			STAT_LOG(d, m_stats_counter[num_incoming_bitfield]);
+			STAT_LOG(d, m_stats_counter[num_incoming_request]);
+			STAT_LOG(d, m_stats_counter[num_incoming_piece]);
+			STAT_LOG(d, m_stats_counter[num_incoming_cancel]);
+			STAT_LOG(d, m_stats_counter[num_incoming_dht_port]);
+			STAT_LOG(d, m_stats_counter[num_incoming_suggest]);
+			STAT_LOG(d, m_stats_counter[num_incoming_have_all]);
+			STAT_LOG(d, m_stats_counter[num_incoming_have_none]);
+			STAT_LOG(d, m_stats_counter[num_incoming_reject]);
+			STAT_LOG(d, m_stats_counter[num_incoming_allowed_fast]);
+			STAT_LOG(d, m_stats_counter[num_incoming_ext_handshake]);
+			STAT_LOG(d, m_stats_counter[num_incoming_pex]);
+			STAT_LOG(d, m_stats_counter[num_incoming_metadata]);
+			STAT_LOG(d, m_stats_counter[num_incoming_extended]);
+
+			STAT_LOG(d, m_stats_counter[num_outgoing_choke]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_unchoke]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_interested]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_not_interested]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_have]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_bitfield]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_request]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_piece]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_cancel]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_dht_port]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_suggest]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_have_all]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_have_none]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_reject]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_allowed_fast]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_ext_handshake]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_pex]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_metadata]);
+			STAT_LOG(d, m_stats_counter[num_outgoing_extended]);
 
 			fprintf(m_stats_logger, "\n");
 

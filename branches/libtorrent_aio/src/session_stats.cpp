@@ -160,6 +160,49 @@ namespace libtorrent
 		// is enabled).
 		METRIC(ses, torrent_evicted_counter, type_counter)
 
+		// bittorrent message counters. These counters are incremented
+		// every time a message of the corresponding type is received from
+		// or sent to a bittorrent peer.
+		METRIC(ses, num_incoming_choke, type_counter)
+		METRIC(ses, num_incoming_unchoke, type_counter)
+		METRIC(ses, num_incoming_interested, type_counter)
+		METRIC(ses, num_incoming_not_interested, type_counter)
+		METRIC(ses, num_incoming_have, type_counter)
+		METRIC(ses, num_incoming_bitfield, type_counter)
+		METRIC(ses, num_incoming_request, type_counter)
+		METRIC(ses, num_incoming_piece, type_counter)
+		METRIC(ses, num_incoming_cancel, type_counter)
+		METRIC(ses, num_incoming_dht_port, type_counter)
+		METRIC(ses, num_incoming_suggest, type_counter)
+		METRIC(ses, num_incoming_have_all, type_counter)
+		METRIC(ses, num_incoming_have_none, type_counter)
+		METRIC(ses, num_incoming_reject, type_counter)
+		METRIC(ses, num_incoming_allowed_fast, type_counter)
+		METRIC(ses, num_incoming_ext_handshake, type_counter)
+		METRIC(ses, num_incoming_pex, type_counter)
+		METRIC(ses, num_incoming_metadata, type_counter)
+		METRIC(ses, num_incoming_extended, type_counter)
+
+		METRIC(ses, num_outgoing_choke, type_counter)
+		METRIC(ses, num_outgoing_unchoke, type_counter)
+		METRIC(ses, num_outgoing_interested, type_counter)
+		METRIC(ses, num_outgoing_not_interested, type_counter)
+		METRIC(ses, num_outgoing_have, type_counter)
+		METRIC(ses, num_outgoing_bitfield, type_counter)
+		METRIC(ses, num_outgoing_request, type_counter)
+		METRIC(ses, num_outgoing_piece, type_counter)
+		METRIC(ses, num_outgoing_cancel, type_counter)
+		METRIC(ses, num_outgoing_dht_port, type_counter)
+		METRIC(ses, num_outgoing_suggest, type_counter)
+		METRIC(ses, num_outgoing_have_all, type_counter)
+		METRIC(ses, num_outgoing_have_none, type_counter)
+		METRIC(ses, num_outgoing_reject, type_counter)
+		METRIC(ses, num_outgoing_allowed_fast, type_counter)
+		METRIC(ses, num_outgoing_ext_handshake, type_counter)
+		METRIC(ses, num_outgoing_pex, type_counter)
+		METRIC(ses, num_outgoing_metadata, type_counter)
+		METRIC(ses, num_outgoing_extended, type_counter)
+
 		// counts the number of times the piece picker has been invoked
 		METRIC(picker, piece_picks, type_counter)
 

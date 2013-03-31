@@ -318,6 +318,9 @@ namespace libtorrent { namespace
 			// while this buffer is still in the peer's send buffer
 			if (metadata_piece_size) m_pc.append_const_send_buffer(
 				metadata, metadata_piece_size);
+
+			m_pc.ses().inc_stats_counter(aux::session_interface::num_outgoing_extended);
+			m_pc.ses().inc_stats_counter(aux::session_interface::num_outgoing_metadata);
 		}
 
 		virtual bool on_extended(int length
@@ -418,6 +421,9 @@ namespace libtorrent { namespace
 				// unknown message, ignore
 				break;
 			}
+
+			m_pc.ses().inc_stats_counter(aux::session_interface::num_incoming_metadata);
+
 			return true;
 		}
 
