@@ -478,6 +478,25 @@ char const* esc(char const* code)
 	return ret;
 }
 
+enum color_code
+{
+	col_none = 0,
+	col_red = 31,
+	col_green = 32,
+	col_yellow = 33,
+	col_blue = 34,
+	col_magents = 35,
+};
+
+std::string color(std::string const& s, color_code c)
+{
+	if (c == col_none) return s;
+
+	char buf[1024];
+	snprintf(buf, sizeof(buf), "\x1b[%dm%s\x1b[39m", c, s.c_str());
+	return buf;
+}
+
 std::string to_string(int v, int width)
 {
 	char buf[100];
@@ -580,7 +599,6 @@ std::string const& progress_bar(int progress, int width, char const* code = "33"
 		bar = esc(code);
 		std::fill_n(std::back_inserter(bar), progress_chars, fill);
 		std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
-		bar += esc("0");
 	}
 	else
 	{
@@ -595,8 +613,9 @@ std::string const& progress_bar(int progress, int width, char const* code = "33"
 		bar += esc("48;5;238"); // dark gray background
 		bar += esc("37"); // white foreground
 		bar += caption.substr(progress_chars);
-		bar += esc("0");
 	}
+	bar += esc("39");
+	bar += esc("49");
 	return bar;
 }
 
@@ -2095,7 +2114,6 @@ int main(int argc, char* argv[])
 		if (loop_limit > 1 && sess_stat.num_peers == 0 && tick > 30) break;
 
 		std::string out;
-		out = "[h] show key mappings\n";
 
 		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "loaded", "RSS"};
 		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
@@ -2143,6 +2161,11 @@ int main(int argc, char* argv[])
 			start_offset = active_torrent - max_lines + lines_printed + 1;
 		if (active_torrent < start_offset) start_offset = active_torrent;
 
+		// print title bar for torrent list
+		snprintf(str, sizeof(str), " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\n"
+			, "#", "Name", "Progress", "Download", "Upload", "Peers", "Down", "Up", "Flags");
+		out += str;
+
 		for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin();
 			i != filtered_handles.end(); ++torrent_index)
 		{
@@ -2168,38 +2191,19 @@ int main(int argc, char* argv[])
 				++i;
 			}
 
-			char const* term = "\x1b[0m";
+			// the active torrent is highligted in the list
+			// this inverses the forground and background colors
 			if (active_torrent == torrent_index)
-			{
-				term = "\x1b[0m\x1b[7m";
 				out += esc("7");
-				out += "*";
-			}
-			else
-			{
-				out += " ";
-			}
 
-			if (s.is_loaded)
-				out += "L";
+			char queue_pos[16];
+			if (s.queue_position == -1)
+				strcpy(queue_pos, "-");
 			else
-				out += " ";
-
-			int queue_pos = s.queue_position;
-			if (queue_pos == -1) out += "-  ";
-			else
-			{
-				snprintf(str, sizeof(str), "%-3d", queue_pos);
-				out += str;
-			}
-
-			if (s.paused) out += esc("34");
-			else out += esc("37");
+				snprintf(queue_pos, sizeof(queue_pos), "%d", s.queue_position);
 
 			std::string name = s.name;
-			if (name.size() > 40) name.resize(40);
-			snprintf(str, sizeof(str), "%-40s %s ", name.c_str(), term);
-			out += str;
+			if (name.size() > 50) name.resize(50);
 
 			int seeds = 0;
 			int downloaders = 0;
@@ -2222,20 +2226,26 @@ int main(int argc, char* argv[])
 			else if (sess_stat.has_incoming_connections)
 				progress_bar_color = "32"; // green
 
-			snprintf(str, sizeof(str), "%s%s v: %s%s%s (%s%s%s) ^: %s%s%s (%s%s%s) p: %4d:%4d"
-				"  bw: (%d|%d) (Rx: %s%s%s Tx: %s%s%s) rank: %x %c%s\n"
-				, progress_bar(s.progress_ppm / 1000, 20, progress_bar_color, '-', '#', torrent_state(s)).c_str(), term
-				, esc("32"), add_suffix(s.download_rate, "/s").c_str(), term
-				, esc("32"), add_suffix(s.total_download).c_str(), term
-				, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
-				, esc("31"), add_suffix(s.total_upload).c_str(), term
+			snprintf(str, sizeof(str), "%c%-3s %-50s %s %s (%s) %s (%s) %5d:%-5d"
+				" %s %s %c%s\n"
+				, s.is_loaded ? 'L' : ' '
+				, queue_pos
+				, name.c_str()
+				, progress_bar(s.progress_ppm / 1000, 35, progress_bar_color, '-', '#', torrent_state(s)).c_str()
+				, color(add_suffix(s.download_rate, "/s"), col_green).c_str()
+				, color(add_suffix(s.total_download), col_green).c_str()
+				, color(add_suffix(s.upload_rate, "/s"), col_red).c_str()
+				, color(add_suffix(s.total_upload), col_red).c_str()
 				, downloaders, seeds
-				, s.up_bandwidth_queue, s.down_bandwidth_queue
-				, esc("32"), add_suffix(s.all_time_download).c_str(), term
-				, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-				, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
+				, color(add_suffix(s.all_time_download), col_green).c_str()
+				, color(add_suffix(s.all_time_upload), col_red).c_str()
+				, s.need_save_resume?'S':' ', esc("0"));
 			out += str;
 			++lines_printed;
+
+			// if we reversed the video at the start of the line, undo that now
+			if (active_torrent == torrent_index)
+				out += esc("27");
 
 			// don't print the piece bar if we don't have any piece, or if we have all
 			if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
@@ -2252,7 +2262,7 @@ int main(int argc, char* argv[])
 					++lines_printed;
 				}
 			}
-
+/*
 			if (torrent_index != active_torrent) continue;
 
 			boost::posix_time::time_duration t = s.next_announce;
@@ -2270,6 +2280,7 @@ int main(int argc, char* argv[])
 				, esc("36"), s.current_tracker.c_str(), esc("0"));
 			out += str;
 			++lines_printed;
+*/
 		}
 
 		int cache_flags = print_downloads ? 0 : session::disk_cache_no_pieces;
