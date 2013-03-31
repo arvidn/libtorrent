@@ -306,10 +306,12 @@ while os.path.exists(os.path.join(log_file_path, log_file)):
 	g += 1
 	log_file_list[1] = '%04d' % g
 	log_file = '.'.join(log_file_list)
-	print '' # newline
 
 	# run gnuplot on all scripts, in parallel
 	thread_pool.map(plot_fun, scripts)
+	print '' # newline
+	scripts = []
+
 print '\ngenerating html'
 gen_html(reports, generations)
 
