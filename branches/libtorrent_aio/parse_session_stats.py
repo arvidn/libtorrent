@@ -20,6 +20,7 @@ output_dir = 'session_stats_report'
 line_graph = 0
 histogram = 1
 stacked = 2
+diff = 3
 
 graph_colors = []
 
@@ -116,7 +117,6 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 		print >>out, 'plot',
 		column = 2
 		first = True
-		prev = ''
 		graph = ''
 		plot_expression = ''
 		color = 0
@@ -135,6 +135,28 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			first = False
 			color += 1
 		print >>out, plot_expression
+	elif options['type'] == diff:
+		print >>out, 'set xrange [0:*]'
+		print >>out, 'set ylabel "%s"' % unit
+		print >>out, 'set xlabel "time (s)"'
+		print >>out, 'set format y "%%.1s%%c%s";' % short_unit
+		column = 2
+		first = True
+		graph = ''
+		title = ''
+		for k in lines:
+			try:
+				column = keys.index(k) + 2
+			except:
+				print '"%s" not found' % k
+				continue;
+			if not first:
+				graph += '-'
+				title += ' - '
+			graph += '$%d' % column
+			title += k
+			first = False
+		print >>out, 'plot "%s" using 1:(%s) title "%s" with step' % (log_file, graph, title)
 	else:
 		print >>out, 'set xrange [0:*]'
 		print >>out, 'set ylabel "%s"' % unit
@@ -268,6 +290,14 @@ reports = [
 		'num_outgoing_have_none', 'num_outgoing_reject', 'num_outgoing_allowed_fast', \
 		'num_outgoing_ext_handshake', 'num_outgoing_pex', 'num_outgoing_metadata', 'num_outgoing_extended' \
 	 ], {'type': stacked}),
+	('request in balance', 'num', '', 'request and piece message balance', [ \
+		'num_incoming_request', 'num_outgoing_piece', \
+		'num_outgoing_reject'  \
+	 ], {'type': diff}),
+	('request out balance', 'num', '', 'request and piece message balance', [ \
+		'num_outgoing_request', 'num_incoming_piece', \
+		'num_incoming_reject'  \
+	 ], {'type': diff}),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats
