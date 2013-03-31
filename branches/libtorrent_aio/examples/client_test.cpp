@@ -480,12 +480,15 @@ char const* esc(char const* code)
 
 enum color_code
 {
-	col_none = 0,
-	col_red = 31,
-	col_green = 32,
-	col_yellow = 33,
-	col_blue = 34,
-	col_magents = 35,
+	col_none = -1,
+	col_black = 0,
+	col_red = 1,
+	col_green = 2,
+	col_yellow = 3,
+	col_blue = 4,
+	col_magenta = 5,
+	col_cyan = 6,
+	col_white = 7,
 };
 
 std::string color(std::string const& s, color_code c)
@@ -493,7 +496,7 @@ std::string color(std::string const& s, color_code c)
 	if (c == col_none) return s;
 
 	char buf[1024];
-	snprintf(buf, sizeof(buf), "\x1b[%dm%s\x1b[39m", c, s.c_str());
+	snprintf(buf, sizeof(buf), "\x1b[3%dm%s\x1b[39m", c, s.c_str());
 	return buf;
 }
 
@@ -585,7 +588,7 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 	return bar;
 }
 
-std::string const& progress_bar(int progress, int width, char const* code = "33"
+std::string const& progress_bar(int progress, int width, color_code c = col_green
 	, char fill = '#', char bg = '-', std::string caption = "")
 {
 	static std::string bar;
@@ -596,26 +599,27 @@ std::string const& progress_bar(int progress, int width, char const* code = "33"
 
 	if (caption.empty())
 	{
-		bar = esc(code);
+		char code[10];
+		snprintf(code, sizeof(code), "\x1b[3%dm", c);
+		bar = code;
 		std::fill_n(std::back_inserter(bar), progress_chars, fill);
 		std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
+		bar += esc("39");
 	}
 	else
 	{
+		// foreground color (depends a bit on background color)
+		color_code tc = col_black;
+		if (c == col_black || c == col_blue)
+			tc = col_white;
+
 		caption.resize(width, ' ');
-		char color_code[3] = "42";
-		// keep just the color, not
-		// the fact that it's foreground/background
-		color_code[1] = code[1];
-		bar = esc(color_code); // green background
-		bar += esc("30"); // black foreground
-		bar += caption.substr(0, progress_chars);
-		bar += esc("48;5;238"); // dark gray background
-		bar += esc("37"); // white foreground
-		bar += caption.substr(progress_chars);
+
+		char str[256];
+		snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[48;5;238m\x1b[37m%s\x1b[49;39m"
+			, c, tc, caption.substr(0, progress_chars).c_str(), caption.substr(progress_chars).c_str());
+		bar = str;
 	}
-	bar += esc("39");
-	bar += esc("49");
 	return bar;
 }
 
@@ -760,7 +764,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 				char buf[50];
 				snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
 				out += progress_bar(
-					i->downloading_progress * 1000 / i->downloading_total, 14, "32", '-', '#', buf);
+					i->downloading_progress * 1000 / i->downloading_total, 14, col_green, '-', '#', buf);
 			}
 			else
 			{
@@ -1283,16 +1287,13 @@ static char const* state_str[] =
 
 std::string torrent_state(torrent_status const& s)
 {
+	if (!s.error.empty()) return s.error;
 	std::string ret;
-	if (!s.error.empty()) ret = s.error;
-	else
-	{
-		if (!s.paused && !s.auto_managed) ret = "[F]";
-		if (s.paused && !s.auto_managed) ret += "paused";
-		else if (s.paused && s.auto_managed) ret += "queued";
-		else if (s.upload_mode) ret += "upload mode";
-		else ret += state_str[s.state];
-	}
+	if (s.paused && !s.auto_managed) ret += "paused";
+	else if (s.paused && s.auto_managed) ret += "queued";
+	else if (s.upload_mode) ret += "upload mode";
+	else ret += state_str[s.state];
+	if (!s.paused && !s.auto_managed) ret += "[F]";
 	char buf[10];
 	snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
 	ret += buf;
@@ -2192,8 +2193,12 @@ int main(int argc, char* argv[])
 
 			// the active torrent is highligted in the list
 			// this inverses the forground and background colors
+			char const* selection = "";
 			if (active_torrent == torrent_index)
-				out += esc("7");
+			{
+				selection = "\x1b[1m\x1b[44m";
+				out += selection;
+			}
 
 			char queue_pos[16];
 			if (s.queue_position == -1)
@@ -2213,24 +2218,23 @@ int main(int argc, char* argv[])
 			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
 			else downloaders = s.list_peers - s.list_seeds;
 
-			char const* progress_bar_color = "33"; // yellow
-			if (!s.error.empty())
-				progress_bar_color = "31"; // red 
-			else if (s.paused)
-				progress_bar_color = "34"; // blue
+			color_code progress_bar_color = col_yellow;
+			if (!s.error.empty()) progress_bar_color = col_red;
+			else if (s.paused) progress_bar_color = col_blue;
 			else if (s.state == torrent_status::downloading_metadata)
-				progress_bar_color = "35"; // magenta
+				progress_bar_color = col_magenta;
 			else if (s.current_tracker.empty())
-				progress_bar_color = "31"; // red
+				progress_bar_color = col_red;
 			else if (sess_stat.has_incoming_connections)
-				progress_bar_color = "32"; // green
+				progress_bar_color = col_green;
 
-			snprintf(str, sizeof(str), "%c%-3s %-50s %s %s (%s) %s (%s) %5d:%-5d"
+			snprintf(str, sizeof(str), "%c%-3s %-50s %s%s %s (%s) %s (%s) %5d:%-5d"
 				" %s %s %c%s\n"
 				, s.is_loaded ? 'L' : ' '
 				, queue_pos
 				, name.c_str()
 				, progress_bar(s.progress_ppm / 1000, 35, progress_bar_color, '-', '#', torrent_state(s)).c_str()
+				, selection
 				, color(add_suffix(s.download_rate, "/s"), col_green).c_str()
 				, color(add_suffix(s.total_download), col_green).c_str()
 				, color(add_suffix(s.upload_rate, "/s"), col_red).c_str()
@@ -2242,9 +2246,9 @@ int main(int argc, char* argv[])
 			out += str;
 			++lines_printed;
 
-			// if we reversed the video at the start of the line, undo that now
+			// if this is the selected torrent, restore the background color
 			if (active_torrent == torrent_index)
-				out += esc("27");
+				out += esc("0");
 
 			// don't print the piece bar if we don't have any piece, or if we have all
 			if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
@@ -2405,13 +2409,13 @@ int main(int argc, char* argv[])
 				if (mru_size > 0)
 				{
 					out += progress_bar(cs.arc_mru_ghost_size * 1000 / mru_size
-						, mru_size * (terminal_width-3) / arc_size, "33", '-', '#');
+						, mru_size * (terminal_width-3) / arc_size, col_yellow, '-', '#');
 				}
 				out += '|';
 				if (mfu_size)
 				{
 					out += progress_bar(cs.arc_mfu_size * 1000 / mfu_size
-						, mfu_size * (terminal_width-3) / arc_size, "32", '=', '-');
+						, mfu_size * (terminal_width-3) / arc_size, col_green, '=', '-');
 				}
 			}
 			out += "\n";
@@ -2530,10 +2534,15 @@ int main(int argc, char* argv[])
 					int progress = ti->file_at(i).size > 0
 						?file_progress[i] * 1000 / ti->files().file_size(i):1000;
 
-					char const* color = (file_progress[i] == ti->files().file_size(i))
-						?"32":"33";
+					bool complete = file_progress[i] == ti->files().file_size(i);
 
 					std::string title = ti->files().file_name(i);
+					if (!complete)
+					{
+						snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);
+						title += str;
+					}
+
 					if (f != file_status.end() && f->file_index == i)
 					{
 						title += " [ ";
@@ -2548,7 +2557,7 @@ int main(int argc, char* argv[])
 					}
 
 					snprintf(str, sizeof(str), "%s %s prio: %d\n",
-						progress_bar(progress, 70, color, '-', '#'
+						progress_bar(progress, 70, complete?col_green:col_yellow, '-', '#'
 							, title.c_str()).c_str()
 						, add_suffix(file_progress[i]).c_str()
 						, file_prio[i]);
