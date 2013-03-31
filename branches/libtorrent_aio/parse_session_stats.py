@@ -84,6 +84,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 		print >>out, 'set yrange [0:*]'
 	print >>out, "set tics nomirror"
 	print >>out, "set key box"
+	print >>out, "set key left top"
 	if options['type'] == histogram:
 		binwidth = options['binwidth']
 		numbins = int(options['numbins'])
