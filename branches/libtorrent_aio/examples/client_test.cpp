@@ -1033,7 +1033,6 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		torrent_handle h = p->handle;
 		error_code ec;
-		file_status st;
 		std::string cert = combine_path("certificates", to_hex(h.info_hash().to_string())) + ".pem";
 		std::string priv = combine_path("certificates", to_hex(h.info_hash().to_string())) + "_key.pem";
 		stat_file(cert, &st, ec);
@@ -2163,7 +2162,7 @@ int main(int argc, char* argv[])
 
 		// print title bar for torrent list
 		snprintf(str, sizeof(str), " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\n"
-			, "#", "Name", "Progress", "Download", "Upload", "Peers", "Down", "Up", "Flags");
+			, "#", "Name", "Progress", "Download", "Upload", "Peers (D:S)", "Down", "Up", "Flags");
 		out += str;
 
 		for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin();
@@ -2515,38 +2514,44 @@ int main(int argc, char* argv[])
 				boost::intrusive_ptr<torrent_info> ti = h.torrent_file();
 				for (int i = 0; i < ti->num_files(); ++i)
 				{
-					bool pad_file = ti->file_at(i).pad_file;
-					if (!show_pad_files && pad_file) continue;
-					int progress = ti->file_at(i).size > 0
-						?file_progress[i] * 1000 / ti->file_at(i).size:1000;
+					bool pad_file = ti->files().pad_file_at(i);
+					if (pad_file)
+					{
+						if (show_pad_files)
+						{
+							snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\n"
+								, ti->files().file_name(i).c_str()
+								, add_suffix(ti->files().file_size(i)).c_str());
+							out += str;
+						}
+						continue;
+					}
 
-					char const* color = (file_progress[i] == ti->file_at(i).size)
+					int progress = ti->file_at(i).size > 0
+						?file_progress[i] * 1000 / ti->files().file_size(i):1000;
+
+					char const* color = (file_progress[i] == ti->files().file_size(i))
 						?"32":"33";
 
-					std::string mode;
+					std::string title = ti->files().file_name(i);
 					if (f != file_status.end() && f->file_index == i)
 					{
-						mode += "- OPEN [ ";
-						if (f->open_mode & file::random_access) mode += "random_access ";
-						if (f->open_mode & file::lock_file) mode += "locked ";
-						if (f->open_mode & file::sparse) mode += "sparse ";
-						if (f->open_mode & file::read_write) mode += "read/write ";
-						else if (f->open_mode & file::write_only) mode += "write ";
-						mode += "]";
+						title += " [ ";
+						if ((f->open_mode & file::rw_mask) == file::read_write) title += "read/write ";
+						else if ((f->open_mode & file::rw_mask) == file::read_only) title += "read ";
+						else if ((f->open_mode & file::rw_mask) == file::write_only) title += "write ";
+						if (f->open_mode & file::random_access) title += "random_access ";
+						if (f->open_mode & file::lock_file) title += "locked ";
+						if (f->open_mode & file::sparse) title += "sparse ";
+						title += "]";
 						++f;
 					}
 
-					char prio[20];
-					snprintf(prio, sizeof(prio), "prio: %d", file_prio[i]);
-
-					snprintf(str, sizeof(str), "%s %s%s %s%s %s\n",
+					snprintf(str, sizeof(str), "%s %s prio: %d\n",
 						progress_bar(progress, 70, color, '-', '#'
-							, filename(ti->files().file_path(ti->file_at(i)))).c_str()
-						, pad_file?esc("34"):""
+							, title.c_str()).c_str()
 						, add_suffix(file_progress[i]).c_str()
-						, mode.c_str()
-						, pad_file?esc("0"):""
-						, prio);
+						, file_prio[i]);
 					out += str;
 				}
 
