@@ -4899,16 +4899,10 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		if (channel == download_channel)
-		{
-			peer_log("<<< REQUEST_BANDWIDTH [ download: %d prio: %d "
-				"num_channels: %d ]", bytes, priority, c);
-		}
-		else
-		{
-			peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
-				"num_channels: %d ]", bytes, priority, c);
-		}
+		peer_log("%s REQUEST_BANDWIDTH [ bytes: %d quota: %d wanted_transfer: %d "
+			"prio: %d num_channels: %d ]"
+			, channel == download_channel ? "<<<" : ">>>", bytes
+			, m_quota[channel], wanted_transfer(channel), priority, c);
 #endif
 
 		TORRENT_ASSERT((m_channel_state[channel] & peer_info::bw_limit) == 0);
