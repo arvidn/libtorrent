@@ -514,7 +514,8 @@ namespace libtorrent
 		// if old_name doesn't exist, that's not an error
 		// here. Once we start writing to the file, it will
 		// be written to the new filename
-		if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		if (ec && ec != boost::system::errc::no_such_file_or_directory
+			&& ec != boost::system::errc::not_a_directory)
 		{
 			set_error(old_name, ec);
 			return true;
@@ -540,7 +541,8 @@ namespace libtorrent
 		error_code ec;
 		remove(p, ec);
 		
-		if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		if (ec && ec != boost::system::errc::no_such_file_or_directory
+			&& ec != boost::system::errc::not_a_directory)
 			set_error(p, ec);
 	}
 
@@ -756,7 +758,8 @@ namespace libtorrent
 		error_code ec;
 		file_status s;
 		stat_file(save_path, &s, ec);
-		if (ec == boost::system::errc::no_such_file_or_directory)
+		if (ec == boost::system::errc::no_such_file_or_directory
+			|| ec == boost::system::errc::not_a_directory)
 			create_directories(save_path, ec);
 		else if (ec)
 			return false;
@@ -781,7 +784,8 @@ namespace libtorrent
 			std::string new_path = combine_path(save_path, *i);
 
 			rename(old_path, new_path, ec);
-			if (ec && ec != boost::system::errc::no_such_file_or_directory)
+			if (ec && ec != boost::system::errc::no_such_file_or_directory
+				&& ec != boost::system::errc::not_a_directory)
 			{
 				error_code ec;
 				recursive_copy(old_path, new_path, ec);
@@ -1155,7 +1159,9 @@ ret:
 
 			error_code ec;
 			file_handle = open_file(file_iter, op.mode, ec);
-			if (((op.mode & file::rw_mask) == file::read_write) && ec == boost::system::errc::no_such_file_or_directory)
+			if (((op.mode & file::rw_mask) == file::read_write)
+				&& (ec == boost::system::errc::no_such_file_or_directory
+					|| ec == boost::system::errc::not_a_directory))
 			{
 				// this means the directory the file is in doesn't exist.
 				// so create it
@@ -1286,7 +1292,9 @@ ret:
 		TORRENT_ASSERT((aligned_size & size_align) == 0);
 
 		size_type actual_file_size = file_handle->get_size(ec);
-		if (ec && ec != make_error_code(boost::system::errc::no_such_file_or_directory)) return -1;
+		if (ec && ec != boost::system::errc::no_such_file_or_directory
+			&& ec != boost::system::errc::not_a_directory)
+			return -1;
 		ec.clear();
 
 		// allocate a temporary, aligned, buffer
