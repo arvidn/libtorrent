@@ -40,7 +40,9 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
-	* add missing functions to python binding (flush_cache() and remap_files())
+	* fixed error handling of missing directories in download path
+	* try unencrypted connections first, and fall back to encryption if it fails (performance improvement)
+	* add missing functions to python binding (flush_cache(), remap_files() and orig_files())
 	* improve handling of filenames that are invalid on windows
 	* support 'implied_port' in DHT announce_peer
 	* don't use pool allocator for disk blocks (cache may now return pages to the kernel)

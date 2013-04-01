@@ -693,7 +693,7 @@ manually control when the torrent leaves upload mode, don't make it auto managed
 
 ``flag_share_mode`` determines if the torrent should be added in *share mode* or not.
 Share mode indicates that we are not interested in downloading the torrent, but
-merlely want to improve our share ratio (i.e. increase it). A torrent started in
+merley want to improve our share ratio (i.e. increase it). A torrent started in
 share mode will do its best to never download more than it uploads to the swarm.
 If the swarm does not have enough demand for upload capacity, the torrent will
 not download anything. This mode is intended to be safe to add any number of torrents
