@@ -5494,6 +5494,8 @@ namespace libtorrent
 			{
 				if (ec != boost::asio::error::try_again && ec != boost::asio::error::would_block)
 					disconnect(ec, op_sock_read);
+				else
+					setup_receive(read_async);
 				return;
 			}
 		}
