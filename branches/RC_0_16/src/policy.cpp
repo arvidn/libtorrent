@@ -1775,7 +1775,11 @@ namespace libtorrent
 		, trust_points(0)
 		, source(src)
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		, pe_support(true)
+		// assume no support in order to
+		// prefer opening non-encrypyed
+		// connections. If it fails, we'll
+		// retry with encryption
+		, pe_support(false)
 #endif
 #if TORRENT_USE_IPV6
 		, is_v6_addr(false)

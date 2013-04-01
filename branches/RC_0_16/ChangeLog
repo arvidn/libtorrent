@@ -1,3 +1,4 @@
+	* try unencrypted connections first, and fall back to encryption if it fails (performance improvement)
 	* add missing functions to python binding (flush_cache(), remap_files() and orig_files())
 	* improve handling of filenames that are invalid on windows
 	* support 'implied_port' in DHT announce_peer
