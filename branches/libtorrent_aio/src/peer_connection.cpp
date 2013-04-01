@@ -5395,6 +5395,10 @@ namespace libtorrent
 	// nb is true if this callback is due to a null_buffers()
 	// invocation of async_read_some(). In that case, we need
 	// to disregard bytes_transferred.
+	// at all exit points of this function, one of the following MUST hold:
+	//  1. the socket is disconnecting
+	//  2. m+channel_state[download_channel] & peer_info::bw_network == 0
+
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred, bool nb)
 	{
@@ -5478,7 +5482,13 @@ namespace libtorrent
 				}
 				// we're already waiting to get some more
 				// quota from the bandwidth manager
-				if (buffer_size == 0) return;
+				if (buffer_size == 0)
+				{
+					// allow reading from the socket again
+					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+					m_channel_state[download_channel] &= ~peer_info::bw_network;
+					return;
+				}
 			}
 
 			if (buffer_size > 2097152) buffer_size = 2097152;
@@ -5492,10 +5502,15 @@ namespace libtorrent
 				, buffer_size), ec);
 			if (ec)
 			{
-				if (ec != boost::asio::error::try_again && ec != boost::asio::error::would_block)
-					disconnect(ec, op_sock_read);
-				else
+				if (ec == boost::asio::error::try_again || ec == boost::asio::error::would_block)
+				{
+					// allow reading from the socket again
+					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+					m_channel_state[download_channel] &= ~peer_info::bw_network;
 					setup_receive(read_async);
+					return;
+				}
+				disconnect(ec, op_sock_read);
 				return;
 			}
 		}
