@@ -4902,12 +4902,12 @@ namespace libtorrent
 		if (channel == download_channel)
 		{
 			peer_log("<<< REQUEST_BANDWIDTH [ download: %d prio: %d "
-				"num_channels: %d ]", int(m_download_queue.size() * 16 * 1024 + 30), priority, c);
+				"num_channels: %d ]", bytes, priority, c);
 		}
 		else
 		{
 			peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
-				"num_channels: %d ]", int(m_send_buffer.size()), priority, c);
+				"num_channels: %d ]", bytes, priority, c);
 		}
 #endif
 
