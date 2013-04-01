@@ -241,8 +241,7 @@ namespace libtorrent
 					new_prio = 1;
 /*
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only | file::random_access, ec.ec);
-				if (ec.ec != boost::system::errc::no_such_file_or_directory
-					&& ec.ec != boost::system::errc::not_a_directory)
+				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
 					if (ec || !f)
 					{
@@ -312,8 +311,7 @@ namespace libtorrent
 
 				file_status s;
 				stat_file(file_path, &s, ec.ec);
-				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory
-					&& ec.ec != boost::system::errc::not_a_directory)
+				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
 					m_stat_cache.set_error(file_index);
 					ec.file = file_index;
@@ -394,8 +392,7 @@ namespace libtorrent
 				size_type r = s.file_size;
 				if (ec.ec || !(s.mode & file_status::regular_file)) r = -1;
 
-				if (ec && (ec.ec == boost::system::errc::no_such_file_or_directory
-					|| ec.ec == boost::system::errc::not_a_directory))
+				if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
 				{
 					ec.ec.clear();
 					r = -3;
@@ -421,8 +418,7 @@ namespace libtorrent
 		stat_file(m_part_file_name, &s, ec.ec);
 		if (!ec) return true;
 
-		if (ec && (ec.ec == boost::system::errc::no_such_file_or_directory
-			|| ec.ec == boost::system::errc::not_a_directory))
+		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 		if (ec)
 		{
@@ -458,8 +454,7 @@ namespace libtorrent
 		// if old_name doesn't exist, that's not an error
 		// here. Once we start writing to the file, it will
 		// be written to the new filename
-		if (ec.ec == boost::system::errc::no_such_file_or_directory
-			|| ec.ec == boost::system::errc::not_a_directory)
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 
 		if (ec)
@@ -486,8 +481,7 @@ namespace libtorrent
 	{
 		remove(p, ec);
 		
-		if (ec == boost::system::errc::no_such_file_or_directory
-			|| ec == boost::system::errc::not_a_directory)
+		if (ec == boost::system::errc::no_such_file_or_directory)
 			ec.clear();
 	}
 
@@ -527,8 +521,7 @@ namespace libtorrent
 		}
 
 		remove(combine_path(m_save_path, m_part_file_name), ec.ec);
-		if (ec.ec == boost::system::errc::no_such_file_or_directory
-			|| ec.ec == boost::system::errc::not_a_directory)
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
 		else if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
 	}
@@ -572,8 +565,7 @@ namespace libtorrent
 				}
 				else
 				{
-					if (ec == boost::system::errc::no_such_file_or_directory
-						|| ec == boost::system::errc::not_a_directory)
+					if (ec == boost::system::errc::no_such_file_or_directory)
 					{
 						m_stat_cache.set_noexist(index);
 					}
@@ -745,8 +737,7 @@ namespace libtorrent
 				file_time = s.mtime;
 				if (error)
 				{
-					if (error != boost::system::errc::no_such_file_or_directory
-						&& error != boost::system::errc::not_a_directory)
+					if (error != boost::system::errc::no_such_file_or_directory)
 					{
 						m_stat_cache.set_error(i);
 						ec.ec = error;
@@ -799,8 +790,7 @@ namespace libtorrent
 
 		file_status s;
 		stat_file(save_path, &s, ec.ec);
-		if (ec.ec == boost::system::errc::no_such_file_or_directory
-			|| ec.ec == boost::system::errc::not_a_directory)
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
 		{
 			create_directories(save_path, ec.ec);
 			if (ec)
@@ -837,8 +827,7 @@ namespace libtorrent
 			std::string new_path = combine_path(save_path, i->first);
 
 			rename(old_path, new_path, ec.ec);
-			if (ec.ec == boost::system::errc::no_such_file_or_directory
-				|| ec.ec == boost::system::errc::not_a_directory)
+			if (ec.ec == boost::system::errc::no_such_file_or_directory)
 				ec.ec.clear();
 
 			if (ec)
@@ -1013,8 +1002,7 @@ namespace libtorrent
 			{
 				file_handle = open_file(file_iter, op.mode, e);
 				if (((op.mode & file::rw_mask) == file::read_write)
-					&& (e == boost::system::errc::no_such_file_or_directory
-						|| e == boost::system::errc::not_a_directory))
+					&& e == boost::system::errc::no_such_file_or_directory)
 				{
 					// this means the directory the file is in doesn't exist.
 					// so create it
