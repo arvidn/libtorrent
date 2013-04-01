@@ -1363,6 +1363,12 @@ namespace libtorrent
 				free_job(j);
 				return;
 			}
+
+			//TODO: 4 allocate the piece, mark it as reading, post this job.
+			// Future read jobs can see that it's beeing read and can hang
+			// the read job off of the piece instead. It's very important
+			// to not read the same piece multiple times when issuing read
+			// jobs from adjacent blocks in the same piece!
 		}
 
 		add_job(j);
