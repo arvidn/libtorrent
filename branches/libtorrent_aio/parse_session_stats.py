@@ -48,6 +48,18 @@ for i in range(0,len(pattern) * 3):
 line_colors = list(graph_colors)
 line_colors.reverse()
 
+gradient16_colors = []
+for i in range(0, 16):
+	f = i / 16.
+	c = '#%02x%02x%02x' % (min(int(255 * (-2 * f + 2)), 255), min(int(255 * (2 * f)), 255), 100)
+	gradient16_colors.append(c)
+
+gradient6_colors = []
+for i in range(0, 6):
+	f = i / 6.
+	c = '#%02x%02x%02x' % (min(int(255 * (-2 * f + 2)), 255), min(int(255 * (2 * f)), 255), 100)
+	gradient6_colors.append(c)
+
 def plot_fun(script):
 	ret = os.system('gnuplot "%s" 2>/dev/null' % script)
 	if ret != 0 and ret != 256:
@@ -86,6 +98,18 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 	print >>out, "set tics nomirror"
 	print >>out, "set key box"
 	print >>out, "set key left top"
+
+	colors = graph_colors
+	if options['type'] == line_graph:
+		colors = line_colors
+
+	try:
+		if options['colors'] == 'gradient16':
+			colors = gradient16_colors
+		elif options['colors'] == 'gradient6':
+			colors = gradient6_colors
+	except: pass
+
 	if options['type'] == histogram:
 		binwidth = options['binwidth']
 		numbins = int(options['numbins'])
@@ -131,7 +155,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 				graph += '+'
 			axis = 'x1y1'
 			graph += '$%d' % column
-			plot_expression = ' "%s" using 1:(%s) title "%s" axes %s with filledcurves y1=0 lc rgb "%s"' % (log_file, graph, k, axis, graph_colors[color % len(graph_colors)]) + plot_expression
+			plot_expression = ' "%s" using 1:(%s) title "%s" axes %s with filledcurves y1=0 lc rgb "%s"' % (log_file, graph, k, axis, colors[color % len(colors)]) + plot_expression
 			first = False
 			color += 1
 		print >>out, plot_expression
@@ -174,7 +198,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 				continue;
 			if not first: print >>out, ', ',
 			axis = 'x1y1'
-			print >>out, ' "%s" using 1:%d title "%s" axes %s with steps lc rgb "%s"' % (log_file, column, k, axis, line_colors[color % len(line_colors)]),
+			print >>out, ' "%s" using 1:%d title "%s" axes %s with steps lc rgb "%s"' % (log_file, column, k, axis, colors[color % len(colors)]),
 			first = False
 			color += 1
 		print >>out, ''
@@ -267,10 +291,10 @@ reports = [
 		'disk_counter'], {'type': stacked}),
 	('send_buffer_sizes', 'num', '', '', ['up 8', 'up 16', 'up 32', 'up 64', 'up 128', 'up 256', \
 		'up 512', 'up 1024', 'up 2048', 'up 4096', 'up 8192', 'up 16384', 'up 32768', 'up 65536', \
-		'up 131072', 'up 262144'], {'type': stacked}),
+		'up 131072', 'up 262144'], {'type': stacked, 'colors':'gradient16'}),
 	('recv_buffer_sizes', 'num', '', '', ['down 8', 'down 16', 'down 32', 'down 64', 'down 128', \
 		'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', \
-		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked}),
+		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked, 'colors':'gradient16'}),
 	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True}),
 	('torrent churn', 'num torrents', '', '', ['loaded torrents', 'loaded torrent churn']),
 	('requests', '', '', '', ['outstanding requests']),
@@ -302,10 +326,10 @@ reports = [
 
 #somewhat uninteresting stats
 	('tick_rate', 'time between ticks', 's', '', ['tick interval', 'tick residual']),
-	('peer_dl_rates', 'num', '', 'peers split into download rate buckets', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'], {'type':stacked}),
-	('peer_dl_rates2', 'num', '', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'], {'type':stacked}),
-	('peer_ul_rates', 'num', '', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked}),
-	('peer_ul_rates2', 'num', '', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked}),
+	('peer_dl_rates', 'num', '', 'peers split into download rate buckets', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'], {'type':stacked, 'colors':'gradient6'}),
+	('peer_dl_rates2', 'num', '', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'], {'type':stacked, 'colors':'gradient6'}),
+	('peer_ul_rates', 'num', '', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked, 'colors':'gradient6'}),
+	('peer_ul_rates2', 'num', '', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked, 'colors':'gradient6'}),
 	('piece_picker_end_game', 'blocks', '', '', ['end game piece picker blocks', 'piece picker blocks', \
 		'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', \
 		'incoming piece picks', 'end game piece picks', 'snubbed piece picks'], {'type':stacked}),
