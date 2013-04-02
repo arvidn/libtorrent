@@ -160,6 +160,7 @@ namespace libtorrent
 				&& piece_refcount == 0
 				&& num_blocks == 0
 				&& !hashing
+				&& read_jobs.size() == 0
 				&& (ignore_hash || !hash || hash->offset == 0);
 		}
 
