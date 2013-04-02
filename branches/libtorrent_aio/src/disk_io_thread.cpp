@@ -1222,6 +1222,61 @@ namespace libtorrent
 		int tmp = m_disk_cache.try_read(j);
 		TORRENT_ASSERT(tmp >= 0);
 
+		pe->outstanding_read = 0;
+
+		// while we were reading, there may have been a few jobs
+		// that got queued up also wanting to read from this piece.
+		// Any job that is a cache hit now, complete it immediately.
+		// Then, issue the first non-cache-hit job. Once it complete
+		// it will keep working off this list
+		tailqueue stalled_jobs;
+		pe->read_jobs.swap(stalled_jobs);
+
+		// the next job to issue (i.e. this is a cache-miss)
+		disk_io_job* next_job = NULL;
+
+		while (stalled_jobs.size() > 0)
+		{
+			disk_io_job* sj = (disk_io_job*)stalled_jobs.pop_front();
+			TORRENT_ASSERT(sj->flags & disk_io_job::in_progress);
+
+			int ret = m_disk_cache.try_read(sj);
+			if (ret >= 0)
+			{
+				// cache-hit
+				DLOG("do_read: cache hit\n");
+				sj->flags |= disk_io_job::cache_hit;
+				sj->ret = ret;
+				add_completed_job(sj);
+			}
+			else if (ret == -2)
+			{
+				// error
+				sj->ret = disk_io_job::operation_failed;
+				add_completed_job(sj);
+			}
+			else
+			{
+				// cache-miss, retry or put back
+				if (next_job == NULL)
+				{
+					next_job = sj;
+				}
+				else
+				{
+					pe->read_jobs.push_back(sj);
+				}
+			}
+		}
+
+		if (next_job)
+		{
+			pe->outstanding_read = 1;
+			// this is needed to re-add the job
+			next_job->flags &= ~disk_io_job::in_progress;
+			add_job(next_job);
+		}
+
 		return j->d.io.buffer_size;
 	}
 
@@ -1364,11 +1419,38 @@ namespace libtorrent
 				return;
 			}
 
-			//TODO: 4 allocate the piece, mark it as reading, post this job.
-			// Future read jobs can see that it's beeing read and can hang
-			// the read job off of the piece instead. It's very important
-			// to not read the same piece multiple times when issuing read
-			// jobs from adjacent blocks in the same piece!
+			if (storage->is_blocked(j))
+			{
+				l.unlock();
+				// this means the job was queued up inside storage
+				++m_num_blocked_jobs;
+				DLOG("blocked job: %s (torrent: %d total: %d)\n"
+					, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+					, int(m_num_blocked_jobs));
+				return;
+			}
+
+			cached_piece_entry* pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+			if (pe == NULL)
+			{
+				l.unlock();
+				j->ret = -1;
+				j->error.ec = error::no_memory;
+				j->error.operation = storage_error::read;
+				if (handler) handler(j);
+				free_job(j);
+				return;
+			}
+
+			if (pe->outstanding_read)
+			{
+				pe->read_jobs.push_back(j);
+				return;
+			}
+
+			pe->outstanding_read = 1;
+			// this is needed to re-add the job
+			j->flags &= ~disk_io_job::in_progress;
 		}
 
 		add_job(j);

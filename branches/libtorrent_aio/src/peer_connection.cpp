@@ -5397,7 +5397,7 @@ namespace libtorrent
 	// to disregard bytes_transferred.
 	// at all exit points of this function, one of the following MUST hold:
 	//  1. the socket is disconnecting
-	//  2. m+channel_state[download_channel] & peer_info::bw_network == 0
+	//  2. m_channel_state[download_channel] & peer_info::bw_network == 0
 
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred, bool nb)

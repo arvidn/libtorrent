@@ -169,6 +169,10 @@ namespace libtorrent
 		// write jobs hanging off of this piece
 		tailqueue jobs;
 
+		// read jobs waiting for the read job currently outstanding
+		// on this piece to complete. These are executed at that point.
+		tailqueue read_jobs;
+
 		int get_piece() const { return piece; }
 		void* get_storage() const { return storage.get(); }
 
@@ -186,13 +190,12 @@ namespace libtorrent
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
-		// TODO: could this be a scoped_array instead? does cached_piece_entry really need to be copyable?
+		// TODO: 3 could this be a scoped_array instead? does cached_piece_entry really need to be copyable?
 		boost::shared_array<cached_block_entry> blocks;
 
 		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
-		// TODO: now that there's a proper ARC cache, is this still necessary?
 		ptime expire;
 
 		boost::uint64_t piece:22;
@@ -274,8 +277,16 @@ namespace libtorrent
 		// issue another one.
 		boost::uint32_t outstanding_flush:1;
 
+		// as long as there is a read operation outstanding on this
+		// piece, this is set to 1. Otherwise 0.
+		// the purpose is to make sure not two threads are reading
+		// the same blocks at the same time. If a new read job is
+		// added when this is 1, that new job should be hung on the
+		// read job queue (read_jobs).
+		boost::uint32_t outstanding_read:1;
+
 		// unused
-		boost::uint32_t padding:2;
+		boost::uint32_t padding:1;
 
 		//	---- 32 bit boundary ---
 

@@ -162,6 +162,7 @@ cached_piece_entry::cached_piece_entry()
 	, cache_state(read_lru1)
 	, piece_refcount(0)
 	, outstanding_flush(0)
+	, outstanding_read(0)
 	, padding(0)
 	, refcount(0)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

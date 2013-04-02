@@ -1293,7 +1293,7 @@ std::string torrent_state(torrent_status const& s)
 	else if (s.paused && s.auto_managed) ret += "queued";
 	else if (s.upload_mode) ret += "upload mode";
 	else ret += state_str[s.state];
-	if (!s.paused && !s.auto_managed) ret += "[F]";
+	if (!s.paused && !s.auto_managed) ret += " [F]";
 	char buf[10];
 	snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
 	ret += buf;
