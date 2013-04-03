@@ -331,243 +331,26 @@ namespace libtorrent
 	// usage, with no consideration of performance.
 	TORRENT_EXPORT session_settings min_memory_usage()
 	{
-		session_settings set;
-
-		// receive data directly into disk buffers
-		// this yields more system calls to read() and
-		// kqueue(), but saves RAM.
-		set.contiguous_recv_buffer = false;
-
-		// keep 2 blocks outstanding when hashing
-		set.checking_mem_usage = 2;
-
-		// don't use any extra threads to do SHA-1 hashing
-		set.hashing_threads = 0;
-		set.network_threads = 0;
-		set.aio_threads = 1;
-
-		set.alert_queue_size = 100;
-
-		// setting this to a low limit, means more
-		// peers are more likely to request from the
-		// same piece. Which means fewer partial
-		// pieces and fewer entries in the partial
-		// piece list
-		set.whole_pieces_threshold = 2;
-		set.use_parole_mode = false;
-		set.prioritize_partial_pieces = true;
-
-		// connect to 5 peers per second
-		set.connection_speed = 5;
-
-		// be extra nice on the hard drive when running
-		// on embedded devices. This might slow down
-		// torrent checking
-		set.file_checks_delay_per_block = 5;
-
-		// only have 4 files open at a time
-		set.file_pool_size = 4;
-
-		// we want to keep the peer list as small as possible
-		set.allow_multiple_connections_per_ip = false;
-		set.max_failcount = 2;
-		set.inactivity_timeout = 120;
-
-		// whenever a peer has downloaded one block, write
-		// it to disk, and don't read anything from the
-		// socket until the disk write is complete
-		set.max_queued_disk_bytes = 1;
-
-		// don't keep track of all upnp devices, keep
-		// the device list small
-		set.upnp_ignore_nonrouters = true;
-
-		// never keep more than one 16kB block in
-		// the send buffer
-		set.send_buffer_watermark = 9;
-
-		// don't use any disk cache
-		set.cache_size = 0;
-		set.cache_buffer_chunk_size = 1;
-		set.use_read_cache = false;
-		set.use_disk_read_ahead = false;
-
-		set.close_redundant_connections = true;
-
-		set.max_peerlist_size = 500;
-		set.max_paused_peerlist_size = 50;
-
-		// udp trackers are cheaper to talk to
-		set.prefer_udp_trackers = true;
-
-		set.max_rejects = 10;
-
-		set.recv_socket_buffer_size = 16 * 1024;
-		set.send_socket_buffer_size = 16 * 1024;
-
-		// use less memory when checking pieces
-		set.optimize_hashing_for_speed = false;
-
-		// use less memory when reading and writing
-		// whole pieces
-		set.coalesce_reads = false;
-		set.coalesce_writes = false;
-
-		// disallow the buffer size to grow for the uTP socket
-		set.utp_dynamic_sock_buf = false;
-		
-		// max 'bottled' http receive buffer/url torrent size
-		set.max_http_recv_buffer_size = 1024 * 1024;
-
-		return set;
+		aux::session_settings def;
+		initialize_default_settings(def);
+		settings_pack pack;
+		min_memory_usage(pack);
+		apply_pack(&pack, def, 0);
+		session_settings ret;
+		load_struct_from_settings(def, ret);
+		return ret;
 	}
 
 	TORRENT_EXPORT session_settings high_performance_seed()
 	{
-		session_settings set;
-
-		// allow peers to request a lot of blocks at a time,
-		// to be more likely to saturate the bandwidth-delay-
-		// product.
-		set.max_out_request_queue = 1500;
-		set.max_allowed_in_request_queue = 2000;
-
-		// don't throttle TCP, assume there is
-		// plenty of bandwidth
-		set.mixed_mode_algorithm = session_settings::prefer_tcp;
-
-		// we will probably see a high rate of alerts, make it less
-		// likely to loose alerts
-		set.alert_queue_size = 50000;
-
-		// allow 500 files open at a time
-		set.file_pool_size = 500;
-
-		// don't update access time for each read/write
-		set.no_atime_storage = true;
-
-		// as a seed box, we must accept multiple peers behind
-		// the same NAT
-		set.allow_multiple_connections_per_ip = true;
-
-		// connect to 50 peers per second
-		set.connection_speed = 50;
-
-		// allow 8000 peer connections
-		set.connections_limit = 8000;
-
-		// allow lots of peers to try to connect simultaneously
-		set.listen_queue_size = 200;
-
-		// unchoke many peers
-		set.unchoke_slots_limit = 500;
-
-		// we need more DHT capacity to ping more peers
-		// candidates before trying to connect
-		set.dht_upload_rate_limit = 100000;
-
-		// we're more interested in downloading than seeding
-		// only service a read job every 1000 write job (when
-		// disk is congested). Presumably on a big box, writes
-		// are extremely cheap and reads are relatively expensive
-		// so that's the main reason this ratio should be adjusted
-		set.read_job_every = 100;
-
-		// use 1 GB of cache
-		set.cache_size = 32768 * 2;
-		set.use_read_cache = true;
-		set.cache_buffer_chunk_size = 0;
-		set.read_cache_line_size = 32;
-		set.write_cache_line_size = 32;
-		set.low_prio_disk = false;
-		// 30 seconds expiration to save cache
-		// space for active pieces
-		set.cache_expiry = 30;
-		// this is expensive and could add significant
-		// delays when freeing a large number of buffers
-		set.lock_disk_cache = false;
-
-		// in case the OS we're running on doesn't support
-		// readv/writev, allocate contiguous buffers for
-		// reads and writes
-		// disable, since it uses a lot more RAM and a significant
-		// amount of CPU to copy it around
-		set.coalesce_reads = false;
-		set.coalesce_writes = false;
-
-		// the max number of bytes pending write before we throttle
-		// download rate
-		set.max_queued_disk_bytes = 7 * 1024 * 1024;;
-
-		set.explicit_read_cache = false;
-		// prevent fast pieces to interfere with suggested pieces
-		// since we unchoke everyone, we don't need fast pieces anyway
-		set.allowed_fast_set_size = 0;
-		// suggest pieces in the read cache for higher cache hit rate
-//		set.suggest_mode = session_settings::suggest_read_cache;
-
-		set.close_redundant_connections = true;
-
-		set.max_rejects = 10;
-
-		set.optimize_hashing_for_speed = true;
-
-		// don't let connections linger for too long
-		set.request_timeout = 10;
-		set.peer_timeout = 20;
-		set.inactivity_timeout = 20;
-
-		set.active_limit = 2000;
-		set.active_tracker_limit = 2000;
-		set.active_dht_limit = 600;
-		set.active_seeds = 2000;
-
-		set.choking_algorithm = session_settings::fixed_slots_choker;
-
-		// of 500 ms, and a send rate of 4 MB/s, the upper
-		// limit should be 2 MB
-		set.send_buffer_watermark = 3 * 1024 * 1024;
-
-		// put 1.5 seconds worth of data in the send buffer
-		// this gives the disk I/O more heads-up on disk
-		// reads, and can maximize throughput
-		set.send_buffer_watermark_factor = 150;
-
-		// always stuff at least 1 MiB down each peer
-		// pipe, to quickly ramp up send rates
- 		set.send_buffer_low_watermark = 1 * 1024 * 1024;
-
-		// don't retry peers if they fail once. Let them
-		// connect to us if they want to
-		set.max_failcount = 1;
-
-		// allow the buffer size to grow for the uTP socket
-		set.utp_dynamic_sock_buf = true;
-
-		// we're likely to have more than 4 cores on a high
-		// performance machine. One core is needed for the
-		// network thread
-		set.hashing_threads = 4;
-
-		// the number of threads to use to call async_write_some
-		// on peer sockets
-		// TODO: this doesn't actually fully work yet. There appears to be some race condition involved
-		set.network_threads = 0;
-
-		// number of disk threads for low level file operations
-		set.aio_threads = 8;
-
-		// keep 5 MiB outstanding when checking hashes
-		// of a resumed file
-		set.checking_mem_usage = 320;
-
-		// max 'bottled' http receive buffer/url torrent size
-		set.max_http_recv_buffer_size = 6 * 1024 * 1024;
-
-		// the disk cache performs better with the pool allocator
-		set.use_disk_cache_pool = true;
-
-		return set;
+		aux::session_settings def;
+		initialize_default_settings(def);
+		settings_pack pack;
+		high_performance_seed(pack);
+		apply_pack(&pack, def, 0);
+		session_settings ret;
+		load_struct_from_settings(def, ret);
+		return ret;
 	}
 #endif
 
@@ -1498,8 +1281,8 @@ namespace libtorrent
 	session_settings::session_settings(std::string const& user_agent_)
 	{
 		aux::session_settings def;
-		def.set_str(settings_pack::user_agent, user_agent_);
 		initialize_default_settings(def);
+		def.set_str(settings_pack::user_agent, user_agent_);
 		load_struct_from_settings(def, *this);
 	}
 
