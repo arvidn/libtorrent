@@ -88,6 +88,7 @@ namespace libtorrent
 		, m_post_alert(alert_disp)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_using_pool_allocator(false)
+		, m_want_pool_allocator(false)
 		, m_pool(block_size, 32)
 #endif
 	{
@@ -258,7 +259,7 @@ namespace libtorrent
 				ret = (char*)m_pool.malloc();
 				int effective_block_size = m_cache_buffer_chunk_size
 					? m_cache_buffer_chunk_size
-					: (std::max)(m_max_use / 20, 1);
+					: (std::max)(m_max_use / 10, 1);
 				m_pool.set_next_size(effective_block_size);
 			}
 			else
@@ -359,6 +360,9 @@ namespace libtorrent
 		m_lock_disk_cache = sett.get_bool(settings_pack::lock_disk_cache);
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool);
+		// if there are no allocated blocks, it's OK to switch allocator
+		if (m_in_use == 0)
+			m_using_pool_allocator = m_want_pool_allocator;
 #endif
 
 #if TORRENT_HAVE_MMAP

@@ -183,7 +183,7 @@ namespace libtorrent
 		SET(support_merkle_torrents, true, 0),
 		SET(report_redundant_bytes, true, 0),
 		SET_NOPREV(listen_system_port_fallback, true, 0),
-		SET(use_disk_cache_pool, false, &session_impl::update_disk_threads),
+		SET(use_disk_cache_pool, false, 0),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
