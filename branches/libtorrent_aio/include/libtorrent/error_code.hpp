@@ -402,6 +402,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT storage_error
 	{
 		storage_error(): file(-1), operation(0) {}
+		storage_error(error_code e): ec(e), file(-1), operation(0) {}
 
 		operator bool() const { return ec.value() != 0; }
 		// the error that occurred

@@ -718,7 +718,7 @@ namespace libtorrent
 		return iov_len;
 	}
 
-	void disk_io_thread::abort_jobs(tailqueue& jobs_)
+	void disk_io_thread::fail_jobs(storage_error const& e, tailqueue& jobs_)
 	{
 		tailqueue jobs;
 		jobs.swap(jobs_);
@@ -727,9 +727,10 @@ namespace libtorrent
 			disk_io_job* j = (disk_io_job*)i.get();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 			j->ret = -1;
-			j->error.ec = asio::error::operation_aborted;
+			j->error = e;
 		}
 		if (jobs.size()) add_completed_jobs(jobs);
+	
 	}
 
 	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags, mutex::scoped_lock& l)
@@ -739,7 +740,7 @@ namespace libtorrent
 		{
 			// delete dirty blocks and post handlers with
 			// operation_aborted error code
-			abort_jobs(pe->jobs);
+			fail_jobs(storage_error(boost::asio::error::operation_aborted), pe->jobs);
 			m_disk_cache.abort_dirty(pe);
 		}
 		else if ((flags & flush_write_cache) && pe->num_dirty > 0)
@@ -756,7 +757,7 @@ namespace libtorrent
 		// why we don't have the 'i' iterator referencing it at this point
 		if (flags & (flush_read_cache | flush_delete_cache))
 		{
-			abort_jobs(pe->jobs);
+			fail_jobs(storage_error(boost::asio::error::operation_aborted), pe->jobs);
 			m_disk_cache.mark_for_deletion(pe);
 		}
 	}
@@ -1137,7 +1138,11 @@ namespace libtorrent
 		{
 			// we're not using a cache. This is the simple path
 			// just read straight from the file
-			return do_uncached_read(j);
+			int ret = do_uncached_read(j);
+
+			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			if (pe) maybe_issue_queued_read_jobs(pe);
+			return ret;
 		}
 
 		int block_size = m_disk_cache.block_size();
@@ -1158,7 +1163,14 @@ namespace libtorrent
 		// then we'll actually allocate the buffers
 		int ret = m_disk_cache.allocate_iovec(iov, iov_len);
 
-		if (ret < 0) return do_uncached_read(j);
+		if (ret < 0)
+		{
+			ret = do_uncached_read(j);
+
+			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			if (pe) maybe_issue_queued_read_jobs(pe);
+			return ret;
+		}
 
 		// this is the offset that's aligned to block boundaries
 		size_type adjusted_offset = j->d.io.offset & ~(block_size-1);
@@ -1194,6 +1206,10 @@ namespace libtorrent
 		{
 			// read failed. free buffers and return error
 			m_disk_cache.free_iovec(iov, iov_len);
+
+			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			if (pe && pe->read_jobs.size() > 0)
+				fail_jobs(j->error, pe->jobs);
 			return ret;
 		}
 
@@ -1222,14 +1238,20 @@ namespace libtorrent
 		int tmp = m_disk_cache.try_read(j);
 		TORRENT_ASSERT(tmp >= 0);
 
-		pe->outstanding_read = 0;
+		 maybe_issue_queued_read_jobs(pe);
 
+		return j->d.io.buffer_size;
+	}
+
+	void disk_io_thread::maybe_issue_queued_read_jobs(cached_piece_entry* pe)
+	{
 		// while we were reading, there may have been a few jobs
 		// that got queued up also wanting to read from this piece.
 		// Any job that is a cache hit now, complete it immediately.
 		// Then, issue the first non-cache-hit job. Once it complete
 		// it will keep working off this list
 		tailqueue stalled_jobs;
+		tailqueue completed_jobs;
 		pe->read_jobs.swap(stalled_jobs);
 
 		// the next job to issue (i.e. this is a cache-miss)
@@ -1237,47 +1259,49 @@ namespace libtorrent
 
 		while (stalled_jobs.size() > 0)
 		{
-			disk_io_job* sj = (disk_io_job*)stalled_jobs.pop_front();
-			TORRENT_ASSERT(sj->flags & disk_io_job::in_progress);
+			disk_io_job* j = (disk_io_job*)stalled_jobs.pop_front();
+			TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
 
-			int ret = m_disk_cache.try_read(sj);
+			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
 			{
 				// cache-hit
 				DLOG("do_read: cache hit\n");
-				sj->flags |= disk_io_job::cache_hit;
-				sj->ret = ret;
-				add_completed_job(sj);
+				j->flags |= disk_io_job::cache_hit;
+				j->ret = ret;
+				completed_jobs.push_back(j);
 			}
 			else if (ret == -2)
 			{
 				// error
-				sj->ret = disk_io_job::operation_failed;
-				add_completed_job(sj);
+				j->ret = disk_io_job::operation_failed;
+				completed_jobs.push_back(j);
 			}
 			else
 			{
 				// cache-miss, retry or put back
 				if (next_job == NULL)
 				{
-					next_job = sj;
+					next_job = j;
 				}
 				else
 				{
-					pe->read_jobs.push_back(sj);
+					pe->read_jobs.push_back(j);
 				}
 			}
 		}
 
+		if (completed_jobs.size() > 0)
+			add_completed_jobs(completed_jobs);
+
 		if (next_job)
 		{
-			pe->outstanding_read = 1;
 			// this is needed to re-add the job
 			next_job->flags &= ~disk_io_job::in_progress;
 			add_job(next_job);
 		}
-
-		return j->d.io.buffer_size;
+		else
+			pe->outstanding_read = 0;
 	}
 
 	int disk_io_thread::do_uncached_write(disk_io_job* j)
@@ -1735,7 +1759,7 @@ namespace libtorrent
 			m_disk_cache.evict_piece(*(i++), temp);
 			jobs.append(temp);
 		}
-		abort_jobs(jobs);
+		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
 	}
 
 	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
@@ -1778,7 +1802,7 @@ namespace libtorrent
 		tailqueue jobs;
 		bool ok = m_disk_cache.evict_piece(pe, jobs);
 		TORRENT_PIECE_ASSERT(ok, pe);
-		abort_jobs(jobs);
+		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
 	}
 
 	void disk_io_thread::async_stop_torrent(piece_manager* storage
@@ -1831,7 +1855,7 @@ namespace libtorrent
 		}
 		l2.unlock();
 
-		abort_jobs(to_abort);
+		fail_jobs(storage_error(boost::asio::error::operation_aborted), to_abort);
 
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
 		j->storage = storage;
@@ -2612,7 +2636,7 @@ namespace libtorrent
 		tailqueue jobs;
 		if (m_disk_cache.evict_piece(pe, jobs))
 		{
-			abort_jobs(jobs);
+			fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
 			return 0;
 		}
 
@@ -2819,7 +2843,7 @@ namespace libtorrent
 		tailqueue jobs;
 
 		m_disk_cache.clear(jobs);
-		abort_jobs(jobs);
+		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
 
 		// close all files. This may take a long
 		// time on certain OSes (i.e. Mac OS)

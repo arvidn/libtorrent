@@ -173,6 +173,8 @@ cached_piece_entry::cached_piece_entry()
 cached_piece_entry::~cached_piece_entry()
 {
 	TORRENT_ASSERT(piece_refcount == 0);
+	TORRENT_ASSERT(jobs.size() == 0);
+	TORRENT_ASSERT(read_jobs.size() == 0);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	for (int i = 0; i < blocks_in_piece; ++i)
 	{

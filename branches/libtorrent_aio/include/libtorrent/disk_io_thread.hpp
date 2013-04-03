@@ -321,6 +321,7 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 
+		void maybe_issue_queued_read_jobs(cached_piece_entry* pe);
 		int do_read(disk_io_job* j);
 		int do_uncached_read(disk_io_job* j);
 
@@ -370,6 +371,8 @@ namespace libtorrent
 		void add_completed_jobs(tailqueue& jobs);
 		void add_completed_job_impl(disk_io_job* j);
 
+		void fail_jobs(storage_error const& e, tailqueue& jobs_);
+
 		void check_cache_level(mutex::scoped_lock& l);
 
 		void perform_job(disk_io_job* j);
@@ -399,8 +402,6 @@ namespace libtorrent
 		// hashed by the partial_hash object attached to this piece,
 		// the piece will
 		void kick_hasher(cached_piece_entry* pe, mutex::scoped_lock& l);
-
-		void abort_jobs(tailqueue& jobs_);
 
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
 		void flush_cache(piece_manager* storage, boost::uint32_t flags, mutex::scoped_lock& l);
