@@ -93,6 +93,11 @@ namespace libtorrent
 	{
 		pthread_cond_broadcast(&m_cond);
 	}
+
+	void condition_variable::notify()
+	{
+		pthread_cond_signal(&m_cond);
+	}
 #elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 	condition_variable::condition_variable()
 		: m_num_waiters(0)
@@ -129,6 +134,11 @@ namespace libtorrent
 	{
 		ReleaseSemaphore(m_sem, m_num_waiters, 0);
 	}
+
+	void condition_variable::notify()
+	{
+		ReleaseSemaphore(m_sem, (std::min)(m_num_waiters, 1), 0);
+	}
 #elif defined TORRENT_BEOS
 	condition_variable::condition_variable()
 		: m_num_waiters(0)
@@ -164,6 +174,11 @@ namespace libtorrent
 	void condition_variable::notify_all()
 	{
 		release_sem_etc(m_sem, m_num_waiters, 0);
+	}
+
+	void condition_variable::notify()
+	{
+		release_sem_etc(m_sem, (std::min)(m_num_waiters, 1), 0);
 	}
 #else
 #error not implemented
