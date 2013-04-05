@@ -1359,7 +1359,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
+		peer_log("<== REJECT_PIECE [ piece: %d | s: %x | l: %x ]"
 			, r.piece, r.start, r.length);
 #endif
 
@@ -2030,7 +2030,7 @@ namespace libtorrent
 		m_ses.inc_stats_counter(aux::session_interface::piece_requests);
 
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log("<== REQUEST [ piece: %d s: %d l: %d ]"
+		peer_log("<== REQUEST [ piece: %d s: %x l: %x ]"
 			, r.piece, r.start, r.length);
 #endif
 
@@ -2081,7 +2081,7 @@ namespace libtorrent
 			// we shouldn't get a request
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ we don't have metadata yet ]");
-			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+			peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
@@ -2098,7 +2098,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ incoming request queue full %d ]"
 				, int(m_requests.size()));
-			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+			peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
@@ -2150,7 +2150,7 @@ namespace libtorrent
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]");
-			peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
+			peer_log(" ==> REJECT_PIECE [ piece: %d | s: %x | l: %x ]"
 				, r.piece, r.start, r.length);
 #endif
 			m_ses.inc_stats_counter(aux::session_interface::choked_piece_requests);
@@ -2804,7 +2804,7 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== CANCEL  [ piece: %d | s: %d | l: %d ]", r.piece, r.start, r.length);
+		peer_log("<== CANCEL  [ piece: %d | s: %x | l: %x ]", r.piece, r.start, r.length);
 #endif
 
 		std::vector<peer_request>::iterator i
@@ -2815,13 +2815,18 @@ namespace libtorrent
 			m_ses.inc_stats_counter(aux::session_interface::cancelled_piece_requests);
 			m_requests.erase(i);
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+			peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
 		}
 		else
 		{
+			// TODO: 3 since we throw away the queue entry once we issue
+			// the disk job, this may happen. Instead, we should keep the
+			// queue entry around, mark it as having been requested from
+			// disk and once the disk job comes back, discard it if it has
+			// been cancelled. Maybe even be able to cancel disk jobs?
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** GOT CANCEL NOT IN THE QUEUE");
 #endif
@@ -3548,7 +3553,7 @@ namespace libtorrent
 			}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("==> REQUEST      [ piece: %d | s: %d | l: %d | ds: %d B/s | "
+			peer_log("==> REQUEST      [ piece: %d | s: %x | l: %x | ds: %d B/s | "
 				"dqs: %d rqs: %d blk: %s ]"
 				, r.piece, r.start, r.length, statistics().download_rate()
 				, int(m_desired_queue_size), int(m_download_queue.size())
@@ -4645,7 +4650,7 @@ namespace libtorrent
 				// we will reject this request
 				if (t->is_predictive_piece(r.piece)) continue;
 #if defined TORRENT_VERBOSE_LOGGING
-				peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+				peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
 					, r.piece , r.start , r.length);
 #endif
 				write_reject_request(r);
@@ -4653,7 +4658,7 @@ namespace libtorrent
 			else
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("*** FILE ASYNC READ [ piece: %d | s: %d | l: %d ]"
+				peer_log("*** FILE ASYNC READ [ piece: %d | s: %x | l: %x ]"
 					, r.piece, r.start, r.length);
 #endif
 				m_reading_bytes += r.length;
@@ -4794,7 +4799,7 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log("==> PIECE   [ piece: %d s: %d l: %d ]"
+		peer_log("==> PIECE   [ piece: %d s: %x l: %x ]"
 			, r.piece, r.start, r.length);
 #endif
 
@@ -4958,7 +4963,7 @@ namespace libtorrent
 				m_ses.inc_disk_queue(upload_channel);
 			m_channel_state[upload_channel] |= peer_info::bw_disk;
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** exceeded disk buffer watermark");
+			peer_log(">>> waiting for disk [outstanding: %d]", m_reading_bytes);
 #endif
 
 			if (!m_connecting
@@ -5449,6 +5454,10 @@ namespace libtorrent
 		// allocate a receive buffer up-front, but get notified when
 		// we can read from the socket, and then determine how much there
 		// is to read.
+
+		// TODO: 3 instead of using null_buffers, if we were to go back to
+		// having a proper receive buffer (contiguous when that option is set)
+		// we could receive in a seaprate thread, which would improve performance.
 		if (nb)
 		{
 			error_code ec;
