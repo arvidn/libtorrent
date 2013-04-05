@@ -237,7 +237,6 @@ namespace libtorrent
 		m_disk_cache.reclaim_block(ref);
 	}
 
-	// disk_io_thread takes over ownership of the settings_pack
 	void disk_io_thread::set_settings(settings_pack* pack)
 	{
 		mutex::scoped_lock l(m_cache_mutex);
@@ -605,6 +604,7 @@ namespace libtorrent
 			m_cache_stats.cumulative_write_time += write_time;
 			m_cache_stats.cumulative_job_time += write_time;
 			m_cache_stats.blocks_written += num_blocks;
+			++m_cache_stats.writes;
 
 #if DEBUG_DISK_THREAD
 			DLOG("flush_iovec: %d\n", num_blocks);
@@ -1115,7 +1115,6 @@ namespace libtorrent
 
 		file::iovec_t b = { j->buffer, j->d.io.buffer_size };
    
-		// the actual read operation
 		int ret = j->storage->get_storage_impl()->readv(&b, 1
 			, j->piece, j->d.io.offset, j->flags, j->error);
    
@@ -1127,6 +1126,7 @@ namespace libtorrent
 			m_cache_stats.cumulative_job_time += read_time;
 			m_cache_stats.total_read_back += b.iov_len;
 			++m_cache_stats.blocks_read;
+			++m_cache_stats.reads;
 		}
 		return ret;
 	}
@@ -1198,6 +1198,7 @@ namespace libtorrent
 			m_cache_stats.cumulative_read_time += read_time;
 			m_cache_stats.cumulative_job_time += read_time;
 			m_cache_stats.blocks_read += iov_len;
+			++m_cache_stats.reads;
 		}
 
 		l.lock();
@@ -1235,7 +1236,7 @@ namespace libtorrent
 #endif
 		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j);
 
-		int tmp = m_disk_cache.try_read(j);
+		int tmp = m_disk_cache.try_read(j, false);
 		TORRENT_ASSERT(tmp >= 0);
 
 		maybe_issue_queued_read_jobs(pe);
@@ -1326,6 +1327,7 @@ namespace libtorrent
 			m_cache_stats.cumulative_write_time += write_time;
 			m_cache_stats.cumulative_job_time += write_time;
 			++m_cache_stats.blocks_written;
+			++m_cache_stats.writes;
 		}
 
 		m_disk_cache.free_buffer(j->buffer);
@@ -1997,6 +1999,7 @@ namespace libtorrent
 				m_cache_stats.cumulative_read_time += read_time;
 				m_cache_stats.cumulative_job_time += read_time;
 				++m_cache_stats.blocks_read;
+				++m_cache_stats.reads;
 			}
 
 			offset += block_size;

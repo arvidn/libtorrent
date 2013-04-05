@@ -273,7 +273,7 @@ reports = [
 	('waste by source', '% of all wasted bytes', '%%', 'what\' causing the waste', [ 'redundant timed-out', 'redundant cancelled', 'redundant unknown', 'redundant seed', 'redundant end-game', 'redundant closing'], {'type':stacked}),
 	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk hash time']),
 	('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time'], {'type': stacked}),
-	('disk_cache_hits', 'blocks (16kiB)', '', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
+	('disk_cache_hits', 'blocks (16kiB)', '', '', ['disk block read', 'read cache hits'], {'type':stacked}),
 	('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', ['disk buffer allocations', 'read disk cache size', 'disk cache size', 'cache size', 'pinned blocks', 'cache trim low watermark']),
 	('disk_readback', '% of written blocks', '%%', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'allocated jobs', 'allocated read jobs', 'allocated write jobs']),

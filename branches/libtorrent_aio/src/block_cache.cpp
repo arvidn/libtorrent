@@ -108,6 +108,41 @@ POSSIBILITY OF SUCH DAMAGE.
 	to know which list to evict from. The volatile list is always the first one to be
 	evicted however.
 
+	Write jobs
+	..........
+
+	When the write cache is enabled, write jobs are not issued via the normal job queue.
+	They are just hung on its corresponding cached piece entry, and a flush_hashed job
+	is issued. This job will inspect the current state of the cached piece and determine
+	if any of the blocks should be flushed. It also kicks the hasher, i.e. progresses
+	the SHA1 context, which calculates the SHA-1 hash of the piece. This job flushed
+	blocks that have been hashed and also form a contiguous block run of at least the
+	write cache line size.
+
+	Read jobs
+	.........
+
+	The data blocks pulled in from disk by read jobs, are hung on the corresponding
+	cache piece (cached_piece_entry) once the operation completes. Read operations
+	typically pulls in an entire read cache stripe, and not just the one block that
+	was requested. When adjacent blocks are requested to be read in quick succession,
+	there is a risk that each block would pull in more blocks (read ahead) and potentially
+	read the same blocks several times, if the original requests were serviced by
+	different disk thread. This is because all the read operation may start before
+	any of them has completed, hanging the resulting blocks in the cache. i.e. they would
+	all be cache misses, even though all but the first should be cache hits in the first's
+	read ahead.
+
+	In order to solve this problem, there is only a single outstanding read job at
+	any given time per piece. When there is an outstanding read job on a piece, the
+	*outstanding_read* member is set to 1. This indicates that the job should be hung
+	on the piece for later processing, instead of being issued into the main job queue.
+	There is a tailqueue on each piece entry called read_jobs where these jobs are added.
+
+	At the end of every read job, this job list is inspected, any job in it is tried
+	against the cache to see if it's a cache hit now. If it is, complete it right away.
+	If it isn't, put it back in the read_jobs list except for one, which is issued into
+	the regular job queue.
 */
 
 
@@ -196,7 +231,6 @@ block_cache::block_cache(int block_size, io_service& ios
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
 	, m_send_buffer_blocks(0)
-	, m_blocks_read(0)
 	, m_blocks_read_hit(0)
 	, m_pinned_blocks(0)
 {}
@@ -204,7 +238,7 @@ block_cache::block_cache(int block_size, io_service& ios
 // returns:
 // -1: not in cache
 // -2: no memory
-int block_cache::try_read(disk_io_job* j)
+int block_cache::try_read(disk_io_job* j, bool count_stats)
 {
 	INVARIANT_CHECK;
 
@@ -227,8 +261,8 @@ int block_cache::try_read(disk_io_job* j)
 	if (ret < 0) return ret;
 
 	ret = j->d.io.buffer_size;
-	++m_blocks_read;
-	++m_blocks_read_hit;
+	if (count_stats)
+		++m_blocks_read_hit;
 	return ret;
 }
 
