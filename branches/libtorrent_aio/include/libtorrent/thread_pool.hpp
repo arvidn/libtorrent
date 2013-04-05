@@ -96,7 +96,7 @@ namespace libtorrent
 				// previous to adding the new job was > 0
 				// they don't need waking up.
 				if (m_queue.size() == 1)
-					m_cond.notify_all();
+					m_cond.notify();
 				return true;
 			}
 		}
