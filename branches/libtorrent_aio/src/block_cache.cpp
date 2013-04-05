@@ -1388,6 +1388,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 void block_cache::reclaim_block(block_cache_reference const& ref)
 {
 	cached_piece_entry* pe = find_piece(ref);
+	TORRENT_ASSERT(pe);
 	if (pe == NULL) return;
 
 	TORRENT_PIECE_ASSERT(pe->blocks[ref.block].buf, pe);

@@ -1238,7 +1238,7 @@ namespace libtorrent
 		int tmp = m_disk_cache.try_read(j);
 		TORRENT_ASSERT(tmp >= 0);
 
-		 maybe_issue_queued_read_jobs(pe);
+		maybe_issue_queued_read_jobs(pe);
 
 		return j->d.io.buffer_size;
 	}
@@ -1279,7 +1279,8 @@ namespace libtorrent
 			}
 			else
 			{
-				// cache-miss, retry or put back
+				// cache-miss, issue the first one
+				// put back the rest
 				if (next_job == NULL)
 				{
 					next_job = j;
@@ -1297,7 +1298,7 @@ namespace libtorrent
 		if (next_job)
 		{
 			// this is needed to re-add the job
-			next_job->flags &= ~disk_io_job::in_progress;
+			next_job->storage->reset_job(next_job);
 			add_job(next_job);
 		}
 		else
@@ -1474,7 +1475,7 @@ namespace libtorrent
 
 			pe->outstanding_read = 1;
 			// this is needed to re-add the job
-			j->flags &= ~disk_io_job::in_progress;
+			j->storage->reset_job(j);
 		}
 
 		add_job(j);
