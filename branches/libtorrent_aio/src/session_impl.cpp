@@ -582,7 +582,6 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
-		memset(m_stats_counter, 0, sizeof(m_stats_counter));
 		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
 		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
 
@@ -2172,7 +2171,7 @@ namespace aux {
 		if (m_torrent_lru.size() > loaded_limit)
 		{
 			// just evict the torrent
-			inc_stats_counter(torrent_evicted_counter);
+			inc_stats_counter(counters::torrent_evicted_counter);
 			TORRENT_ASSERT(t->is_pinned() == false);
 			t->unload();
 			m_torrent_lru.erase(t);
@@ -2213,7 +2212,7 @@ namespace aux {
 				i = (torrent*)i->next;
 				if (i == NULL) break;
 			}
-			inc_stats_counter(torrent_evicted_counter);
+			inc_stats_counter(counters::torrent_evicted_counter);
 			TORRENT_ASSERT(i->is_pinned() == false);
 			i->unload();
 			m_torrent_lru.erase(i);
@@ -2734,7 +2733,7 @@ retry:
 	bool session_impl::incoming_packet(error_code const& ec
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
-		inc_stats_counter(on_udp_counter);
+		inc_stats_counter(counters::on_udp_counter);
 
 		if (ec)
 		{
@@ -2788,7 +2787,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_accept_connection");
 #endif
-		inc_stats_counter(on_accept_counter);
+		inc_stats_counter(counters::on_accept_counter);
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
@@ -2982,7 +2981,7 @@ retry:
 		// this filter is ignored if a single torrent
 		// is set to ignore the filter, since this peer might be
 		// for that torrent
-		if (m_stats_counter[non_filter_torrents] == 0
+		if (m_stats_counters[counters::non_filter_torrents] == 0
 			&& (m_ip_filter.access(endp.address()) & ip_filter::blocked))
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -3328,7 +3327,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_tick");
 #endif
-		inc_stats_counter(on_tick_counter);
+		inc_stats_counter(counters::on_tick_counter);
 
 		TORRENT_ASSERT(is_single_thread());
 
@@ -4015,19 +4014,19 @@ retry:
 			STAT_LOG(d, int(uploaded));
 			size_type downloaded = m_stat.total_download() - m_last_downloaded;
 			STAT_LOG(d, int(downloaded));
-			STAT_LOG(d, m_stats_counter[session_interface::num_downloading_torrents]);
-			STAT_LOG(d, m_stats_counter[session_interface::num_seeding_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_downloading_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_seeding_torrents]);
 			STAT_LOG(d, num_complete_connections);
 			STAT_LOG(d, num_half_open);
 			STAT_LOG(d, cs.total_used_buffers);
 			STAT_LOG(d, num_peers);
 			STAT_LOG(d, m_peer_allocator.live_allocations());
 			STAT_LOG(d, m_peer_allocator.live_bytes());
-			STAT_LOG(d, m_stats_counter[session_interface::num_checking_torrents]);
-			STAT_LOG(d, m_stats_counter[session_interface::num_stopped_torrents]);
-			STAT_LOG(d, m_stats_counter[session_interface::num_upload_only_torrents]);
-			STAT_LOG(d, m_stats_counter[session_interface::num_queued_seeding_torrents]);
-			STAT_LOG(d, m_stats_counter[session_interface::num_queued_download_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_checking_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_stopped_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_upload_only_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_queued_seeding_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_queued_download_torrents]);
 			STAT_LOG(d, m_upload_rate.queue_size());
 			STAT_LOG(d, m_download_rate.queue_size());
 			STAT_LOG(d, m_disk_queues[peer_connection::upload_channel]);
@@ -4049,32 +4048,32 @@ retry:
 			STAT_LOG(d, peer_ul_rate_buckets[4]);
 			STAT_LOG(d, peer_ul_rate_buckets[5]);
 			STAT_LOG(d, peer_ul_rate_buckets[6]);
-			STAT_LOG(d, m_stats_counter[session_interface::error_peers]);
+			STAT_LOG(d, m_stats_counters[counters::error_peers]);
 			STAT_LOG(d, peers_down_interesting);
 			STAT_LOG(d, peers_down_unchoked);
 			STAT_LOG(d, peers_down_requests);
 			STAT_LOG(d, peers_up_interested);
 			STAT_LOG(d, peers_up_unchoked);
 			STAT_LOG(d, peers_up_requests);
-			STAT_LOG(d, m_stats_counter[session_interface::disconnected_peers]);
-			STAT_LOG(d, m_stats_counter[session_interface::eof_peers]);
-			STAT_LOG(d, m_stats_counter[session_interface::connreset_peers]);
+			STAT_LOG(d, m_stats_counters[counters::disconnected_peers]);
+			STAT_LOG(d, m_stats_counters[counters::eof_peers]);
+			STAT_LOG(d, m_stats_counters[counters::connreset_peers]);
 			STAT_LOG(d, outstanding_requests);
 			STAT_LOG(d, outstanding_end_game_requests);
 			STAT_LOG(d, outstanding_write_blocks);
-			STAT_LOG(d, m_stats_counter[end_game_piece_picker_blocks]);
-			STAT_LOG(d, m_stats_counter[piece_picker_blocks]);
-			STAT_LOG(d, m_stats_counter[piece_picker_loops]);
-			STAT_LOG(d, m_stats_counter[piece_picks]);
-			STAT_LOG(d, m_stats_counter[reject_piece_picks]);
-			STAT_LOG(d, m_stats_counter[unchoke_piece_picks]);
-			STAT_LOG(d, m_stats_counter[incoming_redundant_piece_picks]);
-			STAT_LOG(d, m_stats_counter[incoming_piece_picks]);
-			STAT_LOG(d, m_stats_counter[end_game_piece_picks]);
-			STAT_LOG(d, m_stats_counter[snubbed_piece_picks]);
-			STAT_LOG(d, m_stats_counter[connect_timeouts]);
-			STAT_LOG(d, m_stats_counter[uninteresting_peers]);
-			STAT_LOG(d, m_stats_counter[timeout_peers]);
+			STAT_LOG(d, m_stats_counters[counters::end_game_piece_picker_blocks]);
+			STAT_LOG(d, m_stats_counters[counters::piece_picker_blocks]);
+			STAT_LOG(d, m_stats_counters[counters::piece_picker_loops]);
+			STAT_LOG(d, m_stats_counters[counters::piece_picks]);
+			STAT_LOG(d, m_stats_counters[counters::reject_piece_picks]);
+			STAT_LOG(d, m_stats_counters[counters::unchoke_piece_picks]);
+			STAT_LOG(d, m_stats_counters[counters::incoming_redundant_piece_picks]);
+			STAT_LOG(d, m_stats_counters[counters::incoming_piece_picks]);
+			STAT_LOG(d, m_stats_counters[counters::end_game_piece_picks]);
+			STAT_LOG(d, m_stats_counters[counters::snubbed_piece_picks]);
+			STAT_LOG(d, m_stats_counters[counters::connect_timeouts]);
+			STAT_LOG(d, m_stats_counters[counters::uninteresting_peers]);
+			STAT_LOG(d, m_stats_counters[counters::timeout_peers]);
 			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
@@ -4087,14 +4086,14 @@ retry:
 			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
 			STAT_LOG(d, int(m_total_failed_bytes - m_last_failed));
 			STAT_LOG(d, int(m_total_redundant_bytes - m_last_redundant));
-			STAT_LOG(d, m_stats_counter[session_interface::num_error_torrents]);
+			STAT_LOG(d, m_stats_counters[counters::num_error_torrents]);
 			STAT_LOG(d, cs.read_cache_size);
 			STAT_LOG(d, cs.write_cache_size + cs.read_cache_size);
 			STAT_LOG(d, cs.total_used_buffers);
 			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
-			STAT_LOG(d, m_stats_counter[connection_attempts]);
-			STAT_LOG(d, m_stats_counter[num_banned_peers]);
-			STAT_LOG(d, m_stats_counter[banned_for_hash_failure]);
+			STAT_LOG(d, m_stats_counters[counters::connection_attempts]);
+			STAT_LOG(d, m_stats_counters[counters::num_banned_peers]);
+			STAT_LOG(d, m_stats_counters[counters::banned_for_hash_failure]);
 			STAT_LOG(d, m_settings.get_int(settings_pack::cache_size));
 			STAT_LOG(d, m_settings.get_int(settings_pack::connections_limit));
 			STAT_LOG(d, connect_candidates);
@@ -4148,8 +4147,8 @@ retry:
 
 			STAT_LOG(d, reading_bytes);
 
-			for (int i = on_read_counter; i <= on_disk_counter; ++i)
-				STAT_LOG(d, m_stats_counter[i]);
+			for (int i = counters::on_read_counter; i <= counters::on_disk_counter; ++i)
+				STAT_LOG(d, m_stats_counters[i]);
 
 			int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
 			for (int i = 0; i < num_max; ++i)
@@ -4169,9 +4168,9 @@ retry:
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
 				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes == 0 ? 1 : m_total_redundant_bytes));
 
-			STAT_LOG(d, m_stats_counter[no_memory_peers]);
-			STAT_LOG(d, m_stats_counter[too_many_peers]);
-			STAT_LOG(d, m_stats_counter[transport_timeout_peers]);
+			STAT_LOG(d, m_stats_counters[counters::no_memory_peers]);
+			STAT_LOG(d, m_stats_counters[counters::too_many_peers]);
+			STAT_LOG(d, m_stats_counters[counters::transport_timeout_peers]);
 
 			STAT_LOG(d, cs.arc_write_size);
 			STAT_LOG(d, cs.arc_volatile_size);
@@ -4186,26 +4185,26 @@ retry:
 			STAT_LOG(d, sst.utp_stats.num_fin_sent);
 			STAT_LOG(d, sst.utp_stats.num_close_wait);
 
-			STAT_LOG(d, m_stats_counter[num_tcp_peers]);
-			STAT_LOG(d, m_stats_counter[num_utp_peers]);
+			STAT_LOG(d, m_stats_counters[counters::num_tcp_peers]);
+			STAT_LOG(d, m_stats_counters[counters::num_utp_peers]);
 
-			STAT_LOG(d, m_stats_counter[connrefused_peers]);
-			STAT_LOG(d, m_stats_counter[connaborted_peers]);
-			STAT_LOG(d, m_stats_counter[perm_peers]);
-			STAT_LOG(d, m_stats_counter[buffer_peers]);
-			STAT_LOG(d, m_stats_counter[unreachable_peers]);
-			STAT_LOG(d, m_stats_counter[broken_pipe_peers]);
-			STAT_LOG(d, m_stats_counter[addrinuse_peers]);
-			STAT_LOG(d, m_stats_counter[no_access_peers]);
-			STAT_LOG(d, m_stats_counter[invalid_arg_peers]);
-			STAT_LOG(d, m_stats_counter[aborted_peers]);
+			STAT_LOG(d, m_stats_counters[counters::connrefused_peers]);
+			STAT_LOG(d, m_stats_counters[counters::connaborted_peers]);
+			STAT_LOG(d, m_stats_counters[counters::perm_peers]);
+			STAT_LOG(d, m_stats_counters[counters::buffer_peers]);
+			STAT_LOG(d, m_stats_counters[counters::unreachable_peers]);
+			STAT_LOG(d, m_stats_counters[counters::broken_pipe_peers]);
+			STAT_LOG(d, m_stats_counters[counters::addrinuse_peers]);
+			STAT_LOG(d, m_stats_counters[counters::no_access_peers]);
+			STAT_LOG(d, m_stats_counters[counters::invalid_arg_peers]);
+			STAT_LOG(d, m_stats_counters[counters::aborted_peers]);
 
-			STAT_LOG(d, m_stats_counter[error_incoming_peers]);
-			STAT_LOG(d, m_stats_counter[error_outgoing_peers]);
-			STAT_LOG(d, m_stats_counter[error_rc4_peers]);
-			STAT_LOG(d, m_stats_counter[error_encrypted_peers]);
-			STAT_LOG(d, m_stats_counter[error_tcp_peers]);
-			STAT_LOG(d, m_stats_counter[error_utp_peers]);
+			STAT_LOG(d, m_stats_counters[counters::error_incoming_peers]);
+			STAT_LOG(d, m_stats_counters[counters::error_outgoing_peers]);
+			STAT_LOG(d, m_stats_counters[counters::error_rc4_peers]);
+			STAT_LOG(d, m_stats_counters[counters::error_encrypted_peers]);
+			STAT_LOG(d, m_stats_counters[counters::error_tcp_peers]);
+			STAT_LOG(d, m_stats_counters[counters::error_utp_peers]);
 
 			STAT_LOG(d, int(m_connections.size()));
 			STAT_LOG(d, pending_incoming_reqs);
@@ -4214,62 +4213,62 @@ retry:
 			STAT_LOG(d, num_want_more_peers);
 			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
 
-			STAT_LOG(d, m_stats_counter[piece_requests]);
-			STAT_LOG(d, m_stats_counter[max_piece_requests]);
-			STAT_LOG(d, m_stats_counter[invalid_piece_requests]);
-			STAT_LOG(d, m_stats_counter[choked_piece_requests]);
-			STAT_LOG(d, m_stats_counter[cancelled_piece_requests]);
-			STAT_LOG(d, m_stats_counter[piece_rejects]);
+			STAT_LOG(d, m_stats_counters[counters::piece_requests]);
+			STAT_LOG(d, m_stats_counters[counters::max_piece_requests]);
+			STAT_LOG(d, m_stats_counters[counters::invalid_piece_requests]);
+			STAT_LOG(d, m_stats_counters[counters::choked_piece_requests]);
+			STAT_LOG(d, m_stats_counters[counters::cancelled_piece_requests]);
+			STAT_LOG(d, m_stats_counters[counters::piece_rejects]);
 
-			STAT_LOG(d, m_stats_counter[num_total_pieces_added] - m_stats_counter[num_total_pieces_removed]);
-			STAT_LOG(d, m_stats_counter[num_have_pieces] - m_stats_counter[num_have_pieces_removed]);
-			STAT_LOG(d, m_stats_counter[num_piece_passed] - m_stats_counter[num_piece_passed_removed]);
+			STAT_LOG(d, m_stats_counters[counters::num_total_pieces_added] - m_stats_counters[counters::num_total_pieces_removed]);
+			STAT_LOG(d, m_stats_counters[counters::num_have_pieces] - m_stats_counters[counters::num_have_pieces_removed]);
+			STAT_LOG(d, m_stats_counters[counters::num_piece_passed] - m_stats_counters[counters::num_piece_passed_removed]);
 
 			STAT_LOG(d, peers_up_send_buffer);
 
 			// loaded torrents
 			STAT_LOG(d, m_torrent_lru.size());
-			STAT_LOG(d, m_stats_counter[torrent_evicted_counter]);
+			STAT_LOG(d, m_stats_counters[counters::torrent_evicted_counter]);
 
-			STAT_LOG(d, m_stats_counter[num_incoming_choke]);
-			STAT_LOG(d, m_stats_counter[num_incoming_unchoke]);
-			STAT_LOG(d, m_stats_counter[num_incoming_interested]);
-			STAT_LOG(d, m_stats_counter[num_incoming_not_interested]);
-			STAT_LOG(d, m_stats_counter[num_incoming_have]);
-			STAT_LOG(d, m_stats_counter[num_incoming_bitfield]);
-			STAT_LOG(d, m_stats_counter[num_incoming_request]);
-			STAT_LOG(d, m_stats_counter[num_incoming_piece]);
-			STAT_LOG(d, m_stats_counter[num_incoming_cancel]);
-			STAT_LOG(d, m_stats_counter[num_incoming_dht_port]);
-			STAT_LOG(d, m_stats_counter[num_incoming_suggest]);
-			STAT_LOG(d, m_stats_counter[num_incoming_have_all]);
-			STAT_LOG(d, m_stats_counter[num_incoming_have_none]);
-			STAT_LOG(d, m_stats_counter[num_incoming_reject]);
-			STAT_LOG(d, m_stats_counter[num_incoming_allowed_fast]);
-			STAT_LOG(d, m_stats_counter[num_incoming_ext_handshake]);
-			STAT_LOG(d, m_stats_counter[num_incoming_pex]);
-			STAT_LOG(d, m_stats_counter[num_incoming_metadata]);
-			STAT_LOG(d, m_stats_counter[num_incoming_extended]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_choke]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_unchoke]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_interested]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_not_interested]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_have]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_bitfield]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_request]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_piece]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_cancel]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_dht_port]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_suggest]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_have_all]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_have_none]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_reject]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_allowed_fast]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_ext_handshake]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_pex]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_metadata]);
+			STAT_LOG(d, m_stats_counters[counters::num_incoming_extended]);
 
-			STAT_LOG(d, m_stats_counter[num_outgoing_choke]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_unchoke]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_interested]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_not_interested]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_have]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_bitfield]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_request]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_piece]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_cancel]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_dht_port]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_suggest]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_have_all]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_have_none]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_reject]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_allowed_fast]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_ext_handshake]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_pex]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_metadata]);
-			STAT_LOG(d, m_stats_counter[num_outgoing_extended]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_choke]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_unchoke]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_interested]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_not_interested]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_have]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_bitfield]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_request]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_piece]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_cancel]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_dht_port]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_suggest]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_have_all]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_have_none]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_reject]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_allowed_fast]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_ext_handshake]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_pex]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_metadata]);
+			STAT_LOG(d, m_stats_counters[counters::num_outgoing_extended]);
 
 			fprintf(m_stats_logger, "\n");
 
@@ -4404,7 +4403,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_lsd_announce");
 #endif
-		inc_stats_counter(on_lsd_counter);
+		inc_stats_counter(counters::on_lsd_counter);
 		TORRENT_ASSERT(is_single_thread());
 		if (e) return;
 
@@ -4847,7 +4846,7 @@ retry:
 					--max_connections;
 					--free_slots;
 					steps_since_last_connect = 0;
-					inc_stats_counter(connection_attempts);
+					inc_stats_counter(counters::connection_attempts);
 				}
 			}
 			TORRENT_CATCH(std::bad_alloc&)
@@ -5119,7 +5118,7 @@ retry:
 
 	void session_impl::do_delayed_uncork()
 	{
-		inc_stats_counter(aux::session_impl::on_disk_counter);
+		inc_stats_counter(counters::on_disk_counter);
 		TORRENT_ASSERT(is_single_thread());
 		for (std::vector<peer_connection*>::iterator i = m_delayed_uncorks.begin()
 			, end(m_delayed_uncorks.end()); i != end; ++i)
@@ -5490,10 +5489,10 @@ retry:
 	{
 		std::auto_ptr<session_stats_alert> alert(new session_stats_alert());
 		std::vector<boost::uint64_t>& values = alert->values;
-		values.resize(aux::session_interface::num_counters, 0);
+		values.resize(counters::num_counters, 0);
 
-		for (int i = 0; i < aux::session_interface::num_counters; ++i)
-			values[i] = m_stats_counter[i];
+		for (int i = 0; i < counters::num_counters; ++i)
+			values[i] = m_stats_counters[i];
 
 		alert->timestamp = total_microseconds(time_now_hires() - m_created);
 
@@ -6059,7 +6058,7 @@ retry:
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
-		inc_stats_counter(on_lsd_peer_counter);
+		inc_stats_counter(counters::on_lsd_peer_counter);
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
@@ -7172,7 +7171,7 @@ retry:
 		}
 		TORRENT_ASSERT(unique_torrents.size() == m_torrent_lru.size());
 
-		int torrent_state_gauges[session_interface::num_error_torrents - session_interface::num_checking_torrents + 1];
+		int torrent_state_gauges[counters::num_error_torrents - counters::num_checking_torrents + 1];
 		memset(torrent_state_gauges, 0, sizeof(torrent_state_gauges));
 	
 		std::set<int> unique;
@@ -7187,7 +7186,7 @@ retry:
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
 
-			++torrent_state_gauges[t->current_stats_state() - session_interface::num_checking_torrents];
+			++torrent_state_gauges[t->current_stats_state() - counters::num_checking_torrents];
 
 			int pos = t->queue_position();
 			if (pos < 0)
@@ -7200,10 +7199,10 @@ retry:
 			unique.insert(t->queue_position());
 		}
 
-		for (int i = 0, j = session_interface::num_checking_torrents;
-			j < session_interface::num_error_torrents + 1; ++i, ++j)
+		for (int i = 0, j = counters::num_checking_torrents;
+			j < counters::num_error_torrents + 1; ++i, ++j)
 		{
-			TORRENT_ASSERT(torrent_state_gauges[i] == m_stats_counter[j]);
+			TORRENT_ASSERT(torrent_state_gauges[i] == m_stats_counters[j]);
 		}
 
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);

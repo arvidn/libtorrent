@@ -561,6 +561,7 @@ SOURCES =
 	stat_cache
 	request_blocks
 	session_stats
+	performance_counters
 
 # -- extensions --
 	metadata_transfer

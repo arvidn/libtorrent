@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
+#include "libtorrent/performance_counters.hpp" // for counters
+
 #include <vector>
 
 namespace libtorrent
@@ -110,7 +112,7 @@ namespace libtorrent
 
 		aux::session_interface& ses = t.session();
 
-		ses.inc_stats_counter(aux::session_interface::piece_picks);
+		ses.inc_stats_counter(counters::piece_picks);
 
 		std::vector<pending_block> const& dq = c.download_queue();
 		std::vector<pending_block> const& rq = c.request_queue();
@@ -154,7 +156,7 @@ namespace libtorrent
 			, state, c.picker_options(), suggested, t.num_peers()
 			, loop_counter);
 
-		ses.inc_stats_counter(aux::session_interface::piece_picker_loops, loop_counter);
+		ses.inc_stats_counter(counters::piece_picker_loops, loop_counter);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
@@ -179,7 +181,7 @@ namespace libtorrent
 			i != interesting_pieces.end(); ++i)
 		{
 #ifdef TORRENT_STATS
-			ses.inc_stats_counter(aux::session_interface::piece_picker_blocks);
+			ses.inc_stats_counter(counters::piece_picker_blocks);
 #endif
 
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
@@ -257,7 +259,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_STATS
-		ses.inc_stats_counter(aux::session_interface::end_game_piece_picker_blocks);
+		ses.inc_stats_counter(counters::end_game_piece_picker_blocks);
 #endif
 
 #ifdef TORRENT_DEBUG

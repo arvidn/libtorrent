@@ -34,10 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp" // for stats_metric
 #include "libtorrent/aux_/session_interface.hpp" // for stats counter names
+#include "libtorrent/performance_counters.hpp" // for counters
 
 namespace libtorrent
 {
-#define METRIC(category, name, type) { #category "." #name, aux::session_interface:: name, stats_metric:: type},
+#define METRIC(category, name, type) { #category "." #name, counters:: name, stats_metric:: type},
 	const static stats_metric metrics[] =
 	{
 		// ``error_peers`` is the total number of peer disconnects

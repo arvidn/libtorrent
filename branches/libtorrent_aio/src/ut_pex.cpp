@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/socket_type.hpp" // for is_utp
+#include "libtorrent/performance_counters.hpp" // for counters
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
@@ -415,7 +416,7 @@ namespace libtorrent { namespace
 				, num_dropped, num_added);
 #endif
 
-			m_pc.ses().inc_stats_counter(aux::session_interface::num_incoming_pex);
+			m_pc.ses().inc_stats_counter(counters::num_incoming_pex);
 			return true;
 		}
 
@@ -454,8 +455,8 @@ namespace libtorrent { namespace
 			m_pc.send_buffer(msg, sizeof(msg));
 			m_pc.send_buffer(&pex_msg[0], pex_msg.size());
 
-			m_pc.ses().inc_stats_counter(aux::session_interface::num_outgoing_extended);
-			m_pc.ses().inc_stats_counter(aux::session_interface::num_outgoing_pex);
+			m_pc.ses().inc_stats_counter(counters::num_outgoing_extended);
+			m_pc.ses().inc_stats_counter(counters::num_outgoing_pex);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			lazy_entry m;
@@ -562,8 +563,8 @@ namespace libtorrent { namespace
 			m_pc.send_buffer(msg, sizeof(msg));
 			m_pc.send_buffer(&pex_msg[0], pex_msg.size());
 
-			m_pc.ses().inc_stats_counter(aux::session_interface::num_outgoing_extended);
-			m_pc.ses().inc_stats_counter(aux::session_interface::num_outgoing_pex);
+			m_pc.ses().inc_stats_counter(counters::num_outgoing_extended);
+			m_pc.ses().inc_stats_counter(counters::num_outgoing_pex);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			m_pc.peer_log("==> PEX_FULL [ added: %d msg_size: %d ]", num_added, int(pex_msg.size()));

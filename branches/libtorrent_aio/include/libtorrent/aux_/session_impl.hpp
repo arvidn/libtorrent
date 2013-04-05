@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
+#include "libtorrent/performance_counters.hpp" // for counters
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -1194,29 +1195,8 @@ namespace libtorrent
 			FILE* m_request_log;
 #endif
 
-			// the argument specifies which counter to
-			// increment or decrement
 			void inc_stats_counter(int c, int value = 1)
-			{
-				// if c >= num_stats_counters, it means it's not
-				// a monotonically increasing counter, but a gauge
-				// and it's allowed to be decremented
-				TORRENT_ASSERT(value >= 0 || c >= num_stats_counters);
-				TORRENT_ASSERT(c >= 0);
-				TORRENT_ASSERT(c < num_counters);
-/*
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-				if (c >= session_interface::num_checking_torrents
-					&& c <= session_interface::num_error_torrents)
-				{
-					// allow one extra for the edge cases where we add a torrent
-					TORRENT_ASSERT(m_stats_counter[c] + value <= m_torrents.size() + 1);
-					TORRENT_ASSERT(m_stats_counter[c] + value >= 0);
-				}
-#endif
-*/
-				m_stats_counter[c] += value;
-			}
+			{ m_stats_counters.inc_stats_counter(c, value); }
 
 			void received_buffer(int size);
 			void sent_buffer(int size);
@@ -1284,7 +1264,7 @@ namespace libtorrent
 
 		private:
 
-			int m_stats_counter[session_interface::num_counters];
+			counters m_stats_counters;
 
 			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
 			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576

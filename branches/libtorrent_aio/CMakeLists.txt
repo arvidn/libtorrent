@@ -33,6 +33,7 @@ set(sources
 	identify_client
 	ip_filter
 	ip_voter
+	performance_counters
 	peer_class
 	peer_class_set
 	peer_connection

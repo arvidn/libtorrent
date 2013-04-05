@@ -84,6 +84,7 @@ nobase_include_HEADERS = \
   part_file.hpp                \
   pch.hpp                      \
   pe_crypto.hpp                \
+  performance_counters.hpp     \
   peer_connection.hpp          \
   peer_connection_interface.hpp \
   peer.hpp                     \
