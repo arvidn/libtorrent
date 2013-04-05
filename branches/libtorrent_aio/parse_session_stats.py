@@ -3,7 +3,7 @@
 # subject to the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-import os, sys, time, os
+import os, sys, time, os, math
 from multiprocessing.pool import ThreadPool
 
 thread_pool = ThreadPool(4)
@@ -51,7 +51,11 @@ line_colors.reverse()
 gradient16_colors = []
 for i in range(0, 16):
 	f = i / 16.
-	c = '#%02x%02x%02x' % (min(int(255 * (-2 * f + 2)), 255), min(int(255 * (2 * f)), 255), 100)
+	pi = 3.1415927
+	r = max(int(255 * (math.sin(f*pi)+0.2)), 0)
+	g = max(int(255 * (math.sin((f-0.5)*pi)+0.2)), 0)
+	b = max(int(255 * (math.sin((f+0.5)*pi)+0.2)), 0)
+	c = '#%02x%02x%02x' % (min(r, 255), min(g, 255), min(b, 255))
 	gradient16_colors.append(c)
 
 gradient6_colors = []
