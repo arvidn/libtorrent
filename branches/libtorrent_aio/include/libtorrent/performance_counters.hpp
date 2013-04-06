@@ -89,8 +89,12 @@ namespace libtorrent
 			too_many_peers,
 			transport_timeout_peers,
 			num_banned_peers,
-			connection_attempts,
 			banned_for_hash_failure,
+
+			// connection attempts (not necessarily successful)
+			connection_attempts,
+			// successful incoming connections (not rejected for any reason)
+			incoming_connections,
 
 			// counts events where the network
 			// thread wakes up

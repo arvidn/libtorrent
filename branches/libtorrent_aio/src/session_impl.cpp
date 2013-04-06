@@ -1351,6 +1351,7 @@ namespace aux {
 
 			":blocked jobs"
 			":num writing threads"
+			":incoming connections"
 
 			"\n\n", m_stats_logger);
 	}
@@ -2944,11 +2945,6 @@ retry:
 			, print_endpoint(endp).c_str(), s->type_name());
 #endif
 
-		if (m_alerts.should_post<incoming_connection_alert>())
-		{
-			m_alerts.post_alert(incoming_connection_alert(s->type(), endp));
-		}
-
 		if (!m_settings.get_bool(settings_pack::enable_incoming_utp)
 			&& is_utp(*s))
 		{
@@ -3065,6 +3061,11 @@ retry:
 			  	return;
 			}
 		}
+
+		m_stats_counters.inc_stats_counter(counters::incoming_connections);
+
+		if (m_alerts.should_post<incoming_connection_alert>())
+			m_alerts.post_alert(incoming_connection_alert(s->type(), endp));
 
 		setup_socket_buffers(*s);
 
@@ -4251,6 +4252,7 @@ retry:
 
 			STAT_LOG(d, cs.blocked_jobs);
 			STAT_LOG(d, cs.num_writing_threads);
+			STAT_LOG(d, m_stats_counters[counters::incoming_connections]);
 
 			fprintf(m_stats_logger, "\n");
 

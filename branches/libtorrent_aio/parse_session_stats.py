@@ -252,6 +252,7 @@ reports = [
 	('peers', 'num', '', 'num connected peers', ['peers', 'connecting peers'], {'type':stacked}),
 	('peers_max', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'max connections', 'total peers']),
 	('peer_churn', 'num', '', 'connecting and disconnecting peers', ['connecting peers', 'connection attempts']),
+	('new_peers', 'num', '', '', ['incoming connections', 'connection attempts']),
 	('peer_limits', 'num', '', 'number of connections per limit', ['average peers per limit']),
 	('pieces', 'num', '', 'number completed pieces', ['total pieces', 'pieces flushed', 'pieces passed']),
 	('connect_candidates', 'num', '', 'number of peers we know of that we can connect to', ['connect candidates']),
