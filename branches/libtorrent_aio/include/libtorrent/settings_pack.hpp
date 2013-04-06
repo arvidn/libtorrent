@@ -264,7 +264,7 @@ namespace libtorrent
 
 			// ``prefer_udp_trackers`` is true by default. It means that trackers may
 			// be rearranged in a way that udp trackers are always tried before http
-			// trackers for the same hostname. Setting this to fails means that the
+			// trackers for the same hostname. Setting this to false means that the
 			// trackers' tier is respected and there's no preference of one protocol
 			// over another.
 			prefer_udp_trackers,
@@ -276,20 +276,9 @@ namespace libtorrent
 
 			// if this is set to true, the memory allocated for the
 			// disk cache will be locked in physical RAM, never to
-			// be swapped out
+			// be swapped out. Every time a disk buffer is allocated
+			// and freed, there will be the extra overhead of a system call.
 			lock_disk_cache,
-
-			// ``optimize_hashing_for_speed`` chooses between two ways of reading back
-			// piece data from disk when its complete and needs to be verified against
-			// the piece hash. This happens if some blocks were flushed to the disk
-			// out of order. Everything that is flushed in order is hashed as it goes
-			// along. Optimizing for speed will allocate space to fit all the the
-			// remaingin, unhashed, part of the piece, reads the data into it in a single
-			// call and hashes it. This is the default. If ``optimizing_hashing_for_speed``
-			// is false, a single block will be allocated (16 kB), and the unhashed parts
-			// of the piece are read, one at a time, and hashed in this single block. This
-			// is appropriate on systems that are memory constrained.
-			optimize_hashing_for_speed,
 
 			// when set to true, all data downloaded from
 			// peers will be assumed to be correct, and not
@@ -298,17 +287,6 @@ namespace libtorrent
 			// testing purposes (typically combined with
 			// disabled_storage)
 			disable_hash_checks,
-
-			// if this is true, disk read operations are
-			// sorted by their physical offset on disk before
-			// issued to the operating system. This is useful
-			// if async I/O is not supported. It defaults to
-			// true if async I/O is not supported and fals
-			// otherwise.
-			// disk I/O operations are likely to be reordered
-			// regardless of this setting when async I/O
-			// is supported by the OS.
-			allow_reordered_disk_operations,
 
 			// if this is true, i2p torrents are allowed
 			// to also get peers from other sources than

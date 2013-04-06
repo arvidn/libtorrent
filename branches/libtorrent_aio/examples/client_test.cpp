@@ -1374,7 +1374,6 @@ int main(int argc, char* argv[])
 			"  -a <mode>             sets the allocation mode. [sparse|full]\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
-			"  -O                    Disallow disk job reordering\n"
 			"  -j                    disable disk read-ahead\n"
 			"  -z                    disable piece hash checks (used for benchmarking)\n"
 			"  -Z <file>             mmap the disk cache to the specified file, should be an SSD\n"
@@ -1575,7 +1574,6 @@ int main(int argc, char* argv[])
 				break;
 			case 'A': settings.set_int(settings_pack::allowed_fast_set_size, atoi(arg)); break;
 			case 'R': settings.set_int(settings_pack::read_cache_line_size, atoi(arg)); break;
-			case 'O': settings.set_bool(settings_pack::allow_reordered_disk_operations, false); --i; break;
 			case 'M': settings.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp); --i; break;
 			case 'y':
 				settings.set_bool(settings_pack::enable_outgoing_tcp, false);

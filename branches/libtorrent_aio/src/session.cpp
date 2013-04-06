@@ -175,9 +175,6 @@ namespace libtorrent
 		set.set_int(settings_pack::recv_socket_buffer_size, 16 * 1024);
 		set.set_int(settings_pack::send_socket_buffer_size, 16 * 1024);
 
-		// use less memory when checking pieces
-		set.set_bool(settings_pack::optimize_hashing_for_speed, false);
-
 		// use less memory when reading and writing
 		// whole pieces
 		set.set_bool(settings_pack::coalesce_reads, false);
@@ -269,8 +266,6 @@ namespace libtorrent
 		set.set_bool(settings_pack::close_redundant_connections, true);
 
 		set.set_int(settings_pack::max_rejects, 10);
-
-		set.set_bool(settings_pack::optimize_hashing_for_speed, true);
 
 		// don't let connections linger for too long
 		set.set_int(settings_pack::request_timeout, 10);
