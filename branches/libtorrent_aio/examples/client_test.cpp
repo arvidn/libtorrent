@@ -1696,7 +1696,8 @@ int main(int argc, char* argv[])
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
 	settings.set_bool(settings_pack::volatile_read_cache, false);
-	settings.set_int(settings_pack::aio_threads, 16);
+	settings.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
+	settings.set_int(settings_pack::disk_io_read_mode, settings_pack::disable_os_cache);
 
 	ses.apply_settings(settings);
 
@@ -2210,14 +2211,14 @@ int main(int argc, char* argv[])
 			std::string name = s.name;
 			if (name.size() > 50) name.resize(50);
 
-			int seeds = 0;
-			int downloaders = 0;
+//			int seeds = 0;
+//			int downloaders = 0;
 
-			if (s.num_complete >= 0) seeds = s.num_complete;
-			else seeds = s.list_seeds;
+//			if (s.num_complete >= 0) seeds = s.num_complete;
+//			else seeds = s.list_seeds;
 
-			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
-			else downloaders = s.list_peers - s.list_seeds;
+//			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
+//			else downloaders = s.list_peers - s.list_seeds;
 
 			color_code progress_bar_color = col_yellow;
 			if (!s.error.empty()) progress_bar_color = col_red;
@@ -2240,7 +2241,7 @@ int main(int argc, char* argv[])
 				, color(add_suffix(s.total_download), col_green).c_str()
 				, color(add_suffix(s.upload_rate, "/s"), col_red).c_str()
 				, color(add_suffix(s.total_upload), col_red).c_str()
-				, downloaders, seeds
+				, s.num_peers - s.num_seeds, s.num_seeds
 				, color(add_suffix(s.all_time_download), col_green).c_str()
 				, color(add_suffix(s.all_time_upload), col_red).c_str()
 				, s.need_save_resume?'S':' ', esc("0"));

@@ -1127,6 +1127,8 @@ a piece is, the more likely it is to be flushed to disk.
 			int arc_mru_ghost_size;
 			int arc_mfu_size;
 			int arc_mfu_ghost_size;
+
+			int num_writing_threads;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk

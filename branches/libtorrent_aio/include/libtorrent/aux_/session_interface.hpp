@@ -156,9 +156,6 @@ namespace libtorrent { namespace aux
 		virtual void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t) = 0;
 		virtual void set_queue_position(torrent* t, int p) = 0;
 
-		virtual void inc_disk_queue(int channel) = 0;
-		virtual void dec_disk_queue(int channel) = 0;
-
 		virtual peer_id const& get_peer_id() const = 0;
 
 		// cork a peer and schedule a delayed uncork

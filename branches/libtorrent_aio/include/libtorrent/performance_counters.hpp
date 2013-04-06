@@ -149,7 +149,7 @@ namespace libtorrent
 			num_outgoing_metadata,
 			num_outgoing_extended,
 
-			// TODO: 3 these should probably be gauges
+			// TODO: 3 the _removed counters seem a bit silly
 			num_piece_passed,
 			num_piece_passed_removed,
 			num_have_pieces,
@@ -187,6 +187,18 @@ namespace libtorrent
 			num_ssl_socks5_peers,
 			num_ssl_http_proxy_peers,
 			num_ssl_utp_peers,
+
+			num_peers_half_open,
+			num_peers_connected,
+			num_peers_up_interested,
+			num_peers_down_interested,
+			num_peers_up_unchoked,
+			num_peers_down_unchoked,
+			num_peers_up_requests,
+			num_peers_down_requests,
+			num_peers_up_disk,
+			num_peers_down_disk,
+			num_peers_end_game,
 
 			num_counters,
 			num_gauge_counters = num_counters - num_stats_counters

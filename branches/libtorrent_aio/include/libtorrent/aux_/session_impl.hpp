@@ -654,19 +654,6 @@ namespace libtorrent
 			mutable libtorrent::mutex mut;
 			mutable libtorrent::condition_variable cond;
 
-			void inc_disk_queue(int channel)
-			{
-				TORRENT_ASSERT(channel >= 0 && channel < 2);
-				++m_disk_queues[channel];
-			}
-
-			void dec_disk_queue(int channel)
-			{
-				TORRENT_ASSERT(channel >= 0 && channel < 2);
-				TORRENT_ASSERT(m_disk_queues[channel] > 0);
-				--m_disk_queues[channel];
-			}
-
 			// cork a peer and schedule a delayed uncork
 			// does nothing if the peer is already corked
 			void cork_burst(peer_connection* p);
@@ -808,12 +795,6 @@ namespace libtorrent
 
 			// peer class for local peers
 			peer_class_t m_local_peer_class;
-
-			// the number of peer connections that are waiting
-			// for the disk. one for each channel.
-			// upload_channel means waiting to read from disk
-			// and download_channel is waiting to write to disk
-			int m_disk_queues[2];
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;

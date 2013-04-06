@@ -597,9 +597,6 @@ namespace aux {
 		m_udp_socket.subscribe(&m_utp_socket_manager);
 		m_udp_socket.subscribe(this);
 
-		m_disk_queues[0] = 0;
-		m_disk_queues[1] = 0;
-
 #ifdef TORRENT_REQUEST_LOGGING
 		char log_filename[200];
 		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", getpid());
@@ -1351,6 +1348,9 @@ namespace aux {
 			":num_outgoing_pex"
 			":num_outgoing_metadata"
 			":num_outgoing_extended"
+
+			":blocked jobs"
+			":num writing threads"
 
 			"\n\n", m_stats_logger);
 	}
@@ -3812,10 +3812,6 @@ retry:
 		int outstanding_end_game_requests = 0;
 		int outstanding_write_blocks = 0;
 
-		int peers_up_interested = 0;
-		int peers_down_interesting = 0;
-		int peers_up_requests = 0;
-		int peers_down_requests = 0;
 		int peers_up_send_buffer = 0;
 
 		int partial_pieces = 0;
@@ -3888,11 +3884,6 @@ retry:
 		boost::uint64_t utp_recv_delay_sum = 0;
 		int utp_num_delay_sockets = 0;
 		int utp_num_recv_delay_sockets = 0;
-		int num_complete_connections = 0;
-		int num_half_open = 0;
-		int peers_down_unchoked = 0;
-		int peers_up_unchoked = 0;
-		int num_end_game_peers = 0;
 		int reading_bytes = 0;
 		int pending_incoming_reqs = 0;
 
@@ -3901,20 +3892,8 @@ retry:
 		{
 			peer_connection* p = i->get();
 			if (p->is_connecting())
-			{
-				++num_half_open;
 				continue;
-			}
 
-			++num_complete_connections;
-			if (!p->is_choked()) ++peers_up_unchoked;
-			if (!p->has_peer_choked()) ++peers_down_unchoked;
-			if (!p->download_queue().empty()) ++peers_down_requests;
-			if (p->is_peer_interested()) ++peers_up_interested;
-			if (p->is_interesting()) ++peers_down_interesting;
-			if (p->send_buffer_size() > 100 || !p->upload_queue().empty() || p->num_reading_bytes() > 0)
-				++peers_up_requests;
-			if (p->endgame()) ++num_end_game_peers;
 			reading_bytes += p->num_reading_bytes();
 		
 			pending_incoming_reqs += int(p->upload_queue().size());
@@ -4016,8 +3995,8 @@ retry:
 			STAT_LOG(d, int(downloaded));
 			STAT_LOG(d, m_stats_counters[counters::num_downloading_torrents]);
 			STAT_LOG(d, m_stats_counters[counters::num_seeding_torrents]);
-			STAT_LOG(d, num_complete_connections);
-			STAT_LOG(d, num_half_open);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_connected]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_half_open]);
 			STAT_LOG(d, cs.total_used_buffers);
 			STAT_LOG(d, num_peers);
 			STAT_LOG(d, m_peer_allocator.live_allocations());
@@ -4029,8 +4008,8 @@ retry:
 			STAT_LOG(d, m_stats_counters[counters::num_queued_download_torrents]);
 			STAT_LOG(d, m_upload_rate.queue_size());
 			STAT_LOG(d, m_download_rate.queue_size());
-			STAT_LOG(d, m_disk_queues[peer_connection::upload_channel]);
-			STAT_LOG(d, m_disk_queues[peer_connection::download_channel]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_up_disk]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_down_disk]);
 			STAT_LOG(d, m_stat.upload_rate());
 			STAT_LOG(d, m_stat.download_rate());
 			STAT_LOG(d, int(m_writing_bytes));
@@ -4049,12 +4028,12 @@ retry:
 			STAT_LOG(d, peer_ul_rate_buckets[5]);
 			STAT_LOG(d, peer_ul_rate_buckets[6]);
 			STAT_LOG(d, m_stats_counters[counters::error_peers]);
-			STAT_LOG(d, peers_down_interesting);
-			STAT_LOG(d, peers_down_unchoked);
-			STAT_LOG(d, peers_down_requests);
-			STAT_LOG(d, peers_up_interested);
-			STAT_LOG(d, peers_up_unchoked);
-			STAT_LOG(d, peers_up_requests);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_down_interested]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_down_unchoked]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_down_requests]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_up_interested]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_up_unchoked]);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_up_requests]);
 			STAT_LOG(d, m_stats_counters[counters::disconnected_peers]);
 			STAT_LOG(d, m_stats_counters[counters::eof_peers]);
 			STAT_LOG(d, m_stats_counters[counters::connreset_peers]);
@@ -4110,7 +4089,7 @@ retry:
 			STAT_LOG(d, m_allowed_upload_slots);
 			STAT_LOG(d, m_stat.low_pass_upload_rate());
 			STAT_LOG(d, m_stat.low_pass_download_rate());
-			STAT_LOG(d, num_end_game_peers);
+			STAT_LOG(d, m_stats_counters[counters::num_peers_end_game]);
 			STAT_LOG(d, tcp_up_rate);
 			STAT_LOG(d, tcp_down_rate);
 			STAT_LOG(d, int(rate_limit(m_tcp_peer_class, peer_connection::upload_channel)));
@@ -4208,7 +4187,7 @@ retry:
 
 			STAT_LOG(d, int(m_connections.size()));
 			STAT_LOG(d, pending_incoming_reqs);
-			STAT_LOG(f, num_complete_connections == 0 ? 0.f : (float(pending_incoming_reqs) / num_complete_connections));
+			STAT_LOG(f, m_stats_counters[counters::num_peers_connected] == 0 ? 0.f : (float(pending_incoming_reqs) / m_stats_counters[counters::num_peers_connected]));
 
 			STAT_LOG(d, num_want_more_peers);
 			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
@@ -4269,6 +4248,9 @@ retry:
 			STAT_LOG(d, m_stats_counters[counters::num_outgoing_pex]);
 			STAT_LOG(d, m_stats_counters[counters::num_outgoing_metadata]);
 			STAT_LOG(d, m_stats_counters[counters::num_outgoing_extended]);
+
+			STAT_LOG(d, cs.blocked_jobs);
+			STAT_LOG(d, cs.num_writing_threads);
 
 			fprintf(m_stats_logger, "\n");
 
@@ -6170,8 +6152,8 @@ retry:
 		s.up_bandwidth_bytes_queue = m_upload_rate.queued_bytes();
 		s.down_bandwidth_bytes_queue = m_download_rate.queued_bytes();
 
-		s.disk_write_queue = m_disk_queues[peer_connection::download_channel];
-		s.disk_read_queue = m_disk_queues[peer_connection::upload_channel];
+		s.disk_write_queue = m_stats_counters[counters::num_peers_down_disk];
+		s.disk_read_queue = m_stats_counters[counters::num_peers_up_disk];
 
 		s.has_incoming_connections = m_incoming_connection;
 
@@ -7243,8 +7225,8 @@ retry:
 			}
 		}
 
-		TORRENT_ASSERT(disk_queue[0] == m_disk_queues[0]);
-		TORRENT_ASSERT(disk_queue[1] == m_disk_queues[1]);
+		TORRENT_ASSERT(disk_queue[peer_connection::download_channel] == m_stats_counters[counters::num_peers_down_disk]);
+		TORRENT_ASSERT(disk_queue[peer_connection::upload_channel] == m_stats_counters[counters::num_peers_up_disk]);
 
 		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots))
 		{

@@ -2473,6 +2473,7 @@ namespace libtorrent
 		ret->num_jobs = jobs_in_use();
 		ret->num_read_jobs = read_jobs_in_use();
 		ret->num_write_jobs = write_jobs_in_use();
+		ret->num_writing_threads = m_num_writing_threads;
 
 		m_disk_cache.get_stats(ret);
 

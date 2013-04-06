@@ -6,7 +6,7 @@
 import os, sys, time, os, math
 from multiprocessing.pool import ThreadPool
 
-thread_pool = ThreadPool(4)
+thread_pool = ThreadPool(8)
 
 stat = open(sys.argv[1])
 line = stat.readline()
@@ -249,8 +249,8 @@ reports = [
 		'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents', 'queued seed torrents', \
 		'queued download torrents'], {'type':stacked}),
 	('torrents_want_peers', 'num', '', 'number of torrents that want more peers', ['torrents want more peers']),
-	('peers', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'total peers']),
-	('peers_max', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections', 'total peers']),
+	('peers', 'num', '', 'num connected peers', ['peers', 'connecting peers'], {'type':stacked}),
+	('peers_max', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'max connections', 'total peers']),
 	('peer_churn', 'num', '', 'connecting and disconnecting peers', ['connecting peers', 'connection attempts']),
 	('peer_limits', 'num', '', 'number of connections per limit', ['average peers per limit']),
 	('pieces', 'num', '', 'number completed pieces', ['total pieces', 'pieces flushed', 'pieces passed']),
@@ -279,6 +279,8 @@ reports = [
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'allocated jobs', 'allocated read jobs', 'allocated write jobs']),
 	('disk_iops', 'operations/s', '', 'number of disk operations per second', ['read ops/s', 'write ops/s', 'smooth read ops/s', 'smooth write ops/s']),
 	('disk pending reads', 'Bytes', '', 'number of bytes peers are waiting for to be read from the disk', ['pending reading bytes']),
+	('disk fences', 'num', '', 'number of jobs currently blocked by a fence job', ['blocked jobs']),
+	('disk writing threads', 'num', '', 'number of disk threads currently writing', ['num writing threads']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 	('connection_type', 'num', '', 'peers by transport protocol', ['utp peers','tcp peers']),
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP peak recv delay', 'uTP avg send delay', 'uTP avg recv delay']),

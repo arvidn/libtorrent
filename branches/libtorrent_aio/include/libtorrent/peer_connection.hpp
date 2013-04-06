@@ -262,7 +262,7 @@ namespace libtorrent
 		void request_large_blocks(bool b)
 		{ m_request_large_blocks = b; }
 
-		void set_endgame(bool b) { m_endgame_mode = b; }
+		void set_endgame(bool b);
 		bool endgame() const { return m_endgame_mode; }
 
 		bool no_download() const { return m_no_download; }
@@ -1160,6 +1160,10 @@ namespace libtorrent
 		// may not even have been attempted when the
 		// time out is reached.
 		bool m_connecting:1;
+
+		// this is set to true if the connection attempt
+		// succeeded. i.e. the TCP 3-way handshake
+		bool m_connected:1;
 
 		// This is true until connect is called on the
 		// peer_connection's socket. It is false on incoming

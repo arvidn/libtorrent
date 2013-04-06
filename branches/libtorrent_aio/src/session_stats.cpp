@@ -107,6 +107,18 @@ namespace libtorrent
 		METRIC(peer, num_ssl_http_proxy_peers, type_gauge)
 		METRIC(peer, num_ssl_utp_peers, type_gauge)
 
+		METRIC(peer, num_peers_half_open, type_gauge)
+		METRIC(peer, num_peers_connected, type_gauge)
+		METRIC(peer, num_peers_up_interested, type_gauge)
+		METRIC(peer, num_peers_down_interested, type_gauge)
+		METRIC(peer, num_peers_up_unchoked, type_gauge)
+		METRIC(peer, num_peers_down_unchoked, type_gauge)
+		METRIC(peer, num_peers_up_requests, type_gauge)
+		METRIC(peer, num_peers_down_requests, type_gauge)
+		METRIC(peer, num_peers_end_game, type_gauge)
+		METRIC(peer, num_peers_up_disk, type_gauge)
+		METRIC(peer, num_peers_down_disk, type_gauge)
+
 		// These counters count the number of times the
 		// network thread wakes up for each respective
 		// reason. If these counters are very large, it

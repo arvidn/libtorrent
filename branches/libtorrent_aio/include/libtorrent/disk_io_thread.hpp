@@ -205,6 +205,9 @@ namespace libtorrent
 		int arc_mfu_ghost_size;
 		int arc_write_size;
 		int arc_volatile_size;
+
+		// the number of threads currently writing to disk
+		int num_writing_threads;
 	};
 	
 	// this is a singleton consisting of the thread and a queue
