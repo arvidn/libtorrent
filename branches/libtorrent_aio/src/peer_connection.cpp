@@ -5814,7 +5814,7 @@ namespace libtorrent
 				&& !m_settings.get_bool(settings_pack::contiguous_recv_buffer)
 				&& m_ses.exceeded_cache_use())
 			{
-				m_ses.inc_stats_counter(counters::num_peers_up_disk);
+				m_ses.inc_stats_counter(counters::num_peers_down_disk);
 				const_cast<peer_connection*>(this)->m_channel_state[download_channel] |= peer_info::bw_disk;
 
 				// make sure we know when the cache has been flushed

@@ -60,6 +60,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
+		TORRENT_ASSERT(m_stats_counter[c] + value >= 0);
 		m_stats_counter[c] += value;
 	}
 
