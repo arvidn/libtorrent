@@ -1222,14 +1222,6 @@ namespace libtorrent
 			// by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
 			max_metadata_size,
 
-			// ``read_job_every`` is used to avoid starvation of read jobs in the disk I/O
-			// thread. By default, read jobs are deferred, sorted by physical disk location
-			// and serviced once all write jobs have been issued. In scenarios where the
-			// download rate is enough to saturate the disk, there's a risk the read jobs will
-			// never be serviced. With this setting, every *x* write job, issued in a row, will
-			// instead pick one read job off of the sorted queue, where *x* is ``read_job_every``.
-			read_job_every,
-
 			// ``hashing_threads`` is the number of threads to use for piece hash verification. It
 			// defaults to 1. For very high download rates, on machines with multiple cores, this
 			// could be incremented. Setting it higher than the number of CPU cores would presumably
