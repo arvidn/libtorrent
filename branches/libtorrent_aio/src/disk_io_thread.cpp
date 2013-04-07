@@ -1246,6 +1246,13 @@ namespace libtorrent
 
 	void disk_io_thread::maybe_issue_queued_read_jobs(cached_piece_entry* pe)
 	{
+		// if we're shutting down, just cancel the jobs
+		if (m_num_threads == 0)
+		{
+			fail_jobs(storage_error(boost::asio::error::operation_aborted), pe->read_jobs);
+			return;
+		}
+
 		// while we were reading, there may have been a few jobs
 		// that got queued up also wanting to read from this piece.
 		// Any job that is a cache hit now, complete it immediately.
