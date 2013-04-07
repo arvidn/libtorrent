@@ -662,7 +662,7 @@ namespace libtorrent
 			// implements uncork_interface
 			void do_delayed_uncork();
 
-			void post_socket_write_job(write_some_job& j);
+			void post_socket_job(socket_job& j);
 
 			// implements session_interface
 			virtual tcp::endpoint get_interface() const;

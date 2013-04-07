@@ -5155,6 +5155,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_socket_is_writing);
 		m_socket_is_writing = true;
 #endif
+
+		// uTP sockets aren't thread safe...
 		if (is_utp(*m_socket))
 		{
 			m_socket->async_write_some(vec, make_write_handler(boost::bind(
@@ -5162,10 +5164,11 @@ namespace libtorrent
 		}
 		else
 		{
-			write_some_job j;
+			socket_job j;
+			j.type = socket_job::write_job;
 			j.vec = &vec;
 			j.peer = self();
-			m_ses.post_socket_write_job(j);
+			m_ses.post_socket_job(j);
 		}
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
@@ -5330,17 +5333,37 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("peer_connection::on_receive_data");
 #endif
-			if (num_bufs == 1)
+			// utp sockets aren't thread safe...
+			if (is_utp(*m_socket))
 			{
-				m_socket->async_read_some(
-					asio::mutable_buffers_1(vec[0]), make_read_handler(
-						boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
+				if (num_bufs == 1)
+				{
+					m_socket->async_read_some(
+						asio::mutable_buffers_1(vec[0]), make_read_handler(
+							boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
+				}
+				else
+				{
+					m_socket->async_read_some(
+						vec, make_read_handler(
+							boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
+				}
 			}
 			else
 			{
-				m_socket->async_read_some(
-					vec, make_read_handler(
-						boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
+				socket_job j;
+				j.type = socket_job::read_job;
+				j.peer = self();
+				if (num_bufs == 1)
+				{
+					j.recv_buf = asio::buffer_cast<char*>(vec[0]);
+					j.buf_size = asio::buffer_size(vec[0]);
+				}
+				else
+				{
+					j.read_vec = vec;
+				}
+				m_ses.post_socket_job(j);
 			}
 			return 0;
 		}
@@ -5610,24 +5633,40 @@ namespace libtorrent
 
 			if (buffer_size > 2097152) buffer_size = 2097152;
 
-			// TODO: cap the size of the receive buffer? Maybe we can just rely
-			// on the OS buffer size limit on TCP buffers and assume it won't
-			// buffer more than necessary.
 			m_recv_buffer.resize(m_recv_pos + buffer_size);
 			TORRENT_ASSERT(m_recv_start == 0);
-			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
-				, buffer_size), ec);
-			if (ec)
+
+			// utp sockets aren't thread safe...
+			if (is_utp(*m_socket))
 			{
-				if (ec == boost::asio::error::try_again || ec == boost::asio::error::would_block)
+				bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
+					, buffer_size), ec);
+
+				if (ec)
 				{
-					// allow reading from the socket again
-					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-					m_channel_state[download_channel] &= ~peer_info::bw_network;
-					setup_receive(read_async);
+					if (ec == boost::asio::error::try_again || ec == boost::asio::error::would_block)
+					{
+						// allow reading from the socket again
+						TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+						m_channel_state[download_channel] &= ~peer_info::bw_network;
+						setup_receive(read_async);
+						return;
+					}
+					disconnect(ec, op_sock_read);
 					return;
 				}
-				disconnect(ec, op_sock_read);
+			}
+			else
+			{
+#if defined TORRENT_ASIO_DEBUGGING
+				add_outstanding_async("peer_connection::on_receive_data");
+#endif
+				socket_job j;
+				j.type = socket_job::read_job;
+				j.recv_buf = &m_recv_buffer[m_recv_pos];
+				j.buf_size = buffer_size;
+				j.peer = self();
+				m_ses.post_socket_job(j);
 				return;
 			}
 		}

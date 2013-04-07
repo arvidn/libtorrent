@@ -185,14 +185,32 @@ namespace libtorrent {
 	mutex _async_ops_mutex;
 #endif
 
-write_some_job::~write_some_job() {}
+socket_job::~socket_job() {}
 
-void network_thread_pool::process_job(write_some_job const& j, bool post)
+void network_thread_pool::process_job(socket_job const& j, bool post)
 {
-	TORRENT_ASSERT(j.peer->m_socket_is_writing);
-	j.peer->get_socket()->async_write_some(
-		*j.vec, j.peer->make_write_handler(boost::bind(
-			&peer_connection::on_send_data, j.peer, _1, _2)));
+	if (j.type == socket_job::write_job)
+	{
+		TORRENT_ASSERT(j.peer->m_socket_is_writing);
+		j.peer->get_socket()->async_write_some(
+			*j.vec, j.peer->make_write_handler(boost::bind(
+				&peer_connection::on_send_data, j.peer, _1, _2)));
+	}
+	else
+	{
+		if (j.recv_buf)
+		{
+			j.peer->get_socket()->async_read_some(asio::buffer(j.recv_buf, j.buf_size)
+				, j.peer->make_read_handler(boost::bind(
+				&peer_connection::on_receive_data, j.peer, _1, _2, false)));
+		}
+		else
+		{
+			j.peer->get_socket()->async_read_some(j.read_vec
+				, j.peer->make_read_handler(boost::bind(
+				&peer_connection::on_receive_data, j.peer, _1, _2, false)));
+		}
+	}
 }
 
 namespace detail
@@ -6607,11 +6625,10 @@ retry:
 		m_net_thread_pool.set_num_threads(m_settings.get_int(settings_pack::network_threads));
 	}
 
-	void session_impl::post_socket_write_job(write_some_job& j)
+	void session_impl::post_socket_job(socket_job& j)
 	{
 		m_net_thread_pool.post_job(j);
 	}
-
 
 	void session_impl::update_cache_buffer_chunk_size()
 	{

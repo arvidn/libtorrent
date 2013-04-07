@@ -41,19 +41,36 @@ namespace libtorrent
 {
 
 	class peer_connection;
+	class buffer;
 
-	struct write_some_job
+	struct socket_job
 	{
+		socket_job() : vec(NULL), recv_buf(NULL), buf_size(0) {}
+
+		enum job_type_t
+		{
+			read_job = 0,
+			write_job
+		};
+
+		job_type_t type;
+
+		// used for write jobs
 		std::vector<asio::const_buffer> const* vec;
+		// used for read jobs
+		char* recv_buf;
+		int buf_size;
+		boost::array<asio::mutable_buffer, 2> read_vec;
+
 		boost::shared_ptr<peer_connection> peer;
 		// defined in session_impl.cpp
-		~write_some_job();
+		~socket_job();
 	};
 
 	// defined in session_impl.cpp
-	struct network_thread_pool : thread_pool<write_some_job>
+	struct network_thread_pool : thread_pool<socket_job>
 	{
-		void process_job(write_some_job const& j, bool post);
+		void process_job(socket_job const& j, bool post);
 	};
 }
 

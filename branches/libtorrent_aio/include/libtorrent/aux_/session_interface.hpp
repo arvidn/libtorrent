@@ -59,7 +59,7 @@ namespace libtorrent
 	class peer_connection;
 	class torrent;
 	struct proxy_settings;
-	struct write_some_job;
+	struct socket_job;
 	struct pe_settings;
 	struct peer_class_set;
 	struct bandwidth_channel;
@@ -175,7 +175,7 @@ namespace libtorrent { namespace aux
 		virtual boost::uint16_t ssl_listen_port() const = 0;
 
 		// used to (potentially) issue socket write calls onto multiple threads
-		virtual void post_socket_write_job(write_some_job& j) = 0;
+		virtual void post_socket_job(socket_job& j) = 0;
 
 		// when binding outgoing connections, this provides a round-robin
 		// port selection

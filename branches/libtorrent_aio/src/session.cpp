@@ -253,8 +253,9 @@ namespace libtorrent
 		// prevent fast pieces to interfere with suggested pieces
 		// since we unchoke everyone, we don't need fast pieces anyway
 		set.set_int(settings_pack::allowed_fast_set_size, 0);
+
 		// suggest pieces in the read cache for higher cache hit rate
-//		set.set_int(settings_pack::suggest_mode, session_settings::suggest_read_cache);
+		set.set_int(settings_pack::suggest_mode, session_settings::suggest_read_cache);
 
 		set.set_bool(settings_pack::close_redundant_connections, true);
 
@@ -298,9 +299,8 @@ namespace libtorrent
 		set.set_int(settings_pack::hashing_threads, 4);
 
 		// the number of threads to use to call async_write_some
-		// on peer sockets
-		// TODO: this doesn't actually fully work yet. There appears to be some race condition involved
-		set.set_int(settings_pack::network_threads, 0);
+		// and read_some on peer sockets
+		set.set_int(settings_pack::network_threads, 4);
 
 		// number of disk threads for low level file operations
 		set.set_int(settings_pack::aio_threads, 8);
