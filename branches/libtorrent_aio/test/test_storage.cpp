@@ -101,13 +101,10 @@ void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path
 	free(j.buffer);
 }
 
-void print_error(int ret, storage_error const& ec)
+void print_error(char const* call, int ret, storage_error const& ec)
 {
-	std::cerr << "returned: " << ret
-		<< " error: " << ec.ec.message()
-		<< " in file: " << ec.file
-		<< " operation: " << ec.operation
-		<< std::endl;
+	fprintf(stderr, "%s() returned: %d error: \"%s\" in file: %d operation: %d\n"
+		, call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
 }
 
 void run_until(io_service& ios, bool const& done)
@@ -138,10 +135,12 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	if (ec) std::cerr << "create_directory '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "temp_storage2"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage2")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage2")
 		<< "': " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "part0"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "part0")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "part0")
 		<< "': " << ec.message() << std::endl;
 
 	int num_pieces = fs.num_pieces();
@@ -162,30 +161,35 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	libtorrent::asio::io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, NULL);
 	storage_params p;
+	p.path = test_path;
 	p.files = &fs;
 	p.pool = &fp;
 	p.mode = storage_mode;
-	boost::scoped_ptr<storage_interface> s(default_storage_constructor(p));
+	boost::scoped_ptr<storage_interface> s(new default_storage(p));
 	s->m_settings = &set;
+
+	storage_error ec;
+	s->initialize(ec);
+	TEST_CHECK(!ec);
+	if (ec) print_error("initialize", 0, ec);
 
 	int ret = 0;
 
 	// write piece 1 (in slot 0)
 	file::iovec_t iov = { piece1, half};
-	storage_error ec;
 	ret = s->writev(&iov, 1, 0, 0, 0, ec);
-	if (ret != half) print_error(ret, ec);
+	if (ret != half) print_error("writev", ret, ec);
 
 	iov.iov_base = piece1 + half;
 	iov.iov_len = half;
 	ret = s->writev(&iov, 1, 0, half, 0, ec);
-	if (ret != half) print_error(ret, ec);
+	if (ret != half) print_error("writev", ret, ec);
 
 	// test unaligned read (where the bytes are aligned)
 	iov.iov_base = piece + 3;
 	iov.iov_len = piece_size - 9;
 	ret = s->readv(&iov, 1, 0, 3, 0, ec);
-	if (ret != piece_size - 9) print_error(ret, ec);
+	if (ret != piece_size - 9) print_error("readv",ret, ec);
 	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1+3));
 	
 	// test unaligned read (where the bytes are not aligned)
@@ -193,7 +197,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	iov.iov_len = piece_size - 9;
 	ret = s->readv(&iov, 1, 0, 3, 0, ec);
 	TEST_CHECK(ret == piece_size - 9);
-	if (ret != piece_size - 9) print_error(ret, ec);
+	if (ret != piece_size - 9) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1+3));
 
 	// verify piece 1
@@ -201,31 +205,31 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	iov.iov_len = piece_size;
 	ret = s->readv(&iov, 1, 0, 0, 0, ec);
 	TEST_CHECK(ret == piece_size);
-	if (ret != piece_size) print_error(ret, ec);
+	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 	
 	// do the same with piece 0 and 2 (in slot 1 and 2)
 	iov.iov_base = piece0;
 	iov.iov_len = piece_size;
 	ret = s->writev(&iov, 1, 1, 0, 0, ec);
-	if (ret != piece_size) print_error(ret, ec);
+	if (ret != piece_size) print_error("writev", ret, ec);
 
-	iov.iov_base = piece0;
+	iov.iov_base = piece2;
 	iov.iov_len = piece_size;
 	ret = s->writev(&iov, 1, 2, 0, 0, ec);
-	if (ret != piece_size) print_error(ret, ec);
+	if (ret != piece_size) print_error("writev", ret, ec);
 
 	// verify piece 0 and 2
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
 	ret = s->readv(&iov, 1, 1, 0, 0, ec);
-	if (ret != piece_size) print_error(ret, ec);
+	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0));
 
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
 	ret = s->readv(&iov, 1, 2, 0, 0, ec);
-	if (ret != piece_size) print_error(ret, ec);
+	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2));
 
 	s->release_files(ec);
@@ -239,7 +243,8 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	file_storage fs;
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
 	fs.add_file("temp_storage/test1.tmp", 8);
@@ -272,20 +277,26 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	storage_params p;
 	p.files = &fs;
 	p.pool = &fp;
+	p.path = test_path;
 	p.mode = storage_mode_sparse;
-	boost::scoped_ptr<storage_interface> s(default_storage_constructor(p));
+	boost::scoped_ptr<storage_interface> s(new default_storage(p));
 	s->m_settings = &set;
 
 	// allocate the files and create the directories
 	storage_error se;
 	s->initialize(se);
-	if (se) std::cerr << "initialize: " << se.ec.message() << std::endl;
+	if (se) print_error("initialize", 0, ec);
 
-	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	// directories are not created up-front, unless they contain
+	// an empty file (all of which are created up-front, along with
+	// all required directories)
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+
+	// this directory and file is created up-front because it's an empty file
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("folder2", "test3.tmp")))));	
 
 	s->delete_files(se);
-	if (se) std::cerr << "delete_files: " << se.ec.message() << std::endl;
+	if (se) print_error("delete_files", 0, ec);
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
 }
@@ -299,7 +310,8 @@ void test_check_files(std::string const& test_path
 	error_code ec;
 	const int piece_size = 16 * 1024;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", piece_size);
@@ -342,6 +354,7 @@ void test_check_files(std::string const& test_path
 	disk_buffer_pool dp(16 * 1024, ios, NULL);
 	storage_params p;
 	p.files = &fs;
+	p.path = test_path;
 	p.pool = &fp;
 	p.mode = storage_mode;
 
@@ -372,7 +385,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 	{
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", 17);
@@ -398,6 +412,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	// make sure the files have the correct size
 	std::string base = combine_path(test_path, "temp_storage");
+	fprintf(stderr, "base = \"%s\"\n", base.c_str());
 	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
 	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
 	// these files should have been allocated since they are 0 sized
@@ -407,7 +422,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	}
 
@@ -433,7 +449,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), piece_size * 3);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 
 // ==============================================
@@ -446,7 +463,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), 3 * piece_size);
 
 	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 
 	}
@@ -468,7 +486,8 @@ void test_fastresume(std::string const& test_path)
 	error_code ec;
 	std::cout << "\n\n=== test fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp1"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 	create_directory(combine_path(test_path, "tmp1"), ec);
 	if (ec) std::cerr << "create_directory '" << combine_path(test_path, "tmp1")
@@ -543,7 +562,8 @@ void test_fastresume(std::string const& test_path)
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 }
 
@@ -558,7 +578,8 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	error_code ec;
 	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp2"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
 		<< "': " << ec.message() << std::endl;
 	create_directory(combine_path(test_path, "tmp2"), ec);
 	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
@@ -635,7 +656,8 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	resume.print(std::cout);
 #endif
 	remove_all(combine_path(test_path, "tmp2"), ec);
-	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
 		<< "': " << ec.message() << std::endl;
 }
 
