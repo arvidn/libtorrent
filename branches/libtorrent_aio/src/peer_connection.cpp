@@ -1610,7 +1610,7 @@ namespace libtorrent
 		disconnect_if_redundant();
 		if (is_disconnecting()) return;
 
-		if (is_choked())
+		if (is_choked() && !t->graceful_pause())
 		{
 			if (ignore_unchoke_slots())
 			{
@@ -1645,6 +1645,12 @@ namespace libtorrent
 			}
 #endif
 		}
+#if defined TORRENT_VERBOSE_LOGGING
+		else if (t->graceful_pause())
+		{
+			peer_log("DID NOT UNCHOKE [ graceful pause mode ]");
+		}
+#endif
 	}
 
 	// -----------------------------
