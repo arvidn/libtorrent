@@ -117,7 +117,10 @@ namespace libtorrent
 			, arc_mfu_ghost_size(0)
 			, arc_write_size(0)
 			, arc_volatile_size(0)
-		{}
+			, num_writing_threads(0)
+		{
+			memset(num_fence_jobs, 0, sizeof(num_fence_jobs));
+		}
 
 		std::vector<cached_piece_info> pieces;
 
@@ -208,6 +211,10 @@ namespace libtorrent
 
 		// the number of threads currently writing to disk
 		int num_writing_threads;
+
+		// counts only fence jobs that are currently blocking jobs
+		// not fences that are themself blocked
+		int num_fence_jobs[disk_io_job::num_job_ids];
 	};
 	
 	// this is a singleton consisting of the thread and a queue
@@ -240,8 +247,18 @@ namespace libtorrent
 		void async_release_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>());
+		void async_delete_files(piece_manager* storage
+			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_check_fastresume(piece_manager* storage
 			, lazy_entry const* resume_data
+			, boost::function<void(disk_io_job const*)> const& handler);
+		void async_save_resume_data(piece_manager* storage
+			, boost::function<void(disk_io_job const*)> const& handler);
+		void async_rename_file(piece_manager* storage, int index, std::string const& name
+			, boost::function<void(disk_io_job const*)> const& handler);
+		void async_stop_torrent(piece_manager* storage
+			, boost::function<void(disk_io_job const*)> const& handler);
+		void async_cache_piece(piece_manager* storage, int piece
 			, boost::function<void(disk_io_job const*)> const& handler);
 #ifndef TORRENT_NO_DEPRECATE
 		void async_finalize_file(piece_manager* storage, int file
@@ -251,16 +268,6 @@ namespace libtorrent
 		void async_flush_piece(piece_manager* storage, int piece
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>());
-		void async_cache_piece(piece_manager* storage, int piece
-			, boost::function<void(disk_io_job const*)> const& handler);
-		void async_stop_torrent(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler);
-		void async_rename_file(piece_manager* storage, int index, std::string const& name
-			, boost::function<void(disk_io_job const*)> const& handler);
-		void async_delete_files(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler);
-		void async_save_resume_data(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_set_file_priority(piece_manager* storage
 			, std::vector<boost::uint8_t> const& prio
 			, boost::function<void(disk_io_job const*)> const& handler);

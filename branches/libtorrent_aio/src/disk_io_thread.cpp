@@ -1483,17 +1483,6 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::cache_piece);
-		j->storage = storage;
-		j->piece = piece;
-		j->callback = handler;
-
-		add_job(j);
-	}
-
 	void disk_io_thread::async_write(piece_manager* storage, peer_request const& r
 		, disk_buffer_holder& buffer
 		, boost::function<void(disk_io_job const*)> const& handler
@@ -1660,6 +1649,44 @@ namespace libtorrent
 		add_fence_job(storage, j);
 	}
 
+	void disk_io_thread::async_delete_files(piece_manager* storage
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		// remove cache blocks belonging to this torrent
+		mutex::scoped_lock l(m_cache_mutex);
+		flush_cache(storage, flush_delete_cache, l);
+		l.unlock();
+
+		// remove outstanding jobs belonging to this torrent
+		mutex::scoped_lock l2(m_job_mutex);
+
+		// TODO: maybe the tailqueue_iterator should contain a pointer-pointer
+		// instead and have an unlink function
+		disk_io_job* qj = (disk_io_job*)m_queued_jobs.get_all();
+		tailqueue to_abort;
+
+		while (qj)
+		{
+			disk_io_job* next = (disk_io_job*)qj->next;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			qj->next = NULL;
+#endif
+			if (qj->storage == storage)
+				to_abort.push_back(qj);
+			else
+				m_queued_jobs.push_back(qj);
+			qj = next;
+		}
+		l2.unlock();
+
+		fail_jobs(storage_error(boost::asio::error::operation_aborted), to_abort);
+
+		disk_io_job* j = allocate_job(disk_io_job::delete_files);
+		j->storage = storage;
+		j->callback = handler;
+		add_fence_job(storage, j);
+	}
+
 	void disk_io_thread::async_check_fastresume(piece_manager* storage
 		, lazy_entry const* resume_data
 		, boost::function<void(disk_io_job const*)> const& handler)
@@ -1670,6 +1697,80 @@ namespace libtorrent
 		j->callback = handler;
 
 		add_fence_job(storage, j);
+	}
+
+	void disk_io_thread::async_save_resume_data(piece_manager* storage
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::save_resume_data);
+		j->storage = storage;
+		j->buffer = NULL;
+		j->callback = handler;
+
+		add_fence_job(storage, j);
+	}
+
+	void disk_io_thread::async_rename_file(piece_manager* storage, int index, std::string const& name
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::rename_file);
+		j->storage = storage;
+		j->piece = index;
+		j->buffer = strdup(name.c_str());
+		j->callback = handler;
+		add_fence_job(storage, j);
+	}
+
+	void disk_io_thread::async_stop_torrent(piece_manager* storage
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::stop_torrent);
+		j->storage = storage;
+		j->callback = handler;
+		add_fence_job(storage, j);
+	}
+
+	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::cache_piece);
+		j->storage = storage;
+		j->piece = piece;
+		j->callback = handler;
+
+		add_job(j);
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::finalize_file);
+		j->storage = storage;
+		j->piece = file;
+		j->callback = handler;
+
+		add_job(j);
+	}
+#endif
+
+	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::flush_piece);
+		j->storage = storage;
+		j->piece = piece;
+		j->callback = handler;
+
+		if (m_num_threads == 0)
+		{
+			j->error.ec = asio::error::operation_aborted;
+			if (handler) handler(j);
+			free_job(j);
+			return;
+		}
+
+		add_job(j);
 	}
 
 	void disk_io_thread::async_set_file_priority(piece_manager* storage
@@ -1702,49 +1803,6 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::tick_storage);
 		j->storage = storage;
 		j->callback = handler;
-
-		add_job(j);
-	}
-
-	void disk_io_thread::async_save_resume_data(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::save_resume_data);
-		j->storage = storage;
-		j->buffer = NULL;
-		j->callback = handler;
-
-		add_fence_job(storage, j);
-	}
-
-#ifndef TORRENT_NO_DEPRECATE
-	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::finalize_file);
-		j->storage = storage;
-		j->piece = file;
-		j->callback = handler;
-
-		add_job(j);
-	}
-#endif
-
-	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::flush_piece);
-		j->storage = storage;
-		j->piece = piece;
-		j->callback = handler;
-
-		if (m_num_threads == 0)
-		{
-			j->error.ec = asio::error::operation_aborted;
-			if (handler) handler(j);
-			free_job(j);
-			return;
-		}
 
 		add_job(j);
 	}
@@ -1806,64 +1864,6 @@ namespace libtorrent
 		bool ok = m_disk_cache.evict_piece(pe, jobs);
 		TORRENT_PIECE_ASSERT(ok, pe);
 		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
-	}
-
-	void disk_io_thread::async_stop_torrent(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::stop_torrent);
-		j->storage = storage;
-		j->callback = handler;
-		add_fence_job(storage, j);
-	}
-
-	void disk_io_thread::async_rename_file(piece_manager* storage, int index, std::string const& name
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::rename_file);
-		j->storage = storage;
-		j->piece = index;
-		j->buffer = strdup(name.c_str());
-		j->callback = handler;
-		add_fence_job(storage, j);
-	}
-
-	void disk_io_thread::async_delete_files(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-		// remove cache blocks belonging to this torrent
-		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(storage, flush_delete_cache, l);
-		l.unlock();
-
-		// remove outstanding jobs belonging to this torrent
-		mutex::scoped_lock l2(m_job_mutex);
-
-		// TODO: maybe the tailqueue_iterator should contain a pointer-pointer
-		// instead and have an unlink function
-		disk_io_job* qj = (disk_io_job*)m_queued_jobs.get_all();
-		tailqueue to_abort;
-
-		while (qj)
-		{
-			disk_io_job* next = (disk_io_job*)qj->next;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			qj->next = NULL;
-#endif
-			if (qj->storage == storage)
-				to_abort.push_back(qj);
-			else
-				m_queued_jobs.push_back(qj);
-			qj = next;
-		}
-		l2.unlock();
-
-		fail_jobs(storage_error(boost::asio::error::operation_aborted), to_abort);
-
-		disk_io_job* j = allocate_job(disk_io_job::delete_files);
-		j->storage = storage;
-		j->callback = handler;
-		add_fence_job(storage, j);
 	}
 
 	void disk_io_thread::kick_hasher(cached_piece_entry* pe, mutex::scoped_lock& l)
@@ -2684,6 +2684,9 @@ namespace libtorrent
 			m_queued_jobs.push_front(j);
 			l.unlock();
 
+			// TODO: 3 m_cache_stats isn't protected by any mutex! Anywhere!
+			++m_cache_stats.num_fence_jobs[j->action];
+
 			// discard the flush job
 			free_job(fj);
 			return;
@@ -2702,6 +2705,8 @@ namespace libtorrent
 			// be executed
 			mutex::scoped_lock l(m_job_mutex);
 			TORRENT_ASSERT((fj->flags & disk_io_job::in_progress) || !fj->storage);
+
+			++m_cache_stats.num_fence_jobs[j->action];
 
 			m_queued_jobs.push_front(fj);
 		}
@@ -2914,7 +2919,12 @@ namespace libtorrent
 //			DLOG("job_complete %s outstanding: %d\n"
 //				, job_action_name[j->action], j->storage ? j->storage->num_outstanding_jobs() : 0);
 
-			ret += j->storage ? j->storage->job_complete(j, new_jobs) : 0;
+			if (j->storage)
+			{
+				if (j->flags & disk_io_job::fence)
+					--m_cache_stats.num_fence_jobs[j->action];
+				ret += j->storage->job_complete(j, new_jobs);
+			}
 			TORRENT_ASSERT(ret == new_jobs.size());
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) == 0);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

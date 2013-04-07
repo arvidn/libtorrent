@@ -1353,6 +1353,16 @@ namespace aux {
 			":num writing threads"
 			":incoming connections"
 
+			":move_storage"
+			":release_files"
+			":delete_files"
+			":check_fastresume"
+			":save_resume_data"
+			":rename_file"
+			":stop_torrent"
+			":file_priority"
+			":clear_piece"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3982,8 +3992,8 @@ retry:
 			m_disk_thread.get_cache_info(&cs);
 			session_status sst = status();
 
-			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
-			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
+			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000000.0 / float(tick_interval_ms));
+			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000000.0 / float(tick_interval_ms));
 
 			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
 
@@ -4112,8 +4122,8 @@ retry:
 			STAT_LOG(d, int(vm_stat.pageouts - m_last_vm_stat.pageouts));
 			STAT_LOG(d, int(vm_stat.faults - m_last_vm_stat.faults));
 
-			STAT_LOG(d, m_read_ops.mean());
-			STAT_LOG(d, m_write_ops.mean());
+			STAT_LOG(f, m_read_ops.mean() / 1000.f);
+			STAT_LOG(f, m_write_ops.mean() / 1000.f);
 			STAT_LOG(d, cs.pinned_blocks);
 
 			STAT_LOG(d, partial_pieces);
@@ -4253,6 +4263,16 @@ retry:
 			STAT_LOG(d, cs.blocked_jobs);
 			STAT_LOG(d, cs.num_writing_threads);
 			STAT_LOG(d, m_stats_counters[counters::incoming_connections]);
+
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::move_storage]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::release_files]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::delete_files]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::check_fastresume]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::save_resume_data]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::rename_file]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::stop_torrent]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::file_priority]);
+			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::clear_piece]);
 
 			fprintf(m_stats_logger, "\n");
 

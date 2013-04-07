@@ -92,8 +92,10 @@ namespace libtorrent
 		METRIC(peer, too_many_peers, type_counter)
 		METRIC(peer, transport_timeout_peers, type_counter)
 		METRIC(peer, num_banned_peers, type_counter)
-		METRIC(peer, connection_attempts, type_counter)
 		METRIC(peer, banned_for_hash_failure, type_counter)
+
+		METRIC(peer, connection_attempts, type_counter)
+		METRIC(peer, incoming_connections, type_counter)
 
 		// the number of peer connections for each kind of socket.
 		// these counts include half-open (connecting) peers.
