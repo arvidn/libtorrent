@@ -254,7 +254,7 @@ reports = [
 	('peer_churn', 'num', '', 'connecting and disconnecting peers', ['connecting peers', 'connection attempts']),
 	('new_peers', 'num', '', '', ['incoming connections', 'connection attempts']),
 	('peer_limits', 'num', '', 'number of connections per limit', ['average peers per limit']),
-	('pieces', 'num', '', 'number completed pieces', ['total pieces', 'pieces flushed', 'pieces passed']),
+	('pieces', 'num', '', 'number completed pieces', ['total pieces', 'pieces flushed', 'pieces passed', 'pieces failed']),
 	('connect_candidates', 'num', '', 'number of peers we know of that we can connect to', ['connect candidates']),
 	('peers_list_size', 'num', '', 'number of known peers (not necessarily connected)', ['num list peers']),
 	('overall_rates', 'rate', 'B/s', 'download and upload rates', ['uploaded bytes', 'downloaded bytes', 'upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),

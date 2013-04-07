@@ -164,6 +164,8 @@ namespace libtorrent
 		// them represents the current number if pieces passed, haved
 		// and total.
 		METRIC(ses, num_piece_passed, type_counter)
+		METRIC(ses, num_piece_failed, type_counter)
+
 		METRIC(ses, num_piece_passed_removed, type_counter)
 		METRIC(ses, num_have_pieces, type_counter)
 		METRIC(ses, num_have_pieces_removed, type_counter)

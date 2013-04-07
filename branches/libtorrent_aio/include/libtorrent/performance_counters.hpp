@@ -153,8 +153,10 @@ namespace libtorrent
 			num_outgoing_metadata,
 			num_outgoing_extended,
 
-			// TODO: 3 the _removed counters seem a bit silly
 			num_piece_passed,
+			num_piece_failed,
+
+			// TODO: 3 the _removed counters seem a bit silly
 			num_piece_passed_removed,
 			num_have_pieces,
 			num_have_pieces_removed,

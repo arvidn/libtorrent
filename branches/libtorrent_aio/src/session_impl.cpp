@@ -1321,6 +1321,7 @@ namespace aux {
 			":total pieces"
 			":pieces flushed"
 			":pieces passed"
+			":pieces failed"
 
 			":peers up send buffer"
 
@@ -4229,8 +4230,9 @@ retry:
 			STAT_LOG(d, m_stats_counters[counters::piece_rejects]);
 
 			STAT_LOG(d, m_stats_counters[counters::num_total_pieces_added] - m_stats_counters[counters::num_total_pieces_removed]);
-			STAT_LOG(d, m_stats_counters[counters::num_have_pieces] - m_stats_counters[counters::num_have_pieces_removed]);
-			STAT_LOG(d, m_stats_counters[counters::num_piece_passed] - m_stats_counters[counters::num_piece_passed_removed]);
+			STAT_LOG(d, m_stats_counters[counters::num_have_pieces]);
+			STAT_LOG(d, m_stats_counters[counters::num_piece_passed]);
+			STAT_LOG(d, m_stats_counters[counters::num_piece_failed]);
 
 			STAT_LOG(d, peers_up_send_buffer);
 

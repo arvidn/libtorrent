@@ -3852,6 +3852,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 	  	TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
+		m_ses.inc_stats_counter(counters::num_piece_failed);
+
 		if (m_ses.alerts().should_post<hash_failed_alert>())
 			m_ses.alerts().post_alert(hash_failed_alert(get_handle(), index));
 
