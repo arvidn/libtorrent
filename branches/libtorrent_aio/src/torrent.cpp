@@ -5129,7 +5129,7 @@ namespace libtorrent
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
 		k = m_trackers.insert(k, url);
 		if (k->source == 0) k->source = announce_entry::source_client;
-		if (!m_trackers.empty()) announce_with_tracker();
+		if (m_allow_peers && !m_trackers.empty()) announce_with_tracker();
 	}
 
 	bool torrent::choke_peer(peer_connection& c)
