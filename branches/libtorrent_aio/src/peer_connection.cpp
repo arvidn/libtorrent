@@ -2487,7 +2487,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		hasher h;
 		h.update(data.get(), p.length);
-		peer_log("<== PIECE        [ piece: %d | s: %d | l: %d | ds: %d | qs: %d | q: %d | hash: %s ]"
+		peer_log("<== PIECE        [ piece: %d | s: %x | l: %x | ds: %d | qs: %d | q: %d | hash: %s ]"
 			, p.piece, p.start, p.length, statistics().download_rate()
 			, int(m_desired_queue_size), int(m_download_queue.size())
 			, to_hex(h.final().to_string()).c_str());
@@ -3190,8 +3190,22 @@ namespace libtorrent
 		TORRENT_ASSERT(std::find(m_request_queue.begin(), m_request_queue.end()
 			, block) == m_request_queue.end());
 
-		if (t->upload_mode()) return false;
-		if (m_disconnecting) return false;
+		if (t->upload_mode())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** PIECE_PICKER [ not_picking: %d,%d upload_mode ]"
+				, block.piece_index, block.block_index);
+#endif
+			return false;
+		}
+		if (m_disconnecting)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** PIECE_PICKER [ not_picking: %d,%d disconnecting ]"
+				, block.piece_index, block.block_index);
+#endif
+			return false;
+		}
 
 		piece_picker::piece_state_t state;
 		peer_speed_t speed = peer_speed();
@@ -3220,18 +3234,38 @@ namespace libtorrent
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{
-				if (i->busy) return false;
+				if (i->busy)
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					peer_log("*** PIECE_PICKER [ not_picking: %d,%d already in download queue & busy ]"
+						, block.piece_index, block.block_index);
+#endif
+					return false;
+				}
 			}
 
 			for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
 				, end(m_request_queue.end()); i != end; ++i)
 			{
-				if (i->busy) return false;
+				if (i->busy) 
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					peer_log("*** PIECE_PICKER [ not_picking: %d,%d already in request queue & busy ]"
+						, block.piece_index, block.block_index);
+#endif
+					return false;
+				}
 			}
 		}
 
 		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** PIECE_PICKER [ not_picking: %d,%d failed to mark_as_downloading ]"
+				, block.piece_index, block.block_index);
+#endif
 			return false;
+		}
 
 		if (t->alerts().should_post<block_downloading_alert>())
 		{

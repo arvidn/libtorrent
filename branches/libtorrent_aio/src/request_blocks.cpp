@@ -217,6 +217,10 @@ namespace libtorrent
 					= std::find_if(dq.begin(), dq.end(), has_block(*i));
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
+#ifdef TORRENT_VERBOSE_LOGGING
+				c.peer_log("*** PIECE_PICKER [ not_picking: %d,%d already in queue ]"
+					, i->piece_index, i->block_index);
+#endif
 				continue;
 			}
 
