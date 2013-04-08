@@ -61,11 +61,9 @@ namespace libtorrent
 			snubbed = 0x1000,
 			upload_only = 0x2000,
 			endgame_mode = 0x4000,
-			holepunched = 0x8000
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			, rc4_encrypted = 0x100000,
+			holepunched = 0x8000,
+			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
-#endif
 		};
 
 		unsigned int flags;
@@ -225,7 +223,7 @@ namespace libtorrent
 		int download_rate_peak;
 		int upload_rate_peak;
 		
-		// the peers progress
+		// the peer's progress
 		float progress; // [0, 1]
 		int progress_ppm; // [0, 1000000]
 
