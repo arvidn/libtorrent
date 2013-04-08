@@ -4216,7 +4216,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = shared_from_this();
 		TORRENT_ASSERT(t);
 		cache_status cs;
-		m_ses.disk_thread().get_cache_info(&cs, false, m_storage.get());
+		m_ses.disk_thread().get_cache_info(&cs, m_storage.get() == NULL, m_storage.get());
 
 		// remove write cache entries
 		cs.pieces.erase(std::remove_if(cs.pieces.begin(), cs.pieces.end()
@@ -4233,6 +4233,7 @@ namespace libtorrent
 		for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin()
 			, end(cs.pieces.end()); i != end; ++i)
 		{
+			TORRENT_ASSERT(i->storage == m_storage.get());
 			// we might have flushed this to disk, but not yet completed the
 			// hash check. We'll add it as a suggest piece once we do though
 			if (!have_piece(i->piece)) continue;

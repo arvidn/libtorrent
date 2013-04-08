@@ -70,6 +70,7 @@ namespace libtorrent
 	struct cached_piece_info
 	{
 		int piece;
+		piece_manager* storage;
 		std::vector<bool> blocks;
 		ptime last_use;
 		bool need_readback;

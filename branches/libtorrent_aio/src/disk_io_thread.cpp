@@ -2454,6 +2454,7 @@ namespace libtorrent
 	void get_cache_info_impl(cached_piece_info& info, cached_piece_entry const* i, int block_size)
 	{
 		info.piece = i->piece;
+		info.storage = i->storage.get();
 		info.last_use = i->expire;
 		info.need_readback = i->need_readback;
 		info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
@@ -2484,6 +2485,8 @@ namespace libtorrent
 
 		m_disk_cache.get_stats(ret);
 
+		ret->pieces.clear();
+
 		if (no_pieces) return;
 
 		int block_size = m_disk_cache.block_size();
@@ -2496,6 +2499,8 @@ namespace libtorrent
 				= storage->cached_pieces().begin(), end(storage->cached_pieces().end());
 				i != end; ++i)
 			{
+				TORRENT_ASSERT((*i)->storage.get() == storage);
+
 				if ((*i)->cache_state == cached_piece_entry::read_lru2_ghost
 					|| (*i)->cache_state == cached_piece_entry::read_lru1_ghost)
 					continue;
