@@ -4421,6 +4421,7 @@ namespace libtorrent
 			m_last_request = now;
 			request_a_block(*t, *this);
 			if (m_disconnecting) return;
+			send_block_requests();
 		}
 
 		on_tick();
