@@ -348,7 +348,7 @@ namespace libtorrent
 		m_save_path = canonicalize_path(m_save_path);
 #endif
 
-#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger_time = time_now_hires();
 		error_code ec;
 
@@ -3519,7 +3519,7 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		debug_log("*** PIECE_FINISHED [ p: %d | chk: %s | size: %d ]"
-			, index, ((ret == 0)
+			, j->piece, ((ret == 0)
 				?"passed":ret == -1
 				?"disk failed":"failed")
 			, m_torrent_file->piece_size(j->piece));
@@ -3970,7 +3970,7 @@ namespace libtorrent
 				if (p->connection)
 				{
 					peer_connection* peer = static_cast<peer_connection*>(p->connection);
-#ifdef TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 					debug_log("*** BANNING PEER: \"%s\" Too many corrupt pieces"
 						, print_endpoint(p->ip()).c_str());
 #endif
