@@ -369,15 +369,15 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(rename_file, index, new_name);
 	}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 	void torrent_handle::add_extension(
 		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 		, void* userdata)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL2(add_extension, ext, userdata);
-	}
 #endif
+	}
 
 	bool torrent_handle::set_metadata(char const* metadata, int size) const
 	{

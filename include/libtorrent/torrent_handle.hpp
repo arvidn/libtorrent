@@ -223,10 +223,8 @@ namespace libtorrent
 		void remove_http_seed(std::string const& url) const;
 		std::set<std::string> http_seeds() const;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 			, void* userdata = 0);
-#endif
 
 		bool set_metadata(char const* metadata, int size) const;
 

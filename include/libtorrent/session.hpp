@@ -284,10 +284,8 @@ namespace libtorrent
 		pe_settings get_pe_settings() const;
 #endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
-#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as_for_ip(address const& addr);
