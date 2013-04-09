@@ -489,17 +489,19 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(get_feeds, &f);
 	}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		TORRENT_ASYNC_CALL1(add_extension, ext);
+#endif
 	}
 
 	void session::add_extension(boost::shared_ptr<plugin> ext)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		TORRENT_ASYNC_CALL1(add_ses_extension, ext);
-	}
 #endif
+	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
 	void session::load_asnum_db(char const* file)

@@ -331,6 +331,9 @@ feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
 feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
 
+feature extensions : on off : composite propagated link-incompatible ;
+feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSION ;
+
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
@@ -463,6 +466,7 @@ lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
+	alert_manager
 	allocator
 	asio
 	assert
