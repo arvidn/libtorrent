@@ -59,6 +59,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MAX_ALERT_TYPES 15
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
+#ifndef BOOST_NO_TYPEID
+#include <typeinfo>
+#endif
+#endif
+
 namespace libtorrent {
 
 	class TORRENT_EXPORT alert
