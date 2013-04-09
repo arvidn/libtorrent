@@ -786,54 +786,70 @@ namespace libtorrent
 		return m_impl->m_disk_thread.status();
 	}
 
-#ifndef TORRENT_DISABLE_DHT
-
 	void session::start_dht()
 	{
+#ifndef TORRENT_DISABLE_DHT
 		// the state is loaded in load_state()
 		TORRENT_ASYNC_CALL(start_dht);
+#endif
 	}
 
 	void session::stop_dht()
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL(stop_dht);
+#endif
 	}
 
 	void session::set_dht_settings(dht_settings const& settings)
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(set_dht_settings, settings);
+#endif
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
 	void session::start_dht(entry const& startup_state)
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(start_dht, startup_state);
+#endif
 	}
 
 	entry session::dht_state() const
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_SYNC_CALL_RET(entry, dht_state);
 		return r;
-	}
+#else
+		return entry();
 #endif
+	}
+#endif // TORRENT_NO_DEPRECATE
 	
 	void session::add_dht_node(std::pair<std::string, int> const& node)
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(add_dht_node_name, node);
+#endif
 	}
 
 	void session::add_dht_router(std::pair<std::string, int> const& node)
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(add_dht_router, node);
+#endif
 	}
 
 	bool session::is_dht_running() const
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_SYNC_CALL_RET(bool, is_dht_running);
 		return r;
-	}
-
+#else
+		return false;
 #endif
+	}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	void session::set_pe_settings(pe_settings const& settings)
@@ -911,18 +927,22 @@ namespace libtorrent
 	}
 
 
-#ifndef TORRENT_DISABLE_DHT
 	void session::set_dht_proxy(proxy_settings const& s)
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(set_dht_proxy, s);
+#endif
 	}
 
 	proxy_settings session::dht_proxy() const
 	{
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_SYNC_CALL_RET(proxy_settings, dht_proxy);
 		return r;
-	}
+#else
+		return proxy_settings();
 #endif
+	}
 #endif // TORRENT_NO_DEPRECATE
 
 #if TORRENT_USE_I2P
@@ -1165,9 +1185,7 @@ namespace libtorrent
 		, max_queued_disk_bytes(1024 * 1024)
 		, max_queued_disk_bytes_low_watermark(0)
 		, handshake_timeout(10)
-#ifndef TORRENT_DISABLE_DHT
 		, use_dht_as_fallback(false)
-#endif
 		, free_torrent_hashes(true)
 		, upnp_ignore_nonrouters(false)
 		, send_buffer_low_watermark(512)

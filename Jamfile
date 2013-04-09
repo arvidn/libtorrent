@@ -365,9 +365,9 @@ feature.compose <logging>default : <define>TORRENT_LOGGING ;
 feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
-feature dht-support : on off logging : composite propagated link-incompatible ;
-feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
-feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
+feature dht : on off logging : composite propagated link-incompatible ;
+feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
+feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
 feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
 feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
@@ -620,8 +620,8 @@ lib torrent
 	<link>shared:<define>BOOST_ASIO_SOURCE
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
-	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<dht>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 

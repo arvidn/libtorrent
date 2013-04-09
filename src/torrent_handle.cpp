@@ -905,13 +905,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(force_tracker_request, time_now() + seconds(duration.total_seconds()));
 	}
 
-#ifndef TORRENT_DISABLE_DHT
 	void torrent_handle::force_dht_announce() const
 	{
 		INVARIANT_CHECK;
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL(dht_announce);
-	}
 #endif
+	}
 
 	void torrent_handle::force_reannounce() const
 	{
