@@ -5558,7 +5558,12 @@ retry:
 		s.total_dht_download = m_stat.total_transfer(stat::download_dht_protocol);
 		s.dht_upload_rate = m_stat.transfer_rate(stat::upload_dht_protocol);
 		s.total_dht_upload = m_stat.total_transfer(stat::upload_dht_protocol);
-#endif
+#else
+		s.dht_download_rate = 0;
+		s.total_dht_download = 0;
+		s.dht_upload_rate = 0;
+		s.total_dht_upload = 0;
+#endif // TORRENT_DISABLE_DHT
 
 		// tracker
 		s.tracker_download_rate = m_stat.transfer_rate(stat::download_tracker_protocol);
@@ -5591,6 +5596,7 @@ retry:
 			m_dht->dht_status(s);
 		}
 		else
+#endif
 		{
 			s.dht_nodes = 0;
 			s.dht_node_cache = 0;
@@ -5598,7 +5604,6 @@ retry:
 			s.dht_global_nodes = 0;
 			s.dht_total_allocations = 0;
 		}
-#endif
 
 		m_utp_socket_manager.get_status(s.utp_stats);
 

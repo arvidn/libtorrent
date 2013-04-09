@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-#ifndef TORRENT_DISABLE_DHT
-
 	struct dht_lookup
 	{
 		char const* type;
@@ -69,8 +67,6 @@ namespace libtorrent
 		// number of seconds since last activity
 		int last_active;
 	};
-
-#endif
 
 	struct utp_status
 	{
@@ -129,7 +125,6 @@ namespace libtorrent
 		int disk_write_queue;
 		int disk_read_queue;
 
-#ifndef TORRENT_DISABLE_DHT
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
@@ -137,7 +132,6 @@ namespace libtorrent
 		std::vector<dht_lookup> active_requests;
 		std::vector<dht_routing_bucket> dht_routing_table;
 		int dht_total_allocations;
-#endif
 
 		utp_status utp_stats;
 

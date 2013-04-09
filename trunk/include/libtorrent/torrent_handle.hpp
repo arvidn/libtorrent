@@ -366,10 +366,8 @@ namespace libtorrent
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)
 		void force_reannounce() const;
-#ifndef TORRENT_DISABLE_DHT
 		// announces this torrent to the DHT immediately
 		void force_dht_announce() const;
-#endif
 
 		// forces a reannounce in the specified amount of time.
 		// This overrides the default announce interval, and no

@@ -254,7 +254,7 @@ Build features:
 |                          | * ``verbose`` - verbose peer wire logging.         |
 |                          | * ``errors`` - like verbose, but limited to errors.|
 +--------------------------+----------------------------------------------------+
-| ``dht-support``          | * ``on`` - build with support for tracker less     |
+| ``dht``                  | * ``on`` - build with support for tracker less     |
 |                          |   torrents and DHT support.                        |
 |                          | * ``logging`` - build with DHT support and verbose |
 |                          |   logging of the DHT protocol traffic.             |
