@@ -1202,7 +1202,6 @@ namespace libtorrent
 		// paused or auto_managed from the resume data
 		bool m_override_resume_data:1;
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		// this is true while there is a country
 		// resolution in progress. To avoid flodding
 		// the DNS request queue, only one ip is resolved
@@ -1212,9 +1211,6 @@ namespace libtorrent
 		// this is true if the user has enabled
 		// country resolution in this torrent
 		bool m_resolve_countries:1;
-#else
-		unsigned int m_dummy_padding_bits_to_align:2;
-#endif
 
 		// set to false when saving resume data. Set to true
 		// whenever something is downloaded
