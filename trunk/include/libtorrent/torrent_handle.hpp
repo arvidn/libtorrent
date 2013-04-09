@@ -255,10 +255,8 @@ namespace libtorrent
 		void queue_position_top() const;
 		void queue_position_bottom() const;
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
-#endif
 
 		void set_ssl_certificate(std::string const& certificate
 			, std::string const& private_key

@@ -133,13 +133,11 @@ namespace libtorrent
 		// the number of failed hashes for this peer
 		int num_hashfails;
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		// in case the session settings is set
 		// to resolve countries, this is set to
 		// the two character country code this
 		// peer resides in.
 		char country[2];
-#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		// atonomous system this peer belongs to

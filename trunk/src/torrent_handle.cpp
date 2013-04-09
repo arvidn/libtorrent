@@ -931,20 +931,24 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(super_seeding, on);
 	}
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	void torrent_handle::resolve_countries(bool r)
 	{
 		INVARIANT_CHECK;
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		TORRENT_ASYNC_CALL1(resolve_countries, r);
+#endif
 	}
 
 	bool torrent_handle::resolve_countries() const
 	{
 		INVARIANT_CHECK;
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		TORRENT_SYNC_CALL_RET(bool, false, resolving_countries);
 		return r;
-	}
+#else
+		return false;
 #endif
+	}
 
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{
