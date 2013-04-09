@@ -297,10 +297,12 @@ namespace libtorrent
 		void remove_feed(feed_handle h);
 		void get_feeds(std::vector<feed_handle>& f) const;
 
-#ifndef TORRENT_DISABLE_DHT
 		void start_dht();
 		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
+		void add_dht_node(std::pair<std::string, int> const& node);
+		void add_dht_router(std::pair<std::string, int> const& node);
+		bool is_dht_running() const;
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use save_state and load_state instead
@@ -309,20 +311,14 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void start_dht(entry const& startup_state) TORRENT_DEPRECATED;
 #endif
-		void add_dht_node(std::pair<std::string, int> const& node);
-		void add_dht_router(std::pair<std::string, int> const& node);
-		bool is_dht_running() const;
-#endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		void set_pe_settings(pe_settings const& settings);
 		pe_settings get_pe_settings() const;
 #endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
-#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as_for_ip(address const& addr);
@@ -468,12 +464,10 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		proxy_settings tracker_proxy() const TORRENT_DEPRECATED;
 
-#ifndef TORRENT_DISABLE_DHT
 		TORRENT_DEPRECATED_PREFIX
 		void set_dht_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		proxy_settings dht_proxy() const TORRENT_DEPRECATED;
-#endif
 #endif // TORRENT_NO_DEPRECATE
 
 #if TORRENT_USE_I2P

@@ -85,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/piece_picker.hpp" // for piece_block
 #include "libtorrent/socket.hpp" // for tcp::endpoint
+#include "libtorrent/io_service_fwd.hpp"
 
 namespace libtorrent
 {

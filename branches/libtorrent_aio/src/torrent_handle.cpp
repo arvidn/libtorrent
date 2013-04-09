@@ -371,15 +371,15 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(rename_file, index, new_name);
 	}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 	void torrent_handle::add_extension(
 		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 		, void* userdata)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL2(add_extension, ext, userdata);
-	}
 #endif
+	}
 
 	bool torrent_handle::set_metadata(char const* metadata, int size) const
 	{
@@ -880,13 +880,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(force_tracker_request, time_now() + seconds(duration.total_seconds()));
 	}
 
-#ifndef TORRENT_DISABLE_DHT
 	void torrent_handle::force_dht_announce() const
 	{
 		INVARIANT_CHECK;
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL(dht_announce);
-	}
 #endif
+	}
 
 	void torrent_handle::force_reannounce() const
 	{
@@ -916,20 +916,24 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(super_seeding, on);
 	}
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	void torrent_handle::resolve_countries(bool r)
 	{
 		INVARIANT_CHECK;
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		TORRENT_ASYNC_CALL1(resolve_countries, r);
+#endif
 	}
 
 	bool torrent_handle::resolve_countries() const
 	{
 		INVARIANT_CHECK;
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		TORRENT_SYNC_CALL_RET(bool, false, resolving_countries);
 		return r;
-	}
+#else
+		return false;
 #endif
+	}
 
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{

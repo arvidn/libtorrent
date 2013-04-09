@@ -5783,8 +5783,10 @@ retry:
 		sha1_hash next_dht(0);
 		if (m_next_lsd_torrent != m_torrents.end())
 			next_lsd = m_next_lsd_torrent->first;
+#ifndef TORRENT_DISABLE_DHT
 		if (m_next_dht_torrent != m_torrents.end())
 			next_dht = m_next_dht_torrent->first;
+#endif
 		float load_factor = m_torrents.load_factor();
 #endif
 
@@ -5815,8 +5817,10 @@ retry:
 			// this indicates the hash table re-hashed
 			if (!next_lsd.is_all_zeros())
 				m_next_lsd_torrent = m_torrents.find(next_lsd);
+#ifndef TORRENT_DISABLE_DHT
 			if (!next_dht.is_all_zeros())
 				m_next_dht_torrent = m_torrents.find(next_dht);
+#endif
 		}
 #endif
 		if (!params.uuid.empty() || !params.url.empty())
@@ -6224,7 +6228,12 @@ retry:
 		s.total_dht_download = m_stat.total_transfer(stat::download_dht_protocol);
 		s.dht_upload_rate = m_stat.transfer_rate(stat::upload_dht_protocol);
 		s.total_dht_upload = m_stat.total_transfer(stat::upload_dht_protocol);
-#endif
+#else
+		s.dht_download_rate = 0;
+		s.total_dht_download = 0;
+		s.dht_upload_rate = 0;
+		s.total_dht_upload = 0;
+#endif // TORRENT_DISABLE_DHT
 
 		// tracker
 		s.tracker_download_rate = m_stat.transfer_rate(stat::download_tracker_protocol);
@@ -6257,6 +6266,7 @@ retry:
 			m_dht->dht_status(s);
 		}
 		else
+#endif
 		{
 			s.dht_nodes = 0;
 			s.dht_node_cache = 0;
@@ -6264,7 +6274,6 @@ retry:
 			s.dht_global_nodes = 0;
 			s.dht_total_allocations = 0;
 		}
-#endif
 
 		m_utp_socket_manager.get_status(s.utp_stats);
 

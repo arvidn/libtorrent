@@ -69,11 +69,14 @@ using namespace boost::tuples;
 
 namespace libtorrent {
 	TORRENT_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
+
+#ifndef TORRENT_DISABLE_DHT
 	namespace dht
 	{
 		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
 			address const& ip_, boost::uint32_t r);
 	}
+#endif
 }
 
 sha1_hash to_hash(char const* s)
@@ -471,6 +474,7 @@ int test_main()
 	TEST_CHECK(ret == 1);
 #endif
 
+#ifndef TORRENT_DISABLE_DHT
 	// test verify_message
 	const static key_desc_t msg_desc[] = {
 		{"A", lazy_entry::string_t, 4, 0},
@@ -563,6 +567,7 @@ int test_main()
 			TEST_CHECK(ent.list_at(1)->string_value() == "");
 		}
 	}
+#endif // TORRENT_DISABLE_DHT
 
 	// test external ip voting
 	external_ip ipv1;
@@ -919,6 +924,7 @@ int test_main()
 	TEST_CHECK(ec == error_code(errors::missing_info_hash_in_uri));
 	ec.clear();
 
+#ifndef TORRENT_DISABLE_DHT
 	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&dn=foo&dht=127.0.0.1:43", p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
@@ -927,6 +933,7 @@ int test_main()
 	TEST_CHECK(p.dht_nodes.size() == 1);
 	TEST_CHECK(p.dht_nodes[0].first == "127.0.0.1");
 	TEST_CHECK(p.dht_nodes[0].second == 43);
+#endif
 
 	// make sure settings that haven't been changed from their defaults are not saved
 	TEST_CHECK(session_state2.dict_find("settings")->dict_find("optimistic_disk_retry") == 0);

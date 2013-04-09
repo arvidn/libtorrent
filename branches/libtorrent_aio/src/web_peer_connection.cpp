@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
 
 using boost::shared_ptr;
 

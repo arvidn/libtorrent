@@ -284,11 +284,9 @@ namespace libtorrent
 		// within this time, the peer is disconnected.
 		int handshake_timeout;
 
-#ifndef TORRENT_DISABLE_DHT
 		// while this is true, the dht will not be used unless the
 		// tracker is online
 		bool use_dht_as_fallback;
-#endif
 
 		// if this is true, the piece hashes will be freed, in order
 		// to save memory, once the torrent is seeding. This will
@@ -1028,7 +1026,6 @@ namespace libtorrent
 	};
 #endif
 
-#ifndef TORRENT_DISABLE_DHT
 	struct dht_settings
 	{
 		dht_settings()
@@ -1097,7 +1094,6 @@ namespace libtorrent
 		// outstanding requests
 		bool aggressive_lookups;
 	};
-#endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 

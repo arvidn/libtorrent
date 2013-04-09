@@ -24,6 +24,7 @@ libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
   alert.cpp                       \
   alert_handler.cpp               \
+  alert_manager.cpp               \
   allocator.cpp                   \
   asio.cpp                        \
   assert.cpp                      \

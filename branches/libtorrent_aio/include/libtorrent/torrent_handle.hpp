@@ -233,10 +233,8 @@ namespace libtorrent
 		void remove_http_seed(std::string const& url) const;
 		std::set<std::string> http_seeds() const;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 			, void* userdata = 0);
-#endif
 
 		bool set_metadata(char const* metadata, int size) const;
 
@@ -265,10 +263,8 @@ namespace libtorrent
 		void queue_position_top() const;
 		void queue_position_bottom() const;
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
-#endif
 
 		void set_ssl_certificate(std::string const& certificate
 			, std::string const& private_key
@@ -381,10 +377,8 @@ namespace libtorrent
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)
 		void force_reannounce() const;
-#ifndef TORRENT_DISABLE_DHT
 		// announces this torrent to the DHT immediately
 		void force_dht_announce() const;
-#endif
 
 		// forces a reannounce in the specified amount of time.
 		// This overrides the default announce interval, and no

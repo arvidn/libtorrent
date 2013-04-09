@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
+#include "libtorrent/socket.hpp" // for tcp::endpoint
+
 namespace libtorrent
 {
 	class peer_connection;
