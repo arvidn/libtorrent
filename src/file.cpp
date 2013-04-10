@@ -858,7 +858,8 @@ namespace libtorrent
 		}
 		int wait(HANDLE file, error_code& ec)
 		{
-			if (WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
+			if (ol.hEvent != INVALID_HANDLE_VALUE
+				&& WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return -1;
@@ -1000,10 +1001,10 @@ namespace libtorrent
 			DWORD temp;
 			bool use_overlapped = m_open_mode & no_buffer;
 			overlapped_t ol;
-			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
+			BOOL ret = ::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
 				, 0, 0, &temp, use_overlapped ? &ol.ol : NULL);
 			error_code error;
-			if (use_overlapped)
+			if (use_overlapped && ret == FALSE && GetLastError() == ERROR_IO_PENDING)
 				ol.wait(m_file_handle, error);
 		}
 #else // TORRENT_WINDOWS
@@ -1228,7 +1229,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
 			, out, sizeof(out), &returned_bytes, overlapped ? &ol.ol : NULL);
 
-		if (overlapped)
+		if (overlapped && ret == FALSE && GetLastError() == ERROR_IO_PENDING)
 		{
 			error_code ec;
 			returned_bytes = ol.wait(file, ec);
@@ -1274,10 +1275,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			DWORD temp;
 			FILE_SET_SPARSE_BUFFER b;
 			b.SetSparse = FALSE;
-			int ret = ::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, &b, sizeof(b)
+			BOOL ret = ::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, &b, sizeof(b)
 				, 0, 0, &temp, use_overlapped ? &ol.ol : NULL);
 			error_code ec;
-			if (use_overlapped)
+			if (use_overlapped && ret == FALSE && GetLastError() == ERROR_IO_PENDING)
 			{
 				ol.wait(m_file_handle, ec);
 			}
