@@ -187,8 +187,8 @@ bool on_alert(alert* a)
 	return false;
 }
 
-void test_transfer(int proxy_type, bool test_disk_full = false
-	, bool test_allowed_fast = false, bool test_priorities = false)
+void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_full = false
+	, bool test_priorities = false)
 {
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
@@ -217,13 +217,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false
 		ses2.set_proxy(ps);
 	}
 
-	settings_pack pack;
+	settings_pack pack = sett;
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
-
-	if (test_allowed_fast)
-	{
-		pack.set_int(settings_pack::allowed_fast_set_size, 2000);
-	}
 
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
 	ses1.apply_settings(pack);
@@ -575,15 +570,25 @@ int test_main()
 	test_rate();
 #endif
 
+	settings_pack p;
+
+	// test no contiguous_recv_buffers
+	p = settings_pack();
+	p.set_bool(settings_pack::contiguous_recv_buffer, false);
+	test_transfer(0, p);
+
 	// test with all kinds of proxies
+	p = settings_pack();
 	for (int i = 0; i < 6; ++i)
-		test_transfer(i);
+		test_transfer(i, p);
 
 	// test with a (simulated) full disk
-	test_transfer(0, true, true);
+	test_transfer(0, p, true);
 
 	// test allowed fast
-	test_transfer(0, false, true, true);
+	p = settings_pack();
+	p.set_int(settings_pack::allowed_fast_set_size, 2000);
+	test_transfer(0, p, false, true);
 
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
