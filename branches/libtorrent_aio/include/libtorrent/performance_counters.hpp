@@ -216,6 +216,7 @@ namespace libtorrent
 
 	private:
 
+		// TODO: 3 counters should be 64 bit, gauges could be 32 bit
 		int m_stats_counter[num_counters];
 
 	};

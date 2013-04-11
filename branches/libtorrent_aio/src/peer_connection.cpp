@@ -5624,9 +5624,8 @@ namespace libtorrent
 		// we can read from the socket, and then determine how much there
 		// is to read.
 
-		// TODO: 3 instead of using null_buffers, if we were to go back to
-		// having a proper receive buffer (contiguous when that option is set)
-		// we could receive in a seaprate thread, which would improve performance.
+		// TODO: 3 this block should be moved into a separate function
+		// and nb should not be passed in here
 		if (nb)
 		{
 			error_code ec;

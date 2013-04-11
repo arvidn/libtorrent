@@ -1112,6 +1112,12 @@ namespace libtorrent
 					m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
 						, boost::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
 				}
+				else
+				{
+					disk_io_job sj;
+					sj.piece = j->piece;
+					on_piece_fail_sync(&sj, block_finished);
+				}
 			}
 		}
 
@@ -1172,6 +1178,21 @@ namespace libtorrent
 		if (!has_picker()) return;
 		picker().restore_piece(b.piece_index);
 		update_gauge();
+		// some peers that previously was no longer interesting may
+		// now have become interesting, since we lack this one piece now.
+		for (peer_iterator i = begin(); i != end();)
+		{
+			peer_connection* p = *i;
+			// update_interest may disconnect the peer and
+			// invalidate the iterator
+			++i;
+			// no need to do anything with peers that
+			// already are interested. Gaining a piece may
+			// only make uninteresting peers interesting again.
+			if (p->is_interesting()) continue;
+			p->update_interest();
+			request_a_block(*this, *p);
+		}
 	}
 
 	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp)
@@ -2420,7 +2441,12 @@ namespace libtorrent
 		{
 			// if the hash failed, remove it from the cache
 			if (m_storage)
+			{
 				m_ses.disk_thread().clear_piece(m_storage.get(), j->piece);
+				disk_io_job sj;
+				sj.piece = j->piece;
+				on_piece_sync(&sj);
+			}
 		}
 
 		if (m_num_checked_pieces < m_torrent_file->num_pieces())
@@ -3877,6 +3903,16 @@ namespace libtorrent
 		// increase the total amount of failed bytes
 		add_failed_bytes(m_torrent_file->piece_size(index));
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_piece_failed(index);
+			} TORRENT_CATCH (std::exception&) {}
+		}
+#endif
+
 		std::vector<void*> downloaders;
 		if (m_picker)
 			m_picker->get_downloaders(downloaders, index);
@@ -3897,16 +3933,6 @@ namespace libtorrent
 				peer_connection* peer = static_cast<peer_connection*>(p->connection);
 				peer->piece_failed = true;
 			}
-		}
-#endif
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			TORRENT_TRY {
-				(*i)->on_piece_failed(index);
-			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -4030,7 +4056,7 @@ namespace libtorrent
 
 	void torrent::on_piece_sync(disk_io_job const* j)
 	{
-		TORRENT_ASSERT(has_picker());
+		if (!has_picker()) return;
 
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
