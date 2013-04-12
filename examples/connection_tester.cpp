@@ -96,6 +96,8 @@ struct peer_conn
 		, info_hash(ih)
 		, outstanding_requests(0)
 		, seed(seed_)
+		, fast_extension(false)
+		, choked(true)
 		, blocks_received(0)
 		, blocks_sent(0)
 		, num_pieces(num_pieces)
@@ -150,6 +152,7 @@ struct peer_conn
 	// if this is true, this connection is a seed
 	bool seed;
 	bool fast_extension;
+	bool choked;
 	int blocks_received;
 	int blocks_sent;
 	int num_pieces;
@@ -263,6 +266,7 @@ struct peer_conn
 
 	bool write_request()
 	{
+		if (choked) return false;
 		if (pieces.empty() && suggested_pieces.empty() && current_piece == -1) return false;
 
 		if (current_piece == -1)
@@ -482,6 +486,14 @@ struct peer_conn
 					suggested_pieces.push_back(piece);
 					++num_suggest;
 				}
+			}
+			else if (msg == 1) // unchoke
+			{
+				choked = false;
+			}
+			else if (msg == 0) // choke
+			{
+				choked = true;
 			}
 			work_download();
 		}
