@@ -1241,15 +1241,6 @@ namespace libtorrent
 		, m_outstanding_jobs(0)
 	{}
 
-	void disk_job_fence::reset_job(disk_io_job* j)
-	{
-		TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
-		j->flags &= ~disk_io_job::in_progress;
-
-		TORRENT_ASSERT(m_outstanding_jobs > 0);
-		--m_outstanding_jobs;
-	}
-
 	int disk_job_fence::job_complete(disk_io_job* j, tailqueue& jobs)
 	{
 		mutex::scoped_lock l(m_mutex);

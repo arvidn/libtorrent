@@ -1305,8 +1305,6 @@ namespace libtorrent
 
 		if (next_job)
 		{
-			// this is needed to re-add the job
-			next_job->storage->reset_job(next_job);
 			add_job(next_job);
 		}
 		else
@@ -1483,8 +1481,6 @@ namespace libtorrent
 			}
 
 			pe->outstanding_read = 1;
-			// this is needed to re-add the job
-			j->storage->reset_job(j);
 		}
 
 		add_job(j);
@@ -2684,6 +2680,9 @@ namespace libtorrent
 			, job_action_name[j->action]
 			, j->storage->num_outstanding_jobs());
 
+		// TODO: 3 m_cache_stats isn't protected by any mutex! Anywhere!
+		++m_cache_stats.num_fence_jobs[j->action];
+
 		disk_io_job* fj = allocate_job(disk_io_job::flush_storage);
 		fj->storage = j->storage;
 
@@ -2695,9 +2694,6 @@ namespace libtorrent
 			// prioritize fence jobs since they're blocking other jobs
 			m_queued_jobs.push_front(j);
 			l.unlock();
-
-			// TODO: 3 m_cache_stats isn't protected by any mutex! Anywhere!
-			++m_cache_stats.num_fence_jobs[j->action];
 
 			// discard the flush job
 			free_job(fj);
@@ -2718,8 +2714,6 @@ namespace libtorrent
 			mutex::scoped_lock l(m_job_mutex);
 			TORRENT_ASSERT((fj->flags & disk_io_job::in_progress) || !fj->storage);
 
-			++m_cache_stats.num_fence_jobs[j->action];
-
 			m_queued_jobs.push_front(fj);
 		}
 		else
@@ -2736,6 +2730,14 @@ namespace libtorrent
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
 		TORRENT_ASSERT(m_num_threads > 0 || j->action == disk_io_job::flush_piece);
+
+		if (j->flags & disk_io_job::in_progress)
+		{
+			mutex::scoped_lock l(m_job_mutex);
+			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
+			m_queued_jobs.push_back(j);
+			return;
+		}
 
 		DLOG("add_job: %s (outstanding: %d)\n"
 			, job_action_name[j->action]

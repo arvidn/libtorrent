@@ -305,11 +305,6 @@ namespace libtorrent
 		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job, atomic_count* blocked_counter);
 		bool has_fence() const;
 
-		// this is called for jobs that have been through the is_blocked() call
-		// but it was decided to not add them yet (or have them go through it
-		// again). This will effectively make the job not count as running anymore.
-		void reset_job(disk_io_job* j);
-
 		// called whenever a job completes and is posted back to the
 		// main network thread. the tailqueue of jobs will have the
 		// backed-up jobs prepended to it in case this resulted in the
