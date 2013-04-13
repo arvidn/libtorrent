@@ -55,6 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ptime.hpp"
 #include "libtorrent/config.hpp"
 
+#ifndef BOOST_NO_TYPEID
+#include <typeinfo>
+#endif
+
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
 #endif

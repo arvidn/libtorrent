@@ -1044,7 +1044,8 @@ namespace libtorrent
 		}
 		int wait(HANDLE file, error_code& ec)
 		{
-			if (WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
+			if (ol.hEvent != INVALID_HANDLE_VALUE
+				&& WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return -1;
@@ -1207,10 +1208,11 @@ namespace libtorrent
 		{
 			DWORD temp;
 			overlapped_t ol;
-			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
+			BOOL ret = ::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
 				, 0, 0, &temp, &ol.ol);
 			error_code error;
-			ol.wait(native_handle(), error);
+			if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
+				ol.wait(native_handle(), error);
 		}
 #else // TORRENT_WINDOWS
 
@@ -1350,9 +1352,17 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
 			, out, sizeof(out), &returned_bytes, &ol.ol);
 
-		error_code ec;
-		returned_bytes = ol.wait(file, ec);
-		if (ec) return true;
+		if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
+		{
+			error_code ec;
+			returned_bytes = ol.wait(file, ec);
+			if (ec) return true;
+		}
+		else if (ret == FALSE)
+		{
+			int error = GetLastError();
+			return true;
+		}
 
 		// if we only have a single range in the file, we're not sparse
 		return returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER);
@@ -1391,10 +1401,13 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			DWORD temp;
 			FILE_SET_SPARSE_BUFFER b;
 			b.SetSparse = FALSE;
-			int ret = ::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
+			BOOL ret = ::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
 				, 0, 0, &temp, &ol.ol);
 			error_code ec;
-			ol.wait(native_handle(), ec);
+			if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
+			{
+				ol.wait(native_handle(), ec);
+			}
 		}
 
 		CloseHandle(native_handle());
