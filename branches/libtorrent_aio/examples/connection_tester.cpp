@@ -95,7 +95,7 @@ boost::detail::atomic_count num_suggested_requests(0);
 struct peer_conn
 {
 	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
-		, char const* ih, bool seed_, int churn_)
+		, char const* ih, bool seed_, int churn_, bool corrupt_)
 		: s(ios)
 		, read_pos(0)
 		, state(handshaking)
@@ -112,6 +112,7 @@ struct peer_conn
 		, num_pieces(num_pieces)
 		, start_time(time_now_hires())
 		, churn(churn_)
+		, corrupt(corrupt_)
 		, endpoint(ep)
 		, restarting(false)
 	{
@@ -180,6 +181,7 @@ struct peer_conn
 	ptime start_time;
 	ptime end_time;
 	int churn;
+	bool corrupt;
 	tcp::endpoint endpoint;
 	bool restarting;
 
@@ -595,7 +597,7 @@ struct peer_conn
 	{
 		generate_block(write_buffer, piece, start, length);
 
-		if (test_corruption)
+		if (corrupt)
 		{
 			--corruption_counter;
 			if (corruption_counter == 0)
@@ -933,11 +935,12 @@ int main(int argc, char* argv[])
 	io_service ios[num_threads];
 	for (int i = 0; i < num_connections; ++i)
 	{
+		bool corrupt = test_corruption && (i & 1) == 0;
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
 		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
-			, ep, (char const*)&ti.info_hash()[0], seed, churn));
+			, ep, (char const*)&ti.info_hash()[0], seed, churn, corrupt));
 		libtorrent::sleep(1);
 		ios[i % num_threads].poll_one(ec);
 		if (ec)
