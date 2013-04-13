@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
+#include <boost/make_shared.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
