@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/performance_counters.hpp" // for counters
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #include "libtorrent/peer_connection.hpp"
@@ -1785,7 +1786,8 @@ namespace libtorrent
 		, int prefer_whole_pieces, void* peer, piece_state_t speed
 		, int options, std::vector<int> const& suggested_pieces
 		, int num_peers
-		, int& loop_counter) const
+		, counters& pc
+		) const
 	{
 		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
 
@@ -1832,6 +1834,7 @@ namespace libtorrent
 			for (std::vector<downloading_piece>::const_iterator i = m_downloads[0].begin()
 				, end(m_downloads[0].end()); i != end; ++i)
 			{
+				pc.inc_stats_counter(counters::piece_picker_partial_loops);
 				if (!is_piece_free(i->index, pieces)) continue;
 				TORRENT_ASSERT(m_piece_map[i->index].state == piece_pos::piece_downloading);
 				if (backup_blocks.size() >= num_blocks
@@ -1858,6 +1861,7 @@ namespace libtorrent
 			for (std::vector<int>::const_iterator i = suggested_pieces.begin();
 				i != suggested_pieces.end(); ++i)
 			{
+				pc.inc_stats_counter(counters::piece_picker_suggest_loops);
 				if (!is_piece_free(*i, pieces)) continue;
 				num_blocks = add_blocks(*i, pieces
 					, interesting_blocks, backup_blocks
@@ -1874,7 +1878,7 @@ namespace libtorrent
 			{
 				for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
 				{	
-					++loop_counter;
+					pc.inc_stats_counter(counters::piece_picker_sequential_loops);
 					if (!is_piece_free(i, pieces)) continue;
 					num_blocks = add_blocks(i, pieces
 						, interesting_blocks, backup_blocks
@@ -1888,7 +1892,7 @@ namespace libtorrent
 			{
 				for (int i = m_cursor; i < m_reverse_cursor; ++i)
 				{
-					++loop_counter;
+					pc.inc_stats_counter(counters::piece_picker_sequential_loops);
 					if (!is_piece_free(i, pieces)) continue;
 					num_blocks = add_blocks(i, pieces
 						, interesting_blocks, backup_blocks
@@ -1925,7 +1929,7 @@ namespace libtorrent
 					int start = prio == 0 ? 0 : m_priority_boundries[prio - 1];
 					for (int p = start; p < m_priority_boundries[prio]; ++p)
 					{
-						++loop_counter;
+						pc.inc_stats_counter(counters::piece_picker_reverse_rare_loops);
 						if (!is_piece_free(m_pieces[p], pieces)) continue;
 						num_blocks = add_blocks(m_pieces[p], pieces
 							, interesting_blocks, backup_blocks
@@ -1942,7 +1946,7 @@ namespace libtorrent
 				for (std::vector<int>::const_iterator i = m_pieces.begin();
 					i != m_pieces.end(); ++i)
 				{
-					++loop_counter;
+					pc.inc_stats_counter(counters::piece_picker_rare_loops);
 					if (!is_piece_free(*i, pieces)) continue;
 					num_blocks = add_blocks(*i, pieces
 						, interesting_blocks, backup_blocks
@@ -1971,7 +1975,7 @@ namespace libtorrent
 						, suggested_pieces.end(), piece)
 						!= suggested_pieces.end())
 				{
-					++loop_counter;
+					pc.inc_stats_counter(counters::piece_picker_rand_start_loops);
 					++piece;
 					if (piece == int(m_piece_map.size())) piece = 0;
 					// could not find any more pieces
@@ -1993,6 +1997,7 @@ namespace libtorrent
 						num_blocks_in_piece = num_blocks;
 					for (int j = 0; j < num_blocks_in_piece; ++j)
 					{
+						pc.inc_stats_counter(counters::piece_picker_rand_loops);
 						TORRENT_ASSERT(is_piece_free(k, pieces));
 						interesting_blocks.push_back(piece_block(k, j));
 						--num_blocks;
@@ -2047,6 +2052,7 @@ namespace libtorrent
 		// array on the stack and shuffling it, to avoid repeated picks
 		for (int round = 0; round < 10; ++round)
 		{
+			pc.inc_stats_counter(counters::piece_picker_busy_loops);
 			int piece = random() % to_pick_from;
 			int k = 0;
 			if (piece >= m_downloads[0].size())

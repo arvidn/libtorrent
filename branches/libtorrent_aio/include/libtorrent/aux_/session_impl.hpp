@@ -1179,6 +1179,8 @@ namespace libtorrent
 			void inc_stats_counter(int c, int value = 1)
 			{ m_stats_counters.inc_stats_counter(c, value); }
 
+			counters& stats_counters() { return m_stats_counters; }
+
 			void received_buffer(int size);
 			void sent_buffer(int size);
 

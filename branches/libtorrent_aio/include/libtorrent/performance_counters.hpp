@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 #define TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 
+#include <boost/cstdint.hpp>
+
 namespace libtorrent
 {
 	struct counters
@@ -72,7 +74,6 @@ namespace libtorrent
 			// to the end-game mode
 			end_game_piece_picker_blocks,
 			piece_picker_blocks,
-			piece_picker_loops,
 			piece_picks,
 			reject_piece_picks,
 			unchoke_piece_picks,
@@ -80,6 +81,17 @@ namespace libtorrent
 			incoming_piece_picks,
 			end_game_piece_picks,
 			snubbed_piece_picks,
+
+			// these counters indicate which parts
+			// of the piece picker CPU is spent in
+			piece_picker_partial_loops,
+			piece_picker_suggest_loops,
+			piece_picker_sequential_loops,
+			piece_picker_reverse_rare_loops,
+			piece_picker_rare_loops,
+			piece_picker_rand_start_loops,
+			piece_picker_rand_loops,
+			piece_picker_busy_loops,
 
 			// reasons to disconnect peers
 			connect_timeouts,
@@ -212,12 +224,12 @@ namespace libtorrent
 
 		counters();
 		void inc_stats_counter(int c, int value = 1);
-		int operator[](int i) const;
+		boost::int64_t operator[](int i) const;
 
 	private:
 
-		// TODO: 3 counters should be 64 bit, gauges could be 32 bit
-		int m_stats_counter[num_counters];
+		// TODO: some space could be saved here by making gauges 32 bits
+		boost::int64_t m_stats_counter[num_counters];
 
 	};
 }

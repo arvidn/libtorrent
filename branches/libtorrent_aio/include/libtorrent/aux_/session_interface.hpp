@@ -86,6 +86,7 @@ namespace libtorrent
 	class port_filter;
 	struct settings_pack;
 	struct torrent_peer_allocator_interface;
+	struct counters;
 
 #ifndef TORRENT_DISABLE_DHT
 	namespace dht
@@ -330,6 +331,7 @@ namespace libtorrent { namespace aux
 #endif
 
 		virtual void inc_stats_counter(int c, int value = 1) = 0;
+		virtual counters& stats_counters() = 0;
 		virtual void received_buffer(int size) = 0;
 		virtual void sent_buffer(int size) = 0;
 	};

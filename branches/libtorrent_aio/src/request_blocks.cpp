@@ -150,13 +150,10 @@ namespace libtorrent
 		// the last argument is if we should prefer whole pieces
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
-		int loop_counter = 0;
 		p.pick_pieces(*bits, interesting_pieces
 			, num_requests, prefer_whole_pieces, c.peer_info_struct()
 			, state, c.picker_options(), suggested, t.num_peers()
-			, loop_counter);
-
-		ses.inc_stats_counter(counters::piece_picker_loops, loop_counter);
+			, ses.stats_counters());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
@@ -180,9 +177,7 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
-#ifdef TORRENT_STATS
 			ses.inc_stats_counter(counters::piece_picker_blocks);
-#endif
 
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
 
@@ -262,9 +257,7 @@ namespace libtorrent
 			return;
 		}
 
-#ifdef TORRENT_STATS
 		ses.inc_stats_counter(counters::end_game_piece_picker_blocks);
-#endif
 
 #ifdef TORRENT_DEBUG
 		piece_picker::downloading_piece st;

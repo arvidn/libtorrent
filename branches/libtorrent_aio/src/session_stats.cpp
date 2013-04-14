@@ -224,7 +224,14 @@ namespace libtorrent
 		METRIC(picker, piece_picks, type_counter)
 
 		// the number of pieces considered while picking pieces
-		METRIC(picker, piece_picker_loops, type_counter)
+		METRIC(picker, piece_picker_partial_loops, type_counter)
+		METRIC(picker, piece_picker_suggest_loops, type_counter)
+		METRIC(picker, piece_picker_sequential_loops, type_counter)
+		METRIC(picker, piece_picker_reverse_rare_loops, type_counter)
+		METRIC(picker, piece_picker_rare_loops, type_counter)
+		METRIC(picker, piece_picker_rand_start_loops, type_counter)
+		METRIC(picker, piece_picker_rand_loops, type_counter)
+		METRIC(picker, piece_picker_busy_loops, type_counter)
 
 		// This breaks down the piece picks into the event that
 		// triggered it

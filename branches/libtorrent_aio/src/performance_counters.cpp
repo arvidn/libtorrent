@@ -42,7 +42,7 @@ namespace libtorrent {
 		memset(m_stats_counter, 0, sizeof(m_stats_counter));
 	}
 
-	int counters::operator[](int i) const
+	boost::int64_t counters::operator[](int i) const
 	{
 		TORRENT_ASSERT(i >= 0);
 		TORRENT_ASSERT(i < num_counters);

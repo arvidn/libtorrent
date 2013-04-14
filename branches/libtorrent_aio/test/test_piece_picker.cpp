@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/performance_counters.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
@@ -230,9 +231,9 @@ std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p, c
 	, int options, std::vector<int> const& suggested_pieces)
 {
 	std::vector<piece_block> picked;
-	int loop_counter = 0;
+	counters pc;
 	p->pick_pieces(string2vec(availability), picked, num_blocks, prefer_whole_pieces, peer_struct
-		, state, options, suggested_pieces, 20, loop_counter);
+		, state, options, suggested_pieces, 20, pc);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	return picked;
@@ -751,10 +752,10 @@ int test_main()
 	p->mark_as_downloading(piece_block(1,2), &tmp1, piece_picker::slow);
 
 	picked.clear();
-	int loop_counter = 0;
+	counters pc;
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector, 20
-		, loop_counter);
+		, pc);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	// don't pick both busy pieces, just one
@@ -764,7 +765,7 @@ int test_main()
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::prioritize_partials
 		| piece_picker::rarest_first, empty_vector, 20
-		, loop_counter);
+		, pc);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
@@ -772,7 +773,7 @@ int test_main()
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::rarest_first, empty_vector, 20
-		, loop_counter);
+		, pc);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);

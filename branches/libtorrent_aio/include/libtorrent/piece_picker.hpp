@@ -67,6 +67,7 @@ namespace libtorrent
 	class peer_connection;
 	struct bitfield;
 	struct logger;
+	struct counters;
 
 	struct TORRENT_EXTRA_EXPORT piece_block
 	{
@@ -301,7 +302,7 @@ namespace libtorrent
 			, int prefer_whole_pieces, void* peer, piece_state_t speed
 			, int options, std::vector<int> const& suggested_pieces
 			, int num_peers
-			, int& loop_counter
+			, counters& pc
 			) const;
 
 		// picks blocks from each of the pieces in the piece_list
