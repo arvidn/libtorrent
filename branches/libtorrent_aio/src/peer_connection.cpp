@@ -3515,6 +3515,10 @@ namespace libtorrent
 		if (!t->ready_for_connections()) return;
 		m_interesting = false;
 		m_ses.inc_stats_counter(counters::num_peers_down_interested, -1);
+
+		disconnect_if_redundant();
+		if (m_disconnecting) return;
+
 		write_not_interested();
 
 		m_became_uninteresting = time_now();
@@ -3522,7 +3526,6 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> NOT_INTERESTED");
 #endif
-		disconnect_if_redundant();
 	}
 
 	void peer_connection::send_suggest(int piece)
@@ -4272,6 +4275,8 @@ namespace libtorrent
 		m_packet_size = packet_size;
 	}
 
+	// the purpose of this function is to free up and cut off all messages
+	// in the receive buffer that have been parsed and processed.
 	void peer_connection::normalize_receive_buffer()
 	{
 		TORRENT_ASSERT(m_recv_end >= m_recv_start);

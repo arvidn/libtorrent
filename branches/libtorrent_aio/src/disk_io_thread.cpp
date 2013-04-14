@@ -1837,12 +1837,9 @@ namespace libtorrent
 		// regular jobs are not guaranteed to be executed in-order
 		// since clear piece must guarantee that all write jobs that
 		// have been issued finish before the clear piece job completes
-		// TODO: a more efficient way of dealing with this would be
-		// to always hang write jobs on the cached_piece_entry
-		// objects, and never just throw them i the main job queue.
-		// this would mean moving much of the cache logic from async_write
-		// to add-job, to cover the case where the write jobs wake
-		// up from a fence
+
+		// TODO: this is potentially very expensive. One way to solve
+		// it would be to have a fence for just this one piece.
 		add_fence_job(storage, j);
 	}
 
@@ -2731,6 +2728,8 @@ namespace libtorrent
 		// before the disk threads are shut down
 		TORRENT_ASSERT(m_num_threads > 0 || j->action == disk_io_job::flush_piece);
 
+		// this happens for read jobs that get hung on pieces in the
+		// block cache, and then get issued
 		if (j->flags & disk_io_job::in_progress)
 		{
 			mutex::scoped_lock l(m_job_mutex);

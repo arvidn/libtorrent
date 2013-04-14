@@ -996,7 +996,7 @@ namespace libtorrent
 		// |      |  receive buffer, as perceived by upper layers)
 		// |      |
 		// |      |    m_recv_pos (number of bytes consumed
-		// |      |    |  by upper layer, from locical receive buffer)
+		// |      |    |  by upper layer, from logical receive buffer)
 		// |      |    |
 		// |      x---------x
 		// |      |         |        recv_buf.end (end of actual receive buffer)
@@ -1009,6 +1009,12 @@ namespace libtorrent
 		//                     +- m_recv_end (end of received data,
 		//                          beyond this point is garbage)
 		// m_recv_buffer
+
+		// when not using contiguous receive buffers, there
+		// may be a disk_recv_buffer in the mix as well. Whenever
+		// m_disk_recv_buffer_size > 0 (and presumably also
+		// m_disk_recv_buffer != NULL) the disk buffer is imagined
+		// to be appended to the receive buffer right after m_recv_end.
 
 		int m_disk_recv_buffer_size;
 
