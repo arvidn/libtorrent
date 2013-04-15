@@ -683,6 +683,9 @@ namespace libtorrent
 		//    and some are still in the requested state
 		// 2: downloading pieces where every block is
 		//    finished or writing
+		// TODO: 3 partial pieces with priority 0 should have
+		// their own category, since we essentially never want
+		// to interact with them
 		std::vector<downloading_piece> m_downloads[3];
 
 		// this holds the information of the

@@ -415,6 +415,7 @@ namespace libtorrent
 				int num_requested = 0;
 				int num_finished = 0;
 				int num_writing = 0;
+				int num_open = 0;
 				for (int k = 0; k < num_blocks; ++k)
 				{
 					TORRENT_ASSERT(i->info[k].piece_index == i->index);
@@ -435,7 +436,30 @@ namespace libtorrent
 						++num_writing;
 						TORRENT_ASSERT(i->info[k].num_peers == 0);
 					}
+					else if (i->info[k].state == block_info::state_none)
+					{
+						++num_open;
+						TORRENT_ASSERT(i->info[k].num_peers == 0);
+					}
 				}
+
+				switch(j + 1)
+				{
+					case piece_pos::piece_downloading:
+						TORRENT_ASSERT(num_open > 0);
+					break;
+					case piece_pos::piece_full:
+						TORRENT_ASSERT(num_open == 0);
+						// if requested == 0, the piece should be in the finished state
+						TORRENT_ASSERT(num_requested > 0);
+					break;
+					case piece_pos::piece_finished:
+						TORRENT_ASSERT(num_open == 0);
+						TORRENT_ASSERT(num_requested == 0);
+						TORRENT_ASSERT(num_finished + num_writing == num_blocks);
+					break;
+				}
+
 				TORRENT_ASSERT(blocks_requested == (i->state != none));
 				TORRENT_ASSERT(num_requested == i->requested);
 				TORRENT_ASSERT(num_writing == i->writing);
@@ -2035,56 +2059,81 @@ namespace libtorrent
 		// all pieces that are interesting are in
 		// m_downloads[0] and m_download[1] (i.e. partial and full pieces)
 
-		// to make this fast, pick one random block
-		// from m_downloads[1] that this peer has.
-		// Give it 10 attempts to find one, if we fail,
-		// don't pick anything this is better than
-		// looking through all of them, since there
-		// could be a lot, and that would be expensive.
-
-		int to_pick_from = m_downloads[0].size() + m_downloads[1].size();
-
-		// there are no pieces to request from
-		if (to_pick_from == 0) return;
-
 		std::vector<piece_block> temp;
-		// TODO: this could probably be optimized by creating a short
-		// array on the stack and shuffling it, to avoid repeated picks
-		for (int round = 0; round < 10; ++round)
+
+		// pick one random block from one random partial piece.
+		// only pick from non-downloaded blocks.
+		// first, create a temporary array of the partial pieces
+		// this peer has, and can pick from. Cap the stack allocation
+		// at 200 pieces.
+
+		int partials_size = (std::min)(200, int(m_downloads[0].size() + m_downloads[1].size()));
+		if (partials_size == 0) return;
+
+		downloading_piece const** partials = TORRENT_ALLOCA(downloading_piece const*, partials_size);
+		int c = 0;
+		for (std::vector<downloading_piece>::const_iterator i = m_downloads[0].begin()
+			, end(m_downloads[0].end()); i != end; ++i)
 		{
-			pc.inc_stats_counter(counters::piece_picker_busy_loops);
-			int piece = random() % to_pick_from;
-			int k = 0;
-			if (piece >= m_downloads[0].size())
-			{
-				piece -= m_downloads[0].size();
-				++k;
-			}
-			downloading_piece const& dp = m_downloads[k][piece];
+			if (c == partials_size) break;
+
+			downloading_piece const& dp = *i;
 			// this peer doesn't have this piece, try again
 			if (!pieces[dp.index]) continue;
+			// don't pick pieces with priority 0
 			if (piece_priority(dp.index) == 0) continue;
+			
+			partials[c++] = &dp;
+		}
+
+		for (std::vector<downloading_piece>::const_iterator i = m_downloads[1].begin()
+			, end(m_downloads[1].end()); i != end; ++i)
+		{
+			if (c == partials_size) break;
+		
+			downloading_piece const& dp = *i;
+			// this peer doesn't have this piece, try again
+			if (!pieces[dp.index]) continue;
+			// don't pick pieces with priority 0
+			if (piece_priority(dp.index) == 0) continue;
+
+			partials[c++] = &dp;
+		}
+
+		partials_size = c;
+		while (partials_size > 0)
+		{
+			pc.inc_stats_counter(counters::piece_picker_busy_loops);
+			int piece = random() % partials_size;
+			downloading_piece const* dp = partials[piece];
+			TORRENT_ASSERT(pieces[dp->index]);
+			TORRENT_ASSERT(piece_priority(dp->index) > 0);
 			// fill in with blocks requested from other peers
 			// as backups
-			int num_blocks_in_piece = blocks_in_piece(dp.index);
+			int num_blocks_in_piece = blocks_in_piece(dp->index);
+			TORRENT_ASSERT(dp->requested > 0);
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
-				block_info const& info = dp.info[j];
+				block_info const& info = dp->info[j];
 				TORRENT_ASSERT(info.peer == 0 || static_cast<torrent_peer*>(info.peer)->in_use);
-				TORRENT_ASSERT(info.piece_index == dp.index);
+				TORRENT_ASSERT(info.piece_index == dp->index);
 				if (info.state != block_info::state_requested
 					|| info.peer == peer)
 					continue;
-				temp.push_back(piece_block(dp.index, j));
+				temp.push_back(piece_block(dp->index, j));
 			}
-			// we're done!
-			if (!temp.empty()) break;
-		}
+			// are we done?
+			if (!temp.empty())
+			{
+				interesting_blocks.push_back(temp[random() % temp.size()]);
+				--num_blocks;
+				break;
+			}
 
-		if (!temp.empty())
-		{
-			interesting_blocks.push_back(temp[random() % temp.size()]);
-			--num_blocks;
+			// the piece we picked only had blocks outstanding requested
+			// by ourself. Remove it and pick another one.
+			partials[piece] = partials[partials_size-1];
+			--partials_size;
 		}
 
 #ifdef TORRENT_DEBUG
@@ -2841,6 +2890,7 @@ namespace libtorrent
 				// remove the fast/slow state from it
 				i->state = none;
 			}
+			update_piece_state(i);
 		}
 		return true;
 	}
