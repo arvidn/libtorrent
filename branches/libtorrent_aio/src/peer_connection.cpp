@@ -1471,8 +1471,8 @@ namespace libtorrent
 
 		if (m_request_queue.empty() && m_download_queue.size() < 2)
 		{
-			m_ses.inc_stats_counter(counters::reject_piece_picks);
-			request_a_block(*t, *this);
+			if (request_a_block(*t, *this))
+				m_ses.inc_stats_counter(counters::reject_piece_picks);
 			send_block_requests();
 		}
 	}
@@ -1571,8 +1571,8 @@ namespace libtorrent
 
 		if (is_interesting())
 		{
-			m_ses.inc_stats_counter(counters::unchoke_piece_picks);
-			request_a_block(*t, *this);
+			if (request_a_block(*t, *this))
+				m_ses.inc_stats_counter(counters::unchoke_piece_picks);
 			send_block_requests();
 		}
 	}
@@ -2641,8 +2641,8 @@ namespace libtorrent
 			if (!m_download_queue.empty())
 				m_requested = now;
 
-			m_ses.inc_stats_counter(counters::incoming_redundant_piece_picks);
-			request_a_block(*t, *this);
+			if (request_a_block(*t, *this))
+				m_ses.inc_stats_counter(counters::incoming_redundant_piece_picks);
 			send_block_requests();
 			return;
 		}
@@ -2770,8 +2770,8 @@ namespace libtorrent
 
 		if (is_disconnecting()) return;
 
-		m_ses.inc_stats_counter(counters::incoming_piece_picks);
-		request_a_block(*t, *this);
+		if (request_a_block(*t, *this))
+			m_ses.inc_stats_counter(counters::incoming_piece_picks);
 		send_block_requests();
 	}
 
@@ -4425,9 +4425,9 @@ namespace libtorrent
 			// might not be any unrequested blocks anymore, so
 			// we should try to pick another block to see
 			// if we can pick a busy one
-			m_ses.inc_stats_counter(counters::end_game_piece_picks);
 			m_last_request = now;
-			request_a_block(*t, *this);
+			if (request_a_block(*t, *this))
+				m_ses.inc_stats_counter(counters::end_game_piece_picks);
 			if (m_disconnecting) return;
 			send_block_requests();
 		}
@@ -4644,8 +4644,8 @@ namespace libtorrent
 		// picking the same block again, stalling the
 		// same piece indefinitely.
 		m_desired_queue_size = 2;
-		m_ses.inc_stats_counter(counters::snubbed_piece_picks);
-		request_a_block(*t, *this);
+		if (request_a_block(*t, *this))
+			m_ses.inc_stats_counter(counters::snubbed_piece_picks);
 
 		// the block we just picked (potentially)
 		// hasn't been put in m_download_queue yet.
@@ -4679,6 +4679,7 @@ namespace libtorrent
 			if (free_blocks > 0)
 			{
 				m_timeout_extend += m_settings.get_int(settings_pack::request_timeout);
+				send_block_requests();
 				return;
 			}
 

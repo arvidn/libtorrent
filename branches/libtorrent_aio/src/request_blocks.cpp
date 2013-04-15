@@ -59,19 +59,21 @@ namespace libtorrent
 	// have only one piece that we don't have, and it's the
 	// same piece for both peers. Then they might get into an
 	// infinite loop, fighting to request the same blocks.
-	void request_a_block(torrent& t, peer_connection& c)
+	// returns false if the function is aborted by an early-exit
+	// condition.
+	bool request_a_block(torrent& t, peer_connection& c)
 	{
-		if (t.is_seed()) return;
-		if (c.no_download()) return;
-		if (t.upload_mode()) return;
-		if (c.is_disconnecting()) return;
+		if (t.is_seed()) return false;
+		if (c.no_download()) return false;
+		if (t.upload_mode()) return false;
+		if (c.is_disconnecting()) return false;
 
 		// don't request pieces before we have the metadata
-		if (!t.valid_metadata()) return;
+		if (!t.valid_metadata()) return false;
 
 		// don't request pieces before the peer is properly
 		// initialized after we have the metadata
-		if (!t.are_files_checked()) return;
+		if (!t.are_files_checked()) return false;
 
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || c.type() != peer_connection::bittorrent_connection);
 		int num_requests = c.desired_queue_size()
@@ -79,12 +81,13 @@ namespace libtorrent
 			- (int)c.request_queue().size();
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		c.peer_log("*** PIECE_PICKER [ req: %d engame: %d ]", num_requests, c.endgame());
+		c.peer_log("*** PIECE_PICKER [ dlq: %d rqq: %d target: %d req: %d engame: %d ]"
+			, int(c.download_queue().size()), int(c.request_queue().size()), c.desired_queue_size(), num_requests, c.endgame());
 #endif
 		TORRENT_ASSERT(c.desired_queue_size() > 0);
 		// if our request queue is already full, we
 		// don't have to make any new requests yet
-		if (num_requests <= 0) return;
+		if (num_requests <= 0) return false;
 
 		t.need_picker();
 
@@ -111,8 +114,6 @@ namespace libtorrent
 #endif
 
 		aux::session_interface& ses = t.session();
-
-		ses.inc_stats_counter(counters::piece_picks);
 
 		std::vector<pending_block> const& dq = c.download_queue();
 		std::vector<pending_block> const& rq = c.request_queue();
@@ -177,8 +178,6 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
-			ses.inc_stats_counter(counters::piece_picker_blocks);
-
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
 
 			int num_block_requests = p.num_peers(*i);
@@ -236,7 +235,7 @@ namespace libtorrent
 			// requested without having to resort to picking
 			// busy ones, we're not in end-game mode
 			c.set_endgame(false);
-			return;
+			return true;
 		}
 
 		// we did not pick as many pieces as we wanted, because
@@ -254,10 +253,8 @@ namespace libtorrent
 		if (busy_block == piece_block::invalid
 			|| dq.size() + rq.size() > 0)
 		{
-			return;
+			return true;
 		}
-
-		ses.inc_stats_counter(counters::end_game_piece_picker_blocks);
 
 #ifdef TORRENT_DEBUG
 		piece_picker::downloading_piece st;
@@ -271,6 +268,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p.num_peers(busy_block) > 0);
 
 		c.add_request(busy_block, peer_connection::req_busy);
+		return true;
 	}
 
 }

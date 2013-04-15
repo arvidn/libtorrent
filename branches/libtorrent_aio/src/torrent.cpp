@@ -1191,7 +1191,9 @@ namespace libtorrent
 			// only make uninteresting peers interesting again.
 			if (p->is_interesting()) continue;
 			p->update_interest();
-			request_a_block(*this, *p);
+			if (request_a_block(*this, *p))
+				m_ses.inc_stats_counter(counters::hash_fail_piece_picks);
+			p->send_block_requests();
 		}
 	}
 
@@ -4050,7 +4052,9 @@ namespace libtorrent
 		if (c.has_peer_choked()
 			&& c.allowed_fast().empty())
 			return;
-		request_a_block(*this, c);
+
+		if (request_a_block(*this, c))
+			m_ses.inc_stats_counter(counters::interesting_piece_picks);
 		c.send_block_requests();
 	}
 

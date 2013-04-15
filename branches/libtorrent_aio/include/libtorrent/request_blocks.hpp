@@ -38,7 +38,11 @@ namespace libtorrent
 	class torrent;
 	class peer_connection;
 
-	void request_a_block(torrent& t, peer_connection& c);
+	// returns false if the piece picker was not invoked, because
+	// of an early exit condition. In this case, the stats counter
+	// shouldn't be incremented, since it won't use any significant
+	// amount of CPU
+	bool request_a_block(torrent& t, peer_connection& c);
 }
 
 #endif

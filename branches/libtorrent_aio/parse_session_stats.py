@@ -338,10 +338,10 @@ reports = [
 	('peer_dl_rates2', 'num', '', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'], {'type':stacked, 'colors':'gradient6'}),
 	('peer_ul_rates', 'num', '', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked, 'colors':'gradient6'}),
 	('peer_ul_rates2', 'num', '', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'], {'type':stacked, 'colors':'gradient6'}),
-	('piece_picker_end_game', 'blocks', '', '', ['end game piece picker blocks', 'piece picker blocks', \
-		'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', \
-		'incoming piece picks', 'end game piece picks', 'snubbed piece picks'], {'type':stacked}),
-	('piece_picker', 'blocks', '', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'], {'type':stacked}),
+	('piece_picker_invocations', 'invocations of piece picker', '', '', ['reject piece picks', \
+		'unchoke piece picks', 'incoming redundant piece picks', \
+		'incoming piece picks', 'end game piece picks', 'snubbed piece picks', 'interesting piece picks', 'hash fail piece picks'], \
+		{'type':stacked}),
 	('piece_picker_loops', 'loops through piece picker', '', '', [ \
 	 'piece_picker_partial_loops', 'piece_picker_suggest_loops', 'piece_picker_sequential_loops', 'piece_picker_reverse_rare_loops',
 	 'piece_picker_rare_loops', 'piece_picker_rand_start_loops', 'piece_picker_rand_loops', 'piece_picker_busy_loops'], {'type': stacked}),

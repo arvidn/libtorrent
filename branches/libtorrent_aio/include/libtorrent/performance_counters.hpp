@@ -70,17 +70,18 @@ namespace libtorrent
 			error_encrypted_peers,
 			error_tcp_peers,
 			error_utp_peers,
-			// the number of times the piece picker fell through
-			// to the end-game mode
-			end_game_piece_picker_blocks,
-			piece_picker_blocks,
-			piece_picks,
+
+			// the number of times the piece picker was
+			// successfully invoked, split by the reason
+			// it was invoked
 			reject_piece_picks,
 			unchoke_piece_picks,
 			incoming_redundant_piece_picks,
 			incoming_piece_picks,
 			end_game_piece_picks,
 			snubbed_piece_picks,
+			interesting_piece_picks,
+			hash_fail_piece_picks,
 
 			// these counters indicate which parts
 			// of the piece picker CPU is spent in

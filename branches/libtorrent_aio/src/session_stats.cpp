@@ -220,9 +220,6 @@ namespace libtorrent
 		METRIC(ses, num_outgoing_metadata, type_counter)
 		METRIC(ses, num_outgoing_extended, type_counter)
 
-		// counts the number of times the piece picker has been invoked
-		METRIC(picker, piece_picks, type_counter)
-
 		// the number of pieces considered while picking pieces
 		METRIC(picker, piece_picker_partial_loops, type_counter)
 		METRIC(picker, piece_picker_suggest_loops, type_counter)
@@ -235,14 +232,14 @@ namespace libtorrent
 
 		// This breaks down the piece picks into the event that
 		// triggered it
-		METRIC(picker, end_game_piece_picker_blocks, type_counter)
-		METRIC(picker, piece_picker_blocks, type_counter)
 		METRIC(picker, reject_piece_picks, type_counter)
 		METRIC(picker, unchoke_piece_picks, type_counter)
 		METRIC(picker, incoming_redundant_piece_picks, type_counter)
 		METRIC(picker, incoming_piece_picks, type_counter)
 		METRIC(picker, end_game_piece_picks, type_counter)
 		METRIC(picker, snubbed_piece_picks, type_counter)
+		METRIC(picker, interesting_piece_picks, type_counter)
+		METRIC(picker, hash_fail_piece_picks, type_counter)
 
 		// ... more
 	};

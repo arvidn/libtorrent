@@ -1168,15 +1168,14 @@ namespace aux {
 			":outstanding requests"
 			":outstanding end-game requests"
 			":outstanding writing blocks"
-			":end game piece picker blocks"
-			":piece picker blocks"
-			":piece picks"
 			":reject piece picks"
 			":unchoke piece picks"
 			":incoming redundant piece picks"
 			":incoming piece picks"
 			":end game piece picks"
 			":snubbed piece picks"
+			":interesting piece picks"
+			":hash fail piece picks"
 			":connect timeouts"
 			":uninteresting peers disconnect"
 			":timeout peers"
@@ -4079,15 +4078,14 @@ retry:
 			STAT_LOG(d, outstanding_requests);
 			STAT_LOG(d, outstanding_end_game_requests);
 			STAT_LOG(d, outstanding_write_blocks);
-			STAT_LOG(d, int(m_stats_counters[counters::end_game_piece_picker_blocks]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_blocks]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picks]));
 			STAT_LOG(d, int(m_stats_counters[counters::reject_piece_picks]));
 			STAT_LOG(d, int(m_stats_counters[counters::unchoke_piece_picks]));
 			STAT_LOG(d, int(m_stats_counters[counters::incoming_redundant_piece_picks]));
 			STAT_LOG(d, int(m_stats_counters[counters::incoming_piece_picks]));
 			STAT_LOG(d, int(m_stats_counters[counters::end_game_piece_picks]));
 			STAT_LOG(d, int(m_stats_counters[counters::snubbed_piece_picks]));
+			STAT_LOG(d, int(m_stats_counters[counters::interesting_piece_picks]));
+			STAT_LOG(d, int(m_stats_counters[counters::hash_fail_piece_picks]));
 			STAT_LOG(d, int(m_stats_counters[counters::connect_timeouts]));
 			STAT_LOG(d, int(m_stats_counters[counters::uninteresting_peers]));
 			STAT_LOG(d, int(m_stats_counters[counters::timeout_peers]));
