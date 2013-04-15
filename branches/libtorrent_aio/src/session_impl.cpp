@@ -1241,6 +1241,7 @@ namespace aux {
 			":num downloading partial pieces"
 			":num full partial pieces"
 			":num finished partial pieces"
+			":num 0-priority partial pieces"
 			":allocated jobs"
 			":allocated read jobs"
 			":allocated write jobs"
@@ -3856,6 +3857,7 @@ retry:
 		int partial_downloading_pieces = 0;
 		int partial_full_pieces = 0;
 		int partial_finished_pieces = 0;
+		int partial_zero_prio_pieces = 0;
 
 		// number of torrents that want more peers
 		int num_want_more_peers = int(m_torrent_lists[torrent_want_peers_download].size()
@@ -3887,11 +3889,12 @@ retry:
 			{
 				piece_picker& p = t->picker();
 				partial_pieces += p.get_download_queue_size();
-				int a, b, c;
-				p.get_download_queue_sizes(&a, &b, &c);
+				int a, b, c, d;
+				p.get_download_queue_sizes(&a, &b, &c, &d);
 				partial_downloading_pieces += a;
 				partial_full_pieces += b;
 				partial_finished_pieces += c;
+				partial_zero_prio_pieces += d;
 			}
 
 			dq.clear();
@@ -4155,6 +4158,7 @@ retry:
 			STAT_LOG(d, partial_downloading_pieces);
 			STAT_LOG(d, partial_full_pieces);
 			STAT_LOG(d, partial_finished_pieces);
+			STAT_LOG(d, partial_zero_prio_pieces);
 
 			STAT_LOG(d, cs.num_jobs);
 			STAT_LOG(d, cs.num_read_jobs);

@@ -343,9 +343,10 @@ reports = [
 		'incoming piece picks', 'end game piece picks', 'snubbed piece picks', 'interesting piece picks', 'hash fail piece picks'], \
 		{'type':stacked}),
 	('piece_picker_loops', 'loops through piece picker', '', '', [ \
-	 'piece_picker_partial_loops', 'piece_picker_suggest_loops', 'piece_picker_sequential_loops', 'piece_picker_reverse_rare_loops',
-	 'piece_picker_rare_loops', 'piece_picker_rand_start_loops', 'piece_picker_rand_loops', 'piece_picker_busy_loops'], {'type': stacked}),
-	('picker_partials', 'pieces', '', '', ['num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces'], {'type':stacked}),
+		'piece_picker_partial_loops', 'piece_picker_suggest_loops', 'piece_picker_sequential_loops', 'piece_picker_reverse_rare_loops',
+		'piece_picker_rare_loops', 'piece_picker_rand_start_loops', 'piece_picker_rand_loops', 'piece_picker_busy_loops'], {'type': stacked}),
+	('picker_partials', 'pieces', '', '', ['num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces', \
+		'num 0-priority partial pieces'], {'type':stacked}),
 	('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'], {'type': histogram, 'binwidth': 5, 'numbins': 120}),
 	('picker_partials_distribution', 'partial pieces', '', '', ['num downloading partial pieces'], {'type': histogram, 'binwidth': 5, 'numbins': 120})
 ]

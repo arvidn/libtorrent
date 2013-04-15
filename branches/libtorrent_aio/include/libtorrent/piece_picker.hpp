@@ -411,7 +411,7 @@ namespace libtorrent
 		std::vector<piece_picker::downloading_piece> get_download_queue() const;
 		int get_download_queue_size() const;
 
-		void get_download_queue_sizes(int* partial, int* full, int* finished) const;
+		void get_download_queue_sizes(int* partial, int* full, int* finished, int* zero_prio) const;
 
 		void* get_downloader(piece_block block) const;
 
@@ -507,10 +507,12 @@ namespace libtorrent
 				piece_full,
 				// all blocks in the piece have been received and
 				// are either finished or writing
-				piece_finished
+				piece_finished,
+				// pieces whose priority is 0
+				piece_zero_prio
 			};
 
-			boost::uint32_t state : 2;
+			boost::uint32_t state : 3;
 
 			// is 0 if the piece is filtered (not to be downloaded)
 			// 1 is normal priority (default)
@@ -522,7 +524,7 @@ namespace libtorrent
 			boost::uint32_t piece_priority : 3;
 			// index in to the piece_info vector
 #if TORRENT_OPTIMIZE_MEMORY_USAGE
-			boost::uint32_t index : 18;
+			boost::uint32_t index : 17;
 #else
 			boost::uint32_t index;
 #endif
@@ -683,10 +685,9 @@ namespace libtorrent
 		//    and some are still in the requested state
 		// 2: downloading pieces where every block is
 		//    finished or writing
-		// TODO: 3 partial pieces with priority 0 should have
-		// their own category, since we essentially never want
-		// to interact with them
-		std::vector<downloading_piece> m_downloads[3];
+		// 3: partial pieces whose priority is 0
+		enum { num_download_categories = 4 };
+		std::vector<downloading_piece> m_downloads[num_download_categories];
 
 		// this holds the information of the
 		// blocks in partially downloaded pieces.
