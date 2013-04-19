@@ -76,7 +76,7 @@ namespace libtorrent
 		// to be incremented
 		enum artificial_jobs
 		{
-			flushing = disk_io_job::num_job_ids,
+			flushing = disk_io_job::num_job_ids, // 20
 			do_write,
 			do_hash,
 			flush_expired,
@@ -301,6 +301,9 @@ namespace libtorrent
 		// this is a debug facility to keep a log
 		// of which operations have been run on this piece
 		std::vector<piece_log_t> piece_log;
+
+		bool in_storage;
+		bool in_use;
 #endif
 	};
 

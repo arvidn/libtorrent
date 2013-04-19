@@ -1126,9 +1126,13 @@ namespace libtorrent
 
 	void storage_piece_set::add_piece(cached_piece_entry* p)
 	{
+		TORRENT_ASSERT(p->in_storage == false);
 		TORRENT_ASSERT(p->storage.get() == this);
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
 		m_cached_pieces.insert(p);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		p->in_storage = true;
+#endif
 	}
 
 	bool storage_piece_set::has_piece(cached_piece_entry* p) const
@@ -1138,8 +1142,12 @@ namespace libtorrent
 
 	void storage_piece_set::remove_piece(cached_piece_entry* p)
 	{
+		TORRENT_ASSERT(p->in_storage == true);
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
 		m_cached_pieces.erase(p);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		p->in_storage = false;
+#endif
 	}
 
 	// -- piece_manager -----------------------------------------------------
