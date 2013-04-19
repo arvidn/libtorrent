@@ -1175,8 +1175,6 @@ namespace libtorrent
 
 	void torrent::on_piece_fail_sync(disk_io_job const* j, piece_block b)
 	{
-		if (!has_picker()) return;
-		picker().restore_piece(b.piece_index);
 		update_gauge();
 		// some peers that previously was no longer interesting may
 		// now have become interesting, since we lack this one piece now.
