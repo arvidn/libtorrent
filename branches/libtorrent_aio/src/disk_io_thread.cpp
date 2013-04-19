@@ -863,12 +863,14 @@ namespace libtorrent
 			// evict it into a read piece and then also evict it to ghost
 			if (pe->cache_state != cached_piece_entry::write_lru) continue;
 
+			// don't flush blocks that are being hashed by another thread
+			if (pe->num_dirty == 0 || pe->hashing) continue;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			pe->piece_log.push_back(piece_log_t(piece_log_t::try_flush_write_blocks2, -1));
 #endif
 			++pe->piece_refcount;
-			// don't flush blocks that are being hashed by another thread
-			if (pe->num_dirty == 0 || pe->hashing) continue;
+
 			num -= flush_range(pe, 0, INT_MAX, 0, l);
 			--pe->piece_refcount;
 		}
