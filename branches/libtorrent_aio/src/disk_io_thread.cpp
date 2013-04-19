@@ -477,6 +477,7 @@ namespace libtorrent
 			{
 				TORRENT_PIECE_ASSERT(pe->piece_refcount > 0, pe);
 				--pe->piece_refcount;
+				m_disk_cache.maybe_free_piece(pe);
 			}
 			int num_blocks = iovec_offset[i+1] - iovec_offset[i];
 			iovec_flushed(pe, flushing + iovec_offset[i], num_blocks
@@ -715,6 +716,8 @@ namespace libtorrent
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
 
+		m_disk_cache.maybe_free_piece(pe);
+
 		return iov_len;
 	}
 
@@ -873,6 +876,8 @@ namespace libtorrent
 
 			num -= flush_range(pe, 0, INT_MAX, 0, l);
 			--pe->piece_refcount;
+
+			m_disk_cache.maybe_free_piece(pe);
 		}
 	}
 
@@ -919,6 +924,7 @@ namespace libtorrent
 			flush_range(to_flush[i], 0, INT_MAX, 0, l);
 			TORRENT_ASSERT(to_flush[i]->piece_refcount > 0);
 			--to_flush[i]->piece_refcount;
+			m_disk_cache.maybe_free_piece(to_flush[i]);
 		}
 	}
 
@@ -1212,7 +1218,10 @@ namespace libtorrent
 
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
 			if (pe && pe->read_jobs.size() > 0)
+			{
 				fail_jobs(j->error, pe->jobs);
+				m_disk_cache.maybe_free_piece(pe);
+			}
 			return ret;
 		}
 
@@ -1311,6 +1320,8 @@ namespace libtorrent
 		}
 		else
 			pe->outstanding_read = 0;
+
+		m_disk_cache.maybe_free_piece(pe);
 	}
 
 	int disk_io_thread::do_uncached_write(disk_io_job* j)
@@ -1397,6 +1408,7 @@ namespace libtorrent
 				try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
 
 				--pe->piece_refcount;
+				m_disk_cache.maybe_free_piece(pe);
 				return defer_handler;
 			}
 		}
@@ -2056,6 +2068,7 @@ namespace libtorrent
 				++pe->hash_passes;
 #endif
 				m_disk_cache.update_cache_state(pe);
+				m_disk_cache.maybe_free_piece(pe);
 				return 0;
 			}
 		}
@@ -2172,6 +2185,8 @@ namespace libtorrent
 					delete pe->hash;
 					pe->hash = NULL;
 
+					m_disk_cache.maybe_free_piece(pe);
+
 					j->error.ec = errors::no_memory;
 					j->error.operation = storage_error::alloc_cache_piece;
 					return -1;
@@ -2236,6 +2251,9 @@ namespace libtorrent
 #endif
 			m_disk_cache.update_cache_state(pe);
 		}
+
+		m_disk_cache.maybe_free_piece(pe);
+
 		return ret < 0 ? ret : 0;
 	}
 
@@ -2390,6 +2408,7 @@ namespace libtorrent
 			{
 				//#error introduce a holder class that automatically increments and decrements the piece_refcount
 				--pe->piece_refcount;
+				m_disk_cache.maybe_free_piece(pe);
 				j->error.ec = errors::no_memory;
 				j->error.operation = storage_error::alloc_cache_piece;
 				return -1;
@@ -2425,6 +2444,7 @@ namespace libtorrent
 		}
 
 		--pe->piece_refcount;
+		m_disk_cache.maybe_free_piece(pe);
 		return 0;
 	}
 
@@ -2580,6 +2600,9 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
 		pe->outstanding_flush = 0;
 		--pe->piece_refcount;
+
+		m_disk_cache.maybe_free_piece(pe);
+
 		return 0;
 	}
 
