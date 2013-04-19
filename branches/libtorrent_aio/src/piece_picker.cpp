@@ -212,12 +212,12 @@ namespace libtorrent
 		int block_index = num_downloads * m_blocks_per_piece;
 		if (int(m_block_info.size()) < block_index + m_blocks_per_piece)
 		{
-			block_info* base = 0;
+			block_info* base = NULL;
 			if (!m_block_info.empty()) base = &m_block_info[0];
 			m_block_info.resize(block_index + m_blocks_per_piece);
-			for (int k = 0; k < num_download_categories; ++k)
+			if (base != NULL && &m_block_info[0] != base)
 			{
-				if (!m_downloads[k].empty() && &m_block_info[k] != base)
+				for (int k = 0; k < num_download_categories; ++k)
 				{
 					// this means the memory was reallocated, update the pointers
 					for (int i = 0; i < int(m_downloads[k].size()); ++i)
@@ -253,6 +253,9 @@ namespace libtorrent
 		TORRENT_ASSERT(state > piece_pos::piece_open);
 		int queue = state - 1;
 		TORRENT_ASSERT(find_dl_piece(queue, i->index) == i);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		int prev_size = m_downloads[queue].size();
+#endif
 
 		int total_downloading_pieces = 0;
 		for (int k = 0; k < num_download_categories; ++k) total_downloading_pieces += m_downloads[k].size();
@@ -280,6 +283,8 @@ namespace libtorrent
 		}
 		m_piece_map[i->index].state = piece_pos::piece_open;
 		m_downloads[queue].erase(i);
+
+		TORRENT_ASSERT(prev_size == m_downloads[queue].size() + 1);
 	}
 
 	std::vector<piece_picker::downloading_piece> piece_picker::get_download_queue() const
@@ -976,6 +981,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index < (int)m_piece_map.size());
 
 		int state = m_piece_map[index].state;
+		TORRENT_ASSERT(state != piece_pos::piece_open);
 		if (state == piece_pos::piece_open) return;
 
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
@@ -2088,19 +2094,24 @@ namespace libtorrent
 
 		downloading_piece const** partials = TORRENT_ALLOCA(downloading_piece const*, partials_size);
 		int c = 0;
+
+#ifdef TORRENT_DEBUG
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads[0].begin()
 			, end(m_downloads[0].end()); i != end; ++i)
 		{
-			if (c == partials_size) break;
-
 			downloading_piece const& dp = *i;
-			// this peer doesn't have this piece, try again
-			if (!pieces[dp.index]) continue;
-			// don't pick pieces with priority 0
-			TORRENT_ASSERT(piece_priority(dp.index) > 0);
-			
-			partials[c++] = &dp;
+			// we either don't have this piece, or we've already requested from it
+			bool found = false;
+			for (std::vector<piece_block>::const_iterator i = interesting_blocks.begin()
+				, end(interesting_blocks.end()); i != end; ++i)
+			{
+				if (i->piece_index != dp.index) continue;
+				found = true;
+				break;
+			}
+			TORRENT_ASSERT(!pieces[dp.index] || found);
 		}
+#endif
 
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads[1].begin()
 			, end(m_downloads[1].end()); i != end; ++i)
@@ -2108,6 +2119,7 @@ namespace libtorrent
 			if (c == partials_size) break;
 		
 			downloading_piece const& dp = *i;
+			TORRENT_ASSERT(dp.requested > 0);
 			// this peer doesn't have this piece, try again
 			if (!pieces[dp.index]) continue;
 			// don't pick pieces with priority 0
