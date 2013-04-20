@@ -297,7 +297,7 @@ namespace libtorrent
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
 		bool can_write() const;
-		bool can_read() const;
+		bool can_read();
 
 		bool is_seed() const;
 		int num_have_pieces() const { return m_num_pieces; }
@@ -629,6 +629,8 @@ namespace libtorrent
 		// called when the disk write buffer is drained again, and we can
 		// start downloading payload again
 		void on_disk();
+
+		void on_allocate_disk_buffer(char* buffer);
 
 		int num_reading_bytes() const { return m_reading_bytes; }
 

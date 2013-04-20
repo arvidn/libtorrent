@@ -7121,8 +7121,11 @@ retry:
 		return m_disk_thread.allocate_disk_buffer(category);
 	}
 
-	void session_impl::subscribe_to_disk(boost::shared_ptr<disk_observer> o)
-	{ m_disk_thread.subscribe_to_disk(o); }
+	char* session_impl::async_allocate_disk_buffer(char const* category
+		, boost::function<void(char*)> const& handler)
+	{
+		return m_disk_thread.async_allocate_disk_buffer(category, handler);
+	}
 
 	void session_impl::free_disk_buffer(char* buf)
 	{

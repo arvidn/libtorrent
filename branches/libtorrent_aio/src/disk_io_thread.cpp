@@ -153,7 +153,7 @@ namespace libtorrent
 		, m_last_cache_expiry(min_time())
 		, m_last_file_check(time_now_hires())
 		, m_file_pool(40)
-		, m_disk_cache(block_size, ios, alert_disp)
+		, m_disk_cache(block_size, ios, boost::bind(&disk_io_thread::trigger_cache_trim, this), alert_disp)
 		, m_last_stats_flip(time_now())
 		, m_outstanding_jobs(0)
 		, m_ios(ios)
@@ -227,8 +227,8 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::subscribe_to_disk(boost::shared_ptr<disk_observer> o)
-	{ m_disk_cache.subscribe_to_disk(o); }
+	char* disk_io_thread::async_allocate_disk_buffer(char const* category, boost::function<void(char*)> const& handler)
+	{ return m_disk_cache.async_allocate_buffer(category, handler); }
 
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
 	{
@@ -2911,18 +2911,21 @@ namespace libtorrent
 		m_work.reset();
 	}
 
+	// this is a callback called by the block_cache when
+	// it's exceeding the disk cache size.
+	void disk_io_thread::trigger_cache_trim()
+	{
+		// we just exceeded the cache size limit. Trigger a trim job
+		disk_io_job* j = allocate_job(disk_io_job::trim_cache);
+		add_job(j);
+		submit_jobs();
+	}
+
 	char* disk_io_thread::allocate_disk_buffer(bool& exceeded
 		, boost::shared_ptr<disk_observer> o
 		, char const* category)
 	{
-		bool trigger_trim = false;
-		char* ret = m_disk_cache.allocate_buffer(exceeded, trigger_trim, o, category);
-		if (trigger_trim)
-		{
-			// we just exceeded the cache size limit. Trigger a trim job
-			disk_io_job* j = allocate_job(disk_io_job::trim_cache);
-			add_job(j);
-		}
+		char* ret = m_disk_cache.allocate_buffer(exceeded, o, category);
 		return ret;
 	}
 

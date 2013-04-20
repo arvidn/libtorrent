@@ -5231,6 +5231,19 @@ namespace libtorrent
 		setup_receive(read_async);
 	}
 
+	void peer_connection::on_allocate_disk_buffer(char* buffer)
+	{
+		TORRENT_ASSERT(!m_disk_recv_buffer);
+		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_disk);
+
+		m_disk_recv_buffer.reset(buffer);
+
+		m_ses.inc_stats_counter(counters::num_peers_down_disk, -1);
+		m_channel_state[download_channel] &= ~peer_info::bw_disk;
+
+		setup_receive(read_async);
+	}
+
 	void peer_connection::setup_receive(sync_t sync)
 	{
 		INVARIANT_CHECK;
@@ -5834,7 +5847,7 @@ namespace libtorrent
 			&& !m_connecting;
 	}
 
-	bool peer_connection::can_read() const
+	bool peer_connection::can_read()
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
@@ -5853,21 +5866,22 @@ namespace libtorrent
 			// if we already have a disk buffer, we might as well use it
 			// if contiguous recv buffer is true, don't apply this logic, but
 			// actually wait until we try to allocate a buffer and exceed the limit
-			if (!m_disk_recv_buffer
-				&& !m_settings.get_bool(settings_pack::contiguous_recv_buffer)
-				&& m_ses.exceeded_cache_use())
+			if (m_disk_recv_buffer == NULL
+				&& !m_settings.get_bool(settings_pack::contiguous_recv_buffer))
 			{
-				m_ses.inc_stats_counter(counters::num_peers_down_disk);
-				const_cast<peer_connection*>(this)->m_channel_state[download_channel] |= peer_info::bw_disk;
+				m_disk_recv_buffer.reset(m_ses.async_allocate_disk_buffer("receive buffer",
+					boost::bind(&peer_connection::on_allocate_disk_buffer, self(), _1)));
 
-				// make sure we know when the cache has been flushed
-				// enough so we can start downloading again
-				m_ses.subscribe_to_disk(const_cast<peer_connection*>(this)->self());
+				if (m_disk_recv_buffer == NULL)
+				{
+					m_ses.inc_stats_counter(counters::num_peers_down_disk);
+					const_cast<peer_connection*>(this)->m_channel_state[download_channel] |= peer_info::bw_disk;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("*** exceeded disk buffer watermark");
+					peer_log("*** exceeded disk buffer watermark");
 #endif
-				return false;
+					return false;
+				}
 			}
 		}
 

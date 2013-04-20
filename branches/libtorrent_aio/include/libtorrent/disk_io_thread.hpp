@@ -287,15 +287,19 @@ namespace libtorrent
 		// be discardable
 		void clear_piece(piece_manager* storage, int index);
 
-		void subscribe_to_disk(boost::shared_ptr<disk_observer> o);
-
 		// implements buffer_allocator_interface
 		void reclaim_block(block_cache_reference ref);
 		void free_disk_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
 		char* allocate_disk_buffer(char const* category)
-		{ return m_disk_cache.allocate_buffer(category); }
+		{
+			bool exceed = false;
+			return allocate_disk_buffer(exceed, boost::shared_ptr<disk_observer>(), category);
+		}
+
+		void trigger_cache_trim();
 		char* allocate_disk_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
 			, char const* category);
+		char* async_allocate_disk_buffer(char const* category, boost::function<void(char*)> const& handler);
 
 		bool exceeded_cache_use() const
 		{ return m_disk_cache.exceeded_max_size(); }

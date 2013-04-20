@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #include <set>
@@ -63,6 +64,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size, io_service& ios
+			, boost::function<void()> const& trigger_trim
 			, alert_dispatcher* alert_disp);
 		~disk_buffer_pool();
 
@@ -72,10 +74,12 @@ namespace libtorrent
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
-		void subscribe_to_disk(boost::shared_ptr<disk_observer> o);
+		// tries to allocate a disk buffer. If the cache is full, this function will
+		// return NULL and call the disk_observer once a buffer becomes available
+		char* async_allocate_buffer(char const* category, boost::function<void(char*)> const& handler);
+
 		char* allocate_buffer(char const* category);
-		char* allocate_buffer(bool& exceeded, bool& trigger_trim
-			, boost::shared_ptr<disk_observer> o, char const* category);
+		char* allocate_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);
 
@@ -97,6 +101,13 @@ namespace libtorrent
 		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
 		void set_settings(aux::session_settings const& sett);
+
+		struct handler_t
+		{
+			char* buffer; // argument to the callback
+			char const* category; // category of allocation
+			boost::function<void(char*)> callback;
+		};
 
 	protected:
 
@@ -122,7 +133,14 @@ namespace libtorrent
 		// adding up callbacks to this queue. Once the number
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
+		// TODO: try to remove the observers, only using the async_allocate handlers
 		std::vector<boost::shared_ptr<disk_observer> > m_observers;
+
+		// these handlers are executed when a new buffer is available
+		std::vector<handler_t> m_handlers;
+
+		// callback used to tell the cache it needs to free up some blocks
+		boost::function<void()> m_trigger_cache_trim;
 
 		// set to true to throttle more allocations
 		bool m_exceeded_max_size;
