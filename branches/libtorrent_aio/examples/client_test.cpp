@@ -640,7 +640,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
-	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags          dn  up  source  ";
+	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb rcvb   q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
@@ -684,7 +684,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		char peer_progress[10];
 		snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.f);
 		snprintf(str, sizeof(str)
-			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %c%c%c%c%c%c "
+			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
@@ -700,14 +700,13 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 			, color("C", (i->flags & peer_info::choked)?col_white:col_blue).c_str()
 			, color("i", (i->flags & peer_info::remote_interested)?col_white:col_blue).c_str()
 			, color("c", (i->flags & peer_info::remote_choked)?col_white:col_blue).c_str()
-			, color("e", (i->flags & peer_info::supports_extensions)?col_white:col_blue).c_str()
+			, color("x", (i->flags & peer_info::supports_extensions)?col_white:col_blue).c_str()
 			, color("o", (i->flags & peer_info::local_connection)?col_white:col_blue).c_str()
-			, color("s", (i->flags & peer_info::seed)?col_white:col_blue).c_str()
 			, color("p", (i->flags & peer_info::on_parole)?col_white:col_blue).c_str()
 			, color("O", (i->flags & peer_info::optimistic_unchoke)?col_white:col_blue).c_str()
 			, color("S", (i->flags & peer_info::snubbed)?col_white:col_blue).c_str()
 			, color("U", (i->flags & peer_info::upload_only)?col_white:col_blue).c_str()
-			, color("g", (i->flags & peer_info::endgame_mode)?col_white:col_blue).c_str()
+			, color("e", (i->flags & peer_info::endgame_mode)?col_white:col_blue).c_str()
 			, color("E", (i->flags & peer_info::rc4_encrypted)?col_white:(i->flags & peer_info::plaintext_encrypted)?col_cyan:col_blue).c_str()
 			, color("h", (i->flags & peer_info::holepunched)?col_white:col_blue).c_str()
 
@@ -718,12 +717,12 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 			, color("l", (i->write_state & peer_info::bw_limit)?col_white:col_blue).c_str()
 			, color("n", (i->write_state & peer_info::bw_network)?col_white:col_blue).c_str()
 
-			, (i->source & peer_info::tracker)?'T':'_'
-			, (i->source & peer_info::pex)?'P':'_'
-			, (i->source & peer_info::dht)?'D':'_'
-			, (i->source & peer_info::lsd)?'L':'_'
-			, (i->source & peer_info::resume_data)?'R':'_'
-			, (i->source & peer_info::incoming)?'I':'_');
+			, color("t", (i->source & peer_info::tracker)?col_white:col_blue).c_str()
+			, color("p", (i->source & peer_info::pex)?col_white:col_blue).c_str()
+			, color("d", (i->source & peer_info::dht)?col_white:col_blue).c_str()
+			, color("l", (i->source & peer_info::lsd)?col_white:col_blue).c_str()
+			, color("r", (i->source & peer_info::resume_data)?col_white:col_blue).c_str()
+			, color("i", (i->source & peer_info::incoming)?col_white:col_blue).c_str());
 		out += str;
 
 		if (print_fails)
@@ -734,10 +733,10 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		}
 		if (print_send_bufs)
 		{
-			snprintf(str, sizeof(str), "%2d %6d %6d %6d "
+			snprintf(str, sizeof(str), "%2d %6d %6d%5dkB "
 				, i->requests_in_buffer, i->used_send_buffer
 				, i->used_receive_buffer
-				, i->queue_bytes);
+				, i->queue_bytes / 1000);
 			out += str;
 		}
 		if (print_timers)
