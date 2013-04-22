@@ -630,7 +630,7 @@ namespace libtorrent
 		// start downloading payload again
 		void on_disk();
 
-		void on_allocate_disk_buffer(char* buffer);
+		void on_allocate_disk_buffer(char* buffer, int buffer_size);
 
 		int num_reading_bytes() const { return m_reading_bytes; }
 

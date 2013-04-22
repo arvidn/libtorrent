@@ -2719,7 +2719,7 @@ namespace libtorrent
 				t->picker().get_requestors(d, piece);
 				if (d.size() == 1)
 				{
-					// only make predicitons if all remaining
+					// only make predictions if all remaining
 					// blocks are requested from the same peer
 					torrent_peer* p = (torrent_peer*)d[0];
 					if (p->connection)
@@ -2830,6 +2830,7 @@ namespace libtorrent
 
 		if (j->ret == -1 && j->error.ec == boost::system::errc::operation_canceled)
 		{
+			TORRENT_ASSERT(false); // how do we get here?
 			picker.mark_as_canceled(block_finished, peer_info_struct());
 			return;
 		}
@@ -3822,6 +3823,7 @@ namespace libtorrent
 			// by the disk thread
 			m_send_buffer.clear();
 			m_disk_recv_buffer.reset();
+			m_disk_recv_buffer_size = 0;
 		}
 
 		// we cannot do this in a constructor
@@ -4190,6 +4192,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_packet_size > 0);
 		TORRENT_ASSERT(m_recv_pos <= m_packet_size - disk_buffer_size);
 		TORRENT_ASSERT(!m_disk_recv_buffer);
+		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
 		TORRENT_ASSERT(disk_buffer_size <= 16 * 1024);
 
 		if (disk_buffer_size == 0) return true;
@@ -5231,12 +5234,15 @@ namespace libtorrent
 		setup_receive(read_async);
 	}
 
-	void peer_connection::on_allocate_disk_buffer(char* buffer)
+	void peer_connection::on_allocate_disk_buffer(char* buffer, int buffer_size)
 	{
+		INVARIANT_CHECK;
+
 		TORRENT_ASSERT(!m_disk_recv_buffer);
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_disk);
 
 		m_disk_recv_buffer.reset(buffer);
+		m_disk_recv_buffer_size = buffer_size;
 
 		m_ses.inc_stats_counter(counters::num_peers_down_disk, -1);
 		m_channel_state[download_channel] &= ~peer_info::bw_disk;
@@ -5849,6 +5855,8 @@ namespace libtorrent
 
 	bool peer_connection::can_read()
 	{
+		INVARIANT_CHECK;
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		bool bw_limit = m_quota[download_channel] > 0;
@@ -5862,7 +5870,7 @@ namespace libtorrent
 			// cache space right now
 
 			if (m_channel_state[download_channel] & peer_info::bw_disk) return false;
-
+/*
 			// if we already have a disk buffer, we might as well use it
 			// if contiguous recv buffer is true, don't apply this logic, but
 			// actually wait until we try to allocate a buffer and exceed the limit
@@ -5870,7 +5878,7 @@ namespace libtorrent
 				&& !m_settings.get_bool(settings_pack::contiguous_recv_buffer))
 			{
 				m_disk_recv_buffer.reset(m_ses.async_allocate_disk_buffer("receive buffer",
-					boost::bind(&peer_connection::on_allocate_disk_buffer, self(), _1)));
+					boost::bind(&peer_connection::on_allocate_disk_buffer, self(), _1, #error buffer_size)));
 
 				if (m_disk_recv_buffer == NULL)
 				{
@@ -5883,6 +5891,7 @@ namespace libtorrent
 					return false;
 				}
 			}
+*/
 		}
 
 		return !m_connecting && !m_disconnecting;

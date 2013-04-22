@@ -780,6 +780,17 @@ int test_main()
 	// don't pick both busy pieces, if there are already other blocks picked
 	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 2);
 
+	// make sure we still pick from a partial piece even when prefering whole pieces
+	picked.clear();
+	p->pick_pieces(string2vec(" *     "), picked, 1, 1, 0
+		, piece_picker::fast, piece_picker::rarest_first | piece_picker::align_expanded_pieces, empty_vector, 20
+		, pc);
+	TEST_CHECK(verify_pick(p, picked, true));
+	print_pick(picked);
+	// always only pick one busy piece
+	TEST_EQUAL(picked.size(), 1);
+	TEST_CHECK(picked.size() >= 1 && picked[0].piece_index == 1);
+
 	p->mark_as_downloading(piece_block(2,0), &tmp1, piece_picker::fast);
 	p->mark_as_downloading(piece_block(2,1), &tmp1, piece_picker::fast);
 	p->mark_as_downloading(piece_block(2,3), &tmp1, piece_picker::fast);

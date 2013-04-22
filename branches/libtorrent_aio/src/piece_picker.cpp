@@ -81,7 +81,6 @@ namespace libtorrent
 		PRINT_OFFSETOF(piece_picker, m_piece_map)
 		PRINT_OFFSETOF(piece_picker, m_downloads)
 		PRINT_OFFSETOF(piece_picker, m_block_info)
-		PRINT_OFFSETOF(piece_picker, m_failed_pieces)
 		PRINT_OFFSETOF(piece_picker, m_blocks_per_piece)
 		PRINT_OFFSETOF(piece_picker, m_blocks_in_last_piece)
 		PRINT_OFFSETOF(piece_picker, m_num_filtered)
@@ -206,6 +205,10 @@ namespace libtorrent
 
 	piece_picker::dlpiece_iter piece_picker::add_download_piece(int piece)
 	{
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
 		int num_downloads = 0;
 		for (int k = 0; k < num_download_categories; ++k) num_downloads += m_downloads[k].size();
 
@@ -221,7 +224,11 @@ namespace libtorrent
 				{
 					// this means the memory was reallocated, update the pointers
 					for (int i = 0; i < int(m_downloads[k].size()); ++i)
+					{
+						TORRENT_ASSERT(m_downloads[k][i].info >= base);
+						TORRENT_ASSERT(m_downloads[k][i].info < base + m_block_info.size());
 						m_downloads[k][i].info = &m_block_info[m_downloads[k][i].info - base];
+					}
 				}
 			}
 		}
@@ -244,11 +251,19 @@ namespace libtorrent
 			ret.info[i].piece_index = piece;
 #endif
 		}
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
 		return i;
 	}
 
 	void piece_picker::erase_download_piece(std::vector<downloading_piece>::iterator i)
 	{
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
 		int state = m_piece_map[i->index].state;
 		TORRENT_ASSERT(state > piece_pos::piece_open);
 		int queue = state - 1;
@@ -285,10 +300,18 @@ namespace libtorrent
 		m_downloads[queue].erase(i);
 
 		TORRENT_ASSERT(prev_size == m_downloads[queue].size() + 1);
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
 	}
 
 	std::vector<piece_picker::downloading_piece> piece_picker::get_download_queue() const
 	{
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
 		std::vector<downloading_piece> ret;
 		for (int k = 0; k < num_download_categories; ++k)
 			ret.insert(ret.end(), m_downloads[k].begin(), m_downloads[k].end());
@@ -312,6 +335,36 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_DEBUG
+
+	void piece_picker::check_piece_state() const
+	{
+		for (int k = 0; k < num_download_categories; ++k)
+		{
+			if (!m_downloads[k].empty())
+			{
+				for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin();
+						i != m_downloads[k].end() - 1; ++i)
+				{
+					downloading_piece const& dp = *i;
+					downloading_piece const& next = *(i + 1);
+//					TORRENT_ASSERT(dp.finished + dp.writing >= next.finished + next.writing);
+					TORRENT_ASSERT(dp.index < next.index);
+					TORRENT_ASSERT(dp.info >= &m_block_info[0]);
+					TORRENT_ASSERT(dp.info < &m_block_info[0] + m_block_info.size());
+					TORRENT_ASSERT((dp.info - &m_block_info[0]) % m_blocks_per_piece == 0);
+					for (int k = 0; k < m_blocks_per_piece; ++k)
+					{
+						if (dp.info[k].peer)
+						{
+							torrent_peer* p = (torrent_peer*)dp.info[k].peer;
+							TORRENT_ASSERT(p->in_use);
+							TORRENT_ASSERT(p->connection == NULL || static_cast<peer_connection*>(p->connection)->m_in_use);
+						}
+					}
+				}
+			}
+		}
+	}
 
 	void piece_picker::verify_pick(std::vector<piece_block> const& picked
 		, bitfield const& bits) const
@@ -403,6 +456,16 @@ namespace libtorrent
 					TORRENT_ASSERT(dp.index < next.index);
 					TORRENT_ASSERT(dp.info >= &m_block_info[0]);
 					TORRENT_ASSERT(dp.info < &m_block_info[0] + m_block_info.size());
+					TORRENT_ASSERT((dp.info - &m_block_info[0]) % m_blocks_per_piece == 0);
+					for (int k = 0; k < m_blocks_per_piece; ++k)
+					{
+						if (dp.info[k].peer)
+						{
+							torrent_peer* p = (torrent_peer*)dp.info[k].peer;
+							TORRENT_ASSERT(p->in_use);
+							TORRENT_ASSERT(p->connection == NULL || static_cast<peer_connection*>(p->connection)->m_in_use);
+						}
+					}
 				}
 			}
 		}
@@ -974,6 +1037,10 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "restore_piece(" << index << ")" << std::endl;
 #endif
@@ -988,17 +1055,25 @@ namespace libtorrent
 
 		TORRENT_ASSERT(i != m_downloads[state - 1].end());
 
-		i->failed_write = false;
+		i->locked = false;
 
 		piece_pos& p = m_piece_map[index];
 		int prev_priority = p.priority(this);
 		erase_download_piece(i);
 		int new_priority = p.priority(this);
 
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
 		if (new_priority == prev_priority) return;
 		if (m_dirty) return;
 		if (prev_priority == -1) add(index);
 		else update(prev_priority, p.index);
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
 	}
 
 	void piece_picker::inc_refcount_all(const void* peer)
@@ -1438,37 +1513,14 @@ namespace libtorrent
 
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
 		TORRENT_ASSERT(i != m_downloads[state - 1].end());
-		if (!i->failed_write)
-		{
-			i->passed_hash_check = true;
-			++m_num_passed;
-		}
+
+		TORRENT_ASSERT(!i->passed_hash_check);
+		i->passed_hash_check = true;
+		++m_num_passed;
+
 		if (i->finished < blocks_in_piece(index)) return;
 		
-		if (!i->failed_write)
-			we_have(index);
-	}
-
-	void piece_picker::piece_failed(int index)
-	{
-		piece_pos& p = m_piece_map[index];
-		int state = p.state;
-		if (state == piece_pos::piece_open) return;
-
-		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
-		TORRENT_ASSERT(i != m_downloads[state - 1].end());
-
-		if (i->finished == blocks_in_piece(index))
-		{
-			restore_piece(index);
-			return;
-		}
-	
-		// we're still waiting for some blocks to complete.
-		// remember that the hash failed for this piece so
-		// when the last block is complete, we can restore
-		// it.
-		m_failed_pieces.push_back(index);
+		we_have(index);
 	}
 
 	void piece_picker::we_dont_have(int index)
@@ -1844,7 +1896,14 @@ namespace libtorrent
 
 		// TODO: 2 m_downloads size will be > 0 just by having pad-files
 		// in the torrent. That should be taken into account here.
-		if (m_downloads[0].size() > num_peers * 3 / 2) options |= prioritize_partials;
+		if (m_downloads[0].size() > num_peers * 3 / 2)
+		{
+			// if we have too many partial pieces, prioritize completing
+			// them. In order for this to have an affect, also disable
+			// prefer whole pieces (otherwise partial pieces would be de-prioritized)
+			options |= prioritize_partials;
+			prefer_whole_pieces = 0;
+		}
 
 		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
@@ -2109,7 +2168,7 @@ namespace libtorrent
 				found = true;
 				break;
 			}
-			TORRENT_ASSERT(!pieces[dp.index] || found);
+			TORRENT_ASSERT(!pieces[dp.index] || found || dp.locked);
 		}
 #endif
 
@@ -2173,6 +2232,7 @@ namespace libtorrent
 		{
 			if (!pieces[i->index]) continue;
 			if (piece_priority(i->index) == 0) continue;
+			if (i->locked) continue;
 				
 			int num_blocks_in_piece = blocks_in_piece(i->index);
 			for (int j = 0; j < num_blocks_in_piece; ++j)
@@ -2399,11 +2459,11 @@ namespace libtorrent
 		, void* peer, piece_state_t speed, int options) const
 	{
 		if (!pieces[dp.index]) return num_blocks;
-		if (m_piece_map[dp.index].filtered()) return num_blocks;
+		TORRENT_ASSERT(!m_piece_map[dp.index].filtered());
 
 		// this piece failed to write. We're currently restoring
 		// it. It's not OK to send more requests to it right now.
-		if (dp.failed_write) return num_blocks;
+		if (dp.locked) return num_blocks;
 
 		int num_blocks_in_piece = blocks_in_piece(dp.index);
 
@@ -2927,9 +2987,44 @@ namespace libtorrent
 		return true;
 	}
 
+	// calling this function prevents this piece from being picked
+	// by the piece picker until the pieces is restored. This allow
+	// the disk thread to synchronize and flush any failed state
+	// (used for disk write failures and piece hash failures).
+	void piece_picker::lock_piece(int piece)
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
+#ifdef TORRENT_PICKER_LOG
+		std::cerr << "[" << this << "] " << "lock_piece(" << piece << ")" << std::endl;
+#endif
+
+		int state = m_piece_map[piece].state;
+		if (state == piece_pos::piece_open) return;
+		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, piece);
+		if (i == m_downloads[state - 1].end()) return;
+
+		TORRENT_ASSERT(i->passed_hash_check == false);
+		i->passed_hash_check = false;
+
+		// prevent this piece from being picked until it's restored
+		i->locked = true;
+	}
+
+	// TODO: 3 it would be nice if this could be folded into lock_piece()
+	// the main distinction is that this also maintains the m_num_passed
+	// counter and the passed_hash_check member
 	void piece_picker::write_failed(piece_block block)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "write_failed( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
@@ -2965,7 +3060,8 @@ namespace libtorrent
 
 		// prevent this hash job from actually completing
 		// this piece, by setting the failure state.
-		i->failed_write = true;
+		// the piece is unlocked in the call to restore_piece()
+		i->locked = true;
 
 		i = update_piece_state(i);
 
@@ -2987,6 +3083,10 @@ namespace libtorrent
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_cancelled( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
+#endif
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
 #endif
 
 		TORRENT_ASSERT(block.piece_index >= 0);
@@ -3019,10 +3119,18 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(info.state == block_info::state_none);
 		}
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
 	}
 
 	void piece_picker::mark_as_finished(piece_block block, void* peer)
 	{
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_finished( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
@@ -3099,23 +3207,13 @@ namespace libtorrent
 				return;
 
 			if (i->passed_hash_check)
-			{
 				we_have(i->index);
-				return;
-			}
-
-			// we just completed writing all the blocks.
-			// and we don't know if the piece hash check
-			// has passed yet. Did it fail though?
-
-			std::vector<int>::iterator iter = std::find(m_failed_pieces.begin()
-				, m_failed_pieces.end(), i->index);
-			if (iter == m_failed_pieces.end()) return;
-
-			// yes, it did fail! restore the piece
-			m_failed_pieces.erase(iter);
-			restore_piece(i->index);
 		}
+
+#ifdef TORRENT_DEBUG
+		check_piece_state();
+#endif
+
 	}
 
 	void piece_picker::mark_as_checking(int index)

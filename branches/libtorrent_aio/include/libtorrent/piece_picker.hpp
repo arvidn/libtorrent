@@ -169,7 +169,7 @@ namespace libtorrent
 		{
 			downloading_piece() : info(0), index(-1)
 				, finished(0), state(none), writing(0)
-				, passed_hash_check(0), failed_write(0)
+				, passed_hash_check(0), locked(0)
 				, requested(0), outstanding_hash_check(0) {}
 
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
@@ -195,21 +195,18 @@ namespace libtorrent
 			// returns with a valid hash for this piece.
 			// we might not 'have' the piece yet though,
 			// since it might not have been written to
-			// disk. This is not set of failed_write is
+			// disk. This is not set of locked is
 			// set.
 			boost::uint16_t passed_hash_check:1;
 
-			// set to true when any block in this piece
-			// fails to be written to disk
-			// if a block fails, passed_hash_check is also
-			// cleared. Checking the hash of a piece and
-			// writing it to disk are both done asynchronously.
-			// the operations may complete in any order. It's
-			// important that at the end we know whether
-			// both succeeded. And if write failed, we want
-			// the piece to be restored to a state where download
-			// can be resumed
-			boost::uint16_t failed_write:1;
+			// when this is set, blocks from this piece may
+			// not be picked. This is used when the hash check
+			// fails or writing to the disk fails, while waiting
+			// to synchronize the disk thread and clear out any
+			// remaining state. Once this synchronization is
+			// done, restore_piece() is called to clear the
+			// locked flag.
+			boost::uint16_t locked:1;
 
 			// the number of blocks in the requested state
 			boost::uint16_t requested:14;
@@ -351,19 +348,15 @@ namespace libtorrent
 
 		void mark_as_canceled(piece_block block, void* peer);
 		void mark_as_finished(piece_block block, void* peer);
+	
+		// prevent blocks from being picked from this piece.
+		// to unlock the piece, call restore_piece() on it
+		void lock_piece(int piece);
+
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
 
-		// if the piece failed, it will automatically be
-		// restored when all blocks are completely written
-		// i.e. transition to finished state. Before then,
-		// it's kept in the writing state to avoid requesting
-		// it from other peers. A piece may also pass the hash
-		// check before all blocks have been written. In this
-		// case a bit will be set in the piece_pos entry
-		// indicating this.
 		void piece_passed(int index);
-		void piece_failed(int index);
 
 		void mark_as_checking(int index);
 		void mark_as_done_checking(int index);
@@ -438,6 +431,7 @@ namespace libtorrent
 		int num_want_left() const { return num_pieces() - m_num_have - m_num_filtered + m_num_have_filtered; }
 
 #ifdef TORRENT_DEBUG
+		void check_piece_state() const;
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
 		void verify_pick(std::vector<piece_block> const& picked
@@ -694,14 +688,6 @@ namespace libtorrent
 		// the downloading_piece::info pointers
 		// point into this vector for its storage
 		std::vector<block_info> m_block_info;
-
-		// if a piece fails the hash check and is still
-		// being written to disk (i.e. not in finished
-		// state), the piece index is put in this vector.
-		// once all blocks are completed and the piece index
-		// is found in this vector, the piece is restored
-		// and taken out of the vector
-		std::vector<int> m_failed_pieces;
 
 		int m_blocks_per_piece;
 		int m_blocks_in_last_piece;

@@ -2659,6 +2659,7 @@ namespace libtorrent
 		pe->hashing_done = 0;
 		delete pe->hash;
 		pe->hash = NULL;
+		pe->hashing_done = false;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
@@ -2751,7 +2752,7 @@ namespace libtorrent
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
-		TORRENT_ASSERT(m_num_threads > 0 || j->action == disk_io_job::flush_piece);
+		TORRENT_ASSERT(m_num_threads > 0 || j->action == disk_io_job::flush_piece || j->action == disk_io_job::trim_cache);
 
 		// this happens for read jobs that get hung on pieces in the
 		// block cache, and then get issued

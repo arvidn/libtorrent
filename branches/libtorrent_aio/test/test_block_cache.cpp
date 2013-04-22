@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
 
+#include <boost/bind.hpp>
+
 using namespace libtorrent;
 
 struct print_alert : alert_dispatcher
@@ -76,10 +78,12 @@ struct test_storage_impl : storage_interface
 	virtual void finalize_file(int, storage_error&) {}
 };
 
+void nop() {}
+
 #define TEST_SETUP \
 	io_service ios; \
 	print_alert ad; \
-	block_cache bc(0x4000, ios, &ad); \
+	block_cache bc(0x4000, ios, boost::bind(&nop), &ad); \
 	aux::session_settings sett; \
 	file_storage fs; \
 	fs.add_file("a/test0", 0x4000); \

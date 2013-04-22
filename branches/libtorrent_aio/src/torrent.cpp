@@ -1081,8 +1081,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (!j->error) return;
 
-		if (j->error.ec == asio::error::operation_aborted) return;
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log("disk error: (%d) %s in file: %s", j->error.ec.value(), j->error.ec.message().c_str()
 			, resolve_filename(j->error.file).c_str());
@@ -1090,34 +1088,41 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j->piece >= 0);
 
-		piece_block block_finished(j->piece, j->d.io.offset / block_size());
-
 		if (j->action == disk_io_job::write)
 		{
+			piece_block block_finished(j->piece, j->d.io.offset / block_size());
+
 			// we failed to write j->piece to disk tell the piece picker
 			if (j->piece >= 0)
 			{
-				if (has_picker())
+				// this will block any other peer from issuing requests
+				// to this piece, until we've cleared it.
+				if (j->error.ec == asio::error::operation_aborted)
 				{
-					// this will block any other peer from issuing requests
-					// to this piece, until we've cleared it.
-					picker().write_failed(block_finished);
-					update_gauge();
-				}
-				if (m_storage)
-				{
-					// when this returns, all outstanding jobs to the
-					// piece are done, and we can restore it, allowing
-					// new requests to it
-					m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
-						, boost::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
+					if (has_picker())
+						picker().mark_as_canceled(block_finished, NULL);
 				}
 				else
 				{
-					disk_io_job sj;
-					sj.piece = j->piece;
-					on_piece_fail_sync(&sj, block_finished);
+					if (has_picker())
+						picker().write_failed(block_finished);
+
+					if (m_storage)
+					{
+						// when this returns, all outstanding jobs to the
+						// piece are done, and we can restore it, allowing
+						// new requests to it
+						m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
+							, boost::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
+					}
+					else
+					{
+						disk_io_job sj;
+						sj.piece = j->piece;
+						on_piece_fail_sync(&sj, block_finished);
+					}
 				}
+				update_gauge();
 			}
 		}
 
@@ -1137,6 +1142,8 @@ namespace libtorrent
 			if (c) c->disconnect(errors::no_memory, peer_connection_interface::op_file);
 			return;
 		}
+
+		if (j->error.ec == asio::error::operation_aborted) return;
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
@@ -2368,6 +2375,8 @@ namespace libtorrent
 	
 	void nop() {}
 
+	// This is only used for checking of torrents. i.e. force-recheck or initial checking
+	// of existing files
 	void torrent::on_piece_hashed(disk_io_job const* j)
 	{
 		// hold a reference until this function returns
@@ -2441,12 +2450,7 @@ namespace libtorrent
 		{
 			// if the hash failed, remove it from the cache
 			if (m_storage)
-			{
 				m_ses.disk_thread().clear_piece(m_storage.get(), j->piece);
-				disk_io_job sj;
-				sj.piece = j->piece;
-				on_piece_sync(&sj);
-			}
 		}
 
 		if (m_num_checked_pieces < m_torrent_file->num_pieces())
@@ -4009,6 +4013,10 @@ namespace libtorrent
 			}
 		}
 
+		// don't allow picking any blocks from this piece
+		// until we're done synchronizing with the disk threads.
+		m_picker->lock_piece(index);
+
 		// don't do this until after the plugins have had a chance
 		// to read back the blocks that failed, for blame purposes
 		// this way they have a chance to hit the cache
@@ -4058,13 +4066,16 @@ namespace libtorrent
 
 	void torrent::on_piece_sync(disk_io_job const* j)
 	{
+		TORRENT_ASSERT(has_picker());
 		if (!has_picker()) return;
+
+		// unlock the piece and restore it, as if no block was
+		// ever downloaded for it.
+		m_picker->restore_piece(j->piece);
 
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
 		// and mark it as being interesting for download
-		m_picker->piece_failed(j->piece);
-
 		TORRENT_ASSERT(m_picker->have_piece(j->piece) == false);
 
 		// loop over all peers and re-request potential duplicate
@@ -6523,9 +6534,11 @@ namespace libtorrent
 				else
 				{
 					torrent_peer* p = static_cast<torrent_peer*>(i->info[j].peer);
+					TORRENT_ASSERT(p->in_use);
 					if (p->connection)
 					{
 						peer_connection* peer = static_cast<peer_connection*>(p->connection);
+						TORRENT_ASSERT(peer->m_in_use);
 						bi.set_peer(peer->remote());
 						if (bi.state == block_info::requested)
 						{
@@ -9435,6 +9448,8 @@ namespace libtorrent
 		update_want_peers();
 	}
 
+	// verify piece is used when checking resume data or when the user
+	// adds a piece
 	void torrent::verify_piece(int piece)
 	{
 		picker().mark_as_checking(piece);

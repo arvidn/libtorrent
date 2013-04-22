@@ -123,6 +123,8 @@ void run_until(io_service& ios, bool const& done)
 	}
 }
 
+void nop() {}
+
 void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	, file_storage& fs
 	, std::string const& test_path
@@ -159,7 +161,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	{ // avoid having two storages use the same files	
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
 	storage_params p;
 	p.path = test_path;
 	p.files = &fs;
@@ -272,7 +274,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
 
 	storage_params p;
 	p.files = &fs;
@@ -351,7 +353,7 @@ void test_check_files(std::string const& test_path
 	file_pool fp;
 	libtorrent::asio::io_service ios;
 	disk_io_thread io(ios, NULL, NULL);
-	disk_buffer_pool dp(16 * 1024, ios, NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
 	storage_params p;
 	p.files = &fs;
 	p.path = test_path;
