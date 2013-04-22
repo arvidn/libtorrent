@@ -791,11 +791,25 @@ int test_main()
 	TEST_EQUAL(picked.size(), 1);
 	TEST_CHECK(picked.size() >= 1 && picked[0].piece_index == 1);
 
+	// don't pick locked pieces
+	picked.clear();
+	p->lock_piece(1);
+	p->pick_pieces(string2vec(" **    "), picked, 7 * blocks_per_piece, 0, 0
+		, piece_picker::fast, piece_picker::rarest_first, empty_vector, 20
+		, pc);
+	TEST_CHECK(verify_pick(p, picked, true));
+	print_pick(picked);
+	// always only pick one busy piece
+	TEST_EQUAL(picked.size(), 3);
+	TEST_CHECK(picked.size() >= 1 && picked[0].piece_index == 2);
+
+	p->restore_piece(1);
 	p->mark_as_downloading(piece_block(2,0), &tmp1, piece_picker::fast);
 	p->mark_as_downloading(piece_block(2,1), &tmp1, piece_picker::fast);
 	p->mark_as_downloading(piece_block(2,3), &tmp1, piece_picker::fast);
 	p->mark_as_downloading(piece_block(1,0), &tmp1, piece_picker::slow);
 	p->mark_as_downloading(piece_block(1,1), &tmp1, piece_picker::slow);
+	p->mark_as_downloading(piece_block(1,2), &tmp1, piece_picker::slow);
 	p->mark_as_downloading(piece_block(1,3), &tmp1, piece_picker::slow);
 
 	picked.clear();
