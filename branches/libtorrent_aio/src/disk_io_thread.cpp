@@ -62,6 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	char const* job_name(int j);
+
 	void assert_print_piece(cached_piece_entry const* pe)
 	{
 		if (pe == NULL)
@@ -84,7 +86,7 @@ namespace libtorrent
 				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes);
 			for (int i = 0; i < pe->piece_log.size(); ++i)
 			{
-				assert_print(", %d (%d)" + (i==0), pe->piece_log[i].job, pe->piece_log[i].block);
+				assert_print(", %s (%d)" + (i==0), job_name(pe->piece_log[i].job), pe->piece_log[i].block);
 			}
 		}
 		assert_print("\n");
@@ -246,7 +248,7 @@ namespace libtorrent
 
 	// flush all blocks that are below p->hash.offset, since we've
 	// already hashed those blocks, they won't cause any read-back
-	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block
+	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block, tailqueue& completed_jobs
 		, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
@@ -314,7 +316,7 @@ namespace libtorrent
 			DLOG("try_flush_hashed: (%d) blocks_in_piece: %d end: %d\n"
 				, int(p->piece), int(p->blocks_in_piece), end);
 
-			return flush_range(p, 0, end, 0, l);
+			return flush_range(p, 0, end, 0, completed_jobs, l);
 		}
 
 		// piece range
@@ -481,7 +483,7 @@ namespace libtorrent
 			}
 			int num_blocks = iovec_offset[i+1] - iovec_offset[i];
 			iovec_flushed(pe, flushing + iovec_offset[i], num_blocks
-				, block_start, error);
+				, block_start, error, completed_jobs);
 			block_start += p->blocks_in_piece;
 		}
 
@@ -625,7 +627,8 @@ namespace libtorrent
 	// the cache needs to be locked when calling this function
 	void disk_io_thread::iovec_flushed(cached_piece_entry* pe
 		, int* flushing, int num_blocks, int block_offset
-		, storage_error const& error)
+		, storage_error const& error
+		, tailqueue& completed_jobs)
 	{
 		for (int i = 0; i < num_blocks; ++i)
 			flushing[i] -= block_offset;
@@ -641,12 +644,11 @@ namespace libtorrent
 
 		int block_size = m_disk_cache.block_size();
 
-		tailqueue jobs;
 		if (error)
 		{
-			jobs.swap(pe->jobs);
+			completed_jobs.swap(pe->jobs);
 
-			for (tailqueue_iterator i = jobs.iterate(); i .get(); i.next())
+			for (tailqueue_iterator i = completed_jobs.iterate(); i .get(); i.next())
 			{
 				disk_io_job* j = (disk_io_job*)i.get();
 				TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
@@ -666,20 +668,19 @@ namespace libtorrent
 				{
 					j->ret = j->d.io.buffer_size;
 					j->error = error;
-					jobs.push_back(j);
+					completed_jobs.push_back(j);
 				}
 				else
 					pe->jobs.push_back(j);
 				j = next;
 			}
 		}
-		add_completed_jobs(jobs);
 	}
 
 	// issues write operations for blocks in the given
 	// range on the given piece.
 	int disk_io_thread::flush_range(cached_piece_entry* pe, int start, int end
-		, int flags, mutex::scoped_lock& l)
+		, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
@@ -709,7 +710,7 @@ namespace libtorrent
 
 		TORRENT_PIECE_ASSERT(pe->piece_refcount > 0, pe);
 		--pe->piece_refcount;
-		iovec_flushed(pe, flushing, iov_len, 0, error);
+		iovec_flushed(pe, flushing, iov_len, 0, error, completed_jobs);
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
@@ -736,7 +737,7 @@ namespace libtorrent
 	
 	}
 
-	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags, mutex::scoped_lock& l)
+	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		if (flags & flush_delete_cache)
@@ -749,7 +750,7 @@ namespace libtorrent
 		else if ((flags & flush_write_cache) && pe->num_dirty > 0)
 		{
 			// issue write commands
-			flush_range(pe, 0, INT_MAX, 0, l);
+			flush_range(pe, 0, INT_MAX, 0, completed_jobs, l);
 
 			// if we're also flushing the read cache, this piece
 			// should be removed as soon as all write jobs finishes
@@ -766,7 +767,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::flush_cache(piece_manager* storage, boost::uint32_t flags
-		, mutex::scoped_lock& l)
+		, tailqueue& completed_jobs, mutex::scoped_lock& l)
 	{
 		if (storage)
 		{
@@ -785,7 +786,7 @@ namespace libtorrent
 				cached_piece_entry* pe = m_disk_cache.find_piece(storage, *i);
 				if (pe == NULL) continue;
 				TORRENT_PIECE_ASSERT(pe->storage == storage, pe);
-				flush_piece(pe, flags, l);
+				flush_piece(pe, flags, completed_jobs, l);
 			}
 		}
 		else
@@ -799,7 +800,7 @@ namespace libtorrent
 					if (range.first == range.second) return;
 				}
 				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*range.first);
-				flush_piece(pe, flags, l);
+				flush_piece(pe, flags, completed_jobs, l);
 				range = m_disk_cache.all_pieces();
 			}
 		}
@@ -809,7 +810,7 @@ namespace libtorrent
 	// size limit. This means we should not restrict ourselves to contiguous
 	// blocks of write cache line size, but try to flush all old blocks
 	// this is why we pass in 1 as cont_block to the flushing functions
-	void disk_io_thread::try_flush_write_blocks(int num
+	void disk_io_thread::try_flush_write_blocks(int num, tailqueue& completed_jobs
 		, mutex::scoped_lock& l)
 	{
 		DLOG("try_flush_write_blocks: %d\n", num);
@@ -842,7 +843,7 @@ namespace libtorrent
 #endif
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
-			num -= try_flush_hashed(pe, 1, l);
+			num -= try_flush_hashed(pe, 1, completed_jobs, l);
 			--pe->piece_refcount;
 		}
 
@@ -874,14 +875,14 @@ namespace libtorrent
 #endif
 			++pe->piece_refcount;
 
-			num -= flush_range(pe, 0, INT_MAX, 0, l);
+			num -= flush_range(pe, 0, INT_MAX, 0, completed_jobs, l);
 			--pe->piece_refcount;
 
 			m_disk_cache.maybe_free_piece(pe);
 		}
 	}
 
-	void disk_io_thread::flush_expired_write_blocks(mutex::scoped_lock& l)
+	void disk_io_thread::flush_expired_write_blocks(tailqueue& completed_jobs, mutex::scoped_lock& l)
 	{
 		DLOG("flush_expired_write_blocks\n");
 
@@ -921,7 +922,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_flush; ++i)
 		{
-			flush_range(to_flush[i], 0, INT_MAX, 0, l);
+			flush_range(to_flush[i], 0, INT_MAX, 0, completed_jobs, l);
 			TORRENT_ASSERT(to_flush[i]->piece_refcount > 0);
 			--to_flush[i]->piece_refcount;
 			m_disk_cache.maybe_free_piece(to_flush[i]);
@@ -957,6 +958,7 @@ namespace libtorrent
 		&disk_io_thread::do_tick,
 	};
 
+#if DEBUG_DISK_THREAD || defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	const char* job_action_name[] =
 	{
 		"read",
@@ -981,6 +983,18 @@ namespace libtorrent
 		"tick_storage",
 	};
 
+	char const* job_name(int j)
+	{
+		if (j < 0 || j >= piece_log_t::last_job)
+			return "unknown";
+
+		if (j < piece_log_t::flushing)
+			return job_action_name[j];
+		return piece_log_t::job_names[j - piece_log_t::flushing];
+	}
+
+#endif
+
 	// evict and/or flush blocks if we're exceeding the cache size
 	// or used to exceed it and haven't dropped below the low watermark yet
 	// the low watermark is dynamic, based on the number of peers waiting
@@ -998,7 +1012,17 @@ namespace libtorrent
 			// don't evict write jobs if at least one other thread
 			// is flushing right now. Doing so could result in
 			// unnecessary flushing of the wrong pieces
-			if (evict > 0 && m_num_writing_threads == 0) try_flush_write_blocks(evict, l);
+			if (evict > 0 && m_num_writing_threads == 0)
+			{
+				tailqueue completed_jobs;
+				try_flush_write_blocks(evict, completed_jobs, l);
+				if (completed_jobs.size())
+				{
+					l.unlock();
+					add_completed_jobs(completed_jobs);
+					l.lock();
+				}
+			}
 		}
 	}
 
@@ -1370,6 +1394,11 @@ namespace libtorrent
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
 			if (pe && pe->hashing_done)
 			{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+				print_piece_log(pe->piece_log);
+#endif
+				TORRENT_ASSERT(pe->blocks[j->d.io.offset / 16 / 1024].buf != j->buffer);
+				TORRENT_ASSERT(pe->blocks[j->d.io.offset / 16 / 1024].buf != NULL);
 				j->error.ec = error::operation_aborted;
 				j->error.operation = storage_error::write;
 				return -1;
@@ -1380,7 +1409,7 @@ namespace libtorrent
 			if (pe)
 			{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-				pe->piece_log.push_back(piece_log_t(j->action));
+				pe->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
 
 				if (!pe->hashing_done
@@ -1391,9 +1420,6 @@ namespace libtorrent
 					m_disk_cache.update_cache_state(pe);
 				}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-				pe->piece_log.push_back(piece_log_t(piece_log_t::do_write, -1));
-#endif
 				TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 				++pe->piece_refcount;
 
@@ -1405,10 +1431,15 @@ namespace libtorrent
 				// flushes the piece to disk in case
 				// it satisfies the condition for a write
 				// piece to be flushed
-				try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
+				tailqueue completed_jobs;
+				try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), completed_jobs, l);
 
 				--pe->piece_refcount;
 				m_disk_cache.maybe_free_piece(pe);
+				l.unlock();
+				if (completed_jobs.size())
+					add_completed_jobs(completed_jobs);
+
 				return defer_handler;
 			}
 		}
@@ -1670,9 +1701,13 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		// remove cache blocks belonging to this torrent
+		tailqueue completed_jobs;
 		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(storage, flush_delete_cache, l);
+		flush_cache(storage, flush_delete_cache, completed_jobs, l);
 		l.unlock();
+
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 
 		// remove outstanding jobs belonging to this torrent
 		mutex::scoped_lock l2(m_job_mutex);
@@ -2109,9 +2144,6 @@ namespace libtorrent
 
 		pe->hashing = 1;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		pe->piece_log.push_back(piece_log_t(piece_log_t::do_hash, -1));
-#endif
 		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 
@@ -2274,9 +2306,13 @@ namespace libtorrent
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
+		tailqueue completed_jobs;
 		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(j->storage.get(), flush_write_cache, l);
+		flush_cache(j->storage.get(), flush_write_cache, completed_jobs, l);
 		l.unlock();
+
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 
 		j->storage->get_storage_impl()->release_files(j->error);
 		return j->error ? -1 : 0;
@@ -2290,9 +2326,13 @@ namespace libtorrent
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
+		tailqueue completed_jobs;
 		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(j->storage.get(), flush_delete_cache, l);
+		flush_cache(j->storage.get(), flush_delete_cache, completed_jobs, l);
 		l.unlock();
+
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 
 		j->storage->get_storage_impl()->delete_files(j->error);
 		return j->error ? -1 : 0;
@@ -2315,9 +2355,13 @@ namespace libtorrent
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
+		tailqueue completed_jobs;
 		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(j->storage.get(), flush_write_cache, l);
+		flush_cache(j->storage.get(), flush_write_cache, completed_jobs, l);
 		l.unlock();
+
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 
 		entry* resume_data = new entry(entry::dictionary_t);
 		j->storage->get_storage_impl()->write_resume_data(*resume_data, j->error);
@@ -2343,9 +2387,14 @@ namespace libtorrent
 
 		// issue write commands for all dirty blocks
 		// and clear all read jobs
+		tailqueue completed_jobs;
 		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(j->storage.get(), flush_read_cache | flush_write_cache, l);
+		flush_cache(j->storage.get(), flush_read_cache | flush_write_cache, completed_jobs, l);
 		m_disk_cache.release_memory();
+		l.unlock();
+
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 
 		return 0;
 	}
@@ -2551,7 +2600,13 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
 #endif
-		try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
+		tailqueue completed_jobs;
+		try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), completed_jobs, l);
+
+		l.unlock();
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
+
 		return 0;
 	}
 
@@ -2567,7 +2622,10 @@ namespace libtorrent
 		if (pe == NULL) return 0;
 		if (pe->num_dirty == 0) return 0;
 
-		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
+		// if multiple threads are flushing this piece, this assert may fire
+		// this happens if the cache is running full and pieces are started to
+		// get flushed
+//		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
@@ -2593,23 +2651,34 @@ namespace libtorrent
 		// it satisfies the condition for a write
 		// piece to be flushed
 		// #error if hash checks are disabled, always just flush
-		try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
+		tailqueue completed_jobs;
+		try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), completed_jobs, l);
 
 		TORRENT_ASSERT(l.locked());
 
-		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
+//		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
 		pe->outstanding_flush = 0;
 		--pe->piece_refcount;
 
 		m_disk_cache.maybe_free_piece(pe);
+
+		l.unlock();
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 
 		return 0;
 	}
 
 	int disk_io_thread::do_flush_storage(disk_io_job* j)
 	{
+		tailqueue completed_jobs;
 		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(j->storage.get(), flush_write_cache, l);
+		flush_cache(j->storage.get(), flush_write_cache, completed_jobs, l);
+		l.unlock();
+
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
+
 		return 0;
 	}
 
@@ -2853,7 +2922,11 @@ namespace libtorrent
 					DLOG("blocked_jobs: %d queued_jobs: %d num_threads %d\n"
 						, int(m_num_blocked_jobs), m_queued_jobs.size(), int(m_num_threads));
 					m_last_cache_expiry = now;
-					flush_expired_write_blocks(l2);
+					tailqueue completed_jobs;
+					flush_expired_write_blocks(completed_jobs, l2);
+					l2.unlock();
+					if (completed_jobs.size())
+						add_completed_jobs(completed_jobs);
 				}
 			}
 
@@ -2991,10 +3064,82 @@ namespace libtorrent
 			{
 				disk_io_job const* j = static_cast<disk_io_job const*>(i.get());
 				TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
+
+				if (j->action == disk_io_job::write)
+				{
+					mutex::scoped_lock l(m_cache_mutex);
+					cached_piece_entry* pe = m_disk_cache.find_piece(j);
+					if (pe)
+					{
+						TORRENT_ASSERT(pe->blocks[j->d.io.offset / 16 / 1024].buf != j->buffer);
+						TORRENT_ASSERT(pe->blocks[j->d.io.offset / 16 / 1024].buf == NULL);
+						TORRENT_ASSERT(!pe->hashing_done);
+					}
+				}
 			}
 #endif
+			// write jobs should be put straight into the cache
+			tailqueue other_jobs;
+			tailqueue flush_jobs;
+			mutex::scoped_lock l_(m_cache_mutex);
+			while (new_jobs.size() > 0)
+			{
+				disk_io_job* j = (disk_io_job*)new_jobs.pop_front();
+				if (j->action != disk_io_job::write)
+				{
+					other_jobs.push_back(j);
+					continue;
+				}
+
+				cached_piece_entry* pe = m_disk_cache.find_piece(j);
+				pe = m_disk_cache.add_dirty_block(j);
+
+				if (pe == NULL)
+				{
+					// this isn't correct, since jobs in the jobs
+					// queue aren't ordered
+					other_jobs.push_back(j);
+					continue;
+				}
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+				pe->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
+#endif
+
+				if (!pe->hashing_done
+					&& pe->hash == 0
+					&& !m_settings.get_bool(settings_pack::disable_hash_checks))
+				{
+					pe->hash = new partial_hash;
+					m_disk_cache.update_cache_state(pe);
+				}
+
+				TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+
+				if (pe->outstanding_flush == 0)
+				{
+					pe->outstanding_flush = 1;
+
+					// the block and write job were successfully inserted
+					// into the cache. Now, see if we should trigger a flush
+					disk_io_job* fj = allocate_job(disk_io_job::flush_hashed);
+					fj->storage = j->storage;
+					fj->piece = j->piece;
+					flush_jobs.push_back(fj);
+				}
+			}
+			l_.unlock();
+
 			mutex::scoped_lock l(m_job_mutex);
-			m_queued_jobs.append(new_jobs);
+			m_queued_jobs.append(other_jobs);
+			l.unlock();
+
+			while (flush_jobs.size() > 0)
+			{
+				disk_io_job* j = (disk_io_job*)flush_jobs.pop_front();
+				add_job(j);
+			}
+
 			m_job_cond.notify_all();
 		}
 

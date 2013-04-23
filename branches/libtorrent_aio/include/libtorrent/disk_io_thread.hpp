@@ -400,7 +400,7 @@ namespace libtorrent
 		// writes out the blocks [start, end) (releases the lock
 		// during the file operation)
 		int flush_range(cached_piece_entry* p, int start, int end
-			, int flags, mutex::scoped_lock& l);
+			, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l);
 
 		// low level flush operations, used by flush_range
 		int build_iovec(cached_piece_entry* pe, int start, int end
@@ -409,7 +409,8 @@ namespace libtorrent
 			, int num_blocks, storage_error& error);
 		void iovec_flushed(cached_piece_entry* pe
 			, int* flushing, int num_blocks, int block_offset
-			, storage_error const& error);
+			, storage_error const& error
+			, tailqueue& completed_jobs);
 
 		// assumes l is locked (the cache mutex).
 		// assumes pe->hash to be set.
@@ -419,13 +420,13 @@ namespace libtorrent
 		void kick_hasher(cached_piece_entry* pe, mutex::scoped_lock& l);
 
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
-		void flush_cache(piece_manager* storage, boost::uint32_t flags, mutex::scoped_lock& l);
-		void flush_expired_write_blocks(mutex::scoped_lock& l);
-		void flush_piece(cached_piece_entry* pe, int flags, mutex::scoped_lock& l);
+		void flush_cache(piece_manager* storage, boost::uint32_t flags, tailqueue& completed_jobs, mutex::scoped_lock& l);
+		void flush_expired_write_blocks(tailqueue& completed_jobs, mutex::scoped_lock& l);
+		void flush_piece(cached_piece_entry* pe, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l);
 
-		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, mutex::scoped_lock& l);
+		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, tailqueue& completed_jobs, mutex::scoped_lock& l);
 
-		void try_flush_write_blocks(int num, mutex::scoped_lock& l);
+		void try_flush_write_blocks(int num, tailqueue& completed_jobs, mutex::scoped_lock& l);
 
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to

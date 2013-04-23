@@ -77,15 +77,21 @@ namespace libtorrent
 		enum artificial_jobs
 		{
 			flushing = disk_io_job::num_job_ids, // 20
-			do_write,
-			do_hash,
 			flush_expired,
 			try_flush_write_blocks,
 			try_flush_write_blocks2,
 			flush_range,
 
+			last_job
 		};
+
+		static char const* job_names[7];
 	};
+
+	char const* job_name(int j);
+
+	void print_piece_log(std::vector<piece_log_t> const& piece_log);
+
 #endif
 
 	struct partial_hash

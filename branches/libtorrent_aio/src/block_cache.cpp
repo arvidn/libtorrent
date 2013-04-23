@@ -169,6 +169,30 @@ void log_refcounts(cached_piece_entry const* pe)
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 
+	char const* piece_log_t::job_names[7] =
+	{
+		"flushing",
+		"flush_expired",
+		"try_flush_write_blocks",
+		"try_flush_write_blocks2",
+		"flush_range",
+	};
+
+	void print_piece_log(std::vector<piece_log_t> const& piece_log)
+	{
+		for (int i = 0; i < int(piece_log.size()); ++i)
+		{
+			if (piece_log[i].block == -1)
+			{
+				printf("%d: %s\n", i, job_name(piece_log[i].job));
+			}
+			else
+			{
+				printf("%d: %s %d\n", i, job_name(piece_log[i].job), piece_log[i].block);
+			}
+		}
+	}
+
 // defined in disk_io_thread.cpp
 	void assert_print_piece(cached_piece_entry const* pe);
 
