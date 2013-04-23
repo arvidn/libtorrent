@@ -958,7 +958,6 @@ namespace libtorrent
 		&disk_io_thread::do_tick,
 	};
 
-#if DEBUG_DISK_THREAD || defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	const char* job_action_name[] =
 	{
 		"read",
@@ -983,6 +982,7 @@ namespace libtorrent
 		"tick_storage",
 	};
 
+#if DEBUG_DISK_THREAD || defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	char const* job_name(int j)
 	{
 		if (j < 0 || j >= piece_log_t::last_job)
