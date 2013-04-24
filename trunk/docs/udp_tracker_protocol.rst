@@ -298,7 +298,7 @@ in the tracker URL for each user. The extension body has the following format:
 +-------------+---------------------+----------------------------------------+
 | size        | name                | description                            |
 +=============+=====================+========================================+
-| int16_t     | request length      | The number of bytes in the request     |
+| int8_t      | request length      | The number of bytes in the request     |
 |             |                     | string.                                |
 +-------------+---------------------+----------------------------------------+
 | int8_t[]    | request string      | The string that comes after the host-  |
