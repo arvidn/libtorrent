@@ -7206,8 +7206,16 @@ resume file was rejected.
 peer_blocked_alert
 ------------------
 
-This alert is generated when a peer is blocked by the IP filter. The ``ip`` member is the
-address that was blocked.
+This alert is posted when an incoming peer connection, or a peer that's about to be added
+to our peer list, is blocked for some reason. This could be any of:
+
+* the IP filter
+* i2p mixed mode restrictions (a normal peer is not allowed on an i2p swarm)
+* the port filter
+* the peer has a low port and ``no_connect_privileged_ports`` is enabled
+* the protocol of the peer is blocked (uTP/TCP blocking)
+
+The ``ip`` member is the address that was blocked.
 
 ::
 
