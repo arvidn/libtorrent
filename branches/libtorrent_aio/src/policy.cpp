@@ -489,6 +489,8 @@ namespace libtorrent
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
+			++state->loop_counter;
+
 			if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
 			torrent_peer& pe = *m_peers[m_round_robin];

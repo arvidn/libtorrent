@@ -106,6 +106,9 @@ namespace libtorrent
 
 			// connection attempts (not necessarily successful)
 			connection_attempts,
+			// the number of iterations over the peer list when finding
+			// a connect candidate
+			connection_attempt_loops,
 			// successful incoming connections (not rejected for any reason)
 			incoming_connections,
 

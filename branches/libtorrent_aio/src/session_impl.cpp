@@ -1391,6 +1391,8 @@ namespace aux {
 			":piece_picker_rand_loops"
 			":piece_picker_busy_loops"
 
+			":connection attempt loops"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -4312,6 +4314,8 @@ retry:
 			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_rand_start_loops]));
 			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_rand_loops]));
 			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_busy_loops]));
+
+			STAT_LOG(d, int(m_stats_counters[counters::connection_attempt_loops]));
 
 			fprintf(m_stats_logger, "\n");
 

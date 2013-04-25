@@ -66,6 +66,7 @@ namespace libtorrent
 			, allow_multiple_connections_per_ip(false)
 			, max_peerlist_size(1000)
 			, min_reconnect_time(60)
+			, loop_counter(0)
 			, ip(NULL), port(0)
 			, first_time_seen(false)
 			, peer_allocator(NULL)
@@ -75,6 +76,9 @@ namespace libtorrent
 		bool allow_multiple_connections_per_ip;
 		int max_peerlist_size;
 		int min_reconnect_time;
+
+		// the number of iterations over the peer list for this operation
+		int loop_counter;
 
 		// these are used only by find_connect_candidate in order
 		// to implement peer ranking. See:

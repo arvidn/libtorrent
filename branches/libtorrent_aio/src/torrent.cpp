@@ -3096,6 +3096,7 @@ namespace libtorrent
 			torrent_state st = get_policy_state();
 			torrent_peer* p = m_policy.connect_one_peer(m_ses.session_time(), &st);
 			peers_erased(st.erased);
+			m_ses.inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
 			if (p == NULL)
 			{
 				update_want_peers();
@@ -9316,6 +9317,7 @@ namespace libtorrent
 		torrent_state st = get_policy_state();
 		torrent_peer* p = m_policy.connect_one_peer(m_ses.session_time(), &st);
 		peers_erased(st.erased);
+		m_ses.inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
 
 		if (p == NULL)
 		{
