@@ -80,7 +80,7 @@ namespace libtorrent
 		// the number of iterations over the peer list for this operation
 		int loop_counter;
 
-		// these are used only by find_connect_candidate in order
+		// these are used only by find_connect_candidates in order
 		// to implement peer ranking. See:
 		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
 		external_ip const* ip;
@@ -206,10 +206,10 @@ namespace libtorrent
 		bool insert_peer(torrent_peer* p, iterator iter, int flags, torrent_state* state);
 
 		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;
-		bool compare_peer(torrent_peer const& lhs, torrent_peer const& rhs
+		bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
 			, external_ip const& external, int source_port) const;
 
-		iterator find_connect_candidate(int session_time, torrent_state* state);
+		void find_connect_candidates(std::vector<torrent_peer*>& peers, int session_time, torrent_state* state);
 
 		bool is_connect_candidate(torrent_peer const& p) const;
 		bool is_erase_candidate(torrent_peer const& p) const;
@@ -220,6 +220,9 @@ namespace libtorrent
 		void erase_peers(torrent_state* state, int flags = 0);
 
 		peers_t m_peers;
+
+		// a list of good connect candidates
+		std::vector<torrent_peer*> m_candidate_cache;
 
 		// this shouldbe NULL for the most part. It's set
 		// to point to a valid torrent_peer object if that

@@ -291,6 +291,11 @@ namespace libtorrent
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
+		// if this peer is in the connect candidate
+		// cache, erase it from there as well
+		std::vector<torrent_peer*>::iterator ci = std::find(m_candidate_cache.begin(), m_candidate_cache.end(), *i);
+		if (ci != m_candidate_cache.end()) m_candidate_cache.erase(ci);
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT((*i)->in_use);
 		(*i)->in_use = false;
@@ -468,12 +473,14 @@ namespace libtorrent
 		return true;
 	}
 
-	policy::iterator policy::find_connect_candidate(int session_time, torrent_state* state)
+	void policy::find_connect_candidates(std::vector<torrent_peer*>& peers, int session_time, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		int candidate = -1;
+		const int candidate_count = 10;
+		peers.reserve(candidate_count);
+
 		int erase_candidate = -1;
 
 		if (m_finished != state->is_finished)
@@ -510,7 +517,6 @@ namespace libtorrent
 					if (should_erase_immediately(pe))
 					{
 						if (erase_candidate > current) --erase_candidate;
-						if (candidate > current) --candidate;
 						erase_peer(m_peers.begin() + current, state);
 						continue;
 					}
@@ -525,29 +531,32 @@ namespace libtorrent
 
 			if (!is_connect_candidate(pe)) continue;
 
-			// compare peer returns true if lhs is better than rhs. In this
-			// case, it returns true if the current candidate is better than
-			// pe, which is the peer m_round_robin points to. If it is, just
-			// keep looking.
-			if (candidate != -1
-				&& compare_peer(*m_peers[candidate], pe, external, external_port)) continue;
-
 			if (pe.last_connected
 				&& session_time - pe.last_connected <
 				(int(pe.failcount) + 1) * state->min_reconnect_time)
 				continue;
 
-			candidate = current;
+			// compare peer returns true if lhs is better than rhs. In this
+			// case, it returns true if the current candidate is better than
+			// pe, which is the peer m_round_robin points to. If it is, just
+			// keep looking.
+			if (peers.size() == candidate_count
+				&& compare_peer(peers.back(), &pe, external, external_port)) continue;
+
+			if (peers.size() >= candidate_count)
+				peers.resize(candidate_count - 1);
+
+			// insert this candidate sorted into peers
+			std::vector<torrent_peer*>::iterator i = std::lower_bound(peers.begin(), peers.end()
+				, &pe, boost::bind(&policy::compare_peer, this, _1, _2, boost::cref(external), external_port));
+
+			peers.insert(i, &pe);
 		}
 		
 		if (erase_candidate > -1)
 		{
-			if (candidate > erase_candidate) --candidate;
 			erase_peer(m_peers.begin() + erase_candidate, state);
 		}
-
-		if (candidate == -1) return m_peers.end();
-		return m_peers.begin() + candidate;
 	}
 
 	bool policy::new_connection(peer_connection_interface& c, int session_time, torrent_state* state)
@@ -1113,20 +1122,40 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		iterator i = find_connect_candidate(session_time, state);
-		if (i == m_peers.end()) return NULL;
-		torrent_peer& p = **i;
-		TORRENT_ASSERT(p.in_use);
+		if (m_finished != state->is_finished)
+			recalculate_connect_candidates(state);
 
-		TORRENT_ASSERT(!p.banned);
-		TORRENT_ASSERT(!p.connection);
-		TORRENT_ASSERT(p.connectable);
+		// clear out any peers from the cache that no longer
+		// are connection candidates
+		for (std::vector<torrent_peer*>::iterator i = m_candidate_cache.begin();
+			i != m_candidate_cache.end();)
+		{
+			if (!is_connect_candidate(**i))
+				i = m_candidate_cache.erase(i);
+			else
+				++i;
+		}
 
-		// this should hold because find_connect_candidate should have done this
+		if (m_candidate_cache.empty())
+		{
+			find_connect_candidates(m_candidate_cache, session_time, state);
+			if (m_candidate_cache.empty()) return NULL;
+		}
+
+		torrent_peer* p = m_candidate_cache.front();
+		m_candidate_cache.erase(m_candidate_cache.begin());
+
+		TORRENT_ASSERT(p->in_use);
+
+		TORRENT_ASSERT(!p->banned);
+		TORRENT_ASSERT(!p->connection);
+		TORRENT_ASSERT(p->connectable);
+
+		// this should hold because find_connect_candidates should have done this
 		TORRENT_ASSERT(m_finished == state->is_finished);
 
-		TORRENT_ASSERT(is_connect_candidate(p));
-		return &p;
+		TORRENT_ASSERT(is_connect_candidate(*p));
+		return p;
 	}
 
 	// this is called whenever a peer connection is closed
@@ -1311,28 +1340,28 @@ namespace libtorrent
 	}
 
 	// this returns true if lhs is a better connect candidate than rhs
-	bool policy::compare_peer(torrent_peer const& lhs, torrent_peer const& rhs
+	bool policy::compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
 		, external_ip const& external, int external_port) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// prefer peers with lower failcount
-		if (lhs.failcount != rhs.failcount)
-			return lhs.failcount < rhs.failcount;
+		if (lhs->failcount != rhs->failcount)
+			return lhs->failcount < rhs->failcount;
 
 		// Local peers should always be tried first
-		bool lhs_local = is_local(lhs.address());
-		bool rhs_local = is_local(rhs.address());
+		bool lhs_local = is_local(lhs->address());
+		bool rhs_local = is_local(rhs->address());
 		if (lhs_local != rhs_local) return lhs_local > rhs_local;
 
-		if (lhs.last_connected != rhs.last_connected)
-			return lhs.last_connected < rhs.last_connected;
+		if (lhs->last_connected != rhs->last_connected)
+			return lhs->last_connected < rhs->last_connected;
 
-		int lhs_rank = source_rank(lhs.source);
-		int rhs_rank = source_rank(rhs.source);
+		int lhs_rank = source_rank(lhs->source);
+		int rhs_rank = source_rank(rhs->source);
 		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
 
-		boost::uint32_t lhs_peer_rank = lhs.rank(external, external_port);
-		boost::uint32_t rhs_peer_rank = rhs.rank(external, external_port);
+		boost::uint32_t lhs_peer_rank = lhs->rank(external, external_port);
+		boost::uint32_t rhs_peer_rank = rhs->rank(external, external_port);
 		if (lhs_peer_rank > rhs_peer_rank) return true;
 		return false;
 	}
