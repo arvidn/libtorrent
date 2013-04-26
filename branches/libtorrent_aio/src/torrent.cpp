@@ -2294,7 +2294,9 @@ namespace libtorrent
 		m_ses.disk_thread().async_release_files(m_storage.get()
 			, boost::function<void(disk_io_job const*)>());
 
+		// forget that we have any pieces
 		m_have_all = false;
+		m_picker.reset();
 
 		// file progress is allocated lazily, the first time the client
 		// asks for it
