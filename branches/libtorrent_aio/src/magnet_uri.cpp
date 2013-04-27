@@ -44,24 +44,25 @@ namespace libtorrent
 	{
 		if (!handle.is_valid()) return "";
 
-		char ret[1024];
+		std::string ret;
 		sha1_hash const& ih = handle.info_hash();
-		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, to_hex(ih.to_string()).c_str());
+		ret += "magnet:?xt=urn:btih:";
+		ret += to_hex(ih.to_string());
 
 		torrent_status st = handle.status(torrent_handle::query_name);
-		std::string name = st.name;
 
-		if (!name.empty())
-			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
-				, escape_string(name.c_str(), name.length()).c_str());
+		if (!st.name.empty())
+		{
+			ret += "&dn=";
+			ret += escape_string(st.name.c_str(), st.name.length());
+		}
 
 		std::vector<announce_entry> const& tr = handle.trackers();
 
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
-			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
-				, escape_string(i->url.c_str(), i->url.length()).c_str());
+			ret += "&tr=";
+			ret += escape_string(i->url.c_str(), i->url.length());
 		}
 
 		return ret;
@@ -69,22 +70,25 @@ namespace libtorrent
 
 	std::string make_magnet_uri(torrent_info const& info)
 	{
-		char ret[1024];
+		std::string ret;
 		sha1_hash const& ih = info.info_hash();
-		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
-			, to_hex(ih.to_string()).c_str());
+		ret += "magnet:?xt=urn:btih:";
+		ret += to_hex(ih.to_string());
 
 		std::string const& name = info.name();
 
 		if (!name.empty())
-			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
-				, escape_string(name.c_str(), name.length()).c_str());
+		{
+			ret += "&dn=";
+			ret += escape_string(name.c_str(), name.length());
+		}
 
 		std::vector<announce_entry> const& tr = info.trackers();
+
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
-			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
-				, escape_string(i->url.c_str(), i->url.length()).c_str());
+			ret += "&tr=";
+			ret += escape_string(i->url.c_str(), i->url.length());
 		}
 
 		return ret;

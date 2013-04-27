@@ -247,8 +247,8 @@ namespace libtorrent { namespace
 
 			if (m_full_list)
 			{
-				send_full_tex_list();
-				m_full_list = false;
+				if (send_full_tex_list())
+					m_full_list = false;
 			}
 			else
 			{
@@ -263,6 +263,9 @@ namespace libtorrent { namespace
 			// if there's no change in out tracker set, don't send anything
 			if (m_tp.num_updates() == 0) return;
 
+			if (!m_torrent.valid_metadata() || m_torrent.torrent_file().priv())
+				return;
+
 			std::vector<char> const& tex_msg = m_tp.get_lt_tex_msg();
 
 			char msg[6];
@@ -276,9 +279,12 @@ namespace libtorrent { namespace
 			m_pc.setup_send();
 		}
 
-		void send_full_tex_list() const
+		bool send_full_tex_list() const
 		{
-			if (m_tp.trackers().empty()) return;
+			if (m_tp.trackers().empty()) return false;
+
+			if (!m_torrent.valid_metadata() || m_torrent.torrent_file().priv())
+				return false;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			std::stringstream log_line;
@@ -313,6 +319,8 @@ namespace libtorrent { namespace
 			m_pc.send_buffer(msg, sizeof(msg));
 			m_pc.send_buffer(&tex_msg[0], tex_msg.size());
 			m_pc.setup_send();
+
+			return true;
 		}
 
 		// this is the message index the remote peer uses
@@ -331,6 +339,9 @@ namespace libtorrent { namespace
 		peer_connection* pc)
 	{
 		if (pc->type() != peer_connection::bittorrent_connection)
+			return boost::shared_ptr<peer_plugin>();
+
+		if (m_torrent.valid_metadata() && m_torrent.torrent_file().priv())
 			return boost::shared_ptr<peer_plugin>();
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);

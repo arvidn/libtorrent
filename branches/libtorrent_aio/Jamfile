@@ -257,7 +257,8 @@ rule building ( properties * )
 
 	if ( <toolset>darwin in $(properties)
 		|| <toolset>gcc in $(properties)
-		|| <toolset>clang in $(propertoes) )
+		|| <toolset>clang in $(propertoes)
+		|| <toolset>clang-darwin in $(propertoes) )
 		&& <link>shared in $(properties)
 		# on GCC, enabling debugging in libstdc++
 		# breaks the ABI and its ability to appear
@@ -623,6 +624,7 @@ local usage-requirements =
 	<toolset>gcc,<variant>debug:<cflags>-ftrapv
 	<toolset>darwin,<variant>debug:<cflags>-ftrapv
 	<toolset>clang:<cflags>-Wno-invalid-offsetof
+	<toolset>clang-darwin:<cflags>-Wno-invalid-offsetof
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	<boost>system:<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39

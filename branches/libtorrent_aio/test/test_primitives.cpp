@@ -2275,6 +2275,58 @@ int test_main()
 	parse_endpoint("[ff::1:5", ec);
 	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address, get_libtorrent_category()));
 
+	// make_magnet_uri
+	{
+		entry info;
+		info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+		info["name"] = "slightly shorter name, it's kind of sad that people started the trend of incorrectly encoding the regular name field and then adding another one with correct encoding";
+		info["name.utf-8"] = "this is a long ass name in order to try to make make_magnet_uri overflow and hopefully crash. Although, by the time you read this that particular bug should have been fixed";
+		info["piece length"] = 16 * 1024;
+		info["length"] = 3245;
+		entry torrent;
+		torrent["info"] = info;
+		entry::list_type& al1 = torrent["announce-list"].list();
+		al1.push_back(entry::list_type());
+		entry::list_type& al = al1.back().list();
+		al.push_back(entry("http://bigtorrent.org:2710/announce"));
+		al.push_back(entry("http://bt.careland.com.cn:6969/announce"));
+		al.push_back(entry("http://bt.e-burg.org:2710/announce"));
+		al.push_back(entry("http://bttrack.9you.com/announce"));
+		al.push_back(entry("http://coppersurfer.tk:6969/announce"));
+		al.push_back(entry("http://erdgeist.org/arts/software/opentracker/announce"));
+		al.push_back(entry("http://exodus.desync.com/announce"));
+		al.push_back(entry("http://fr33dom.h33t.com:3310/announce"));
+		al.push_back(entry("http://genesis.1337x.org:1337/announce"));
+		al.push_back(entry("http://inferno.demonoid.me:3390/announce"));
+		al.push_back(entry("http://inferno.demonoid.ph:3390/announce"));
+		al.push_back(entry("http://ipv6.tracker.harry.lu/announce"));
+		al.push_back(entry("http://lnxroot.com:6969/announce"));
+		al.push_back(entry("http://nemesis.1337x.org/announce"));
+		al.push_back(entry("http://puto.me:6969/announce"));
+		al.push_back(entry("http://sline.net:2710/announce"));
+		al.push_back(entry("http://tracker.beeimg.com:6969/announce"));
+		al.push_back(entry("http://tracker.ccc.de/announce"));
+		al.push_back(entry("http://tracker.coppersurfer.tk/announce"));
+		al.push_back(entry("http://tracker.coppersurfer.tk:6969/announce"));
+		al.push_back(entry("http://tracker.cpleft.com:2710/announce"));
+		al.push_back(entry("http://tracker.istole.it/announce"));
+		al.push_back(entry("http://tracker.kamyu.net/announce"));
+		al.push_back(entry("http://tracker.novalayer.org:6969/announce"));
+		al.push_back(entry("http://tracker.torrent.to:2710/announce"));
+		al.push_back(entry("http://tracker.torrentbay.to:6969/announce"));
+		al.push_back(entry("udp://tracker.openbittorrent.com:80"));
+		al.push_back(entry("udp://tracker.publicbt.com:80"));
+
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), torrent);
+		printf("%s\n", &buf[0]);
+		torrent_info ti(&buf[0], buf.size(), ec);
+
+		TEST_EQUAL(al.size(), ti.trackers().size());
+
+		std::string magnet = make_magnet_uri(ti);
+		printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+	}
 	return 0;
 }
 
