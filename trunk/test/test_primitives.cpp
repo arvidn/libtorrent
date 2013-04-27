@@ -1385,8 +1385,11 @@ int test_main()
 		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij012345.txt";
 	std::string comparison = test;
 	trim_path_element(test);
-	comparison.resize(TORRENT_MAX_PATH - 4);
-	comparison += ".txt"; // the extension is supposed to be preserved
+	if (comparison.size() > TORRENT_MAX_PATH)
+	{
+		comparison.resize(TORRENT_MAX_PATH - 4);
+		comparison += ".txt"; // the extension is supposed to be preserved
+	}
 	TEST_EQUAL(test, comparison);
 
 	// extensions > 15 characters are ignored
@@ -1403,7 +1406,8 @@ int test_main()
 		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij.123456789abcdefghij0123456789";
 	comparison = test;
 	trim_path_element(test);
-	comparison.resize(TORRENT_MAX_PATH);
+	if (comparison.size() > TORRENT_MAX_PATH)
+		comparison.resize(TORRENT_MAX_PATH);
 	TEST_EQUAL(test, comparison);
 
 
