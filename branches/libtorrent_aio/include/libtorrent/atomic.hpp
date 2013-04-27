@@ -61,65 +61,68 @@ namespace libtorrent
 		atomic_count() : m_value(0) {}
 		atomic_count(int v) : m_value(v) {}
 
-#if TORRENT_USE_OSATOMIC
-		operator int() const { return OSAtomicAdd32(0, const_cast<value_type*>(&m_value)); }
-		atomic_count& operator-=(int v) { OSAtomicAdd32(-v, &m_value); return *this; }
-		atomic_count& operator+=(int v) { OSAtomicAdd32(v, &m_value); return *this; }
-		// pre inc/dec operators
-		atomic_count& operator++() { OSAtomicAdd32(1, &m_value); return *this; }
-		atomic_count& operator--() { OSAtomicAdd32(-1, &m_value); return *this; }
-		// post inc/dec operators
-		int operator++(int) { return OSAtomicAdd32(1, &m_value); }
-		int operator--(int) { return OSAtomicAdd32(-1, &m_value); }
-#elif TORRENT_USE_GCC_ATOMIC
-		operator int() const { return __sync_fetch_and_add(const_cast<value_type*>(&m_value), 0); }
-		atomic_count& operator-=(int v) { __sync_fetch_and_sub(&m_value, v); return *this; }
-		atomic_count& operator+=(int v) { __sync_fetch_and_add(&m_value, v); return *this; }
-		// pre inc/dec operators
-		atomic_count& operator++() { __sync_fetch_and_add(&m_value, 1); return *this; }
-		atomic_count& operator--() { __sync_fetch_and_sub(&m_value, 1); return *this; }
-		// post inc/dec operators
-		int operator++(int) { return __sync_fetch_and_add(&m_value, 1); }
-		int operator--(int) { return __sync_fetch_and_sub(&m_value, 1); }
-#elif TORRENT_USE_INTERLOCKED_ATOMIC
-		operator int() const { return InterlockedExchangeAdd(const_cast<value_type*>(&m_value), 0); }
-		atomic_count& operator-=(int v) { InterlockedExchangeAdd(&m_value, -v); return *this; }
-		atomic_count& operator+=(int v) { InterlockedExchangeAdd(&m_value, v); return *this; }
-		// pre inc/dec operators
-		atomic_count& operator++() { InterlockedIncrement(&m_value); return *this; }
-		atomic_count& operator--() { InterlockedDecrement(&m_value); return *this; }
-		// post inc/dec operators
-		int operator++(int) { return InterlockedExchangeAdd(&m_value, 1); }
-		int operator--(int) { return InterlockedExchangeAdd(&m_value, -1); }
+#if TORRENT_USE_INTERLOCKED_ATOMIC
+		typedef LONG value_type;
 #elif TORRENT_USE_SOLARIS_ATOMIC
-		operator int() const { return atomic_add_32_nv(const_cast<value_type*>(&m_value), 0); }
-		atomic_count& operator-=(int v) { atomic_add_32(&m_value, -v); return *this; }
-		atomic_count& operator+=(int v) { atomic_add_32(&m_value, v); return *this; }
+		typedef unsigned int value_type;
+#else
+		typedef int value_type;
+#endif
+
+#if TORRENT_USE_OSATOMIC
+		operator value_type() const { return OSAtomicAdd32(0, const_cast<value_type*>(&m_value)); }
+		value_type operator-=(int v) { return OSAtomicAdd32Barrier(-v, &m_value); }
+		value_type operator+=(int v) { return OSAtomicAdd32Barrier(v, &m_value); }
 		// pre inc/dec operators
-		atomic_count& operator++() { atomic_add_32(&m_value, 1); return *this; }
-		atomic_count& operator--() { atomic_add_32(&m_value, -1); return *this; }
+		value_type operator++() { return OSAtomicAdd32Barrier(1, &m_value); }
+		value_type operator--() { return OSAtomicAdd32Barrier(-1, &m_value); }
 		// post inc/dec operators
-		int operator++(int) { return atomic_add_32_nv(&m_value, 1) - 1; }
-		int operator--(int) { return atomic_add_32_nv(&m_value, -1) + 1; }
+		value_type operator++(int) { return OSAtomicAdd32Barrier(1, &m_value)-1; }
+		value_type operator--(int) { return OSAtomicAdd32Barrier(-1, &m_value)+1; }
+#elif TORRENT_USE_GCC_ATOMIC
+		operator value_type() const { return __sync_fetch_and_add(const_cast<value_type*>(&m_value), 0); }
+		value_type operator-=(value_type v) { return __sync_sub_and_fetch(&m_value, v); }
+		value_type operator+=(value_type v) { return __sync_add_and_fetch(&m_value, v); }
+		// pre inc/dec operators
+		value_type operator++() { return __sync_add_and_fetch(&m_value, 1); }
+		value_type operator--() { return __sync_add_and_fetch(&m_value, -1); }
+		// post inc/dec operators
+		value_type operator++(int) { return __sync_fetch_and_add(&m_value, 1); }
+		value_type operator--(int) { return __sync_fetch_and_add(&m_value, -1); }
+#elif TORRENT_USE_INTERLOCKED_ATOMIC
+		operator value_type() const { return InterlockedAdd(const_cast<value_type*>(&m_value), 0); }
+		value_type operator-=(value_type v) { return InterlockedAdd(&m_value, -v); }
+		value_type operator+=(value_type v) { return InterlockedAdd(&m_value, v); }
+		// pre inc/dec operators
+		value_type operator++() { return InterlockedIncrement(&m_value); }
+		value_type operator--() { return InterlockedDecrement(&m_value); }
+		// post inc/dec operators
+		value_type operator++(int) { return InterlockedIncrement(&m_value) - 1; }
+		value_type operator--(int) { return InterlockedDecrement(&m_value) + 1; }
+#elif TORRENT_USE_SOLARIS_ATOMIC
+		operator value_type() const { return atomic_add_32_nv(const_cast<value_type*>(&m_value), 0); }
+		value_type operator-=(value_type v) { return atomic_add_32(&m_value, -v); }
+		value_type operator+=(value_type v) { return atomic_add_32(&m_value, v); }
+		// pre inc/dec operators
+		value_type operator++() { return atomic_add_32_nv(&m_value, 1); }
+		value_type operator--() { return atomic_add_32_nv(&m_value, -1); }
+		// post inc/dec operators
+		value_type operator++(int) { return atomic_add_32_nv(&m_value, 1) - 1; }
+		value_type operator--(int) { return atomic_add_32_nv(&m_value, -1) + 1; }
 #elif TORRENT_USE_BEOS_ATOMIC
-		operator int() const { return atomic_add(const_cast<value_type*>(&m_value), 0); }
-		atomic_count& operator-=(int v) { atomic_add(&m_value, -v); return *this; }
-		atomic_count& operator+=(int v) { atomic_add(&m_value, v); return *this; }
+		operator value_type() const { return atomic_add(const_cast<value_type*>(&m_value), 0); }
+		value_type operator-=(value_type v) { return atomic_add(&m_value, -v) - v; }
+		value_type operator+=(value_type v) { return atomic_add(&m_value, v) + v; }
 		// pre inc/dec operators
-		atomic_count& operator++() { atomic_add(&m_value, 1); return *this; }
-		atomic_count& operator--() { atomic_add(&m_value, -1); return *this; }
+		value_type operator++() { return atomic_add(&m_value, 1) + 1; }
+		value_type operator--() { return atomic_add(&m_value, -1) - 1; }
 		// post inc/dec operators
-		int operator++(int) { return atomic_add(&m_value, 1); }
-		int operator--(int) { return atomic_add(&m_value, -1); }
+		value_type operator++(int) { return atomic_add(&m_value, 1); }
+		value_type operator--(int) { return atomic_add(&m_value, -1); }
 #else
 #error "don't know which atomic operations to use"
 #endif
 	private:
-#if TORRENT_USE_INTERLOCKED_ATOMIC
-		typedef LONG value_type;
-#else
-		typedef int value_type;
-#endif
 		volatile value_type m_value;
 	};
 }
