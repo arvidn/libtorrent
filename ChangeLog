@@ -1,3 +1,4 @@
+	* prevent tracker exchange for magnet links before metadata is received
 	* fix crash in make_magnet_uri when generating links longer than 1024 characters
 	* fix hanging issue when closing files on windows (completing a download)
 	* fix piece picking edge case that could cause torrents to get stuck at hash failure
