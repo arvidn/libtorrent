@@ -297,6 +297,8 @@ namespace libtorrent
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, 0),
 		// multiple network threads won't work until udp_socket supports multi threading
+		// also, boost.asio doesn't guarantee thread safe access to sockets from multiple threads
+		// even when one is just reading and the other is just writing
 		SET(network_threads, 0, &session_impl::update_network_threads),
 		SET(ssl_listen, 4433, 0),
 		SET(tracker_backoff, 250, 0),
