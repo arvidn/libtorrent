@@ -15,22 +15,30 @@ rule libtorrent_linking ( properties * )
     }
 
     if <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties)
-		|| <toolset>clang in $(properties)
+      || <toolset>darwin in $(properties)
+      || <toolset>clang in $(properties)
+      || <toolset>clang-darwin in $(properties)
     {
         result += <cxxflags>-fvisibility=hidden ;
     }
 
     if <boost>source in $(properties)
     {
-        if <boost-link>static in $(properties) || <link>static in $(properties)
+        if <boost-link>static in $(properties)
         {
             result += <library>/boost/python//boost_python/<link>static ;
-            result += <library>/torrent//torrent/<link>static ;
         }
         else
         {
             result += <library>/boost/python//boost_python/<link>shared ;
+        }
+
+        if <link>static in $(properties)
+        {
+            result += <library>/torrent//torrent/<link>static ;
+        }
+        else
+        {
             result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
         }
     }
