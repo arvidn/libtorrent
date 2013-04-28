@@ -50,6 +50,11 @@ static void *handle_http(mg_event event,
 	mg_connection* conn)
 {
 	const mg_request_info *request_info = mg_get_request_info(conn);
+	if (event == MG_EVENT_LOG)
+	{
+		fprintf(stderr, "%s\n", request_info->log_message);
+		return (void*)"";
+	}
 	if (event != MG_NEW_REQUEST) return NULL;
 	if (request_info->user_data == NULL) return NULL;
 
