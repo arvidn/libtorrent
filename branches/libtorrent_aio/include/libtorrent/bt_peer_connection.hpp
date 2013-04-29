@@ -370,10 +370,6 @@ private:
 
 		std::vector<range> m_payloads;
 
-		// we have suggested these pieces to the peer
-		// don't suggest it again
-		bitfield m_sent_suggested_pieces;
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported

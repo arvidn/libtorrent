@@ -490,6 +490,7 @@ namespace libtorrent
 		void add_suggest_piece(int piece);
 		void update_suggest_piece(int index, int change);
 		void refresh_suggest_pieces();
+		void do_refresh_suggest_pieces();
 		void on_cache_info(disk_io_job const* j);
 
 // --------------------------------------------
@@ -1501,6 +1502,10 @@ namespace libtorrent
 		enum { no_gauge_state = 0xf };
 		// the current stats gauge this torrent counts against
 		boost::uint32_t m_current_gauge_state:4;
+
+		// when this is set, second_tick will perform the actual
+		// work of refreshing the suggest pieces
+		bool m_need_suggest_pieces_refresh:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

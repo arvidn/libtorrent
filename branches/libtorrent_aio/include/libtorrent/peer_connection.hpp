@@ -897,6 +897,10 @@ namespace libtorrent
 		// remote peer's id
 		peer_id m_peer_id;
 
+		// we have suggested these pieces to the peer
+		// don't suggest it again
+		bitfield m_sent_suggested_pieces;
+
 		// the pieces the other end have
 		bitfield m_have_piece;
 

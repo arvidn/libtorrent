@@ -336,6 +336,7 @@ namespace libtorrent
 		, m_should_be_loaded(true)
 		, m_have_all(false)
 		, m_current_gauge_state(no_gauge_state)
+		, m_need_suggest_pieces_refresh(false)
 	{
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
@@ -4250,6 +4251,11 @@ namespace libtorrent
 
 	void torrent::refresh_suggest_pieces()
 	{
+		m_need_suggest_pieces_refresh = true;
+	}
+
+	void torrent::do_refresh_suggest_pieces()
+	{
 		if (settings().get_int(settings_pack::suggest_mode)
 			== settings_pack::no_piece_suggestions)
 			return;
@@ -4318,6 +4324,7 @@ namespace libtorrent
 				p != m_connections.end(); ++p)
 				(*p)->send_suggest(i->piece_index);
 		}
+		m_need_suggest_pieces_refresh = false;
 	}
 
 	void torrent::abort()
@@ -8668,6 +8675,8 @@ namespace libtorrent
 
 			return;
 		}
+		if (m_need_suggest_pieces_refresh)
+			do_refresh_suggest_pieces();
 
 		m_time_scaler--;
 		if (m_time_scaler <= 0)

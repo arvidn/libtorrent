@@ -342,14 +342,6 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 		TORRENT_ASSERT(t->valid_metadata());
 
-		if (m_sent_suggested_pieces.empty())
-			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
-
-		TORRENT_ASSERT(piece >= 0 && piece < m_sent_suggested_pieces.size());
-
-		if (m_sent_suggested_pieces[piece]) return;
-		m_sent_suggested_pieces.set_bit(piece);
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> SUGGEST [ piece: %d num_peers: %d ]", piece
 			, t->has_picker() ? t->picker().get_availability(piece) : -1);

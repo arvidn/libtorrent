@@ -3543,6 +3543,17 @@ namespace libtorrent
 			|| !m_peer_interested)
 			return;
 	
+		if (m_sent_suggested_pieces.empty())
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
+		}
+
+		TORRENT_ASSERT(piece >= 0 && piece < m_sent_suggested_pieces.size());
+
+		if (m_sent_suggested_pieces[piece]) return;
+		m_sent_suggested_pieces.set_bit(piece);
+
 		write_suggest(piece);
 	}
 
