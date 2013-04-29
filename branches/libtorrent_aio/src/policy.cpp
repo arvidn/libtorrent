@@ -1171,6 +1171,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(p->in_use);
 
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 		// web seeds are special, they're not connected via the peer list
 		// so they're not kept in m_peers
 		TORRENT_ASSERT(p->web_seed
@@ -1179,6 +1180,7 @@ namespace libtorrent
 				, m_peers.end()
 				, match_peer_connection(c))
 				!= m_peers.end());
+#endif
 		
 		TORRENT_ASSERT(p->connection == &c);
 		TORRENT_ASSERT(!is_connect_candidate(*p));
