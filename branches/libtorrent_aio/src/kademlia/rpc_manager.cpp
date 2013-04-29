@@ -208,7 +208,7 @@ rpc_manager::~rpc_manager()
 	for (transactions_t::iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
-		(*i)->abort();
+		i->second->abort();
 	}
 }
 
@@ -239,7 +239,7 @@ void rpc_manager::check_invariant() const
 	for (transactions_t::const_iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
-		TORRENT_ASSERT(*i);
+		TORRENT_ASSERT(i->second);
 	}
 }
 #endif
@@ -253,10 +253,10 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
-		TORRENT_ASSERT(*i);
-		observer_ptr const& o = *i;
+		TORRENT_ASSERT(i->second);
+		observer_ptr const& o = i->second;
 		if (o->target_ep() != ep) { ++i; continue; }
-		observer_ptr ptr = *i;
+		observer_ptr ptr = i->second;
 		m_transactions.erase(i++);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(rpc) << "  found transaction [ tid: " << ptr->transaction_id() << " ]";
@@ -287,14 +287,11 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	int tid = transaction_id.size() != 2 ? -1 : io::read_uint16(i);
 
 	observer_ptr o;
-
-	for (transactions_t::iterator i = m_transactions.begin()
-		, end(m_transactions.end()); i != end; ++i)
+	std::pair<transactions_t::iterator, transactions_t::iterator> range = m_transactions.equal_range(tid);
+	for (transactions_t::iterator i = range.first; i != range.second; ++i)
 	{
-		TORRENT_ASSERT(*i);
-		if ((*i)->transaction_id() != tid) continue;
-		if (m.addr.address() != (*i)->target_addr()) continue;
-		o = *i;
+		if (m.addr.address() != i->second->target_addr()) continue;
+		o = i->second;
 		m_transactions.erase(i);
 		break;
 	}
@@ -394,15 +391,15 @@ time_duration rpc_manager::tick()
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end(); ++i)
 	{
-		TORRENT_ASSERT((*i)->sent() >= last);
-		last = (*i)->sent();
+		TORRENT_ASSERT(i->second->sent() >= last);
+		last = i->second->sent();
 	}
 #endif
 
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
-		observer_ptr o = *i;
+		observer_ptr o = i->second;
 
 		// if we reach an observer that hasn't timed out
 		// break, because every observer after this one will
@@ -428,7 +425,7 @@ time_duration rpc_manager::tick()
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end(); ++i)
 	{
-		observer_ptr o = *i;
+		observer_ptr o = i->second;
 
 		// if we reach an observer that hasn't timed out
 		// break, because every observer after this one will
@@ -485,7 +482,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 
 	if (m_sock->send_packet(e, target_addr, 1))
 	{
-		m_transactions.push_back(o);
+		m_transactions.insert(std::make_pair(tid,o));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		o->m_was_sent = true;
 #endif

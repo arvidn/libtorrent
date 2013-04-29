@@ -39,6 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #include <boost/function/function3.hpp>
 
+#if TORRENT_HAS_BOOST_UNORDERED
+#include <boost/unordered_map.hpp>
+#else
+#include <multimap>
+#endif
+
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
@@ -108,7 +114,11 @@ private:
 
 	mutable boost::pool<> m_pool_allocator;
 
-	typedef std::list<observer_ptr> transactions_t;
+#if TORRENT_HAS_BOOST_UNORDERED
+	typedef boost::unordered_multimap<int, observer_ptr> transactions_t;
+#else
+	typedef std::multimap<int, observer_ptr> transactions_t;
+#endif
 	transactions_t m_transactions;
 	
 	udp_socket_interface* m_sock;
