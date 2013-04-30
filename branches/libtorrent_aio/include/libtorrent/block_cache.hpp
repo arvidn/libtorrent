@@ -198,11 +198,14 @@ namespace libtorrent
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
 		// TODO: 3 could this be a scoped_array instead? does cached_piece_entry really need to be copyable?
+		// cached_piece_entry does need to be copyable since it's part of a container, but it's possible
+		// it could be a raw pointer or boost::unique_ptr perhaps
 		boost::shared_array<cached_block_entry> blocks;
 
 		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
+		//TODO: make this 32 bits and to count seconds since the block cache was created
 		ptime expire;
 
 		boost::uint64_t piece:22;
@@ -292,8 +295,8 @@ namespace libtorrent
 		// read job queue (read_jobs).
 		boost::uint32_t outstanding_read:1;
 
-		// unused
-		boost::uint32_t padding:1;
+		// the number of blocks that have >= 1 refcount
+		boost::uint32_t pinned:16;
 
 		//	---- 32 bit boundary ---
 

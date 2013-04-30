@@ -221,8 +221,8 @@ cached_piece_entry::cached_piece_entry()
 	, piece_refcount(0)
 	, outstanding_flush(0)
 	, outstanding_read(0)
-	, padding(0)
 	, refcount(0)
+	, pinned(0)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	, hash_passes(0)
 	, in_storage(false)
@@ -858,6 +858,9 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 			TORRENT_PIECE_ASSERT(pe->num_dirty == 0, pe);
 
+			// all blocks are pinned in this piece, skip it
+			if (pe->num_blocks <= pe->pinned) continue;
+
 			// go through the blocks and evict the ones
 			// that are not dirty and not referenced
 			for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
@@ -1134,7 +1137,10 @@ void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	TORRENT_PIECE_ASSERT(pe->blocks[block].buf != NULL, pe);
 	++pe->blocks[block].refcount;
 	if (pe->blocks[block].refcount == 1)
+	{
+		++pe->pinned;
 		++m_pinned_blocks;
+	}
 	++pe->refcount;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	switch (reason)
@@ -1157,6 +1163,8 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 	--pe->refcount;
 	if (pe->blocks[block].refcount == 0)
 	{
+		TORRENT_PIECE_ASSERT(pe->pinned > 0, pe);
+		--pe->pinned;
 		TORRENT_PIECE_ASSERT(m_pinned_blocks > 0, pe);
 		--m_pinned_blocks;
 	}
@@ -1488,7 +1496,11 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		// special case for block aligned request
 		// don't actually copy the buffer, just reference
 		// the existing block
-		if (bl->refcount == 0) ++m_pinned_blocks;
+		if (bl->refcount == 0)
+		{
+			++pe->pinned;
+			++m_pinned_blocks;
+		}
 		++pe->blocks[start_block].refcount;
 
 		// make sure it didn't wrap

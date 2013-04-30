@@ -338,6 +338,7 @@ namespace libtorrent
 
 	void piece_picker::check_piece_state() const
 	{
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 		for (int k = 0; k < num_download_categories; ++k)
 		{
 			if (!m_downloads[k].empty())
@@ -364,6 +365,7 @@ namespace libtorrent
 				}
 			}
 		}
+#endif
 	}
 
 	void piece_picker::verify_pick(std::vector<piece_block> const& picked
