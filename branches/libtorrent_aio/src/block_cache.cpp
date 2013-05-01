@@ -836,6 +836,10 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	{
 		// iterate over all blocks in order of last being used (oldest first) and as
 		// long as we still have blocks to evict
+		// TODO: it's somewhat expensive to iterate over
+		// this linked list. Presumably because of the random access
+		// of memory. It would be nice if pieces with no evictable
+		// blocks weren't in this list
 		for (list_iterator i = lru_list[end]->iterate(); i.get() && num > 0;)
 		{
 			cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());

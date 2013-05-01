@@ -3531,18 +3531,17 @@ namespace libtorrent
 
 	void peer_connection::send_suggest(int piece)
 	{
-		// we cannot suggest a piece we don't have!
-		TORRENT_ASSERT(m_torrent.lock()->has_piece_passed(piece));
-
 		if (m_connecting) return;
 		if (in_handshake()) return;
 
 		// don't suggest a piece that the peer already has
 		// don't suggest anything to a peer that isn't interested
-		if (has_piece(piece)
-			|| !m_peer_interested)
+		if (has_piece(piece) || !m_peer_interested)
 			return;
 	
+		// we cannot suggest a piece we don't have!
+		TORRENT_ASSERT(m_torrent.lock()->has_piece_passed(piece));
+
 		if (m_sent_suggested_pieces.empty())
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
