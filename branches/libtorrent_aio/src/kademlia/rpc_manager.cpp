@@ -381,70 +381,49 @@ time_duration rpc_manager::tick()
 
 	if (m_transactions.empty()) return seconds(short_timeout);
 
-	std::list<observer_ptr> timeouts;
+	std::vector<observer_ptr> timeouts;
+	std::vector<observer_ptr> short_timeouts;
 
 	time_duration ret = seconds(short_timeout);
 	ptime now = time_now();
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	ptime last = min_time();
-	for (transactions_t::iterator i = m_transactions.begin();
-		i != m_transactions.end(); ++i)
-	{
-		TORRENT_ASSERT(i->second->sent() >= last);
-		last = i->second->sent();
-	}
-#endif
 
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
 		observer_ptr o = i->second;
 
-		// if we reach an observer that hasn't timed out
-		// break, because every observer after this one will
-		// also not have timed out yet
 		time_duration diff = now - o->sent();
-		if (diff < seconds(timeout))
+		if (diff >= seconds(timeout))
 		{
-			ret = seconds(timeout) - diff;
-			break;
-		}
-		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Timing out transaction id: " 
-			<< (*i)->transaction_id() << " from " << o->target_ep();
+			TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Timing out transaction id: " 
+				<< (*i)->transaction_id() << " from " << o->target_ep();
 #endif
-		m_transactions.erase(i++);
-		timeouts.push_back(o);
+			m_transactions.erase(i++);
+			timeouts.push_back(o);
+			continue;
+		}
+
+		// don't call short_timeout() again if we've
+		// already called it once
+		if (diff >= seconds(short_timeout) && !o->has_short_timeout())
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Short-Timing out transaction id: " 
+				<< (*i)->transaction_id() << " from " << o->target_ep();
+#endif
+			++i;
+
+			short_timeouts.push_back(o);
+			continue;
+		}
+
+		ret = std::min(seconds(timeout) - diff, ret);
+		++i;
 	}
 	
 	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::timeout, _1));
-	timeouts.clear();
-
-	for (transactions_t::iterator i = m_transactions.begin();
-		i != m_transactions.end(); ++i)
-	{
-		observer_ptr o = i->second;
-
-		// if we reach an observer that hasn't timed out
-		// break, because every observer after this one will
-		// also not have timed out yet
-		time_duration diff = now - o->sent();
-		if (diff < seconds(short_timeout))
-		{
-			ret = seconds(short_timeout) - diff;
-			break;
-		}
-		
-		// don't call short_timeout() again if we've
-		// already called it once
-		if (o->has_short_timeout()) continue;
-
-		timeouts.push_back(o);
-	}
-
-	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::short_timeout, _1));
+	std::for_each(short_timeouts.begin(), short_timeouts.end(), boost::bind(&observer::short_timeout, _1));
 	
 	return ret;
 }
@@ -468,7 +447,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	std::string transaction_id;
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
-	int tid = random() ^ (random() << 5);
+	int tid = (random() ^ (random() << 5)) & 0xffff;
 	io::write_uint16(tid, out);
 	e["t"] = transaction_id;
 		
