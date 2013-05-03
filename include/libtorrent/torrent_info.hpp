@@ -83,6 +83,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT announce_entry
 	{
 		announce_entry(std::string const& u);
+		announce_entry();
 		~announce_entry();
 
 		// tracker URL as it appeared in the torrent file

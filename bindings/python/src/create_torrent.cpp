@@ -17,6 +17,11 @@ namespace
         c.set_hash(p, sha1_hash(hash));
     }
 
+    void set_file_hash(create_torrent& c, int f, char const* hash)
+    {
+        c.set_file_hash(f, sha1_hash(hash));
+    }
+
     void call_python_object(boost::python::object const& obj, int i)
     {
        obj(i);
@@ -120,7 +125,9 @@ void bind_create_torrent()
         .def("set_comment", &create_torrent::set_comment)
         .def("set_creator", &create_torrent::set_creator)
         .def("set_hash", &set_hash)
+        .def("set_file_hash", &set_file_hash)
         .def("add_url_seed", &create_torrent::add_url_seed)
+        .def("add_http_seed", &create_torrent::add_http_seed)
         .def("add_node", &add_node)
         .def("add_tracker", &create_torrent::add_tracker, (arg("announce_url"), arg("tier") = 0))
         .def("set_priv", &create_torrent::set_priv)

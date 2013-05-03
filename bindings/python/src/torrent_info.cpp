@@ -42,6 +42,50 @@ namespace
         return result;
     }
 
+    list get_web_seeds(torrent_info const& ti)
+    {
+        std::vector<web_seed_entry> const& ws = ti.web_seeds();
+        list ret;
+        for (std::vector<web_seed_entry>::const_iterator i = ws.begin()
+            , end(ws.end()); i != end; ++i)
+        {
+            dict d;
+            d["url"] = i->url;
+            d["type"] = i->type;
+            d["auth"] = i->auth;
+            d["extra_headers"] = i->extra_headers;
+            d["retry"] = total_seconds(i->retry - min_time());
+            d["resolving"] = i->resolving;
+            d["removed"] = i->removed;
+            d["endpoint"] = make_tuple(
+                boost::lexical_cast<std::string>(i->endpoint.address()), i->endpoint.port());
+            ret.append(d);
+        }
+
+        return ret;
+    }
+
+    list get_merkle_tree(torrent_info const& ti)
+    {
+        std::vector<sha1_hash> const& mt = ti.merkle_tree();
+        list ret;
+        for (std::vector<sha1_hash>::const_iterator i = mt.begin()
+            , end(mt.end()); i != end; ++i)
+        {
+            ret.append(i->to_string());
+        }
+        return ret;
+    }
+
+    void set_merkle_tree(torrent_info& ti, list hashes)
+    {
+        std::vector<sha1_hash> h;
+        for (int i = 0, e = len(hashes); i < e; ++i)
+            h.push_back(sha1_hash(extract<char const*>(hashes[i])));
+
+        ti.set_merkle_tree(h);
+    }
+
     file_storage::iterator begin_files(torrent_info& i)
     {
         return i.begin_files();
@@ -161,6 +205,8 @@ void bind_torrent_info()
         .def("remap_files", &remap_files)
         .def("add_tracker", &torrent_info::add_tracker, arg("url"))
         .def("add_url_seed", &torrent_info::add_url_seed)
+        .def("add_http_seed", &torrent_info::add_http_seed)
+        .def("web_seeds", get_web_seeds)
 
         .def("name", &torrent_info::name, copy)
         .def("comment", &torrent_info::comment, copy)
@@ -172,6 +218,8 @@ void bind_torrent_info()
         .def("info_hash", &torrent_info::info_hash, copy)
 #endif
         .def("hash_for_piece", &hash_for_piece)
+        .def("merkle_tree", get_merkle_tree)
+        .def("set_merkle_tree", set_merkle_tree)
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
