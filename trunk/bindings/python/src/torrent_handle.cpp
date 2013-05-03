@@ -30,6 +30,21 @@ namespace
       return ret;
   }
 
+  list http_seeds(torrent_handle& handle)
+  {
+      list ret;
+      std::set<std::string> urls;
+      {
+          allow_threading_guard guard;
+          urls = handle.http_seeds();
+      }
+
+      for (std::set<std::string>::iterator i(urls.begin())
+          , end(urls.end()); i != end; ++i)
+          ret.append(*i);
+      return ret;
+  }
+
   list piece_availability(torrent_handle& handle)
   {
       list ret;
@@ -158,6 +173,21 @@ void file_prioritity1(torrent_handle& h, int index, int prio)
    return h.file_priority(index, prio);
 }
 
+void dict_to_announce_entry(dict d, announce_entry& ae)
+{
+	ae.url = extract<std::string>(d["url"]);
+   if (d.has_key("tier"))
+      ae.tier = extract<int>(d["tier"]);
+   if (d.has_key("fail_limit"))
+      ae.fail_limit = extract<int>(d["fail_limit"]);
+   if (d.has_key("source"))
+      ae.source = extract<int>(d["source"]);
+   if (d.has_key("verified"))
+      ae.verified = extract<int>(d["verified"]);
+   if (d.has_key("send_stats"))
+      ae.send_stats = extract<int>(d["send_stats"]);
+}
+
 void replace_trackers(torrent_handle& h, object trackers)
 {
     object iter(trackers.attr("__iter__")());
@@ -179,18 +209,9 @@ void replace_trackers(torrent_handle& h, object trackers)
         {
             dict d;
             d = extract<dict>(object(entry));
-            std::string url = extract<std::string>(d["url"]);
-            announce_entry ae(url);
-            if (d.has_key("tier"))
-               ae.tier = extract<int>(d["tier"]);
-            if (d.has_key("fail_limit"))
-               ae.fail_limit = extract<int>(d["fail_limit"]);
-            if (d.has_key("source"))
-               ae.source = extract<int>(d["source"]);
-            if (d.has_key("verified"))
-               ae.verified = extract<int>(d["verified"]);
-            if (d.has_key("send_stats"))
-               ae.send_stats = extract<int>(d["send_stats"]);
+            announce_entry ae;
+				dict_to_announce_entry(d, ae);
+				result.push_back(ae);
         }
     }
 
@@ -198,7 +219,14 @@ void replace_trackers(torrent_handle& h, object trackers)
     h.replace_trackers(result);
 }
 
-list trackers(torrent_handle &h)
+void add_tracker(torrent_handle& h, dict d)
+{
+	announce_entry ae;
+	dict_to_announce_entry(d, ae);
+	h.add_tracker(ae);
+}
+
+list trackers(torrent_handle& h)
 {
     list ret;
     std::vector<announce_entry> const trackers = h.trackers();
@@ -257,6 +285,11 @@ list get_download_queue(torrent_handle& handle)
     }
 
     return ret;
+}
+
+void set_metadata(torrent_handle& handle, std::string const& buf)
+{
+	handle.set_metadata(buf.c_str(), buf.size());
 }
 
 namespace
@@ -331,10 +364,15 @@ void bind_torrent_handle()
         .def("file_progress", file_progress)
         .def("trackers", trackers)
         .def("replace_trackers", replace_trackers)
+        .def("add_tracker", add_tracker)
         .def("add_url_seed", _(&torrent_handle::add_url_seed))
         .def("remove_url_seed", _(&torrent_handle::remove_url_seed))
         .def("url_seeds", url_seeds)
+        .def("add_http_seed", _(&torrent_handle::add_http_seed))
+        .def("remove_http_seed", _(&torrent_handle::remove_http_seed))
+        .def("http_seeds", http_seeds)
         .def("get_torrent_info", _(&torrent_handle::get_torrent_info), return_internal_reference<>())
+        .def("set_metadata", set_metadata)
         .def("is_valid", _(&torrent_handle::is_valid))
         .def("pause", _(&torrent_handle::pause), arg("flags") = 0)
         .def("resume", _(&torrent_handle::resume))
@@ -393,6 +431,7 @@ void bind_torrent_handle()
         .def("set_upload_mode", _(&torrent_handle::set_upload_mode))
         .def("set_share_mode", _(&torrent_handle::set_share_mode))
         .def("flush_cache", &torrent_handle::flush_cache)
+        .def("apply_ip_filter", &torrent_handle::apply_ip_filter)
         .def("set_upload_limit", _(&torrent_handle::set_upload_limit))
         .def("upload_limit", _(&torrent_handle::upload_limit))
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
@@ -406,7 +445,9 @@ void bind_torrent_handle()
         .def("connect_peer", &connect_peer)
         .def("save_path", _(&torrent_handle::save_path))
         .def("set_max_uploads", _(&torrent_handle::set_max_uploads))
+        .def("max_uploads", _(&torrent_handle::max_uploads))
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
+        .def("max_connections", _(&torrent_handle::max_connections))
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
         .def("move_storage", _(move_storage0))
         .def("info_hash", _(&torrent_handle::info_hash))

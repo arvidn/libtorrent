@@ -496,6 +496,20 @@ namespace libtorrent
 		, send_stats(true)
 	{}
 
+	announce_entry::announce_entry()
+		: next_announce(min_time())
+		, min_announce(min_time())
+		, tier(0)
+		, fail_limit(0)
+		, fails(0)
+		, updating(false)
+		, source(0)
+		, verified(false)
+		, start_sent(false)
+		, complete_sent(false)
+		, send_stats(true)
+	{}
+
 	announce_entry::~announce_entry() {}
 
 	int announce_entry::next_announce_in() const
