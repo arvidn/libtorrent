@@ -43,6 +43,13 @@ namespace
         return;
     }
 #ifndef TORRENT_DISABLE_DHT
+    void add_dht_node(session& s, tuple n)
+    {
+        std::string ip = extract<std::string>(n[0]);
+        int port = extract<int>(n[1]);
+        s.add_dht_node(std::make_pair(ip, port));
+    }
+
     void add_dht_router(session& s, std::string router_, int port_)
     {
         allow_threading_guard guard;
@@ -396,6 +403,17 @@ namespace
         return ret;
     }
 
+    dict get_utp_stats(session_status const& st)
+    {
+        dict ret;
+        ret["num_idle"] = st.utp_stats.num_idle;
+        ret["num_syn_sent"] = st.utp_stats.num_syn_sent;
+        ret["num_connected"] = st.utp_stats.num_connected;
+        ret["num_fin_sent"] = st.utp_stats.num_fin_sent;
+        ret["num_close_wait"] = st.utp_stats.num_close_wait;
+        return ret;
+    }
+
 #ifndef TORRENT_DISABLE_GEO_IP
     void load_asnum_db(session& s, std::string file)
     {
@@ -503,7 +521,9 @@ void bind_session()
         .def_readonly("dht_torrents", &session_status::dht_torrents)
         .def_readonly("dht_global_nodes", &session_status::dht_global_nodes)
         .def_readonly("active_requests", &session_status::active_requests)
+        .def_readonly("dht_total_allocations", &session_status::dht_total_allocations)
 #endif
+        .add_property("utp_stats", &get_utp_stats)
         ;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -573,10 +593,12 @@ void bind_session()
         .def("listen_port", allow_threads(&session::listen_port))
         .def("status", allow_threads(&session::status))
 #ifndef TORRENT_DISABLE_DHT
+        .def("add_dht_node", add_dht_node)
         .def(
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
         )
+        .def("is_dht_running", allow_threads(&session::is_dht_running))
         .def("set_dht_settings", allow_threads(&session::set_dht_settings))
         .def("start_dht", allow_threads(start_dht0))
         .def("stop_dht", allow_threads(&session::stop_dht))
@@ -657,6 +679,10 @@ void bind_session()
         .def("peer_proxy", allow_threads(&session::peer_proxy))
         .def("tracker_proxy", allow_threads(&session::tracker_proxy))
         .def("web_seed_proxy", allow_threads(&session::web_seed_proxy))
+#endif
+#if TORRENT_USE_I2P
+        .def("set_i2p_proxy", allow_threads(&session::set_i2p_proxy))
+        .def("i2p_proxy", allow_threads(&session::i2p_proxy))
 #endif
         .def("set_proxy", allow_threads(&session::set_proxy))
         .def("proxy", allow_threads(&session::proxy))
