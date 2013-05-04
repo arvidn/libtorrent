@@ -426,6 +426,7 @@ namespace libtorrent
 
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
+			if (str_settings[i].offset == 0) continue;
 			std::string& val = *(std::string*)(((char*)&s) + str_settings[i].offset);
 			int setting_name = settings_pack::string_type_base + i;
 			if (val == current.get_str(setting_name)) continue;
@@ -434,6 +435,7 @@ namespace libtorrent
 	
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
+			if (int_settings[i].offset == 0) continue;
 			int& val = *(int*)(((char*)&s) + int_settings[i].offset);
 			int setting_name = settings_pack::int_type_base + i;
 			if (val == current.get_int(setting_name)) continue;
@@ -442,6 +444,7 @@ namespace libtorrent
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 		{
+			if (bool_settings[i].offset == 0) continue;
 			bool& val = *(bool*)(((char*)&s) + bool_settings[i].offset);
 			int setting_name = settings_pack::bool_type_base + i;
 			if (val == current.get_bool(setting_name)) continue;
@@ -472,18 +475,21 @@ namespace libtorrent
 	{
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
+			if (str_settings[i].offset == 0) continue;
 			std::string& val = *(std::string*)(((char*)&ret) + str_settings[i].offset);
 			val = current.get_str(settings_pack::string_type_base + i);
 		}
 	
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
+			if (int_settings[i].offset == 0) continue;
 			int& val = *(int*)(((char*)&ret) + int_settings[i].offset);
 			val = current.get_int(settings_pack::int_type_base + i);
 		}
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 		{
+			if (bool_settings[i].offset == 0) continue;
 			bool& val = *(bool*)(((char*)&ret) + bool_settings[i].offset);
 			val = current.get_bool(settings_pack::bool_type_base + i);
 		}
