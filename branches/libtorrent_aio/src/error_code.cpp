@@ -42,7 +42,7 @@ namespace libtorrent
 
 	const char* libtorrent_error_category::name() const
 	{
-		return "libtorrent error";
+		return "libtorrent";
 	}
 
 	std::string libtorrent_error_category::message(int ev) const
