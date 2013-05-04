@@ -12,7 +12,8 @@ using namespace boost::python;
 using namespace libtorrent;
 
 extern void dict_to_add_torrent_params(dict params
-    , add_torrent_params& p, std::vector<char>& rd);
+    , add_torrent_params& p, std::vector<char>& rd
+	 , std::vector<boost::uint8_t>& fp);
 
 namespace {
 
@@ -22,7 +23,8 @@ namespace {
         add_torrent_params p;
 
         std::vector<char> resume_buf;
-        dict_to_add_torrent_params(params, p, resume_buf);
+        std::vector<boost::uint8_t> files_buf;
+        dict_to_add_torrent_params(params, p, resume_buf, files_buf);
 
         allow_threading_guard guard;
 
