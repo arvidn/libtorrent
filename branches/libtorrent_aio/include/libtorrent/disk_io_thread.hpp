@@ -336,36 +336,36 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 
-		void maybe_issue_queued_read_jobs(cached_piece_entry* pe);
-		int do_read(disk_io_job* j);
+		void maybe_issue_queued_read_jobs(cached_piece_entry* pe, tailqueue& completed_jobs);
+		int do_read(disk_io_job* j, tailqueue& completed_jobs);
 		int do_uncached_read(disk_io_job* j);
 
-		int do_write(disk_io_job* j);
+		int do_write(disk_io_job* j, tailqueue& completed_jobs);
 		int do_uncached_write(disk_io_job* j);
 
-		int do_hash(disk_io_job* j);
+		int do_hash(disk_io_job* j, tailqueue& completed_jobs);
 		int do_uncached_hash(disk_io_job* j);
 
-		int do_move_storage(disk_io_job* j);
-		int do_release_files(disk_io_job* j);
-		int do_delete_files(disk_io_job* j);
-		int do_check_fastresume(disk_io_job* j);
-		int do_save_resume_data(disk_io_job* j);
-		int do_rename_file(disk_io_job* j);
-		int do_stop_torrent(disk_io_job* j);
-		int do_read_and_hash(disk_io_job* j);
-		int do_cache_piece(disk_io_job* j);
+		int do_move_storage(disk_io_job* j, tailqueue& completed_jobs);
+		int do_release_files(disk_io_job* j, tailqueue& completed_jobs);
+		int do_delete_files(disk_io_job* j, tailqueue& completed_jobs);
+		int do_check_fastresume(disk_io_job* j, tailqueue& completed_jobs);
+		int do_save_resume_data(disk_io_job* j, tailqueue& completed_jobs);
+		int do_rename_file(disk_io_job* j, tailqueue& completed_jobs);
+		int do_stop_torrent(disk_io_job* j, tailqueue& completed_jobs);
+		int do_read_and_hash(disk_io_job* j, tailqueue& completed_jobs);
+		int do_cache_piece(disk_io_job* j, tailqueue& completed_jobs);
 #ifndef TORRENT_NO_DEPRECATE
-		int do_finalize_file(disk_io_job* j);
+		int do_finalize_file(disk_io_job* j, tailqueue& completed_jobs);
 #endif
-		int do_flush_piece(disk_io_job* j);
-		int do_flush_hashed(disk_io_job* j);
-		int do_flush_storage(disk_io_job* j);
-		int do_trim_cache(disk_io_job* j);
-		int do_file_priority(disk_io_job* j);
-		int do_load_torrent(disk_io_job* j);
-		int do_clear_piece(disk_io_job* j);
-		int do_tick(disk_io_job* j);
+		int do_flush_piece(disk_io_job* j, tailqueue& completed_jobs);
+		int do_flush_hashed(disk_io_job* j, tailqueue& completed_jobs);
+		int do_flush_storage(disk_io_job* j, tailqueue& completed_jobs);
+		int do_trim_cache(disk_io_job* j, tailqueue& completed_jobs);
+		int do_file_priority(disk_io_job* j, tailqueue& completed_jobs);
+		int do_load_torrent(disk_io_job* j, tailqueue& completed_jobs);
+		int do_clear_piece(disk_io_job* j, tailqueue& completed_jobs);
+		int do_tick(disk_io_job* j, tailqueue& completed_jobs);
 
 		void call_job_handlers(void* userdata);
 
@@ -387,10 +387,11 @@ namespace libtorrent
 		void add_completed_job_impl(disk_io_job* j);
 
 		void fail_jobs(storage_error const& e, tailqueue& jobs_);
+		void fail_jobs_impl(storage_error const& e, tailqueue& src, tailqueue& dst);
 
-		void check_cache_level(mutex::scoped_lock& l);
+		void check_cache_level(mutex::scoped_lock& l, tailqueue& completed_jobs);
 
-		void perform_job(disk_io_job* j);
+		void perform_job(disk_io_job* j, tailqueue& completed_jobs);
 
 		// this queues up another job to be submitted
 		void add_job(disk_io_job* j);
