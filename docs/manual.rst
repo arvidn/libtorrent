@@ -4566,7 +4566,7 @@ session_settings
 		int write_cache_line_size;
 
 		int optimistic_disk_retry;
-		bool disable_hash_check;
+		bool disable_hash_checks;
 
 		int max_suggest_pieces;
 
@@ -4579,7 +4579,7 @@ session_settings
 		int udp_tracker_token_expiry;
 		bool volatile_read_cache;
 		bool guided_read_cache;
-		bool default_min_cache_age;
+		bool default_cache_min_age;
 
 		int num_optimistic_unchoke_slots;
 		bool no_atime_storage;
@@ -5208,7 +5208,7 @@ libtorrent will only do this automatically for auto managed torrents.
 You can explicitly take a torrent out of upload only mode using
 `set_upload_mode()`_.
 
-``disable_hash_check`` controls if downloaded pieces are verified against
+``disable_hash_checks`` controls if downloaded pieces are verified against
 the piece hashes in the torrent file or not. The default is false, i.e.
 to verify all downloaded data. It may be useful to turn this off for performance
 profiling and simulation scenarios. Do not disable the hash check for regular
@@ -5266,7 +5266,7 @@ you are sending to that peer. The intention is to optimize the RAM
 usage of the cache, to read ahead further for peers that you're
 sending faster to.
 
-``default_min_cache_age`` is the minimum number of seconds any read
+``default_cache_min_age`` is the minimum number of seconds any read
 cache line is kept in the cache. This defaults to one second but
 may be greater if ``guided_read_cache`` is enabled. Having a lower
 bound on the time a cache line stays in the cache is an attempt

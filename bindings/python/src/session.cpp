@@ -429,6 +429,30 @@ namespace
         return ret;
     }
 
+    list get_cache_info(session& ses, sha1_hash ih)
+    {
+        std::vector<cached_piece_info> ret;
+
+        {
+           allow_threading_guard guard;
+           ses.get_cache_info(ih, ret);
+        }
+
+        list pieces;
+        ptime now = time_now();
+        for (std::vector<cached_piece_info>::iterator i = ret.begin()
+           , end(ret.end()); i != end; ++i)
+        {
+            dict d;
+            d["piece"] = i->piece;
+            d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
+            d["next_to_hash"] = i->next_to_hash;
+            d["kind"] = i->kind;
+            pieces.append(d);
+        }
+        return pieces;
+    }
+
 #ifndef TORRENT_DISABLE_GEO_IP
     void load_asnum_db(session& s, std::string file)
     {
@@ -587,9 +611,24 @@ void bind_session()
         .def_readonly("blocks_read", &cache_status::blocks_read)
         .def_readonly("blocks_read_hit", &cache_status::blocks_read_hit)
         .def_readonly("reads", &cache_status::reads)
+        .def_readonly("queued_bytes", &cache_status::queued_bytes)
         .def_readonly("cache_size", &cache_status::cache_size)
         .def_readonly("read_cache_size", &cache_status::read_cache_size)
         .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
+        .def_readonly("average_queue_time", &cache_status::average_queue_time)
+        .def_readonly("average_read_time", &cache_status::average_read_time)
+        .def_readonly("average_write_time", &cache_status::average_write_time)
+        .def_readonly("average_hash_time", &cache_status::average_hash_time)
+        .def_readonly("average_job_time", &cache_status::average_job_time)
+        .def_readonly("average_sort_time", &cache_status::average_sort_time)
+        .def_readonly("job_queue_length", &cache_status::job_queue_length)
+        .def_readonly("cumulative_job_time", &cache_status::cumulative_job_time)
+        .def_readonly("cumulative_read_time", &cache_status::cumulative_read_time)
+        .def_readonly("cumulative_write_time", &cache_status::cumulative_write_time)
+        .def_readonly("cumulative_hash_time", &cache_status::cumulative_hash_time)
+        .def_readonly("cumulative_sort_time", &cache_status::cumulative_sort_time)
+        .def_readonly("total_read_back", &cache_status::total_read_back)
+        .def_readonly("read_queue_size", &cache_status::read_queue_size)
     ;
 
     class_<session, boost::noncopyable>("session", no_init)
@@ -716,6 +755,7 @@ void bind_session()
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
         .def("get_cache_status", allow_threads(&session::get_cache_status))
+		  .def("get_cache_info", get_cache_info)
         .def("set_peer_id", allow_threads(&session::set_peer_id))
         ;
 
