@@ -439,6 +439,7 @@ namespace aux {
 			{"127.0.0.0", "127.255.255.255", lfilter},
 		};
 
+#if TORRENT_USE_IPV6
 		const static class_mapping v6_classes[] =
 		{
 			// everything
@@ -448,6 +449,7 @@ namespace aux {
 			// loop-back
 			{"::1", "::1", lfilter},
 		};
+#endif
 
 		class_mapping const* p = v4_classes;
 		int len = sizeof(v4_classes) / sizeof(v4_classes[0]);
@@ -460,6 +462,7 @@ namespace aux {
 			if (ec) continue;
 			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
+#if TORRENT_USE_IPV6
 		p = v6_classes;
 		len = sizeof(v6_classes) / sizeof(v6_classes[0]);
 		if (!unlimited_local) len = 1;
@@ -471,6 +474,7 @@ namespace aux {
 			if (ec) continue;
 			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
+#endif
 	}
 
 #if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700 && OPENSSL_VERSION_NUMBER >= 0x90812f

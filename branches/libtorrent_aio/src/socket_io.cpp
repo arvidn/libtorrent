@@ -115,7 +115,11 @@ namespace libtorrent
 			}
 			*port_pos = '\0';
 			++port_pos;
+#if TORRENT_USE_IPV6
 			ret.address(address_v6::from_string(&*start, ec));
+#else
+			ec = boost::asio::error::address_family_not_supported;
+#endif
 			if (ec) return ret;
 		}
 		else
