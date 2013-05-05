@@ -294,6 +294,8 @@ void utorrent_webui::start(std::vector<char>&, char const* args, permissions_int
 	for (std::vector<torrent_handle>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
 	{
+		i->clear_error();
+		i->set_upload_mode(false);
 		i->auto_managed(true);
 		i->resume();
 	}
@@ -497,10 +499,10 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		first = 0;
 	}
 
-	if (p->allow_set_settings(settings_pack::enable_outgoing_tcp)
-		&& p->allow_set_settings(settings_pack::enable_outgoing_utp)
-		&& p->allow_set_settings(settings_pack::enable_incoming_tcp)
-		&& p->allow_set_settings(settings_pack::enable_incoming_utp))
+	if (p->allow_get_settings(settings_pack::enable_outgoing_tcp)
+		&& p->allow_get_settings(settings_pack::enable_outgoing_utp)
+		&& p->allow_get_settings(settings_pack::enable_incoming_tcp)
+		&& p->allow_get_settings(settings_pack::enable_incoming_utp))
 	{
 		appendf(response,
 			",[\"bt.transp_disposition\",0,\"%d\",{\"access\":\"Y\"}]\n" + first
@@ -512,7 +514,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 	}
 
 
-	if (p->allow_set_settings(-1))
+	if (p->allow_get_settings(-1))
 	{
 		appendf(response,
 			",[\"dir_active_download\",2,\"%s\",{\"access\":\"Y\"}]\n"

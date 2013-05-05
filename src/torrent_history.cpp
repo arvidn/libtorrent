@@ -100,7 +100,7 @@ namespace libtorrent
 			for (queue_t::left_iterator i = m_queue.left.begin()
 				, end(m_queue.left.end()); i != end; ++i)
 			{
-				printf("%3d: %s\n", i->first, i->second.handle.name().c_str());
+				printf("%3d: (%s) %s\n", i->first, i->second.error.c_str(), i->second.name.c_str());
 			}
 */
 		}
