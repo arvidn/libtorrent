@@ -208,6 +208,11 @@ void bind_alert()
         .def(self == self)
         ;
 
+    class_<torrent_error_alert, bases<torrent_alert>, noncopyable>(
+        "torrent_error_alert", no_init)
+        .def_readonly("error", &torrent_error_alert::error)
+        ;
+
     class_<torrent_finished_alert, bases<torrent_alert>, noncopyable>(
         "torrent_finished_alert", no_init);
 
@@ -464,6 +469,12 @@ void bind_alert()
         .value("outstanding_request_limit_reached", performance_alert::outstanding_request_limit_reached)
         .value("upload_limit_too_low", performance_alert::upload_limit_too_low)
         .value("download_limit_too_low", performance_alert::download_limit_too_low)
+        .value("send_buffer_watermark_too_low", performance_alert::send_buffer_watermark_too_low)
+        .value("too_many_optimistic_unchoke_slots", performance_alert::too_many_optimistic_unchoke_slots)
+        .value("bittyrant_with_no_uplimit", performance_alert::bittyrant_with_no_uplimit)
+        .value("too_high_disk_queue_limit", performance_alert::too_high_disk_queue_limit)
+        .value("too_few_outgoing_ports", performance_alert::too_few_outgoing_ports)
+        .value("too_few_file_descriptors", performance_alert::too_few_file_descriptors)
     ;
 
     class_<stats_alert, bases<torrent_alert>, noncopyable>(
