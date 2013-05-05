@@ -9351,6 +9351,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+#if !TORRENT_USE_IPV6
+		if (!adr.address().is_v4()) return NULL;
+#endif
+
 #ifndef TORRENT_DISABLE_DHT
 		if (source != peer_info::resume_data)
 		{
