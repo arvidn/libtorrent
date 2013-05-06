@@ -46,21 +46,19 @@ extern "C" {
 
 using namespace libtorrent;
 
-static void *handle_http(mg_event event,
-	mg_connection* conn)
+static int handle_http_request(mg_connection* conn)
 {
 	const mg_request_info *request_info = mg_get_request_info(conn);
-	if (event == MG_EVENT_LOG)
-	{
-		fprintf(stderr, "%s\n", request_info->log_message);
-		return (void*)"";
-	}
-	if (event != MG_NEW_REQUEST) return NULL;
 	if (request_info->user_data == NULL) return NULL;
 
-	bool ret = reinterpret_cast<webui_base*>(request_info->user_data)->handle_http(
+	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_http(
 		conn, request_info);
-	return ret ? (void*)"" : NULL;
+}
+
+static int log_message(const struct mg_connection*, const char* msg)
+{
+	fprintf(stderr, "%s\n", msg);
+	return 1;
 }
 
 webui_base::webui_base()
@@ -112,7 +110,12 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 	options[i++] = "num_threads";
 	options[i++] = threads_str;
 
-	m_ctx = mg_start(&::handle_http, this, options);
+	mg_callbacks cb;
+	memset(&cb, 0, sizeof(cb));
+	cb.begin_request = &handle_http_request;
+	cb.log_message = &log_message;
+
+	m_ctx = mg_start(&cb, this, options);
 	TORRENT_ASSERT(m_ctx);
 }
 
