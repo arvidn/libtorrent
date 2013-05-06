@@ -1293,6 +1293,12 @@ transmission_webui::~transmission_webui() {}
 
 bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
 {
+	// we only provide access to paths under /web and /upload
+	if (strcmp(request_info->uri, "/transmission/rpc")
+		&& strcmp(request_info->uri, "/rpc")
+		&& strcmp(request_info->uri, "/upload"))
+		return false;
+
 	permissions_interface const* perms = parse_http_auth(conn, m_auth);
 	if (perms == NULL)
 	{
@@ -1336,9 +1342,6 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 			"Content-Length: 0\r\n\r\n");
 		return true;
 	}
-
-	if (strcmp(request_info->uri, "/transmission/rpc")
-		&& strcmp(request_info->uri, "/rpc")) return false;
 
 	char const* cl = mg_get_header(conn, "content-length");
 	std::vector<char> post_body;

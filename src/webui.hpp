@@ -44,6 +44,11 @@ struct http_handler
 {
 	virtual bool handle_http(mg_connection* conn,
 		mg_request_info const* request_info) = 0;
+	virtual bool handle_websocket_connect(mg_connection* conn,
+		mg_request_info const* request_info) { return 0; }
+	virtual bool handle_websocket_data(mg_connection* conn
+		, int bits, char* data, size_t length) { return 0; }
+	virtual void handle_end_request(mg_connection* conn) {}
 };
 
 namespace libtorrent
@@ -65,6 +70,10 @@ namespace libtorrent
 
 		bool handle_http(mg_connection* conn
 			, mg_request_info const* request_info);
+		bool handle_websocket_connect(mg_connection* conn
+			, mg_request_info const* request_info);
+		bool handle_websocket_data(mg_connection* conn, int bits, char* data, size_t length);
+		void handle_end_request(mg_connection* conn);
 	
 		void set_document_root(std::string r) { m_document_root = r; }
 

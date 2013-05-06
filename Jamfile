@@ -44,6 +44,7 @@ lib torrent-webui
 	<library>zlib
 	<pam>on:<library>pam
 	<pam>on:<source>src/pam_auth.cpp
+	<define>USE_WEBSOCKET=1
 
 	: # default build
 	<link>static

@@ -49,16 +49,47 @@ using namespace libtorrent;
 static int handle_http_request(mg_connection* conn)
 {
 	const mg_request_info *request_info = mg_get_request_info(conn);
-	if (request_info->user_data == NULL) return NULL;
+	if (request_info->user_data == NULL) return 0;
 
 	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_http(
 		conn, request_info);
 }
 
-static int log_message(const struct mg_connection*, const char* msg)
+static int log_message(const mg_connection*, const char* msg)
 {
 	fprintf(stderr, "%s\n", msg);
 	return 1;
+}
+
+static int websocket_connect(mg_connection const* c)
+{
+	mg_connection* conn = const_cast<mg_connection*>(c);
+	const mg_request_info *request_info = mg_get_request_info(conn);
+	if (request_info->user_data == NULL)
+		return 0;
+
+	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_websocket_connect(
+		conn, request_info);
+}
+
+static int websocket_data(mg_connection* conn, int bits
+	, char *data, size_t data_len)
+{
+	const mg_request_info *request_info = mg_get_request_info(conn);
+	if (request_info->user_data == NULL)
+		return 0;
+
+	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_websocket_data(
+		conn, bits, data, data_len);
+}
+
+static void end_request(mg_connection const* c, int reply_status_code)
+{
+	mg_connection* conn = const_cast<mg_connection*>(c);
+	const mg_request_info *request_info = mg_get_request_info(conn);
+	if (request_info->user_data == NULL) return;
+
+	reinterpret_cast<webui_base*>(request_info->user_data)->handle_end_request(conn);
 }
 
 webui_base::webui_base()
@@ -85,6 +116,37 @@ bool webui_base::handle_http(mg_connection* conn
 	return false;
 }
 
+bool webui_base::handle_websocket_connect(mg_connection* conn
+	, mg_request_info const* request_info)
+{
+	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
+		, end(m_handlers.end()); i != end; ++i)
+	{
+		if ((*i)->handle_websocket_connect(conn, request_info)) return true;
+	}
+	return false;
+}
+
+bool webui_base::handle_websocket_data(mg_connection* conn
+	, int bits, char* data, size_t data_len)
+{
+	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
+		, end(m_handlers.end()); i != end; ++i)
+	{
+		if ((*i)->handle_websocket_data(conn, bits, data, data_len)) return true;
+	}
+	return false;
+}
+
+void webui_base::handle_end_request(mg_connection* conn)
+{
+	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
+		, end(m_handlers.end()); i != end; ++i)
+	{
+		(*i)->handle_end_request(conn);
+	}
+}
+
 void webui_base::start(int port, char const* cert_path, int num_threads)
 {
 	if (m_ctx) mg_stop(m_ctx);
@@ -97,6 +159,8 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 	int i = 0;
 	options[i++] = "document_root";
 	options[i++] = m_document_root.c_str();
+	options[i++] = "enable_keep_alive";
+	options[i++] = "yes";
 	if (cert_path)
 	{
 		options[i++] = "ssl_certificate";
@@ -114,6 +178,9 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 	memset(&cb, 0, sizeof(cb));
 	cb.begin_request = &handle_http_request;
 	cb.log_message = &log_message;
+	cb.websocket_connect = &websocket_connect;
+	cb.websocket_data = &websocket_data;
+	cb.end_request = &end_request;
 
 	m_ctx = mg_start(&cb, this, options);
 	TORRENT_ASSERT(m_ctx);
