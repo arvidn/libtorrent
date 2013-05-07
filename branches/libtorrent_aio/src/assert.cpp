@@ -216,8 +216,7 @@ libtorrent::atomic_count assert_counter(0);
 TORRENT_EXPORT void assert_print(char const* fmt, ...)
 {
 #if TORRENT_PRODUCTION_ASSERTS
-	// no need to flood the assert log with infinite number of asserts
-	if (++assert_counter > 500) return;
+	if (assert_counter > 500) return;
 
 	FILE* out = fopen(libtorrent_assert_log, "a+");
 	if (out == 0) out = stderr;
@@ -237,12 +236,20 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 	, char const* function, char const* value)
 {
+#if TORRENT_PRODUCTION_ASSERTS
+	// no need to flood the assert log with infinite number of asserts
+	if (++assert_counter > 500) return;
+#endif
+
 	char stack[8192];
 	print_backtrace(stack, sizeof(stack), 0);
 
 	assert_print("assertion failed. Please file a bugreport at "
 		"http://code.google.com/p/libtorrent/issues\n"
 		"Please include the following information:\n\n"
+#if TORRENT_PRODUCTION_ASSERTS
+		"#: %s\n"
+#endif
 		"version: " LIBTORRENT_VERSION "\n"
 		"%s\n"
 		"file: '%s'\n"
@@ -252,6 +259,9 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 		"%s%s\n"
 		"stack:\n"
 		"%s\n"
+#if TORRENT_PRODUCTION_ASSERTS
+		, int(assert_counter)
+#endif
 		, LIBTORRENT_REVISION, file, line, function, expr
 		, value ? value : "", value ? "\n" : ""
 		, stack);

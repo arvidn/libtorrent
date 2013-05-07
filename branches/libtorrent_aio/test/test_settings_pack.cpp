@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include <iostream>
 
-#include <iostream>
-
 using namespace libtorrent;
 using namespace libtorrent::aux;
 
@@ -55,8 +53,11 @@ int test_main()
 	// all default values are supposed to be skipped
 	// by save_settings
 	TEST_EQUAL(e.dict().size(), 0);
+
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	if (e.dict().size() > 0)
 		std::cerr << e << std::endl;
+#endif
 
 	apply_pack(&sp, sett);
 

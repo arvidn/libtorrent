@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include <vector>
+#include <stdarg.h>
 
 using namespace libtorrent;
 
