@@ -516,14 +516,15 @@ namespace libtorrent
 		for (std::set<std::string>::reverse_iterator i = directories.rbegin()
 			, end(directories.rend()); i != end; ++i)
 		{
-			delete_one_file(*i, ec.ec);
-			if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
+			error_code error;
+			delete_one_file(*i, error);
+			if (error && !ec) { ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
 		}
 
-		remove(combine_path(m_save_path, m_part_file_name), ec.ec);
-		if (ec.ec == boost::system::errc::no_such_file_or_directory)
-			ec.ec.clear();
-		else if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
+		error_code error;
+		remove(combine_path(m_save_path, m_part_file_name), error);
+		if (error != boost::system::errc::no_such_file_or_directory && !error)
+		{ ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
 	}
 
 	void default_storage::write_resume_data(entry& rd, storage_error& ec) const
