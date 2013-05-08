@@ -521,20 +521,15 @@ namespace libtorrent
 		// write the verification constant and crypto field
 		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
-		int crypto_provide = 0;
-		pe_settings::enc_level const& allowed_enc_level = m_ses.get_pe_settings().allowed_enc_level;
+		pe_settings::enc_level crypto_provide = m_ses.get_pe_settings().allowed_enc_level;
 
-		if (allowed_enc_level == pe_settings::both) 
-			crypto_provide = 0x03;
-		else if (allowed_enc_level == pe_settings::rc4) 
-			crypto_provide = 0x02;
-		else if (allowed_enc_level == pe_settings::plaintext)
-			crypto_provide = 0x01;
+		// this is an invalid setting, but let's just make the best of the situation
+		if ((crypto_provide & pe_settings::both) == 0) crypto_provide = pe_settings::both;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
 		peer_log(" crypto provide : [ %s ]"
-			, level[allowed_enc_level-1]);
+			, level[crypto_provide-1]);
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
@@ -2751,8 +2746,8 @@ namespace libtorrent
 
 				if (crypto_select == 0)
 				{
-						disconnect(errors::unsupported_encryption_mode, 1);
-						return;
+					disconnect(errors::unsupported_encryption_mode, 1);
+					return;
 				}
 
 				// write the pe4 step

@@ -1,3 +1,4 @@
+	* fix encryption level handle invalid values
 	* add a number of missing functions to the python binding
 	* fix typo in Jamfile for building shared libraries
 	* prevent tracker exchange for magnet links before metadata is received
