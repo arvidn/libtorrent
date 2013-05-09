@@ -339,11 +339,11 @@ void bind_torrent_handle()
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
 
-    void (torrent_handle::*move_storage0)(std::string const&) const = &torrent_handle::move_storage;
+    void (torrent_handle::*move_storage0)(std::string const&, int flags) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file0)(int, std::string const&) const = &torrent_handle::rename_file;
 
 #if TORRENT_USE_WSTRING
-    void (torrent_handle::*move_storage1)(std::wstring const&) const = &torrent_handle::move_storage;
+    void (torrent_handle::*move_storage1)(std::wstring const&, int flags) const = &torrent_handle::move_storage;
     void (torrent_handle::*rename_file1)(int, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
 
@@ -449,13 +449,13 @@ void bind_torrent_handle()
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("max_connections", _(&torrent_handle::max_connections))
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
-        .def("move_storage", _(move_storage0))
+        .def("move_storage", _(move_storage0), (arg("path"), arg("flags") = 0))
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
         .def("rename_file", _(rename_file0))
         .def("set_ssl_certificate", &torrent_handle::set_ssl_certificate, (arg("cert"), arg("private_key"), arg("dh_params"), arg("passphrase")=""))
 #if TORRENT_USE_WSTRING
-        .def("move_storage", _(move_storage1))
+        .def("move_storage", _(move_storage1), (arg("path"), arg("flags") = 0))
         .def("rename_file", _(rename_file1))
 #endif
         ;

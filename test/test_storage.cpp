@@ -198,8 +198,8 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return start; }
 
-	virtual bool move_storage(std::string const&  save_path)
-	{ return false; }
+	virtual int move_storage(std::string const&  save_path, int flags)
+	{ return 0; }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return false; }
@@ -572,8 +572,8 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage")));
 
 	done = false;
-	pm->async_move_storage(combine_path(test_path, "temp_storage2")
-		, boost::bind(on_move_storage, _1, &done, _2, combine_path(test_path, "temp_storage2")));
+	pm->async_move_storage(combine_path(test_path, "temp_storage2"), 0
+		, boost::bind(&on_move_storage, _1, &done, _2, combine_path(test_path, "temp_storage2")));
 	run_until(ios, done);
 
 	if (fs.num_files() > 1)
@@ -584,7 +584,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
 
 	done = false;
-	pm->async_move_storage(test_path, boost::bind(on_move_storage, _1, &done, _2, test_path));
+	pm->async_move_storage(test_path, 0, boost::bind(&on_move_storage, _1, &done, _2, test_path));
 	run_until(ios, done);
 
 	TEST_CHECK(exists(combine_path(test_path, "part0")));	

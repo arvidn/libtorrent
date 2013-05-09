@@ -183,8 +183,8 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return m_lower_layer->sparse_end(start); }
 
-	virtual bool move_storage(std::string const& save_path)
-	{ return m_lower_layer->move_storage(save_path); }
+	virtual int move_storage(std::string const& save_path, int flags)
+	{ return m_lower_layer->move_storage(save_path, flags); }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return m_lower_layer->verify_resume_data(rd, error); }
