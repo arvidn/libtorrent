@@ -128,8 +128,12 @@ namespace libtorrent
 		// is not in a sparse region, start itself is returned
 		virtual int sparse_end(int start) const { return start; }
 
-		// non-zero return value indicates an error
-		virtual bool move_storage(std::string const& save_path) = 0;
+		// returns:
+		// no_error = 0,
+		// need_full_check = -1,
+		// fatal_disk_error = -2,
+		// file_exist = -4,
+		virtual int move_storage(std::string const& save_path, int flags) = 0;
 
 		// verify storage dependent fast resume entries
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
@@ -197,7 +201,7 @@ namespace libtorrent
 		bool release_files();
 		bool delete_files();
 		bool initialize(bool allocate_files);
-		bool move_storage(std::string const& save_path);
+		int move_storage(std::string const& save_path, int flags);
 		int read(char* buf, int slot, int offset, int size);
 		int write(char const* buf, int slot, int offset, int size);
 		int sparse_end(int start) const;
@@ -271,7 +275,7 @@ namespace libtorrent
 		bool release_files() { return false; }
 		bool delete_files() { return false; }
 		bool initialize(bool) { return false; }
-		bool move_storage(std::string const&) { return true; }
+		int move_storage(std::string const&, int flags) { return 0; }
 		int read(char*, int, int, int size) { return size; }
 		int write(char const*, int, int, int size) { return size; }
 		size_type physical_offset(int, int) { return 0; }
@@ -284,6 +288,27 @@ namespace libtorrent
 		bool write_resume_data(entry&) const { return false; }
 
 		int m_piece_size;
+	};
+
+	// flags for async_move_storage
+	enum move_flags_t
+	{
+		// replace any files in the destination when copying
+		// or moving the storage
+		always_replace_files = 0,
+
+		// if any files that we want to copy exist in the destination
+		// exist, fail the whole operation and don't perform
+		// any copy or move. There is an inherent race condition
+		// in this mode. The files are checked for existence before
+		// the operation starts. In between the check and performing
+		// the copy, the destination files may be created, in which
+		// case they are replaced.
+		fail_if_exist = 1,
+
+		// if any file exist in the target, take those files instead
+		// of the ones we may have in the source.
+		dont_replace = 2,
 	};
 
 	struct disk_io_thread;
@@ -356,7 +381,7 @@ namespace libtorrent
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
 
-		void async_move_storage(std::string const& p
+		void async_move_storage(std::string const& p, int flags
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_save_resume_data(
@@ -368,7 +393,8 @@ namespace libtorrent
 			no_error = 0,
 			need_full_check = -1,
 			fatal_disk_error = -2,
-			disk_check_aborted = -3
+			disk_check_aborted = -3,
+			file_exist = -4,
 		};
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }
@@ -457,7 +483,7 @@ namespace libtorrent
 		int rename_file_impl(int index, std::string const& new_filename)
 		{ return m_storage->rename_file(index, new_filename); }
 
-		int move_storage_impl(std::string const& save_path);
+		int move_storage_impl(std::string const& save_path, int flags);
 
 		int allocate_slot_for_piece(int piece_index);
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS

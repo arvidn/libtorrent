@@ -6517,7 +6517,7 @@ namespace libtorrent
 		return true;
 	}
 
-	void torrent::move_storage(std::string const& save_path)
+	void torrent::move_storage(std::string const& save_path, int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
@@ -6529,7 +6529,7 @@ namespace libtorrent
 #else
 			std::string const& path = save_path;
 #endif
-			m_owning_storage->async_move_storage(path
+			m_owning_storage->async_move_storage(path, flags
 				, boost::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2));
 		}
 		else
@@ -6551,20 +6551,18 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		if (ret == 0)
+		if (ret == piece_manager::no_error || ret == piece_manager::need_full_check)
 		{
 			if (alerts().should_post<storage_moved_alert>())
-			{
 				alerts().post_alert(storage_moved_alert(get_handle(), j.str));
-			}
 			m_save_path = j.str;
+			if (ret == piece_manager::need_full_check)
+				force_recheck();
 		}
 		else
 		{
 			if (alerts().should_post<storage_moved_failed_alert>())
-			{
 				alerts().post_alert(storage_moved_failed_alert(get_handle(), j.error));
-			}
 		}
 	}
 

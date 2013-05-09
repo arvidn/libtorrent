@@ -2240,7 +2240,7 @@ namespace libtorrent
 					m_log << log_time() << " move" << std::endl;
 #endif
 					TORRENT_ASSERT(j.buffer == 0);
-					ret = j.storage->move_storage_impl(j.str);
+					ret = j.storage->move_storage_impl(j.str, j.piece);
 					if (ret != 0)
 					{
 						test_error(j);

@@ -775,7 +775,8 @@ namespace libtorrent
 		void set_max_connections(int limit, bool state_update = true);
 		int max_connections() const { return m_max_connections; }
 
-		void move_storage(std::string const& save_path);
+		// flags are defined in storage.hpp
+		void move_storage(std::string const& save_path, int flags);
 
 		// renames the file with the given index to the new name
 		// the name may include a directory path

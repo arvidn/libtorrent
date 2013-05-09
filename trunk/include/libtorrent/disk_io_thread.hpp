@@ -112,6 +112,7 @@ namespace libtorrent
 		int buffer_size;
 		boost::intrusive_ptr<piece_manager> storage;
 		// arguments used for read and write
+		// piece is used as flags for move_storage
 		int piece, offset;
 		// used for move_storage and rename_file. On errors, this is set
 		// to the error message

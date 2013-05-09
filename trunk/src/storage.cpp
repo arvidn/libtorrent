@@ -749,21 +749,14 @@ namespace libtorrent
 	}
 
 	// returns true on success
-	bool default_storage::move_storage(std::string const& sp)
+	int default_storage::move_storage(std::string const& sp, int flags)
 	{
+		int ret = piece_manager::no_error;
 		std::string save_path = complete(sp);
 
+		// check to see if any of the files exist
 		error_code ec;
-		file_status s;
-		stat_file(save_path, &s, ec);
-		if (ec == boost::system::errc::no_such_file_or_directory)
-			create_directories(save_path, ec);
-		else if (ec)
-			return false;
 
-		m_pool.release(this);
-
-		bool ret = true;
 		std::set<std::string> to_move;
 		file_storage const& f = files();
 
@@ -774,6 +767,40 @@ namespace libtorrent
 			to_move.insert(to_move.begin(), split);
 		}
 
+		file_status s;
+		if (flags == fail_if_exist)
+		{
+			stat_file(save_path, &s, ec);
+			if (ec != boost::system::errc::no_such_file_or_directory)
+			{
+				// the directory exists, check all the files
+				for (std::set<std::string>::const_iterator i = to_move.begin()
+					, end(to_move.end()); i != end; ++i)
+				{
+					std::string new_path = combine_path(save_path, *i);
+					stat_file(new_path, &s, ec);
+					if (ec != boost::system::errc::no_such_file_or_directory)
+						return piece_manager::file_exist;
+				}
+			}
+		}
+
+		ec.clear();
+		stat_file(save_path, &s, ec);
+		if (ec == boost::system::errc::no_such_file_or_directory)
+		{
+			ec.clear();
+			create_directories(save_path, ec);
+		}
+
+		if (ec)
+		{
+			set_error(save_path, ec);
+			return piece_manager::fatal_disk_error;
+		}
+
+		m_pool.release(this);
+
 		for (std::set<std::string>::const_iterator i = to_move.begin()
 			, end(to_move.end()); i != end; ++i)
 		{
@@ -781,24 +808,34 @@ namespace libtorrent
 			std::string new_path = combine_path(save_path, *i);
 
 			rename(old_path, new_path, ec);
-			if (ec && ec != boost::system::errc::no_such_file_or_directory)
+			if (ec)
 			{
-				error_code ec;
-				recursive_copy(old_path, new_path, ec);
-				if (ec)
+				if (flags == dont_replace && ec == boost::system::errc::file_exists)
 				{
-					set_error(old_path, ec);
-					ret = false;
+					if (ret == piece_manager::no_error) ret = piece_manager::need_full_check;
+					continue;
 				}
-				else
+
+				if (ec != boost::system::errc::no_such_file_or_directory)
 				{
-					remove_all(old_path, ec);
+					error_code ec;
+					recursive_copy(old_path, new_path, ec);
+					if (ec)
+					{
+						set_error(old_path, ec);
+						ret = piece_manager::fatal_disk_error;
+					}
+					else
+					{
+						remove_all(old_path, ec);
+					}
+					break;
 				}
-				break;
 			}
 		}
 
-		if (ret) m_save_path = save_path;
+		if (ret == piece_manager::no_error || ret == piece_manager::need_full_check)
+			m_save_path = save_path;
 
 		return ret;
 	}
@@ -1497,13 +1534,14 @@ ret:
 		m_io_thread.add_job(j, handler);
 	}
 
-	void piece_manager::async_move_storage(std::string const& p
+	void piece_manager::async_move_storage(std::string const& p, int flags
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		disk_io_job j;
 		j.storage = this;
 		j.action = disk_io_job::move_storage;
 		j.str = p;
+		j.piece = flags;
 		m_io_thread.add_job(j, handler);
 	}
 
@@ -1664,14 +1702,15 @@ ret:
 		return ph.h.final();
 	}
 
-	int piece_manager::move_storage_impl(std::string const& save_path)
+	int piece_manager::move_storage_impl(std::string const& save_path, int flags)
 	{
-		if (m_storage->move_storage(save_path))
+		int ret = m_storage->move_storage(save_path, flags);
+
+		if (ret == no_error || ret == need_full_check)
 		{
 			m_save_path = complete(save_path);
-			return 0;
 		}
-		return -1;
+		return ret;
 	}
 
 	void piece_manager::write_resume_data(entry& rd) const
