@@ -41,11 +41,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_GCRYPT
 #include <gcrypt.h>
+
+#elif TORRENT_USE_COMMONCRYPTO
+
+#include <CommonCrypto/CommonDigest.h>
+
 #elif defined TORRENT_USE_OPENSSL
+
 extern "C"
 {
 #include <openssl/sha.h>
 }
+
 #else
 // from sha1.cpp
 namespace libtorrent
@@ -93,6 +100,8 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_GCRYPT
 		gcry_md_hd_t m_context;
+#elif TORRENT_USE_COMMONCRYPTO
+		CC_SHA1_CTX m_context;
 #elif defined TORRENT_USE_OPENSSL
 		SHA_CTX m_context;
 #else
