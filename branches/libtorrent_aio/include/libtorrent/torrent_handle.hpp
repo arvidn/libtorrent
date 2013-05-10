@@ -412,11 +412,11 @@ namespace libtorrent
 			, std::string const& password) const;
 
 		// post condition: save_path() == save_path if true is returned
-		void move_storage(std::string const& save_path) const;
+		void move_storage(std::string const& save_path, int flags = 0) const;
 		void rename_file(int index, std::string const& new_name) const;
 
 #if TORRENT_USE_WSTRING
-		void move_storage(std::wstring const& save_path) const;
+		void move_storage(std::wstring const& save_path, int flags = 0) const;
 		void rename_file(int index, std::wstring const& new_name) const;
 #endif
 

@@ -92,6 +92,27 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs);
 
+	// flags for async_move_storage
+	enum move_flags_t
+	{
+		// replace any files in the destination when copying
+		// or moving the storage
+		always_replace_files = 0,
+
+		// if any files that we want to copy exist in the destination
+		// exist, fail the whole operation and don't perform
+		// any copy or move. There is an inherent race condition
+		// in this mode. The files are checked for existence before
+		// the operation starts. In between the check and performing
+		// the copy, the destination files may be created, in which
+		// case they are replaced.
+		fail_if_exist = 1,
+
+		// if any file exist in the target, take those files instead
+		// of the ones we may have in the source.
+		dont_replace = 2,
+	};
+
 	struct TORRENT_EXPORT storage_interface
 	{
 		storage_interface(): m_settings(0) {}
@@ -110,8 +131,12 @@ namespace libtorrent
 		// guaranteed to be the only running function on this storage
 		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec) = 0;
 
-		// non-zero return value indicates an error
-		virtual void move_storage(std::string const& save_path, storage_error& ec) = 0;
+		// returns:
+		// no_error = 0,
+		// need_full_check = -1,
+		// fatal_disk_error = -2,
+		// file_exist = -4,
+		virtual int move_storage(std::string const& save_path, int flags, storage_error& ec) = 0;
 
 		// verify storage dependent fast resume entries
 		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) = 0;
@@ -167,7 +192,7 @@ namespace libtorrent
 		void release_files(storage_error& ec);
 		void delete_files(storage_error& ec);
 		void initialize(storage_error& ec);
-		void move_storage(std::string const& save_path, storage_error& ec);
+		int move_storage(std::string const& save_path, int flags, storage_error& ec);
 		int sparse_end(int start) const;
 		bool verify_resume_data(lazy_entry const& rd, storage_error& error);
 		void write_resume_data(entry& rd, storage_error& ec) const;
@@ -247,7 +272,7 @@ namespace libtorrent
 		void release_files(storage_error&) {}
 		void delete_files(storage_error&) {}
 		void initialize(storage_error&) {}
-		void move_storage(std::string const&, storage_error&) {}
+		int move_storage(std::string const&, int flags, storage_error&) { return 0; }
 
 		int readv(file::iovec_t const* bufs, int num_bufs, int piece
 			, int offset, int flags, storage_error& ec);
@@ -273,7 +298,7 @@ namespace libtorrent
 
 		virtual bool has_any_file(storage_error& ec) { return false; }
 		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec) {}
-		virtual void move_storage(std::string const& save_path, storage_error& ec) {}
+		virtual int move_storage(std::string const& save_path, int flags, storage_error& ec) { return 0; }
 		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) { return false; }
 		virtual void write_resume_data(entry& rd, storage_error& ec) const {}
 		virtual void release_files(storage_error& ec) {}
@@ -382,7 +407,8 @@ namespace libtorrent
 			no_error = 0,
 			fatal_disk_error = -1,
 			need_full_check = -2,
-			disk_check_aborted = -3
+			disk_check_aborted = -3,
+			file_exist = -4,
 		};
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }

@@ -183,11 +183,20 @@ POSSIBILITY OF SUCH DAMAGE.
 // we don't need iconv on mac, because
 // the locale is always utf-8
 #if defined __APPLE__
+
 # define TORRENT_USE_OSATOMIC 1
 # ifndef TORRENT_USE_ICONV
 #  define TORRENT_USE_ICONV 0
 #  define TORRENT_USE_LOCALE 0
 # endif
+#include <AvailabilityMacros.h>
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+# ifdef TORRENT_USE_OPENSSL
+#  define TORRENT_USE_COMMONCRYPTO 1
+# endif // TORRENT_USE_OPENSSL
+#endif // MAC_OS_X_VERSION_MIN_REQUIRED
+
 #else // __APPLE__
 // FreeBSD has a reasonable iconv signature
 # define TORRENT_ICONV_ARG (const char**)
@@ -449,6 +458,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_DEPRECATED_PREFIX
 #define TORRENT_DEPRECATED_PREFIX
+#endif
+
+#ifndef TORRENT_USE_COMMONCRYPTO
+#define TORRENT_USE_COMMONCRYPTO 0
 #endif
 
 #ifndef TORRENT_DEPRECATED

@@ -2813,8 +2813,8 @@ Its declaration looks like this::
 
 		bool set_metadata(char const* buf, int size) const;
 
-		void move_storage(std::string const& save_path) const;
-		void move_storage(std::wstring const& save_path) const;
+		void move_storage(std::string const& save_path, int flags = 0) const;
+		void move_storage(std::wstring const& save_path, int flags = 0) const;
 		void rename_file(int index, std::string) const;
 		void rename_file(int index, std::wstring) const;
 		storage_interface* get_storage_impl() const;
@@ -3052,12 +3052,12 @@ move_storage()
 
 	::
 
-		void move_storage(std::string const& save_path) const;
-		void move_storage(std::wstring const& save_path) const;
+		void move_storage(std::string const& save_path, int flags = 0) const;
+		void move_storage(std::wstring const& save_path, int flags = 0) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. If
 the given ``save_path`` is not located on the same drive as the original save path,
-The files will be copied to the new drive and removed from their original location.
+the files will be copied to the new drive and removed from their original location.
 This will block all other disk IO, and other torrents download and upload rates may
 drop while copying the file.
 
@@ -3065,6 +3065,29 @@ Since disk IO is performed in a separate thread, this operation is also asynchro
 Once the operation completes, the ``storage_moved_alert`` is generated, with the new
 path as the message. If the move fails for some reason, ``storage_moved_failed_alert``
 is generated instead, containing the error message.
+
+The ``flags`` argument determines the behavior of the copying/moving of the files
+in the torrent. They are defined in ``include/libtorrent/storage.hpp``:
+
+	* ``always_replace_files`` = 0
+	* ``fail_if_exist`` = 1
+	* ``dont_replace`` = 2
+
+``always_replace_files`` is the default and replaces any file that exist in both the
+source directory and the target directory.
+
+``fail_if_exist`` first check to see that none of the copy operations would cause an
+overwrite. If it would, it will fail. Otherwise it will proceed as if it was in
+``always_replace_files`` mode. Note that there is an inherent race condition here.
+If the files in the target directory appear after the check but before the copy
+or move completes, they will be overwritten.
+
+The intention is that a client may use this as a probe, and if it fails, ask the user
+which mode to use. The client may then re-issue the ``move_storage`` call with one
+of the other modes.
+
+``dont_replace`` always takes the existing file in the target directory, if there is
+one. The source files will still be removed in that case.
 
 rename_file()
 -------------
@@ -4934,7 +4957,6 @@ change.
 These are the available settings:
 
 .. include:: settings.rst
-
 
 pe_settings
 ===========

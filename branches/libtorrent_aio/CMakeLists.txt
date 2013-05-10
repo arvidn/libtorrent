@@ -27,6 +27,7 @@ set(sources
 	string_util
 	file
 	gzip
+	hasher
 	http_connection
 	http_stream
 	http_parser

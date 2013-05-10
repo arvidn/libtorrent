@@ -243,7 +243,7 @@ namespace libtorrent
 			, int flags = 0);
 		void async_hash(piece_manager* storage, int piece, int flags
 			, boost::function<void(disk_io_job const*)> const& handler, void* requester);
-		void async_move_storage(piece_manager* storage, std::string const& p
+		void async_move_storage(piece_manager* storage, std::string const& p, int flags
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_release_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler

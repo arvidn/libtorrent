@@ -785,31 +785,10 @@ namespace libtorrent
 		return true;
 	}
 
-	void default_storage::move_storage(std::string const& sp, storage_error& ec)
+	int default_storage::move_storage(std::string const& sp, int flags, storage_error& ec)
 	{
+		int ret = piece_manager::no_error;
 		std::string save_path = complete(sp);
-
-		file_status s;
-		stat_file(save_path, &s, ec.ec);
-		if (ec.ec == boost::system::errc::no_such_file_or_directory)
-		{
-			create_directories(save_path, ec.ec);
-			if (ec)
-			{
-				ec.file = -1;
-				ec.operation = storage_error::mkdir;
-				return;
-			}
-		}
-		else if (ec)
-		{
-			ec.file = -1;
-			ec.operation = storage_error::mkdir;
-			return;
-		}
-		ec.ec.clear();
-
-		m_pool.release(this);
 
 		std::map<std::string, int> to_move;
 		file_storage const& f = files();
@@ -821,32 +800,84 @@ namespace libtorrent
 			to_move.insert(to_move.begin(), std::make_pair(split, int(i - f.begin())));
 		}
 
+		// check to see if any of the files exist
+		error_code e;
+		file_status s;
+		if (flags == fail_if_exist)
+		{
+			stat_file(save_path, &s, e);
+			if (e != boost::system::errc::no_such_file_or_directory)
+			{
+				// the directory exists, check all the files
+				for (std::map<std::string, int>::const_iterator i = to_move.begin()
+					, end(to_move.end()); i != end; ++i)
+				{
+					std::string new_path = combine_path(save_path, i->first);
+					stat_file(new_path, &s, e);
+					if (e != boost::system::errc::no_such_file_or_directory)
+						return piece_manager::file_exist;
+				}
+			}
+		}
+
+		e.clear();
+		stat_file(save_path, &s, e);
+		if (e == boost::system::errc::no_such_file_or_directory)
+		{
+			create_directories(save_path, ec.ec);
+			if (ec)
+			{
+				ec.file = -1;
+				ec.operation = storage_error::mkdir;
+				return piece_manager::fatal_disk_error; 
+			}
+		}
+		else if (ec)
+		{
+			ec.file = -1;
+			ec.operation = storage_error::mkdir;
+			return piece_manager::fatal_disk_error; 
+		}
+
+		m_pool.release(this);
+
 		for (std::map<std::string, int>::const_iterator i = to_move.begin()
 			, end(to_move.end()); i != end; ++i)
 		{
 			std::string old_path = combine_path(m_save_path, i->first);
 			std::string new_path = combine_path(save_path, i->first);
 
-			rename(old_path, new_path, ec.ec);
-			if (ec.ec == boost::system::errc::no_such_file_or_directory)
-				ec.ec.clear();
+			e.clear();
+			rename(old_path, new_path, e);
+			// if the source file doesn't exist. That's not a problem
+			if (e == boost::system::errc::no_such_file_or_directory)
+				e.clear();
 
-			if (ec)
+			if (e)
 			{
-				ec.ec.clear();
-				recursive_copy(old_path, new_path, ec.ec);
-				if (!ec)
+				if (flags == dont_replace && e == boost::system::errc::file_exists)
 				{
-					// ignore errors when removing
-					error_code e;
-					remove_all(old_path, e);
+					if (ret == piece_manager::no_error) ret = piece_manager::need_full_check;
+					continue;
 				}
-				else
+
+				if (e != boost::system::errc::no_such_file_or_directory)
 				{
-					ec.file = i->second;
-					ec.operation = storage_error::copy;
+					e.clear();
+					recursive_copy(old_path, new_path, ec.ec);
+					if (ec)
+					{
+						ec.file = i->second;
+						ec.operation = storage_error::copy;
+					}
+					else
+					{
+						// ignore errors when removing
+						error_code e;
+						remove_all(old_path, e);
+					}
+					break;
 				}
-				break;
 			}
 		}
 
@@ -854,17 +885,21 @@ namespace libtorrent
 		{
 			if (m_part_file)
 			{
+				// TODO: if everything moves OK, except for the partfile
+				// we currently won't update the save path, which breaks things.
+				// it would probably make more sense to give up on the partfile
 				m_part_file->move_partfile(save_path, ec.ec);
 				if (ec)
 				{
 					ec.file = -1;
 					ec.operation = storage_error::partfile;
-					return;
+					return piece_manager::fatal_disk_error; 
 				}
 			}
 
 			m_save_path = save_path;
 		}
+		return ret;
 	}
 
 	int default_storage::readv(file::iovec_t const* bufs, int num_bufs

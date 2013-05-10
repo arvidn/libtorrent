@@ -41,11 +41,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_GCRYPT
 #include <gcrypt.h>
+
+#elif TORRENT_USE_COMMONCRYPTO
+
+#include <CommonCrypto/CommonDigest.h>
+
 #elif defined TORRENT_USE_OPENSSL
+
 extern "C"
 {
 #include <openssl/sha.h>
 }
+
 #else
 // from sha1.cpp
 namespace libtorrent
@@ -71,107 +78,27 @@ namespace libtorrent
 	{
 	public:
 
-		hasher()
-		{
-#ifdef TORRENT_USE_GCRYPT
-			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Init(&m_context);
-#else
-			SHA1_init(&m_context);
-#endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			m_finalized = false;
-#endif
-		}
-
-		hasher(const char* data, int len)
-		{
-			TORRENT_ASSERT(data != 0);
-			TORRENT_ASSERT(len > 0);
-#ifdef TORRENT_USE_GCRYPT
-			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
-			gcry_md_write(m_context, data, len);
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Init(&m_context);
-			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#else
-			SHA1_init(&m_context);
-			SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			m_finalized = false;
-#endif
-		}
+		hasher();
+		hasher(const char* data, int len);
 
 #ifdef TORRENT_USE_GCRYPT
-		hasher(hasher const& h)
-		{
-			gcry_md_copy(&m_context, h.m_context);
-		}
-
-		hasher& operator=(hasher const& h)
-		{
-			gcry_md_close(m_context);
-			gcry_md_copy(&m_context, h.m_context);
-			return *this;
-		}
+		hasher(hasher const& h);
+		hasher& operator=(hasher const& h);
 #endif
 
 		void update(std::string const& data) { update(data.c_str(), data.size()); }
-		void update(const char* data, int len)
-		{
-			TORRENT_ASSERT(data != 0);
-			TORRENT_ASSERT(len > 0);
-#ifdef TORRENT_USE_GCRYPT
-			gcry_md_write(m_context, data, len);
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#else
-			SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#endif
-		}
+		void update(const char* data, int len);
+		sha1_hash final();
+		void reset();
 
-		sha1_hash final()
-		{
-//			TORRENT_ASSERT(!m_finalized);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			m_finalized = true;
-#endif
-			sha1_hash digest;
-#ifdef TORRENT_USE_GCRYPT
-			gcry_md_final(m_context);
-			digest.assign((const char*)gcry_md_read(m_context, 0));
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Final(digest.begin(), &m_context);
-#else
-			SHA1_final(digest.begin(), &m_context);
-#endif
-			return digest;
-		}
-
-		void reset()
-		{
-#ifdef TORRENT_USE_GCRYPT
-			gcry_md_reset(m_context);
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Init(&m_context);
-#else
-			SHA1_init(&m_context);
-#endif
-		}
-
-#ifdef TORRENT_USE_GCRYPT
-		~hasher()
-		{
-			gcry_md_close(m_context);
-		}
-#endif
+		~hasher();
 
 	private:
 
 #ifdef TORRENT_USE_GCRYPT
 		gcry_md_hd_t m_context;
+#elif TORRENT_USE_COMMONCRYPTO
+		CC_SHA1_CTX m_context;
 #elif defined TORRENT_USE_OPENSSL
 		SHA_CTX m_context;
 #else

@@ -430,6 +430,30 @@ namespace
         return ret;
     }
 
+    list get_cache_info(session& ses, sha1_hash ih)
+    {
+        std::vector<cached_piece_info> ret;
+
+        {
+           allow_threading_guard guard;
+           ses.get_cache_info(ih, ret);
+        }
+
+        list pieces;
+        ptime now = time_now();
+        for (std::vector<cached_piece_info>::iterator i = ret.begin()
+           , end(ret.end()); i != end; ++i)
+        {
+            dict d;
+            d["piece"] = i->piece;
+            d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
+            d["next_to_hash"] = i->next_to_hash;
+            d["kind"] = i->kind;
+            pieces.append(d);
+        }
+        return pieces;
+    }
+
 #ifndef TORRENT_DISABLE_GEO_IP
     void load_asnum_db(session& s, std::string file)
     {
@@ -746,6 +770,7 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def("get_cache_status", &get_cache_status)
 #endif
+		  .def("get_cache_info", get_cache_info)
         .def("set_peer_id", allow_threads(&session::set_peer_id))
         ;
 

@@ -1645,13 +1645,14 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	void disk_io_thread::async_move_storage(piece_manager* storage, std::string const& p
+	void disk_io_thread::async_move_storage(piece_manager* storage, std::string const& p, int flags
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
 		j->storage = storage;
 		j->buffer = strdup(p.c_str());
 		j->callback = handler;
+		j->flags = flags;
 
 		add_fence_job(storage, j);
 	}
@@ -2264,8 +2265,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
 		// if files have to be closed, that's the storage's responsibility
-		j->storage->get_storage_impl()->move_storage(j->buffer, j->error);
-		return j->error ? -1 : 0;
+		return j->storage->get_storage_impl()->move_storage(j->buffer, j->flags, j->error);
 	}
 
 	int disk_io_thread::do_release_files(disk_io_job* j, tailqueue& completed_jobs)
