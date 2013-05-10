@@ -147,6 +147,11 @@ void webui_base::handle_end_request(mg_connection* conn)
 	}
 }
 
+bool webui_base::is_running() const
+{
+	return m_ctx;
+}
+
 void webui_base::start(int port, char const* cert_path, int num_threads)
 {
 	if (m_ctx) mg_stop(m_ctx);
@@ -183,7 +188,6 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 	cb.end_request = &end_request;
 
 	m_ctx = mg_start(&cb, this, options);
-	TORRENT_ASSERT(m_ctx);
 }
 
 void webui_base::stop()
