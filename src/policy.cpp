@@ -904,7 +904,9 @@ namespace libtorrent
 //			|| (iter != m_peers.end() && c.remote().address() < (*iter)->address())
 //			|| (iter != m_peers.end() && iter != m_peers.begin() && (*(iter-1))->address() < c.remote().address()));
 
+#if !defined TORRENT_DISABLE_GEO_IP || TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		aux::session_impl& ses = m_torrent->session();
+#endif
 
 		if (found)
 		{
