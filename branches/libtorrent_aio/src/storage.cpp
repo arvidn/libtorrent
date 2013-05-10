@@ -790,18 +790,10 @@ namespace libtorrent
 		int ret = piece_manager::no_error;
 		std::string save_path = complete(sp);
 
-		std::map<std::string, int> to_move;
-		file_storage const& f = files();
-
-		for (file_storage::iterator i = f.begin()
-			, end(f.end()); i != end; ++i)
-		{
-			std::string split = split_path(f.file_path(*i));
-			to_move.insert(to_move.begin(), std::make_pair(split, int(i - f.begin())));
-		}
-
 		// check to see if any of the files exist
 		error_code e;
+		file_storage const& f = files();
+
 		file_status s;
 		if (flags == fail_if_exist)
 		{
@@ -809,15 +801,31 @@ namespace libtorrent
 			if (e != boost::system::errc::no_such_file_or_directory)
 			{
 				// the directory exists, check all the files
-				for (std::map<std::string, int>::const_iterator i = to_move.begin()
-					, end(to_move.end()); i != end; ++i)
+				for (file_storage::iterator i = f.begin()
+					, end(f.end()); i != end; ++i)
 				{
-					std::string new_path = combine_path(save_path, i->first);
+					std::string new_path = combine_path(save_path, f.file_path(*i));
 					stat_file(new_path, &s, e);
 					if (e != boost::system::errc::no_such_file_or_directory)
+					{
+						ec.ec = e;
+						ec.file = f.file_index(*i);
+						ec.operation = storage_error::stat;
 						return piece_manager::file_exist;
+					}
 				}
 			}
+		}
+
+		// collect all directories in to_move. This is because we
+		// try to move entire directories by default (instead of
+		// files independently).
+		std::map<std::string, int> to_move;
+		for (file_storage::iterator i = f.begin()
+			, end(f.end()); i != end; ++i)
+		{
+			std::string split = split_path(f.file_path(*i));
+			to_move.insert(to_move.begin(), std::make_pair(split, int(i - f.begin())));
 		}
 
 		e.clear();

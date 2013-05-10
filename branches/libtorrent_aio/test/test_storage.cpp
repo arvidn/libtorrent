@@ -92,15 +92,6 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 	*done = true;
 }
 
-void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path)
-{
-	std::cerr << "on_move_storage ret: " << ret << " path: " << (char const*)j.buffer << std::endl;
-	TEST_EQUAL(ret, 0);
-	TEST_EQUAL((char const*)j.buffer, path);
-	*done = true;
-	free(j.buffer);
-}
-
 void print_error(char const* call, int ret, storage_error const& ec)
 {
 	fprintf(stderr, "%s() returned: %d error: \"%s\" in file: %d operation: %d\n"
