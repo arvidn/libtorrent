@@ -89,7 +89,6 @@ void save_resume::handle_alert(alert const* a)
 		if (m_cursor == i)
 		{
 			++m_cursor;
-			++m_cursor_index;
 			if (m_cursor == m_torrents.end())
 			{
 				m_cursor = m_torrents.begin();
@@ -97,6 +96,7 @@ void save_resume::handle_alert(alert const* a)
 				m_last_save_wrap = time_now();
 			}
 		}
+		TORRENT_ASSERT(i != m_torrents.end());
 		// we need to delete the resume file from the resume directory
 		// as well, to prevent it from being reloaded on next startup
 		error_code ec;
@@ -131,13 +131,14 @@ void save_resume::handle_alert(alert const* a)
 		/ total_seconds(m_interval);
 	while (m_cursor_index <= desired_cursor_pos)
 	{
-		if (m_cursor == m_torrents.end() || m_cursor_index >= m_torrents.size())
+		if (m_cursor == m_torrents.end())
 		{
 			m_cursor = m_torrents.begin();
 			m_cursor_index = 0;
 			m_last_save_wrap = time_now();
 			break;
 		}
+		TORRENT_ASSERT(m_cursor_index < m_torrents.size());
 		if (m_cursor->need_save_resume_data())
 		{
 			m_cursor->save_resume_data(torrent_handle::save_info_dict);
