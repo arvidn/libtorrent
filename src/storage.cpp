@@ -761,7 +761,7 @@ namespace libtorrent
 		file_status s;
 		if (flags == fail_if_exist)
 		{
-			stat_file(save_path, &s, ec);
+			stat_file(combine_path(save_path, f.name()), &s, ec);
 			if (ec != boost::system::errc::no_such_file_or_directory)
 			{
 				// the directory exists, check all the files
