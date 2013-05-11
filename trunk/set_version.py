@@ -18,7 +18,7 @@ def substitute_file(name):
 		elif '#define LIBTORRENT_VERSION ' in l and name.endswith('.hpp'):
 			l = '#define LIBTORRENT_VERSION "%d.%d.%d.%d"\n' % (version[0], version[1], version[2], version[3])
 		elif 'AC_INIT([libtorrent-rasterbar]' in l and name.endswith('.ac'):
-			l = 'AC_INIT([libtorrent-rasterbar],[%d.%d.%d],[arvid@cs.umu.se],\n' % (version[0], version[1], version[2])
+			l = 'AC_INIT([libtorrent-rasterbar],[%d.%d.%d],[arvid@rasterbar.com],\n' % (version[0], version[1], version[2])
 		elif 'set (VERSION ' in l and name.endswith('.txt'):
 			l = 'set (VERSION "%d.%d.%d")\n' % (version[0], version[1], version[2])
 		elif ':Version: ' in l and name.endswith('.rst'):
