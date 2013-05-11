@@ -68,11 +68,13 @@ using namespace boost::tuples;
 
 namespace libtorrent {
 	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
+#ifndef TORRENT_DISABLE_DHT
 	namespace dht
 	{
 		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
 			address const& ip_, boost::uint32_t r);
 	}
+#endif
 }
 
 sha1_hash to_hash(char const* s)
@@ -443,6 +445,9 @@ int test_main()
 	TEST_CHECK(ret == 1);
 #endif
 
+	lazy_entry ent;
+
+#ifndef TORRENT_DISABLE_DHT
 	// test verify_message
 	const static key_desc_t msg_desc[] = {
 		{"A", lazy_entry::string_t, 4, 0},
@@ -455,8 +460,6 @@ int test_main()
 	};
 
 	lazy_entry const* msg_keys[7];
-
-	lazy_entry ent;
 
 	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
 	lazy_bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
@@ -520,6 +523,7 @@ int test_main()
 	TEST_CHECK(!ret);
 	fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
+#endif
 
 	// test empty strings [ { "":1 }, "" ]
 	char const test_msg6[] = "ld0:i1ee0:e";
