@@ -67,6 +67,7 @@ namespace libtorrent
 
 		void start(int port, char const* cert_path = 0, int num_threads = 10);
 		void stop();
+		bool is_running() const;
 
 		bool handle_http(mg_connection* conn
 			, mg_request_info const* request_info);

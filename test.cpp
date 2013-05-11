@@ -69,6 +69,11 @@ int main(int argc, char *const argv[])
 	webport.add_handler(&tr_handler);
 	webport.add_handler(&file_handler);
 	webport.start(8090);
+	if (!webport.is_running())
+	{
+		fprintf(stderr, "failed to start web server\n");
+		return 1;
+	}
 
 	deluge dlg(ses, "server.pem", &authorizer);
 	dlg.start(58846);
@@ -102,5 +107,7 @@ int main(int argc, char *const argv[])
 	dlg.stop();
 	webport.stop();
 	sett.save(ec);
+
+	return 0;
 }
 
