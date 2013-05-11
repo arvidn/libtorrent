@@ -2241,7 +2241,7 @@ namespace libtorrent
 #endif
 					TORRENT_ASSERT(j.buffer == 0);
 					ret = j.storage->move_storage_impl(j.str, j.piece);
-					if (ret != piece_manager::file_exist)
+					if (ret == piece_manager::file_exist)
 					{
 						j.error = error_code(boost::system::errc::file_exists, get_system_category());
 						j.error_file = -1;

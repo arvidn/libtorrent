@@ -144,6 +144,7 @@ void on_move_storage_exist(int ret, bool* done, disk_io_job const& j, std::strin
 	std::cerr << "on_move_storage_exist ret: " << ret << " path: " << j.str << std::endl;
 	TEST_EQUAL(ret, piece_manager::file_exist);
 	TEST_EQUAL(j.str, path);
+	TEST_EQUAL(j.error, error_code(boost::system::errc::file_exists, get_system_category()));
 	*done = true;
 }
 
