@@ -411,7 +411,6 @@ namespace libtorrent
 		, m_page_size(page_size())
 		, m_allocate_files(false)
 	{
-		TORRENT_ASSERT(is_complete(path));
 		if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
 		TORRENT_ASSERT(m_files.begin() != m_files.end());
