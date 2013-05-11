@@ -79,6 +79,12 @@ EXTRA_DIST = Jamfile \
   test_torrents/invalid_root_hash2.torrent \
   test_torrents/root_hash.torrent \
   test_torrents/invalid_file_size.torrent
+  eztv.xml \
+  kat.xml \
+  cb.xml \
+  mn.xml \
+  pb.xml \
+  upnp.xml
 
 EXTRA_PROGRAMS = $(test_programs)
 

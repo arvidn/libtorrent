@@ -65,11 +65,14 @@ bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
-#if defined TORRENT_WINDOWS && defined TORRENT_MINGW
-	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, 0, CONSOLE_TEXTMODE_BUFFER, 0);
-	SetConsoleTextAttribute(console, FOREGROUND_RED);
-	fprintf(stderr, "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
-	CloseHandle(console);
+#if defined TORRENT_WINDOWS
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(out, FOREGROUND_RED);
+	char buffer[1024];
+	int len = snprintf(buffer, sizeof(buffer), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
+	DWORD written;
+	WriteFile(out, buffer, len, &written, NULL);
+	SetConsoleTextAttribute(out, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #else
 	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
 #endif
