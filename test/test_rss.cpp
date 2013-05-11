@@ -79,6 +79,10 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 	std::vector<char> buffer;
 	error_code ec;
 	load_file(filename, buffer, ec);
+	if (ec)
+	{
+		fprintf(stderr, "failed to load file \"%s\": %s\n", filename.c_str(), ec.message().c_str());
+	}
 	TEST_CHECK(!ec);
 
 	char* buf = &buffer[0];

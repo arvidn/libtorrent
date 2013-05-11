@@ -67,7 +67,13 @@ EXTRA_DIST = Jamfile \
   test_torrents/missing_path_list.torrent \
   test_torrents/invalid_pieces.torrent \
   test_torrents/unaligned_pieces.torrent \
-  test_torrents/creation_date.torrent
+  test_torrents/creation_date.torrent \
+  eztv.xml \
+  kat.xml \
+  cb.xml \
+  mn.xml \
+  pb.xml \
+  upnp.xml
 
 EXTRA_PROGRAMS = $(test_programs)
 
