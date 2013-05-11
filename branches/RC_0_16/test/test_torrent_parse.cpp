@@ -117,8 +117,8 @@ int test_main()
 		{
 			// make sure we disambiguated the files
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_CHECK(ti->file_at(0).path == "temp/foo/bar.txt");
-			TEST_CHECK(ti->file_at(1).path == "temp/foo/bar.1.txt");
+			TEST_CHECK(ti->file_at(0).path == combine_path(combine_path("temp", "foo"), "bar.txt"));
+			TEST_CHECK(ti->file_at(1).path == combine_path(combine_path("temp", "foo"), "bar.1.txt"));
 		}
 		else if (std::string(test_torrents[i].file) == "pad_file.torrent")
 		{
