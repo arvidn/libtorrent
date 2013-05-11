@@ -195,7 +195,7 @@ namespace libtorrent
 	{
 		file_pool fp;
 #if TORRENT_USE_UNC_PATHS
-		std::string path = canonicalize_path();
+		std::string path = canonicalize_path(p);
 #else
 		std::string const& path = p;
 #endif
