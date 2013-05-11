@@ -454,6 +454,8 @@ int test_main()
 	TEST_CHECK(ret == 1);
 #endif
 
+	lazy_entry ent;
+
 #ifndef TORRENT_DISABLE_DHT
 	// test verify_message
 	const static key_desc_t msg_desc[] = {
@@ -467,8 +469,6 @@ int test_main()
 	};
 
 	lazy_entry const* msg_keys[7];
-
-	lazy_entry ent;
 
 	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
 	lazy_bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
