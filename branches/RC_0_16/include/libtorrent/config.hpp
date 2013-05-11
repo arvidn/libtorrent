@@ -450,11 +450,19 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# define TORRENT_READ_HANDLER_MAX_SIZE 300
+# ifdef _GLIBCXX_DEBUG
+#  define TORRENT_READ_HANDLER_MAX_SIZE 400
+# else
+#  define TORRENT_READ_HANDLER_MAX_SIZE 300
+# endif
 #endif
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# define TORRENT_WRITE_HANDLER_MAX_SIZE 300
+# ifdef _GLIBCXX_DEBUG
+#  define TORRENT_WRITE_HANDLER_MAX_SIZE 400
+# else
+#  define TORRENT_WRITE_HANDLER_MAX_SIZE 300
+# endif
 #endif
 
 #if defined _MSC_VER && _MSC_VER <= 1200
