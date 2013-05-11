@@ -72,16 +72,16 @@ namespace libtorrent
 	{
 		virtual ~plugin() {}
 
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent* t, void* user)
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent*, void*)
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
-		virtual void added(boost::weak_ptr<aux::session_impl> s) {}
+		virtual void added(boost::weak_ptr<aux::session_impl>) {}
 
 		// called when an alert is posted
 		// alerts that are filtered are not
 		// posted
-		virtual void on_alert(alert const* a) {}
+		virtual void on_alert(alert const*) {}
 
 		// return true if the add_torrent_params should be added
 		virtual bool on_unknown_torrent(sha1_hash const& info_hash
@@ -92,10 +92,10 @@ namespace libtorrent
 		virtual void on_tick() {}
 
 		// called when saving settings state
-		virtual void save_state(entry& ent) const {}
+		virtual void save_state(entry&) const {}
 
 		// called when loading settings state
-		virtual void load_state(lazy_entry const& ent) {}
+		virtual void load_state(lazy_entry const&) {}
 	};
 
 	struct TORRENT_EXPORT torrent_plugin
@@ -107,8 +107,8 @@ namespace libtorrent
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection*)
 		{ return boost::shared_ptr<peer_plugin>(); }
 
-		virtual void on_piece_pass(int index) {}
-		virtual void on_piece_failed(int index) {}
+		virtual void on_piece_pass(int /*index*/) {}
+		virtual void on_piece_failed(int /*index*/) {}
 
 		// called aproximately once every second
 		virtual void tick() {}
@@ -126,7 +126,7 @@ namespace libtorrent
 		// called when the torrent changes state
 		// the state is one of torrent_status::state_t
 		// enum members
-		virtual void on_state(int s) {}
+		virtual void on_state(int /*s*/) {}
 
 		// called when the torrent is unloaded from RAM
 		// and loaded again, respectively
@@ -149,8 +149,8 @@ namespace libtorrent
 			filtered = 2
 		};
 
-		virtual void on_add_peer(tcp::endpoint const& ip
-			, int src, int flags) {}
+		virtual void on_add_peer(tcp::endpoint const&,
+			int /*src*/, int /*flags*/) {}
 	};
 
 	struct TORRENT_EXPORT peer_plugin
@@ -170,14 +170,14 @@ namespace libtorrent
 		// means that the other end doesn't support this extension and will remove
 		// it from the list of plugins.
 		// this is not called for web seeds
-		virtual bool on_handshake(char const* reserved_bits) { return true; }
+		virtual bool on_handshake(char const* /*reserved_bits*/) { return true; }
 		
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't
 		// supported by this peer. It will result in this peer_plugin
 		// being removed from the peer_connection and destructed. 
 		// this is not called for web seeds
-		virtual bool on_extension_handshake(lazy_entry const& h) { return true; }
+		virtual bool on_extension_handshake(lazy_entry const&) { return true; }
 
 		// returning true from any of the message handlers
 		// indicates that the plugin has handeled the message.
@@ -197,13 +197,13 @@ namespace libtorrent
 		virtual bool on_not_interested()
 		{ return false; }
 
-		virtual bool on_have(int index)
+		virtual bool on_have(int /*index*/)
 		{ return false; }
 
-		virtual bool on_dont_have(int index)
+		virtual bool on_dont_have(int /*index*/)
 		{ return false; }
 
-		virtual bool on_bitfield(bitfield const& bitfield)
+		virtual bool on_bitfield(bitfield const& /*bitfield*/)
 		{ return false; }
 
 		virtual bool on_have_all()
@@ -212,22 +212,22 @@ namespace libtorrent
 		virtual bool on_have_none()
 		{ return false; }
 
-		virtual bool on_allowed_fast(int index)
+		virtual bool on_allowed_fast(int /*index*/)
 		{ return false; }
 
-		virtual bool on_request(peer_request const& req)
+		virtual bool on_request(peer_request const&)
 		{ return false; }
 
-		virtual bool on_piece(peer_request const& piece, disk_buffer_holder& data)
+		virtual bool on_piece(peer_request const& /*piece*/, disk_buffer_holder& /*data*/)
 		{ return false; }
 
-		virtual bool on_cancel(peer_request const& req)
+		virtual bool on_cancel(peer_request const&)
 		{ return false; }
 	
-		virtual bool on_reject(peer_request const& req)
+		virtual bool on_reject(peer_request const&)
 		{ return false; }
 
-		virtual bool on_suggest(int index)
+		virtual bool on_suggest(int /*index*/)
 		{ return false; }
 
 		// called when an extended message is received. If returning true,
@@ -235,19 +235,19 @@ namespace libtorrent
 		// is returned the next plugin in the chain will receive it to
 		// be able to handle it
 		// this is not called for web seeds
-		virtual bool on_extended(int length
-			, int msg, buffer::const_interval body)
+		virtual bool on_extended(int /*length*/, int /*msg*/,
+			buffer::const_interval /*body*/)
 		{ return false; }
 
 		// this is not called for web seeds
-		virtual bool on_unknown_message(int length, int msg
-			, buffer::const_interval body)
+		virtual bool on_unknown_message(int /*length*/, int /*msg*/,
+			buffer::const_interval /*body*/)
 		{ return false; }
 
 		// called when a piece that this peer participated in either
 		// fails or passes the hash_check
-		virtual void on_piece_pass(int index) {}
-		virtual void on_piece_failed(int index) {}
+		virtual void on_piece_pass(int /*index*/) {}
+		virtual void on_piece_failed(int /*index*/) {}
 
 		// called aproximately once every second
 		virtual void tick() {}
@@ -255,7 +255,7 @@ namespace libtorrent
 		// called each time a request message is to be sent. If true
 		// is returned, the original request message won't be sent and
 		// no other plugin will have this function called.
-		virtual bool write_request(peer_request const& r) { return false; }
+		virtual bool write_request(peer_request const&) { return false; }
 	};
 
 }

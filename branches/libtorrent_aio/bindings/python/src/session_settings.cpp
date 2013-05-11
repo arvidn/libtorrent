@@ -189,6 +189,7 @@ void bind_session_settings()
     enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")
         .value("lru", session_settings::lru)
         .value("largest_contiguous", session_settings::largest_contiguous)
+        .value("avoid_readback", session_settings::avoid_readback)
     ;
 
     enum_<session_settings::choking_algorithm_t>("choking_algorithm_t")

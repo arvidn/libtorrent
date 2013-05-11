@@ -3080,7 +3080,9 @@ source directory and the target directory.
 overwrite. If it would, it will fail. Otherwise it will proceed as if it was in
 ``always_replace_files`` mode. Note that there is an inherent race condition here.
 If the files in the target directory appear after the check but before the copy
-or move completes, they will be overwritten.
+or move completes, they will be overwritten. When failing because of files already
+existing in the target path, the ``error`` of ``move_storage_failed_alert`` is set
+to ``boost::system::errc::file_exists``.
 
 The intention is that a client may use this as a probe, and if it fails, ask the user
 which mode to use. The client may then re-issue the ``move_storage`` call with one

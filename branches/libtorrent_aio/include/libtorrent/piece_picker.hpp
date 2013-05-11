@@ -554,8 +554,7 @@ namespace libtorrent
 			bool downloading() const { return state > 0; }
 			
 			bool filtered() const { return piece_priority == filter_priority; }
-			void filtered(bool f) { piece_priority = f ? filter_priority : 0; }
-			
+
 			//  prio 7 is always top priority
 			//  prio 0 is always -1 (don't pick)
 			//  downloading pieces are always on an even prio_factor priority
