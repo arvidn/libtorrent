@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -112,7 +112,6 @@ namespace libtorrent
 		int buffer_size;
 		boost::intrusive_ptr<piece_manager> storage;
 		// arguments used for read and write
-		// piece is used as flags for move_storage
 		int piece, offset;
 		// used for move_storage and rename_file. On errors, this is set
 		// to the error message
@@ -260,7 +259,7 @@ namespace libtorrent
 
 		void thread_fun();
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		

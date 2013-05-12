@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2012, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ namespace libtorrent {
 		, m_last(0)
 	{}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void packet_buffer::check_invariant() const
 	{
 		int count = 0;

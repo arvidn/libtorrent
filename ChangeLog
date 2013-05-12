@@ -1,26 +1,3 @@
-	* make move_storage more generic to allow both overwriting files as well as taking existing ones
-	* fix choking issue at high upload rates
-	* optimized rate limiter
-	* make disk cache pool allocator configurable
-	* fix library ABI to not depend on logging being enabled
-	* use hex encoding instead of base32 in create_magnet_uri
-	* include name, save_path and torrent_file in torrent_status, for improved performance
-	* separate anonymous mode and force-proxy mode, and tighten it up a bit
-	* add per-tracker scrape information to announce_entry
-	* report errors in read_piece_alert
-	* DHT memory optimization
-	* improve DHT lookup speed
-	* improve support for windows XP and earlier
-	* introduce global connection priority for improved swarm performance
-	* make files deleted alert non-discardable
-	* make built-in sha functions not conflict with libcrypto
-	* improve web seed hash failure case
-	* improve DHT lookup times
-	* uTP path MTU discovery improvements
-	* optimized the torrent creator optimizer to scale significantly better with more files
-	* fix uTP edge case where udp socket buffer fills up
-	* fix nagle implementation in uTP
-
 0.16.10 release
 
 	* fix encryption level handle invalid values

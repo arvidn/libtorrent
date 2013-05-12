@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2005-2012, Arvid Norberg
+Copyright (c) 2005, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,12 +72,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined _MSC_VER || defined __MINGW32__
 #define PRId64 "I64d"
 #define PRIu64 "I64u"
-#define PRIx64 "I64x"
 #define PRIu32 "u"
 #else
 #define PRId64 "lld"
 #define PRIu64 "llu"
-#define PRIx64 "llx"
 #define PRIu32 "u"
 #endif
 #endif
@@ -183,17 +181,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 0
 #define TORRENT_CLOSE_MAY_BLOCK 1
-
-#include <AvailabilityMacros.h>
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#ifdef TORRENT_USE_OPENSSL
-#define TORRENT_USE_COMMONCRYPTO 1
-#endif // TORRENT_USE_OPENSSL
-#endif // MAC_OS_X_VERSION_MIN_REQUIRED
-
-#endif // __APPLE__
-
+#endif
 #else
 // FreeBSD has a reasonable iconv signature
 #define TORRENT_ICONV_ARG (const char**)
@@ -271,18 +259,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HURD
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_IFCONF 1
-
-// ==== eCS(OS/2) ===
-#elif defined __OS2__
-#define TORRENT_OS2
-#define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_IFCONF 1
-#define TORRENT_USE_SYSCTL 1
-#define TORRENT_USE_MLOCK 0
-#define TORRENT_USE_IPV6 0
-#define TORRENT_ICONV_ARG (const char**)
-#define TORRENT_USE_WRITEV 0
-#define TORRENT_USE_READV 0
 
 #else
 #warning unknown OS, assuming BSD
@@ -407,10 +383,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_DEPRECATED_PREFIX
 #endif
 
-#ifndef TORRENT_USE_COMMONCRYPTO
-#define TORRENT_USE_COMMONCRYPTO 0
-#endif
-
 #ifndef TORRENT_DEPRECATED
 #define TORRENT_DEPRECATED
 #endif
@@ -481,7 +453,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 # ifdef _GLIBCXX_DEBUG
 #  define TORRENT_READ_HANDLER_MAX_SIZE 400
 # else
-#  define TORRENT_READ_HANDLER_MAX_SIZE 330
+#  define TORRENT_READ_HANDLER_MAX_SIZE 300
 # endif
 #endif
 
@@ -489,7 +461,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 # ifdef _GLIBCXX_DEBUG
 #  define TORRENT_WRITE_HANDLER_MAX_SIZE 400
 # else
-#  define TORRENT_WRITE_HANDLER_MAX_SIZE 330
+#  define TORRENT_WRITE_HANDLER_MAX_SIZE 300
 # endif
 #endif
 

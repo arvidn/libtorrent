@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,14 +55,13 @@ namespace libtorrent {
 	std::string torrent_alert::message() const
 	{
 		if (!handle.is_valid()) return " - ";
-		torrent_status st = handle.status(torrent_handle::query_name);
-		if (st.name.empty())
+		if (handle.name().empty())
 		{
 			char msg[41];
-			to_hex((char const*)&st.info_hash[0], 20, msg);
+			to_hex((char const*)&handle.info_hash()[0], 20, msg);
 			return msg;
 		}
-		return st.name;
+		return handle.name();
 	}
 
 	std::string peer_alert::message() const
@@ -80,16 +79,8 @@ namespace libtorrent {
 	std::string read_piece_alert::message() const
 	{
 		char msg[200];
-		if (ec)
-		{
-			snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
-				, torrent_alert::message().c_str() , piece, ec.message().c_str());
-		}
-		else
-		{
-			snprintf(msg, sizeof(msg), "%s: read_piece %u successful"
-				, torrent_alert::message().c_str() , piece);
-		}
+		snprintf(msg, sizeof(msg), "%s: piece %s %u", torrent_alert::message().c_str()
+			, buffer ? "successful" : "failed", piece);
 		return msg;
 	}
 
@@ -340,6 +331,172 @@ namespace libtorrent {
 		return msg;
 	}
 
+
+
+	alert_manager::alert_manager(io_service& ios, int queue_limit, boost::uint32_t alert_mask)
+		: m_alert_mask(alert_mask)
+		, m_queue_size_limit(queue_limit)
+		, m_ios(ios)
+	{}
+
+	alert_manager::~alert_manager()
+	{
+		while (!m_alerts.empty())
+		{
+			TORRENT_ASSERT(alert_cast<save_resume_data_alert>(m_alerts.front()) == 0
+				&& "shutting down session with remaining resume data alerts in the alert queue. "
+				"You proabably wany to make sure you always wait for all resume data "
+				"alerts before shutting down");
+			delete m_alerts.front();
+			m_alerts.pop_front();
+		}
+	}
+
+	alert const* alert_manager::wait_for_alert(time_duration max_wait)
+	{
+		mutex::scoped_lock lock(m_mutex);
+
+		if (!m_alerts.empty()) return m_alerts.front();
+		
+//		system_time end = get_system_time()
+//			+ boost::posix_time::microseconds(total_microseconds(max_wait));
+
+		// apparently this call can be interrupted
+		// prematurely if there are other signals
+//		while (m_condition.timed_wait(lock, end))
+//			if (!m_alerts.empty()) return m_alerts.front();
+
+		ptime start = time_now_hires();
+
+		// TODO: change this to use an asio timer instead
+		while (m_alerts.empty())
+		{
+			lock.unlock();
+			sleep(50);
+			lock.lock();
+			if (time_now_hires() - start >= max_wait) return 0;
+		}
+		return m_alerts.front();
+	}
+
+	void alert_manager::set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const& fun)
+	{
+		mutex::scoped_lock lock(m_mutex);
+
+		m_dispatch = fun;
+
+		std::deque<alert*> alerts;
+		m_alerts.swap(alerts);
+		lock.unlock();
+
+		while (!alerts.empty())
+		{
+			TORRENT_TRY {
+				m_dispatch(std::auto_ptr<alert>(alerts.front()));
+			} TORRENT_CATCH(std::exception&) {}
+			alerts.pop_front();
+		}
+	}
+
+	void dispatch_alert(boost::function<void(alert const&)> dispatcher
+		, alert* alert_)
+	{
+		std::auto_ptr<alert> holder(alert_);
+		dispatcher(*alert_);
+	}
+
+	void alert_manager::post_alert_ptr(alert* alert_)
+	{
+		std::auto_ptr<alert> a(alert_);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_alert(alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
+#endif
+
+		mutex::scoped_lock lock(m_mutex);
+		post_impl(a);
+	}
+
+	void alert_manager::post_alert(const alert& alert_)
+	{
+		std::auto_ptr<alert> a(alert_.clone());
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_alert(&alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
+#endif
+
+		mutex::scoped_lock lock(m_mutex);
+		post_impl(a);
+	}
+		
+	void alert_manager::post_impl(std::auto_ptr<alert>& alert_)
+	{
+		if (m_dispatch)
+		{
+			TORRENT_ASSERT(m_alerts.empty());
+			TORRENT_TRY {
+				m_dispatch(alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
+		else if (m_alerts.size() < m_queue_size_limit || !alert_->discardable())
+		{
+			m_alerts.push_back(alert_.release());
+		}
+	}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
+	{
+		m_ses_extensions.push_back(ext);
+	}
+#endif
+
+	std::auto_ptr<alert> alert_manager::get()
+	{
+		mutex::scoped_lock lock(m_mutex);
+		
+		if (m_alerts.empty())
+			return std::auto_ptr<alert>(0);
+
+		alert* result = m_alerts.front();
+		m_alerts.pop_front();
+		return std::auto_ptr<alert>(result);
+	}
+
+	void alert_manager::get_all(std::deque<alert*>* alerts)
+	{
+		mutex::scoped_lock lock(m_mutex);
+		if (m_alerts.empty()) return;
+		m_alerts.swap(*alerts);
+	}
+
+	bool alert_manager::pending() const
+	{
+		mutex::scoped_lock lock(m_mutex);
+		
+		return !m_alerts.empty();
+	}
+
+	size_t alert_manager::set_alert_queue_size_limit(size_t queue_size_limit_)
+	{
+		mutex::scoped_lock lock(m_mutex);
+
+		std::swap(m_queue_size_limit, queue_size_limit_);
+		return queue_size_limit_;
+	}
+
 	stats_alert::stats_alert(torrent_handle const& h, int in
 		, stat const& s)
 		: torrent_alert(h)
@@ -462,12 +619,7 @@ namespace libtorrent {
 		}
 		else
 		{
-			snprintf(msg, sizeof(msg), "added torrent: %s"
-				, !params.url.empty() ? params.url.c_str()
-				: params.ti ? params.ti->name().c_str()
-				: !params.name.empty() ? params.name.c_str()
-				: !params.uuid.empty() ? params.uuid.c_str()
-				: "");
+			snprintf(msg, sizeof(msg), "added torrent: %s", !params.url.empty() ? params.url.c_str() : params.ti->name().c_str());
 		}
 		return msg;
 	}

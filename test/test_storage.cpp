@@ -139,16 +139,6 @@ void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path
 	*done = true;
 }
 
-void on_move_storage_exist(int ret, bool* done, disk_io_job const& j, std::string path)
-{
-	std::cerr << "on_move_storage_exist ret: " << ret << " path: " << j.str << std::endl;
-	TEST_EQUAL(ret, piece_manager::file_exist);
-	TEST_EQUAL(j.str, path);
-	TEST_EQUAL(j.error, error_code(boost::system::errc::file_exists, get_system_category()));
-	*done = true;
-}
-
-
 void print_error(int ret, boost::scoped_ptr<storage_interface> const& s)
 {
 	std::cerr << "returned: " << ret
@@ -208,8 +198,8 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return start; }
 
-	virtual int move_storage(std::string const&  save_path, int flags)
-	{ return 0; }
+	virtual bool move_storage(std::string const&  save_path)
+	{ return false; }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return false; }
@@ -582,8 +572,8 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage")));
 
 	done = false;
-	pm->async_move_storage(combine_path(test_path, "temp_storage2"), 0
-		, boost::bind(&on_move_storage, _1, &done, _2, combine_path(test_path, "temp_storage2")));
+	pm->async_move_storage(combine_path(test_path, "temp_storage2")
+		, boost::bind(on_move_storage, _1, &done, _2, combine_path(test_path, "temp_storage2")));
 	run_until(ios, done);
 
 	if (fs.num_files() > 1)
@@ -594,21 +584,12 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
 
 	done = false;
-	pm->async_move_storage(test_path, 0, boost::bind(&on_move_storage, _1, &done, _2, test_path));
+	pm->async_move_storage(test_path, boost::bind(on_move_storage, _1, &done, _2, test_path));
 	run_until(ios, done);
 
 	TEST_CHECK(exists(combine_path(test_path, "part0")));	
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));	
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
-
-	done = false;
-	pm->async_move_storage(test_path, fail_if_exist, boost::bind(&on_move_storage_exist, _1, &done, _2, test_path));
-	run_until(ios, done);
-
-	TEST_CHECK(exists(combine_path(test_path, "part0")));	
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));	
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
-
 
 	r.piece = 0;
 	r.start = 0;

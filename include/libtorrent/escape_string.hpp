@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,7 @@ namespace libtorrent
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXTRA_EXPORT std::string base64encode(std::string const& s);
+	TORRENT_EXTRA_EXPORT std::string base64decode(std::string const& s);
 	// encodes a string using the base32 scheme
 	TORRENT_EXTRA_EXPORT std::string base32encode(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string base32decode(std::string const& s);
@@ -68,8 +69,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void convert_path_to_posix(std::string& path);
 
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim, char const* end);
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
-
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
 	TORRENT_EXPORT bool is_hex(char const *in, int len);
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);

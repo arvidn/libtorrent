@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -151,9 +151,6 @@ bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 boost::uint16_t utp_receive_id(utp_socket_impl* s);
 int utp_socket_state(utp_socket_impl const* s);
-void utp_send_ack(utp_socket_impl* s);
-void utp_socket_drained(utp_socket_impl* s);
-void utp_writable(utp_socket_impl* s);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 int socket_impl_size();
@@ -348,7 +345,7 @@ public:
 	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
 		TORRENT_ASSERT(false && "not implemented!");
-		// TODO: 1 implement blocking write. Low priority since it's not used (yet)
+		// TODO: implement
 		return 0;
 	}
 

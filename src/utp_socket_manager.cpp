@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -136,17 +136,6 @@ namespace libtorrent
 			else mtu = TORRENT_ETHERNET_MTU;
 		}
 
-#if defined __APPLE__
-		// apple has a very strange loopback. It appears you can't
-		// send messages of the reported MTU size, and you don't get
-		// EWOULDBLOCK either.
-		if (is_loopback(addr))
-		{
-			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
-			else mtu = TORRENT_ETHERNET_MTU;
-		}
-#endif
-
 		// clamp the MTU within reasonable bounds
 		if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
 		else if (mtu > TORRENT_INET_MAX_MTU) mtu = TORRENT_INET_MAX_MTU;
@@ -267,8 +256,7 @@ namespace libtorrent
 		return socket_ep;
 	}
 
-	bool utp_socket_manager::incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size)
+	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
@@ -344,62 +332,6 @@ namespace libtorrent
 		// #error send reset
 
 		return false;
-	}
-
-	void utp_socket_manager::subscribe_writable(utp_socket_impl* s)
-	{
-		TORRENT_ASSERT(std::find(m_stalled_sockets.begin(), m_stalled_sockets.end()
-			, s) == m_stalled_sockets.end());
-		m_stalled_sockets.push_back(s);
-	}
-
-	void utp_socket_manager::writable()
-	{
-		std::vector<utp_socket_impl*> stalled_sockets;
-		m_stalled_sockets.swap(stalled_sockets);
-		for (std::vector<utp_socket_impl*>::iterator i = stalled_sockets.begin()
-			, end(stalled_sockets.end()); i != end; ++i)
-		{
-			utp_socket_impl* s = *i;
-			utp_writable(s);
-		}
-	}
-
-	void utp_socket_manager::socket_drained()
-	{
-		// flush all deferred acks
-		
-		std::vector<utp_socket_impl*> deferred_acks;
-		m_deferred_acks.swap(deferred_acks);
-		for (std::vector<utp_socket_impl*>::iterator i = deferred_acks.begin()
-			, end(deferred_acks.end()); i != end; ++i)
-		{
-			utp_socket_impl* s = *i;
-			utp_send_ack(s);
-		}
-
-		std::vector<utp_socket_impl*> drained_event;
-		m_drained_event.swap(drained_event);
-		for (std::vector<utp_socket_impl*>::iterator i = drained_event.begin()
-			, end(drained_event.end()); i != end; ++i)
-		{
-			utp_socket_impl* s = *i;
-			utp_socket_drained(s);
-		}
-	}
-
-	void utp_socket_manager::defer_ack(utp_socket_impl* s)
-	{
-		TORRENT_ASSERT(std::find(m_deferred_acks.begin(), m_deferred_acks.end(), s)
-			== m_deferred_acks.end());
-		m_deferred_acks.push_back(s);
-	}
-
-	void utp_socket_manager::subscribe_drained(utp_socket_impl* s)
-	{
-		TORRENT_ASSERT(std::find(m_drained_event.begin(), m_drained_event.end(), s)
-			== m_drained_event.end());
-		m_drained_event.push_back(s);
 	}
 
 	void utp_socket_manager::remove_socket(boost::uint16_t id)

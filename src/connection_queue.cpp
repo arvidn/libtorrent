@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -169,7 +169,8 @@ namespace libtorrent
 	int connection_queue::limit() const
 	{ return m_half_open_limit; }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
+
 	void connection_queue::check_invariant() const
 	{
 		int num_connecting = 0;

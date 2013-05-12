@@ -68,9 +68,6 @@ void test_transfer()
 	// make sure we announce to both http and udp trackers
 	sett.prefer_udp_trackers = false;
 
-	// speed up loopback connections (by using the full MTU)
-	sett.utp_dynamic_sock_buf = true;
-
 	// for performance testing
 //	sett.disable_hash_checks = true;
 //	sett.utp_delayed_ack = 0;
@@ -110,8 +107,6 @@ void test_transfer()
 		print_alerts(ses1, "ses1", true, true, true);
 		print_alerts(ses2, "ses2", true, true, true);
 
-		test_sleep(500);
-
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
@@ -129,6 +124,8 @@ void test_transfer()
 			<< std::endl;
 
 		if (st2.is_finished) break;
+
+		test_sleep(500);
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);

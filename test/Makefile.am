@@ -1,5 +1,4 @@
 test_programs = \
-  test_file                  \
   test_auto_unchoke          \
   test_bandwidth_limiter     \
   test_bdecode_performance   \
@@ -15,7 +14,6 @@ test_programs = \
   test_metadata_extension    \
   test_natpmp                \
   test_pe_crypto             \
-  test_peer_priority         \
   test_pex                   \
   test_piece_picker          \
   test_primitives            \
@@ -47,7 +45,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/slash_path.torrent \
   test_torrents/backslash_path.torrent \
   test_torrents/url_list.torrent \
-  test_torrents/url_list2.torrent \ 
+  test_torrents/url_list2.torrent \
   test_torrents/url_list3.torrent \
   test_torrents/httpseed.torrent \
   test_torrents/empty_httpseed.torrent \
@@ -70,15 +68,6 @@ EXTRA_DIST = Jamfile \
   test_torrents/invalid_pieces.torrent \
   test_torrents/unaligned_pieces.torrent \
   test_torrents/creation_date.torrent \
-  test_torrents/no_creation_date.torrent \
-  test_torrents/url_seed.torrent \
-  test_torrents/url_seed_multi.torrent \
-  test_torrents/url_seed_multi_space.torrent \
-  test_torrents/url_seed_multi_space_nolist.torrent \
-  test_torrents/invalid_root_hash.torrent \
-  test_torrents/invalid_root_hash2.torrent \
-  test_torrents/root_hash.torrent \
-  test_torrents/invalid_file_size.torrent
   eztv.xml \
   kat.xml \
   cb.xml \
@@ -92,7 +81,6 @@ noinst_HEADERS = test.hpp setup_transfer.hpp
 
 libtest_la_SOURCES = main.cpp setup_transfer.cpp
 
-test_file_SOURCES = test_file.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
 test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
@@ -107,7 +95,6 @@ test_ip_filter_SOURCES = test_ip_filter.cpp
 test_lsd_SOURCES = test_lsd.cpp
 test_metadata_extension_SOURCES = test_metadata_extension.cpp
 test_natpmp_SOURCES = test_natpmp.cpp
-test_peer_priority_SOURCES = test_peer_priority.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
 test_pex_SOURCES = test_pex.cpp
 test_piece_picker_SOURCES = test_piece_picker.cpp

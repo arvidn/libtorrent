@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
-Copyright (c) 2007-2012, Arvid Norberg, Un Shyam
+Copyright (c) 2003 - 2006, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,10 +96,10 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		session_impl& ses
+		, boost::weak_ptr<torrent> tor
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, policy::peer* peerinfo
-		, boost::weak_ptr<torrent> tor
 		, bool outgoing)
 		: peer_connection(ses, tor, s, remote
 			, peerinfo, outgoing)
@@ -126,6 +126,57 @@ namespace libtorrent
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** bt_peer_connection");
+#endif
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_in_constructor = false;
+#endif
+		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
+	}
+
+	bt_peer_connection::bt_peer_connection(
+		session_impl& ses
+		, boost::shared_ptr<socket_type> s
+		, tcp::endpoint const& remote
+		, policy::peer* peerinfo)
+		: peer_connection(ses, s, remote, peerinfo)
+		, m_state(read_protocol_identifier)
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		, m_upload_only_id(0)
+		, m_holepunch_id(0)
+		, m_dont_have_id(0)
+		, m_share_mode_id(0)
+		, m_supports_extensions(false)
+#endif
+		, m_supports_dht_port(false)
+		, m_supports_fast(false)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_encrypted(false)
+		, m_rc4_encrypted(false)
+		, m_sync_bytes_read(0)
+#endif		
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		, m_sent_bitfield(false)
+		, m_in_constructor(true)
+		, m_sent_handshake(false)
+#endif
+	{
+
+		// we are not attached to any torrent yet.
+		// we have to wait for the handshake to see
+		// which torrent the connector want's to connect to
+
+
+		// upload bandwidth will only be given to connections
+		// that are part of a torrent. Since this is an incoming
+		// connection, we have to give it some initial bandwidth
+		// to send the handshake.
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		m_quota[download_channel] = 2048;
+		m_quota[upload_channel] = 2048;
+#else
+		m_quota[download_channel] = 80;
+		m_quota[upload_channel] = 80;
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -287,10 +338,6 @@ namespace libtorrent
 
 		if (!m_supports_fast) return;
 
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
-			, r.piece, r.start, r.length);
-#endif
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
@@ -724,11 +771,8 @@ namespace libtorrent
 		*(ptr + 5) |= 0x10;
 #endif
 
-		if (m_ses.m_settings.support_merkle_torrents)
-		{
-			// we support merkle torrents
-			*(ptr + 5) |= 0x08;
-		}
+		// we support merkle torrents
+		*(ptr + 5) |= 0x08;
 
 		// we support FAST extension
 		*(ptr + 7) |= 0x04;
@@ -743,7 +787,7 @@ namespace libtorrent
 				else bitmask += '0';
 			}
 		}
-		peer_log("==> EXTENSION [ %s ]", bitmask.c_str());
+		peer_log(">>> EXTENSION_BITS [ %s ]", bitmask.c_str());
 #endif
 		ptr += 8;
 
@@ -758,7 +802,7 @@ namespace libtorrent
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
 			for (int i = 0; i < 20; ++i)
-				*ptr++ = random();
+				*ptr++ = rand();
 		}
 		else
 		{
@@ -1744,8 +1788,7 @@ namespace libtorrent
 		if (root.dict_find_int_value("upload_only", 0))
 			set_upload_only(true);
 
-		if (m_ses.m_settings.support_share_mode
-			&& root.dict_find_int_value("share_mode", 0))
+		if (root.dict_find_int_value("share_mode", 0))
 			set_share_mode(true);
 
 		std::string myip = root.dict_find_string_value("yourip");
@@ -1800,10 +1843,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(recv_buffer.left() >= 1);
 		int packet_type = (unsigned char)recv_buffer[0];
-
-		if (m_ses.m_settings.support_merkle_torrents
-			&& packet_type == 250) packet_type = msg_piece;
-
+		if (packet_type == 250) packet_type = msg_piece;
 		if (packet_type < 0
 			|| packet_type >= num_supported_messages
 			|| m_message_handler[packet_type] == 0)
@@ -1959,9 +1999,9 @@ namespace libtorrent
 			m_sent_bitfield = true;
 #endif
 
-			// bootstrap superseeding by sending two have message
-			superseed_piece(-1, t->get_piece_to_super_seed(get_bitfield()));
-			superseed_piece(-1, t->get_piece_to_super_seed(get_bitfield()));
+			// bootstrap superseeding by sending one have message
+			superseed_piece(t->get_piece_to_super_seed(
+				get_bitfield()));
 			return;
 		}
 		else if (m_supports_fast && t->is_seed())
@@ -2097,8 +2137,7 @@ namespace libtorrent
 		if (!m_ses.m_settings.anonymous_mode)
 		{
 			if (is_outgoing()) handshake["p"] = m_ses.listen_port();
-			handshake["v"] = m_ses.settings().handshake_client_version.empty()
-				? m_ses.settings().user_agent : m_ses.settings().handshake_client_version;
+			handshake["v"] = m_ses.settings().user_agent;
 		}
 
 		std::string remote_address;
@@ -2111,8 +2150,7 @@ namespace libtorrent
 
 		m["upload_only"] = upload_only_msg;
 		m["ut_holepunch"] = holepunch_msg;
-		if (m_ses.m_settings.support_share_mode)
-			m["share_mode"] = share_mode_msg;
+		m["share_mode"] = share_mode_msg;
 		m["lt_donthave"] = dont_have_msg;
 
 		int complete_ago = -1;
@@ -2138,8 +2176,7 @@ namespace libtorrent
 			))
 			handshake["upload_only"] = 1;
 
-		if (m_ses.m_settings.support_share_mode
-			&& t->share_mode())
+		if (t->share_mode())
 			handshake["share_mode"] = 1;
 
 		if (!m_ses.m_settings.anonymous_mode)
@@ -2189,7 +2226,7 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 		send_buffer(&dict_msg[0], dict_msg.size());
 
-#if defined TORRENT_VERBOSE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
 		std::stringstream handshake_str;
 		handshake.print(handshake_str);
 		peer_log("==> EXTENDED HANDSHAKE: %s", handshake_str.str().c_str());
@@ -2273,7 +2310,7 @@ namespace libtorrent
 		char* ptr = msg;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		detail::write_int32(r.length + 1 + 4 + 4, ptr);
-		if (m_ses.m_settings.support_merkle_torrents && merkle)
+		if (merkle)
 			detail::write_uint8(250, ptr);
 		else
 			detail::write_uint8(msg_piece, ptr);
@@ -3332,7 +3369,7 @@ namespace libtorrent
 		}
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void bt_peer_connection::check_invariant() const
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();

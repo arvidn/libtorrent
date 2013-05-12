@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,9 +61,11 @@ namespace libtorrent
 			snubbed = 0x1000,
 			upload_only = 0x2000,
 			endgame_mode = 0x4000,
-			holepunched = 0x8000,
-			rc4_encrypted = 0x100000,
+			holepunched = 0x8000
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			, rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
+#endif
 		};
 
 		unsigned int flags;
@@ -83,10 +85,10 @@ namespace libtorrent
 		// bw_idle: the channel is not used
 		// bw_limit: the channel is waiting for quota
 		// bw_network: the channel is waiting for an async write
-		//   or read operation to complete
+		//   for read operation to complete
 		// bw_disk: the peer is waiting for the disk io thread
-		// this is a bitmask, a peer can wait for network, rate-limiter
-		// and disk at the same time!
+		// this is a bitmask, a peer can wait for network and
+		// disk at the same time!
 		enum bw_state { bw_idle = 0, bw_limit = 1, bw_network = 2, bw_disk = 4 };
 #ifndef TORRENT_NO_DEPRECATE
 		enum bw_state_deprecated { bw_torrent = bw_limit, bw_global = bw_limit };
@@ -133,11 +135,13 @@ namespace libtorrent
 		// the number of failed hashes for this peer
 		int num_hashfails;
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		// in case the session settings is set
 		// to resolve countries, this is set to
 		// the two character country code this
 		// peer resides in.
 		char country[2];
+#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		// atonomous system this peer belongs to
@@ -221,7 +225,7 @@ namespace libtorrent
 		int download_rate_peak;
 		int upload_rate_peak;
 		
-		// the peer's progress
+		// the peers progress
 		float progress; // [0, 1]
 		int progress_ppm; // [0, 1000000]
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,11 +41,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
+#include <boost/function/function1.hpp>
+
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+#include <boost/shared_ptr.hpp>
+#include <list>
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -53,16 +60,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/ptime.hpp"
 #include "libtorrent/config.hpp"
-
-#ifndef BOOST_NO_TYPEID
-#include <typeinfo>
-#endif
+#include "libtorrent/assert.hpp"
+#include "libtorrent/thread.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
 #endif
 
 namespace libtorrent {
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	struct plugin;
+#endif
 
 	class TORRENT_EXPORT alert
 	{
@@ -117,6 +127,63 @@ namespace libtorrent {
 
 	private:
 		ptime m_timestamp;
+	};
+
+	class TORRENT_EXTRA_EXPORT alert_manager
+	{
+	public:
+		alert_manager(io_service& ios, int queue_limit
+			, boost::uint32_t alert_mask = alert::error_notification);
+		~alert_manager();
+
+		void post_alert(const alert& alert_);
+		void post_alert_ptr(alert* alert_);
+		bool pending() const;
+		std::auto_ptr<alert> get();
+		void get_all(std::deque<alert*>* alerts);
+
+		template <class T>
+		bool should_post() const
+		{
+			mutex::scoped_lock lock(m_mutex);
+			if (m_alerts.size() >= m_queue_size_limit) return false;
+			return (m_alert_mask & T::static_category) != 0;
+		}
+
+		alert const* wait_for_alert(time_duration max_wait);
+
+		void set_alert_mask(boost::uint32_t m)
+		{
+			mutex::scoped_lock lock(m_mutex);
+			m_alert_mask = m;
+		}
+
+		int alert_mask() const { return m_alert_mask; }
+
+		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
+
+		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void add_extension(boost::shared_ptr<plugin> ext);
+#endif
+
+	private:
+		void post_impl(std::auto_ptr<alert>& alert_);
+
+		std::deque<alert*> m_alerts;
+		mutable mutex m_mutex;
+//		event m_condition;
+		boost::uint32_t m_alert_mask;
+		size_t m_queue_size_limit;
+		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
+		io_service& m_ios;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
+		ses_extension_list_t m_ses_extensions;
+#endif
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception

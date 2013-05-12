@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,12 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
-
-// #define TORRENT_DEBUG_REFCOUNTS
-
-#ifdef TORRENT_DEBUG_REFCOUNTS
-#include <set>
-#endif
 
 namespace libtorrent
 {
@@ -183,21 +177,21 @@ namespace libtorrent
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
-		void inc_refcount(int index, const void* peer);
-		void dec_refcount(int index, const void* peer);
+		void inc_refcount(int index);
+		void dec_refcount(int index);
 
 		// increases the peer count for the given piece
 		// (is used when a BITFIELD message is received)
-		void inc_refcount(bitfield const& bitmask, const void* peer);
+		void inc_refcount(bitfield const& bitmask);
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
-		void dec_refcount(bitfield const& bitmask, const void* peer);
+		void dec_refcount(bitfield const& bitmask);
 		
 		// these will increase and decrease the peer count
 		// of all pieces. They are used when seeds join
 		// or leave the swarm.
-		void inc_refcount_all(const void* peer);
-		void dec_refcount_all(const void* peer);
+		void inc_refcount_all();
+		void dec_refcount_all();
 
 		// This indicates that we just received this piece
 		// it means that the refcounter will indicate that
@@ -219,15 +213,6 @@ namespace libtorrent
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_piece_map.size()));
 			return m_piece_map[index].index == piece_pos::we_have_index;
-		}
-
-		bool is_downloading(int index) const
-		{
-			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < int(m_piece_map.size()));
-
-			piece_pos const& p = m_piece_map[index];
-			return p.downloading;
 		}
 
 		// sets the priority of a piece.
@@ -362,11 +347,9 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
+		void check_invariant(const torrent* t = 0) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
-#endif
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-		void check_invariant(const torrent* t = 0) const;
 #endif
 #if defined TORRENT_PICKER_LOG
 		void print_pieces() const;
@@ -437,10 +420,6 @@ namespace libtorrent
 			boost::uint32_t index;
 #endif
 
-#ifdef TORRENT_DEBUG_REFCOUNTS
-			// all the peers that have this piece
-			std::set<const void*> have_peers;
-#endif
 			enum
 			{
 				// index is set to this to indicate that we have the
@@ -466,7 +445,7 @@ namespace libtorrent
 			void set_not_have() { index = 0; TORRENT_ASSERT(!have()); }
 			
 			bool filtered() const { return piece_priority == filter_priority; }
-
+			
 			//  prio 7 is always top priority
 			//  prio 0 is always -1 (don't pick)
 			//  downloading pieces are always on an even prio_factor priority
@@ -509,19 +488,16 @@ namespace libtorrent
 
 			bool operator==(piece_pos p) const
 			{ return index == p.index && peer_count == p.peer_count; }
+
 		};
 
 	private:
 
-#ifndef TORRENT_DEBUG_REFCOUNTS
 #if TORRENT_COMPACT_PICKER
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
 #else
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
 #endif
-#endif
-
-		void break_one_seed();
 
 		void update_pieces() const;
 

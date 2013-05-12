@@ -183,8 +183,8 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return m_lower_layer->sparse_end(start); }
 
-	virtual int move_storage(std::string const& save_path, int flags)
-	{ return m_lower_layer->move_storage(save_path, flags); }
+	virtual bool move_storage(std::string const& save_path)
+	{ return m_lower_layer->move_storage(save_path); }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return m_lower_layer->verify_resume_data(rd, error); }
@@ -247,11 +247,13 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
-	proxy_settings ps;
+	int proxy_port = (rand() % 30000) + 10000;
 	if (proxy_type)
 	{
-		ps.port = start_proxy(proxy_type);
+		start_proxy(proxy_port, proxy_type);
+		proxy_settings ps;
 		ps.hostname = "127.0.0.1";
+		ps.port = proxy_port;
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
@@ -583,7 +585,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		stop_tracker();
 		stop_web_server();
 	}
-	if (proxy_type) stop_proxy(ps.port);
+	if (proxy_type) stop_proxy(proxy_port);
 }
 
 int test_main()

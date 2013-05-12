@@ -164,11 +164,9 @@ void stop_proxy(int port)
 	}
 }
 
-int start_proxy(int proxy_type)
+void start_proxy(int port, int proxy_type)
 {
 	using namespace libtorrent;
-
-	int port = 10000 + (rand() % 50000);
 
 	stop_proxy(port);
 
@@ -213,7 +211,6 @@ int start_proxy(int proxy_type)
 	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
-	return port;
 }
 
 using namespace libtorrent;
@@ -242,7 +239,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		while (to_write > 0)
 		{
 			int s = (std::min)(to_write, 300000);
-			file::iovec_t b = { random_data, size_t(s)};
+			file::iovec_t b = { random_data, s};
 			f.writev(offset, &b, 1, ec);
 			if (ec) fprintf(stderr, "failed to write file \"%s\": (%d) %s\n"
 				, full_path.c_str(), ec.value(), ec.message().c_str());

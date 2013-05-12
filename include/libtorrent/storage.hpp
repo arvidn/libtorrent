@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,7 +114,7 @@ namespace libtorrent
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 
-		virtual void hint_read(int, int, int) {}
+		virtual void hint_read(int slot, int offset, int len) {}
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 
@@ -128,12 +128,8 @@ namespace libtorrent
 		// is not in a sparse region, start itself is returned
 		virtual int sparse_end(int start) const { return start; }
 
-		// returns:
-		// no_error = 0,
-		// need_full_check = -1,
-		// fatal_disk_error = -2,
-		// file_exist = -4,
-		virtual int move_storage(std::string const& save_path, int flags) = 0;
+		// non-zero return value indicates an error
+		virtual bool move_storage(std::string const& save_path) = 0;
 
 		// verify storage dependent fast resume entries
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
@@ -165,7 +161,7 @@ namespace libtorrent
 		virtual bool delete_files() = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
-		virtual void finalize_file(int) {}
+		virtual void finalize_file(int file) {}
 #endif
 
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
@@ -201,7 +197,7 @@ namespace libtorrent
 		bool release_files();
 		bool delete_files();
 		bool initialize(bool allocate_files);
-		int move_storage(std::string const& save_path, int flags);
+		bool move_storage(std::string const& save_path);
 		int read(char* buf, int slot, int offset, int size);
 		int write(char const* buf, int slot, int offset, int size);
 		int sparse_end(int start) const;
@@ -271,44 +267,23 @@ namespace libtorrent
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
 		bool has_any_file() { return false; }
-		bool rename_file(int, std::string const&) { return false; }
+		bool rename_file(int index, std::string const& new_filename) { return false; }
 		bool release_files() { return false; }
 		bool delete_files() { return false; }
-		bool initialize(bool) { return false; }
-		int move_storage(std::string const&, int flags) { return 0; }
-		int read(char*, int, int, int size) { return size; }
-		int write(char const*, int, int, int size) { return size; }
-		size_type physical_offset(int, int) { return 0; }
+		bool initialize(bool allocate_files) { return false; }
+		bool move_storage(std::string const& save_path) { return true; }
+		int read(char* buf, int slot, int offset, int size) { return size; }
+		int write(char const* buf, int slot, int offset, int size) { return size; }
+		size_type physical_offset(int slot, int offset) { return 0; }
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
-		bool move_slot(int, int) { return false; }
-		bool swap_slots(int, int) { return false; }
-		bool swap_slots3(int, int, int) { return false; }
-		bool verify_resume_data(lazy_entry const&, error_code&) { return false; }
-		bool write_resume_data(entry&) const { return false; }
+		bool move_slot(int src_slot, int dst_slot) { return false; }
+		bool swap_slots(int slot1, int slot2) { return false; }
+		bool swap_slots3(int slot1, int slot2, int slot3) { return false; }
+		bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
+		bool write_resume_data(entry& rd) const { return false; }
 
 		int m_piece_size;
-	};
-
-	// flags for async_move_storage
-	enum move_flags_t
-	{
-		// replace any files in the destination when copying
-		// or moving the storage
-		always_replace_files = 0,
-
-		// if any files that we want to copy exist in the destination
-		// exist, fail the whole operation and don't perform
-		// any copy or move. There is an inherent race condition
-		// in this mode. The files are checked for existence before
-		// the operation starts. In between the check and performing
-		// the copy, the destination files may be created, in which
-		// case they are replaced.
-		fail_if_exist = 1,
-
-		// if any file exist in the target, take those files instead
-		// of the ones we may have in the source.
-		dont_replace = 2,
 	};
 
 	struct disk_io_thread;
@@ -381,7 +356,7 @@ namespace libtorrent
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
 
-		void async_move_storage(std::string const& p, int flags
+		void async_move_storage(std::string const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_save_resume_data(
@@ -393,8 +368,7 @@ namespace libtorrent
 			no_error = 0,
 			need_full_check = -1,
 			fatal_disk_error = -2,
-			disk_check_aborted = -3,
-			file_exist = -4,
+			disk_check_aborted = -3
 		};
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }
@@ -483,14 +457,14 @@ namespace libtorrent
 		int rename_file_impl(int index, std::string const& new_filename)
 		{ return m_storage->rename_file(index, new_filename); }
 
-		int move_storage_impl(std::string const& save_path, int flags);
+		int move_storage_impl(std::string const& save_path);
 
 		int allocate_slot_for_piece(int piece_index);
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
-#endif
 #ifdef TORRENT_STORAGE_DEBUG
 		void debug_log() const;
+#endif
 #endif
 		boost::intrusive_ptr<torrent_info const> m_info;
 		file_storage const& m_files;

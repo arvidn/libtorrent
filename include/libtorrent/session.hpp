@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -124,8 +124,12 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #define TORRENT_LOGPATH_ARG_DEFAULT , std::string logpath = "."
+#define TORRENT_LOGPATH_ARG , std::string logpath
+#define TORRENT_LOGPATH , logpath
 #else
 #define TORRENT_LOGPATH_ARG_DEFAULT
+#define TORRENT_LOGPATH_ARG
+#define TORRENT_LOGPATH
 #endif
 
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
@@ -139,11 +143,7 @@ namespace libtorrent
 			TORRENT_LOGPATH_ARG_DEFAULT)
 		{
 			TORRENT_CFG();
-			init(std::make_pair(0, 0), "0.0.0.0", print, alert_mask);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			set_log_path(logpath);
-#endif
-			start(flags);
+			init(std::make_pair(0, 0), "0.0.0.0", print, flags, alert_mask TORRENT_LOGPATH);
 		}
 
 		session(
@@ -157,11 +157,7 @@ namespace libtorrent
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
 			TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
-			init(listen_port_range, listen_interface, print, alert_mask);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			set_log_path(logpath);
-#endif
-			start(flags);
+			init(listen_port_range, listen_interface, print, flags, alert_mask TORRENT_LOGPATH);
 		}
 			
 		~session();
@@ -264,12 +260,10 @@ namespace libtorrent
 		void remove_feed(feed_handle h);
 		void get_feeds(std::vector<feed_handle>& f) const;
 
+#ifndef TORRENT_DISABLE_DHT
 		void start_dht();
 		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
-		void add_dht_node(std::pair<std::string, int> const& node);
-		void add_dht_router(std::pair<std::string, int> const& node);
-		bool is_dht_running() const;
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use save_state and load_state instead
@@ -278,14 +272,20 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void start_dht(entry const& startup_state) TORRENT_DEPRECATED;
 #endif
+		void add_dht_node(std::pair<std::string, int> const& node);
+		void add_dht_router(std::pair<std::string, int> const& node);
+		bool is_dht_running() const;
+#endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		void set_pe_settings(pe_settings const& settings);
 		pe_settings get_pe_settings() const;
 #endif
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
+#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as_for_ip(address const& addr);
@@ -404,10 +404,12 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		proxy_settings tracker_proxy() const TORRENT_DEPRECATED;
 
+#ifndef TORRENT_DISABLE_DHT
 		TORRENT_DEPRECATED_PREFIX
 		void set_dht_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		proxy_settings dht_proxy() const TORRENT_DEPRECATED;
+#endif
 #endif // TORRENT_NO_DEPRECATE
 
 #if TORRENT_USE_I2P
@@ -490,9 +492,7 @@ namespace libtorrent
 	private:
 
 		void init(std::pair<int, int> listen_range, char const* listen_interface
-			, fingerprint const& id, boost::uint32_t alert_mask);
-		void set_log_path(std::string const& p);
-		void start(int flags);
+			, fingerprint const& id, int flags, boost::uint32_t alert_mask TORRENT_LOGPATH_ARG);
 
 		// data shared between the main thread
 		// and the working thread

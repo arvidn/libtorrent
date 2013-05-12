@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.10
 
 .. contents:: Table of contents
   :depth: 2
@@ -254,7 +254,7 @@ Build features:
 |                          | * ``verbose`` - verbose peer wire logging.         |
 |                          | * ``errors`` - like verbose, but limited to errors.|
 +--------------------------+----------------------------------------------------+
-| ``dht``                  | * ``on`` - build with support for tracker less     |
+| ``dht-support``          | * ``on`` - build with support for tracker less     |
 |                          |   torrents and DHT support.                        |
 |                          | * ``logging`` - build with DHT support and verbose |
 |                          |   logging of the DHT protocol traffic.             |
