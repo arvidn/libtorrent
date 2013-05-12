@@ -34,6 +34,7 @@ SOURCES =
 	auth_localhost
 	load_config
 	http_whitelist
+	error_logger
 	websocket_handler
 	;
 
