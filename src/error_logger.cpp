@@ -31,6 +31,15 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "error_logger.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/alert_handler.hpp"
+#include "libtorrent/socket_io.hpp"
+#include "libtorrent/error_code.hpp"
+#include <boost/asio/ssl.hpp>
+
+#include <string>
+#include <errno.h>
+#include <stdlib.h>
 
 namespace libtorrent
 {
