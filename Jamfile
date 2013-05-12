@@ -33,6 +33,7 @@ SOURCES =
 	auth_localhost
 	load_config
 	http_whitelist
+	error_logger
 	;
 
 lib torrent-webui
