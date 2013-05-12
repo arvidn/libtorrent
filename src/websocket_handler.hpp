@@ -34,74 +34,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WEBSOCKET_HPP
 
 #include "webui.hpp"
+#include "libtorrent/thread.hpp"
 #include <map>
 #include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/cstdint.hpp>
 
 namespace libtorrent
 {
 	struct websocket_handler : http_handler
 	{
-		virtual bool authenticate(mg_connection*, mg_request_info const*) = 0;
-
-		bool send_packet(mg_connection* conn, char const* buffer, int len)
-		{
-			mutex::scoped_lock l(m_mutex);
-
-			std::map<mg_connection*, boost::shared_ptr<mutex> >::iterator i
-				= m_open_sockets.find(conn);
-			if (i == m_open_sockets.end()) return false;
-			boost::shared_ptr<mutex> m = i->second;
-			mutex::scoped_lock l2(m);
-			l.unlock();
-
-			// header
-			int header_len = 2;
-			boost::uint8_t h[20];
-			h[0] = 0x81; // text frame, with a single fragment
-			if (len < 126)
-				h[1] = len;
-			else if (len < 65536)
-			{
-				h[1] = 126;
-				write_uint16(&h[2], len);
-				header_len = 4;
-			}
-			else
-			{
-				h[1] = 127;
-				write_uint64(&h[2], len);
-				header_len = 10;
-			}
-
-			// TODO: it would be nice to have an mg_writev()
-			int ret = mg_write(coon, h, header_len);
-			if (ret < header_len) return false;
-
-			ret = mg_write(conn, buffer, len);
-			if (ret < len) return false;
-			return true;
-		}
-
+		bool send_packet(mg_connection* conn, int type, char const* buffer, int len);
 		virtual bool handle_websocket_connect(mg_connection* conn,
-			mg_request_info const* request_info)
-		{
-			mutex::scoped_lock l(m_mutex);
-			if (!authenticate(conn, request_info)) return false;
-			m_open_sockets.insert(std::make_pair(conn, boost::make_shared<mutex>()));
-			return true;
-		}
-
-		virtual void handle_end_request(mg_connection* conn)
-		{
-			mutex::scoped_lock l(m_mutex);
-			std::map<mg_connection*, boost::shared_ptr<mutex> >::iterator i
-				= m_open_sockets.find(conn);
-			if (i == m_open_sockets.end()) return;
-
-			m_open_sockets.erase(i);
-		}
+			mg_request_info const* request_info);
+		virtual void handle_end_request(mg_connection* conn);
 
 	private:
 	

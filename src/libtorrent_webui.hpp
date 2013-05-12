@@ -34,21 +34,43 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LIBTORRENT_WEBUI_HPP
 
 #include "websocket_handler.hpp"
+#include "auth.hpp"
+#include "libtorrent/atomic.hpp"
+
+struct mg_connection;
 
 namespace libtorrent
 {
 	struct libtorrent_webui : websocket_handler
 	{
-		virtual bool authenticate(mg_connection*, mg_request_info const*)
-		{
-#error todo
-		}
+		libtorrent_webui(auth_interface const* auth);
+		~libtorrent_webui();
 
+		virtual bool handle_websocket_connect(mg_connection* conn,
+			mg_request_info const* request_info);
 		virtual bool handle_websocket_data(mg_connection* conn
-			, int bits, char* data, size_t length)
-		{
-		
-		}
+			, int bits, char* data, size_t length);
+
+		int start(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int stop(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int set_auto_managed(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int clear_auto_managed(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int queue_up(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int queue_down(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int queue_top(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int queue_bottom(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int remove(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int remove_and_data(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int force_recheck(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int set_sequential_download(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		int clear_sequential_download(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+
+		bool call_rpc(mg_connection* conn, int function, int num_args, char const* data, int len);
+
+	private:
+
+		auth_interface const* m_auth;
+		atomic_count m_transaction_id;
 
 	};
 }

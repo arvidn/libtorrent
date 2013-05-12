@@ -16,6 +16,7 @@ SOURCES =
 	webui
 	transmission_webui
 	utorrent_webui
+	libtorrent_webui
 	json_util
 	file_downloader
 	torrent_post
@@ -33,6 +34,7 @@ SOURCES =
 	auth_localhost
 	load_config
 	http_whitelist
+	websocket_handler
 	;
 
 lib torrent-webui

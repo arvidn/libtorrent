@@ -60,7 +60,7 @@ namespace libtorrent
 		if (ta)
 		{
 			mutex::scoped_lock l(m_mutex);
-			m_queue.left.push_front(std::make_pair(m_frame + 1, ta->handle.status()));
+			m_queue.left.push_front(std::make_pair(m_frame + 1, torrent_history_entry(ta->handle.status(), m_frame + 1)));
 			m_deferred_frame_count = true;
 		}
 		else if (td)
@@ -68,11 +68,11 @@ namespace libtorrent
 			mutex::scoped_lock l(m_mutex);
 
 			m_removed.push_front(std::make_pair(m_frame + 1, td->info_hash));
-			torrent_status st;
-			st.handle = td->handle;
+			torrent_history_entry st;
+			st.status.handle = td->handle;
 			m_queue.right.erase(st);
 			// weed out torrents that were removed a long time ago
-			while (m_removed.size() > 50 && m_removed.back().first < m_frame - 10)
+			while (m_removed.size() > 1000 && m_removed.back().first < m_frame - 10)
 			{
 				m_removed.pop_back();
 			}
@@ -86,9 +86,11 @@ namespace libtorrent
 			for (std::vector<torrent_status>::const_iterator i = st.begin()
 				, end(st.end()); i != end; ++i)
 			{
-				queue_t::right_iterator it = m_queue.right.find(*i);
+				torrent_history_entry e;
+				e.status.handle = i->handle;
+				queue_t::right_iterator it = m_queue.right.find(e);
 				if (it == m_queue.right.end()) continue;
-				m_queue.right.replace_key(it, *i);
+				const_cast<torrent_history_entry&>(it->first).update_status(*i, m_frame);
 				m_queue.right.replace_data(it, m_frame);
 				// bump this torrent to the beginning of the list
 				m_queue.left.relocate(m_queue.left.begin(), m_queue.project_left(it));
@@ -100,7 +102,8 @@ namespace libtorrent
 			for (queue_t::left_iterator i = m_queue.left.begin()
 				, end(m_queue.left.end()); i != end; ++i)
 			{
-				printf("%3d: (%s) %s\n", i->first, i->second.error.c_str(), i->second.name.c_str());
+				i->second.debug_print(m_frame - 1);
+//				printf("%3d: (%s) %s\n", i->first, i->second.error.c_str(), i->second.name.c_str());
 			}
 */
 		}
@@ -125,6 +128,17 @@ namespace libtorrent
 			, end(m_queue.left.end()); i != end; ++i)
 		{
 			if (i->first <= frame) break;
+			torrents.push_back(i->second.status);
+		}
+	}
+
+	void torrent_history::updated_fields_since(int frame, std::vector<torrent_history_entry>& torrents) const
+	{
+		mutex::scoped_lock l(m_mutex);
+		for (queue_t::left_const_iterator i = m_queue.left.begin()
+			, end(m_queue.left.end()); i != end; ++i)
+		{
+			if (i->first <= frame) break;
 			torrents.push_back(i->second);
 		}
 	}
@@ -138,6 +152,177 @@ namespace libtorrent
 			++m_frame;
 		}
 		return m_frame;
+	}
+
+	void torrent_history_entry::update_status(torrent_status const& s, int f)
+	{
+#define CMP_SET(x) if (s.x != status.x) frame[int(x)] = f
+
+		CMP_SET(state);
+		CMP_SET(paused);
+		CMP_SET(auto_managed);
+		CMP_SET(sequential_download);
+		CMP_SET(is_seeding);
+		CMP_SET(is_finished);
+		CMP_SET(is_loaded);
+		CMP_SET(has_metadata);
+		CMP_SET(progress);
+		CMP_SET(progress_ppm);
+		CMP_SET(error);
+		CMP_SET(save_path);
+		CMP_SET(name);
+		CMP_SET(next_announce);
+		CMP_SET(announce_interval);
+		CMP_SET(current_tracker);
+		CMP_SET(total_download);
+		CMP_SET(total_upload);
+		CMP_SET(total_payload_download);
+		CMP_SET(total_payload_upload);
+		CMP_SET(total_failed_bytes);
+		CMP_SET(total_redundant_bytes);
+		CMP_SET(download_rate);
+		CMP_SET(upload_rate);
+		CMP_SET(download_payload_rate);
+		CMP_SET(upload_payload_rate);
+		CMP_SET(num_seeds);
+		CMP_SET(num_peers);
+		CMP_SET(num_complete);
+		CMP_SET(num_incomplete);
+		CMP_SET(list_seeds);
+		CMP_SET(list_peers);
+		CMP_SET(connect_candidates);
+		CMP_SET(num_pieces);
+		CMP_SET(total_done);
+		CMP_SET(total_wanted_done);
+		CMP_SET(total_wanted);
+		CMP_SET(distributed_full_copies);
+		CMP_SET(distributed_fraction);
+		CMP_SET(distributed_copies);
+		CMP_SET(block_size);
+		CMP_SET(num_uploads);
+		CMP_SET(num_connections);
+		CMP_SET(num_undead_peers);
+		CMP_SET(uploads_limit);
+		CMP_SET(connections_limit);
+		CMP_SET(storage_mode);
+		CMP_SET(up_bandwidth_queue);
+		CMP_SET(down_bandwidth_queue);
+		CMP_SET(all_time_upload);
+		CMP_SET(all_time_download);
+		CMP_SET(active_time);
+		CMP_SET(finished_time);
+		CMP_SET(seeding_time);
+		CMP_SET(seed_rank);
+		CMP_SET(last_scrape);
+		CMP_SET(has_incoming);
+		CMP_SET(sparse_regions);
+		CMP_SET(seed_mode);
+		CMP_SET(upload_mode);
+		CMP_SET(share_mode);
+		CMP_SET(super_seeding);
+		CMP_SET(priority);
+		CMP_SET(added_time);
+		CMP_SET(completed_time);
+		CMP_SET(last_seen_complete);
+		CMP_SET(time_since_upload);
+		CMP_SET(time_since_download);
+		CMP_SET(queue_position);
+		CMP_SET(need_save_resume);
+		CMP_SET(ip_filter_applies);
+		CMP_SET(listen_port);
+
+		status = s;
+	}
+
+	char const* fmt(std::string const& s) { return s.c_str(); }
+	int fmt(int v) { return v; }
+	boost::uint64_t fmt(boost::uint64_t v) { return v; }
+	boost::int64_t fmt(boost::int64_t v) { return v; }
+	time_t fmt(time_t v) { return v; }
+	float fmt(float v) { return v; }
+	int fmt(bool v) { return v; }
+
+	void torrent_history_entry::debug_print(int current_frame) const
+	{
+		int frame_diff;
+
+#define PRINT(x, type) frame_diff = (std::min)(current_frame - frame[x], boost::uint32_t(20)); \
+		printf("%s\x1b[38;5;%dm%" #type "\x1b[0m ", frame[x] >= current_frame  ? "\x1b[41m" : "", 255 - frame_diff, fmt(status.x));
+	
+		PRINT(state, d);
+		PRINT(paused, d);
+		PRINT(auto_managed, d);
+		PRINT(sequential_download, d);
+		PRINT(is_seeding, d);
+		PRINT(is_finished, d);
+		PRINT(is_loaded, d);
+		PRINT(has_metadata, d);
+		PRINT(progress, f);
+		PRINT(progress_ppm, d);
+		PRINT(error, s);
+//		PRINT(save_path, s);
+		PRINT(name, s);
+//		PRINT(next_announce, d);
+//		PRINT(announce_interval, d);
+		PRINT(current_tracker, s);
+		PRINT(total_download, lld);
+		PRINT(total_upload, lld);
+		PRINT(total_payload_download, lld);
+		PRINT(total_payload_upload, lld);
+		PRINT(total_failed_bytes, lld);
+		PRINT(total_redundant_bytes, lld);
+		PRINT(download_rate, d);
+		PRINT(upload_rate, d);
+		PRINT(download_payload_rate, d);
+		PRINT(upload_payload_rate, d);
+		PRINT(num_seeds, d);
+		PRINT(num_peers, d);
+		PRINT(num_complete, d);
+		PRINT(num_incomplete, d);
+		PRINT(list_seeds, d);
+		PRINT(list_peers, d);
+		PRINT(connect_candidates, d);
+		PRINT(num_pieces, d);
+		PRINT(total_done, lld);
+		PRINT(total_wanted_done, lld);
+		PRINT(total_wanted, lld);
+		PRINT(distributed_full_copies, d);
+		PRINT(distributed_fraction, d);
+		PRINT(distributed_copies, f);
+		PRINT(block_size, d);
+		PRINT(num_uploads, d);
+		PRINT(num_connections, d);
+		PRINT(num_undead_peers, d);
+		PRINT(uploads_limit, d);
+		PRINT(connections_limit, d);
+		PRINT(storage_mode, d);
+		PRINT(up_bandwidth_queue, d);
+		PRINT(down_bandwidth_queue, d);
+		PRINT(all_time_upload, lld);
+		PRINT(all_time_download, lld);
+		PRINT(active_time, d);
+		PRINT(finished_time, d);
+		PRINT(seeding_time, d);
+		PRINT(seed_rank, d);
+		PRINT(last_scrape, d);
+		PRINT(has_incoming, d);
+		PRINT(sparse_regions, d);
+		PRINT(seed_mode, d);
+		PRINT(upload_mode, d);
+		PRINT(share_mode, d);
+		PRINT(super_seeding, d);
+		PRINT(priority, d);
+		PRINT(added_time, ld);
+		PRINT(completed_time, ld);
+		PRINT(last_seen_complete, ld);
+		PRINT(time_since_upload, d);
+		PRINT(time_since_download, d);
+		PRINT(queue_position, d);
+		PRINT(need_save_resume, d);
+		PRINT(ip_filter_applies, d);
+		PRINT(listen_port, d);
+
+		printf("\x1b[0m\n");
 	}
 }
 

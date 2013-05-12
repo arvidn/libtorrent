@@ -85,7 +85,7 @@ int main(int argc, char *const argv[])
 	bool shutting_down = false;
 	while (!quit || !resume.ok_to_quit())
 	{
-		usleep(1000000);
+		usleep(500000);
 		ses.pop_alerts(&alert_queue);
 //		for (std::deque<alert*>::iterator i = alert_queue.begin()
 //			, end(alert_queue.end()); i != end; ++i)
