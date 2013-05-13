@@ -33,15 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent_webui.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/session.hpp"
 #include "local_mongoose.h"
+#include "auth.hpp"
+#include "torrent_history.hpp"
 #include <string.h>
 
 namespace libtorrent
 {
 	namespace io = libtorrent::detail;
 
-	libtorrent_webui::libtorrent_webui(auth_interface const* auth)
-		: m_auth(auth)
+	libtorrent_webui::libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth)
+		: m_ses(ses)
+		, m_hist(hist)
+		, m_auth(auth)
 	{}
 
 	libtorrent_webui::~libtorrent_webui() {}
@@ -68,11 +73,12 @@ namespace libtorrent
 	struct rpc_entry
 	{
 		char const* name;
-		int(libtorrent_webui::*handler)(mg_connection*, boost::uint16_t, char*, int);
+		bool (libtorrent_webui::*handler)(libtorrent_webui::conn_state*);
 	};
 
 	rpc_entry functions[] =
 	{
+		{ "get-torrent-updates", &libtorrent_webui::get_torrent_updates },
 		{ "start", &libtorrent_webui::start },
 		{ "stop", &libtorrent_webui::stop },
 		{ "set-auto-managed", &libtorrent_webui::set_auto_managed },
@@ -88,19 +94,378 @@ namespace libtorrent
 		{ "clear-sequential-download", &libtorrent_webui::clear_sequential_download },
 	};
 
-	int libtorrent_webui::start(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::stop(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::set_auto_managed(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::clear_auto_managed(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::queue_up(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::queue_down(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::queue_top(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::queue_bottom(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::remove(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::remove_and_data(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::force_recheck(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::set_sequential_download(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
-	int libtorrent_webui::clear_sequential_download(mg_connection* conn, boost::uint16_t tid, char* data, int length) {}
+	// maps torrent field to RPC field. These fields are the ones defined in
+	// torrent_history_entry
+	int torrent_field_map[] =
+	{
+		20, // state
+		0, // paused
+		0, // auto_managed
+		0, // sequential_download
+		0, // is_seeding
+		0, // is_finished
+		0, // is_loaded
+		0, // has_metadata
+		-1, // progress
+		8, // progress_ppm
+		9, // error
+		-1, // save_path
+		1, // name
+		-1, // next_announce
+		-1, // announce_interval
+		-1, // current_tracker
+		3, // total_download
+		2, // total_upload
+		-1, // total_payload_download
+		-1, // total_payload_upload
+		21, // total_failed_bytes
+		22, // total_redundant_bytes
+		7, // download_rate
+		6, // upload_rate
+		-1, // download_payload_rate
+		-1, // upload_payload_rate
+		11, // num_seeds
+		10, // num_peers
+		-1, // num_complete
+		-1, // num_incomplete
+		-1, // list_seeds
+		-1, // list_peers
+		-1, // connect_candidates
+		12, // num_pieces
+		-1, // total_done
+		13, // total_wanted_done
+		-1, // total_wanted
+		14, // distributed_full_copies
+		14, // distributed_fraction
+		-1, // distributed_copies
+		-1, // block_size
+		17, // num_uploads
+		18, // num_connections
+		-1, // num_undead_peers
+		-1, // uploads_limit
+		-1, // connections_limit
+		-1, // storage_mode
+		-1, // up_bandwidth_queue
+		-1, // down_bandwidth_queue
+		15, // all_time_upload
+		16, // all_time_download
+		-1, // active_time
+		-1, // finished_time
+		-1, // seeding_time
+		-1, // seed_rank
+		-1, // last_scrape
+		-1, // has_incoming
+		-1, // sparse_regions
+		0, // seed_mode
+		0, // upload_mode
+		0, // share_mode
+		0, // super_seeding
+		-1, // priority
+		4, // added_time
+		5, // completed_time
+		-1, // last_seen_complete
+		-1, // time_since_upload
+		-1, // time_since_download
+		19, // queue_position
+		-1, // need_save_resume
+		-1, // ip_filter_applies
+		-1, // listen_port
+	};
+
+	bool libtorrent_webui::get_torrent_updates(conn_state* st)
+	{
+		if (st->len < 12) return error(st, truncated_message);
+
+		boost::uint32_t frame = io::read_uint32(st->data);
+		boost::uint64_t user_mask = io::read_uint64(st->data);
+		st->len -= 12;
+
+		std::vector<torrent_history_entry> torrents;
+		m_hist->updated_fields_since(frame, torrents);
+
+		std::vector<char> response;
+		std::back_insert_iterator<std::vector<char> > ptr(response);
+
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(no_error, ptr);
+
+		// frame number (uint32)
+		io::write_uint32(m_hist->frame(), ptr);
+
+		// allocate space for torrent count
+		// this will be filled in later when we know
+		int num_torrents = 0;
+		int num_torrents_pos = response.size();
+		io::write_uint32(num_torrents, ptr);
+
+		for (std::vector<torrent_history_entry>::iterator i = torrents.begin()
+			, end(torrents.end()); i != end; ++i)
+		{
+			boost::uint64_t bitmask = 0;
+
+			for (int k = 0; k < torrent_history_entry::num_fields; ++k)
+			{
+				int f = torrent_field_map[k];
+				if (f < 0) continue;
+				if (i->frame[k] <= frame) continue;
+				if ((user_mask & (1 << f)) == 0) continue;
+
+				// this field has changed and should be included in this update
+				bitmask |= 1 << f;
+			}
+			if (bitmask == 0) continue;
+
+			++num_torrents;
+			// first write the info-hash
+			std::copy(i->status.info_hash.begin(), i->status.info_hash.end(), ptr);
+			// then 64 bits of bitmask, indicating which fields
+			// are included in the update for this torrent
+			io::write_uint64(bitmask, ptr);
+
+			torrent_status const& s = i->status;
+
+			for (int f = 0; f < 21; ++f)
+			{
+				if ((bitmask & (1 << f)) == 0) continue;
+
+				// write field f to buffer
+				switch (f)
+				{
+					case 0: // flags
+					{
+						boost::uint64_t flags = 
+							(s.paused ? 0x001 : 0)
+							| (s.auto_managed ? 0x002 : 0)
+							| (s.sequential_download ? 0x004 : 0)
+							| (s.is_seeding ? 0x008 : 0)
+							| (s.is_finished ? 0x010 : 0)
+							| (s.is_loaded ? 0x020 : 0)
+							| (s.has_metadata ? 0x040 : 0)
+							| (s.has_incoming ? 0x080 : 0)
+							| (s.seed_mode ? 0x100 : 0)
+							| (s.upload_mode ? 0x200 : 0)
+							| (s.share_mode ? 0x400 : 0)
+							| (s.super_seeding ? 0x800 : 0)
+							;
+
+						io::write_uint64(flags, ptr);
+						break;
+					}
+					case 1: // name
+					{
+						std::string name = s.name;
+						if (name.size() > 65535) name.resize(65535);
+						io::write_uint16(name.size(), ptr);
+						std::copy(name.begin(), name.end(), ptr);
+						break;
+					}
+					case 2: // total-uploaded
+					{
+						io::write_uint64(s.total_upload, ptr);
+						break;
+					}
+					case 3: // total-downloaded
+					{
+						io::write_uint64(s.total_download, ptr);
+						break;
+					}
+					case 4: // added-time
+					{
+						io::write_uint64(s.added_time, ptr);
+						break;
+					}
+					case 5: // completed_time
+					{
+						io::write_uint64(s.completed_time, ptr);
+						break;
+					}
+					case 6: // upload-rate
+					{
+						io::write_uint32(s.upload_rate, ptr);
+						break;
+					}
+					case 7: // download-rate
+					{
+						io::write_uint32(s.download_rate, ptr);
+						break;
+					}
+					case 8: // progress
+					{
+						io::write_uint32(s.progress_ppm, ptr);
+						break;
+					}
+					case 9: // error
+					{
+						std::string e = s.error;
+						if (e.size() > 65535) e.resize(65535);
+						io::write_uint16(e.size(), ptr);
+						std::copy(e.begin(), e.end(), ptr);
+						break;
+					}
+					case 10: // connected-peers
+					{
+						io::write_uint32(s.num_peers, ptr);
+						break;
+					}
+					case 11: // connected-seeds
+					{
+						io::write_uint32(s.num_seeds, ptr);
+						break;
+					}
+					case 12: // downloaded-pieces
+					{
+						io::write_uint32(s.num_pieces, ptr);
+						break;
+					}
+					case 13: // total-done
+					{
+						io::write_uint64(s.total_wanted_done, ptr);
+						break;
+					}
+					case 14: // distributed-copies
+					{
+						io::write_uint32(s.distributed_full_copies, ptr);
+						io::write_uint32(s.distributed_fraction, ptr);
+						break;
+					}
+					case 15: // all-time-upload
+					{
+						io::write_uint64(s.all_time_upload, ptr);
+						break;
+					}
+					case 16: // all-time-download
+					{
+						io::write_uint32(s.all_time_download, ptr);
+						break;
+					}
+					case 17: // unchoked-peers
+					{
+						io::write_uint32(s.num_uploads, ptr);
+						break;
+					}
+					case 18: // num-connections
+					{
+						io::write_uint32(s.num_connections, ptr);
+						break;
+					}
+					case 19: // queue-position
+					{
+						io::write_uint32(s.queue_position, ptr);
+						break;
+					}
+					case 20: // state
+					{
+						int state;
+						switch (s.state)
+						{
+#ifndef TORRENT_NO_DEPRECATE
+							case torrent_status::queued_for_checking:
+#endif
+							case torrent_status::checking_files:
+							case torrent_status::allocating:
+							case torrent_status::checking_resume_data:
+								state = 0; // checking-files
+								break;
+							case torrent_status::downloading_metadata:
+								state = 1; // downloading-metadata
+								break;
+							case torrent_status::downloading:
+							default:
+								state = 2; // downloading
+								break;
+							case torrent_status::finished:
+							case torrent_status::seeding:
+								state = 3; // seeding
+								break;
+						};
+						io::write_uint8(state, ptr);
+						break;
+					}
+					case 21: // failed-bytes
+					{
+						io::write_uint64(s.total_failed_bytes, ptr);
+						break;
+					}
+					case 22: // redundant-bytes
+					{
+						io::write_uint64(s.total_redundant_bytes, ptr);
+						break;
+					}
+					default:
+					TORRENT_ASSERT(false);
+				}
+			}
+		}
+
+		// now that we know how many torrents we wrote, fill in the
+		// counter
+		char* ptr2 = &response[num_torrents_pos];
+		io::write_uint32(num_torrents, ptr2);
+
+		send_packet(st->conn, 0x2, &response[0], response.size());
+	}
+
+	int libtorrent_webui::parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st)
+	{
+		// there are only supposed to be one ore more info-hashes as arguments. Each info-hash is
+		// in its binary representation, and hence 20 bytes long.
+		if ((st->len % 20) != 0) return invalid_argument_type;
+
+		for (int i = 0; i < st->len / 20; ++i)
+		{
+			sha1_hash h;
+			memcpy(&h[0], &st->data[i*20], 20);
+
+			// TODO: this call is blocking. Instead, use the torrent_history object for this lookup
+			// or make this function fast in libtorrent
+			torrent_handle th = m_ses.find_torrent(h);
+			if (!th.is_valid()) continue;
+			torrents.push_back(th);
+		}
+		return no_error;
+	}
+
+	bool libtorrent_webui::start(conn_state* st)
+	{
+		std::vector<torrent_handle> torrents;
+		int ret = parse_torrent_args(torrents, st);
+		if (ret != no_error) return error(st, ret);
+
+		for (std::vector<torrent_handle>::iterator i = torrents.begin()
+			, end(torrents.end()); i != end; ++i)
+		{
+			i->auto_managed(true);
+			i->clear_error();
+			i->resume();
+		}
+	}
+
+	bool libtorrent_webui::stop(conn_state* st)
+	{
+		std::vector<torrent_handle> torrents;
+		int ret = parse_torrent_args(torrents, st);
+		if (ret != no_error) return error(st, ret);
+
+		for (std::vector<torrent_handle>::iterator i = torrents.begin()
+			, end(torrents.end()); i != end; ++i)
+		{
+			i->auto_managed(false);
+			i->pause();
+		}
+	}
+
+	bool libtorrent_webui::set_auto_managed(conn_state* st) {}
+	bool libtorrent_webui::clear_auto_managed(conn_state* st) {}
+	bool libtorrent_webui::queue_up(conn_state* st) {}
+	bool libtorrent_webui::queue_down(conn_state* st) {}
+	bool libtorrent_webui::queue_top(conn_state* st) {}
+	bool libtorrent_webui::queue_bottom(conn_state* st) {}
+	bool libtorrent_webui::remove(conn_state* st) {}
+	bool libtorrent_webui::remove_and_data(conn_state* st) {}
+	bool libtorrent_webui::force_recheck(conn_state* st) {}
+	bool libtorrent_webui::set_sequential_download(conn_state* st) {}
+	bool libtorrent_webui::clear_sequential_download(conn_state* st) {}
 
 	char const* fun_name(int function_id)
 	{
@@ -128,37 +493,57 @@ namespace libtorrent
 
 		// parse RPC message
 
-		// RPC call is always at least 4 bytes.
-		if (length < 4) return false;
+		// RPC call is always at least 3 bytes.
+		if (length < 3) return false;
 
-		char const* ptr = data;
-		boost::uint8_t function_id = io::read_uint8(ptr);
-		boost::uint16_t transaction_id = io::read_uint16(ptr);
-		boost::uint8_t num_args = io::read_uint8(ptr);
+		conn_state st;
+		st.conn = conn;
 
-		if (function_id & 0x80)
+		st.data = data;
+		st.function_id = io::read_uint8(st.data);
+		st.transaction_id = io::read_uint16(st.data);
+
+		if (st.function_id & 0x80)
 		{
+			// RPC responses is at least 4 bytes
+			if (length < 4) return false;
+			int status = io::read_uint8(st.data);
 			// this is a response to a function call
-			fprintf(stderr, "RETURNED: %s (status: %d)\n", fun_name(function_id & 0x7f), num_args);
+			fprintf(stderr, "RETURNED: %s (status: %d)\n", fun_name(st.function_id & 0x7f), status);
 		}
 		else
 		{
-			fprintf(stderr, "CALL: %s (%d arguments)\n", fun_name(function_id), num_args);
-			if (function_id >= 0 && function_id < sizeof(functions)/sizeof(functions[0]))
+			st.len = data + length - st.data;
+			// TOOD: parse this out of the request_info
+			st.perms = NULL;
+
+			fprintf(stderr, "CALL: %s (%d bytes arguments)\n", fun_name(st.function_id), st.len);
+			if (st.function_id >= 0 && st.function_id < sizeof(functions)/sizeof(functions[0]))
 			{
-				this->*(functions[function_id].handler)(conn, transaction_id, ptr, data + len - ptr);
+				return (this->*functions[st.function_id].handler)(&st);
 			}
 			else
 			{
-				// TODO: respond with unknown function
+				return error(&st, no_such_function);
 			}
 		}
 		
 	}
 
-	bool libtorrent_webui::call_rpc(mg_connection* conn, int function, int num_args, char const* data, int len)
+	bool libtorrent_webui::error(conn_state* st, int error)
 	{
-		buffer buf(len + 4);
+		char rpc[4];
+		char* ptr = &rpc[0];
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(error, ptr);
+
+		return send_packet(st->conn, 0x2, rpc, 4);
+	}
+
+	bool libtorrent_webui::call_rpc(mg_connection* conn, int function, char const* data, int len)
+	{
+		buffer buf(len + 3);
 		char* ptr = &buf[0];
 		TORRENT_ASSERT(function >= 0 && function < 128);
 
@@ -168,9 +553,6 @@ namespace libtorrent
 		// transaction id
 		boost::uint16_t tid = m_transaction_id++;
 		io::write_uint16(tid, ptr);
-
-		// num-args
-		io::write_uint8(num_args, ptr);
 
 		if (len > 0) memcpy(ptr, data, len);
 

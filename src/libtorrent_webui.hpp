@@ -34,16 +34,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LIBTORRENT_WEBUI_HPP
 
 #include "websocket_handler.hpp"
-#include "auth.hpp"
 #include "libtorrent/atomic.hpp"
+#include "libtorrent/torrent_handle.hpp"
 
 struct mg_connection;
 
 namespace libtorrent
 {
+	struct permissions_interface;
+	struct torrent_history;
+	struct auth_interface;
+	class session;
+
 	struct libtorrent_webui : websocket_handler
 	{
-		libtorrent_webui(auth_interface const* auth);
+		libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth);
 		~libtorrent_webui();
 
 		virtual bool handle_websocket_connect(mg_connection* conn,
@@ -51,24 +56,53 @@ namespace libtorrent
 		virtual bool handle_websocket_data(mg_connection* conn
 			, int bits, char* data, size_t length);
 
-		int start(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int stop(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int set_auto_managed(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int clear_auto_managed(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int queue_up(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int queue_down(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int queue_top(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int queue_bottom(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int remove(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int remove_and_data(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int force_recheck(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int set_sequential_download(mg_connection* conn, boost::uint16_t tid, char* data, int length);
-		int clear_sequential_download(mg_connection* conn, boost::uint16_t tid, char* data, int length);
+		struct conn_state
+		{
+			mg_connection* conn;
+			int function_id;
+			boost::uint16_t transaction_id;
+			char* data;
+			int len;
+			permissions_interface const* perms;
+		};
 
-		bool call_rpc(mg_connection* conn, int function, int num_args, char const* data, int len);
+		bool get_torrent_updates(conn_state* st);
+		bool start(conn_state* st);
+		bool stop(conn_state* st);
+		bool set_auto_managed(conn_state* st);
+		bool clear_auto_managed(conn_state* st);
+		bool queue_up(conn_state* st);
+		bool queue_down(conn_state* st);
+		bool queue_top(conn_state* st);
+		bool queue_bottom(conn_state* st);
+		bool remove(conn_state* st);
+		bool remove_and_data(conn_state* st);
+		bool force_recheck(conn_state* st);
+		bool set_sequential_download(conn_state* st);
+		bool clear_sequential_download(conn_state* st);
+
+		// parse the arguments to the simple torrent commands
+		int parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st);
+
+		bool call_rpc(mg_connection* conn, int function, char const* data, int len);
+
+		// respond with an error to an RPC
+		bool error(conn_state* st, int error);
+
+		enum error_t
+		{
+			no_error,
+			no_such_function,
+			invalid_number_of_args,
+			invalid_argument_type,
+			invalid_argument,
+			truncated_message,
+		};
 
 	private:
 
+		session& m_ses;
+		torrent_history const* m_hist;
 		auth_interface const* m_auth;
 		atomic_count m_transaction_id;
 
