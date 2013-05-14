@@ -183,8 +183,11 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 	// Auth token handling
 	if (strcmp(request_info->uri, "/gui/token.html") == 0)
 	{
-		appendf(response, "<html><div id=\"token\" style=\"display:none;\">%s</div></html>"
+		// note, the uTorrent webUI actually requires the xml attributes
+		// to use single quotes here.
+		appendf(response, "<html><div id='token' style='display:none;'>%s</div></html>"
 			, m_token.c_str());
+		TORRENT_ASSERT(response.back() != '\0');
 		response.push_back('\0');
 
 		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
@@ -914,6 +917,7 @@ int utorrent_status(torrent_status const& st)
 	int ret = 0;
 	if (st.has_metadata) ret |= LOADED;
 	if (!st.paused && (st.state == torrent_status::downloading
+		|| st.state == torrent_status::downloading_metadata
 		|| st.state == torrent_status::seeding
 		|| st.state == torrent_status::finished))
 		ret |= STARTED;
