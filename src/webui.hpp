@@ -43,11 +43,11 @@ struct mg_request_info;
 struct http_handler
 {
 	virtual bool handle_http(mg_connection* conn,
-		mg_request_info const* request_info) = 0;
+		mg_request_info const* request_info) { return false; }
 	virtual bool handle_websocket_connect(mg_connection* conn,
-		mg_request_info const* request_info) { return 0; }
+		mg_request_info const* request_info) { return false; }
 	virtual bool handle_websocket_data(mg_connection* conn
-		, int bits, char* data, size_t length) { return 0; }
+		, int bits, char* data, size_t length) { return false; }
 	virtual void handle_end_request(mg_connection* conn) {}
 };
 

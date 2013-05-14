@@ -1,5 +1,6 @@
 #include "transmission_webui.hpp"
 #include "utorrent_webui.hpp"
+#include "libtorrent_webui.hpp"
 #include "deluge.hpp"
 #include "file_downloader.hpp"
 #include "auto_load.hpp"
@@ -63,8 +64,10 @@ int main(int argc, char *const argv[])
 	transmission_webui tr_handler(ses, &sett, &authorizer);
 	utorrent_webui ut_handler(ses, &sett, &al, &hist, &authorizer);
 	file_downloader file_handler(ses, &authorizer);
+	libtorrent_webui lt_handler(ses, &hist, &authorizer);
 
 	webui_base webport;
+	webport.add_handler(&lt_handler);
 	webport.add_handler(&ut_handler);
 	webport.add_handler(&tr_handler);
 	webport.add_handler(&file_handler);

@@ -139,7 +139,7 @@ The return value for this function is (offset includes RPC-response header):
 The last 3 fields (``info-hash``, ``update-bitmask`` and
 *values for all updated fields*) are repeated ``num-torrents`` times.
 
-The fields on torrents, in bitmask bit-order, are:
+The fields on torrents, in bitmask bit-order (LSB is bit 0), are:
 
 +----------+---------------------+------------------------------------------+
 | field-id | type                | name                                     |

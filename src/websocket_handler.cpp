@@ -84,8 +84,8 @@ namespace libtorrent
 		return true;
 	}
 
-	bool websocket_handler::handle_websocket_connect(mg_connection* conn,
-		mg_request_info const* request_info)
+	bool websocket_handler::handle_websocket_connect(mg_connection* conn
+		, mg_request_info const* request_info)
 	{
 		mutex::scoped_lock l(m_mutex);
 		m_open_sockets.insert(std::make_pair(conn, boost::make_shared<mutex>()));
