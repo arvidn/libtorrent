@@ -8,6 +8,19 @@ var conn = null;
 
 update_torrent_list = function(updates)
 {
+	// clear classes on all cells
+	var table = document.getElementById('torrents');
+	var rows = table.rows;
+	for (var i = 0; i < rows.length; ++i)
+	{
+		var r = rows[i];
+		var cells = r.cells;
+		for (var j = 0; j < cells.length; ++j)
+		{
+			cells[j].className = "";
+		}
+	}
+
 	for (ih in updates)
 	{
 		var row = document.getElementById(ih);
@@ -24,7 +37,6 @@ update_torrent_list = function(updates)
 
 		if (row == null)
 		{
-			var table = document.getElementById('torrents');
 			row = table.insertRow(-1);
 			row.id = ih;
 			row.insertCell(0);
@@ -37,7 +49,9 @@ update_torrent_list = function(updates)
 		for (field in t)
 		{
 			if (!field_map.hasOwnProperty(field)) continue;
-			row.cells[field_map[field]].textContent = t[field];
+			var cell = row.cells[field_map[field]];
+			cell.textContent = t[field];
+			cell.className = "updated";
 		}
 		console.log(t);
 	}
@@ -55,6 +69,7 @@ window.onload = function() {
 	});
 };
 </script>
+<style>.updated { background-color: #faa; }</style>
 <table id="torrents" border="1" style="border-collapse: collapse; border-color: black;">
 <tr><th>Name</th><th>Progress</th><th>Download rate</th><th>Upload rate</th><th>Peers</th><th>Error</th></tr>
 </table>
