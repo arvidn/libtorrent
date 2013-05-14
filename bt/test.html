@@ -3,24 +3,60 @@
 <title>libtorrent websocket test</title>
 <script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
 <script language="javascript" type="text/javascript">
-var writeToScreen = function(message) {
-	var div = document.createElement('div');
-	div.innerHTML = message;
-	document.getElementById('output').appendChild(div);
+
+var conn = null;
+
+update_torrent_list = function(updates)
+{
+	for (ih in updates)
+	{
+		var row = document.getElementById(ih);
+		var t = updates[ih];
+
+		var field_map = {
+			'name': 0,
+			'progress': 1,
+			'download-rate': 2,
+			'upload-rate': 3,
+			'connected-peers': 4,
+			'error': 5
+		};
+
+		if (row == null)
+		{
+			var table = document.getElementById('torrents');
+			row = table.insertRow(-1);
+			row.id = ih;
+			row.insertCell(0);
+			row.insertCell(1);
+			row.insertCell(2);
+			row.insertCell(3);
+			row.insertCell(4);
+			row.insertCell(5);
+		}
+		for (field in t)
+		{
+			if (!field_map.hasOwnProperty(field)) continue;
+			row.cells[field_map[field]].textContent = t[field];
+		}
+		console.log(t);
+	}
 };
+
 window.onload = function() {
 	var url = 'ws://' + window.location.host + '/bt/control';
-	var conn = new libtorrent_connection(url, function(state)
+	conn = new libtorrent_connection(url, function(state)
 	{
-		writeToScreen(state);
-		conn.get_updates(function(a)
+		window.setInterval(function()
 		{
-			console.log(a);
-		});
+			conn.get_updates(update_torrent_list);
+		}, 1000);
+
 	});
 };
-</script>  
-<style> div {font: small Verdana; } </style>
-<div id="output"></div>  
+</script>
+<table id="torrents" border="1" style="border-collapse: collapse; border-color: black;">
+<tr><th>Name</th><th>Progress</th><th>Download rate</th><th>Upload rate</th><th>Peers</th><th>Error</th></tr>
+</table>
 </html>
 
