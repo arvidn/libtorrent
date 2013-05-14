@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>libtorrent websocket test</title>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
+<script language="javascript" type="text/javascript">
+var writeToScreen = function(message) {
+	var div = document.createElement('div');
+	div.innerHTML = message;
+	document.getElementById('output').appendChild(div);
+};
+window.onload = function() {
+	var url = 'ws://' + window.location.host + '/bt/control';
+	var conn = new libtorrent_connection(url, function(state)
+	{
+		writeToScreen(state);
+		conn.get_updates(function(a)
+		{
+			console.log(a);
+		});
+	});
+};
+</script>  
+<style> div {font: small Verdana; } </style>
+<div id="output"></div>  
+</html>
+

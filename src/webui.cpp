@@ -61,15 +61,16 @@ static int log_message(const mg_connection*, const char* msg)
 	return 1;
 }
 
+// return 1 to disconnect
 static int websocket_connect(mg_connection const* c)
 {
 	mg_connection* conn = const_cast<mg_connection*>(c);
 	const mg_request_info *request_info = mg_get_request_info(conn);
 	if (request_info->user_data == NULL)
-		return 0;
+		return 1;
 
 	return reinterpret_cast<webui_base*>(request_info->user_data)->handle_websocket_connect(
-		conn, request_info);
+		conn, request_info) ? 0 : 1;
 }
 
 static int websocket_data(mg_connection* conn, int bits

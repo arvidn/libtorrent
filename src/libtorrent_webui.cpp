@@ -58,7 +58,7 @@ namespace libtorrent
 		if (strcmp("/bt/control", request_info->uri) != 0) return false;
 
 		// authenticate
-		permissions_interface const* perms = parse_http_auth(conn, m_auth);
+/*		permissions_interface const* perms = parse_http_auth(conn, m_auth);
 		if (!perms)
 		{
 			mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\n"
@@ -66,7 +66,7 @@ namespace libtorrent
 				"Content-Length: 0\r\n\r\n");
 			return true;
 		}
-
+*/
 		return websocket_handler::handle_websocket_connect(conn, request_info);
 	}
 
