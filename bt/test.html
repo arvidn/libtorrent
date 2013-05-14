@@ -32,19 +32,17 @@ update_torrent_list = function(updates)
 			'download-rate': 2,
 			'upload-rate': 3,
 			'connected-peers': 4,
-			'error': 5
+			'error': 5,
+			'flags': 6,
+			'state': 7,
 		};
 
 		if (row == null)
 		{
 			row = table.insertRow(-1);
 			row.id = ih;
-			row.insertCell(0);
-			row.insertCell(1);
-			row.insertCell(2);
-			row.insertCell(3);
-			row.insertCell(4);
-			row.insertCell(5);
+			for (j in field_map)
+				row.insertCell(0);
 		}
 		for (field in t)
 		{
@@ -63,7 +61,7 @@ window.onload = function() {
 	{
 		window.setInterval(function()
 		{
-			conn.get_updates(update_torrent_list);
+			conn.get_updates(fields.name | fields.download_rate | fields.upload_rate | fields.connected_peers | fields.error | fields.progress | fields.flags | fields.state, update_torrent_list);
 		}, 1000);
 
 	});
@@ -71,7 +69,7 @@ window.onload = function() {
 </script>
 <style>.updated { background-color: #faa; }</style>
 <table id="torrents" border="1" style="border-collapse: collapse; border-color: black;">
-<tr><th>Name</th><th>Progress</th><th>Download rate</th><th>Upload rate</th><th>Peers</th><th>Error</th></tr>
+<tr><th>Name</th><th>Progress</th><th>Download rate</th><th>Upload rate</th><th>Peers</th><th>Error</th><th>flags</th><th>state</th></tr>
 </table>
 </html>
 

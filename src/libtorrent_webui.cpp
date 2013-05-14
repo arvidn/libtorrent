@@ -233,7 +233,7 @@ namespace libtorrent
 
 			torrent_status const& s = i->status;
 
-			for (int f = 0; f < 21; ++f)
+			for (int f = 0; f < 23; ++f)
 			{
 				if ((bitmask & (1 << f)) == 0) continue;
 

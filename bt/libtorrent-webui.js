@@ -61,7 +61,7 @@ libtorrent_connection = function(url, callback)
 	this._transactions = {}
 	this._tid = 0;
 
-	this.get_updates = function(callback)
+	this.get_updates = function(mask, callback)
 	{
 		if (this._socket.readyState != WebSocket.OPEN)
 		{
@@ -219,9 +219,6 @@ libtorrent_connection = function(url, callback)
 		view.setUint16(1, tid);
 		// frame-number
 		view.setUint32(3, this._frame);
-		// TODO: mask should be passed in!
-		// bitmask (64 bits) [flags, name, progress, connected-peers, state, error, upload-rate, download-rate]
-		var mask = (1 << 0) | (1 << 1) | (1 << 8) | (1 << 10) | (1 << 20) | (1 << 9) | (1 << 6) | (1 << 7);
 		view.setUint32(7, 0);
 		view.setUint32(11, mask);
 
@@ -230,3 +227,29 @@ libtorrent_connection = function(url, callback)
 	}
 }
 
+fields =
+{
+	flags: 1 << 0,
+	name: 1 << 1,
+	total_uploaded: 1 << 2,
+	total_downloaded: 1 << 3,
+	added_time: 1 << 4,
+	completed_time: 1 << 5,
+	upload_rate: 1 << 6,
+	download_rate: 1 << 7,
+	progress: 1 << 8,
+	error: 1 << 9,
+	connected_peers: 1 << 10,
+	connected_seeds: 1 << 11,
+	downloaded_pieces: 1 << 12,
+	total_done: 1 << 13,
+	distributed_copies: 1 << 14,
+	all_time_upload: 1 << 15,
+	all_time_download: 1 << 16,
+	unchoked_peers: 1 << 17,
+	num_connections: 1 << 18,
+	queue_position: 1 << 19,
+	state: 1 << 20,
+	failed_bytes: 1 << 21,
+	redundant_bytes: 1 << 22,
+};
