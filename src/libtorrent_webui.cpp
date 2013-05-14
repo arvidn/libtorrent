@@ -172,6 +172,9 @@ namespace libtorrent
 		-1, // listen_port
 	};
 
+	// this is one of the key functions in the interface. It goes to
+	// some length to ensure we only send relevant information back,
+	// and in a compact format
 	bool libtorrent_webui::get_torrent_updates(conn_state* st)
 	{
 		if (st->len < 12) return error(st, truncated_message);
@@ -204,16 +207,21 @@ namespace libtorrent
 		{
 			boost::uint64_t bitmask = 0;
 
+			// look at which fields actually have a newer frame number
+			// than the caller. Don't return fields that haven't changed.
 			for (int k = 0; k < torrent_history_entry::num_fields; ++k)
 			{
 				int f = torrent_field_map[k];
 				if (f < 0) continue;
 				if (i->frame[k] <= frame) continue;
-				if ((user_mask & (1 << f)) == 0) continue;
 
 				// this field has changed and should be included in this update
 				bitmask |= 1 << f;
 			}
+
+			// only return fields the caller asked for
+			bitmask &= user_mask;
+
 			if (bitmask == 0) continue;
 
 			++num_torrents;
@@ -261,40 +269,26 @@ namespace libtorrent
 						break;
 					}
 					case 2: // total-uploaded
-					{
 						io::write_uint64(s.total_upload, ptr);
 						break;
-					}
 					case 3: // total-downloaded
-					{
 						io::write_uint64(s.total_download, ptr);
 						break;
-					}
 					case 4: // added-time
-					{
 						io::write_uint64(s.added_time, ptr);
 						break;
-					}
 					case 5: // completed_time
-					{
 						io::write_uint64(s.completed_time, ptr);
 						break;
-					}
 					case 6: // upload-rate
-					{
 						io::write_uint32(s.upload_rate, ptr);
 						break;
-					}
 					case 7: // download-rate
-					{
 						io::write_uint32(s.download_rate, ptr);
 						break;
-					}
 					case 8: // progress
-					{
 						io::write_uint32(s.progress_ppm, ptr);
 						break;
-					}
 					case 9: // error
 					{
 						std::string e = s.error;
@@ -304,56 +298,36 @@ namespace libtorrent
 						break;
 					}
 					case 10: // connected-peers
-					{
 						io::write_uint32(s.num_peers, ptr);
 						break;
-					}
 					case 11: // connected-seeds
-					{
 						io::write_uint32(s.num_seeds, ptr);
 						break;
-					}
 					case 12: // downloaded-pieces
-					{
 						io::write_uint32(s.num_pieces, ptr);
 						break;
-					}
 					case 13: // total-done
-					{
 						io::write_uint64(s.total_wanted_done, ptr);
 						break;
-					}
 					case 14: // distributed-copies
-					{
 						io::write_uint32(s.distributed_full_copies, ptr);
 						io::write_uint32(s.distributed_fraction, ptr);
 						break;
-					}
 					case 15: // all-time-upload
-					{
 						io::write_uint64(s.all_time_upload, ptr);
 						break;
-					}
 					case 16: // all-time-download
-					{
 						io::write_uint32(s.all_time_download, ptr);
 						break;
-					}
 					case 17: // unchoked-peers
-					{
 						io::write_uint32(s.num_uploads, ptr);
 						break;
-					}
 					case 18: // num-connections
-					{
 						io::write_uint32(s.num_connections, ptr);
 						break;
-					}
 					case 19: // queue-position
-					{
 						io::write_uint32(s.queue_position, ptr);
 						break;
-					}
 					case 20: // state
 					{
 						int state;
@@ -383,15 +357,11 @@ namespace libtorrent
 						break;
 					}
 					case 21: // failed-bytes
-					{
 						io::write_uint64(s.total_failed_bytes, ptr);
 						break;
-					}
 					case 22: // redundant-bytes
-					{
 						io::write_uint64(s.total_redundant_bytes, ptr);
 						break;
-					}
 					default:
 					TORRENT_ASSERT(false);
 				}
