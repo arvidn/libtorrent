@@ -337,5 +337,5 @@ fields =
 	queue_position: 1 << 19,
 	state: 1 << 20,
 	failed_bytes: 1 << 21,
-	redundant_bytes: 1 << 22,
+	redundant_bytes: 1 << 22
 };
