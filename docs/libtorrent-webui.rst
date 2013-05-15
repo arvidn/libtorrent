@@ -255,14 +255,28 @@ The arguments for these functions are (offset includes RPC header):
 +----------+--------------------+-----------------------------------------+
 | offset   | type               | name                                    |
 +==========+====================+=========================================+
-| 3        | uint8_t[20]        | info-hash                               |
+| 3        | uint16_t           | ``num-info-hashes``                     |
 +----------+--------------------+-----------------------------------------+
-| 23       | uint8_t[20]        | additional info-hash (optional)         |
+| 5        | uint8_t[20]        | ``info-hash``                           |
++----------+--------------------+-----------------------------------------+
+| 25       | uint8_t[20]        | additional info-hash (optional)         |
 +----------+--------------------+-----------------------------------------+
 | ...      | ...                | ...                                     |
 +----------+--------------------+-----------------------------------------+
 
-That is, each command can apply to any number of torrents.
+That is, each command can apply to any number of torrents. The 20 byte info-hash
+field is repeated ``num-info-hashes`` times. The command is applied to each
+torrent whose info hash is specified.
+
+The return value for these commands are the number of torrents that were found
+and had the command invoked on them.
+
++----------+--------------------+-----------------------------------------+
+| offset   | type               | name                                    |
++==========+====================+=========================================+
+| 4        | uint16_t           | ``num-success-torrents``                |
++----------+--------------------+-----------------------------------------+
+
 
 list-settings
 .............

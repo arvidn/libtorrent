@@ -27,14 +27,14 @@ update_torrent_list = function(updates)
 		var t = updates[ih];
 
 		var field_map = {
-			'name': 0,
-			'progress': 1,
-			'download-rate': 2,
-			'upload-rate': 3,
-			'connected-peers': 4,
-			'error': 5,
-			'flags': 6,
-			'state': 7,
+			'name': 1,
+			'progress': 2,
+			'download-rate': 3,
+			'upload-rate': 4,
+			'connected-peers': 5,
+			'error': 6,
+			'flags': 7,
+			'state': 8,
 		};
 
 		if (row == null)
@@ -43,6 +43,8 @@ update_torrent_list = function(updates)
 			row.id = ih;
 			for (j in field_map)
 				row.insertCell(0);
+			row.insertCell(0).innerHTML = '<a href="javascript:conn.start([\'' + ih + '\'])">start</a> ' +
+				'<a href="javascript:conn.stop([\'' + ih + '\'])\">stop</a>';
 		}
 		for (field in t)
 		{
@@ -69,7 +71,7 @@ window.onload = function() {
 </script>
 <style>.updated { background-color: #faa; }</style>
 <table id="torrents" border="1" style="border-collapse: collapse; border-color: black;">
-<tr><th>Name</th><th>Progress</th><th>Download rate</th><th>Upload rate</th><th>Peers</th><th>Error</th><th>flags</th><th>state</th></tr>
+<tr><th>controls</th><th>Name</th><th>Progress</th><th>Download rate</th><th>Upload rate</th><th>Peers</th><th>Error</th><th>flags</th><th>state</th></tr>
 </table>
 </html>
 

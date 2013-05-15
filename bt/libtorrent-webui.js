@@ -88,6 +88,7 @@ libtorrent_connection = function(url, callback)
 				for (var j = 0; j < 20; ++j)
 				{
 					var b = view.getUint8(offset + j);
+					if (b < 16) infohash += '0';
 					infohash += b.toString(16);
 				}
 				offset += 20;
@@ -208,8 +209,8 @@ libtorrent_connection = function(url, callback)
 				}
 				ret[infohash] = torrent;
 			}
-			callback(ret);
-		}
+			if (typeof(callback) !== 'undefined') callback(ret);
+		};
 
 		var call = new ArrayBuffer(15);
 		var view = new DataView(call);
@@ -223,6 +224,91 @@ libtorrent_connection = function(url, callback)
 		view.setUint32(11, mask);
 
 		console.log('CALL get_updates( frame: ' + this._frame + ' mask: ' + mask.toString(16) + ' ) tid = ' + tid);
+		this._socket.send(call);
+	}
+
+	this.start = function(info_hashes, callback)
+	{ this._send_simple_call(1, info_hashes, callback); };
+
+	this.stop = function(info_hashes, callback)
+	{ this._send_simple_call(2, info_hashes, callback); };
+
+	this.set_auto_managed = function(info_hashes, callback)
+	{ this._send_simple_call(3, info_hashes, callback); };
+
+	this.clear_auto_managed = function(info_hashes, callback)
+	{ this._send_simple_call(4, info_hashes, callback); };
+
+	this.queue_up = function(info_hashes, callback)
+	{ this._send_simple_call(5, info_hashes, callback); };
+
+	this.queue_down = function(info_hashes, callback)
+	{ this._send_simple_call(6, info_hashes, callback); };
+
+	this.queue_top = function(info_hashes, callback)
+	{ this._send_simple_call(7, info_hashes, callback); };
+
+	this.queue_bottom = function(info_hashes, callback)
+	{ this._send_simple_call(8, info_hashes, callback); };
+
+	this.remove = function(info_hashes, callback)
+	{ this._send_simple_call(9, info_hashes, callback); };
+
+	this.remove_with_data = function(info_hashes, callback)
+	{ this._send_simple_call(10, info_hashes, callback); };
+
+	this.force_recheck = function(info_hashes, callback)
+	{ this._send_simple_call(11, info_hashes, callback); };
+
+	this.set_sequential_download = function(info_hashes, callback)
+	{ this._send_simple_call(12, info_hashes, callback); };
+
+	this.clear_sequential_download = function(info_hashes, callback)
+	{ this._send_simple_call(13, info_hashes, callback); };
+
+	this._send_simple_call = function(fun_id, info_hashes, callback)
+	{
+		var call = new ArrayBuffer(3 + 2 + info_hashes.length * 20);
+		var view = new DataView(call);
+
+		if (fun_id < 1 || fun_id > 13)
+		{
+			window.setTimeout( function() { callback(null); }, 0);
+			return;
+		}
+
+		var tid = self._tid++;
+		if (self._tid > 65535) this._tid = 0;
+
+		// function-id
+		view.setUint8(0, fun_id);
+		// transaction-id
+		view.setUint16(1, tid);
+		// num_torrents
+		view.setUint16(3, info_hashes.length);
+
+		var offset = 5;
+		for (ih in info_hashes)
+		{
+			for (var i = 0; i < 40; i += 2)
+			{
+				var b = parseInt(info_hashes[ih].substring(i, i + 2), 16);
+				view.setUint8(offset, b);
+				offset += 1;
+			}
+		}
+
+		console.log('CALL ' + fun_id + '() tid = ' + tid);
+
+		// this is the handler of the response for this call. It first
+		// parses out the return value, the passes it on to the user
+		// supplied callback.
+		this._transactions[tid] = function(view, fun, e)
+		{
+			var num_torrents = view.getUint16(4);
+			if (typeof(callback) !== 'undefined') callback(num_torrents);
+		};
+
 		this._socket.send(call);
 	}
 }

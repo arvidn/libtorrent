@@ -86,6 +86,8 @@ namespace libtorrent
 
 		bool call_rpc(mg_connection* conn, int function, char const* data, int len);
 
+		bool respond(conn_state* st, int error, int val);
+
 		// respond with an error to an RPC
 		bool error(conn_state* st, int error);
 

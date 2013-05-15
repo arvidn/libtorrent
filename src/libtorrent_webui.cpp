@@ -378,14 +378,18 @@ namespace libtorrent
 
 	int libtorrent_webui::parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st)
 	{
+		char* ptr = st->data;
+		int num_torrents = io::read_uint16(ptr);
+
 		// there are only supposed to be one ore more info-hashes as arguments. Each info-hash is
 		// in its binary representation, and hence 20 bytes long.
-		if ((st->len % 20) != 0) return invalid_argument_type;
+		if ((st->len < num_torrents * 20))
+			return invalid_argument_type;
 
-		for (int i = 0; i < st->len / 20; ++i)
+		for (int i = 0; i < num_torrents; ++i)
 		{
 			sha1_hash h;
-			memcpy(&h[0], &st->data[i*20], 20);
+			memcpy(&h[0], &ptr[i*20], 20);
 
 			// TODO: this call is blocking. Instead, use the torrent_history object for this lookup
 			// or make this function fast in libtorrent
@@ -409,6 +413,7 @@ namespace libtorrent
 			i->clear_error();
 			i->resume();
 		}
+		return respond(st, 0, torrents.size());
 	}
 
 	bool libtorrent_webui::stop(conn_state* st)
@@ -423,6 +428,7 @@ namespace libtorrent
 			i->auto_managed(false);
 			i->pause();
 		}
+		return respond(st, 0, torrents.size());
 	}
 
 	bool libtorrent_webui::set_auto_managed(conn_state* st) {}
@@ -498,6 +504,19 @@ namespace libtorrent
 			}
 		}
 		
+	}
+
+	bool libtorrent_webui::respond(conn_state* st, int error, int val)
+	{
+		char rpc[6];
+		char* ptr = rpc;
+
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(no_error, ptr);
+		io::write_uint16(val, ptr);
+
+		return send_packet(st->conn, 0x2, rpc, 8);
 	}
 
 	bool libtorrent_webui::error(conn_state* st, int error)
