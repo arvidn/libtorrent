@@ -180,6 +180,7 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 	snprintf(threads_str, sizeof(threads_str), "%d", num_threads);
 	options[i++] = "num_threads";
 	options[i++] = threads_str;
+	options[i++] = NULL;
 
 	mg_callbacks cb;
 	memset(&cb, 0, sizeof(cb));
