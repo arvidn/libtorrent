@@ -73,13 +73,15 @@ namespace libtorrent
 		int get_int(int name) const;
 		bool get_bool(int name) const;
 	
+		// setting names (indices) are 16 bits. The two most significant
+		// bits indicate what type the setting has. (string, int, bool)
 		enum type_bases
 		{
-			string_type_base = 0x10000000,
-			int_type_base =    0x20000000,
-			bool_type_base =   0x30000000,
-			type_mask =        0xf0000000,
-			index_mask =       0x0fffffff,
+			string_type_base = 0x0000,
+			int_type_base =    0x4000,
+			bool_type_base =   0x8000,
+			type_mask =        0xc000,
+			index_mask =       0x3fff,
 		};
 
 		enum string_types
@@ -1362,9 +1364,9 @@ namespace libtorrent
 
 	private:
 
-		std::vector<std::pair<int, std::string> > m_strings;
-		std::vector<std::pair<int, int> > m_ints;
-		std::vector<std::pair<int, bool> > m_bools;
+		std::vector<std::pair<boost::uint16_t, std::string> > m_strings;
+		std::vector<std::pair<boost::uint16_t, int> > m_ints;
+		std::vector<std::pair<boost::uint16_t, bool> > m_bools;
 	};
 }
 
