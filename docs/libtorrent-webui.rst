@@ -281,6 +281,8 @@ and had the command invoked on them.
 list-settings
 .............
 
+function id 14.
+
 This message returns all available settings as strings, as well as their
 corresponding setting id and type.
 
@@ -355,11 +357,11 @@ Function IDs
 +-----+---------------------------+-----------------------------------------+
 |  13 | clear-sequential-download | info-hash, ...                          |
 +-----+---------------------------+-----------------------------------------+
-|  14 | set-settings              | setting-id, type, value, ...            |
+|  14 | list-settings             |                                         |
 +-----+---------------------------+-----------------------------------------+
-|  15 | get-settings              | setting-id, ...                         |
+|  15 | set-settings              | setting-id, type, value, ...            |
 +-----+---------------------------+-----------------------------------------+
-|  16 | list-settings             |                                         |
+|  16 | get-settings              | setting-id, ...                         |
 +-----+---------------------------+-----------------------------------------+
 
 Appendix B

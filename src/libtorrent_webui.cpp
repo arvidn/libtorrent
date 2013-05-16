@@ -92,6 +92,7 @@ namespace libtorrent
 		{ "force_recheck", &libtorrent_webui::force_recheck },
 		{ "set-sequential-download", &libtorrent_webui::set_sequential_download },
 		{ "clear-sequential-download", &libtorrent_webui::clear_sequential_download },
+		{ "list-settings", &libtorrent_webui::list_settings},
 	};
 
 	// maps torrent field to RPC field. These fields are the ones defined in

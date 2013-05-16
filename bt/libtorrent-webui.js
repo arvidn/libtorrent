@@ -62,6 +62,64 @@ libtorrent_connection = function(url, callback)
 	this._tid = 0;
 }
 
+libtorrent_connection.prototype['list_settings'] = function(callback)
+{
+	if (this._socket.readyState != WebSocket.OPEN)
+	{
+		window.setTimeout( function() { callback(null); }, 0);
+		return;
+	}
+	
+	var tid = this._tid++;
+	if (this._tid > 65535) this._tid = 0;
+
+	// this is the handler of the response for this call. It first
+	// parses out the return value, the passes it on to the user
+	// supplied callback.
+	var self = this;
+	this._transactions[tid] = function(view, fun, e)
+	{
+		var ret = [];
+		var num_strings = view.getUint32(4);
+		var num_ints = view.getUint32(8);
+		var num_bools = view.getUint32(12);
+
+		var offset = 16;
+		for (var i = 0; i < num_strings + num_ints + num_bools; ++i)
+		{
+			var len = view.getUint8(offset);
+			++offset;
+			var name = '';
+			for (var j = 0; j < len; ++j)
+			{
+				name += String.fromCharCode(view.getUint8(offset));
+				++offset;
+			}
+			var code = view.getUint16(offset);
+			offset += 2;
+			var type = 'string';
+			if (i >= num_strings + num_ints)
+				type = 'bool';
+			else if (i >= num_strings)
+				type = 'int';
+			
+			ret.push({'name': name, 'id': code, 'type': type});
+		}
+
+		if (typeof(callback) !== 'undefined') callback(ret);
+	};
+
+	var call = new ArrayBuffer(3);
+	var view = new DataView(call);
+	// function 14
+	view.setUint8(0, 14);
+	// transaction-id
+	view.setUint16(1, tid);
+
+	console.log('CALL list_settings() tid = ' + tid);
+	this._socket.send(call);
+}
+
 libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 {
 	if (this._socket.readyState != WebSocket.OPEN)

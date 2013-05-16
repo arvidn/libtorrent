@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>libtorrent websocket test</title>
+<script language="javascript" type="text/javascript" src="lt.js"></script>
+<script language="javascript" type="text/javascript">
+
+var conn = null;
+
+update_settings_list = function(settings)
+{
+	if (settings == null) return;
+
+	var table = document.getElementById("settings");
+
+	for (i in settings)
+	{
+		var s = settings[i];
+		row = table.insertRow(-1);
+		row.id = s.id;
+		row.insertCell(0).textContent = s.name;
+		row.insertCell(1).textContent = s.type;
+		row.insertCell(2).textContent = s.id;
+	}
+};
+
+window.onload = function() {
+	var url = 'ws://' + window.location.host + '/bt/control';
+	conn = new libtorrent_connection(url, function(state)
+	{
+		if (state != "OK") {
+			console.log(state);
+			return;
+		}
+
+		conn.list_settings(update_settings_list);
+	});
+};
+</script>
+<style>.updated { background-color: #faa; }</style>
+<table id="settings" border="1" style="border-collapse: collapse; border-color: black;">
+<tr><th>Name</th><th>type</th><th>ID</th></tr>
+</table>
+</html>
+
