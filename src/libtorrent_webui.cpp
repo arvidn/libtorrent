@@ -373,7 +373,7 @@ namespace libtorrent
 		char* ptr2 = &response[num_torrents_pos];
 		io::write_uint32(num_torrents, ptr2);
 
-		send_packet(st->conn, 0x2, &response[0], response.size());
+		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}
 
 	int libtorrent_webui::parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st)
@@ -400,14 +400,17 @@ namespace libtorrent
 		return no_error;
 	}
 
+#define TORRENT_APPLY_FUN \
+		std::vector<torrent_handle> torrents; \
+		int ret = parse_torrent_args(torrents, st); \
+		if (ret != no_error) return error(st, ret); \
+		\
+		for (std::vector<torrent_handle>::iterator i = torrents.begin() \
+			, end(torrents.end()); i != end; ++i)
+
 	bool libtorrent_webui::start(conn_state* st)
 	{
-		std::vector<torrent_handle> torrents;
-		int ret = parse_torrent_args(torrents, st);
-		if (ret != no_error) return error(st, ret);
-
-		for (std::vector<torrent_handle>::iterator i = torrents.begin()
-			, end(torrents.end()); i != end; ++i)
+		TORRENT_APPLY_FUN
 		{
 			i->auto_managed(true);
 			i->clear_error();
@@ -418,12 +421,7 @@ namespace libtorrent
 
 	bool libtorrent_webui::stop(conn_state* st)
 	{
-		std::vector<torrent_handle> torrents;
-		int ret = parse_torrent_args(torrents, st);
-		if (ret != no_error) return error(st, ret);
-
-		for (std::vector<torrent_handle>::iterator i = torrents.begin()
-			, end(torrents.end()); i != end; ++i)
+		TORRENT_APPLY_FUN
 		{
 			i->auto_managed(false);
 			i->pause();
@@ -431,17 +429,147 @@ namespace libtorrent
 		return respond(st, 0, torrents.size());
 	}
 
-	bool libtorrent_webui::set_auto_managed(conn_state* st) {}
-	bool libtorrent_webui::clear_auto_managed(conn_state* st) {}
-	bool libtorrent_webui::queue_up(conn_state* st) {}
-	bool libtorrent_webui::queue_down(conn_state* st) {}
-	bool libtorrent_webui::queue_top(conn_state* st) {}
-	bool libtorrent_webui::queue_bottom(conn_state* st) {}
-	bool libtorrent_webui::remove(conn_state* st) {}
-	bool libtorrent_webui::remove_and_data(conn_state* st) {}
-	bool libtorrent_webui::force_recheck(conn_state* st) {}
-	bool libtorrent_webui::set_sequential_download(conn_state* st) {}
-	bool libtorrent_webui::clear_sequential_download(conn_state* st) {}
+	bool libtorrent_webui::set_auto_managed(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->auto_managed(true);
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::clear_auto_managed(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->auto_managed(false);
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::queue_up(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->queue_position_up();
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::queue_down(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->queue_position_down();
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::queue_top(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->queue_position_top();
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::queue_bottom(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->queue_position_bottom();
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::remove(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			m_ses.remove_torrent(*i);
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::remove_and_data(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			m_ses.remove_torrent(*i, session::delete_files);
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::force_recheck(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->force_recheck();
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::set_sequential_download(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->set_sequential_download(true);
+		}
+		return respond(st, 0, torrents.size());
+	}
+	bool libtorrent_webui::clear_sequential_download(conn_state* st)
+	{
+		TORRENT_APPLY_FUN
+		{
+			i->set_sequential_download(false);
+		}
+		return respond(st, 0, torrents.size());
+	}
+
+#undef TORRENT_APPLY_FUN
+
+	bool libtorrent_webui::list_settings(conn_state* st)
+	{
+		std::vector<char> response;
+		std::back_insert_iterator<std::vector<char> > ptr(response);
+
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(no_error, ptr);
+
+		io::write_uint32(settings_pack::num_string_settings, ptr);
+		io::write_uint32(settings_pack::num_int_settings, ptr);
+		io::write_uint32(settings_pack::num_bool_settings, ptr);
+
+		for (int i = settings_pack::string_type_base;
+			i < settings_pack::max_string_setting_internal; ++i)
+		{
+			char const* n = name_for_setting(i);
+			int len = strlen(n);
+			TORRENT_ASSERT(len < 256);
+			io::write_uint8(len, ptr);
+			std::copy(n, n + len, ptr);
+			TORRENT_ASSERT(i < 65536);
+			io::write_uint16(i, ptr);
+		}
+
+		for (int i = settings_pack::int_type_base;
+			i < settings_pack::max_int_setting_internal; ++i)
+		{
+			char const* n = name_for_setting(i);
+			int len = strlen(n);
+			TORRENT_ASSERT(len < 256);
+			io::write_uint8(len, ptr);
+			std::copy(n, n + len, ptr);
+			TORRENT_ASSERT(i < 65536);
+			io::write_uint16(i, ptr);
+		}
+
+		for (int i = settings_pack::bool_type_base;
+			i < settings_pack::max_bool_setting_internal; ++i)
+		{
+			char const* n = name_for_setting(i);
+			int len = strlen(n);
+			TORRENT_ASSERT(len < 256);
+			io::write_uint8(len, ptr);
+			std::copy(n, n + len, ptr);
+			TORRENT_ASSERT(i < 65536);
+			io::write_uint16(i, ptr);
+		}
+		return send_packet(st->conn, 0x2, &response[0], response.size());
+	}
 
 	char const* fun_name(int function_id)
 	{
@@ -461,16 +589,25 @@ namespace libtorrent
 		if ((bits & 0xf) == 0x9)
 		{
 			// send pong
+			fprintf(stderr, "PING\n");
 			return send_packet(conn, 0xa, NULL, 0);
 		}
 
 		// only support binary, non-fragmented frames
-		if ((bits & 0xf) != 0x2) return false;
+		if ((bits & 0xf) != 0x2)
+		{
+			fprintf(stderr, "ERROR: received packet that's not in binary mode\n");
+			return false;
+		}
 
 		// parse RPC message
 
 		// RPC call is always at least 3 bytes.
-		if (length < 3) return false;
+		if (length < 3)
+		{
+			fprintf(stderr, "ERROR: received packet that's smaller than 3 bytes (%d)\n", int(length));
+			return false;
+		}
 
 		conn_state st;
 		st.conn = conn;
@@ -482,7 +619,11 @@ namespace libtorrent
 		if (st.function_id & 0x80)
 		{
 			// RPC responses is at least 4 bytes
-			if (length < 4) return false;
+			if (length < 4)
+			{
+				fprintf(stderr, "ERROR: received RPC response that's smaller than 4 bytes (%d)\n", int(length));
+				return false;
+			}
 			int status = io::read_uint8(st.data);
 			// this is a response to a function call
 			fprintf(stderr, "RETURNED: %s (status: %d)\n", fun_name(st.function_id & 0x7f), status);
@@ -503,7 +644,7 @@ namespace libtorrent
 				return error(&st, no_such_function);
 			}
 		}
-		
+		return true;
 	}
 
 	bool libtorrent_webui::respond(conn_state* st, int error, int val)

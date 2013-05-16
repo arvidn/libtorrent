@@ -8,6 +8,8 @@ var conn = null;
 
 update_torrent_list = function(updates)
 {
+	if (updates == null) return;
+
 	// clear classes on all cells
 	var table = document.getElementById('torrents');
 	var rows = table.rows;
@@ -61,6 +63,11 @@ window.onload = function() {
 	var url = 'ws://' + window.location.host + '/bt/control';
 	conn = new libtorrent_connection(url, function(state)
 	{
+		if (state != "OK") {
+			console.log(state);
+			return;
+		}
+
 		window.setInterval(function()
 		{
 			conn.get_updates(fields.name | fields.download_rate | fields.upload_rate | fields.connected_peers | fields.error | fields.progress | fields.flags | fields.state, update_torrent_list);
