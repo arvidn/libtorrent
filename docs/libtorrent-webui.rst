@@ -319,6 +319,36 @@ set-settings
 get-settings
 ............
 
+function id 15.
+
+The get-settings function can be used to query the settings values for one
+or more settings.
+
++----------+--------------------+-----------------------------------------+
+| offset   | type               | name                                    |
++==========+====================+=========================================+
+| 3        | uint16_t           | ``num-settings-values``                 |
++----------+--------------------+-----------------------------------------+
+| 7        | uint16_t           | ``settings-id``                         |
++----------+--------------------+-----------------------------------------+
+
+The last field is repeated ``num-settings-values`` times.
+
++----------+---------------------+-----------------------------------------+
+| offset   | type                | name                                    |
++==========+=====================+=========================================+
+| 4        | uint16_t            | ``num-values``                          |
++----------+---------------------+-----------------------------------------+
+| 6        | uint32_t *or*       | *value*. ``int`` values are encoded as  |
+|          | uint16_t, uint8_t[] | uint32_t, ``string`` values are encoded |
+|          | *or* uint8_t        | as a 16-bit length prefix followed by   |
+|          |                     | the string, ``bool`` values are encoded |
+|          |                     | as uint8_t as either 0 or 1.            |
++----------+---------------------+-----------------------------------------+
+
+The last field is repeated ``num-values`` times. The settings are returned
+in the same order as they are requested.
+
 Appendix A
 ==========
 

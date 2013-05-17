@@ -82,6 +82,8 @@ namespace libtorrent
 		bool clear_sequential_download(conn_state* st);
 
 		bool list_settings(conn_state* st);
+		bool set_settings(conn_state* st);
+		bool get_settings(conn_state* st);
 
 		// parse the arguments to the simple torrent commands
 		int parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st);

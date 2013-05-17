@@ -93,6 +93,8 @@ namespace libtorrent
 		{ "set-sequential-download", &libtorrent_webui::set_sequential_download },
 		{ "clear-sequential-download", &libtorrent_webui::clear_sequential_download },
 		{ "list-settings", &libtorrent_webui::list_settings},
+		{ "set-settings", &libtorrent_webui::set_settings},
+		{ "get-settings", &libtorrent_webui::get_settings},
 	};
 
 	// maps torrent field to RPC field. These fields are the ones defined in
@@ -569,6 +571,56 @@ namespace libtorrent
 			TORRENT_ASSERT(i < 65536);
 			io::write_uint16(i, ptr);
 		}
+		return send_packet(st->conn, 0x2, &response[0], response.size());
+	}
+
+	bool libtorrent_webui::set_settings(conn_state* st)
+	{
+		return false;
+	}
+
+	bool libtorrent_webui::get_settings(conn_state* st)
+	{
+		char* iptr = st->data;
+		int num_settings = io::read_uint16(iptr);
+
+		if (st->len < num_settings * 2)
+			return invalid_argument_type;
+
+		std::vector<char> response;
+		std::back_insert_iterator<std::vector<char> > ptr(response);
+
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(no_error, ptr);
+
+		io::write_uint16(num_settings, ptr);
+
+		aux::session_settings s = m_ses.get_settings();
+
+		for (int i = 0; i < num_settings; ++i)
+		{
+			int sett = io::read_uint16(iptr);
+			if (sett >= settings_pack::string_type_base && sett < settings_pack::max_string_setting_internal)
+			{
+				std::string const& v = s.get_str(sett);
+				io::write_uint16(v.length(), ptr);
+				std::copy(v.begin(), v.end(), ptr);
+			}
+			else if (sett >= settings_pack::int_type_base && sett < settings_pack::max_int_setting_internal)
+			{
+				io::write_uint32(s.get_int(sett), ptr);
+			}
+			else if (sett >= settings_pack::bool_type_base && sett < settings_pack::max_bool_setting_internal)
+			{
+				io::write_uint8(s.get_bool(sett), ptr);
+			}
+			else
+			{
+				return error(st, invalid_argument);
+			}
+		}
+
 		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}
 
