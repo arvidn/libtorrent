@@ -82,10 +82,12 @@ struct observer : boost::noncopyable
 		m_in_constructor = true;
 		m_was_sent = false;
 		m_was_abandoned = false;
+		m_in_use = true;
 #endif
 		set_target(ep);
 	}
 
+	// defined in rpc_manager.cpp
 	virtual ~observer();
 
 	// this is called when a reply is received
@@ -167,6 +169,7 @@ public:
 	bool m_in_constructor:1;
 	bool m_was_sent:1;
 	bool m_was_abandoned:1;
+	bool m_in_use:1;
 #endif
 };
 
