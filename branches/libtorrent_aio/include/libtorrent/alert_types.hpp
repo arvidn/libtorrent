@@ -1390,8 +1390,6 @@ namespace libtorrent
 		std::vector<boost::uint64_t> values;
 	};
 
-	enum { num_alert_types = 71 };
-
 	struct TORRENT_EXPORT torrent_update_alert : torrent_alert
 	{
 		torrent_update_alert(torrent_handle h, sha1_hash const& old_hash, sha1_hash const& new_hash)
@@ -1410,9 +1408,9 @@ namespace libtorrent
 		sha1_hash new_ih;
 	};
 
-
 #undef TORRENT_DEFINE_ALERT
 
+	enum { num_alert_types = 72 };
 }
 
 
