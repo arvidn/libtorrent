@@ -44,7 +44,9 @@ namespace libtorrent
 		m_alerts->subscribe(this, 0
 			, add_torrent_alert::alert_type
 			, torrent_removed_alert::alert_type
-			, state_update_alert::alert_type, 0);
+			, state_update_alert::alert_type
+			, torrent_update_alert::alert_type
+			, 0);
 	}
 
 	torrent_history::~torrent_history()
@@ -57,7 +59,27 @@ namespace libtorrent
 		add_torrent_alert const* ta = alert_cast<add_torrent_alert>(a);
 		torrent_removed_alert const* td = alert_cast<torrent_removed_alert>(a);
 		state_update_alert const* su = alert_cast<state_update_alert>(a);
-		if (ta)
+		torrent_update_alert const* tu = alert_cast<torrent_update_alert>(a);
+		if (tu)
+		{
+			mutex::scoped_lock l(m_mutex);
+
+			// first remove the old hash
+			m_removed.push_front(std::make_pair(m_frame + 1, tu->old_ih));
+			torrent_history_entry st;
+			st.status.handle = tu->handle;
+			queue_t::right_iterator it = m_queue.right.find(st);
+			TORRENT_ASSERT(it != m_queue.right.end());
+			m_queue.right.replace_data(it, m_frame);
+			// bump this torrent to the beginning of the list
+			m_queue.left.relocate(m_queue.left.begin(), m_queue.project_left(it));
+			// weed out torrents that were removed a long time ago
+			while (m_removed.size() > 1000 && m_removed.back().first < m_frame - 10)
+				m_removed.pop_back();
+
+			m_deferred_frame_count = true;
+		}
+		else if (ta)
 		{
 			mutex::scoped_lock l(m_mutex);
 			m_queue.left.push_front(std::make_pair(m_frame + 1, torrent_history_entry(ta->handle.status(), m_frame + 1)));
@@ -73,9 +95,8 @@ namespace libtorrent
 			m_queue.right.erase(st);
 			// weed out torrents that were removed a long time ago
 			while (m_removed.size() > 1000 && m_removed.back().first < m_frame - 10)
-			{
 				m_removed.pop_back();
-			}
+
 			m_deferred_frame_count = true;
 		}
 		else if (su)

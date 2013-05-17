@@ -281,14 +281,73 @@ and had the command invoked on them.
 list-settings
 .............
 
+function id 14.
+
 This message returns all available settings as strings, as well as their
 corresponding setting id and type.
+
+This function does not take any arguments. The return value is:
+
++----------+--------------------+-----------------------------------------+
+| offset   | type               | name                                    |
++==========+====================+=========================================+
+| 4        | uint32_t           | ``num-string-settings``                 |
++----------+--------------------+-----------------------------------------+
+| 8        | uint32_t           | ``num-int-settings``                    |
++----------+--------------------+-----------------------------------------+
+| 12       | uint32_t           | ``num-bool-settings``                   |
++----------+--------------------+-----------------------------------------+
+| 16       | uint8_t, uint8_t[] | ``setting-name``                        |
++----------+--------------------+-----------------------------------------+
+| 17+ n    | uint16_t           | ``setting-id``                          |
++----------+--------------------+-----------------------------------------+
+
+The last 2 fields are repeated ``num-stringsettings`` * ``num-int-settings``
+* ``num-bool-settings``  times.
+
+This list of name -> id pairs tells you all of the available settings
+for the bittorrent client. Note that the length prefix for the settings name
+string is 8 bits.
+
+The ``num-string-settings`` entries are of *string* type, the following
+``num-int-settings`` are of *int* type and the following ``num-bool-settings``
+are of type *boolean*.
 
 set-settings
 ............
 
 get-settings
 ............
+
+function id 15.
+
+The get-settings function can be used to query the settings values for one
+or more settings.
+
++----------+--------------------+-----------------------------------------+
+| offset   | type               | name                                    |
++==========+====================+=========================================+
+| 3        | uint16_t           | ``num-settings-values``                 |
++----------+--------------------+-----------------------------------------+
+| 7        | uint16_t           | ``settings-id``                         |
++----------+--------------------+-----------------------------------------+
+
+The last field is repeated ``num-settings-values`` times.
+
++----------+---------------------+-----------------------------------------+
+| offset   | type                | name                                    |
++==========+=====================+=========================================+
+| 4        | uint16_t            | ``num-values``                          |
++----------+---------------------+-----------------------------------------+
+| 6        | uint32_t *or*       | *value*. ``int`` values are encoded as  |
+|          | uint16_t, uint8_t[] | uint32_t, ``string`` values are encoded |
+|          | *or* uint8_t        | as a 16-bit length prefix followed by   |
+|          |                     | the string, ``bool`` values are encoded |
+|          |                     | as uint8_t as either 0 or 1.            |
++----------+---------------------+-----------------------------------------+
+
+The last field is repeated ``num-values`` times. The settings are returned
+in the same order as they are requested.
 
 Appendix A
 ==========
@@ -328,11 +387,11 @@ Function IDs
 +-----+---------------------------+-----------------------------------------+
 |  13 | clear-sequential-download | info-hash, ...                          |
 +-----+---------------------------+-----------------------------------------+
-|  14 | set-settings              | setting-id, type, value, ...            |
+|  14 | list-settings             |                                         |
 +-----+---------------------------+-----------------------------------------+
-|  15 | get-settings              | setting-id, ...                         |
+|  15 | set-settings              | setting-id, type, value, ...            |
 +-----+---------------------------+-----------------------------------------+
-|  16 | list-settings             |                                         |
+|  16 | get-settings              | setting-id, ...                         |
 +-----+---------------------------+-----------------------------------------+
 
 Appendix B

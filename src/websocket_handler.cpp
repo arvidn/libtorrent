@@ -46,7 +46,11 @@ namespace libtorrent
 
 		std::map<mg_connection*, boost::shared_ptr<mutex> >::iterator i
 			= m_open_sockets.find(conn);
-		if (i == m_open_sockets.end()) return false;
+		if (i == m_open_sockets.end())
+		{
+			fprintf(stderr, "ERROR: send_packet, socket not open\n");
+			return false;
+		}
 		boost::shared_ptr<mutex> m = i->second;
 		mutex::scoped_lock l2(*m);
 		l.unlock();
@@ -74,12 +78,20 @@ namespace libtorrent
 
 		// TODO: it would be nice to have an mg_writev()
 		int ret = mg_write(conn, h, header_len);
-		if (ret < header_len) return false;
+		if (ret < header_len)
+		{
+			fprintf(stderr, "ERROR: send_packet, short write (%d < %d)\n", ret, header_len);
+			return false;
+		}
 
 		if (len > 0)
 		{
 			ret = mg_write(conn, buffer, len);
-			if (ret < len) return false;
+			if (ret < len)
+			{
+				fprintf(stderr, "ERROR: send_packet, short write (%d < %d)\n", ret, len);
+				return false;
+			}
 		}
 		return true;
 	}
