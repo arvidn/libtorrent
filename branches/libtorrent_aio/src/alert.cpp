@@ -538,5 +538,14 @@ namespace libtorrent {
 		return names[op];
 	}
 
+	std::string torrent_update_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
+			, to_hex(old_ih.to_string()).c_str()
+			, to_hex(new_ih.to_string()).c_str());
+		return torrent_alert::message() + msg;
+	}
+
 } // namespace libtorrent
 

@@ -71,12 +71,13 @@ bool tests_failure = false;
 void report_failure(char const* err, char const* file, int line)
 {
 #if defined TORRENT_WINDOWS
-	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(console, FOREGROUND_RED);
-	char msg[512];
-	snprintf(msg, sizeof(msg), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
-	WriteFile(console, msg, strlen(msg), NULL, NULL);
-	SetConsoleTextAttribute(console, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(out, FOREGROUND_RED);
+	char buffer[1024];
+	int len = snprintf(buffer, sizeof(buffer), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
+	DWORD written;
+	WriteFile(out, buffer, len, &written, NULL);
+	SetConsoleTextAttribute(out, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #else
 	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
 #endif

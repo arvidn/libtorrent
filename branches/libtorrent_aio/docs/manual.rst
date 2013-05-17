@@ -547,6 +547,12 @@ asyncronously. When used with ``async_add_torrent()`` it can provide a completel
 blocking mechanism for adding torrents, without requiring them to be loaded
 from disk first.
 
+If it refers to an HTTP URL, the info-hash for the added torrent will not be the
+true info-hash of the .torrent. Instead a placeholder, unique, info-hash is used
+which is later updated once the .torrent file has been downloaded.
+
+Once the info-hash change happens, a torrent_update_alert_ is posted.
+
 ``dht_nodes`` is a list of hostname and port pairs, representing DHT nodes to be
 added to the session (if DHT is enabled). The hostname may be an IP address.
 
@@ -7120,6 +7126,27 @@ the timestamp may help provide higher accuracy in measurements.
 
 For more information, see the `session statistics`_ section.
 
+
+torrent_update_alert
+--------------------
+
+When a torrent changes its info-hash, this alert is posted. This only happens in very
+specific cases. For instance, when a torrent is downloaded from a URL, the true info
+hash is not known immediately. First the .torrent file must be downloaded and parsed.
+
+Once this download completes, the ``torrent_update_alert`` is posted to notify the client
+of the info-hash changing.
+
+::
+
+	struct torrent_update_alert: torrent_alert
+	{
+		// ...
+		sha1_hash old_ih;
+		sha1_hash new_ih;
+	};
+
+``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
 
 alert dispatcher
 ================

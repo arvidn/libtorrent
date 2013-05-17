@@ -41,6 +41,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+0.16.10 release
+
 	* fix encryption level handle invalid values
 	* add a number of missing functions to the python binding
 	* fix typo in Jamfile for building shared libraries

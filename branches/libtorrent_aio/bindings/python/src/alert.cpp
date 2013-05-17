@@ -521,4 +521,10 @@ void bind_alert()
        .def_readonly("error", &add_torrent_alert::error)
        .add_property("params", &get_params)
        ;
+
+    class_<torrent_update_alert, bases<torrent_alert>, noncopyable>(
+       "torrent_update_alert", no_init)
+        .def_readonly("old_ih", &torrent_update_alert::old_ih)
+        .def_readonly("new_ih", &torrent_update_alert::new_ih)
+        ;
 }

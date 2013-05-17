@@ -701,6 +701,9 @@ namespace libtorrent
 
 		m_ses.remove_torrent_impl(me, 0);
 
+		if (alerts().should_post<torrent_update_alert>())
+			alerts().post_alert(torrent_update_alert(get_handle(), info_hash(), tf->info_hash()));
+
 		m_torrent_file = tf;
 
 		// now, we might already have this torrent in the session.

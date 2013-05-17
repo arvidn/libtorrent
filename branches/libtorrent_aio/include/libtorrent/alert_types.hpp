@@ -1392,6 +1392,25 @@ namespace libtorrent
 
 	enum { num_alert_types = 71 };
 
+	struct TORRENT_EXPORT torrent_update_alert : torrent_alert
+	{
+		torrent_update_alert(torrent_handle h, sha1_hash const& old_hash, sha1_hash const& new_hash)
+			: torrent_alert(h)
+			, old_ih(old_hash)
+			, new_ih(new_hash)
+		{}
+
+		TORRENT_DEFINE_ALERT(torrent_update_alert, 71);
+
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		sha1_hash old_ih;
+		sha1_hash new_ih;
+	};
+
+
 #undef TORRENT_DEFINE_ALERT
 
 }
