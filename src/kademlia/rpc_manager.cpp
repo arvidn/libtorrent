@@ -216,7 +216,11 @@ void* rpc_manager::allocate_observer()
 {
 	m_pool_allocator.set_next_size(10);
 	void* ret = m_pool_allocator.malloc();
-	if (ret) ++m_allocated_observers;
+	if (ret)
+	{
+		++m_allocated_observers;
+		TORRENT_ASSERT(reinterpret_cast<observer*>(ret)->m_in_use == false);
+	}
 	return ret;
 }
 
@@ -224,6 +228,7 @@ void rpc_manager::free_observer(void* ptr)
 {
 	if (!ptr) return;
 	--m_allocated_observers;
+	TORRENT_ASSERT(reinterpret_cast<observer*>(ptr)->m_in_use == true);
 	m_pool_allocator.free(ptr);
 }
 
@@ -502,6 +507,10 @@ observer::~observer()
 	// reported back
 	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done) || m_was_abandoned);
 	TORRENT_ASSERT(!m_in_constructor);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	TORRENT_ASSERT(m_in_use);
+	m_in_use = false;
+#endif
 }
 
 } } // namespace libtorrent::dht
