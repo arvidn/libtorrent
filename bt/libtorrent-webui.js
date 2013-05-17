@@ -1,4 +1,6 @@
-read_string = function(view, offset)
+
+// read a string with a 16 bit length prefix
+function read_string16(view, offset)
 {
 	var len = view.getUint16(offset);
 	var str = '';
@@ -10,8 +12,20 @@ read_string = function(view, offset)
 	}
 	return str;
 }
+function read_string8(view, offset)
+{
+	var len = view.getUint8(offset);
+	var str = '';
+	for (var j = 0; j < len; ++j)
+	{
+		str += String.fromCharCode(view.getUint8(offset));
+		++offset;
+	}
+	return str;
+}
 
-read_uint64 = function(view, offset)
+// read a 64 bit value
+function read_uint64(view, offset)
 {
 	var high = view.getUint32(offset);
 	offset += 4;
@@ -87,14 +101,8 @@ libtorrent_connection.prototype['list_settings'] = function(callback)
 		var offset = 16;
 		for (var i = 0; i < num_strings + num_ints + num_bools; ++i)
 		{
-			var len = view.getUint8(offset);
-			++offset;
-			var name = '';
-			for (var j = 0; j < len; ++j)
-			{
-				name += String.fromCharCode(view.getUint8(offset));
-				++offset;
-			}
+			var name = read_string8(view, offset);
+			offset += 1 + name.length;
 			var code = view.getUint16(offset);
 			offset += 2;
 			var type = 'string';
@@ -173,7 +181,7 @@ libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 						offset += 4;
 						break;
 					case 1: // name
-						var name = read_string(view, offset);
+						var name = read_string16(view, offset);
 						offset += 2 + name.length;
 						torrent['name'] = name;
 						break;
@@ -206,7 +214,7 @@ libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 						offset += 4;
 						break;
 					case 9: // error
-						var e = read_string(view, offset);
+						var e = read_string16(view, offset);
 						offset += 2 + e.length;
 						torrent['error'] = e;
 						break;
