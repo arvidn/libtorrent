@@ -216,11 +216,7 @@ void* rpc_manager::allocate_observer()
 {
 	m_pool_allocator.set_next_size(10);
 	void* ret = m_pool_allocator.malloc();
-	if (ret)
-	{
-		++m_allocated_observers;
-		TORRENT_ASSERT(reinterpret_cast<observer*>(ret)->m_in_use == false);
-	}
+	if (ret) ++m_allocated_observers;
 	return ret;
 }
 
@@ -228,7 +224,7 @@ void rpc_manager::free_observer(void* ptr)
 {
 	if (!ptr) return;
 	--m_allocated_observers;
-	TORRENT_ASSERT(reinterpret_cast<observer*>(ptr)->m_in_use == true);
+	TORRENT_ASSERT(reinterpret_cast<observer*>(ptr)->m_in_use == false);
 	m_pool_allocator.free(ptr);
 }
 
