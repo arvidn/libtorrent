@@ -8,19 +8,43 @@ var conn = null;
 
 update_settings_list = function(settings)
 {
-	if (settings == null) return;
+	if (typeof(settings) == 'string')
+	{
+		console.log("ERROR: " + settings);
+		return;
+	}
 
 	var table = document.getElementById("settings");
 
+	var req = [];
 	for (i in settings)
 	{
 		var s = settings[i];
 		row = table.insertRow(-1);
 		row.id = s.id;
-		row.insertCell(0).textContent = s.name;
-		row.insertCell(1).textContent = s.type;
-		row.insertCell(2).textContent = s.id;
+		row.insertCell(0).textContent = s.id;
+		row.insertCell(1).textContent = s.name;
+		row.insertCell(2).textContent = s.type;
+		req.push(s.id);
 	}
+
+	conn.get_settings(req, function(values)
+	{
+		if (typeof(settings) == 'string')
+		{
+			console.log("ERROR: " + settings);
+			return;
+		}
+
+		for (var i = 0; i < req.length; ++i)
+		{
+			// find the row with this settings ID
+			var row = document.getElementById(req[i]);
+
+			// add the last column with the value
+			row.insertCell(3).textContent = values[i];
+		}
+	});
 };
 
 window.onload = function() {
@@ -38,7 +62,7 @@ window.onload = function() {
 </script>
 <style>.updated { background-color: #faa; }</style>
 <table id="settings" border="1" style="border-collapse: collapse; border-color: black;">
-<tr><th>Name</th><th>type</th><th>ID</th></tr>
+<tr><th>Name</th><th>type</th><th>ID</th><th>Value</th></tr>
 </table>
 </html>
 

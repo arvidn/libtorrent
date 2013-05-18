@@ -8,7 +8,7 @@ function read_string16(view, offset)
 	for (var j = 0; j < len; ++j)
 	{
 		str += String.fromCharCode(view.getUint8(offset));
-		offset += 1;
+		++offset;
 	}
 	return str;
 }
@@ -16,6 +16,7 @@ function read_string8(view, offset)
 {
 	var len = view.getUint8(offset);
 	var str = '';
+	++offset;
 	for (var j = 0; j < len; ++j)
 	{
 		str += String.fromCharCode(view.getUint8(offset));
@@ -32,6 +33,23 @@ function read_uint64(view, offset)
 	var low = view.getUint32(offset);
 	offset += 4;
 	return high * 4294967295 + low;
+}
+
+function _check_error(e, callback)
+{
+	if (e == 0) return false;
+
+	var error = 'unknown error';
+	switch (e)
+	{
+		case 1: error = 'no such function'; break;
+		case 2: error = 'invalid number of arguments'; break;
+		case 3: error = 'invalid argument type'; break;
+		case 4: error = 'invalid argument'; break;
+		case 5: error = 'truncated message'; break;
+	}
+	
+	if (typeof(callback) !== 'undefined') callback(error);
 }
 
 libtorrent_connection = function(url, callback)
@@ -80,7 +98,7 @@ libtorrent_connection.prototype['list_settings'] = function(callback)
 {
 	if (this._socket.readyState != WebSocket.OPEN)
 	{
-		window.setTimeout( function() { callback(null); }, 0);
+		window.setTimeout( function() { callback("socket closed"); }, 0);
 		return;
 	}
 	
@@ -93,10 +111,15 @@ libtorrent_connection.prototype['list_settings'] = function(callback)
 	var self = this;
 	this._transactions[tid] = function(view, fun, e)
 	{
+		if (_check_error(e, callback)) return;
 		var ret = [];
 		var num_strings = view.getUint32(4);
 		var num_ints = view.getUint32(8);
 		var num_bools = view.getUint32(12);
+
+		// this is a local copy of the settings-id -> type map
+		// the types are encoded as 0 = string, 1 = int, 2 = bool.
+		self._settings = {};
 
 		var offset = 16;
 		for (var i = 0; i < num_strings + num_ints + num_bools; ++i)
@@ -105,11 +128,22 @@ libtorrent_connection.prototype['list_settings'] = function(callback)
 			offset += 1 + name.length;
 			var code = view.getUint16(offset);
 			offset += 2;
-			var type = 'string';
+			var type;
 			if (i >= num_strings + num_ints)
+			{
 				type = 'bool';
+				self._settings[code] = 2;
+			}
 			else if (i >= num_strings)
+			{
 				type = 'int';
+				self._settings[code] = 1;
+			}
+			else
+			{
+				type = 'string';
+				self._settings[code] = 0;
+			}
 			
 			ret.push({'name': name, 'id': code, 'type': type});
 		}
@@ -128,11 +162,94 @@ libtorrent_connection.prototype['list_settings'] = function(callback)
 	this._socket.send(call);
 }
 
+libtorrent_connection.prototype['get_settings'] = function(settings, callback)
+{
+	// TODO: factor out this RPC boiler plate
+	if (this._socket.readyState != WebSocket.OPEN)
+	{
+		window.setTimeout( function() { callback("socket closed"); }, 0);
+		return;
+	}
+
+	if (typeof(this._settings) === 'undefined')
+	{
+		window.setTimeout( function() { callback("must call list_settings first"); }, 0);
+		return;
+	}
+
+	var tid = this._tid++;
+	if (this._tid > 65535) this._tid = 0;
+
+	// this is the handler of the response for this call. It first
+	// parses out the return value, the passes it on to the user
+	// supplied callback.
+	var self = this;
+	this._transactions[tid] = function(view, fun, e)
+	{
+		if (_check_error(e, callback)) return;
+		var num_settings = view.getUint16(4);
+		var offset = 6;
+
+		var ret = [];
+		
+		if (settings.length != num_settings)
+		{
+			callback("get_settings returned invalid number of items");
+			return;
+		}
+		for (var i = 0; i < num_settings; ++i)
+		{
+			var type = self._settings[settings[i]];
+			if (typeof(type) !== 'number' || type < 0 || type > 2)
+			{
+				if (typeof(callback) !== 'undefined') callback("invalid setting ID (" + settings[i] + ")");
+				return;
+			}
+			switch (type)
+			{
+				case 0: // string
+					var n = read_string16(view, offset);
+					ret.push(n);
+					offset += 2 + n.length;
+					break;
+				case 1: // int
+					ret.push(view.getUint32(offset));
+					offset += 4;
+					break;
+				case 2: // bool
+					ret.push(view.getUint8(offset) ? true : false);
+					offset += 1;
+					break;
+			};
+		}
+		if (typeof(callback) !== 'undefined') callback(ret);
+	}
+
+	var call = new ArrayBuffer(5 + settings.length * 2);
+	var view = new DataView(call);
+	// function 16
+	view.setUint8(0, 16);
+	// transaction-id
+	view.setUint16(1, tid);
+	// num settings
+	view.setUint16(3, settings.length);
+
+	var offset = 5;
+	for (var i = 0; i < settings.length; ++i)
+	{
+		view.setUint16(offset, settings[i]);
+		offset += 2;
+	}
+
+	console.log('CALL get_settings( num: ' + settings.length + ' ) tid = ' + tid);
+	this._socket.send(call);
+}
+
 libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 {
 	if (this._socket.readyState != WebSocket.OPEN)
 	{
-		window.setTimeout( function() { callback(null); }, 0);
+		window.setTimeout( function() { callback("socket closed"); }, 0);
 		return;
 	}
 	
@@ -145,6 +262,8 @@ libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 	var self = this;
 	this._transactions[tid] = function(view, fun, e)
 	{
+		if (_check_error(e, callback)) return;
+
 		self._frame = view.getUint32(4);
 		var num_torrents = view.getUint32(8);
 		console.log('frame: ' + self._frame + ' num-torrents: ' + num_torrents);
@@ -341,7 +460,7 @@ libtorrent_connection.prototype._send_simple_call = function(fun_id, info_hashes
 
 	if (fun_id < 1 || fun_id > 13)
 	{
-		window.setTimeout( function() { callback(null); }, 0);
+		window.setTimeout( function() { callback("socket closed"); }, 0);
 		return;
 	}
 
@@ -373,6 +492,7 @@ libtorrent_connection.prototype._send_simple_call = function(fun_id, info_hashes
 	// supplied callback.
 	this._transactions[tid] = function(view, fun, e)
 	{
+		if (_check_error(e, callback)) return;
 		var num_torrents = view.getUint16(4);
 		if (typeof(callback) !== 'undefined') callback(num_torrents);
 	};
