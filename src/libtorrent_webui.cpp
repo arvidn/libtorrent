@@ -93,8 +93,8 @@ namespace libtorrent
 		{ "set-sequential-download", &libtorrent_webui::set_sequential_download },
 		{ "clear-sequential-download", &libtorrent_webui::clear_sequential_download },
 		{ "list-settings", &libtorrent_webui::list_settings},
-		{ "set-settings", &libtorrent_webui::set_settings},
 		{ "get-settings", &libtorrent_webui::get_settings},
+		{ "set-settings", &libtorrent_webui::set_settings},
 	};
 
 	// maps torrent field to RPC field. These fields are the ones defined in
@@ -576,16 +576,62 @@ namespace libtorrent
 
 	bool libtorrent_webui::set_settings(conn_state* st)
 	{
-		return false;
+		char* ptr = st->data;
+		if (st->len < 2) return error(st, invalid_number_of_args);
+
+		int num_settings = io::read_uint16(ptr);
+		st->len -= 2;
+
+		settings_pack pack;
+
+		for (int i = 0; i < num_settings; ++i)
+		{
+			if (st->len < 2) return error(st, invalid_number_of_args);
+			int sett = io::read_uint16(ptr);
+			st->len -= 2;
+
+			if (sett >= settings_pack::string_type_base && sett < settings_pack::max_string_setting_internal)
+			{
+				if (st->len < 2) return error(st, invalid_number_of_args);
+				int len = io::read_uint16(ptr);
+				st->len -= 2;
+				std::string str;
+				str.resize(len);
+				if (st->len < len) return error(st, invalid_number_of_args);
+				std::copy(ptr, ptr + len, str.begin());
+				ptr += len;
+			}
+			else if (sett >= settings_pack::int_type_base && sett < settings_pack::max_int_setting_internal)
+			{
+				if (st->len < 4) return error(st, invalid_number_of_args);
+				pack.set_int(sett, io::read_uint32(ptr));
+				st->len -= 4;
+			}
+			else if (sett >= settings_pack::bool_type_base && sett < settings_pack::max_bool_setting_internal)
+			{
+				if (st->len < 1) return error(st, invalid_number_of_args);
+				pack.set_bool(sett, io::read_uint8(ptr));
+				st->len -= 1;
+			}
+			else
+			{
+				return error(st, invalid_argument);
+			}
+		}
+
+		m_ses.apply_settings(pack);
+
+		return error(st, no_error);
 	}
 
 	bool libtorrent_webui::get_settings(conn_state* st)
 	{
 		char* iptr = st->data;
+		if (st->len < 2) return error(st, invalid_number_of_args);
 		int num_settings = io::read_uint16(iptr);
+		st->len -= 2;
 
-		if (st->len < num_settings * 2)
-			return invalid_argument_type;
+		if (st->len < num_settings * 2) return invalid_argument_type;
 
 		std::vector<char> response;
 		std::back_insert_iterator<std::vector<char> > ptr(response);

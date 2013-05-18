@@ -8,7 +8,11 @@ var conn = null;
 
 update_torrent_list = function(updates)
 {
-	if (updates == null) return;
+	if (typeof(updates) === 'string')
+	{
+		console.log("ERROR: " + updates);
+		return;
+	}
 
 	// clear classes on all cells
 	var table = document.getElementById('torrents');

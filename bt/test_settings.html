@@ -1,27 +1,87 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
 <title>libtorrent websocket test</title>
-<script language="javascript" type="text/javascript" src="lt.js"></script>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
 <script language="javascript" type="text/javascript">
 
 var conn = null;
 
 update_settings_list = function(settings)
 {
-	if (settings == null) return;
+	if (typeof(settings) === 'string')
+	{
+		console.log("ERROR: " + settings);
+		return;
+	}
 
 	var table = document.getElementById("settings");
 
+	var req = [];
 	for (i in settings)
 	{
 		var s = settings[i];
 		row = table.insertRow(-1);
 		row.id = s.id;
-		row.insertCell(0).textContent = s.name;
-		row.insertCell(1).textContent = s.type;
-		row.insertCell(2).textContent = s.id;
+		row.insertCell(0).textContent = s.id;
+		row.insertCell(1).textContent = s.name;
+		row.insertCell(2).textContent = s.type;
+		req.push(s.id);
 	}
+
+	conn.get_settings(req, function(values)
+	{
+		if (typeof(values) === 'string')
+		{
+			console.log("ERROR: " + settings);
+			return;
+		}
+
+		for (var i = 0; i < req.length; ++i)
+		{
+			// find the row with this settings ID
+			var row = document.getElementById(req[i]);
+
+			// type
+			var type = row.cells[2].textContent;
+			switch (type)
+			{
+				case 'string':
+					row.insertCell(3).innerHTML = '<input type="text" name="' + req[i] + '" value="' + values[i] + '" onchange="submit(\'' + req[i]+ '\');"/>';
+				break;
+				case 'int':
+					row.insertCell(3).innerHTML = '<input type="number" name="' + req[i] + '" value="' + values[i] + '" onchange="submit(\'' + req[i]+ '\');"/>';
+					break;
+				case 'bool':
+					row.insertCell(3).innerHTML = '<select id="dd-' + req[i] + '" onchange="submit(\'' + req[i]+ '\');"><option>false</option><option>true</option></select>';
+					document.getElementById('dd-' + req[i]).selectedIndex = values[i] ? 1 : 0;
+					break;
+			};
+		}
+	});
 };
+
+function submit(settings_id)
+{
+	var id = parseInt(settings_id);
+	var cells = document.getElementById(settings_id).cells;
+	var type = cells[2].textContent;
+	var value = cells[3].childNodes[0];
+	switch (type)
+	{
+		case 'string':
+			value = value.attributes.getNamedItem('value').value;
+			break;
+		case 'int':
+			value = parseInt(value.attributes.getNamedItem('value').value);
+			break;
+		case 'bool':
+			value = value.selectedIndex == 1;
+			break;
+	};
+	sett = {};
+	sett[id] = value;
+	conn.set_settings(sett, function() {});
+}
 
 window.onload = function() {
 	var url = 'ws://' + window.location.host + '/bt/control';
@@ -38,7 +98,9 @@ window.onload = function() {
 </script>
 <style>.updated { background-color: #faa; }</style>
 <table id="settings" border="1" style="border-collapse: collapse; border-color: black;">
-<tr><th>Name</th><th>type</th><th>ID</th></tr>
+<form>
+<tr><th>ID</th><th>Name</th><th>Type</th><th>Value</th></tr>
 </table>
+</form>
 </html>
 
