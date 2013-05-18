@@ -313,9 +313,6 @@ The ``num-string-settings`` entries are of *string* type, the following
 ``num-int-settings`` are of *int* type and the following ``num-bool-settings``
 are of type *boolean*.
 
-set-settings
-............
-
 get-settings
 ............
 
@@ -348,6 +345,36 @@ The last field is repeated ``num-settings-values`` times.
 
 The last field is repeated ``num-values`` times. The settings are returned
 in the same order as they are requested.
+
+set-settings
+............
+
+function id 16.
+
+This RPC changes one or more settings. Settings are identifid by their settings
+ID and the type of the values must match the types specified by a call to
+list-settings_.
+
++----------+---------------------+-----------------------------------------+
+| offset   | type                | name                                    |
++==========+=====================+=========================================+
+| 3        | uint16_t            | ``num-settings``                        |
++----------+---------------------+-----------------------------------------+
+| 7        | uint16_t            | ``settings-id``                         |
++----------+---------------------+-----------------------------------------+
+| 9        | uint32_t *or*       | *value*. ``int`` values are encoded as  |
+|          | uint16_t, uint8_t[] | uint32_t, ``string`` values are encoded |
+|          | *or* uint8_t        | as a 16-bit length prefix followed by   |
+|          |                     | the string, ``bool`` values are encoded |
+|          |                     | as uint8_t as either 0 or 1.            |
+|          |                     | The type must match the settings ID.    |
++----------+---------------------+-----------------------------------------+
+
+The last two fields are repeated ``num-settings`` times. Each value must have
+the type corresponding to the type of the preceeding ``settings-id``, as returned
+by list-settings_.
+
+There is no return value for this function.
 
 Appendix A
 ==========

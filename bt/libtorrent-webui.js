@@ -49,6 +49,7 @@ function _check_error(e, callback)
 		case 5: error = 'truncated message'; break;
 	}
 	
+	console.log("ERROR: " + error);
 	if (typeof(callback) !== 'undefined') callback(error);
 }
 
@@ -227,8 +228,8 @@ libtorrent_connection.prototype['get_settings'] = function(settings, callback)
 
 	var call = new ArrayBuffer(5 + settings.length * 2);
 	var view = new DataView(call);
-	// function 16
-	view.setUint8(0, 16);
+	// function 15
+	view.setUint8(0, 15);
 	// transaction-id
 	view.setUint16(1, tid);
 	// num settings
@@ -242,6 +243,95 @@ libtorrent_connection.prototype['get_settings'] = function(settings, callback)
 	}
 
 	console.log('CALL get_settings( num: ' + settings.length + ' ) tid = ' + tid);
+	this._socket.send(call);
+}
+
+// settings is an object mapping settings-id -> value
+libtorrent_connection.prototype['set_settings'] = function(settings, callback)
+{
+	// TODO: factor out this RPC boiler plate
+	if (this._socket.readyState != WebSocket.OPEN)
+	{
+		window.setTimeout( function() { callback("socket closed"); }, 0);
+		return;
+	}
+
+	var tid = this._tid++;
+	if (this._tid > 65535) this._tid = 0;
+
+	// this is the handler of the response for this call. It first
+	// parses out the return value, the passes it on to the user
+	// supplied callback.
+	var self = this;
+	this._transactions[tid] = function(view, fun, e)
+	{
+		if (_check_error(e, callback)) return;
+		if (typeof(callback) !== 'undefined') callback(null);
+	};
+
+	// since ArrayBuffers can't be resized, we need to
+	// figure out how big the buffer will need to be for this
+	// RPC first, before allocating the buffer for it.
+	var size = 6; // RPC header + counter
+	for (s in settings)
+	{
+		size += 2;
+		type = this._settings[s];
+		switch (type)
+		{
+			// string
+			case 0: size += 2 + settings[s].length; break;
+			// int
+			case 1: size += 4; break;
+			// bool
+			case 2: ++size; break;
+		}
+	}
+
+	var call = new ArrayBuffer(size);
+	var view = new DataView(call);
+
+	// function 16
+	view.setUint8(0, 16);
+	// transaction-id
+	view.setUint16(1, tid);
+	// num settings
+	view.setUint16(3, Object.keys(settings).length);
+
+	var offset = 5;
+	for (s in  settings)
+	{
+		var v = settings[s];
+		view.setUint16(offset, s);
+		offset += 2;
+		var type = this._settings[s];
+		switch (type)
+		{
+			case 0:
+				var str = settings[s];
+				view.setUint16(offset, str.length);
+				offset += 2;
+				for (var i = 0; i < str.length; ++i)
+				{
+					view.setUint8(offset, str.charCodeAt(i));
+					++offset;
+				}
+				break;
+			case 1:
+				view.setUint32(offset, settings[s]);
+				offset += 4;
+				break;
+			case 2:
+				view.setUint8(offset, settings[s]);
+				++offset;
+				break;
+			default:
+				if (typeof(callback) !== 'undefined') callback("invalid setting-id");
+				return;
+		}
+	}
+
+	console.log('CALL set_settings( settings: ' + Object.keys(settings).length + ') tid = ' + tid);
 	this._socket.send(call);
 }
 

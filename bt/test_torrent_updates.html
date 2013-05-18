@@ -8,7 +8,7 @@ var conn = null;
 
 update_torrent_list = function(updates)
 {
-	if (typeof(updates) == 'string')
+	if (typeof(updates) === 'string')
 	{
 		console.log("ERROR: " + updates);
 		return;
