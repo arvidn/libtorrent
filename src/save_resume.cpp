@@ -85,18 +85,15 @@ void save_resume::handle_alert(alert const* a)
 	}
 	else if (td)
 	{
+		bool wrapped = false;
 		boost::unordered_set<torrent_handle>::iterator i = m_torrents.find(td->handle);
+		TORRENT_ASSERT(i != m_torrents.end());
 		if (m_cursor == i)
 		{
 			++m_cursor;
 			if (m_cursor == m_torrents.end())
-			{
-				m_cursor = m_torrents.begin();
-				m_cursor_index = 0;
-				m_last_save_wrap = time_now();
-			}
+				wrapped = true;
 		}
-		TORRENT_ASSERT(i != m_torrents.end());
 		// we need to delete the resume file from the resume directory
 		// as well, to prevent it from being reloaded on next startup
 		error_code ec;
@@ -104,6 +101,12 @@ void save_resume::handle_alert(alert const* a)
 		printf("removing: %s (%s)\n", resume_file.c_str(), ec.message().c_str());
 		remove(resume_file, ec);
 		m_torrents.erase(i);
+		if (wrapped)
+		{
+			m_cursor = m_torrents.begin();
+			m_cursor_index = 0;
+			m_last_save_wrap = time_now();
+		}
 	}
 	else if (sr)
 	{

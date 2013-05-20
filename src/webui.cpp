@@ -161,7 +161,7 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 	// start web interface
 	char port_str[20];
 	snprintf(port_str, sizeof(port_str), "%d%s", port, cert_path ? "s" : "");
-	const char *options[10];
+	const char *options[20];
 	memset(options, 0, sizeof(options));
 	int i = 0;
 	options[i++] = "document_root";
