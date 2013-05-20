@@ -21,6 +21,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix issue where torrents added by URL would not be started immediately
+
 0.16.10 release
 
 	* fix encryption level handle invalid values
