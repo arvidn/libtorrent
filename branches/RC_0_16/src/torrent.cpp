@@ -7409,6 +7409,13 @@ namespace libtorrent
 #endif
 			return;
 		}
+		if (!m_torrent_file->is_valid() && !m_url.empty())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("start_announcing(), downloading URL");
+#endif
+			return;
+		}
 		if (m_announcing) return;
 
 		m_announcing = true;
