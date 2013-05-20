@@ -44,8 +44,6 @@ redraw = function(updates)
 			++prune;
 
 		if (prune > 1) rates.splice(0, prune-1);
-
-//		torrent_rate[ih] = rates;
 	}
 
 	for (ih in updates)
@@ -134,14 +132,14 @@ redraw = function(updates)
 	{
 		ctx.strokeStyle = "#000";
 		ctx.setLineDash([]);
-		var y = view_height * i / num_tics;
+		var y = Math.floor(view_height * i / num_tics);
 		ctx.beginPath();
 		ctx.moveTo(view_width - 6, y);
 		ctx.lineTo(view_width, y);
 		ctx.lineTo(view_width, y + view_height);
 		ctx.stroke();
 		var rate = max_rate - max_rate * i / num_tics;
-		ctx.fillText((rate / 1000).toFixed( max_rate <= 3000 ? 1 : 0) + ' kB/s', view_width + 2, y + 4);
+		ctx.fillText((rate / 1000).toFixed( max_rate < 5000 ? 1 : 0) + ' kB/s', view_width + 2, y + 4);
 
 		ctx.setLineDash([5]);
 		ctx.strokeStyle = "#aaa";
@@ -154,6 +152,7 @@ redraw = function(updates)
 
 	ctx.textAlign = 'right';
 
+	// draw the graphs for all torrents
 	for (ih in torrent_rate)
 	{
 		var row = document.getElementById(ih);
@@ -190,7 +189,7 @@ window.onload = function() {
 		window.setInterval(function()
 		{
 			conn.get_updates(fields.name | fields.download_rate | fields.upload_rate | fields.progress, redraw);
-		}, 1000);
+		}, 500);
 
 	});
 };
