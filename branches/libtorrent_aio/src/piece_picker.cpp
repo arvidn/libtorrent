@@ -2338,13 +2338,23 @@ namespace libtorrent
 			&& !m_piece_map[piece].filtered();
 	}
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	void piece_picker::check_peers()
+	{
+		for (std::vector<block_info>::iterator i = m_block_info.begin()
+			, end(m_block_info.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT(i->peer == 0 || static_cast<torrent_peer*>(i->peer)->in_use);
+		}
+	}
+#endif
+
 	void piece_picker::clear_peer(void* peer)
 	{
 		for (std::vector<block_info>::iterator i = m_block_info.begin()
 			, end(m_block_info.end()); i != end; ++i)
 		{
 			if (i->peer == peer) i->peer = 0;
-			TORRENT_ASSERT(i->peer == 0 || static_cast<torrent_peer*>(i->peer)->in_use);
 		}
 	}
 

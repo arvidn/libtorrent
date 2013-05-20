@@ -330,6 +330,11 @@ namespace libtorrent
 		// peer pointer
 		void clear_peer(void* peer);
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// this is an invariant check
+		void check_peers();
+#endif
+
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
 		// or if it already has been successfully downloaded

@@ -9558,6 +9558,9 @@ namespace libtorrent
 		{
 			m_picker->clear_peer(*i);
 		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_picker->check_peers();
+#endif
 	}
 
 	void torrent::file_progress(std::vector<size_type>& fp, int flags)
