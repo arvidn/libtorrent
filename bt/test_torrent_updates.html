@@ -49,8 +49,8 @@ update_torrent_list = function(updates)
 			row.id = ih;
 			for (j in field_map)
 				row.insertCell(0);
-			row.insertCell(0).innerHTML = '<a href="javascript:conn.start([\'' + ih + '\'])">start</a> ' +
-				'<a href="javascript:conn.stop([\'' + ih + '\'])\">stop</a>';
+			row.insertCell(0).innerHTML = '<a href="#" onclick="conn.start([\'' + ih + '\']); return false;">start</a> ' +
+				'<a href="#" onclick="conn.stop([\'' + ih + '\']); return false;\">stop</a>';
 		}
 		for (field in t)
 		{
