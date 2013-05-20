@@ -176,12 +176,13 @@ void print_with_ansi_colors(char const* str)
 	SetConsoleTextAttribute(out, current_attributes);
 
 	char* start = buf;
+	DWORD written;
 	while (*buf != 0)
 	{
 		if (*buf == '\033' && buf[1] == '[')
 		{
 			*buf = 0;
-			WriteFile(out, start, buf - start, NULL, NULL);
+			WriteFile(out, start, buf - start, &written, NULL);
 			buf += 2; // skip escape and '['
 			start = buf;
 		one_more:
@@ -204,7 +205,7 @@ void print_with_ansi_colors(char const* str)
 			++buf;
 		}
 	}
-	WriteFile(out, start, buf - start, NULL, NULL);
+	WriteFile(out, start, buf - start, &written, NULL);
 
 #else
 	// first, clear the console and move the cursor
