@@ -103,6 +103,9 @@ namespace libtorrent
 		{
 			mutex::scoped_lock l(m_mutex);
 
+			++m_frame;
+			m_deferred_frame_count = false;
+
 			std::vector<torrent_status> const& st = su->status;
 			for (std::vector<torrent_status>::const_iterator i = st.begin()
 				, end(st.end()); i != end; ++i)
@@ -116,14 +119,12 @@ namespace libtorrent
 				// bump this torrent to the beginning of the list
 				m_queue.left.relocate(m_queue.left.begin(), m_queue.project_left(it));
 			}
-			++m_frame;
-			m_deferred_frame_count = false;
 /*
 			printf("===== frame: %d =====\n", m_frame);
 			for (queue_t::left_iterator i = m_queue.left.begin()
 				, end(m_queue.left.end()); i != end; ++i)
 			{
-				i->second.debug_print(m_frame - 1);
+				i->second.debug_print(m_frame);
 //				printf("%3d: (%s) %s\n", i->first, i->second.error.c_str(), i->second.name.c_str());
 			}
 */
