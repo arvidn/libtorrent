@@ -2,13 +2,16 @@
 <meta charset="utf-8" />
 <title>libtorrent websocket test</title>
 <script language="javascript" type="text/javascript" src="lt.js"></script>
+<script language="javascript" type="text/javascript" src="lt-g.js"></script>
 <script language="javascript" type="text/javascript">
 
 var conn = null;
 
-// maps info-hash -> [ {timestamp, value}, ... ]
-var torrent_rate = {};
+// list of -> [ {time, ih1, ih2, ih3, ...}, ... ]
+var torrent_rate = [];
 
+var defs = [];
+	
 var first_time = new Date().getTime();
 
 redraw = function(updates)
@@ -27,24 +30,28 @@ redraw = function(updates)
 	// 60 seconds
 	var start_time = now - 60 * 1000;
 
-	for (ih in torrent_rate)
+	// copy the last element and set its time to now
+	if (torrent_rate.length > 0)
 	{
-		var rates = torrent_rate[ih];
-
-		var entry = { time: now };
-		entry.up = rates[rates.length-1].up;
-		entry.down = rates[rates.length-1].down;
-		rates.push(entry);
-
-		// remove data points older than 60 seconds, except
-		// keep one so that we can draw a line from there to
-		// the next point within the window
-		var prune = 0;
-		while (prune < rates.length && rates[prune].time < start_time)
-			++prune;
-
-		if (prune > 1) rates.splice(0, prune-1);
+		var last = torrent_rate[torrent_rate.length-1];
+		var entry = {};
+		for (i in last)
+			entry[i] = last[i];
+		entry.time = now;
+		torrent_rate.push(entry);
 	}
+	else
+	{
+		torrent_rate.push({ time: now });
+	}
+
+	// remove data points older than 60 seconds, except
+	// keep one so that we can draw a line from there to
+	// the next point within the window
+	var prune = 0;
+	while (prune < torrent_rate.length && torrent_rate[prune].time < start_time)
+		++prune;
+	if (prune > 1) torrent_rate.splice(0, prune-1);
 
 	for (ih in updates)
 	{
@@ -64,117 +71,21 @@ redraw = function(updates)
 				row.insertCell(0);
 			row.insertCell(0).innerHTML = '<a href="#" onclick="conn.start([\'' + ih + '\']); return false;">start</a> ' +
 				'<a href="#" onclick="conn.stop([\'' + ih + '\']); return false;\">stop</a>';
+			defs.push({ name: ih + 'u', color: '#e44'});
+			defs.push({ name: ih + 'd', color: '#4e4'});
 		}
-		var rates = torrent_rate[ih] || [];
-		if (rates.length == 0)
-			rates.push({ time: now, up: 0, down: 0});
 		for (field in t)
 		{
-			if (field == 'download-rate') rates[rates.length-1].down = t[field];
-			if (field == 'upload-rate') rates[rates.length-1].up = t[field];
+			if (field == 'download-rate') torrent_rate[torrent_rate.length-1][ih + 'd'] = t[field];
+			if (field == 'upload-rate') torrent_rate[torrent_rate.length-1][ih + 'u'] = t[field];
 			if (!field_map.hasOwnProperty(field)) continue;
 			var cell = row.cells[field_map[field]];
 			cell.textContent = t[field];
 		}
-	
-		torrent_rate[ih] = rates;
 	}
 
-	var canvas = document.getElementById('graph');
-	var ctx = canvas.getContext('2d');
-	
-	// first find the highest rate, in order to scale
-	var max_up = 1000;
-	var max_down = 1000;
-	for (ih in torrent_rate)
-	{
-		var rates = torrent_rate[ih];
-		for (i in rates)
-		{
-			max_up = Math.max(rates[i].up, max_up);
-			max_down = Math.max(rates[i].down, max_down);
-		}
-	}
+	render_graph('graph', torrent_rate, defs, start_time, now);
 
-	var max_rate = Math.max(max_up, max_down);
-
-	ctx.clearRect(0,0,canvas.width, canvas.height);
-	ctx.save();
-
-	var window_size = now - start_time;
-
-	var view_width = canvas.width - 60;
-	var view_height = canvas.height - 40;
-
-	// the 0.5 is to align lines with pixels
-	ctx.translate(0.5, 40.5);
-
-	// used for text
-	ctx.fillStyle = "black";
-	ctx.textAlign = 'left';
-	ctx.lineWidth = 1;
-
-	// calculate the number of tics and the max_rate
-	var num_tics = 10;
-	var new_rate = 1;
-	while (max_rate > new_rate)
-		new_rate *= 10;
-	num_tics = Math.ceil(max_rate / new_rate * 10);
-	max_rate = new_rate * num_tics / 10;
-	if (num_tics < 5) num_tics *= 2;
-
-	var scalex = view_width / (now - start_time);
-	var scaley = view_height / max_rate;
-
-	ctx.save();
-	// draw y-axis tics
-	for (var i = 0; i < num_tics; ++i)
-	{
-		ctx.strokeStyle = "#000";
-		ctx.setLineDash([]);
-		var y = Math.floor(view_height * i / num_tics);
-		ctx.beginPath();
-		ctx.moveTo(view_width - 6, y);
-		ctx.lineTo(view_width, y);
-		ctx.lineTo(view_width, y + view_height);
-		ctx.stroke();
-		var rate = max_rate - max_rate * i / num_tics;
-		ctx.fillText((rate / 1000).toFixed( max_rate < 5000 ? 1 : 0) + ' kB/s', view_width + 2, y + 4);
-
-		ctx.setLineDash([5]);
-		ctx.strokeStyle = "#aaa";
-		ctx.beginPath();
-		ctx.moveTo(view_width - 6, y);
-		ctx.lineTo(0, y);
-		ctx.stroke();
-	}
-	ctx.restore();
-
-	ctx.textAlign = 'right';
-
-	// draw the graphs for all torrents
-	for (ih in torrent_rate)
-	{
-		var row = document.getElementById(ih);
-		var name = row.cells[1].textContent;
-
-		var rates = torrent_rate[ih];
-		ctx.strokeStyle = "#e44";
-		ctx.beginPath();
-		ctx.moveTo((rates[0].time - start_time) * scalex, view_height - rates[0].up * scaley);
-		for (var i = 1; i < rates.length; ++i)
-			ctx.lineTo((rates[i].time - start_time) * scalex, view_height - rates[i].up * scaley);
-		ctx.stroke();
-		ctx.fillText(name, view_width, view_height - rates[rates.length-1].up * scaley);
-		ctx.strokeStyle = "#4e4";
-		ctx.beginPath();
-		ctx.moveTo((rates[0].time - start_time) * scalex, view_height - rates[0].down * scaley);
-		for (var i = 1; i < rates.length; ++i)
-			ctx.lineTo((rates[i].time - start_time) * scalex, view_height - rates[i].down * scaley);
-		ctx.stroke();
-		ctx.fillText(name, view_width, view_height - rates[rates.length-1].down * scaley);
-	}
-	ctx.restore();
 };
 
 window.onload = function() {
