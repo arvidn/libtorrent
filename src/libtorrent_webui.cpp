@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/alert_handler.hpp"
 #include "local_mongoose.h"
 #include "auth.hpp"
 #include "torrent_history.hpp"
@@ -43,10 +45,11 @@ namespace libtorrent
 {
 	namespace io = libtorrent::detail;
 
-	libtorrent_webui::libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth)
+	libtorrent_webui::libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth, alert_handler* alert)
 		: m_ses(ses)
 		, m_hist(hist)
 		, m_auth(auth)
+		, m_alert(alert)
 	{}
 
 	libtorrent_webui::~libtorrent_webui() {}
@@ -92,10 +95,11 @@ namespace libtorrent
 		{ "force_recheck", &libtorrent_webui::force_recheck },
 		{ "set-sequential-download", &libtorrent_webui::set_sequential_download },
 		{ "clear-sequential-download", &libtorrent_webui::clear_sequential_download },
-		{ "list-settings", &libtorrent_webui::list_settings},
-		{ "get-settings", &libtorrent_webui::get_settings},
-		{ "set-settings", &libtorrent_webui::set_settings},
-		{ "list-stats", &libtorrent_webui::list_stats},
+		{ "list-settings", &libtorrent_webui::list_settings },
+		{ "get-settings", &libtorrent_webui::get_settings },
+		{ "set-settings", &libtorrent_webui::set_settings },
+		{ "list-stats", &libtorrent_webui::list_stats },
+		{ "get-stats", &libtorrent_webui::get_stats },
 	};
 
 	// maps torrent field to RPC field. These fields are the ones defined in
@@ -703,6 +707,34 @@ namespace libtorrent
 			TORRENT_ASSERT(len < 256);
 			io::write_uint8(len, ptr);
 			std::copy(i->name, i->name + len, ptr);
+		}
+
+		return send_packet(st->conn, 0x2, &response[0], response.size());
+	}
+
+	bool libtorrent_webui::get_stats(conn_state* st)
+	{
+		std::vector<char> response;
+		std::back_insert_iterator<std::vector<char> > ptr(response);
+
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(no_error, ptr);
+
+		m_ses.post_session_stats();
+		std::auto_ptr<alert> a = wait_for_alert(*m_alert, session_stats_alert::alert_type);
+		session_stats_alert* ss = alert_cast<session_stats_alert>(a.get());
+
+		TORRENT_ASSERT(ss);
+
+		std::vector<boost::uint64_t> const& stats = ss->values;
+
+		io::write_uint32(stats.size(), ptr);
+
+		for (std::vector<boost::uint64_t>::const_iterator i = stats.begin()
+			, end(stats.end()); i != end; ++i)
+		{
+			io::write_uint64(*i, ptr);
 		}
 
 		return send_packet(st->conn, 0x2, &response[0], response.size());

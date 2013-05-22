@@ -9,7 +9,7 @@ var conn = null;
 
 var first_time = new Date().getTime();
 
-redraw = function(updates)
+on_stats = function(updates)
 {
 	if (typeof(updates) === 'string')
 	{
@@ -17,36 +17,12 @@ redraw = function(updates)
 		return;
 	}
 
-	var now = new Date().getTime() - first_time;
-
-	// this is the start of the window to be graphed.
-	// 60 seconds
-	var start_time = now - 60 * 1000;
-
-	// copy the last element and set its time to now
-	if (stats.length > 0)
+	for (i in updates)
 	{
-		var last = stats[stats.length-1];
-		var entry = {};
-		for (i in last)
-			entry[i] = last[i];
-		entry.time = now;
-		stats.push(entry);
+		var row = document.getElementById('' + i);
+		if (row == null) continue;
+		row.cells[2].textContent = updates[i];
 	}
-	else
-	{
-		stats.push({ time: now });
-	}
-
-	// remove data points older than 60 seconds, except
-	// keep one so that we can draw a line from there to
-	// the next point within the window
-	var prune = 0;
-	while (prune < stats.length && stats[prune].time < start_time)
-		++prune;
-	if (prune > 1) stats.splice(0, prune-1);
-
-	render_graph('graph', stats, defs, start_time, now);
 };
 
 window.onload = function() {
@@ -64,17 +40,17 @@ window.onload = function() {
 			for (s in stats)
 			{
 				var row = table.insertRow(-1);
+				row.id = '' + s;
 				row.insertCell(0).textContent = stats[s].name;
 				row.insertCell(1).textContent = stats[s].type == 0 ? 'counter' : 'gauge';
 				row.insertCell(2).textContent = '';
 			}
 
+			window.setInterval(function()
+			{
+				conn.get_stats(on_stats);
+			}, 500);
 		});
-//		window.setInterval(function()
-//		{
-//			conn.get_updates(fields.name | fields.download_rate | fields.upload_rate | fields.progress, redraw);
-//		}, 500);
-
 	});
 };
 </script>

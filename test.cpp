@@ -64,7 +64,7 @@ int main(int argc, char *const argv[])
 	transmission_webui tr_handler(ses, &sett, &authorizer);
 	utorrent_webui ut_handler(ses, &sett, &al, &hist, &authorizer);
 	file_downloader file_handler(ses, &authorizer);
-	libtorrent_webui lt_handler(ses, &hist, &authorizer);
+	libtorrent_webui lt_handler(ses, &hist, &authorizer, &alerts);
 
 	webui_base webport;
 	webport.add_handler(&lt_handler);

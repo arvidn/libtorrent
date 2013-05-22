@@ -44,11 +44,12 @@ namespace libtorrent
 	struct permissions_interface;
 	struct torrent_history;
 	struct auth_interface;
+	struct alert_handler;
 	class session;
 
 	struct libtorrent_webui : websocket_handler
 	{
-		libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth);
+		libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth, alert_handler* alerts);
 		~libtorrent_webui();
 
 		virtual bool handle_websocket_connect(mg_connection* conn,
@@ -86,6 +87,7 @@ namespace libtorrent
 		bool get_settings(conn_state* st);
 
 		bool list_stats(conn_state* st);
+		bool get_stats(conn_state* st);
 
 		// parse the arguments to the simple torrent commands
 		int parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st);
@@ -112,6 +114,7 @@ namespace libtorrent
 		session& m_ses;
 		torrent_history const* m_hist;
 		auth_interface const* m_auth;
+		alert_handler* m_alert;
 		atomic_count m_transaction_id;
 
 	};

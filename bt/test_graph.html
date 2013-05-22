@@ -55,8 +55,19 @@ redraw = function(updates)
 
 	for (ih in updates)
 	{
-		var row = document.getElementById(ih);
 		var t = updates[ih];
+		if (ih == 'removed')
+		{
+			var removed_torrents = updates[ih];
+			for (i in removed_torrents)
+			{
+				var row = document.getElementById(removed_torrents[i]);
+				row.parentNode.removeChild(row);
+			}
+			continue;
+		}
+
+		var row = document.getElementById(ih);
 
 		var field_map = {
 			'name': 1,
