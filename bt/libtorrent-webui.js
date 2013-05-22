@@ -504,6 +504,47 @@ libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 	this._socket.send(call);
 }
 
+libtorrent_connection.prototype['list_stats'] = function(callback)
+{
+	// TODO: factor out this RPC boiler plate
+	if (this._socket.readyState != WebSocket.OPEN)
+	{
+		window.setTimeout( function() { callback("socket closed"); }, 0);
+		return;
+	}
+
+	var tid = this._tid++;
+	if (this._tid > 65535) this._tid = 0;
+
+	var self = this;
+	this._transactions[tid] = function(view, fun, e)
+	{
+		if (_check_error(e, callback)) return;
+
+		var num_metrics = view.getUint32(4);
+
+		var offset = 8;
+		var ret = [];
+		for (var i = 0; i < num_metrics; ++i)
+		{
+			var name = read_string8(view, offset + 1);
+			ret.push({ type: view.getUint8(offset), name: name});
+			offset += 2 + name.length;
+		}
+		if (typeof(callback) !== 'undefined') callback(ret);
+	};
+
+	var call = new ArrayBuffer(3);
+	var view = new DataView(call);
+	// function 17
+	view.setUint8(0, 17);
+	// transaction-id
+	view.setUint16(1, tid);
+
+	console.log('CALL list_stats () tid = ' + tid);
+	this._socket.send(call);
+}
+
 libtorrent_connection.prototype['start'] = function(info_hashes, callback)
 { this._send_simple_call(1, info_hashes, callback); };
 

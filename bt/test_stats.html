@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>libtorrent websocket test</title>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
+<script language="javascript" type="text/javascript" src="lt-g.js"></script>
+<script language="javascript" type="text/javascript">
+
+var conn = null;
+
+var first_time = new Date().getTime();
+
+redraw = function(updates)
+{
+	if (typeof(updates) === 'string')
+	{
+		console.log("ERROR: " + updates);
+		return;
+	}
+
+	var now = new Date().getTime() - first_time;
+
+	// this is the start of the window to be graphed.
+	// 60 seconds
+	var start_time = now - 60 * 1000;
+
+	// copy the last element and set its time to now
+	if (stats.length > 0)
+	{
+		var last = stats[stats.length-1];
+		var entry = {};
+		for (i in last)
+			entry[i] = last[i];
+		entry.time = now;
+		stats.push(entry);
+	}
+	else
+	{
+		stats.push({ time: now });
+	}
+
+	// remove data points older than 60 seconds, except
+	// keep one so that we can draw a line from there to
+	// the next point within the window
+	var prune = 0;
+	while (prune < stats.length && stats[prune].time < start_time)
+		++prune;
+	if (prune > 1) stats.splice(0, prune-1);
+
+	render_graph('graph', stats, defs, start_time, now);
+};
+
+window.onload = function() {
+	var url = 'ws://' + window.location.host + '/bt/control';
+	conn = new libtorrent_connection(url, function(state)
+	{
+		if (state != "OK") {
+			console.log(state);
+			return;
+		}
+
+		conn.list_stats(function(stats)
+		{
+			var table = document.getElementById('stats');
+			for (s in stats)
+			{
+				var row = table.insertRow(-1);
+				row.insertCell(0).textContent = stats[s].name;
+				row.insertCell(1).textContent = stats[s].type == 0 ? 'counter' : 'gauge';
+				row.insertCell(2).textContent = '';
+			}
+
+		});
+//		window.setInterval(function()
+//		{
+//			conn.get_updates(fields.name | fields.download_rate | fields.upload_rate | fields.progress, redraw);
+//		}, 500);
+
+	});
+};
+</script>
+<style>.updated { background-color: #faa; }</style>
+<table id="stats" border="1" style="border-collapse: collapse; border-color: black;">
+<tr><th>Name</th><th>Type</th><th>Value</th></tr>
+</table>
+<canvas id="graph" width="800" height="500"/>
+</html>
+

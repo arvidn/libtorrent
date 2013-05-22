@@ -25,6 +25,8 @@ and to not send redundant information, especially not in the common case. This i
 the protocol is binary and why there's not intermediate structure representation (like
 bencoding, rencoding or JSON).
 
+.. _`websocket protocol`: http://tools.ietf.org/html/rfc6455
+
 RPC format
 ----------
 
@@ -147,18 +149,18 @@ The fields on torrents, in bitmask bit-order (LSB is bit 0), are:
 | 0        | uint64_t            | ``flags`` bitmask with the following     |
 |          |                     | bits:                                    |
 |          |                     |                                          |
-|          |                     |    0x001. stopped                        |
-|          |                     |    0x002. auto-managed                   |
-|          |                     |    0x004. sequential-downloads           |
-|          |                     |    0x008. seeding                        |
-|          |                     |    0x010. finished                       |
-|          |                     |    0x020. loaded                         |
-|          |                     |    0x040. has-metadata                   |
-|          |                     |    0x080. has-incoming-connections       |
-|          |                     |    0x100. seed-mode                      |
-|          |                     |    0x200. upload-mode                    |
-|          |                     |    0x400. share-mode                     |
-|          |                     |    0x800. super-seeding                  |
+|          |                     |  | 0x001. stopped                        |
+|          |                     |  | 0x002. auto-managed                   |
+|          |                     |  | 0x004. sequential-downloads           |
+|          |                     |  | 0x008. seeding                        |
+|          |                     |  | 0x010. finished                       |
+|          |                     |  | 0x020. loaded                         |
+|          |                     |  | 0x040. has-metadata                   |
+|          |                     |  | 0x080. has-incoming-connections       |
+|          |                     |  | 0x100. seed-mode                      |
+|          |                     |  | 0x200. upload-mode                    |
+|          |                     |  | 0x400. share-mode                     |
+|          |                     |  | 0x800. super-seeding                  |
 |          |                     |                                          |
 +----------+---------------------+------------------------------------------+
 | 1        | uint16_t, uint8_t[] | ``name``. This is a variable length      |
@@ -226,6 +228,8 @@ changed since the last update for this torrent was one or more of the torrent's
 flags. Only the flags field will follow for this torrent's update. If there are
 more torrent updates, the next field to read will be the info-hash for the next
 update.
+
+*TODO: add a list of removed torrents*
 
 torrent actions
 ...............
@@ -375,6 +379,49 @@ the type corresponding to the type of the preceeding ``settings-id``, as returne
 by list-settings_.
 
 There is no return value for this function.
+
+list-stats
+..........
+
+function id 17.
+
+This function requests a list of the names of all stats counters, in the order
+they are controlled by the bitmask in ``get-stats``.
+
+The function does not have any arguments. The return value is a list of strings.
+
++----------+--------------------+-------------------------------------------+
+| offset   | type               | name                                      |
++==========+====================+===========================================+
+| 4        | uint32_t           | ``num-counters``                          |
++----------+--------------------+-------------------------------------------+
+| 8        | uint8_t            | ``counter-type`` 0=counter, 1=gauge       |
++----------+--------------------+-------------------------------------------+
+| 9        | uint8_t, uint8_t[] | ``counter-name``                          |
++----------+--------------------+-------------------------------------------+
+
+The two last fields are repeasted ``num-counters`` times. The order of these
+counter names indicate the order in which the bits in the bitmask passed to
+``get-stats`` enables requesting their value.
+
+
+get-stats
+.........
+
+function id 18.
+
+This function requests 
+
++----------+--------------------+-------------------------------------------+
+| offset   | type               | name                                      |
++==========+====================+===========================================+
+| 3        | uint32_t           | ``frame-number`` (timestamp)              |
++----------+--------------------+-------------------------------------------+
+| 7        | uint64_t           | ``field-bitmask`` (only these fields are  |
+|          |                    | returned)                                 |
++----------+--------------------+-------------------------------------------+
+
+
 
 Appendix A
 ==========

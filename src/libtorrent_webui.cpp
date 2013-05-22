@@ -95,6 +95,7 @@ namespace libtorrent
 		{ "list-settings", &libtorrent_webui::list_settings},
 		{ "get-settings", &libtorrent_webui::get_settings},
 		{ "set-settings", &libtorrent_webui::set_settings},
+		{ "list-stats", &libtorrent_webui::list_stats},
 	};
 
 	// maps torrent field to RPC field. These fields are the ones defined in
@@ -665,6 +666,31 @@ namespace libtorrent
 			{
 				return error(st, invalid_argument);
 			}
+		}
+
+		return send_packet(st->conn, 0x2, &response[0], response.size());
+	}
+
+	bool libtorrent_webui::list_stats(conn_state* st)
+	{
+		std::vector<char> response;
+		std::back_insert_iterator<std::vector<char> > ptr(response);
+
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(no_error, ptr);
+
+		std::vector<stats_metric> stats = session_stats_metrics();
+		io::write_uint32(stats.size(), ptr);
+
+		for (std::vector<stats_metric>::iterator i = stats.begin()
+			, end(stats.end()); i != end; ++i)
+		{
+			io::write_uint8(i->type, ptr);
+			int len = strlen(i->name);
+			TORRENT_ASSERT(len < 256);
+			io::write_uint8(len, ptr);
+			std::copy(i->name, i->name + len, ptr);
 		}
 
 		return send_packet(st->conn, 0x2, &response[0], response.size());

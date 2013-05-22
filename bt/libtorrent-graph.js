@@ -7,13 +7,16 @@
 //   name of the field in the data array to use for the plot. Also specify
 //   'color' which is a string defining the color of the line (CSS style).
 
-function render_graph(canvas, data, graphs, start_time, now)
+function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 {
+	if (typeof(unit) == 'undefined') unit = 'kB/s';
+	if (typeof(scale) == 'undefined') scale = 1000;
+
 	var canvas = document.getElementById(canvas);
 	var ctx = canvas.getContext('2d');
 	
 	// first find the highest rate, in order to scale
-	var peak = 1000;
+	var peak = 1 * scale;
 	for (dp in data)
 	{
 		for (g in graphs)
@@ -65,7 +68,7 @@ function render_graph(canvas, data, graphs, start_time, now)
 		ctx.lineTo(view_width, y + view_height / num_tics);
 		ctx.stroke();
 		var rate = peak - peak * i / num_tics;
-		ctx.fillText((rate / 1000).toFixed( peak< 5000 ? 1 : 0) + ' kB/s', view_width + 2, y + 4);
+		ctx.fillText((rate / scale).toFixed( peak < 5*scale ? 1 : 0) + ' ' + unit, view_width + 2, y + 4);
 
 		ctx.setLineDash([5]);
 		ctx.strokeStyle = "#aaa";
