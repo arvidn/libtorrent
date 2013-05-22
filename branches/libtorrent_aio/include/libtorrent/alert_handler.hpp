@@ -40,13 +40,23 @@ namespace libtorrent
 {
 
 	struct alert_observer;
+	struct alert_handler;
+
+	// block until the specified alert is posted to
+	// the alert_handler, return a copy of the alert
+	// keep in mind that this has to be called from a
+	// different thread than the one calling dispatch_alerts(),
+	// otherwise you'll have a deadlock.
+	TORRENT_EXPORT std::auto_ptr<alert> wait_for_alert(alert_handler& h, int type);
 
 struct TORRENT_EXPORT alert_handler
 {
-	// TODO: move the responsibility of picking which
+	// TODO 2: move the responsibility of picking which
 	// alert types to subscribe to to the observer
-	// TODO: make subscriptions automatically enable
-	// the corresponding category of alerts in the settion somehow
+	// TODO 3: make subscriptions automatically enable
+	// the corresponding category of alerts in the session somehow
+	// TODO 3: perhaps this class could hold a reference to session and
+	// make dispatch_alerts() not take any arguments.
 	void subscribe(alert_observer* o, int flags = 0, ...);
 	void dispatch_alerts(std::deque<alert*>& alerts) const;
 	void unsubscribe(alert_observer* o);

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert_handler.hpp"
 #include "libtorrent/alert_observer.hpp"
+#include "libtorrent/thread.hpp"
 
 #include <algorithm>
 #include <stdarg.h>
@@ -65,7 +66,9 @@ namespace libtorrent
 		{
 			alert* a = *i;
 			int type = a->type();
-			std::vector<alert_observer*> const& alert_dispatchers = m_observers[type];
+
+			// copy this vector since handlers may unsubscribe while we're looping
+			std::vector<alert_observer*> alert_dispatchers = m_observers[type];
 			{
 				for (std::vector<alert_observer*>::const_iterator k = alert_dispatchers.begin()
 					, end(alert_dispatchers.end()); k != end; ++k)
@@ -116,5 +119,60 @@ namespace libtorrent
 			TORRENT_ASSERT(o->num_types < 20);
 		}
 	}
+
+	namespace
+	{
+		struct wait_alert_observer : alert_observer
+		{
+			wait_alert_observer(alert_handler& h, int type)
+				: m_handler(h)
+				, m_type(type)
+			{
+				m_handler.subscribe(this, 0, type, NULL);
+			}
+
+			void handle_alert(alert const* a)
+			{
+				if (a->type() != m_type) return;
+				m_type = -1;
+
+				m_handler.unsubscribe(this);
+
+				mutex::scoped_lock l(m_mutex);
+				m_alert = a->clone();
+				m_cond.notify();
+			}
+
+			std::auto_ptr<alert> wait()
+			{
+				mutex::scoped_lock l(m_mutex);
+				m_cond.wait(l);
+				return m_alert;
+			}
+
+			~wait_alert_observer()
+			{
+				if (m_type >= 0) m_handler.unsubscribe(this);
+			}
+
+		private:
+			alert_handler& m_handler;
+
+			std::auto_ptr<alert> m_alert;
+
+			// the alert type we're waiting for
+			int m_type;
+
+			mutex m_mutex;
+			condition_variable m_cond;
+		};
+	};
+
+	std::auto_ptr<alert> wait_for_alert(alert_handler& h, int type)
+	{
+		wait_alert_observer obs(h, type);
+		return obs.wait();
+	}
+
 }
 
