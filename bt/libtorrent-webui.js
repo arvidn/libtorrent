@@ -25,6 +25,18 @@ function read_string8(view, offset)
 	return str;
 }
 
+function read_infohash(view, offset)
+{
+	var ret = '';
+	for (var j = 0; j < 20; ++j)
+	{
+		var b = view.getUint8(offset + j);
+		if (b < 16) ret += '0';
+		ret += b.toString(16);
+	}
+	return ret;
+}
+
 // read a 64 bit value
 function read_uint64(view, offset)
 {
@@ -356,18 +368,13 @@ libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 
 		self._frame = view.getUint32(4);
 		var num_torrents = view.getUint32(8);
-		console.log('frame: ' + self._frame + ' num-torrents: ' + num_torrents);
+		var num_removed_torrents = view.getUint32(12);
+		console.log('frame: ' + self._frame + ' num-torrents: ' + num_torrents + ' num-removed-torrents: ' + num_removed_torrents);
 		ret = {};
-		var offset = 12;
+		var offset = 16;
 		for (var i = 0; i < num_torrents; ++i)
 		{
-			var infohash = '';
-			for (var j = 0; j < 20; ++j)
-			{
-				var b = view.getUint8(offset + j);
-				if (b < 16) infohash += '0';
-				infohash += b.toString(16);
-			}
+			var infohash = read_infohash(view, offset);
 			offset += 20;
 			var torrent = {};
 
@@ -486,6 +493,15 @@ libtorrent_connection.prototype['get_updates'] = function(mask, callback)
 			}
 			ret[infohash] = torrent;
 		}
+
+		var removed = [];
+		for (var i = 0; i < num_removed_torrents; ++i)
+		{
+			removed.push(read_infohash(view, offset));
+			offset += 20;
+		}
+		ret['removed'] = removed;
+
 		if (typeof(callback) !== 'undefined') callback(ret);
 	};
 
