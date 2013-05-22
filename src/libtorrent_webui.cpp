@@ -189,6 +189,9 @@ namespace libtorrent
 		std::vector<torrent_history_entry> torrents;
 		m_hist->updated_fields_since(frame, torrents);
 
+		std::vector<sha1_hash> removed_torrents;
+		m_hist->removed_since(frame, removed_torrents);
+
 		std::vector<char> response;
 		std::back_insert_iterator<std::vector<char> > ptr(response);
 
@@ -204,6 +207,8 @@ namespace libtorrent
 		int num_torrents = 0;
 		int num_torrents_pos = response.size();
 		io::write_uint32(num_torrents, ptr);
+
+		io::write_uint32(removed_torrents.size(), ptr);
 
 		for (std::vector<torrent_history_entry>::iterator i = torrents.begin()
 			, end(torrents.end()); i != end; ++i)
@@ -375,6 +380,13 @@ namespace libtorrent
 		// counter
 		char* ptr2 = &response[num_torrents_pos];
 		io::write_uint32(num_torrents, ptr2);
+
+		// send list of removed torrents
+		for (std::vector<sha1_hash>::iterator i = removed_torrents.begin()
+			, end(removed_torrents.end()); i != end; ++i)
+		{
+			std::copy(i->begin(), i->end(), ptr);
+		}
 
 		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}

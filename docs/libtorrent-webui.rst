@@ -127,17 +127,28 @@ The return value for this function is (offset includes RPC-response header):
 | 8        | uint32_t           | ``num-torrents`` (the number of torrent   |
 |          |                    | updates to follow)                        |
 +----------+--------------------+-------------------------------------------+
-| 8        | uint8_t[20]        | ``info-hash`` indicate which torrent      |
+| 12       | uint32_t           | ``num-removed-torrents``                  |
+|          |                    | at the end of the update, there is a      |
+|          |                    | list of info-hashes with this many        |
+|          |                    | entries.                                  |
++----------+--------------------+-------------------------------------------+
+| 16       | uint8_t[20]        | ``info-hash`` indicate which torrent      |
 |          |                    | the following update refers to.           |
 +----------+--------------------+-------------------------------------------+
-| 28       | uint64_t           | ``update-bitmask`` bitmask indicating     |
+| 46       | uint64_t           | ``update-bitmask`` bitmask indicating     |
 |          |                    | which torrent fields are being updated.   |
 +----------+--------------------+-------------------------------------------+
-| 36       | ...                | *values for all updated fields*           |
+| 32       | ...                | *values for all updated fields*           |
++----------+--------------------+-------------------------------------------+
+| ...      | uint8_t[20]        | ``removed-info-hash``                     |
 +----------+--------------------+-------------------------------------------+
 
-The last 3 fields (``info-hash``, ``update-bitmask`` and
-*values for all updated fields*) are repeated ``num-torrents`` times.
+The 3 fields ``info-hash``, ``update-bitmask`` and
+*values for all updated fields*, are repeated ``num-torrents`` times.
+
+The ``removed-info-hash`` field is repeated ``num-removed-torrents`` times.
+These info-hashes have been removed and will no longer receive any updates
+beoynd this frame number.
 
 The fields on torrents, in bitmask bit-order (LSB is bit 0), are:
 
