@@ -404,35 +404,55 @@ The function does not have any arguments. The return value is a list of strings.
 +----------+--------------------+-------------------------------------------+
 | offset   | type               | name                                      |
 +==========+====================+===========================================+
-| 4        | uint32_t           | ``num-counters``                          |
+| 4        | uint16_t           | ``num-counters``                          |
 +----------+--------------------+-------------------------------------------+
-| 8        | uint8_t            | ``counter-type`` 0=counter, 1=gauge       |
+| 6        | uint16_t           | ``stats-id``                              |
++----------+--------------------+-------------------------------------------+
+| 7        | uint8_t            | ``counter-type`` 0=counter, 1=gauge       |
 +----------+--------------------+-------------------------------------------+
 | 9        | uint8_t, uint8_t[] | ``counter-name``                          |
 +----------+--------------------+-------------------------------------------+
 
-The two last fields are repeasted ``num-counters`` times. The order of these
-counter names indicate the order in which the bits in the bitmask passed to
-``get-stats`` enables requesting their value.
-
+The three last 3 fields are repeated ``num-counters`` times.
 
 get-stats
 .........
 
 function id 18.
 
-This function requests 
+This function requests values for the stats metrics represented by the ``field-bitmask``.
+The ``frame-number`` for stats is a different frame number than for torrent updates, so
+keep those separate.
 
 +----------+--------------------+-------------------------------------------+
 | offset   | type               | name                                      |
 +==========+====================+===========================================+
 | 3        | uint32_t           | ``frame-number`` (timestamp)              |
 +----------+--------------------+-------------------------------------------+
-| 7        | uint64_t           | ``field-bitmask`` (only these fields are  |
-|          |                    | returned)                                 |
+| 7        | uint16_t           | ``num-stats`` The number of stats-ids     |
+|          |                    | we're interested in, to follow.           |
++----------+--------------------+-------------------------------------------+
+| 9        | uint16_t           | ``stats-id``                              |
 +----------+--------------------+-------------------------------------------+
 
+The last field is repeated ``num-stats`` times.
 
+The response is:
+
++----------+--------------------+-------------------------------------------+
+| offset   | type               | name                                      |
++==========+====================+===========================================+
+| 4        | uint32_t           | ``frame-number`` (timestamp)              |
++----------+--------------------+-------------------------------------------+
+| 8        | uint16_t           | ``num-stats`` The number of updates to    |
+|          |                    | to follow.                                |
++----------+--------------------+-------------------------------------------+
+| 10       | uint16_t           | ``stats-id``                              |
++----------+--------------------+-------------------------------------------+
+| 12       | uint64_t           | ``stats-value``                           |
++----------+--------------------+-------------------------------------------+
+
+The last two fields are repeated the ``num-stats``  times.
 
 Appendix A
 ==========

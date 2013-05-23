@@ -9,6 +9,8 @@ var conn = null;
 
 var first_time = new Date().getTime();
 
+var all_stats = [];
+
 on_stats = function(updates)
 {
 	if (typeof(updates) === 'string')
@@ -17,11 +19,25 @@ on_stats = function(updates)
 		return;
 	}
 
+	// clear classes on all cells
+	var table = document.getElementById('stats');
+	var rows = table.rows;
+	for (var i = 0; i < rows.length; ++i)
+	{
+		var r = rows[i];
+		var cells = r.cells;
+		for (var j = 0; j < cells.length; ++j)
+		{
+			cells[j].className = "";
+		}
+	}
+
 	for (i in updates)
 	{
-		var row = document.getElementById('' + i);
+		var row = document.getElementById(i);
 		if (row == null) continue;
 		row.cells[2].textContent = updates[i];
+		row.cells[2].className = "updated";
 	}
 };
 
@@ -40,15 +56,18 @@ window.onload = function() {
 			for (s in stats)
 			{
 				var row = table.insertRow(-1);
-				row.id = '' + s;
-				row.insertCell(0).textContent = stats[s].name;
+				row.id = s;
+				row.insertCell(0).textContent = s;
 				row.insertCell(1).textContent = stats[s].type == 0 ? 'counter' : 'gauge';
-				row.insertCell(2).textContent = '';
+				// always assume 0 until a get_stats says differently
+				row.insertCell(2).textContent = '0';
+
+				all_stats.push(stats[s].id);
 			}
 
 			window.setInterval(function()
 			{
-				conn.get_stats(on_stats);
+				conn.get_stats(all_stats, on_stats);
 			}, 500);
 		});
 	});

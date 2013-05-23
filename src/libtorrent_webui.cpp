@@ -50,6 +50,7 @@ namespace libtorrent
 		, m_hist(hist)
 		, m_auth(auth)
 		, m_alert(alert)
+		, m_stats_frame(0)
 	{}
 
 	libtorrent_webui::~libtorrent_webui() {}
@@ -697,11 +698,12 @@ namespace libtorrent
 		io::write_uint8(no_error, ptr);
 
 		std::vector<stats_metric> stats = session_stats_metrics();
-		io::write_uint32(stats.size(), ptr);
+		io::write_uint16(stats.size(), ptr);
 
 		for (std::vector<stats_metric>::iterator i = stats.begin()
 			, end(stats.end()); i != end; ++i)
 		{
+			io::write_uint16(i->value_index, ptr);
 			io::write_uint8(i->type, ptr);
 			int len = strlen(i->name);
 			TORRENT_ASSERT(len < 256);
@@ -714,6 +716,14 @@ namespace libtorrent
 
 	bool libtorrent_webui::get_stats(conn_state* st)
 	{
+		char* iptr = st->data;
+		if (st->len < 6) return error(st, invalid_number_of_args);
+		boost::uint32_t frame = io::read_uint32(iptr);
+		int num_stats = io::read_uint16(iptr);
+		st->len -= 6;
+
+		if (st->len < num_stats * 2) return error(st, invalid_number_of_args);
+
 		std::vector<char> response;
 		std::back_insert_iterator<std::vector<char> > ptr(response);
 
@@ -727,15 +737,45 @@ namespace libtorrent
 
 		TORRENT_ASSERT(ss);
 
+		mutex::scoped_lock l(m_stats_mutex);
+		++m_stats_frame;
+		io::write_uint32(m_stats_frame, ptr);
+
 		std::vector<boost::uint64_t> const& stats = ss->values;
 
-		io::write_uint32(stats.size(), ptr);
+		if (m_stats.size() < stats.size())
+			m_stats.resize(stats.size(), std::pair<boost::uint64_t, boost::uint32_t>(0, 0));
 
-		for (std::vector<boost::uint64_t>::const_iterator i = stats.begin()
-			, end(stats.end()); i != end; ++i)
+		// we'll fill in the counter later
+		int counter_pos = response.size();
+		io::write_uint16(0, ptr);
+
+		// first update our copy of the stats, and update their frame counters
+		for (int i = 0; i < stats.size(); ++i)
 		{
-			io::write_uint64(*i, ptr);
+			if (m_stats[i].first != stats[i])
+			{
+				m_stats[i].second = m_stats_frame;
+				m_stats[i].first = stats[i];
+			}
 		}
+
+		int num_updates = 0;
+		for (int i = 0; i < num_stats; ++i)
+		{
+			int c = io::read_uint16(iptr);
+			if (c < 0 || c > m_stats.size())
+				return error(st, invalid_argument);
+
+			if (m_stats[c].second <= frame) continue;
+			io::write_uint16(c, ptr);
+			io::write_uint64(m_stats[c].first, ptr);
+			++num_updates;
+		}
+
+		// now that we know what the number of updates is, fill it in
+		char* counter_ptr = &response[counter_pos];
+		io::write_uint16(num_updates, counter_ptr);
 
 		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}
@@ -810,6 +850,7 @@ namespace libtorrent
 			}
 			else
 			{
+				fprintf(stderr, " ID: %d\n", st.function_id);
 				return error(&st, no_such_function);
 			}
 		}

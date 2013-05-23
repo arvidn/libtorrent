@@ -103,6 +103,7 @@ libtorrent_connection = function(url, callback)
 	};
 	this._socket.binaryType = "arraybuffer";
 	this._frame = 0;
+	this._stats_frame = 0;
 	this._transactions = {}
 	this._tid = 0;
 }
@@ -537,15 +538,21 @@ libtorrent_connection.prototype['list_stats'] = function(callback)
 	{
 		if (_check_error(e, callback)) return;
 
-		var num_metrics = view.getUint32(4);
+		var num_metrics = view.getUint16(4);
 
-		var offset = 8;
+		// this is a local copy of the stats metric names
+		self._stats = {};
+
+		var offset = 6;
 		var ret = [];
 		for (var i = 0; i < num_metrics; ++i)
 		{
-			var name = read_string8(view, offset + 1);
-			ret.push({ type: view.getUint8(offset), name: name});
-			offset += 2 + name.length;
+			var id = view.getUint16(offset);
+			var type = view.getUint8(offset + 2);
+			var name = read_string8(view, offset + 3);
+			ret[name] = { type: type, id: id};
+			self._stats[id] = name;
+			offset += 4 + name.length;
 		}
 		if (typeof(callback) !== 'undefined') callback(ret);
 	};
@@ -561,12 +568,18 @@ libtorrent_connection.prototype['list_stats'] = function(callback)
 	this._socket.send(call);
 }
 
-libtorrent_connection.prototype['get_stats'] = function(callback)
+libtorrent_connection.prototype['get_stats'] = function(stats, callback)
 {
 	// TODO: factor out this RPC boiler plate
 	if (this._socket.readyState != WebSocket.OPEN)
 	{
 		window.setTimeout( function() { callback("socket closed"); }, 0);
+		return;
+	}
+
+	if (this._stats == null)
+	{
+		window.setTimeout( function() { callback("need to call list_stats first"); }, 0);
 		return;
 	}
 
@@ -578,25 +591,40 @@ libtorrent_connection.prototype['get_stats'] = function(callback)
 	{
 		if (_check_error(e, callback)) return;
 
-		var num_counters = view.getUint32(4);
+		self._stats_frame = view.getUint32(4);
 
-		var offset = 8;
-		var ret = [];
-		for (var i = 0; i < num_counters; ++i)
+		var num_updates = view.getUint16(8);
+		var offset = 10;
+
+		// read values
+		var ret = {};
+		for (var i = 0; i < num_updates; ++i)
 		{
-			var val = read_uint64(view, offset);
-			offset += 8;
-			ret.push(val);
+			var id = view.getUint16(offset);
+			var val = read_uint64(view, offset + 2);
+			offset += 10;
+			ret[self._stats[id]] = val;
 		}
 		if (typeof(callback) !== 'undefined') callback(ret);
 	};
 
-	var call = new ArrayBuffer(3);
+	var call = new ArrayBuffer(3 + 4 + 2 + stats.length * 2);
 	var view = new DataView(call);
 	// function 18
 	view.setUint8(0, 18);
 	// transaction-id
 	view.setUint16(1, tid);
+	// frame number
+	view.setUint32(3, this._stats_frame);
+	// num-stats
+	view.setUint16(7, stats.length);
+
+	var offset = 9;
+	for (i in stats)
+	{
+		view.setUint16(offset, stats[i]);
+		offset += 2;
+	}
 
 	console.log('CALL get_stats () tid = ' + tid);
 	this._socket.send(call);
