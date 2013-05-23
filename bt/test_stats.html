@@ -20,15 +20,22 @@ on_stats = function(updates)
 	}
 
 	// clear classes on all cells
-	var table = document.getElementById('stats');
-	var rows = table.rows;
-	for (var i = 0; i < rows.length; ++i)
+	var table = []
+	table.push(document.getElementById('stats1'));
+	table.push(document.getElementById('stats2'));
+	table.push(document.getElementById('stats3'));
+	table.push(document.getElementById('stats4'));
+	for (j in table)
 	{
-		var r = rows[i];
-		var cells = r.cells;
-		for (var j = 0; j < cells.length; ++j)
+		var rows = table[j].rows;
+		for (var i = 0; i < rows.length; ++i)
 		{
-			cells[j].className = "";
+			var r = rows[i];
+			var cells = r.cells;
+			for (var j = 0; j < cells.length; ++j)
+			{
+				cells[j].className = "";
+			}
 		}
 	}
 
@@ -52,10 +59,15 @@ window.onload = function() {
 
 		conn.list_stats(function(stats)
 		{
-			var table = document.getElementById('stats');
+			var table = []
+			table.push(document.getElementById('stats1'));
+			table.push(document.getElementById('stats2'));
+			table.push(document.getElementById('stats3'));
+			table.push(document.getElementById('stats4'));
+			var i = 0;
 			for (s in stats)
 			{
-				var row = table.insertRow(-1);
+				var row = table[Math.floor(i/33)].insertRow(-1);
 				row.id = s;
 				row.insertCell(0).textContent = s;
 				row.insertCell(1).textContent = stats[s].type == 0 ? 'counter' : 'gauge';
@@ -63,6 +75,7 @@ window.onload = function() {
 				row.insertCell(2).textContent = '0';
 
 				all_stats.push(stats[s].id);
+				++i;
 			}
 
 			window.setInterval(function()
@@ -74,7 +87,16 @@ window.onload = function() {
 };
 </script>
 <style>.updated { background-color: #faa; }</style>
-<table id="stats" border="1" style="border-collapse: collapse; border-color: black;">
+<table id="stats1" border="1" style="border-collapse: collapse; border-color: black; display: inline-block;">
+<tr><th>Name</th><th>Type</th><th>Value</th></tr>
+</table>
+<table id="stats2" border="1" style="border-collapse: collapse; border-color: black; display: inline-block;">
+<tr><th>Name</th><th>Type</th><th>Value</th></tr>
+</table>
+<table id="stats3" border="1" style="border-collapse: collapse; border-color: black; display: inline-block;">
+<tr><th>Name</th><th>Type</th><th>Value</th></tr>
+</table>
+<table id="stats4" border="1" style="border-collapse: collapse; border-color: black; display: inline-block;">
 <tr><th>Name</th><th>Type</th><th>Value</th></tr>
 </table>
 <canvas id="graph" width="800" height="500"/>

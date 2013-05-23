@@ -39,7 +39,7 @@ int main(int argc, char *const argv[])
 	high_performance_seed(s);
 	ses.apply_settings(s);
 
-	alert_handler alerts;
+	alert_handler alerts(ses);
 
 	error_code ec;
 	save_settings sett(ses, "settings.dat");
@@ -84,18 +84,11 @@ int main(int argc, char *const argv[])
 	signal(SIGTERM, &sighandler);
 	signal(SIGINT, &sighandler);
 
-	std::deque<alert*> alert_queue;
 	bool shutting_down = false;
 	while (!quit || !resume.ok_to_quit())
 	{
 		usleep(500000);
-		ses.pop_alerts(&alert_queue);
-//		for (std::deque<alert*>::iterator i = alert_queue.begin()
-//			, end(alert_queue.end()); i != end; ++i)
-//		{
-//			printf(" %s\n", (*i)->message().c_str());
-//		}
-		alerts.dispatch_alerts(alert_queue);
+		alerts.dispatch_alerts();
 		if (!shutting_down) ses.post_torrent_updates();
 		if (quit && !shutting_down)
 		{

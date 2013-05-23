@@ -215,15 +215,13 @@ int main()
 	signal(SIGTERM, &sighandler);
 	signal(SIGINT, &sighandler);
 
-	alert_handler alerts;
+	alert_handler alerts(ses);
 	snmp_interface snmp(&alerts);
 
 	while (!quit)
 	{
 		usleep(1000000);
-		std::deque<alert*> alert_queue;
-		ses.pop_alerts(&alert_queue);
-		alerts.dispatch_alerts(alert_queue);
+		alerts.dispatch_alerts();
 		ses.post_session_stats();
 	}
 
