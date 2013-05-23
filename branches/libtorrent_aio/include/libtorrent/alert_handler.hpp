@@ -51,14 +51,15 @@ namespace libtorrent
 
 struct TORRENT_EXPORT alert_handler
 {
+	alert_handler(session& ses);
+
 	// TODO 2: move the responsibility of picking which
 	// alert types to subscribe to to the observer
 	// TODO 3: make subscriptions automatically enable
 	// the corresponding category of alerts in the session somehow
-	// TODO 3: perhaps this class could hold a reference to session and
-	// make dispatch_alerts() not take any arguments.
 	void subscribe(alert_observer* o, int flags = 0, ...);
 	void dispatch_alerts(std::deque<alert*>& alerts) const;
+	void dispatch_alerts() const;
 	void unsubscribe(alert_observer* o);
 
 private:
@@ -66,6 +67,8 @@ private:
 	void subscribe_impl(int const* type_list, int num_types, alert_observer* o, int flags);
 
 	std::vector<alert_observer*> m_observers[num_alert_types];
+
+	session& m_ses;
 };
 
 

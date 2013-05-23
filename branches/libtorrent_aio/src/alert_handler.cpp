@@ -34,12 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_handler.hpp"
 #include "libtorrent/alert_observer.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/session.hpp"
 
 #include <algorithm>
 #include <stdarg.h>
 
 namespace libtorrent
 {
+
+	alert_handler::alert_handler(session& ses)
+		: m_ses(ses)
+	{}
 
 	void alert_handler::subscribe(alert_observer* o, int flags, ...)
 	{
@@ -79,6 +84,13 @@ namespace libtorrent
 			delete a;
 		}
 		alerts.clear();
+	}
+
+	void alert_handler::dispatch_alerts() const
+	{
+		std::deque<alert*> alert_queue;
+		m_ses.pop_alerts(&alert_queue);
+		dispatch_alerts(alert_queue);
 	}
 
 	void alert_handler::unsubscribe(alert_observer* o)

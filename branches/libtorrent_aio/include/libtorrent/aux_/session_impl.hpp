@@ -449,6 +449,7 @@ namespace libtorrent
 			std::vector<torrent_handle> get_torrents() const;
 			
 			void set_alert_mask(boost::uint32_t m);
+			boost::uint32_t get_alert_mask() const;
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
 			void pop_alerts(std::deque<alert*>* alerts);

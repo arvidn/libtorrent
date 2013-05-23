@@ -6960,6 +6960,11 @@ retry:
 		m_alerts.set_alert_mask(m);
 	}
 
+	boost::uint32_t session_impl::get_alert_mask() const
+	{
+		return m_alerts.alert_mask();
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	size_t session_impl::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{

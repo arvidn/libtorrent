@@ -249,6 +249,7 @@ The ``session`` class has the following synopsis::
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_mask(int m);
+		boost::uint32_t get_alert_mask() const;
 		size_t set_alert_queue_size_limit(
 			size_t queue_size_limit_);
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
@@ -1499,15 +1500,19 @@ can only connect to a few peers at a time because of a built in limitation (in X
 Service pack 2).
 
 
-set_alert_mask()
-----------------
+set_alert_mask() get_alert_mask()
+---------------------------------
 
 	::
 
 		void set_alert_mask(int m);
+		boost::uint32_t get_alert_mask() const;
 
-Changes the mask of which alerts to receive. By default only errors are reported.
-``m`` is a bitmask where each bit represents a category of alerts.
+``set_alert_mask`` changes the mask of which alerts to receive. By default only
+errors are reported. ``m`` is a bitmask where each bit represents a category of
+alerts.
+
+``get_alert_mask()`` returns the current mask;
 
 See alerts_ for mor information on the alert categories.
 

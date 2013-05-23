@@ -1224,6 +1224,12 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_alert_mask, m);
 	}
 
+	boost::uint32_t session::get_alert_mask() const
+	{
+		TORRENT_SYNC_CALL_RET(boost::uint32_t, get_alert_mask);
+		return r;
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	size_t session::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
