@@ -62,6 +62,7 @@ namespace libtorrent
 	struct disk_buffer_pool;
 	struct cache_status;
 	struct block_cache_reference;
+	struct counters;
 	namespace aux { struct session_settings; }
 	struct alert_dispatcher;
 
@@ -347,7 +348,7 @@ namespace libtorrent
 
 		// returns a range of all pieces. This migh be a very
 		// long list, use carefully
-		std::pair<iterator, iterator> all_pieces();
+		std::pair<iterator, iterator> all_pieces() const;
 		int num_pieces() const { return m_pieces.size(); }
 
 		list_iterator write_lru_pieces() const
@@ -439,6 +440,7 @@ namespace libtorrent
 		// if there are any dirty blocks 
 		void clear(tailqueue& jobs);
 
+		void update_stats_counters(counters& c) const;
 		void get_stats(cache_status* ret) const;
 		void set_settings(aux::session_settings const& sett);
 

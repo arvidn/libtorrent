@@ -64,5 +64,17 @@ namespace libtorrent {
 		m_stats_counter[c] += value;
 	}
 
+	void counters::set_value(int c, int value)
+	{
+		TORRENT_ASSERT(c >= 0);
+		TORRENT_ASSERT(c < num_counters);
+
+		// if this assert fires, someone is trying to decrement a counter
+		// which is not allowed. Counters are monotonically increasing
+		TORRENT_ASSERT(value >= m_stats_counter[c] || c >= num_stats_counters);
+	
+		m_stats_counter[c] = value;
+	}
+
 }
 

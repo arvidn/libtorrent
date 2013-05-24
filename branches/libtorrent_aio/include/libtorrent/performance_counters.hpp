@@ -179,6 +179,17 @@ namespace libtorrent
 			num_total_pieces_added,
 			num_total_pieces_removed,
 
+			num_blocks_written,
+			num_blocks_read,
+			num_blocks_cache_hits,
+			num_write_ops,
+			num_read_ops,
+
+			disk_read_time,
+			disk_write_time,
+			disk_hash_time,
+			disk_job_time,
+
 			num_stats_counters
 		};
 
@@ -222,6 +233,21 @@ namespace libtorrent
 			num_peers_down_disk,
 			num_peers_end_game,
 
+			write_cache_blocks,
+			read_cache_blocks,
+			pinned_blocks,
+			disk_blocks_in_use,
+			queued_disk_jobs,
+			num_writing_threads,
+			blocked_disk_jobs,
+
+			arc_mru_size,
+			arc_mru_ghost_size,
+			arc_mfu_size,
+			arc_mfu_ghost_size,
+			arc_write_size,
+			arc_volatile_size,
+
 			num_counters,
 			num_gauge_counters = num_counters - num_stats_counters
 		};
@@ -229,6 +255,8 @@ namespace libtorrent
 		counters();
 		void inc_stats_counter(int c, int value = 1);
 		boost::int64_t operator[](int i) const;
+
+		void set_value(int c, int value);
 
 	private:
 

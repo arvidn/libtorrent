@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/uncork_interface.hpp"
+#include "libtorrent/performance_counters.hpp"
 
 #if TORRENT_USE_RLIMIT
 #include <sys/resource.h>
@@ -2485,8 +2486,31 @@ namespace libtorrent
 			info.blocks[b] = i->blocks[b].buf != 0;
 	}
 
+	void disk_io_thread::update_stats_counters(counters& c) const
+	{
+		mutex::scoped_lock l(m_cache_mutex);
+
+		// gauges
+		c.set_value(counters::disk_blocks_in_use, m_disk_cache.in_use());
+		c.set_value(counters::queued_disk_jobs, m_queued_jobs.size());
+		c.set_value(counters::num_writing_threads, m_num_writing_threads);
+		c.set_value(counters::blocked_disk_jobs, m_num_blocked_jobs);
+
+		// counters
+		c.set_value(counters::num_blocks_written, m_cache_stats.blocks_written);
+		c.set_value(counters::num_blocks_read, m_cache_stats.blocks_read);
+		c.set_value(counters::num_write_ops, m_cache_stats.writes);
+		c.set_value(counters::num_read_ops, m_cache_stats.reads);
+		c.set_value(counters::disk_read_time, m_cache_stats.cumulative_read_time);
+		c.set_value(counters::disk_write_time, m_cache_stats.cumulative_write_time);
+		c.set_value(counters::disk_hash_time, m_cache_stats.cumulative_hash_time);
+		c.set_value(counters::disk_job_time, m_cache_stats.cumulative_job_time);
+
+		m_disk_cache.update_stats_counters(c);
+	}
+
 	void disk_io_thread::get_cache_info(cache_status* ret, bool no_pieces
-		, piece_manager const* storage)
+		, piece_manager const* storage) const
 	{
 		mutex::scoped_lock l(m_cache_mutex);
 		*ret = m_cache_stats;

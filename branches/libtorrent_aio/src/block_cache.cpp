@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
+#include "libtorrent/performance_counters.hpp"
 
 /*
 
@@ -221,8 +222,8 @@ cached_piece_entry::cached_piece_entry()
 	, piece_refcount(0)
 	, outstanding_flush(0)
 	, outstanding_read(0)
-	, refcount(0)
 	, pinned(0)
+	, refcount(0)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	, hash_passes(0)
 	, in_storage(false)
@@ -643,7 +644,7 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 	update_cache_state(pe);
 }
 
-std::pair<block_cache::iterator, block_cache::iterator> block_cache::all_pieces()
+std::pair<block_cache::iterator, block_cache::iterator> block_cache::all_pieces() const
 {
 	return std::make_pair(m_pieces.begin(), m_pieces.end());
 }
@@ -1284,6 +1285,21 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 	}
 	update_cache_state(&p);
 	return ret;
+}
+
+void block_cache::update_stats_counters(counters& c) const
+{
+	c.set_value(counters::num_blocks_cache_hits, m_blocks_read_hit);
+	c.set_value(counters::write_cache_blocks, m_write_cache_size);
+	c.set_value(counters::read_cache_blocks, m_read_cache_size);
+	c.set_value(counters::pinned_blocks, m_pinned_blocks);
+
+	c.set_value(counters::arc_mru_size, m_lru[cached_piece_entry::read_lru1].size());
+	c.set_value(counters::arc_mru_ghost_size, m_lru[cached_piece_entry::read_lru1_ghost].size());
+	c.set_value(counters::arc_mfu_size, m_lru[cached_piece_entry::read_lru2].size());
+	c.set_value(counters::arc_mfu_ghost_size, m_lru[cached_piece_entry::read_lru2_ghost].size());
+	c.set_value(counters::arc_write_size, m_lru[cached_piece_entry::write_lru].size());
+	c.set_value(counters::arc_volatile_size, m_lru[cached_piece_entry::volatile_read_lru].size());
 }
 
 void block_cache::get_stats(cache_status* ret) const

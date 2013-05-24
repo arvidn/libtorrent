@@ -5544,6 +5544,8 @@ retry:
 		std::vector<boost::uint64_t>& values = alert->values;
 		values.resize(counters::num_counters, 0);
 
+		m_disk_thread.update_stats_counters(m_stats_counters);
+
 		for (int i = 0; i < counters::num_counters; ++i)
 			values[i] = m_stats_counters[i];
 

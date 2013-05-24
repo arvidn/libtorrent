@@ -66,6 +66,7 @@ namespace libtorrent
 	class alert;
 	struct alert_dispatcher;
 	struct add_torrent_params;
+	struct counters;
 
 	struct cached_piece_info
 	{
@@ -304,8 +305,9 @@ namespace libtorrent
 		bool exceeded_cache_use() const
 		{ return m_disk_cache.exceeded_max_size(); }
 
+		void update_stats_counters(counters& c) const;
 		void get_cache_info(cache_status* ret, bool no_pieces = true
-			, piece_manager const* storage = 0);
+			, piece_manager const* storage = 0) const;
 
 		// this submits all queued up jobs to the thread
 		void submit_jobs();
@@ -461,7 +463,7 @@ namespace libtorrent
 		file_pool m_file_pool;
 
 		// disk cache
-		mutex m_cache_mutex;
+		mutable mutex m_cache_mutex;
 		block_cache m_disk_cache;
 
 		void flip_stats();

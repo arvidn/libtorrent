@@ -242,6 +242,33 @@ namespace libtorrent
 		METRIC(picker, interesting_piece_picks, type_counter)
 		METRIC(picker, hash_fail_piece_picks, type_counter)
 
+		METRIC(disk, write_cache_blocks, type_gauge)
+		METRIC(disk, read_cache_blocks, type_gauge)
+		METRIC(disk, pinned_blocks, type_gauge)
+		METRIC(disk, disk_blocks_in_use, type_gauge)
+		METRIC(disk, queued_disk_jobs, type_gauge)
+		METRIC(disk, num_writing_threads, type_gauge)
+		METRIC(disk, blocked_disk_jobs, type_gauge)
+		METRIC(disk, arc_mru_size, type_gauge)
+		METRIC(disk, arc_mru_ghost_size, type_gauge)
+		METRIC(disk, arc_mfu_size, type_gauge)
+		METRIC(disk, arc_mfu_ghost_size, type_gauge)
+		METRIC(disk, arc_write_size, type_gauge)
+		METRIC(disk, arc_volatile_size, type_gauge)
+
+		METRIC(disk, num_blocks_written, type_counter)
+		METRIC(disk, num_blocks_read, type_counter)
+		METRIC(disk, num_blocks_cache_hits, type_counter)
+		METRIC(disk, num_write_ops, type_counter)
+		METRIC(disk, num_read_ops, type_counter)
+
+		// cumulative time spent in various disk jobs, as well
+		// as total for all disk jobs. Measured in microseconds
+		METRIC(disk, disk_read_time, type_counter)
+		METRIC(disk, disk_write_time, type_counter)
+		METRIC(disk, disk_hash_time, type_counter)
+		METRIC(disk, disk_job_time, type_counter)
+
 		// ... more
 	};
 #undef METRIC
