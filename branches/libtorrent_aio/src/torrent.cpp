@@ -4386,6 +4386,8 @@ namespace libtorrent
 			if (!m_links[i].in_list()) continue;
 			m_links[i].unlink(m_ses.torrent_list(i), i);
 		}
+		// don't re-add this torrent to the state-update list
+		m_state_subscription = false;
 	}
 
 	void torrent::super_seeding(bool on)
@@ -7137,7 +7139,7 @@ namespace libtorrent
 
 	void torrent::update_want_scrape()
 	{
-		update_list(aux::session_interface::torrent_want_scrape, !m_allow_peers && m_auto_managed);
+		update_list(aux::session_interface::torrent_want_scrape, !m_allow_peers && m_auto_managed && !m_abort);
 	}
 
 	void torrent::update_list(int list, bool in)
