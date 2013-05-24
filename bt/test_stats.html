@@ -65,7 +65,7 @@ window.onload = function() {
 			var i = 0;
 			for (s in stats)
 			{
-				var row = table[Math.floor(i/33)].insertRow(-1);
+				var row = table[Math.floor(i/43)].insertRow(-1);
 				row.id = s;
 				row.insertCell(0).textContent = s;
 				row.insertCell(1).textContent = stats[s].type == 0 ? 'counter' : 'gauge';
