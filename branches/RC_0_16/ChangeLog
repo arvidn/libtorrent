@@ -1,3 +1,4 @@
+	* fix bug in SOCK5 UDP support
 	* fix issue where torrents added by URL would not be started immediately
 
 0.16.10 release

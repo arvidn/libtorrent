@@ -365,7 +365,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			if (m_tunnel_packets)
 			{
 				// if the source IP doesn't match the proxy's, ignore the packet
-				if (m_v6_ep == m_proxy_addr)
+				if (m_v6_ep == m_udp_proxy_addr)
 					unwrap(e, m_v6_buf, bytes_transferred);
 			}
 			else
@@ -399,7 +399,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			if (m_tunnel_packets)
 			{
 				// if the source IP doesn't match the proxy's, ignore the packet
-				if (m_v4_ep == m_proxy_addr)
+				if (m_v4_ep == m_udp_proxy_addr)
 					unwrap(e, m_v4_buf, bytes_transferred);
 			}
 			else
@@ -448,12 +448,12 @@ void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_cod
 	iovec[1] = asio::const_buffer(p, len);
 
 #if TORRENT_USE_IPV6
-	if (m_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
+	if (m_udp_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
 #endif
-		m_ipv4_sock.send_to(iovec, m_proxy_addr, 0, ec);
+		m_ipv4_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
 #if TORRENT_USE_IPV6
 	else
-		m_ipv6_sock.send_to(iovec, m_proxy_addr, 0, ec);
+		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
 #endif
 }
 
@@ -479,12 +479,12 @@ void udp_socket::wrap(char const* hostname, int port, char const* p, int len, er
 	iovec[1] = asio::const_buffer(p, len);
 
 #if TORRENT_USE_IPV6
-	if (m_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
+	if (m_udp_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
 #endif
-		m_ipv4_sock.send_to(iovec, m_proxy_addr, 0, ec);
+		m_ipv4_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
 #if TORRENT_USE_IPV6
 	else
-		m_ipv6_sock.send_to(iovec, m_proxy_addr, 0, ec);
+		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
 #endif
 }
 
@@ -1191,19 +1191,9 @@ void udp_socket::socks_forward_udp()
 	write_uint8(3, p); // UDP ASSOCIATE command
 	write_uint8(0, p); // reserved
 	error_code ec;
-	tcp::endpoint local = m_socks5_sock.local_endpoint(ec);
-	write_uint8(local.address().is_v4() ? 1 : 4, p); // ATYP IPv4
-	detail::write_address(local.address(), p);
-	int port = 0;
-#if TORRENT_USE_IPV6
-	if (local.address().is_v4())
-#endif
-		port = m_ipv4_sock.local_endpoint(ec).port();
-#if TORRENT_USE_IPV6
-	else
-		port = m_ipv6_sock.local_endpoint(ec).port();
-#endif
-	detail::write_uint16(port , p);
+	write_uint8(1, p); // ATYP = IPv4
+	write_uint32(0, p); // 0.0.0.0
+	write_uint16(0, p); // :0
 	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::connect1");
@@ -1302,8 +1292,8 @@ void udp_socket::connect2(error_code const& e)
 
 	if (atyp == 1)
 	{
-		m_proxy_addr.address(address_v4(read_uint32(p)));
-		m_proxy_addr.port(read_uint16(p));
+		m_udp_proxy_addr.address(address_v4(read_uint32(p)));
+		m_udp_proxy_addr.port(read_uint16(p));
 	}
 	else
 	{
