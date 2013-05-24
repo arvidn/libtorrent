@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>libtorrent websocket test</title>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
+<script language="javascript" type="text/javascript" src="libtorrent-graph.js"></script>
+<script language="javascript" type="text/javascript">
+
+var conn = null;
+
+var first_time = new Date().getTime();
+
+var data = [];
+
+var all_stats = [];
+var all_names = [];
+
+on_stats = function(updates)
+{
+	if (typeof(updates) === 'string')
+	{
+		console.log("ERROR: " + updates);
+		return;
+	}
+
+	var now = new Date().getTime() - first_time;
+	var start_time = now - 120 * 1000;
+
+	var data_point = {};
+	if (data.length > 0)
+	{
+		// if there is a previous data point
+		// copy all values from it
+		var last = data[data.length-1];
+		for (i in last)
+		{
+			data_point[i] = last[i];
+		}
+	}
+
+	data_point['time'] = now;
+
+	for (i in updates)
+	{
+		data_point[i] = updates[i];
+	}
+	data.push(data_point);
+
+	// remove data points that are too old, except
+	// keep one so that we can draw a line from there to
+	// the next point within the window
+	var prune = 0;
+	while (prune < data.length && data[prune].time < start_time)
+		++prune;
+	if (prune > 1) data.splice(0, prune-1);
+
+	for (s in all_names)
+	{
+		defs = [{ name: all_names[s], color: '#e44' }];
+		render_graph(all_names[s], data, defs, start_time, now, '', 'auto');
+	}
+};
+
+window.onload = function() {
+	var url = 'ws://' + window.location.host + '/bt/control';
+	conn = new libtorrent_connection(url, function(state)
+	{
+		if (state != "OK") {
+			console.log(state);
+			return;
+		}
+
+		conn.list_stats(function(stats)
+		{
+			var graphs = document.getElementById('graph_container');
+			for (s in stats)
+			{
+				graph_container.innerHTML += '<div style="display: inline-block; border:1px solid black;">' + s + '<br/><canvas id="' + s + '" width="250" height="150"/></div>'
+				all_stats.push(stats[s].id);
+				all_names.push(s);
+			}
+
+			window.setInterval(function()
+			{
+				conn.get_stats(all_stats, on_stats);
+			}, 2000);
+		});
+	});
+};
+</script>
+<body>
+<div id='graph_container'></div>
+</body>
+</html>
+

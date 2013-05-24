@@ -7,8 +7,6 @@
 
 var conn = null;
 
-var first_time = new Date().getTime();
-
 var all_stats = [];
 
 on_stats = function(updates)
@@ -87,6 +85,7 @@ window.onload = function() {
 };
 </script>
 <style>.updated { background-color: #faa; }</style>
+<body>
 <table id="stats1" border="1" style="border-collapse: collapse; border-color: black; display: inline-block;">
 <tr><th>Name</th><th>Type</th><th>Value</th></tr>
 </table>
@@ -100,5 +99,6 @@ window.onload = function() {
 <tr><th>Name</th><th>Type</th><th>Value</th></tr>
 </table>
 <canvas id="graph" width="800" height="500"/>
+</body>
 </html>
 

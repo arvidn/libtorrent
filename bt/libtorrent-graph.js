@@ -16,7 +16,7 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 	var ctx = canvas.getContext('2d');
 	
 	// first find the highest rate, in order to scale
-	var peak = 1 * scale;
+	var peak = 1 * (scale == 'auto' ? 1 : scale);
 	for (dp in data)
 	{
 		for (g in graphs)
@@ -32,11 +32,11 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 
 	var window_size = now - start_time;
 
-	var view_width = canvas.width - 60;
-	var view_height = canvas.height - 40;
+	var view_width = canvas.width - 40;
+	var view_height = canvas.height - 5;
 
 	// the 0.5 is to align lines with pixels
-	ctx.translate(0.5, 40.5);
+	ctx.translate(0.5, 4.5);
 
 	// used for text
 	ctx.fillStyle = "black";
@@ -48,9 +48,34 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 	var new_peak = 1;
 	while (peak > new_peak)
 		new_peak *= 10;
+
 	num_tics = Math.ceil(peak / new_peak * 10);
 	peak = new_peak * num_tics / 10;
 	if (num_tics < 5) num_tics *= 2;
+
+	if (scale == 'auto')
+	{
+		if (peak >= 1000000000)
+		{
+			scale = 1000000000;
+			unit = 'G';
+		}
+		else if (peak >= 1000000)
+		{
+			scale = 1000000;
+			unit = 'M';
+		}
+		else if (peak >= 1000)
+		{
+			scale = 1000;
+			unit = 'k';
+		}
+		else
+		{
+			scale = 1;
+			unit = '';
+		}
+	}
 
 	var scalex = view_width / (now - start_time);
 	var scaley = view_height / peak;
@@ -71,7 +96,7 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 		ctx.fillText((rate / scale).toFixed( peak < 5*scale ? 1 : 0) + ' ' + unit, view_width + 2, y + 4);
 
 		ctx.setLineDash([5]);
-		ctx.strokeStyle = "#aaa";
+		ctx.strokeStyle = "#ccc";
 		ctx.beginPath();
 		ctx.moveTo(view_width - 6, y);
 		ctx.lineTo(0, y);
