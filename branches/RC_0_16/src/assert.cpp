@@ -110,8 +110,7 @@ std::string demangle(char const* name) { return name; }
 #include <signal.h>
 #include "libtorrent/version.hpp"
 
-// execinfo.h is available in the MacOS X 10.5 SDK.
-#if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
+#if TORRENT_USE_EXECINFO
 #include <execinfo.h>
 
 void print_backtrace(char* out, int len, int max_depth)
