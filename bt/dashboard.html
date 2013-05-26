@@ -12,7 +12,7 @@ var first_time = new Date().getTime();
 var data = [];
 
 var all_stats = [];
-var all_names = [];
+var all_types = {};
 
 var graphs = {
 	'disk cache': {
@@ -22,6 +22,16 @@ var graphs = {
 			{ name: 'disk.pinned_blocks', color: '#44e'},
 		],
 		unit: 'blocks'
+	},
+
+	'rates': {
+		lines: [
+			{ name: 'net.sent_payload_bytes', label: 'upload rate (payload)', color: '#44e'},
+			{ name: 'net.recv_payload_bytes', label: 'download rate (payload)', color: '#4e4'},
+			{ name: 'net.recv_failed_bytes', color: '#e44'},
+			{ name: 'net.recv_redundant_bytes', color: '#f4e'},
+		],
+		unit: 'B/s'
 	},
 
 	'ARC cache': {
@@ -34,6 +44,17 @@ var graphs = {
 			{ name: 'disk.arc_volatile_size', color: '#ee4'},
 		],
 		unit: 'pieces'
+	},
+
+	'disk job time': {
+		lines: [
+			{ name: 'disk.disk_read_time', color: '#44e'},
+			{ name: 'disk.disk_write_time', color: '#4e4'},
+			{ name: 'disk.disk_hash_time', color: '#e44'},
+			{ name: 'disk.disk_job_time', color: '#ee4'},
+		],
+		unit: 's',
+		multiplier: 0.000001
 	},
 
 	'torrent state': {
@@ -61,7 +82,7 @@ var graphs = {
 			{ name: 'peer.num_banned_peers', color: '#44e'},
 			{ name: 'peer.banned_for_hash_failure', color: '#44e'},
 		],
-		unit: 'blocks'
+		unit: ''
 	},
 };
 
@@ -77,14 +98,25 @@ on_stats = function(updates)
 	var start_time = now - 300 * 1000;
 
 	var data_point = {};
+	var last = null;
 	if (data.length > 0)
 	{
 		// if there is a previous data point
 		// copy all values from it
-		var last = data[data.length-1];
+		last = data[data.length-1];
 		for (i in last)
 		{
-			data_point[i] = last[i];
+			// don't copy the rendered value for counters, just
+			// set them to zero, since the rendered value is the
+			// derivate, no-update means we need to render 0
+			if (all_types.hasOwnProperty(i) && all_types[i] == 0)
+			{
+				data_point[i] = 0;
+			}
+			else
+			{
+				data_point[i] = last[i];
+			}
 		}
 	}
 
@@ -92,7 +124,19 @@ on_stats = function(updates)
 
 	for (i in updates)
 	{
-		data_point[i] = updates[i];
+		// if this is a counter, plot the diff from the previous sample
+		if (all_types[i] == 0)
+		{
+			data_point[i + '_absolute'] = updates[i];
+			// times 1000 is to convert from /milliseconds to /s
+			if (last && last.hasOwnProperty(i + '_absolute'))
+				data_point[i] = (updates[i] - last[i + '_absolute']) * 1000 / (now - last.time);
+			else data_point[i] = 0;
+		}
+		else
+		{
+			data_point[i] = updates[i];
+		}
 	}
 	data.push(data_point);
 
@@ -106,7 +150,7 @@ on_stats = function(updates)
 
 	for (g in graphs)
 	{
-		render_graph(g, data, graphs[g].lines, start_time, now, graphs[g].unit, 'auto', true);
+		render_graph(g, data, graphs[g].lines, start_time, now, graphs[g].unit, 'auto', graphs[g].multiplier, true);
 	}
 };
 
@@ -130,7 +174,7 @@ window.onload = function() {
 			for (s in stats)
 			{
 				all_stats.push(stats[s].id);
-				all_names.push(s);
+				all_types[s] = stats[s].type;
 			}
 
 			window.setInterval(function()
