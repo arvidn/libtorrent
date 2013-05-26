@@ -139,6 +139,12 @@ namespace libtorrent
 		METRIC(net, on_accept_counter, type_counter)
 		METRIC(net, on_disk_counter, type_counter)
 
+		// total number of bytes sent and received by the session
+		METRIC(net, sent_payload_bytes, type_counter)
+		METRIC(net, recv_payload_bytes, type_counter)
+		METRIC(net, recv_failed_bytes, type_counter)
+		METRIC(net, recv_redundant_bytes, type_counter)
+
 		// these gauges count the number of torrents in
 		// different states. Each torrent only belongs to
 		// one of these states. For torrents that could

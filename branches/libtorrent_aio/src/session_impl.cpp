@@ -5549,6 +5549,11 @@ retry:
 		for (int i = 0; i < counters::num_counters; ++i)
 			values[i] = m_stats_counters[i];
 
+		m_stats_counters.set_value(counters::sent_payload_bytes, m_stat.total_transfer(stat::upload_payload));
+		m_stats_counters.set_value(counters::recv_payload_bytes, m_stat.total_transfer(stat::download_payload));
+		m_stats_counters.set_value(counters::recv_failed_bytes, m_total_failed_bytes);
+		m_stats_counters.set_value(counters::recv_redundant_bytes, m_total_redundant_bytes);
+
 		alert->timestamp = total_microseconds(time_now_hires() - m_created);
 
 		m_alerts.post_alert_ptr(alert.release());

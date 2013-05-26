@@ -528,6 +528,10 @@ namespace libtorrent
 			// once allocated.
 			use_disk_cache_pool,
 
+			// when this is true, and incoming encrypted connections are enabled, &supportcrypt=1
+			// is included in http tracker announces
+			announce_crypto_support,
+
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
 		};

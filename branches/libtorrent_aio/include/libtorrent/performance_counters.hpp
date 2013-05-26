@@ -190,6 +190,11 @@ namespace libtorrent
 			disk_hash_time,
 			disk_job_time,
 
+			sent_payload_bytes,
+			recv_payload_bytes,
+			recv_failed_bytes,
+			recv_redundant_bytes,
+
 			num_stats_counters
 		};
 
