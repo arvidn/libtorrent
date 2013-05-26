@@ -192,6 +192,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // TORRENT_USE_OPENSSL
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED
 
+// execinfo.h is available in the MacOS X 10.5 SDK.
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
+#define TORRENT_USE_EXECINFO 1
+#endif
+
 #endif // __APPLE__
 
 #else
@@ -212,6 +217,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_POSIX_MEMALIGN 1
+#if __amd64__ || __i386__
+#define TORRENT_USE_EXECINFO 1
+#endif
 
 // ==== MINGW ===
 #elif defined __MINGW32__
@@ -361,6 +369,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_NETLINK
 #define TORRENT_USE_NETLINK 0
+#endif
+
+#ifndef TORRENT_USE_EXECINFO
+#define TORRENT_USE_EXECINFO 0
 #endif
 
 #ifndef TORRENT_USE_SYSCTL
