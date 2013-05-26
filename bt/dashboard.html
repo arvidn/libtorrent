@@ -15,13 +15,12 @@ var all_stats = [];
 var all_types = {};
 
 var graphs = {
-	'disk cache': {
+	'disk cache (blocks)': {
 		lines: [
 			{ name: 'disk.write_cache_blocks', color: '#e44'},
 			{ name: 'disk.read_cache_blocks', color: '#4e4'},
 			{ name: 'disk.pinned_blocks', color: '#44e'},
 		],
-		unit: 'blocks'
 	},
 
 	'rates': {
@@ -34,7 +33,7 @@ var graphs = {
 		unit: 'B/s'
 	},
 
-	'ARC cache': {
+	'ARC cache (pieces)': {
 		lines: [
 			{ name: 'disk.arc_mru_size', color: '#e44'},
 			{ name: 'disk.arc_mru_ghost_size', color: '#fbb'},
@@ -43,7 +42,6 @@ var graphs = {
 			{ name: 'disk.arc_write_size', color: '#44e'},
 			{ name: 'disk.arc_volatile_size', color: '#ee4'},
 		],
-		unit: 'pieces'
 	},
 
 	'disk job time': {
@@ -51,10 +49,42 @@ var graphs = {
 			{ name: 'disk.disk_read_time', color: '#44e'},
 			{ name: 'disk.disk_write_time', color: '#4e4'},
 			{ name: 'disk.disk_hash_time', color: '#e44'},
-			{ name: 'disk.disk_job_time', color: '#ee4'},
 		],
 		unit: 's',
 		multiplier: 0.000001
+	},
+
+	'disk IOP/s': {
+		lines: [
+			{ name: 'disk.num_write_ops', color: '#4e4'},
+			{ name: 'disk.num_read_ops', color: '#44e'},
+		],
+	},
+
+	'piece picker (picks/s)': {
+		lines: [
+			{ name: 'picker.reject_piece_picks', color: '#44e'},
+			{ name: 'picker.unchoke_piece_picks', color: '#4e4'},
+			{ name: 'picker.incoming_redundant_piece_picks', color: '#e44'},
+			{ name: 'picker.incoming_piece_picks', color: '#ee4'},
+			{ name: 'picker.end_game_piece_picks', color: '#e4e'},
+			{ name: 'picker.snubbed_piece_picks', color: '#4ee'},
+			{ name: 'picker.interesting_piece_picks', color: '#444'},
+			{ name: 'picker.hash_fail_piece_picks', color: '#ddd'},
+		],
+	},
+
+	'events (event/s)': {
+		lines: [
+			{ name: 'net.on_read_counter', color: '#44e'},
+			{ name: 'net.on_write_counter', color: '#4e4'},
+			{ name: 'net.on_tick_counter', color: '#e44'},
+			{ name: 'net.on_lsd_counter', color: '#ee4'},
+			{ name: 'net.on_lsd_peer_counter', color: '#e4e'},
+			{ name: 'net.on_udp_counter', color: '#4ee'},
+			{ name: 'net.on_accept_counter', color: '#444'},
+			{ name: 'net.on_disk_counter', color: '#ddd'},
+		],
 	},
 
 	'torrent state': {
@@ -68,21 +98,19 @@ var graphs = {
 			{ name: 'ses.num_queued_download_torrents', color: '#fbb'},
 			{ name: 'ses.num_error_torrents', color: '#f55'},
 		],
-		unit: ''
 	},
 
-	'peer errors': {
+	'peer errors / s': {
 		lines: [
 			{ name: 'peer.connect_timeouts', color: '#e44'},
 			{ name: 'peer.uninteresting_peers', color: '#4e4'},
 			{ name: 'peer.timeout_peers', color: '#44e'},
-			{ name: 'peer.no_memory_peers', color: '#44e'},
-			{ name: 'peer.too_many_peers', color: '#44e'},
-			{ name: 'peer.transport_timeout_peers', color: '#44e'},
-			{ name: 'peer.num_banned_peers', color: '#44e'},
-			{ name: 'peer.banned_for_hash_failure', color: '#44e'},
+			{ name: 'peer.no_memory_peers', color: '#ee4'},
+			{ name: 'peer.too_many_peers', color: '#e4e'},
+			{ name: 'peer.transport_timeout_peers', color: '#4ee'},
+			{ name: 'peer.num_banned_peers', color: '#444'},
+			{ name: 'peer.banned_for_hash_failure', color: '#ddd'},
 		],
-		unit: ''
 	},
 };
 
