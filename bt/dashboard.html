@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>libtorrent websocket test</title>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
+<script language="javascript" type="text/javascript" src="libtorrent-graph.js"></script>
+<script language="javascript" type="text/javascript">
+
+var conn = null;
+
+var first_time = new Date().getTime();
+
+var data = [];
+
+var all_stats = [];
+var all_names = [];
+
+var graphs = {
+	'disk cache': {
+		lines: [
+			{ name: 'disk.write_cache_blocks', color: '#e44'},
+			{ name: 'disk.read_cache_blocks', color: '#4e4'},
+			{ name: 'disk.pinned_blocks', color: '#44e'},
+		],
+		unit: 'blocks'
+	},
+
+	'ARC cache': {
+		lines: [
+			{ name: 'disk.arc_mru_size', color: '#e44'},
+			{ name: 'disk.arc_mru_ghost_size', color: '#fbb'},
+			{ name: 'disk.arc_mfu_size', color: '#4e4'},
+			{ name: 'disk.arc_mfu_ghost_size', color: '#bfb'},
+			{ name: 'disk.arc_write_size', color: '#44e'},
+			{ name: 'disk.arc_volatile_size', color: '#ee4'},
+		],
+		unit: 'pieces'
+	},
+
+	'torrent state': {
+		lines: [
+			{ name: 'ses.num_checking_torrents', color: '#bbb'},
+			{ name: 'ses.num_stopped_torrents', color: '#444'},
+			{ name: 'ses.num_upload_only_torrents', color: '#44e'},
+			{ name: 'ses.num_downloading_torrents', color: '#e44'},
+			{ name: 'ses.num_seeding_torrents', color: '#4e4'},
+			{ name: 'ses.num_queued_seeding_torrents', color: '#bfb'},
+			{ name: 'ses.num_queued_download_torrents', color: '#fbb'},
+			{ name: 'ses.num_error_torrents', color: '#f55'},
+		],
+		unit: ''
+	},
+
+	'peer errors': {
+		lines: [
+			{ name: 'peer.connect_timeouts', color: '#e44'},
+			{ name: 'peer.uninteresting_peers', color: '#4e4'},
+			{ name: 'peer.timeout_peers', color: '#44e'},
+			{ name: 'peer.no_memory_peers', color: '#44e'},
+			{ name: 'peer.too_many_peers', color: '#44e'},
+			{ name: 'peer.transport_timeout_peers', color: '#44e'},
+			{ name: 'peer.num_banned_peers', color: '#44e'},
+			{ name: 'peer.banned_for_hash_failure', color: '#44e'},
+		],
+		unit: 'blocks'
+	},
+};
+
+on_stats = function(updates)
+{
+	if (typeof(updates) === 'string')
+	{
+		console.log("ERROR: " + updates);
+		return;
+	}
+
+	var now = new Date().getTime() - first_time;
+	var start_time = now - 300 * 1000;
+
+	var data_point = {};
+	if (data.length > 0)
+	{
+		// if there is a previous data point
+		// copy all values from it
+		var last = data[data.length-1];
+		for (i in last)
+		{
+			data_point[i] = last[i];
+		}
+	}
+
+	data_point['time'] = now;
+
+	for (i in updates)
+	{
+		data_point[i] = updates[i];
+	}
+	data.push(data_point);
+
+	// remove data points that are too old, except
+	// keep one so that we can draw a line from there to
+	// the next point within the window
+	var prune = 0;
+	while (prune < data.length && data[prune].time < start_time)
+		++prune;
+	if (prune > 1) data.splice(0, prune-1);
+
+	for (g in graphs)
+	{
+		render_graph(g, data, graphs[g].lines, start_time, now, graphs[g].unit, 'auto', true);
+	}
+};
+
+window.onload = function() {
+	var url = 'ws://' + window.location.host + '/bt/control';
+	conn = new libtorrent_connection(url, function(state)
+	{
+		if (state != "OK") {
+			console.log(state);
+			return;
+		}
+
+		conn.list_stats(function(stats)
+		{
+			var container = document.getElementById('graph_container');
+			for (g in graphs)
+			{
+				container.innerHTML += '<div style="display: inline-block; border:1px solid black;">' + g + '<br/><canvas id="' + g + '" width="600" height="350"/></div>'
+			}
+
+			for (s in stats)
+			{
+				all_stats.push(stats[s].id);
+				all_names.push(s);
+			}
+
+			window.setInterval(function()
+			{
+				conn.get_stats(all_stats, on_stats);
+			}, 3000);
+		});
+	});
+};
+</script>
+<body>
+<div id='graph_container'></div>
+</body>
+</html>
+
+

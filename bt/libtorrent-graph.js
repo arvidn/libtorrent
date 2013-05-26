@@ -7,10 +7,11 @@
 //   name of the field in the data array to use for the plot. Also specify
 //   'color' which is a string defining the color of the line (CSS style).
 
-function render_graph(canvas, data, graphs, start_time, now, unit, scale)
+function render_graph(canvas, data, graphs, start_time, now, unit, scale, use_legend)
 {
 	if (typeof(unit) == 'undefined') unit = 'kB/s';
 	if (typeof(scale) == 'undefined') scale = 1000;
+	if (typeof(use_legend) == 'undefined') use_legend = false;
 
 	var canvas = document.getElementById(canvas);
 	var ctx = canvas.getContext('2d');
@@ -40,7 +41,6 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 
 	// used for text
 	ctx.fillStyle = "black";
-	ctx.textAlign = 'left';
 	ctx.lineWidth = 1;
 
 	// calculate the number of tics and the peak
@@ -80,7 +80,6 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 	var scalex = view_width / (now - start_time);
 	var scaley = view_height / peak;
 
-	ctx.save();
 	// draw y-axis tics
 	for (var i = 0; i < num_tics; ++i)
 	{
@@ -102,9 +101,8 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 		ctx.lineTo(0, y);
 		ctx.stroke();
 	}
-	ctx.restore();
 
-	ctx.textAlign = 'right';
+	ctx.setLineDash([]);
 
 	// draw the graphs for all torrents
 	for (k in graphs)
@@ -131,6 +129,46 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale)
 			}
 		}
 		ctx.stroke();
+	}
+
+	if (use_legend)
+	{
+		ctx.font = 'normal 12pt Calibri';
+		var legend_width = 0;
+		for (k in graphs)
+		{
+			g = graphs[k];
+			var label;
+			if (g.label) label = g.label;
+			else label = g.name;
+			legend_width = Math.max(legend_width, ctx.measureText(label).width);
+		}
+
+		var offset = 15;
+		ctx.fillStyle = 'rgba(255,255,255,0.7)';
+		ctx.strokeStyle = 'black';
+		ctx.fillRect(5, offset - 8, 23 + legend_width, graphs.length * 16 + 1);
+		ctx.strokeRect(4, offset - 9, 24 + legend_width, graphs.length * 16 + 2);
+		ctx.fillStyle = 'black';
+
+		ctx.lineWidth = 2;
+
+		for (k in graphs)
+		{
+			g = graphs[k];
+			var label;
+			if (g.label) label = g.label;
+			else label = g.name;
+
+			ctx.strokeStyle = g.color;
+			ctx.beginPath();
+			ctx.moveTo(7, offset);
+			ctx.lineTo(20, offset);
+			ctx.stroke();
+
+			ctx.fillText(label, 23, offset + 4);
+			offset += 16;
+		}
 	}
 	ctx.restore();
 }
