@@ -143,7 +143,7 @@ static method_handler handlers[] =
 //	{ "filter-remove", &utorrent_webui:: },
 	{ "removetorrent", &utorrent_webui::remove_torrent },
 	{ "removedatatorrent", &utorrent_webui::remove_torrent_and_data },
-//	{ "getversion", &utorrent_webui:: },
+	{ "getversion", &utorrent_webui::get_version },
 //	{ "add-peer", &utorrent_webui:: },
 };
 
@@ -885,6 +885,19 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 		first = 0;
 	}
 	response.push_back(']');
+}
+
+void utorrent_webui::get_version(std::vector<char>& response, char const* args, permissions_interface const* p)
+{
+	appendf(response, ",\"version\":{\"engine_version\": \"%s\""
+		", \"major_version\": %d"
+		", \"minor_version\": %d"
+		", \"peer_id\": \"%s\""
+		", \"user_agent\": \"%s\""
+		", \"product_code\": \"server\""
+		"}"
+		, LIBTORRENT_REVISION, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR
+		, to_hex(m_ses.id().to_string()).c_str(), m_ses.get_settings().get_str(settings_pack::user_agent).c_str());
 }
 
 enum ut_state_t

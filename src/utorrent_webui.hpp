@@ -83,6 +83,8 @@ namespace libtorrent
 		void send_torrent_list(std::vector<char>&, char const* args, permissions_interface const* p);
 		void send_peer_list(std::vector<char>& response, char const* args, permissions_interface const* p);
 
+		void get_version(std::vector<char>& response, char const* args, permissions_interface const* p);
+
 	private:
 
 		std::vector<torrent_status> parse_torrents(char const* args) const;
