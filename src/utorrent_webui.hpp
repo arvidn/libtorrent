@@ -85,7 +85,7 @@ namespace libtorrent
 
 	private:
 
-		std::vector<torrent_handle> parse_torrents(char const* args) const;
+		std::vector<torrent_status> parse_torrents(char const* args) const;
 		
 		time_t m_start_time;
 		session& m_ses;

@@ -55,7 +55,7 @@ namespace libtorrent
 
 		void update_status(torrent_status const& s, int frame);
 
-		bool operator==(torrent_history_entry const& e) const { return e.status == status; }
+		bool operator==(torrent_history_entry const& e) const { return e.status.info_hash == status.info_hash; }
 
 		enum
 		{
@@ -151,7 +151,7 @@ namespace libtorrent
 	};
 
 	inline std::size_t hash_value(torrent_history_entry const& te)
-	{ return hash_value(te.status); }
+	{ return hash_value(te.status.info_hash); }
 
 	struct torrent_history : alert_observer
 	{
@@ -168,6 +168,8 @@ namespace libtorrent
 		void updated_since(int frame, std::vector<torrent_status>& torrents) const;
 
 		void updated_fields_since(int frame, std::vector<torrent_history_entry>& torrents) const;
+
+		torrent_status get_torrent_status(sha1_hash const& ih) const;
 
 		// the current frame number
 		int frame() const;

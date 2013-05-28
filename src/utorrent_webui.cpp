@@ -289,18 +289,21 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 	return true;
 }
 
+#define TORRENT_APPLY_FUN \
+	std::vector<torrent_status> t = parse_torrents(args); \
+	for (std::vector<torrent_status>::iterator i = t.begin() \
+		, end(t.end()); i != end; ++i)
+
 void utorrent_webui::start(std::vector<char>&, char const* args, permissions_interface const* p)
 {
 	if (!p->allow_start()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->clear_error();
-		i->set_upload_mode(false);
-		i->auto_managed(true);
-		i->resume();
+		i->handle.clear_error();
+		i->handle.set_upload_mode(false);
+		i->handle.auto_managed(true);
+		i->handle.resume();
 	}
 }
 
@@ -308,12 +311,10 @@ void utorrent_webui::stop(std::vector<char>&, char const* args, permissions_inte
 {
 	if (!p->allow_stop()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->auto_managed(false);
-		i->pause();
+		i->handle.auto_managed(false);
+		i->handle.pause();
 	}
 }
 
@@ -321,12 +322,10 @@ void utorrent_webui::force_start(std::vector<char>&, char const* args, permissio
 {
 	if (!p->allow_start()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->auto_managed(false);
-		i->resume();
+		i->handle.auto_managed(false);
+		i->handle.resume();
 	}
 }
 
@@ -334,11 +333,9 @@ void utorrent_webui::recheck(std::vector<char>&, char const* args, permissions_i
 {
 	if (!p->allow_recheck()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->force_recheck();
+		i->handle.force_recheck();
 	}
 }
 
@@ -346,11 +343,9 @@ void utorrent_webui::queue_up(std::vector<char>&, char const* args, permissions_
 {
 	if (!p->allow_queue_change()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->queue_position_up();
+		i->handle.queue_position_up();
 	}
 }
 
@@ -358,11 +353,9 @@ void utorrent_webui::queue_down(std::vector<char>&, char const* args, permission
 {
 	if (!p->allow_queue_change()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->queue_position_down();
+		i->handle.queue_position_down();
 	}
 }
 
@@ -370,11 +363,9 @@ void utorrent_webui::queue_top(std::vector<char>&, char const* args, permissions
 {
 	if (!p->allow_queue_change()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->queue_position_top();
+		i->handle.queue_position_top();
 	}
 }
 
@@ -382,11 +373,9 @@ void utorrent_webui::queue_bottom(std::vector<char>&, char const* args, permissi
 {
 	if (!p->allow_queue_change()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		i->queue_position_bottom();
+		i->handle.queue_position_bottom();
 	}
 }
 
@@ -394,11 +383,9 @@ void utorrent_webui::remove_torrent(std::vector<char>&, char const* args, permis
 {
 	if (!p->allow_remove()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		m_ses.remove_torrent(*i);
+		m_ses.remove_torrent(i->handle);
 	}
 }
 
@@ -406,13 +393,13 @@ void utorrent_webui::remove_torrent_and_data(std::vector<char>&, char const* arg
 {
 	if (!p->allow_remove() || !p->allow_remove_data()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
-	for (std::vector<torrent_handle>::iterator i = t.begin()
-		, end(t.end()); i != end; ++i)
+	TORRENT_APPLY_FUN
 	{
-		m_ses.remove_torrent(*i, session::delete_files);
+		m_ses.remove_torrent(i->handle, session::delete_files);
 	}
 }
+
+#undef TORRENT_APPLY_FUN
 
 char const* settings_name(int s)
 {
@@ -674,17 +661,17 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 {
 	if (!p->allow_list()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
+	std::vector<torrent_status> t = parse_torrents(args);
 	appendf(response, ",\"files\":[");
 	int first = 1;
 	std::vector<boost::int64_t> progress;
 	std::vector<int> file_prio;
-	for (std::vector<torrent_handle>::iterator i = t.begin()
+	for (std::vector<torrent_status>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
 	{
-		i->file_progress(progress);
-		file_prio = i->file_priorities();
-		boost::intrusive_ptr<torrent_info> ti = i->torrent_file();
+		i->handle.file_progress(progress);
+		file_prio = i->handle.file_priorities();
+		boost::intrusive_ptr<const torrent_info> ti = i->torrent_file;
 		if (!ti) continue;
 		file_storage const& files = ti->files();
 
@@ -761,14 +748,14 @@ void utorrent_webui::get_properties(std::vector<char>& response, char const* arg
 {
 	if (!p->allow_list()) return;
 
-	std::vector<torrent_handle> t = parse_torrents(args);
+	std::vector<torrent_status> t = parse_torrents(args);
 	appendf(response, ",\"props\":[");
 	int first = 1;
-	for (std::vector<torrent_handle>::iterator i = t.begin()
+	for (std::vector<torrent_status>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)
 	{
-		torrent_status st = i->status();
-		boost::intrusive_ptr<torrent_info> ti = i->torrent_file();
+		torrent_status const& st = *i;
+		boost::intrusive_ptr<const torrent_info> ti = st.torrent_file;
 		appendf(response, ",{\"hash\":\"%s\","
 			"\"trackers\":\"%s\","
 			"\"ulrate\":%d,"
@@ -782,9 +769,9 @@ void utorrent_webui::get_properties(std::vector<char>& response, char const* arg
 			"\"ulslots\": %d,"
 			"\"seed_num\": %d}" + first
 			, ti ? to_hex(ti->info_hash().to_string()).c_str() : ""
-			, trackers_as_string(*i).c_str()
-			, i->download_limit()
-			, i->upload_limit()
+			, trackers_as_string(i->handle).c_str()
+			, st.handle.download_limit()
+			, st.handle.upload_limit()
 			, st.super_seeding
 			, ti && ti->priv() ? 0 : m_ses.is_dht_running()
 			, ti && ti->priv() ? 0 : 1
@@ -847,21 +834,21 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 {
 	if (!p->allow_list()) return;
 
-	std::vector<torrent_handle> torrents = parse_torrents(args);
+	std::vector<torrent_status> torrents = parse_torrents(args);
 	appendf(response, ",\"peers\":[");
 	int first = 1;
-	for (std::vector<torrent_handle>::iterator i = torrents.begin()
+	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		boost::intrusive_ptr<torrent_info> ti = i->torrent_file();
+		boost::intrusive_ptr<const torrent_info> ti = i->torrent_file;
 		if (!ti) continue;
 
 		appendf(response, ",\"%s\",[" + first
-			, to_hex(i->info_hash().to_string()).c_str());
+			, to_hex(i->info_hash.to_string()).c_str());
 
 		int first_peer = 1;
 		std::vector<peer_info> peers;
-		i->get_peer_info(peers);
+		i->handle.get_peer_info(peers);
 		for (std::vector<peer_info>::iterator p = peers.begin()
 			, pend(peers.end()); p != pend; ++p)
 		{
@@ -1062,9 +1049,9 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 	appendf(response, "], \"label\": [], \"torrentc\": \"%d\"", m_hist->frame());
 }
 
-std::vector<torrent_handle> utorrent_webui::parse_torrents(char const* args) const
+std::vector<torrent_status> utorrent_webui::parse_torrents(char const* args) const
 {
-	std::vector<torrent_handle> ret;
+	std::vector<torrent_status> ret;
 
 	for (char const* hash = strstr(args, "&hash="); hash; hash = strstr(hash, "&hash="))
 	{
@@ -1075,9 +1062,9 @@ std::vector<torrent_handle> utorrent_webui::parse_torrents(char const* args) con
 		sha1_hash h;
 		bool ok = from_hex(hash, 40, (char*)&h[0]);
 		if (!ok) continue;
-		torrent_handle th = m_ses.find_torrent(h);
-		if (!th.is_valid()) continue;
-		ret.push_back(th);
+		torrent_status ts = m_hist->get_torrent_status(h);
+		if (!ts.handle.is_valid()) continue;
+		ret.push_back(ts);
 	}
 	return ret;
 }

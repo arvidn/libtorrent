@@ -397,7 +397,7 @@ namespace libtorrent
 		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}
 
-	int libtorrent_webui::parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st)
+	int libtorrent_webui::parse_torrent_args(std::vector<torrent_status>& torrents, conn_state* st)
 	{
 		char* ptr = st->data;
 		int num_torrents = io::read_uint16(ptr);
@@ -412,30 +412,28 @@ namespace libtorrent
 			sha1_hash h;
 			memcpy(&h[0], &ptr[i*20], 20);
 
-			// TODO: this call is blocking. Instead, use the torrent_history object for this lookup
-			// or make this function fast in libtorrent
-			torrent_handle th = m_ses.find_torrent(h);
-			if (!th.is_valid()) continue;
-			torrents.push_back(th);
+			torrent_status ts = m_hist->get_torrent_status(h);
+			if (!ts.handle.is_valid()) continue;
+			torrents.push_back(ts);
 		}
 		return no_error;
 	}
 
 #define TORRENT_APPLY_FUN \
-		std::vector<torrent_handle> torrents; \
+		std::vector<torrent_status> torrents; \
 		int ret = parse_torrent_args(torrents, st); \
 		if (ret != no_error) return error(st, ret); \
 		\
-		for (std::vector<torrent_handle>::iterator i = torrents.begin() \
+		for (std::vector<torrent_status>::iterator i = torrents.begin() \
 			, end(torrents.end()); i != end; ++i)
 
 	bool libtorrent_webui::start(conn_state* st)
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->auto_managed(true);
-			i->clear_error();
-			i->resume();
+			i->handle.auto_managed(true);
+			i->handle.clear_error();
+			i->handle.resume();
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -444,8 +442,8 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->auto_managed(false);
-			i->pause();
+			i->handle.auto_managed(false);
+			i->handle.pause();
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -454,7 +452,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->auto_managed(true);
+			i->handle.auto_managed(true);
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -462,7 +460,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->auto_managed(false);
+			i->handle.auto_managed(false);
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -470,7 +468,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->queue_position_up();
+			i->handle.queue_position_up();
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -478,7 +476,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->queue_position_down();
+			i->handle.queue_position_down();
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -486,7 +484,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->queue_position_top();
+			i->handle.queue_position_top();
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -494,7 +492,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->queue_position_bottom();
+			i->handle.queue_position_bottom();
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -502,7 +500,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			m_ses.remove_torrent(*i);
+			m_ses.remove_torrent(i->handle);
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -510,7 +508,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			m_ses.remove_torrent(*i, session::delete_files);
+			m_ses.remove_torrent(i->handle, session::delete_files);
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -518,7 +516,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->force_recheck();
+			i->handle.force_recheck();
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -526,7 +524,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->set_sequential_download(true);
+			i->handle.set_sequential_download(true);
 		}
 		return respond(st, 0, torrents.size());
 	}
@@ -534,7 +532,7 @@ namespace libtorrent
 	{
 		TORRENT_APPLY_FUN
 		{
-			i->set_sequential_download(false);
+			i->handle.set_sequential_download(false);
 		}
 		return respond(st, 0, torrents.size());
 	}

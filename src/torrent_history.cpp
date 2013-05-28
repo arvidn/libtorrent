@@ -67,7 +67,7 @@ namespace libtorrent
 			// first remove the old hash
 			m_removed.push_front(std::make_pair(m_frame + 1, tu->old_ih));
 			torrent_history_entry st;
-			st.status.handle = tu->handle;
+			st.status.info_hash = tu->old_ih;
 			queue_t::right_iterator it = m_queue.right.find(st);
 			TORRENT_ASSERT(it != m_queue.right.end());
 			m_queue.right.replace_data(it, m_frame);
@@ -81,8 +81,12 @@ namespace libtorrent
 		}
 		else if (ta)
 		{
+			torrent_status st = ta->handle.status();
+			TORRENT_ASSERT(st.info_hash == st.handle.info_hash());
+			TORRENT_ASSERT(st.handle == ta->handle);
+
 			mutex::scoped_lock l(m_mutex);
-			m_queue.left.push_front(std::make_pair(m_frame + 1, torrent_history_entry(ta->handle.status(), m_frame + 1)));
+			m_queue.left.push_front(std::make_pair(m_frame + 1, torrent_history_entry(st, m_frame + 1)));
 			m_deferred_frame_count = true;
 		}
 		else if (td)
@@ -91,7 +95,7 @@ namespace libtorrent
 
 			m_removed.push_front(std::make_pair(m_frame + 1, td->info_hash));
 			torrent_history_entry st;
-			st.status.handle = td->handle;
+			st.status.info_hash = td->info_hash;
 			m_queue.right.erase(st);
 			// weed out torrents that were removed a long time ago
 			while (m_removed.size() > 1000 && m_removed.back().first < m_frame - 10)
@@ -111,7 +115,8 @@ namespace libtorrent
 				, end(st.end()); i != end; ++i)
 			{
 				torrent_history_entry e;
-				e.status.handle = i->handle;
+				e.status.info_hash = i->info_hash;
+
 				queue_t::right_iterator it = m_queue.right.find(e);
 				if (it == m_queue.right.end()) continue;
 				const_cast<torrent_history_entry&>(it->first).update_status(*i, m_frame);
@@ -163,6 +168,18 @@ namespace libtorrent
 			if (i->first <= frame) break;
 			torrents.push_back(i->second);
 		}
+	}
+
+	torrent_status torrent_history::get_torrent_status(sha1_hash const& ih) const
+	{
+		torrent_history_entry st;
+		st.status.info_hash = ih;
+
+		mutex::scoped_lock l(m_mutex);
+
+		queue_t::right_const_iterator it = m_queue.right.find(st);
+		if (it != m_queue.right.end()) return it->first.status;
+		return st.status;
 	}
 
 	int torrent_history::frame() const

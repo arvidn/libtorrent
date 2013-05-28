@@ -90,7 +90,7 @@ namespace libtorrent
 		bool get_stats(conn_state* st);
 
 		// parse the arguments to the simple torrent commands
-		int parse_torrent_args(std::vector<torrent_handle>& torrents, conn_state* st);
+		int parse_torrent_args(std::vector<torrent_status>& torrents, conn_state* st);
 
 		bool call_rpc(mg_connection* conn, int function, char const* data, int len);
 
