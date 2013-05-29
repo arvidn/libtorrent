@@ -351,6 +351,7 @@ namespace libtorrent
 		return m_last_unchoke < rhs.m_last_unchoke;
 	}
 
+	// return true if 'this' peer should be preferred to be unchoke over p
 	bool peer_connection::unchoke_compare(peer_connection const* p) const
 	{
 		TORRENT_ASSERT(p);
@@ -439,7 +440,6 @@ namespace libtorrent
 			if (score2 > score1) return false;
 		}
 		
-		// if both peers have are still in their send quota or not in their send quota
 		// prioritize the one that has waited the longest to be unchoked
 		return m_last_unchoke < rhs.m_last_unchoke;
 	}

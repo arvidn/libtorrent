@@ -224,7 +224,18 @@ namespace libtorrent
 		bool m_tunnel_packets;
 		bool m_force_proxy;
 		bool m_abort;
+
+		// this is the endpoint the proxy server lives at.
+		// when performing a UDP associate, we get another
+		// endpoint (presumably on the same IP) where we're
+		// supposed to send UDP packets.
 		udp::endpoint m_proxy_addr;
+
+		// this is where UDP packets that are to be forwarded
+		// are sent. The result from UDP ASSOCIATE is stored
+		// in here.
+		udp::endpoint m_udp_proxy_addr;
+
 		// while we're connecting to the proxy
 		// we have to queue the packets, we'll flush
 		// them once we're connected

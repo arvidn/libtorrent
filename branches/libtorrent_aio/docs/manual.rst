@@ -6685,7 +6685,7 @@ code to do that::
 		entry te = ct.generate();
 		std::vector<char> buffer;
 		bencode(std::back_inserter(buffer), te);
-		FILE* f = fopen((to_hex(ti->info_hash().to_string()) + ".torrent").c_str(), "w+");
+		FILE* f = fopen((to_hex(ti->info_hash().to_string()) + ".torrent").c_str(), "wb+");
 		if (f) {
 			fwrite(&buffer[0], 1, buffer.size(), f);
 			fclose(f);
