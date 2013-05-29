@@ -3991,9 +3991,9 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata() || is_seed()) return;
 
-		TORRENT_ASSERT(index < m_torrent_file->num_files());
-		TORRENT_ASSERT(index >= 0);
 		if (index < 0 || index >= m_torrent_file->num_files()) return;
+		if (prio < 0) prio = 0;
+		else if (prio > 7) prio = 7;
 		if (m_file_priority.size() <= index)
 		{
 			if (prio == 1) return;
@@ -4009,8 +4009,6 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata()) return 1;
 
-		TORRENT_ASSERT(index < m_torrent_file->num_files());
-		TORRENT_ASSERT(index >= 0);
 		if (index < 0 || index >= m_torrent_file->num_files()) return 0;
 		if (m_file_priority.size() <= index) return 1;
 		return m_file_priority[index];
