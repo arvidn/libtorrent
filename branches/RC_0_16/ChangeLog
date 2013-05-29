@@ -1,3 +1,4 @@
+	* add bootstrap.sh to generage configure script and run configure
 	* fix bug in SOCK5 UDP support
 	* fix issue where torrents added by URL would not be started immediately
 
