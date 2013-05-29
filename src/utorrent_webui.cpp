@@ -130,7 +130,7 @@ static method_handler handlers[] =
 	{ "getprops", &utorrent_webui::get_properties },
 	{ "recheck", &utorrent_webui::recheck },
 	{ "remove", &utorrent_webui::remove_torrent },
-//	{ "setprio", &utorrent_webui:: },
+	{ "setprio", &utorrent_webui::set_file_priority },
 	{ "getsettings", &utorrent_webui::get_settings },
 	{ "setsetting", &utorrent_webui::set_settings },
 	{ "add-url", &utorrent_webui::add_url },
@@ -386,6 +386,39 @@ void utorrent_webui::remove_torrent(std::vector<char>&, char const* args, permis
 	TORRENT_APPLY_FUN
 	{
 		m_ses.remove_torrent(i->handle);
+	}
+}
+
+void utorrent_webui::set_file_priority(std::vector<char>&, char const* args, permissions_interface const* p)
+{
+	if (!p->allow_set_file_prio()) return;
+
+	char prio_str[10];
+	if (mg_get_var(args, strlen(args)
+		, "p", prio_str, sizeof(prio_str)) <= 0)
+	{
+		return;
+	}
+	int prio = atoi(prio_str);
+	prio *= 2;
+
+	std::vector<int> files;
+	for (char const* f = strstr(args, "&f="); f; f = strstr(f, "&f="))
+	{
+		f += 3;
+		char* end;
+		int idx = strtol(f, &end, 10);
+		if (*end == '&' || *end == '\0')
+		{
+			files.push_back(idx);
+			f = end;
+		}
+	}
+
+	TORRENT_APPLY_FUN
+	{
+		for (std::vector<int>::iterator j = files.begin(), end(files.end()); j != end; ++j)
+			i->handle.file_priority(*j, prio);
 	}
 }
 
@@ -685,7 +718,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 				, escape_json(files.file_name(i)).c_str()
 				, files.file_size(i)
 				, progress[i]
-				, (file_prio[i]+3) / 4 // uTorrent's web UI uses 4 priority levels
+				, file_prio[i] / 2 // uTorrent's web UI uses 4 priority levels, libtorrent uses 8
 				);
 
 			if (m_version > 0)

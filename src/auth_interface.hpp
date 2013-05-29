@@ -53,6 +53,9 @@ namespace libtorrent
 		/// If returning true, the user may re-check torrents
 		virtual bool allow_recheck() const = 0;
 
+		/// If returning true, the user may modifiy the priority of files
+		virtual bool allow_set_file_prio() const = 0;
+
 		/// If returning true, the user may list torrents
 		virtual bool allow_list() const = 0;
 
@@ -108,6 +111,7 @@ namespace libtorrent
 		bool allow_start() const { return false; }
 		bool allow_stop() const { return false; }
 		bool allow_recheck() const { return false; }
+		bool allow_set_file_prio() const { return false; }
 		bool allow_list() const { return false; }
 		bool allow_add() const { return false; }
 		bool allow_remove() const { return false; }
@@ -128,6 +132,7 @@ namespace libtorrent
 		bool allow_start() const { return false; }
 		bool allow_stop() const { return false; }
 		bool allow_recheck() const { return false; }
+		bool allow_set_file_prio() const { return false; }
 		bool allow_list() const { return true; }
 		bool allow_add() const { return false; }
 		bool allow_remove() const { return false; }
@@ -146,6 +151,7 @@ namespace libtorrent
 		bool allow_start() const { return true; }
 		bool allow_stop() const { return true; }
 		bool allow_recheck() const { return true; }
+		bool allow_set_file_prio() const { return true; }
 		bool allow_list() const { return true; }
 		bool allow_add() const { return true; }
 		bool allow_remove() const { return true; }
