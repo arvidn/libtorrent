@@ -714,6 +714,8 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 		{
 			int first_piece = files.file_offset(i) / files.piece_length();
 			int last_piece = (files.file_offset(i) + files.file_size(i)) / files.piece_length();
+			// don't round 1 down to 0. 0 is special (do-not-download)
+			if (file_prio[i] == 1) file_prio[i] = 2;
 			appendf(response, ",[\"%s\", %"PRId64", %"PRId64", %d" + first_file
 				, escape_json(files.file_name(i)).c_str()
 				, files.file_size(i)
