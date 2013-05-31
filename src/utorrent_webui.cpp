@@ -483,7 +483,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			value = sett.get_bool(s);
 		}
 		appendf(response, ",[\"%s\",1,\"%s\",{\"access\":\"Y\"}]\n" + first
-			, sname, value ? "1" : "0");
+			, sname, value ? "true" : "false");
 		first = 0;
 	}
 
@@ -521,7 +521,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 	}
 
 	appendf(response, ",[\"torrents_start_stopped\",0,\"%s\",{\"access\":\"Y\"}]\n" + first
-		, m_params_model.flags & add_torrent_params::flag_paused ? "1" : "0");
+		, m_params_model.flags & add_torrent_params::flag_paused ? "true" : "false");
 	first = 0;
 
 	if (m_al)
@@ -530,7 +530,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			",[\"dir_autoload\",2,\"%s\",{\"access\":\"Y\"}]\n"
 			",[\"dir_autoload_flag\",1,\"%s\",{\"access\":\"Y\"}]" + first
 			, escape_json(m_al->auto_load_dir()).c_str()
-			, m_al->scan_interval() ? "1" : "0");
+			, m_al->scan_interval() ? "true" : "false");
 		first = 0;
 	}
 
@@ -562,10 +562,10 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 	appendf(response,
 		",[\"webui.cookie\",2,\"%s\",{\"access\":\"Y\"}]\n"
 		",[\"language\",0,\"0\",{\"access\":\"Y\"}]\n"
-		",[\"webui.enable_listen\",1,\"1\",{\"access\":\"Y\"}]\n"
-		",[\"webui.enable_guest\",1,\"0\",{\"access\":\"Y\"}]\n"
+		",[\"webui.enable_listen\",1,\"true\",{\"access\":\"Y\"}]\n"
+		",[\"webui.enable_guest\",1,\"false\",{\"access\":\"Y\"}]\n"
 		",[\"webui.port\",0,\"%d\",{\"access\":\"Y\"}]\n"
-		",[\"cache.override\",1,\"1\",{\"access\":\"Y\"}]\n"
+		",[\"cache.override\",1,\"true\",{\"access\":\"Y\"}]\n"
 		// the webUI uses the existence of this setting as an
 		// indication of supporting the getpeers action, so we
 		// need to define it in order to support peers
