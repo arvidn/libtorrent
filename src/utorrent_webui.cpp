@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "base64.hpp"
 #include "auth.hpp"
 #include "no_auth.hpp"
+#include "disk_space.hpp"
 
 #include <string.h> // for strcmp() 
 #include <stdio.h>
@@ -142,7 +143,7 @@ static method_handler handlers[] =
 	{ "add-url", &utorrent_webui::add_url },
 //	{ "setprops", &utorrent_webui:: },
 	{ "removedata", &utorrent_webui::remove_torrent_and_data },
-//	{ "list-dirs", &utorrent_webui:: },
+	{ "list-dirs", &utorrent_webui::list_dirs },
 //	{ "rss-update", &utorrent_webui:: },
 //	{ "rss-remove", &utorrent_webui:: },
 //	{ "filter-update", &utorrent_webui:: },
@@ -438,6 +439,13 @@ void utorrent_webui::remove_torrent_and_data(std::vector<char>&, char const* arg
 	{
 		m_ses.remove_torrent(i->handle, session::delete_files);
 	}
+}
+
+void utorrent_webui::list_dirs(std::vector<char>& response, char const* args, permissions_interface const* p)
+{
+	appendf(response, ", \"download-dirs\": [{\"path\":\"%s\",\"available\":%"PRId64"}]"
+		, escape_json(m_params_model.save_path).c_str()
+		, free_disk_space(m_params_model.save_path) / 1024 / 1024);
 }
 
 #undef TORRENT_APPLY_FUN

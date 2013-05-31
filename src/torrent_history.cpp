@@ -69,7 +69,8 @@ namespace libtorrent
 			torrent_history_entry st;
 			st.status.info_hash = tu->old_ih;
 			queue_t::right_iterator it = m_queue.right.find(st);
-			TORRENT_ASSERT(it != m_queue.right.end());
+			if (it == m_queue.right.end()) return;
+
 			st = it->first;
 			m_queue.right.erase(st);
 

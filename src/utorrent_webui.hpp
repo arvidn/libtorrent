@@ -67,6 +67,7 @@ namespace libtorrent
 		void recheck(std::vector<char>&, char const* args, permissions_interface const* p);
 		void remove_torrent(std::vector<char>&, char const* args, permissions_interface const* p);
 		void remove_torrent_and_data(std::vector<char>&, char const* args, permissions_interface const* p);
+		void list_dirs(std::vector<char>&, char const* args, permissions_interface const* p);
 		void set_file_priority(std::vector<char>&, char const* args, permissions_interface const* p);
 
 		void queue_up(std::vector<char>&, char const* args, permissions_interface const* p);
