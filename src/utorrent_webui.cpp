@@ -520,7 +520,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		first = 0;
 	}
 
-	appendf(response, ",[\"torrents_start_stopped\",0,\"%s\",{\"access\":\"Y\"}]\n" + first
+	appendf(response, ",[\"torrents_start_stopped\",1,\"%s\",{\"access\":\"Y\"}]\n" + first
 		, m_params_model.flags & add_torrent_params::flag_paused ? "true" : "false");
 	first = 0;
 
