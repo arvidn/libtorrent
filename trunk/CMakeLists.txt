@@ -293,6 +293,7 @@ if(build_tests)
 		test_auto_unchoke
 		test_http_connection
 		test_buffer
+		test_utp
 		test_storage
 		test_torrent
 		test_dht
@@ -307,11 +308,15 @@ if(build_tests)
 		test_ip_filter
 		test_hasher
 		test_metadata_extension
+		test_trackers_extension
 		test_swarm
 		test_lsd
 		test_pex
 		test_web_seed
 		test_bandwidth_limiter
+		test_session
+		test_torrent_parse
+		test_threads
 		)
 
 	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)

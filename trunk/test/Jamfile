@@ -54,6 +54,7 @@ test-suite libtorrent :
 	[ run test_dht.cpp ]
 	[ run test_storage.cpp ]
 	[ run test_torrent_parse.cpp ]
+	[ run test_session.cpp ]
 	[ run test_upnp.cpp ]
 
 	[ run test_tracker.cpp ]
