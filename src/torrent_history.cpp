@@ -70,9 +70,13 @@ namespace libtorrent
 			st.status.info_hash = tu->old_ih;
 			queue_t::right_iterator it = m_queue.right.find(st);
 			TORRENT_ASSERT(it != m_queue.right.end());
-			m_queue.right.replace_data(it, m_frame);
-			// bump this torrent to the beginning of the list
-			m_queue.left.relocate(m_queue.left.begin(), m_queue.project_left(it));
+			st = it->first;
+			m_queue.right.erase(st);
+
+			// then add the torrent under the new inf-hash
+			st.status.info_hash = tu->new_ih;
+			m_queue.left.push_front(std::make_pair(m_frame + 1, st));
+
 			// weed out torrents that were removed a long time ago
 			while (m_removed.size() > 1000 && m_removed.back().first < m_frame - 10)
 				m_removed.pop_back();
