@@ -109,6 +109,7 @@ namespace libtorrent
 
 		int m_version;
 		std::string m_token;
+		webui_base* m_listener;
 	};
 }
 

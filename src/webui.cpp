@@ -158,6 +158,8 @@ void webui_base::start(int port, char const* cert_path, int num_threads)
 {
 	if (m_ctx) mg_stop(m_ctx);
 
+	m_listen_port = port;
+
 	// start web interface
 	char port_str[20];
 	snprintf(port_str, sizeof(port_str), "%d%s", port, cert_path ? "s" : "");
