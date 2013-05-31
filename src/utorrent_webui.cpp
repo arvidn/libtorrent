@@ -468,8 +468,9 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		if (!p->allow_get_settings(settings_pack::string_type_base + i)) continue;
 
 		int s = settings_pack::string_type_base + i;
-		appendf(response, ",[\"%s\",2,\"%s\",{\"access\":\"Y\"}]\n" + first
-			, settings_name(s), escape_json(sett.get_str(s)).c_str());
+		appendf(response, ",[\"%s\",2,\"%s\",{\"access\":\"%c\"}]\n" + first
+			, settings_name(s), escape_json(sett.get_str(s)).c_str()
+			, p->allow_set_settings(s) ? 'Y' : 'R');
 		first = 0;
 	}
 
@@ -490,8 +491,9 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			sname = settings_name(s);
 			value = sett.get_bool(s);
 		}
-		appendf(response, ",[\"%s\",1,\"%s\",{\"access\":\"Y\"}]\n" + first
-			, sname, value ? "true" : "false");
+		appendf(response, ",[\"%s\",1,\"%s\",{\"access\":\"%c\"}]\n" + first
+			, sname, value ? "true" : "false"
+			, p->allow_set_settings(s) ? 'Y' : 'R');
 		first = 0;
 	}
 
@@ -523,22 +525,25 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			value = sett.get_int(s);
 		}
 
-		appendf(response, ",[\"%s\",0,\"%"PRId64"\",{\"access\":\"Y\"}]\n" + first
-			, sname, value);
+		appendf(response, ",[\"%s\",0,\"%"PRId64"\",{\"access\":\"%c\"}]\n" + first
+			, sname, value, p->allow_set_settings(s) ? 'Y' : 'R');
 		first = 0;
 	}
 
-	appendf(response, ",[\"torrents_start_stopped\",1,\"%s\",{\"access\":\"Y\"}]\n" + first
-		, m_params_model.flags & add_torrent_params::flag_paused ? "true" : "false");
+	appendf(response, ",[\"torrents_start_stopped\",1,\"%s\",{\"access\":\"%c\"}]\n" + first
+		, m_params_model.flags & add_torrent_params::flag_paused ? "true" : "false"
+		, p->allow_stop() ? 'Y' : 'R');
 	first = 0;
 
 	if (m_al)
 	{
 		appendf(response,
-			",[\"dir_autoload\",2,\"%s\",{\"access\":\"Y\"}]\n"
-			",[\"dir_autoload_flag\",1,\"%s\",{\"access\":\"Y\"}]" + first
+			",[\"dir_autoload\",2,\"%s\",{\"access\":\"%c\"}]\n"
+			",[\"dir_autoload_flag\",1,\"%s\",{\"access\":\"%c\"}]" + first
 			, escape_json(m_al->auto_load_dir()).c_str()
-			, m_al->scan_interval() ? "true" : "false");
+			, p->allow_set_settings(-1) ? 'Y' : 'R'
+			, m_al->scan_interval() ? "true" : "false"
+			, p->allow_set_settings(-1) ? 'Y' : 'R');
 		first = 0;
 	}
 
@@ -548,11 +553,16 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		&& p->allow_get_settings(settings_pack::enable_incoming_utp))
 	{
 		appendf(response,
-			",[\"bt.transp_disposition\",0,\"%d\",{\"access\":\"Y\"}]\n" + first
+			",[\"bt.transp_disposition\",0,\"%d\",{\"access\":\"%c\"}]\n" + first
 			, (sett.get_bool(settings_pack::enable_outgoing_tcp) ? 1 : 0)
 				+ (sett.get_bool(settings_pack::enable_outgoing_utp) ? 2 : 0)
 				+ (sett.get_bool(settings_pack::enable_incoming_tcp) ? 4 : 0)
-				+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 8 : 0));
+				+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 8 : 0)
+				, (p->allow_set_settings(settings_pack::enable_outgoing_tcp)
+					&& p->allow_set_settings(settings_pack::enable_outgoing_utp)
+					&& p->allow_set_settings(settings_pack::enable_incoming_tcp)
+					&& p->allow_set_settings(settings_pack::enable_incoming_utp))
+				? 'Y' : 'R');
 		first = 0;
 	}
 
@@ -560,24 +570,26 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 	if (p->allow_get_settings(-1))
 	{
 		appendf(response,
-			",[\"dir_active_download\",2,\"%s\",{\"access\":\"Y\"}]\n"
-			",[\"bind_port\",0,\"%d\",{\"access\":\"Y\"}]\n"
+			",[\"dir_active_download\",2,\"%s\",{\"access\":\"%c\"}]\n"
+			",[\"bind_port\",0,\"%d\",{\"access\":\"%c\"}]\n"
 			+ first
 			, escape_json(m_params_model.save_path).c_str()
-			, m_ses.listen_port());
+			, p->allow_set_settings(-1) ? 'Y' : 'R'
+			, m_ses.listen_port()
+			, p->allow_set_settings(-1) ? 'Y' : 'R');
 	}
 
 	appendf(response,
 		",[\"webui.cookie\",2,\"%s\",{\"access\":\"Y\"}]\n"
 		",[\"language\",0,\"0\",{\"access\":\"Y\"}]\n"
-		",[\"webui.enable_listen\",1,\"true\",{\"access\":\"Y\"}]\n"
-		",[\"webui.enable_guest\",1,\"false\",{\"access\":\"Y\"}]\n"
-		",[\"webui.port\",0,\"%d\",{\"access\":\"Y\"}]\n"
-		",[\"cache.override\",1,\"true\",{\"access\":\"Y\"}]\n"
+		",[\"webui.enable_listen\",1,\"true\",{\"access\":\"R\"}]\n"
+		",[\"webui.enable_guest\",1,\"false\",{\"access\":\"R\"}]\n"
+		",[\"webui.port\",0,\"%d\",{\"access\":\"R\"}]\n"
+		",[\"cache.override\",1,\"true\",{\"access\":\"R\"}]\n"
 		// the webUI uses the existence of this setting as an
 		// indication of supporting the getpeers action, so we
 		// need to define it in order to support peers
-		",[\"webui.uconnect_enable\",1,\"false\",{\"access\":\"Y\"}]\n"
+		",[\"webui.uconnect_enable\",1,\"false\",{\"access\":\"R\"}]\n"
 		"]"
 		 + first
 		, escape_json(m_webui_cookie).c_str(), m_listener->listen_port());
