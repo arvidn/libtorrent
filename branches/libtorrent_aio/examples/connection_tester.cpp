@@ -101,6 +101,7 @@ struct peer_conn
 		, state(handshaking)
 		, choked(true)
 		, current_piece(-1)
+		, current_piece_is_allowed(false)
 		, block(0)
 		, blocks_per_piece(blocks_pp)
 		, info_hash(ih)
@@ -168,6 +169,7 @@ struct peer_conn
 	std::vector<int> allowed_fast;
 	bool choked;
 	int current_piece; // the piece we're currently requesting blocks from
+	bool current_piece_is_allowed;
 	int block;
 	int blocks_per_piece;
 	char const* info_hash;
@@ -292,27 +294,33 @@ struct peer_conn
 
 	bool write_request()
 	{
-		if (choked && allowed_fast.empty() && current_piece == -1) return false;
+		// if we're choked (and there are no allowed-fast pieces left)
+		if (choked && allowed_fast.empty() && !current_piece_is_allowed) return false;
 
+		// if there are no pieces left to request
 		if (pieces.empty() && suggested_pieces.empty() && current_piece == -1) return false;
 
 		if (current_piece == -1)
 		{
+			// pick a new piece
 			if (choked && allowed_fast.size() > 0)
 			{
 				current_piece = allowed_fast.front();
 				allowed_fast.erase(allowed_fast.begin());
+				current_piece_is_allowed = true;
 			}
 			else if (suggested_pieces.size() > 0)
 			{
 				current_piece = suggested_pieces.front();
 				suggested_pieces.erase(suggested_pieces.begin());
 				++num_suggested_requests;
+				current_piece_is_allowed = false;
 			}
 			else if (pieces.size() > 0)
 			{
 				current_piece = pieces.front();
 				pieces.erase(pieces.begin());
+				current_piece_is_allowed = false;
 			}
 			else
 			{
@@ -339,6 +347,7 @@ struct peer_conn
 		{
 			block = 0;
 			current_piece = -1;
+			current_piece_is_allowed = false;
 		}
 		return true;
 	}
@@ -548,16 +557,28 @@ struct peer_conn
 				int start = detail::read_int32(ptr);
 				int length = detail::read_int32(ptr);
 
+				// put it back!
+				if (current_piece != piece)
+				{
+					if (pieces.empty() || pieces.back() != piece)
+						pieces.push_back(piece);
+				}
+				else
+				{
+					block = (std::min)(start / 0x4000, block);
+					if (block == 0)
+					{
+						pieces.push_back(current_piece);
+						current_piece = -1;
+						current_piece_is_allowed = false;
+					}
+				}
+				--outstanding_requests;
 				fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
-				s.close();
-				return;
 			}
 			else if (msg == 0) // choke
 			{
 				choked = true;
-				fprintf(stderr, "CHOKED");
-				s.close();
-				return;
 			}
 			else if (msg == 1) // unchoke
 			{
