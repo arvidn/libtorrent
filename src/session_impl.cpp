@@ -4599,9 +4599,9 @@ retry:
 					TORRENT_ASSERT(t1);
 					boost::shared_ptr<torrent> t2 = (*i)->associated_torrent().lock();
 					TORRENT_ASSERT(t2);
-					TORRENT_ASSERT((*prev)->uploaded_since_unchoke() * 1000
+					TORRENT_ASSERT((*prev)->uploaded_in_last_round() * 1000
 						* (1 + t1->priority()) / total_milliseconds(unchoke_interval)
-						>= (*i)->uploaded_since_unchoke() * 1000
+						>= (*i)->uploaded_in_last_round() * 1000
 						* (1 + t2->priority()) / total_milliseconds(unchoke_interval));
 				}
 				prev = i;
@@ -4615,7 +4615,7 @@ retry:
 				, end(peers.end()); i != end; ++i)
 			{
 				peer_connection const& p = **i;
-				int rate = int(p.uploaded_since_unchoke()
+				int rate = int(p.uploaded_in_last_round()
 					* 1000 / total_milliseconds(unchoke_interval));
 
 				if (rate < rate_threshold) break;

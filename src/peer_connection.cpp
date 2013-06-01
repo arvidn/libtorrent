@@ -129,7 +129,8 @@ namespace libtorrent
 		, m_became_uninterested(time_now())
 		, m_became_uninteresting(time_now())
 		, m_free_upload(0)
-		, m_downloaded_at_last_unchoke(0)
+		, m_downloaded_at_last_round(0)
+		, m_uploaded_at_last_round(0)
 		, m_uploaded_at_last_unchoke(0)
 		, m_disk_recv_buffer(ses, 0)
 		, m_socket(s)
@@ -294,11 +295,11 @@ namespace libtorrent
 		size_type d1, d2, u1, u2;
 
 		// first compare how many bytes they've sent us
-		d1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
-		d2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+		d1 = downloaded_in_last_round();
+		d2 = rhs.downloaded_in_last_round();
 		// divided by the number of bytes we've sent them
-		u1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
-		u2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+		u1 = uploaded_in_last_round();
+		u2 = rhs.uploaded_in_last_round();
 
 		boost::shared_ptr<torrent> t1 = m_torrent.lock();
 		TORRENT_ASSERT(t1);
@@ -338,31 +339,49 @@ namespace libtorrent
 		// compare how many bytes they've sent us
 		size_type c1;
 		size_type c2;
-		c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
-		c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+		c1 = downloaded_in_last_round();
+		c2 = rhs.downloaded_in_last_round();
 
 		if (c1 != c2) return c1 > c2;
 
 		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
 		{
-			// if they are equal, compare how much we have uploaded
-			c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
-			c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+			// the amount uploaded since unchoked (not just in the last round)
+			c1 = uploaded_since_unchoked();
+			c2 = rhs.uploaded_since_unchoked();
 
-			// in order to not switch back and forth too often,
-			// unchoked peers must be at least one piece ahead
-			// of a choked peer to be sorted at a lower unchoke-priority
+			// the way the round-robin unchoker works is that it,
+			// by default, prioritizes any peer that is already unchoked.
+			// this maintain the status quo across unchoke rounds. However,
+			// peers that are unchoked, but have sent more than one quota
+			// since they were unchoked, they get de-prioritized.
+
 			int pieces = m_ses.settings().seeding_piece_quota;
-			bool c1_done = is_choked() || c1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
-			bool c2_done = rhs.is_choked() || c2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
+			// if a peer is already unchoked, and the number of bytes sent since it was unchoked
+			// is greater than the send quanta, then it's done with it' upload slot, and we
+			// can de-prioritize it
+			bool c1_quota_complete = !is_choked() && c1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
+			bool c2_quota_complete = !rhs.is_choked() && c2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
 
-			if (!c1_done && c2_done) return true;
-			if (c1_done && !c2_done) return false;
+			// if c2 has completed a quanta, it shuold be de-prioritized
+			// and vice versa
+			if (c1_quota_complete < c2_quota_complete) return true;
+			if (c1_quota_complete > c2_quota_complete) return false;
+
+			// if both peers have either completed a quanta, or not.
+			// keep unchoked peers prioritized over choked ones, to let
+			// peers keep working on uploading a full quanta
+			if (is_choked() < rhs.is_choked()) return true;
+			if (is_choked() > rhs.is_choked()) return false;
+
+			// if the peers are still identical (say, they're both waiting to be unchoked)
+			// fall through and rely on the logic to prioritize peers who have waited
+			// the longest to be unchoked
 		}	
 		else if (m_ses.settings().seed_choking_algorithm == session_settings::fastest_upload)
 		{
-			c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
-			c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
+			c1 = uploaded_in_last_round();
+			c2 = rhs.uploaded_in_last_round();
 		
 			// take torrent priority into account
 			c1 *= 1 + t1->priority();
@@ -403,6 +422,8 @@ namespace libtorrent
 		}
 		
 		// prioritize the one that has waited the longest to be unchoked
+		// the round-robin unchoker relies on this logic. Don't change it
+		// without moving this into that unchoker logic
 		return m_last_unchoke < rhs.m_last_unchoke;
 	}
 
@@ -416,8 +437,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t2 = p->associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 
-		c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
-		c2 = p->m_statistics.total_payload_upload() - p->m_uploaded_at_last_unchoke;
+		c1 = uploaded_in_last_round();
+		c2 = p->uploaded_in_last_round();
 		
 		// take torrent priority into account
 		c1 *= 1 + t1->priority();
@@ -428,8 +449,8 @@ namespace libtorrent
 
 	void peer_connection::reset_choke_counters()
 	{
-		m_downloaded_at_last_unchoke = m_statistics.total_payload_download();
-		m_uploaded_at_last_unchoke = m_statistics.total_payload_upload();
+		m_downloaded_at_last_round= m_statistics.total_payload_download();
+		m_uploaded_at_last_round = m_statistics.total_payload_upload();
 	}
 
 	void peer_connection::start()
@@ -3095,6 +3116,8 @@ namespace libtorrent
 		m_last_unchoke = time_now();
 		write_unchoke();
 		m_choked = false;
+
+		m_uploaded_at_last_unchoke = m_statistics.total_payload_upload();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> UNCHOKE");

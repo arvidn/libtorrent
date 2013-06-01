@@ -623,11 +623,14 @@ namespace libtorrent
 		// enum from peer_info::bw_state
 		char m_channel_state[2];
 
-		size_type uploaded_since_unchoke() const
-		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
+		size_type uploaded_in_last_round() const
+		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_round; }
 
-		size_type downloaded_since_unchoke() const
-		{ return m_statistics.total_payload_download() - m_downloaded_at_last_unchoke; }
+		size_type downloaded_in_last_round() const
+		{ return m_statistics.total_payload_download() - m_downloaded_at_last_round; }
+
+		size_type uploaded_since_unchoked() const
+		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
 
 		// called when the disk write buffer is drained again, and we can
 		// start downloading payload again
@@ -847,11 +850,19 @@ namespace libtorrent
 		size_type m_free_upload;
 
 		// the total payload download bytes
-		// at the last unchoke cycle. This is used to
+		// at the last unchoke round. This is used to
 		// measure the number of bytes transferred during
 		// an unchoke cycle, to unchoke peers the more bytes
 		// they sent us
-		size_type m_downloaded_at_last_unchoke;
+		size_type m_downloaded_at_last_round;
+		size_type m_uploaded_at_last_round;
+
+		// this is the number of bytes we had uploaded the
+		// last time this peer was unchoked. This does not
+		// reset each unchoke interval/round. This is used to
+		// track upload across rounds, for the full duration of
+		// the peer being unchoked. Specifically, it's used
+		// for the round-robin unchoke algorithm.
 		size_type m_uploaded_at_last_unchoke;
 
 #ifndef TORRENT_DISABLE_GEO_IP
