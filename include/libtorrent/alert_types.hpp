@@ -1361,6 +1361,22 @@ namespace libtorrent
 		sha1_hash new_ih;
 	};
 
+	struct TORRENT_EXPORT rss_item_alert : alert
+	{
+		rss_item_alert(feed_handle h, feed_item const& item)
+			: handle(h)
+			, item(item)
+		{}
+
+		TORRENT_DEFINE_ALERT(rss_item_alert);
+
+		const static int static_category = alert::rss_notification;
+		virtual std::string message() const;
+
+		feed_handle handle;
+		feed_item item;
+	};
+
 
 #undef TORRENT_DEFINE_ALERT
 

@@ -369,39 +369,6 @@ void feed::on_feed(error_code const& ec
 
 	time_t now = time(NULL);
 
-	if (m_settings.auto_download || m_settings.auto_map_handles)
-	{
-		for (std::vector<feed_item>::iterator i = m_items.begin()
-			, end(m_items.end()); i != end; ++i)
-		{
-			i->handle = torrent_handle(m_ses.find_torrent(i->uuid.empty() ? i->url : i->uuid));
-
-			// if we're already downloading this torrent, or if we
-			// don't have auto-download enabled, just move along to
-			// the next one
-			if (i->handle.is_valid() || !m_settings.auto_download) continue;
-
-			// has this already been added?
-			if (m_added.find(i->url) != m_added.end()) continue;
-
-			// this means we should add this torrent to the session
-			add_torrent_params p = m_settings.add_args;
-			p.url = i->url;
-			p.uuid = i->uuid;
-			p.source_feed_url = m_settings.url;
-			p.ti.reset();
-			p.info_hash.clear();
-			p.name = i->title.c_str();
-
-			error_code e;
-			torrent_handle h = m_ses.add_torrent(p, e);
-			m_ses.m_alerts.post_alert(add_torrent_alert(h, p, e));
-			m_added.insert(make_pair(i->url, now));
-		}
-	}
-
-	m_last_update = now;
-
 	// keep history of the typical feed size times 5
 	int max_history = (std::max)(s.num_items * 5, 100);
 
@@ -416,6 +383,8 @@ void feed::on_feed(error_code const& ec
 			< boost::bind(&std::pair<const std::string, time_t>::second, _2));
 		m_added.erase(i);
 	}
+
+	m_last_update = now;
 
 	// report that we successfully updated the feed
 	if (m_ses.m_alerts.should_post<rss_alert>())
@@ -566,6 +535,41 @@ void feed::add_item(feed_item const& item)
 
 	m_urls.insert(item.url);
 	m_items.push_back(item);
+
+	feed_item& i = m_items.back();
+
+	if (m_settings.auto_map_handles)
+		i.handle = torrent_handle(m_ses.find_torrent(i.uuid.empty() ? i.url : i.uuid));
+
+	if (m_ses.m_alerts.should_post<rss_item_alert>())
+		m_ses.m_alerts.post_alert(rss_item_alert(my_handle(), i));
+
+	if (m_settings.auto_download)
+	{
+		if (!m_settings.auto_map_handles)
+			i.handle = torrent_handle(m_ses.find_torrent(i.uuid.empty() ? i.url : i.uuid));
+
+		// if we're already downloading this torrent
+		// move along to the next one
+		if (i.handle.is_valid()) return;
+
+		// has this already been added?
+		if (m_added.find(i.url) != m_added.end()) return;
+
+		// this means we should add this torrent to the session
+		add_torrent_params p = m_settings.add_args;
+		p.url = i.url;
+		p.uuid = i.uuid;
+		p.source_feed_url = m_settings.url;
+		p.ti.reset();
+		p.info_hash.clear();
+		p.name = i.title.c_str();
+
+		error_code e;
+		m_ses.add_torrent(p, e);
+		time_t now = time(NULL);
+		m_added.insert(make_pair(i.url, now));
+	}
 }
 
 // returns the number of seconds until trying again
