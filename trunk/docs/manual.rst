@@ -6362,6 +6362,7 @@ is its synopsis:
 			performance_warning = *implementation defined*,
 			dht_notification = *implementation defined*,
 			stats_notification = *implementation defined*,
+			rss_notification = *implementation defined*,
 
 			all_categories = *implementation defined*
 		};
@@ -7635,6 +7636,26 @@ having to call ``get_settings()``.
 	what went wrong.
 
 ``error`` is an error code used for when an error occurs on the feed.
+
+rss_item_alert
+--------------
+
+This alert is posted every time a new RSS item (i.e. torrent) is received
+from an RSS feed.
+
+It is only posted if the ``rss_notifications`` category is enabled in the
+alert mask.
+
+::
+
+	struct rss_alert : alert
+	{
+		// ...
+		virtual std::string message() const;
+
+		feed_handle handle;
+		feed_item item;
+	};
 
 incoming_connection_alert
 -------------------------

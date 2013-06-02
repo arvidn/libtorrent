@@ -488,5 +488,14 @@ namespace libtorrent {
 		return torrent_alert::message() + msg;
 	}
 
+	std::string rss_item_alert::message() const
+	{
+		char msg[500];
+		snprintf(msg, sizeof(msg), "feed [%s] has new RSS item %s"
+			, handle.get_feed_status().title.c_str()
+			, item.title.empty() ? item.url.c_str() : item.title.c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 
