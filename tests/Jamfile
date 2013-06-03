@@ -15,6 +15,7 @@ project
 
 test-suite libtorrent : 	
 	[ run test_rencode.cpp ]
+	[ run test_rss_filter.cpp ]
 	; 
 
 

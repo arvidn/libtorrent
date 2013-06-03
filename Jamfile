@@ -36,6 +36,7 @@ SOURCES =
 	http_whitelist
 	error_logger
 	websocket_handler
+	rss_filter
 	;
 
 lib torrent-webui

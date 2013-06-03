@@ -20,6 +20,7 @@ Supported features:
 * torrent update queue, to return only torrents that have
   changed since last check-in
 * serving files off of filesystem
+* RSS feed filters, with episode parsing
 
 The main web UI framework leverages mongoose web server and
 jsmn JSON parser.
