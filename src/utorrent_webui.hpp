@@ -47,11 +47,13 @@ namespace libtorrent
 	struct torrent_history;
 	struct permissions_interface;
 	struct auth_interface;
+	struct rss_filter_handler;
 
 	struct utorrent_webui : http_handler
 	{
 		utorrent_webui(session& s, save_settings_interface* sett = NULL
 			, auto_load* al = NULL, torrent_history* hist = NULL
+			, rss_filter_handler* rss_filter = NULL
 			, auth_interface const* auth = NULL);
 		~utorrent_webui();
 
@@ -87,6 +89,12 @@ namespace libtorrent
 
 		void get_version(std::vector<char>& response, char const* args, permissions_interface const* p);
 
+		void send_rss_list(std::vector<char>&, char const* args, permissions_interface const* p);
+		void rss_update(std::vector<char>& response, char const* args, permissions_interface const* p);
+		void rss_remove(std::vector<char>& response, char const* args, permissions_interface const* p);
+		void rss_filter_update(std::vector<char>& response, char const* args, permissions_interface const* p);
+		void rss_filter_remove(std::vector<char>& response, char const* args, permissions_interface const* p);
+
 	private:
 
 		std::vector<torrent_status> parse_torrents(char const* args) const;
@@ -103,6 +111,8 @@ namespace libtorrent
 		auth_interface const* m_auth;
 
 		save_settings_interface* m_settings;
+
+		rss_filter_handler* m_rss_filter;
 
 		// used to detect which torrents have been updated
 		// since last time

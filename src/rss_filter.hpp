@@ -97,7 +97,11 @@ namespace libtorrent
 	*/
 	struct rss_rule
 	{
-		rss_rule() : exact_match(false), episode_filter(true) {}
+		rss_rule() : id(0), exact_match(false), episode_filter(true) {}
+
+		/// a unique identifier for this rule. This is initialized
+		/// by the rss_filter_handler when adding the rule
+		int id;
 
 		/// only if this string is found in the name does
 		/// this rule match
@@ -143,18 +147,23 @@ namespace libtorrent
 		rss_filter_handler(alert_handler& h, session& ses);
 		~rss_filter_handler();
 
-		/// retrieves the rule at index idx
-		/// if idx is out of range, a default-constructed
-		/// rule is returned.
-		rss_rule get_rule(int idx) const;
+		/// retrieves the rule with the given id
+		/// if no rule is found with the given id
+		/// a default constructed rule is returned
+		rss_rule get_rule(int id) const;
+
+		/// returns all rules associated with this filter
+		std::vector<rss_rule> get_rules() const;
 
 		/// add a rule at the end of the rule list.
-		/// the index of the new rule is returned
+		/// returns the id assigned to this rule
 		int add_rule(rss_rule const& r);
+
+		/// updates the rule with the same id as r
+		void edit_rule(rss_rule const& r);
 		
-		/// remove the rule at index idx. If idx
-		/// is out of range, this is a no-op
-		void remove_rule(int idx);
+		/// remove the rule with the specified id.
+		void remove_rule(int id);
 
 		// returns the number of rules
 		int num_rules() const;
@@ -174,6 +183,7 @@ namespace libtorrent
 
 		alert_handler& m_handler;
 		session& m_ses;
+		int m_next_id;
 	};
 
 }

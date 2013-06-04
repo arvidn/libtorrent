@@ -146,7 +146,8 @@ namespace libtorrent
 
 	rss_filter_handler::rss_filter_handler(alert_handler& h, session& ses)
 		: m_handler(h)
-		  , m_ses(ses)
+		, m_ses(ses)
+		, m_next_id(0)
 	{
 		m_handler.subscribe(this, 0, rss_item_alert::alert_type, 0);
 	}
@@ -240,27 +241,63 @@ namespace libtorrent
 		}
 	}
 
-	rss_rule rss_filter_handler::get_rule(int idx) const
+	rss_rule rss_filter_handler::get_rule(int id) const
 	{
 		mutex::scoped_lock l(m_mutex);
-		if (idx < 0 || idx >= int(m_rules.size())) return rss_rule();
-		return m_rules[idx];
+		for (std::vector<rss_rule_t>::const_iterator i = m_rules.begin()
+			, end(m_rules.end()); i != end; ++i)
+		{
+			if (i->id != id) continue;
+			return *i;
+		}
 	}
 
 	int rss_filter_handler::add_rule(rss_rule const& r)
 	{
 		mutex::scoped_lock l(m_mutex);
-		int ret = int(m_rules.size());
+
+		int id = m_next_id++;
 		m_rules.push_back(r);
-		return ret;
+		m_rules.back().id = id;
+		return id;
 	}
 
-	void rss_filter_handler::remove_rule(int idx)
+	void rss_filter_handler::edit_rule(rss_rule const& r)
 	{
 		mutex::scoped_lock l(m_mutex);
-		if (idx < 0 || idx >= int(m_rules.size())) return;
+		for (std::vector<rss_rule_t>::iterator i = m_rules.begin()
+			, end(m_rules.end()); i != end; ++i)
+		{
+			if (i->id != r.id) continue;
+			*i = r;
+			break;
+		}
+	}
 
-		m_rules.erase(m_rules.begin() + idx);
+	void rss_filter_handler::remove_rule(int id)
+	{
+		mutex::scoped_lock l(m_mutex);
+
+		for (std::vector<rss_rule_t>::iterator i = m_rules.begin()
+			, end(m_rules.end()); i != end; ++i)
+		{
+			if (i->id != id) continue;
+			m_rules.erase(i);
+			break;
+		}
+	}
+
+	std::vector<rss_rule> rss_filter_handler::get_rules() const
+	{
+		mutex::scoped_lock l(m_mutex);
+		std::vector<rss_rule> ret;
+
+		for (std::vector<rss_rule_t>::const_iterator i = m_rules.begin()
+			, end(m_rules.end()); i != end; ++i)
+		{
+			ret.push_back(*i);
+		}
+		return ret;
 	}
 
 	int rss_filter_handler::num_rules() const

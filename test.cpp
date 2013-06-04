@@ -12,6 +12,7 @@
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_handler.hpp"
+#include "rss_filter.hpp"
 
 #include <signal.h>
 
@@ -60,9 +61,10 @@ int main(int argc, char *const argv[])
 	resume.load(ec, p);
 
 	auto_load al(ses, &sett);
+	rss_filter_handler rss_filter(alerts, ses);
 
 	transmission_webui tr_handler(ses, &sett, &authorizer);
-	utorrent_webui ut_handler(ses, &sett, &al, &hist, &authorizer);
+	utorrent_webui ut_handler(ses, &sett, &al, &hist, &rss_filter, &authorizer);
 	file_downloader file_handler(ses, &authorizer);
 	libtorrent_webui lt_handler(ses, &hist, &authorizer, &alerts);
 

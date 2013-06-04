@@ -65,16 +65,22 @@ extern "C" {
 #include "auto_load.hpp"
 #include "save_settings.hpp"
 #include "torrent_history.hpp"
+#include "rss_filter.hpp"
 
 namespace libtorrent
 {
 
+	namespace io = detail;
+
 utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
-	, auto_load* al, torrent_history* hist, auth_interface const* auth)
+	, auto_load* al, torrent_history* hist
+	, rss_filter_handler* rss_filter
+	, auth_interface const* auth)
 	: m_ses(s)
 	, m_al(al)
 	, m_auth(auth)
 	, m_settings(sett)
+	, m_rss_filter(rss_filter)
 	, m_hist(hist)
 	, m_listener(NULL)
 {
@@ -144,10 +150,10 @@ static method_handler handlers[] =
 //	{ "setprops", &utorrent_webui:: },
 	{ "removedata", &utorrent_webui::remove_torrent_and_data },
 	{ "list-dirs", &utorrent_webui::list_dirs },
-//	{ "rss-update", &utorrent_webui:: },
-//	{ "rss-remove", &utorrent_webui:: },
-//	{ "filter-update", &utorrent_webui:: },
-//	{ "filter-remove", &utorrent_webui:: },
+	{ "rss-update", &utorrent_webui::rss_update },
+	{ "rss-remove", &utorrent_webui::rss_remove },
+	{ "filter-update", &utorrent_webui::rss_filter_update },
+	{ "filter-remove", &utorrent_webui::rss_filter_remove },
 	{ "removetorrent", &utorrent_webui::remove_torrent },
 	{ "removedatatorrent", &utorrent_webui::remove_torrent_and_data },
 	{ "getversion", &utorrent_webui::get_version },
@@ -282,6 +288,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		&& atoi(buf) > 0)
 	{
 		send_torrent_list(response, request_info->query_string, perms);
+		send_rss_list(response, request_info->query_string, perms);
 	}
 
 	// we need a null terminator
@@ -977,14 +984,110 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 void utorrent_webui::get_version(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
 	appendf(response, ",\"version\":{\"engine_version\": \"%s\""
-		", \"major_version\": %d"
-		", \"minor_version\": %d"
-		", \"peer_id\": \"%s\""
-		", \"user_agent\": \"%s\""
-		", \"product_code\": \"server\""
+		",\"major_version\": %d"
+		",\"minor_version\": %d"
+		",\"peer_id\": \"%s\""
+		",\"user_agent\": \"%s\""
+		",\"product_code\": \"server\""
 		"}"
 		, LIBTORRENT_REVISION, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR
 		, to_hex(m_ses.id().to_string()).c_str(), m_ses.get_settings().get_str(settings_pack::user_agent).c_str());
+}
+
+void utorrent_webui::rss_update(std::vector<char>& response, char const* args, permissions_interface const* p)
+{
+	char feed_id_str[20];
+	int ret = mg_get_var(args, strlen(args), "feed-id", feed_id_str, sizeof(feed_id_str));
+	int feed_id = atoi(feed_id_str);
+
+	char subscr_str[20];
+	ret = mg_get_var(args, strlen(args), "subscribe", subscr_str, sizeof(subscr_str));
+	int subscribe = atoi(subscr_str);
+
+	char update_str[20];
+	ret = mg_get_var(args, strlen(args), "update", update_str, sizeof(update_str));
+	int update = atoi(update_str);
+	
+	char url[2048];
+	ret = mg_get_var(args, strlen(args), "url", url, sizeof(url));
+
+	if (feed_id == -1)
+	{
+		feed_settings f;
+		f.url = url;
+		f.auto_download = subscribe;
+		m_ses.add_feed(f);
+	}
+	else
+	{
+		// TOOD: iterate over all feeds to find the one with feed_id
+		// TOOD: if update is set, just refresh the feed
+	}
+}
+
+void utorrent_webui::rss_remove(std::vector<char>& response, char const* args, permissions_interface const* p)
+{
+}
+
+void utorrent_webui::rss_filter_update(std::vector<char>& response, char const* args, permissions_interface const* p)
+{
+	char buf[512];
+
+	int ret = mg_get_var(args, strlen(args), "filter-id", buf, sizeof(buf));
+	if (ret < 0) return;
+	int filter_id = atoi(buf);
+
+	rss_rule r;
+	if (filter_id == -1)
+	{
+		r.params = m_params_model;
+	}
+	else
+	{
+		r = m_rss_filter->get_rule(filter_id);
+	}
+		
+	ret = mg_get_var(args, strlen(args), "filter", buf, sizeof(buf));
+	if (ret > 0) r.search = buf;
+	ret = mg_get_var(args, strlen(args), "not-filter", buf, sizeof(buf));
+	if (ret > 0) r.search_not = buf;
+	ret = mg_get_var(args, strlen(args), "origname", buf, sizeof(buf));
+	if (ret > 0) r.exact_match = atoi(buf);
+	ret = mg_get_var(args, strlen(args), "add-stopped", buf, sizeof(buf));
+	if (ret > 0)
+	{
+		if (atoi(buf))
+		{
+			r.params.flags = (r.params.flags
+				& ~add_torrent_params::flag_auto_managed)
+				| add_torrent_params::flag_paused;
+		}
+		else
+		{
+			r.params.flags = (r.params.flags
+				| add_torrent_params::flag_auto_managed)
+				& ~add_torrent_params::flag_paused;
+		}
+	}
+	ret = mg_get_var(args, strlen(args), "smart-ep-filter", buf, sizeof(buf));
+	if (ret > 0) r.episode_filter = atoi(buf);
+	ret = mg_get_var(args, strlen(args), "save-in", buf, sizeof(buf));
+	if (ret > 0) r.params.save_path = buf;
+
+	if (filter_id == -1)
+	{
+		int filter_id = m_rss_filter->add_rule(r);
+		appendf(response, ",\"filter_ident\": %d", filter_id);
+	}
+	else
+	{
+		m_rss_filter->edit_rule(r);
+	}
+}
+
+void utorrent_webui::rss_filter_remove(std::vector<char>& response, char const* args, permissions_interface const* p)
+{
+
 }
 
 enum ut_state_t
@@ -1147,6 +1250,123 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 	}
 	// TODO: support labels
 	appendf(response, "], \"label\": [], \"torrentc\": \"%d\"", m_hist->frame());
+}
+
+int feed_id(feed_status const& st)
+{
+	sha1_hash h = hasher(st.url.c_str(), st.url.length()).final();
+	char const* ptr = (char const*)&h[0];
+	return io::read_uint32(ptr) & 0x7fffffff;
+}
+
+void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args, permissions_interface const* p)
+{
+	if (!p->allow_list()) return;
+
+	int cid = 0;
+	char buf[50];
+	// first, find the action
+	int ret = mg_get_var(args, strlen(args)
+		, "cid", buf, sizeof(buf));
+	if (ret > 0) cid = atoi(buf);
+
+	appendf(response, cid > 0 ? ",\"rssfeedp\":[" : ",\"rssfeeds\":[");
+
+	std::vector<feed_handle> feeds;
+	m_ses.get_feeds(feeds);
+
+	int first = 1;
+	for (std::vector<feed_handle>::iterator i = feeds.begin()
+		, end(feeds.end()); i != end; ++i)
+	{
+		feed_status st = i->get_feed_status();
+		int id = feed_id(st);
+/*
+	from documentation:
+
+		IDENT (integer),
+		ENABLED (boolean),
+		USE FEED TITLE (boolean),
+		USER SELECTED (boolean),
+		PROGRAMMED (boolean),
+		DOWNLOAD STATE (integer),
+		URL (string),
+		NEXT UPDATE (integer in unix time)
+
+		[
+			NAME (string),
+			NAME FULL (string),
+			URL (string),
+			QUALITY (integer),
+			CODEC (integer),
+			TIMESTAMP (integer),
+			SEASON (integer),
+			EPISODE (integer),
+			EPISODE TO (integer),
+			FEED ID (integer),
+			REPACK (boolean),
+			IN HISTORY (boolean)
+		]
+*/
+		appendf(response, ",[%u,true,true,false,true,%u,\"%s\",%"PRId64",[" + first
+			, id, 0, st.url.c_str(), 0);
+
+		int first2 = 1;
+		for (std::vector<feed_item>::iterator k = st.items.begin()
+			, end(st.items.end()); k != end; ++k)
+		{
+			item_properties p;
+			parse_name(k->title, p);
+			appendf(response, ",[\"%s\",\"%s\",\"%s\",%u,0,%"PRId64",%u,%u,0,0,%u,false,false]" + first2
+				, k->title.c_str(), k->title.c_str(), k->url.c_str(), 0, 0, p.season, p.episode, id);
+			first2 = 0;
+		}
+
+		response.push_back(']');
+		response.push_back(']');
+		first = 0;
+	}
+
+	// TODO: support removing feeds
+	appendf(response, "], \"rssfeedm\": []");
+
+/*
+	from documentation:
+
+	[ IDENT (integer),
+	FLAGS (integer),
+	NAME (string),
+	FILTER (string as regexp),
+	NOT FILTER (string as regexp),
+	DIRECTORY (string),
+	FEED (integer as feed ID),
+	QUALITY (integer in bytes),
+	LABEL (string),
+	POSTPONE MODE (integer),
+	LAST MATCH (integer),
+	SMART EP FILTER (integer),
+	REPACK EP FILTER (integer),
+	EPISODE FILTER STR (string),
+	EPISODE FILTER (boolean),
+	RESOLVING CANDIDATE (boolean) ],
+*/
+	appendf(response, cid > 0 ? ",\"rssfilterp\":[" : ",\"rssfilters\":[");
+
+	std::vector<rss_rule> rules = m_rss_filter->get_rules();
+	first = 1;
+	for (std::vector<rss_rule>::iterator i = rules.begin()
+		, end(rules.end()); i != end; ++i)
+	{
+		appendf(response, ",[%d, 0, \"%s\", \"%s\", \"%s\", \"%s\", -1, 0, \"\", 0, 0, 0, 0, %d, 0, \"\", false, false]" + first
+			, i->id // id
+			, i->search.c_str() // name
+			, i->search.c_str() // filter string
+			, i->search_not.c_str() // not-filter string
+			, i->params.save_path.c_str() // directory
+			, i->episode_filter); // smart-ep filter
+		first = 0;
+	}
+	appendf(response, "],\"rssfilterm\":[]");
 }
 
 std::vector<torrent_status> utorrent_webui::parse_torrents(char const* args) const
