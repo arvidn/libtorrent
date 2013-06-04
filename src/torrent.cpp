@@ -1137,7 +1137,7 @@ namespace libtorrent
 #if BOOST_VERSION == 103500
 			error_code(boost::system::posix_error::not_enough_memory, get_posix_category())
 #elif BOOST_VERSION > 103500
-			error_code(boost::system::errc::not_enough_memory, get_posix_category())
+			error_code(boost::system::errc::not_enough_memory, boost::system::generic_category())
 #else
 			asio::error::no_memory
 #endif

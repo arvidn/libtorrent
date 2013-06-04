@@ -90,7 +90,6 @@ namespace libtorrent
 
 		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
 		void bind(udp::endpoint const& ep, error_code& ec);
-		void bind(int port);
 		void close();
 		int local_port() const { return m_bind_port; }
 
