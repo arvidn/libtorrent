@@ -227,7 +227,7 @@ namespace libtorrent {
 	{
 		char ret[200];
 		snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request (piece: %u start: %u len: %u)"
-			, torrent_alert::message().c_str(), request.piece, request.start, request.length);
+			, peer_alert::message().c_str(), request.piece, request.start, request.length);
 		return ret;
 	}
 
