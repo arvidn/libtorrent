@@ -2392,10 +2392,14 @@ namespace aux {
 	void session_impl::setup_listener(listen_socket_t* s, tcp::endpoint ep
 		, int& retries, bool v6_only, int flags, error_code& ec)
 	{
+		int last_op = 0;
 		s->sock.reset(new socket_acceptor(m_io_service));
 		s->sock->open(ep.protocol(), ec);
+		last_op = listen_failed_alert::open;
 		if (ec)
 		{
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(ep, last_op, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("failed to open socket: %s: %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
@@ -2435,6 +2439,7 @@ namespace aux {
 			--retries;
 			ep.port(ep.port() + 1);
 			s->sock->bind(ep, ec);
+			last_op = listen_failed_alert::bind;
 		}
 		if (ec && !(flags & listen_no_system_port))
 		{
@@ -2443,12 +2448,13 @@ namespace aux {
 			ep.port(0);
 			ec = error_code();
 			s->sock->bind(ep, ec);
+			last_op = listen_failed_alert::bind;
 		}
 		if (ec)
 		{
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(ep, ec));
+				m_alerts.post_alert(listen_failed_alert(ep, last_op, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("cannot bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
@@ -2456,11 +2462,16 @@ namespace aux {
 			return;
 		}
 		s->external_port = s->sock->local_endpoint(ec).port();
-		if (!ec) s->sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
+		last_op = listen_failed_alert::get_peer_name;
+		if (!ec)
+		{
+			s->sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
+			last_op = listen_failed_alert::listen;
+		}
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(ep, ec));
+				m_alerts.post_alert(listen_failed_alert(ep, last_op, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("cannot listen on interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
@@ -2471,7 +2482,21 @@ namespace aux {
 		// if we asked the system to listen on port 0, which
 		// socket did it end up choosing?
 		if (ep.port() == 0)
+		{
 			ep.port(s->sock->local_endpoint(ec).port());
+			last_op = listen_failed_alert::get_peer_name;
+			if (ec)
+			{
+				if (m_alerts.should_post<listen_failed_alert>())
+					m_alerts.post_alert(listen_failed_alert(ep, last_op, ec));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				char msg[200];
+				snprintf(msg, 200, "failed to get peer name \"%s\": %s"
+					, print_endpoint(ep).c_str(), ec.message().c_str());
+				(*m_logger) << time_now_string() << msg << "\n";
+#endif
+			}
+		}
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.post_alert(listen_succeeded_alert(ep));
@@ -2642,7 +2667,8 @@ retry:
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(m_listen_interface, ec));
+				m_alerts.post_alert(listen_failed_alert(m_listen_interface
+					, listen_failed_alert::bind, ec));
 		}
 		else
 		{
@@ -2765,7 +2791,7 @@ retry:
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
-					address_v4::any(), m_listen_interface.port()), e));
+					address_v4::any(), m_listen_interface.port()), listen_failed_alert::accept, e));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("cannot bind to port %d: %s"
 				, m_listen_interface.port(), e.message().c_str());
@@ -2897,7 +2923,7 @@ retry:
 				async_accept(listener, ssl);
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(ep, e));
+				m_alerts.post_alert(listen_failed_alert(ep, listen_failed_alert::accept, e));
 			return;
 		}
 		async_accept(listener, ssl);
@@ -3166,7 +3192,7 @@ retry:
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
-					address_v4::any(), m_listen_interface.port()), e));
+					address_v4::any(), m_listen_interface.port()), listen_failed_alert::accept, e));
 			return;
 		}
 		open_new_incoming_socks_connection();
@@ -6014,7 +6040,8 @@ retry:
 			if (ec)
 			{
 				if (m_alerts.should_post<listen_failed_alert>())
-					m_alerts.post_alert(listen_failed_alert(new_interface, ec));
+					m_alerts.post_alert(listen_failed_alert(new_interface, listen_failed_alert::parse_addr, ec));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				session_log("listen_on: %s failed: %s"
 					, net_interface.c_str(), ec.message().c_str());

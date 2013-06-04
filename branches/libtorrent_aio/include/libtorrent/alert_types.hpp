@@ -989,9 +989,11 @@ namespace libtorrent
 	{
 		listen_failed_alert(
 			tcp::endpoint const& ep
+			, int op
 			, error_code const& ec)
 			: endpoint(ep)
 			, error(ec)
+			, operation(op)
 		{}
 
 		TORRENT_DEFINE_ALERT(listen_failed_alert, 48);
@@ -1002,6 +1004,11 @@ namespace libtorrent
 
 		tcp::endpoint endpoint;
 		error_code error;
+		enum op_t
+		{
+			parse_addr, open, bind, listen, get_peer_name, accept
+		};
+		int operation;
 	};
 
 	struct TORRENT_EXPORT listen_succeeded_alert: alert
