@@ -132,11 +132,14 @@ void udp_socket::send_hostname(char const* hostname, int port
 {
 	CHECK_MAGIC;
 
-	TORRENT_ASSERT(is_open());
 	TORRENT_ASSERT(is_single_thread());
 
 	// if the sockets are closed, the udp_socket is closing too
-	if (!is_open()) return;
+	if (!is_open())
+	{
+		ec = error_code(boost::system::errc::bad_file_descriptor, boost::system::generic_category());
+		return;
+	}
 
 	if (m_tunnel_packets)
 	{
@@ -166,11 +169,14 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 {
 	CHECK_MAGIC;
 
-	TORRENT_ASSERT(is_open());
 	TORRENT_ASSERT(is_single_thread());
 
 	// if the sockets are closed, the udp_socket is closing too
-	if (!is_open()) return;
+	if (!is_open())
+	{
+		ec = error_code(boost::system::errc::bad_file_descriptor, boost::system::generic_category());
+		return;
+	}
 
 	if (!(flags & peer_connection) || m_proxy_settings.proxy_peer_connections)
 	{
@@ -675,7 +681,11 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	TORRENT_ASSERT(is_single_thread());
 
 	TORRENT_ASSERT(m_abort == false);
-	if (m_abort) return;
+	if (m_abort)
+	{
+		ec = boost::asio::error::operation_aborted;
+		return;
+	}
 
 	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
 #if TORRENT_USE_IPV6
@@ -712,48 +722,6 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	m_started = true;
 #endif
 	m_bind_port = ep.port();
-}
-
-void udp_socket::bind(int port)
-{
-	CHECK_MAGIC;
-	TORRENT_ASSERT(is_single_thread());
-
-	TORRENT_ASSERT(m_abort == false);
-	if (m_abort) return;
-
-	error_code ec;
-
-	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
-#if TORRENT_USE_IPV6
-	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
-#endif
-
-	if (m_abort) return;
-
-	m_ipv4_sock.open(udp::v4(), ec);
-	if (!ec)
-	{
-		m_ipv4_sock.bind(udp::endpoint(address_v4::any(), port), ec);
-		setup_read(&m_ipv4_sock);
-	}
-#if TORRENT_USE_IPV6
-	m_ipv6_sock.open(udp::v6(), ec);
-	if (!ec)
-	{
-#ifdef IPV6_V6ONLY
-		m_ipv6_sock.set_option(v6only(true), ec);
-#endif
-		m_ipv6_sock.bind(udp::endpoint(address_v6::any(), port), ec);
-
-		setup_read(&m_ipv6_sock);
-	}
-#endif // TORRENT_USE_IPV6
-
-#ifdef TORRENT_DEBUG
-		m_started = true;
-#endif
-	m_bind_port = port;
 }
 
 void udp_socket::set_proxy_settings(proxy_settings const& ps)

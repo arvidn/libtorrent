@@ -283,9 +283,20 @@ namespace libtorrent {
 
 	std::string listen_failed_alert::message() const
 	{
-		char ret[200];
-		snprintf(ret, sizeof(ret), "listening on %s failed: %s"
-			, print_endpoint(endpoint).c_str(), convert_from_native(error.message()).c_str());
+		char const* op_str[] =
+		{
+			"parse_addr",
+			"open",
+			"bind",
+			"listen",
+			"get_peer_name",
+			"accept"
+		};
+		char ret[250];
+		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] %s"
+			, print_endpoint(endpoint).c_str()
+			, op_str[operation]
+			, convert_from_native(error.message()).c_str());
 		return ret;
 	}
 
