@@ -67,6 +67,15 @@ namespace libtorrent
 				, torrent_delete_failed_alert::alert_type
 				, storage_moved_failed_alert::alert_type
 				, file_rename_failed_alert::alert_type
+				, torrent_error_alert::alert_type
+				, hash_failed_alert::alert_type
+				, file_error_alert::alert_type
+				, metadata_failed_alert::alert_type
+				, udp_error_alert::alert_type
+				, listen_failed_alert::alert_type
+				, rss_alert::alert_type
+				, invalid_request_alert::alert_type
+				, mmap_cache_alert::alert_type
 				, 0);
 		}
 	}
@@ -167,6 +176,78 @@ namespace libtorrent
 					fprintf(m_file, "%s\tfile-rename-failed (%s:%d) %s\n", timestamp
 						, rn->error.category().name(), rn->error.value()
 						, rn->message().c_str());
+			}
+			case torrent_error_alert::alert_type:
+			{
+				torrent_error_alert const* te = alert_cast<torrent_error_alert>(a);
+				if (te)
+					fprintf(m_file, "%s\ttorrent-error (%s:%d) %s\n", timestamp
+						, te->error.category().name(), te->error.value()
+						, te->message().c_str());
+			}
+			case hash_failed_alert::alert_type:
+			{
+				hash_failed_alert const* hf = alert_cast<hash_failed_alert>(a);
+				if (hf)
+					fprintf(m_file, "%s\thash-failed %s\n", timestamp
+						, hf->message().c_str());
+			}
+			case file_error_alert::alert_type:
+			{
+				file_error_alert const* fe = alert_cast<file_error_alert>(a);
+				if (fe)
+					fprintf(m_file, "%s\tfile-error (%s:%d) %s\n", timestamp
+						, fe->error.category().name(), fe->error.value()
+						, fe->message().c_str());
+			}
+			case metadata_failed_alert::alert_type:
+			{
+				metadata_failed_alert const* mf = alert_cast<metadata_failed_alert>(a);
+				if (mf)
+					fprintf(m_file, "%s\tmetadata-error (%s:%d) %s\n", timestamp
+						, mf->error.category().name(), mf->error.value()
+						, mf->message().c_str());
+			}
+			case udp_error_alert::alert_type:
+			{
+				udp_error_alert const* ue = alert_cast<udp_error_alert>(a);
+				if (ue)
+					fprintf(m_file, "%s\tudp-error (%s:%d) %s %s\n", timestamp
+						, ue->error.category().name(), ue->error.value()
+						, print_endpoint(ue->endpoint).c_str()
+						, ue->error.message().c_str());
+			}
+			case listen_failed_alert::alert_type:
+			{
+				listen_failed_alert const* lf = alert_cast<listen_failed_alert>(a);
+				if (lf)
+					fprintf(m_file, "%s\tlisten-error (%s:%d) %s\n", timestamp
+						, lf->error.category().name(), lf->error.value()
+						, lf->message().c_str());
+			}
+			case rss_alert::alert_type:
+			{
+				rss_alert const* ra = alert_cast<rss_alert>(a);
+				if (ra && ra->state == rss_alert::state_error)
+					fprintf(m_file, "%s\trss-error (%s:%d) %s %s\n", timestamp
+						, ra->error.category().name(), ra->error.value()
+						, ra->error.message().c_str()
+						, ra->url.c_str());
+			}
+			case invalid_request_alert::alert_type:
+			{
+				invalid_request_alert const* ira = alert_cast<invalid_request_alert>(a);
+				if (ira)
+					fprintf(m_file, "%s\tinvalid-request %s\n", timestamp
+						, ira->message().c_str());
+			}
+			case mmap_cache_alert::alert_type:
+			{
+				mmap_cache_alert const* ma = alert_cast<mmap_cache_alert>(a);
+				if (ma)
+					fprintf(m_file, "%s\tmmap-cache-error (%s:%d )%s\n", timestamp
+						, ma->error.category().name(), ma->error.value()
+						, ma->message().c_str());
 			}
 		}
 	}
