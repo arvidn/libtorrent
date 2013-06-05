@@ -1357,7 +1357,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 	for (std::vector<rss_rule>::iterator i = rules.begin()
 		, end(rules.end()); i != end; ++i)
 	{
-		appendf(response, ",[%d, 0, \"%s\", \"%s\", \"%s\", \"%s\", -1, 0, \"\", 0, 0, 0, 0, %d, 0, \"\", false, false]" + first
+		appendf(response, ",[%d, 0, \"%s\", \"%s\", \"%s\", \"%s\", -1, 0, \"\", 0, 0, %d, 0, \"\", false, false]" + first
 			, i->id // id
 			, i->search.c_str() // name
 			, i->search.c_str() // filter string
