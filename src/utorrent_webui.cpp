@@ -885,12 +885,22 @@ std::string utorrent_peer_flags(peer_info const& pi)
 	std::string ret;
 	if (pi.flags & peer_info::remote_interested)
 	{
-		ret += (pi.flags & peer_info::remote_choked) ? 'u' : 'U';
+		ret += (pi.flags & peer_info::choked) ? 'u' : 'U';
+	}
+	else if (!(pi.flags & peer_info::choked))
+	{
+		// ERROR: we're unchoking someone that isn't interested
+		ret += '?';
 	}
 
 	if (pi.flags & peer_info::interesting)
 	{
-		ret += (pi.flags & peer_info::choked) ? 'd' : 'D';
+		ret += (pi.flags & peer_info::remote_choked) ? 'd' : 'D';
+	}
+	else if (!(pi.flags & peer_info::remote_choked))
+	{
+		// ERROR: we're being unchoked even though we're not interested
+		ret += 'K';
 	}
 
 	if (pi.flags & peer_info::optimistic_unchoke)
@@ -899,7 +909,10 @@ std::string utorrent_peer_flags(peer_info const& pi)
 	if (pi.flags & peer_info::snubbed)
 		ret += 'S';
 
-	if ((pi.flags & peer_info::local_connection))
+	// separate flags from sources with a space
+	ret += ' ';
+
+	if (!(pi.flags & peer_info::local_connection))
 		ret += 'I';
 
 	if ((pi.source & peer_info::dht))
