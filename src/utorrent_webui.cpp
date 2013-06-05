@@ -996,17 +996,15 @@ void utorrent_webui::get_version(std::vector<char>& response, char const* args, 
 
 void utorrent_webui::rss_update(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
-	char feed_id_str[20];
-	int ret = mg_get_var(args, strlen(args), "feed-id", feed_id_str, sizeof(feed_id_str));
-	int feed_id = atoi(feed_id_str);
+	char buf[20];
+	int ret = mg_get_var(args, strlen(args), "feed-id", buf, sizeof(buf));
+	int feed_id = atoi(buf);
 
-	char subscr_str[20];
-	ret = mg_get_var(args, strlen(args), "subscribe", subscr_str, sizeof(subscr_str));
-	int subscribe = atoi(subscr_str);
+	ret = mg_get_var(args, strlen(args), "subscribe", buf, sizeof(buf));
+	int subscribe = atoi(buf);
 
-	char update_str[20];
-	ret = mg_get_var(args, strlen(args), "update", update_str, sizeof(update_str));
-	int update = atoi(update_str);
+	ret = mg_get_var(args, strlen(args), "update", buf, sizeof(buf));
+	int update = atoi(buf);
 	
 	char url[2048];
 	ret = mg_get_var(args, strlen(args), "url", url, sizeof(url));
@@ -1025,8 +1023,31 @@ void utorrent_webui::rss_update(std::vector<char>& response, char const* args, p
 	}
 }
 
+int get_feed_id(feed_status const& st)
+{
+	sha1_hash h = hasher(st.url.c_str(), st.url.length()).final();
+	char const* ptr = (char const*)&h[0];
+	return io::read_uint32(ptr) & 0x7fffffff;
+}
+
 void utorrent_webui::rss_remove(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	char buf[20];
+	int ret = mg_get_var(args, strlen(args), "feed-id", buf, sizeof(buf));
+	if (ret < 0) return;
+	int feed_id = atoi(buf);
+
+	std::vector<feed_handle> f;
+	m_ses.get_feeds(f);
+
+	for (std::vector<feed_handle>::iterator i = f.begin()
+		, end(f.end()); i != end; ++i)
+	{
+		feed_status st = i->get_feed_status();
+		if (get_feed_id(st) != feed_id) continue;
+		m_ses.remove_feed(*i);
+		return;
+	}
 }
 
 void utorrent_webui::rss_filter_update(std::vector<char>& response, char const* args, permissions_interface const* p)
@@ -1087,7 +1108,12 @@ void utorrent_webui::rss_filter_update(std::vector<char>& response, char const* 
 
 void utorrent_webui::rss_filter_remove(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+	char buf[512];
 
+	int ret = mg_get_var(args, strlen(args), "filter-id", buf, sizeof(buf));
+	if (ret < 0) return;
+	int filter_id = atoi(buf);
+	m_rss_filter->remove_rule(filter_id);
 }
 
 enum ut_state_t
@@ -1252,13 +1278,6 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 	appendf(response, "], \"label\": [], \"torrentc\": \"%d\"", m_hist->frame());
 }
 
-int feed_id(feed_status const& st)
-{
-	sha1_hash h = hasher(st.url.c_str(), st.url.length()).final();
-	char const* ptr = (char const*)&h[0];
-	return io::read_uint32(ptr) & 0x7fffffff;
-}
-
 void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
 	if (!p->allow_list()) return;
@@ -1280,7 +1299,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 		, end(feeds.end()); i != end; ++i)
 	{
 		feed_status st = i->get_feed_status();
-		int id = feed_id(st);
+		int id = get_feed_id(st);
 /*
 	from documentation:
 
