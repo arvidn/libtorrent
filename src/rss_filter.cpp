@@ -227,7 +227,7 @@ namespace libtorrent
 				if (!i->search.empty() && strstr(exact_title.c_str(), i->search.c_str()) == NULL)
 					continue;
 
-				if (!i->not_search.empty() && strstr(exact_title.c_str(), i->search_not.c_str()) != NULL)
+				if (!i->search_not.empty() && strstr(exact_title.c_str(), i->search_not.c_str()) != NULL)
 					continue;
 			}
 			else
@@ -278,6 +278,7 @@ namespace libtorrent
 			if (i->id != id) continue;
 			return *i;
 		}
+		return rss_rule();
 	}
 
 	int rss_filter_handler::add_rule(rss_rule const& r)
