@@ -64,6 +64,16 @@ int main(int argc, char* argv[])
 	TEST_CHECK(p.quality == item_properties::hd1080);
 	TEST_CHECK(p.source == item_properties::bluray);
 
+	parse_name("Foo_Bar 2013 05 13", p);
+	printf("s: %d e: %d\n", p.season, p.episode);
+	TEST_CHECK(p.season == 2013);
+	TEST_CHECK(p.episode == 513);
+
+	parse_name("Foo_Bar 2013.05.13", p);
+	printf("s: %d e: %d\n", p.season, p.episode);
+	TEST_CHECK(p.season == 2013);
+	TEST_CHECK(p.episode == 513);
+
 	TEST_CHECK(normalize_title("Foo.. Bar.>< [hdtv] __ test") == "foo bar hdtv test");
 	TEST_CHECK(normalize_title("Foo_Bar_2013-05-13_[brrip.1080p]") == "foo bar 2013-05-13 brrip 1080p");
 
