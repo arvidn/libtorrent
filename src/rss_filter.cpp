@@ -224,19 +224,19 @@ namespace libtorrent
 		{
 			if (i->exact_match)
 			{
-				if (strstr(exact_title.c_str(), i->search.c_str()) == NULL)
+				if (!i->search.empty() && strstr(exact_title.c_str(), i->search.c_str()) == NULL)
 					continue;
 
-				if (strstr(exact_title.c_str(), i->search_not.c_str()) != NULL)
+				if (!i->not_search.empty() && strstr(exact_title.c_str(), i->search_not.c_str()) != NULL)
 					continue;
 			}
 			else
 			{
 				std::string search = normalize_title(i->search);
-				if (strstr(normalized_title.c_str(), search.c_str()) == NULL)
+				if (!search.empty() && strstr(normalized_title.c_str(), search.c_str()) == NULL)
 					continue;
 				std::string search_not = normalize_title(i->search_not);
-				if (strstr(normalized_title.c_str(), search_not.c_str()) != NULL)
+				if (!search_not.empty() && strstr(normalized_title.c_str(), search_not.c_str()) != NULL)
 					continue;
 			}
 

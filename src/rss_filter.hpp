@@ -97,7 +97,7 @@ namespace libtorrent
 	*/
 	struct rss_rule
 	{
-		rss_rule() : id(0), exact_match(false), episode_filter(true) {}
+		rss_rule() : id(0), exact_match(false), episode_filter(false) {}
 
 		/// a unique identifier for this rule. This is initialized
 		/// by the rss_filter_handler when adding the rule
