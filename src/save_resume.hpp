@@ -76,9 +76,9 @@ namespace libtorrent
 		// since the last time it wrapped
 		int m_cursor_index;
 
-		// the last time we wrapped the cursor and started
-		// saving torrents from the start again.
-		ptime m_last_save_wrap;
+		// the last time we visited a torrent to potentially
+		// save its fast-resume
+		ptime m_last_save;
 
 		// save resum data for all torrents every X seconds
 		// must be at least 1

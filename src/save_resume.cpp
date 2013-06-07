@@ -82,6 +82,8 @@ void save_resume::handle_alert(alert const* a)
 	{
 		printf("added torrent: %s\n", ta->handle.name().c_str());
 		m_torrents.insert(ta->handle);
+		if (m_cursor == m_torrents.end())
+			m_cursor = m_torrents.begin();
 	}
 	else if (td)
 	{
@@ -105,7 +107,6 @@ void save_resume::handle_alert(alert const* a)
 		{
 			m_cursor = m_torrents.begin();
 			m_cursor_index = 0;
-			m_last_save_wrap = time_now();
 		}
 	}
 	else if (sr)
@@ -129,17 +130,21 @@ void save_resume::handle_alert(alert const* a)
 	// is it time to save resume data for another torrent?
 	if (m_torrents.empty()) return;
 
+	// calculate how many torrents we should save this tick. It depends on
+	// how long since we last tried to save one. Every m_interval seconds,
+	// we should have saved all torrents
 	int num_torrents = m_torrents.size();
-	int desired_cursor_pos = num_torrents * total_seconds(time_now() - m_last_save_wrap)
+	int num_to_save = num_torrents * total_seconds(time_now() - m_last_save)
 		/ total_seconds(m_interval);
-	while (m_cursor_index <= desired_cursor_pos)
+	// never save more than all torrents
+	num_to_save = (std::max)(num_to_save, num_torrents);
+
+	while (num_to_save > 0)
 	{
 		if (m_cursor == m_torrents.end())
 		{
 			m_cursor = m_torrents.begin();
 			m_cursor_index = 0;
-			m_last_save_wrap = time_now();
-			break;
 		}
 		TORRENT_ASSERT(m_cursor_index < m_torrents.size());
 		if (m_cursor->need_save_resume_data())
@@ -148,6 +153,8 @@ void save_resume::handle_alert(alert const* a)
 			printf("saving resume data for: %s\n", m_cursor->name().c_str());
 			++m_num_in_flight;
 		}
+		m_last_save = time_now();
+		--num_to_save;
 		++m_cursor;
 		++m_cursor_index;
 	}
