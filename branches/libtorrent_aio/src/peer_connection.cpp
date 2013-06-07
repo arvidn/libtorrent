@@ -2218,6 +2218,22 @@ namespace libtorrent
 				t->alerts().post_alert(invalid_request_alert(
 					t->get_handle(), m_remote, m_peer_id, r));
 			}
+
+			// every ten invalid request, remind the peer that it's choked
+			if (!m_peer_interested && m_num_invalid_requests % 10 == 0 && m_choked)
+			{
+				if (m_num_invalid_requests > 300 && !m_peer_choked)
+				{
+					disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
+					return;
+				}
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("==> CHOKE");
+#endif
+				write_choke();
+				m_ses.inc_stats_counter(counters::num_peers_up_unchoked, -1);
+			}
+
 			return;
 		}
 
