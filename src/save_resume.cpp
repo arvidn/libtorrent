@@ -135,8 +135,6 @@ void save_resume::handle_alert(alert const* a)
 	// never save more than all torrents
 	num_to_save = (std::min)(num_to_save, num_torrents);
 
-	printf("save_resume: %d seconds %d torrents = %d\n", total_seconds(time_now() - m_last_save), num_torrents, num_to_save);
-
 	while (num_to_save > 0)
 	{
 		if (m_cursor == m_torrents.end())
