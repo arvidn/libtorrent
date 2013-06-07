@@ -233,17 +233,21 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale, multip
 			var label;
 			if (g.label) label = g.label;
 			else label = g.name;
-			legend_width = Math.max(legend_width, ctx.measureText(label).width);
+			legend_width = Math.floor(Math.max(legend_width, ctx.measureText(label).width));
 		}
 
 		var offset = 15;
 		ctx.fillStyle = 'rgba(255,255,255,0.7)';
 		ctx.strokeStyle = 'black';
-		ctx.fillRect(5, offset - 8, 23 + legend_width, graphs.length * 16 + 1);
+		ctx.fillRect(4, offset - 9, 24 + legend_width, graphs.length * 16 + 2);
 		ctx.strokeRect(4, offset - 9, 24 + legend_width, graphs.length * 16 + 2);
 		ctx.fillStyle = 'black';
 
+		// in order to have our lines properly pixel aligned
+		// we need to add 0.5 to the offset when we double the
+		// line width
 		ctx.lineWidth = 2;
+		offset += 0.5;
 
 		for (k in graphs)
 		{
@@ -254,8 +258,8 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale, multip
 
 			ctx.strokeStyle = g.color;
 			ctx.beginPath();
-			ctx.moveTo(7, offset);
-			ctx.lineTo(20, offset);
+			ctx.moveTo(7.5, offset);
+			ctx.lineTo(20.5, offset);
 			ctx.stroke();
 
 			ctx.fillText(label, 23, offset + 4);
