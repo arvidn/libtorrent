@@ -734,9 +734,10 @@ namespace libtorrent
 			// this is slightly different from m_picker->is_finished()
 			// because any piece that has *passed* is considered here,
 			// which may be more than the piece we *have* (i.e. written to disk)
+			// keep in mind that num_filtered() does not include pieces we
+			// have that are filtered
 			return valid_metadata() && has_picker()
-				&& m_torrent_file->num_pieces()
-				- m_picker->num_passed() - m_picker->num_filtered() + m_picker->num_have_filtered() == 0;
+				&& m_torrent_file->num_pieces() - m_picker->num_filtered() - m_picker->num_passed() == 0;
 		}
 
 		std::string save_path() const;

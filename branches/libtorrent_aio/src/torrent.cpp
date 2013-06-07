@@ -3333,9 +3333,11 @@ namespace libtorrent
 		if (m_picker->piece_priority(last_piece_index) == 0)
 		{
 			st.total_wanted -= m_torrent_file->piece_size(last_piece_index);
+			TORRENT_ASSERT(st.total_wanted >= 0);
 			--num_filtered_pieces;
 		}
 		st.total_wanted -= size_type(num_filtered_pieces) * piece_size;
+		TORRENT_ASSERT(st.total_wanted >= 0);
 	
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
