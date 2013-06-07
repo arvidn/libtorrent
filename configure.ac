@@ -555,7 +555,13 @@ AS_ECHO
 AS_ECHO "Checking for external libraries:"
 
 AC_MSG_CHECKING([for FIEMAP support])
-AC_CHECK_HEADERS([linux/fiemap.h])
+AC_CHECK_HEADERS([linux/types.h])
+AC_CHECK_HEADERS([linux/fiemap.h], [], [],
+[#ifdef HAVE_LINUX_TYPES_H
+# include <linux/types.h>
+#endif
+])
+
 
 AC_MSG_CHECKING([whether to link against system libgeoip]) #depends: $ac_arg_enable_geoip
 AS_CASE(["$ARG_WITH_LIBGEOIP"],
