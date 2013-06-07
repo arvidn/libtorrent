@@ -81,9 +81,16 @@ namespace libtorrent
 		{"576i", item_properties::sd, item_properties::unknown},
 	};
 
+	// these format strings are matches against each individual token
 	char const* ep_format[] =
 	{
-		"s%ue%u", "%ux%u", "%4u-%2u-%2u"
+		"s%ue%u", "%ux%u"
+	};
+
+	// these format strings arematches against the raw input string
+	char const* ep_format_raw[] =
+	{
+		"%*[^0123456789]%4u%*[-. ]%2u%*[-. ]%2u"
 	};
 
 	void handle_str(char const* str, item_properties& p)
@@ -123,6 +130,27 @@ namespace libtorrent
 	{
 		char* str = &name[0];
 		char* start = str;
+
+		int season;
+		int episode;
+		int day;
+		for (int k = 0; k < sizeof(ep_format_raw)/sizeof(ep_format_raw[0]); ++k)
+		{
+			int matches = sscanf(str, ep_format_raw[k], &season, &episode, &day);
+			if (matches == 2)
+			{
+				p.season = season;
+				p.episode = episode;
+				break;
+			}
+			if (matches == 3)
+			{
+				p.season = season;
+				p.episode = episode * 100 + day;
+				break;
+			}
+		}
+
 		do
 		{
 			*str = to_lower(*str);
@@ -196,19 +224,19 @@ namespace libtorrent
 		{
 			if (i->exact_match)
 			{
-				if (strstr(exact_title.c_str(), i->search.c_str()) == NULL)
+				if (!i->search.empty() && strstr(exact_title.c_str(), i->search.c_str()) == NULL)
 					continue;
 
-				if (strstr(exact_title.c_str(), i->search_not.c_str()) != NULL)
+				if (!i->search_not.empty() && strstr(exact_title.c_str(), i->search_not.c_str()) != NULL)
 					continue;
 			}
 			else
 			{
 				std::string search = normalize_title(i->search);
-				if (strstr(normalized_title.c_str(), search.c_str()) == NULL)
+				if (!search.empty() && strstr(normalized_title.c_str(), search.c_str()) == NULL)
 					continue;
 				std::string search_not = normalize_title(i->search_not);
-				if (strstr(normalized_title.c_str(), search_not.c_str()) != NULL)
+				if (!search_not.empty() && strstr(normalized_title.c_str(), search_not.c_str()) != NULL)
 					continue;
 			}
 
@@ -250,6 +278,7 @@ namespace libtorrent
 			if (i->id != id) continue;
 			return *i;
 		}
+		return rss_rule();
 	}
 
 	int rss_filter_handler::add_rule(rss_rule const& r)
