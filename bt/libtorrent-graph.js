@@ -173,7 +173,8 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale, multip
 	for (var i = 0; i < num_tics; ++i)
 	{
 		ctx.strokeStyle = "#000";
-		ctx.setLineDash([]);
+		if ('setLineDash' in ctx)
+			ctx.setLineDash([]);
 		var y = Math.floor(view_height * i / num_tics);
 		ctx.beginPath();
 		ctx.moveTo(view_width - 6, y);
@@ -183,7 +184,8 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale, multip
 		var rate = peak - peak * i / num_tics;
 		ctx.fillText((rate / scale).toFixed( peak < 5*scale ? 1 : 0) + ' ' + unit, view_width + 2, y + 4);
 
-		ctx.setLineDash([5]);
+		if ('setLineDash' in ctx)
+			ctx.setLineDash([5]);
 		ctx.strokeStyle = "#ccc";
 		ctx.beginPath();
 		ctx.moveTo(view_width - 6, y);
@@ -191,7 +193,8 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale, multip
 		ctx.stroke();
 	}
 
-	ctx.setLineDash([]);
+	if ('setLineDash' in ctx)
+		ctx.setLineDash([]);
 
 	// plot all the graphs
 	for (k in graphs)
