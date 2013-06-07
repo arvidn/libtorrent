@@ -57,7 +57,7 @@ save_resume::save_resume(session& s, std::string const& resume_dir, alert_handle
 	, m_resume_dir(resume_dir)
 	, m_cursor(m_torrents.begin())
 	, m_cursor_index(0)
-	, m_last_save_wrap(time_now())
+	, m_last_save(time_now())
 	, m_interval(minutes(5))
 	, m_num_in_flight(0)
 {
