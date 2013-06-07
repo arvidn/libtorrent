@@ -56,12 +56,37 @@ function render_graph(canvas, data, graphs, start_time, now, unit, scale, multip
    if (peak == 0) peak = 1 * (scale == 'auto' ? 1 : scale);
 
 	ctx.clearRect(0,0,canvas.width, canvas.height);
+
+	var canvas_width = canvas.width;
+	var canvas_height = canvas.height;
+
+	if (window.devicePixelRatio > 1)
+	{
+		if (!canvas.getAttribute('logical_width'))
+		{
+			canvas_width = canvas.width;
+			canvas_height = canvas.height;
+			canvas.style.width = canvas.width + 'px';
+			canvas.style.height = canvas.height + 'px';
+			canvas.setAttribute('logical_width', canvas.width);
+			canvas.setAttribute('logical_height', canvas.height);
+			canvas.setAttribute('width', canvas_width * window.devicePixelRatio);
+			canvas.setAttribute('height', canvas_height * window.devicePixelRatio);
+			ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+		}
+		else
+		{
+			canvas_width = canvas.getAttribute('logical_width');
+			canvas_height = canvas.getAttribute('logical_height');
+		}
+	}
+
 	ctx.save();
 
 	var window_size = now - start_time;
 
-	var view_width = canvas.width - 40;
-	var view_height = canvas.height - 5;
+	var view_width = canvas_width - 40;
+	var view_height = canvas_height - 5;
 
 	// the 0.5 is to align lines with pixels
 	ctx.translate(0.5, 4.5);
