@@ -72,10 +72,6 @@ namespace libtorrent
 		// the next torrent to save (may point to end)
 		boost::unordered_set<torrent_handle>::iterator m_cursor;
 
-		// the number of times the cursor has been incremented
-		// since the last time it wrapped
-		int m_cursor_index;
-
 		// the last time we visited a torrent to potentially
 		// save its fast-resume
 		ptime m_last_save;

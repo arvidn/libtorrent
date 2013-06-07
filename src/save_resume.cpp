@@ -56,7 +56,6 @@ save_resume::save_resume(session& s, std::string const& resume_dir, alert_handle
 	, m_alerts(alerts)
 	, m_resume_dir(resume_dir)
 	, m_cursor(m_torrents.begin())
-	, m_cursor_index(0)
 	, m_last_save(time_now())
 	, m_interval(minutes(5))
 	, m_num_in_flight(0)
@@ -104,10 +103,7 @@ void save_resume::handle_alert(alert const* a)
 		remove(resume_file, ec);
 		m_torrents.erase(i);
 		if (wrapped)
-		{
 			m_cursor = m_torrents.begin();
-			m_cursor_index = 0;
-		}
 	}
 	else if (sr)
 	{
@@ -137,16 +133,15 @@ void save_resume::handle_alert(alert const* a)
 	int num_to_save = num_torrents * total_seconds(time_now() - m_last_save)
 		/ total_seconds(m_interval);
 	// never save more than all torrents
-	num_to_save = (std::max)(num_to_save, num_torrents);
+	num_to_save = (std::min)(num_to_save, num_torrents);
+
+	printf("save_resume: %d seconds %d torrents = %d\n", total_seconds(time_now() - m_last_save), num_torrents, num_to_save);
 
 	while (num_to_save > 0)
 	{
 		if (m_cursor == m_torrents.end())
-		{
 			m_cursor = m_torrents.begin();
-			m_cursor_index = 0;
-		}
-		TORRENT_ASSERT(m_cursor_index < m_torrents.size());
+
 		if (m_cursor->need_save_resume_data())
 		{
 			m_cursor->save_resume_data(torrent_handle::save_info_dict);
@@ -156,7 +151,6 @@ void save_resume::handle_alert(alert const* a)
 		m_last_save = time_now();
 		--num_to_save;
 		++m_cursor;
-		++m_cursor_index;
 	}
 }
 
