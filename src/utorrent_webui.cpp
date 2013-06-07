@@ -764,7 +764,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 		i->handle.file_progress(progress);
 		file_prio = i->handle.file_priorities();
 		boost::intrusive_ptr<const torrent_info> ti = i->torrent_file;
-		if (!ti) continue;
+		if (!ti || !ti->is_valid()) continue;
 		file_storage const& files = ti->files();
 
 		appendf(response, ",\"%s\",["+first, to_hex(ti->info_hash().to_string()).c_str());
@@ -948,7 +948,7 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 		, end(torrents.end()); i != end; ++i)
 	{
 		boost::intrusive_ptr<const torrent_info> ti = i->torrent_file;
-		if (!ti) continue;
+		if (!ti || !ti->is_valid()) continue;
 
 		appendf(response, ",\"%s\",[" + first
 			, to_hex(i->info_hash.to_string()).c_str());
