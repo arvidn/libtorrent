@@ -1,5 +1,6 @@
 test_programs = \
   test_file                  \
+  test_file_storage          \
   test_auto_unchoke          \
   test_bandwidth_limiter     \
   test_bdecode_performance   \
@@ -94,6 +95,7 @@ noinst_HEADERS = test.hpp setup_transfer.hpp
 libtest_la_SOURCES = main.cpp setup_transfer.cpp
 
 test_file_SOURCES = test_file.cpp
+test_file_storage_SOURCES = test_file_storage.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
 test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
@@ -132,3 +134,4 @@ LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
 #AM_LDFLAGS= @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
+
