@@ -2231,7 +2231,6 @@ namespace libtorrent
 				peer_log("==> CHOKE");
 #endif
 				write_choke();
-				m_ses.inc_stats_counter(counters::num_peers_up_unchoked, -1);
 			}
 
 			return;
