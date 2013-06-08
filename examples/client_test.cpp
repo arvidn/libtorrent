@@ -1447,8 +1447,9 @@ int main(int argc, char* argv[])
 		, ec, bind_to_interface.c_str());
 	if (ec)
 	{
-		fprintf(stderr, "failed to listen on %s on ports %d-%d: %s\n"
-			, bind_to_interface.c_str(), listen_port, listen_port+1, ec.message().c_str());
+		fprintf(stderr, "failed to listen%s%s on ports %d-%d: %s\n"
+			, bind_to_interface.empty() ? "" : " on ", bind_to_interface.c_str()
+			, listen_port, listen_port+1, ec.message().c_str());
 	}
 
 #ifndef TORRENT_DISABLE_DHT
