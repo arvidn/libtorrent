@@ -290,6 +290,7 @@ endif(build_examples)
 # === build tests ===
 if(build_tests)
 	set(tests
+		test_file_storage
 		test_auto_unchoke
 		test_http_connection
 		test_buffer
