@@ -77,9 +77,51 @@ void setup_test_storage(file_storage& st)
 int test_main()
 {
 	{
-		file_storage a;
-		setup_test_storage(a);
+		file_storage st;
+		setup_test_storage(st);
 		
+		st.rename_file(0, "test/c/d");
+		TEST_EQUAL(st.file_path(0, "./"), "./test/c/d");
+
+		st.rename_file(0, "/tmp/a");
+		TEST_EQUAL(st.file_path(0, "./"), "/tmp/a");
+	}
+
+	{
+		file_storage st;
+		st.add_file("a", 10000);
+
+		st.rename_file(0, "test/c/d");
+		TEST_EQUAL(st.file_path(0, "./"), "./test/c/d");
+
+		st.rename_file(0, "/tmp/a");
+		TEST_EQUAL(st.file_path(0, "./"), "/tmp/a");
+	}
+
+	{
+		file_storage fs;
+		fs.set_piece_length(512);
+		fs.add_file("temp_storage/test1.tmp", 17);
+		fs.add_file("temp_storage/test2.tmp", 612);
+		fs.add_file("temp_storage/test3.tmp", 0);
+		fs.add_file("temp_storage/test4.tmp", 0);
+		fs.add_file("temp_storage/test5.tmp", 3253);
+		// size: 3882
+		fs.add_file("temp_storage/test6.tmp", 841);
+		// size: 4723
+
+		peer_request rq = fs.map_file(0, 0, 10);
+		TEST_EQUAL(rq.piece, 0);
+		TEST_EQUAL(rq.start, 0);
+		TEST_EQUAL(rq.length, 10);
+		rq = fs.map_file(5, 0, 10);
+		TEST_EQUAL(rq.piece, 7);
+		TEST_EQUAL(rq.start, 298);
+		TEST_EQUAL(rq.length, 10);
+		rq = fs.map_file(5, 0, 1000);
+		TEST_EQUAL(rq.piece, 7);
+		TEST_EQUAL(rq.start, 298);
+		TEST_EQUAL(rq.length, 841);
 	}
 
 	return 0;

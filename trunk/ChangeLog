@@ -1,3 +1,4 @@
+	* allow moving files to absolute paths, out of the download directory
 	* make move_storage more generic to allow both overwriting files as well as taking existing ones
 	* fix choking issue at high upload rates
 	* optimized rate limiter

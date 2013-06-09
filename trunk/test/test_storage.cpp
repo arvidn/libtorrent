@@ -901,6 +901,8 @@ void test_fastresume(std::string const& test_path)
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(combine_path(test_path, "tmp1/temporary")));
+	if (!exists(combine_path(test_path, "tmp1/temporary")))
+		return;
 
 	entry resume;
 	{
@@ -914,23 +916,37 @@ void test_fastresume(std::string const& test_path)
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
 		torrent_handle h = ses.add_torrent(p, ec);
+		TEST_CHECK(exists(combine_path(p.save_path, "temporary")));
+		if (!exists(combine_path(p.save_path, "temporary")))
+			return;
 				
-		for (int i = 0; i < 10; ++i)
+		torrent_status s;
+		for (int i = 0; i < 5; ++i)
 		{
 			print_alerts(ses, "ses");
 			test_sleep(1000);
-			torrent_status s = h.status();
+			s = h.status();
 			if (s.progress == 1.0f) 
 			{
 				std::cout << "progress: 1.0f" << std::endl;
 				break;
 			}
 		}
+
+		// the whole point of the test is to have a resume
+		// data which expects the file to exist in full. If
+		// we failed to do that, we might as well abort
+		TEST_EQUAL(s.progress, 1.0f);
+		if (s.progress != 1.0f)
+			return;
+
 		// TODO: 3 don't use this deprecated function
 		resume = h.write_resume_data();
 		ses.remove_torrent(h, session::delete_files);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, "tmp1/temporary")));
+	if (exists(combine_path(test_path, "tmp1/temporary")))
+		return;
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	resume.print(std::cout);
 #endif
@@ -962,6 +978,7 @@ void test_fastresume(std::string const& test_path)
 			assert(a.get());
 			std::cerr << a->message() << std::endl;
 		}
+		// we expect the fast resume to be rejected because the files were removed
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
@@ -1093,31 +1110,6 @@ int test_main()
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_rename_file_in_fastresume, _1));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, true));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, false));
-
-	file_storage fs;
-	fs.set_piece_length(512);
-	fs.add_file("temp_storage/test1.tmp", 17);
-	fs.add_file("temp_storage/test2.tmp", 612);
-	fs.add_file("temp_storage/test3.tmp", 0);
-	fs.add_file("temp_storage/test4.tmp", 0);
-	fs.add_file("temp_storage/test5.tmp", 3253);
-	// size: 3882
-	fs.add_file("temp_storage/test6.tmp", 841);
-	// size: 4723
-
-	peer_request rq = fs.map_file(0, 0, 10);
-	TEST_EQUAL(rq.piece, 0);
-	TEST_EQUAL(rq.start, 0);
-	TEST_EQUAL(rq.length, 10);
-	rq = fs.map_file(5, 0, 10);
-	TEST_EQUAL(rq.piece, 7);
-	TEST_EQUAL(rq.start, 298);
-	TEST_EQUAL(rq.length, 10);
-	rq = fs.map_file(5, 0, 1000);
-	TEST_EQUAL(rq.piece, 7);
-	TEST_EQUAL(rq.start, 298);
-	TEST_EQUAL(rq.length, 841);
-
 
 	return 0;
 }

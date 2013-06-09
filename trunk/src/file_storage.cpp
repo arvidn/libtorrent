@@ -71,7 +71,13 @@ namespace libtorrent
 
 	void file_storage::update_path_index(internal_file_entry& e)
 	{
-		std::string parent = parent_path(e.filename());
+		std::string fname = e.filename();
+		if (is_complete(fname))
+		{
+			e.path_index = -2;
+			return;
+		}
+		std::string parent = parent_path(fname);
 		if (parent.empty())
 		{
 			e.path_index = -1;
@@ -431,13 +437,18 @@ namespace libtorrent
 		return m_file_base[index];
 	}
 
-	std::string file_storage::file_path(int index) const
+	std::string file_storage::file_path(int index, std::string const& save_path) const
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
-		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
-		if (fe.path_index == -1) return fe.filename();
-		return combine_path(m_paths[fe.path_index], fe.filename());
+		TORRENT_ASSERT(fe.path_index >= -2 && fe.path_index < int(m_paths.size()));
+		// -2 means this is an absolute path filename
+		if (fe.path_index == -2) return fe.filename();
+
+		// -1 means no path
+		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
+
+		return combine_path(save_path, combine_path(m_paths[fe.path_index], fe.filename()));
 	}
 
 	std::string file_storage::file_name(int index) const
@@ -507,11 +518,16 @@ namespace libtorrent
 		return m_file_base[index];
 	}
 
-	std::string file_storage::file_path(internal_file_entry const& fe) const
+	std::string file_storage::file_path(internal_file_entry const& fe, std::string const& save_path) const
 	{
-		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
-		if (fe.path_index == -1) return fe.filename();
-		return combine_path(m_paths[fe.path_index], fe.filename());
+		TORRENT_ASSERT(fe.path_index >= -2 && fe.path_index < int(m_paths.size()));
+		// -2 means this is an absolute path filename
+		if (fe.path_index == -2) return fe.filename();
+
+		// -1 means no path
+		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
+
+		return combine_path(save_path, combine_path(m_paths[fe.path_index], fe.filename()));
 	}
 
 	std::string file_storage::file_name(internal_file_entry const& fe) const

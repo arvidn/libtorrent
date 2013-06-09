@@ -149,6 +149,10 @@ namespace libtorrent
 		// the full path to this file, concatenate the path
 		// from that array with the 'name' field in
 		// this struct
+		// if path_index == -2, it means the filename
+		// in this field contains the full, absolute path
+		// to the file
+		// -1 means no path (i.e. single file torrent)
 		int path_index;
 	};
 
@@ -251,7 +255,7 @@ namespace libtorrent
 		time_t mtime(int index) const;
 		size_type file_base(int index) const;
 		void set_file_base(int index, size_type off);
-		std::string file_path(int index) const;
+		std::string file_path(int index, std::string const& save_path = "") const;
 		std::string file_name(int index) const;
 		size_type file_size(int index) const;
 		bool pad_file_at(int index) const;
@@ -263,7 +267,7 @@ namespace libtorrent
 		int file_index(internal_file_entry const& fe) const;
 		size_type file_base(internal_file_entry const& fe) const;
 		void set_file_base(internal_file_entry const& fe, size_type off);
-		std::string file_path(internal_file_entry const& fe) const;
+		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const;
 		std::string file_name(internal_file_entry const& fe) const;
 		size_type file_size(internal_file_entry const& fe) const;
 		bool pad_file_at(internal_file_entry const& fe) const;

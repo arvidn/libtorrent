@@ -1914,6 +1914,12 @@ If you want to rename the base name of the torrent (for a multifile torrent), yo
 can copy the ``file_storage`` (see `files() orig_files()`_), change the name, and
 then use `remap_files()`_.
 
+The ``new_filename`` can both be a relative path, in which case the file name
+is relative to the ``save_path`` of the torrent. If the ``new_filename`` is
+an absolute path (i.e. ``is_complete(new_filename) == true``), then the file
+is detached from the ``save_path`` of the torrent. In this case the file is
+not moved when move_storage_ is invoked.
+
 
 begin_files() end_files() rbegin_files() rend_files()
 -----------------------------------------------------
@@ -2659,6 +2665,11 @@ of the other modes.
 
 ``dont_replace`` always takes the existing file in the target directory, if there is
 one. The source files will still be removed in that case.
+
+Files that have been renamed to have absolute pahts are not moved by this function.
+Keep in mind that files that don't belong to the torrent but are stored in the torrent's
+directory may be moved as well. This goes for files that have been renamed to
+absolute paths that still end up inside the save path.
 
 rename_file()
 -------------
