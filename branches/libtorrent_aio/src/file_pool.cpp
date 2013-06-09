@@ -159,7 +159,7 @@ namespace libtorrent
 				// if this is the only reference to the file, it will be closed
 				e.file_ptr.reset(new (std::nothrow)file);
 
-				std::string full_path = combine_path(p, fs.file_path(*fe));
+				std::string full_path = fs.file_path(*fe, p);
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
@@ -183,7 +183,7 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		std::string full_path = combine_path(p, fs.file_path(*fe));
+		std::string full_path = fs.file_path(*fe, p);
 		if (!e.file_ptr->open(full_path, m, ec))
 			return boost::intrusive_ptr<file>();
 #ifdef TORRENT_WINDOWS

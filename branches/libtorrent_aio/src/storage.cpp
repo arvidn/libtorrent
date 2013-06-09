@@ -236,8 +236,8 @@ namespace libtorrent
 				// this is not implemented yet.
 				// pretend that we didn't set the priority to 0.
 
-				std::string fp = files().file_path(*file_iter);
-				if (exists(combine_path(m_save_path, fp)))
+				std::string fp = files().file_path(*file_iter, m_save_path);
+				if (exists(fp))
 					new_prio = 1;
 /*
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only | file::random_access, ec.ec);
@@ -259,8 +259,7 @@ namespace libtorrent
 						return;
 					}
 					// remove the file
-					std::string fp = files().file_path(*file_iter);
-					std::string p = combine_path(m_save_path, fp);
+					std::string p = files().file_path(*file_iter, m_save_path);
 					delete_one_file(p, ec.ec);
 					if (ec)
 					{
@@ -307,7 +306,7 @@ namespace libtorrent
 
 			if (m_stat_cache.get_filesize(file_index) == stat_cache::not_in_cache)
 			{
-				file_path = combine_path(m_save_path, files().file_path(*file_iter));
+				file_path = files().file_path(*file_iter, m_save_path);
 
 				file_status s;
 				stat_file(file_path, &s, ec.ec);
@@ -387,7 +386,7 @@ namespace libtorrent
 			size_type cache_status = m_stat_cache.get_filesize(index);
 			if (cache_status < 0 && cache_status != stat_cache::no_exist)
 			{
-				file_path = combine_path(m_save_path, files().file_path(*i));
+				file_path = files().file_path(*i, m_save_path);
 				stat_file(file_path, &s, ec.ec);
 				size_type r = s.file_size;
 				if (ec.ec || !(s.mode & file_status::regular_file)) r = -1;
@@ -433,10 +432,12 @@ namespace libtorrent
 	void default_storage::rename_file(int index, std::string const& new_filename, storage_error& ec)
 	{
 		if (index < 0 || index >= files().num_files()) return;
-		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
+		std::string old_name = files().file_path(index, m_save_path);
 		m_pool.release(this, index);
 
-		std::string new_path = combine_path(m_save_path, new_filename);
+		std::string new_path;
+		if (is_complete(new_filename)) new_path = new_filename;
+		else new_path = combine_path(m_save_path, new_filename);
 		std::string new_dir = parent_path(new_path);
 
 		// create any missing directories that the new filename
@@ -497,14 +498,18 @@ namespace libtorrent
 			, end(files().end()); i != end; ++i)
 		{
 			std::string fp = files().file_path(*i);
-			std::string p = combine_path(m_save_path, fp);
-			std::string bp = parent_path(fp);
-			std::pair<iter_t, bool> ret;
-			ret.second = true;
-			while (ret.second && !bp.empty())
+			bool complete = is_complete(fp);
+			std::string p = complete ? fp : combine_path(m_save_path, fp);
+			if (!complete)
 			{
-				ret = directories.insert(combine_path(m_save_path, bp));
-				bp = parent_path(bp);
+				std::string bp = parent_path(fp);
+				std::pair<iter_t, bool> ret;
+				ret.second = true;
+				while (ret.second && !bp.empty())
+				{
+					ret = directories.insert(combine_path(m_save_path, bp));
+					bp = parent_path(bp);
+				}
 			}
 			delete_one_file(p, ec.ec);
 			if (ec) { ec.file = i - files().begin(); ec.operation = storage_error::remove; }
@@ -558,7 +563,7 @@ namespace libtorrent
 			{
 				file_status s;
 				error_code ec;
-				stat_file(combine_path(m_save_path, fs.file_path(*i)), &s, ec);
+				stat_file(fs.file_path(*i, m_save_path), &s, ec);
 				if (!ec)
 				{
 					file_size = s.file_size;
@@ -732,7 +737,7 @@ namespace libtorrent
 			{
 				file_status s;
 				error_code error;
-				std::string file_path = combine_path(m_save_path, fs.file_path(*file_iter));
+				std::string file_path = fs.file_path(*file_iter, m_save_path);
 				stat_file(file_path, &s, error);
 				file_size = s.file_size;
 				file_time = s.mtime;
@@ -804,7 +809,10 @@ namespace libtorrent
 				for (file_storage::iterator i = f.begin()
 					, end(f.end()); i != end; ++i)
 				{
-					std::string new_path = combine_path(save_path, f.file_path(*i));
+					// files moved out to absolute paths are ignored
+					if (is_complete(f.file_path(*i))) continue;
+
+					std::string new_path = f.file_path(*i, save_path);
 					stat_file(new_path, &s, e);
 					if (e != boost::system::errc::no_such_file_or_directory)
 					{
@@ -824,6 +832,9 @@ namespace libtorrent
 		for (file_storage::iterator i = f.begin()
 			, end(f.end()); i != end; ++i)
 		{
+			// files moved out to absolute paths are not moved
+			if (is_complete(f.file_path(*i))) continue;
+
 			std::string split = split_path(f.file_path(*i));
 			to_move.insert(to_move.begin(), std::make_pair(split, int(i - f.begin())));
 		}
@@ -1051,7 +1062,7 @@ namespace libtorrent
 					// this means the directory the file is in doesn't exist.
 					// so create it
 					e.clear();
-					std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+					std::string path = files().file_path(*file_iter, m_save_path);
 					create_directories(parent_path(path), e);
 					// if the directory creation failed, don't try to open the file again
 					// but actually just fail

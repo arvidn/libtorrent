@@ -554,9 +554,6 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
 AS_ECHO
 AS_ECHO "Checking for external libraries:"
 
-AC_MSG_CHECKING([for FIEMAP support])
-AC_CHECK_HEADERS([linux/fiemap.h])
-
 AC_MSG_CHECKING([whether to link against system libgeoip]) #depends: $ac_arg_enable_geoip
 AS_CASE(["$ARG_WITH_LIBGEOIP"],
   ["yes"|"system"], [

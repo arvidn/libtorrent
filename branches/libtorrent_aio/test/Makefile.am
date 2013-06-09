@@ -6,6 +6,7 @@ test_programs = \
   test_policy                \
   test_part_file             \
   test_file                  \
+  test_file_storage          \
   test_auto_unchoke          \
   test_bandwidth_limiter     \
   test_bdecode_performance   \
@@ -110,6 +111,7 @@ test_stat_cache_SOURCES = test_stat_cache.cpp
 test_policy_SOURCES = test_policy.cpp
 test_part_file_SOURCES = test_part_file.cpp
 test_file_SOURCES = test_file.cpp
+test_file_storage_SOURCES = test_file_storage.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
 test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
