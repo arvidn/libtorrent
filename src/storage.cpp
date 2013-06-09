@@ -110,7 +110,7 @@ namespace libtorrent
 			{
 				file_status s;
 				error_code ec;
-				stat_file(combine_path(save_path, storage.file_path(*i)), &s, ec);
+				stat_file(storage.file_path(*i, save_path), &s, ec);
 
 				if (!ec)
 				{
@@ -160,7 +160,7 @@ namespace libtorrent
 
 			file_status s;
 			error_code ec;
-			stat_file(combine_path(p, fs.file_path(*i)), &s, ec);
+			stat_file(fs.file_path(*i, p), &s, ec);
 
 			if (!ec)
 			{
@@ -417,7 +417,7 @@ namespace libtorrent
 			// ignore pad files
 			if (file_iter->pad_file) continue;
 
-			std::string file_path = combine_path(m_save_path, files().file_path(*file_iter));
+			std::string file_path = files().file_path(*file_iter, m_save_path);
 
 			file_status s;
 			stat_file(file_path, &s, ec);
@@ -482,7 +482,7 @@ namespace libtorrent
 		{
 			error_code ec;
 			file_status s;
-			stat_file(combine_path(m_save_path, files().file_path(*i)), &s, ec);
+			stat_file(files().file_path(*i, m_save_path), &s, ec);
 			if (ec) continue;
 			if (s.mode & file_status::regular_file && i->size > 0)
 				return true;
@@ -493,11 +493,13 @@ namespace libtorrent
 	bool default_storage::rename_file(int index, std::string const& new_filename)
 	{
 		if (index < 0 || index >= files().num_files()) return true;
-		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
+		std::string old_name = files().file_path(index, m_save_path);
 		m_pool.release(this, index);
 
 		error_code ec;
-		std::string new_path = combine_path(m_save_path, new_filename);
+		std::string new_path;
+		if (is_complete(new_filename)) new_path = new_filename;
+		else new_path = combine_path(m_save_path, new_filename);
 		std::string new_dir = parent_path(new_path);
 
 		// create any missing directories that the new filename
@@ -556,14 +558,18 @@ namespace libtorrent
 			, end(files().end()); i != end; ++i)
 		{
 			std::string fp = files().file_path(*i);
-			std::string p = combine_path(m_save_path, fp);
-			std::string bp = parent_path(fp);
-			std::pair<iter_t, bool> ret;
-			ret.second = true;
-			while (ret.second && !bp.empty())
+			bool complete = is_complete(fp);
+			std::string p = complete ? fp : combine_path(m_save_path, fp);
+			if (!complete)
 			{
-				ret = directories.insert(combine_path(m_save_path, bp));
-				bp = parent_path(bp);
+				std::string bp = parent_path(fp);
+				std::pair<iter_t, bool> ret;
+				ret.second = true;
+				while (ret.second && !bp.empty())
+				{
+					ret = directories.insert(combine_path(m_save_path, bp));
+					bp = parent_path(bp);
+				}
 			}
 			delete_one_file(p);
 		}
@@ -768,7 +774,10 @@ namespace libtorrent
 				for (file_storage::iterator i = f.begin()
 					, end(f.end()); i != end; ++i)
 				{
-					std::string new_path = combine_path(save_path, f.file_path(*i));
+					// files moved out to absolute paths are ignored
+					if (is_complete(f.file_path(*i))) continue;
+
+					std::string new_path = f.file_path(*i, save_path);
 					stat_file(new_path, &s, ec);
 					if (ec != boost::system::errc::no_such_file_or_directory)
 						return piece_manager::file_exist;
@@ -783,6 +792,9 @@ namespace libtorrent
 		for (file_storage::iterator i = f.begin()
 			, end(f.end()); i != end; ++i)
 		{
+			// files moved out to absolute paths are not moved
+			if (is_complete(f.file_path(*i))) continue;
+
 			std::string split = split_path(f.file_path(*i));
 			to_move.insert(to_move.begin(), split);
 		}
@@ -1199,7 +1211,7 @@ ret:
 				// this means the directory the file is in doesn't exist.
 				// so create it
 				ec.clear();
-				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+				std::string path = files().file_path(*file_iter, m_save_path);
 				create_directories(parent_path(path), ec);
 				// if the directory creation failed, don't try to open the file again
 				// but actually just fail
@@ -1208,7 +1220,7 @@ ret:
 
 			if (!file_handle || ec)
 			{
-				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+				std::string path = files().file_path(*file_iter, m_save_path);
 				TORRENT_ASSERT(ec);
 				set_error(path, ec);
 				return -1;
@@ -1253,7 +1265,7 @@ ret:
 
 			if (ec)
 			{
-				set_error(combine_path(m_save_path, files().file_path(*file_iter)), ec);
+				set_error(files().file_path(*file_iter, m_save_path), ec);
 				return -1;
 			}
 
