@@ -79,6 +79,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_resolver(ios)
 	, m_queue_packets(false)
 	, m_tunnel_packets(false)
+	, m_force_proxy(false)
 	, m_abort(false)
 	, m_outstanding_ops(0)
 {
@@ -151,8 +152,14 @@ void udp_socket::send_hostname(char const* hostname, int port
 	}
 
 	// this function is only supported when we're using a proxy
-	TORRENT_ASSERT(m_queue_packets);
-	if (!m_queue_packets) return;
+	if (!m_queue_packets)
+	{
+		address target = address::from_string(hostname, ec);
+		if (!ec) send(udp::endpoint(target, port), p, len, ec, 0);
+		return;
+	}
+
+	if (m_queue.size() > 1000) return;
 
 	m_queue.push_back(queued_packet());
 	queued_packet& qp = m_queue.back();
@@ -199,6 +206,8 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 
 		if (m_queue_packets)
 		{
+			if (m_queue.size() > 1000) return;
+
 			m_queue.push_back(queued_packet());
 			queued_packet& qp = m_queue.back();
 			qp.ep = ep;
@@ -208,6 +217,8 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 			return;
 		}
 	}
+
+	if (m_force_proxy) return;
 
 #if TORRENT_USE_IPV6
 	if (ep.address().is_v4() && m_ipv4_sock.is_open())
@@ -790,6 +801,9 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 		TORRENT_TRY {
 			if (m_callback) m_callback(e, udp::endpoint(), 0, 0);
 		} TORRENT_CATCH (std::exception&) {}
+
+		drain_queue();
+
 		return;
 	}
 
@@ -831,6 +845,8 @@ void udp_socket::on_timeout()
 		+ m_outstanding_resolve
 		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
+
+	m_queue_packets = false;
 
 	if (m_abort)
 	{
@@ -1013,7 +1029,11 @@ void udp_socket::handshake1(error_code const& e)
 		return;
 	}
 	CHECK_MAGIC;
-	if (e) return;
+	if (e)
+	{
+		drain_queue();
+		return;
+	}
 
 	TORRENT_ASSERT(is_single_thread());
 
@@ -1052,7 +1072,11 @@ void udp_socket::handshake2(error_code const& e)
 	}
 	CHECK_MAGIC;
 
-	if (e) return;
+	if (e)
+	{
+		drain_queue();
+		return;
+	}
 
 	using namespace libtorrent::detail;
 
@@ -1062,7 +1086,13 @@ void udp_socket::handshake2(error_code const& e)
 	int version = read_uint8(p);
 	int method = read_uint8(p);
 
-	if (version < 5) return;
+	if (version < 5)
+	{
+		error_code ec;
+		m_socks5_sock.close(ec);
+		drain_queue();
+		return;
+	}
 
 	if (method == 0)
 	{
@@ -1074,6 +1104,7 @@ void udp_socket::handshake2(error_code const& e)
 		{
 			error_code ec;
 			m_socks5_sock.close(ec);
+			drain_queue();
 			return;
 		}
 
@@ -1097,6 +1128,7 @@ void udp_socket::handshake2(error_code const& e)
 	}
 	else
 	{
+		drain_queue();
 		error_code ec;
 		m_socks5_sock.close(ec);
 		return;
@@ -1126,7 +1158,11 @@ void udp_socket::handshake3(error_code const& e)
 		return;
 	}
 	CHECK_MAGIC;
-	if (e) return;
+	if (e)
+	{
+		drain_queue();
+		return;
+	}
 
 	TORRENT_ASSERT(is_single_thread());
 
@@ -1164,7 +1200,11 @@ void udp_socket::handshake4(error_code const& e)
 		return;
 	}
 	CHECK_MAGIC;
-	if (e) return;
+	if (e)
+	{
+		drain_queue();
+		return;
+	}
 
 	TORRENT_ASSERT(is_single_thread());
 
@@ -1174,8 +1214,11 @@ void udp_socket::handshake4(error_code const& e)
 	int version = read_uint8(p);
 	int status = read_uint8(p);
 
-	if (version != 1) return;
-	if (status != 0) return;
+	if (version != 1 || status != 0)
+	{
+		drain_queue();
+		return;
+	}
 
 	socks_forward_udp(/*l*/);
 }
@@ -1229,7 +1272,11 @@ void udp_socket::connect1(error_code const& e)
 		return;
 	}
 	CHECK_MAGIC;
-	if (e) return;
+	if (e)
+	{
+		drain_queue();
+		return;
+	}
 
 	TORRENT_ASSERT(is_single_thread());
 
@@ -1270,7 +1317,7 @@ void udp_socket::connect2(error_code const& e)
 	CHECK_MAGIC;
 	if (e)
 	{
-		m_queue.clear();
+		drain_queue();
 		return;
 	}
 
@@ -1286,7 +1333,7 @@ void udp_socket::connect2(error_code const& e)
 
 	if (version != 5 || status != 0)
 	{
-		m_queue.clear();
+		drain_queue();
 		return;
 	}
 
@@ -1299,29 +1346,12 @@ void udp_socket::connect2(error_code const& e)
 	{
 		// in this case we need to read more data from the socket
 		TORRENT_ASSERT(false && "not implemented yet!");
-		m_queue.clear();
+		drain_queue();
 		return;
 	}
 	
 	m_tunnel_packets = true;
-	m_queue_packets = false;
-
-	// forward all packets that were put in the queue
-	while (!m_queue.empty())
-	{
-		queued_packet const& p = m_queue.front();
-		error_code ec;
-		if (p.hostname)
-		{
-			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0], p.buf.size(), ec);
-			free(p.hostname);
-		}
-		else
-		{
-			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);
-		}
-		m_queue.pop_front();
-	}
+	drain_queue();
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::hung_up");
@@ -1363,6 +1393,28 @@ void udp_socket::hung_up(error_code const& e)
 
 	// the socks connection was closed, re-open it
 	set_proxy_settings(m_proxy_settings);
+}
+
+void udp_socket::drain_queue()
+{
+	m_queue_packets = false;
+
+	// forward all packets that were put in the queue
+	while (!m_queue.empty())
+	{
+		queued_packet const& p = m_queue.front();
+		error_code ec;
+		if (p.hostname)
+		{
+			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0], p.buf.size(), ec);
+			free(p.hostname);
+		}
+		else if (!m_force_proxy) // block incoming packets that aren't coming via the proxy
+		{
+			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);
+		}
+		m_queue.pop_front();
+	}
 }
 
 rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
