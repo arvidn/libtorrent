@@ -119,7 +119,7 @@ int test_main()
 	file.close();
 
 	// this should fail
-	snprintf(tracker_url, sizeof(tracker_url), "udp://www.google.com:80/announce");
+	snprintf(tracker_url, sizeof(tracker_url), "udp://www1.non-existent.com:80/announce");
 	t->add_tracker(tracker_url, 0);
 
 	// and this should fail

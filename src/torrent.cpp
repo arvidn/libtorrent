@@ -2406,10 +2406,13 @@ namespace libtorrent
 			if (settings().force_proxy)
 			{
 				// in force_proxy mode we don't talk directly to trackers
-				// unless there is a proxy
+				// we only allow trackers if there is a proxy and issue
+				// a warning if there isn't one
 				std::string protocol = req.url.substr(0, req.url.find(':'));
 				int proxy_type = m_ses.m_proxy.type;
 	
+				// http can run over any proxy, so as long as one is used
+				// it's OK. If no proxy is configured, skip this tracker
 				if ((protocol == "http" || protocol == "https")
 					&& proxy_type == proxy_settings::none)
 				{
@@ -2423,10 +2426,13 @@ namespace libtorrent
 					continue;
 				}
 
+				// for UDP, only socks5 and i2p proxies will work.
+				// if we're not using one of those proxues with a UDP
+				// tracker, skip it
 				if (protocol == "udp"
-					|| (proxy_type != proxy_settings::socks5
+					&& proxy_type != proxy_settings::socks5
 					&& proxy_type != proxy_settings::socks5_pw
-					&& proxy_type != proxy_settings::i2p_proxy))
+					&& proxy_type != proxy_settings::i2p_proxy)
 				{
 					ae.next_announce = now + minutes(10);
 					if (m_ses.m_alerts.should_post<anonymous_mode_alert>())
@@ -2575,8 +2581,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
 
-		TORRENT_ASSERT(!tracker_ips.empty());
-		if (external_ip != address())
+		if (external_ip != address() && !tracker_ips.empty())
 			m_ses.set_external_address(external_ip, aux::session_impl::source_tracker
 				, *tracker_ips.begin());
 

@@ -186,6 +186,8 @@ namespace libtorrent
 		void connect2(error_code const& e);
 		void hung_up(error_code const& e);
 
+		void drain_queue();
+
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
