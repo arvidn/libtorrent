@@ -1958,6 +1958,9 @@ namespace aux {
 			m_unchoke_time_scaler = 0;
 		}
 
+		if (m_settings.anonymous_mode != s.anonymous_mode)
+			m_udp_socket.set_force_proxy(s.anonymous_mode);
+
 #ifndef TORRENT_DISABLE_DHT
 		if (m_settings.dht_announce_interval != s.dht_announce_interval)
 		{

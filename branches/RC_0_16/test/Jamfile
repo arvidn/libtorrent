@@ -39,6 +39,7 @@ project
    ;
 
 test-suite libtorrent : 	
+	[ run test_privacy.cpp ]
 	[ run test_threads.cpp ]
 	[ run test_rss.cpp ]
 	[ run test_bandwidth_limiter.cpp ]
