@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "dht_server.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 
@@ -69,6 +70,7 @@ enum flags_t
 	expect_udp_connection = 4,
 	expect_http_reject = 8,
 	expect_udp_reject = 16,
+	expect_dht_msg = 32,
 };
 
 void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
@@ -76,6 +78,7 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	fprintf(stderr, "\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & anonymous_mode) ? "yes" : "no");
 	int http_port = start_web_server();
 	int udp_port = start_tracker();
+	int dht_port = start_dht();
 
 	int prev_udp_announces = g_udp_tracker_requests;
 	int prev_http_announces = g_http_tracker_requests;
@@ -100,6 +103,8 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	ps.type = proxy_type;
 	s->set_proxy(ps);
 
+	s->start_dht();
+
 	error_code ec;
 	create_directory("tmp1_privacy", ec);
 	std::ofstream file(combine_path("tmp1_privacy", "temporary").c_str());
@@ -119,9 +124,10 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.ti = t;
 	addp.save_path = "tmp1_privacy";
+	addp.dht_nodes.push_back(std::pair<std::string, int>("127.0.0.1", dht_port));
 	torrent_handle h = s->add_torrent(addp);
 
-	//TODO: also add a peer and a DHT node to make sure we don't contact those as well
+	//TODO: also add a peer to make sure we don't contact that as well
 
 	rejected_trackers.clear();
 	for (int i = 0; i < 10; ++i)
@@ -133,6 +139,14 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	// we should have announced to the tracker by now
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + bool(flags & expect_udp_connection));
 	TEST_EQUAL(g_http_tracker_requests, prev_http_announces + bool(flags & expect_http_connection));
+	if (flags & expect_dht_msg)
+	{
+		TEST_CHECK(num_dht_hits() > 0);
+	}
+	else
+	{
+		TEST_EQUAL(num_dht_hits(), 0);
+	}
 
 	if (flags & expect_udp_reject)
 		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), udp_tracker_url) != rejected_trackers.end());
@@ -143,6 +157,10 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	fprintf(stderr, "destructing session\n");
 	delete s;
 	fprintf(stderr, "done\n");
+
+	stop_dht();
+	stop_tracker();
+	stop_web_server();
 }
 
 int test_main()
@@ -150,13 +168,13 @@ int test_main()
 	// not using anonymous mode
 	// UDP fails open if we can't connect to the proxy
 	// or if the proxy doesn't support UDP
-	test_proxy(proxy_settings::none, expect_udp_connection | expect_http_connection);
-	test_proxy(proxy_settings::socks4, expect_udp_connection);
-	test_proxy(proxy_settings::socks5, expect_udp_connection);
-	test_proxy(proxy_settings::socks5_pw, expect_udp_connection);
-	test_proxy(proxy_settings::http, expect_udp_connection);
-	test_proxy(proxy_settings::http_pw, expect_udp_connection);
-	test_proxy(proxy_settings::i2p_proxy, expect_udp_connection);
+	test_proxy(proxy_settings::none, expect_udp_connection | expect_http_connection | expect_dht_msg);
+	test_proxy(proxy_settings::socks4, expect_udp_connection | expect_dht_msg);
+	test_proxy(proxy_settings::socks5, expect_udp_connection | expect_dht_msg);
+	test_proxy(proxy_settings::socks5_pw, expect_udp_connection | expect_dht_msg);
+	test_proxy(proxy_settings::http, expect_udp_connection | expect_dht_msg);
+	test_proxy(proxy_settings::http_pw, expect_udp_connection | expect_dht_msg);
+	test_proxy(proxy_settings::i2p_proxy, expect_udp_connection | expect_dht_msg);
 
 	// using anonymous mode
 	// TODO: also expect whether or not to get a anonymous_alert indicating the tracker isn't anonymous
