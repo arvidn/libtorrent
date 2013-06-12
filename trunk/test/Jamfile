@@ -32,6 +32,7 @@ project
 	<conditional>@libtorrent_dependency
 	<source>main.cpp
 	<source>setup_transfer.cpp
+	<source>dht_server.cpp
    : default-build
 	<threading>multi
 	<invariant-checks>full
