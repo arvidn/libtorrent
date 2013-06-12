@@ -22,6 +22,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix proxy failure semantics with regards to anonymous mode
 	* fix round-robin seed-unchoke algorithm
 	* add bootstrap.sh to generage configure script and run configure
 	* fix bug in SOCK5 UDP support

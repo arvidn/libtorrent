@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
+#include <boost/detail/atomic_count.hpp>
+
 #define DEBUG_WEB_SERVER 0
 
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
@@ -488,8 +490,8 @@ int start_tracker()
 	return port;
 }
 
-int g_udp_tracker_requests = 0;
-int g_http_tracker_requests = 0;
+boost::detail::atomic_count g_udp_tracker_requests(0);
+boost::detail::atomic_count  g_http_tracker_requests(0);
 
 void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint const* from, char* buffer, udp::socket* sock)
 {
@@ -506,6 +508,9 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 		fprintf(stderr, "UDP message too short\n");
 		return;
 	}
+
+	fprintf(stderr, "UDP message %d bytes\n", int(bytes_transferred));
+
 	char* ptr = buffer;
 	detail::read_uint64(ptr);
 	boost::uint32_t action = detail::read_uint32(ptr);
@@ -517,6 +522,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 	{
 		case 0: // connect
 
+			fprintf(stderr, "UDP connect\n");
 			ptr = buffer;
 			detail::write_uint32(0, ptr); // action = connect
 			detail::write_uint32(transaction_id, ptr); // transaction_id
@@ -526,6 +532,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 		case 1: // announce
 
+			fprintf(stderr, "UDP announce\n");
 			ptr = buffer;
 			detail::write_uint32(1, ptr); // action = announce
 			detail::write_uint32(transaction_id, ptr); // transaction_id
@@ -536,7 +543,12 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 			// 0 peers
 			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
 			break;
-		default: // ignore scrapes
+		case 2:
+			// ignore scrapes
+			fprintf(stderr, "UDP scrape\n");
+			break;
+		default:
+			fprintf(stderr, "UDP unknown message: %d\n", action);
 			break;
 	}
 }
@@ -785,13 +797,6 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 	web_ios = &ios;
 
-	fprintf(stderr, "web server initialized on port %d\n", *port);
-
-	{
-		libtorrent::mutex::scoped_lock l(web_lock);
-		web_initialized.signal(l);
-	}
-
 	char buf[10000];
 	int len = 0;
 	int offset = 0;
@@ -809,6 +814,14 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 	proxy_settings p;
 	instantiate_connection(ios, p, s, ctx);
+
+	fprintf(stderr, "web server initialized on port %d%s\n", *port, ssl ? " [SSL]" : "");
+
+	{
+		libtorrent::mutex::scoped_lock l(web_lock);
+		web_initialized.signal(l);
+	}
+
 	for (;;)
 	{
 		if (connection_close)
@@ -979,7 +992,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				connection_close = true;
 			}
 
-			DLOG(stderr, "%s", std::string(buf + offset, p.body_start()).c_str());
+			DLOG(stderr, "REQ: %s", std::string(buf + offset, p.body_start()).c_str());
 
 			if (failed)
 			{
