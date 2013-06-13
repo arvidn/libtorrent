@@ -33,6 +33,7 @@ project
 	<source>main.cpp
 	<source>setup_transfer.cpp
 	<source>dht_server.cpp
+	<source>peer_server.cpp
    : default-build
 	<threading>multi
 	<invariant-checks>full
