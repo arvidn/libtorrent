@@ -44,109 +44,104 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-struct dht_server
+struct peer_server
 {
 
 	boost::asio::io_service m_ios;
-	boost::detail::atomic_count m_dht_requests;
-	udp::socket m_socket;
+	boost::detail::atomic_count m_peer_requests;
+	tcp::acceptor m_acceptor;
 	int m_port;
 
 	boost::shared_ptr<libtorrent::thread> m_thread;
 
-	dht_server()
-		: m_dht_requests(0)
-		, m_socket(m_ios)
+	peer_server()
+		: m_peer_requests(0)
+		, m_acceptor(m_ios)
 	{
 		error_code ec;
-		m_socket.open(udp::v4(), ec);
+		m_acceptor.open(tcp::v4(), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error opening listen DHT socket: %s\n", ec.message().c_str());
+			fprintf(stderr, "Error opening peer listen socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
+		m_acceptor.bind(tcp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error binding DHT socket to port 0: %s\n", ec.message().c_str());
+			fprintf(stderr, "Error binding peer socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
-		m_port = m_socket.local_endpoint(ec).port();
+		m_port = m_acceptor.local_endpoint(ec).port();
 		if (ec)
 		{
-			fprintf(stderr, "Error getting local endpoint of DHT socket: %s\n", ec.message().c_str());
+			fprintf(stderr, "Error getting local endpoint of peer socket: %s\n", ec.message().c_str());
+			return;
+		}
+		m_acceptor.listen(10, ec);
+		if (ec)
+		{
+			fprintf(stderr, "Error listening on peer socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		fprintf(stderr, "DHT initialized on port %d\n", m_port);
+		fprintf(stderr, "peer initialized on port %d\n", m_port);
 
-		m_thread.reset(new thread(boost::bind(&dht_server::thread_fun, this)));
+		m_thread.reset(new thread(boost::bind(&peer_server::thread_fun, this)));
 	}
 
-	~dht_server()
+	~peer_server()
 	{
-		m_socket.close();
+		m_acceptor.close();
 		if (m_thread) m_thread->join();
 	}
 
 	int port() const { return m_port; }
 
-	int num_hits() const { return m_dht_requests; }
+	int num_hits() const { return m_peer_requests; }
 
 	void thread_fun()
 	{
-		char buffer[2000];
-	
 		for (;;)
 		{
 			error_code ec;
-			udp::endpoint from;
-			int bytes_transferred = m_socket.receive_from(
-				asio::buffer(buffer, sizeof(buffer)), from, 0, ec);
+			tcp::endpoint from;
+			tcp::socket socket(m_ios);
+			m_acceptor.accept(socket, from, ec);
+
 			if (ec == boost::asio::error::operation_aborted
 				|| ec == boost::asio::error::bad_descriptor) return;
 
 			if (ec)
 			{
-				fprintf(stderr, "Error receiving on DHT socket: %s\n", ec.message().c_str());
+				fprintf(stderr, "Error accepting connection on peer socket: %s\n", ec.message().c_str());
 				return;
 			}
 
-			try
-			{
-				entry msg = bdecode(buffer, buffer + bytes_transferred);
-
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-				std::cerr << msg << std::endl;
-#endif
-				++m_dht_requests;
-			}
-			catch (std::exception& e)
-			{
-				fprintf(stderr, "failed to decode DHT message: %s\n", e.what());
-			}
+			fprintf(stderr, "incoming peer connection\n");
+			++m_peer_requests;
+			socket.close(ec);
 		}
 	}
 };
 
-boost::shared_ptr<dht_server> g_dht;
+boost::shared_ptr<peer_server> g_peer;
 
-int start_dht()
+int start_peer()
 {
-	g_dht.reset(new dht_server);
-	return g_dht->port();
+	g_peer.reset(new peer_server);
+	return g_peer->port();
 }
 
 // the number of DHT messages received
-int num_dht_hits()
+int num_peer_hits()
 {
-	if (g_dht) return g_dht->num_hits();
+	if (g_peer) return g_peer->num_hits();
 	return 0;
 }
 
-void stop_dht()
+void stop_peer()
 {
-	g_dht.reset();
+	g_peer.reset();
 }
 
