@@ -131,18 +131,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 			++count_dl_rates3;
 		}
 
-		std::cerr
-			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
-			<< st1.num_peers << ": "
-			<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
-			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
-			<< "\033[0m" << int(st2.progress * 100) << "% "
-			<< st2.num_peers << " - "
-			<< "\033[32m" << int(st3.download_payload_rate / 1000.f) << "kB/s "
-			<< "\033[31m" << int(st3.upload_payload_rate / 1000.f) << "kB/s "
-			<< "\033[0m" << int(st3.progress * 100) << "% "
-			<< st3.num_peers
-			<< std::endl;
+		print_ses_rate(&st1, &st2, &st3);
 
 		if (st2.is_seeding && st3.is_seeding) break;
 		test_sleep(1000);

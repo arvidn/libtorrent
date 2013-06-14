@@ -67,17 +67,7 @@ bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
-#if defined TORRENT_WINDOWS
-	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(out, FOREGROUND_RED);
-	char buffer[1024];
-	int len = snprintf(buffer, sizeof(buffer), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
-	DWORD written;
-	WriteFile(out, buffer, len, &written, NULL);
-	SetConsoleTextAttribute(out, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-#else
-	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
-#endif
+	fprintf(stderr, "\n***** %s:%d \"%s\" *****\n\n", file, line, err);
 	tests_failure = true;
 }
 
@@ -148,6 +138,33 @@ void wait_for_listen(libtorrent::session& ses, char const* name)
 		if (listen_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
+}
+
+void print_ses_rate(libtorrent::torrent_status const* st1
+	, libtorrent::torrent_status const* st2
+	, libtorrent::torrent_status const* st3)
+{
+	std::cerr
+		<< int(st1->download_payload_rate / 1000.f) << "kB/s "
+		<< int(st1->upload_payload_rate / 1000.f) << "kB/s "
+		<< int(st1->progress * 100) << "% "
+		<< st1->num_peers;
+	if (st2)
+		std::cerr << " : "
+			<< int(st2->download_payload_rate / 1000.f) << "kB/s "
+			<< int(st2->upload_payload_rate / 1000.f) << "kB/s "
+			<< int(st2->progress * 100) << "% "
+			<< st2->num_peers
+			<< " cc: " << st2->connect_candidates;
+	if (st3)
+		std::cerr << " : "
+			<< int(st3->download_payload_rate / 1000.f) << "kB/s "
+			<< int(st3->upload_payload_rate / 1000.f) << "kB/s "
+			<< int(st3->progress * 100) << "% "
+			<< st3->num_peers
+			<< " cc: " << st3->connect_candidates;
+
+	std::cerr << std::endl;
 }
 
 void test_sleep(int millisec)

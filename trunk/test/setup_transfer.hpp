@@ -40,7 +40,12 @@ namespace libtorrent
 {
 	class alert;
 	struct add_torrent_params;
+	struct session_status;
 }
+
+void print_ses_rate(libtorrent::torrent_status const* st1
+	, libtorrent::torrent_status const* st2
+	, libtorrent::torrent_status const* st3 = NULL);
 
 bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
