@@ -91,13 +91,7 @@ void test_rate()
 		torrent_status st2 = tor2.status();
 
 		if (i % 10 == 0)
-		{
-			std::cerr
-				<< "up: \033[33m" << st1.upload_payload_rate / 1000000.f << "MB/s "
-				<< " down: \033[32m" << st2.download_payload_rate / 1000000.f << "MB/s "
-				<< "\033[0m" << int(st2.progress * 100) << "% "
-				<< std::endl;
-		}
+			print_ses_rate(&st1, &st2);
 
 		if (st2.is_seeding) break;
 		test_sleep(100);
@@ -370,18 +364,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		if (i % 10 == 0)
 		{
-			std::cerr
-				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
-				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
-				<< "\033[0m" << int(st1.progress * 100) << "% "
-				<< st1.num_peers
-				<< ": "
-				<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
-				<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
-				<< "\033[0m" << int(st2.progress * 100) << "% "
-				<< st2.num_peers
-				<< " cc: " << st2.connect_candidates
-				<< std::endl;
+			print_ses_rate(&st1, &st2);
 		}
 
 		if (!test_move_storage && st2.progress > 0.25f)
@@ -439,7 +422,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			print_alerts(ses2, "ses2");
 			torrent_status st2 = tor2.status();
 			if (i % 10 == 0)
-				std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
+			{
+				std::cerr << int(st2.progress * 100) << "% " << std::endl;
+			}
 			if (st2.state != torrent_status::checking_files) break;
 		}
 
@@ -450,7 +435,6 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		{
 			print_alerts(ses2, "ses2");
 			torrent_status st2 = tor2.status();
-			//		std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
 			TEST_CHECK(st2.state == torrent_status::finished);
 			test_sleep(100);
 		}
@@ -552,20 +536,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			torrent_status st2 = tor2.status();
 
 			if (i % 10 == 0)
-			{
-				std::cerr
-					<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
-					<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
-					<< "\033[0m" << int(st1.progress * 100) << "% "
-					<< st1.num_peers
-					<< ": "
-					<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
-					<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
-					<< "\033[0m" << int(st2.progress * 100) << "% "
-					<< st2.num_peers
-					<< " cc: " << st2.connect_candidates
-					<< std::endl;
-			}
+				print_ses_rate(&st1, &st2);
 
 			if (tor2.status().is_finished) break;
 
