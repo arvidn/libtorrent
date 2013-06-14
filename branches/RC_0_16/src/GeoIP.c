@@ -287,11 +287,11 @@ void _setup_segments(GeoIP * gi) {
 
 			if (gi->databaseType == GEOIP_REGION_EDITION_REV0) {
 				/* Region Edition, pre June 2003 */
-				gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
+				gi->databaseSegments = (unsigned int*)malloc(sizeof(unsigned int));
 				gi->databaseSegments[0] = STATE_BEGIN_REV0;
 			} else if (gi->databaseType == GEOIP_REGION_EDITION_REV1) {
 				/* Region Edition, post June 2003 */
-				gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
+				gi->databaseSegments = (unsigned int*)malloc(sizeof(unsigned int));
 				gi->databaseSegments[0] = STATE_BEGIN_REV1;
 			} else if (gi->databaseType == GEOIP_CITY_EDITION_REV0 ||
 								 gi->databaseType == GEOIP_CITY_EDITION_REV1 ||
@@ -299,7 +299,7 @@ void _setup_segments(GeoIP * gi) {
 								 gi->databaseType == GEOIP_ISP_EDITION ||
 								 gi->databaseType == GEOIP_ASNUM_EDITION) {
 				/* City/Org Editions have two segments, read offset of second segment */
-				gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
+				gi->databaseSegments = (unsigned int*)malloc(sizeof(unsigned int));
 				gi->databaseSegments[0] = 0;
 				fread(buf, SEGMENT_RECORD_LENGTH, 1, gi->GeoIPDatabase);
 				for (j = 0; j < SEGMENT_RECORD_LENGTH; j++) {
@@ -317,7 +317,7 @@ void _setup_segments(GeoIP * gi) {
 	if (gi->databaseType == GEOIP_COUNTRY_EDITION ||
 			gi->databaseType == GEOIP_PROXY_EDITION ||
 			gi->databaseType == GEOIP_NETSPEED_EDITION) {
-		gi->databaseSegments = (unsigned int*)malloc(sizeof(int));
+		gi->databaseSegments = (unsigned int*)malloc(sizeof(unsigned int));
 		gi->databaseSegments[0] = COUNTRY_BEGIN;
 	}
 }

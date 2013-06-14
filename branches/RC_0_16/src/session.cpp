@@ -512,7 +512,11 @@ namespace libtorrent
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		int ret =
+#endif
+		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+
 		TORRENT_ASSERT(ret == 0);
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}

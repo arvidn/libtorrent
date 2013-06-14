@@ -1552,7 +1552,7 @@ int main(int argc, char* argv[])
 		int c = 0;
 		while (sleep_and_input(&c, refresh_delay))
 		{
-			if (c == EOF) { c = 'q'; break; }
+			if (c == EOF) { break; }
 			if (c == 27)
 			{
 				// escape code, read another character
@@ -1561,7 +1561,7 @@ int main(int argc, char* argv[])
 #else
 				int c = getc(stdin);
 #endif
-				if (c == EOF) { c = 'q'; break; }
+				if (c == EOF) { break; }
 				if (c != '[') continue;
 #ifdef _WIN32
 				c = _getch();

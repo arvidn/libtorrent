@@ -2542,12 +2542,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// within reasonable bounds. The one-way delay is never
 			// higher than the round-trip time.
 
+			// only use the minimum from the last 3 delay measurements
+			delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
+
 			// it's impossible for delay to be more than the RTT, so make
 			// sure to clamp it as a sanity check
 			if (delay > min_rtt) delay = min_rtt;
-
-			// only use the minimum from the last 3 delay measurements
-			delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
@@ -2888,7 +2888,6 @@ void utp_socket_impl::tick(ptime const& now)
 		, this, socket_state_names[m_state], m_read, m_read_handler ? "handler" : "no handler"
 		, m_written, m_write_handler ? "handler" : "no handler");
 #endif
-	bool window_opened = false;
 
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
 
@@ -2909,10 +2908,6 @@ void utp_socket_impl::tick(ptime const& now)
 	{
 		// TIMEOUT!
 		// set cwnd to 1 MSS
-
-		// the window went from less than one MSS to one MSS
-		// we can now sent messages again, the send window was opened
-		if ((m_cwnd >> 16) < m_mtu) window_opened = true;
 
 		if (m_bytes_in_flight == 0 && (m_cwnd >> 16) >= m_mtu)
 		{
