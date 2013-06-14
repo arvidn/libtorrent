@@ -309,7 +309,7 @@ restart_response:
 				{
 					m_recv_pos += incoming;
 					boost::get<0>(ret) += incoming;
-					incoming = 0;
+//					incoming = 0;
 				}
 			}
 			else

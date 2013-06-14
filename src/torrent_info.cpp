@@ -587,7 +587,10 @@ namespace libtorrent
 			error_code ec;
 			m_info_section.reset(new char[m_info_section_size]);
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
-			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			int ret =
+#endif
+				lazy_bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
 			TORRENT_ASSERT(ret == 0);
 

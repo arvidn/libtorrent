@@ -489,8 +489,10 @@ namespace libtorrent
 		detail::write_int32(m_transaction_id, out); // transaction_id
 		// info_hash
 		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end(), out);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		out += 20;
 		TORRENT_ASSERT(out - buf == sizeof(buf));
+#endif
 
 		error_code ec;
 		if (!m_hostname.empty())

@@ -370,26 +370,30 @@ bool routing_table::add_node(node_entry const& e)
 				i != end; ++i)
 			{
 				if (i->addr != e.addr || i->port != e.port) continue;
-   #ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 				TORRENT_LOG(table) << "node ID changed, deleting old entry: "
 					<< i->id << " " << i->addr;
-	#endif
+#endif
 				b.erase(i);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				done = true;
+#endif
 				break;
 			}
 			if (!done)
-   		{
+			{
 				for (bucket_t::iterator i = rb.begin(), end(rb.end());
 					i != end; ++i)
 				{
 					if (i->addr != e.addr || i->port != e.port) continue;
-	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(table) << "node ID changed, deleting old entry: "
 						<< i->id << " " << i->addr;
-	#endif
-   				rb.erase(i);
+#endif
+					rb.erase(i);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 					done = true;
+#endif
 					break;
 				}
 			}
@@ -398,7 +402,7 @@ bool routing_table::add_node(node_entry const& e)
 		}
 	}
 	
-   table_t::iterator i = find_bucket(e.id);
+	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
 
