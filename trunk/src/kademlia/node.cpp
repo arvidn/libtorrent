@@ -575,6 +575,10 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 		else if (k.flags & key_desc_t::last_child)
 		{
 			TORRENT_ASSERT(stack_ptr > 0);
+			// this can happen if the specification passed
+			// in is unbalanced. i.e. contain more last_child
+			// nodes than parse_children
+			if (stack_ptr == 0) return false;
 			--stack_ptr;
 			msg = stack[stack_ptr];
 		}
