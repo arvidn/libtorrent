@@ -3,12 +3,12 @@ import os
 
 paths = ['src/*.cpp', 'src/kademlia/*.cpp', 'include/libtorrent/*.hpp', 'include/libtorrent/kademlia/*.hpp', 'include/libtorrent/aux_/*.hpp', 'include/libtorrent/extensions/*.hpp']
 
-os.system('ctags %s 2>/dev/null' % ' '.join(paths))
+os.system('(cd .. ; ctags %s 2>/dev/null)' % ' '.join(paths))
 
 files = []
 
 for p in paths:
-	files.extend(glob.glob(p))
+	files.extend(glob.glob(os.path.join('..', p)))
 
 items = []
 
@@ -88,7 +88,7 @@ items.sort(key = lambda x: x['priority'], reverse = True)
 #	if 'context' in i:
 #		print i['context'], '\n'
 
-out = open('docs/todo.html', 'w+')
+out = open('todo.html', 'w+')
 out.write('''<html><head>
 <script type="text/javascript">
 /* <![CDATA[ */

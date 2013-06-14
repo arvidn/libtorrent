@@ -34,6 +34,9 @@ epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
 all: html
 
+todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
+	python gen_todo.py
+
 %.epub:%.rst
 	rst2epub $? $@
 
@@ -53,5 +56,5 @@ all: html
 	cp $@ $(WEB_PATH)/$@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf)
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html
 
