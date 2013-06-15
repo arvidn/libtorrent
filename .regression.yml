@@ -1,0 +1,18 @@
+test_dirs:
+ - test
+
+project:
+ libtorrent
+
+features:
+ - variant=release
+ - asserts=production
+ - encryption=gcrypt
+ - statistics=on logging=verbose disk-stats=on bandwidth-limit-logging=on
+ - ipv6=off
+ - deprecated-functions=off
+ - address-model=32
+ - dht-support=off
+ - invariant-checks=off
+ - extensions=off
+
