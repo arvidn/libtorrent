@@ -1,0 +1,204 @@
+#!/bin/python
+
+# Copyright (c) 2013, Arvid Norberg
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the distribution.
+#     * Neither the name of the author nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# this is meant to be run from the root of the repository
+# the arguments are the boost-build toolsets to use.
+# these will vary between testers and operating systems
+# common ones are: clang, darwin, gcc, msvc, icc
+
+import random
+import os
+import platform
+import subprocess
+import xml.etree.ElementTree as et
+from datetime import datetime
+import json
+import sys
+import yaml
+
+# the .regression.yml configuration file format looks like this (it's yaml):
+
+# test-dirs:
+#   - <path-to-test-folder>
+#   - ...
+#
+# features:
+#   - <list of boost-built features>
+#   - ...
+#
+
+toolsets = sys.argv[1:]
+
+try:
+	cfg = open('.regression.yml', 'r')
+except:
+	print '.regressions.yml not found in current directory'
+	sys.exit(1)
+
+cfg = yaml.load(cfg.read())
+
+test_dirs = []
+configs = []
+options = ['boost=source']
+if 'test_dirs' in cfg:
+	for d in cfg['test_dirs']:
+		test_dirs.append(d)
+else:
+	print 'no test directory specified by .regressions.yml'
+	sys.exit(1)
+
+configs = []
+if 'features' in cfg:
+	for d in cfg['features']:
+		configs.append(d.split(' '))
+else:
+	configs = [['']]
+
+architecture = platform.machine()
+build_platform = platform.system() + '-' + platform.release()
+
+fail_color = '\033[31;1m'
+pass_color = '\033[32;1m'
+end_seq = '\033[0m'
+
+if platform.system() == 'Windows':
+	fail_color == ''
+	pass_color == ''
+	end_seq = ''
+
+# figure out which revision this is
+p = subprocess.Popen(['svn', 'info'], stdout=subprocess.PIPE)
+
+revision = -1
+author = ''
+timestamp = datetime.now()
+
+for l in p.stdout:
+	if 'Last Changed Rev' in l:
+		revision = int(l.split(':')[1].strip())
+	if 'Last Changed Author' in l:
+		author = l.split(':')[1].strip()
+
+if revision == -1:
+	print 'Failed to extract subversion revision'
+	sys.exit(1)
+
+if author == '':
+	print 'Failed to extract subversion author'
+	sys.exit(1)
+
+print '%d - %s - %s' % (revision, author, timestamp)
+
+print 'toolsets: ', toolsets
+print 'configs: ', configs
+
+xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
+
+rev_dir = os.path.join(os.getcwd(), 'regression_tests')
+try: os.mkdir(rev_dir)
+except: pass
+rev_dir = os.path.join(rev_dir, '%d' % revision)
+try: os.mkdir(rev_dir)
+except: pass
+
+for test_dir in test_dirs:
+	print 'running tests from %s' % test_dir
+	os.chdir(test_dir)
+
+	# figure out which tests are exported by this Jamfile
+	p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
+
+	tests = []
+
+	for l in p.stdout:
+		if not 'boost-test(RUN)' in l: continue
+		test_name = os.path.split(l.split(' ')[1][1:-1])[1]
+		tests.append(test_name)
+	print 'found %d tests' % len(tests)
+
+	for toolset in toolsets:
+		print 'toolset %s' % toolset
+		results = {}
+		toolset_found = False
+		# TODO: run tests in parallel
+		for t in tests:
+			print t
+			for features in configs:
+				print 'running %s [%s] [%s]' % (t, toolset, ' '.join(features)),
+				sys.stdout.flush()
+				p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, toolset, t] + options + features, stdout=subprocess.PIPE)
+				output = ''
+				warnings = 0
+				for l in p.stdout:
+					if 'warning: ' in l: warnings += 1
+					output += l
+				p.wait()
+
+				# parse out the toolset version from the xml file
+				compiler = ''
+				compiler_version = ''
+
+				# make this parse the actual test to pick up the time
+				# spent runnin the test
+				if not toolset_found:
+					try:
+						dom = et.parse(xml_file)
+
+						command = dom.find('./command').text
+
+						prop = dom.findall('./action/properties/property')
+						for a in prop:
+							name = a.attrib['name']
+							if name == 'toolset':
+								compiler = a.text
+								if compiler_version != '': break
+							if name.startswith('toolset-') and name.endswith(':version'):
+								compiler_version = a.text
+								if compiler != '': break
+
+						if compiler != '' and compiler_version != '':
+							toolset = compiler + '-' + compiler_version
+							toolset_found = True
+					except: pass
+
+				try: os.unlink(xml_file)
+				except: pass
+
+				r = { 'status': p.returncode, 'output': output, 'warnings': warnings, 'command': command }
+				results[t + '|' + '|'.join(features)] = r
+
+				if p.returncode == 0: print pass_color + 'PASSED' + end_seq
+				else: print fail_color + 'FAILED' + end_seq
+
+		# each file contains a full set of tests for one speific toolset and platform
+		f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+		print >>f, json.dumps(results)
+		f.close()
+
