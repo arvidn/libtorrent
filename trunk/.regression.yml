@@ -7,7 +7,6 @@ project:
 features:
  - variant=release
  - asserts=production
- - encryption=gcrypt
  - statistics=on logging=verbose disk-stats=on bandwidth-limit-logging=on
  - ipv6=off
  - deprecated-functions=off
