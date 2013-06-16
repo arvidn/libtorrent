@@ -98,29 +98,28 @@ def run_tests(toolset, tests, features, options, test_dir):
 		# parse out the toolset version from the xml file
 		compiler = ''
 		compiler_version = ''
+		command = ''
 
 		# make this parse the actual test to pick up the time
 		# spent runnin the test
-		if not toolset_found:
-			try:
-				dom = et.parse(xml_file)
+		try:
+			dom = et.parse(xml_file)
 
-				command = dom.find('./command').text
+			command = dom.find('./command').text
 
-				prop = dom.findall('./action/properties/property')
-				for a in prop:
-					name = a.attrib['name']
-					if name == 'toolset':
-						compiler = a.text
-						if compiler_version != '': break
-					if name.startswith('toolset-') and name.endswith(':version'):
-						compiler_version = a.text
-						if compiler != '': break
+			prop = dom.findall('./action/properties/property')
+			for a in prop:
+				name = a.attrib['name']
+				if name == 'toolset':
+					compiler = a.text
+					if compiler_version != '': break
+				if name.startswith('toolset-') and name.endswith(':version'):
+					compiler_version = a.text
+					if compiler != '': break
 
-				if compiler != '' and compiler_version != '':
-					toolset = compiler + '-' + compiler_version
-					toolset_found = True
-			except: pass
+			if compiler != '' and compiler_version != '':
+				toolset = compiler + '-' + compiler_version
+		except: pass
 
 		try: os.unlink(xml_file)
 		except: pass
