@@ -206,7 +206,7 @@ def main():
 
 	timestamp = datetime.now()
 
-	tester_pool = Pool(processes=4)
+	tester_pool = Pool(processes=num_processes)
 
 	print '%d - %s - %s' % (revision, author, timestamp)
 
