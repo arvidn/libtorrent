@@ -42,163 +42,222 @@ from datetime import datetime
 import json
 import sys
 import yaml
+from multiprocessing import Pool
 
 # the .regression.yml configuration file format looks like this (it's yaml):
 
-# test-dirs:
-#   - <path-to-test-folder>
-#   - ...
+# test_dirs:
+# - <path-to-test-folder>
+# - ...
 #
 # features:
-#   - <list of boost-built features>
-#   - ...
+# - <list of boost-built features>
+# - ...
 #
 
-toolsets = sys.argv[1:]
+def svn_info():
+	# figure out which revision this is
+	p = subprocess.Popen(['svn', 'info'], stdout=subprocess.PIPE)
 
-try:
-	cfg = open('.regression.yml', 'r')
-except:
-	print '.regressions.yml not found in current directory'
-	sys.exit(1)
-
-cfg = yaml.load(cfg.read())
-
-test_dirs = []
-configs = []
-options = ['boost=source']
-if 'test_dirs' in cfg:
-	for d in cfg['test_dirs']:
-		test_dirs.append(d)
-else:
-	print 'no test directory specified by .regressions.yml'
-	sys.exit(1)
-
-configs = []
-if 'features' in cfg:
-	for d in cfg['features']:
-		configs.append(d.split(' '))
-else:
-	configs = [['']]
-
-architecture = platform.machine()
-build_platform = platform.system() + '-' + platform.release()
-
-fail_color = '\033[31;1m'
-pass_color = '\033[32;1m'
-end_seq = '\033[0m'
-
-if platform.system() == 'Windows':
-	fail_color == ''
-	pass_color == ''
-	end_seq = ''
-
-# figure out which revision this is
-p = subprocess.Popen(['svn', 'info'], stdout=subprocess.PIPE)
-
-revision = -1
-author = ''
-timestamp = datetime.now()
-
-for l in p.stdout:
-	if 'Last Changed Rev' in l:
-		revision = int(l.split(':')[1].strip())
-	if 'Last Changed Author' in l:
-		author = l.split(':')[1].strip()
-
-if revision == -1:
-	print 'Failed to extract subversion revision'
-	sys.exit(1)
-
-if author == '':
-	print 'Failed to extract subversion author'
-	sys.exit(1)
-
-print '%d - %s - %s' % (revision, author, timestamp)
-
-print 'toolsets: ', toolsets
-print 'configs: ', configs
-
-xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
-
-rev_dir = os.path.join(os.getcwd(), 'regression_tests')
-try: os.mkdir(rev_dir)
-except: pass
-rev_dir = os.path.join(rev_dir, '%d' % revision)
-try: os.mkdir(rev_dir)
-except: pass
-
-for test_dir in test_dirs:
-	print 'running tests from %s' % test_dir
-	os.chdir(test_dir)
-
-	# figure out which tests are exported by this Jamfile
-	p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
-
-	tests = []
+	revision = -1
+	author = ''
 
 	for l in p.stdout:
-		if not 'boost-test(RUN)' in l: continue
-		test_name = os.path.split(l.split(' ')[1][1:-1])[1]
-		tests.append(test_name)
-	print 'found %d tests' % len(tests)
+		if 'Last Changed Rev' in l:
+			revision = int(l.split(':')[1].strip())
+		if 'Last Changed Author' in l:
+			author = l.split(':')[1].strip()
 
-	for toolset in toolsets:
-		print 'toolset %s' % toolset
-		results = {}
-		toolset_found = False
-		# TODO: run tests in parallel
-		for t in tests:
-			print t
+	if revision == -1:
+		print 'Failed to extract subversion revision'
+		sys.exit(1)
+
+	if author == '':
+		print 'Failed to extract subversion author'
+		sys.exit(1)
+
+	return (revision, author)
+
+def run_tests(toolset, tests, features, options, test_dir):
+	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
+
+	results = {}
+	toolset_found = False
+
+	os.chdir(test_dir)
+
+	for t in tests:
+		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
+		output = ''
+		warnings = 0
+		for l in p.stdout:
+			if 'warning: ' in l: warnings += 1
+			output += l
+		p.wait()
+
+		# parse out the toolset version from the xml file
+		compiler = ''
+		compiler_version = ''
+
+		# make this parse the actual test to pick up the time
+		# spent runnin the test
+		if not toolset_found:
+			try:
+				dom = et.parse(xml_file)
+
+				command = dom.find('./command').text
+
+				prop = dom.findall('./action/properties/property')
+				for a in prop:
+					name = a.attrib['name']
+					if name == 'toolset':
+						compiler = a.text
+						if compiler_version != '': break
+					if name.startswith('toolset-') and name.endswith(':version'):
+						compiler_version = a.text
+						if compiler != '': break
+
+				if compiler != '' and compiler_version != '':
+					toolset = compiler + '-' + compiler_version
+					toolset_found = True
+			except: pass
+
+		try: os.unlink(xml_file)
+		except: pass
+
+		r = { 'status': p.returncode, 'output': output, 'warnings': warnings, 'command': command }
+		results[t + '|' + features] = r
+
+		fail_color = '\033[31;1m'
+		pass_color = '\033[32;1m'
+		end_seq = '\033[0m'
+
+		if platform.system() == 'Windows':
+			fail_color == ''
+			pass_color == ''
+			end_seq = ''
+
+		print '%s [%s] [%s]' % (t, toolset, features),
+		if p.returncode == 0: print pass_color + 'PASSED' + end_seq
+		else: print fail_color + 'FAILED' + end_seq
+
+	return (toolset, results)
+
+def print_usage():
+		print '''usage: run_tests.py [options] bjam-toolset [bjam-toolset...]
+options:
+-j<n>     use n parallel processes
+-h        prints this message and exits
+'''
+
+def main():
+
+	toolsets = []
+
+	num_processes = 2
+
+	for arg in sys.argv[1:]:
+		if arg[0] == '-':
+			if arg[1] == 'j':
+				num_processes = int(arg[2:])
+			elif arg[1] == 'h':
+				print_usage()
+				sys.exit(1)
+			else:
+				print 'unknown option: %s' % arg
+				print_usage()
+				sys.exit(1)
+		else:
+			toolsets.append(arg)
+
+	if toolsets == []:
+		print_usage()
+		sys.exit(1)
+
+	try:
+		cfg = open('.regression.yml', 'r')
+	except:
+		print '.regressions.yml not found in current directory'
+		sys.exit(1)
+
+	cfg = yaml.load(cfg.read())
+
+	test_dirs = []
+	configs = []
+	options = ['boost=source']
+	if 'test_dirs' in cfg:
+		for d in cfg['test_dirs']:
+			test_dirs.append(d)
+	else:
+		print 'no test directory specified by .regressions.yml'
+		sys.exit(1)
+
+	configs = []
+	if 'features' in cfg:
+		for d in cfg['features']:
+			configs.append(d)
+	else:
+		configs = [['']]
+
+	architecture = platform.machine()
+	build_platform = platform.system() + '-' + platform.release()
+
+	revision, author = svn_info()
+
+	timestamp = datetime.now()
+
+	tester_pool = Pool(processes=4)
+
+	print '%d - %s - %s' % (revision, author, timestamp)
+
+	print 'toolsets: ', toolsets
+	print 'configs: ', configs
+
+	rev_dir = os.path.join(os.getcwd(), 'regression_tests')
+	try: os.mkdir(rev_dir)
+	except: pass
+	rev_dir = os.path.join(rev_dir, '%d' % revision)
+	try: os.mkdir(rev_dir)
+	except: pass
+
+	for test_dir in test_dirs:
+		print 'running tests from "%s"' % test_dir
+		os.chdir(test_dir)
+		test_dir = os.getcwd()
+
+		# figure out which tests are exported by this Jamfile
+		p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
+
+		tests = []
+
+		for l in p.stdout:
+			if not 'boost-test(RUN)' in l: continue
+			test_name = os.path.split(l.split(' ')[1][1:-1])[1]
+			tests.append(test_name)
+		print 'found %d tests' % len(tests)
+
+		for toolset in toolsets:
+			print 'toolset %s' % toolset
+			results = {}
+			toolset_found = False
+
+			futures = []
 			for features in configs:
-				print 'running %s [%s] [%s]' % (t, toolset, ' '.join(features)),
-				sys.stdout.flush()
-				p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, toolset, t] + options + features, stdout=subprocess.PIPE)
-				output = ''
-				warnings = 0
-				for l in p.stdout:
-					if 'warning: ' in l: warnings += 1
-					output += l
-				p.wait()
+				futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir]))
 
-				# parse out the toolset version from the xml file
-				compiler = ''
-				compiler_version = ''
+			for future in futures:
+				(toolset, r) = future.get()
+				results.update(r)
 
-				# make this parse the actual test to pick up the time
-				# spent runnin the test
-				if not toolset_found:
-					try:
-						dom = et.parse(xml_file)
+#			for features in configs:
+#				(toolset, r) = run_tests(toolset, tests, features, options, test_dir)
+#				results.update(r)
 
-						command = dom.find('./command').text
+			# each file contains a full set of tests for one speific toolset and platform
+			f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+			print >>f, json.dumps(results)
+			f.close()
 
-						prop = dom.findall('./action/properties/property')
-						for a in prop:
-							name = a.attrib['name']
-							if name == 'toolset':
-								compiler = a.text
-								if compiler_version != '': break
-							if name.startswith('toolset-') and name.endswith(':version'):
-								compiler_version = a.text
-								if compiler != '': break
-
-						if compiler != '' and compiler_version != '':
-							toolset = compiler + '-' + compiler_version
-							toolset_found = True
-					except: pass
-
-				try: os.unlink(xml_file)
-				except: pass
-
-				r = { 'status': p.returncode, 'output': output, 'warnings': warnings, 'command': command }
-				results[t + '|' + '|'.join(features)] = r
-
-				if p.returncode == 0: print pass_color + 'PASSED' + end_seq
-				else: print fail_color + 'FAILED' + end_seq
-
-		# each file contains a full set of tests for one speific toolset and platform
-		f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
-		print >>f, json.dumps(results)
-		f.close()
+if __name__ == "__main__":
+    main()
 
