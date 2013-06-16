@@ -19,6 +19,8 @@ def svn_fetch():
 	for l in p.stdout:
 		if 'At revision ' in l:
 			revision = int(l.split('At revision')[1].strip()[0:-1])
+		if 'Updated to revision ' in l:
+			revision = int(l.split('Updated to revision')[1].strip()[0:-1])
 		output += l
 
 	if revision == -1:
