@@ -36,6 +36,7 @@ def print_usage():
 toolset are bjam toolsets. For instance clang, gcc, darwin, msvc etc.
 remote-path is an scp path where the results are copied. This path has
 the form: user@hostname:/path
+if the remote-path is set to "-", no copying will be done
 
 options:
 
@@ -63,7 +64,8 @@ def loop():
 	
 			run_tests.main(sys.argv[2:])
 	
-			os.system('scp -r %s %s' % (os.path.join(root_path, '%d' % r), remote_path))
+			if remote_path != '-':
+				os.system('scp -r %s %s' % (os.path.join(root_path, '%d' % r), remote_path))
 
 		time.sleep(120)
 

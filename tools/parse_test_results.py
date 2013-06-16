@@ -169,9 +169,10 @@ for f in glob.glob(os.path.join(rev_dir, '*.json')):
 html = open('index.html', 'w')
 
 print >>html, '''<html><head><title>regression tests, %s revision %d</title><style type="text/css">
-	.passed { display: block; width: 5px; height: 1em; background-color: #6f8 }
-	.failed { display: block; width: 5px; height: 1em; background-color: #f68 }
+	.passed { display: block; width: 8px; height: 1em; background-color: #6f8 }
+	.failed { display: block; width: 8px; height: 1em; background-color: #f68 }
 	table { border: 0; }
+	th { font-size: 8pt; }
 	td { border: 0; border-spacing: 0px; padding: 0px 0px 0px 0px; }
 	.left-head { white-space: nowrap; }
 	.compile-error { color: #f13; font-weight: bold; }
