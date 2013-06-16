@@ -432,7 +432,9 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 
 cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_state)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	TORRENT_ASSERT(cache_state < cached_piece_entry::num_lrus);
 
@@ -543,7 +545,9 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR
 	TORRENT_ASSERT(is_disk_buffer(j->buffer));
 #endif
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	TORRENT_ASSERT(j->buffer);
 	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size + 1 <= in_use());
