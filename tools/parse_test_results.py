@@ -58,6 +58,7 @@ def style_output(o):
 	if subtle: ret += '</span>'
 	return ret
 
+
 project_name = ''
 
 try:
@@ -172,7 +173,7 @@ print >>html, '''<html><head><title>regression tests, %s revision %d</title><sty
 	.failed { display: block; width: 5px; height: 1em; background-color: #f68 }
 	table { border: 0; }
 	td { border: 0; border-spacing: 0px; padding: 0px 0px 0px 0px; }
-	th { white-space: nowrap; }
+	.left-head { white-space: nowrap; }
 	.compile-error { color: #f13; font-weight: bold; }
 	.compile-warning { color: #cb0; }
 	.test-error { color: #f13; font-weight: bold; }
@@ -199,11 +200,11 @@ details_id = 0
 details = []
 
 for p in platforms:
-	print >>html, '<tr><th rowspan="%d">%s</th>' % (len(platforms[p]), p)
+	print >>html, '<tr><th class="left-head" rowspan="%d">%s</th>' % (len(platforms[p]), p)
 	idx = 0
 	for toolset in platforms[p]:
 		if idx > 0: print >>html, '<tr>'
-		print >>html, '<th>%s</th>' % toolset
+		print >>html, '<th class="left-head">%s</th>' % toolset
 		for f in platforms[p][toolset]:
 			for t in platforms[p][toolset][f]:
 				if platforms[p][toolset][f][t][u'status'] == 0: c = 'passed'

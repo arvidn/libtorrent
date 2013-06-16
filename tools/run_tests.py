@@ -154,7 +154,7 @@ def main():
 
 	toolsets = []
 
-	num_processes = 2
+	num_processes = 4
 
 	for arg in sys.argv[1:]:
 		if arg[0] == '-':
