@@ -147,6 +147,8 @@ int num_dht_hits()
 
 void stop_dht()
 {
+	fprintf(stderr, "stop_dht()\n");
 	g_dht.reset();
+	fprintf(stderr, "done\n");
 }
 

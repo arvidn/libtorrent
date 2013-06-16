@@ -474,6 +474,7 @@ bool udp_failed = false;
 
 void stop_tracker()
 {
+	fprintf(stderr, "stop_tracker()\n");
 	if (tracker_server && tracker_ios)
 	{
 		tracker_ios->stop();
@@ -482,6 +483,7 @@ void stop_tracker()
 		delete tracker_ios;
 		tracker_ios = 0;
 	}
+	fprintf(stderr, "done\n");
 }
 
 void udp_tracker_thread(int* port);
@@ -640,6 +642,7 @@ static void terminate_web_thread()
 
 void stop_web_server()
 {
+	fprintf(stderr, "stop_web_server()\n");
 	if (web_server && web_ios)
 	{
 		fprintf(stderr, "stopping web server thread\n");
@@ -647,6 +650,7 @@ void stop_web_server()
 		web_server->join();
 		web_server.reset();
 	}
+	fprintf(stderr, "done\n");
 }
 
 void web_server_thread(int* port, bool ssl, bool chunked);
