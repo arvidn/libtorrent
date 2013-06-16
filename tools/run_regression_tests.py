@@ -22,7 +22,7 @@ def svn_fetch():
 		output += l
 
 	if revision == -1:
-		print '\n\nsvn update failed\n\n%s' % ouput
+		print '\n\nsvn update failed\n\n%s' % output
 		sys.exit(1)
 
 	return range(current_version + 1, revision + 1)
