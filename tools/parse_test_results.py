@@ -46,7 +46,7 @@ def style_output(o):
 			ret += '<span class="test-error">%s</span>\n' % l
 		elif '**passed**' in l:
 			ret += '<span class="test-pass">%s</span>\n' % l
-		elif ': error: ' in l:
+		elif ': error: ' in l or ': fatal error: ' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
 		elif ': warning: ' in l:
 			ret += '<span class="compile-warning">%s</span>\n' % l
@@ -74,14 +74,11 @@ os.chdir('regression_tests')
 def modification_time(file):
 	mtime = 0
 	try:
-		st = os.stat(file)
-		mtime = st.st_mtime
-	except Exception, e:
-		print e
+		mtime = os.stat(file).st_mtime
+	except: pass
 	return mtime
 
 index_mtime = modification_time('index.html')
-print 'index mtime: %d' % index_mtime
 
 latest_rev = 0
 
@@ -147,12 +144,6 @@ for f in glob.glob(os.path.join(rev_dir, '*.json')):
 	platform = platform_toolset[0]
 	toolset = platform_toolset[1]
 
-	if not platform in platforms:
-		platforms[platform] = {}
-
-	if not toolset in platforms[platform]:
-		platforms[platform][toolset] = {}
-
 	for cfg in j:
 		test_name = cfg.split('|')[0]
 		features = cfg.split('|')[1]
@@ -162,18 +153,26 @@ for f in glob.glob(os.path.join(rev_dir, '*.json')):
 
 		tests[features].add(test_name)
 
+		if not platform in platforms:
+			platforms[platform] = {}
+
+		if not toolset in platforms[platform]:
+			platforms[platform][toolset] = {}
+
 		if not features in platforms[platform][toolset]:
 			platforms[platform][toolset][features] = {}
 
 		platforms[platform][toolset][features][test_name] = j[cfg]
+	
 
 html = open('index.html', 'w')
 
 print >>html, '''<html><head><title>regression tests, %s revision %d</title><style type="text/css">
-	.passed { display: block; width: 8px; height: 1em; background-color: #6f8 }
-	.failed { display: block; width: 8px; height: 1em; background-color: #f68 }
+	.passed { display: block; width: 5px; height: 1em; background-color: #6f8 }
+	.failed { display: block; width: 5px; height: 1em; background-color: #f68 }
 	table { border: 0; }
 	td { border: 0; border-spacing: 0px; padding: 0px 0px 0px 0px; }
+	th { white-space: nowrap; }
 	.compile-error { color: #f13; font-weight: bold; }
 	.compile-warning { color: #cb0; }
 	.test-error { color: #f13; font-weight: bold; }
