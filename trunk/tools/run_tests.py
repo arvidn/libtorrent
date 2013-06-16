@@ -89,9 +89,7 @@ def run_tests(toolset, tests, features, options, test_dir):
 	for t in tests:
 		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
 		output = ''
-		warnings = 0
 		for l in p.stdout:
-			if 'warning: ' in l: warnings += 1
 			output += l
 		p.wait()
 
@@ -124,7 +122,7 @@ def run_tests(toolset, tests, features, options, test_dir):
 		try: os.unlink(xml_file)
 		except: pass
 
-		r = { 'status': p.returncode, 'output': output, 'warnings': warnings, 'command': command }
+		r = { 'status': p.returncode, 'output': output, 'command': command }
 		results[t + '|' + features] = r
 
 		fail_color = '\033[31;1m'
@@ -136,9 +134,9 @@ def run_tests(toolset, tests, features, options, test_dir):
 			pass_color == ''
 			end_seq = ''
 
-		print '%s [%s] [%s]' % (t, toolset, features),
-		if p.returncode == 0: print pass_color + 'PASSED' + end_seq
-		else: print fail_color + 'FAILED' + end_seq
+		if p.returncode == 0: sys.stdout.write('.')
+		else: sys.stdout.write('X')
+		sys.stdout.flush()
 
 	return (toolset, results)
 
@@ -149,13 +147,13 @@ options:
 -h        prints this message and exits
 '''
 
-def main():
+def main(argv):
 
 	toolsets = []
 
 	num_processes = 4
 
-	for arg in sys.argv[1:]:
+	for arg in argv:
 		if arg[0] == '-':
 			if arg[1] == 'j':
 				num_processes = int(arg[2:])
@@ -209,8 +207,8 @@ def main():
 
 	print '%d - %s - %s' % (revision, author, timestamp)
 
-	print 'toolsets: ', toolsets
-	print 'configs: ', configs
+	print 'toolsets: %s' % ' '.join(toolsets)
+#	print 'configs: %s' % '|'.join(configs)
 
 	rev_dir = os.path.join(os.getcwd(), 'regression_tests')
 	try: os.mkdir(rev_dir)
@@ -236,7 +234,6 @@ def main():
 		print 'found %d tests' % len(tests)
 
 		for toolset in toolsets:
-			print 'toolset %s' % toolset
 			results = {}
 			toolset_found = False
 
@@ -258,5 +255,5 @@ def main():
 			f.close()
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
 

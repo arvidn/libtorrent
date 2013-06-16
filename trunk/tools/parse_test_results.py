@@ -46,9 +46,10 @@ def style_output(o):
 			ret += '<span class="test-error">%s</span>\n' % l
 		elif '**passed**' in l:
 			ret += '<span class="test-pass">%s</span>\n' % l
-		elif ': error: ' in l or ': fatal error: ' in l:
+		elif ': error: ' in l or ': fatal error: ' in l or ' : fatal error ' in l or \
+			'failed to write output file' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
-		elif ': warning: ' in l:
+		elif ': warning: ' in l or ') : warning C' in l:
 			ret += '<span class="compile-warning">%s</span>\n' % l
 		elif l == '====== END OUTPUT ======' and not subtle:
 			ret += '<span class="subtle">%s\n' % l
@@ -127,7 +128,6 @@ if not need_refresh:
 #         test_primitives: {
 #           output: ...
 #           status: 1
-#           warnings: 21
 #         }
 #       }
 #     }
