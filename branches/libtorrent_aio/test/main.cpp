@@ -52,12 +52,14 @@ address rand_v4()
 	return address_v4((rand() << 16 | rand()) & 0xffffffff);
 }
 
+#if TORRENT_USE_IPV6
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
 	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
 	return address_v6(bytes);
 }
+#endif
 
 tcp::endpoint rand_tcp_ep()
 {
@@ -73,7 +75,7 @@ void sig_handler(int sig)
 {
 	char stack_text[10000];
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || TORRENT_RELEASE_ASSERTS
 	print_backtrace(stack_text, sizeof(stack_text), 30);
 #elif defined __FUNCTION__
 	strcat(stack_text, __FUNCTION__);

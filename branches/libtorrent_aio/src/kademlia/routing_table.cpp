@@ -413,12 +413,14 @@ bool routing_table::add_node(node_entry e)
 				i != end; ++i)
 			{
 				if (i->addr() != e.addr() || i->port() != e.port()) continue;
-   #ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 				TORRENT_LOG(table) << "node ID changed, deleting old entry: "
 					<< i->id << " " << i->addr();
-	#endif
+#endif
 				b.erase(i);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				done = true;
+#endif
 				break;
 			}
 			if (!done)
@@ -427,12 +429,14 @@ bool routing_table::add_node(node_entry e)
 					i != end; ++i)
 				{
 					if (i->addr() != e.addr() || i->port() != e.port()) continue;
-	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 					TORRENT_LOG(table) << "node ID changed, deleting old entry: "
 						<< i->id << " " << i->addr();
-	#endif
+#endif
 					rb.erase(i);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 					done = true;
+#endif
 					break;
 				}
 			}

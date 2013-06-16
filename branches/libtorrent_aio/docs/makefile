@@ -43,6 +43,9 @@ stats_counters.rst: ../src/session_stats.cpp
 manual.rst: settings.rst stats_counters.rst
 	touch manual.rst
 
+todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
+	python gen_todo.py
+
 %.epub:%.rst
 	rst2epub $? $@
 
@@ -62,5 +65,5 @@ manual.rst: settings.rst stats_counters.rst
 	cp $@ $(WEB_PATH)/$@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf)
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html
 

@@ -38,7 +38,7 @@ namespace libtorrent
 
 	bandwidth_manager::bandwidth_manager(int channel
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		, bool log = false
+		, bool log
 #endif		
 		)
 		: m_queued_bytes(0)

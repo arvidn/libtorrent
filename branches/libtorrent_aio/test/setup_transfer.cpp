@@ -56,6 +56,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
+#include <boost/detail/atomic_count.hpp>
+
 #define DEBUG_WEB_SERVER 0
 
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
@@ -70,17 +72,7 @@ bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
-#if defined TORRENT_WINDOWS
-	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(out, FOREGROUND_RED);
-	char buffer[1024];
-	int len = snprintf(buffer, sizeof(buffer), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
-	DWORD written;
-	WriteFile(out, buffer, len, &written, NULL);
-	SetConsoleTextAttribute(out, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-#else
-	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
-#endif
+	fprintf(stderr, "\n***** %s:%d \"%s\" *****\n\n", file, line, err);
 	tests_failure = true;
 }
 
@@ -179,6 +171,33 @@ void wait_for_downloading(libtorrent::session& ses, char const* name)
 		if (downloading_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
+}
+
+void print_ses_rate(libtorrent::torrent_status const* st1
+	, libtorrent::torrent_status const* st2
+	, libtorrent::torrent_status const* st3)
+{
+	std::cerr
+		<< int(st1->download_payload_rate / 1000.f) << "kB/s "
+		<< int(st1->upload_payload_rate / 1000.f) << "kB/s "
+		<< int(st1->progress * 100) << "% "
+		<< st1->num_peers;
+	if (st2)
+		std::cerr << " : "
+			<< int(st2->download_payload_rate / 1000.f) << "kB/s "
+			<< int(st2->upload_payload_rate / 1000.f) << "kB/s "
+			<< int(st2->progress * 100) << "% "
+			<< st2->num_peers
+			<< " cc: " << st2->connect_candidates;
+	if (st3)
+		std::cerr << " : "
+			<< int(st3->download_payload_rate / 1000.f) << "kB/s "
+			<< int(st3->upload_payload_rate / 1000.f) << "kB/s "
+			<< int(st3->progress * 100) << "% "
+			<< st3->num_peers
+			<< " cc: " << st3->connect_candidates;
+
+	std::cerr << std::endl;
 }
 
 void test_sleep(int millisec)
@@ -537,8 +556,8 @@ int start_tracker()
 	return port;
 }
 
-int g_udp_tracker_requests = 0;
-int g_http_tracker_requests = 0;
+boost::detail::atomic_count g_udp_tracker_requests(0);
+boost::detail::atomic_count  g_http_tracker_requests(0);
 
 void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint const* from, char* buffer, udp::socket* sock)
 {
@@ -555,6 +574,9 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 		fprintf(stderr, "UDP message too short\n");
 		return;
 	}
+
+	fprintf(stderr, "UDP message %d bytes\n", int(bytes_transferred));
+
 	char* ptr = buffer;
 	detail::read_uint64(ptr);
 	boost::uint32_t action = detail::read_uint32(ptr);
@@ -566,6 +588,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 	{
 		case 0: // connect
 
+			fprintf(stderr, "UDP connect\n");
 			ptr = buffer;
 			detail::write_uint32(0, ptr); // action = connect
 			detail::write_uint32(transaction_id, ptr); // transaction_id
@@ -575,6 +598,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 		case 1: // announce
 
+			fprintf(stderr, "UDP announce\n");
 			ptr = buffer;
 			detail::write_uint32(1, ptr); // action = announce
 			detail::write_uint32(transaction_id, ptr); // transaction_id
@@ -585,7 +609,12 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 			// 0 peers
 			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
 			break;
-		default: // ignore scrapes
+		case 2:
+			// ignore scrapes
+			fprintf(stderr, "UDP scrape\n");
+			break;
+		default:
+			fprintf(stderr, "UDP unknown message: %d\n", action);
 			break;
 	}
 }
@@ -834,13 +863,6 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 	web_ios = &ios;
 
-	fprintf(stderr, "web server initialized on port %d\n", *port);
-
-	{
-		libtorrent::mutex::scoped_lock l(web_lock);
-		web_initialized.signal(l);
-	}
-
 	char buf[10000];
 	int len = 0;
 	int offset = 0;
@@ -858,6 +880,14 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 	proxy_settings p;
 	instantiate_connection(ios, p, s, ctx);
+
+	fprintf(stderr, "web server initialized on port %d%s\n", *port, ssl ? " [SSL]" : "");
+
+	{
+		libtorrent::mutex::scoped_lock l(web_lock);
+		web_initialized.signal(l);
+	}
+
 	for (;;)
 	{
 		if (connection_close)
@@ -1037,7 +1067,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				connection_close = true;
 			}
 
-			DLOG(stderr, "%s", std::string(buf + offset, p.body_start()).c_str());
+			DLOG(stderr, "REQ: %s", std::string(buf + offset, p.body_start()).c_str());
 
 			if (failed)
 			{

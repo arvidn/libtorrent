@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 void report_failure(char const* str, char const* file, int line);
 
 libtorrent::address rand_v4();
+#if TORRENT_USE_IPV6
 libtorrent::address rand_v6();
+#endif
 libtorrent::tcp::endpoint rand_tcp_ep();
 libtorrent::udp::endpoint rand_udp_ep();
 

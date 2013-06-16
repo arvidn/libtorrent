@@ -1804,7 +1804,7 @@ int main(int argc, char* argv[])
 #define DOWN_ARROW 66
 #endif
 
-			if (c == EOF) { c = 'q'; break; }
+			if (c == EOF) { break; }
 			if (c == ESCAPE_SEQ)
 			{
 				// escape code, read another character
@@ -1812,7 +1812,7 @@ int main(int argc, char* argv[])
 				int c = _getch();
 #else
 				int c = getc(stdin);
-				if (c == EOF) { c = 'q'; break; }
+				if (c == EOF) { break; }
 				if (c != '[') continue;
 				c = getc(stdin);
 #endif

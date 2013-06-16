@@ -2076,7 +2076,6 @@ namespace libtorrent
 				lazy_pieces[lazy_piece++] = i;
 			}
 			TORRENT_ASSERT(lazy_piece == num_lazy_pieces);
-			lazy_piece = 0;
 		}
 
 		const int packet_size = (num_pieces + 7) / 8 + 5;
@@ -3182,7 +3181,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_sent_handshake);
 			received_bytes(0, bytes_transferred);
-			bytes_transferred = 0;
+//			bytes_transferred = 0;
 			t = associated_torrent().lock();
   			if (!t)
 			{

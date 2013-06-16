@@ -32,6 +32,8 @@ project
 	<conditional>@libtorrent_dependency
 	<source>main.cpp
 	<source>setup_transfer.cpp
+	<source>dht_server.cpp
+	<source>peer_server.cpp
    : default-build
 	<threading>multi
 	<invariant-checks>full
@@ -48,6 +50,7 @@ test-suite libtorrent :
 	[ run test_file_storage.cpp ]
 	[ run test_peer_priority.cpp ]
 	[ run test_file.cpp ]
+	[ run test_privacy.cpp ]
 	[ run test_threads.cpp ]
 	[ run test_tailqueue.cpp ]
 	[ run test_rss.cpp ]

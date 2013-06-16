@@ -30,22 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/session.hpp"
+// returns the port the DHT is running on
+int start_dht();
 
-#include "test.hpp"
-#include "setup_transfer.hpp"
+// the number of DHT messages received
+int num_dht_hits();
 
-using namespace libtorrent;
-
-int test_main()
-{
-	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
-	ses.set_alert_mask(~0);
-
-	// make sure the destructor waits properly
-	// for the asynchronous call to set the alert
-	// mask completes, before it goes on to destruct
-	// the session object
-	return 0;
-}
+void stop_dht();
 
