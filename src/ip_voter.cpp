@@ -119,7 +119,9 @@ namespace libtorrent
 	address external_ip::external_address(address const& ip) const
 	{
 		address ext = m_vote_group[ip.is_v6()].external_address();
+#if TORRENT_USE_IPV6
 		if (ip.is_v6() && ext == address_v4()) return address_v6();
+#endif
 		return ext;
 	}
 }

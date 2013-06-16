@@ -398,12 +398,14 @@ address rand_v4()
 	return address_v4((rand() << 16 | rand()) & 0xffffffff);
 }
 
+#if TORRENT_USE_IPV6
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
 	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
 	return address_v6(bytes);
 }
+#endif
 
 int test_main()
 {
@@ -574,11 +576,13 @@ int test_main()
 	address real_external1 = address_v4::from_string("5.5.5.5", ec);
 	TEST_CHECK(!ec);
 	address real_external2;
+#if TORRENT_USE_IPV6
 	if (supports_ipv6())
 	{
 		real_external2 = address_v6::from_string("2f80::", ec);
 		TEST_CHECK(!ec);
 	}
+#endif
 	malicious = address_v4::from_string("4.4.4.4", ec);
 	TEST_CHECK(!ec);
 	address malicious_external = address_v4::from_string("3.3.3.3", ec);
@@ -586,13 +590,17 @@ int test_main()
 	for (int i = 0; i < 50; ++i)
 	{
 		ipv2.cast_vote(real_external1, aux::session_impl::source_dht, rand_v4());
+#if TORRENT_USE_IPV6
 		if (supports_ipv6())
 			ipv2.cast_vote(real_external2, aux::session_impl::source_dht, rand_v6());
+#endif
 		ipv2.cast_vote(malicious_external, aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ipv2.external_address(rand_v4()) == real_external1);
+#if TORRENT_USE_IPV6
 	if (supports_ipv6())
 		TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
+#endif
 
 	// test bloom_filter
 	bloom_filter<32> filter;
