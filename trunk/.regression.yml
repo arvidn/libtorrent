@@ -7,11 +7,11 @@ project:
 features:
  - variant=release
  - asserts=production
- - statistics=on logging=verbose disk-stats=on bandwidth-limit-logging=on
+ - statistics=on logging=verbose disk-stats=on bandwidth-limit-logging=on dht=logging
  - ipv6=off
  - deprecated-functions=off
  - address-model=32
- - dht-support=off
+ - dht=off
  - invariant-checks=off
  - extensions=off
 
