@@ -3,6 +3,8 @@
 import run_tests
 import os
 import time
+import subprocess
+import sys
 
 # returns a list of new revisions
 def svn_fetch():
@@ -16,7 +18,7 @@ def svn_fetch():
 	output = ''
 	for l in p.stdout:
 		if 'At revision ' in l:
-			revision = int(l.split(':')[1].strip())
+			revision = int(l.split('At revision')[1].strip()[0:-1])
 		output += l
 
 	if revision == -1:
@@ -42,18 +44,18 @@ options:
 
 
 def loop():
+	remote_path = sys.argv[1]
+	root_path = os.path.join(os.getcwd(), 'regression_tests')
+
+	if len(sys.argv) < 3:
+		print_usage()
+		sys.exit(1)
+
 	while True:
 		revs = svn_fetch()
 		# reverse the list to always run the tests for the
 		# latest version first, then fill in with the history
 		revs.reverse()
-
-		if len(sys.argv) < 3:
-			print_usage()
-			sys.exit(1)
-
-		remote_path = sys.argv[1]
-		root_path = os.path.join(os.getcwd(), 'regression_tests')
 
 		for r in revs:
 			print '\n\nREVISION %d ===\n' % r
