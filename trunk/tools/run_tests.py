@@ -210,49 +210,55 @@ def main(argv):
 	print 'toolsets: %s' % ' '.join(toolsets)
 #	print 'configs: %s' % '|'.join(configs)
 
-	rev_dir = os.path.join(os.getcwd(), 'regression_tests')
-	try: os.mkdir(rev_dir)
-	except: pass
-	rev_dir = os.path.join(rev_dir, '%d' % revision)
-	try: os.mkdir(rev_dir)
-	except: pass
+	current_dir = os.getcwd()
 
-	for test_dir in test_dirs:
-		print 'running tests from "%s"' % test_dir
-		os.chdir(test_dir)
-		test_dir = os.getcwd()
+	try:
+		rev_dir = os.path.join(current_dir, 'regression_tests')
+		try: os.mkdir(rev_dir)
+		except: pass
+		rev_dir = os.path.join(rev_dir, '%d' % revision)
+		try: os.mkdir(rev_dir)
+		except: pass
 
-		# figure out which tests are exported by this Jamfile
-		p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
+		for test_dir in test_dirs:
+			print 'running tests from "%s"' % test_dir
+			os.chdir(test_dir)
+			test_dir = os.getcwd()
 
-		tests = []
+			# figure out which tests are exported by this Jamfile
+			p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
 
-		for l in p.stdout:
-			if not 'boost-test(RUN)' in l: continue
-			test_name = os.path.split(l.split(' ')[1][1:-1])[1]
-			tests.append(test_name)
-		print 'found %d tests' % len(tests)
+			tests = []
 
-		for toolset in toolsets:
-			results = {}
-			toolset_found = False
+			for l in p.stdout:
+				if not 'boost-test(RUN)' in l: continue
+				test_name = os.path.split(l.split(' ')[1][1:-1])[1]
+				tests.append(test_name)
+			print 'found %d tests' % len(tests)
 
-			futures = []
-			for features in configs:
-				futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir]))
+			for toolset in toolsets:
+				results = {}
+				toolset_found = False
 
-			for future in futures:
-				(toolset, r) = future.get()
-				results.update(r)
+				futures = []
+				for features in configs:
+					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir]))
 
-#			for features in configs:
-#				(toolset, r) = run_tests(toolset, tests, features, options, test_dir)
-#				results.update(r)
+				for future in futures:
+					(toolset, r) = future.get()
+					results.update(r)
 
-			# each file contains a full set of tests for one speific toolset and platform
-			f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
-			print >>f, json.dumps(results)
-			f.close()
+#				for features in configs:
+#					(toolset, r) = run_tests(toolset, tests, features, options, test_dir)
+#					results.update(r)
+
+				# each file contains a full set of tests for one speific toolset and platform
+				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+				print >>f, json.dumps(results)
+				f.close()
+	finally:
+		# always restore current directory
+		os.chdir(current_dir)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
