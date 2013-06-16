@@ -142,6 +142,8 @@ int num_peer_hits()
 
 void stop_peer()
 {
+	fprintf(stderr, "stop_peer()\n");
 	g_peer.reset();
+	fprintf(stderr, "done\n");
 }
 
