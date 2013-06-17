@@ -36,6 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h> // for exit()
 
+#ifdef TORRENT_WINDOWS
+#include <direct.h> // for _chdir
+#endif
+
 int test_main();
 
 extern bool tests_failure;
@@ -110,7 +114,11 @@ int main()
 		fprintf(stderr, "Failed to create test directory: %s\n", ec.message().c_str());
 		return 1;
 	}
+#ifdef TORRENT_WINDOWS
+	_chdir(dir);
+#else
 	chdir(dir);
+#endif
 
 #ifndef BOOST_NO_EXCEPTIONS
 	try
