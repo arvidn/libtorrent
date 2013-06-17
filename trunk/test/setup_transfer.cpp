@@ -650,6 +650,7 @@ void stop_web_server()
 		web_server->join();
 		web_server.reset();
 	}
+	remove("server.pem");
 	fprintf(stderr, "done\n");
 }
 

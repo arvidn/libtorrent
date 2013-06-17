@@ -41,6 +41,7 @@ int test_main();
 extern bool tests_failure;
 
 #include "libtorrent/assert.hpp"
+#include "libtorrent/file.hpp"
 #include <signal.h>
 
 void sig_handler(int sig)
@@ -74,6 +75,8 @@ void sig_handler(int sig)
 	exit(138);
 }
 
+using namespace libtorrent;
+
 int main()
 {
 #ifdef O_NONBLOCK
@@ -97,6 +100,18 @@ int main()
 	signal(SIGSYS, &sig_handler);
 #endif
 
+	char dir[40];
+	snprintf(dir, sizeof(dir), "test_tmp_%u", rand());
+	std::string test_dir = complete(dir);
+	error_code ec;
+	create_directory(test_dir, ec);
+	if (ec)
+	{
+		fprintf(stderr, "Failed to create test directory: %s\n", ec.message().c_str());
+		return 1;
+	}
+	chdir(dir);
+
 #ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
@@ -117,6 +132,9 @@ int main()
 #endif
 	fflush(stdout);
 	fflush(stderr);
+	remove_all(test_dir, ec);
+	if (ec)
+		fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
 	return tests_failure ? 1 : 0;
 }
 
