@@ -48,14 +48,23 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 	std::vector<char> post_body;
 
 	int content_length = atoi(cl);
-	if (content_length > 0 && content_length < 10 * 1024 * 1024)
+	if (content_length <= 0)
 	{
-		post_body.resize(content_length + 1);
-		// minus one here since we shouldn't read the null terminator
-		mg_read(conn, &post_body[0], content_length);
-		post_body[content_length] = 0;
-		// null terminate
+		ec = error_code(boost::system::errc::invalid_argument, boost::system::generic_category());
+		return false;
 	}
+
+	if (content_length > 10 * 1024 * 1024)
+	{
+		ec = error_code(boost::system::errc::file_too_large, boost::system::generic_category());
+		return false;
+	}
+
+	post_body.resize(content_length + 1);
+	// minus one here since we shouldn't read the null terminator
+	mg_read(conn, &post_body[0], content_length);
+	post_body[content_length] = 0;
+	// null terminate
 
 	// expect a multipart message here
 	char const* content_type = mg_get_header(conn, "content-type");
@@ -96,7 +105,6 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 			&& disposition != "application/x-bittorrent") continue;
 
 		char const* torrent_start = part.get_body().begin;
-		error_code ec;
 		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
 		if (ec) return false;
 		return true;
