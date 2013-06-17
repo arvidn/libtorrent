@@ -85,7 +85,7 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 	}
 	TEST_CHECK(!ec);
 
-	char* buf = &buffer[0];
+	char* buf = buffer.size() ? &buffer[0] : NULL;
 	int len = buffer.size();
 
 	char const header[] = "HTTP/1.1 200 OK\r\n"

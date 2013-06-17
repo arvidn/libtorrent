@@ -121,7 +121,9 @@ int test_main()
 		if (std::string(test_torrents[i].file) == "whitespace_url.torrent")
 		{
 			// make sure we trimmed the url
-			TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
+			TEST_CHECK(ti->trackers().size() > 0);
+			if (ti->trackers().size() > 0)
+				TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
 		}
 		else if (std::string(test_torrents[i].file) == "duplicate_files.torrent")
 		{
