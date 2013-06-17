@@ -68,8 +68,13 @@ except:
 	print '.regression.yml not found in current directory'
 	sys.exit(1)
 cfg = yaml.load(cfg.read())
+
 if 'project' in cfg:
 	project_name = cfg['project']
+
+branch_name = 'trunk'
+if 'branch' in cfg:
+	branch_name = cfg['branch']
 
 os.chdir('regression_tests')
 
@@ -84,9 +89,11 @@ index_mtime = modification_time('index.html')
 
 latest_rev = 0
 
+
 for rev in os.listdir('.'):
 	try:
-		r = int(rev)
+		if not rev.startswith('%s-', branch_name): continue
+		r = int(rev[len(branch_name)+1:])
 		if r > latest_rev: latest_rev = r
 	except: pass
 
@@ -94,7 +101,7 @@ if latest_rev == 0:
 	print 'no test files found'
 	sys.exit(1)
 
-rev_dir = '%d' % latest_rev
+rev_dir = '%s-%d' % (branch_name, latest_rev)
 
 need_refresh = False
 

@@ -196,6 +196,10 @@ def main(argv):
 	else:
 		configs = [['']]
 
+	branch_name = 'trunk'
+	if 'branch' in cfg:
+		branch_name = cfg['branch']
+
 	architecture = platform.machine()
 	build_platform = platform.system() + '-' + platform.release()
 
@@ -205,7 +209,7 @@ def main(argv):
 
 	tester_pool = Pool(processes=num_processes)
 
-	print '%d - %s - %s' % (revision, author, timestamp)
+	print '%s-%d - %s - %s' % (branch_name, revision, author, timestamp)
 
 	print 'toolsets: %s' % ' '.join(toolsets)
 #	print 'configs: %s' % '|'.join(configs)
@@ -216,12 +220,12 @@ def main(argv):
 		rev_dir = os.path.join(current_dir, 'regression_tests')
 		try: os.mkdir(rev_dir)
 		except: pass
-		rev_dir = os.path.join(rev_dir, '%d' % revision)
+		rev_dir = os.path.join(rev_dir, '%s-%d' % (branch_name, revision))
 		try: os.mkdir(rev_dir)
 		except: pass
 
 		for test_dir in test_dirs:
-			print 'running tests from "%s"' % test_dir
+			print 'running tests from "%s" in %s' % (test_dir, branch_name)
 			os.chdir(test_dir)
 			test_dir = os.getcwd()
 

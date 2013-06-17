@@ -4,6 +4,9 @@ test_dirs:
 project:
  libtorrent
 
+branch:
+ trunk
+
 features:
  - variant=release asserts=production
  - statistics=on logging=verbose disk-stats=on bandwidth-limit-logging=on dht=logging

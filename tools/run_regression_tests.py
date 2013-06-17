@@ -33,12 +33,11 @@ def svn_up(revision):
 	os.system('svn up %d' % revision)
 
 def print_usage():
-	print '''usage: run_regression_tests.py remote-path [options] toolset [toolset...]
+	print '''usage: run_regression_tests.py [options] toolset [toolset...]
 
 toolset are bjam toolsets. For instance clang, gcc, darwin, msvc etc.
-remote-path is an scp path where the results are copied. This path has
-the form: user@hostname:/path
-if the remote-path is set to "-", no copying will be done
+The path "./regression_tests" is expected to be a shared folder
+between all testsers.
 
 options:
 
@@ -47,8 +46,6 @@ options:
 
 
 def loop():
-	remote_path = sys.argv[1]
-	root_path = os.path.join(os.getcwd(), 'regression_tests')
 
 	if len(sys.argv) < 3:
 		print_usage()
@@ -64,11 +61,8 @@ def loop():
 			print '\n\nREVISION %d ===\n' % r
 			svn_up(r)
 	
-			run_tests.main(sys.argv[2:])
+			run_tests.main(sys.argv[1:])
 	
-			if remote_path != '-':
-				os.system('scp -r %s %s' % (os.path.join(root_path, '%d' % r), remote_path))
-
 		time.sleep(120)
 
 if __name__ == "__main__":
