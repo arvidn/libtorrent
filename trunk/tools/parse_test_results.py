@@ -67,6 +67,7 @@ def modification_time(file):
 	return mtime
 
 
+# TODO: remove this dependency
 project_name = ''
 
 try:
@@ -87,25 +88,28 @@ print 'branch: %s' % branch_name
 
 os.chdir('regression_tests')
 
-index_mtime = modification_time('index.html')
+if len(sys.argv) > 1:
+	latest_rev = int(sys.argv[1])
+else:
+	latest_rev = 0
 
-latest_rev = 0
+	for rev in os.listdir('.'):
+		try:
+			if not rev.startswith('%s-' % branch_name): continue
+			r = int(rev[len(branch_name)+1:])
+			if r > latest_rev: latest_rev = r
+		except: pass
 
-
-for rev in os.listdir('.'):
-	try:
-		if not rev.startswith('%s-' % branch_name): continue
-		r = int(rev[len(branch_name)+1:])
-		if r > latest_rev: latest_rev = r
-	except: pass
-
-if latest_rev == 0:
-	print 'no test files found'
-	sys.exit(1)
+	if latest_rev == 0:
+		print 'no test files found'
+		sys.exit(1)
 
 print 'latest version: %d' % latest_rev
 
 rev_dir = '%s-%d' % (branch_name, latest_rev)
+
+html_file = '%s.html' % rev_dir
+index_mtime = modification_time(html_file)
 
 need_refresh = False
 
@@ -177,14 +181,14 @@ for f in glob.glob(os.path.join(rev_dir, '*.json')):
 		platforms[platform][toolset][features][test_name] = j[cfg]
 	
 
-html = open('index.html', 'w')
+html = open(html_file, 'w+')
 
 print >>html, '''<html><head><title>regression tests, %s revision %d</title><style type="text/css">
 	.passed { display: block; width: 8px; height: 1em; background-color: #6f8 }
 	.failed { display: block; width: 8px; height: 1em; background-color: #f68 }
-	table { border: 0; }
+	table { border: 0; border-collapse: collapse; }
 	th { font-size: 8pt; }
-	td { border: 0; border-spacing: 0px; padding: 0px 0px 0px 0px; }
+	td { border: 0; border-spacing: 0px; padding: 1px 1px 0px 0px; }
 	.left-head { white-space: nowrap; }
 	.compile-error { color: #f13; font-weight: bold; }
 	.compile-warning { color: #cb0; }
@@ -202,6 +206,7 @@ print >>html, '''<html><head><title>regression tests, %s revision %d</title><sty
 	</script></head><body>''' % (project_name, latest_rev)
 
 print >>html, '<h1>%s revision %d</h1>' % (project_name, latest_rev)
+print >>html, '<a href="%s-%d.html">previous</a> <a href="%s-%d.html">next</a><br>' % (branch_name, latest_rev - 1, branch_name, latest_rev + 1)
 print >>html, '<table border="1"><tr><th colspan="2" style="border:0;"></th>'
 
 for f in tests:
