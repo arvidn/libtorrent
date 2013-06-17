@@ -7,7 +7,8 @@ to_delete = [
 	'dht.log',
 	'upnp.log',
 	'natpmp.log',
-	'bin'
+	'bin',
+	'test_tmp_*'
 ]
 
 directories = [

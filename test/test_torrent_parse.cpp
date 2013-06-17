@@ -114,7 +114,7 @@ int test_main()
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path("test_torrents", test_torrents[i].file), ec));
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path("..", "test_torrents"), test_torrents[i].file), ec));
 		TEST_CHECK(!ec);
 		if (ec) fprintf(stderr, "  -> failed %s\n", ec.message().c_str());
 
@@ -215,7 +215,7 @@ int test_main()
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path("test_torrents", test_error_torrents[i].file), ec));
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path("..", "test_torrents"), test_error_torrents[i].file), ec));
 		fprintf(stderr, "E: %s\nexpected: %s\n", ec.message().c_str(), test_error_torrents[i].error.message().c_str());
 		TEST_EQUAL(ec, test_error_torrents[i].error);
 	}

@@ -194,8 +194,8 @@ int run_upnp_test(char const* root_filename, char const* router_model, char cons
 
 int test_main()
 {
-	run_upnp_test("root1.xml", "Xtreme N GIGABIT Router", "wipconn");
-	run_upnp_test("root2.xml", "D-Link Router", "WANIPConnection");
+	run_upnp_test(combine_path("..", "root1.xml").c_str(), "Xtreme N GIGABIT Router", "wipconn");
+	run_upnp_test(combine_path("..", "root2.xml").c_str(), "D-Link Router", "WANIPConnection");
 	return 0;
 }
 
