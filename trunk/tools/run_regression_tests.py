@@ -61,7 +61,7 @@ def loop():
 	try:
 		last_rev = int(open(rev_file, 'r').read())
 	except:
-		last_rev = run_tests.svn_info()[0]
+		last_rev = run_tests.svn_info()[0] - 1
 		open(rev_file, 'w+').write('%d' % last_rev)
 
 	while True:
