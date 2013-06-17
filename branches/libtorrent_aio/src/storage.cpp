@@ -94,8 +94,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 
 #define DEBUG_STORAGE 0
+#define DEBUG_DELETE_FILES 0
 
 #define DLOG if (DEBUG_STORAGE) fprintf
+#define DFLOG if (DEBUG_DELETE_FILES) fprintf
 
 namespace libtorrent
 {
@@ -482,12 +484,16 @@ namespace libtorrent
 	{
 		remove(p, ec);
 		
+		DFLOG(stderr, "[%p] delete_one_file: %s [%s]\n", this, p.c_str(), ec.ec.message().c_str());
+
 		if (ec == boost::system::errc::no_such_file_or_directory)
 			ec.clear();
 	}
 
 	void default_storage::delete_files(storage_error& ec)
 	{
+		DFLOG(stderr, "[%p] delete_files\n", this);
+
 		// make sure we don't have the files open
 		m_pool.release(this);
 
@@ -528,8 +534,12 @@ namespace libtorrent
 
 		error_code error;
 		remove(combine_path(m_save_path, m_part_file_name), error);
+		DFLOG(stderr, "[%p] delete partfile %s/%s [%s]\n", this
+			, m_save_path.c_str(), m_part_file_name.c_str(), error.message().c_str());
 		if (error != boost::system::errc::no_such_file_or_directory && !error)
 		{ ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
+
+		DFLOG(stderr, "[%p] delete_files result: %s\n", this, ec.ec.message().c_str());
 	}
 
 	void default_storage::write_resume_data(entry& rd, storage_error& ec) const
