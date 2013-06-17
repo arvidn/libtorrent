@@ -83,8 +83,13 @@ int test_main()
 		st.rename_file(0, "test/c/d");
 		TEST_EQUAL(st.file_path(0, "./"), "./test/c/d");
 
+#ifdef TORRENT_WINDOWS
+		st.rename_file(0, "c:\\tmp\\a");
+		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
+#else
 		st.rename_file(0, "/tmp/a");
-		TEST_EQUAL(st.file_path(0, "./"), "/tmp/a");
+		TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
+#endif
 	}
 
 	{
@@ -94,20 +99,25 @@ int test_main()
 		st.rename_file(0, "test/c/d");
 		TEST_EQUAL(st.file_path(0, "./"), "./test/c/d");
 
+#ifdef TORRENT_WINDOWS
+		st.rename_file(0, "c:\\tmp\\a");
+		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
+#else
 		st.rename_file(0, "/tmp/a");
-		TEST_EQUAL(st.file_path(0, "./"), "/tmp/a");
+		TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
+#endif
 	}
 
 	{
 		file_storage fs;
 		fs.set_piece_length(512);
-		fs.add_file("temp_storage/test1.tmp", 17);
-		fs.add_file("temp_storage/test2.tmp", 612);
-		fs.add_file("temp_storage/test3.tmp", 0);
-		fs.add_file("temp_storage/test4.tmp", 0);
-		fs.add_file("temp_storage/test5.tmp", 3253);
+		fs.add_file(combine_path("temp_storage", "test1.tmp"), 17);
+		fs.add_file(combine_path("temp_storage", "test2.tmp"), 612);
+		fs.add_file(combine_path("temp_storage", "test3.tmp"), 0);
+		fs.add_file(combine_path("temp_storage", "test4.tmp"), 0);
+		fs.add_file(combine_path("temp_storage", "test5.tmp"), 3253);
 		// size: 3882
-		fs.add_file("temp_storage/test6.tmp", 841);
+		fs.add_file(combine_path("temp_storage", "test6.tmp"), 841);
 		// size: 4723
 
 		peer_request rq = fs.map_file(0, 0, 10);
