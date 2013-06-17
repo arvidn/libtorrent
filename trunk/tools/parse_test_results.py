@@ -47,7 +47,7 @@ def style_output(o):
 		elif '**passed**' in l:
 			ret += '<span class="test-pass">%s</span>\n' % l
 		elif ': error: ' in l or ': fatal error: ' in l or ' : fatal error ' in l or \
-			'failed to write output file' in l:
+			'failed to write output file' in l or ') : error C' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
 		elif ': warning: ' in l or ') : warning C' in l:
 			ret += '<span class="compile-warning">%s</span>\n' % l
