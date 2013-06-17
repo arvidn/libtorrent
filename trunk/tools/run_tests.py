@@ -78,7 +78,7 @@ def svn_info():
 
 	return (revision, author)
 
-def run_tests(toolset, tests, features, options, test_dir):
+def run_tests(toolset, tests, features, options, test_dir, time_limit):
 	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
 
 	results = {}
@@ -87,7 +87,7 @@ def run_tests(toolset, tests, features, options, test_dir):
 	os.chdir(test_dir)
 
 	for t in tests:
-		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
+		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
 		output = ''
 		for l in p.stdout:
 			output += l
@@ -182,6 +182,7 @@ def main(argv):
 	test_dirs = []
 	configs = []
 	options = ['boost=source']
+	time_limit = 1200
 	if 'test_dirs' in cfg:
 		for d in cfg['test_dirs']:
 			test_dirs.append(d)
@@ -199,6 +200,9 @@ def main(argv):
 	branch_name = 'trunk'
 	if 'branch' in cfg:
 		branch_name = cfg['branch']
+
+	if 'time_limit' in cfg:
+		time_limit = int(cfg['time_limit'])
 
 	architecture = platform.machine()
 	build_platform = platform.system() + '-' + platform.release()
@@ -246,14 +250,14 @@ def main(argv):
 
 				futures = []
 				for features in configs:
-					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir]))
+					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit]))
 
 				for future in futures:
 					(toolset, r) = future.get()
 					results.update(r)
 
 #				for features in configs:
-#					(toolset, r) = run_tests(toolset, tests, features, options, test_dir)
+#					(toolset, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
 #					results.update(r)
 
 				# each file contains a full set of tests for one speific toolset and platform

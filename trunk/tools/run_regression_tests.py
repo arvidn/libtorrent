@@ -51,7 +51,7 @@ options:
 
 def loop():
 
-	if len(sys.argv) < 3:
+	if len(sys.argv) < 2:
 		print_usage()
 		sys.exit(1)
 
