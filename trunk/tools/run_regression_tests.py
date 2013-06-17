@@ -6,6 +6,12 @@ import time
 import subprocess
 import sys
 
+def indent(s):
+    s = string.split(s, '\n')
+    s = [(3 * ' ') + string.lstrip(line) for line in s]
+    s = string.join(s, '\n')
+    return s
+
 # returns a list of new revisions
 def svn_fetch(last_rev):
 
@@ -22,8 +28,8 @@ def svn_fetch(last_rev):
 		output += l
 
 	if revision == -1:
-		print '\n\nsvn update failed\n\n%s' % output
-		sys.exit(1)
+		print '\n\nsvn update failed\n\n%s' % indent(output)
+		return []
 
 	return range(last_rev + 1, revision + 1)
 
