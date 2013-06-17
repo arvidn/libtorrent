@@ -92,6 +92,7 @@ struct peer_server
 
 	~peer_server()
 	{
+		m_acceptor.cancel();
 		m_acceptor.close();
 		if (m_thread) m_thread->join();
 	}
@@ -100,6 +101,12 @@ struct peer_server
 
 	int num_hits() const { return m_peer_requests; }
 
+	static void new_connection(error_code const& ec, error_code* ret, bool* done)
+	{
+		*ret = ec;
+		*done = true;
+	}
+
 	void thread_fun()
 	{
 		for (;;)
@@ -107,7 +114,14 @@ struct peer_server
 			error_code ec;
 			tcp::endpoint from;
 			tcp::socket socket(m_ios);
-			m_acceptor.accept(socket, from, ec);
+			condition_variable cond;
+			bool done = false;
+			m_acceptor.async_accept(socket, from, boost::bind(&new_connection, _1, &ec, &done));
+			while (!done)
+			{
+				m_ios.poll_one();
+				m_ios.reset();
+			}
 
 			if (ec == boost::asio::error::operation_aborted
 				|| ec == boost::asio::error::bad_descriptor) return;
