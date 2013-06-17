@@ -1,11 +1,11 @@
 test_dirs:
  - test
 
-project:
- libtorrent
+project: libtorrent
 
-branch:
- trunk
+branch: trunk
+
+time_limit: 500
 
 features:
  - variant=release asserts=production
