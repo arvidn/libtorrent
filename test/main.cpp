@@ -36,10 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h> // for exit()
 
-#ifdef TORRENT_WINDOWS
-#include <direct.h> // for _chdir
-#endif
-
 int test_main();
 
 extern bool tests_failure;
@@ -115,7 +111,7 @@ int main()
 		return 1;
 	}
 #ifdef TORRENT_WINDOWS
-	_chdir(dir);
+	SetCurrentDirectoryA(dir);
 #else
 	chdir(dir);
 #endif
