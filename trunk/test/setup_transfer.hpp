@@ -57,8 +57,8 @@ bool print_alerts(libtorrent::session& ses, char const* name
 void wait_for_listen(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
 
-extern int g_udp_tracker_requests;
-extern int g_http_tracker_requests;
+extern boost::detail::atomic_count g_udp_tracker_requests;
+extern boost::detail::atomic_count g_http_tracker_requests;
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
