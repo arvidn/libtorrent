@@ -7,9 +7,7 @@ import subprocess
 import sys
 
 # returns a list of new revisions
-def svn_fetch():
-
-	current_version = run_tests.svn_info()[0]
+def svn_fetch(last_rev):
 
 	p = subprocess.Popen(['svn', 'up'], stdout=subprocess.PIPE)
 
@@ -27,7 +25,7 @@ def svn_fetch():
 		print '\n\nsvn update failed\n\n%s' % output
 		sys.exit(1)
 
-	return range(current_version + 1, revision + 1)
+	return range(last_rev + 1, revision + 1)
 
 def svn_up(revision):
 	os.system('svn up %d' % revision)
@@ -51,17 +49,26 @@ def loop():
 		print_usage()
 		sys.exit(1)
 
+	rev_file = os.path.join(os.getcwd(), '.rev')
+	print 'restoring last state from "%s"' % rev_file
+
+	try:
+		last_rev = int(open(rev_file, 'r').read())
+	except:
+		last_rev = run_tests.svn_info()[0]
+		open(rev_file, 'w+').write('%d' % last_rev)
+
 	while True:
-		revs = svn_fetch()
-		# reverse the list to always run the tests for the
-		# latest version first, then fill in with the history
-		revs.reverse()
+		revs = svn_fetch(last_rev)
 
 		for r in revs:
 			print '\n\nREVISION %d ===\n' % r
 			svn_up(r)
 	
 			run_tests.main(sys.argv[1:])
+			last_rev = r;
+
+			open(rev_file, 'w+').write('%d' % last_rev)
 	
 		time.sleep(120)
 
