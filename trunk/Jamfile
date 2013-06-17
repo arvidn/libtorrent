@@ -66,8 +66,9 @@ rule linking ( properties * )
 	# dbghelp doesn't appear to exist in mingw
 	if <target-os>windows in $(properties)
 		&& ! <toolset>gcc in $(properties)
-		&& ( <asserts>on in $(properties)
-			|| <variant>debug in $(properties)
+		&& ( <variant>debug in $(properties)
+			|| <asserts>on in $(properties)
+			|| <asserts>production in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		result += <library>dbghelp ;
@@ -139,9 +140,10 @@ rule linking ( properties * )
 
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
-		&& (<variant>debug in $(properties)
+		&& ( <variant>debug in $(properties)
 			|| <asserts>on in $(properties)
-			|| <asserts>production in $(properties))
+			|| <asserts>production in $(properties)
+			|| <asio-debugging>on in $(properties) )
 	{
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
