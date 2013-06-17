@@ -90,7 +90,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
 		output = ''
 		for l in p.stdout:
-			output += l
+			output += l.decode('latin-1')
 		p.wait()
 
 		# parse out the toolset version from the xml file
