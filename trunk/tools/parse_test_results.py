@@ -59,6 +59,13 @@ def style_output(o):
 	if subtle: ret += '</span>'
 	return ret
 
+def modification_time(file):
+	mtime = 0
+	try:
+		mtime = os.stat(file).st_mtime
+	except: pass
+	return mtime
+
 
 project_name = ''
 
@@ -74,16 +81,11 @@ if 'project' in cfg:
 
 branch_name = 'trunk'
 if 'branch' in cfg:
-	branch_name = cfg['branch']
+	branch_name = cfg['branch'].strip()
+
+print 'branch: %s' % branch_name
 
 os.chdir('regression_tests')
-
-def modification_time(file):
-	mtime = 0
-	try:
-		mtime = os.stat(file).st_mtime
-	except: pass
-	return mtime
 
 index_mtime = modification_time('index.html')
 
@@ -92,7 +94,7 @@ latest_rev = 0
 
 for rev in os.listdir('.'):
 	try:
-		if not rev.startswith('%s-', branch_name): continue
+		if not rev.startswith('%s-' % branch_name): continue
 		r = int(rev[len(branch_name)+1:])
 		if r > latest_rev: latest_rev = r
 	except: pass
@@ -100,6 +102,8 @@ for rev in os.listdir('.'):
 if latest_rev == 0:
 	print 'no test files found'
 	sys.exit(1)
+
+print 'latest version: %d' % latest_rev
 
 rev_dir = '%s-%d' % (branch_name, latest_rev)
 
