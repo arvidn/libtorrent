@@ -110,11 +110,12 @@ test_failing_torrent_t test_error_torrents[] =
 
 int test_main()
 {
+	std::string root_dir = parent_path(current_working_directory());
 	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path("..", "test_torrents"), test_torrents[i].file), ec));
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_torrents[i].file), ec));
 		TEST_CHECK(!ec);
 		if (ec) fprintf(stderr, "  -> failed %s\n", ec.message().c_str());
 
@@ -217,7 +218,7 @@ int test_main()
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path("..", "test_torrents"), test_error_torrents[i].file), ec));
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec));
 		fprintf(stderr, "E: %s\nexpected: %s\n", ec.message().c_str(), test_error_torrents[i].error.message().c_str());
 		TEST_EQUAL(ec, test_error_torrents[i].error);
 	}
