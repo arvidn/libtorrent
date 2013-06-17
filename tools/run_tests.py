@@ -87,7 +87,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 	os.chdir(test_dir)
 
 	for t in tests:
-		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
+		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
 		output = ''
 		for l in p.stdout:
 			output += l.decode('latin-1')
