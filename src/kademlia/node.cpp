@@ -65,6 +65,10 @@ enum { announce_interval = 30 };
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(node)
+
+extern int g_failed_announces;
+extern int g_announces;
+
 #endif
 
 // remove peers that have timed out
@@ -698,9 +702,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	}
 	else if (strcmp(query, "announce_peer") == 0)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		extern int g_failed_announces;
-#endif
 		key_desc_t msg_desc[] = {
 			{"info_hash", lazy_entry::string_t, 20, 0},
 			{"port", lazy_entry::int_t, 0, 0},
@@ -793,7 +794,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		if (i != v.peers.end()) v.peers.erase(i++);
 		v.peers.insert(i, peer);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		extern int g_announces;
 		++g_announces;
 #endif
 	}
