@@ -35,9 +35,9 @@ import subprocess
 import sys
 
 def indent(s):
-    s = string.split(s, '\n')
-    s = [(3 * ' ') + string.lstrip(line) for line in s]
-    s = string.join(s, '\n')
+    s = s.split('\n')
+    s = [(3 * ' ') + line.lstrip() for line in s]
+    s = '\n'.join(s)
     return s
 
 # returns a list of new revisions
