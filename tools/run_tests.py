@@ -78,13 +78,18 @@ def svn_info():
 
 	return (revision, author)
 
-def run_tests(toolset, tests, features, options, test_dir, time_limit):
+def run_tests(toolset, tests, features, options, test_dir, time_limit, incremental):
 	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
 
 	results = {}
 	toolset_found = False
 
 	os.chdir(test_dir)
+
+	if not incremental:
+		p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features.split(' '), stdout=subprocess.PIPE)
+		for l in p.stdout: pass
+		p.wait()
 
 	for t in tests:
 		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
@@ -145,6 +150,7 @@ def print_usage():
 options:
 -j<n>     use n parallel processes
 -h        prints this message and exits
+-i        build incrementally (i.e. don't clean between checkouts)
 '''
 
 def main(argv):
@@ -152,6 +158,7 @@ def main(argv):
 	toolsets = []
 
 	num_processes = 4
+	incremental = False
 
 	for arg in argv:
 		if arg[0] == '-':
@@ -160,6 +167,8 @@ def main(argv):
 			elif arg[1] == 'h':
 				print_usage()
 				sys.exit(1)
+			elif arg[1] == 'i':
+				incremental = True
 			else:
 				print 'unknown option: %s' % arg
 				print_usage()
@@ -250,14 +259,14 @@ def main(argv):
 
 				futures = []
 				for features in configs:
-					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit]))
+					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit, incremental]))
 
 				for future in futures:
 					(toolset, r) = future.get()
 					results.update(r)
 
 #				for features in configs:
-#					(toolset, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
+#					(toolset, r) = run_tests(toolset, tests, features, options, test_dir, time_limit, incremental)
 #					results.update(r)
 
 				print ''
