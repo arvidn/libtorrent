@@ -71,6 +71,28 @@ void report_failure(char const* err, char const* file, int line)
 	tests_failure = true;
 }
 
+std::auto_ptr<alert> wait_for_alert(session& ses, int type)
+{
+	std::auto_ptr<alert> ret;
+	while (!ret.get())
+	{
+		ses.wait_for_alert(milliseconds(5000));
+		std::deque<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (std::deque<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
+		{
+			if (!ret.get() && (*i)->type() == type)
+			{
+				ret = std::auto_ptr<alert>(*i);
+			}
+			else
+				delete *i;
+		}
+	}
+	return ret;
+}
+
 bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
 	, bool (*predicate)(libtorrent::alert*), bool no_output)

@@ -43,6 +43,8 @@ namespace libtorrent
 	struct session_status;
 }
 
+std::auto_ptr<libtorrent::alert> wait_for_alert(libtorrent::session& ses, int type);
+
 void print_ses_rate(libtorrent::torrent_status const* st1
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3 = NULL);
