@@ -217,7 +217,7 @@ for r in range(latest_rev, latest_rev - 20, -1):
 	(platforms, tests) = parse_tests(rev_dir)
 
 	for f in tests:
-		print >>html, '<th colspan="%d">%s</th>' % (len(tests[f]), f)
+		print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 3, f)
 	print >>html, '</tr>'
 
 	for p in platforms:
@@ -265,4 +265,6 @@ for d in details:
 	html.close()
 	sys.stdout.write('.')
 	sys.stdout.flush()
+
+print ''
 

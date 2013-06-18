@@ -829,6 +829,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 	TEST_CHECK(exists(combine_path(base, "test4.tmp")));
 	TEST_EQUAL(file_size(combine_path(base, "test5.tmp")), 3253);
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
+	printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n", int(file_size(combine_path(base, "test7.tmp"))), int(last_file_size - piece_size), last_file_size, piece_size);
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
@@ -940,8 +941,10 @@ void test_fastresume(std::string const& test_path)
 		if (s.progress != 1.0f)
 			return;
 
-		// TODO: 3 don't use this deprecated function
-		resume = h.write_resume_data();
+		h.save_resume_data();
+		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		TEST_CHECK(ra.get());
+		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
 		ses.remove_torrent(h, session::delete_files);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, "tmp1/temporary")));
@@ -1031,8 +1034,11 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		std::cout << "stop loop" << std::endl;
 		torrent_status s = h.status();
 		TEST_CHECK(s.state == torrent_status::seeding);
-		// TODO: 3 don't use this deprecated function
-		resume = h.write_resume_data();
+
+		h.save_resume_data();
+		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		TEST_CHECK(ra.get());
+		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
@@ -1064,8 +1070,10 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		torrent_status stat = h.status();
 		TEST_CHECK(stat.state == torrent_status::seeding);
 
-		// TODO: 3 don't use this deprecated function
-		resume = h.write_resume_data();
+		h.save_resume_data();
+		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		TEST_CHECK(ra.get());
+		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
