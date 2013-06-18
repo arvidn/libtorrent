@@ -330,7 +330,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
 
-	int num_pieces = tor2.get_torrent_info().num_pieces();
+	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(num_pieces, 1);
 	if (test_priorities)
 	{
