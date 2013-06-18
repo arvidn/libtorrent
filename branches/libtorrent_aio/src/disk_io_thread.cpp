@@ -1699,8 +1699,6 @@ namespace libtorrent
 		}
 		l2.unlock();
 
-		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), to_abort, completed_jobs);
-
 		if (completed_jobs.size())
 			add_completed_jobs(completed_jobs);
 
@@ -1708,6 +1706,8 @@ namespace libtorrent
 		j->storage = storage;
 		j->callback = handler;
 		add_fence_job(storage, j);
+
+		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), to_abort, completed_jobs);
 	}
 
 	void disk_io_thread::async_check_fastresume(piece_manager* storage
