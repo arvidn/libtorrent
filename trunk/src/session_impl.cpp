@@ -1140,7 +1140,12 @@ namespace aux {
 		error_code ec;
 		char filename[100];
 		create_directory("session_stats", ec);
-		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", int(getpid()), m_log_seq);
+#ifdef TORRENT_WINDOWS
+		const int pid = GetCurrentProcessId();
+#else
+		const int pid = getpid();
+#endif
+		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", pid, m_log_seq);
 		m_stats_logger = fopen(filename, "w+");
 		if (m_stats_logger == 0)
 		{

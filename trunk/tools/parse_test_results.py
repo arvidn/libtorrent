@@ -44,7 +44,8 @@ def style_output(o):
 	ret = ''
 	subtle = False
 	for l in o.split('\n'):
-		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: '):
+		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
+			l.endswith(' second time limit exceeded'):
 			ret += '<span class="test-error">%s</span>\n' % l
 		elif '**passed**' in l:
 			ret += '<span class="test-pass">%s</span>\n' % l
@@ -250,7 +251,7 @@ for d in details:
 	html = open(os.path.join('logs', '%d.html' % details_id), 'w+')
 	print >>html, '''<html><head><title>%s - %s</title><style type="text/css">
 	.compile-error { color: #f13; font-weight: bold; }
-	.compile-warning { color: #cb0; }
+	.compile-warning { font-weight: bold; color: black; }
 	.test-error { color: #f13; font-weight: bold; }
 	.test-pass { color: #1c2; font-weight: bold; }
 	.subtle { color: #ccc; }
