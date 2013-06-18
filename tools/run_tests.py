@@ -138,6 +138,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 		else: sys.stdout.write('X')
 		sys.stdout.flush()
 
+	print ''
 	return (toolset, results)
 
 def print_usage():
