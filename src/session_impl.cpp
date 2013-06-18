@@ -693,7 +693,12 @@ namespace aux {
 
 #ifdef TORRENT_REQUEST_LOGGING
 		char log_filename[200];
-		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", getpid());
+#ifdef TORRENT_WINDOWS
+		const int pid = GetCurrentProcessId();
+#else
+		const int pid = getpid();
+#endif
+		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", pid);
 		m_request_log = fopen(log_filename, "w+");
 		if (m_request_log == 0)
 		{
