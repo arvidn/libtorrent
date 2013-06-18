@@ -133,11 +133,13 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 
 int test_main()
 {
-	test_feed(combine_path("..", "eztv.xml"), rss_expect(30, "http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent", "The Daily Show 2012-02-16 [HDTV - LMAO]", 183442338));
-	test_feed(combine_path("..", "cb.xml"), rss_expect(50, "http://www.clearbits.net/get/1911-norbergfestival-2011.torrent", "Norbergfestival 2011", 1160773632));
-	test_feed(combine_path("..", "kat.xml"), rss_expect(25, "http://kat.ph/torrents/benito-di-paula-1975-benito-di-paula-lp-rip-ogg-at-500-jarax4u-t6194897/", "Benito Di Paula - 1975 - Benito Di Paula (LP Rip OGG at 500) [jarax4u]", 168773863));
-	test_feed(combine_path("..", "mn.xml"), rss_expect(20, "http://www.mininova.org/get/13203100", "Dexcell - January TwentyTwelve Mix", 137311179));
-	test_feed(combine_path("..", "pb.xml"), rss_expect(60, "magnet:?xt=urn:btih:FD4CDDB7BBE722D17A018EFD875EB0695ED7159C&dn=Thompson+Twins+-+1989+-+Big+Trash+%5BMP3%5D", "Thompson Twins - 1989 - Big Trash [MP3]", 100160904));
+	std::string root_dir = parent_path(current_working_directory());
+
+	test_feed(combine_path(root_dir, "eztv.xml"), rss_expect(30, "http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent", "The Daily Show 2012-02-16 [HDTV - LMAO]", 183442338));
+	test_feed(combine_path(root_dir, "cb.xml"), rss_expect(50, "http://www.clearbits.net/get/1911-norbergfestival-2011.torrent", "Norbergfestival 2011", 1160773632));
+	test_feed(combine_path(root_dir, "kat.xml"), rss_expect(25, "http://kat.ph/torrents/benito-di-paula-1975-benito-di-paula-lp-rip-ogg-at-500-jarax4u-t6194897/", "Benito Di Paula - 1975 - Benito Di Paula (LP Rip OGG at 500) [jarax4u]", 168773863));
+	test_feed(combine_path(root_dir, "mn.xml"), rss_expect(20, "http://www.mininova.org/get/13203100", "Dexcell - January TwentyTwelve Mix", 137311179));
+	test_feed(combine_path(root_dir, "pb.xml"), rss_expect(60, "magnet:?xt=urn:btih:FD4CDDB7BBE722D17A018EFD875EB0695ED7159C&dn=Thompson+Twins+-+1989+-+Big+Trash+%5BMP3%5D", "Thompson Twins - 1989 - Big Trash [MP3]", 100160904));
 	return 0;
 }
 
