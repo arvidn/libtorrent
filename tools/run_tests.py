@@ -138,7 +138,6 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 		else: sys.stdout.write('X')
 		sys.stdout.flush()
 
-	print ''
 	return (toolset, results)
 
 def print_usage():
@@ -260,6 +259,8 @@ def main(argv):
 #				for features in configs:
 #					(toolset, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
 #					results.update(r)
+
+				print ''
 
 				# each file contains a full set of tests for one speific toolset and platform
 				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
