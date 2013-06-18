@@ -63,7 +63,8 @@ save_resume::save_resume(session& s, std::string const& resume_dir, alert_handle
 	m_alerts->subscribe(this, 0, add_torrent_alert::alert_type
 		, torrent_removed_alert::alert_type
 		, stats_alert::alert_type // just to get woken up regularly
-		, save_resume_data_alert::alert_type, 0);
+		, save_resume_data_alert::alert_type
+		, metadata_received_alert::alert_type, 0);
 }
 
 save_resume::~save_resume()
@@ -77,12 +78,25 @@ void save_resume::handle_alert(alert const* a)
 	torrent_removed_alert const* td = alert_cast<torrent_removed_alert>(a);
 	save_resume_data_alert const* sr = alert_cast<save_resume_data_alert>(a);
 	save_resume_data_failed_alert const* sf = alert_cast<save_resume_data_failed_alert>(a);
+	metadata_received_alert const* mr = alert_cast<metadata_received_alert>(a);
 	if (ta)
 	{
-		printf("added torrent: %s\n", ta->handle.name().c_str());
+		torrent_status st = ta->handle.status();
+		printf("added torrent: %s\n", st.name.c_str());
 		m_torrents.insert(ta->handle);
+		if (st.has_metadata)
+		{
+			ta->handle.save_resume_data(torrent_handle::save_info_dict);
+			++m_num_in_flight;
+		}
+
 		if (m_cursor == m_torrents.end())
 			m_cursor = m_torrents.begin();
+	}
+	else if (mr)
+	{
+		mr->handle.save_resume_data(torrent_handle::save_info_dict);
+		++m_num_in_flight;
 	}
 	else if (td)
 	{
@@ -143,7 +157,7 @@ void save_resume::handle_alert(alert const* a)
 		if (m_cursor->need_save_resume_data())
 		{
 			m_cursor->save_resume_data(torrent_handle::save_info_dict);
-			printf("saving resume data for: %s\n", m_cursor->name().c_str());
+			printf("saving resume data for: %s\n", m_cursor->status().name.c_str());
 			++m_num_in_flight;
 		}
 		m_last_save = time_now();
