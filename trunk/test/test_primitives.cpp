@@ -1309,11 +1309,6 @@ int test_main()
 	convert_path_to_posix(path);
 	TEST_EQUAL(path, "a/b/c");
 
-#ifdef TORRENT_WINDOWS
-	convert_path_to_windows(path);
-	TEST_EQUAL(path, "a\\b\\c");
-#endif
-
 	// verify_encoding
 	test = "\b?filename=4";
 	TEST_CHECK(!verify_encoding(test));
