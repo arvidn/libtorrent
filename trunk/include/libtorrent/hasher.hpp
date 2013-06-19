@@ -74,7 +74,7 @@ namespace libtorrent
 
 namespace libtorrent
 {
-	class hasher
+	class TORRENT_EXTRA_EXPORT hasher
 	{
 	public:
 
