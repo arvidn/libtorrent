@@ -103,7 +103,11 @@ def parse_tests(rev_dir):
 
 	for f in glob.glob(os.path.join(rev_dir, '*.json')):
 		platform_toolset = os.path.split(f)[1].split('.json')[0].split('#')
-		j = json.loads(open(f, 'rb').read())
+		try:
+			j = json.loads(open(f, 'rb').read())
+		except:
+			print 'FAILED TO LOAD "%s"' %f
+			continue
 	
 		platform = platform_toolset[0]
 		toolset = platform_toolset[1]
