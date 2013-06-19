@@ -63,7 +63,7 @@ TORRENT_EXTRA_EXPORT void SHA1_Final(boost::uint8_t* digest, SHA_CTX* context);
 
 namespace libtorrent
 {
-	class hasher
+	class TORRENT_EXTRA_EXPORT hasher
 	{
 	public:
 
