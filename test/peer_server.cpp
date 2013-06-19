@@ -119,7 +119,7 @@ struct peer_server
 			m_acceptor.async_accept(socket, from, boost::bind(&new_connection, _1, &ec, &done));
 			while (!done)
 			{
-				m_ios.poll_one();
+				m_ios.run_one();
 				m_ios.reset();
 			}
 

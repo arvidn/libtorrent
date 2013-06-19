@@ -135,6 +135,7 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	addp.dht_nodes.push_back(std::pair<std::string, int>("127.0.0.1", dht_port));
 	torrent_handle h = s->add_torrent(addp);
 
+	printf("connect_peer: 127.0.0.1:%d\n", peer_port);
 	h.connect_peer(tcp::endpoint(address_v4::from_string("127.0.0.1"), peer_port));
 
 	rejected_trackers.clear();
