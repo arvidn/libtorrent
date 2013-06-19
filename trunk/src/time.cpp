@@ -166,7 +166,7 @@ namespace libtorrent
 			boost::int64_t ret = (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
 			TORRENT_ASSERT((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
 #endif
-			return (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
+			return ((pc * 1000 + performace_counter_frequency.QuadPart / 2) / performace_counter_frequency.QuadPart) * 1000;
 		}
 
 		boost::int64_t microseconds_to_performance_counter(boost::int64_t ms)
