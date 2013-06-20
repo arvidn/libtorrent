@@ -70,6 +70,36 @@ def modification_time(file):
 	except: pass
 	return mtime
 
+def save_log_file(log_name, project_name, branch_name, test_name, timestamp, data):
+
+	if not os.path.exists(os.path.split(log_name)[0]):
+		os.mkdir(os.path.split(log_name)[0])
+
+	try:
+		# if the log file already exists, and it's newer than
+		# the source, no need to re-parse it
+		mtime = os.stat(log_name).st_mtime
+		if mtime >= timestamp: return
+	except: pass
+
+	html = open(log_name, 'w+')
+	print >>html, '''<html><head><title>%s - %s</title><style type="text/css">
+	.compile-error { color: #f13; font-weight: bold; }
+	.compile-warning { font-weight: bold; color: black; }
+	.test-error { color: #f13; font-weight: bold; }
+	.test-pass { color: #1c2; font-weight: bold; }
+	.subtle { color: #ccc; }
+	pre { color: #999; }
+	</style>
+	</head><body><h1>%s - %s</h1>''' % (project_name, branch_name, project_name, branch_name)
+	print >>html, '<h3>%s</h3><pre>%s</pre>' % \
+		(test_name.encode('utf-8'), style_output(data).encode('utf-8'))
+
+	print >>html, '</body></html>'
+	html.close()
+	sys.stdout.write('.')
+	sys.stdout.flush()
+
 def parse_tests(rev_dir):
 	
 	# this contains mappings from platforms to
@@ -105,6 +135,7 @@ def parse_tests(rev_dir):
 		platform_toolset = os.path.split(f)[1].split('.json')[0].split('#')
 		try:
 			j = json.loads(open(f, 'rb').read())
+			timestamp = os.stat(f).st_mtime
 		except:
 			print 'FAILED TO LOAD "%s"' %f
 			continue
@@ -131,11 +162,14 @@ def parse_tests(rev_dir):
 				platforms[platform][toolset][features] = {}
 
 			platforms[platform][toolset][features][test_name] = j[cfg]
+			platforms[platform][toolset][features][test_name]['timestamp'] = timestamp
 
 	return (platforms, tests)
 
 
 # TODO: remove this dependency by encoding it in the output files
+# this script should work from outside of the repo, just having
+# access to the shared folder
 project_name = ''
 
 try:
@@ -209,9 +243,6 @@ print >>html, '''<html><head><title>regression tests, %s</title><style type="tex
 
 print >>html, '<table border="1">'
 
-details_id = 0
-details = []
-
 for r in range(latest_rev, latest_rev - 20, -1):
 	sys.stdout.write('.')
 	sys.stdout.flush()
@@ -222,7 +253,7 @@ for r in range(latest_rev, latest_rev - 20, -1):
 	(platforms, tests) = parse_tests(rev_dir)
 
 	for f in tests:
-		print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 3, f)
+		print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 5, f)
 	print >>html, '</tr>'
 
 	for p in platforms:
@@ -233,43 +264,18 @@ for r in range(latest_rev, latest_rev - 20, -1):
 			print >>html, '<th class="left-head">%s</th>' % toolset
 			for f in platforms[p][toolset]:
 				for t in platforms[p][toolset][f]:
-					if platforms[p][toolset][f][t][u'status'] == 0: c = 'passed'
+					details = platforms[p][toolset][f][t]
+					if details['status'] == 0: c = 'passed'
 					else: c = 'failed'
-					print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, os.path.join('logs', '%d.html' % details_id))
-					platforms[p][toolset][f][t]['name'] = t
-					platforms[p][toolset][f][t]['features'] = f
-					details.append(platforms[p][toolset][f][t])
-					details_id += 1
+					log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
+					print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
+					save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
 
 			print >>html, '</tr>'
 			idx += 1
 
 print >>html, '</table></body></html>'
 html.close()
-
-try: os.mkdir('logs')
-except: pass
-
-details_id = 0
-for d in details:
-	html = open(os.path.join('logs', '%d.html' % details_id), 'w+')
-	print >>html, '''<html><head><title>%s - %s</title><style type="text/css">
-	.compile-error { color: #f13; font-weight: bold; }
-	.compile-warning { font-weight: bold; color: black; }
-	.test-error { color: #f13; font-weight: bold; }
-	.test-pass { color: #1c2; font-weight: bold; }
-	.subtle { color: #ccc; }
-	pre { color: #999; }
-	</style>
-	</head><body><h1>%s - %s</h1>''' % (project_name, branch_name, project_name, branch_name)
-	print >>html, '<h3>%s - %s</h3><pre>%s</pre>' % \
-		(d['name'].encode('utf8'), d['features'].encode('utf-8'), style_output(d['output']).encode('utf-8'))
-	details_id += 1
-
-	print >>html, '</body></html>'
-	html.close()
-	sys.stdout.write('.')
-	sys.stdout.flush()
 
 print ''
 
