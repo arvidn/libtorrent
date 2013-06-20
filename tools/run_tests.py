@@ -183,7 +183,7 @@ def main(argv):
 	try:
 		cfg = open('.regression.yml', 'r')
 	except:
-		print '.regressions.yml not found in current directory'
+		print '.regression.yml not found in current directory'
 		sys.exit(1)
 
 	cfg = yaml.load(cfg.read())
@@ -196,7 +196,7 @@ def main(argv):
 		for d in cfg['test_dirs']:
 			test_dirs.append(d)
 	else:
-		print 'no test directory specified by .regressions.yml'
+		print 'no test directory specified by .regression.yml'
 		sys.exit(1)
 
 	configs = []
@@ -205,6 +205,10 @@ def main(argv):
 			configs.append(d)
 	else:
 		configs = [['']]
+
+	clean_files = []
+	if 'clean' in cfg:
+		clean_files = cfg['clean']
 
 	branch_name = 'trunk'
 	if 'branch' in cfg:
@@ -272,9 +276,27 @@ def main(argv):
 				print ''
 
 				# each file contains a full set of tests for one speific toolset and platform
-				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+				try:
+					f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+				except IOError:
+					rev_dir = os.path.join(current_dir, 'regression_tests')
+					try: os.mkdir(rev_dir)
+					except: pass
+					rev_dir = os.path.join(rev_dir, '%s-%d' % (branch_name, revision))
+					try: os.mkdir(rev_dir)
+					except: pass
+					f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+			
 				print >>f, json.dumps(results)
 				f.close()
+
+				if len(clean_files) > 0:
+					for filt in clean_files:
+						for f in glob.glob(filt):
+							# a precautio to make sure a malicious repo
+							# won't clean things outside of the test directory
+							if not os.path.abspath(f).startswith(test_dir): continue
+							os.rmdirs(f)
 	finally:
 		# always restore current directory
 		os.chdir(current_dir)
