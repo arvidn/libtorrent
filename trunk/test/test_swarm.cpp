@@ -131,7 +131,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 			++count_dl_rates3;
 		}
 
-		print_ses_rate(&st1, &st2, &st3);
+		print_ses_rate(i, &st1, &st2, &st3);
 
 		if (st2.is_seeding && st3.is_seeding) break;
 		test_sleep(1000);

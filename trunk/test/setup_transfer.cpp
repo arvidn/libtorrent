@@ -162,11 +162,13 @@ void wait_for_listen(libtorrent::session& ses, char const* name)
 	} while (a);
 }
 
-void print_ses_rate(libtorrent::torrent_status const* st1
+void print_ses_rate(float time
+	, libtorrent::torrent_status const* st1
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3)
 {
 	std::cerr
+		<< time << "s "
 		<< int(st1->download_payload_rate / 1000.f) << "kB/s "
 		<< int(st1->upload_payload_rate / 1000.f) << "kB/s "
 		<< int(st1->progress * 100) << "% "

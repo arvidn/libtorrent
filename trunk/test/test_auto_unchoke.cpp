@@ -103,7 +103,7 @@ void test_swarm()
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
-		print_ses_rate(&st1, &st2, &st3);
+		print_ses_rate(i, &st1, &st2, &st3);
 
 		test_sleep(1000);
 	}
