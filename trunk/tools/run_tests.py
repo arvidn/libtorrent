@@ -80,68 +80,70 @@ def svn_info():
 
 def run_tests(toolset, tests, features, options, test_dir, time_limit, incremental):
 	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
+	try:
 
-	results = {}
-	toolset_found = False
+		results = {}
+		toolset_found = False
+   
+		os.chdir(test_dir)
+   
+		if not incremental:
+			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features.split(' '), stdout=subprocess.PIPE)
+			for l in p.stdout: pass
+			p.wait()
+   
+		for t in tests:
+			p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
+			output = ''
+			for l in p.stdout:
+				output += l.decode('latin-1')
+			p.wait()
+   
+			# parse out the toolset version from the xml file
+			compiler = ''
+			compiler_version = ''
+			command = ''
+   
+			# make this parse the actual test to pick up the time
+			# spent runnin the test
+			try:
+				dom = et.parse(xml_file)
+   
+				command = dom.find('./command').text
+   
+				prop = dom.findall('./action/properties/property')
+				for a in prop:
+					name = a.attrib['name']
+					if name == 'toolset':
+						compiler = a.text
+						if compiler_version != '': break
+					if name.startswith('toolset-') and name.endswith(':version'):
+						compiler_version = a.text
+						if compiler != '': break
+   
+				if compiler != '' and compiler_version != '':
+					toolset = compiler + '-' + compiler_version
+			except: pass
+   
+			r = { 'status': p.returncode, 'output': output, 'command': command }
+			results[t + '|' + features] = r
+   
+			fail_color = '\033[31;1m'
+			pass_color = '\033[32;1m'
+			end_seq = '\033[0m'
+   
+			if platform.system() == 'Windows':
+				fail_color == ''
+				pass_color == ''
+				end_seq = ''
+   
+			if p.returncode == 0: sys.stdout.write('.')
+			else: sys.stdout.write('X')
+			sys.stdout.flush()
 
-	os.chdir(test_dir)
-
-	if not incremental:
-		p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features.split(' '), stdout=subprocess.PIPE)
-		for l in p.stdout: pass
-		p.wait()
-
-	for t in tests:
-		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
-		output = ''
-		for l in p.stdout:
-			output += l.decode('latin-1')
-		p.wait()
-
-		# parse out the toolset version from the xml file
-		compiler = ''
-		compiler_version = ''
-		command = ''
-
-		# make this parse the actual test to pick up the time
-		# spent runnin the test
-		try:
-			dom = et.parse(xml_file)
-
-			command = dom.find('./command').text
-
-			prop = dom.findall('./action/properties/property')
-			for a in prop:
-				name = a.attrib['name']
-				if name == 'toolset':
-					compiler = a.text
-					if compiler_version != '': break
-				if name.startswith('toolset-') and name.endswith(':version'):
-					compiler_version = a.text
-					if compiler != '': break
-
-			if compiler != '' and compiler_version != '':
-				toolset = compiler + '-' + compiler_version
-		except: pass
-
+	finally:
 		try: os.unlink(xml_file)
 		except: pass
-
-		r = { 'status': p.returncode, 'output': output, 'command': command }
-		results[t + '|' + features] = r
-
-		fail_color = '\033[31;1m'
-		pass_color = '\033[32;1m'
-		end_seq = '\033[0m'
-
-		if platform.system() == 'Windows':
-			fail_color == ''
-			pass_color == ''
-			end_seq = ''
-
-		if p.returncode == 0: sys.stdout.write('.')
-		else: sys.stdout.write('X')
-		sys.stdout.flush()
 
 	return (toolset, results)
 
