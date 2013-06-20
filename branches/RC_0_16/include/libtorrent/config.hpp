@@ -186,7 +186,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #else
 // FreeBSD has a reasonable iconv signature
-#define TORRENT_ICONV_ARG (const char**)
+// unless we're on glibc
+#ifndef __GLIBC__
+# define TORRENT_ICONV_ARG (const char**)
+#endif
 #endif
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_IFADDRS 1
