@@ -5,6 +5,9 @@ project: libtorrent
 
 branch: trunk
 
+clean:
+ - test_tmp_*
+
 time_limit: 500
 
 features:

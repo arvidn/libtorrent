@@ -137,7 +137,7 @@ def parse_tests(rev_dir):
 			j = json.loads(open(f, 'rb').read())
 			timestamp = os.stat(f).st_mtime
 		except:
-			print 'FAILED TO LOAD "%s"' %f
+			print '\nFAILED TO LOAD "%s"\n' %f
 			continue
 	
 		platform = platform_toolset[0]
