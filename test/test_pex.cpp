@@ -118,7 +118,7 @@ void test_pex()
 		st2 = tor2.status();
 		st3 = tor3.status();
 
-		print_ses_rate(&st1, &st2, &st3);
+		print_ses_rate(i, &st1, &st2, &st3);
 
 		// this is the success condition
 		if (st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)

@@ -115,7 +115,7 @@ void test_transfer()
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_ses_rate(&st1, &st2);
+		print_ses_rate(i / 2.f, &st1, &st2);
 
 		if (st2.is_finished) break;
 
