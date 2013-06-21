@@ -27,13 +27,20 @@ rule libtorrent_dependency ( properties * )
 	return $(result) ;
 }
 
+lib libtorrent_test
+	: # sources
+	setup_transfer.cpp
+	dht_server.cpp
+	peer_server.cpp
+	: # requirements
+	<conditional>@libtorrent_dependency
+;
+
 project
    : requirements
-	<conditional>@libtorrent_dependency
 	<source>main.cpp
-	<source>setup_transfer.cpp
-	<source>dht_server.cpp
-	<source>peer_server.cpp
+	<conditional>@libtorrent_dependency
+	<library>libtorrent_test/<link>shared
    : default-build
 	<threading>multi
 	<invariant-checks>full
