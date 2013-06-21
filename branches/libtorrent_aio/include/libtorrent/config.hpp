@@ -204,7 +204,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #else // __APPLE__
 // FreeBSD has a reasonable iconv signature
+// unless we're on glibc
+#ifndef __GLIBC__
 # define TORRENT_ICONV_ARG (const char**)
+#endif
 #endif // __APPLE__
 
 #define TORRENT_HAVE_MMAP 1

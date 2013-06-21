@@ -43,7 +43,10 @@ namespace libtorrent
 	struct session_status;
 }
 
-void print_ses_rate(libtorrent::torrent_status const* st1
+std::auto_ptr<libtorrent::alert> wait_for_alert(libtorrent::session& ses, int type);
+
+void print_ses_rate(float time
+	, libtorrent::torrent_status const* st1
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3 = NULL);
 
@@ -58,8 +61,8 @@ void wait_for_listen(libtorrent::session& ses, char const* name);
 void wait_for_downloading(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
 
-extern int g_udp_tracker_requests;
-extern int g_http_tracker_requests;
+extern boost::detail::atomic_count g_udp_tracker_requests;
+extern boost::detail::atomic_count g_http_tracker_requests;
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files);
 

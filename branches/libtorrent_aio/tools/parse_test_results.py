@@ -38,17 +38,22 @@ import glob
 import json
 import yaml
 
+# TODO: different parsers could be run on output from different actions
+# if we would use the xml output in stead of stdout/stderr
 def style_output(o):
 	ret = ''
 	subtle = False
 	for l in o.split('\n'):
-		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: '):
+		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
+			l.endswith(' second time limit exceeded'):
 			ret += '<span class="test-error">%s</span>\n' % l
 		elif '**passed**' in l:
 			ret += '<span class="test-pass">%s</span>\n' % l
-		elif ': error: ' in l or ': fatal error: ' in l:
+		elif ': error: ' in l or ': fatal error: ' in l or ' : fatal error ' in l or \
+			'failed to write output file' in l or ') : error C' in l or \
+			') : error LNK' in l or ': undefined reference to ' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
-		elif ': warning: ' in l:
+		elif ': warning: ' in l or ') : warning C' in l:
 			ret += '<span class="compile-warning">%s</span>\n' % l
 		elif l == '====== END OUTPUT ======' and not subtle:
 			ret += '<span class="subtle">%s\n' % l
@@ -58,7 +63,113 @@ def style_output(o):
 	if subtle: ret += '</span>'
 	return ret
 
+def modification_time(file):
+	mtime = 0
+	try:
+		mtime = os.stat(file).st_mtime
+	except: pass
+	return mtime
 
+def save_log_file(log_name, project_name, branch_name, test_name, timestamp, data):
+
+	if not os.path.exists(os.path.split(log_name)[0]):
+		os.mkdir(os.path.split(log_name)[0])
+
+	try:
+		# if the log file already exists, and it's newer than
+		# the source, no need to re-parse it
+		mtime = os.stat(log_name).st_mtime
+		if mtime >= timestamp: return
+	except: pass
+
+	html = open(log_name, 'w+')
+	print >>html, '''<html><head><title>%s - %s</title><style type="text/css">
+	.compile-error { color: #f13; font-weight: bold; }
+	.compile-warning { font-weight: bold; color: black; }
+	.test-error { color: #f13; font-weight: bold; }
+	.test-pass { color: #1c2; font-weight: bold; }
+	.subtle { color: #ccc; }
+	pre { color: #999; white-space: pre-wrap; word-wrap: break-word; }
+	</style>
+	</head><body><h1>%s - %s</h1>''' % (project_name, branch_name, project_name, branch_name)
+	print >>html, '<h3>%s</h3><pre>%s</pre>' % \
+		(test_name.encode('utf-8'), style_output(data).encode('utf-8'))
+
+	print >>html, '</body></html>'
+	html.close()
+	sys.stdout.write('.')
+	sys.stdout.flush()
+
+def parse_tests(rev_dir):
+	
+	# this contains mappings from platforms to
+	# the next layer of dictionaries. The next
+	# layer contains a mapping of toolsets to
+	# dictionaries the next layer of dictionaries.
+	# those dictionaries contain a mapping from
+	# feature-sets to the next layer of dictionaries.
+	# the next layer contains a mapping from
+	# tests to information about those tests, such
+	# as whether it passed and the output from the
+	# command
+	# example:
+	
+	# {
+	#   darwin: {
+	#     clang-4.2.1: {
+	#       ipv6=off: {
+	#         test_primitives: {
+	#           output: ...
+	#           status: 1
+	#         }
+	#       }
+	#     }
+	#   }
+	# }
+
+	platforms = {}
+
+	tests = {}
+
+	for f in glob.glob(os.path.join(rev_dir, '*.json')):
+		platform_toolset = os.path.split(f)[1].split('.json')[0].split('#')
+		try:
+			j = json.loads(open(f, 'rb').read())
+			timestamp = os.stat(f).st_mtime
+		except:
+			print '\nFAILED TO LOAD "%s"\n' %f
+			continue
+	
+		platform = platform_toolset[0]
+		toolset = platform_toolset[1]
+	
+		for cfg in j:
+			test_name = cfg.split('|')[0]
+			features = cfg.split('|')[1]
+	
+			if not features in tests:
+				tests[features] = set()
+	
+			tests[features].add(test_name)
+	
+			if not platform in platforms:
+				platforms[platform] = {}
+	
+			if not toolset in platforms[platform]:
+				platforms[platform][toolset] = {}
+	
+			if not features in platforms[platform][toolset]:
+				platforms[platform][toolset][features] = {}
+
+			platforms[platform][toolset][features][test_name] = j[cfg]
+			platforms[platform][toolset][features][test_name]['timestamp'] = timestamp
+
+	return (platforms, tests)
+
+
+# TODO: remove this dependency by encoding it in the output files
+# this script should work from outside of the repo, just having
+# access to the shared folder
 project_name = ''
 
 try:
@@ -67,33 +178,41 @@ except:
 	print '.regression.yml not found in current directory'
 	sys.exit(1)
 cfg = yaml.load(cfg.read())
+
 if 'project' in cfg:
 	project_name = cfg['project']
 
+branch_name = 'trunk'
+if 'branch' in cfg:
+	branch_name = cfg['branch'].strip()
+
+print 'branch: %s' % branch_name
+
 os.chdir('regression_tests')
 
-def modification_time(file):
-	mtime = 0
-	try:
-		mtime = os.stat(file).st_mtime
-	except: pass
-	return mtime
+if len(sys.argv) > 1:
+	latest_rev = int(sys.argv[1])
+else:
+	latest_rev = 0
 
-index_mtime = modification_time('index.html')
+	for rev in os.listdir('.'):
+		try:
+			if not rev.startswith('%s-' % branch_name): continue
+			r = int(rev[len(branch_name)+1:])
+			if r > latest_rev: latest_rev = r
+		except: pass
 
-latest_rev = 0
+	if latest_rev == 0:
+		print 'no test files found'
+		sys.exit(1)
 
-for rev in os.listdir('.'):
-	try:
-		r = int(rev)
-		if r > latest_rev: latest_rev = r
-	except: pass
+print 'latest version: %d' % latest_rev
 
-if latest_rev == 0:
-	print 'no test files found'
-	sys.exit(1)
+html_file = 'index.html'
 
-rev_dir = '%d' % latest_rev
+'''
+html_file = '%s.html' % rev_dir
+index_mtime = modification_time(html_file)
 
 need_refresh = False
 
@@ -107,126 +226,56 @@ for f in glob.glob(os.path.join(rev_dir, '*.json')):
 if not need_refresh:
 	print 'all up to date'
 	sys.exit(0)
+'''
 
-# this contains mappings from platforms to
-# the next layer of dictionaries. The next
-# layer contains a mapping of toolsets to
-# dictionaries the next layer of dictionaries.
-# those dictionaries contain a mapping from
-# feature-sets to the next layer of dictionaries.
-# the next layer contains a mapping from
-# tests to information about those tests, such
-# as whether it passed and the output from the
-# command
-# example:
+html = open(html_file, 'w+')
 
-# {
-#   darwin: {
-#     clang-4.2.1: {
-#       ipv6=off: {
-#         test_primitives: {
-#           output: ...
-#           status: 1
-#           warnings: 21
-#         }
-#       }
-#     }
-#   }
-# }
-
-platforms = {}
-
-tests = {}
-
-for f in glob.glob(os.path.join(rev_dir, '*.json')):
-	platform_toolset = os.path.split(f)[1].split('.json')[0].split('#')
-	j = json.loads(open(f, 'rb').read())
-
-	platform = platform_toolset[0]
-	toolset = platform_toolset[1]
-
-	for cfg in j:
-		test_name = cfg.split('|')[0]
-		features = cfg.split('|')[1]
-
-		if not features in tests:
-			tests[features] = set()
-
-		tests[features].add(test_name)
-
-		if not platform in platforms:
-			platforms[platform] = {}
-
-		if not toolset in platforms[platform]:
-			platforms[platform][toolset] = {}
-
-		if not features in platforms[platform][toolset]:
-			platforms[platform][toolset][features] = {}
-
-		platforms[platform][toolset][features][test_name] = j[cfg]
-	
-
-html = open('index.html', 'w')
-
-print >>html, '''<html><head><title>regression tests, %s revision %d</title><style type="text/css">
-	.passed { display: block; width: 5px; height: 1em; background-color: #6f8 }
-	.failed { display: block; width: 5px; height: 1em; background-color: #f68 }
-	table { border: 0; }
-	td { border: 0; border-spacing: 0px; padding: 0px 0px 0px 0px; }
+print >>html, '''<html><head><title>regression tests, %s</title><style type="text/css">
+	.passed { display: block; width: 8px; height: 1em; background-color: #6f8 }
+	.failed { display: block; width: 8px; height: 1em; background-color: #f68 }
+	table { border: 0; border-collapse: collapse; }
+	h1 { font-size: 15pt; }
+	th { font-size: 8pt; }
+	td { border: 0; border-spacing: 0px; padding: 1px 1px 0px 0px; }
 	.left-head { white-space: nowrap; }
-	.compile-error { color: #f13; font-weight: bold; }
-	.compile-warning { color: #cb0; }
-	.test-error { color: #f13; font-weight: bold; }
-	.test-pass { color: #1c2; font-weight: bold; }
-	.subtle { color: #ccc; }
-	pre { color: #999; }
-	</style><script type="text/javascript">
-	var expanded = -1;
-	function toggle(i) {
-		if (expanded != -1) document.getElementById(expanded).style.display = 'none';
-		expanded = i;
-		document.getElementById(i).style.display = 'block';
-	}
-	</script></head><body>''' % (project_name, latest_rev)
+	</style>
+	</head><body><h1>%s - %s</h1>''' % (project_name, project_name, branch_name)
 
-print >>html, '<h1>%s revision %d</h1>' % (project_name, latest_rev)
-print >>html, '<table border="1"><tr><th colspan="2" style="border:0;"></th>'
+print >>html, '<table border="1">'
 
-for f in tests:
-	print >>html, '<th colspan="%d">%s</th>' % (len(tests[f]), f)
-print >>html, '</tr>'
+for r in range(latest_rev, latest_rev - 20, -1):
+	sys.stdout.write('.')
+	sys.stdout.flush()
 
-details_id = 0
-details = []
+	print >>html, '<tr><th colspan="2" style="border:0;">revision %d</th>' % r
 
-for p in platforms:
-	print >>html, '<tr><th class="left-head" rowspan="%d">%s</th>' % (len(platforms[p]), p)
-	idx = 0
-	for toolset in platforms[p]:
-		if idx > 0: print >>html, '<tr>'
-		print >>html, '<th class="left-head">%s</th>' % toolset
-		for f in platforms[p][toolset]:
-			for t in platforms[p][toolset][f]:
-				if platforms[p][toolset][f][t][u'status'] == 0: c = 'passed'
-				else: c = 'failed'
-				print >>html, '<td title="%s"><a class="%s" href="javascript:toggle(%d)"></a></td>' % ('%s %s' % (t, f), c, details_id)
-				platforms[p][toolset][f][t]['name'] = t
-				platforms[p][toolset][f][t]['features'] = f
-				details.append(platforms[p][toolset][f][t])
-				details_id += 1
+	rev_dir = '%s-%d' % (branch_name, r)
+	(platforms, tests) = parse_tests(rev_dir)
 
-		print >>html, '</tr>'
-		idx += 1
+	for f in tests:
+		print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 5, f)
+	print >>html, '</tr>'
 
-print >>html, '</table>'
+	for p in platforms:
+		print >>html, '<tr><th class="left-head" rowspan="%d">%s</th>' % (len(platforms[p]), p)
+		idx = 0
+		for toolset in platforms[p]:
+			if idx > 0: print >>html, '<tr>'
+			print >>html, '<th class="left-head">%s</th>' % toolset
+			for f in platforms[p][toolset]:
+				for t in platforms[p][toolset][f]:
+					details = platforms[p][toolset][f][t]
+					if details['status'] == 0: c = 'passed'
+					else: c = 'failed'
+					log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
+					print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
+					save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
 
-details_id = 0
-for d in details:
-	print >>html, '<div style="display: none" id="%d"><h3>%s - %s</h3><pre>%s</pre></div>' % \
-		(details_id, d['name'].encode('utf8'), d['features'].encode('utf-8'), style_output(d['output']).encode('utf-8'))
-	details_id += 1
+			print >>html, '</tr>'
+			idx += 1
 
-print >>html, '</body></html>'
-
+print >>html, '</table></body></html>'
 html.close()
+
+print ''
 

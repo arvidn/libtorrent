@@ -622,7 +622,12 @@ namespace aux {
 
 #ifdef TORRENT_REQUEST_LOGGING
 		char log_filename[200];
-		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", getpid());
+#ifdef TORRENT_WINDOWS
+		const int pid = GetCurrentProcessId();
+#else
+		const int pid = getpid();
+#endif
+		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", pid);
 		m_request_log = fopen(log_filename, "w+");
 		if (m_request_log == 0)
 		{
@@ -1114,7 +1119,12 @@ namespace aux {
 		error_code ec;
 		char filename[100];
 		create_directory("session_stats", ec);
-		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", int(getpid()), m_log_seq);
+#ifdef TORRENT_WINDOWS
+		const int pid = GetCurrentProcessId();
+#else
+		const int pid = getpid();
+#endif
+		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", pid, m_log_seq);
 		m_stats_logger = fopen(filename, "w+");
 		m_last_log_rotation = time_now();
 		if (m_stats_logger == 0)

@@ -43,6 +43,8 @@ import json
 import sys
 import yaml
 from multiprocessing import Pool
+import glob
+import shutil
 
 # the .regression.yml configuration file format looks like this (it's yaml):
 
@@ -78,35 +80,39 @@ def svn_info():
 
 	return (revision, author)
 
-def run_tests(toolset, tests, features, options, test_dir):
+def run_tests(toolset, tests, features, options, test_dir, time_limit, incremental):
 	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
+	try:
 
-	results = {}
-	toolset_found = False
-
-	os.chdir(test_dir)
-
-	for t in tests:
-		p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
-		output = ''
-		warnings = 0
-		for l in p.stdout:
-			if 'warning: ' in l: warnings += 1
-			output += l
-		p.wait()
-
-		# parse out the toolset version from the xml file
-		compiler = ''
-		compiler_version = ''
-
-		# make this parse the actual test to pick up the time
-		# spent runnin the test
-		if not toolset_found:
+		results = {}
+		toolset_found = False
+   
+		os.chdir(test_dir)
+   
+		if not incremental:
+			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features.split(' '), stdout=subprocess.PIPE)
+			for l in p.stdout: pass
+			p.wait()
+   
+		for t in tests:
+			p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
+			output = ''
+			for l in p.stdout:
+				output += l.decode('latin-1')
+			p.wait()
+   
+			# parse out the toolset version from the xml file
+			compiler = ''
+			compiler_version = ''
+			command = ''
+   
+			# make this parse the actual test to pick up the time
+			# spent runnin the test
 			try:
 				dom = et.parse(xml_file)
-
+   
 				command = dom.find('./command').text
-
+   
 				prop = dom.findall('./action/properties/property')
 				for a in prop:
 					name = a.attrib['name']
@@ -116,30 +122,33 @@ def run_tests(toolset, tests, features, options, test_dir):
 					if name.startswith('toolset-') and name.endswith(':version'):
 						compiler_version = a.text
 						if compiler != '': break
-
+   
 				if compiler != '' and compiler_version != '':
 					toolset = compiler + '-' + compiler_version
-					toolset_found = True
 			except: pass
+   
+			r = { 'status': p.returncode, 'output': output, 'command': command }
+			results[t + '|' + features] = r
+   
+			fail_color = '\033[31;1m'
+			pass_color = '\033[32;1m'
+			end_seq = '\033[0m'
+   
+			if platform.system() == 'Windows':
+				fail_color == ''
+				pass_color == ''
+				end_seq = ''
+   
+			if p.returncode == 0: sys.stdout.write('.')
+			else: sys.stdout.write('X')
+			sys.stdout.flush()
 
+	except:
+		# need this to make child processes exit
+		sys.exit(1)
+	finally:
 		try: os.unlink(xml_file)
 		except: pass
-
-		r = { 'status': p.returncode, 'output': output, 'warnings': warnings, 'command': command }
-		results[t + '|' + features] = r
-
-		fail_color = '\033[31;1m'
-		pass_color = '\033[32;1m'
-		end_seq = '\033[0m'
-
-		if platform.system() == 'Windows':
-			fail_color == ''
-			pass_color == ''
-			end_seq = ''
-
-		print '%s [%s] [%s]' % (t, toolset, features),
-		if p.returncode == 0: print pass_color + 'PASSED' + end_seq
-		else: print fail_color + 'FAILED' + end_seq
 
 	return (toolset, results)
 
@@ -148,21 +157,25 @@ def print_usage():
 options:
 -j<n>     use n parallel processes
 -h        prints this message and exits
+-i        build incrementally (i.e. don't clean between checkouts)
 '''
 
-def main():
+def main(argv):
 
 	toolsets = []
 
 	num_processes = 4
+	incremental = False
 
-	for arg in sys.argv[1:]:
+	for arg in argv:
 		if arg[0] == '-':
 			if arg[1] == 'j':
 				num_processes = int(arg[2:])
 			elif arg[1] == 'h':
 				print_usage()
 				sys.exit(1)
+			elif arg[1] == 'i':
+				incremental = True
 			else:
 				print 'unknown option: %s' % arg
 				print_usage()
@@ -177,7 +190,7 @@ def main():
 	try:
 		cfg = open('.regression.yml', 'r')
 	except:
-		print '.regressions.yml not found in current directory'
+		print '.regression.yml not found in current directory'
 		sys.exit(1)
 
 	cfg = yaml.load(cfg.read())
@@ -185,11 +198,12 @@ def main():
 	test_dirs = []
 	configs = []
 	options = ['boost=source']
+	time_limit = 1200
 	if 'test_dirs' in cfg:
 		for d in cfg['test_dirs']:
 			test_dirs.append(d)
 	else:
-		print 'no test directory specified by .regressions.yml'
+		print 'no test directory specified by .regression.yml'
 		sys.exit(1)
 
 	configs = []
@@ -198,6 +212,17 @@ def main():
 			configs.append(d)
 	else:
 		configs = [['']]
+
+	clean_files = []
+	if 'clean' in cfg:
+		clean_files = cfg['clean']
+
+	branch_name = 'trunk'
+	if 'branch' in cfg:
+		branch_name = cfg['branch']
+
+	if 'time_limit' in cfg:
+		time_limit = int(cfg['time_limit'])
 
 	architecture = platform.machine()
 	build_platform = platform.system() + '-' + platform.release()
@@ -208,56 +233,82 @@ def main():
 
 	tester_pool = Pool(processes=num_processes)
 
-	print '%d - %s - %s' % (revision, author, timestamp)
+	print '%s-%d - %s - %s' % (branch_name, revision, author, timestamp)
 
-	print 'toolsets: ', toolsets
-	print 'configs: ', configs
+	print 'toolsets: %s' % ' '.join(toolsets)
+#	print 'configs: %s' % '|'.join(configs)
 
-	rev_dir = os.path.join(os.getcwd(), 'regression_tests')
-	try: os.mkdir(rev_dir)
-	except: pass
-	rev_dir = os.path.join(rev_dir, '%d' % revision)
-	try: os.mkdir(rev_dir)
-	except: pass
+	current_dir = os.getcwd()
 
-	for test_dir in test_dirs:
-		print 'running tests from "%s"' % test_dir
-		os.chdir(test_dir)
-		test_dir = os.getcwd()
+	try:
+		rev_dir = os.path.join(current_dir, 'regression_tests')
+		try: os.mkdir(rev_dir)
+		except: pass
+		rev_dir = os.path.join(rev_dir, '%s-%d' % (branch_name, revision))
+		try: os.mkdir(rev_dir)
+		except: pass
 
-		# figure out which tests are exported by this Jamfile
-		p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
+		for test_dir in test_dirs:
+			print 'running tests from "%s" in %s' % (test_dir, branch_name)
+			os.chdir(test_dir)
+			test_dir = os.getcwd()
 
-		tests = []
+			# figure out which tests are exported by this Jamfile
+			p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
 
-		for l in p.stdout:
-			if not 'boost-test(RUN)' in l: continue
-			test_name = os.path.split(l.split(' ')[1][1:-1])[1]
-			tests.append(test_name)
-		print 'found %d tests' % len(tests)
+			tests = []
 
-		for toolset in toolsets:
-			print 'toolset %s' % toolset
-			results = {}
-			toolset_found = False
+			for l in p.stdout:
+				if not 'boost-test(RUN)' in l: continue
+				test_name = os.path.split(l.split(' ')[1][1:-1])[1]
+				tests.append(test_name)
+			print 'found %d tests' % len(tests)
 
-			futures = []
-			for features in configs:
-				futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir]))
+			for toolset in toolsets:
+				results = {}
+				toolset_found = False
 
-			for future in futures:
-				(toolset, r) = future.get()
-				results.update(r)
+				futures = []
+				for features in configs:
+					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit, incremental]))
 
-#			for features in configs:
-#				(toolset, r) = run_tests(toolset, tests, features, options, test_dir)
-#				results.update(r)
+				for future in futures:
+					(toolset, r) = future.get()
+					results.update(r)
 
-			# each file contains a full set of tests for one speific toolset and platform
-			f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
-			print >>f, json.dumps(results)
-			f.close()
+#				for features in configs:
+#					(toolset, r) = run_tests(toolset, tests, features, options, test_dir, time_limit, incremental)
+#					results.update(r)
+
+				print ''
+
+				# each file contains a full set of tests for one speific toolset and platform
+				try:
+					f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+				except IOError:
+					rev_dir = os.path.join(current_dir, 'regression_tests')
+					try: os.mkdir(rev_dir)
+					except: pass
+					rev_dir = os.path.join(rev_dir, '%s-%d' % (branch_name, revision))
+					try: os.mkdir(rev_dir)
+					except: pass
+					f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+			
+				print >>f, json.dumps(results)
+				f.close()
+
+				if len(clean_files) > 0:
+					for filt in clean_files:
+						for f in glob.glob(filt):
+							# a precautio to make sure a malicious repo
+							# won't clean things outside of the test directory
+							if not os.path.abspath(f).startswith(test_dir): continue
+							print 'deleting %s' %f
+							shutil.rmtree(f)
+	finally:
+		# always restore current directory
+		os.chdir(current_dir)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
 

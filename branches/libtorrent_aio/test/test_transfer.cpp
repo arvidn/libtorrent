@@ -92,7 +92,7 @@ void test_rate()
 		torrent_status st2 = tor2.status();
 
 		if (i % 10 == 0)
-			print_ses_rate(&st1, &st2);
+			print_ses_rate(i / 10.f, &st1, &st2);
 
 		if (st2.is_seeding) break;
 		test_sleep(100);
@@ -319,7 +319,7 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(&st1, &st2);
+			print_ses_rate(i / 10.f, &st1, &st2);
 		}
 
 		if (!test_move_storage && st2.progress > 0.25f)
@@ -511,7 +511,7 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 			torrent_status st2 = tor2.status();
 
 			if (i % 10 == 0)
-				print_ses_rate(&st1, &st2);
+				print_ses_rate(i / 10.f, &st1, &st2);
 
 			if (tor2.status().is_finished) break;
 

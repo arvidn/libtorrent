@@ -69,7 +69,7 @@ void test_lsd()
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_ses_rate(&st1, &st2);
+		print_ses_rate(i, &st1, &st2);
 
 		if (st2.is_seeding /*&& st3.is_seeding*/) break;
 		test_sleep(1000);

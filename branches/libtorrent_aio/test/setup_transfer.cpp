@@ -76,6 +76,28 @@ void report_failure(char const* err, char const* file, int line)
 	tests_failure = true;
 }
 
+std::auto_ptr<alert> wait_for_alert(session& ses, int type)
+{
+	std::auto_ptr<alert> ret;
+	while (!ret.get())
+	{
+		ses.wait_for_alert(milliseconds(5000));
+		std::deque<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (std::deque<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
+		{
+			if (!ret.get() && (*i)->type() == type)
+			{
+				ret = std::auto_ptr<alert>(*i);
+			}
+			else
+				delete *i;
+		}
+	}
+	return ret;
+}
+
 bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
 	, bool (*predicate)(libtorrent::alert*), bool no_output)
@@ -92,14 +114,14 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
-			fprintf(stderr, "%s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
+			fprintf(stderr, "    %s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
 			&& (*i)->message() != "piece finished"
 			&& !no_output)
 		{
-			fprintf(stderr, "%s: %s\n", name, (*i)->message().c_str());
+			fprintf(stderr, "    %s: %s\n", name, (*i)->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
@@ -107,7 +129,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
 		if (pea)
 		{
-			fprintf(stderr, "peer error: %s\n", pea->error.message().c_str());
+			fprintf(stderr, "    peer error: %s\n", pea->error.message().c_str());
 			TEST_CHECK((!handles.empty() && h.status().is_seeding)
 				|| pea->error.message() == "connecting to peer"
 				|| pea->error.message() == "closing connection to ourself"
@@ -173,15 +195,16 @@ void wait_for_downloading(libtorrent::session& ses, char const* name)
 	} while (a);
 }
 
-void print_ses_rate(libtorrent::torrent_status const* st1
+void print_ses_rate(float time
+	, libtorrent::torrent_status const* st1
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3)
 {
-	std::cerr
-		<< int(st1->download_payload_rate / 1000.f) << "kB/s "
-		<< int(st1->upload_payload_rate / 1000.f) << "kB/s "
-		<< int(st1->progress * 100) << "% "
-		<< st1->num_peers;
+	fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d", time
+		, int(st1->download_payload_rate / 1000)
+		, int(st1->upload_payload_rate / 1000)
+		, int(st1->progress * 100)
+		, st1->num_peers);
 	if (st2)
 		std::cerr << " : "
 			<< int(st2->download_payload_rate / 1000.f) << "kB/s "
@@ -197,7 +220,7 @@ void print_ses_rate(libtorrent::torrent_status const* st1
 			<< st3->num_peers
 			<< " cc: " << st3->connect_candidates;
 
-	std::cerr << std::endl;
+	fprintf(stderr, "\n");
 }
 
 void test_sleep(int millisec)
@@ -523,6 +546,7 @@ bool udp_failed = false;
 
 void stop_tracker()
 {
+	fprintf(stderr, "stop_tracker()\n");
 	if (tracker_server && tracker_ios)
 	{
 		tracker_ios->stop();
@@ -531,6 +555,7 @@ void stop_tracker()
 		delete tracker_ios;
 		tracker_ios = 0;
 	}
+	fprintf(stderr, "done\n");
 }
 
 void udp_tracker_thread(int* port);
@@ -689,6 +714,7 @@ static void terminate_web_thread()
 
 void stop_web_server()
 {
+	fprintf(stderr, "stop_web_server()\n");
 	if (web_server && web_ios)
 	{
 		fprintf(stderr, "stopping web server thread\n");
@@ -696,6 +722,8 @@ void stop_web_server()
 		web_server->join();
 		web_server.reset();
 	}
+	remove("server.pem");
+	fprintf(stderr, "done\n");
 }
 
 void web_server_thread(int* port, bool ssl, bool chunked);

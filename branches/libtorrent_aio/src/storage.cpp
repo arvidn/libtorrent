@@ -484,7 +484,7 @@ namespace libtorrent
 	{
 		remove(p, ec);
 		
-		DFLOG(stderr, "[%p] delete_one_file: %s [%s]\n", this, p.c_str(), ec.ec.message().c_str());
+		DFLOG(stderr, "[%p] delete_one_file: %s [%s]\n", this, p.c_str(), ec.message().c_str());
 
 		if (ec == boost::system::errc::no_such_file_or_directory)
 			ec.clear();

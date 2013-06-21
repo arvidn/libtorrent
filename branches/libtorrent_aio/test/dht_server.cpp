@@ -86,6 +86,7 @@ struct dht_server
 
 	~dht_server()
 	{
+		m_socket.cancel();
 		m_socket.close();
 		if (m_thread) m_thread->join();
 	}
@@ -93,6 +94,13 @@ struct dht_server
 	int port() const { return m_port; }
 
 	int num_hits() const { return m_dht_requests; }
+
+	static void incoming_packet(error_code const& ec, size_t bytes_transferred, size_t *ret, error_code* error, bool* done)
+	{
+		*ret = bytes_transferred;
+		*error = ec;
+		*done = true;
+	}
 
 	void thread_fun()
 	{
@@ -102,8 +110,17 @@ struct dht_server
 		{
 			error_code ec;
 			udp::endpoint from;
-			int bytes_transferred = m_socket.receive_from(
-				asio::buffer(buffer, sizeof(buffer)), from, 0, ec);
+			size_t bytes_transferred;
+			bool done = false;
+			m_socket.async_receive_from(
+				asio::buffer(buffer, sizeof(buffer)), from, 0
+				, boost::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
+			while (!done)
+			{
+				m_ios.run_one();
+				m_ios.reset();
+			}
+
 			if (ec == boost::asio::error::operation_aborted
 				|| ec == boost::asio::error::bad_descriptor) return;
 
@@ -147,6 +164,8 @@ int num_dht_hits()
 
 void stop_dht()
 {
+	fprintf(stderr, "stop_dht()\n");
 	g_dht.reset();
+	fprintf(stderr, "done\n");
 }
 

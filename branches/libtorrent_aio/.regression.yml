@@ -1,17 +1,18 @@
 test_dirs:
  - test
 
-project:
- libtorrent
+project: libtorrent
+
+branch: trunk
+
+clean:
+ - test_tmp_*
+
+time_limit: 500
 
 features:
- - variant=release
- - asserts=production
+ - variant=release asserts=production
  - statistics=on logging=verbose disk-stats=on bandwidth-limit-logging=on dht=logging
- - ipv6=off
- - deprecated-functions=off
- - address-model=32
- - dht=off
- - invariant-checks=off
- - extensions=off
+ - asserts=production ipv6=off dht=off extensions=off logging=none
+ - deprecated-functions=off 
 
