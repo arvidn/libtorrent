@@ -298,6 +298,7 @@ def main(argv):
 							# a precautio to make sure a malicious repo
 							# won't clean things outside of the test directory
 							if not os.path.abspath(f).startswith(test_dir): continue
+							print 'deleting %s' %f
 							os.rmdirs(f)
 	finally:
 		# always restore current directory

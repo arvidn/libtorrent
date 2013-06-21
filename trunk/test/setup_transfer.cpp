@@ -109,14 +109,14 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
-			fprintf(stderr, "%s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
+			fprintf(stderr, "    %s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
 			&& (*i)->message() != "piece finished"
 			&& !no_output)
 		{
-			fprintf(stderr, "%s: %s\n", name, (*i)->message().c_str());
+			fprintf(stderr, "    %s: %s\n", name, (*i)->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
@@ -124,7 +124,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
 		if (pea)
 		{
-			fprintf(stderr, "peer error: %s\n", pea->error.message().c_str());
+			fprintf(stderr, "    peer error: %s\n", pea->error.message().c_str());
 			TEST_CHECK((!handles.empty() && h.status().is_seeding)
 				|| pea->error.message() == "connecting to peer"
 				|| pea->error.message() == "closing connection to ourself"
@@ -167,12 +167,11 @@ void print_ses_rate(float time
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3)
 {
-	std::cerr
-		<< time << "s "
-		<< int(st1->download_payload_rate / 1000.f) << "kB/s "
-		<< int(st1->upload_payload_rate / 1000.f) << "kB/s "
-		<< int(st1->progress * 100) << "% "
-		<< st1->num_peers;
+	fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d", time
+		, int(st1->download_payload_rate / 1000)
+		, int(st1->upload_payload_rate / 1000)
+		, int(st1->progress * 100)
+		, st1->num_peers);
 	if (st2)
 		std::cerr << " : "
 			<< int(st2->download_payload_rate / 1000.f) << "kB/s "
@@ -188,7 +187,7 @@ void print_ses_rate(float time
 			<< st3->num_peers
 			<< " cc: " << st3->connect_candidates;
 
-	std::cerr << std::endl;
+	fprintf(stderr, "\n");
 }
 
 void test_sleep(int millisec)
