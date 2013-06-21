@@ -89,7 +89,7 @@ def save_log_file(log_name, project_name, branch_name, test_name, timestamp, dat
 	.test-error { color: #f13; font-weight: bold; }
 	.test-pass { color: #1c2; font-weight: bold; }
 	.subtle { color: #ccc; }
-	pre { color: #999; }
+	pre { color: #999; white-space: pre-wrap; word-wrap: break-word; }
 	</style>
 	</head><body><h1>%s - %s</h1>''' % (project_name, branch_name, project_name, branch_name)
 	print >>html, '<h3>%s</h3><pre>%s</pre>' % \
