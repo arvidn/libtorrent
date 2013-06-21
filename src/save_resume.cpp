@@ -57,7 +57,7 @@ save_resume::save_resume(session& s, std::string const& resume_dir, alert_handle
 	, m_resume_dir(resume_dir)
 	, m_cursor(m_torrents.begin())
 	, m_last_save(time_now())
-	, m_interval(minutes(5))
+	, m_interval(minutes(15))
 	, m_num_in_flight(0)
 {
 	m_alerts->subscribe(this, 0, add_torrent_alert::alert_type
