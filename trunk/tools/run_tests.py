@@ -43,6 +43,8 @@ import json
 import sys
 import yaml
 from multiprocessing import Pool
+import glob
+import shutil
 
 # the .regression.yml configuration file format looks like this (it's yaml):
 
@@ -302,7 +304,7 @@ def main(argv):
 							# won't clean things outside of the test directory
 							if not os.path.abspath(f).startswith(test_dir): continue
 							print 'deleting %s' %f
-							os.rmdirs(f)
+							shutil.rmtree(f)
 	finally:
 		# always restore current directory
 		os.chdir(current_dir)
