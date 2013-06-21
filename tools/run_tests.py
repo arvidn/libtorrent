@@ -141,6 +141,9 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 			else: sys.stdout.write('X')
 			sys.stdout.flush()
 
+	except:
+		# need this to make child processes exit
+		sys.exit(1)
 	finally:
 		try: os.unlink(xml_file)
 		except: pass
