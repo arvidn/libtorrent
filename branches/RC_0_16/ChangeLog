@@ -1,3 +1,4 @@
+	* GCC 4.8 fix
 	* fix proxy failure semantics with regards to anonymous mode
 	* fix round-robin seed-unchoke algorithm
 	* add bootstrap.sh to generage configure script and run configure
