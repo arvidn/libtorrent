@@ -96,8 +96,9 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 #			p.wait()
    
 		for t in tests:
-#			print 'calling bjam %s %s %s' % (toolset, t, ' '.join(features))
-			p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features, stdout=subprocess.PIPE)
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + features.split(' ')
+#			print 'calling ', cmdline
+			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
 			output = ''
 			for l in p.stdout:
 				output += l.decode('latin-1')
@@ -141,7 +142,6 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 		print 'exiting test process: ', traceback.format_exc()
 		sys.exit(1)
 	finally:
-		print 'done runnint tests'
 		try: os.unlink(xml_file)
 		except: pass
 
@@ -302,7 +302,9 @@ def main(argv):
 							shutil.rmtree(f)
 	finally:
 		# always restore current directory
-		os.chdir(current_dir)
+		try:
+			os.chdir(current_dir)
+		except: pass
 
 if __name__ == "__main__":
     main(sys.argv[1:])
