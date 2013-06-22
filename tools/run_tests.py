@@ -45,6 +45,7 @@ import yaml
 from multiprocessing import Pool
 import glob
 import shutil
+import traceback
 
 # the .regression.yml configuration file format looks like this (it's yaml):
 
@@ -89,13 +90,14 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
    
 		os.chdir(test_dir)
    
-		if not incremental:
-			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features.split(' '), stdout=subprocess.PIPE)
-			for l in p.stdout: pass
-			p.wait()
+#		if not incremental:
+#			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features., stdout=subprocess.PIPE)
+#			for l in p.stdout: pass
+#			p.wait()
    
 		for t in tests:
-			p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
+#			print 'calling bjam %s %s %s' % (toolset, t, ' '.join(features))
+			p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features, stdout=subprocess.PIPE)
 			output = ''
 			for l in p.stdout:
 				output += l.decode('latin-1')
@@ -130,23 +132,16 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 			r = { 'status': p.returncode, 'output': output, 'command': command }
 			results[t + '|' + features] = r
    
-			fail_color = '\033[31;1m'
-			pass_color = '\033[32;1m'
-			end_seq = '\033[0m'
-   
-			if platform.system() == 'Windows':
-				fail_color == ''
-				pass_color == ''
-				end_seq = ''
-   
 			if p.returncode == 0: sys.stdout.write('.')
 			else: sys.stdout.write('X')
 			sys.stdout.flush()
 
-	except:
+	except Exception, e:
 		# need this to make child processes exit
+		print 'exiting test process: ', traceback.format_exc()
 		sys.exit(1)
 	finally:
+		print 'done runnint tests'
 		try: os.unlink(xml_file)
 		except: pass
 
