@@ -82,21 +82,25 @@ def svn_info():
 	return (revision, author)
 
 def run_tests(toolset, tests, features, options, test_dir, time_limit, incremental):
+	assert(type(features) == str)
+
 	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
 	try:
 
 		results = {}
 		toolset_found = False
    
+   		feature_list = features.split(' ')
 		os.chdir(test_dir)
    
 #		if not incremental:
-#			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features., stdout=subprocess.PIPE)
+#			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + feature_list, stdout=subprocess.PIPE)
 #			for l in p.stdout: pass
 #			p.wait()
    
+   		
 		for t in tests:
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + features.split(' ')
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + feature_list
 #			print 'calling ', cmdline
 			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
 			output = ''
@@ -206,7 +210,7 @@ def main(argv):
 		for d in cfg['features']:
 			configs.append(d)
 	else:
-		configs = [['']]
+		configs = ['']
 
 	clean_files = []
 	if 'clean' in cfg:
@@ -293,13 +297,16 @@ def main(argv):
 				f.close()
 
 				if len(clean_files) > 0:
+					print 'deleting ',
 					for filt in clean_files:
 						for f in glob.glob(filt):
 							# a precautio to make sure a malicious repo
 							# won't clean things outside of the test directory
 							if not os.path.abspath(f).startswith(test_dir): continue
-							print 'deleting %s' %f
-							shutil.rmtree(f)
+							print '%s ' % f,
+							try: shutil.rmtree(f)
+							except: pass
+					print ''
 	finally:
 		# always restore current directory
 		try:
