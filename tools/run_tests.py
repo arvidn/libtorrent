@@ -257,11 +257,16 @@ def main(argv):
 
 			tests = []
 
+			output = ''
 			for l in p.stdout:
+				output += l
 				if not 'boost-test(RUN)' in l: continue
 				test_name = os.path.split(l.split(' ')[1][1:-1])[1]
 				tests.append(test_name)
 			print 'found %d tests' % len(tests)
+			if len(tests) == 0:
+				print output
+				sys.exit(1)
 
 			for toolset in toolsets:
 				results = {}
