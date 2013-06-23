@@ -1294,7 +1294,8 @@ int test_main()
 	for (int i = 1; i < 255; ++i)
 	{
 		bool hex = strchr(hex_chars, i) != NULL;
-		TEST_EQUAL(is_hex((char const*)&i, 1), hex);
+		char c = i;
+		TEST_EQUAL(is_hex(&c, 1), hex);
 	}
 
 	TEST_EQUAL(hex_to_int('0'), 0);
