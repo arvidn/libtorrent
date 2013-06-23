@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <deque>
 
+#include "setup_transfer.hpp"
+
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/http_parser.hpp"
@@ -533,7 +535,7 @@ int start_tracker()
 }
 
 boost::detail::atomic_count g_udp_tracker_requests(0);
-boost::detail::atomic_count  g_http_tracker_requests(0);
+boost::detail::atomic_count g_http_tracker_requests(0);
 
 void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint const* from, char* buffer, udp::socket* sock)
 {

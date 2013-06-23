@@ -71,11 +71,11 @@ namespace libtorrent {
 	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
 
 #ifndef TORRENT_DISABLE_DHT
-	namespace dht
-	{
-		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
-			address const& ip_, boost::uint32_t r);
-	}
+//	namespace dht
+//	{
+//		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
+//			address const& ip_, boost::uint32_t r);
+//	}
 #endif
 }
 

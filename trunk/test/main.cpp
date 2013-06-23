@@ -35,10 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h> // for exit()
+#include "setup_transfer.hpp" // for tests_failure
 
 int test_main();
-
-extern bool tests_failure;
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
