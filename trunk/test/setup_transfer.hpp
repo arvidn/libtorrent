@@ -43,47 +43,47 @@ namespace libtorrent
 	struct session_status;
 }
 
-std::auto_ptr<libtorrent::alert> wait_for_alert(libtorrent::session& ses, int type);
+std::auto_ptr<libtorrent::alert> TORRENT_EXPORT wait_for_alert(libtorrent::session& ses, int type);
 
-void print_ses_rate(float time
+void TORRENT_EXPORT print_ses_rate(float time
 	, libtorrent::torrent_status const* st1
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3 = NULL);
 
-bool print_alerts(libtorrent::session& ses, char const* name
+bool TORRENT_EXPORT print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
 	, bool allow_failed_fastresume = false
 	, bool (*)(libtorrent::alert*) = 0
 	, bool no_output = false);
 
-void wait_for_listen(libtorrent::session& ses, char const* name);
-void test_sleep(int millisec);
+void TORRENT_EXPORT wait_for_listen(libtorrent::session& ses, char const* name);
+void TORRENT_EXPORT test_sleep(int millisec);
 
 extern boost::detail::atomic_count g_udp_tracker_requests;
 extern boost::detail::atomic_count g_http_tracker_requests;
 
-void create_random_files(std::string const& path, const int file_sizes[], int num_files);
+void TORRENT_EXPORT create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
-boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
+boost::intrusive_ptr<libtorrent::torrent_info> TORRENT_EXPORT create_torrent(std::ostream* file = 0
 	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true, bool encrypted = false);
 
 boost::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle
 	, libtorrent::torrent_handle>
-setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
+TORRENT_EXPORT setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
 	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
 	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool encrypted_torrent = false);
 
-int start_web_server(bool ssl = false, bool chunked = false);
-void stop_web_server();
-int start_proxy(int type);
-void stop_proxy(int port);
+int TORRENT_EXPORT start_web_server(bool ssl = false, bool chunked = false);
+void TORRENT_EXPORT stop_web_server();
+int TORRENT_EXPORT start_proxy(int type);
+void TORRENT_EXPORT stop_proxy(int port);
 
-void stop_tracker();
-int start_tracker();
+void TORRENT_EXPORT stop_tracker();
+int TORRENT_EXPORT start_tracker();
 
 #endif
 
