@@ -128,7 +128,7 @@ bool node_impl::verify_token(std::string const& token, char const* info_hash
 	h1.update((char*)info_hash, sha1_hash::size);
 	
 	sha1_hash h = h1.final();
-	if (std::equal(token.begin(), token.end(), (signed char*)&h[0]))
+	if (std::equal(token.begin(), token.end(), (char*)&h[0]))
 		return true;
 		
 	hasher h2;
@@ -136,7 +136,7 @@ bool node_impl::verify_token(std::string const& token, char const* info_hash
 	h2.update((char*)&m_secret[1], sizeof(m_secret[1]));
 	h2.update((char*)info_hash, sha1_hash::size);
 	h = h2.final();
-	if (std::equal(token.begin(), token.end(), (signed char*)&h[0]))
+	if (std::equal(token.begin(), token.end(), (char*)&h[0]))
 		return true;
 	return false;
 }
@@ -154,7 +154,8 @@ std::string node_impl::generate_token(udp::endpoint const& addr, char const* inf
 	h.update(info_hash, sha1_hash::size);
 
 	sha1_hash hash = h.final();
-	std::copy(hash.begin(), hash.begin() + 4, (signed char*)&token[0]);
+	std::copy(hash.begin(), hash.begin() + 4, (char*)&token[0]);
+	TORRENT_ASSERT(std::equal(token.begin(), token.end(), (char*)&hash[0]));
 	return token;
 }
 

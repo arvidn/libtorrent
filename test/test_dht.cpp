@@ -122,7 +122,8 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-	std::cerr << "sending: " <<  e << "\n";
+// this yields a lot of output. too much
+//	std::cerr << "sending: " <<  e << "\n";
 #endif
 
 	lazy_entry decoded;
