@@ -33,11 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEST_HPP
 #define TEST_HPP
 
-void report_failure(char const* str, char const* file, int line);
-
 #include <boost/config.hpp>
 #include <exception>
 #include <sstream>
+
+#include "libtorrent/config.hpp"
+
+#ifdef TORRENT_BUILDING_TEST_SHARED
+#define EXPORT BOOST_SYMBOL_EXPORT
+#else
+#define EXPORT BOOST_SYMBOL_IMPORT
+#endif
 
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
