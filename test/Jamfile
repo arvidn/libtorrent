@@ -12,8 +12,15 @@ lib libtorrent_test
 	setup_transfer.cpp
 	dht_server.cpp
 	peer_server.cpp
+
 	: # requirements
 	<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on
+	# this is used to determine whether
+	# symbols are exported or imported
+	<link>shared:<define>TORRENT_BUILDING_TEST_SHARED
+
+	: # default build
+	<link>shared
 ;
 
 project
