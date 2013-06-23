@@ -30,11 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "test.hpp" // for EXPORT
+
 // returns the port the peer is running on
-int start_peer();
+int EXPORT start_peer();
 
 // the number of incoming connections to this peer
-int num_peer_hits();
+int EXPORT num_peer_hits();
 
-void stop_peer();
+void EXPORT stop_peer();
 
