@@ -35,13 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include <boost/tuple/tuple.hpp>
-#include "libtorrent/config.hpp"
-
-#ifdef TORRENT_BUILDING_TEST_SHARED
-#define EXPORT BOOST_SYMBOL_EXPORT
-#else
-#define EXPORT BOOST_SYMBOL_IMPORT
-#endif
+#include "test.hpp"
 
 namespace libtorrent
 {
