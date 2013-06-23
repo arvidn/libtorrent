@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define EXPORT BOOST_SYMBOL_IMPORT
 #endif
 
+void EXPORT report_failure(char const* err, char const* file, int line);
+
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
 #else
