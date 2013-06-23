@@ -121,7 +121,9 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	if (seq >= 0) a["seq"] = seq;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
-//	std::cerr << "sending: " <<  e << "\n";
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+	std::cerr << "sending: " <<  e << "\n";
+#endif
 
 	lazy_entry decoded;
 	error_code ec;
@@ -202,9 +204,11 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 			{
 				TEST_EQUAL(parsed[4]->string_value(), "r");
 				token = parsed[2]->string_value();
+				fprintf(stderr, "got token: %s\n", token.c_str());
 			}
 			else
 			{
+				fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 				fprintf(stderr, "   invalid get response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
@@ -225,14 +229,17 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 				{ "y", lazy_entry::string_t, 1, 0 }
 			};
 
-//			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
 			if (ret)
 			{
+				if (parsed[0]->string_value() != "r")
+					fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+
 				TEST_EQUAL(parsed[0]->string_value(), "r");
 			}
 			else
 			{
+				fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 				fprintf(stderr, "   invalid put response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
@@ -374,9 +381,11 @@ int test_main()
 	{
 		TEST_CHECK(parsed[0]->string_value() == "r");
 		token = parsed[2]->string_value();
+		fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
 	{
+		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 	}
 
@@ -414,9 +423,11 @@ int test_main()
 		{
 			TEST_CHECK(parsed[0]->string_value() == "r");
 			token = parsed[2]->string_value();
+			fprintf(stderr, "got token: %s\n", token.c_str());
 		}
 		else
 		{
+			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 		}
 		response.clear();
@@ -560,9 +571,11 @@ int test_main()
 	{
 		TEST_EQUAL(parsed[4]->string_value(), "r");
 		token = parsed[2]->string_value();
+		fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
 	{
+		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		fprintf(stderr, "   invalid get response: %s\n%s\n"
 			, error_string, print_entry(response).c_str());
 		TEST_ERROR(error_string);
