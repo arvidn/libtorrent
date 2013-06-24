@@ -197,8 +197,16 @@ void log_refcounts(cached_piece_entry const* pe)
 // defined in disk_io_thread.cpp
 	void assert_print_piece(cached_piece_entry const* pe);
 
+#if defined _MSC_VER
+#define TORRENT_FUNCTION __FUNCTION__
+#elif defined __GNUC__
+#define TORRENT_FUNCTION __PRETTY_FUNCTION__
+#else
+#define TORRENT_FUNCTION ""
+#endif
+
 #define TORRENT_PIECE_ASSERT(cond, piece) \
-	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, __PRETTY_FUNCTION__, 0); } } while(false)
+	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } while(false)
 
 #else
 #define TORRENT_PIECE_ASSERT(cond, piece) do {} while(false)

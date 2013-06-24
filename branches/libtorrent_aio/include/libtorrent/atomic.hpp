@@ -54,6 +54,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic.h>
 #endif
 
+#if TORRENT_USE_INTERLOCKED_ATOMIC
+#include <windows.h>
+#endif
+
 namespace libtorrent
 {
 	struct atomic_count

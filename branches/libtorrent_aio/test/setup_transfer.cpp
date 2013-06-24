@@ -52,13 +52,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/atomic.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/ssl/context.hpp>
 #endif
-
-#include <boost/detail/atomic_count.hpp>
 
 #define DEBUG_WEB_SERVER 0
 
@@ -583,8 +582,8 @@ int start_tracker()
 	return port;
 }
 
-boost::detail::atomic_count g_udp_tracker_requests(0);
-boost::detail::atomic_count g_http_tracker_requests(0);
+atomic_count g_udp_tracker_requests(0);
+atomic_count g_http_tracker_requests(0);
 
 void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint const* from, char* buffer, udp::socket* sock)
 {
