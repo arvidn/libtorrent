@@ -335,12 +335,6 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	inline boost::system::error_category& get_libtorrent_category()
-	{
-		static libtorrent_error_category libtorrent_category;
-		return libtorrent_category;
-	}
-
 	struct TORRENT_EXPORT http_error_category : boost::system::error_category
 	{
 		virtual const char* name() const throw();
@@ -349,11 +343,8 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	inline boost::system::error_category& get_http_category()
-	{
-		static http_error_category http_category;
-		return http_category;
-	}
+	TORRENT_EXPORT boost::system::error_category& get_libtorrent_category();
+	TORRENT_EXPORT boost::system::error_category& get_http_category();
 
 	namespace errors
 	{
