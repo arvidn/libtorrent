@@ -263,6 +263,18 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
+	boost::system::error_category& get_libtorrent_category()
+	{
+		static libtorrent_error_category libtorrent_category;
+		return libtorrent_category;
+	}
+
+	boost::system::error_category& get_http_category()
+	{
+		static http_error_category http_category;
+		return http_category;
+	}
+
 	const char* http_error_category::name() const throw()
 	{
 		return "http error";
