@@ -44,6 +44,8 @@ def style_output(o):
 	ret = ''
 	subtle = False
 	for l in o.split('\n'):
+		l = l.replace('<', '&lt;')
+		l = l.replace('>', '&gt;')
 		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
 			l.endswith(' second time limit exceeded'):
 			ret += '<span class="test-error">%s</span>\n' % l
@@ -51,7 +53,7 @@ def style_output(o):
 			ret += '<span class="test-pass">%s</span>\n' % l
 		elif ': error: ' in l or ': fatal error: ' in l or ' : fatal error ' in l or \
 			'failed to write output file' in l or ') : error C' in l or \
-			') : error LNK' in l or ': undefined reference to ' in l:
+			' : error LNK' in l or ': undefined reference to ' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
 		elif ': warning: ' in l or ') : warning C' in l:
 			ret += '<span class="compile-warning">%s</span>\n' % l

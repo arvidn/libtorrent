@@ -329,31 +329,22 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
 	{
-		virtual const char* name() const;
-		virtual std::string message(int ev) const;
-		virtual boost::system::error_condition default_error_condition(int ev) const
+		virtual const char* name() const throw();
+		virtual std::string message(int ev) const throw();
+		virtual boost::system::error_condition default_error_condition(int ev) const throw()
 		{ return boost::system::error_condition(ev, *this); }
 	};
-
-	inline boost::system::error_category& get_libtorrent_category()
-	{
-		static libtorrent_error_category libtorrent_category;
-		return libtorrent_category;
-	}
 
 	struct TORRENT_EXPORT http_error_category : boost::system::error_category
 	{
-		virtual const char* name() const;
-		virtual std::string message(int ev) const;
-		virtual boost::system::error_condition default_error_condition(int ev) const
+		virtual const char* name() const throw();
+		virtual std::string message(int ev) const throw();
+		virtual boost::system::error_condition default_error_condition(int ev) const throw()
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	inline boost::system::error_category& get_http_category()
-	{
-		static http_error_category http_category;
-		return http_category;
-	}
+	TORRENT_EXPORT boost::system::error_category& get_libtorrent_category();
+	TORRENT_EXPORT boost::system::error_category& get_http_category();
 
 	namespace errors
 	{

@@ -45,6 +45,7 @@ import yaml
 from multiprocessing import Pool
 import glob
 import shutil
+import traceback
 
 # the .regression.yml configuration file format looks like this (it's yaml):
 
@@ -81,21 +82,27 @@ def svn_info():
 	return (revision, author)
 
 def run_tests(toolset, tests, features, options, test_dir, time_limit, incremental):
+	assert(type(features) == str)
+
 	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
 	try:
 
 		results = {}
 		toolset_found = False
    
+   		feature_list = features.split(' ')
 		os.chdir(test_dir)
    
-		if not incremental:
-			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + features.split(' '), stdout=subprocess.PIPE)
-			for l in p.stdout: pass
-			p.wait()
+#		if not incremental:
+#			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + feature_list, stdout=subprocess.PIPE)
+#			for l in p.stdout: pass
+#			p.wait()
    
+   		
 		for t in tests:
-			p = subprocess.Popen(['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset, t] + options + features.split(' '), stdout=subprocess.PIPE)
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + feature_list
+#			print 'calling ', cmdline
+			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
 			output = ''
 			for l in p.stdout:
 				output += l.decode('latin-1')
@@ -130,21 +137,13 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 			r = { 'status': p.returncode, 'output': output, 'command': command }
 			results[t + '|' + features] = r
    
-			fail_color = '\033[31;1m'
-			pass_color = '\033[32;1m'
-			end_seq = '\033[0m'
-   
-			if platform.system() == 'Windows':
-				fail_color == ''
-				pass_color == ''
-				end_seq = ''
-   
 			if p.returncode == 0: sys.stdout.write('.')
 			else: sys.stdout.write('X')
 			sys.stdout.flush()
 
-	except:
+	except Exception, e:
 		# need this to make child processes exit
+		print 'exiting test process: ', traceback.format_exc()
 		sys.exit(1)
 	finally:
 		try: os.unlink(xml_file)
@@ -211,7 +210,7 @@ def main(argv):
 		for d in cfg['features']:
 			configs.append(d)
 	else:
-		configs = [['']]
+		configs = ['']
 
 	clean_files = []
 	if 'clean' in cfg:
@@ -258,11 +257,16 @@ def main(argv):
 
 			tests = []
 
+			output = ''
 			for l in p.stdout:
+				output += l
 				if not 'boost-test(RUN)' in l: continue
 				test_name = os.path.split(l.split(' ')[1][1:-1])[1]
 				tests.append(test_name)
 			print 'found %d tests' % len(tests)
+			if len(tests) == 0:
+				print output
+				sys.exit(1)
 
 			for toolset in toolsets:
 				results = {}
@@ -298,16 +302,21 @@ def main(argv):
 				f.close()
 
 				if len(clean_files) > 0:
+					print 'deleting ',
 					for filt in clean_files:
 						for f in glob.glob(filt):
 							# a precautio to make sure a malicious repo
 							# won't clean things outside of the test directory
 							if not os.path.abspath(f).startswith(test_dir): continue
-							print 'deleting %s' %f
-							shutil.rmtree(f)
+							print '%s ' % f,
+							try: shutil.rmtree(f)
+							except: pass
+					print ''
 	finally:
 		# always restore current directory
-		os.chdir(current_dir)
+		try:
+			os.chdir(current_dir)
+		except: pass
 
 if __name__ == "__main__":
     main(sys.argv[1:])

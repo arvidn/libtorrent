@@ -71,11 +71,11 @@ namespace libtorrent {
 	TORRENT_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
 
 #ifndef TORRENT_DISABLE_DHT
-	namespace dht
-	{
-		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
-			address const& ip_, boost::uint32_t r);
-	}
+//	namespace dht
+//	{
+//		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
+//			address const& ip_, boost::uint32_t r);
+//	}
 #endif
 }
 
@@ -1405,7 +1405,8 @@ int test_main()
 	for (int i = 1; i < 255; ++i)
 	{
 		bool hex = strchr(hex_chars, i) != NULL;
-		TEST_EQUAL(is_hex((char const*)&i, 1), hex);
+		char c = i;
+		TEST_EQUAL(is_hex(&c, 1), hex);
 	}
 
 	TEST_EQUAL(hex_to_int('0'), 0);

@@ -37,10 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h> // for exit()
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
+#include "setup_transfer.hpp" // for tests_failure
 
 int test_main();
-
-extern bool tests_failure;
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"

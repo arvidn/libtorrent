@@ -105,7 +105,7 @@ def loop():
 
 			open(rev_file, 'w+').write('%d' % last_rev)
 	
-		time.sleep(120)
+		if revs == []: time.sleep(300)
 
 if __name__ == "__main__":
 	loop()

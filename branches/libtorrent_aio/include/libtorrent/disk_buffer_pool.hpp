@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_BUFFER_POOL_HPP
 #define TORRENT_DISK_BUFFER_POOL_HPP
 
+#include <boost/utility.hpp>
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/io_service_fwd.hpp"

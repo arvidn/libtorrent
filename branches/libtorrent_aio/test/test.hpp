@@ -36,18 +36,26 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 
-void report_failure(char const* str, char const* file, int line);
-
-libtorrent::address rand_v4();
-#if TORRENT_USE_IPV6
-libtorrent::address rand_v6();
-#endif
-libtorrent::tcp::endpoint rand_tcp_ep();
-libtorrent::udp::endpoint rand_udp_ep();
-
 #include <boost/config.hpp>
 #include <exception>
 #include <sstream>
+
+#include "libtorrent/config.hpp"
+
+#ifdef TORRENT_BUILDING_TEST_SHARED
+#define EXPORT BOOST_SYMBOL_EXPORT
+#else
+#define EXPORT BOOST_SYMBOL_IMPORT
+#endif
+
+void EXPORT report_failure(char const* err, char const* file, int line);
+
+libtorrent::address EXPORT rand_v4();
+#if TORRENT_USE_IPV6
+libtorrent::address EXPORT rand_v6();
+#endif
+libtorrent::tcp::endpoint EXPORT rand_tcp_ep();
+libtorrent::udp::endpoint EXPORT rand_udp_ep();
 
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
