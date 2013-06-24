@@ -3,7 +3,7 @@ test_dirs:
 
 project: libtorrent
 
-branch: trunk
+branch: aio
 
 clean:
  - test_tmp_*
