@@ -2096,7 +2096,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// way. If fallocate failed with some other error, it
 			// probably means the user should know about it, error out
 			// and report it.
-			if (errno != ENOSYS && errno != EOPNOTSUPP)
+			if (errno != ENOSYS && errno != EOPNOTSUPP && errno != EINVAL)
 			{
 				ec.assign(errno, get_posix_category());
 				return false;

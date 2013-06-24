@@ -678,16 +678,30 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	s->m_settings = &set;
 	s->m_disk_pool = &dp;
 
+	if (s->error())
+	{
+		TEST_ERROR(s->error().message().c_str());
+		fprintf(stderr, "default_storage::constructor %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
+	}
+
 	// allocate the files and create the directories
 	s->initialize(true);
-	TEST_CHECK(!s->error());
 	if (s->error())
-		fprintf(stderr, "%s: %s\n", s->error().message().c_str(), s->error_file().c_str());
+	{
+		TEST_ERROR(s->error().message().c_str());
+		fprintf(stderr, "default_storage::initialize %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
+	}
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("folder2", "test3.tmp")))));	
 
 	s->delete_files();
+
+	if (s->error())
+	{
+		TEST_ERROR(s->error().message().c_str());
+		fprintf(stderr, "default_storage::delete_files %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
+	}
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
 }
