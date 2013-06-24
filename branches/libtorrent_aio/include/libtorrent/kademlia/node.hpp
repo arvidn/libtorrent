@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 	class alert_manager;
 	struct alert_dispatcher;
+	struct counters;
 }
 
 namespace libtorrent { namespace dht
@@ -190,7 +191,7 @@ typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 public:
 	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
 		, dht_settings const& settings, node_id nid, address const& external_address
-		, dht_observer* observer);
+		, dht_observer* observer, counters& cnt);
 
 	virtual ~node_impl() {}
 
@@ -304,6 +305,7 @@ private:
 
 	alert_dispatcher* m_post_alert;
 	udp_socket_interface* m_sock;
+	counters& m_counters;
 };
 
 

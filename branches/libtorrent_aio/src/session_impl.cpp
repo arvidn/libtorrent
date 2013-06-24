@@ -6374,7 +6374,7 @@ retry:
 		INVARIANT_CHECK;
 
 		stop_dht();
-		m_dht = new dht::dht_tracker(*this, m_udp_socket, m_dht_settings, &startup_state);
+		m_dht = new dht::dht_tracker(*this, m_udp_socket, m_dht_settings, m_stats_counters, &startup_state);
 
 		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)

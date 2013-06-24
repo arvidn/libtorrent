@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/rsa.hpp" // for generate_rsa_keys and sign_rsa
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_dispatcher.hpp"
+#include "libtorrent/performance_counters.hpp" // for counters
 #include <iostream>
 
 #include "test.hpp"
@@ -289,7 +290,8 @@ int test_main()
 	address ext = address::from_string("236.0.0.1");
 	mock_socket s;
 	print_alert ad;
-	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0);
+	counters cnt;
+	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0, cnt);
 
 	// DHT should be running on port 48199 now
 	lazy_entry response;

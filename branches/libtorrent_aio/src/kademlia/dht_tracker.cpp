@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/performance_counters.hpp" // for counters
 
 using boost::ref;
 using libtorrent::dht::node_impl;
@@ -201,9 +202,10 @@ namespace libtorrent { namespace dht
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
-		, dht_settings const& settings, entry const* state)
-		: m_dht(&ses, this, settings, extract_node_id(state)
-			, ses.external_address().external_address(address_v4()), &ses)
+		, dht_settings const& settings, counters& cnt, entry const* state)
+		: m_counters(cnt)
+		, m_dht(&ses, this, settings, extract_node_id(state)
+			, ses.external_address().external_address(address_v4()), &ses, cnt)
 		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))
 		, m_timer(sock.get_io_service())
@@ -502,6 +504,8 @@ namespace libtorrent { namespace dht
 		++m_total_message_input;
 		m_total_in_bytes += size;
 #endif
+		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
+		m_counters.inc_stats_counter(counters::dht_messages_in);
 
 		using libtorrent::entry;
 		using libtorrent::bdecode;
@@ -628,11 +632,17 @@ namespace libtorrent { namespace dht
 
 		if (m_sock.send(addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
 		{
-			if (ec) return false;
+			if (ec)
+			{
+				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
+				return false;
+			}
 
 			// account for IP and UDP overhead
 			m_sent_bytes += m_send_buf.size() + (addr.address().is_v6() ? 48 : 28);
 
+			m_counters.inc_stats_counter(counters::dht_bytes_out, m_send_buf.size());
+			m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			m_total_out_bytes += m_send_buf.size();
 		
@@ -654,6 +664,8 @@ namespace libtorrent { namespace dht
 		}
 		else
 		{
+			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED " << log_line.str();
 #endif

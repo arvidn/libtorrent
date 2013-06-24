@@ -275,6 +275,33 @@ namespace libtorrent
 		METRIC(disk, disk_hash_time, type_counter)
 		METRIC(disk, disk_job_time, type_counter)
 
+		// The number of nodes in the DHT routing table
+		METRIC(dht, dht_nodes, type_gauge)
+
+		// The number of replacement nodes in the DHT routing table
+		METRIC(dht, dht_node_cache, type_gauge)
+
+		// the number of torrents currently tracked by our DHT node
+		METRIC(dht, dht_torrents, type_gauge)
+
+		// the number of peers currently tracked by our DHT node
+		METRIC(dht, dht_peers, type_gauge)
+
+		// the number of immutable data items tracked by our DHT node
+		METRIC(dht, dht_immutable_data, type_gauge)
+
+		// the number of mutable data items tracked by our DHT node
+		METRIC(dht, dht_mutable_data, type_gauge)
+
+		// the number of RPC observers currently allocated
+		METRIC(dht, dht_allocated_observers, type_gauge)
+
+		METRIC(dht, dht_messages_in, type_counter)
+		METRIC(dht, dht_messages_out, type_counter)
+		METRIC(dht, dht_messages_out_dropped, type_counter)
+		METRIC(dht, dht_bytes_in, type_counter)
+		METRIC(dht, dht_bytes_out, type_counter)
+
 		// ... more
 	};
 #undef METRIC

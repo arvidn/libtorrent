@@ -57,6 +57,7 @@ namespace libtorrent
 {
 	namespace aux { struct session_impl; }
 	struct lazy_entry;
+	struct counters;
 }
 
 namespace libtorrent { namespace dht
@@ -78,7 +79,7 @@ namespace libtorrent { namespace dht
 
 		// TODO: 3 take a udp_socket_interface here instead. Move udp_socket_interface down into libtorrent core
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
-			, dht_settings const& settings, entry const* state = 0);
+			, dht_settings const& settings, counters& cnt, entry const* state = 0);
 		virtual ~dht_tracker();
 
 		void start(entry const& bootstrap);
@@ -117,6 +118,7 @@ namespace libtorrent { namespace dht
 		// implements udp_socket_interface
 		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags);
 
+		counters& m_counters;
 		node_impl m_dht;
 		rate_limited_udp_socket& m_sock;
 

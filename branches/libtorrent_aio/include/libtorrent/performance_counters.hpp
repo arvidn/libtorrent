@@ -195,6 +195,12 @@ namespace libtorrent
 			recv_failed_bytes,
 			recv_redundant_bytes,
 
+			dht_messages_in,
+			dht_messages_out,
+			dht_messages_out_dropped,
+			dht_bytes_in,
+			dht_bytes_out,
+
 			num_stats_counters
 		};
 
@@ -252,6 +258,14 @@ namespace libtorrent
 			arc_mfu_ghost_size,
 			arc_write_size,
 			arc_volatile_size,
+
+			dht_nodes,
+			dht_node_cache,
+			dht_torrents,
+			dht_peers,
+			dht_immutable_data,
+			dht_mutable_data,
+			dht_allocated_observers,
 
 			num_counters,
 			num_gauge_counters = num_counters - num_stats_counters
