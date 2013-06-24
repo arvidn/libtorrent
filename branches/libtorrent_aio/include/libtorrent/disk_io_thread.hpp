@@ -33,10 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_THREAD
 #define TORRENT_DISK_IO_THREAD
 
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
-#include <fstream>
-#endif
-
 #include "libtorrent/storage.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/io_service.hpp"
@@ -488,10 +484,6 @@ namespace libtorrent
 		// the last time we reset the average time and store the
 		// latest value in m_cache_stats
 		ptime m_last_stats_flip;
-
-#ifdef TORRENT_DISK_STATS
-		std::ofstream m_log;
-#endif
 
 		// the total number of outstanding jobs. This is used to
 		// limit the number of jobs issued in parallel. It also creates

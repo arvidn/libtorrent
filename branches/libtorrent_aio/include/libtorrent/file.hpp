@@ -287,10 +287,6 @@ namespace libtorrent
 
 	};
 
-#ifdef TORRENT_DISK_STATS
-	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete, ptime timestamp);
-#endif
-
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED

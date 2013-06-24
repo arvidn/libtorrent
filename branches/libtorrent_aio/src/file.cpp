@@ -277,31 +277,6 @@ BOOST_STATIC_ASSERT((libtorrent::file::sparse & libtorrent::file::attribute_mask
 
 namespace libtorrent
 {
-#ifdef TORRENT_DISK_STATS
-	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete, ptime timestamp)
-	{
-		// the event format in the log is:
-		// uint64_t timestamp (microseconds)
-		// uint64_t file offset
-		// uint32_t file-id
-		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
-		char event[29];
-		char* ptr = event;
-		detail::write_uint64(total_microseconds((timestamp - min_time())), ptr);
-		detail::write_uint64(aio_offset(aio), ptr);
-		detail::write_uint64((boost::uint64_t)aio, ptr);
-		detail::write_uint32(aio->file_ptr->file_id(), ptr);
-		detail::write_uint8((int(complete) << 1) | (aio_op(aio) == file::write_op), ptr);
-
-		int ret = fwrite(event, 1, sizeof(event), f);
-		if (ret != sizeof(event))
-		{
-			fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
-				, errno, strerror(errno));
-		}
-	}
-#endif
-
 #ifdef TORRENT_WINDOWS
 	std::string convert_separators(std::string p)
 	{
