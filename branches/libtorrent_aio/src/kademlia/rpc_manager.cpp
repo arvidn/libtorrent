@@ -398,7 +398,7 @@ time_duration rpc_manager::tick()
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Timing out transaction id: " 
-				<< (*i)->transaction_id() << " from " << o->target_ep();
+				<< o->transaction_id() << " from " << o->target_ep();
 #endif
 			m_transactions.erase(i++);
 			timeouts.push_back(o);
@@ -411,7 +411,7 @@ time_duration rpc_manager::tick()
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Short-Timing out transaction id: " 
-				<< (*i)->transaction_id() << " from " << o->target_ep();
+				<< o->transaction_id() << " from " << o->target_ep();
 #endif
 			++i;
 
