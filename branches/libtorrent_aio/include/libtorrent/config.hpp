@@ -585,6 +585,13 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_UNION union
 #endif
 
+#if defined __GNUC__
+#define TORRENT_FUNCTION __PRETTY_FUNCTION__
+#else
+#define TORRENT_FUNCTION __FUNCTION__
+#endif
+
+
 // determine what timer implementation we can use
 // if one is already defined, don't pick one
 // autmatically. This lets the user control this

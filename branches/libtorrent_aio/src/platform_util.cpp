@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/sysctl.h>
 #endif
 
+#if defined TORRENT_WINDOWS
+#include <windows.h>
+#endif
+
 namespace libtorrent
 {
 

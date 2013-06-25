@@ -54,10 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic.h>
 #endif
 
-#if TORRENT_USE_INTERLOCKED_ATOMIC
-#include <windows.h>
-#endif
-
 namespace libtorrent
 {
 	struct atomic_count
@@ -94,9 +90,9 @@ namespace libtorrent
 		value_type operator++(int) { return __sync_fetch_and_add(&m_value, 1); }
 		value_type operator--(int) { return __sync_fetch_and_add(&m_value, -1); }
 #elif TORRENT_USE_INTERLOCKED_ATOMIC
-		operator value_type() const { return InterlockedAdd(const_cast<value_type*>(&m_value), 0); }
-		value_type operator-=(value_type v) { return InterlockedAdd(&m_value, -v); }
-		value_type operator+=(value_type v) { return InterlockedAdd(&m_value, v); }
+		operator value_type() const { return InterlockedExchangeAdd(const_cast<value_type*>(&m_value), 0); }
+		value_type operator-=(value_type v) { return InterlockedExchangeAdd(&m_value, -v); }
+		value_type operator+=(value_type v) { return InterlockedExchangeAdd(&m_value, v); }
 		// pre inc/dec operators
 		value_type operator++() { return InterlockedIncrement(&m_value); }
 		value_type operator--() { return InterlockedDecrement(&m_value); }

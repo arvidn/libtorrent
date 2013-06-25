@@ -63,6 +63,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+#ifdef TORRENT_DISK_STATS
+	// this is defined and used in storage.cpp
+	extern FILE* g_access_log;
+#endif
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	char const* job_name(int j);
 
@@ -95,7 +100,7 @@ namespace libtorrent
 	}
 
 #define TORRENT_PIECE_ASSERT(cond, piece) \
-	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, __PRETTY_FUNCTION__, 0); } } while(false)
+	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } while(false)
 
 #else
 #define TORRENT_PIECE_ASSERT(cond, piece) do {} while(false)
@@ -169,8 +174,6 @@ namespace libtorrent
 		m_disk_cache.set_settings(m_settings);
 
 #ifdef TORRENT_DISK_STATS
-		// this is defined and used in storage.cpp
-		extern FILE* g_access_log;
 		g_access_log = fopen("file_access.log", "a+");
 #endif
 
@@ -205,8 +208,6 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_DISK_STATS
-		// this is defined and used in storage.cpp
-		extern FILE* g_access_log;
 		if (g_access_log) fclose(g_access_log);
 #endif
 	}

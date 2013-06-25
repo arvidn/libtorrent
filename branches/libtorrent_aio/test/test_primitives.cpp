@@ -1049,7 +1049,9 @@ int test_main()
 #endif
 
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(convert_path_to_windows("c:/blah/foo/bar\\"), "c:\\blah\\foo\\bar\\");
+	std::string p = "c:/blah/foo/bar\\";
+	convert_path_to_windows(p);
+	TEST_EQUAL(p, "c:\\blah\\foo\\bar\\");
 	TEST_EQUAL(resolve_file_url("file:///c:/blah/foo/bar"), "c:\\blah\\foo\\bar");
 	TEST_EQUAL(resolve_file_url("file:///c:/b%efah/foo/bar"), "c:\\b?ah\\foo\\bar");
 	TEST_EQUAL(resolve_file_url("file://\\c:\\b%3fah\\foo\\bar"), "c:\\b?ah\\foo\\bar");

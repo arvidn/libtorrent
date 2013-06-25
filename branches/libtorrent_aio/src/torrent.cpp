@@ -7630,11 +7630,12 @@ namespace libtorrent
 		{
 			case counters::num_error_torrents: TORRENT_ASSERT(has_error()); break;
 			case counters::num_checking_torrents: 
+#ifdef TORRENT_NO_DEPRECATE
+				TORRENT_ASSERT(state() == torrent_status::checking_files);
+#else
 				TORRENT_ASSERT(state() == torrent_status::checking_files
-#ifndef TORRENT_NO_DEPRECATE
-					|| state() == torrent_status::queued_for_checking
+					|| state() == torrent_status::queued_for_checking);
 #endif
-					);
 				break;
 			case counters::num_seeding_torrents: TORRENT_ASSERT(is_seed()); break;
 			case counters::num_upload_only_torrents: TORRENT_ASSERT(is_upload_only()); break;

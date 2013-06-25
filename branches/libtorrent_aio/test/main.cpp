@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "setup_transfer.hpp" // for tests_failure
+#include "test.hpp"
 
 int test_main();
 
