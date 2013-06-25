@@ -338,6 +338,7 @@ void bind_alert()
 
     class_<scrape_failed_alert, bases<tracker_alert>, noncopyable>(
         "scrape_failed_alert", no_init)
+        .def_readonly("msg", &scrape_failed_alert::msg)
         ;
 
     class_<udp_error_alert, bases<alert>, noncopyable>(
