@@ -1281,6 +1281,8 @@ namespace libtorrent
 			bool used;
 #endif
 			boost::aligned_storage<Size> bytes;
+		private:
+			handler_storage(handler_storage const&);
 		};
 
 		handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
