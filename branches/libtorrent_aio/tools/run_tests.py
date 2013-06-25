@@ -100,7 +100,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
    
    		
 		for t in tests:
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + feature_list
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-q', '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + feature_list
 #			print 'calling ', cmdline
 			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
 			output = ''
