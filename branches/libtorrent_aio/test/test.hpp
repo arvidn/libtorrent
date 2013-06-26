@@ -50,13 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void EXPORT report_failure(char const* err, char const* file, int line);
 
-libtorrent::address EXPORT rand_v4();
-#if TORRENT_USE_IPV6
-libtorrent::address EXPORT rand_v6();
-#endif
-libtorrent::tcp::endpoint EXPORT rand_tcp_ep();
-libtorrent::udp::endpoint EXPORT rand_udp_ep();
-
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
 #else

@@ -49,6 +49,13 @@ extern EXPORT bool tests_failure;
 
 void EXPORT report_failure(char const* err, char const* file, int line);
 
+libtorrent::address EXPORT rand_v4();
+#if TORRENT_USE_IPV6
+libtorrent::address EXPORT rand_v6();
+#endif
+libtorrent::tcp::endpoint EXPORT rand_tcp_ep();
+libtorrent::udp::endpoint EXPORT rand_udp_ep();
+
 std::auto_ptr<libtorrent::alert> EXPORT wait_for_alert(libtorrent::session& ses, int type);
 
 void EXPORT print_ses_rate(float time

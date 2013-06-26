@@ -48,30 +48,6 @@ int test_main();
 
 using namespace libtorrent;
 
-address rand_v4()
-{
-	return address_v4((rand() << 16 | rand()) & 0xffffffff);
-}
-
-#if TORRENT_USE_IPV6
-address rand_v6()
-{
-	address_v6::bytes_type bytes;
-	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
-	return address_v6(bytes);
-}
-#endif
-
-tcp::endpoint rand_tcp_ep()
-{
-	return tcp::endpoint(rand_v4(), rand() + 1024);
-}
-
-udp::endpoint rand_udp_ep()
-{
-	return udp::endpoint(rand_v4(), rand() + 1024);
-}
-
 void sig_handler(int sig)
 {
 	char stack_text[10000];
@@ -102,8 +78,6 @@ void sig_handler(int sig)
 	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
 	exit(138);
 }
-
-using namespace libtorrent;
 
 int main()
 {
