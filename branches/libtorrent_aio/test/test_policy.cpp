@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 #include <vector>
 #include <stdarg.h>
 

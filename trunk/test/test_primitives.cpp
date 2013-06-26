@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 
 using namespace libtorrent;
 using namespace boost::tuples;
