@@ -174,7 +174,7 @@ namespace libtorrent
 		m_disk_cache.set_settings(m_settings);
 
 #ifdef TORRENT_DISK_STATS
-		g_access_log = fopen("file_access.log", "a+");
+		if (g_access_log == NULL) g_access_log = fopen("file_access.log", "a+");
 #endif
 
 #if TORRENT_USE_RLIMIT
@@ -208,7 +208,12 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_DISK_STATS
-		if (g_access_log) fclose(g_access_log);
+		if (g_access_log)
+		{
+			FILE* f = g_access_log;
+			g_access_log = NULL;
+			fclose(f);
+		}
 #endif
 	}
 
