@@ -258,7 +258,7 @@ namespace libtorrent
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write | file::random_access, ec.ec);
+				file_handle f = open_file(file_iter, file::read_write | file::random_access, ec.ec);
 				if (ec || !f)
 				{
 					ec.file = i;
@@ -286,7 +286,7 @@ namespace libtorrent
 				if (exists(fp))
 					new_prio = 1;
 /*
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only | file::random_access, ec.ec);
+				file_handle f = open_file(file_iter, file::read_only | file::random_access, ec.ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
 					if (ec || !f)
@@ -390,7 +390,7 @@ namespace libtorrent
 					}
 				}
 				ec.ec.clear();
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write | file::random_access, ec.ec);
+				file_handle f = open_file(file_iter, file::read_write | file::random_access, ec.ec);
 				if (ec || !f)
 				{
 					ec.file = file_index;
@@ -521,7 +521,11 @@ namespace libtorrent
 
 	void default_storage::release_files(storage_error& ec)
 	{
+		// make sure we don't have the files open
 		m_pool.release(this);
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files();
+#endif
 	}
 
 	void default_storage::delete_one_file(std::string const& p, error_code& ec)
@@ -538,9 +542,20 @@ namespace libtorrent
 	{
 		DFLOG(stderr, "[%p] delete_files\n", this);
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// this this is a fence job, we expect no other
+		// threads to hold any references to any files
+		// in this file storage. Assert that that's the 
+		// case
+		m_pool.assert_idle_files(this);
+#endif
+
 		// make sure we don't have the files open
 		m_pool.release(this);
 
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files();
+#endif
 		// delete the files from disk
 		std::set<std::string> directories;
 		typedef std::set<std::string>::iterator iter_t;
@@ -584,6 +599,10 @@ namespace libtorrent
 		{ ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
 
 		DFLOG(stderr, "[%p] delete_files result: %s\n", this, ec.ec.message().c_str());
+
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files();
+#endif
 	}
 
 	void default_storage::write_resume_data(entry& rd, storage_error& ec) const
@@ -662,10 +681,10 @@ namespace libtorrent
 		}
 	
 		error_code ec;
-		boost::intrusive_ptr<file> file_handle = open_file(file_iter, file::read_only, ec);
-		if (!file_handle || ec) return slot;
+		file_handle handle = open_file(file_iter, file::read_only, ec);
+		if (!handle || ec) return slot;
 
-		size_type data_start = file_handle->sparse_end(file_offset);
+		size_type data_start = handle->sparse_end(file_offset);
 		return int((data_start + m_files.piece_length() - 1) / m_files.piece_length());
 	}
 
@@ -1030,7 +1049,7 @@ namespace libtorrent
 
 		int buf_pos = 0;
 
-		boost::intrusive_ptr<file> file_handle;
+		file_handle handle;
 		int bytes_left = size;
 
 		TORRENT_ASSERT(bytes_left >= 0);
@@ -1109,7 +1128,7 @@ namespace libtorrent
 			}
 			else
 			{
-				file_handle = open_file(file_iter, op.mode, e);
+				handle = open_file(file_iter, op.mode, e);
 				if (((op.mode & file::rw_mask) == file::read_write)
 					&& e == boost::system::errc::no_such_file_or_directory)
 				{
@@ -1120,10 +1139,10 @@ namespace libtorrent
 					create_directories(parent_path(path), e);
 					// if the directory creation failed, don't try to open the file again
 					// but actually just fail
-					if (!e) file_handle = open_file(file_iter, op.mode, e);
+					if (!e) handle = open_file(file_iter, op.mode, e);
 				}
 
-				if (!file_handle || e)
+				if (!handle || e)
 				{
 					ec.ec = e;
 					ec.file = file_iter - files().begin();
@@ -1135,14 +1154,14 @@ namespace libtorrent
 
 #ifdef TORRENT_DISK_STATS
 				int flags = ((op.mode & file::rw_mask) == file::read_only) ? op_read : op_write;
-				write_access_log(adjusted_offset, file_handle->file_id(), op_start | flags, time_now_hires());
+				write_access_log(adjusted_offset, handle->file_id(), op_start | flags, time_now_hires());
 #endif
 
-				bytes_transferred = (int)((*file_handle).*op.op)(adjusted_offset
+				bytes_transferred = (int)((*handle).*op.op)(adjusted_offset
 					, tmp_bufs, num_tmp_bufs, e, op.mode);
 
 #ifdef TORRENT_DISK_STATS
-				write_access_log(adjusted_offset + bytes_transferred, file_handle->file_id(), op_end | flags, time_now_hires());
+				write_access_log(adjusted_offset + bytes_transferred, handle->file_id(), op_end | flags, time_now_hires());
 #endif
 				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
 			}
@@ -1166,7 +1185,7 @@ namespace libtorrent
 	}
 
 
-	boost::intrusive_ptr<file> default_storage::open_file(file_storage::iterator fe, int mode
+	file_handle default_storage::open_file(file_storage::iterator fe, int mode
 		, error_code& ec) const
 	{
 		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;

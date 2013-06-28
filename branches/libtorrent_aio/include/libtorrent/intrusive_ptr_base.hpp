@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: 2 remove this class and transition over to using shared_ptr and make_shared instead
 	template<class T>
 	struct intrusive_ptr_base
 	{

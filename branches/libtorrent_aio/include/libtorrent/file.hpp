@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/noncopyable.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -185,6 +186,34 @@ namespace libtorrent
 		bool m_done;
 	};
 
+	struct file;
+
+#if TORRENT_DEBUG_FILE_LEAKS
+	struct file_handle
+	{
+		file_handle();
+		file_handle(file* f);
+		file_handle(file_handle const& fh);
+		~file_handle();
+		file* operator->();
+		file const* operator->() const;
+		file& operator*();
+		file const& operator*() const;
+		file* get();
+		file const* get() const;
+		operator bool() const;
+		file_handle& reset(file* f = NULL);
+
+		char stack[2048];
+	private:
+		boost::intrusive_ptr<file> m_file;
+	};
+
+	void TORRENT_EXTRA_EXPORT print_open_files();
+#else
+typedef boost::intrusive_ptr<file> file_handle;
+#endif
+
 	struct TORRENT_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
 	{
 		enum
@@ -264,6 +293,10 @@ namespace libtorrent
 		boost::uint32_t file_id() const { return m_file_id; }
 #endif
 
+#if TORRENT_DEBUG_FILE_LEAKS
+		void print_info() const;
+#endif
+
 	private:
 
 		handle_type m_file_handle;
@@ -285,6 +318,9 @@ namespace libtorrent
 		mutable int m_cluster_size;
 #endif
 
+#if TORRENT_DEBUG_FILE_LEAKS
+		std::string m_file_path;
+#endif
 	};
 
 }

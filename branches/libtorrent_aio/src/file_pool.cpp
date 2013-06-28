@@ -51,7 +51,7 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_WINDOWS
-	void set_low_priority(boost::intrusive_ptr<file> const& f)
+	void set_low_priority(file_handle const& f)
 	{
 		// file prio is only supported on vista and up
 		// so load the functions dynamically
@@ -117,7 +117,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_WINDOWS
 
-	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
+	file_handle file_pool::open_file(void* st, std::string const& p
 		, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec)
 	{
 		mutex::scoped_lock l(m_mutex);
@@ -140,7 +140,7 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 				ec = errors::file_collision;
 #endif
-				return boost::intrusive_ptr<file>();
+				return file_handle();
 			}
 
 			e.key = st;
@@ -163,7 +163,7 @@ namespace libtorrent
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
-					return boost::intrusive_ptr<file>();
+					return file_handle();
 				}
 #ifdef TORRENT_WINDOWS
 				if (m_low_prio_io)
@@ -185,7 +185,7 @@ namespace libtorrent
 		}
 		std::string full_path = fs.file_path(*fe, p);
 		if (!e.file_ptr->open(full_path, m, ec))
-			return boost::intrusive_ptr<file>();
+			return file_handle();
 #ifdef TORRENT_WINDOWS
 		if (m_low_prio_io)
 			set_low_priority(e.file_ptr);
@@ -195,7 +195,7 @@ namespace libtorrent
 		m_files.insert(std::make_pair(std::make_pair(st, fs.file_index(*fe)), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 
-		boost::intrusive_ptr<file> file_ptr = e.file_ptr;
+		file_handle file_ptr = e.file_ptr;
 
 		// the file is not in our cache
 		if ((int)m_files.size() >= m_size)
@@ -231,7 +231,7 @@ namespace libtorrent
 				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
 		if (i == m_files.end()) return;
 
-		boost::intrusive_ptr<file> file_ptr = i->second.file_ptr;
+		file_handle file_ptr = i->second.file_ptr;
 		m_files.erase(i);
 
 		// closing a file may be long running operation (mac os x)
@@ -247,7 +247,7 @@ namespace libtorrent
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
 		
-		boost::intrusive_ptr<file> file_ptr = i->second.file_ptr;
+		file_handle file_ptr = i->second.file_ptr;
 		m_files.erase(i);
 
 		// closing a file may be long running operation (mac os x)
@@ -269,7 +269,7 @@ namespace libtorrent
 			return;
 		}
 
-		std::vector<boost::intrusive_ptr<file> > to_close;
+		std::vector<file_handle> to_close;
 		for (file_set::iterator i = m_files.begin();
 			i != m_files.end();)
 		{
@@ -284,6 +284,20 @@ namespace libtorrent
 		l.unlock();
 		// the files are closed here
 	}
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	void file_pool::assert_idle_files(void* st) const
+	{
+		mutex::scoped_lock l(m_mutex);
+
+		for (file_set::const_iterator i = m_files.begin();
+			i != m_files.end(); ++i)
+		{
+			if (i->second.key == st)
+				TORRENT_ASSERT(i->second.file_ptr->refcount() == 1);
+		}
+	}
+#endif
 
 	void file_pool::resize(int size)
 	{

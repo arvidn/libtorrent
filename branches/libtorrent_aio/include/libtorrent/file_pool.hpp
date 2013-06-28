@@ -33,16 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FILE_POOL_HPP
 #define TORRENT_FILE_POOL_HPP
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
-#include <boost/intrusive_ptr.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
 #include <map>
 #include "libtorrent/file.hpp"
 #include "libtorrent/ptime.hpp"
@@ -63,7 +53,7 @@ namespace libtorrent
 		file_pool(int size = 40);
 		~file_pool();
 
-		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
+		file_handle open_file(void* st, std::string const& p
 			, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec);
 		void release(void* st = NULL);
 		void release(void* st, int file_index);
@@ -71,6 +61,10 @@ namespace libtorrent
 		int size_limit() const { return m_size; }
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 		void get_status(std::vector<pool_file_status>* files, void* st) const;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		void assert_idle_files(void* st) const;
+#endif
 
 	private:
 
@@ -82,7 +76,7 @@ namespace libtorrent
 		struct lru_file_entry
 		{
 			lru_file_entry(): key(0), last_use(time_now()), mode(0) {}
-			mutable boost::intrusive_ptr<file> file_ptr;
+			mutable file_handle file_ptr;
 			void* key;
 			ptime last_use;
 			int mode;

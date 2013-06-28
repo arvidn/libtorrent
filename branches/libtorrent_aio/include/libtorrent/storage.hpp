@@ -237,7 +237,7 @@ namespace libtorrent
 		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
+		file_handle open_file(file_storage::iterator fe, int mode
 			, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
