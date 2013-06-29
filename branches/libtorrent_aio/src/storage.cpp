@@ -460,7 +460,7 @@ namespace libtorrent
 				return true;
 		}
 		file_status s;
-		stat_file(m_part_file_name, &s, ec.ec);
+		stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
 		if (!ec) return true;
 
 		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
