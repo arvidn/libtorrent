@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
+#include "dht_server.hpp"
 
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>

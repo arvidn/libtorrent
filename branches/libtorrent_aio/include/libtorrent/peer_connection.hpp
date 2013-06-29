@@ -1279,6 +1279,8 @@ namespace libtorrent
 			{}
 
 			bool used;
+#else
+			handler_storage() {}
 #endif
 			boost::aligned_storage<Size> bytes;
 		private:
