@@ -286,16 +286,17 @@ namespace libtorrent
 	}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	void file_pool::assert_idle_files(void* st) const
+	bool file_pool::assert_idle_files(void* st) const
 	{
 		mutex::scoped_lock l(m_mutex);
 
 		for (file_set::const_iterator i = m_files.begin();
 			i != m_files.end(); ++i)
 		{
-			if (i->second.key == st)
-				TORRENT_ASSERT(i->second.file_ptr->refcount() == 1);
+			if (i->second.key == st && i->second.file_ptr->refcount() > 1)
+				return false;
 		}
+		return true;
 	}
 #endif
 
