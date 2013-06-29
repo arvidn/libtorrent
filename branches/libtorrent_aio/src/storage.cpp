@@ -523,9 +523,6 @@ namespace libtorrent
 	{
 		// make sure we don't have the files open
 		m_pool.release(this);
-#if TORRENT_DEBUG_FILE_LEAKS
-		print_open_files();
-#endif
 	}
 
 	void default_storage::delete_one_file(std::string const& p, error_code& ec)
@@ -547,15 +544,18 @@ namespace libtorrent
 		// threads to hold any references to any files
 		// in this file storage. Assert that that's the 
 		// case
-		m_pool.assert_idle_files(this);
+		if (!m_pool.assert_idle_files(this))
+		{
+#if TORRENT_DEBUG_FILE_LEAKS
+			print_open_files();
+#endif
+			TORRENT_ASSERT(false);
+		}
 #endif
 
 		// make sure we don't have the files open
 		m_pool.release(this);
 
-#if TORRENT_DEBUG_FILE_LEAKS
-		print_open_files();
-#endif
 		// delete the files from disk
 		std::set<std::string> directories;
 		typedef std::set<std::string>::iterator iter_t;

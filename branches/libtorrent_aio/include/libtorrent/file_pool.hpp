@@ -63,7 +63,7 @@ namespace libtorrent
 		void get_status(std::vector<pool_file_status>* files, void* st) const;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		void assert_idle_files(void* st) const;
+		bool assert_idle_files(void* st) const;
 #endif
 
 	private:
