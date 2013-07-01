@@ -171,22 +171,6 @@ The ``session`` class has the following synopsis::
 		session_settings settings() const;
 		void set_pe_settings(pe_settings const& settings);
 
-		void set_upload_rate_limit(int bytes_per_second);
-		int upload_rate_limit() const;
-		void set_download_rate_limit(int bytes_per_second);
-		int download_rate_limit() const;
-
-		void set_local_upload_rate_limit(int bytes_per_second);
-		int local_upload_rate_limit() const;
-		void set_local_download_rate_limit(int bytes_per_second);
-		int local_download_rate_limit() const;
-
-		void set_max_uploads(int limit);
-		void set_max_connections(int limit);
-		int max_connections() const;
-		void set_max_half_open_connections(int limit);
-		int max_half_open_connections() const;
-
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
 
@@ -2814,7 +2798,7 @@ set_upload_limit() set_download_limit() upload_limit() download_limit()
 ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
 limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
 ``set_download_limit`` works the same way but for download bandwidth instead of upload bandwidth.
-Note that setting a higher limit on a torrent then the global limit (``session::set_upload_rate_limit``)
+Note that setting a higher limit on a torrent then the global limit (``session_settings::upload_rate_limit``)
 will not override the global rate limit. The torrent can never upload more than the global rate
 limit.
 
@@ -3143,7 +3127,9 @@ set_max_uploads() max_uploads()
 		int max_uploads() const;
 
 ``set_max_uploads()`` sets the maximum number of peers that's unchoked at the same time on this
-torrent. If you set this to -1, there will be no limit.
+torrent. If you set this to -1, there will be no limit. This defaults to infinite. The primary
+setting controlling this is the global unchoke slots limit, set by ``unchoke_slots_limit``
+in session_settings_.
 
 ``max_uploads()`` returns the current settings.
 
@@ -3159,7 +3145,8 @@ set_max_connections() max_connections()
 ``set_max_connections()`` sets the maximum number of connection this torrent will open. If all
 connections are used up, incoming connections may be refused or poor connections may be closed.
 This must be at least 2. The default is unlimited number of connections. If -1 is given to the
-function, it means unlimited.
+function, it means unlimited. There is also a global limit of the number of connections, set
+by ``connections_limit`` in session_settings_.
 
 ``max_connections()`` returns the current settings.
 
@@ -4937,7 +4924,7 @@ The options for choking algorithms are:
   the highest *return on investment*. It still allocates all upload capacity,
   but shuffles it around to the best peers first. For this choker to be
   efficient, you need to set a global upload rate limit
-  (``session::set_upload_rate_limit()``). For more information about this
+  (``session_settings::upload_rate_limit``). For more information about this
   choker, see the paper_.
 
 .. _paper: http://bittyrant.cs.washington.edu/#papers
@@ -5440,7 +5427,7 @@ A value of 0 means unlimited.
 bytes per second and defaults to 4000. For busy boxes with lots of torrents
 that requires more DHT traffic, this should be raised.
 
-``unchoke_slots_limit`` is the mac number of unchoked peers in the session.
+``unchoke_slots_limit`` is the max number of unchoked peers in the session.
 
 The number of unchoke slots may be ignored depending on what
 ``choking_algorithm`` is set to.
