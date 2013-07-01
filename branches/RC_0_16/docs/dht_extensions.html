@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,8 +55,8 @@
 <p>libtorrent implements a few extensions to the Mainline DHT protocol.</p>
 <div class="section" id="get-peers-response">
 <h2>get_peers response</h2>
-<p>libtorrent always responds with <tt class="docutils literal"><span class="pre">nodes</span></tt> to a get_peers request. If it has
-peers for the specified info-hash, it will return <tt class="docutils literal"><span class="pre">values</span></tt> as well. This is
+<p>libtorrent always responds with <tt class="docutils literal">nodes</tt> to a get_peers request. If it has
+peers for the specified info-hash, it will return <tt class="docutils literal">values</tt> as well. This is
 because just because some peer announced to us, doesn't mean that we are
 among the 8 closest nodes of the info hash. libtorrent also keeps traversing
 nodes using get_peers until it has found the 8 closest ones, and then announces
@@ -65,7 +65,7 @@ to those nodes.</p>
 <div class="section" id="forward-compatibility">
 <h2>forward compatibility</h2>
 <p>In order to support future DHT messages, any message which is not recognized
-but has either an <tt class="docutils literal"><span class="pre">info_hash</span></tt> or <tt class="docutils literal"><span class="pre">target</span></tt> argument is interpreted as
+but has either an <tt class="docutils literal">info_hash</tt> or <tt class="docutils literal">target</tt> argument is interpreted as
 find node for that target. i.e. it returns nodes. This allows future messages
 to be properly forwarded by clients that don't understand them instead of
 being blocked.</p>
@@ -85,16 +85,16 @@ as a binary number describing the client version.</p>
 </colgroup>
 <tbody valign="top">
 <tr><td>uTorrent</td>
-<td><tt class="docutils literal"><span class="pre">UT</span></tt></td>
+<td><tt class="docutils literal">UT</tt></td>
 </tr>
 <tr><td>libtorrent</td>
-<td><tt class="docutils literal"><span class="pre">LT</span></tt></td>
+<td><tt class="docutils literal">LT</tt></td>
 </tr>
 <tr><td>MooPolice</td>
-<td><tt class="docutils literal"><span class="pre">MP</span></tt></td>
+<td><tt class="docutils literal">MP</tt></td>
 </tr>
 <tr><td>GetRight</td>
-<td><tt class="docutils literal"><span class="pre">GR</span></tt></td>
+<td><tt class="docutils literal">GR</tt></td>
 </tr>
 </tbody>
 </table>
@@ -102,12 +102,12 @@ as a binary number describing the client version.</p>
 <div class="section" id="ipv6-support">
 <h2>IPv6 support</h2>
 <p><strong>This extension is superseeded by</strong> <a class="reference external" href="http://bittorrent.org/beps/bep_0032.html">BEP 32</a>.</p>
-<p>The DHT messages that don't support IPv6 are the <tt class="docutils literal"><span class="pre">nodes</span></tt> replies.
+<p>The DHT messages that don't support IPv6 are the <tt class="docutils literal">nodes</tt> replies.
 They encode all the contacts as 6 bytes packed together in sequence in a
 string. The problem is that IPv6 endpoints cannot be encoded as 6 bytes, but
 needs 18 bytes. The extension libtorrent applies is to add another key, called
-<tt class="docutils literal"><span class="pre">nodes2</span></tt>.</p>
-<p><tt class="docutils literal"><span class="pre">nodes2</span></tt> may be present in replies that contains a <tt class="docutils literal"><span class="pre">nodes</span></tt> key. It is encoded
+<tt class="docutils literal">nodes2</tt>.</p>
+<p><tt class="docutils literal">nodes2</tt> may be present in replies that contains a <tt class="docutils literal">nodes</tt> key. It is encoded
 as a list of strings. Each string represents one contact and is encoded as 20
 bytes node-id and then a variable length encoded IP address (6 bytes in IPv4 case
 and 18 bytes in IPv6 case).</p>

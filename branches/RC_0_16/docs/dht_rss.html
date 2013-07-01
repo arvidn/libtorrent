@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for DHT RSS feeds</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -92,7 +92,7 @@ key against the target ID it is stored under, as well as the validity of
 the signatures of each individual item.</p>
 <p>As with normal DHT announces, the write-token mechanism is used to
 prevent IP spoof attacks.</p>
-<p>There are two new proposed messages, <tt class="docutils literal"><span class="pre">announce_item</span></tt> and <tt class="docutils literal"><span class="pre">get_item</span></tt>.
+<p>There are two new proposed messages, <tt class="docutils literal">announce_item</tt> and <tt class="docutils literal">get_item</tt>.
 Every valid item that is announced, should be stored.</p>
 <div class="section" id="terminology">
 <h1>terminology</h1>
@@ -122,31 +122,31 @@ key = SHA1(name + key)
                                            | sig     |
                                            +---------+
 </pre>
-<p>The <tt class="docutils literal"><span class="pre">next</span></tt> pointer is at least 20 byte ID in the DHT key space pointing to where the next
+<p>The <tt class="docutils literal">next</tt> pointer is at least 20 byte ID in the DHT key space pointing to where the next
 item in the list is announced. The list is terminated with an ID of all zeroes.</p>
 <p>The ID an items is announced to is determined by the SHA1 hash of the bencoded representation
 of the item iteself. This contains all fields in the item, except the signature.
-The only mandatory fields in an item are <tt class="docutils literal"><span class="pre">next</span></tt>, <tt class="docutils literal"><span class="pre">key</span></tt> and <tt class="docutils literal"><span class="pre">sig</span></tt>.</p>
-<p>The <tt class="docutils literal"><span class="pre">key</span></tt> field MUST match the public key of the list head node. The <tt class="docutils literal"><span class="pre">sig</span></tt> field
-MUST be the signature of the bencoded representation of <tt class="docutils literal"><span class="pre">item</span></tt> or <tt class="docutils literal"><span class="pre">head</span></tt> (whichever
+The only mandatory fields in an item are <tt class="docutils literal">next</tt>, <tt class="docutils literal">key</tt> and <tt class="docutils literal">sig</tt>.</p>
+<p>The <tt class="docutils literal">key</tt> field MUST match the public key of the list head node. The <tt class="docutils literal">sig</tt> field
+MUST be the signature of the bencoded representation of <tt class="docutils literal">item</tt> or <tt class="docutils literal">head</tt> (whichever
 is included in the message).</p>
 <p>All subscribers MUST verify that the item is announced under the correct DHT key
 and MUST verify the signature is valid and MUST verify the public key is the same
 as the list-head. If a node fails any of these checks, it must be ignored and the
 chain of items considered terminated.</p>
 <p>Each item holds a bencoded dictionary with arbitrary keys, except two mandatory keys:
-<tt class="docutils literal"><span class="pre">next</span></tt> and <tt class="docutils literal"><span class="pre">key</span></tt>. The signature <tt class="docutils literal"><span class="pre">sig</span></tt> is transferred outside of this dictionary
+<tt class="docutils literal">next</tt> and <tt class="docutils literal">key</tt>. The signature <tt class="docutils literal">sig</tt> is transferred outside of this dictionary
 and is the signature of all of it. An implementation should stora any arbitrary keys that
 are announced to an item, within reasonable restriction such as nesting, size and numeric
 range of integers.</p>
 </div>
 <div class="section" id="skip-lists">
 <h1>skip lists</h1>
-<p>The <tt class="docutils literal"><span class="pre">next</span></tt> key stored in the list head and the items is a string of at least length
+<p>The <tt class="docutils literal">next</tt> key stored in the list head and the items is a string of at least length
 20 bytes, it may be any length divisible by 20. Each 20 bytes are the ID of the next
 item in the list, the item 2 hops away, 4 hops away, 8 hops away, and so on. For
-simplicity, only the first ID (1 hop) in the <tt class="docutils literal"><span class="pre">next</span></tt> field is illustrated above.</p>
-<p>A publisher of an item SHOULD include as many IDs in the <tt class="docutils literal"><span class="pre">next</span></tt> field as the remaining
+simplicity, only the first ID (1 hop) in the <tt class="docutils literal">next</tt> field is illustrated above.</p>
+<p>A publisher of an item SHOULD include as many IDs in the <tt class="docutils literal">next</tt> field as the remaining
 size of the list warrants, within reason.</p>
 <p>These skip lists allow for parallelized lookups of items and also makes it more efficient
 to search for specific items. It also mitigates breaking lists missing some items.</p>
@@ -158,7 +158,7 @@ n      Item0  Item1  Item2  Item3  Item4  Item5  Item6  Item7  Item8  Item9  Ite
 40       O--------------------------&gt;
 60       O------------------------------------------------------&gt;
 </pre>
-<p><em>n</em> refers to the byte offset into the <tt class="docutils literal"><span class="pre">next</span></tt> field.</p>
+<p><em>n</em> refers to the byte offset into the <tt class="docutils literal">next</tt> field.</p>
 </div>
 <div class="section" id="list-head">
 <h1>list-head</h1>
@@ -166,27 +166,27 @@ n      Item0  Item1  Item2  Item3  Item4  Item5  Item6  Item7  Item8  Item9  Ite
 DHT key. This is required to prepend new items to the linked list. To authenticate
 that only the original publisher can update the head, the whole linked list head
 is signed. In order to avoid a malicious node to overwrite the list head with an old
-version, the sequence number <tt class="docutils literal"><span class="pre">seq</span></tt> must be monotonically increasing for each update,
+version, the sequence number <tt class="docutils literal">seq</tt> must be monotonically increasing for each update,
 and a node hosting the list node MUST not downgrade a list head from a higher sequence
 number to a lower one, only upgrade.</p>
 <p>The list head's DHT key (which it is announced to) MUST be the SHA1 hash of the name
-(<tt class="docutils literal"><span class="pre">n</span></tt>) and <tt class="docutils literal"><span class="pre">key</span></tt> fields concatenated.</p>
+(<tt class="docutils literal">n</tt>) and <tt class="docutils literal">key</tt> fields concatenated.</p>
 <p>Any node MUST reject any list head which is announced under any other ID.</p>
 </div>
 <div class="section" id="messages">
 <h1>messages</h1>
 <p>These are the messages to deal with linked lists.</p>
-<p>The <tt class="docutils literal"><span class="pre">id</span></tt> field in these messages has the same semantics as the standard DHT messages,
+<p>The <tt class="docutils literal">id</tt> field in these messages has the same semantics as the standard DHT messages,
 i.e. the node ID of the node sending the message, to maintain the structure of the DHT
 network.</p>
-<p>The <tt class="docutils literal"><span class="pre">token</span></tt> field also has the same semantics as the standard DHT message <tt class="docutils literal"><span class="pre">get_peers</span></tt>
-and <tt class="docutils literal"><span class="pre">announce_peer</span></tt>, when requesting an item and to write an item respectively.</p>
-<p><tt class="docutils literal"><span class="pre">nodes</span></tt> and <tt class="docutils literal"><span class="pre">nodes6</span></tt> has the same semantics as in its <tt class="docutils literal"><span class="pre">get_peers</span></tt> response.</p>
+<p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message <tt class="docutils literal">get_peers</tt>
+and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an item respectively.</p>
+<p><tt class="docutils literal">nodes</tt> and <tt class="docutils literal">nodes6</tt> has the same semantics as in its <tt class="docutils literal">get_peers</tt> response.</p>
 <div class="section" id="requesting-items">
 <h2>requesting items</h2>
 <p>This message can be used to request both a list head and a list item. When requesting
-a list head, the <tt class="docutils literal"><span class="pre">n</span></tt> (name) field MUST be specified. When requesting a list item the
-<tt class="docutils literal"><span class="pre">n</span></tt> field is not required.</p>
+a list head, the <tt class="docutils literal">n</tt> (name) field MUST be specified. When requesting a list item the
+<tt class="docutils literal">n</tt> field is not required.</p>
 <pre class="literal-block">
 {
    &quot;a&quot;:
@@ -201,9 +201,9 @@ a list head, the <tt class="docutils literal"><span class="pre">n</span></tt> (n
    &quot;y&quot;: &quot;q&quot;,
 }
 </pre>
-<p>When requesting a list-head the <tt class="docutils literal"><span class="pre">target</span></tt> MUST always be SHA-1(<em>feed_name</em> + <em>public_key</em>).
-<tt class="docutils literal"><span class="pre">target</span></tt> is the target node ID the item was written to.</p>
-<p>The <tt class="docutils literal"><span class="pre">n</span></tt> field is the name of the list. If specified, It MUST be UTF-8 encoded string
+<p>When requesting a list-head the <tt class="docutils literal">target</tt> MUST always be SHA-1(<em>feed_name</em> + <em>public_key</em>).
+<tt class="docutils literal">target</tt> is the target node ID the item was written to.</p>
+<p>The <tt class="docutils literal">n</tt> field is the name of the list. If specified, It MUST be UTF-8 encoded string
 and it MUST match the name of the feed in the receiving node.</p>
 </div>
 <div class="section" id="request-item-response">
@@ -251,10 +251,10 @@ and it MUST match the name of the feed in the receiving node.</p>
    &quot;y&quot;: &quot;r&quot;,
 }
 </pre>
-<p>A client receiving a <tt class="docutils literal"><span class="pre">get_item</span></tt> response MUST verify the signature in the <tt class="docutils literal"><span class="pre">sig</span></tt>
-field against the bencoded representation of the <tt class="docutils literal"><span class="pre">item</span></tt> field, using the <tt class="docutils literal"><span class="pre">key</span></tt> as
-the public key. The <tt class="docutils literal"><span class="pre">key</span></tt> MUST match the public key of the feed.</p>
-<p>The <tt class="docutils literal"><span class="pre">item</span></tt> dictionary MAY contain arbitrary keys, and all keys MUST be stored for
+<p>A client receiving a <tt class="docutils literal">get_item</tt> response MUST verify the signature in the <tt class="docutils literal">sig</tt>
+field against the bencoded representation of the <tt class="docutils literal">item</tt> field, using the <tt class="docutils literal">key</tt> as
+the public key. The <tt class="docutils literal">key</tt> MUST match the public key of the feed.</p>
+<p>The <tt class="docutils literal">item</tt> dictionary MAY contain arbitrary keys, and all keys MUST be stored for
 items.</p>
 </div>
 <div class="section" id="announcing-items">
@@ -337,7 +337,7 @@ the storing node no longer is in the set of the 8 closest nodes.</p>
 </div>
 <div class="section" id="rss-feeds">
 <h1>RSS feeds</h1>
-<p>For RSS feeds, following keys are mandatory in the list item's <tt class="docutils literal"><span class="pre">item</span></tt> dictionary.</p>
+<p>For RSS feeds, following keys are mandatory in the list item's <tt class="docutils literal">item</tt> dictionary.</p>
 <dl class="docutils">
 <dt>ih</dt>
 <dd>The torrent's info hash</dd>
@@ -348,7 +348,7 @@ the storing node no longer is in the set of the 8 closest nodes.</p>
 </dl>
 <div class="section" id="example">
 <h2>example</h2>
-<p>This is an example of an <tt class="docutils literal"><span class="pre">announce_item</span></tt> message:</p>
+<p>This is an example of an <tt class="docutils literal">announce_item</tt> message:</p>
 <pre class="literal-block">
 {
    &quot;a&quot;:
@@ -374,7 +374,7 @@ the storing node no longer is in the set of the 8 closest nodes.</p>
 }
 </pre>
 <p>Strings are printed in hex for printability, but actual encoding is binary.</p>
-<p>Note that <tt class="docutils literal"><span class="pre">target</span></tt> is in fact SHA1 hash of the same data the signature <tt class="docutils literal"><span class="pre">sig</span></tt>
+<p>Note that <tt class="docutils literal">target</tt> is in fact SHA1 hash of the same data the signature <tt class="docutils literal">sig</tt>
 is the signature of, i.e.:</p>
 <pre class="literal-block">
 d9:info-hash20:7ea94c240691311dc0916a2a91eb7c3db2c6f3e43:key64:6bc1de5443d1

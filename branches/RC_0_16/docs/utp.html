@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -168,7 +168,7 @@ is higher than the target, cwnd is decreased proportional to (delay - target_del
 <pre class="literal-block">
 cwnd += gain * (target_delay - delay)
 </pre>
-<a class="reference external image-reference" href="cwnd.png"><img align="right" alt="cwnd_thumb.png" class="align-right" src="cwnd_thumb.png" /></a>
+<a class="reference external image-reference" href="cwnd.png"><img alt="cwnd_thumb.png" class="align-right" src="cwnd_thumb.png" /></a>
 <p>Similarly to TCP, this is scaled so that the increase is evened out over one RTT.</p>
 <p>The linear controller will adjust the cwnd more for delays that are far off the
 target, and less for delays that are close to the target. This makes it converge
@@ -192,7 +192,7 @@ the packet). It does this by always comparing all measurements to a
 baseline measurement, to cancel out any fixed delay. By focusing on the
 variable delay along a link, it will specifically detect points where
 there might be congestion, since those points will have buffers.</p>
-<a class="reference external image-reference" href="delays.png"><img align="right" alt="delays_thumb.png" class="align-right" src="delays_thumb.png" /></a>
+<a class="reference external image-reference" href="delays.png"><img alt="delays_thumb.png" class="align-right" src="delays_thumb.png" /></a>
 <p>Delay on the return link is explicitly not included in the delay measurement.
 This is because in a peer-to-peer application, the other end is likely to also
 be connected via a modem, with the same send buffer restrictions as we assume
@@ -284,7 +284,7 @@ with jumbo frames.</p>
 </div>
 <div class="section" id="clock-drift">
 <h2>clock drift</h2>
-<a class="reference external image-reference" href="our_delay_base.png"><img align="right" alt="our_delay_base_thumb.png" class="align-right" src="our_delay_base_thumb.png" /></a>
+<a class="reference external image-reference" href="our_delay_base.png"><img alt="our_delay_base_thumb.png" class="align-right" src="our_delay_base_thumb.png" /></a>
 <p>Clock drift is clocks progressing at different rates. It's different from clock
 skew which means clocks set to different values (but which may progress at the same
 rate).</p>

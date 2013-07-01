@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -90,7 +90,7 @@
 <div class="section" id="tuning-libtorrent">
 <h1>tuning libtorrent</h1>
 <p>libtorrent expose most constants used in the bittorrent engine for
-customization through the <tt class="docutils literal"><span class="pre">session_settings</span></tt>. This makes it possible to
+customization through the <tt class="docutils literal">session_settings</tt>. This makes it possible to
 test and tweak the parameters for certain algorithms to make a client
 that fits a wide range of needs. From low memory embedded devices to
 servers seeding thousands of torrents. The default settings in libtorrent
@@ -102,7 +102,7 @@ and how parameters are likely to affect it.</p>
 <div class="section" id="reducing-memory-footprint">
 <h1>reducing memory footprint</h1>
 <p>These are things you can do to reduce the memory footprint of libtorrent. You get
-some of this by basing your default <tt class="docutils literal"><span class="pre">session_settings</span></tt> on the <tt class="docutils literal"><span class="pre">min_memory_usage()</span></tt>
+some of this by basing your default <tt class="docutils literal">session_settings</tt> on the <tt class="docutils literal">min_memory_usage()</tt>
 setting preset function.</p>
 <p>Keep in mind that lowering memory usage will affect performance, always profile
 and benchmark your settings to determine if it's worth the trade-off.</p>
@@ -218,12 +218,12 @@ reduce the executable size with up to 45%. In order to build without exception
 support, you need to patch parts of boost.</p>
 <p>Also make sure to optimize for size when compiling.</p>
 <p>Another way of reducing the executable size is to disable code that isn't used.
-There are a number of <tt class="docutils literal"><span class="pre">TORRENT_*</span></tt> macros that control which features are included
+There are a number of <tt class="docutils literal">TORRENT_*</tt> macros that control which features are included
 in libtorrent. If these macros are used to strip down libtorrent, make sure the same
 macros are defined when building libtorrent as when linking against it. If these
 are different the structures will look different from the libtorrent side and from
 the client side and memory corruption will follow.</p>
-<p>One, probably, safe macro to define is <tt class="docutils literal"><span class="pre">TORRENT_NO_DEPRECATE</span></tt> which removes all
+<p>One, probably, safe macro to define is <tt class="docutils literal">TORRENT_NO_DEPRECATE</tt> which removes all
 deprecated functions and struct members. As long as no deprecated functions are
 relied upon, this should be a simple way to eliminate a little bit of code.</p>
 <p>For all available options, see the <a class="reference external" href="building.html">building libtorrent</a> secion.</p>
@@ -307,7 +307,7 @@ other peer will ever request the same block while it's still in the cache, the r
 cache can be set to be <em>volatile</em>. This means that every block that is requested out of
 the read cache is removed immediately. This saves a significant amount of cache space
 which can be used as read-ahead for other peers. This mode should <strong>never</strong> be combined
-with either <tt class="docutils literal"><span class="pre">explicit_read_cache</span></tt> or <tt class="docutils literal"><span class="pre">suggest_read_cache</span></tt>, since those uses opposite
+with either <tt class="docutils literal">explicit_read_cache</tt> or <tt class="docutils literal">suggest_read_cache</tt>, since those uses opposite
 strategies for the read cache. You don't want to on one hand attract peers to request
 the same pieces, and on the other hand assume that they won't request the same pieces
 and drop them when the first peer requests it. To enable volatile read cache, set
@@ -337,7 +337,7 @@ enough to not draining the socket's send buffer before the disk operation comple
 <p>The watermark is bound to a max value, to avoid buffer sizes growing out of control.
 The default max send buffer size might not be enough to sustain very high upload rates,
 and you might have to increase it. It's specified in bytes in
-<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>. The <tt class="docutils literal"><span class="pre">high_performance_seed()</span></tt> preset
+<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>. The <tt class="docutils literal">high_performance_seed()</tt> preset
 sets this value to 5 MB.</p>
 </div>
 <div class="section" id="peers">
@@ -372,18 +372,18 @@ libtorrent that return some value have to block your thread while posting a mess
 the main network thread and then wait for a response (calls that don't return any data
 will simply post the message and then immediately return). The time this takes might
 become significant once you reach a few hundred torrents (depending on how many calls
-you make to each torrent and how often). <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt> lets you query the
+you make to each torrent and how often). <tt class="docutils literal">get_torrent_status</tt> lets you query the
 status of all torrents in a single call. This will actually loop through all torrents
 and run a provided predicate function to determine whether or not to include it in
 the returned vector. If you have a lot of torrents, you might want to update the status
 of only certain torrents. For instance, you might only be interested in torrents that
 are being downloaded.</p>
-<p>The intended use of these functions is to start off by calling <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt>
-to get a list of all torrents that match your criteria. Then call <tt class="docutils literal"><span class="pre">refresh_torrent_status</span></tt>
+<p>The intended use of these functions is to start off by calling <tt class="docutils literal">get_torrent_status</tt>
+to get a list of all torrents that match your criteria. Then call <tt class="docutils literal">refresh_torrent_status</tt>
 on that list. This will only refresh the status for the torrents in your list, and thus
 ignore all other torrents you might be running. This may save a significant amount of
 time, especially if the number of torrents you're interested in is small. In order to
-keep your list of interested torrents up to date, you can either call <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt>
+keep your list of interested torrents up to date, you can either call <tt class="docutils literal">get_torrent_status</tt>
 from time to time, to include torrents you might have become interested in since the last
 time. In order to stop refreshing a certain torrent, simply remove it from the list.</p>
 <p>A more efficient way however, would be to subscribe to status alert notifications, and
@@ -400,7 +400,7 @@ preprocessor symbols when building.</p>
 gnuplot and python).</p>
 <div class="section" id="disk-metrics">
 <h2>disk metrics</h2>
-<p>To enable disk I/O instrumentation, define <tt class="docutils literal"><span class="pre">TORRENT_DISK_STATS</span></tt> when building. When built
+<p>To enable disk I/O instrumentation, define <tt class="docutils literal">TORRENT_DISK_STATS</tt> when building. When built
 with this configuration libtorrent will create three log files, measuring various aspects of
 the disk I/O. The following table is an overview of these files and what they measure.</p>
 <table border="1" class="docutils">
@@ -414,19 +414,19 @@ the disk I/O. The following table is an overview of these files and what they me
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td><tt class="docutils literal"><span class="pre">disk_io_thread.log</span></tt></td>
+<tr><td><tt class="docutils literal">disk_io_thread.log</tt></td>
 <td>This is a log of which operation the disk I/O thread is
 engaged in, with timestamps. This tells you what the thread
 is spending its time doing.</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">disk_buffers.log</span></tt></td>
+<tr><td><tt class="docutils literal">disk_buffers.log</tt></td>
 <td>This log keeps track of what the buffers allocated from the
 disk buffer pool are used for. There are 5 categories.
 receive buffer, send buffer, write cache, read cache and
 temporary hash storage. This is key when optimizing memory
 usage.</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">disk_access.log</span></tt></td>
+<tr><td><tt class="docutils literal">disk_access.log</tt></td>
 <td>This is a low level log of read and write operations, with
 timestamps and file offsets. The file offsets are byte
 offsets in the torrent (not in any particular file, in the
@@ -440,12 +440,12 @@ to do.</td>
 <div class="section" id="disk-io-thread-log">
 <h3>disk_io_thread.log</h3>
 <p>The structure of this log is simple. For each line, there are two columns, a timestamp and
-the operation that was started. There is a special operation called <tt class="docutils literal"><span class="pre">idle</span></tt> which means
+the operation that was started. There is a special operation called <tt class="docutils literal">idle</tt> which means
 it looped back to the top and started waiting for new jobs. If there are more jobs to
-handle immediately, the <tt class="docutils literal"><span class="pre">idle</span></tt> state is still there, but the timestamp is the same as the
+handle immediately, the <tt class="docutils literal">idle</tt> state is still there, but the timestamp is the same as the
 next job that is handled.</p>
-<p>Some operations have a 3:rd column with an optional parameter. <tt class="docutils literal"><span class="pre">read</span></tt> and <tt class="docutils literal"><span class="pre">write</span></tt> tells
-you the number of bytes that were requested to be read or written. <tt class="docutils literal"><span class="pre">flushing</span></tt> tells you
+<p>Some operations have a 3:rd column with an optional parameter. <tt class="docutils literal">read</tt> and <tt class="docutils literal">write</tt> tells
+you the number of bytes that were requested to be read or written. <tt class="docutils literal">flushing</tt> tells you
 the number of bytes that were flushed from the disk cache.</p>
 <p>This is an example excerpt from a log:</p>
 <pre class="literal-block">
@@ -458,8 +458,8 @@ the number of bytes that were flushed from the disk cache.</p>
 8255 idle
 8431 read 16384
 </pre>
-<p>The script to parse this log and generate a graph is called <tt class="docutils literal"><span class="pre">parse_disk_log.py</span></tt>. It takes
-the log file as the first command line argument, and produces a file: <tt class="docutils literal"><span class="pre">disk_io.png</span></tt>.
+<p>The script to parse this log and generate a graph is called <tt class="docutils literal">parse_disk_log.py</tt>. It takes
+the log file as the first command line argument, and produces a file: <tt class="docutils literal">disk_io.png</tt>.
 The time stamp is in milliseconds since start.</p>
 <p>You can pass in a second, optional, argument to specify the window size it will average
 the time measurements over. The default is 5 seconds. For long test runs, it might be interesting
@@ -488,8 +488,8 @@ in use for this particular key. For example:</p>
 24910 receive buffer: 3
 </pre>
 <p>The time stamp is in milliseconds since start.</p>
-<p>To generate a graph, use <tt class="docutils literal"><span class="pre">parse_disk_buffer_log.py</span></tt>. It takes the log file as the first
-command line argument. It generates <tt class="docutils literal"><span class="pre">disk_buffer.png</span></tt>.</p>
+<p>To generate a graph, use <tt class="docutils literal">parse_disk_buffer_log.py</tt>. It takes the log file as the first
+command line argument. It generates <tt class="docutils literal">disk_buffer.png</tt>.</p>
 <img alt="disk_buffer_sample.png" src="disk_buffer_sample.png" />
 <p>This is an example graph generated by the parse script.</p>
 </div>
@@ -516,16 +516,16 @@ started, and the second one is where the operation ended.</p>
 36766 read_end 367263744
 </pre>
 <p>The disk access log does not have any good visualization tool yet. There is however a gnuplot
-file, <tt class="docutils literal"><span class="pre">disk_access.gnuplot</span></tt> which assumes <tt class="docutils literal"><span class="pre">disk_access.log</span></tt> is in the current directory.</p>
+file, <tt class="docutils literal">disk_access.gnuplot</tt> which assumes <tt class="docutils literal">disk_access.log</tt> is in the current directory.</p>
 <img alt="disk_access.png" src="disk_access.png" />
 <p>The density of the disk seeks tells you how hard the drive has to work.</p>
 </div>
 </div>
 <div class="section" id="session-stats">
 <h2>session stats</h2>
-<p>By defining <tt class="docutils literal"><span class="pre">TORRENT_STATS</span></tt> libtorrent will write a log file called <tt class="docutils literal"><span class="pre">session_stats/&lt;pid&gt;.&lt;sequence&gt;.log</span></tt> which
-is in a format ready to be passed directly into gnuplot. The parser script <tt class="docutils literal"><span class="pre">parse_session_stats.py</span></tt>
-generates a report in <tt class="docutils literal"><span class="pre">session_stats_report/index.html</span></tt>.</p>
+<p>By defining <tt class="docutils literal">TORRENT_STATS</tt> libtorrent will write a log file called <tt class="docutils literal"><span class="pre">session_stats/&lt;pid&gt;.&lt;sequence&gt;.log</span></tt> which
+is in a format ready to be passed directly into gnuplot. The parser script <tt class="docutils literal">parse_session_stats.py</tt>
+generates a report in <tt class="docutils literal">session_stats_report/index.html</tt>.</p>
 <p>The first line in the log contains all the field names, separated by colon:</p>
 <pre class="literal-block">
 second:upload rate:download rate:downloading torrents:seeding torrents:peers...

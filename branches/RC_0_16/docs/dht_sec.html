@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>BitTorrent DHT security extension</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -93,7 +93,7 @@ by observing that a typical routing table typically has about 20 of its
 top routing table buckets full. That means the key space is dense enough
 to contain 8 nodes for every combination of the 20 top bits of node IDs.</p>
 <blockquote>
-<tt class="docutils literal"><span class="pre">2^20</span> <span class="pre">*</span> <span class="pre">8</span> <span class="pre">=</span> <span class="pre">8388608</span></tt></blockquote>
+<tt class="docutils literal">2^20 * 8 = 8388608</tt></blockquote>
 <p>By controlling that many IP addresses, an attacker could snoop any info-hash.
 By controlling 8 times that many IP addresses, an attacker could actually
 take over any info-hash.</p>
@@ -111,18 +111,18 @@ ID can be restricted at each class level of the IP.</p>
 <pre class="literal-block">
 sha1((ip &amp; 0x01071f7f) .. r)
 </pre>
-<p>And for an IPv6 address (<tt class="docutils literal"><span class="pre">ip</span></tt> is the high 64 bits of the address):</p>
+<p>And for an IPv6 address (<tt class="docutils literal">ip</tt> is the high 64 bits of the address):</p>
 <pre class="literal-block">
 sha1((ip &amp; 0x000103070f1f3f7f) ..  r)
 </pre>
-<p><tt class="docutils literal"><span class="pre">r</span></tt> is a random number in the range [0, 7]. The resulting integer,
+<p><tt class="docutils literal">r</tt> is a random number in the range [0, 7]. The resulting integer,
 representing the masked IP address is supposed to be big-endian before
 hashed. The &quot;..&quot; means concatenation.</p>
 <p>The details of implementing this is to evaluate the expression, store the
 result in a big endian 64 bit integer and hash those 8 bytes with SHA-1.</p>
 <p>The first 4 bytes of the node ID used in the DHT MUST match the first 4
 bytes in the resulting hash. The last byte of the hash MUST match the
-random number (<tt class="docutils literal"><span class="pre">r</span></tt>) used to generate the hash.</p>
+random number (<tt class="docutils literal">r</tt>) used to generate the hash.</p>
 <img alt="ip_id_v4.png" src="ip_id_v4.png" />
 <img alt="ip_id_v6.png" src="ip_id_v6.png" />
 <p>Example code code for calculating a valid node ID:</p>
@@ -166,10 +166,10 @@ random numbers.</p>
 <p>In order to set ones initial node ID, the external IP needs to be known. This
 is not a trivial problem. With this extension, <em>all</em> DHT requests whose node
 ID does not match its IP address MUST be serviced and MUST also include one
-extra result value (inside the <tt class="docutils literal"><span class="pre">r</span></tt> dictionary) called <tt class="docutils literal"><span class="pre">ip</span></tt>. The IP field
+extra result value (inside the <tt class="docutils literal">r</tt> dictionary) called <tt class="docutils literal">ip</tt>. The IP field
 contains the raw (big endian) byte representation of the external IP address.
 This is the same byte sequence used to verify the node ID.</p>
-<p>A DHT node which receives an <tt class="docutils literal"><span class="pre">ip</span></tt> result in a request SHOULD consider restarting
+<p>A DHT node which receives an <tt class="docutils literal">ip</tt> result in a request SHOULD consider restarting
 its DHT node with a new node ID, taking this IP into account. Since a single node
 can not be trusted, there should be some mechanism of determining whether or
 not the node has a correct understanding of its external IP or not. This could
@@ -181,7 +181,7 @@ nodes, from separate searches, tells you your node ID is incorrect.</p>
 <p>Once enforced, write tokens from peers whose node ID does not match its external
 IP should be considered dropped. In other words, a peer that uses a non-matching
 ID MUST never be used to store information on, regardless of which request. In the
-original DHT specification only <tt class="docutils literal"><span class="pre">announce_peer</span></tt> stores data in the network,
+original DHT specification only <tt class="docutils literal">announce_peer</tt> stores data in the network,
 but any future extension which stores data in the network SHOULD use the same
 restriction.</p>
 <p>Any peer on a local network address is exempt from this node ID verification.
