@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -105,8 +105,8 @@ uTorrent interpretation).</li>
 <li>supports lt_trackers extension, to exchange trackers between peers</li>
 <li><a class="reference external" href="manual.html#http-seeding">HTTP seeding</a>, as specified in <a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a> and <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a>.</li>
 <li>supports the udp-tracker protocol. (<a class="reference external" href="http://bittorrent.org/beps/bep_0015.html">BEP 15</a>).</li>
-<li>supports the <tt class="docutils literal"><span class="pre">no_peer_id=1</span></tt> extension that will ease the load off trackers.</li>
-<li>supports the <tt class="docutils literal"><span class="pre">compact=1</span></tt> tracker parameter.</li>
+<li>supports the <tt class="docutils literal">no_peer_id=1</tt> extension that will ease the load off trackers.</li>
+<li>supports the <tt class="docutils literal">compact=1</tt> tracker parameter.</li>
 <li>super seeding/initial seeding (<a class="reference external" href="http://bittorrent.org/beps/bep_0016.html">BEP 16</a>).</li>
 <li>private torrents (<a class="reference external" href="http://bittorrent.org/beps/bep_0027.html">BEP 27</a>).</li>
 <li>upload-only extension (<a class="reference external" href="http://bittorrent.org/beps/bep_0021.html">BEP 21</a>).</li>
@@ -239,14 +239,14 @@ to keep copying to a minimum on such machines. This mostly applies to embedded s
 for payload data is received directly into a page aligned disk buffer. If the connection
 is encrypted, the buffer is decrypted in-place. The buffer is then moved into the disk
 cache without being copied. Once all the blocks for a piece have been received, or the
-cache needs to be flushed, all the blocks are passed directly to <tt class="docutils literal"><span class="pre">writev()</span></tt> to flush
+cache needs to be flushed, all the blocks are passed directly to <tt class="docutils literal">writev()</tt> to flush
 them in a single syscall. This means a single copy into user space memory, and a single
 copy back into kernel memory, as illustrated by this figure:</p>
 <img alt="write_disk_buffers.png" src="write_disk_buffers.png" style="width: 100%;" />
 <p>When seeding and uploading in general, unnecessary copying is avoided by caching blocks
 in aligned buffers, that are copied once into the peer's send buffer. The peer's send buffer
 is not guaranteed to be aligned, even though it is most of the time. The send buffer is
-then encrypted with the peer specific key and chained onto the <tt class="docutils literal"><span class="pre">iovec</span></tt> for sending.
+then encrypted with the peer specific key and chained onto the <tt class="docutils literal">iovec</tt> for sending.
 This means there is one user space copy in order to allow unaligned peer requests and
 peer-specific encryption. This is illustrated by the following figure:</p>
 <img alt="read_disk_buffers.png" src="read_disk_buffers.png" style="width: 100%;" />
@@ -305,7 +305,7 @@ peers.</p>
 <img alt="merkle_tree.png" src="merkle_tree.png" />
 <p>The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
 down to the root.</p>
-<img align="right" alt="storage.png" class="align-right" src="storage.png" />
+<img alt="storage.png" class="align-right" src="storage.png" />
 </div>
 <div class="section" id="customizable-file-storage">
 <h2>customizable file storage</h2>
@@ -313,7 +313,7 @@ down to the root.</p>
 client can replace the default way to store files on disk.</p>
 <p>When implementing a bittorrent cache, it doesn't matter how the data is stored on disk, as
 long as it can be retrieved and seeded. In that case a new storage class can be implemented
-(inheriting from the <tt class="docutils literal"><span class="pre">storage_interface</span></tt> class) that avoids the unnecessary step of mapping
+(inheriting from the <tt class="docutils literal">storage_interface</tt> class) that avoids the unnecessary step of mapping
 slots to files and offsets. The storage can ignore the file boundaries and just store the
 entire torrent in a single file (which will end up being all the files concatenated). The main
 advantage of this, other than a slight cpu performance gain, is that all file operations would

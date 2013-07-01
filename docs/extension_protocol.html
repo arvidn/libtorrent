@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com Ludvig Strigeus, ludde&#64;utorrent.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -76,7 +76,7 @@ support 1 new message:</p>
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td><tt class="docutils literal"><span class="pre">extended</span></tt></td>
+<tr><td><tt class="docutils literal">extended</tt></td>
 <td>20</td>
 </tr>
 </tbody>
@@ -86,7 +86,7 @@ prefix and a single byte identifying the message (the single byte being 20
 in this case). At the start of the payload of the message, is a single byte
 message identifier. This identifier can refer to different extension messages
 and only one ID is specified, 0. If the ID is 0, the message is a handshake
-message which is described below. The layout of a general <tt class="docutils literal"><span class="pre">extended</span></tt> message
+message which is described below. The layout of a general <tt class="docutils literal">extended</tt> message
 follows (including the message headers used by the bittorrent protocol):</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -206,7 +206,7 @@ imaginable.</p>
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td><tt class="docutils literal"><span class="pre">m</span></tt></td>
+<tr><td><tt class="docutils literal">m</tt></td>
 <td><table border="1" class="first last docutils">
 <colgroup>
 <col width="88%" />
@@ -217,26 +217,26 @@ imaginable.</p>
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td><tt class="docutils literal"><span class="pre">LT_metadata</span></tt></td>
+<tr><td><tt class="docutils literal">LT_metadata</tt></td>
 <td>1</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">ut_pex</span></tt></td>
+<tr><td><tt class="docutils literal">ut_pex</tt></td>
 <td>2</td>
 </tr>
 </tbody>
 </table>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">p</span></tt></td>
+<tr><td><tt class="docutils literal">p</tt></td>
 <td>6881</td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">v</span></tt></td>
+<tr><td><tt class="docutils literal">v</tt></td>
 <td>&quot;µTorrent 1.2&quot;</td>
 </tr>
 </tbody>
 </table>
 <p>and in the encoded form:</p>
-<p><tt class="docutils literal"><span class="pre">d1:md11:LT_metadatai1e6:µT_PEXi2ee1:pi6881e1:v13:\xc2\xb5Torrent</span> <span class="pre">1.2e</span></tt></p>
+<p><tt class="docutils literal"><span class="pre">d1:md11:LT_metadatai1e6:µT_PEXi2ee1:pi6881e1:v13:\xc2\xb5Torrent</span> 1.2e</tt></p>
 <p>To make sure the extension names do not collide by mistake, they should be
 prefixed with the two (or one) character code that is used to identify the
 client that introduced the extension. This applies for both the names of
@@ -250,18 +250,18 @@ the sending client should not be disconnected. An implementation may choose
 to ignore the subsequent handshake messages (or parts of them).</p>
 <p>Subsequent handshake messages can be used to enable/disable extensions
 without restarting the connection. If a peer supports changing extensions
-at run time, it should note that the <tt class="docutils literal"><span class="pre">m</span></tt> dictionary is additive.
+at run time, it should note that the <tt class="docutils literal">m</tt> dictionary is additive.
 It's enough that it contains the actual <em>CHANGES</em> to the extension list.
-To disable the support for <tt class="docutils literal"><span class="pre">LT_metadata</span></tt> at run-time, without affecting
+To disable the support for <tt class="docutils literal">LT_metadata</tt> at run-time, without affecting
 any other extensions, this message should be sent:
-<tt class="docutils literal"><span class="pre">d11:LT_metadatai0ee</span></tt>.
+<tt class="docutils literal">d11:LT_metadatai0ee</tt>.
 As specified above, the value 0 is used to turn off an extension.</p>
 <p>The extension IDs must be stored for every peer, becuase every peer may have
 different IDs for the same extension.</p>
 <p>This specification, deliberately, does not specify any extensions such as
 peer-exchange or metadata exchange. This protocol is merely a transport
 for the actual extensions to the bittorrent protocol and the extensions
-named in the example above (such as <tt class="docutils literal"><span class="pre">p</span></tt>) are just examples of possible
+named in the example above (such as <tt class="docutils literal">p</tt>) are just examples of possible
 extensions.</p>
 </div>
 <div class="section" id="rationale">
@@ -271,17 +271,17 @@ is to avoid having a global registry of message IDs. Instead the names of the
 extension messages requires unique names, which is much easier to do without
 a global registry. The convention is to use a two letter prefix on the
 extension message names, the prefix would identify the client first
-implementing the extension message. e.g. <tt class="docutils literal"><span class="pre">LT_metadata</span></tt> is implemented by
-libtorrent, and hence it has the <tt class="docutils literal"><span class="pre">LT</span></tt> prefix.</p>
+implementing the extension message. e.g. <tt class="docutils literal">LT_metadata</tt> is implemented by
+libtorrent, and hence it has the <tt class="docutils literal">LT</tt> prefix.</p>
 <p>If the client supporting the extensions can decide which numbers the messages
 it receives will have, it means they are constants within that client. i.e.
-they can be used in <tt class="docutils literal"><span class="pre">switch</span></tt> statements. It's easy for the other end to
+they can be used in <tt class="docutils literal">switch</tt> statements. It's easy for the other end to
 store an array with the ID's we expect for each message and use that for
 lookups each time it sends an extension message.</p>
 <p>The reason for having a dictionary instead of having an array (using
 implicitly assigned index numbers to the extensions) is that if a client
 want to disable some extensions, the ID numbers would change, and it wouldn't
-be able to use constants (and hence, not use them in a <tt class="docutils literal"><span class="pre">switch</span></tt>). If the
+be able to use constants (and hence, not use them in a <tt class="docutils literal">switch</tt>). If the
 messages IDs would map directly to bittorrent message IDs, It would also make
 it possible to map extensions in the handshake to existing extensions with
 fixed message IDs.</p>

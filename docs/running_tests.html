@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -62,7 +62,7 @@
 <div class="section" id="running-and-building-tests">
 <h1>running and building tests</h1>
 <p>Some of the tests of libtorrent are not self contained. For instance, in
-order to test the <tt class="docutils literal"><span class="pre">http_connection</span></tt> class in libtorrent, the test requires
+order to test the <tt class="docutils literal">http_connection</tt> class in libtorrent, the test requires
 <a class="reference external" href="http://www.lighttpd.net">lighty</a>. This document outlines the requirements of the tests as well as
 describes how to set up your environment to be able to run them.</p>
 </div>
@@ -90,9 +90,9 @@ lighttpd -V
 tool to use to test libtorrent's support for SOCKS4, SOCKS5, HTTPS and
 HTTP proxies.</p>
 <p>You can download prebuilt binaries for the most common platforms on
-<a class="reference external" href="http://www.delegate.org/delegate/download/">deletate's download page</a>. Make sure to name the executable <tt class="docutils literal"><span class="pre">delegated</span></tt>
-and put it in a place where a shell can pick it up, in its <tt class="docutils literal"><span class="pre">PATH</span></tt>. For
-instance <tt class="docutils literal"><span class="pre">/bin</span></tt>.</p>
+<a class="reference external" href="http://www.delegate.org/delegate/download/">deletate's download page</a>. Make sure to name the executable <tt class="docutils literal">delegated</tt>
+and put it in a place where a shell can pick it up, in its <tt class="docutils literal">PATH</tt>. For
+instance <tt class="docutils literal">/bin</tt>.</p>
 </div>
 <div class="section" id="openssl">
 <h1>OpenSSL</h1>
@@ -104,7 +104,7 @@ echo -e &quot;AU\ntest province\ntest city\ntest company\ntest department\n\
         tester\ntest&#64;test.com&quot; | openssl req -new -x509 -keyout server.pem \
         -out server.pem -days 365 -nodes
 </pre>
-<p>This will write <tt class="docutils literal"><span class="pre">server.pem</span></tt> which is referenced in the lighty
+<p>This will write <tt class="docutils literal">server.pem</tt> which is referenced in the lighty
 confiuration file.</p>
 <p>OpenSSL comes installed with most Linux and BSD distros, including Mac OS X.
 You can download it from <a class="reference external" href="http://www.openssl.org/">the openssl homepage</a>.</p>
