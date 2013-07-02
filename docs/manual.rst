@@ -5427,10 +5427,9 @@ A value of 0 means unlimited.
 bytes per second and defaults to 4000. For busy boxes with lots of torrents
 that requires more DHT traffic, this should be raised.
 
-``unchoke_slots_limit`` is the max number of unchoked peers in the session.
-
-The number of unchoke slots may be ignored depending on what
-``choking_algorithm`` is set to.
+``unchoke_slots_limit`` is the max number of unchoked peers in the session. The
+number of unchoke slots may be ignored depending on what ``choking_algorithm``
+is set to. A value of -1 means infinite.
 
 ``half_open_limit`` sets the maximum number of half-open connections
 libtorrent will have when connecting to peers. A half-open connection is one
