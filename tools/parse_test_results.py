@@ -36,7 +36,6 @@ import os
 import sys
 import glob
 import json
-import yaml
 
 # TODO: different parsers could be run on output from different actions
 # if we would use the xml output in stead of stdout/stderr
@@ -172,112 +171,88 @@ def parse_tests(rev_dir):
 # TODO: remove this dependency by encoding it in the output files
 # this script should work from outside of the repo, just having
 # access to the shared folder
-project_name = ''
+project_name = 'libtorrent'
 
-try:
-	cfg = open('.regression.yml', 'r')
-except:
-	print '.regression.yml not found in current directory'
-	sys.exit(1)
-cfg = yaml.load(cfg.read())
-
-if 'project' in cfg:
-	project_name = cfg['project']
-
-branch_name = 'trunk'
-if 'branch' in cfg:
-	branch_name = cfg['branch'].strip()
-
-print 'branch: %s' % branch_name
+# maps branch name to latest rev
+revs = {}
 
 os.chdir('regression_tests')
 
-if len(sys.argv) > 1:
-	latest_rev = int(sys.argv[1])
-else:
-	latest_rev = 0
+for rev in os.listdir('.'):
+	try:
+		branch = rev.split('-')[0]
+		if branch == 'logs': continue
+		r = int(rev.split('-')[1])
+		if not branch in revs:
+			revs[branch] = r
+		else:
+			if r > revs[branch]:
+				revs[branch] = r
+	except:
+		print 'ignoring %s' % rev
 
-	for rev in os.listdir('.'):
-		try:
-			if not rev.startswith('%s-' % branch_name): continue
-			r = int(rev[len(branch_name)+1:])
-			if r > latest_rev: latest_rev = r
-		except: pass
+if revs == {}:
+	print 'no test files found'
+	sys.exit(1)
 
-	if latest_rev == 0:
-		print 'no test files found'
-		sys.exit(1)
+print 'latest versions'
+for b in revs:
+	print '%s\t%d' % (b, revs[b])
 
-print 'latest version: %d' % latest_rev
+for branch_name in revs:
 
-html_file = 'index.html'
+	latest_rev = revs[branch_name]
 
-'''
-html_file = '%s.html' % rev_dir
-index_mtime = modification_time(html_file)
+	html_file = '%s.html' % branch_name
 
-need_refresh = False
+	html = open(html_file, 'w+')
 
-for f in glob.glob(os.path.join(rev_dir, '*.json')):
-	mtime = modification_time(f)
+	print >>html, '''<html><head><title>regression tests, %s</title><style type="text/css">
+		.passed { display: block; width: 8px; height: 1em; background-color: #6f8 }
+		.failed { display: block; width: 8px; height: 1em; background-color: #f68 }
+		table { border: 0; border-collapse: collapse; }
+		h1 { font-size: 15pt; }
+		th { font-size: 8pt; }
+		td { border: 0; border-spacing: 0px; padding: 1px 1px 0px 0px; }
+		.left-head { white-space: nowrap; }
+		</style>
+		</head><body><h1>%s - %s</h1>''' % (project_name, project_name, branch_name)
 
-	if mtime > index_mtime:
-		need_refresh = True
-		break
+	print >>html, '<table border="1">'
 
-if not need_refresh:
-	print 'all up to date'
-	sys.exit(0)
-'''
+	for r in range(latest_rev, latest_rev - 20, -1):
+		sys.stdout.write('.')
+		sys.stdout.flush()
 
-html = open(html_file, 'w+')
+		print >>html, '<tr><th colspan="2" style="border:0;">revision %d</th>' % r
 
-print >>html, '''<html><head><title>regression tests, %s</title><style type="text/css">
-	.passed { display: block; width: 8px; height: 1em; background-color: #6f8 }
-	.failed { display: block; width: 8px; height: 1em; background-color: #f68 }
-	table { border: 0; border-collapse: collapse; }
-	h1 { font-size: 15pt; }
-	th { font-size: 8pt; }
-	td { border: 0; border-spacing: 0px; padding: 1px 1px 0px 0px; }
-	.left-head { white-space: nowrap; }
-	</style>
-	</head><body><h1>%s - %s</h1>''' % (project_name, project_name, branch_name)
+		rev_dir = '%s-%d' % (branch_name, r)
+		(platforms, tests) = parse_tests(rev_dir)
 
-print >>html, '<table border="1">'
+		for f in tests:
+			print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 5, f)
+		print >>html, '</tr>'
 
-for r in range(latest_rev, latest_rev - 20, -1):
-	sys.stdout.write('.')
-	sys.stdout.flush()
+		for p in platforms:
+			print >>html, '<tr><th class="left-head" rowspan="%d">%s</th>' % (len(platforms[p]), p)
+			idx = 0
+			for toolset in platforms[p]:
+				if idx > 0: print >>html, '<tr>'
+				print >>html, '<th class="left-head">%s</th>' % toolset
+				for f in platforms[p][toolset]:
+					for t in platforms[p][toolset][f]:
+						details = platforms[p][toolset][f][t]
+						if details['status'] == 0: c = 'passed'
+						else: c = 'failed'
+						log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
+						print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
+						save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
 
-	print >>html, '<tr><th colspan="2" style="border:0;">revision %d</th>' % r
+				print >>html, '</tr>'
+				idx += 1
 
-	rev_dir = '%s-%d' % (branch_name, r)
-	(platforms, tests) = parse_tests(rev_dir)
+	print >>html, '</table></body></html>'
+	html.close()
 
-	for f in tests:
-		print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 5, f)
-	print >>html, '</tr>'
-
-	for p in platforms:
-		print >>html, '<tr><th class="left-head" rowspan="%d">%s</th>' % (len(platforms[p]), p)
-		idx = 0
-		for toolset in platforms[p]:
-			if idx > 0: print >>html, '<tr>'
-			print >>html, '<th class="left-head">%s</th>' % toolset
-			for f in platforms[p][toolset]:
-				for t in platforms[p][toolset][f]:
-					details = platforms[p][toolset][f][t]
-					if details['status'] == 0: c = 'passed'
-					else: c = 'failed'
-					log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
-					print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
-					save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
-
-			print >>html, '</tr>'
-			idx += 1
-
-print >>html, '</table></body></html>'
-html.close()
-
-print ''
+	print ''
 
