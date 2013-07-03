@@ -383,6 +383,13 @@ Build features:
 |                          | * ``on`` - build asio types that depend on         |
 |                          |   boost.date_time.                                 |
 +--------------------------+----------------------------------------------------+
+| ``statistics``           | * ``off`` - default. No logging of additional      |
+|                          |   stats.                                           |
+|                          | * ``on`` - log session statistics in current       |
+|                          |   working directory session_stats<pid>. The log    |
+|                          |   is rotated every hour. It can be parsed by the   |
+|                          |   parse_session_stats.py script (requires gnuplot) |
++--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
 
