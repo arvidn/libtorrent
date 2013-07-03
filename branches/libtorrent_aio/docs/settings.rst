@@ -52,6 +52,44 @@ the two is peers being disconnected after failing to allocate more disk buffers.
 This feature requires the ``mmap`` system call, on systems that don't have ``mmap``
 this setting is ignored.
 
+.. _handshake_client_version:
+
++--------------------------+--------+---------+
+| name                     | type   | default |
++==========================+========+=========+
+| handshake_client_version | string | 0       |
++--------------------------+--------+---------+
+
+this is the client name and version identifier sent to peers in the handshake
+message. If this is an empty string, the user_agent is used instead
+
+.. _outgoing_interfaces:
+
++---------------------+--------+---------+
+| name                | type   | default |
++=====================+========+=========+
+| outgoing_interfaces | string | ""      |
++---------------------+--------+---------+
+
+sets the network interface this session will use when it opens outgoing
+connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
+OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
+(either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
+in round-robin order. This may be useful for clients that are multi-homed.
+Binding an outgoing connection to a local IP does not necessarily make the connection via the associated
+NIC/Adapter. Setting this to an empty string will disable binding of outgoing connections.
+
+.. _listen_interfaces:
+
++-------------------+--------+----------------+
+| name              | type   | default        |
++===================+========+================+
+| listen_interfaces | string | "0.0.0.0:6881" |
++-------------------+--------+----------------+
+
+a comma-separated list of (IP, port) pairs. These are the listen ports that will be opened
+for accepting incoming uTP and TCP connections.
+
 .. _allow_multiple_connections_per_ip:
 
 +-----------------------------------+------+---------+
@@ -297,7 +335,7 @@ to comply with the multi-tracker specification.
 
 ``prefer_udp_trackers`` is true by default. It means that trackers may
 be rearranged in a way that udp trackers are always tried before http
-trackers for the same hostname. Setting this to fails means that the
+trackers for the same hostname. Setting this to false means that the
 trackers' tier is respected and there's no preference of one protocol
 over another.
 
@@ -323,26 +361,8 @@ This is the traditional definition of super seeding.
 
 if this is set to true, the memory allocated for the
 disk cache will be locked in physical RAM, never to
-be swapped out
-
-.. _optimize_hashing_for_speed:
-
-+----------------------------+------+---------+
-| name                       | type | default |
-+============================+======+=========+
-| optimize_hashing_for_speed | bool | true    |
-+----------------------------+------+---------+
-
-``optimize_hashing_for_speed`` chooses between two ways of reading back
-piece data from disk when its complete and needs to be verified against
-the piece hash. This happens if some blocks were flushed to the disk
-out of order. Everything that is flushed in order is hashed as it goes
-along. Optimizing for speed will allocate space to fit all the the
-remaingin, unhashed, part of the piece, reads the data into it in a single
-call and hashes it. This is the default. If ``optimizing_hashing_for_speed``
-is false, a single block will be allocated (16 kB), and the unhashed parts
-of the piece are read, one at a time, and hashed in this single block. This
-is appropriate on systems that are memory constrained.
+be swapped out. Every time a disk buffer is allocated
+and freed, there will be the extra overhead of a system call.
 
 .. _disable_hash_checks:
 
@@ -358,24 +378,6 @@ tested to match the hashes in the torrent
 this is only useful for simulation and
 testing purposes (typically combined with
 disabled_storage)
-
-.. _allow_reordered_disk_operations:
-
-+---------------------------------+------+---------+
-| name                            | type | default |
-+=================================+======+=========+
-| allow_reordered_disk_operations | bool | true    |
-+---------------------------------+------+---------+
-
-if this is true, disk read operations are
-sorted by their physical offset on disk before
-issued to the operating system. This is useful
-if async I/O is not supported. It defaults to
-true if async I/O is not supported and fals
-otherwise.
-disk I/O operations are likely to be reordered
-regardless of this setting when async I/O
-is supported by the OS.
 
 .. _allow_i2p_mixed:
 
@@ -590,7 +592,7 @@ mode.
 +----------------+------+---------+
 | name           | type | default |
 +================+======+=========+
-| anonymous_mode | bool | false   |
+| anonymous_mode | bool | true    |
 +----------------+------+---------+
 
 ``anonymous_mode`` defaults to false. When set to true, the client tries
@@ -666,7 +668,7 @@ make outgoing connections.
 +-----------------------------+------+---------+
 | name                        | type | default |
 +=============================+======+=========+
-| no_connect_privileged_ports | bool | true    |
+| no_connect_privileged_ports | bool | false   |
 +-----------------------------+------+---------+
 
 when this is true, libtorrent will not attempt to make outgoing
@@ -775,6 +777,90 @@ when set to false, the ``write_cache_line_size`` will apply across piece boundar
 this is a bad idea unless the piece picker also is configured to have an affinity
 to pick pieces belonging to the same write cache line as is configured in the
 disk cache.
+
+.. _force_proxy:
+
++-------------+------+---------+
+| name        | type | default |
++=============+======+=========+
+| force_proxy | bool | false   |
++-------------+------+---------+
+
+If true, disables any communication that's not going over a proxy.
+Enabling this requires a proxy to be configured as well, see ``set_proxy_settings``.
+The listen sockets are closed, and incoming connections will
+only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
+is run on the same machine as the tracker proxy). This setting also
+disabled peer country lookups, since those are done via DNS lookups that
+aren't supported by proxies.
+
+.. _support_share_mode:
+
++--------------------+------+---------+
+| name               | type | default |
++====================+======+=========+
+| support_share_mode | bool | true    |
++--------------------+------+---------+
+
+if false, prevents libtorrent to advertise share-mode support
+
+.. _support_merkle_torrents:
+
++-------------------------+------+---------+
+| name                    | type | default |
++=========================+======+=========+
+| support_merkle_torrents | bool | true    |
++-------------------------+------+---------+
+
+if this is false, don't advertise support for
+the Tribler merkle tree piece message
+
+.. _report_redundant_bytes:
+
++------------------------+------+---------+
+| name                   | type | default |
++========================+======+=========+
+| report_redundant_bytes | bool | true    |
++------------------------+------+---------+
+
+if this is true, the number of redundant bytes
+is sent to the tracker
+
+.. _listen_system_port_fallback:
+
++-----------------------------+------+---------+
+| name                        | type | default |
++=============================+======+=========+
+| listen_system_port_fallback | bool | true    |
++-----------------------------+------+---------+
+
+if this is true, libtorrent will fall back to listening on a port chosen
+by the operating system (i.e. binding to port 0). If a failure is preferred,
+set this to false.
+
+.. _use_disk_cache_pool:
+
++---------------------+------+---------+
+| name                | type | default |
++=====================+======+=========+
+| use_disk_cache_pool | bool | false   |
++---------------------+------+---------+
+
+``use_disk_cache_pool`` enables using a pool allocator for disk cache blocks.
+Enabling it makes the cache perform better at high throughput.
+It also makes the cache less likely and slower at returning memory back to the system,
+once allocated.
+
+.. _announce_crypto_support:
+
++-------------------------+------+---------+
+| name                    | type | default |
++=========================+======+=========+
+| announce_crypto_support | bool | true    |
++-------------------------+------+---------+
+
+when this is true, and incoming encrypted connections are enabled, &supportcrypt=1
+is included in http tracker announces
 
 .. _tracker_completion_timeout:
 
@@ -1223,7 +1309,7 @@ The options for choking algorithms are:
   but shuffles it around to the best peers first. For this choker to be
   efficient, you need to set a global upload rate limit
   (``session::set_upload_rate_limit()``). For more information about this
-  choker, see the paper_.
+  choker, see the paper_. This choker is not fully implemented nor tested.
 
 .. _paper: http://bittyrant.cs.washington.edu/#papers
 
@@ -1308,14 +1394,12 @@ read and write mode. The options are:
 * enable_os_cache
 	This is the default and files are opened normally, with the OS caching
 	reads and writes.
-* disable_os_cache_for_aligned_files
-	This will open files in unbuffered mode for files where every read and
-	write would be sector aligned. Using aligned disk offsets is a requirement
-	on some operating systems.
 * disable_os_cache
-	This opens all files in unbuffered mode (if allowed by the operating system).
-	Linux and Windows, for instance, require disk offsets to be sector aligned,
-	and in those cases, this option is the same as ``disable_os_caches_for_aligned_files``.
+	This opens all files in no-cache mode. This corresponds to the OS not letting
+   blocks for the files linger in the cache. This makes sense in order to avoid
+   the bittorrent client to potentially evict all other processes' cache by simply
+   handling high throughput and large files. If libtorrent's read cache is disabled,
+   enabling this may reduce performance.
 
 One reason to disable caching is that it may help the operating system from growing
 its file cache indefinitely. Since some OSes only allow aligned files to be opened
@@ -1578,6 +1662,7 @@ to 0 on all platforms except windows.
 | max_rejects | int  | 50      |
 +-------------+------+---------+
 
+TODO: deprecate this
 ``max_rejects`` is the number of piece requests we will reject in a row
 while a peer is choked before the peer is considered abusive and is
 disconnected.
@@ -2032,21 +2117,6 @@ alerts are not popped, the queue will eventually fill up to this level.
 ``max_metadata_size`` is the maximum allowed size (in bytes) to be received
 by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
 
-.. _read_job_every:
-
-+----------------+------+---------+
-| name           | type | default |
-+================+======+=========+
-| read_job_every | int  | 10      |
-+----------------+------+---------+
-
-``read_job_every`` is used to avoid starvation of read jobs in the disk I/O
-thread. By default, read jobs are deferred, sorted by physical disk location
-and serviced once all write jobs have been issued. In scenarios where the
-download rate is enough to saturate the disk, there's a risk the read jobs will
-never be serviced. With this setting, every *x* write job, issued in a row, will
-instead pick one read job off of the sorted queue, where *x* is ``read_job_every``.
-
 .. _hashing_threads:
 
 +-----------------+------+---------+
@@ -2226,4 +2296,16 @@ to a peer. This setting controls n.
 the max number of bytes to allow an HTTP response to be when
 announcing to trackers or downloading .torrent files via
 the ``url`` provided in ``add_torrent_params``.
+
+.. _max_retry_port_bind:
+
++---------------------+------+---------+
+| name                | type | default |
++=====================+======+=========+
+| max_retry_port_bind | int  | 0       |
++---------------------+------+---------+
+
+if binding to a specific port fails, should the port be incremented
+by one and tried again? This setting specifies how many times to
+retry a failed port bind
 
