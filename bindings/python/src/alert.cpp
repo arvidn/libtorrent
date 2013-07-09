@@ -126,7 +126,8 @@ void bind_alert()
             .value("ip_block_notification", alert::ip_block_notification)
             .value("performance_warning", alert::performance_warning)
             .value("stats_notification", alert::stats_notification)
-            .value("all_categories", alert::all_categories)
+				// deliberately not INT_MAX. Arch linux crash while throwing an exception
+            .value("all_categories", (alert::category_t)0xfffffff)
             ;
 
     }
