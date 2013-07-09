@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || TORRENT_DISK_STATS
 #include <map>
 #endif
 
