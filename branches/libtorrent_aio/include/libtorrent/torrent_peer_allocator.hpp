@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_peer.hpp"
 
-#include <boost/pool/object_pool.hpp>
+#include <boost/pool/pool.hpp>
 
 namespace libtorrent
 {
@@ -45,9 +45,9 @@ namespace libtorrent
 	{
 		enum peer_type_t
 		{
-			ipv4_peer,
-			ipv6_peer,
-			i2p_peer
+			ipv4_peer_type,
+			ipv6_peer_type,
+			i2p_peer_type
 		};
 
 		virtual torrent_peer* allocate_peer_entry(int type) = 0;
@@ -73,13 +73,12 @@ namespace libtorrent
 		// to have tens of thousands of peers, and a pool
 		// saves significant overhead
 
-		// TODO: 3 this should be a normal pool rather than an object_pool
-		boost::object_pool<libtorrent::ipv4_peer> m_ipv4_peer_pool;
+		boost::pool<> m_ipv4_peer_pool;
 #if TORRENT_USE_IPV6
-		boost::object_pool<libtorrent::ipv6_peer> m_ipv6_peer_pool;
+		boost::pool<> m_ipv6_peer_pool;
 #endif
 #if TORRENT_USE_I2P
-		boost::object_pool<libtorrent::i2p_peer> m_i2p_peer_pool;
+		boost::pool<> m_i2p_peer_pool;
 #endif
 
 		// the total number of bytes allocated (cumulative)

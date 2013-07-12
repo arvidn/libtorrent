@@ -2009,7 +2009,7 @@ namespace libtorrent
 			if (was_introduced_by(pp, ep)) return (bt_peer_connection*)p;
 		}
 #endif
-		return 0;
+		return NULL;
 	}
 
 	bt_peer_connection* torrent::find_peer(tcp::endpoint const& ep) const
@@ -2019,6 +2019,16 @@ namespace libtorrent
 			peer_connection* p = *i;
 			if (p->type() != peer_connection::bittorrent_connection) continue;
 			if (p->remote() == ep) return (bt_peer_connection*)p;
+		}
+		return NULL;
+	}
+
+	peer_connection* torrent::find_peer(sha1_hash const& pid)
+	{
+		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		{
+			peer_connection* p = *i;
+			if (p->pid() == pid) return p;
 		}
 		return 0;
 	}

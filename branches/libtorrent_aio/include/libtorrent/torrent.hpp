@@ -186,6 +186,7 @@ namespace libtorrent
 		// if we're connected to a peer at ep, return its peer connection
 		// only count BitTorrent peers
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
+		peer_connection* find_peer(sha1_hash const& pid);
 
 		void on_resume_data_checked(disk_io_job const* j);
 		void on_force_recheck(disk_io_job const* j);
@@ -753,8 +754,8 @@ namespace libtorrent
 			return m_picker.get() != 0;
 		}
 
-		// TODO: 3 it would be nice it the policy was private
-		policy& get_policy() { return m_policy; }
+		int num_known_peers() const { return m_policy.num_peers(); }
+		int num_connect_candidates() const { return m_policy.num_connect_candidates(); }
 
 		piece_manager& storage();
 		bool has_storage() const { return m_storage; }
@@ -963,8 +964,6 @@ namespace libtorrent
 
 		void update_peer_interest(bool was_finished);
 		void prioritize_udp_trackers();
-
-		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
 		void update_tracker_timer(ptime now);
 

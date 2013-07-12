@@ -2441,28 +2441,6 @@ namespace libtorrent
 		m_ses.inc_stats_counter(counters::num_outgoing_piece);
 	}
 
-	namespace
-	{
-		struct match_peer_id
-		{
-			match_peer_id(peer_id const& id, peer_connection const* pc)
-				: m_id(id), m_pc(pc)
-			{ TORRENT_ASSERT(pc); }
-
-			bool operator()(torrent_peer const* p) const
-			{
-				return p->connection != m_pc
-					&& p->connection
-					&& p->connection->pid() == m_id
-					&& !p->connection->pid().is_all_zeros()
-					&& p->address() == m_pc->remote().address();
-			}
-
-			peer_id const& m_id;
-			peer_connection const* m_pc;
-		};
-	}
-
 	// --------------------------
 	// RECEIVE DATA
 	// --------------------------
@@ -3216,12 +3194,10 @@ namespace libtorrent
 			if (t->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 			{
 				// now, let's see if this connection should be closed
-				policy& p = t->get_policy();
-				policy::iterator i = std::find_if(p.begin_peer(), p.end_peer()
-					, match_peer_id(pid, this));
-				if (i != p.end_peer())
+				peer_connection* p = t->find_peer(pid);
+				if (p)
 				{
-					TORRENT_ASSERT((*i)->connection->pid() == pid);
+					TORRENT_ASSERT(p->pid() == pid);
 					// we found another connection with the same peer-id
 					// which connection should be closed in order to be
 					// sure that the other end closes the same connection?
@@ -3231,7 +3207,7 @@ namespace libtorrent
 					// if not, we should close the outgoing one.
 					if (pid < m_ses.get_peer_id() && is_outgoing())
 					{
-						(*i)->connection->disconnect(errors::duplicate_peer_id, op_bittorrent);
+						p->disconnect(errors::duplicate_peer_id, op_bittorrent);
 					}
 					else
 					{

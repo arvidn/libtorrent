@@ -3814,7 +3814,7 @@ retry:
 				TORRENT_ASSERT(i != m_torrents.end());
 				int peers_to_disconnect = (std::min)((std::max)(
 					int(i->second->num_peers() * m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
-					, i->second->get_policy().num_connect_candidates());
+					, i->second->num_connect_candidates());
 				i->second->disconnect_peers(peers_to_disconnect
 					, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
 			}
@@ -3831,7 +3831,7 @@ retry:
 
 					int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
 						* m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
-						, i->second->get_policy().num_connect_candidates());
+						, i->second->num_connect_candidates());
 					t->disconnect_peers(peers_to_disconnect
 						, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
 				}
@@ -3919,9 +3919,9 @@ retry:
 			torrent* t = i->second.get();
 
 			int connection_slots = (std::max)(t->max_connections() - t->num_peers(), 0);
-			int candidates = t->get_policy().num_connect_candidates();
+			int candidates = t->num_connect_candidates();
 			connect_candidates += (std::min)(candidates, connection_slots);
-			num_peers += t->get_policy().num_peers();
+			num_peers += t->num_known_peers();
 
 			if (t->max_connections() > 0)
 			{
@@ -6356,7 +6356,7 @@ retry:
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			peerlist_size += i->second->get_policy().num_peers();
+			peerlist_size += i->second->num_known_peers();
 		}
 
 		s.peerlist_size = peerlist_size;
@@ -7350,10 +7350,10 @@ retry:
 				++num_optimistic;
 				TORRENT_ASSERT(!p->is_choked());
 			}
-			if (t && p->peer_info_struct() && !p->peer_info_struct()->web_seed)
-			{
-				TORRENT_ASSERT(t->get_policy().has_connection(p));
-			}
+//			if (t && p->peer_info_struct() && !p->peer_info_struct()->web_seed)
+//			{
+//				TORRENT_ASSERT(t->get_policy().has_connection(p));
+//			}
 		}
 
 		TORRENT_ASSERT(disk_queue[peer_connection::download_channel] == m_stats_counters[counters::num_peers_down_disk]);

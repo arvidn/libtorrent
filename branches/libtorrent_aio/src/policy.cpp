@@ -735,8 +735,8 @@ namespace libtorrent
 			bool is_v6 = false;
 #endif
 			torrent_peer* p = state->peer_allocator->allocate_peer_entry(
-				is_v6 ? torrent_peer_allocator_interface::ipv6_peer
-				: torrent_peer_allocator_interface::ipv4_peer);
+				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
+				: torrent_peer_allocator_interface::ipv4_peer_type);
 			if (p == 0) return false;
 
 #if TORRENT_USE_IPV6
@@ -1004,8 +1004,8 @@ namespace libtorrent
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			p = state->peer_allocator->allocate_peer_entry(torrent_peer_allocator_interface::i2p_peer);
-			if (p == 0) return 0;
+			p = state->peer_allocator->allocate_peer_entry(torrent_peer_allocator_interface::i2p_peer_type);
+			if (p == NULL) return NULL;
 			new (p) i2p_peer(destination, true, src);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -1081,9 +1081,9 @@ namespace libtorrent
 			bool is_v6 = false;
 #endif
 			p = state->peer_allocator->allocate_peer_entry(
-				is_v6 ? torrent_peer_allocator_interface::ipv6_peer
-				: torrent_peer_allocator_interface::ipv4_peer);
-			if (p == 0) return 0;
+				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
+				: torrent_peer_allocator_interface::ipv4_peer_type);
+			if (p == NULL) return NULL;
 
 #if TORRENT_USE_IPV6
 			if (is_v6)
