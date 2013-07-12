@@ -275,19 +275,13 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	boost::scoped_ptr<storage_interface> s(new default_storage(p));
 	s->m_settings = &set;
 
-	if (s->error())
-	{
-		TEST_ERROR(s->error().message().c_str());
-		fprintf(stderr, "default_storage::constructor %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
-	}
-
 	// allocate the files and create the directories
 	storage_error se;
 	s->initialize(se);
 	if (se)
 	{
-		TEST_ERROR(s->error().message().c_str());
-		fprintf(stderr, "default_storage::initialize %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
+		TEST_ERROR(se.ec.message().c_str());
+		fprintf(stderr, "default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
 	}
 
 	// directories are not created up-front, unless they contain
@@ -299,12 +293,12 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("folder2", "test3.tmp")))));	
 
 	s->delete_files(se);
-	if (se) print_error("delete_files", 0, ec);
+	if (se) print_error("delete_files", 0, se.ec);
 
-	if (s->error())
+	if (se)
 	{
-		TEST_ERROR(s->error().message().c_str());
-		fprintf(stderr, "default_storage::delete_files %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
+		TEST_ERROR(se.ec.message().c_str());
+		fprintf(stderr, "default_storage::delete_files %s: %d\n", se.ec.message().c_str(), int(se.file));
 	}
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
