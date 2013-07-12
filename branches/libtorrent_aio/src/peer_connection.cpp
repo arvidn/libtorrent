@@ -5372,10 +5372,10 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("peer_connection::on_receive_data");
+			add_outstanding_async("peer_connection::on_receive_data_nb");
 #endif
 			m_socket->async_read_some(asio::null_buffers(), make_read_handler(
-				boost::bind(&peer_connection::on_receive_data, self(), _1, _2, true)));
+				boost::bind(&peer_connection::on_receive_data_nb, self(), _1, _2)));
 			return 0;
 		}
 
@@ -5441,23 +5441,23 @@ namespace libtorrent
 			peer_log("<<< ASYNC_READ      [ max: %d bytes ]", max_receive);
 #endif
 
+			// utp sockets aren't thread safe...
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("peer_connection::on_receive_data");
 #endif
-			// utp sockets aren't thread safe...
 			if (is_utp(*m_socket))
 			{
 				if (num_bufs == 1)
 				{
 					m_socket->async_read_some(
 						asio::mutable_buffers_1(vec[0]), make_read_handler(
-							boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
+							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 				}
 				else
 				{
 					m_socket->async_read_some(
 						vec, make_read_handler(
-							boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
+							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 				}
 			}
 			else
@@ -5635,6 +5635,107 @@ namespace libtorrent
 		bool m_cond;
 	};
 
+	void peer_connection::on_receive_data_nb(const error_code& error
+		, std::size_t bytes_transferred)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("peer_connection::on_receive_data_nb");
+#endif
+
+		// leave this bit set until we're done looping, reading from the socket.
+		// that way we don't trigger any async read calls until the end of this
+		// function.
+		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+
+		TORRENT_ASSERT(m_ses.is_single_thread());
+
+		// nb is short for null_buffers. In this mode we don't actually
+		// allocate a receive buffer up-front, but get notified when
+		// we can read from the socket, and then determine how much there
+		// is to read.
+
+		error_code ec;
+		std::size_t buffer_size = m_socket->available(ec);
+		if (ec)
+		{
+			disconnect(ec, op_available);
+			return;
+		}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<<< READ_AVAILABLE [ bytes: %d ]", buffer_size);
+#endif
+
+		// at this point the ioctl told us the socket doesn't have any
+		// pending bytes. This probably means some error happened.
+		// in order to find out though, we need to initiate a read
+		// operation
+		if (buffer_size == 0)
+		{
+			// try to read one byte. The socket is non-blocking anyway
+			// so worst case, we'll fail with EWOULDBLOCK
+			buffer_size = 1;
+		}
+		else
+		{
+			if (buffer_size > m_quota[download_channel])
+			{
+				request_bandwidth(download_channel, buffer_size);
+				buffer_size = m_quota[download_channel];
+			}
+			// we're already waiting to get some more
+			// quota from the bandwidth manager
+			if (buffer_size == 0)
+			{
+				// allow reading from the socket again
+				TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+				m_channel_state[download_channel] &= ~peer_info::bw_network;
+				return;
+			}
+		}
+
+		if (buffer_size > 2097152) buffer_size = 2097152;
+
+		m_recv_buffer.resize(m_recv_pos + buffer_size);
+		TORRENT_ASSERT(m_recv_start == 0);
+
+		// utp sockets aren't thread safe...
+		if (is_utp(*m_socket))
+		{
+			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
+				, buffer_size), ec);
+
+			if (ec)
+			{
+				if (ec == boost::asio::error::try_again || ec == boost::asio::error::would_block)
+				{
+					// allow reading from the socket again
+					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+					m_channel_state[download_channel] &= ~peer_info::bw_network;
+					setup_receive(read_async);
+					return;
+				}
+				disconnect(ec, op_sock_read);
+				return;
+			}
+		}
+		else
+		{
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("peer_connection::on_receive_data");
+#endif
+			socket_job j;
+			j.type = socket_job::read_job;
+			j.recv_buf = &m_recv_buffer[m_recv_pos];
+			j.buf_size = buffer_size;
+			j.peer = self();
+			m_ses.post_socket_job(j);
+			return;
+		}
+
+		receive_data_impl(error, bytes_transferred, 0);
+	}
+
 	// --------------------------
 	// RECEIVE DATA
 	// --------------------------
@@ -5647,14 +5748,10 @@ namespace libtorrent
 	//  2. m_channel_state[download_channel] & peer_info::bw_network == 0
 
 	void peer_connection::on_receive_data(const error_code& error
-		, std::size_t bytes_transferred, bool nb)
+		, std::size_t bytes_transferred)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_receive_data");
-#endif
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
-			, bytes_transferred, error.message().c_str());
 #endif
 
 		// leave this bit set until we're done looping, reading from the socket.
@@ -5663,6 +5760,17 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
 
 		TORRENT_ASSERT(m_ses.is_single_thread());
+
+		receive_data_impl(error, bytes_transferred, 10);
+	}
+
+	void peer_connection::receive_data_impl(const error_code& error
+		, std::size_t bytes_transferred, int read_loops)
+	{
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
+			, bytes_transferred, error.message().c_str());
+#endif
 
 		// submit all disk jobs later
 		m_ses.deferred_submit_jobs();
@@ -5690,95 +5798,6 @@ namespace libtorrent
 			on_receive(error, bytes_transferred);
 			disconnect(error, op_sock_read);
 			return;
-		}
-
-		// nb is short for null_buffers. In this mode we don't actually
-		// allocate a receive buffer up-front, but get notified when
-		// we can read from the socket, and then determine how much there
-		// is to read.
-
-		// TODO: 3 this block should be moved into a separate function
-		// and nb should not be passed in here
-		if (nb)
-		{
-			error_code ec;
-			std::size_t buffer_size = m_socket->available(ec);
-			if (ec)
-			{
-				disconnect(ec, op_available);
-				return;
-			}
-
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<<< READ_AVAILABLE [ bytes: %d ]", buffer_size);
-#endif
-
-			// at this point the ioctl told us the socket doesn't have any
-			// pending bytes. This probably means some error happened.
-			// in order to find out though, we need to initiate a read
-			// operation
-			if (buffer_size == 0)
-			{
-				// try to read one byte. The socket is non-blocking anyway
-				// so worst case, we'll fail with EWOULDBLOCK
-				buffer_size = 1;
-			}
-			else
-			{
-				if (buffer_size > m_quota[download_channel])
-				{
-					request_bandwidth(download_channel, buffer_size);
-					buffer_size = m_quota[download_channel];
-				}
-				// we're already waiting to get some more
-				// quota from the bandwidth manager
-				if (buffer_size == 0)
-				{
-					// allow reading from the socket again
-					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-					m_channel_state[download_channel] &= ~peer_info::bw_network;
-					return;
-				}
-			}
-
-			if (buffer_size > 2097152) buffer_size = 2097152;
-
-			m_recv_buffer.resize(m_recv_pos + buffer_size);
-			TORRENT_ASSERT(m_recv_start == 0);
-
-			// utp sockets aren't thread safe...
-			if (is_utp(*m_socket))
-			{
-				bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
-					, buffer_size), ec);
-
-				if (ec)
-				{
-					if (ec == boost::asio::error::try_again || ec == boost::asio::error::would_block)
-					{
-						// allow reading from the socket again
-						TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-						m_channel_state[download_channel] &= ~peer_info::bw_network;
-						setup_receive(read_async);
-						return;
-					}
-					disconnect(ec, op_sock_read);
-					return;
-				}
-			}
-			else
-			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("peer_connection::on_receive_data");
-#endif
-				socket_job j;
-				j.type = socket_job::read_job;
-				j.recv_buf = &m_recv_buffer[m_recv_pos];
-				j.buf_size = buffer_size;
-				j.peer = self();
-				m_ses.post_socket_job(j);
-				return;
-			}
 		}
 
 		m_ses.inc_stats_counter(counters::on_read_counter);
@@ -5858,7 +5877,7 @@ namespace libtorrent
 
 			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 
-			if (num_loops > 10 || nb) break;
+			if (num_loops > read_loops) break;
 
 			error_code ec;
 			bytes_transferred = try_read(read_sync, ec);

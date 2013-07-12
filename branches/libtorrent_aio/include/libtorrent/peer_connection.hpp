@@ -761,7 +761,15 @@ namespace libtorrent
 		void on_send_data(error_code const& error
 			, std::size_t bytes_transferred);
 		void on_receive_data(error_code const& error
-			, std::size_t bytes_transferred, bool nb);
+			, std::size_t bytes_transferred);
+
+		// _nb means null_buffers. i.e. we just know the socket is
+		// readable at this point, we don't know how much has been received
+		void on_receive_data_nb(error_code const& error
+			, std::size_t bytes_transferred);
+
+		void receive_data_impl(error_code const& error
+			, std::size_t bytes_transferred, int read_loops);
 
 		// this is the limit on the number of outstanding requests
 		// we have to this peer. This is initialized to the settings

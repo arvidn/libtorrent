@@ -203,13 +203,13 @@ void network_thread_pool::process_job(socket_job const& j, bool post)
 		{
 			j.peer->get_socket()->async_read_some(asio::buffer(j.recv_buf, j.buf_size)
 				, j.peer->make_read_handler(boost::bind(
-				&peer_connection::on_receive_data, j.peer, _1, _2, false)));
+				&peer_connection::on_receive_data, j.peer, _1, _2)));
 		}
 		else
 		{
 			j.peer->get_socket()->async_read_some(j.read_vec
 				, j.peer->make_read_handler(boost::bind(
-				&peer_connection::on_receive_data, j.peer, _1, _2, false)));
+				&peer_connection::on_receive_data, j.peer, _1, _2)));
 		}
 	}
 }
