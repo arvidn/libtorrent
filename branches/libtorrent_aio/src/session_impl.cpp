@@ -846,7 +846,6 @@ namespace aux {
 		PRINT_OFFSETOF_END(announce_entry)
 
 		PRINT_SIZEOF(torrent_info)
-		PRINT_OFFSETOF(torrent_info, m_refs)
 		PRINT_OFFSETOF(torrent_info, m_merkle_first_leaf)
 		PRINT_OFFSETOF(torrent_info, m_files)
 		PRINT_OFFSETOF(torrent_info, m_orig_files)
