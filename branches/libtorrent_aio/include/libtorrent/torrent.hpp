@@ -754,8 +754,8 @@ namespace libtorrent
 			return m_picker.get() != 0;
 		}
 
-		int num_known_peers() const { return m_policy.num_peers(); }
-		int num_connect_candidates() const { return m_policy.num_connect_candidates(); }
+		int num_known_peers() const { return m_policy ? m_policy->num_peers() : 0; }
+		int num_connect_candidates() const { return m_policy ? m_policy->num_connect_candidates() : 0; }
 
 		piece_manager& storage();
 		bool has_storage() const { return m_storage; }
@@ -983,7 +983,8 @@ namespace libtorrent
 		void remove_time_critical_pieces(std::vector<int> const& priority);
 		void request_time_critical_pieces();
 
-		policy m_policy;
+		void need_policy();
+		boost::scoped_ptr<policy> m_policy;
 
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
@@ -1109,7 +1110,7 @@ namespace libtorrent
 		};
 
 		// this list is sorted by time_critical_piece::deadline
-		std::deque<time_critical_piece> m_time_critical_pieces;
+		std::vector<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;
 		std::string m_username;
