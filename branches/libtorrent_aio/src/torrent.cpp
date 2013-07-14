@@ -1992,8 +1992,10 @@ namespace libtorrent
 		// someone else holds a reference to the torrent_info
 		// make the torrent release its reference to it,
 		// after making a copy and then unloading that version
-//		if (!m_torrent_file.unique())
-//			m_torrent_file = boost::make_shared<torrent_info>(*m_torrent_file);
+		// as soon as the user is done with its copy of torrent_info
+		// it will be freed, and we'll have the unloaded version left
+		if (!m_torrent_file.unique())
+			m_torrent_file = boost::make_shared<torrent_info>(*m_torrent_file);
 
 		m_torrent_file->unload();
 
