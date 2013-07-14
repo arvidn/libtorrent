@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/thread.hpp"
 
+#include <boost/make_shared.hpp>
 #include <boost/utility.hpp>
 
 #include "test.hpp"
@@ -116,7 +117,7 @@ void run_until(io_service& ios, bool const& done)
 
 void nop() {}
 
-void run_storage_tests(boost::intrusive_ptr<torrent_info> info
+void run_storage_tests(boost::shared_ptr<torrent_info> info
 	, file_storage& fs
 	, std::string const& test_path
 	, libtorrent::storage_mode_t storage_mode
@@ -253,7 +254,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	boost::intrusive_ptr<torrent_info> info(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0));
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
@@ -308,7 +309,7 @@ void test_check_files(std::string const& test_path
 	, libtorrent::storage_mode_t storage_mode
 	, bool unbuffered)
 {
-	boost::intrusive_ptr<torrent_info> info;
+	boost::shared_ptr<torrent_info> info;
 
 	error_code ec;
 	const int piece_size = 16 * 1024;
@@ -348,7 +349,7 @@ void test_check_files(std::string const& test_path
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	info = new torrent_info(&buf[0], buf.size(), ec);
+	info = boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0);
 
 	aux::session_settings set;
 	file_pool fp;
@@ -383,7 +384,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 {
 	std::cerr << "\n=== " << test_path << " ===\n" << std::endl;
 
-	boost::intrusive_ptr<torrent_info> info;
+	boost::shared_ptr<torrent_info> info;
 
 	{
 	error_code ec;
@@ -408,7 +409,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 	
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	info = new torrent_info(&buf[0], buf.size(), ec);
+	info = boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0);
 	std::cerr << "=== test 1 ===" << std::endl;
 
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
@@ -445,7 +446,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	info = new torrent_info(&buf[0], buf.size(), ec);
+	info = boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0);
 
 	std::cerr << "=== test 3 ===" << std::endl;
 
@@ -497,7 +498,7 @@ void test_fastresume(std::string const& test_path)
 	if (ec) std::cerr << "create_directory '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 	std::ofstream file(combine_path(test_path, "tmp1/temporary").c_str());
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(combine_path(test_path, "tmp1/temporary")));
 	if (!exists(combine_path(test_path, "tmp1/temporary")))
@@ -511,7 +512,7 @@ void test_fastresume(std::string const& test_path)
 		error_code ec;
 
 		add_torrent_params p;
-		p.ti = new torrent_info(*t);
+		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
 		torrent_handle h = ses.add_torrent(p, ec);
@@ -558,7 +559,7 @@ void test_fastresume(std::string const& test_path)
 		ses.set_alert_mask(alert::all_categories);
 
 		add_torrent_params p;
-		p.ti = new torrent_info(*t);
+		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
 		std::vector<char> resume_buf;
@@ -607,7 +608,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	create_directory(combine_path(test_path, "tmp2"), ec);
 	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
 	std::ofstream file(combine_path(test_path, "tmp2/temporary").c_str());
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/temporary")));
 
@@ -618,7 +619,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 
 
 		add_torrent_params p;
-		p.ti = new torrent_info(*t);
+		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_compact;
 		torrent_handle h = ses.add_torrent(p, ec);
@@ -657,7 +658,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		ses.set_alert_mask(alert::all_categories);
 
 		add_torrent_params p;
-		p.ti = new torrent_info(*t);
+		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_compact;
 		std::vector<char> resume_buf;

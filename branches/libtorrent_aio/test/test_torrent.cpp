@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
+#include <boost/make_shared.hpp>
 #include <iostream>
 
 #include "test.hpp"
@@ -45,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type file_size)
+void test_running_torrent(boost::shared_ptr<torrent_info> info, size_type file_size)
 {
 	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
 	ses.set_alert_mask(alert::storage_notification);
@@ -184,7 +185,7 @@ int test_main()
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
+		boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0));
 		TEST_CHECK(info->num_pieces() > 0);
 
 		test_running_torrent(info, file_size);
@@ -201,7 +202,7 @@ int test_main()
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
+		boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0));
 		test_running_torrent(info, 0);
 	}
 

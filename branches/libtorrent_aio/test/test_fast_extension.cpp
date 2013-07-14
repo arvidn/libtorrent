@@ -228,9 +228,9 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
 }
 
-boost::intrusive_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih, boost::shared_ptr<session>& ses)
+boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih, boost::shared_ptr<session>& ses)
 {
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
+	boost::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();
 	ses.reset(new session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0));
 	error_code ec;
@@ -373,7 +373,7 @@ void test_multiple_bitfields()
 	boost::shared_ptr<session> ses;
 	io_service ios;
 	stream_socket s(ios);
-	boost::intrusive_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -400,7 +400,7 @@ void test_multiple_have_all()
 	boost::shared_ptr<session> ses;
 	io_service ios;
 	stream_socket s(ios);
-	boost::intrusive_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);

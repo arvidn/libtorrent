@@ -248,17 +248,6 @@ namespace libtorrent
 		// deprecated in 0.14
 		TORRENT_DEPRECATED_PREFIX
 		torrent_handle add_torrent(
-			boost::intrusive_ptr<torrent_info> ti
-			, std::string const& save_path
-			, entry const& resume_data = entry()
-			, storage_mode_t storage_mode = storage_mode_sparse
-			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0) TORRENT_DEPRECATED;
-
-		// deprecated in 0.14
-		TORRENT_DEPRECATED_PREFIX
-		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
 			, char const* name

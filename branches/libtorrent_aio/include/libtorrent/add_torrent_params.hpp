@@ -121,7 +121,7 @@ namespace libtorrent
 	
 		// libtorrent version. Used for forward binary compatibility
 		int version;
-		boost::intrusive_ptr<torrent_info> ti;
+		boost::shared_ptr<torrent_info> ti;
 #ifndef TORRENT_NO_DEPRECATE
 		char const* tracker_url;
 #endif
@@ -130,6 +130,7 @@ namespace libtorrent
 		sha1_hash info_hash;
 		std::string name;
 		std::string save_path;
+		// TODO: this should not be a pointer
 		std::vector<char>* resume_data;
 		storage_mode_t storage_mode;
 		storage_constructor_type storage;

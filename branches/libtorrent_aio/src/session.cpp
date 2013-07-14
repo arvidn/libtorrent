@@ -714,7 +714,7 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
-		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
+		boost::shared_ptr<torrent_info> tip(boost::make_shared<torrent_info>(ti));
 		add_torrent_params p(sc);
 		p.ti = tip;
 		p.save_path = save_path;
@@ -726,30 +726,6 @@ namespace libtorrent
 		}
 		p.storage_mode = storage_mode;
 		p.paused = paused;
-		return add_torrent(p);
-	}
-
-	torrent_handle session::add_torrent(
-		boost::intrusive_ptr<torrent_info> ti
-		, std::string const& save_path
-		, entry const& resume_data
-		, storage_mode_t storage_mode
-		, bool paused
-		, storage_constructor_type sc
-		, void* userdata)
-	{
-		add_torrent_params p(sc);
-		p.ti = ti;
-		p.save_path = save_path;
-		std::vector<char> buf;
-		if (resume_data.type() != entry::undefined_t)
-		{
-			bencode(std::back_inserter(buf), resume_data);
-			p.resume_data = &buf;
-		}
-		p.storage_mode = storage_mode;
-		p.paused = paused;
-		p.userdata = userdata;
 		return add_torrent(p);
 	}
 

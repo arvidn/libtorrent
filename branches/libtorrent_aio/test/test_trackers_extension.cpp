@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/thread.hpp"
+#include <boost/make_shared.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #include "test.hpp"
@@ -88,7 +89,7 @@ int test_main()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	boost::intrusive_ptr<torrent_info> ti(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> ti(boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec)));
 	TEST_CHECK(!ec);
 
 	atp.ti = ti;

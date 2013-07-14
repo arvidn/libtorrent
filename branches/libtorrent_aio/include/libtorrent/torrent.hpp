@@ -763,7 +763,7 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
-		boost::intrusive_ptr<torrent_info> get_torrent_copy();
+		boost::shared_ptr<torrent_info> get_torrent_copy();
 
 		std::string const& uuid() const { return m_uuid; }
 		void set_uuid(std::string const& s) { m_uuid = s; }
@@ -990,7 +990,7 @@ namespace libtorrent
 		size_type m_total_uploaded;
 		size_type m_total_downloaded;
 
-		boost::intrusive_ptr<torrent_info> m_torrent_file;
+		boost::shared_ptr<torrent_info> m_torrent_file;
 
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been

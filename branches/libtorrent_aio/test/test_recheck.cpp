@@ -72,7 +72,7 @@ int test_main()
 	create_directory("tmp1_recheck", ec);
 	if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
 	file.close();
 
 	add_torrent_params param;

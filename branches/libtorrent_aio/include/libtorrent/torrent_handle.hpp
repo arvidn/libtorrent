@@ -273,7 +273,7 @@ namespace libtorrent
 
 		storage_interface* get_storage_impl() const;
 
-		boost::intrusive_ptr<torrent_info> torrent_file() const;
+		boost::shared_ptr<torrent_info> torrent_file() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 
@@ -510,7 +510,7 @@ namespace libtorrent
 
 		// the torrent file for this torrent
 		// only set when status is queried with query_torrent_file
-		boost::intrusive_ptr<const torrent_info> torrent_file;
+		boost::weak_ptr<const torrent_info> torrent_file;
 
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;

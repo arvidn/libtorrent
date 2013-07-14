@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include "test.hpp"
 #include "libtorrent/assert.hpp"
@@ -320,9 +321,9 @@ int start_proxy(int proxy_type)
 using namespace libtorrent;
 
 template <class T>
-boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
+boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 {
-	return boost::intrusive_ptr<T>(new T(*ptr));
+	return boost::make_shared<T>(*ptr);
 }
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
@@ -354,7 +355,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 	free(random_data);
 }
 
-boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size
+boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size
 	, int num_pieces, bool add_tracker, bool encrypted_torrent)
 {
 	char const* tracker_url = "http://non-existent-name.com/announce";
@@ -407,15 +408,15 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 
 	bencode(out, tor);
 	error_code ec;
-	return boost::intrusive_ptr<torrent_info>(new torrent_info(
-		&tmp[0], tmp.size(), ec));
+	return boost::make_shared<torrent_info>(
+		&tmp[0], tmp.size(), boost::ref(ec), 0);
 }
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
-	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
+	, boost::shared_ptr<torrent_info>* torrent, bool super_seeding
 	, add_torrent_params const* p, bool stop_lsd, bool encrypted_torrent)
 {
 	assert(ses1);
@@ -463,7 +464,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		assert(ses3->id() != ses2->id());
 	}
 
-	boost::intrusive_ptr<torrent_info> t;
+	boost::shared_ptr<torrent_info> t;
 	if (torrent == 0)
 	{
 		error_code ec;
@@ -522,7 +523,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
   	if (use_metadata_transfer)
 	{
-		param.ti = 0;
+		param.ti.reset();
 		param.info_hash = t->info_hash();
 	}
 	else

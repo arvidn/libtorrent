@@ -802,10 +802,10 @@ namespace libtorrent
 		return !m_torrent.expired();
 	}
 
-	boost::intrusive_ptr<torrent_info> torrent_handle::torrent_file() const
+	boost::shared_ptr<torrent_info> torrent_handle::torrent_file() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<torrent_info>(), get_torrent_copy);
+		TORRENT_SYNC_CALL_RET(boost::shared_ptr<torrent_info>, boost::shared_ptr<torrent_info>(), get_torrent_copy);
 		return r;
 	}
 
@@ -816,11 +816,11 @@ namespace libtorrent
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;
-		static boost::intrusive_ptr<torrent_info> holder[4];
+		static boost::shared_ptr<torrent_info> holder[4];
 		static int cursor = 0;
 		static mutex holder_mutex;
 
-		boost::intrusive_ptr<torrent_info> r = torrent_file();
+		boost::shared_ptr<torrent_info> r = torrent_file();
 
 		mutex::scoped_lock l(holder_mutex);
 		holder[cursor++] = r;

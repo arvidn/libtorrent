@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
+#include <boost/make_shared.hpp>
 #include <fstream>
 #include <iostream>
 
@@ -47,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
+void test_transfer(boost::shared_ptr<torrent_info> torrent_file
 	, int proxy, int port, char const* protocol, bool url_seed, bool chunked_encoding, bool test_ban)
 {
 	using namespace libtorrent;
@@ -325,7 +326,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding, b
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> torrent_file(boost::make_shared<torrent_info>((&buf[0], buf.size(), boost::ref(ec), 0)));
 
 
 	// TODO: file hashes don't work with the new torrent creator reading async

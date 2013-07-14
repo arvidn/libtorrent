@@ -34,9 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <algorithm>
-#include <set>
 #include <cctype>
 #include <algorithm>
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_HAS_BOOST_UNORDERED
+#include <boost/unordered_set.hpp>
+#else
+#include <set>
+#endif
+#endif // TORRENT_DEBUG && !TORRENT_DISABLE_INVARIANT_CHECKS
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -5642,7 +5649,7 @@ retry:
 		else
 		{
 			params->url.clear();
-			params->ti = boost::intrusive_ptr<torrent_info>((torrent_info*)j->buffer);
+			params->ti = boost::shared_ptr<torrent_info>((torrent_info*)j->buffer);
 			handle = add_torrent(*params, ec);
 		}
 
@@ -5691,7 +5698,7 @@ retry:
 		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
 		{
 			std::string filename = resolve_file_url(params.url);
-			boost::intrusive_ptr<torrent_info> t = new torrent_info(filename, ec);
+			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
 			if (ec) return torrent_handle();
 			params.url.clear();
 			params.ti = t;
@@ -5773,7 +5780,7 @@ retry:
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 					session_log("info-hash matched");
 #endif
-					params.ti = new torrent_info(resume_ih);
+					params.ti = boost::make_shared<torrent_info>(resume_ih);
 
 					if (params.ti->parse_info_section(*info, ec, 0))
 					{
@@ -5860,7 +5867,7 @@ retry:
 			next_dht = m_next_dht_torrent->first;
 #endif
 		float load_factor = m_torrents.load_factor();
-#endif
+#endif // TORRENT_HAS_BOOST_UNORDERED
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
 
@@ -5894,7 +5901,7 @@ retry:
 				m_next_dht_torrent = m_torrents.find(next_dht);
 #endif
 		}
-#endif
+#endif // TORRENT_HAS_BOOST_UNORDERED
 		if (!params.uuid.empty() || !params.url.empty())
 			m_uuids.insert(std::make_pair(params.uuid.empty()
 				? params.url : params.uuid, torrent_ptr));
@@ -7275,7 +7282,11 @@ retry:
 			}
 		}
 
+#if TORRENT_HAS_BOOST_UNORDERED
+		boost::unordered_set<torrent*> unique_torrents;
+#else
 		std::set<torrent*> unique_torrents;
+#endif
 		for (list_iterator i = m_torrent_lru.iterate(); i.get(); i.next())
 		{
 			torrent* t = (torrent*)i.get();
@@ -7287,7 +7298,15 @@ retry:
 		int torrent_state_gauges[counters::num_error_torrents - counters::num_checking_torrents + 1];
 		memset(torrent_state_gauges, 0, sizeof(torrent_state_gauges));
 	
+#if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
+
+#if TORRENT_HAS_BOOST_UNORDERED
+		boost::unordered_set<int> unique;
+#else
 		std::set<int> unique;
+#endif
+#endif
+
 		int num_active_downloading = 0;
 		int num_active_finished = 0;
 		int total_downloaders = 0;
@@ -7309,7 +7328,9 @@ retry:
 			}
 			++total_downloaders;
 
+#if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			unique.insert(t->queue_position());
+#endif
 		}
 
 		for (int i = 0, j = counters::num_checking_torrents;
@@ -7318,11 +7339,17 @@ retry:
 			TORRENT_ASSERT(torrent_state_gauges[i] == m_stats_counters[j]);
 		}
 
+#if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
+#endif
 		TORRENT_ASSERT(num_active_downloading == m_torrent_lists[torrent_want_peers_download].size());
 		TORRENT_ASSERT(num_active_finished == m_torrent_lists[torrent_want_peers_finished].size());
 
+#if TORRENT_HAS_BOOST_UNORDERED
+		boost::unordered_set<peer_connection*> unique_peers;
+#else
 		std::set<peer_connection*> unique_peers;
+#endif
 		TORRENT_ASSERT(m_settings.get_int(settings_pack::connections_limit) > 0);
 		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::auto_expand_choker)
 			TORRENT_ASSERT(m_allowed_upload_slots >= m_settings.get_int(settings_pack::unchoke_slots_limit));
@@ -7350,10 +7377,6 @@ retry:
 				++num_optimistic;
 				TORRENT_ASSERT(!p->is_choked());
 			}
-//			if (t && p->peer_info_struct() && !p->peer_info_struct()->web_seed)
-//			{
-//				TORRENT_ASSERT(t->get_policy().has_connection(p));
-//			}
 		}
 
 		TORRENT_ASSERT(disk_queue[peer_connection::download_channel] == m_stats_counters[counters::num_peers_down_disk]);

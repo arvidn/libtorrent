@@ -375,7 +375,7 @@ namespace libtorrent
 		}
 
 		if (!m_torrent_file)
-			m_torrent_file = (p.ti ? p.ti : new torrent_info(info_hash));
+			m_torrent_file = (p.ti ? p.ti : boost::make_shared<torrent_info>(info_hash));
 
 		m_trackers = m_torrent_file->trackers();
 		if (m_torrent_file->is_valid())
@@ -530,7 +530,7 @@ namespace libtorrent
 
 		// we're done!
 		error_code e;
-		boost::intrusive_ptr<torrent_info> tf(new torrent_info(
+		boost::shared_ptr<torrent_info> tf(boost::make_shared<torrent_info>(
 			&m_torrent_file_buf[0], m_torrent_file_buf.size(), e));
 		if (e)
 		{
@@ -683,7 +683,7 @@ namespace libtorrent
 		}
 
 		error_code e;
-		boost::intrusive_ptr<torrent_info> tf(new torrent_info(data, size, e));
+		boost::shared_ptr<torrent_info> tf(boost::make_shared<torrent_info>(data, size, boost::ref(e), 0));
 		if (e)
 		{
 			set_error(e, error_file_url);
@@ -1988,6 +1988,12 @@ namespace libtorrent
 		// is disconnected, if the torrent is unloaded, clear the extensions
 //		m_extensions.clear();
 #endif
+
+		// someone else holds a reference to the torrent_info
+		// make the torrent release its reference to it,
+		// after making a copy and then unloading that version
+//		if (!m_torrent_file.unique())
+//			m_torrent_file = boost::make_shared<torrent_info>(*m_torrent_file);
 
 		m_torrent_file->unload();
 
@@ -6173,13 +6179,16 @@ namespace libtorrent
 		}
 	}
 
-	boost::intrusive_ptr<torrent_info> torrent::get_torrent_copy()
+	boost::shared_ptr<torrent_info> torrent::get_torrent_copy()
 	{
-		if (!m_torrent_file->is_valid()) return boost::intrusive_ptr<torrent_info>();
-		if (!need_loaded()) return boost::intrusive_ptr<torrent_info>();
+		// #error
+		TORRENT_ASSERT(false);
 
-		// copy the torrent_info object
-		return boost::intrusive_ptr<torrent_info>(new torrent_info(*m_torrent_file));
+
+		if (!m_torrent_file->is_valid()) return boost::shared_ptr<torrent_info>();
+		if (!need_loaded()) return boost::shared_ptr<torrent_info>();
+
+		return m_torrent_file;
 	}
 	
 	void torrent::write_resume_data(entry& ret) const
@@ -9510,30 +9519,6 @@ namespace libtorrent
 		return &*i;
 	}
 
-#if !TORRENT_NO_FPU
-	void torrent::file_progress(std::vector<float>& fp)
-	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
-		if (!valid_metadata())
-		{
-			fp.clear();
-			return;
-		}
-	
-		fp.resize(m_torrent_file->num_files(), 1.f);
-		if (is_seed()) return;
-
-		std::vector<size_type> progress;
-		file_progress(progress);
-		for (int i = 0; i < m_torrent_file->num_files(); ++i)
-		{
-			file_entry const& f = m_torrent_file->file_at(i);
-			if (f.size == 0) fp[i] = 1.f;
-			else fp[i] = float(progress[i]) / f.size;
-		}
-	}
-#endif
-
 	void torrent::ip_filter_updated()
 	{
 		if (!m_apply_ip_filter) return;
@@ -9586,6 +9571,30 @@ namespace libtorrent
 		m_picker->check_peers();
 #endif
 	}
+
+#if !TORRENT_NO_FPU
+	void torrent::file_progress(std::vector<float>& fp)
+	{
+		TORRENT_ASSERT(m_ses.is_single_thread());
+		if (!valid_metadata())
+		{
+			fp.clear();
+			return;
+		}
+	
+		fp.resize(m_torrent_file->num_files(), 1.f);
+		if (is_seed()) return;
+
+		std::vector<size_type> progress;
+		file_progress(progress);
+		for (int i = 0; i < m_torrent_file->num_files(); ++i)
+		{
+			boost::int64_t file_size = m_torrent_file->files().file_size(i);
+			if (file_size == 0) fp[i] = 1.f;
+			else fp[i] = float(progress[i]) / file_size;
+		}
+	}
+#endif
 
 	void torrent::file_progress(std::vector<size_type>& fp, int flags)
 	{

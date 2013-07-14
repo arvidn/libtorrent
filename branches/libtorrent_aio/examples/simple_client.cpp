@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdlib.h>
+#include <boost/make_shared.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
 	}
 	add_torrent_params p;
 	p.save_path = "./";
-	p.ti = new torrent_info(argv[1], ec);
+	p.ti = boost::make_shared<torrent_info>(std::string(argv[1]), boost::ref(ec), 0);
 	if (ec)
 	{
 		fprintf(stderr, "%s\n", ec.message().c_str());

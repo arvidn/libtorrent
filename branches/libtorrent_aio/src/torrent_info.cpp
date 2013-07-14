@@ -668,7 +668,7 @@ namespace libtorrent
 		peer_info.web_seed = true;
 	}
 
-	torrent_info::torrent_info(torrent_info const& t, int flags)
+	torrent_info::torrent_info(torrent_info const& t)
 		: m_merkle_first_leaf(t.m_merkle_first_leaf)
 		, m_files(t.m_files)
 		, m_orig_files(t.m_orig_files)
@@ -1018,6 +1018,7 @@ namespace libtorrent
 		// under the client's feed asynchronously. Maybe some
 		// kind of copy-on-write style mechanism?
 //		TORRENT_ASSERT(m_info_section.unique());
+
 		m_info_section.reset();
 		m_info_section_size = 0;
 

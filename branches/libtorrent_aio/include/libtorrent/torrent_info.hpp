@@ -53,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/ptime.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/copy_ptr.hpp"
@@ -242,7 +241,7 @@ namespace libtorrent
 	int TORRENT_EXPORT load_file(std::string const& filename
 		, std::vector<char>& v, error_code& ec, int limit = 8000000);
 
-	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
+	class TORRENT_EXPORT torrent_info
 	{
 	public:
 
@@ -259,7 +258,7 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif
 
-		torrent_info(torrent_info const& t, int flags = 0);
+		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);

@@ -467,7 +467,7 @@ async_add_torrent() add_torrent()
 			};
 
 			int version;
-			boost::intrusive_ptr<torrent_info> ti;
+			boost::shared_ptr<torrent_info> ti;
 		#ifndef TORRENT_NO_DEPRECATE
 			char const* tracker_url;
 		#endif
@@ -2726,7 +2726,7 @@ Its declaration looks like this::
 		void file_status(std::vector<pool_file_status>& status);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
-		boost::intrusive_ptr<torrent_info> torrent_file() const;
+		boost::shared_ptr<torrent_info> torrent_file() const;
 		bool is_valid() const;
 
 		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
@@ -3876,7 +3876,7 @@ torrent_file()
 
 	::
 
-		boost::intrusive_ptr<torrent_info> torrent_file() const;
+		boost::shared_ptr<torrent_info> torrent_file() const;
 
 Returns a pointer to the torrent_info_ object associated with this torrent. The
 ``torrent_info`` object is a copy of the internal object. If the torrent doesn't
@@ -3978,7 +3978,7 @@ It contains the following fields::
 		std::string save_path;
 		std::string name;
 
-		boost::intrusive_ptr<const torrent_info> torrent_file;
+		boost::weak_ptr<const torrent_info> torrent_file;
 
 		boost::posix_time::time_duration next_announce;
 		boost::posix_time::time_duration announce_interval;
@@ -6679,7 +6679,7 @@ code to do that::
 
 	torrent_handle h = alert->handle();
 	if (h.is_valid()) {
-		boost::intrusive_ptr<torrent_info const> ti = h.torrent_file();
+		boost::shared_ptr<torrent_info const> ti = h.torrent_file();
 		create_torrent ct(*ti);
 		entry te = ct.generate();
 		std::vector<char> buffer;

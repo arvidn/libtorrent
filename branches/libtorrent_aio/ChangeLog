@@ -1,3 +1,4 @@
+	* torrent_info is no longer an intrusive_ptr type. It is held by shared_ptr. This is a non-backwards compatible change
 	* move listen interface and port to the settings
 	* move use_interfaces() to be a setting
 	* extend storage interface to allow deferred flushing and flush the part-file metadata periodically

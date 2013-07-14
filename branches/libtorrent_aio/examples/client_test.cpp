@@ -1063,8 +1063,6 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 #endif
 
-	boost::intrusive_ptr<torrent_info> ti;
-
 	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
 	{
 		// if we have a monitor dir, save the .torrent file we just received in it
@@ -1072,7 +1070,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		// to keep the scan dir logic in sync so it's not removed, or added twice
 		torrent_handle h = p->handle;
 		if (h.is_valid()) {
-			if (!ti) ti = h.torrent_file();
+			boost::shared_ptr<torrent_info> ti = h.torrent_file();
 			create_torrent ct(*ti);
 			entry te = ct.generate();
 			std::vector<char> buffer;
@@ -1131,6 +1129,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				}
 			}
 
+			// TODO: 2 technically we don't need to ask for the info-hash here.
+			// it would save one round-trip to libtorrent
 			hash_to_filename.insert(std::make_pair(h.info_hash(), filename));
 
 			boost::unordered_set<torrent_status>::iterator j
@@ -2514,7 +2514,7 @@ int main(int argc, char* argv[])
 			 	h.file_status(file_status);
 				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
-				boost::intrusive_ptr<torrent_info> ti = h.torrent_file();
+				boost::shared_ptr<torrent_info> ti = h.torrent_file();
 				for (int i = 0; i < ti->num_files(); ++i)
 				{
 					bool pad_file = ti->files().pad_file_at(i);
