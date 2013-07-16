@@ -2323,7 +2323,7 @@ int main(int argc, char* argv[])
 		out += str;
 
 		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
-			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %"PRId64"%% r: %"PRId64"%% "
+			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %d%% r: %d%% "
 			"size: w: %s r: %s total: %s ===\n"
 			, add_suffix(sess_stat.total_redundant_bytes).c_str()
 			, add_suffix(sess_stat.total_failed_bytes).c_str()
@@ -2334,8 +2334,8 @@ int main(int argc, char* argv[])
 			, sess_stat.down_bandwidth_queue
 			, sess_stat.disk_write_queue
 			, sess_stat.disk_read_queue
-			, (cs.blocks_written - cs.writes) * 100 / cs.blocks_written
-			, cs.blocks_read_hit * 100 / cs.blocks_read
+			, int((cs.blocks_written - cs.writes) * 100 / cs.blocks_written)
+			, int(cs.blocks_read_hit * 100 / cs.blocks_read)
 			, add_suffix(boost::int64_t(cs.write_cache_size) * 16 * 1024).c_str()
 			, add_suffix(boost::int64_t(cs.read_cache_size) * 16 * 1024).c_str()
 			, add_suffix(boost::int64_t(cs.total_used_buffers) * 16 * 1024).c_str());
