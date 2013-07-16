@@ -75,6 +75,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/magnet_uri.hpp"
 
+#ifdef TORRENT_PROFILE_CALLS
+#include <boost/unordered_map.hpp>
+#endif
+
 using boost::shared_ptr;
 using boost::weak_ptr;
 using libtorrent::aux::session_impl;
@@ -362,6 +366,44 @@ namespace libtorrent
 		e->notify_all();
 	}
 
+#ifdef TORRENT_PROFILE_CALLS
+
+	static mutex g_calls_mutex;
+	static boost::unordered_map<std::string, int> g_blocking_calls;
+
+	void blocking_call()
+	{
+		char stack[2048];
+		print_backtrace(stack, sizeof(stack), 20);
+		mutex::scoped_lock l(g_calls_mutex);
+		g_blocking_calls[stack] += 1;
+	}
+
+	void dump_call_profile()
+	{
+		FILE* out = fopen("blocking_calls.txt", "w+");
+
+		std::map<int, std::string> profile;
+
+		mutex::scoped_lock l(g_calls_mutex);
+		for (boost::unordered_map<std::string, int>::const_iterator i = g_blocking_calls.begin()
+			, end(g_blocking_calls.end()); i != end; ++i)
+		{
+			profile[i->second] = i->first;
+		}
+		for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
+			, end(profile.rend()); i != end; ++i)
+		{
+			fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
+		}
+		fclose(out);
+	}
+
+#define TORRENT_RECORD_BLOCKING_CALL blocking_call();
+#else
+#define TORRENT_RECORD_BLOCKING_CALL
+#endif
+
 #define TORRENT_ASYNC_CALL(x) \
 	m_impl->m_io_service.post(boost::bind(&session_impl:: x, m_impl.get()))
 
@@ -372,6 +414,7 @@ namespace libtorrent
 	m_impl->m_io_service.post(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
 
 #define TORRENT_WAIT \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(m_impl->mut); \
 	while (!done) { m_impl->cond.wait(l); };
 
@@ -481,6 +524,11 @@ namespace libtorrent
 #ifdef TORRENT_MEMDEBUG
 		stop_malloc_debug();
 #endif
+
+#ifdef TORRENT_PROFILE_CALLS
+		dump_call_profile();
+#endif
+
 		TORRENT_ASSERT(m_impl);
 		// if there is at least one destruction-proxy
 		// abort the session and let the destructor

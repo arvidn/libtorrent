@@ -418,6 +418,9 @@ feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
+feature profile-calls : off on : composite propagated link-incompatible ;
+feature.compose <profile-calls>on : <define>TORRENT_PROFILE_CALLS=1 ;
+
 # controls whether or not to export some internal
 # libtorrent functions. Used for unit testing
 feature export-extra : off on : composite propagated ;

@@ -390,6 +390,13 @@ Build features:
 |                          |   is rotated every hour. It can be parsed by the   |
 |                          |   parse_session_stats.py script (requires gnuplot) |
 +--------------------------+----------------------------------------------------+
+| ``profile-calls``        | * ``off`` - default. No additional call profiling. |
+|                          | * ``on`` - Enable logging of stack traces of       |
+|                          |   calls into libtorrent that are blocking. On      |
+|                          |   session shutdown, a file ``blocking_calls.txt``  |
+|                          |   is written with stack traces of blocking calls   |
+|                          |   ordered by the number of them.                   |
++--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
 

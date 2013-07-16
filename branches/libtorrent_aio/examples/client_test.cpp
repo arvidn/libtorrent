@@ -1035,8 +1035,9 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		torrent_handle h = p->handle;
 		error_code ec;
-		std::string cert = combine_path("certificates", to_hex(h.info_hash().to_string())) + ".pem";
-		std::string priv = combine_path("certificates", to_hex(h.info_hash().to_string())) + "_key.pem";
+		std::string base_name = combine_path("certificates", to_hex(h.info_hash().to_string()));
+		std::string cert = base_name + ".pem";
+		std::string priv = base_name + "_key.pem";
 		stat_file(cert, &st, ec);
 		if (ec)
 		{
@@ -1075,12 +1076,13 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			entry te = ct.generate();
 			std::vector<char> buffer;
 			bencode(std::back_inserter(buffer), te);
-			std::string filename = ti->name() + "." + to_hex(ti->info_hash().to_string()) + ".torrent";
+			sha1_hash hash = ti->info_hash();
+			std::string filename = ti->name() + "." + to_hex(hash.to_string()) + ".torrent";
 			filename = combine_path(monitor_dir, filename);
 			save_file(filename, buffer);
 
 			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
-			hash_to_filename.insert(std::make_pair(ti->info_hash(), filename));
+			hash_to_filename.insert(std::make_pair(hash, filename));
 			non_files.erase(h);
 		}
 	}
@@ -1129,17 +1131,20 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				}
 			}
 
-			// TODO: 2 technically we don't need to ask for the info-hash here.
-			// it would save one round-trip to libtorrent
-			hash_to_filename.insert(std::make_pair(h.info_hash(), filename));
-
-			boost::unordered_set<torrent_status>::iterator j
-				= all_handles.insert(h.status()).first;
-			if (show_torrent(*j, torrent_filter, counters))
+			sha1_hash info_hash;
+			if (p->params.ti)
 			{
-				filtered_handles.push_back(&*j);
-				need_resort = true;
+				info_hash = p->params.ti->info_hash();
 			}
+			else if (!p->params.info_hash.is_all_zeros())
+			{
+				info_hash = p->params.info_hash;
+			}
+			else
+			{
+				info_hash = h.info_hash();
+			}
+			hash_to_filename.insert(std::make_pair(info_hash, filename));
 		}
 	}
 	else if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
@@ -1198,9 +1203,16 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			i != p->status.end(); ++i)
 		{
 			boost::unordered_set<torrent_status>::iterator j = all_handles.find(*i);
-			// don't add new entries here, that's done in the handler
-			// for add_torrent_alert
-			if (j == all_handles.end()) continue;
+			// add new entries here
+			if (j == all_handles.end())
+			{
+				j = all_handles.insert(*i).first;
+				if (show_torrent(*j, torrent_filter, counters))
+				{
+					filtered_handles.push_back(&*j);
+					need_resort = true;
+				}
+			}
 			if (j->state != i->state
 				|| j->paused != i->paused
 				|| j->auto_managed != i->auto_managed)

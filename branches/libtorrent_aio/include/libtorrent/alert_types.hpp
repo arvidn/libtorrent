@@ -55,14 +55,13 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT torrent_alert: alert
 	{
-		torrent_alert(torrent_handle const& h)
-			: handle(h)
-		{}
+		torrent_alert(torrent_handle const& h);
 		
 		const static int alert_type = 0;
 		virtual std::string message() const;
 
 		torrent_handle handle;
+		std::string name;
 	};
 
 	struct TORRENT_EXPORT peer_alert: torrent_alert

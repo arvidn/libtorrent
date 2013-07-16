@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/torrent.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {
@@ -51,18 +52,22 @@ namespace libtorrent {
 	alert::~alert() {}
 	ptime alert::timestamp() const { return m_timestamp; }
 
+	torrent_alert::torrent_alert(torrent_handle const& h)
+		: handle(h)
+		, name(h.native_handle()->name())
+	{
+		if (name.empty())
+		{
+			char msg[41];
+			to_hex((char const*)&h.native_handle()->info_hash()[0], 20, msg);
+			name = msg;
+		}
+	}
 
 	std::string torrent_alert::message() const
 	{
 		if (!handle.is_valid()) return " - ";
-		torrent_status st = handle.status(torrent_handle::query_name);
-		if (st.name.empty())
-		{
-			char msg[41];
-			to_hex((char const*)&st.info_hash[0], 20, msg);
-			return msg;
-		}
-		return st.name;
+		return name;
 	}
 
 	std::string peer_alert::message() const

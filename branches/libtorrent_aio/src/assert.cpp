@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/atomic.hpp"
 #endif
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
+#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || defined TORRENT_PROFILE_CALLS || TORRENT_RELEASE_ASSERTS
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
