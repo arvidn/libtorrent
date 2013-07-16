@@ -251,6 +251,7 @@ namespace libtorrent
 		METRIC(disk, disk_blocks_in_use, type_gauge)
 		METRIC(disk, queued_disk_jobs, type_gauge)
 		METRIC(disk, num_writing_threads, type_gauge)
+		METRIC(disk, num_running_threads, type_gauge)
 		METRIC(disk, blocked_disk_jobs, type_gauge)
 		METRIC(disk, arc_mru_size, type_gauge)
 		METRIC(disk, arc_mru_ghost_size, type_gauge)

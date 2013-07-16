@@ -250,6 +250,7 @@ namespace libtorrent
 			disk_blocks_in_use,
 			queued_disk_jobs,
 			num_writing_threads,
+			num_running_threads,
 			blocked_disk_jobs,
 
 			arc_mru_size,

@@ -123,19 +123,19 @@ namespace libtorrent
 		std::vector<cached_piece_info> pieces;
 
 		// the number of 16kB blocks written
-		size_type blocks_written;
+		atomic_count blocks_written;
 		// the number of write operations used
-		size_type writes;
+		atomic_count writes;
 		// (blocks_written - writes) / blocks_written represents the
 		// "cache hit" ratio in the write cache
 		// the number of blocks read
 
 		// the number of blocks passed back to the bittorrent engine
-		size_type blocks_read;
+		atomic_count blocks_read;
 		// the number of blocks that was just copied from the read cache
 		size_type blocks_read_hit;
 		// the number of read operations used
-		size_type reads;
+		atomic_count reads;
 
 		// the number of bytes queued for writing, including bytes
 		// submitted to the OS for writing, but not yet complete
@@ -165,10 +165,10 @@ namespace libtorrent
 		int average_hash_time;
 		int average_job_time;
 
-		boost::uint32_t cumulative_job_time;
-		boost::uint32_t cumulative_read_time;
-		boost::uint32_t cumulative_write_time;
-		boost::uint32_t cumulative_hash_time;
+		atomic_count cumulative_job_time;
+		atomic_count cumulative_read_time;
+		atomic_count cumulative_write_time;
+		atomic_count cumulative_hash_time;
 
 		// number of blocks we've read back from disk
 		// because they were evicted before
@@ -519,7 +519,7 @@ namespace libtorrent
 		condition_variable m_job_cond;
 
 		// mutex to protect the m_queued_jobs list
-		mutex m_job_mutex;
+		mutable mutex m_job_mutex;
 
 		// jobs queued for servicing
 		tailqueue m_queued_jobs;

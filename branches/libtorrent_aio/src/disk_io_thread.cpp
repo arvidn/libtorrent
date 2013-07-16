@@ -2507,12 +2507,15 @@ namespace libtorrent
 
 	void disk_io_thread::update_stats_counters(counters& c) const
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		// These are atomic_counts, so it's safe to access them from
+		// a different thread
+		c.set_value(counters::disk_read_time, m_cache_stats.cumulative_read_time);
+		c.set_value(counters::disk_write_time, m_cache_stats.cumulative_write_time);
+		c.set_value(counters::disk_hash_time, m_cache_stats.cumulative_hash_time);
+		c.set_value(counters::disk_job_time, m_cache_stats.cumulative_job_time);
 
-		// gauges
-		c.set_value(counters::disk_blocks_in_use, m_disk_cache.in_use());
-		c.set_value(counters::queued_disk_jobs, m_queued_jobs.size());
 		c.set_value(counters::num_writing_threads, m_num_writing_threads);
+		c.set_value(counters::num_running_threads, m_num_running_threads);
 		c.set_value(counters::blocked_disk_jobs, m_num_blocked_jobs);
 
 		// counters
@@ -2520,10 +2523,15 @@ namespace libtorrent
 		c.set_value(counters::num_blocks_read, m_cache_stats.blocks_read);
 		c.set_value(counters::num_write_ops, m_cache_stats.writes);
 		c.set_value(counters::num_read_ops, m_cache_stats.reads);
-		c.set_value(counters::disk_read_time, m_cache_stats.cumulative_read_time);
-		c.set_value(counters::disk_write_time, m_cache_stats.cumulative_write_time);
-		c.set_value(counters::disk_hash_time, m_cache_stats.cumulative_hash_time);
-		c.set_value(counters::disk_job_time, m_cache_stats.cumulative_job_time);
+
+		mutex::scoped_lock jl(m_job_mutex);
+		c.set_value(counters::queued_disk_jobs, m_queued_jobs.size());
+		jl.unlock();
+
+		mutex::scoped_lock l(m_cache_mutex);
+
+		// gauges
+		c.set_value(counters::disk_blocks_in_use, m_disk_cache.in_use());
 
 		m_disk_cache.update_stats_counters(c);
 	}
@@ -2531,11 +2539,15 @@ namespace libtorrent
 	void disk_io_thread::get_cache_info(cache_status* ret, bool no_pieces
 		, piece_manager const* storage) const
 	{
+		mutex::scoped_lock jl(m_job_mutex);
+		ret->queued_jobs = m_queued_jobs.size();
+		jl.unlock();
+
 		mutex::scoped_lock l(m_cache_mutex);
 		*ret = m_cache_stats;
 		ret->total_used_buffers = m_disk_cache.in_use();
 		ret->blocked_jobs = m_num_blocked_jobs;
-		ret->queued_jobs = m_queued_jobs.size();
+
 		ret->pending_jobs = m_outstanding_jobs;
 		ret->num_jobs = jobs_in_use();
 		ret->num_read_jobs = read_jobs_in_use();
@@ -2751,7 +2763,6 @@ namespace libtorrent
 			, job_action_name[j->action]
 			, j->storage->num_outstanding_jobs());
 
-		// TODO: 3 m_cache_stats isn't protected by any mutex! Anywhere!
 		++m_cache_stats.num_fence_jobs[j->action];
 
 		disk_io_job* fj = allocate_job(disk_io_job::flush_storage);

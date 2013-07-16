@@ -283,7 +283,7 @@ reports = [
 	('disk pending reads', 'Bytes', '', 'number of bytes peers are waiting for to be read from the disk', ['pending reading bytes']),
 	('disk fences', 'num', '', 'number of jobs currently blocked by a fence job', ['blocked jobs']),
 	('fence jobs', 'num', '', 'active fence jobs per type', ['move_storage', 'release_files', 'delete_files', 'check_fastresume', 'save_resume_data', 'rename_file', 'stop_torrent', 'file_priority', 'clear_piece'], {'type':stacked}),
-	('disk writing threads', 'num', '', 'number of disk threads currently writing', ['num writing threads']),
+	('disk threads', 'num', '', 'number of disk threads currently writing', ['num writing threads', 'num running threads']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 	('connection_type', 'num', '', 'peers by transport protocol', ['utp peers','tcp peers']),
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP peak recv delay', 'uTP avg send delay', 'uTP avg recv delay']),

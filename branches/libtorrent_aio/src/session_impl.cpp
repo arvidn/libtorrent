@@ -1393,6 +1393,7 @@ namespace aux {
 
 			":blocked jobs"
 			":num writing threads"
+			":num running threads"
 			":incoming connections"
 
 			":move_storage"
@@ -4084,7 +4085,7 @@ retry:
 			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000000.0 / float(tick_interval_ms));
 			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000000.0 / float(tick_interval_ms));
 
-			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
+			int total_job_time = (std::max)(1, int(cs.cumulative_job_time));
 
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 
@@ -4180,7 +4181,7 @@ retry:
 			STAT_LOG(f, float(cs.cumulative_write_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_hash_time * 100.f / total_job_time));
 			STAT_LOG(d, int(cs.total_read_back - m_last_cache_status.total_read_back));
-			STAT_LOG(f, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written)));
+			STAT_LOG(f, float(cs.total_read_back * 100.f / (std::max)(1, int(cs.blocks_written))));
 			STAT_LOG(d, cs.read_queue_size);
 			STAT_LOG(f, float(tick_interval_ms) / 1000.f);
 			STAT_LOG(f, float(m_tick_residual) / 1000.f);
@@ -4351,7 +4352,8 @@ retry:
 			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_extended]));
 
 			STAT_LOG(d, cs.blocked_jobs);
-			STAT_LOG(d, cs.num_writing_threads);
+			STAT_LOG(d, int(m_stats_counters[counters::num_writing_threads]));
+			STAT_LOG(d, int(m_stats_counters[counters::num_running_threads]));
 			STAT_LOG(d, int(m_stats_counters[counters::incoming_connections]));
 
 			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::move_storage]);
