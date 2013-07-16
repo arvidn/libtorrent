@@ -284,5 +284,8 @@ void bind_torrent_info()
         .value("source_magnet_link", announce_entry::source_magnet_link)
         .value("source_tex", announce_entry::source_tex)
     ;
+
+    implicitly_convertible<boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<const torrent_info> >();
+    boost::python::register_ptr_to_python<boost::intrusive_ptr<const torrent_info> >();
 }
 
