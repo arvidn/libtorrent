@@ -305,7 +305,9 @@ reports = [
 		'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', \
 		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked, 'colors':'gradient16'}),
 	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True}),
-	('torrent churn', 'num torrents', '', '', ['loaded torrents', 'loaded torrent churn']),
+	('torrent churn', 'num torrents', '', '', ['loaded torrents', 'pinned torrents', 'loaded torrent churn']),
+	('pinned torrents', 'num torrents', '', '', ['pinned torrents']),
+	('loaded torrents', 'num torrents', '', '', ['loaded torrents', 'pinned torrents']),
 	('requests', '', '', '', ['outstanding requests']),
 	('incoming messages', 'num', '', 'number of received bittorrent messages, by type', [ \
 		'num_incoming_choke', 'num_incoming_unchoke', 'num_incoming_interested', \

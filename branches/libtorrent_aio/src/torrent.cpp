@@ -337,6 +337,11 @@ namespace libtorrent
 		, m_current_gauge_state(no_gauge_state)
 		, m_need_suggest_pieces_refresh(false)
 	{
+		if (m_pinned)
+			m_ses.inc_stats_counter(counters::num_pinned_torrents);
+
+		m_ses.inc_stats_counter(counters::num_loaded_torrents);
+
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
 		if (p.resume_data && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
@@ -458,6 +463,9 @@ namespace libtorrent
 		// a chance to save it on the metadata_received_alert
 		if (!valid_metadata())
 		{
+			if (!m_pinned && m_refcount == 0)
+				m_ses.inc_stats_counter(counters::num_pinned_torrents);
+
 			m_pinned = true;
 		}
 		else
@@ -894,15 +902,13 @@ namespace libtorrent
 		}
 #endif
 
-		if (valid_metadata())
-		{
-			m_ses.inc_stats_counter(counters::num_total_pieces_removed
-				, m_torrent_file->num_pieces());
-			m_ses.inc_stats_counter(counters::num_have_pieces_removed
-				, num_have());
-			m_ses.inc_stats_counter(counters::num_piece_passed_removed
-				, num_passed());
-		}
+		TORRENT_ASSERT(m_refcount == 0);
+
+		if (m_pinned)
+			m_ses.inc_stats_counter(counters::num_pinned_torrents, -1);
+
+		if (is_loaded())
+			m_ses.inc_stats_counter(counters::num_loaded_torrents, -1);
 
 		// The invariant can't be maintained here, since the torrent
 		// is being destructed, all weak references to it have been
@@ -1917,10 +1923,38 @@ namespace libtorrent
 		return m_ses.load_torrent(this);
 	}
 
+	void torrent::dec_refcount()
+	{
+		TORRENT_ASSERT(m_ses.is_single_thread());
+		TORRENT_ASSERT(m_refcount > 0);
+		--m_refcount;
+		if (m_refcount == 0)
+		{
+			if (!m_pinned)
+				m_ses.inc_stats_counter(counters::num_pinned_torrents, -1);
+
+			if (m_should_be_loaded == false)
+				unload();
+		}
+	}
+
+	void torrent::inc_refcount()
+	{
+		TORRENT_ASSERT(m_ses.is_single_thread());
+		TORRENT_ASSERT(is_loaded());
+		++m_refcount;
+		if (!m_pinned && m_refcount == 1)
+			m_ses.inc_stats_counter(counters::num_pinned_torrents);
+	}
+
 	void torrent::set_pinned(bool p)
 	{
+		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (m_pinned == p) return;
 		m_pinned = p;
+
+		if (m_refcount == 0)
+			m_ses.inc_stats_counter(counters::num_pinned_torrents, p ? 1 : -1);
 
 		// if the torrent was just un-pinned, we need to insert
 		// it into the LRU
@@ -1959,6 +1993,8 @@ namespace libtorrent
 */
 		}
 
+		m_ses.inc_stats_counter(counters::num_loaded_torrents);
+
 		construct_storage();
 
 		return true;
@@ -1968,6 +2004,8 @@ namespace libtorrent
 	// to warrant swapping it out, in favor of a more active torrent.
 	void torrent::unload()
 	{
+		TORRENT_ASSERT(is_loaded());
+
 		// pinned torrents are not allowed to be swapped out
 		TORRENT_ASSERT(!m_pinned);
 
@@ -2003,6 +2041,7 @@ namespace libtorrent
 			m_torrent_file = boost::make_shared<torrent_info>(*m_torrent_file);
 
 		m_torrent_file->unload();
+		m_ses.inc_stats_counter(counters::num_loaded_torrents, -1);
 
 		m_storage.reset();
 

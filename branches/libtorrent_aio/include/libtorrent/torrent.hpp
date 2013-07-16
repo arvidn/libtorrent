@@ -905,18 +905,9 @@ namespace libtorrent
 			m_links[aux::session_interface::torrent_state_updates].clear();
 		}
 
-		void dec_refcount()
-		{
-			TORRENT_ASSERT(m_refcount > 0);
-			--m_refcount;
-			if (m_refcount == 0 && m_should_be_loaded == false)
-				unload();
-		}
-		void inc_refcount()
-		{
-			TORRENT_ASSERT(is_loaded());
-			++m_refcount;
-		}
+		void dec_refcount();
+		void inc_refcount();
+		int refcount() const { return m_refcount; }
 
 		void inc_num_connecting()
 		{ ++m_num_connecting; }

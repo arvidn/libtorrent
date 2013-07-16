@@ -1348,6 +1348,7 @@ namespace aux {
 			":peers up send buffer"
 
 			":loaded torrents"
+			":pinned torrents"
 			":loaded torrent churn"
 
 			":num_incoming_choke"
@@ -2183,6 +2184,8 @@ namespace aux {
 	{
 		if (t->is_aborted()) return;
 
+		bool new_torrent = false;
+
 		// if t is the only torrent in the LRU list, both
 		// its prev and next links will be NULL, even though
 		// it's already in the list. Cover this case by also
@@ -2199,6 +2202,10 @@ namespace aux {
 			// first remove it
 			m_torrent_lru.erase(t);
 		}
+		else
+		{
+			new_torrent = true;
+		}
 
 		// pinned torrents should not be part of the LRU, since
 		// the LRU is only used to evict torrents
@@ -2208,6 +2215,8 @@ namespace aux {
 			m_torrent_lru.push_back(t);
 		else
 			m_torrent_lru.push_front(t);
+
+		if (new_torrent) evict_torrents_except(t);
 	}
 
 	void session_impl::evict_torrent(torrent* t)
@@ -4289,7 +4298,7 @@ retry:
 			STAT_LOG(d, int(m_stats_counters[counters::cancelled_piece_requests]));
 			STAT_LOG(d, int(m_stats_counters[counters::piece_rejects]));
 
-			STAT_LOG(d, int(m_stats_counters[counters::num_total_pieces_added] - m_stats_counters[counters::num_total_pieces_removed]));
+			STAT_LOG(d, int(m_stats_counters[counters::num_total_pieces_added]));
 			STAT_LOG(d, int(m_stats_counters[counters::num_have_pieces]));
 			STAT_LOG(d, int(m_stats_counters[counters::num_piece_passed]));
 			STAT_LOG(d, int(m_stats_counters[counters::num_piece_failed]));
@@ -4297,7 +4306,8 @@ retry:
 			STAT_LOG(d, peers_up_send_buffer);
 
 			// loaded torrents
-			STAT_LOG(d, m_torrent_lru.size());
+			STAT_LOG(d, int(m_stats_counters[counters::num_loaded_torrents]));
+			STAT_LOG(d, int(m_stats_counters[counters::num_pinned_torrents]));
 			STAT_LOG(d, int(m_stats_counters[counters::torrent_evicted_counter]));
 
 			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_choke]));
@@ -7309,6 +7319,7 @@ retry:
 		int num_active_downloading = 0;
 		int num_active_finished = 0;
 		int total_downloaders = 0;
+		int num_pinned = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
@@ -7316,6 +7327,8 @@ retry:
 			if (t->want_peers_download()) ++num_active_downloading;
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
+			if (t->is_pinned() || t->refcount())
+				++num_pinned;
 
 			++torrent_state_gauges[t->current_stats_state() - counters::num_checking_torrents];
 
@@ -7331,6 +7344,8 @@ retry:
 			unique.insert(t->queue_position());
 #endif
 		}
+
+		TORRENT_ASSERT(num_pinned == m_stats_counters[counters::num_pinned_torrents]);
 
 		for (int i = 0, j = counters::num_checking_torrents;
 			j < counters::num_error_torrents + 1; ++i, ++j)

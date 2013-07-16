@@ -172,12 +172,8 @@ namespace libtorrent
 			num_piece_passed,
 			num_piece_failed,
 
-			// TODO: 3 the _removed counters seem a bit silly
-			num_piece_passed_removed,
 			num_have_pieces,
-			num_have_pieces_removed,
 			num_total_pieces_added,
-			num_total_pieces_removed,
 
 			num_blocks_written,
 			num_blocks_read,
@@ -218,6 +214,10 @@ namespace libtorrent
 			// the number of torrents that don't have the
 			// IP filter applied to them.
 			non_filter_torrents,
+
+			// counters related to evicting torrents
+			num_loaded_torrents,
+			num_pinned_torrents,
 
 			// these counter indices deliberatly
 			// match the order of socket type IDs
