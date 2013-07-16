@@ -191,7 +191,7 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
-    class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
+    class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
         .def(init<entry const&>(arg("e")))
 #endif

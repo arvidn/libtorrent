@@ -386,7 +386,9 @@ void bind_torrent_handle()
         .def("add_http_seed", _(&torrent_handle::add_http_seed))
         .def("remove_http_seed", _(&torrent_handle::remove_http_seed))
         .def("http_seeds", http_seeds)
-        .def("get_torrent_info", _(&torrent_handle::get_torrent_info), return_internal_reference<>())
+#ifndef TORRENT_NO_DEPRECATE
+        .def("get_torrent_info", _(&torrent_handle::torrent_file))
+#endif
         .def("set_metadata", set_metadata)
         .def("is_valid", _(&torrent_handle::is_valid))
         .def("pause", _(&torrent_handle::pause), arg("flags") = 0)
