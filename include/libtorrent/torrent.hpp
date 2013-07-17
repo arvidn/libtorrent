@@ -123,7 +123,10 @@ namespace libtorrent
 #endif
 
 		sha1_hash const& info_hash() const
-		{ return m_torrent_file ? m_torrent_file->info_hash() : sha1_hash(); }
+		{
+			static sha1_hash empty;
+			return m_torrent_file ? m_torrent_file->info_hash() : empty;
+		}
 
 		// starts the announce timer
 		void start();
