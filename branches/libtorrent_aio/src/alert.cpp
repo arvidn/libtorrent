@@ -56,7 +56,7 @@ namespace libtorrent {
 		: handle(h)
 		, name(h.native_handle() ? h.native_handle()->name() : "")
 	{
-		if (name.empty())
+		if (name.empty() && h.is_valid())
 		{
 			char msg[41];
 			to_hex((char const*)&h.native_handle()->info_hash()[0], 20, msg);
