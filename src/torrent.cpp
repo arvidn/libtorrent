@@ -430,7 +430,7 @@ namespace libtorrent
 	{
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
-		if (p.resume_data && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
+		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
 			m_need_save_resume_data = false;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -476,13 +476,12 @@ namespace libtorrent
 #endif
 		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
 
-		if (p.file_priorities)
-			m_file_priority = *p.file_priorities;
+		m_file_priority = p.file_priorities;
 
 		if (m_seed_mode)
 			m_verified.resize(m_torrent_file->num_pieces(), false);
 
-		if (p.resume_data) m_resume_data.swap(*p.resume_data);
+		m_resume_data = p.resume_data;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		hasher h;
