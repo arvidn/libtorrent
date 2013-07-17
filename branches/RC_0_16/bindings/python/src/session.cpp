@@ -475,6 +475,17 @@ namespace
         return e;
     }
 
+    object pop_alert(session& ses)
+    {
+        std::auto_ptr<alert> a;
+        {
+            allow_threading_guard guard;
+            a = ses.pop_alert();
+        }
+
+        return object(boost::shared_ptr<alert>(a.release()));
+    }
+
     list pop_alerts(session& ses)
     {
         std::deque<alert*> alerts;
@@ -487,8 +498,7 @@ namespace
         for (std::deque<alert*>::iterator i = alerts.begin()
             , end(alerts.end()); i != end; ++i)
         {
-				std::auto_ptr<alert> ptr(*i);
-            ret.append(ptr);
+            ret.append(boost::shared_ptr<alert>(*i));
         }
         return ret;
     }
@@ -722,7 +732,7 @@ void bind_session()
         .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
 #endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
-        .def("pop_alert", allow_threads(&session::pop_alert))
+        .def("pop_alert", &pop_alert)
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)

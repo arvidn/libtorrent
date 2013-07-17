@@ -5,6 +5,7 @@
 #include <boost/python.hpp>
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <memory>
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -93,7 +94,7 @@ void bind_alert()
     using boost::noncopyable;
 
     {
-        scope alert_scope = class_<alert, noncopyable>("alert", no_init)
+        scope alert_scope = class_<alert, boost::shared_ptr<alert>, noncopyable >("alert", no_init)
             .def("message", &alert::message)
             .def("what", &alert::what)
             .def("category", &alert::category)
