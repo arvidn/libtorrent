@@ -54,7 +54,7 @@ namespace libtorrent {
 
 	torrent_alert::torrent_alert(torrent_handle const& h)
 		: handle(h)
-		, name(h.native_handle()->name())
+		, name(h.native_handle() ? h.native_handle()->name() : "")
 	{
 		if (name.empty())
 		{
