@@ -273,7 +273,7 @@ namespace libtorrent
 
 		storage_interface* get_storage_impl() const;
 
-		boost::shared_ptr<torrent_info> torrent_file() const;
+		boost::shared_ptr<const torrent_info> torrent_file() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 

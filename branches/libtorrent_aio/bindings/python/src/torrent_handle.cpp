@@ -190,7 +190,7 @@ void file_prioritity1(torrent_handle& h, int index, int prio)
 
 void dict_to_announce_entry(dict d, announce_entry& ae)
 {
-	ae.url = extract<std::string>(d["url"]);
+   ae.url = extract<std::string>(d["url"]);
    if (d.has_key("tier"))
       ae.tier = extract<int>(d["tier"]);
    if (d.has_key("fail_limit"))
@@ -225,8 +225,8 @@ void replace_trackers(torrent_handle& h, object trackers)
             dict d;
             d = extract<dict>(object(entry));
             announce_entry ae;
-				dict_to_announce_entry(d, ae);
-				result.push_back(ae);
+            dict_to_announce_entry(d, ae);
+            result.push_back(ae);
         }
     }
 
@@ -236,9 +236,9 @@ void replace_trackers(torrent_handle& h, object trackers)
 
 void add_tracker(torrent_handle& h, dict d)
 {
-	announce_entry ae;
-	dict_to_announce_entry(d, ae);
-	h.add_tracker(ae);
+   announce_entry ae;
+   dict_to_announce_entry(d, ae);
+   h.add_tracker(ae);
 }
 
 list trackers(torrent_handle& h)
@@ -304,7 +304,7 @@ list get_download_queue(torrent_handle& handle)
 
 void set_metadata(torrent_handle& handle, std::string const& buf)
 {
-	handle.set_metadata(buf.c_str(), buf.size());
+   handle.set_metadata(buf.c_str(), buf.size());
 }
 
 namespace
@@ -314,6 +314,13 @@ namespace
         return tcp::endpoint(address::from_string(extract<std::string>(t[0])), extract<int>(t[1]));
     }
 }
+
+#ifndef TORRENT_NO_DEPRECATE
+boost::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
+{
+   return h.torrent_file();
+}
+#endif
 
 void force_reannounce(torrent_handle& th, int s)
 {
@@ -387,8 +394,9 @@ void bind_torrent_handle()
         .def("remove_http_seed", _(&torrent_handle::remove_http_seed))
         .def("http_seeds", http_seeds)
 #ifndef TORRENT_NO_DEPRECATE
-        .def("get_torrent_info", _(&torrent_handle::torrent_file))
+        .def("get_torrent_info", get_torrent_info)
 #endif
+        .def("torrent_file", _(&torrent_handle::torrent_file))
         .def("set_metadata", set_metadata)
         .def("is_valid", _(&torrent_handle::is_valid))
         .def("pause", _(&torrent_handle::pause), arg("flags") = 0)

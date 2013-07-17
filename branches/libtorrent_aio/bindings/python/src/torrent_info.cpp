@@ -3,8 +3,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/python.hpp>
+#include <boost/shared_ptr.hpp>
 #include <libtorrent/torrent_info.hpp>
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/time.hpp"
 
@@ -198,7 +198,7 @@ void bind_torrent_info()
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
         .def(init<char const*, int, int>((arg("buffer"), arg("length"), arg("flags") = 0)))
         .def(init<std::string, int>((arg("file"), arg("flags") = 0)))
-        .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
+        .def(init<torrent_info const&>((arg("ti"))))
 #if TORRENT_USE_WSTRING
         .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
 #endif
@@ -284,5 +284,8 @@ void bind_torrent_info()
         .value("source_magnet_link", announce_entry::source_magnet_link)
         .value("source_tex", announce_entry::source_tex)
     ;
+
+    implicitly_convertible<boost::shared_ptr<torrent_info>, boost::shared_ptr<const torrent_info> >();
+    boost::python::register_ptr_to_python<boost::shared_ptr<const torrent_info> >();
 }
 

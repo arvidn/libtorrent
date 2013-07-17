@@ -129,7 +129,10 @@ namespace libtorrent
 		~torrent();
 
 		sha1_hash const& info_hash() const
-		{ return m_torrent_file->info_hash(); }
+		{
+			static sha1_hash empty;
+			return m_torrent_file ? m_torrent_file->info_hash() : empty;
+		}
 
 		// starts the announce timer
 		void start();
@@ -763,7 +766,7 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
-		boost::shared_ptr<torrent_info> get_torrent_copy();
+		boost::shared_ptr<const torrent_info> get_torrent_copy();
 
 		std::string const& uuid() const { return m_uuid; }
 		void set_uuid(std::string const& s) { m_uuid = s; }

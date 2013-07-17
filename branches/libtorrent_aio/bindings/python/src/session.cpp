@@ -163,9 +163,9 @@ namespace
     void dict_to_add_torrent_params(dict params, add_torrent_params& p
         , std::vector<char>& rd, std::vector<boost::uint8_t>& fp)
     {
-        // torrent_info objects are always held by an intrusive_ptr in the python binding
+        // torrent_info objects are always held by a shared_ptr in the python binding
         if (params.has_key("ti") && params.get("ti") != boost::python::object())
-            p.ti = extract<boost::intrusive_ptr<torrent_info> >(params["ti"]);
+            p.ti = extract<boost::shared_ptr<torrent_info> >(params["ti"]);
 
         if (params.has_key("info_hash"))
             p.info_hash = extract<sha1_hash>(params["info_hash"]);
@@ -403,7 +403,7 @@ namespace
         return ret;
     }
 
-	 cache_status get_cache_info(session& s, torrent_handle h, int flags)
+	 cache_status get_cache_info1(session& s, torrent_handle h, int flags)
 	 {
 	 	cache_status ret;
 		s.get_cache_info(&ret, h, flags);
@@ -430,7 +430,7 @@ namespace
         return ret;
     }
 
-    list get_cache_info(session& ses, sha1_hash ih)
+    list get_cache_info2(session& ses, sha1_hash ih)
     {
         std::vector<cached_piece_info> ret;
 
@@ -766,11 +766,11 @@ void bind_session()
         .def("resume", allow_threads(&session::resume))
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
-        .def("get_cache_info", &get_cache_info, (arg("handle") = torrent_handle(), arg("flags") = 0))
+        .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
 #ifndef TORRENT_NO_DEPRECATE
         .def("get_cache_status", &get_cache_status)
 #endif
-		  .def("get_cache_info", get_cache_info)
+		  .def("get_cache_info", &get_cache_info2)
         .def("set_peer_id", allow_threads(&session::set_peer_id))
         ;
 

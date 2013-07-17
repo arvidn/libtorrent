@@ -6230,10 +6230,10 @@ namespace libtorrent
 		}
 	}
 
-	boost::shared_ptr<torrent_info> torrent::get_torrent_copy()
+	boost::shared_ptr<const torrent_info> torrent::get_torrent_copy()
 	{
-		if (!m_torrent_file->is_valid()) return boost::shared_ptr<torrent_info>();
-		if (!need_loaded()) return boost::shared_ptr<torrent_info>();
+		if (!m_torrent_file->is_valid()) return boost::shared_ptr<const torrent_info>();
+		if (!need_loaded()) return boost::shared_ptr<const torrent_info>();
 
 		return m_torrent_file;
 	}
