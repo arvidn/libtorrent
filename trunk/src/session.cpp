@@ -647,7 +647,6 @@ namespace libtorrent
 	void session::async_add_torrent(add_torrent_params const& params)
 	{
 		add_torrent_params* p = new add_torrent_params(params);
-		if (params.resume_data) p->resume_data = new std::vector<char>(*params.resume_data);
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
 	}
 
@@ -666,11 +665,9 @@ namespace libtorrent
 		add_torrent_params p(sc);
 		p.ti = tip;
 		p.save_path = save_path;
-		std::vector<char> buf;
 		if (resume_data.type() != entry::undefined_t)
 		{
-			bencode(std::back_inserter(buf), resume_data);
-			p.resume_data = &buf;
+			bencode(std::back_inserter(p.resume_data), resume_data);
 		}
 		p.storage_mode = storage_mode;
 		p.paused = paused;
@@ -689,11 +686,9 @@ namespace libtorrent
 		add_torrent_params p(sc);
 		p.ti = ti;
 		p.save_path = save_path;
-		std::vector<char> buf;
 		if (resume_data.type() != entry::undefined_t)
 		{
-			bencode(std::back_inserter(buf), resume_data);
-			p.resume_data = &buf;
+			bencode(std::back_inserter(p.resume_data), resume_data);
 		}
 		p.storage_mode = storage_mode;
 		p.paused = paused;

@@ -5013,7 +5013,6 @@ retry:
 	{
 		error_code ec;
 		torrent_handle handle = add_torrent(*params, ec);
-		delete params->resume_data;
 		delete params;
 	}
 
@@ -5085,7 +5084,7 @@ retry:
 		// we don't have a torrent file. If the user provided
 		// resume data, there may be some metadata in there
 		if ((!params.ti || !params.ti->is_valid())
-			&& params.resume_data)
+			&& !params.resume_data.empty())
 		{
 			int pos;
 			error_code ec;
@@ -5094,8 +5093,8 @@ retry:
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			session_log("adding magnet link with resume data");
 #endif
-			if (lazy_bdecode(&(*params.resume_data)[0], &(*params.resume_data)[0]
-					+ params.resume_data->size(), tmp, ec, &pos) == 0
+			if (lazy_bdecode(&params.resume_data[0], &params.resume_data[0]
+					+ params.resume_data.size(), tmp, ec, &pos) == 0
 				&& tmp.type() == lazy_entry::dict_t
 				&& (info = tmp.dict_find_dict("info")))
 			{

@@ -52,11 +52,9 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			, tracker_url(0)
 #endif
-			, resume_data(0)
 			, storage_mode(storage_mode_sparse)
 			, storage(sc)
 			, userdata(0)
-			, file_priorities(0)
 #ifndef TORRENT_NO_DEPRECATE
 			, flags(flag_ignore_flags | default_flags)
 			, seed_mode(false)
@@ -129,11 +127,11 @@ namespace libtorrent
 		sha1_hash info_hash;
 		std::string name;
 		std::string save_path;
-		std::vector<char>* resume_data;
+		std::vector<char> resume_data;
 		storage_mode_t storage_mode;
 		storage_constructor_type storage;
 		void* userdata;
-		std::vector<boost::uint8_t> const* file_priorities;
+		std::vector<boost::uint8_t> file_priorities;
 		std::string trackerid;
 		std::string url;
 		std::string uuid;

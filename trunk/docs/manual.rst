@@ -394,11 +394,11 @@ async_add_torrent() add_torrent()
 			sha1_hash info_hash;
 			std::string name;
 			std::string save_path;
-			std::vector<char>* resume_data;
+			std::vector<char> resume_data;
 			storage_mode_t storage_mode;
 			storage_constructor_type storage;
 			void* userdata;
-			std::vector<boost::uint8_t> const* file_priorities;
+			std::vector<boost::uint8_t> file_priorities;
 			std::string trackerid;
 			std::string url;
 			std::string uuid;
