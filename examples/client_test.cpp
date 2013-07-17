@@ -714,9 +714,7 @@ void add_torrent(libtorrent::session& ses
 
 	std::string filename = combine_path(save_path, combine_path(".resume", to_hex(t->info_hash().to_string()) + ".resume"));
 
-	std::vector<char> buf;
-	if (load_file(filename.c_str(), buf, ec) == 0)
-		p.resume_data = &buf;
+	load_file(filename.c_str(), p.resume_data, ec);
 
 	p.ti = t;
 	p.save_path = save_path;
@@ -1508,8 +1506,7 @@ int main(int argc, char* argv[])
 				std::string filename = combine_path(save_path, combine_path(".resume"
 					, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-				if (load_file(filename.c_str(), buf, ec) == 0)
-					p.resume_data = &buf;
+				load_file(filename.c_str(), p.resume_data, ec);
 			}
 
 			printf("adding URL: %s\n", i->c_str());
@@ -1640,8 +1637,7 @@ int main(int argc, char* argv[])
 					std::string filename = combine_path(save_path, combine_path(".resume"
 						, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-					if (load_file(filename.c_str(), buf, ec) == 0)
-						p.resume_data = &buf;
+					load_file(filename.c_str(), p.resume_data, ec);
 				}
 
 				printf("adding URL: %s\n", url);
