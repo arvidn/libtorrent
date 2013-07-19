@@ -26,7 +26,7 @@ TARGETS = index \
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
 
-html: $(TARGETS:=.html) $(FIGURES:=.png)
+html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html reference.html
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
@@ -36,6 +36,9 @@ all: html
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
+
+reference.html:gen_reference_doc.py ../include/libtorrent/*.hpp
+	python gen_reference_doc.py
 
 %.epub:%.rst
 	rst2epub $? $@
@@ -56,5 +59,5 @@ todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	cp $@ $(WEB_PATH)/$@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html reference*.html
 
