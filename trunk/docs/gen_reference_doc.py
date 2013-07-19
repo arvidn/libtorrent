@@ -210,7 +210,7 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if looks_like_variable(l):
-			fields.append({ 'signature': l, 'name': l.split(' ')[-1][0:-1], 'desc': context})
+			fields.append({ 'signature': l, 'name': l.split(' ')[-1].split(':')[0].split(';')[0], 'desc': context})
 			context = ''
 			continue
 

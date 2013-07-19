@@ -107,8 +107,7 @@ h1.title { text-align: center; }
 
 dt {
     font-size: 100%;
-    letter-spacing: 2px;
-    line-height: 1em;
+    line-height: 1.2em;
     color: #315586;
     color: #000;
     font-family: Tahoma;
@@ -116,7 +115,7 @@ dt {
 }
 
 dd {
-/*    line-height: 1.5em;*/
+    line-height: 1em;
     margin-left: 1em;
     margin-bottom: 1em;
     font-size: 92%;
