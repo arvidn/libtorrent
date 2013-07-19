@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
-	TORRENT_EXPORT bool is_digit(char c);
+	TORRENT_EXTRA_EXPORT bool is_digit(char c);
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);
 	TORRENT_EXTRA_EXPORT char to_lower(char c);
