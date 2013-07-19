@@ -41,10 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	alert_manager::alert_manager(io_service& ios, int queue_limit, boost::uint32_t alert_mask)
+	alert_manager::alert_manager(int queue_limit, boost::uint32_t alert_mask)
 		: m_alert_mask(alert_mask)
 		, m_queue_size_limit(queue_limit)
-		, m_ios(ios)
 	{}
 
 	alert_manager::~alert_manager()
