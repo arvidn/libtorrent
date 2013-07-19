@@ -97,6 +97,7 @@ set(kademlia_sources
 	node_id
 	routing_table
 	traversal_algorithm
+	logging
 )
 
 set(includes include)

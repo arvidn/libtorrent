@@ -86,15 +86,6 @@ void stop_malloc_debug();
 
 namespace libtorrent
 {
-#ifdef _MSC_VER
-	namespace aux
-	{
-		eh_initializer::eh_initializer()
-		{
-			::_set_se_translator(straight_to_debugger);
-		}
-	}
-#endif
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
 
@@ -401,9 +392,21 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
+#if defined _MSC_VER && defined TORRENT_DEBUG
+	static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
+	{ throw; }
+#endif
+
 	void session::init(std::pair<int, int> listen_range, char const* listen_interface
 		, fingerprint const& id, boost::uint32_t alert_mask)
 	{
+#if defined _MSC_VER && defined TORRENT_DEBUG
+		// workaround for microsofts
+		// hardware exceptions that makes
+		// it hard to debug stuff
+		::_set_se_translator(straight_to_debugger);
+#endif
+
 		m_impl.reset(new session_impl(listen_range, id, listen_interface, alert_mask));
 
 #ifdef TORRENT_MEMDEBUG
@@ -1118,16 +1121,14 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(start_lsd);
 	}
 	
-	natpmp* session::start_natpmp()
+	void session::start_natpmp()
 	{
-		TORRENT_SYNC_CALL_RET(natpmp*, start_natpmp);
-		return r;
+		TORRENT_ASYNC_CALL(start_natpmp);
 	}
 	
-	upnp* session::start_upnp()
+	void session::start_upnp()
 	{
-		TORRENT_SYNC_CALL_RET(upnp*, start_upnp);
-		return r;
+		TORRENT_ASYNC_CALL(start_upnp);
 	}
 	
 	void session::stop_lsd()

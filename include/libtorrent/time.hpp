@@ -41,9 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// TODO: 3 do these two really need to be exposed to users?
-	TORRENT_EXPORT char const* time_now_string();
-	TORRENT_EXPORT std::string log_time();
+	char const* time_now_string();
+	std::string log_time();
 
 	TORRENT_EXPORT ptime time_now_hires();
 	TORRENT_EXPORT ptime min_time();
@@ -63,52 +62,15 @@ namespace libtorrent
 
 #elif defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
 
-	namespace aux
-	{
-		// TODO: 3 move these to time.cpp
-		TORRENT_EXPORT boost::int64_t performance_counter_to_microseconds(boost::int64_t pc);
-		TORRENT_EXPORT boost::int64_t microseconds_to_performance_counter(boost::int64_t ms);
-	}
-
-	inline int total_seconds(time_duration td)
-	{
-		return int(aux::performance_counter_to_microseconds(td.diff)
-			/ 1000000);
-	}
-	inline int total_milliseconds(time_duration td)
-	{
-		return int(aux::performance_counter_to_microseconds(td.diff)
-			/ 1000);
-	}
-	inline boost::int64_t total_microseconds(time_duration td)
-	{
-		return aux::performance_counter_to_microseconds(td.diff);
-	}
-
-	inline time_duration microsec(boost::int64_t s)
-	{
-		return time_duration(aux::microseconds_to_performance_counter(s));
-	}
-	inline time_duration milliseconds(boost::int64_t s)
-	{
-		return time_duration(aux::microseconds_to_performance_counter(
-			s * 1000));
-	}
-	inline time_duration seconds(boost::int64_t s)
-	{
-		return time_duration(aux::microseconds_to_performance_counter(
-			s * 1000000));
-	}
-	inline time_duration minutes(boost::int64_t s)
-	{
-		return time_duration(aux::microseconds_to_performance_counter(
-			s * 1000000 * 60));
-	}
-	inline time_duration hours(boost::int64_t s)
-	{
-		return time_duration(aux::microseconds_to_performance_counter(
-			s * 1000000 * 60 * 60));
-	}
+	TORRENT_EXPORT time_duration microsec(boost::int64_t s);
+	TORRENT_EXPORT time_duration milliseconds(boost::int64_t s);
+	TORRENT_EXPORT time_duration seconds(boost::int64_t s);
+	TORRENT_EXPORT time_duration minutes(boost::int64_t s);
+	TORRENT_EXPORT time_duration hours(boost::int64_t s);
+                  
+	TORRENT_EXPORT int total_seconds(time_duration td);
+	TORRENT_EXPORT int total_milliseconds(time_duration td);
+	TORRENT_EXPORT boost::int64_t total_microseconds(time_duration td);
 
 #elif TORRENT_USE_CLOCK_GETTIME || TORRENT_USE_SYSTEM_TIME || TORRENT_USE_ABSOLUTE_TIME
 

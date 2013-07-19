@@ -1214,13 +1214,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger : request_callback
 		{
-			tracker_logger(session_impl& ses): m_ses(ses) {}
+			tracker_logger(session_impl& ses);
 			void tracker_warning(tracker_request const& req
-				, std::string const& str)
-			{
-				debug_log("*** tracker warning: %s", str.c_str());
-			}
-
+				, std::string const& str);
 			void tracker_response(tracker_request const&
 				, libtorrent::address const& tracker_ip
 				, std::list<address> const& ip_list
@@ -1231,56 +1227,13 @@ namespace libtorrent
 				, int incomplete
 				, int downloaded 
 				, address const& external_ip
-				, std::string const& tracker_id)
-			{
-				std::string s;
-				s = "TRACKER RESPONSE:\n";
-				char tmp[200];
-				snprintf(tmp, 200, "interval: %d\nmin_interval: %d\npeers:\n", interval, min_interval);
-				s += tmp;
-				for (std::vector<peer_entry>::const_iterator i = peers.begin();
-					i != peers.end(); ++i)
-				{
-					char pid[41];
-					to_hex((const char*)&i->pid[0], 20, pid);
-					if (i->pid.is_all_zeros()) pid[0] = 0;
-
-					snprintf(tmp, 200, " %-16s %-5d %s\n", i->ip.c_str(), i->port, pid);
-					s += tmp;
-				}
-				snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());
-				s += tmp;
-				debug_log("%s", s.c_str());
-			}
-
+				, std::string const& tracker_id);
 			void tracker_request_timed_out(
-				tracker_request const&)
-			{
-				debug_log("*** tracker timed out");
-			}
-
+				tracker_request const&);
 			void tracker_request_error(tracker_request const& r
 				, int response_code, error_code const& ec, const std::string& str
-				, int retry_interval)
-			{
-				debug_log("*** tracker error: %d: %s %s"
-					, response_code, ec.message().c_str(), str.c_str());
-			}
-			
-			void debug_log(const char* fmt, ...) const
-			{
-				if (!m_ses.m_logger) return;
-
-				va_list v;	
-				va_start(v, fmt);
-	
-				char usr[1024];
-				vsnprintf(usr, sizeof(usr), fmt, v);
-				va_end(v);
-				char buf[1280];
-				snprintf(buf, sizeof(buf), "%s: %s\n", time_now_string(), usr);
-				(*m_ses.m_logger) << buf;
-			}
+				, int retry_interval);
+			void debug_log(const char* fmt, ...) const;
 			session_impl& m_ses;
 		};
 #endif

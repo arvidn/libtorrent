@@ -153,35 +153,32 @@ namespace libtorrent
 
 namespace libtorrent
 {
-	namespace aux
+	boost::int64_t performance_counter_to_microseconds(boost::int64_t pc)
 	{
-		boost::int64_t performance_counter_to_microseconds(boost::int64_t pc)
-		{
-			static LARGE_INTEGER performace_counter_frequency = {0,0};
-			if (performace_counter_frequency.QuadPart == 0)
-				QueryPerformanceFrequency(&performace_counter_frequency);
+		static LARGE_INTEGER performace_counter_frequency = {0,0};
+		if (performace_counter_frequency.QuadPart == 0)
+			QueryPerformanceFrequency(&performace_counter_frequency);
 
 #ifdef TORRENT_DEBUG
-			// make sure we don't overflow
-			boost::int64_t ret = (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
-			TORRENT_ASSERT((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
+		// make sure we don't overflow
+		boost::int64_t ret = (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
+		TORRENT_ASSERT((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
 #endif
-			return ((pc * 1000 + performace_counter_frequency.QuadPart / 2) / performace_counter_frequency.QuadPart) * 1000;
-		}
+		return ((pc * 1000 + performace_counter_frequency.QuadPart / 2) / performace_counter_frequency.QuadPart) * 1000;
+	}
 
-		boost::int64_t microseconds_to_performance_counter(boost::int64_t ms)
-		{
-			static LARGE_INTEGER performace_counter_frequency = {0,0};
-			if (performace_counter_frequency.QuadPart == 0)
-				QueryPerformanceFrequency(&performace_counter_frequency);
+	boost::int64_t microseconds_to_performance_counter(boost::int64_t ms)
+	{
+		static LARGE_INTEGER performace_counter_frequency = {0,0};
+		if (performace_counter_frequency.QuadPart == 0)
+			QueryPerformanceFrequency(&performace_counter_frequency);
 #ifdef TORRENT_DEBUG
-			// make sure we don't overflow
-			boost::int64_t ret = (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
-			TORRENT_ASSERT((ms >= 0 && ms <= ret)
-				|| (ms < 0 && ms > ret));
+		// make sure we don't overflow
+		boost::int64_t ret = (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
+		TORRENT_ASSERT((ms >= 0 && ms <= ret)
+			|| (ms < 0 && ms > ret));
 #endif
-			return (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
-		}
+		return (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
 	}
 
 	ptime time_now_hires()
@@ -189,6 +186,46 @@ namespace libtorrent
 		LARGE_INTEGER now;
 		QueryPerformanceCounter(&now);
 		return ptime(now.QuadPart);
+	}
+
+	int total_seconds(time_duration td)
+	{
+		return int(performance_counter_to_microseconds(td.diff)
+			/ 1000000);
+	}
+	int total_milliseconds(time_duration td)
+	{
+		return int(performance_counter_to_microseconds(td.diff)
+			/ 1000);
+	}
+	boost::int64_t total_microseconds(time_duration td)
+	{
+		return performance_counter_to_microseconds(td.diff);
+	}
+
+	time_duration microsec(boost::int64_t s)
+	{
+		return time_duration(aux::microseconds_to_performance_counter(s));
+	}
+	time_duration milliseconds(boost::int64_t s)
+	{
+		return time_duration(aux::microseconds_to_performance_counter(
+			s * 1000));
+	}
+	time_duration seconds(boost::int64_t s)
+	{
+		return time_duration(aux::microseconds_to_performance_counter(
+			s * 1000000));
+	}
+	time_duration minutes(boost::int64_t s)
+	{
+		return time_duration(aux::microseconds_to_performance_counter(
+			s * 1000000 * 60));
+	}
+	time_duration hours(boost::int64_t s)
+	{
+		return time_duration(aux::microseconds_to_performance_counter(
+			s * 1000000 * 60 * 60));
 	}
 }
 

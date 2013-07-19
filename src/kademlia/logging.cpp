@@ -30,111 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LOGGING_HPP
-#define TORRENT_LOGGING_HPP
-
-#include "libtorrent/config.hpp"
-
-#if TORRENT_USE_IOSTREAM
-
-#include <iostream>
-#include <fstream>
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/kademlia/logging.hpp"
 
 namespace libtorrent { namespace dht
 {
-
-class log
-{
-public:
-	log(char const* id, std::ostream& stream)
-		: m_id(id)
-		, m_enabled(true)
-		, m_stream(stream)
+	log_event::log_event(log& log) 
+		: log_(log) 
 	{
+		if (log_.enabled())
+			log_ << time_now_string() << " [" << log.id() << "] ";
 	}
 
-	char const* id() const
+	log_event::~log_event()
 	{
-		return m_id;
+		if (log_.enabled())
+		{
+			log_ << "\n";
+			log_.flush();
+		}
 	}
 
-	bool enabled() const
-	{
-		return m_enabled;
-	}
-
-	void enable(bool e)
-	{
-		m_enabled = e;
-	}
-	
-	void flush() { m_stream.flush(); }
-
-	template<class T>
-	log& operator<<(T const& x)
-	{
-		m_stream << x;
-		return *this;
-	}
-
-private:
-	char const* m_id;
-	bool m_enabled;
-	std::ostream& m_stream;
-};
-
-class log_event
-{
-public:
-	log_event(log& log);
-	~log_event();
-
-	template<class T>
-	log_event& operator<<(T const& x)
-	{
-		log_ << x;
-		return *this;
-	}
-
-	operator bool() const
-	{
-		return log_.enabled();
-	}
-
-private:	
-	log& log_;
-};
-
-class inverted_log_event : public log_event
-{
-public:
-	inverted_log_event(log& log) : log_event(log) {}
-
-	operator bool() const
-	{
-		return !log_event::operator bool();
-	}
-};
-
-} } // namespace libtorrent::dht
-
-#define TORRENT_DECLARE_LOG(name) \
-	libtorrent::dht::log& name ## _log()
-
-#define TORRENT_DEFINE_LOG(name) \
-	libtorrent::dht::log& name ## _log() \
-	{ \
-		static std::ofstream log_file("dht.log", std::ios::app); \
-		static libtorrent::dht::log instance(#name, log_file); \
-		return instance; \
-	}
-
-#define TORRENT_LOG(name) \
-	if (libtorrent::dht::inverted_log_event event_object__ = name ## _log()); \
-	else static_cast<log_event&>(event_object__)
-
-#endif // TORRENT_USE_IOSTREAM
-
-#endif
+}}
 
