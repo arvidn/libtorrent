@@ -235,6 +235,7 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
+	// TODO: 3 should this really be a public symbol?
 	int TORRENT_EXPORT load_file(std::string const& filename
 		, std::vector<char>& v, error_code& ec, int limit = 8000000);
 
@@ -420,8 +421,7 @@ namespace libtorrent
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 		// if we're logging member offsets, we need access to them
-#if defined TORRENT_DEBUG \
-		&& !defined TORRENT_LOGGING \
+#if !defined TORRENT_LOGGING \
 		&& !defined TORRENT_VERBOSE_LOGGING \
 		&& !defined TORRENT_ERROR_LOGGING
 	private:

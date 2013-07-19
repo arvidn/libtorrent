@@ -40,13 +40,8 @@ std::string demangle(char const* name);
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 #endif
 
-#if (!defined TORRENT_DEBUG && !TORRENT_RELEASE_ASSERTS) \
-	|| TORRENT_NO_ASSERTS
-
-#define TORRENT_ASSERT(a) do {} while(false)
-#define TORRENT_ASSERT_VAL(a, b) do {} while(false)
-
-#else
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) \
+	&& !TORRENT_NO_ASSERTS
 
 #if TORRENT_PRODUCTION_ASSERTS
 extern char const* libtorrent_assert_log;
@@ -74,7 +69,12 @@ TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
 #define TORRENT_ASSERT_VAL(x, y) assert(x)
 #endif
 
-#endif
+#else // TORRENT_DEBUG || TORENT_RELEASE_ASSERTS && !TORRENT_NO_ASSERTS
+
+#define TORRENT_ASSERT(a) do {} while(false)
+#define TORRENT_ASSERT_VAL(a, b) do {} while(false)
+
+#endif // TORRENT_DEBUG || TORENT_RELEASE_ASSERTS && !TORRENT_NO_ASSERTS
 
 #endif
 

@@ -71,6 +71,7 @@ namespace libtorrent
 	// it's smaller and optimized for smaller memory
 	// footprint, as opposed to file_entry, which is
 	// optimized for convenience
+	// TODO: does this really need to be exported?
 	struct TORRENT_EXPORT internal_file_entry
 	{
 		friend class file_storage;

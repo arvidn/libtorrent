@@ -98,6 +98,7 @@ namespace libtorrent
 		// workaround for microsofts
 		// hardware exceptions that makes
 		// it hard to debug stuff
+		// TODO: 3 make this an implementation detail
 #ifdef _MSC_VER
 		struct TORRENT_EXPORT eh_initializer
 		{
@@ -128,6 +129,8 @@ namespace libtorrent
 #define TORRENT_LOGPATH_ARG_DEFAULT
 #endif
 
+	// Once it's created, the session object will spawn the main thread that will do all the work.
+	// The main thread will be idle as long it doesn't have any torrents to participate in.
 	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
 	{
 	public:

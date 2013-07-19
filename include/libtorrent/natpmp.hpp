@@ -53,6 +53,8 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
+// TODO: 3 should this really be a public symbol?
+// also, make this a shared_ptr instead
 class TORRENT_EXPORT natpmp : public intrusive_ptr_base<natpmp>
 {
 public:
