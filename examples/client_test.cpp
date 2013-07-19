@@ -257,9 +257,9 @@ bool is_hex(char const *in, int len)
 {
 	for (char const* end = in + len; in < end; ++in)
 	{
-		if (in >= '0' && in <= '9') continue;
-		if (in >= 'A' && in <= 'F') continue;
-		if (in >= 'a' && in <= 'f') continue;
+		if (*in >= '0' && *in <= '9') continue;
+		if (*in >= 'A' && *in <= 'F') continue;
+		if (*in >= 'a' && *in <= 'f') continue;
 		return false;
 	}
 	return true;
@@ -1327,7 +1327,7 @@ int main(int argc, char* argv[])
 		{
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
-				&& is_hex(argv[i], 40)
+				&& ::is_hex(argv[i], 40)
 				&& (strncmp(argv[i] + 40, "@http://", 8) == 0
 					|| strncmp(argv[i] + 40, "@udp://", 7) == 0))
 			{
