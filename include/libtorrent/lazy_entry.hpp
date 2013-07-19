@@ -279,8 +279,7 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
-	// TODO: 3 does this need to be a public function?
-	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
+	TORRENT_EXTRA_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
 }
 
