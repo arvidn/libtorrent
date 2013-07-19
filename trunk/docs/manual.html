@@ -464,11 +464,11 @@ struct add_torrent_params
         sha1_hash info_hash;
         std::string name;
         std::string save_path;
-        std::vector&lt;char&gt;* resume_data;
+        std::vector&lt;char&gt; resume_data;
         storage_mode_t storage_mode;
         storage_constructor_type storage;
         void* userdata;
-        std::vector&lt;boost::uint8_t&gt; const* file_priorities;
+        std::vector&lt;boost::uint8_t&gt; file_priorities;
         std::string trackerid;
         std::string url;
         std::string uuid;
@@ -5043,9 +5043,9 @@ quite unthrottled.</p>
 <p><tt class="docutils literal">dht_upload_rate_limit</tt> sets the rate limit on the DHT. This is specified in
 bytes per second and defaults to 4000. For busy boxes with lots of torrents
 that requires more DHT traffic, this should be raised.</p>
-<p><tt class="docutils literal">unchoke_slots_limit</tt> is the max number of unchoked peers in the session.</p>
-<p>The number of unchoke slots may be ignored depending on what
-<tt class="docutils literal">choking_algorithm</tt> is set to.</p>
+<p><tt class="docutils literal">unchoke_slots_limit</tt> is the max number of unchoked peers in the session. The
+number of unchoke slots may be ignored depending on what <tt class="docutils literal">choking_algorithm</tt>
+is set to. A value of -1 means infinite.</p>
 <p><tt class="docutils literal">half_open_limit</tt> sets the maximum number of half-open connections
 libtorrent will have when connecting to peers. A half-open connection is one
 where connect() has been called, but the connection still hasn't been established
