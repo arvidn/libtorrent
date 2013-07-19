@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.8.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -291,7 +291,7 @@ libraries.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">dht-support</span></tt></td>
+<tr><td><tt class="docutils literal">dht</tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">on</tt> - build with support for tracker less
 torrents and DHT support.</li>
@@ -491,6 +491,17 @@ but if the client does, you need these to be
 built.</li>
 <li><tt class="docutils literal">on</tt> - build asio types that depend on
 boost.date_time.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal">statistics</tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal">off</tt> - default. No logging of additional
+stats.</li>
+<li><tt class="docutils literal">on</tt> - log session statistics in current
+working directory session_stats&lt;pid&gt;. The log
+is rotated every hour. It can be parsed by the
+parse_session_stats.py script (requires gnuplot)</li>
 </ul>
 </td>
 </tr>
