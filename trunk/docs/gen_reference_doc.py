@@ -473,11 +473,11 @@ for cat in categories:
 	print >>out, '<h2>%s</h2>' % cat
 	category_filename = categories[cat]['filename']
 	for c in categories[cat]['classes']:
-		print >>out, '<a href="%s#%s">%s</a><br/>' % (category_filename, c['name'], c['name'])
+		print >>out, '<a href="%s#%s">%s %s</a><br/>' % (category_filename, html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name']))
 	for f in categories[cat]['functions']:
-		print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, f['name'], f['name'])
+		print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, html_sanitize(f['name']), html_sanitize(f['name']))
 	for e in categories[cat]['enums']:
-		print >>out, '<a href="%s#%s">%s</a><br/>' % (category_filename, e['name'], e['name'])
+		print >>out, '<a href="%s#%s">enum %s</a><br/>' % (category_filename, html_sanitize(e['name']), html_sanitize(e['name']))
 
 out.write('</div></body></html>')
 out.close()
@@ -533,8 +533,8 @@ for cat in categories:
 
 		for e in c['enums']:
 			if e['desc'] == '': continue
-			print >>out, '<a name="%s"></a><h3>%s</h3>' % (html_sanitize(e['name']), html_sanitize(e['name']))
-			print >>out, '<table><tr><th>enum value</th><th>description</th></tr>'
+			print >>out, '<a name="%s::%s"></a><h3>enum %s</h3>' % (html_sanitize(e['name']), html_sanitize(c['name']), html_sanitize(e['name']))
+			print >>out, '<table><tr><th>value</th><th>description</th></tr>'
 			for v in e['values']:
 				print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (html_sanitize(v['name']), html_sanitize(v['desc']))
 			print >>out, '</table>'
@@ -553,9 +553,9 @@ for cat in categories:
 		print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
 
 	for e in enums:
-		print >>out, '<a name="%s"></a><h3>%s</h3>' % (html_sanitize(e['name']), html_sanitize(e['name']))
+		print >>out, '<a name="%s"></a><h2>enum %s</h2>' % (html_sanitize(e['name']), html_sanitize(e['name']))
 		print_declared_in(out, e)
-		print >>out, '<table><tr><th>enum value</th><th>description</th></tr>'
+		print >>out, '<table><tr><th>value</th><th>description</th></tr>'
 		for v in e['values']:
 			print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (html_sanitize(v['name']), html_sanitize(v['desc']))
 		print >>out, '</table>'
