@@ -4793,13 +4793,23 @@ retry:
 		}
 	}
 
+#if defined _MSC_VER && defined TORRENT_DEBUG
+	static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
+	{ throw; }
+#endif
+
 	void session_impl::main_thread()
 	{
+#if defined _MSC_VER && defined TORRENT_DEBUG
+		// workaround for microsofts
+		// hardware exceptions that makes
+		// it hard to debug stuff
+		::_set_se_translator(straight_to_debugger);
+#endif
 #if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		m_network_thread = pthread_self();
 #endif
 		TORRENT_ASSERT(is_network_thread());
-		eh_initializer();
 
 		// initialize async operations
 		init();
@@ -6381,5 +6391,74 @@ retry:
 	}
 #endif
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		tracker_logger::tracker_logger(session_impl& ses): m_ses(ses) {}
+		void tracker_logger::tracker_warning(tracker_request const& req
+			, std::string const& str)
+		{
+			debug_log("*** tracker warning: %s", str.c_str());
+		}
+
+		void tracker_logger::tracker_response(tracker_request const&
+			, libtorrent::address const& tracker_ip
+			, std::list<address> const& ip_list
+			, std::vector<peer_entry>& peers
+			, int interval
+			, int min_interval
+			, int complete
+			, int incomplete
+			, int downloaded 
+			, address const& external_ip
+			, std::string const& tracker_id)
+		{
+			std::string s;
+			s = "TRACKER RESPONSE:\n";
+			char tmp[200];
+			snprintf(tmp, 200, "interval: %d\nmin_interval: %d\npeers:\n", interval, min_interval);
+			s += tmp;
+			for (std::vector<peer_entry>::const_iterator i = peers.begin();
+				i != peers.end(); ++i)
+			{
+				char pid[41];
+				to_hex((const char*)&i->pid[0], 20, pid);
+				if (i->pid.is_all_zeros()) pid[0] = 0;
+
+				snprintf(tmp, 200, " %-16s %-5d %s\n", i->ip.c_str(), i->port, pid);
+				s += tmp;
+			}
+			snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());
+			s += tmp;
+			debug_log("%s", s.c_str());
+		}
+
+		void tracker_logger::tracker_request_timed_out(
+			tracker_request const&)
+		{
+			debug_log("*** tracker timed out");
+		}
+
+		void tracker_logger::tracker_request_error(tracker_request const& r
+			, int response_code, error_code const& ec, const std::string& str
+			, int retry_interval)
+		{
+			debug_log("*** tracker error: %d: %s %s"
+				, response_code, ec.message().c_str(), str.c_str());
+		}
+		
+		void tracker_logger::debug_log(const char* fmt, ...) const
+		{
+			if (!m_ses.m_logger) return;
+
+			va_list v;	
+			va_start(v, fmt);
+
+			char usr[1024];
+			vsnprintf(usr, sizeof(usr), fmt, v);
+			va_end(v);
+			char buf[1280];
+			snprintf(buf, sizeof(buf), "%s: %s\n", time_now_string(), usr);
+			(*m_ses.m_logger) << buf;
+		}
+#endif
 }}
 

@@ -126,8 +126,8 @@ namespace libtorrent
 	TORRENT_EXPORT ptime min_time();
 	TORRENT_EXPORT ptime max_time();
 
-	TORRENT_EXPORT char const* time_now_string();
-	TORRENT_EXPORT std::string log_time();
+	char const* time_now_string();
+	std::string log_time();
 
 	TORRENT_EXPORT ptime const& time_now();
 }
