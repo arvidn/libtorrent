@@ -277,7 +277,7 @@ def parse_enum(lno, lines, filename):
 			if verbose: print '??    %s' % lines[lno-1]
 
 		if start_brace > 0 and start_brace == end_brace:
-			return [{'file': filename, 'name': name, 'values': values}, lno]
+			return [{'file': filename[11:], 'name': name, 'values': values}, lno]
 
 	if len(name) > 0:
 		print '\x1b[31mFAILED TO PARSE ENUM\x1b[0m %s\nline: %d\nfile: %s' % (name, lno, filename)
