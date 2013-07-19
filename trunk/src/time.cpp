@@ -203,26 +203,26 @@ namespace libtorrent
 		return performance_counter_to_microseconds(td.diff);
 	}
 
-	time_duration microsec(boost::int64_t s)
+	time_duration microsec(int s)
 	{
 		return time_duration(aux::microseconds_to_performance_counter(s));
 	}
-	time_duration milliseconds(boost::int64_t s)
+	time_duration milliseconds(int s)
 	{
 		return time_duration(aux::microseconds_to_performance_counter(
 			s * 1000));
 	}
-	time_duration seconds(boost::int64_t s)
+	time_duration seconds(int s)
 	{
 		return time_duration(aux::microseconds_to_performance_counter(
 			s * 1000000));
 	}
-	time_duration minutes(boost::int64_t s)
+	time_duration minutes(int s)
 	{
 		return time_duration(aux::microseconds_to_performance_counter(
 			s * 1000000 * 60));
 	}
-	time_duration hours(boost::int64_t s)
+	time_duration hours(int s)
 	{
 		return time_duration(aux::microseconds_to_performance_counter(
 			s * 1000000 * 60 * 60));
