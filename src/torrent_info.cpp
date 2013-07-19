@@ -457,7 +457,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit)
+	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit = 8000000)
 	{
 		ec.clear();
 		file f;
