@@ -71,7 +71,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
 
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
-	TORRENT_EXPORT bool is_hex(char const *in, int len);
+	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 

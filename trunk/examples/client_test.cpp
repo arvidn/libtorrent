@@ -253,6 +253,18 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	return 0;
 }
 
+bool is_hex(char const *in, int len)
+{
+	for (char const* end = in + len; in < end; ++in)
+	{
+		if (in >= '0' && in <= '9') continue;
+		if (in >= 'A' && in <= 'F') continue;
+		if (in >= 'a' && in <= 'f') continue;
+		return false;
+	}
+	return true;
+}
+
 enum {
 	torrents_all,
 	torrents_downloading,
