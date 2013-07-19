@@ -126,6 +126,7 @@ void run_test(std::string const& url, int size, int status, int connected
 	std::cerr << "handler_called: " << handler_called << std::endl;
 	std::cerr << "status: " << http_status << std::endl;
 	std::cerr << "size: " << data_size << std::endl;
+	std::cerr << "expected-size: " << size << std::endl;
 	std::cerr << "error_code: " << g_error_code.message() << std::endl;
 	TEST_CHECK(connect_handler_called == connected);
 	TEST_CHECK(handler_called == 1);	

@@ -50,9 +50,6 @@ namespace libtorrent
 {
 	struct lazy_entry;
 
-	TORRENT_EXPORT char const* parse_int(char const* start, char const* end
-		, char delimiter, boost::int64_t& val);
-
 	// return 0 = success
 	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, error_code& ec, int* error_pos = 0
@@ -66,7 +63,7 @@ namespace libtorrent
 		, lazy_entry& ret, int depth_limit = 1000, int item_limit = 1000000) TORRENT_DEPRECATED;
 #endif
 
-	struct pascal_string
+	struct TORRENT_EXPORT pascal_string
 	{
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
 		int len;
@@ -282,6 +279,7 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
+	// TODO: 3 does this need to be a public function?
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
 }

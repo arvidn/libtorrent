@@ -235,10 +235,6 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
-	// TODO: 3 should this really be a public symbol?
-	int TORRENT_EXPORT load_file(std::string const& filename
-		, std::vector<char>& v, error_code& ec, int limit = 8000000);
-
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
