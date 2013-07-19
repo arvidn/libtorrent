@@ -50,6 +50,10 @@ category_mapping = {
 	'socket.hpp': 'Network',
 	'socket_io.hpp': 'Network',
 	'rss.hpp': 'RSS',
+	'bitfield.hpp': 'Utility',
+	'peer_id.hpp': 'Utility',
+	'identify_client.hpp': 'Utility',
+	'thread.hpp': 'Utility',
 }
 
 def categorize_symbol(name, filename):
@@ -62,7 +66,7 @@ def categorize_symbol(name, filename):
 		or name.endswith('error_code_enum'):
 		return 'Error Codes'
 
-	return 'BitTorrent'
+	return 'Core'
 
 def html_sanitize(s):
 	ret = ''
@@ -206,7 +210,7 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if looks_like_variable(l):
-			fields.append({ 'name': l, 'desc': context})
+			fields.append({ 'signature': l, 'name': l.split(' ')[-1][0:-1], 'desc': context})
 			context = ''
 			continue
 
@@ -407,7 +411,7 @@ if dump:
 		if len(c['fun']) > 0 and len(c['fields']) > 0: print ''
 
 		for f in c['fields']:
-			print '   %s' % f['name']
+			print '   %s' % f['signature']
 
 		if len(c['fields']) > 0 and len(c['enums']) > 0: print ''
 
@@ -457,7 +461,7 @@ out.write('''<html><head>
 <link rel="stylesheet" href="style.css" type="text/css" />
 </head><body>
 <h1>libtorrent reference documentation</h1>
-<div style="column-count: 4; -webkit-column-count: 4; -moz-column-count: 4">''')
+<div style="column-count: 5; -webkit-column-count: 5; -moz-column-count: 5">''')
 
 def print_declared_in(out, o):
 	out.write('<p>Declared in <a href="../include/%s"><tt class="docutils-literal">"%s"</tt></a></p>' % (o['file'], html_sanitize(o['file'])))
@@ -516,7 +520,7 @@ for cat in categories:
 		if len(c['fun']) + len(c['enums']) > 0 and len(c['fields']): print >>out, ''
 
 		for f in c['fields']:
-			print >>out, '   %s' % html_sanitize(f['name'])
+			print >>out, '   %s' % html_sanitize(f['signature'])
 
 		out.write('};</pre>')
 
@@ -534,6 +538,12 @@ for cat in categories:
 			for v in e['values']:
 				print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (html_sanitize(v['name']), html_sanitize(v['desc']))
 			print >>out, '</table>'
+
+		for f in c['fields']:
+			if f['desc'] == '': continue
+			print >>out, '<a name="%s"></a><dt>%s</dt>' % (html_sanitize(c['name'] + '::' + f['name']), html_sanitize(f['name']))
+			print >>out, '<dd>%s</dd>' % html_sanitize(f['desc'])
+
 
 	# TODO: merge overloaded functions
 	for f in functions:
