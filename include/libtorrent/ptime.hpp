@@ -68,13 +68,17 @@ namespace libtorrent
 		boost::int64_t diff;
 	};
 
-	// libtorrent time type
-	struct ptime
+	// This type represents a point in time.
+	struct TORRENT_EXPORT ptime
 	{
 		ptime() {}
 		explicit ptime(boost::uint64_t t): time(t) {}
 		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
 		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
+
+		// the internal representation of thie time.
+		// this is using an undefined unit (platform and configuration
+		// dependent).
 		boost::uint64_t time;
 	};
 
@@ -122,10 +126,6 @@ namespace libtorrent
 
 namespace libtorrent
 {
-	TORRENT_EXPORT ptime time_now_hires();
-	TORRENT_EXPORT ptime min_time();
-	TORRENT_EXPORT ptime max_time();
-
 	char const* time_now_string();
 	std::string log_time();
 

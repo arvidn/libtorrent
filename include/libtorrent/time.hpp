@@ -48,7 +48,7 @@ namespace libtorrent
 	TORRENT_EXPORT ptime min_time();
 	TORRENT_EXPORT ptime max_time();
 
-#if defined TORRENT_USE_BOOST_DATE_TIME
+#if defined TORRENT_USE_BOOST_DATE_TIME || defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
 
 	TORRENT_EXPORT time_duration seconds(int s);
 	TORRENT_EXPORT time_duration milliseconds(int s);
@@ -56,18 +56,6 @@ namespace libtorrent
 	TORRENT_EXPORT time_duration minutes(int s);
 	TORRENT_EXPORT time_duration hours(int s);
 
-	TORRENT_EXPORT int total_seconds(time_duration td);
-	TORRENT_EXPORT int total_milliseconds(time_duration td);
-	TORRENT_EXPORT boost::int64_t total_microseconds(time_duration td);
-
-#elif defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
-
-	TORRENT_EXPORT time_duration microsec(boost::int64_t s);
-	TORRENT_EXPORT time_duration milliseconds(boost::int64_t s);
-	TORRENT_EXPORT time_duration seconds(boost::int64_t s);
-	TORRENT_EXPORT time_duration minutes(boost::int64_t s);
-	TORRENT_EXPORT time_duration hours(boost::int64_t s);
-                  
 	TORRENT_EXPORT int total_seconds(time_duration td);
 	TORRENT_EXPORT int total_milliseconds(time_duration td);
 	TORRENT_EXPORT boost::int64_t total_microseconds(time_duration td);
