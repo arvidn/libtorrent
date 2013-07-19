@@ -108,6 +108,7 @@ namespace libtorrent
 		int mode;
 	};
 
+	// TODO: why are all these functions exported?
 	enum stat_flags_t { dont_follow_links = 1 };
 	TORRENT_EXPORT void stat_file(std::string f, file_status* s
 		, error_code& ec, int flags = 0);

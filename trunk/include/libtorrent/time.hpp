@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: 3 do these two really need to be exposed to users?
 	TORRENT_EXPORT char const* time_now_string();
 	TORRENT_EXPORT std::string log_time();
 
@@ -64,6 +65,7 @@ namespace libtorrent
 
 	namespace aux
 	{
+		// TODO: 3 move these to time.cpp
 		TORRENT_EXPORT boost::int64_t performance_counter_to_microseconds(boost::int64_t pc);
 		TORRENT_EXPORT boost::int64_t microseconds_to_performance_counter(boost::int64_t ms);
 	}

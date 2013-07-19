@@ -45,7 +45,7 @@ namespace libtorrent
 {
 	class torrent_info;
 
-	struct add_torrent_params
+	struct TORRENT_EXPORT add_torrent_params
 	{
 		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
 			: version(LIBTORRENT_VERSION_NUM)
