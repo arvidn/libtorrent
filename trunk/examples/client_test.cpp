@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/socket_io.hpp" // print_address
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
 
@@ -262,6 +261,21 @@ bool is_hex(char const *in, int len)
 		return false;
 	}
 	return true;
+}
+
+std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
+{
+	using namespace libtorrent;
+	error_code ec;
+	char buf[200];
+	address const& addr = ep.address();
+#if TORRENT_USE_IPV6
+	if (addr.is_v6())
+		snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+	else
+#endif
+		snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
+	return buf;
 }
 
 enum {
@@ -571,9 +585,9 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 		if (print_ip)
 		{
-			snprintf(str, sizeof(str), "%-30s %-22s", (print_endpoint(i->ip) +
+			snprintf(str, sizeof(str), "%-30s %-22s", (::print_endpoint(i->ip) +
 				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str()
-				, print_endpoint(i->local_endpoint).c_str());
+				, ::print_endpoint(i->local_endpoint).c_str());
 			out += str;
 		}
 

@@ -45,20 +45,20 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	TORRENT_EXPORT bool is_local(address const& a);
-	TORRENT_EXPORT bool is_loopback(address const& addr);
-	TORRENT_EXPORT bool is_multicast(address const& addr);
-	TORRENT_EXPORT bool is_any(address const& addr);
-	TORRENT_EXPORT bool is_teredo(address const& addr);
+	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
+	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
+	TORRENT_EXTRA_EXPORT bool is_multicast(address const& addr);
+	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
+	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXTRA_EXPORT int cidr_distance(address const& a1, address const& a2);
 
 	// determines if the operating system supports IPv6
-	TORRENT_EXPORT bool supports_ipv6();
+	TORRENT_EXTRA_EXPORT bool supports_ipv6();
 
 	TORRENT_EXTRA_EXPORT int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
-	TORRENT_EXPORT address guess_local_address(io_service&);
+	TORRENT_EXTRA_EXPORT address guess_local_address(io_service&);
 
 	typedef boost::function<void(udp::endpoint const& from
 		, char* buffer, int size)> receive_handler_t;
