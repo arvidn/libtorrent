@@ -57,9 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/socket_io.hpp" // print_address
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/add_torrent_params.hpp"
@@ -324,6 +322,94 @@ bool print_disk_stats = false;
 // the number of times we've asked to save resume data
 // without having received a response (successful or failure)
 int num_outstanding_resume_data = 0;
+
+int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
+{
+	ec.clear();
+	FILE* f = fopen(filename.c_str(), "rb");
+	if (f == NULL)
+	{
+		ec.assign(errno, boost::system::get_generic_category());
+		return -1;
+	}
+
+	int r = fseek(f, 0, SEEK_END);
+	if (r != 0)
+	{
+		ec.assign(errno, boost::system::get_generic_category());
+		fclose(f);
+		return -1;
+	}
+	long s = ftell(f);
+	if (s < 0)
+	{
+		ec.assign(errno, boost::system::get_generic_category());
+		fclose(f);
+		return -1;
+	}
+
+	if (s > limit)
+	{
+		fclose(f);
+		return -2;
+	}
+
+	r = fseek(f, 0, SEEK_SET);
+	if (r != 0)
+	{
+		ec.assign(errno, boost::system::get_generic_category());
+		fclose(f);
+		return -1;
+	}
+
+	v.resize(s);
+	if (s == 0)
+	{
+		fclose(f);
+		return 0;
+	}
+
+	r = fread(&v[0], 1, v.size(), f);
+	if (r < 0)
+	{
+		ec.assign(errno, boost::system::get_generic_category());
+		fclose(f);
+		return -1;
+	}
+
+	fclose(f);
+
+	if (r != s) return -3;
+
+	return 0;
+}
+
+bool is_hex(char const *in, int len)
+{
+	for (char const* end = in + len; in < end; ++in)
+	{
+		if (*in >= '0' && *in <= '9') continue;
+		if (*in >= 'A' && *in <= 'F') continue;
+		if (*in >= 'a' && *in <= 'f') continue;
+		return false;
+	}
+	return true;
+}
+
+std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
+{
+	using namespace libtorrent;
+	error_code ec;
+	char buf[200];
+	address const& addr = ep.address();
+#if TORRENT_USE_IPV6
+	if (addr.is_v6())
+		snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+	else
+#endif
+		snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
+	return buf;
+}
 
 enum {
 	torrents_all,
@@ -662,8 +748,9 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 		if (print_ip)
 		{
-			snprintf(str, sizeof(str), "%-30s ", (print_endpoint(i->ip) +
-				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str());
+			snprintf(str, sizeof(str), "%-30s %-22s", (::print_endpoint(i->ip) +
+				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str()
+				, ::print_endpoint(i->local_endpoint).c_str());
 			out += str;
 		}
 
@@ -855,7 +942,7 @@ void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libto
 		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
 		return;
 	}
-	libtorrent::load_file(i->second.c_str(), buf, ec);
+	load_file(i->second.c_str(), buf, ec);
 }
 
 // if non-empty, a peer that will be added to all torrents
@@ -888,13 +975,12 @@ void add_torrent(libtorrent::session& ses
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
+	// TODO: implement combine_path in here, since it's internal to libtorrent
 	std::string filename = combine_path(save_path, combine_path(".resume"
 		, libtorrent::filename(torrent) + ".resume"));
 
 	error_code ec;
-	std::vector<char> buf;
-	if (load_file(filename.c_str(), buf, ec) == 0)
-		p.resume_data = &buf;
+	load_file(filename.c_str(), p.resume_data, ec);
 
 #ifdef TORRENT_WINDOWS
 	convert_path_to_posix(torrent);
@@ -926,6 +1012,7 @@ void scan_dir(std::string const& dir_path
 	using namespace libtorrent;
 
 	error_code ec;
+	// TODO: don't use internal directory type
 	for (directory i(dir_path, ec); !i.done(); i.next(ec))
 	{
 		std::string file = combine_path(dir_path, i.file());
@@ -1009,6 +1096,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 {
 	using namespace libtorrent;
 
+	// TODO: don't use internal file type here. use fopen()
 	file f;
 	error_code ec;
 	if (!f.open(filename, file::write_only, ec)) return -1;
@@ -1071,7 +1159,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		// to keep the scan dir logic in sync so it's not removed, or added twice
 		torrent_handle h = p->handle;
 		if (h.is_valid()) {
-			boost::shared_ptr<torrent_info> ti = h.torrent_file();
+			boost::shared_ptr<const torrent_info> ti = h.torrent_file();
 			create_torrent ct(*ti);
 			entry te = ct.generate();
 			std::vector<char> buffer;
@@ -1464,7 +1552,7 @@ int main(int argc, char* argv[])
 		{
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
-				&& is_hex(argv[i], 40)
+				&& ::is_hex(argv[i], 40)
 				&& (strncmp(argv[i] + 40, "@http://", 8) == 0
 					|| strncmp(argv[i] + 40, "@udp://", 7) == 0))
 			{
@@ -1662,6 +1750,7 @@ int main(int argc, char* argv[])
 	}
 
 	// create directory for resume files
+	// TODO: don't use internal create_directory function
 	create_directory(combine_path(save_path, ".resume"), ec);
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
@@ -1743,8 +1832,7 @@ int main(int argc, char* argv[])
 				std::string filename = combine_path(save_path, combine_path(".resume"
 					, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-				if (load_file(filename.c_str(), buf, ec) == 0)
-					p.resume_data = &buf;
+				load_file(filename.c_str(), p.resume_data, ec);
 			}
 
 			printf("adding URL: %s\n", i->c_str());
@@ -1894,8 +1982,7 @@ int main(int argc, char* argv[])
 					std::string filename = combine_path(save_path, combine_path(".resume"
 						, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-					if (load_file(filename.c_str(), buf, ec) == 0)
-						p.resume_data = &buf;
+					load_file(filename.c_str(), p.resume_data, ec);
 				}
 
 				printf("adding URL: %s\n", url);
@@ -2526,7 +2613,7 @@ int main(int argc, char* argv[])
 			 	h.file_status(file_status);
 				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
-				boost::shared_ptr<torrent_info> ti = h.torrent_file();
+				boost::shared_ptr<const torrent_info> ti = h.torrent_file();
 				for (int i = 0; i < ti->num_files(); ++i)
 				{
 					bool pad_file = ti->files().pad_file_at(i);

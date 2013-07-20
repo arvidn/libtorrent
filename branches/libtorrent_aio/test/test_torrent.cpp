@@ -59,7 +59,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, size_type file_s
 
 	// make sure we correctly handle the case where we pass in
 	// more values than there are files
-	p.file_priorities = &zeroes;
+	p.file_priorities = zeroes;
 
 	error_code ec;
 	torrent_handle h = ses.add_torrent(p, ec);

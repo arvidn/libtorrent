@@ -163,9 +163,7 @@ namespace libtorrent
 
 	private:
 
-#ifndef TORRENT_DEBUG
-		data_type m_type;
-#else
+#ifdef TORRENT_DEBUG
 		// the bitfield is used so that the m_type_queried
 		// field still fits, so that the ABI is the same for
 		// debug builds and release builds. It appears to be
@@ -182,6 +180,8 @@ namespace libtorrent
 		// exceptions are used.
 		mutable bool m_type_queried:1;
 	protected:
+#else
+		data_type m_type;
 #endif // TORRENT_DEBUG
 
 #if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED

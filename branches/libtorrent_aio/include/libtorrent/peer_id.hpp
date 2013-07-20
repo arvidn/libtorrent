@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// TODO: 3 rename this to sha1_hash
 	class TORRENT_EXPORT big_number
 	{
 		// the number of bytes of the number

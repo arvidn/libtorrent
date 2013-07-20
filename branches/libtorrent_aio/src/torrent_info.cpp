@@ -564,7 +564,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit)
+	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit = 8000000)
 	{
 		ec.clear();
 		file f;
@@ -624,6 +624,13 @@ namespace libtorrent
 
 	int announce_entry::min_announce_in() const
 	{ return total_seconds(min_announce - time_now()); }
+
+	void announce_entry::reset()
+	{
+		start_sent = false;
+		next_announce = min_time();
+		min_announce = min_time();
+	}
 
 	void announce_entry::failed(aux::session_settings const& sett, int retry_interval)
 	{

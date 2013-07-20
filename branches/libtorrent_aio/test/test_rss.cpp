@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 
 #include "test.hpp"
+#include "setup_transfer.hpp" // for load_file
 
 using namespace libtorrent;
 

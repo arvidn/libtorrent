@@ -159,12 +159,7 @@ namespace libtorrent
 		// this is false the stats sent to this tracker will be 0
 		bool send_stats:1;
 
-		void reset()
-		{
-			start_sent = false;
-			next_announce = min_time();
-			min_announce = min_time();
-		}
+		void reset();
 
 		void failed(aux::session_settings const& sett, int retry_interval = 0);
 
@@ -237,9 +232,6 @@ namespace libtorrent
 	// for backwards compatibility with 0.14
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
-
-	int TORRENT_EXPORT load_file(std::string const& filename
-		, std::vector<char>& v, error_code& ec, int limit = 8000000);
 
 	class TORRENT_EXPORT torrent_info
 	{
@@ -448,8 +440,7 @@ namespace libtorrent
 		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
 
 		// if we're logging member offsets, we need access to them
-#if defined TORRENT_DEBUG \
-		&& !defined TORRENT_LOGGING \
+#if !defined TORRENT_LOGGING \
 		&& !defined TORRENT_VERBOSE_LOGGING \
 		&& !defined TORRENT_ERROR_LOGGING
 	private:

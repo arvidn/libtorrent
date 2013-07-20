@@ -22,10 +22,7 @@ exe simple_client : simple_client.cpp ;
 exe stats_counters : stats_counters.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
-exe enum_if : enum_if.cpp ;
 exe connection_tester : connection_tester.cpp ;
 exe rss_reader : rss_reader.cpp ;
 exe upnp_test : upnp_test.cpp ;
-
-exe parse_request_log : parse_request_log.cpp ;
 

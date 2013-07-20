@@ -469,7 +469,7 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = t;
 		p.save_path = "tmp2_transfer_moved";
-		p.resume_data = &resume_data;
+		p.resume_data = resume_data;
 		tor2 = ses2.add_torrent(p, ec);
 		ses2.set_alert_mask(mask);
 		tor2.prioritize_pieces(priorities);

@@ -5,7 +5,11 @@ use-project /torrent : .. ;
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
 	: <threading>multi <debug-iterators>on <invariant-checks>full ;
 
+exe enum_if : enum_if.cpp /torrent//torrent
+	: <threading>multi <debug-iterators>on <invariant-checks>full ;
+
 explicit test_natpmp ;
+explicit enum_if ;
 
 lib libtorrent_test
 	: # sources

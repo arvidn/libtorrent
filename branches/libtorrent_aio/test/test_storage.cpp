@@ -562,9 +562,7 @@ void test_fastresume(std::string const& test_path)
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
-		std::vector<char> resume_buf;
-		bencode(std::back_inserter(resume_buf), resume);
-		p.resume_data = &resume_buf;
+		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
@@ -661,9 +659,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_compact;
-		std::vector<char> resume_buf;
-		bencode(std::back_inserter(resume_buf), resume);
-		p.resume_data = &resume_buf;
+		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		for (int i = 0; i < 5; ++i)

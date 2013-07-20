@@ -594,6 +594,7 @@ KADEMLIA_SOURCES =
 	node_id
 	routing_table
 	traversal_algorithm
+	logging
 	;
 
 local usage-requirements = 

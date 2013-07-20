@@ -83,8 +83,6 @@ namespace libtorrent
 	struct ip_filter;
 	class port_filter;
 	class connection_queue;
-	class natpmp;
-	class upnp;
 	class alert;
 
 	struct stats_metric
@@ -114,19 +112,6 @@ namespace libtorrent
 
 	namespace aux
 	{
-		// workaround for microsofts
-		// hardware exceptions that makes
-		// it hard to debug stuff
-#ifdef _MSC_VER
-		struct TORRENT_EXPORT eh_initializer
-		{
-			eh_initializer();
-			static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
-			{ throw; }
-		};
-#else
-		struct eh_initializer {};
-#endif
 		struct session_impl;
 	}
 
@@ -149,7 +134,9 @@ namespace libtorrent
 
 	std::vector<stats_metric> session_stats_metrics();
 
-	class TORRENT_EXPORT session: public boost::noncopyable, aux::eh_initializer
+	// Once it's created, the session object will spawn the main thread that will do all the work.
+	// The main thread will be idle as long it doesn't have any torrents to participate in.
+	class TORRENT_EXPORT session: public boost::noncopyable
 	{
 	public:
 
@@ -530,8 +517,8 @@ namespace libtorrent
 		// starts/stops UPnP, NATPMP or LSD port mappers
 		// they are stopped by default
 		void start_lsd();
-		natpmp* start_natpmp();
-		upnp* start_upnp();
+		void start_natpmp();
+		void start_upnp();
 
 		void stop_lsd();
 		void stop_natpmp();

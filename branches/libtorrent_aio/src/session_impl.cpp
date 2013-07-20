@@ -537,7 +537,7 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
-		, m_alerts(m_io_service, m_settings.get_int(settings_pack::alert_queue_size), alert_mask)
+		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert_mask)
 		, m_disk_thread(m_io_service, this, (uncork_interface*)this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
@@ -5235,14 +5235,24 @@ retry:
 		m_delayed_uncorks.clear();
 	}
 
+#if defined _MSC_VER && defined TORRENT_DEBUG
+	static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
+	{ throw; }
+#endif
+
 	void session_impl::main_thread()
 	{
+#if defined _MSC_VER && defined TORRENT_DEBUG
+		// workaround for microsofts
+		// hardware exceptions that makes
+		// it hard to debug stuff
+		::_set_se_translator(straight_to_debugger);
+#endif
 		// this is a debug facility
 		// see single_threaded in debug.hpp
 		thread_started();
 
 		TORRENT_ASSERT(is_single_thread());
-		eh_initializer();
 
 		// initialize async operations
 		init();
@@ -5643,7 +5653,6 @@ retry:
 
 		error_code ec;
 		torrent_handle handle = add_torrent(*params, ec);
-		delete params->resume_data;
 		delete params;
 	}
 
@@ -5664,7 +5673,6 @@ retry:
 			handle = add_torrent(*params, ec);
 		}
 
-		delete params->resume_data;
 		delete params;
 	}
 
@@ -5758,7 +5766,7 @@ retry:
 		// we don't have a torrent file. If the user provided
 		// resume data, there may be some metadata in there
 		if ((!params.ti || !params.ti->is_valid())
-			&& params.resume_data)
+			&& !params.resume_data.empty())
 		{
 			int pos;
 			error_code ec;
@@ -5767,8 +5775,8 @@ retry:
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			session_log("adding magnet link with resume data");
 #endif
-			if (lazy_bdecode(&(*params.resume_data)[0], &(*params.resume_data)[0]
-					+ params.resume_data->size(), tmp, ec, &pos) == 0
+			if (lazy_bdecode(&params.resume_data[0], &params.resume_data[0]
+					+ params.resume_data.size(), tmp, ec, &pos) == 0
 				&& tmp.type() == lazy_entry::dict_t
 				&& (info = tmp.dict_find_dict("info")))
 			{
@@ -7415,5 +7423,70 @@ retry:
 	}
 #endif
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		tracker_logger::tracker_logger(session_interface& ses): m_ses(ses) {}
+		void tracker_logger::tracker_warning(tracker_request const& req
+			, std::string const& str)
+		{
+			debug_log("*** tracker warning: %s", str.c_str());
+		}
+
+		void tracker_logger::tracker_response(tracker_request const&
+			, libtorrent::address const& tracker_ip
+			, std::list<address> const& ip_list
+			, std::vector<peer_entry>& peers
+			, int interval
+			, int min_interval
+			, int complete
+			, int incomplete
+			, int downloaded 
+			, address const& external_ip
+			, std::string const& tracker_id)
+		{
+			std::string s;
+			s = "TRACKER RESPONSE:\n";
+			char tmp[200];
+			snprintf(tmp, 200, "interval: %d\nmin_interval: %d\npeers:\n", interval, min_interval);
+			s += tmp;
+			for (std::vector<peer_entry>::const_iterator i = peers.begin();
+				i != peers.end(); ++i)
+			{
+				char pid[41];
+				to_hex((const char*)&i->pid[0], 20, pid);
+				if (i->pid.is_all_zeros()) pid[0] = 0;
+
+				snprintf(tmp, 200, " %-16s %-5d %s\n", i->ip.c_str(), i->port, pid);
+				s += tmp;
+			}
+			snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());
+			s += tmp;
+			debug_log("%s", s.c_str());
+		}
+
+		void tracker_logger::tracker_request_timed_out(
+			tracker_request const&)
+		{
+			debug_log("*** tracker timed out");
+		}
+
+		void tracker_logger::tracker_request_error(tracker_request const& r
+			, int response_code, error_code const& ec, const std::string& str
+			, int retry_interval)
+		{
+			debug_log("*** tracker error: %d: %s %s"
+				, response_code, ec.message().c_str(), str.c_str());
+		}
+		
+		void tracker_logger::debug_log(const char* fmt, ...) const
+		{
+			va_list v;	
+			va_start(v, fmt);
+	
+			char usr[1024];
+			vsnprintf(usr, sizeof(usr), fmt, v);
+			va_end(v);
+			m_ses.session_log("%s", usr);
+		}
+#endif
 }}
 

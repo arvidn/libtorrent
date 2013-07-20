@@ -344,7 +344,7 @@ namespace libtorrent
 
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
-		if (p.resume_data && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
+		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
 			m_need_save_resume_data = false;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -399,8 +399,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log("creating torrent: %s", torrent_file().name().c_str());
 #endif
-		if (p.file_priorities)
-			m_file_priority = *p.file_priorities;
+		m_file_priority = p.file_priorities;
 
 		if (m_seed_mode)
 		{
@@ -408,10 +407,10 @@ namespace libtorrent
 			m_verifying.resize(m_torrent_file->num_pieces(), false);
 		}
 
-		if (p.resume_data && !p.resume_data->empty())
+		if (!p.resume_data.empty())
 		{
 			m_resume_data.reset(new resume_data_t);
-			m_resume_data->buf.swap(*p.resume_data);
+			m_resume_data->buf = p.resume_data;
 		}
 
 #ifdef TORRENT_DEBUG

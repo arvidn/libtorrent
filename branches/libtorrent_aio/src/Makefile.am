@@ -9,6 +9,7 @@ KADEMLIA_SOURCES = \
   kademlia/refresh.cpp          \
   kademlia/routing_table.cpp    \
   kademlia/rpc_manager.cpp      \
+  kademlia/logging.cpp          \
   kademlia/traversal_algorithm.cpp
 endif
 

@@ -100,7 +100,8 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-class TORRENT_EXPORT upnp : public intrusive_ptr_base<upnp>
+// TODO: 2 make this a shared_ptr instead
+class upnp : public intrusive_ptr_base<upnp>
 {
 public:
 	upnp(io_service& ios, connection_queue& cc

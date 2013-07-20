@@ -87,21 +87,8 @@ private:
 class log_event
 {
 public:
-	log_event(log& log) 
-		: log_(log) 
-	{
-		if (log_.enabled())
-			log_ << time_now_string() << " [" << log.id() << "] ";
-	}
-
-	~log_event()
-	{
-		if (log_.enabled())
-		{
-			log_ << "\n";
-			log_.flush();
-		}
-	}
+	log_event(log& log);
+	~log_event();
 
 	template<class T>
 	log_event& operator<<(T const& x)

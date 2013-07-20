@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2006-2012, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,56 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ENUM_NET_HPP_INCLUDED
-#define TORRENT_ENUM_NET_HPP_INCLUDED
+#include "libtorrent/kademlia/logging.hpp"
 
-#include "libtorrent/config.hpp"
-#include <vector>
-#include "libtorrent/io_service_fwd.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/error_code.hpp"
-
-namespace libtorrent
+namespace libtorrent { namespace dht
 {
-
-	// the interface should not have a netmask
-	struct ip_interface
+	log_event::log_event(log& log) 
+		: log_(log) 
 	{
-		address interface_address;
-		address netmask;
-		char name[64];
-		int mtu;
-	};
+		if (log_.enabled())
+			log_ << time_now_string() << " [" << log.id() << "] ";
+	}
 
-	struct ip_route
+	log_event::~log_event()
 	{
-		address destination;
-		address netmask;
-		address gateway;
-		char name[64];
-		int mtu;
-	};
+		if (log_.enabled())
+		{
+			log_ << "\n";
+			log_.flush();
+		}
+	}
 
-	// returns a list of the configured IP interfaces
-	// on the machine
-	TORRENT_EXTRA_EXPORT std::vector<ip_interface> enum_net_interfaces(io_service& ios
-		, error_code& ec);
-
-	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(io_service& ios, error_code& ec);
-
-	// return (a1 & mask) == (a2 & mask)
-	TORRENT_EXTRA_EXPORT bool match_addr_mask(address const& a1, address const& a2, address const& mask);
-
-	// returns true if the specified address is on the same
-	// local network as us
-	TORRENT_EXTRA_EXPORT bool in_local_network(io_service& ios, address const& addr
-		, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
-		, address const& addr);
-	
-	TORRENT_EXTRA_EXPORT address get_default_gateway(io_service& ios
-		, error_code& ec);
-}
-
-#endif
+}}
 

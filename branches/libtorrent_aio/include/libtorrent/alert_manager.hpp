@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/thread.hpp"
 
 #include <boost/function/function1.hpp>
@@ -51,7 +50,7 @@ namespace libtorrent {
 	class TORRENT_EXTRA_EXPORT alert_manager
 	{
 	public:
-		alert_manager(io_service& ios, int queue_limit
+		alert_manager(int queue_limit
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
