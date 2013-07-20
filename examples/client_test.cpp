@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/socket_io.hpp" // print_address
 #include "libtorrent/time.hpp"
@@ -785,6 +784,7 @@ void add_torrent(libtorrent::session& ses
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
+	// TODO: implement combine_path in here, since it's internal to libtorrent
 	std::string filename = combine_path(save_path, combine_path(".resume", to_hex(t->info_hash().to_string()) + ".resume"));
 
 	load_file(filename.c_str(), p.resume_data, ec);
@@ -813,6 +813,7 @@ void scan_dir(std::string const& dir_path
 	using namespace libtorrent;
 
 	error_code ec;
+	// TODO: don't use internal directory type
 	for (directory i(dir_path, ec); !i.done(); i.next(ec))
 	{
 		std::string file = combine_path(dir_path, i.file());
@@ -900,6 +901,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 {
 	using namespace libtorrent;
 
+	// TODO: don't use internal file type here. use fopen()
 	file f;
 	error_code ec;
 	if (!f.open(filename, file::write_only, ec)) return -1;
@@ -1499,6 +1501,7 @@ int main(int argc, char* argv[])
 	}
 
 	// create directory for resume files
+	// TODO: don't use internal create_directory function
 	create_directory(combine_path(save_path, ".resume"), ec);
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());

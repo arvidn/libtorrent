@@ -470,7 +470,7 @@ def print_link(out, name):
 	our.write('<a href="%s">%s</a>' % (symbols[name], name))
 
 for cat in categories:
-	print >>out, '<h2>%s</h2>' % cat
+	print >>out, '<h2>%s</h2><p>' % cat
 	category_filename = categories[cat]['filename']
 	for c in categories[cat]['classes']:
 		print >>out, '<a href="%s#%s">%s %s</a><br/>' % (category_filename, html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name']))
@@ -478,6 +478,7 @@ for cat in categories:
 		print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, html_sanitize(f['name']), html_sanitize(f['name']))
 	for e in categories[cat]['enums']:
 		print >>out, '<a href="%s#%s">enum %s</a><br/>' % (category_filename, html_sanitize(e['name']), html_sanitize(e['name']))
+	print >>out, '</p>'
 
 out.write('</div></body></html>')
 out.close()
