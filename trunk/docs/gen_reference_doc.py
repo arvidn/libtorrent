@@ -130,7 +130,7 @@ def parse_function(lno, lines, filename):
 
 				lno = consume_block(lno - 1, lines)
 				signature += ';'
-			return [{ 'file': filename[11:], 'signature': signature, 'name': signature.split('(')[0].split(' ')[-1].strip()}, lno]
+			return [{ 'file': filename[11:], 'overloads': [{'signature': signature, 'name': signature.split('(')[0].split(' ')[-1].strip()}]}, lno]
 	if len(signature) > 0:
 		print '\x1b[31mFAILED TO PARSE FUNCTION\x1b[0m %s\nline: %d\nfile: %s' % (signature, lno, filename)
 	return [None, lno]
@@ -146,6 +146,7 @@ def parse_class(lno, lines, filename):
 	state = 'public'
 	context = ''
 	class_type = 'struct'
+	blanks = 0
 
 	while lno < len(lines):
 		l = lines[lno].strip()
@@ -162,6 +163,10 @@ def parse_class(lno, lines, filename):
 		l = lines[lno].strip()
 		lno += 1
 
+		if l == '':
+			blanks += 1
+			continue
+
 		if l.startswith('/*'):
 			lno = consume_comment(lno - 1, lines)
 			continue
@@ -172,9 +177,11 @@ def parse_class(lno, lines, filename):
 
 		if 'TORRENT_DEFINE_ALERT' in l:
 			if verbose: print 'xx    %s' % l
+			blanks += 1
 			continue
 		if 'TORRENT_DEPRECATED' in l:
 			if verbose: print 'xx    %s' % l
+			blanks += 1
 			continue
 
 		if l.startswith('//'):
@@ -195,18 +202,24 @@ def parse_class(lno, lines, filename):
 
 		if state != 'public' and not internal:
 			if verbose: print 'private %s' % l
+			blanks += 1
 			continue
 
 		if start_brace - end_brace > 1:
 			if verbose: print 'scope   %s' % l
+			blanks += 1
 			continue;
 
 		if looks_like_function(l):
 			current_fun, lno = parse_function(lno - 1, lines, filename)
 			if current_fun != None:
-				current_fun['desc'] = context
-				funs.append(current_fun)
+				if context == '' and blanks == 0 and len(funs):
+					funs[-1]['overloads'] += current_fun['overloads']
+				else:
+					current_fun['desc'] = context
+					funs.append(current_fun)
 			context = ''
+			blanks = 0
 			continue
 
 		if looks_like_variable(l):
@@ -268,7 +281,7 @@ def parse_enum(lno, lines, filename):
 		l = l.split('}')[0]
 
 		if len(l):
-			if verbose: print 'enum  %s' % lines[lno-1]
+			if verbose: print 'enumv %s' % lines[lno-1]
 			for v in l.split(','):
 				if v == '': continue
 				values.append({'name': v.strip(), 'desc': context})
@@ -338,10 +351,15 @@ for filename in files:
 
 	if verbose: print '\n=== %s ===\n' % filename
 
+	blanks = 0
 	lno = 0
 	while lno < len(lines):
 		l = lines[lno].strip()
 		lno += 1
+
+		if l == '':
+			blanks += 1
+			continue
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
@@ -358,9 +376,11 @@ for filename in files:
 			continue
 
 		if 'TORRENT_CFG' in l:
+			blanks += 1
 			if verbose: print 'xx    %s' % l
 			continue
 		if 'TORRENT_DEPRECATED' in l:
+			blanks += 1
 			if verbose: print 'xx    %s' % l
 			continue
 
@@ -371,19 +391,25 @@ for filename in files:
 					current_class['desc'] = context
 					classes.append(current_class)
 				context = ''
+				blanks += 1
 				continue
 
 			if looks_like_function(l):
 				current_fun, lno = parse_function(lno - 1, lines, filename)
 				if current_fun != None:
-					current_fun['desc'] = context
-					functions.append(current_fun)
+					if context == '' and blanks == 0 and len(functions):
+						functions[-1]['overloads'] += current_fun['overloads']
+					else:
+						current_fun['desc'] = context
+						functions.append(current_fun)
+					blanks = 0
 				context = ''
 				continue
 
 		if ('class ' in l or 'struct ' in l) and not ';' in l:
 			lno = consume_block(lno - 1, lines)
 			context = ''
+			blanks += 1
 			continue
 
 		if l.startswith('enum '):
@@ -392,8 +418,10 @@ for filename in files:
 				current_enum['desc'] = context
 				enums.append(current_enum)
 			context = ''
+			blanks += 1
 			continue
 
+		blanks += 1
 		if verbose: print '??    %s' % l
 
 		context = ''
@@ -406,7 +434,8 @@ if dump:
 	for c in classes:
 		print '\x1b[4m%s\x1b[0m %s\n{' % (c['type'], c['name'])
 		for f in c['fun']:
-			print '   %s' % f['signature'].replace('\n', '\n   ')
+			for o in f['overloads']:
+				print '   %s' % o['signature'].replace('\n', '\n   ')
 
 		if len(c['fun']) > 0 and len(c['fields']) > 0: print ''
 
@@ -441,11 +470,12 @@ for c in classes:
 	symbols[c['name']] = categories[cat]['filename'] + '#' + html_sanitize(c['name'])
 
 for f in functions:
-	cat = categorize_symbol(f['name'], f['file'])
+	cat = categorize_symbol(f['overloads'][0]['name'], f['file'])
 	if not cat in categories:
 		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.html' % cat.replace(' ', '_')}
+	for o in f['overloads']:
+		symbols[o['name']] = categories[cat]['filename'] + '#' + html_sanitize(o['name'])
 	categories[cat]['functions'].append(f)
-	symbols[f['name']] = categories[cat]['filename'] + '#' + html_sanitize(f['name'])
 
 for e in enums:
 	cat = categorize_symbol(e['name'], e['file'])
@@ -475,7 +505,8 @@ for cat in categories:
 	for c in categories[cat]['classes']:
 		print >>out, '<a href="%s#%s">%s %s</a><br/>' % (category_filename, html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name']))
 	for f in categories[cat]['functions']:
-		print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, html_sanitize(f['name']), html_sanitize(f['name']))
+		name = html_sanitize(f['overloads'][0]['name'])
+		print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, name, name)
 	for e in categories[cat]['enums']:
 		print >>out, '<a href="%s#%s">enum %s</a><br/>' % (category_filename, html_sanitize(e['name']), html_sanitize(e['name']))
 	print >>out, '</p>'
@@ -504,7 +535,9 @@ for cat in categories:
 		out.write('<pre class="literal-block">')
 		print >>out, '%s\n{' % html_sanitize(c['decl'])
 		for f in c['fun']:
-			print >>out, '   %s' % html_sanitize(f['signature'].replace('\n', '\n   ')).replace(f['name'], '<strong>' + f['name'] + '</strong>')
+			for o in f['overloads']:
+				name = html_sanitize(o['name'])
+				print >>out, '   %s' % html_sanitize(o['signature'].replace('\n', '\n   ')).replace(name, '<strong>' + name + '</strong>')
 
 		if len(c['fun']) > 0 and len(c['enums']) + len(c['fields']) > 0: print >>out, ''
 
@@ -525,12 +558,21 @@ for cat in categories:
 
 		out.write('};</pre>')
 
-		# TODO: merge overloaded functions
 		for f in c['fun']:
 			if f['desc'] == '': continue
-			name = html_sanitize(f['name'])
-			print >>out, '<a name="%s"></a><h3>%s()</h3>' % (name, name)
-			print >>out, '<blockquote><pre class="literal-block">%s</pre></blockquote>' % html_sanitize(f['signature'].replace('\n', '\n   ')).replace(name, '<strong>' + name + '</strong>')
+			for o in f['overloads']:
+				name = html_sanitize(o['name'])
+				print >>out, '<a name="%s"></a>' % name
+			print >>out, '<h3>'
+			for o in f['overloads']:
+				name = html_sanitize(o['name'])
+				print >>out, '%s() ' % name
+			print >>out, '</h3>'
+			print >>out, '<blockquote><pre class="literal-block">'
+			for o in f['overloads']:
+				name = html_sanitize(o['name'])
+				print >>out, html_sanitize(o['signature'].replace('\n', '\n   ')).replace(name, '<strong>' + name + '</strong>')
+			print >>out, '</pre></blockquote>'
 			print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
 
 		for e in c['enums']:
@@ -547,12 +589,21 @@ for cat in categories:
 			print >>out, '<dd>%s</dd>' % html_sanitize(f['desc'])
 
 
-	# TODO: merge overloaded functions
 	for f in functions:
-		name = html_sanitize(f['name'])
-		print >>out, '<a name="%s"></a><h2>%s()</h2>' % (name, name)
+		for o in f['overloads']:
+			name = html_sanitize(o['name'])
+			print >>out, '<a name="%s"></a>' % name
+		print >>out, '<h2>'
+		for o in f['overloads']:
+			name = html_sanitize(o['name'])
+			print >>out, '%s() ' % name
+		print >>out, '</h2>'
 		print_declared_in(out, f)
-		print >>out, '<blockquote><pre class="literal-block">%s</pre></blockquote>' % html_sanitize(f['signature']).replace(name, '<strong>' + name + '</strong>')
+		print >>out, '<blockquote><pre class="literal-block">'
+		for o in f['overloads']:
+			name = html_sanitize(o['name'])
+			print >>out, html_sanitize(o['signature']).replace(name, '<strong>' + name + '</strong>')
+		print >>out, '</pre></blockquote>'
 		print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
 
 	for e in enums:
@@ -561,7 +612,7 @@ for cat in categories:
 		print_declared_in(out, e)
 		print >>out, '<table><tr><th>value</th><th>description</th></tr>'
 		for v in e['values']:
-			print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (name, html_sanitize(v['desc']))
+			print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (html_sanitize(v['name']), html_sanitize(v['desc']))
 		print >>out, '</table>'
 
 	out.write('</body></html>')
