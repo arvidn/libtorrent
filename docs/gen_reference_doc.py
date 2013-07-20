@@ -464,7 +464,7 @@ out.write('''<html><head>
 <div style="column-count: 5; -webkit-column-count: 5; -moz-column-count: 5">''')
 
 def print_declared_in(out, o):
-	out.write('<p>Declared in <a href="../include/%s"><tt class="docutils-literal">"%s"</tt></a></p>' % (o['file'], html_sanitize(o['file'])))
+	out.write('<p>Declared in <a href="../include/%s">"%s"</a></p>' % (o['file'], html_sanitize(o['file'])))
 
 def print_link(out, name):
 	our.write('<a href="%s">%s</a>' % (symbols[name], name))
@@ -504,9 +504,9 @@ for cat in categories:
 		out.write('<pre class="literal-block">')
 		print >>out, '%s\n{' % html_sanitize(c['decl'])
 		for f in c['fun']:
-			print >>out, '   %s' % html_sanitize(f['signature'].replace('\n', '\n   '))
+			print >>out, '   %s' % html_sanitize(f['signature'].replace('\n', '\n   ')).replace(f['name'], '<strong>' + f['name'] + '</strong>')
 
-		if len(c['fun']) > 0 and len(c['enums']) > 0 and len(c['fields']) > 0: print >>out, ''
+		if len(c['fun']) > 0 and len(c['enums']) + len(c['fields']) > 0: print >>out, ''
 
 		first = True
 		for e in c['enums']:
@@ -515,7 +515,7 @@ for cat in categories:
 			first = False
 			print >>out,'   enum %s\n   {' % html_sanitize(e['name'])
 			for v in e['values']:
-				print >>out,'      %s' % html_sanitize(v['name'])
+				print >>out,'      %s,' % html_sanitize(v['name'])
 			print >>out,'   };'
 
 		if len(c['fun']) + len(c['enums']) > 0 and len(c['fields']): print >>out, ''
@@ -528,8 +528,9 @@ for cat in categories:
 		# TODO: merge overloaded functions
 		for f in c['fun']:
 			if f['desc'] == '': continue
-			print >>out, '<a name="%s"></a><h3>%s()</h3>' % (html_sanitize(f['name']), html_sanitize(f['name']))
-			print >>out, '<blockquote><pre class="literal-block">%s</pre></blockquote>' % html_sanitize(f['signature'].replace('\n', '\n   '))
+			name = html_sanitize(f['name'])
+			print >>out, '<a name="%s"></a><h3>%s()</h3>' % (name, name)
+			print >>out, '<blockquote><pre class="literal-block">%s</pre></blockquote>' % html_sanitize(f['signature'].replace('\n', '\n   ')).replace(name, '<strong>' + name + '</strong>')
 			print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
 
 		for e in c['enums']:
@@ -548,17 +549,19 @@ for cat in categories:
 
 	# TODO: merge overloaded functions
 	for f in functions:
-		print >>out, '<a name="%s"></a><h2>%s()</h2>' % (html_sanitize(f['name']), html_sanitize(f['name']))
+		name = html_sanitize(f['name'])
+		print >>out, '<a name="%s"></a><h2>%s()</h2>' % (name, name)
 		print_declared_in(out, f)
-		print >>out, '<blockquote><pre class="literal-block">%s</pre></blockquote>' % html_sanitize(f['signature'])
+		print >>out, '<blockquote><pre class="literal-block">%s</pre></blockquote>' % html_sanitize(f['signature']).replace(name, '<strong>' + name + '</strong>')
 		print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
 
 	for e in enums:
-		print >>out, '<a name="%s"></a><h2>enum %s</h2>' % (html_sanitize(e['name']), html_sanitize(e['name']))
+		name = html_sanitize(e['name'])
+		print >>out, '<a name="%s"></a><h2>enum %s</h2>' % (name, name)
 		print_declared_in(out, e)
 		print >>out, '<table><tr><th>value</th><th>description</th></tr>'
 		for v in e['values']:
-			print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (html_sanitize(v['name']), html_sanitize(v['desc']))
+			print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (name, html_sanitize(v['desc']))
 		print >>out, '</table>'
 
 	out.write('</body></html>')
