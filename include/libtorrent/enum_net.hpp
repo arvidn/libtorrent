@@ -62,20 +62,20 @@ namespace libtorrent
 
 	// returns a list of the configured IP interfaces
 	// on the machine
-	TORRENT_EXPORT std::vector<ip_interface> enum_net_interfaces(io_service& ios
+	TORRENT_EXTRA_EXPORT std::vector<ip_interface> enum_net_interfaces(io_service& ios
 		, error_code& ec);
 
-	TORRENT_EXPORT std::vector<ip_route> enum_routes(io_service& ios, error_code& ec);
+	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(io_service& ios, error_code& ec);
 
 	// return (a1 & mask) == (a2 & mask)
-	TORRENT_EXPORT bool match_addr_mask(address const& a1, address const& a2, address const& mask);
+	TORRENT_EXTRA_EXPORT bool match_addr_mask(address const& a1, address const& a2, address const& mask);
 
 	// returns true if the specified address is on the same
 	// local network as us
-	TORRENT_EXPORT bool in_local_network(io_service& ios, address const& addr
+	TORRENT_EXTRA_EXPORT bool in_local_network(io_service& ios, address const& addr
 		, error_code& ec);
 	
-	TORRENT_EXPORT address get_default_gateway(io_service& ios
+	TORRENT_EXTRA_EXPORT address get_default_gateway(io_service& ios
 		, error_code& ec);
 }
 
