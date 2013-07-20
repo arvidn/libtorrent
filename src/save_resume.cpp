@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "save_resume.hpp"
+#include "save_settings.hpp" // for load_file and save_file
 
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp> // for boost::tie
@@ -47,9 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-// defined in save_settings.cpp
-int save_file(std::string const& filename, std::vector<char>& v, error_code& ec);
 
 save_resume::save_resume(session& s, std::string const& resume_dir, alert_handler* alerts)
 	: m_ses(s)
@@ -185,14 +183,11 @@ void save_resume::load(error_code& ec, add_torrent_params model)
 
 		error_code tec;
 		std::string file_path = combine_path(m_resume_dir, dir.file());
-		std::vector<char> resume;
 		printf("loading %s\n", file_path.c_str());
-		if (load_file(file_path, resume, tec) < 0 || tec)
+		add_torrent_params p = model;
+		if (load_file(file_path, p.resume_data, tec) < 0 || tec)
 			continue;
 
-		add_torrent_params p = model;
-
-		p.resume_data = &resume;
 		printf("async add\n");
 		m_ses.async_add_torrent(p);
 	}

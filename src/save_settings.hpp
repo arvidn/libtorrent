@@ -77,6 +77,10 @@ namespace libtorrent
 		std::map<std::string, int> m_ints;
 		std::map<std::string, std::string> m_strings;
 	};
+
+	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit = 8000000);
+	int save_file(std::string const& filename, std::vector<char>& v, error_code& ec);
+
 }
 
 #endif

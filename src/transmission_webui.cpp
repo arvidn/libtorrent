@@ -42,7 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <vector>
 #include <map>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
 
@@ -176,7 +177,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	else if (!url.empty())
 	{
 		error_code ec;
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(url, ec));
+		boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>(url, boost::ref(ec), 0);
 		if (ec)
 		{
 			return_failure(buf, ec.message().c_str(), tag);
@@ -188,7 +189,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	{
 		std::string metainfo = base64decode(find_string(args, buffer, "metainfo"));
 		error_code ec;
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(&metainfo[0], metainfo.size(), ec));
+		boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>(&metainfo[0], metainfo.size(), boost::ref(ec), 0);
 		if (ec)
 		{
 			return_failure(buf, ec.message().c_str(), tag);

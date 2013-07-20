@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "transmission_webui.hpp"
 #include "libtorrent/http_parser.hpp" // for http_parser
 
+#include <boost/make_shared.hpp>
+
 extern "C" {
 #include "local_mongoose.h"
 }
@@ -105,7 +107,7 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 			&& disposition != "application/x-bittorrent") continue;
 
 		char const* torrent_start = part.get_body().begin;
-		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
+		params.ti = boost::make_shared<torrent_info>(torrent_start, part_end - torrent_start, boost::ref(ec), 0);
 		if (ec) return false;
 		return true;
 	}

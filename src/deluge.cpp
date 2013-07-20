@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h> // for daemon()
 #include <syslog.h>
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/thread.hpp"
@@ -747,7 +748,7 @@ void deluge::handle_add_torrent_file(conn_state* st)
 	add_torrent_params p = m_params_model;
 
 	error_code ec;
-	p.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(&file[0], file.size(), ec));
+	p.ti = boost::make_shared<torrent_info>(&file[0], file.size(), boost::ref(ec), 0);
 	if (ec)
 	{
 		output_error(id, ec.message().c_str(), out);
