@@ -17,4 +17,5 @@ project tools
    ;  
 
 exe parse_hash_fails : parse_hash_fails.cpp ;
+exe parse_request_log : parse_request_log.cpp ;
 
