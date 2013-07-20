@@ -113,12 +113,28 @@ namespace libtorrent
 #define TORRENT_LOGPATH_ARG_DEFAULT
 #endif
 
+	// The session holds all state that spans multiple torrents. Among other things it runs the network
+	// loop and manages all torrents.
 	// Once it's created, the session object will spawn the main thread that will do all the work.
 	// The main thread will be idle as long it doesn't have any torrents to participate in.
 	class TORRENT_EXPORT session: public boost::noncopyable
 	{
 	public:
 
+		// If the fingerprint in the first overload is omited, the client will get a default
+		// fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
+		// used in the peer-id to identify the client and the client's version. For more details see the
+		// fingerprint_ class. The constructor that only takes a fingerprint will not open a
+		// listen port for the session, to get it running you'll have to call ``session::listen_on()``.
+		// The other constructor, that takes a port range and an interface as well as the fingerprint
+		// will automatically try to listen on a port on the given interface. For more information about
+		// the parameters, see ``listen_on()`` function.
+		// 
+		// The flags paramater can be used to start default features (upnp & nat-pmp) and default plugins
+		// (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
+		// them to start, pass 0 as the flags parameter.
+		// 
+		// The ``alert_mask`` is the same mask that you would send to `set_alert_mask()`_.
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
@@ -132,9 +148,7 @@ namespace libtorrent
 #endif
 			start(flags);
 		}
-
-		session(
-			fingerprint const& print
+		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
@@ -151,6 +165,11 @@ namespace libtorrent
 			start(flags);
 		}
 			
+		// The destructor of session will notify all trackers that our torrents have been shut down.
+		// If some trackers are down, they will time out. All this before the destructor of session
+		// returns. So, it's advised that any kind of interface (such as windows) are closed before
+		// destructing the session object. Because it can take a few second for it to finish. The
+		// timeout can be set with ``set_settings()``.
 		~session();
 
 		enum save_state_flags_t
@@ -172,6 +191,17 @@ namespace libtorrent
 			save_tracker_proxy = save_proxy
 #endif
 		};
+
+		// loads and saves all session settings, including dht_settings, encryption settings and proxy
+		// settings. ``save_state`` writes all keys to the ``entry`` that's passed in, which needs to
+		// either not be initialized, or initialized as a dictionary.
+		// 
+		// ``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
+		// `lazy_bdecode()`_.
+		// 
+		// The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
+		// of the session state to save. By default, all state is saved (except for the individual
+		// torrents). see save_state_flags_t
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
 
@@ -190,6 +220,25 @@ namespace libtorrent
 		// returns an invalid handle in case the torrent doesn't exist
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
 
+		// You add torrents through the ``add_torrent()`` function where you give an
+		// object with all the parameters. The ``add_torrent()`` overloads will block
+		// until the torrent has been added (or failed to be added) and returns an
+		// error code and a ``torrent_handle``. In order to add torrents more efficiently,
+		// consider using ``async_add_torrent()`` which returns immediately, without
+		// waiting for the torrent to add. Notification of the torrent being added is sent
+		// as add_torrent_alert_.
+		// 
+		// The overload that does not take an ``error_code`` throws an exception on
+		// error and is not available when building without exception support.
+		// The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
+		// about the torrent's progress, its peers etc. It is also used to abort a torrent.
+		// 
+		// If the torrent you are trying to add already exists in the session (is either queued
+		// for checking, being checked or downloading) ``add_torrent()`` will throw
+		// libtorrent_exception_ which derives from ``std::exception`` unless ``duplicate_is_error``
+		// is set to false. In that case, ``add_torrent`` will return the handle to the existing
+		// torrent.
+		//
 		// all torrent_handles must be destructed before the session is destructed!
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -235,8 +284,29 @@ namespace libtorrent
 #endif
 #endif
 
+		// In case you want to destruct the session asynchrounously, you can request a session
+		// destruction proxy. If you don't do this, the destructor of the session object will
+		// block while the trackers are contacted. If you keep one ``session_proxy`` to the
+		// session when destructing it, the destructor will not block, but start to close down
+		// the session, the destructor of the proxy will then synchronize the threads. So, the
+		// destruction of the session is performed from the ``session`` destructor call until the
+		// ``session_proxy`` destructor call. The ``session_proxy`` does not have any operations
+		// on it (since the session is being closed down, no operations are allowed on it). The
+		// only valid operation is calling the destructor::
+		// 
+		// 	class session_proxy
+		// 	{
+		// 	public:
+		// 		session_proxy();
+		// 		~session_proxy()
+		// 	};
 		session_proxy abort() { return session_proxy(m_impl); }
 
+		// Pausing the session has the same effect as pausing every torrent in it, except that
+		// torrents will not be resumed by the auto-manage mechanism. Resuming will restore the
+		// torrents to their previous paused state. i.e. the session pause state is separate from
+		// the torrent pause state. A torrent is inactive if it is paused or if the session is
+		// paused.
 		void pause();
 		void resume();
 		bool is_paused() const;
