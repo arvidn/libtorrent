@@ -68,6 +68,15 @@ def categorize_symbol(name, filename):
 
 	return 'Core'
 
+def first_item(itr):
+	for i in itr:
+		return i
+	return None
+
+def highlight_signature(s):
+	name = s.split('(')[0].split(' ')[-1].strip()
+	return s.replace(name, '<strong>' + name + '</strong>')
+
 def html_sanitize(s):
 	ret = ''
 	for i in s:
@@ -130,7 +139,7 @@ def parse_function(lno, lines, filename):
 
 				lno = consume_block(lno - 1, lines)
 				signature += ';'
-			return [{ 'file': filename[11:], 'overloads': [{'signature': signature, 'name': signature.split('(')[0].split(' ')[-1].strip()}]}, lno]
+			return [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip()])}, lno]
 	if len(signature) > 0:
 		print '\x1b[31mFAILED TO PARSE FUNCTION\x1b[0m %s\nline: %d\nfile: %s' % (signature, lno, filename)
 	return [None, lno]
@@ -214,7 +223,8 @@ def parse_class(lno, lines, filename):
 			current_fun, lno = parse_function(lno - 1, lines, filename)
 			if current_fun != None:
 				if context == '' and blanks == 0 and len(funs):
-					funs[-1]['overloads'] += current_fun['overloads']
+					funs[-1]['signatures'].update(current_fun['signatures'])
+					funs[-1]['names'].update(current_fun['names'])
 				else:
 					current_fun['desc'] = context
 					funs.append(current_fun)
@@ -223,8 +233,14 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if looks_like_variable(l):
-			fields.append({ 'signature': l, 'name': l.split(' ')[-1].split(':')[0].split(';')[0], 'desc': context})
+			n = l.split(' ')[-1].split(':')[0].split(';')[0]
+			if context == '' and blanks == 0 and len(fields):
+				fields[-1]['names'].append(n)
+				fields[-1]['signatures'].append(l)
+			else:
+				fields.append({'signatures': [l], 'names': [n], 'desc': context})
 			context = ''
+			blanks = 0
 			continue
 
 		if l.startswith('enum '):
@@ -398,7 +414,8 @@ for filename in files:
 				current_fun, lno = parse_function(lno - 1, lines, filename)
 				if current_fun != None:
 					if context == '' and blanks == 0 and len(functions):
-						functions[-1]['overloads'] += current_fun['overloads']
+						functions[-1]['signatures'].update(current_fun['signatures'])
+						functions[-1]['names'].update(current_fun['names'])
 					else:
 						current_fun['desc'] = context
 						functions.append(current_fun)
@@ -434,13 +451,14 @@ if dump:
 	for c in classes:
 		print '\x1b[4m%s\x1b[0m %s\n{' % (c['type'], c['name'])
 		for f in c['fun']:
-			for o in f['overloads']:
-				print '   %s' % o['signature'].replace('\n', '\n   ')
+			for s in f['signatures']:
+				print '   %s' % s.replace('\n', '\n   ')
 
 		if len(c['fun']) > 0 and len(c['fields']) > 0: print ''
 
 		for f in c['fields']:
-			print '   %s' % f['signature']
+			for s in f['signatures']:
+				print '   %s' % s
 
 		if len(c['fields']) > 0 and len(c['enums']) > 0: print ''
 
@@ -470,11 +488,11 @@ for c in classes:
 	symbols[c['name']] = categories[cat]['filename'] + '#' + html_sanitize(c['name'])
 
 for f in functions:
-	cat = categorize_symbol(f['overloads'][0]['name'], f['file'])
+	cat = categorize_symbol(first_item(f['names']), f['file'])
 	if not cat in categories:
 		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.html' % cat.replace(' ', '_')}
-	for o in f['overloads']:
-		symbols[o['name']] = categories[cat]['filename'] + '#' + html_sanitize(o['name'])
+	for n in f['names']:
+		symbols[n] = categories[cat]['filename'] + '#' + html_sanitize(n)
 	categories[cat]['functions'].append(f)
 
 for e in enums:
@@ -486,8 +504,6 @@ for e in enums:
 
 out = open('reference.html', 'w+')
 out.write('''<html><head>
-<link rel="stylesheet" type="text/css" href="../../css/base.css" />
-<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
 <link rel="stylesheet" href="style.css" type="text/css" />
 </head><body>
 <h1>libtorrent reference documentation</h1>
@@ -505,13 +521,14 @@ for cat in categories:
 	for c in categories[cat]['classes']:
 		print >>out, '<a href="%s#%s">%s %s</a><br/>' % (category_filename, html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name']))
 	for f in categories[cat]['functions']:
-		name = html_sanitize(f['overloads'][0]['name'])
-		print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, name, name)
+		for n in f['names']:
+			name = html_sanitize(n)
+			print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, name, name)
 	for e in categories[cat]['enums']:
 		print >>out, '<a href="%s#%s">enum %s</a><br/>' % (category_filename, html_sanitize(e['name']), html_sanitize(e['name']))
 	print >>out, '</p>'
 
-out.write('</div></body></html>')
+out.write('</body></html>')
 out.close()
 
 for cat in categories:
@@ -522,10 +539,8 @@ for cat in categories:
 	enums = categories[cat]['enums']
 
 	out.write('''<html><head>
-		<link rel="stylesheet" type="text/css" href="../../css/base.css" />
-		<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
 		<link rel="stylesheet" href="style.css" type="text/css" />
-		</head><body>''')
+		</head><body><div id="container">''')
 
 	for c in classes:
 		out.write('<a name="%s"></a><h2>%s %s</h2>' % (html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name'])))
@@ -535,9 +550,8 @@ for cat in categories:
 		out.write('<pre class="literal-block">')
 		print >>out, '%s\n{' % html_sanitize(c['decl'])
 		for f in c['fun']:
-			for o in f['overloads']:
-				name = html_sanitize(o['name'])
-				print >>out, '   %s' % html_sanitize(o['signature'].replace('\n', '\n   ')).replace(name, '<strong>' + name + '</strong>')
+			for s in f['signatures']:
+				print >>out, '   %s' % highlight_signature(html_sanitize(s.replace('\n', '\n   ')))
 
 		if len(c['fun']) > 0 and len(c['enums']) + len(c['fields']) > 0: print >>out, ''
 
@@ -554,24 +568,24 @@ for cat in categories:
 		if len(c['fun']) + len(c['enums']) > 0 and len(c['fields']): print >>out, ''
 
 		for f in c['fields']:
-			print >>out, '   %s' % html_sanitize(f['signature'])
+			for s in f['signatures']:
+				print >>out, '   %s' % html_sanitize(s)
 
 		out.write('};</pre>')
 
 		for f in c['fun']:
 			if f['desc'] == '': continue
-			for o in f['overloads']:
-				name = html_sanitize(o['name'])
+			for n in f['names']:
+				name = html_sanitize(n)
 				print >>out, '<a name="%s"></a>' % name
 			print >>out, '<h3>'
-			for o in f['overloads']:
-				name = html_sanitize(o['name'])
+			for n in f['names']:
+				name = html_sanitize(n)
 				print >>out, '%s() ' % name
 			print >>out, '</h3>'
 			print >>out, '<blockquote><pre class="literal-block">'
-			for o in f['overloads']:
-				name = html_sanitize(o['name'])
-				print >>out, html_sanitize(o['signature'].replace('\n', '\n   ')).replace(name, '<strong>' + name + '</strong>')
+			for s in f['signatures']:
+				print >>out, highlight_signature(html_sanitize(s.replace('\n', '\n   ')))
 			print >>out, '</pre></blockquote>'
 			print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
 
@@ -585,24 +599,29 @@ for cat in categories:
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
-			print >>out, '<a name="%s"></a><dt>%s</dt>' % (html_sanitize(c['name'] + '::' + f['name']), html_sanitize(f['name']))
-			print >>out, '<dd>%s</dd>' % html_sanitize(f['desc'])
+			for n in f['names']:
+				print >>out, '<a name="%s"></a>' % html_sanitize(c['name'] + '::' + n)
+
+			print >>out, '<dt>'
+			for n in f['names']:
+				print >>out, '%s ' % html_sanitize(n)
+			print >>out, '</dt><dd>%s</dd>' % html_sanitize(f['desc'])
 
 
 	for f in functions:
-		for o in f['overloads']:
-			name = html_sanitize(o['name'])
+		for n in f['names']:
+			name = html_sanitize(n)
 			print >>out, '<a name="%s"></a>' % name
 		print >>out, '<h2>'
-		for o in f['overloads']:
-			name = html_sanitize(o['name'])
+		for n in f['names']:
+			name = html_sanitize(n)
 			print >>out, '%s() ' % name
 		print >>out, '</h2>'
 		print_declared_in(out, f)
 		print >>out, '<blockquote><pre class="literal-block">'
-		for o in f['overloads']:
-			name = html_sanitize(o['name'])
-			print >>out, html_sanitize(o['signature']).replace(name, '<strong>' + name + '</strong>')
+
+		for s in f['signatures']:
+			print >>out, highlight_signature(html_sanitize(s))
 		print >>out, '</pre></blockquote>'
 		print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
 
