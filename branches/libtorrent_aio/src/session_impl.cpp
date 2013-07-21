@@ -7329,7 +7329,6 @@ retry:
 		int num_active_downloading = 0;
 		int num_active_finished = 0;
 		int total_downloaders = 0;
-		int num_pinned = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
@@ -7337,8 +7336,6 @@ retry:
 			if (t->want_peers_download()) ++num_active_downloading;
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
-			if (t->is_pinned() || t->refcount())
-				++num_pinned;
 
 			++torrent_state_gauges[t->current_stats_state() - counters::num_checking_torrents];
 
@@ -7354,8 +7351,6 @@ retry:
 			unique.insert(t->queue_position());
 #endif
 		}
-
-		TORRENT_ASSERT(num_pinned == m_stats_counters[counters::num_pinned_torrents]);
 
 		for (int i = 0, j = counters::num_checking_torrents;
 			j < counters::num_error_torrents + 1; ++i, ++j)
