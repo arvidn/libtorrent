@@ -38,6 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/union_endpoint.hpp"
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#include "libtorrent/time.hpp"
+#endif
+
 namespace libtorrent { namespace dht
 {
 
