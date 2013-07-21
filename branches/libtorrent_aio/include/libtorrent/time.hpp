@@ -44,7 +44,9 @@ namespace libtorrent
 	char const* time_now_string();
 	std::string log_time();
 
+	TORRENT_EXPORT ptime const& time_now();
 	TORRENT_EXPORT ptime time_now_hires();
+
 	TORRENT_EXPORT ptime min_time();
 	TORRENT_EXPORT ptime max_time();
 

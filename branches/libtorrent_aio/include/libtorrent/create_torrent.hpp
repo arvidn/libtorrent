@@ -190,6 +190,7 @@ namespace libtorrent
 		int get_file_attributes(std::string const& p);
 		std::string get_symlink_path(std::string const& p);
 
+		// internal
 		TORRENT_EXPORT void add_files_impl(file_storage& fs, std::string const& p
 			, std::string const& l, boost::function<bool(std::string)> pred
 			, boost::uint32_t flags);

@@ -134,12 +134,28 @@ namespace libtorrent
 
 	std::vector<stats_metric> session_stats_metrics();
 
+	// The session holds all state that spans multiple torrents. Among other things it runs the network
+	// loop and manages all torrents.
 	// Once it's created, the session object will spawn the main thread that will do all the work.
 	// The main thread will be idle as long it doesn't have any torrents to participate in.
 	class TORRENT_EXPORT session: public boost::noncopyable
 	{
 	public:
 
+		// If the fingerprint in the first overload is omited, the client will get a default
+		// fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
+		// used in the peer-id to identify the client and the client's version. For more details see the
+		// fingerprint_ class. The constructor that only takes a fingerprint will not open a
+		// listen port for the session, to get it running you'll have to call ``session::listen_on()``.
+		// The other constructor, that takes a port range and an interface as well as the fingerprint
+		// will automatically try to listen on a port on the given interface. For more information about
+		// the parameters, see ``listen_on()`` function.
+		// 
+		// The flags paramater can be used to start default features (upnp & nat-pmp) and default plugins
+		// (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
+		// them to start, pass 0 as the flags parameter.
+		// 
+		// The ``alert_mask`` is the same mask that you would send to `set_alert_mask()`_.
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
@@ -153,9 +169,7 @@ namespace libtorrent
 #endif
 			start(flags);
 		}
-
-		session(
-			fingerprint const& print
+		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
@@ -172,6 +186,11 @@ namespace libtorrent
 			start(flags);
 		}
 			
+		// The destructor of session will notify all trackers that our torrents have been shut down.
+		// If some trackers are down, they will time out. All this before the destructor of session
+		// returns. So, it's advised that any kind of interface (such as windows) are closed before
+		// destructing the session object. Because it can take a few second for it to finish. The
+		// timeout can be set with ``set_settings()``.
 		~session();
 
 		enum save_state_flags_t
@@ -193,26 +212,91 @@ namespace libtorrent
 			save_tracker_proxy = save_proxy
 #endif
 		};
+
+		// loads and saves all session settings, including dht_settings, encryption settings and proxy
+		// settings. ``save_state`` writes all keys to the ``entry`` that's passed in, which needs to
+		// either not be initialized, or initialized as a dictionary.
+		// 
+		// ``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
+		// `lazy_bdecode()`_.
+		// 
+		// The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
+		// of the session state to save. By default, all state is saved (except for the individual
+		// torrents). see save_state_flags_t
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
 
+		// .. note::
+		// 	these calls are potentially expensive and won't scale well
+		// 	with lots of torrents. If you're concerned about performance, consider
+		// 	using ``post_torrent_updates()`` instead.
+		// 
+		// ``get_torrent_status`` returns a vector of the ``torrent_status`` for every
+		// torrent which satisfies ``pred``, which is a predicate function which determines
+		// if a torrent should be included in the returned set or not. Returning true means
+		// it should be included and false means excluded. The ``flags`` argument is the same
+		// as to ``torrent_handle::status()``. Since ``pred`` is guaranteed to be called for
+		// every torrent, it may be used to count the number of torrents of different categories
+		// as well.
+		// 
+		// ``refresh_torrent_status`` takes a vector of ``torrent_status`` structs (for instance
+		// the same vector that was returned by ``get_torrent_status()``) and refreshes the
+		// status based on the ``handle`` member. It is possible to use this function by
+		// first setting up a vector of default constructed ``torrent_status`` objects, only
+		// initializing the ``handle`` member, in order to request the torrent status for
+		// multiple torrents in a single call. This can save a significant amount of time
+		// if you have a lot of torrents.
+		// 
+		// Any ``torrent_status`` object whose ``handle`` member is not referring to a
+		// valid torrent are ignored.
 		void get_torrent_status(std::vector<torrent_status>* ret
 			, boost::function<bool(torrent_status const&)> const& pred
 			, boost::uint32_t flags = 0) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, boost::uint32_t flags = 0) const;
+
+		// This functions instructs the session to post the state_update_alert_, containing
+		// the status of all torrents whose state changed since the last time this function
+		// was called.
+		// 
+		// Only torrents who has the state subscription flag set will be included. This flag
+		// is on by default. See ``add_torrent_params`` under `async_add_torrent() add_torrent()`_
 		void post_torrent_updates();
 
 		void post_session_stats();
 
-		// returns a list of all torrents in this session
-		std::vector<torrent_handle> get_torrents() const;
-		
 		io_service& get_io_service();
 
-		// returns an invalid handle in case the torrent doesn't exist
+		// ``find_torrent()`` looks for a torrent with the given info-hash. In case there
+		// is such a torrent in the session, a torrent_handle to that torrent is returned.
+		// In case the torrent cannot be found, an invalid torrent_handle is returned.
+		// 
+		// See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
+		// 
+		// ``get_torrents()`` returns a vector of torrent_handles to all the torrents
+		// currently in the session.
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
+		std::vector<torrent_handle> get_torrents() const;
 
+		// You add torrents through the ``add_torrent()`` function where you give an
+		// object with all the parameters. The ``add_torrent()`` overloads will block
+		// until the torrent has been added (or failed to be added) and returns an
+		// error code and a ``torrent_handle``. In order to add torrents more efficiently,
+		// consider using ``async_add_torrent()`` which returns immediately, without
+		// waiting for the torrent to add. Notification of the torrent being added is sent
+		// as add_torrent_alert_.
+		// 
+		// The overload that does not take an ``error_code`` throws an exception on
+		// error and is not available when building without exception support.
+		// The torrent_handle_ returned by ``add_torrent()`` can be used to retrieve information
+		// about the torrent's progress, its peers etc. It is also used to abort a torrent.
+		// 
+		// If the torrent you are trying to add already exists in the session (is either queued
+		// for checking, being checked or downloading) ``add_torrent()`` will throw
+		// libtorrent_exception_ which derives from ``std::exception`` unless ``duplicate_is_error``
+		// is set to false. In that case, ``add_torrent`` will return the handle to the existing
+		// torrent.
+		//
 		// all torrent_handles must be destructed before the session is destructed!
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -247,21 +331,49 @@ namespace libtorrent
 #endif
 #endif
 
+		// In case you want to destruct the session asynchrounously, you can request a session
+		// destruction proxy. If you don't do this, the destructor of the session object will
+		// block while the trackers are contacted. If you keep one ``session_proxy`` to the
+		// session when destructing it, the destructor will not block, but start to close down
+		// the session, the destructor of the proxy will then synchronize the threads. So, the
+		// destruction of the session is performed from the ``session`` destructor call until the
+		// ``session_proxy`` destructor call. The ``session_proxy`` does not have any operations
+		// on it (since the session is being closed down, no operations are allowed on it). The
+		// only valid operation is calling the destructor::
+		// 
+		// 	class session_proxy
+		// 	{
+		// 	public:
+		// 		session_proxy();
+		// 		~session_proxy()
+		// 	};
 		session_proxy abort() { return session_proxy(m_impl); }
 
+		// Pausing the session has the same effect as pausing every torrent in it, except that
+		// torrents will not be resumed by the auto-manage mechanism. Resuming will restore the
+		// torrents to their previous paused state. i.e. the session pause state is separate from
+		// the torrent pause state. A torrent is inactive if it is paused or if the session is
+		// paused.
 		void pause();
 		void resume();
 		bool is_paused() const;
 
 		void set_load_function(user_load_function_t fun);
 
+		// returns session wide-statistics and status. For more information, see the ``session_status`` struct.
 		session_status status() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in aio branch
 		TORRENT_DEPRECATED_PREFIX
+		// fills out the supplied vector with information for
+		// each piece that is currently in the disk cache for the torrent with the
+		// specified info-hash (``ih``).
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const TORRENT_DEPRECATED;
+
+		// Returns status of the disk cache for this session.
+		// For more information, see the cache_status type.
 		TORRENT_DEPRECATED_PREFIX
 		cache_status get_cache_status() const TORRENT_DEPRECATED;
 #endif
@@ -296,10 +408,21 @@ namespace libtorrent
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 
+		// These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
+		// expects a path to the `MaxMind ASN database`_ and `MaxMind GeoIP database`_
+		// respectively. This will be used to look up which AS and country peers belong to.
+		// 
+		// ``as_for_ip`` returns the AS number for the IP address specified. If the IP is not
+		// in the database or the ASN database is not loaded, 0 is returned.
+		// 
+		// The ``wchar_t`` overloads are for wide character paths.
+		// 
+		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
+		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
 #ifndef TORRENT_DISABLE_GEO_IP
-		int as_for_ip(address const& addr);
 		void load_asnum_db(char const* file);
 		void load_country_db(char const* file);
+		int as_for_ip(address const& addr);
 #if TORRENT_USE_WSTRING
 		void load_country_db(wchar_t const* file);
 		void load_asnum_db(wchar_t const* file);
@@ -315,6 +438,14 @@ namespace libtorrent
 		entry state() const TORRENT_DEPRECATED;
 #endif
 
+		// Sets a filter that will be used to reject and accept incoming as well as outgoing
+		// connections based on their originating ip address. The default filter will allow
+		// connections to any ip address. To build a set of rules for which addresses are
+		// accepted and not, see ip_filter_.
+		// 
+		// Each time a peer is blocked because of the IP filter, a peer_blocked_alert_ is
+		// generated.
+		// ``get_ip_filter()`` Returns the ip_filter currently in the session. See ip_filter_.
 		void set_ip_filter(ip_filter const& f);
 		ip_filter get_ip_filter() const;
 		
@@ -394,6 +525,13 @@ namespace libtorrent
 			start_default_features = 2
 		};
 
+		// ``remove_torrent()`` will close all peer connections associated with the torrent and tell
+		// the tracker that we've stopped participating in the swarm. The optional second argument
+		// `options`` can be used to delete all the files downloaded by this torrent. To do this, pass
+		// in the value ``session::delete_files``. The removal of the torrent is asyncronous, there is
+		// no guarantee that adding the same torrent immediately after it was removed will not throw
+		// a libtorrent_exception_ exception. Once the torrent is deleted, a torrent_deleted_alert_
+		// is posted.
 		void remove_torrent(const torrent_handle& h, int options = none);
 
 #ifndef TORRENT_NO_DEPRECATE

@@ -67,13 +67,10 @@ namespace libtorrent
 		std::string symlink_path;
 	};
 
-	// this is used internally to hold the file entry
-	// it's smaller and optimized for smaller memory
-	// footprint, as opposed to file_entry, which is
-	// optimized for convenience
-	// TODO: does this really need to be exported?
+	// internal
 	struct TORRENT_EXPORT internal_file_entry
 	{
+		// TODO: does this really need to be exported?
 		friend class file_storage;
 #ifdef TORRENT_DEBUG
 		// for torrent_info::invariant_check
