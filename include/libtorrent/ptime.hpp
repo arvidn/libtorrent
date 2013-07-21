@@ -124,13 +124,5 @@ namespace libtorrent
 
 #endif // TORRENT_USE_BOOST_DATE_TIME
 
-namespace libtorrent
-{
-	char const* time_now_string();
-	std::string log_time();
-
-	TORRENT_EXPORT ptime const& time_now();
-}
-
 #endif
 
