@@ -205,20 +205,55 @@ namespace libtorrent
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
 
+		// .. note::
+		// 	these calls are potentially expensive and won't scale well
+		// 	with lots of torrents. If you're concerned about performance, consider
+		// 	using ``post_torrent_updates()`` instead.
+		// 
+		// ``get_torrent_status`` returns a vector of the ``torrent_status`` for every
+		// torrent which satisfies ``pred``, which is a predicate function which determines
+		// if a torrent should be included in the returned set or not. Returning true means
+		// it should be included and false means excluded. The ``flags`` argument is the same
+		// as to ``torrent_handle::status()``. Since ``pred`` is guaranteed to be called for
+		// every torrent, it may be used to count the number of torrents of different categories
+		// as well.
+		// 
+		// ``refresh_torrent_status`` takes a vector of ``torrent_status`` structs (for instance
+		// the same vector that was returned by ``get_torrent_status()``) and refreshes the
+		// status based on the ``handle`` member. It is possible to use this function by
+		// first setting up a vector of default constructed ``torrent_status`` objects, only
+		// initializing the ``handle`` member, in order to request the torrent status for
+		// multiple torrents in a single call. This can save a significant amount of time
+		// if you have a lot of torrents.
+		// 
+		// Any ``torrent_status`` object whose ``handle`` member is not referring to a
+		// valid torrent are ignored.
 		void get_torrent_status(std::vector<torrent_status>* ret
 			, boost::function<bool(torrent_status const&)> const& pred
 			, boost::uint32_t flags = 0) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, boost::uint32_t flags = 0) const;
+
+		// This functions instructs the session to post the state_update_alert_, containing
+		// the status of all torrents whose state changed since the last time this function
+		// was called.
+		// 
+		// Only torrents who has the state subscription flag set will be included. This flag
+		// is on by default. See ``add_torrent_params`` under `async_add_torrent() add_torrent()`_
 		void post_torrent_updates();
 
-		// returns a list of all torrents in this session
-		std::vector<torrent_handle> get_torrents() const;
-		
 		io_service& get_io_service();
 
-		// returns an invalid handle in case the torrent doesn't exist
+		// ``find_torrent()`` looks for a torrent with the given info-hash. In case there
+		// is such a torrent in the session, a torrent_handle to that torrent is returned.
+		// In case the torrent cannot be found, an invalid torrent_handle is returned.
+		// 
+		// See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
+		// 
+		// ``get_torrents()`` returns a vector of torrent_handles to all the torrents
+		// currently in the session.
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
+		std::vector<torrent_handle> get_torrents() const;
 
 		// You add torrents through the ``add_torrent()`` function where you give an
 		// object with all the parameters. The ``add_torrent()`` overloads will block
@@ -311,9 +346,16 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const;
 
+		// returns session wide-statistics and status. For more information, see the ``session_status`` struct.
 		session_status status() const;
+
+		// Returns status of the disk cache for this session.
+		// For more information, see the cache_status type.
 		cache_status get_cache_status() const;
 
+		// fills out the supplied vector with information for
+		// each piece that is currently in the disk cache for the torrent with the
+		// specified info-hash (``ih``).
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const;
 
@@ -344,10 +386,21 @@ namespace libtorrent
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 
+		// These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
+		// expects a path to the `MaxMind ASN database`_ and `MaxMind GeoIP database`_
+		// respectively. This will be used to look up which AS and country peers belong to.
+		// 
+		// ``as_for_ip`` returns the AS number for the IP address specified. If the IP is not
+		// in the database or the ASN database is not loaded, 0 is returned.
+		// 
+		// The ``wchar_t`` overloads are for wide character paths.
+		// 
+		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
+		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
 #ifndef TORRENT_DISABLE_GEO_IP
-		int as_for_ip(address const& addr);
 		void load_asnum_db(char const* file);
 		void load_country_db(char const* file);
+		int as_for_ip(address const& addr);
 #if TORRENT_USE_WSTRING
 		void load_country_db(wchar_t const* file);
 		void load_asnum_db(wchar_t const* file);
@@ -363,6 +416,14 @@ namespace libtorrent
 		entry state() const TORRENT_DEPRECATED;
 #endif
 
+		// Sets a filter that will be used to reject and accept incoming as well as outgoing
+		// connections based on their originating ip address. The default filter will allow
+		// connections to any ip address. To build a set of rules for which addresses are
+		// accepted and not, see ip_filter_.
+		// 
+		// Each time a peer is blocked because of the IP filter, a peer_blocked_alert_ is
+		// generated.
+		// ``get_ip_filter()`` Returns the ip_filter currently in the session. See ip_filter_.
 		void set_ip_filter(ip_filter const& f);
 		ip_filter get_ip_filter() const;
 		
@@ -423,6 +484,13 @@ namespace libtorrent
 			start_default_features = 2
 		};
 
+		// ``remove_torrent()`` will close all peer connections associated with the torrent and tell
+		// the tracker that we've stopped participating in the swarm. The optional second argument
+`		// `options`` can be used to delete all the files downloaded by this torrent. To do this, pass
+		// in the value ``session::delete_files``. The removal of the torrent is asyncronous, there is
+		// no guarantee that adding the same torrent immediately after it was removed will not throw
+		// a libtorrent_exception_ exception. Once the torrent is deleted, a torrent_deleted_alert_
+		// is posted.
 		void remove_torrent(const torrent_handle& h, int options = none);
 
 		void set_settings(session_settings const& s);
