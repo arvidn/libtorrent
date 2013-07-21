@@ -1,5 +1,3 @@
-html>body { font-size: 13px; }
-
 .entry { min-height: 135px; }
 
 #main {
@@ -11,22 +9,18 @@ html>body { font-size: 13px; }
 /* Base elements */
 
 * {margin: 0; padding: 0;}
-body { font: 0.8125em Verdana, sans-serif;}
+body, table { font: 1em Verdana, sans-serif;}
 
 h1, h2, h3 {
     font: 1.5em Georgia "Times New Roman", serif;
-    letter-spacing: 1px;
+/*    letter-spacing: 1px; */
     padding-bottom: 0.5em;
+	 font-weight: bold;
 }
 
 h1 { font-size: 180%; }
 h2 { font-size: 130%; }
 h3 { font-size: 100%; }
-
-p {
-    font-size: 92%;
-    line-height: 1.4em;
-}
 
 a {
     text-decoration: none;
@@ -81,6 +75,88 @@ div.section div.section div.section {
 div.section p, div.section ul, div.section dl {
 }
 
+#container {
+    text-align: left;
+    width: 700px;
+    margin: 0 auto;
+    position: relative;
+}
+
+#container {
+    text-align: left;
+    width: 700px;
+    margin: 0 auto;
+    position: relative;
+}
+
+#headerNav {
+}
+
+#headerNav ul {
+    margin: 2px;
+    list-style: none;
+    font-family: Tahoma;
+    text-align: right;
+    text-transform: uppercase;
+    line-height: 1em;
+}
+
+#headerNav ul li {
+    display: inline;
+    border-left: solid 1px #ccc;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: 0;
+    font-size: 80%;
+}
+
+#headerNav ul li.first {
+    border: 0;
+}
+
+#headerNav ul li a {
+    border: none;
+    color: #666;
+}
+
+#headerNav ul li a:hover {
+    background: #eee;
+}
+
+#header {
+    height: 116px;
+    width: 695px;
+    background: url(../img/orange.png) #FDA72A no-repeat top left;
+}
+
+#header h1 {
+    margin: 0;
+    padding: 0;
+    float: right;
+    width: 536px;
+    height: 116px;
+    background: url(../img/logo.png);
+}
+
+#header h1 span, #header h2 { display: none; }
+
+#footer {
+    clear: both;
+    width: 695px;
+    height: 49px;
+    background: #D3D3D3 url(../img/footer.png) no-repeat left top;
+    text-align: center;
+    margin-bottom: 1em;
+}
+
+#footer span {
+    line-height: 49px;
+    font-size: 88%;
+    text-align: center;
+    color: #777;
+    display: block;
+}
+
 table.docinfo {
     text-align: left;
     float: right;
@@ -106,18 +182,17 @@ table.docinfo tr.field td, table.docinfo tr.field th {display: none;}
 h1.title { text-align: center; }
 
 dt {
-    font-size: 100%;
     line-height: 1.2em;
+    margin-bottom: 0.5em;
     color: #315586;
     color: #000;
-    font-weight: bold;
+    font-style: italic;
 }
 
 dd {
     line-height: 1em;
     margin-left: 1em;
     margin-bottom: 1em;
-    font-size: 92%;
 }
 
 tt {
