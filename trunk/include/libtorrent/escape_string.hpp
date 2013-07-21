@@ -70,8 +70,8 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim, char const* end);
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
 
-	TORRENT_EXPORT std::string to_hex(std::string const& s);
 	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
+	TORRENT_EXPORT std::string to_hex(std::string const& s);
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
@@ -84,7 +84,9 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string convert_to_native(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_native(std::string const& s);
 #else
+	// internal
 	inline std::string const& convert_to_native(std::string const& s) { return s; }
+	// internal
 	inline std::string const& convert_from_native(std::string const& s) { return s; }
 #endif		
 }
