@@ -333,6 +333,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdarg.h>
 
+// internal
 inline int snprintf(char* buf, int len, char const* fmt, ...)
 {
 	va_list lp;

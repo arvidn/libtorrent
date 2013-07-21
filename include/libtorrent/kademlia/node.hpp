@@ -140,11 +140,13 @@ struct dht_mutable_item : dht_immutable_item
 	rsa_key key;
 };
 
+// internal
 inline bool operator<(rsa_key const& lhs, rsa_key const& rhs)
 {
 	return memcmp(lhs.bytes, rhs.bytes, sizeof(lhs.bytes)) < 0;
 }
 
+// internal
 inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
 {
 	return lhs.addr.address() == rhs.addr.address()

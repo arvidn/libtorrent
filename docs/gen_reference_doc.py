@@ -13,6 +13,9 @@ functions = []
 classes = []
 enums = []
 
+# maps filename to overview description
+overviews = {}
+
 # maps names -> URL
 symbols = {}
 
@@ -73,6 +76,11 @@ def first_item(itr):
 		return i
 	return None
 
+def is_visible(desc):
+	if desc.strip() == 'internal': return False
+	if desc.strip() == 'hidden': return False
+	return True
+
 def highlight_signature(s):
 	name = s.split('(')
 	name2 = name[0].split(' ')
@@ -100,6 +108,7 @@ def looks_like_variable(line):
 	return True
 
 def looks_like_function(line):
+	if '::' in line.split('(')[0].split(' ')[-1]: return False
 	if line.startswith(','): return False
 	if line.startswith(':'): return False
 	return '(' in line;
@@ -177,6 +186,7 @@ def parse_class(lno, lines, filename):
 
 		if l == '':
 			blanks += 1
+			context = ''
 			continue
 
 		if l.startswith('/*'):
@@ -224,7 +234,7 @@ def parse_class(lno, lines, filename):
 
 		if looks_like_function(l):
 			current_fun, lno = parse_function(lno - 1, lines, filename)
-			if current_fun != None and context.strip() != 'internal':
+			if current_fun != None and is_visible(context):
 				if context == '' and blanks == 0 and len(funs):
 					funs[-1]['signatures'].update(current_fun['signatures'])
 					funs[-1]['names'].update(current_fun['names'])
@@ -236,7 +246,7 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if looks_like_variable(l):
-			if context.strip() == 'internal':
+			if not is_visible(context):
 				context = ''
 				continue
 			n = l.split(' ')[-1].split(':')[0].split(';')[0]
@@ -251,7 +261,7 @@ def parse_class(lno, lines, filename):
 
 		if l.startswith('enum '):
 			enum, lno = parse_enum(lno - 1, lines, filename)
-			if enum != None and context.strip() != 'internal':
+			if enum != None and is_visible(context):
 				enum['desc'] = context
 				enums.append(enum)
 			context = ''
@@ -306,7 +316,7 @@ def parse_enum(lno, lines, filename):
 			if verbose: print 'enumv %s' % lines[lno-1]
 			for v in l.split(','):
 				if v == '': continue
-				if context.strip() != 'internal':
+				if is_visible(context):
 					values.append({'name': v.strip(), 'desc': context})
 				context = ''
 		else:
@@ -355,7 +365,9 @@ def consume_ifdef(lno, lines):
 
 	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
 		l == '#ifdef TORRENT_DEBUG' or \
-		(l.startswith('#if') and 'defined TORRENT_DEBUG' in l):
+		l == '#ifdef TORRENT_ASIO_DEBUGGING' or \
+		(l.startswith('#if') and 'defined TORRENT_DEBUG' in l) or \
+		(l.startswith('#if') and 'defined TORRENT_ASIO_DEBUGGING' in l):
 		while lno < len(lines):
 			l = lines[lno].strip()
 			lno += 1
@@ -382,7 +394,21 @@ for filename in files:
 
 		if l == '':
 			blanks += 1
+			context = ''
 			continue
+
+		if l.startswith('//') and l[2:].strip() == 'OVERVIEW':
+			# this is a section overview
+			current_overview = ''
+			while lno < len(lines):
+				l = lines[lno].strip()
+				lno += 1
+				if not l.startswith('//'):
+					# end of overview
+					overviews[filename[11:]] = current_overview
+					current_overview = ''
+					break
+				current_overview += l[2:].strip() + '\n'
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
@@ -398,6 +424,11 @@ for filename in files:
 			lno = consume_ifdef(lno - 1, lines)
 			continue
 
+		if l == 'namespace detail' or \
+			l == 'namespace aux':
+			lno = consume_block(lno, lines)
+			continue
+
 		if 'TORRENT_CFG' in l:
 			blanks += 1
 			if verbose: print 'xx    %s' % l
@@ -407,10 +438,10 @@ for filename in files:
 			if verbose: print 'xx    %s' % l
 			continue
 
-		if 'TORRENT_EXPORT ' in l:
+		if 'TORRENT_EXPORT ' in l or l.startswith('inline '):
 			if 'class ' in l or 'struct ' in l:
 				current_class, lno = parse_class(lno -1, lines, filename)
-				if current_class != None and context.strip() != 'internal':
+				if current_class != None and is_visible(context):
 					current_class['desc'] = context
 					classes.append(current_class)
 				context = ''
@@ -419,7 +450,7 @@ for filename in files:
 
 			if looks_like_function(l):
 				current_fun, lno = parse_function(lno - 1, lines, filename)
-				if current_fun != None and context.strip() != 'internal':
+				if current_fun != None and is_visible(context):
 					if context == '' and blanks == 0 and len(functions):
 						functions[-1]['signatures'].update(current_fun['signatures'])
 						functions[-1]['names'].update(current_fun['names'])
@@ -438,7 +469,7 @@ for filename in files:
 
 		if l.startswith('enum '):
 			current_enum, lno = parse_enum(lno - 1, lines, filename)
-			if current_enum != None and context.strip() != 'internal':
+			if current_enum != None and is_visible(context):
 				current_enum['desc'] = context
 				enums.append(current_enum)
 			context = ''
@@ -491,6 +522,10 @@ for c in classes:
 	cat = categorize_symbol(c['name'], c['file'])
 	if not cat in categories:
 		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.html' % cat.replace(' ', '_')}
+
+	if c['file'] in overviews:
+		categories[cat]['overview'] = overviews[c['file']]
+
 	categories[cat]['classes'].append(c)
 	symbols[c['name']] = categories[cat]['filename'] + '#' + html_sanitize(c['name'])
 
@@ -498,6 +533,10 @@ for f in functions:
 	cat = categorize_symbol(first_item(f['names']), f['file'])
 	if not cat in categories:
 		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.html' % cat.replace(' ', '_')}
+
+	if f['file'] in overviews:
+		categories[cat]['overview'] = overviews[f['file']]
+
 	for n in f['names']:
 		symbols[n] = categories[cat]['filename'] + '#' + html_sanitize(n)
 	categories[cat]['functions'].append(f)
@@ -548,6 +587,9 @@ for cat in categories:
 	out.write('''<html><head>
 		<link rel="stylesheet" href="style.css" type="text/css" />
 		</head><body><div id="container">''')
+
+	if 'overview' in categories[cat]:
+		out.write('<h1>%s</h1><p>%s</p>' % (cat, html_sanitize(categories[cat]['overview'])))
 
 	for c in classes:
 		out.write('<a name="%s"></a><h2>%s %s</h2>' % (html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name'])))

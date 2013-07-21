@@ -310,15 +310,19 @@ namespace libtorrent
 
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
+	// hidden
 	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
+	// hidden
 	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
 
+	// hidden
 	boost::system::error_category const& get_libtorrent_category()
 	{
 		static ::asio::error::error_category libtorrent_category(20);
 		return libtorrent_category;
 	}
 
+	// hidden
 	boost::system::error_category const& get_http_category()
 	{
 		static ::asio::error::error_category http_category(21);
@@ -348,6 +352,7 @@ namespace libtorrent
 
 	namespace errors
 	{
+		// hidden
 		inline boost::system::error_code make_error_code(error_code_enum e)
 		{
 			return boost::system::error_code(e, get_libtorrent_category());
@@ -356,14 +361,15 @@ namespace libtorrent
 
 	using boost::system::error_code;
 
-#if BOOST_VERSION < 104400
+	// hidden
 	inline boost::system::error_category const& get_system_category()
+#if BOOST_VERSION < 104400
 	{ return boost::system::get_system_category(); }
 #else
-	inline boost::system::error_category const& get_system_category()
 	{ return boost::system::system_category(); }
 #endif
 
+	// hidden
 	inline boost::system::error_category const& get_posix_category()
 #if BOOST_VERSION < 103600
 	{ return boost::system::get_posix_category(); }

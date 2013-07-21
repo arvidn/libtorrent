@@ -39,6 +39,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <string>
 
+// OVERVIEW
+// 
+// This section contains fundamental time types used internall by
+// libtorrent and exposed through various places in the API. The two
+// basic types are ``ptime`` and ``time_duration``. The first represents
+// a point in time and the second the difference between two points
+// in time.
+//
+// The internal representation of these types is implementation defined
+// and they can only be constructed via one of the construction functions
+// that take a well defined time unit (seconds, minutes, etc.). They can
+// only be turned into well defined time units by the accessor functions
+// (total_microseconds(), etc.).
+//
+// .. note::
+// 	In a future version of libtorrent, these types will be replaced
+// 	by the standard timer types from ``std::chrono``.
+
 namespace libtorrent
 {
 	char const* time_now_string();
@@ -64,21 +82,29 @@ namespace libtorrent
 
 #elif TORRENT_USE_CLOCK_GETTIME || TORRENT_USE_SYSTEM_TIME || TORRENT_USE_ABSOLUTE_TIME
 
+	// hidden
 	inline int total_seconds(time_duration td)
 	{ return td.diff / 1000000; }
+	// hidden
 	inline int total_milliseconds(time_duration td)
 	{ return td.diff / 1000; }
+	// hidden
 	inline boost::int64_t total_microseconds(time_duration td)
 	{ return td.diff; }
 
+	// hidden
 	inline time_duration microsec(boost::int64_t s)
 	{ return time_duration(s); }
+	// hidden
 	inline time_duration milliseconds(boost::int64_t s)
 	{ return time_duration(s * 1000); }
+	// hidden
 	inline time_duration seconds(boost::int64_t s)
 	{ return time_duration(s * 1000000); }
+	// hidden
 	inline time_duration minutes(boost::int64_t s)
 	{ return time_duration(s * 1000000 * 60); }
+	// hidden
 	inline time_duration hours(boost::int64_t s)
 	{ return time_duration(s * 1000000 * 60 * 60); }
 
