@@ -63,11 +63,26 @@ namespace libtorrent
 
 	struct cached_piece_info
 	{
+		// the piece index for this cache entry.
 		int piece;
+
+		// holds one entry for each block in this piece. ``true`` represents
+		// the data for that block being in the disk cache and ``false`` means it's not.
 		std::vector<bool> blocks;
+
+		// the time when a block was last written to this piece. The older
+		// a piece is, the more likely it is to be flushed to disk.
 		ptime last_use;
+
+		// The index of the next block that needs to be hashed.
+		// Blocks are hashed as they are downloaded in order to not
+		// have to re-read them from disk once the piece is complete, to
+		// compare its hash against the hashes in the .torrent file.
 		int next_to_hash;
+
 		enum kind_t { read_cache = 0, write_cache = 1 };
+
+		// specifies if this piece is part of the read cache or the write cache.
 		kind_t kind;
 	};
 	
@@ -180,40 +195,69 @@ namespace libtorrent
 			, read_queue_size(0)
 		{}
 
-		// the number of 16kB blocks written
+		// the total number of 16 KiB blocks written to disk
+		// since this session was started.
 		size_type blocks_written;
-		// the number of write operations used
-		size_type writes;
-		// (blocks_written - writes) / blocks_written represents the
-		// "cache hit" ratio in the write cache
-		// the number of blocks read
 
-		// the number of blocks passed back to the bittorrent engine
+		// the total number of write operations performed since this
+		// session was started.
+		// 
+		// The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
+		// the number of saved write operations per total write operations. i.e. a kind
+		// of cache hit ratio for the write cahe.
+
+		size_type writes;
+
+		// the number of blocks that were requested from the
+		// bittorrent engine (from peers), that were served from disk or cache.
 		size_type blocks_read;
+
 		// the number of blocks that was just copied from the read cache
+		//
+		// The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
+		// for the read cache.
 		size_type blocks_read_hit;
+
 		// the number of read operations used
 		size_type reads;
 
 		mutable size_type queued_bytes;
 
-		// the number of blocks in the cache (both read and write)
+		// the number of 16 KiB blocks currently in the disk cache (both read and write).
+		// This includes both read and write cache.
 		int cache_size;
 
-		// the number of blocks in the cache used for read cache
+		// the number of 16KiB blocks in the read cache.
 		int read_cache_size;
 
-		// the total number of blocks that are currently in use
-		// this includes send and receive buffers
+		// the total number of buffers currently in use.
+		// This includes the read/write disk cache as well as send and receive buffers
+		// used in peer connections.
 		mutable int total_used_buffers;
 
-		// times in microseconds
+		// the number of microseconds an average disk I/O job
+		// has to wait in the job queue before it get processed.
 		int average_queue_time;
+
+		// the time read jobs takes on average to complete
+		// (not including the time in the queue), in microseconds. This only measures
+		// read cache misses.
 		int average_read_time;
+
+		// the time write jobs takes to complete, on average,
+		// in microseconds. This does not include the time the job sits in the disk job
+		// queue or in the write cache, only blocks that are flushed to disk.
 		int average_write_time;
+
+		// the time hash jobs takes to complete on average, in
+		// microseconds. Hash jobs include running SHA-1 on the data (which for the most
+		// part is done incrementally) and sometimes reading back parts of the piece. It
+		// also includes checking files without valid resume data.
 		int average_hash_time;
 		int average_job_time;
 		int average_sort_time;
+
+		// the number of jobs in the job queue.
 		int job_queue_length;
 
 		boost::uint32_t cumulative_job_time;

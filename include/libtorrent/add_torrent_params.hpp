@@ -177,7 +177,7 @@ namespace libtorrent
 			// an auto-update torrent for instance.
 			flag_apply_ip_filter = 0x010,
 
-			// ``flag_paused`` specifies whether or not the torrent is to be started in a paused
+			// specifies whether or not the torrent is to be started in a paused
 			// state. I.e. it won't connect to the tracker or any of the peers until it's
 			// resumed. This is typically a good way of avoiding race conditions when setting
 			// configuration options on torrents before starting them.
@@ -223,7 +223,7 @@ namespace libtorrent
 #endif
 		};
 	
-		// ``version`` is filled in by the constructor and should be left untouched. It
+		// filled in by the constructor and should be left untouched. It
 		// is used for forward binary compatibility.
 		int version;
 		boost::intrusive_ptr<torrent_info> ti;
@@ -234,7 +234,7 @@ namespace libtorrent
 		// ``trackers`` can specify tracker URLs for the torrent.
 		std::vector<std::string> trackers;
 
-		// ``dht_nodes`` is a list of hostname and port pairs, representing DHT nodes to be
+		// a list of hostname and port pairs, representing DHT nodes to be
 		// added to the session (if DHT is enabled). The hostname may be an IP address.
 		std::vector<std::pair<std::string, int> > dht_nodes;
 		sha1_hash info_hash;
@@ -246,9 +246,11 @@ namespace libtorrent
 		// `save_resume_data()`_ on `torrent_handle`_. See `fast resume`_. The ``vector`` that is
 		// passed in will be swapped into the running torrent instance with ``std::vector::swap()``.
 		std::vector<char> resume_data;
+
+		// One of the values from storage_mode_t. For more information, see `storage allocation`_.
 		storage_mode_t storage_mode;
 
-		// ``storage`` can be used to customize how the data is stored. The default
+		// can be used to customize how the data is stored. The default
 		// storage will simply write the data to the files it belongs to, but it could be
 		// overridden to save everything to a single file at a specific location or encrypt the
 		// content on disk for instance. For more information about the ``storage_interface``
@@ -259,11 +261,11 @@ namespace libtorrent
 		// constructor functions, if any (see `add_extension()`_).
 		void* userdata;
 
-		//	``file_priorities`` can be set to control the initial file priorities when adding
+		//	can be set to control the initial file priorities when adding
 		// a torrent. The semantics are the same as for ``torrent_handle::prioritize_files()``.
 		std::vector<boost::uint8_t> file_priorities;
 
-		// ``trackerid`` is the default tracker id to be used when announcing to trackers. By default
+		// the default tracker id to be used when announcing to trackers. By default
 		// this is empty, and no tracker ID is used, since this is an optional argument. If
 		// a tracker returns a tracker ID, that ID is used instead of this.
 		std::string trackerid;
@@ -286,7 +288,7 @@ namespace libtorrent
 		// is mainly useful for RSS feed items which has UUIDs specified.
 		std::string uuid;
 
-		// ``source_feed_url`` should point to the URL of the RSS feed this torrent comes from,
+		// should point to the URL of the RSS feed this torrent comes from,
 		// if it comes from an RSS feed.
 		std::string source_feed_url;
 
