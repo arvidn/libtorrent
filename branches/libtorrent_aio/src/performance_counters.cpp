@@ -51,7 +51,7 @@ namespace libtorrent {
 
 	// the argument specifies which counter to
 	// increment or decrement
-	void counters::inc_stats_counter(int c, int value)
+	void counters::inc_stats_counter(int c, boost::int64_t value)
 	{
 		// if c >= num_stats_counters, it means it's not
 		// a monotonically increasing counter, but a gauge
@@ -64,7 +64,7 @@ namespace libtorrent {
 		m_stats_counter[c] += value;
 	}
 
-	void counters::set_value(int c, int value)
+	void counters::set_value(int c, boost::int64_t value)
 	{
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);

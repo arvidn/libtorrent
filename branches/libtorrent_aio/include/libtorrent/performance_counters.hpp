@@ -273,10 +273,10 @@ namespace libtorrent
 		};
 
 		counters();
-		void inc_stats_counter(int c, int value = 1);
+		void inc_stats_counter(int c, boost::int64_t value = 1);
 		boost::int64_t operator[](int i) const;
 
-		void set_value(int c, int value);
+		void set_value(int c, boost::int64_t value);
 
 	private:
 
