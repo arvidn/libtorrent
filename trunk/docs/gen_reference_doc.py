@@ -74,8 +74,11 @@ def first_item(itr):
 	return None
 
 def highlight_signature(s):
-	name = s.split('(')[0].split(' ')[-1].strip()
-	return s.replace(name, '<strong>' + name + '</strong>')
+	name = s.split('(')
+	name2 = name[0].split(' ')
+	name2[-1] = '<strong>' + name2[-1] + '</strong>'
+	name[0] = ' '.join(name2)
+	return '('.join(name)
 
 def html_sanitize(s):
 	ret = ''
@@ -221,7 +224,7 @@ def parse_class(lno, lines, filename):
 
 		if looks_like_function(l):
 			current_fun, lno = parse_function(lno - 1, lines, filename)
-			if current_fun != None:
+			if current_fun != None and context.strip() != 'internal':
 				if context == '' and blanks == 0 and len(funs):
 					funs[-1]['signatures'].update(current_fun['signatures'])
 					funs[-1]['names'].update(current_fun['names'])
@@ -233,6 +236,9 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if looks_like_variable(l):
+			if context.strip() == 'internal':
+				context = ''
+				continue
 			n = l.split(' ')[-1].split(':')[0].split(';')[0]
 			if context == '' and blanks == 0 and len(fields):
 				fields[-1]['names'].append(n)
@@ -245,7 +251,7 @@ def parse_class(lno, lines, filename):
 
 		if l.startswith('enum '):
 			enum, lno = parse_enum(lno - 1, lines, filename)
-			if enum != None:
+			if enum != None and context.strip() != 'internal':
 				enum['desc'] = context
 				enums.append(enum)
 			context = ''
@@ -300,7 +306,8 @@ def parse_enum(lno, lines, filename):
 			if verbose: print 'enumv %s' % lines[lno-1]
 			for v in l.split(','):
 				if v == '': continue
-				values.append({'name': v.strip(), 'desc': context})
+				if context.strip() != 'internal':
+					values.append({'name': v.strip(), 'desc': context})
 				context = ''
 		else:
 			if verbose: print '??    %s' % lines[lno-1]
@@ -403,7 +410,7 @@ for filename in files:
 		if 'TORRENT_EXPORT ' in l:
 			if 'class ' in l or 'struct ' in l:
 				current_class, lno = parse_class(lno -1, lines, filename)
-				if current_class != None:
+				if current_class != None and context.strip() != 'internal':
 					current_class['desc'] = context
 					classes.append(current_class)
 				context = ''
@@ -412,7 +419,7 @@ for filename in files:
 
 			if looks_like_function(l):
 				current_fun, lno = parse_function(lno - 1, lines, filename)
-				if current_fun != None:
+				if current_fun != None and context.strip() != 'internal':
 					if context == '' and blanks == 0 and len(functions):
 						functions[-1]['signatures'].update(current_fun['signatures'])
 						functions[-1]['names'].update(current_fun['names'])
@@ -431,7 +438,7 @@ for filename in files:
 
 		if l.startswith('enum '):
 			current_enum, lno = parse_enum(lno - 1, lines, filename)
-			if current_enum != None:
+			if current_enum != None and context.strip() != 'internal':
 				current_enum['desc'] = context
 				enums.append(current_enum)
 			context = ''

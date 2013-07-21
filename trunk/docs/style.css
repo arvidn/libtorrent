@@ -77,14 +77,7 @@ div.section p, div.section ul, div.section dl {
 
 #container {
     text-align: left;
-    width: 700px;
-    margin: 0 auto;
-    position: relative;
-}
-
-#container {
-    text-align: left;
-    width: 700px;
+    width: 70em;
     margin: 0 auto;
     position: relative;
 }
