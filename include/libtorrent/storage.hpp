@@ -295,7 +295,7 @@ namespace libtorrent
 	{
 		// replace any files in the destination when copying
 		// or moving the storage
-		always_replace_files = 0,
+		always_replace_files,
 
 		// if any files that we want to copy exist in the destination
 		// exist, fail the whole operation and don't perform
@@ -304,11 +304,11 @@ namespace libtorrent
 		// the operation starts. In between the check and performing
 		// the copy, the destination files may be created, in which
 		// case they are replaced.
-		fail_if_exist = 1,
+		fail_if_exist,
 
 		// if any file exist in the target, take those files instead
 		// of the ones we may have in the source.
-		dont_replace = 2,
+		dont_replace,
 	};
 
 	struct disk_io_thread;
