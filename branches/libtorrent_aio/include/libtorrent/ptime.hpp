@@ -55,7 +55,7 @@ namespace libtorrent
 namespace libtorrent
 {
 	// libtorrent time_duration type
-	struct time_duration
+	struct TORRENT_EXPORT time_duration
 	{
 		time_duration() {}
 		time_duration operator/(int rhs) const { return time_duration(diff / rhs); }
@@ -65,6 +65,8 @@ namespace libtorrent
 		time_duration& operator*=(int v) { diff *= v; return *this; }
 		time_duration operator+(time_duration const& c) { return time_duration(diff + c.diff); }
 		time_duration operator-(time_duration const& c) { return time_duration(diff - c.diff); }
+
+		// internal
 		boost::int64_t diff;
 	};
 
@@ -76,11 +78,11 @@ namespace libtorrent
 		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
 		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
 
-		// the internal representation of thie time.
-		// this is using an undefined unit (platform and configuration
-		// dependent).
+		// internal
 		boost::uint64_t time;
 	};
+
+	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
 
 	inline bool operator>(ptime lhs, ptime rhs)
 	{ return lhs.time > rhs.time; }
@@ -94,8 +96,6 @@ namespace libtorrent
 	{ return lhs.time != rhs.time;}
 	inline bool operator==(ptime lhs, ptime rhs)
 	{ return lhs.time == rhs.time;}
-
-	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
 	inline bool operator==(time_duration lhs, time_duration rhs)
 	{ return lhs.diff == rhs.diff; }
 	inline bool operator<(time_duration lhs, time_duration rhs)

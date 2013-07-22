@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+// hidden
 inline bool operator<=(address const& lhs
 	, address const& rhs)
 {
