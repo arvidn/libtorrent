@@ -46,7 +46,7 @@ def style_output(o):
 		l = l.replace('<', '&lt;')
 		l = l.replace('>', '&gt;')
 		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
-			l.endswith(' second time limit exceeded'):
+			l.endswith(' second time limit exceeded') or l.startswith('signal: SIG'):
 			ret += '<span class="test-error">%s</span>\n' % l
 		elif '**passed**' in l:
 			ret += '<span class="test-pass">%s</span>\n' % l
@@ -89,7 +89,7 @@ def save_log_file(log_name, project_name, branch_name, test_name, timestamp, dat
 	.compile-warning { font-weight: bold; color: black; }
 	.test-error { color: #f13; font-weight: bold; }
 	.test-pass { color: #1c2; font-weight: bold; }
-	.subtle { color: #ccc; }
+	.subtle { color: #ddd; }
 	pre { color: #999; white-space: pre-wrap; word-wrap: break-word; }
 	</style>
 	</head><body><h1>%s - %s</h1>''' % (project_name, branch_name, project_name, branch_name)
