@@ -1978,8 +1978,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
 			, end(global_file_handles.end()); i != end; ++i)
 		{
+			TORRENT_ASSERT(*i != NULL);
 			if (!*i) continue;
 			file_handle const& h = **i;
+			if (!h) continue;
 
 			if (!h->is_open()) continue;
 			h->print_info();
