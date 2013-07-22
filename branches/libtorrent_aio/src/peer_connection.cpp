@@ -2713,7 +2713,7 @@ namespace libtorrent
 			t->add_redundant_bytes(p.length, torrent::piece_unknown);
 			return;
 		}
-		t->inc_refcount();
+		t->inc_refcount("async_write");
 		m_disk_thread.async_write(&t->storage(), p, data
 			, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
@@ -2814,8 +2814,8 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(disk_io_job const* j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
-		torrent_ref_holder h(t.get());
-		if (t) t->dec_refcount();
+		torrent_ref_holder h(t.get(), "async_write");
+		if (t) t->dec_refcount("async_write");
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4830,7 +4830,7 @@ namespace libtorrent
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				if (!t->need_loaded()) return;
-				t->inc_refcount();
+				t->inc_refcount("async_seed_hash");
 				m_disk_thread.async_hash(&t->storage(), r.piece, 0
 					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
 					, this);
@@ -4865,7 +4865,7 @@ namespace libtorrent
 
 				// the callback function may be called immediately, instead of being posted
 				if (!t->need_loaded()) return;
-				t->inc_refcount();
+				t->inc_refcount("async_read");
 				m_disk_thread.async_read(&t->storage(), r
 					, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, r), this);
@@ -4890,8 +4890,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		torrent_ref_holder h(t.get());
-		if (t) t->dec_refcount();
+		torrent_ref_holder h(t.get(), "async_seed_hash");
+		if (t) t->dec_refcount("async_seed_hash");
 
 		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
 		--m_outstanding_piece_verification;
@@ -4941,8 +4941,8 @@ namespace libtorrent
 		m_reading_bytes -= r.length;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		torrent_ref_holder h(t.get());
-		if (t) t->dec_refcount();
+		torrent_ref_holder h(t.get(), "async_read");
+		if (t) t->dec_refcount("async_read");
 
 		if (j->ret < 0)
 		{

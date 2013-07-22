@@ -967,7 +967,7 @@ namespace libtorrent
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
-			inc_refcount();
+			inc_refcount("read_piece");
 			m_ses.disk_thread().async_read(&storage(), r, boost::bind(&torrent::on_disk_read_complete
 				, shared_from_this(), _1, r, rp), (void*)1);
 		}
@@ -1219,9 +1219,9 @@ namespace libtorrent
 	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp)
 	{
 		// hold a reference until this function returns
-		torrent_ref_holder h(this);
+		torrent_ref_holder h(this, "read_piece");
 
-		dec_refcount();
+		dec_refcount("read_piece");
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		disk_buffer_holder buffer(m_ses, *j);
@@ -1322,7 +1322,7 @@ namespace libtorrent
 				picker().dec_refcount(piece, 0);
 				return;
 			}
-			inc_refcount();
+			inc_refcount("add_piece");
 			m_ses.disk_thread().async_write(&storage(), p, holder
 				, boost::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
@@ -1346,9 +1346,9 @@ namespace libtorrent
 		, peer_request p)
 	{
 		// hold a reference until this function returns
-		torrent_ref_holder h(this);
+		torrent_ref_holder h(this, "add_piece");
 
-		dec_refcount();
+		dec_refcount("add_piece");
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		schedule_storage_tick();
@@ -1892,7 +1892,7 @@ namespace libtorrent
 
 		if (!need_loaded()) return;
 
-		inc_refcount();
+		inc_refcount("check_fastresume");
 		m_ses.disk_thread().async_check_fastresume(
 			m_storage.get(), m_resume_data ? &m_resume_data->entry : NULL
 			, boost::bind(&torrent::on_resume_data_checked
@@ -1922,7 +1922,7 @@ namespace libtorrent
 		return m_ses.load_torrent(this);
 	}
 
-	void torrent::dec_refcount()
+	void torrent::dec_refcount(char const* purpose)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(m_refcount > 0);
@@ -1937,7 +1937,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::inc_refcount()
+	void torrent::inc_refcount(char const* purpose)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(is_loaded());
@@ -2087,9 +2087,9 @@ namespace libtorrent
 	void torrent::on_resume_data_checked(disk_io_job const* j)
 	{
 		// hold a reference until this function returns
-		torrent_ref_holder h(this);
+		torrent_ref_holder h(this, "check_fastresume");
 
-		dec_refcount();
+		dec_refcount("check_fastresume");
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		if (j->ret == piece_manager::fatal_disk_error)
@@ -2379,7 +2379,7 @@ namespace libtorrent
 
 		m_resume_data.reset();
 
-		inc_refcount();
+		inc_refcount("force_recheck");
 		m_ses.disk_thread().async_check_fastresume(m_storage.get(), NULL
 			, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1));
@@ -2390,9 +2390,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		// hold a reference until this function returns
-		torrent_ref_holder h(this);
+		torrent_ref_holder h(this, "force_recheck");
 
-		dec_refcount();
+		dec_refcount("force_recheck");
 		state_updated();
 
 		if (j->ret == piece_manager::fatal_disk_error)
@@ -2431,7 +2431,7 @@ namespace libtorrent
 		if (!need_loaded()) return;
 		for (int i = 0; i < num_outstanding; ++i)
 		{
-			inc_refcount();
+			inc_refcount("start_checking");
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
@@ -2447,11 +2447,12 @@ namespace libtorrent
 	void torrent::on_piece_hashed(disk_io_job const* j)
 	{
 		// hold a reference until this function returns
-		torrent_ref_holder h(this);
+		torrent_ref_holder h(this, "start_checking");
 
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		INVARIANT_CHECK;
 
+		dec_refcount("start_checking");
 		++m_num_checked_pieces;
 
 		if (j->ret == piece_manager::disk_check_aborted)
@@ -2535,6 +2536,8 @@ namespace libtorrent
 			if (!should_check_files()) return;
 
 			if (!need_loaded()) return;
+
+			inc_refcount("start_checking");
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
@@ -4546,8 +4549,8 @@ namespace libtorrent
 	void torrent::on_save_resume_data(disk_io_job const* j)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		torrent_ref_holder h(this);
-		dec_refcount();
+		torrent_ref_holder h(this, "save_resume");
+		dec_refcount("save_resume");
 		m_ses.done_async_resume();
 
 		if (!j->buffer)
@@ -8271,7 +8274,7 @@ namespace libtorrent
 			alerts().post_alert(save_resume_data_failed_alert(get_handle(), m_error));
 			return false;
 		}
-		inc_refcount();
+		inc_refcount("save_resume");
 		m_ses.disk_thread().async_save_resume_data(m_storage.get()
 			, boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1));
 		return true;

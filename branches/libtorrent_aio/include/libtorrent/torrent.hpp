@@ -908,8 +908,8 @@ namespace libtorrent
 			m_links[aux::session_interface::torrent_state_updates].clear();
 		}
 
-		void dec_refcount();
-		void inc_refcount();
+		void dec_refcount(char const* purpose);
+		void inc_refcount(char const* purpose);
 		int refcount() const { return m_refcount; }
 
 		void inc_num_connecting()
@@ -1512,17 +1512,19 @@ namespace libtorrent
 
 	struct torrent_ref_holder
 	{
-		torrent_ref_holder(torrent* t)
+		torrent_ref_holder(torrent* t, char const* p)
 			: m_torrent(t)
+			, m_purpose(p)
 		{
-			if (m_torrent) m_torrent->inc_refcount();
+			if (m_torrent) m_torrent->inc_refcount(m_purpose);
 		}
 
 		~torrent_ref_holder()
 		{
-			if (m_torrent) m_torrent->dec_refcount();
+			if (m_torrent) m_torrent->dec_refcount(m_purpose);
 		}
 		torrent* m_torrent;
+		char const* m_purpose;
 	};
 
 }
