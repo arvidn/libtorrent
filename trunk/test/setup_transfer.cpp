@@ -913,11 +913,14 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 	void* ctx = 0;
 #ifdef TORRENT_USE_OPENSSL
 	boost::asio::ssl::context ssl_ctx(ios, boost::asio::ssl::context::sslv23_server);
-	ssl_ctx.use_certificate_chain_file("server.pem");
-	ssl_ctx.use_private_key_file("server.pem", asio::ssl::context::pem);
-	ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
+	if (ssl)
+	{
+		ssl_ctx.use_certificate_chain_file("server.pem");
+		ssl_ctx.use_private_key_file("server.pem", asio::ssl::context::pem);
+		ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 
-	if (ssl) ctx = &ssl_ctx;
+		ctx = &ssl_ctx;
+	}
 #endif
 
 	proxy_settings p;
