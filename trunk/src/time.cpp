@@ -205,26 +205,26 @@ namespace libtorrent
 
 	time_duration microsec(int s)
 	{
-		return time_duration(aux::microseconds_to_performance_counter(s));
+		return time_duration(microseconds_to_performance_counter(s));
 	}
 	time_duration milliseconds(int s)
 	{
-		return time_duration(aux::microseconds_to_performance_counter(
+		return time_duration(microseconds_to_performance_counter(
 			s * 1000));
 	}
 	time_duration seconds(int s)
 	{
-		return time_duration(aux::microseconds_to_performance_counter(
+		return time_duration(microseconds_to_performance_counter(
 			s * 1000000));
 	}
 	time_duration minutes(int s)
 	{
-		return time_duration(aux::microseconds_to_performance_counter(
+		return time_duration(microseconds_to_performance_counter(
 			s * 1000000 * 60));
 	}
 	time_duration hours(int s)
 	{
-		return time_duration(aux::microseconds_to_performance_counter(
+		return time_duration(microseconds_to_performance_counter(
 			s * 1000000 * 60 * 60));
 	}
 }
