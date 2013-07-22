@@ -122,19 +122,22 @@ namespace libtorrent
 
 		// number of bytes downloaded in this block
 		unsigned bytes_progress:15;
+
 		// the total number of bytes in this block
 		unsigned block_size:15;
-	private:
-		// the type of the addr union
-		unsigned is_v6_addr:1;
-//		unsigned unused:1;
-	public:
+
 		// the state this block is in (see block_state_t)
 		unsigned state:2;
+
 		// the number of peers that has requested this block
 		// typically 0 or 1. If > 1, this block is in
 		// end game mode
 		unsigned num_peers:14;
+	private:
+#if TORRENT_USE_IPV6
+		// the type of the addr union
+		unsigned is_v6_addr:1;
+#endif
 	};
 
 	struct TORRENT_EXPORT partial_piece_info
