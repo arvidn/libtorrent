@@ -250,7 +250,7 @@ namespace libtorrent
 		set.set_int(settings_pack::allowed_fast_set_size, 0);
 
 		// suggest pieces in the read cache for higher cache hit rate
-		set.set_int(settings_pack::suggest_mode, session_settings::suggest_read_cache);
+		set.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 
 		set.set_bool(settings_pack::close_redundant_connections, true);
 
