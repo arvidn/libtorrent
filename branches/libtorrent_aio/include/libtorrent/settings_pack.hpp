@@ -48,8 +48,8 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
 	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses = 0);
 
-	int TORRENT_EXPORT setting_by_name(std::string const& name);
-	char const* TORRENT_EXPORT name_for_setting(int s);
+	TORRENT_EXPORT int setting_by_name(std::string const& name);
+	TORRENT_EXPORT char const* name_for_setting(int s);
 
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_settings;
