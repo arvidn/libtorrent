@@ -100,7 +100,7 @@ typedef boost::function<void(int, address, int, error_code const&)> portmap_call
 typedef boost::function<void(char const*)> log_callback_t;
 
 // TODO: 2 make this a shared_ptr instead
-class upnp : public intrusive_ptr_base<upnp>
+class TORRENT_EXTRA_EXPORT upnp : public intrusive_ptr_base<upnp>
 {
 public:
 	upnp(io_service& ios, connection_queue& cc
