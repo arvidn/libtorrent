@@ -133,6 +133,12 @@ int run_upnp_test(char const* root_filename, char const* router_model, char cons
 	buf.push_back(0);
 
 	FILE* xml_file = fopen("upnp.xml", "w+");
+	if (xml_file == NULL)
+	{
+		fprintf(stderr, "failed to open file 'upnp.xml': %s\n", strerror(errno));
+		TEST_CHECK(false);
+		return 1;
+	}
 	fprintf(xml_file, &buf[0], g_port);
 	fclose(xml_file);
 
