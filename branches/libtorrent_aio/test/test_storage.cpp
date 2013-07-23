@@ -142,11 +142,11 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
-		, unbuffered ? session_settings::disable_os_cache
-		: session_settings::enable_os_cache);
+		, unbuffered ? settings_pack::disable_os_cache
+		: settings_pack::enable_os_cache);
 	set.set_int(settings_pack::disk_io_read_mode
-		, unbuffered ? session_settings::disable_os_cache
-		: session_settings::enable_os_cache);
+		, unbuffered ? settings_pack::disable_os_cache
+		: settings_pack::enable_os_cache);
 
 	char* piece = page_aligned_allocator::malloc(piece_size);
 
@@ -258,11 +258,11 @@ void test_remove(std::string const& test_path, bool unbuffered)
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
-		, unbuffered ? session_settings::disable_os_cache
-		: session_settings::enable_os_cache);
+		, unbuffered ? settings_pack::disable_os_cache
+		: settings_pack::enable_os_cache);
 	set.set_int(settings_pack::disk_io_read_mode
-		, unbuffered ? session_settings::disable_os_cache
-		: session_settings::enable_os_cache);
+		, unbuffered ? settings_pack::disable_os_cache
+		: settings_pack::enable_os_cache);
 
 	file_pool fp;
 	io_service ios;

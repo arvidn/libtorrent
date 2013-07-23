@@ -62,7 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class peer_connection;
-	struct session_settings;
 
 	namespace aux { struct session_settings; }
 	// exposed for the unit test

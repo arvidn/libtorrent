@@ -326,7 +326,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding, b
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	boost::shared_ptr<torrent_info> torrent_file(boost::make_shared<torrent_info>((&buf[0], buf.size(), boost::ref(ec), 0)));
+	boost::shared_ptr<torrent_info> torrent_file(boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0));
 
 
 	// TODO: file hashes don't work with the new torrent creator reading async

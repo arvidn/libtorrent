@@ -93,11 +93,13 @@ address_v4 v4(char const* str)
 	return address_v4::from_string(str, ec);
 }
 
+#if TORRENT_USE_IPV6
 address_v6 v6(char const* str)
 {
 	error_code ec;
 	return address_v6::from_string(str, ec);
 }
+#endif
 
 tcp::endpoint ep(char const* ip, int port)
 {
@@ -2272,7 +2274,9 @@ int test_main()
 	TEST_EQUAL(parse_endpoint(" \t[ff::1]:1214 \r", ec), ep("ff::1", 1214));
 	TEST_CHECK(!ec);
 	TEST_EQUAL(print_address(v4("241.124.23.5")), "241.124.23.5");
+#if TORRENT_USE_IPV6
 	TEST_EQUAL(print_address(v6("2001:ff::1")), "2001:ff::1");
+#endif
 
 	parse_endpoint("[ff::1]", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_port, get_libtorrent_category()));

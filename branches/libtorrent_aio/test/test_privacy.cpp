@@ -92,18 +92,18 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 
 	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
-	session_settings sett;
-	sett.half_open_limit = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = true;
-	sett.anonymous_mode = flags & anonymous_mode;
-	sett.force_proxy = flags & anonymous_mode;
+	settings_pack sett;
+	sett.set_int(settings_pack::half_open_limit, 1);
+	sett.set_bool(settings_pack::announce_to_all_trackers, true);
+	sett.set_bool(settings_pack::announce_to_all_tiers, true);
+	sett.set_bool(settings_pack::anonymous_mode, flags & anonymous_mode);
+	sett.set_bool(settings_pack::force_proxy, flags & anonymous_mode);
 
 	// if we don't do this, the peer connection test
 	// will be delayed by several seconds, by first
 	// trying uTP
-	sett.enable_outgoing_utp = false;
-	s->set_settings(sett);
+	sett.set_bool(settings_pack::enable_outgoing_utp, false);
+	s->apply_settings(sett);
 
 	proxy_settings ps;
 	ps.hostname = "non-existing.com";
