@@ -53,10 +53,10 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.file_name(3), "b");
 	TEST_EQUAL(st.name(), "test");
 
-	TEST_EQUAL(st.file_path(0), "test/a");
-	TEST_EQUAL(st.file_path(1), "test/b");
-	TEST_EQUAL(st.file_path(2), "test/c/a");
-	TEST_EQUAL(st.file_path(3), "test/c/b");
+	TEST_EQUAL(st.file_path(0), combine_path("test", "a"));
+	TEST_EQUAL(st.file_path(1), combine_path("test", "b"));
+	TEST_EQUAL(st.file_path(2), combine_path("test", combine_path("c", "a")));
+	TEST_EQUAL(st.file_path(3), combine_path("test", combine_path("c", "b")));
 
 	TEST_EQUAL(st.file_size(0), 10000);
 	TEST_EQUAL(st.file_size(1), 20000);
@@ -80,8 +80,8 @@ int test_main()
 		file_storage st;
 		setup_test_storage(st);
 		
-		st.rename_file(0, "test/c/d");
-		TEST_EQUAL(st.file_path(0, "./"), "./test/c/d");
+		st.rename_file(0, combine_path("test", combine_path("c", "d")));
+		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
 
 #ifdef TORRENT_WINDOWS
 		st.rename_file(0, "c:\\tmp\\a");
@@ -96,8 +96,8 @@ int test_main()
 		file_storage st;
 		st.add_file("a", 10000);
 
-		st.rename_file(0, "test/c/d");
-		TEST_EQUAL(st.file_path(0, "./"), "./test/c/d");
+		st.rename_file(0, combine_path("test", combine_path("c", "d")));
+		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
 
 #ifdef TORRENT_WINDOWS
 		st.rename_file(0, "c:\\tmp\\a");
