@@ -855,9 +855,9 @@ void run_test(std::string const& test_path, bool unbuffered)
 	{
 	error_code ec;
 	file_storage fs;
-	fs.add_file("temp_storage/test1.tmp", 3 * piece_size);
+	fs.add_file(combine_path("temp_storage", "test1.tmp"), 3 * piece_size);
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
-	TEST_CHECK(fs.file_path(*fs.begin()) == "temp_storage/test1.tmp");
+	TEST_CHECK(fs.file_path(*fs.begin()) == combine_path("temp_storage", "test1.tmp"));
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
@@ -870,7 +870,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
 
-	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), piece_size * 3);
+	TEST_EQUAL(file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))), piece_size * 3);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
@@ -881,8 +881,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	run_storage_tests(info, fs, test_path, storage_mode_allocate, unbuffered);
 
-	std::cerr << file_size(combine_path(test_path, "temp_storage/test1.tmp")) << std::endl;
-	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), 3 * piece_size);
+	std::cerr << file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))) << std::endl;
+	TEST_EQUAL(file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))), 3 * piece_size);
 
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
@@ -961,8 +961,8 @@ void test_fastresume(std::string const& test_path)
 		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
 		ses.remove_torrent(h, session::delete_files);
 	}
-	TEST_CHECK(!exists(combine_path(test_path, "tmp1/temporary")));
-	if (exists(combine_path(test_path, "tmp1/temporary")))
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("tmp1", "temporary"))));
+	if (exists(combine_path(test_path, combine_path("tmp1", "temporary"))))
 		return;
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	resume.print(std::cout);
