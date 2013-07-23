@@ -156,7 +156,7 @@ namespace libtorrent
 
 	// list_node is here to be able to link this cache entry
 	// into one of the LRU lists
-	struct cached_piece_entry : list_node
+	struct TORRENT_EXTRA_EXPORT cached_piece_entry : list_node
 	{
 		cached_piece_entry();
 		~cached_piece_entry();
@@ -322,7 +322,7 @@ namespace libtorrent
 		return std::size_t(p.storage.get()) + p.piece;
 	}
 
-	struct block_cache : disk_buffer_pool
+	struct TORRENT_EXTRA_EXPORT block_cache : disk_buffer_pool
 	{
 		block_cache(int block_size, io_service& ios
 			, boost::function<void()> const& trigger_trim

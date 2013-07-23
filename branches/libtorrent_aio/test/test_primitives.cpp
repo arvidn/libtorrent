@@ -2266,20 +2266,23 @@ int test_main()
 
 	// test print_endpoint, parse_endpoint and print_address
 	TEST_EQUAL(print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");
+#if TORRENT_USE_IPV6
 	TEST_EQUAL(print_endpoint(ep("ff::1", 1214)), "[ff::1]:1214");
+#endif
 	ec.clear();
 	TEST_EQUAL(parse_endpoint("127.0.0.1:23", ec), ep("127.0.0.1", 23));
 	TEST_CHECK(!ec);
 	ec.clear();
+#if TORRENT_USE_IPV6
 	TEST_EQUAL(parse_endpoint(" \t[ff::1]:1214 \r", ec), ep("ff::1", 1214));
 	TEST_CHECK(!ec);
+#endif
 	TEST_EQUAL(print_address(v4("241.124.23.5")), "241.124.23.5");
 #if TORRENT_USE_IPV6
 	TEST_EQUAL(print_address(v6("2001:ff::1")), "2001:ff::1");
-#endif
-
 	parse_endpoint("[ff::1]", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_port, get_libtorrent_category()));
+#endif
 
 	parse_endpoint("[ff::1:5", ec);
 	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address, get_libtorrent_category()));

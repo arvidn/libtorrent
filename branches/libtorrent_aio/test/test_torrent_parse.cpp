@@ -115,9 +115,10 @@ int test_main()
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_torrents[i].file);
-		boost::shared_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_torrents[i].file), ec));
+		std::string filename = combine_path(combine_path(root_dir, "test_torrents"), test_torrents[i].file);
+		boost::shared_ptr<torrent_info> ti(new torrent_info(filename, ec));
 		TEST_CHECK(!ec);
-		if (ec) fprintf(stderr, "  -> failed %s\n", ec.message().c_str());
+		if (ec) fprintf(stderr, " loading(\"%s\") -> failed %s\n", filename.c_str(), ec.message().c_str());
 
 		if (std::string(test_torrents[i].file) == "whitespace_url.torrent")
 		{

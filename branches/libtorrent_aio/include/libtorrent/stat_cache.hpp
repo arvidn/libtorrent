@@ -35,11 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <time.h>
 #include <vector>
+#include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
-	struct stat_cache
+	struct TORRENT_EXTRA_EXPORT stat_cache
 	{
 		stat_cache();
 		~stat_cache();

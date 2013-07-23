@@ -32,15 +32,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
-#include "boost/unordered_map.hpp"
+#include <boost/unordered_map.hpp>
+#include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/thread.hpp" // for mutex
 
-
 namespace libtorrent
 {
-	struct part_file
+	struct TORRENT_EXTRA_EXPORT part_file
 	{
 		// create a part file at 'path', that can hold 'num_pieces' pieces.
 		// each piece being 'piece_size' number of bytes

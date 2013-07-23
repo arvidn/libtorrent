@@ -86,8 +86,10 @@ int test_main()
 
 	for (int i = 0; i < ti.num_files(); ++i)
 	{
-		fprintf(stderr, "%s\n", ti.file_at(i).path.c_str());
-		TEST_CHECK(ti.file_at(i).path == filenames[i]);
+		std::string p = ti.file_at(i).path;
+		convert_path_to_posix(p);
+		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[i]);
+		TEST_CHECK(p == filenames[i]);
 	}
 	
 	return 0;
