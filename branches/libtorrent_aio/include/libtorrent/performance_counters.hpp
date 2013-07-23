@@ -34,10 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 
 #include <boost/cstdint.hpp>
+#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
-	struct counters
+	struct TORRENT_EXTRA_EXPORT counters
 	{
 		enum stats_counter_t
 		{

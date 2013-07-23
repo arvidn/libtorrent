@@ -59,12 +59,12 @@ void test_transfer(boost::shared_ptr<torrent_info> torrent_file
 
 	settings_pack pack;
 	pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
+	pack.set_int(settings_pack::max_retry_port_bind, 1000);
 	ses->apply_settings(pack);
 
 	ses->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	error_code ec;
-	ses->listen_on(std::make_pair(51000, 52000), ec);
-	if (ec) fprintf(stderr, "listen_on failed: %s\n", ec.message().c_str());
 
 	remove_all("tmp2_web_seed", ec);
 

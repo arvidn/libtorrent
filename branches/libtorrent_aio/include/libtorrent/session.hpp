@@ -489,6 +489,8 @@ namespace libtorrent
 		};
 
 		// deprecated in 0.16
+		// instead of using this, specify listen interface and port in
+		// the settings_pack::listen_interfaces setting
 		TORRENT_DEPRECATED_PREFIX
 		bool listen_on(
 			std::pair<int, int> const& port_range
@@ -500,6 +502,8 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void use_interfaces(char const* interfaces) TORRENT_DEPRECATED;
 
+		// instead of using this, specify listen interface and port in
+		// the settings_pack::listen_interfaces setting
 		TORRENT_DEPRECATED_PREFIX
 		void listen_on(
 			std::pair<int, int> const& port_range

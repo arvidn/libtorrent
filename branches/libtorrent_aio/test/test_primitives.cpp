@@ -69,7 +69,7 @@ using namespace libtorrent;
 using namespace boost::tuples;
 
 namespace libtorrent {
-	TORRENT_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
+	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
 
 #ifndef TORRENT_DISABLE_DHT
 //	namespace dht
