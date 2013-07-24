@@ -165,6 +165,7 @@ namespace libtorrent
 				callback(token, start, val_start);
 				*(p-2) = '-';
 				tag_end = p - 2;
+				continue;
 			}
 			else
 			{
