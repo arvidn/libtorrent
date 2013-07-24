@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/time.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>

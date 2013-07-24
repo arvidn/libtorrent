@@ -56,7 +56,7 @@ namespace libtorrent
 
 	TORRENT_EXPORT ptime const& time_now() { return aux::g_current_time; }
 
-	char const* time_now_string()
+	TORRENT_EXTRA_EXPORT char const* time_now_string()
 	{
 //		time_t t = std::time(0);
 //		tm* timeinfo = std::localtime(&t);
