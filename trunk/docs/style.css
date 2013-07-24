@@ -118,7 +118,6 @@ div.section p, div.section ul, div.section dl {
 
 #header {
     height: 116px;
-    width: 695px;
     background: url(../img/orange.png) #FDA72A no-repeat top left;
 }
 
@@ -135,7 +134,6 @@ div.section p, div.section ul, div.section dl {
 
 #footer {
     clear: both;
-    width: 695px;
     height: 49px;
     background: #D3D3D3 url(../img/footer.png) no-repeat left top;
     text-align: center;

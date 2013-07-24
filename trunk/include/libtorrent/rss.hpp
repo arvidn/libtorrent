@@ -64,7 +64,6 @@ namespace libtorrent
 	torrent_handle TORRENT_EXPORT add_feed_item(session& s, feed_item const& fi
 		, add_torrent_params const& p);
 #endif
-
 	torrent_handle TORRENT_EXPORT add_feed_item(session& s, feed_item const& fi
 		, add_torrent_params const& p, error_code& ec);
 
@@ -72,7 +71,7 @@ namespace libtorrent
 	// and configuration for a specific feed. All of
 	// these settings can be changed by the user
 	// after adding the feed
-	struct feed_settings
+	struct TORRENT_EXPORT feed_settings
 	{
 		feed_settings()
 			: auto_download(true)
@@ -96,7 +95,7 @@ namespace libtorrent
 		add_torrent_params add_args;
 	};
 
-	struct feed_status
+	struct TORRENT_EXPORT feed_status
 	{
 		feed_status(): last_update(0), next_update(0)
 			, updating(false), ttl(0) {}
@@ -130,7 +129,7 @@ namespace libtorrent
 	struct feed_state;
 	class http_parser;
 
-	boost::shared_ptr<feed> new_feed(aux::session_impl& ses, feed_settings const& sett);
+	boost::shared_ptr<feed> TORRENT_EXPORT new_feed(aux::session_impl& ses, feed_settings const& sett);
 
 	// this is the internal object holding all state about an
 	// RSS feed. All user interaction with this object
