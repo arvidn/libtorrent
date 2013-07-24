@@ -84,7 +84,7 @@ def is_visible(desc):
 def highlight_signature(s):
 	name = s.split('(')
 	name2 = name[0].split(' ')
-	name2[-1] = '<strong>' + name2[-1] + '</strong>'
+	name2[-1] = '**' + name2[-1] + '** '
 	name[0] = ' '.join(name2)
 	return '('.join(name)
 
@@ -209,6 +209,7 @@ def parse_class(lno, lines, filename):
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
 			l = l.split('//')[1]
+			if len(l) and l[0] == ' ': l = l[1:]
 			context += l + '\n'
 			continue
 
@@ -298,6 +299,7 @@ def parse_enum(lno, lines, filename):
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
 			l = l.split('//')[1]
+			if len(l) and l[0] == ' ': l = l[1:]
 			context += l + '\n'
 			continue
 
@@ -413,6 +415,7 @@ for filename in files:
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
 			l = l.split('//')[1]
+			if len(l) and l[0] == ' ': l = l[1:]
 			context += l + '\n'
 			continue
 
@@ -521,7 +524,7 @@ categories = {}
 for c in classes:
 	cat = categorize_symbol(c['name'], c['file'])
 	if not cat in categories:
-		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.html' % cat.replace(' ', '_')}
+		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 
 	if c['file'] in overviews:
 		categories[cat]['overview'] = overviews[c['file']]
@@ -532,7 +535,7 @@ for c in classes:
 for f in functions:
 	cat = categorize_symbol(first_item(f['names']), f['file'])
 	if not cat in categories:
-		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.html' % cat.replace(' ', '_')}
+		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 
 	if f['file'] in overviews:
 		categories[cat]['overview'] = overviews[f['file']]
@@ -544,37 +547,64 @@ for f in functions:
 for e in enums:
 	cat = categorize_symbol(e['name'], e['file'])
 	if not cat in categories:
-		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.html' % cat.replace(' ', '_')}
+		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 	categories[cat]['enums'].append(e)
 	symbols[e['name']] = categories[cat]['filename'] + '#' + html_sanitize(e['name'])
 
-out = open('reference.html', 'w+')
-out.write('''<html><head>
-<link rel="stylesheet" href="style.css" type="text/css" />
-</head><body>
-<h1>libtorrent reference documentation</h1>
-<div style="column-count: 5; -webkit-column-count: 5; -moz-column-count: 5">''')
-
 def print_declared_in(out, o):
-	out.write('<p>Declared in <a href="../include/%s">"%s"</a></p>' % (o['file'], html_sanitize(o['file'])))
+	out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))
 
-def print_link(out, name):
-	our.write('<a href="%s">%s</a>' % (symbols[name], name))
+link_targets = []
+
+def print_link(name, target):
+	global link_targets
+	link_targets.append(target)
+	return "`%s`__" % name
+
+def dump_link_targets():
+	global link_targets
+	ret = ''
+	for l in link_targets:
+		ret += '__ %s\n' % l
+	link_targets = []
+	return ret
+
+def heading(string, c):
+	return string + '\n' + (c * len(string)) + '\n'
+
+out = open('reference.rst', 'w+')
+out.write('''==================================
+libtorrent reference documentation
+==================================
+
+.. raw:: html
+
+	<div style="column-count: 4; -webkit-column-count: 4; -moz-column-count: 4">
+
+''')
 
 for cat in categories:
-	print >>out, '<h2>%s</h2><p>' % cat
-	category_filename = categories[cat]['filename']
+	print >>out, '%s' % heading(cat, '-')
+
+	category_filename = categories[cat]['filename'].replace('.rst', '.html')
 	for c in categories[cat]['classes']:
-		print >>out, '<a href="%s#%s">%s %s</a><br/>' % (category_filename, html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name']))
+		print >>out, '| ' + print_link(c['name'], category_filename + '#' + c['name'])
 	for f in categories[cat]['functions']:
 		for n in f['names']:
-			name = html_sanitize(n)
-			print >>out, '<a href="%s#%s">%s()</a><br/>' % (category_filename, name, name)
+			print >>out, '| ' + print_link(n + '()', category_filename + '#' + n)
 	for e in categories[cat]['enums']:
-		print >>out, '<a href="%s#%s">enum %s</a><br/>' % (category_filename, html_sanitize(e['name']), html_sanitize(e['name']))
-	print >>out, '</p>'
+		print >>out, '| ' + print_link(e['name'], category_filename + '#' + e['name'])
+	print >>out, ''
 
-out.write('</body></html>')
+print >>out, dump_link_targets()
+
+out.write('''
+
+.. raw:: html
+
+	</div>
+
+''')
 out.close()
 
 for cat in categories:
@@ -584,105 +614,121 @@ for cat in categories:
 	functions = categories[cat]['functions']
 	enums = categories[cat]['enums']
 
-	out.write('''<html><head>
-		<link rel="stylesheet" href="style.css" type="text/css" />
-		</head><body><div id="container">''')
-
 	if 'overview' in categories[cat]:
-		out.write('<h1>%s</h1><p>%s</p>' % (cat, html_sanitize(categories[cat]['overview'])))
+		out.write('%s\n%s' % (heading(cat, '='), categories[cat]['overview']))
 
 	for c in classes:
-		out.write('<a name="%s"></a><h2>%s %s</h2>' % (html_sanitize(c['name']), html_sanitize(c['type']), html_sanitize(c['name'])))
+		out.write('%s\n' % heading(c['name'], '-'))
 		print_declared_in(out, c)
-		out.write('<p>%s</p>' % html_sanitize(c['desc']))
+		out.write('%s\n\n.. parsed-literal::\n\t' % c['desc'])
 
-		out.write('<pre class="literal-block">')
-		print >>out, '%s\n{' % html_sanitize(c['decl'])
+		block = '\n%s\n{\n' % c['decl']
 		for f in c['fun']:
 			for s in f['signatures']:
-				print >>out, '   %s' % highlight_signature(html_sanitize(s.replace('\n', '\n   ')))
+				block += '   %s\n' % highlight_signature(s.replace('\n', '\n   '))
 
-		if len(c['fun']) > 0 and len(c['enums']) + len(c['fields']) > 0: print >>out, ''
+		if len(c['fun']) > 0 and len(c['enums']) > 0: block += '\n'
 
 		first = True
 		for e in c['enums']:
 			if not first:
-				print >>out, ''
+				block += '\n'
 			first = False
-			print >>out,'   enum %s\n   {' % html_sanitize(e['name'])
+			block += '   enum %s\n   {\n' % e['name']
 			for v in e['values']:
-				print >>out,'      %s,' % html_sanitize(v['name'])
-			print >>out,'   };'
+				block += '      %s,\n' % v['name']
+			block += '   };\n'
 
-		if len(c['fun']) + len(c['enums']) > 0 and len(c['fields']): print >>out, ''
+		if len(c['fun']) + len(c['enums']) > 0 and len(c['fields']): block += '\n'
 
 		for f in c['fields']:
 			for s in f['signatures']:
-				print >>out, '   %s' % html_sanitize(s)
+				block += '   %s\n' % s
 
-		out.write('};</pre>')
+		block += '};'
+
+		print >>out, block.replace('\n', '\n\t') + '\n'
 
 		for f in c['fun']:
 			if f['desc'] == '': continue
+			title = ''
 			for n in f['names']:
-				name = html_sanitize(n)
-				print >>out, '<a name="%s"></a>' % name
-			print >>out, '<h3>'
-			for n in f['names']:
-				name = html_sanitize(n)
-				print >>out, '%s() ' % name
-			print >>out, '</h3>'
-			print >>out, '<blockquote><pre class="literal-block">'
+				title += '%s() ' % n
+			print >>out, heading(title.strip(), '.')
+
+			block = '.. parsed-literal::\n\n'
+
 			for s in f['signatures']:
-				print >>out, highlight_signature(html_sanitize(s.replace('\n', '\n   ')))
-			print >>out, '</pre></blockquote>'
-			print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
+				block += highlight_signature(s.replace('\n', '\n   ')) + '\n'
+			print >>out, '%s\n' % block.replace('\n', '\n\t')
+			print >>out, '%s' % f['desc']
 
 		for e in c['enums']:
 			if e['desc'] == '': continue
-			print >>out, '<a name="%s::%s"></a><h3>enum %s</h3>' % (html_sanitize(e['name']), html_sanitize(c['name']), html_sanitize(e['name']))
-			print >>out, '<table><tr><th>value</th><th>description</th></tr>'
+			print >>out, heading('enum %s' % e['name'], '.')
+			width = [len('value'), len('description')]
 			for v in e['values']:
-				print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (html_sanitize(v['name']), html_sanitize(v['desc']))
-			print >>out, '</table>'
+				width[0] = max(width[0], len(v['name']))
+				for d in v['desc'].split('\n'):
+					width[1] = max(width[1], len(d))
+
+			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
+			print >>out, '| ' + 'value'.ljust(width[0]) + ' | ' + 'description'.ljust(width[1]) + ' |'
+			print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+'
+			for v in e['values']:
+				d = v['desc'].split('\n')
+				if len(d) == 0: d = ['']
+				print >>out, '| ' + v['name'].ljust(width[0]) + ' | ' + d[0].ljust(width[1]) + ' |'
+				for s in d[1:]:
+					print >>out, '| ' + (' ' * width[0]) + ' | ' + s.ljust(width[1]) + ' |'
+				print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
+			print >>out, ''
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
 			for n in f['names']:
-				print >>out, '<a name="%s"></a>' % html_sanitize(c['name'] + '::' + n)
-
-			print >>out, '<dt>'
-			for n in f['names']:
-				print >>out, '%s ' % html_sanitize(n)
-			print >>out, '</dt><dd>%s</dd>' % html_sanitize(f['desc'])
+				print >>out, '%s ' % n,
+			print >>out, ''
+			print >>out, '\t%s' % f['desc'].replace('\n', '\n\t')
 
 
 	for f in functions:
+		h = ''
 		for n in f['names']:
-			name = html_sanitize(n)
-			print >>out, '<a name="%s"></a>' % name
-		print >>out, '<h2>'
-		for n in f['names']:
-			name = html_sanitize(n)
-			print >>out, '%s() ' % name
-		print >>out, '</h2>'
+			h += '%s() ' % n
+		print >>out, heading(h, '.')
 		print_declared_in(out, f)
-		print >>out, '<blockquote><pre class="literal-block">'
 
+		block = '.. parsed-literal::\n\n'
 		for s in f['signatures']:
-			print >>out, highlight_signature(html_sanitize(s))
-		print >>out, '</pre></blockquote>'
-		print >>out, '<p>%s</p>' % html_sanitize(f['desc'])
+			block += highlight_signature(s) + '\n'
+
+		print >>out, '%s\n' % block.replace('\n', '\n\t')
+		print >>out, f['desc']
 
 	for e in enums:
-		name = html_sanitize(e['name'])
-		print >>out, '<a name="%s"></a><h2>enum %s</h2>' % (name, name)
+		print >>out, heading('enum %s' % e['name'], '.')
 		print_declared_in(out, e)
-		print >>out, '<table><tr><th>value</th><th>description</th></tr>'
-		for v in e['values']:
-			print >>out, '<tr><td>%s</td><td>%s</td></tr>' % (html_sanitize(v['name']), html_sanitize(v['desc']))
-		print >>out, '</table>'
 
-	out.write('</body></html>')
+		width = [len('value'), len('description')]
+		for v in e['values']:
+			width[0] = max(width[0], len(v['name']))
+			for d in v['desc'].split('\n'):
+				width[1] = max(width[1], len(d))
+
+		print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
+		print >>out, '| ' + 'value'.ljust(width[0]) + ' | ' + 'description'.ljust(width[1]) + ' |'
+		print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+'
+		for v in e['values']:
+			d = v['desc'].split('\n')
+			if len(d) == 0: d = ['']
+			print >>out, '| ' + v['name'].ljust(width[0]) + ' | ' + d[0].ljust(width[1]) + ' |'
+			for s in d[1:]:
+				print >>out, '| ' + (' ' * width[0]) + ' | ' + s.ljust(width[1]) + ' |'
+			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
+		print >>out, ''
+
+	print >>out, dump_link_targets()
+
 	out.close()
 

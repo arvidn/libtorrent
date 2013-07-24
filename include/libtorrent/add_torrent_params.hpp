@@ -262,7 +262,7 @@ namespace libtorrent
 		// constructor functions, if any (see `add_extension()`_).
 		void* userdata;
 
-		//	can be set to control the initial file priorities when adding
+		// can be set to control the initial file priorities when adding
 		// a torrent. The semantics are the same as for ``torrent_handle::prioritize_files()``.
 		std::vector<boost::uint8_t> file_priorities;
 
