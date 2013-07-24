@@ -363,12 +363,62 @@ namespace libtorrent
 		void remove_feed(feed_handle h);
 		void get_feeds(std::vector<feed_handle>& f) const;
 
+		// starts/stops UPnP, NATPMP or LSD port mappers
+		// they are stopped by default
+		// These functions are not available in case ``TORRENT_DISABLE_DHT`` is
+		// defined. ``start_dht`` starts the dht node and makes the trackerless service
+		// available to torrents. The startup state is optional and can contain nodes
+		// and the node id from the previous session. The dht node state is a bencoded
+		// dictionary with the following entries:
+		// 
+		// nodes
+		// 	A list of strings, where each string is a node endpoint encoded in binary. If
+		// 	the string is 6 bytes long, it is an IPv4 address of 4 bytes, encoded in
+		// 	network byte order (big endian), followed by a 2 byte port number (also
+		// 	network byte order). If the string is 18 bytes long, it is 16 bytes of IPv6
+		// 	address followed by a 2 bytes port number (also network byte order).
+		// 
+		// node-id
+		// 	The node id written as a readable string as a hexadecimal number.
+		// 
+		// ``dht_state`` will return the current state of the dht node, this can be used
+		// to start up the node again, passing this entry to ``start_dht``. It is a good
+		// idea to save this to disk when the session is closed, and read it up again
+		// when starting.
+		// 
+		// If the port the DHT is supposed to listen on is already in use, and exception
+		// is thrown, ``asio::error``.
+		// 
+		// ``stop_dht`` stops the dht node.
+		// 
+		// ``add_dht_node`` adds a node to the routing table. This can be used if your
+		// client has its own source of bootstrapping nodes.
+		// 
+		// ``set_dht_settings`` sets some parameters availavle to the dht node. See
+		// dht_settings_ for more information.
+		//
+		// ``is_dht_running()`` returns true if the DHT support has been started and false
+		// otherwise.
 		void start_dht();
 		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
+		bool is_dht_running() const;
+
+		// ``add_dht_node`` takes a host name and port pair. That endpoint will be
+		// pinged, and if a valid DHT reply is received, the node will be added to
+		// the routing table.
+		// 
+		// ``add_dht_router`` adds the given endpoint to a list of DHT router nodes.
+		// If a search is ever made while the routing table is empty, those nodes will
+		// be used as backups. Nodes in the router node list will also never be added
+		// to the regular routing table, which effectively means they are only used
+		// for bootstrapping, to keep the load off them.
+		// 
+		// An example routing node that you could typically add is
+		// ``router.bittorrent.com``.
 		void add_dht_node(std::pair<std::string, int> const& node);
 		void add_dht_router(std::pair<std::string, int> const& node);
-		bool is_dht_running() const;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use save_state and load_state instead
@@ -574,19 +624,45 @@ namespace libtorrent
 		int max_uploads() const TORRENT_DEPRECATED;
 #endif
 
-		// pop one alert from the alert queue, or do nothing
-		// and return a NULL pointer if there are no alerts
-		// in the queue
+		// ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
+		// `set_alert_mask()`_ you can filter which alerts to receive through ``pop_alert()``.
+		// For information about the alert categories, see alerts_.
+		// 
+		// ``pop_alerts()`` pops all pending alerts in a single call. In high performance environments
+		// with a very high alert churn rate, this can save significant amount of time compared to
+		// popping alerts one at a time. Each call requires one round-trip to the network thread. If
+		// alerts are produced in a higher rate than they can be popped (when popped one at a time)
+		// it's easy to get stuck in an infinite loop, trying to drain the alert queue. Popping the entire
+		// queue at once avoids this problem.
+		// 
+		// However, the ``pop_alerts`` function comes with significantly more responsibility. You pass
+		// in an *empty* ``std::dequeue<alert*>`` to it. If it's not empty, all elements in it will
+		// be deleted and then cleared. All currently pending alerts are returned by being swapped
+		// into the passed in container. The responsibility of deleting the alerts is transferred
+		// to the caller. This means you need to call delete for each item in the returned dequeue.
+		// It's probably a good idea to delete the alerts as you handle them, to save one extra
+		// pass over the dequeue.
+		// 
+		// Alternatively, you can pass in the same container the next time you call ``pop_alerts``.
+		// 
+		// ``wait_for_alert`` blocks until an alert is available, or for no more than ``max_wait``
+		// time. If ``wait_for_alert`` returns because of the time-out, and no alerts are available,
+		// it returns 0. If at least one alert was generated, a pointer to that alert is returned.
+		// The alert is not popped, any subsequent calls to ``wait_for_alert`` will return the
+		// same pointer until the alert is popped by calling ``pop_alert``. This is useful for
+		// leaving any alert dispatching mechanism independent of this blocking call, the dispatcher
+		// can be called and it can pop the alert independently.
+		// 
+		// In the python binding, ``wait_for_alert`` takes the number of milliseconds to wait as an integer.
+		// 
+		// To control the max number of alerts that's queued by the session, see
+		// ``session_settings::alert_queue_size``.
+		// 
+		// ``save_resume_data_alert`` and ``save_resume_data_failed_alert`` are always posted, regardelss
+		// of the alert mask.
 		std::auto_ptr<alert> pop_alert();
-
-		// pop all alerts in the alert queue and returns them
-		// in the supplied dequeue 'alerts'. The passed in
-		// queue must be empty when passed in.
-		// the responsibility of individual alerts returned
-		// in the dequeue is passed on to the caller of this function.
-		// when you're done with reacting to the alerts, you need to
-		// delete them all.
 		void pop_alerts(std::deque<alert*>* alerts);
+		alert const* wait_for_alert(time_duration max_wait);
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
@@ -595,22 +671,55 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_) TORRENT_DEPRECATED;
 #endif
+
+		// Changes the mask of which alerts to receive. By default only errors are reported.
+		// ``m`` is a bitmask where each bit represents a category of alerts.
+		//
+		// See alerts_ for mor information on the alert categories.
 		void set_alert_mask(boost::uint32_t m);
 
-		alert const* wait_for_alert(time_duration max_wait);
+		// This sets a function to be called (from within libtorrent's netowrk thread) every time an alert
+		// is posted. Since the function (``fun``) is run in libtorrent's internal thread, it may not call
+		// any of libtorrent's external API functions. Doing so results in a dead lock.
+		// 
+		// The main intention with this function is to support integration with platform-dependent message
+		// queues or signalling systems. For instance, on windows, one could post a message to an HNWD or
+		// on linux, write to a pipe or an eventfd.
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
 		connection_queue& get_connection_queue();
 
-		// starts/stops UPnP, NATPMP or LSD port mappers
-		// they are stopped by default
+		// Starts and stops Local Service Discovery. This service will broadcast
+		// the infohashes of all the non-private torrents on the local network to
+		// look for peers on the same swarm within multicast reach.
+		//
+		// It is turned off by default.
 		void start_lsd();
-		void start_natpmp();
-		void start_upnp();
-
 		void stop_lsd();
-		void stop_natpmp();
+
+		// Starts and stops the UPnP service. When started, the listen port and the DHT
+		// port are attempted to be forwarded on local UPnP router devices.
+		// 
+		// The upnp object returned by ``start_upnp()`` can be used to add and remove
+		// arbitrary port mappings. Mapping status is returned through the
+		// portmap_alert_ and the portmap_error_alert_. The object will be valid until
+		// ``stop_upnp()`` is called. See `UPnP and NAT-PMP`_.
+		// 
+		// It is off by default.
+ 		void start_upnp();
 		void stop_upnp();
+
+		// Starts and stops the NAT-PMP service. When started, the listen port and the DHT
+		// port are attempted to be forwarded on the router through NAT-PMP.
+		// 
+		// The natpmp object returned by ``start_natpmp()`` can be used to add and remove
+		// arbitrary port mappings. Mapping status is returned through the
+		// portmap_alert_ and the portmap_error_alert_. The object will be valid until
+		// ``stop_natpmp()`` is called. See `UPnP and NAT-PMP`_.
+		// 
+		// It is off by default.
+		void start_natpmp();
+		void stop_natpmp();
 		
 	private:
 
