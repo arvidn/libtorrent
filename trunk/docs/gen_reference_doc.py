@@ -57,6 +57,7 @@ category_mapping = {
 	'peer_id.hpp': 'Utility',
 	'identify_client.hpp': 'Utility',
 	'thread.hpp': 'Utility',
+	'ip_filter.hpp': 'Filter',
 }
 
 def categorize_symbol(name, filename):
@@ -530,7 +531,7 @@ for c in classes:
 		categories[cat]['overview'] = overviews[c['file']]
 
 	categories[cat]['classes'].append(c)
-	symbols[c['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + html_sanitize(c['name'])
+	symbols[c['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + c['name']
 
 for f in functions:
 	cat = categorize_symbol(first_item(f['names']), f['file'])
@@ -541,7 +542,7 @@ for f in functions:
 		categories[cat]['overview'] = overviews[f['file']]
 
 	for n in f['names']:
-		symbols[n] = categories[cat]['filename'].replace('.rst', '.html') + '#' + html_sanitize(n)
+		symbols[n] = categories[cat]['filename'].replace('.rst', '.html') + '#' + n
 	categories[cat]['functions'].append(f)
 
 for e in enums:
@@ -549,7 +550,7 @@ for e in enums:
 	if not cat in categories:
 		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 	categories[cat]['enums'].append(e)
-	symbols[e['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + html_sanitize(e['name'])
+	symbols[e['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + e['name']
 
 def print_declared_in(out, o):
 	out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))
