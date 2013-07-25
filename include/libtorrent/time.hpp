@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	char const* time_now_string();
+	TORRENT_EXTRA_EXPORT char const* time_now_string();
 	std::string log_time();
 
 	TORRENT_EXPORT ptime const& time_now();
