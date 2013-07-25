@@ -34,7 +34,8 @@ TARGETS = index \
 	reference-Utility \
 	reference-Bencoding \
 	reference-Alerts \
-	reference-RSS
+	reference-RSS \
+	reference-Filter
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
 
