@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include <boost/function/function1.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace libtorrent
 {
@@ -149,7 +149,7 @@ namespace libtorrent
 		char* buffer;
 
 		// the disk storage this job applies to (if applicable)
-		boost::intrusive_ptr<piece_manager> storage;
+		boost::shared_ptr<piece_manager> storage;
 
 		// this is called when operation completes
 		boost::function<void(disk_io_job const*)> callback;

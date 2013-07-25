@@ -1386,7 +1386,7 @@ void block_cache::check_invariant() const
 			, end((*i)->cached_pieces().end()); j != end; ++j)
 		{
 			cached_piece_entry* pe = *j;
-			TORRENT_PIECE_ASSERT(pe->storage == *i, pe);
+			TORRENT_PIECE_ASSERT(pe->storage.get() == *i, pe);
 		}
 	}
 
@@ -1588,7 +1588,7 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 		|| !pe->jobs.empty())
 		return false;
 
-	boost::intrusive_ptr<piece_manager> s = pe->storage;
+	boost::shared_ptr<piece_manager> s = pe->storage;
 
 	DLOG(stderr, "[%p] block_cache maybe_free_piece "
 		"piece: %d refcount: %d marked_for_deletion: %d\n", this
@@ -1615,10 +1615,10 @@ cached_piece_entry* block_cache::find_piece(disk_io_job const* j)
 cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 {
 	cached_piece_entry model;
-	model.storage = st;
+	model.storage = st->shared_from_this();
 	model.piece = piece;
 	iterator i = m_pieces.find(model);
-	TORRENT_ASSERT(i == m_pieces.end() || (i->storage == st && i->piece == piece));
+	TORRENT_ASSERT(i == m_pieces.end() || (i->storage.get() == st && i->piece == piece));
 	if (i == m_pieces.end()) return 0;
 	TORRENT_PIECE_ASSERT(i->in_use, &*i);
 	return const_cast<cached_piece_entry*>(&*i);

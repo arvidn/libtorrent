@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/next_prior.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -151,7 +153,7 @@ namespace libtorrent
 	} // detail namespace
 
 	void on_hash(disk_io_job const* j, create_torrent* t
-		, boost::intrusive_ptr<piece_manager> storage, disk_io_thread* iothread
+		, boost::shared_ptr<piece_manager> storage, disk_io_thread* iothread
 		, int* piece_counter, int* completed_piece
 		, boost::function<void(int)> const* f, error_code* ec)
 	{
@@ -204,7 +206,7 @@ namespace libtorrent
 
 		storage_interface* storage_impl = default_storage_constructor(params);
 
-		boost::intrusive_ptr<piece_manager> storage = new piece_manager(
+		boost::shared_ptr<piece_manager> storage = boost::make_shared<piece_manager>(
 			storage_impl, dummy, (file_storage*)&t.files());
 
 		settings_pack sett;

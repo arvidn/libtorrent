@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/version.hpp>
 
 #ifdef _MSC_VER
@@ -993,7 +993,7 @@ namespace libtorrent
 		// the piece_manager keeps the torrent object
 		// alive by holding a shared_ptr to it and
 		// the torrent keeps the piece manager alive
-		// with this intrusive_ptr. This cycle is
+		// with this shared_ptr. This cycle is
 		// broken when torrent::abort() is called
 		// Then the torrent releases the piece_manager
 		// and when the piece_manager is complete with all
@@ -1004,7 +1004,7 @@ namespace libtorrent
 		// the piece_manager, and stored in the
 		// torrent, so the torrent cannot destruct
 		// before the piece_manager.
-		boost::intrusive_ptr<piece_manager> m_storage;
+		boost::shared_ptr<piece_manager> m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;

@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function0.hpp>
 #include <boost/limits.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/unordered_set.hpp>
@@ -54,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/piece_picker.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/config.hpp"
@@ -384,7 +384,7 @@ namespace libtorrent
 	};
 
 	class TORRENT_EXTRA_EXPORT piece_manager
-		: public intrusive_ptr_base<piece_manager>
+		: public boost::enable_shared_from_this<piece_manager>
 		, public disk_job_fence
 		, public storage_piece_set
 		, boost::noncopyable

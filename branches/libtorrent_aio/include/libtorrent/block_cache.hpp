@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/unordered_set.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <list>
 #include <vector>
@@ -172,7 +172,7 @@ namespace libtorrent
 		}
 
 		// storage this piece belongs to
-		boost::intrusive_ptr<piece_manager> storage;
+		boost::shared_ptr<piece_manager> storage;
 
 		// write jobs hanging off of this piece
 		tailqueue jobs;

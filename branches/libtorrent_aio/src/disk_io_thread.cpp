@@ -809,7 +809,7 @@ namespace libtorrent
 			{
 				cached_piece_entry* pe = m_disk_cache.find_piece(storage, *i);
 				if (pe == NULL) continue;
-				TORRENT_PIECE_ASSERT(pe->storage == storage, pe);
+				TORRENT_PIECE_ASSERT(pe->storage.get() == storage, pe);
 				flush_piece(pe, flags, completed_jobs, l);
 			}
 		}
@@ -1062,7 +1062,7 @@ namespace libtorrent
 
 		l.unlock();
 
-		boost::intrusive_ptr<piece_manager> storage = j->storage;
+		boost::shared_ptr<piece_manager> storage = j->storage;
 
 		// TODO: instead of doing this. pass in the settings to each storage_interface
 		// call. Each disk thread could hold its most recent understanding of the settings
@@ -1450,7 +1450,7 @@ namespace libtorrent
 		DLOG("do_read piece: %d block: %d\n", r.piece, r.start / block_size);
 
 		disk_io_job* j = allocate_job(disk_io_job::read);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = r.length;
@@ -1531,7 +1531,7 @@ namespace libtorrent
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
 		disk_io_job* j = allocate_job(disk_io_job::write);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = r.length;
@@ -1611,7 +1611,7 @@ namespace libtorrent
 				// the block and write job were successfully inserted
 				// into the cache. Now, see if we should trigger a flush
 				j = allocate_job(disk_io_job::flush_hashed);
-				j->storage = storage;
+				j->storage = storage->shared_from_this();
 				j->piece = r.piece;
 				j->flags = flags;
 				add_job(j);
@@ -1630,7 +1630,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler, void* requester)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::hash);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = piece;
 		j->callback = handler;
 		j->flags = flags;
@@ -1669,7 +1669,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->buffer = strdup(p.c_str());
 		j->callback = handler;
 		j->flags = flags;
@@ -1681,7 +1681,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::release_files);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->callback = handler;
 
 		add_fence_job(storage, j);
@@ -1710,7 +1710,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			qj->next = NULL;
 #endif
-			if (qj->storage == storage)
+			if (qj->storage.get() == storage)
 				to_abort.push_back(qj);
 			else
 				m_queued_jobs.push_back(qj);
@@ -1722,7 +1722,7 @@ namespace libtorrent
 			add_completed_jobs(completed_jobs);
 
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->callback = handler;
 		add_fence_job(storage, j);
 
@@ -1734,7 +1734,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->buffer = (char*)resume_data;
 		j->callback = handler;
 
@@ -1745,7 +1745,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::save_resume_data);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->buffer = NULL;
 		j->callback = handler;
 
@@ -1756,7 +1756,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::rename_file);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = index;
 		j->buffer = strdup(name.c_str());
 		j->callback = handler;
@@ -1767,7 +1767,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::stop_torrent);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->callback = handler;
 		add_fence_job(storage, j);
 	}
@@ -1776,7 +1776,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::cache_piece);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = piece;
 		j->callback = handler;
 
@@ -1788,7 +1788,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::finalize_file);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = file;
 		j->callback = handler;
 
@@ -1800,7 +1800,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::flush_piece);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = piece;
 		j->callback = handler;
 
@@ -1822,7 +1822,7 @@ namespace libtorrent
 		std::vector<boost::uint8_t>* p = new std::vector<boost::uint8_t>(prios);
 
 		disk_io_job* j = allocate_job(disk_io_job::file_priority);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->buffer = (char*)p;
 		j->callback = handler;
 
@@ -1843,7 +1843,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::tick_storage);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->callback = handler;
 
 		add_job(j);
@@ -1869,7 +1869,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::clear_piece);
-		j->storage = storage;
+		j->storage = storage->shared_from_this();
 		j->piece = index;
 		j->callback = handler;
 

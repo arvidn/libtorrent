@@ -1689,7 +1689,7 @@ namespace libtorrent
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_storage = new piece_manager(
+		m_storage = boost::make_shared<piece_manager>(
 			storage_impl, shared_from_this(), (file_storage*)&m_torrent_file->files());
 	}
 
@@ -4446,7 +4446,7 @@ namespace libtorrent
 				alerts().post_alert(cache_flushed_alert(get_handle()));
 		}
 		
-		m_storage = 0;
+		m_storage.reset();
 		m_host_resolver.cancel();
 
 		if (!m_apply_ip_filter)

@@ -363,7 +363,7 @@ void test_check_files(std::string const& test_path
 	p.mode = storage_mode;
 
 	boost::shared_ptr<void> dummy(new int);
-	boost::intrusive_ptr<piece_manager> pm = new piece_manager(new default_storage(p), dummy, &fs);
+	boost::shared_ptr<piece_manager> pm = boost::make_shared<piece_manager>(new default_storage(p), dummy, &fs);
 	libtorrent::mutex lock;
 
 	bool done = false;

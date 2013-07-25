@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_dispatcher.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 using namespace libtorrent;
 
@@ -97,7 +99,7 @@ void nop() {}
 	fs.set_piece_length(0x8000); \
 	fs.set_num_pieces(5); \
 	test_storage_impl* st = new test_storage_impl; \
-	boost::intrusive_ptr<piece_manager> pm(new piece_manager(st, boost::shared_ptr<int>(new int), &fs)); \
+	boost::shared_ptr<piece_manager> pm(boost::make_shared<piece_manager>(st, boost::shared_ptr<int>(new int), &fs)); \
 	bc.set_settings(sett); \
 	st->m_settings = &sett; \
 	disk_io_job j; \
