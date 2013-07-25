@@ -141,6 +141,7 @@ int test_main()
 	test_feed(combine_path(root_dir, "kat.xml"), rss_expect(25, "http://kat.ph/torrents/benito-di-paula-1975-benito-di-paula-lp-rip-ogg-at-500-jarax4u-t6194897/", "Benito Di Paula - 1975 - Benito Di Paula (LP Rip OGG at 500) [jarax4u]", 168773863));
 	test_feed(combine_path(root_dir, "mn.xml"), rss_expect(20, "http://www.mininova.org/get/13203100", "Dexcell - January TwentyTwelve Mix", 137311179));
 	test_feed(combine_path(root_dir, "pb.xml"), rss_expect(60, "magnet:?xt=urn:btih:FD4CDDB7BBE722D17A018EFD875EB0695ED7159C&dn=Thompson+Twins+-+1989+-+Big+Trash+%5BMP3%5D", "Thompson Twins - 1989 - Big Trash [MP3]", 100160904));
+	test_feed(combine_path(root_dir, "fg.xml"), rss_expect(15, "http://torrage.com/torrent/470BCD2007011E9F31556B36E199D03D948A1A52.torrent", "Top.Gear.S20E04.1080i.ts", -1));
 	return 0;
 }
 

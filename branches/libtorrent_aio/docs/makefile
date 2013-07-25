@@ -22,11 +22,24 @@ TARGETS = index \
 	running_tests \
 	utp \
 	tuning \
-	hacking
+	hacking \
+	reference \
+	reference-Core \
+	reference-String \
+	reference-Plugins \
+	reference-Create_Torrents \
+	reference-Error_Codes \
+	reference-Time \
+	reference-Storage \
+	reference-Utility \
+	reference-Bencoding \
+	reference-Alerts \
+	reference-RSS \
+	reference-Filter
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
 
-html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html reference.html
+html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
@@ -46,7 +59,7 @@ manual.rst: settings.rst stats_counters.rst
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
 
-reference.html:gen_reference_doc.py ../include/libtorrent/*.hpp
+reference.rst:gen_reference_doc.py ../include/libtorrent/*.hpp
 	python gen_reference_doc.py
 
 %.epub:%.rst

@@ -195,35 +195,35 @@ namespace libtorrent
 			return ret;
 		}
 		
-		big_number operator^ (big_number const& n) const
+		big_number operator^(big_number const& n) const
 		{
 			big_number ret = *this;
 			ret ^= n;
 			return ret;
 		}
 
-		big_number operator& (big_number const& n) const
+		big_number operator&(big_number const& n) const
 		{
 			big_number ret = *this;
 			ret &= n;
 			return ret;
 		}
 
-		big_number& operator &= (big_number const& n)
+		big_number& operator&=(big_number const& n)
 		{
 			for (int i = 0; i< number_size; ++i)
 				m_number[i] &= n.m_number[i];
 			return *this;
 		}
 
-		big_number& operator |= (big_number const& n)
+		big_number& operator|=(big_number const& n)
 		{
 			for (int i = 0; i< number_size; ++i)
 				m_number[i] |= n.m_number[i];
 			return *this;
 		}
 
-		big_number& operator ^= (big_number const& n)
+		big_number& operator^=(big_number const& n)
 		{
 			for (int i = 0; i< number_size; ++i)
 				m_number[i] ^= n.m_number[i];

@@ -1026,6 +1026,12 @@ namespace libtorrent
 	};
 #endif
 
+	// structure used to hold configuration options for the DHT
+	//
+	// The ``dht_settings`` struct used to contain a ``service_port`` member to control
+	// which port the DHT would listen on and send messages from. This field is deprecated
+	// and ignored. libtorrent always tries to open the UDP socket on the same port
+	// as the TCP socket.
 	struct dht_settings
 	{
 		dht_settings()
@@ -1045,11 +1051,12 @@ namespace libtorrent
 		{}
 		
 		// the maximum number of peers to send in a
-		// reply to get_peers
+		// reply to ``get_peers``
 		int max_peers_reply;
 
-		// the number of simultanous "connections" when
-		// searching the DHT.
+		// the number of concurrent search request the node will
+		// send when announcing and refreshing the routing table. This parameter is
+		// called alpha in the kademlia paper
 		int search_branching;
 		
 #ifndef TORRENT_NO_DEPRECATE
@@ -1058,11 +1065,16 @@ namespace libtorrent
 		int service_port;
 #endif
 		
-		// the maximum number of times a node can fail
-		// in a row before it is removed from the table.
+		// the maximum number of failed tries to contact a node
+		// before it is removed from the routing table. If there are known working nodes
+		// that are ready to replace a failing node, it will be replaced immediately,
+		// this limit is only used to clear out nodes that don't have any node that can
+		// replace them.
 		int max_fail_count;
 
-		// this is the max number of torrents the DHT will track
+		// the total number of torrents to track from the DHT. This
+		// is simply an upper limit to make sure malicious DHT nodes cannot make us allocate
+		// an unbounded amount of memory.
 		int max_torrents;
 
 		// max number of items the DHT will store
@@ -1072,6 +1084,11 @@ namespace libtorrent
 		// torrent search query to the DHT
 		int max_torrent_search_reply;
 
+		// determines if the routing table entries should restrict
+		// entries to one per IP. This defaults to true, which helps mitigate some attacks
+		// on the DHT. It prevents adding multiple nodes with IPs with a very close CIDR
+		// distance.
+		//
 		// when set, nodes whose IP address that's in
 		// the same /24 (or /64 for IPv6) range in the
 		// same routing table bucket. This is an attempt
@@ -1080,18 +1097,21 @@ namespace libtorrent
 		// entry in the whole routing table
 		bool restrict_routing_ips;
 
-		// applies the same IP restrictions on nodes
-		// received during a DHT search (traversal algorithm)
+		// determines if DHT searches should prevent adding nodes
+		// with IPs with very close CIDR distance. This also defaults to true and helps
+		// mitigate certain attacks on the DHT.
 		bool restrict_search_ips;
 
-		// if this is set, the first few buckets in the routing
-		// table are enlarged, to make room for more nodes in order
-		// to lower the look-up times
+		// makes the first buckets in the DHT routing
+		// table fit 128, 64, 32 and 16 nodes respectively, as opposed to the
+		// standard size of 8. All other buckets have size 8 still.
 		bool extended_routing_table;
 
-		// makes lookups waste less time finding results,
-		// at the cost of being more likely to keep more
-		// outstanding requests
+		// slightly changes the lookup behavior in terms of how
+		// many outstanding requests we keep. Instead of having branch factor be a hard
+		// limit, we always keep *branch factor* outstanding requests to the closest nodes.
+		// i.e. every time we get results back with closer nodes, we query them right away.
+		// It lowers the lookup times at the cost of more outstanding queries.
 		bool aggressive_lookups;
 	};
 
