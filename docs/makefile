@@ -26,13 +26,11 @@ TARGETS = index \
 	reference \
 	reference-Core \
 	reference-String \
-	reference-Network \
 	reference-Plugins \
 	reference-Create_Torrents \
-	reference-Error_codes \
+	reference-Error_Codes \
 	reference-Time \
 	reference-Storage \
-	reference-File \
 	reference-Utility \
 	reference-Bencoding \
 	reference-Alerts \
