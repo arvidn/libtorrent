@@ -239,7 +239,7 @@ namespace libtorrent
 		// was called.
 		// 
 		// Only torrents who has the state subscription flag set will be included. This flag
-		// is on by default. See ``add_torrent_params`` under `async_add_torrent() add_torrent()`_
+		// is on by default. See add_torrent_params_.
 		void post_torrent_updates();
 
 		io_service& get_io_service();
@@ -359,8 +359,24 @@ namespace libtorrent
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const;
 
+		// This adds an RSS feed to the session. The feed will be refreshed
+		// regularly and optionally add all torrents from the feed, as they
+		// appear.
+		//
+		// Before adding the feed, you must set the ``url`` field to the
+		// feed's url. It may point to an RSS or an atom feed.
+		// The returned feed_handle_ is a handle which is used to interact
+		// with the feed, things like forcing a refresh or querying for
+		// information about the items in the feed. For more information,
+		// see feed_handle_.
 		feed_handle add_feed(feed_settings const& feed);
+
+		// Removes a feed from being watched by the session. When this
+		// call returns, the feed handle is invalid and won't refer
+		// to any feed.
 		void remove_feed(feed_handle h);
+
+		// Returns a list of all RSS feeds that are being watched by the session.
 		void get_feeds(std::vector<feed_handle>& f) const;
 
 		// starts/stops UPnP, NATPMP or LSD port mappers
@@ -428,11 +444,50 @@ namespace libtorrent
 		void start_dht(entry const& startup_state) TORRENT_DEPRECATED;
 #endif
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		void set_pe_settings(pe_settings const& settings);
-		pe_settings get_pe_settings() const;
-#endif
-
+		// This function adds an extension to this session. The argument is a function
+		// object that is called with a ``torrent*`` and which should return a
+		// ``boost::shared_ptr<torrent_plugin>``. To write custom plugins, see
+		// `libtorrent plugins`_. For the typical bittorrent client all of these
+		// extensions should be added. The main plugins implemented in libtorrent are:
+		// 
+		// metadata extension
+		// 	Allows peers to download the metadata (.torren files) from the swarm
+		// 	directly. Makes it possible to join a swarm with just a tracker and
+		// 	info-hash.
+		// 
+		// ::
+		// 
+		// 	#include <libtorrent/extensions/metadata_transfer.hpp>
+		// 	ses.add_extension(&libtorrent::create_metadata_plugin);
+		// 
+		// uTorrent metadata
+		// 	Same as ``metadata extension`` but compatible with uTorrent.
+		// 
+		// ::
+		// 
+		// 	#include <libtorrent/extensions/ut_metadata.hpp>
+		// 	ses.add_extension(&libtorrent::create_ut_metadata_plugin);
+		// 
+		// uTorrent peer exchange
+		// 	Exchanges peers between clients.
+		// 
+		// ::
+		// 
+		// 	#include <libtorrent/extensions/ut_pex.hpp>
+		// 	ses.add_extension(&libtorrent::create_ut_pex_plugin);
+		// 
+		// smart ban plugin
+		// 	A plugin that, with a small overhead, can ban peers
+		// 	that sends bad data with very high accuracy. Should
+		// 	eliminate most problems on poisoned torrents.
+		// 
+		// ::
+		// 
+		// 	#include <libtorrent/extensions/smart_ban.hpp>
+		// 	ses.add_extension(&libtorrent::create_smart_ban_plugin);
+		// 
+		// 
+		// .. _`libtorrent plugins`: libtorrent_plugins.html
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 
@@ -482,7 +537,70 @@ namespace libtorrent
 		void set_key(int key);
 		peer_id id() const;
 
-		bool is_listening() const;
+
+		// ``is_listening()`` will tell you whether or not the session has successfully
+		// opened a listening port. If it hasn't, this function will return false, and
+		// then you can use ``listen_on()`` to make another attempt.
+		// 
+		// ``listen_port()`` returns the port we ended up listening on. Since you just pass
+		// a port-range to the constructor and to ``listen_on()``, to know which port it
+		// ended up using, you have to ask the session using this function.
+		// 
+		// ``listen_on()`` will change the listen port and/or the listen interface. If the
+		// session is already listening on a port, this socket will be closed and a new socket
+		// will be opened with these new settings. The port range is the ports it will try
+		// to listen on, if the first port fails, it will continue trying the next port within
+		// the range and so on. The interface parameter can be left as 0, in that case the
+		// os will decide which interface to listen on, otherwise it should be the ip-address
+		// of the interface you want the listener socket bound to. ``listen_on()`` returns the
+		// error code of the operation in ``ec``. If this indicates success, the session is
+		// listening on a port within the specified range. If it fails, it will also
+		// generate an appropriate alert (listen_failed_alert_).
+		// 
+		// If all ports in the specified range fails to be opened for listening, libtorrent will
+		// try to use port 0 (which tells the operating system to pick a port that's free). If
+		// that still fails you may see a listen_failed_alert_ with port 0 even if you didn't
+		// ask to listen on it.
+		// 
+		// It is possible to prevent libtorrent from binding to port 0 by passing in the flag
+		// ``session::no_system_port`` in the ``flags`` argument.
+		// 
+		// The interface parameter can also be a hostname that will resolve to the device you
+		// want to listen on. If you don't specify an interface, libtorrent may attempt to
+		// listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
+		// IPv6 interface doesn't work, you may still see a listen_failed_alert_, even though
+		// the IPv4 port succeeded.
+		// 
+		// The ``flags`` parameter can either be 0 or ``session::listen_reuse_address``, which
+		// will set the reuse address socket option on the listen socket(s). By default, the
+		// listen socket does not use reuse address. If you're running a service that needs
+		// to run on a specific port no matter if it's in use, set this flag.
+		// 
+		// If you're also starting the DHT, it is a good idea to do that after you've called
+		// ``listen_on()``, since the default listen port for the DHT is the same as the tcp
+		// listen socket. If you start the DHT first, it will assume the tcp port is free and
+		// open the udp socket on that port, then later, when ``listen_on()`` is called, it
+		// may turn out that the tcp port is in use. That results in the DHT and the bittorrent
+		// socket listening on different ports. If the DHT is active when ``listen_on`` is
+		// called, the udp port will be rebound to the new port, if it was configured to use
+		// the same port as the tcp socket, and if the listen_on call failed to bind to the
+		// same port that the udp uses.
+		// 
+		// If you want the OS to pick a port for you, pass in 0 as both first and second.
+		// 
+		// The reason why it's a good idea to run the DHT and the bittorrent socket on the same
+		// port is because that is an assumption that may be used to increase performance. One
+		// way to accelerate the connecting of peers on windows may be to first ping all peers
+		// with a DHT ping packet, and connect to those that responds first. On windows one
+		// can only connect to a few peers at a time because of a built in limitation (in XP
+		// Service pack 2).
+		void listen_on(
+			std::pair<int, int> const& port_range
+			, error_code& ec
+			, const char* net_interface = 0
+			, int flags = 0);
+		unsigned short listen_port() const;
+
 
 		// if the listen port failed in some way
 		// you can retry to listen on another port-
@@ -513,15 +631,6 @@ namespace libtorrent
 			, int flags = 0) TORRENT_DEPRECATED;
 #endif
 
-		void listen_on(
-			std::pair<int, int> const& port_range
-			, error_code& ec
-			, const char* net_interface = 0
-			, int flags = 0);
-
-		// returns the port we ended up listening on
-		unsigned short listen_port() const;
-
 		enum options_t
 		{
 			none = 0,
@@ -543,9 +652,20 @@ namespace libtorrent
 		// is posted.
 		void remove_torrent(const torrent_handle& h, int options = none);
 
+		// Sets the session settings and the packet encryption settings respectively.
+		// See session_settings_ and pe_settings_ for more information on available
+		// options.
 		void set_settings(session_settings const& s);
 		session_settings settings() const;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		void set_pe_settings(pe_settings const& settings);
+		pe_settings get_pe_settings() const;
+#endif
 
+		// These functions sets and queries the proxy settings to be used for the session.
+		//
+		// For more information on what settings are available for proxies, see
+		// `proxy_settings`_.
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
 
@@ -586,6 +706,13 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 #if TORRENT_USE_I2P
+		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
+		// connection to it. The only used fields in the proxy settings structs
+		// are ``hostname`` and ``port``.
+		//
+		// ``i2p_proxy`` returns the current i2p proxy in use.
+		//
+		// .. _i2p: http://www.i2p2.de
 		void set_i2p_proxy(proxy_settings const& s);
 		proxy_settings i2p_proxy() const;
 #endif

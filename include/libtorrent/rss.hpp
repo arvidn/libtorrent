@@ -81,17 +81,36 @@ namespace libtorrent
 
    	std::string url;
 
-		// automatically add torrents to session from
+		// By default ``auto_download`` is true, which means all torrents in
+		// the feed will be downloaded. Set this to false in order to manually
+		// add torrents to the session. You may react to the rss_alert_ when
+		// a feed has been updated to poll it for the new items in the feed
+		// when adding torrents manually. When torrents are added automatically,
+		// an add_torrent_alert_ is posted which includes the torrent handle
+		// as well as the error code if it failed to be added. You may also call
+		// ``session::get_torrents()`` to get the handles to the new torrents.
 		bool auto_download;
 
-		// automatically find existing torrents and set
-		// the torrent_handle in the feed item
+		// ``auto_map_handles`` defaults to true and determines whether or
+		// not to set the ``handle`` field in the ``feed_item``, returned
+		// as the feed status. If auto-download is enabled, this setting
+		// is ignored. If auto-download is not set, setting this to false
+		// will save one pass through all the feed items trying to find
+		// corresponding torrents in the session.
 		bool auto_map_handles;
 
-		// in minutes
+		// The ``default_ttl`` is the default interval for refreshing a feed.
+		// This may be overridden by the feed itself (by specifying the ``<ttl>``
+		// tag) and defaults to 30 minutes. The field specifies the number of
+		// minutes between refreshes.
 		int default_ttl;
 
-		// used when adding torrents
+		// If torrents are added automatically, you may want to set the
+		// ``add_args`` to appropriate values for download directory etc.
+		// This object is used as a template for adding torrents from feeds,
+		// but some torrent specific fields will be overridden by the
+		// individual torrent being added. For more information on the
+		// ``add_torrent_params``, see `async_add_torrent() add_torrent()`_.
 		add_torrent_params add_args;
 	};
 
