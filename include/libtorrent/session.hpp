@@ -600,7 +600,7 @@ namespace libtorrent
 			, const char* net_interface = 0
 			, int flags = 0);
 		unsigned short listen_port() const;
-
+		bool is_listening() const;
 
 		// if the listen port failed in some way
 		// you can retry to listen on another port-
