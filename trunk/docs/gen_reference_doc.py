@@ -410,7 +410,7 @@ for filename in files:
 					overviews[filename[11:]] = current_overview
 					current_overview = ''
 					break
-				current_overview += l[2:].strip() + '\n'
+				current_overview += l[2:] + '\n'
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
@@ -530,7 +530,7 @@ for c in classes:
 		categories[cat]['overview'] = overviews[c['file']]
 
 	categories[cat]['classes'].append(c)
-	symbols[c['name']] = categories[cat]['filename'] + '#' + html_sanitize(c['name'])
+	symbols[c['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + html_sanitize(c['name'])
 
 for f in functions:
 	cat = categorize_symbol(first_item(f['names']), f['file'])
@@ -541,7 +541,7 @@ for f in functions:
 		categories[cat]['overview'] = overviews[f['file']]
 
 	for n in f['names']:
-		symbols[n] = categories[cat]['filename'] + '#' + html_sanitize(n)
+		symbols[n] = categories[cat]['filename'].replace('.rst', '.html') + '#' + html_sanitize(n)
 	categories[cat]['functions'].append(f)
 
 for e in enums:
@@ -549,7 +549,7 @@ for e in enums:
 	if not cat in categories:
 		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 	categories[cat]['enums'].append(e)
-	symbols[e['name']] = categories[cat]['filename'] + '#' + html_sanitize(e['name'])
+	symbols[e['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + html_sanitize(e['name'])
 
 def print_declared_in(out, o):
 	out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))
@@ -570,7 +570,7 @@ def dump_link_targets():
 	return ret
 
 def heading(string, c):
-	return string + '\n' + (c * len(string)) + '\n'
+	return '\n' + string + '\n' + (c * len(string)) + '\n'
 
 out = open('reference.rst', 'w+')
 out.write('''==================================
@@ -588,12 +588,12 @@ for cat in categories:
 
 	category_filename = categories[cat]['filename'].replace('.rst', '.html')
 	for c in categories[cat]['classes']:
-		print >>out, '| ' + print_link(c['name'], category_filename + '#' + c['name'])
+		print >>out, '| ' + print_link(c['name'], symbols[c['name']])
 	for f in categories[cat]['functions']:
 		for n in f['names']:
-			print >>out, '| ' + print_link(n + '()', category_filename + '#' + n)
+			print >>out, '| ' + print_link(n + '()', symbols[n])
 	for e in categories[cat]['enums']:
-		print >>out, '| ' + print_link(e['name'], category_filename + '#' + e['name'])
+		print >>out, '| ' + print_link(e['name'], symbols[e['name']])
 	print >>out, ''
 
 print >>out, dump_link_targets()
@@ -618,6 +618,11 @@ for cat in categories:
 		out.write('%s\n%s' % (heading(cat, '='), categories[cat]['overview']))
 
 	for c in classes:
+
+		print >>out, '.. raw:: html\n'
+		print >>out, '\t<a name="%s"></a>' % c['name']
+		print >>out, ''
+
 		out.write('%s\n' % heading(c['name'], '-'))
 		print_declared_in(out, c)
 		out.write('%s\n\n.. parsed-literal::\n\t' % c['desc'])
@@ -652,6 +657,10 @@ for cat in categories:
 		for f in c['fun']:
 			if f['desc'] == '': continue
 			title = ''
+			print >>out, '.. raw:: html\n'
+			for n in f['names']:
+				print >>out, '\t<a name="%s"></a>' % n
+			print >>out, ''
 			for n in f['names']:
 				title += '%s() ' % n
 			print >>out, heading(title.strip(), '.')
@@ -665,6 +674,9 @@ for cat in categories:
 
 		for e in c['enums']:
 			if e['desc'] == '': continue
+			print >>out, '.. raw:: html\n'
+			print >>out, '\t<a name="%s"></a>' % e['name']
+			print >>out, ''
 			print >>out, heading('enum %s' % e['name'], '.')
 			width = [len('value'), len('description')]
 			for v in e['values']:
@@ -686,6 +698,12 @@ for cat in categories:
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
+
+			print >>out, '.. raw:: html\n'
+			for n in f['names']:
+				print >>out, '\t<a name="%s"></a>' % n
+			print >>out, ''
+
 			for n in f['names']:
 				print >>out, '%s ' % n,
 			print >>out, ''
@@ -694,6 +712,10 @@ for cat in categories:
 
 	for f in functions:
 		h = ''
+		print >>out, '.. raw:: html\n'
+		for n in f['names']:
+			print >>out, '\t<a name="%s"></a>' % n
+		print >>out, ''
 		for n in f['names']:
 			h += '%s() ' % n
 		print >>out, heading(h, '.')
@@ -707,6 +729,10 @@ for cat in categories:
 		print >>out, f['desc']
 
 	for e in enums:
+		print >>out, '.. raw:: html\n'
+		print >>out, '\t<a name="%s"></a>' % e['name']
+		print >>out, ''
+
 		print >>out, heading('enum %s' % e['name'], '.')
 		print_declared_in(out, e)
 
