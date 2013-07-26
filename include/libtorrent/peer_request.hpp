@@ -37,8 +37,11 @@ namespace libtorrent
 {
 	struct TORRENT_EXTRA_EXPORT peer_request
 	{
+		// the index of the piece in which the range starts.
 		int piece;
+		// the offset within that piece where the range starts.
 		int start;
+		// the size of the range, in bytes.
 		int length;
 		bool operator==(peer_request const& r) const
 		{ return piece == r.piece && start == r.start && length == r.length; }

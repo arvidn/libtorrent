@@ -51,19 +51,53 @@ namespace libtorrent
 		file_entry();
 		~file_entry();
 
+		// the full path of this file. The paths are unicode strings
+		// encoded in UTF-8.
 		std::string path;
-		size_type offset; // the offset of this file inside the torrent
-		size_type size; // the size of this file
-		// the offset in the file where the storage starts.
-		// This is always 0 unless parts of the torrent is
-		// compressed into a single file, such as a so-called part file.
+
+		// the offset of this file inside the torrent
+		size_type offset;
+
+		// the size of the file (in bytes) and ``offset`` is the byte offset
+		// of the file within the torrent. i.e. the sum of all the sizes of the files
+		// before it in the list.
+		size_type size;
+
+		// the offset in the file where the storage should start. The normal
+		// case is to have this set to 0, so that the storage starts saving data at the start
+		// if the file. In cases where multiple files are mapped into the same file though,
+		// the ``file_base`` should be set to an offset so that the different regions do
+		// not overlap. This is used when mapping "unselected" files into a so-called part
+		// file.
 		size_type file_base;
+
+		// the modification time of this file specified in posix time.
 		std::time_t mtime;
+
+		// a sha-1 hash of the content of the file, or zeroes, if no
+		// file hash was present in the torrent file. It can be used to potentially
+		// find alternative sources for the file.
 		sha1_hash filehash;
+
+		// set to true for files that are not part of the data of the torrent.
+		// They are just there to make sure the next file is aligned to a particular byte offset
+		// or piece boundry. These files should typically be hidden from an end user. They are
+		// not written to disk.
 		bool pad_file:1;
+
+		// true if the file was marked as hidden (on windows).
 		bool hidden_attribute:1;
+
+		// true if the file was marked as executable (posix)
 		bool executable_attribute:1;
+
+		// true if the file was a symlink. If this is the case
+		// the ``symlink_index`` refers to a string which specifies the original location
+		// where the data for this file was found.
 		bool symlink_attribute:1;
+
+		// the path which this is a symlink to, or empty if this is
+		// not a symlink. This field is only used if the ``symlink_attribute`` is set.
 		std::string symlink_path;
 	};
 
@@ -154,10 +188,22 @@ namespace libtorrent
 		int path_index;
 	};
 
+	// represents a window of a file in a torrent.
+	//
+	// The ``file_index`` refers to the index of the file (in the torrent_info).
+	// To get the path and filename, use ``file_at()`` and give the ``file_index``
+	// as argument. The ``offset`` is the byte offset in the file where the range
+	// starts, and ``size`` is the number of bytes this range is. The size + offset
+	// will never be greater than the file size.
 	struct TORRENT_EXPORT file_slice
 	{
+		// the index of the file
 		int file_index;
+
+		// the offset from the start of the file, in bytes
 		size_type offset;
+
+		// the size of the window, in bytes
 		size_type size;
 	};
 
