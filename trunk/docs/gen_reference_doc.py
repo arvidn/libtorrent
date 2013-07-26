@@ -209,7 +209,7 @@ def parse_class(lno, lines, filename):
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
-			l = l.split('//')[1]
+			l = l[2:]
 			if len(l) and l[0] == ' ': l = l[1:]
 			context += l + '\n'
 			continue
@@ -299,7 +299,7 @@ def parse_enum(lno, lines, filename):
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
-			l = l.split('//')[1]
+			l = l[2:]
 			if len(l) and l[0] == ' ': l = l[1:]
 			context += l + '\n'
 			continue
@@ -415,7 +415,7 @@ for filename in files:
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
-			l = l.split('//')[1]
+			l = l[2:]
 			if len(l) and l[0] == ' ': l = l[1:]
 			context += l + '\n'
 			continue
