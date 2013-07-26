@@ -753,10 +753,10 @@ namespace libtorrent
 				if (m_accept_fast.empty())
 				{
 					m_accept_fast.reserve(10);
-					m_allowed_fast_piece_cnt.reserve(10);
+					m_accept_fast_piece_cnt.reserve(10);
 				}
 				m_accept_fast.push_back(i);
-				m_allowed_fast_piece_cnt.push_back(0);
+				m_accept_fast_piece_cnt.push_back(0);
 			}
 			return;
 		}
@@ -791,9 +791,13 @@ namespace libtorrent
 					peer_log("==> ALLOWED_FAST [ %d ]", piece);
 #endif
 					write_allow_fast(piece);
-					if (m_accept_fast.empty()) m_accept_fast.reserve(10);
+					if (m_accept_fast.empty())
+					{
+						m_accept_fast.reserve(10);
+						m_accept_fast_piece_cnt.reserve(10);
+					}
 					m_accept_fast.push_back(piece);
-					m_allowed_fast_piece_cnt.push_back(0);
+					m_accept_fast_piece_cnt.push_back(0);
 					if (int(m_accept_fast.size()) >= num_allowed_pieces
 						|| int(m_accept_fast.size()) == num_pieces) return;
 				}
@@ -2162,7 +2166,7 @@ namespace libtorrent
 
 			// disconnect peers that downloads more than foo times an allowed
 			// fast piece
-			if (m_choked && fast_idx != -1 && m_allowed_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece)
+			if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece)
 			{
 				disconnect(errors::too_many_requests_when_choked);
 				return;
@@ -2200,7 +2204,7 @@ namespace libtorrent
 			{
 				// increase the allowed fast set counter
 				if (fast_idx != -1)
-					++m_allowed_fast_piece_cnt[r.piece];
+					++m_accept_fast_piece_cnt[fast_idx];
 
 				m_choke_rejects = 0;
 				m_requests.push_back(r);
@@ -5782,6 +5786,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_in_use == 1337);
 		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
+		TORRENT_ASSERT(m_accept_fast.size() == m_accept_fast_piece_cnt.size());
 
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
 
