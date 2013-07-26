@@ -899,6 +899,11 @@ namespace libtorrent
 		// if requested (regardless of choke state)
 		std::vector<int> m_accept_fast;
 
+		// a sent-piece counter for the allowed fast set
+		// to avoid exploitation. Each slot is a counter
+		// for one of the pieces from the allowed-fast set
+		std::vector<boost::uint16_t> m_allowed_fast_piece_cnt;
+
 		// the pieces the peer will send us if
 		// requested (regardless of choke state)
 		std::vector<int> m_allowed_fast;
@@ -1290,4 +1295,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_CONNECTION_HPP_INCLUDED
-
