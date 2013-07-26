@@ -23,6 +23,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* introduce bandwidth exhaustion attack-mitigation in allowed-fast pieces
 	* python binding fix issue where torrent_info objects where destructing when their torrents were deleted
 	* added missing field to scrape_failed_alert in python bindings
 	* GCC 4.8 fix
