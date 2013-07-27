@@ -7945,6 +7945,11 @@ namespace libtorrent
 			, boost::bind(&peer_connection::download_queue_time, _1, 16*1024)
 			< boost::bind(&peer_connection::download_queue_time, _2, 16*1024));
 
+		// remove the bottom 10% of peers from the candidate set
+		int new_size = (peers.size() * 9 + 9) / 10;
+		TORRENT_ASSERT(new_size <= peers.size());
+		peers.resize(new_size);
+
 		std::set<peer_connection*> peers_with_requests;
 
 		std::vector<piece_block> interesting_blocks;
@@ -7966,7 +7971,7 @@ namespace libtorrent
 		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end && !peers.empty(); ++i)
 		{
-			// the +1000 is to compensate for the fact that we only call this functions
+			// the +1000 is to compensate for the fact that we only call this function
 			// once per second, so if we need to request it 500 ms from now, we should request
 			// it right away
 			if (i != m_time_critical_pieces.begin() && i->deadline > now
@@ -7981,6 +7986,8 @@ namespace libtorrent
 			piece_picker::downloading_piece pi;
 			m_picker->piece_info(i->piece, pi);
 
+			bool timed_out = false;
+
 			int free_to_request = m_picker->blocks_in_piece(i->piece) - pi.finished - pi.writing - pi.requested;
 			if (free_to_request == 0)
 			{
@@ -7993,8 +8000,13 @@ namespace libtorrent
 					// we're just waiting for it to flush them to disk.
 					// if last_requested is recent enough, we should give it some
 					// more time
-					break;
+					// skip to the next piece
+					continue;
 				}
+
+				// it's been too long since we requested the last block from this piece. Allow re-requesting
+				// blocks from this piece
+				timed_out = true;
 			}
 
 			// loop until every block has been requested from this piece (i->piece)
@@ -8022,6 +8034,14 @@ namespace libtorrent
 				std::vector<pending_block> const& dq = c.download_queue();
 
 				bool added_request = false;
+				bool busy_blocks = false;
+
+				if (timed_out && interesting_blocks.empty())
+				{
+					// if the piece has timed out, allow requesting back-up blocks
+					interesting_blocks.swap(backup1.empty() ? backup2 : backup1);
+					busy_blocks = true;
+				}
 
 				if (!interesting_blocks.empty())
 				{
@@ -8034,6 +8054,7 @@ namespace libtorrent
 						// simply disregard this peer from this piece, since this peer
 						// is likely to be causing the stall. We should request it
 						// from the next peer in the list
+						// the peer will be put back in the set for the next piece
 						ignore_peers.push_back(*p);
 						peers.erase(p);
 						continue;
@@ -8049,7 +8070,8 @@ namespace libtorrent
 					}
 					else
 					{
-						if (!c.add_request(interesting_blocks.front(), peer_connection::req_time_critical))
+						if (!c.add_request(interesting_blocks.front(), peer_connection::req_time_critical
+							| (busy_blocks ? peer_connection::req_busy : 0)))
 						{
 							peers.erase(p);
 							continue;
