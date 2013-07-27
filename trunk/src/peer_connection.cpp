@@ -2854,6 +2854,10 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		if (t->upload_mode()) return false;
+
+		// ignore snubbed peers, since they're not likely to return pieces in a timely
+		// manner anyway
+		if (m_snubbed) return false;
 		return true;
 	}
 
