@@ -188,10 +188,8 @@ int test_main()
 {
 	using namespace libtorrent;
 
-	test_ssl(7);
-
-//	for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
-//		test_ssl(i);
+	for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
+		test_ssl(i);
 	
 	error_code ec;
 	remove_all("tmp1_ssl", ec);
