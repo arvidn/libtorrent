@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/instantiate_connection.hpp"
+#include "setup_transfer.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>
@@ -172,14 +173,14 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
-			fprintf(stderr, "    %s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
+			fprintf(stderr, "%s: %s(%s): %s\n", time_now_string(), name, print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
 			&& (*i)->message() != "piece finished"
 			&& !no_output)
 		{
-			fprintf(stderr, "    %s: %s\n", name, (*i)->message().c_str());
+			fprintf(stderr, "%s: %s: %s\n", time_now_string(), name, (*i)->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
@@ -187,7 +188,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
 		if (pea)
 		{
-			fprintf(stderr, "    peer error: %s\n", pea->error.message().c_str());
+			fprintf(stderr, "%s: peer error: %s\n", time_now_string(), pea->error.message().c_str());
 			TEST_CHECK((!handles.empty() && h.status().is_seeding)
 				|| pea->error.message() == "connecting to peer"
 				|| pea->error.message() == "closing connection to ourself"
@@ -359,7 +360,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 }
 
 boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size
-	, int num_pieces, bool add_tracker, bool encrypted_torrent)
+	, int num_pieces, bool add_tracker, std::string ssl_certificate)
 {
 	char const* tracker_url = "http://non-existent-name.com/announce";
 	// excercise the path when encountering invalid urls
@@ -375,6 +376,23 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 		t.add_tracker(tracker_url);
 		t.add_tracker(invalid_tracker_url);
 		t.add_tracker(invalid_tracker_protocol);
+	}
+
+	if (!ssl_certificate.empty())
+	{
+		std::vector<char> file_buf;
+		error_code ec;
+		int res = load_file(ssl_certificate, file_buf, ec);
+		if (ec || res < 0)
+		{
+			fprintf(stderr, "failed to load SSL certificate: %s\n", ec.message().c_str());
+		}
+		else
+		{
+			std::string pem;
+			std::copy(file_buf.begin(), file_buf.end(), std::back_inserter(pem));
+			t.set_root_cert(pem);
+		}
 	}
 
 	std::vector<char> piece(piece_size);
@@ -401,14 +419,6 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 
 	entry tor = t.generate();
 
-	if (encrypted_torrent)
-	{
-		std::string key;
-		key.resize(32);
-		std::generate(key.begin(), key.end(), &std::rand);
-		tor["info"]["encryption-key"] = key;
-	}
-
 	bencode(out, tor);
 	error_code ec;
 	return boost::intrusive_ptr<torrent_info>(new torrent_info(
@@ -420,7 +430,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p, bool stop_lsd, bool encrypted_torrent)
+	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports)
 {
 	assert(ses1);
 	assert(ses2);
@@ -464,7 +474,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		error_code ec;
 		create_directory("tmp1" + suffix, ec);
 		std::ofstream file(combine_path("tmp1" + suffix, "temporary").c_str());
-		t = ::create_torrent(&file, piece_size, 19, true, encrypted_torrent);
+		t = ::create_torrent(&file, piece_size, 19, true);
 		file.close();
 		if (clear_files)
 		{
@@ -530,21 +540,47 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	if (connect_peers)
 	{
-		fprintf(stderr, "connecting peer\n");
 		error_code ec;
-		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
-			, ses2->listen_port()));
+		if (use_ssl_ports)
+		{
+			fprintf(stderr, "ses1: connecting peer port: %d\n", int(ses2->ssl_listen_port()));
+			tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+				, ses2->ssl_listen_port()));
+		}
+		else
+		{
+			fprintf(stderr, "ses1: connecting peer port: %d\n", int(ses2->listen_port()));
+			tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+				, ses2->listen_port()));
+		}
 
 		if (ses3)
 		{
 			// give the other peers some time to get an initial
 			// set of pieces before they start sharing with each-other
-			tor3.connect_peer(tcp::endpoint(
-				address::from_string("127.0.0.1", ec)
-				, ses2->listen_port()));
-			tor3.connect_peer(tcp::endpoint(
-				address::from_string("127.0.0.1", ec)
-				, ses1->listen_port()));
+
+			if (use_ssl_ports)
+			{
+				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses2->ssl_listen_port()));
+				tor3.connect_peer(tcp::endpoint(
+					address::from_string("127.0.0.1", ec)
+					, ses2->ssl_listen_port()));
+				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses1->ssl_listen_port()));
+				tor3.connect_peer(tcp::endpoint(
+					address::from_string("127.0.0.1", ec)
+					, ses1->ssl_listen_port()));
+			}
+			else
+			{
+				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses2->listen_port()));
+				tor3.connect_peer(tcp::endpoint(
+					address::from_string("127.0.0.1", ec)
+					, ses2->listen_port()));
+				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses1->listen_port()));
+				tor3.connect_peer(tcp::endpoint(
+					address::from_string("127.0.0.1", ec)
+					, ses1->listen_port()));
+			}
 		}
 	}
 
@@ -753,19 +789,6 @@ int start_web_server(bool ssl, bool chunked_encoding)
 		web_initialized.clear(l);
 	}
 
-	if (ssl)
-	{
-		system("echo . > tmp");
-		system("echo test province >>tmp");
-		system("echo test city >> tmp");
-		system("echo test company >> tmp");
-		system("echo test department >> tmp");
-		system("echo 127.0.0.1 >> tmp");
-		system("echo test@test.com >> tmp");   
-		system("openssl req -new -x509 -keyout server.pem -out server.pem "
-			"-days 365 -nodes <tmp");
-	}
-
 	int port = 0;
 
 	web_server.reset(new libtorrent::thread(boost::bind(
@@ -915,8 +938,8 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 	boost::asio::ssl::context ssl_ctx(ios, boost::asio::ssl::context::sslv23_server);
 	if (ssl)
 	{
-		ssl_ctx.use_certificate_chain_file("server.pem");
-		ssl_ctx.use_private_key_file("server.pem", asio::ssl::context::pem);
+		ssl_ctx.use_certificate_chain_file("ssl/server.pem");
+		ssl_ctx.use_private_key_file("ssl/server.pem", asio::ssl::context::pem);
 		ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 
 		ctx = &ssl_ctx;

@@ -59,6 +59,7 @@ test-suite libtorrent :
 	[ run test_session.cpp ]
 	[ run test_upnp.cpp ]
 
+	[ run test_ssl.cpp ]
 	[ run test_tracker.cpp ]
 	[ run test_checking.cpp ]
 	[ run test_web_seed.cpp ]

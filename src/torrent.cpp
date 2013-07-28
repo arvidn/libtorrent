@@ -427,6 +427,7 @@ namespace libtorrent
 		, m_in_state_updates(false)
 		, m_is_active_download(false)
 		, m_is_active_finished(false)
+		, m_ssl_torrent(false)
 	{
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
@@ -1363,6 +1364,12 @@ namespace libtorrent
 		if (!preverified) return false;
 
 		// we're only interested in checking the certificate at the end of the chain.
+		// TODO: is verify_peer_cert called once per certificate in the chain, and
+		// this function just tells us which depth we're at right now? If so, the comment
+		// makes sense.
+		// any certificate that isn't the leaf (i.e. the one presented by the peer)
+		// should be accepted automatically, given preverified is true. The leaf certificate
+		// need to be verified to make sure its DN matches the info-hash
 		int depth = X509_STORE_CTX_get_error_depth(ctx.native_handle());
 		if (depth > 0) return true;
 
@@ -1585,10 +1592,14 @@ namespace libtorrent
 		if (m_file_priority.size() > m_torrent_file->num_files())
 			m_file_priority.resize(m_torrent_file->num_files());
 
-#ifdef TORRENT_USE_OPENSSL
 		std::string cert = m_torrent_file->ssl_cert();
-		if (!cert.empty()) init_ssl(cert);
+		if (!cert.empty())
+		{
+			m_ssl_torrent = true;
+#ifdef TORRENT_USE_OPENSSL
+			init_ssl(cert);
 #endif
+		}
 
 		m_file_priority.resize(m_torrent_file->num_files(), 1);
 		m_file_progress.resize(m_torrent_file->num_files(), 0);
@@ -5781,13 +5792,13 @@ namespace libtorrent
 
 			void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-			if (is_ssl_torrent())
+			if (is_ssl_torrent() && m_ses.settings().ssl_listen != 0)
 			{
 				userdata = m_ssl_ctx.get();
 				// SSL handshakes are slow
 				timeout_extend = 10;
 
-				// we don't support SSL over uTP yet
+				// TODO: 3 support SSL over uTP
 				sm = 0;
 			}
 #endif
@@ -5979,6 +5990,13 @@ namespace libtorrent
 				return false;
 			}
 
+			if (!m_ssl_ctx)
+			{
+				// we don't have a valid cert, don't accept any connection!
+				p->disconnect(errors::invalid_ssl_cert);
+				return false;
+			}
+
 			if (SSL_get_SSL_CTX(ssl_conn) != m_ssl_ctx->native_handle())
 			{
 				// if the SSL_CTX associated with this connection is
@@ -5997,6 +6015,14 @@ namespace libtorrent
 			return false;
 		}
 #endif
+#else // TORRENT_USE_OPENSSL
+		if (is_ssl_torrent())
+		{
+			// Don't accidentally allow seeding of SSL torrents, just
+			// because libtorrent wasn't built with SSL support
+			p->disconnect(errors::requires_ssl_connection);
+			return false;
+		}
 #endif // TORRENT_USE_OPENSSL
 
 		TORRENT_ASSERT(p != 0);

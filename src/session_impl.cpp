@@ -581,9 +581,11 @@ namespace aux {
 		if (!t) return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		// if the torrent we found isn't an SSL torrent, also fail.
-		// the torrent doesn't have an SSL context and should not allow
-		// incoming SSL connections
 		if (!t->is_ssl_torrent()) return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+		// if the torrent doesn't have an SSL context and should not allow
+		// incoming SSL connections
+		if (!t->ssl_ctx()) return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		// use this torrent's certificate
 		SSL_set_SSL_CTX(s, t->ssl_ctx()->native_handle());
