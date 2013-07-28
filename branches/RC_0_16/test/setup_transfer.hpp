@@ -52,13 +52,14 @@ bool print_alerts(libtorrent::session& ses, char const* name
 void wait_for_listen(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
 
-extern int g_udp_tracker_requests;
-extern int g_http_tracker_requests;
+extern boost::detail::atomic_count g_udp_tracker_requests;
+extern boost::detail::atomic_count g_http_tracker_requests;
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
-	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true, bool encrypted = false);
+	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true
+	, std::string ssl_certificate = "");
 
 boost::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle
@@ -67,7 +68,7 @@ setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
 	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
-	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool encrypted_torrent = false);
+	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool use_ssl_ports = false);
 
 int start_web_server(bool ssl = false, bool chunked = false);
 void stop_web_server();

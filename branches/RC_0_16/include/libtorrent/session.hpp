@@ -353,6 +353,7 @@ namespace libtorrent
 
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;
+		unsigned short ssl_listen_port() const;
 
 		enum options_t
 		{
