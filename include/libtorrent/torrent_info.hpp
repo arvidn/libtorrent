@@ -477,6 +477,7 @@ namespace libtorrent
 #else
 		std::string ssl_cert() const
 		{
+			if (m_info_dict.type() != lazy_entry::dict_t) return "";
 			return m_info_dict.dict_find_string_value("ssl-cert");
 		}
 #endif
