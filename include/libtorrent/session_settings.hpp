@@ -919,6 +919,7 @@ namespace libtorrent
 		bool lock_files;
 
 		// open an ssl listen socket for ssl torrents on this port
+		// if this is 0, outgoing SSL connections are disabled
 		int ssl_listen;
 
 		// this is the factor X in the formula to calculate the
