@@ -474,6 +474,11 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		std::string const& ssl_cert() const { return m_ssl_root_cert; }
+#else
+		std::string ssl_cert() const
+		{
+			return m_info_dict.dict_find_string_value("ssl-cert");
+		}
 #endif
 
 		bool is_valid() const { return m_files.is_valid(); }

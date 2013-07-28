@@ -523,8 +523,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(peer_disconnected_alert);
 
 		const static int static_category = alert::debug_notification;
-		virtual std::string message() const
-		{ return peer_alert::message() + " disconnecting: " + error.message(); }
+		virtual std::string message() const;
 
 		error_code error;
 

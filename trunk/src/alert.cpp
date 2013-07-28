@@ -508,5 +508,12 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string peer_disconnected_alert::message() const
+	{
+		char msg[600];
+		snprintf(msg, sizeof(msg), "%s disconnecting: [%s] %s", peer_alert::message().c_str()
+			, error.category().name(), error.message().c_str());
+		return msg;
+	}
 } // namespace libtorrent
 

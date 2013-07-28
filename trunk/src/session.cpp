@@ -757,6 +757,12 @@ namespace libtorrent
 		return r;
 	}
 
+	unsigned short session::ssl_listen_port() const
+	{
+		TORRENT_SYNC_CALL_RET(unsigned short, ssl_listen_port);
+		return r;
+	}
+
 	session_status session::status() const
 	{
 		TORRENT_SYNC_CALL_RET(session_status, status);
