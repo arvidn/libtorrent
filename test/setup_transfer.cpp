@@ -938,8 +938,8 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 	boost::asio::ssl::context ssl_ctx(ios, boost::asio::ssl::context::sslv23_server);
 	if (ssl)
 	{
-		ssl_ctx.use_certificate_chain_file("ssl/server.pem");
-		ssl_ctx.use_private_key_file("ssl/server.pem", asio::ssl::context::pem);
+		ssl_ctx.use_certificate_chain_file("../ssl/server.pem");
+		ssl_ctx.use_private_key_file("../ssl/server.pem", asio::ssl::context::pem);
 		ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 
 		ctx = &ssl_ctx;
