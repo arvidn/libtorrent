@@ -2214,61 +2214,6 @@ namespace libtorrent
 		{
 			m_ses.inc_stats_counter(counters::invalid_piece_requests);
 
-			// if we have choked the client
-			// ignore the request
-			const int blocks_per_piece = static_cast<int>(
-				(t->torrent_file().piece_length() + t->block_size() - 1) / t->block_size());
-
-			// disconnect peers that downloads more than foo times an allowed
-			// fast piece
-			if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece)
-			{
-				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
-				return;
-			}
-
-			if (m_choked && fast_idx == -1)
-			{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				peer_log("*** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]");
-				peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
-					, r.piece, r.start, r.length);
-#endif
-#ifdef TORRENT_STATS
-				++m_ses.m_choked_piece_requests;
-#endif
-				write_reject_request(r);
-
-				time_duration since_choked = time_now() - m_last_choke;
-
-				// allow peers to send request up to 2 seconds after getting choked,
-				// the disconnect them
-				if (total_milliseconds(since_choked) > 2000)
-				{
-					disconnect(errors::too_many_requests_when_choked, op_bittorrent);
-					return;
-				}
-			}
-			else
-			{
-				// increase the allowed fast set counter
-				if (fast_idx != -1)
-					++m_accept_fast_piece_cnt[fast_idx];
-
-				m_requests.push_back(r);
-#ifdef TORRENT_REQUEST_LOGGING
-				if (m_ses.m_request_log)
-					write_request_log(m_ses.m_request_log, t->info_hash(), this, r);
-#endif
-				m_last_incoming_request = time_now();
-				fill_send_buffer();
-			}
-		}
-		else
-		{
-#ifdef TORRENT_STATS
-			++m_ses.m_invalid_piece_requests;
-#endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ "
 				"i: %d t: %d n: %d h: %d block_limit: %d ]"
@@ -2310,12 +2255,22 @@ namespace libtorrent
 
 		// if we have choked the client
 		// ignore the request
-		if (m_choked && std::find(m_accept_fast.begin(), m_accept_fast.end()
-				, r.piece) == m_accept_fast.end())
+		const int blocks_per_piece = static_cast<int>(
+			(t->torrent_file().piece_length() + t->block_size() - 1) / t->block_size());
+
+		// disconnect peers that downloads more than foo times an allowed
+		// fast piece
+		if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece)
+		{
+			disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
+			return;
+		}
+
+		if (m_choked && fast_idx == -1)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]");
-			peer_log(" ==> REJECT_PIECE [ piece: %d | s: %x | l: %x ]"
+			peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
 				, r.piece, r.start, r.length);
 #endif
 			m_ses.inc_stats_counter(counters::choked_piece_requests);
@@ -2323,7 +2278,7 @@ namespace libtorrent
 			time_duration since_choked = time_now() - m_last_choke;
 
 			// allow peers to send request up to 2 seconds after getting choked,
-			// the disconnect them
+			// then disconnect them
 			if (total_milliseconds(since_choked) > 2000)
 			{
 				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
@@ -2332,17 +2287,10 @@ namespace libtorrent
 		}
 		else
 		{
-#if defined TORRENT_REQUEST_LOGGING
-			static ptime start = time_now_hires();
-			// time-ms info-hash peer-id piece-index piece-offset size upload-rate-bytes-per-second
-			char ih[5];
-			to_hex((char const*)&t->info_hash()[0], 4, ih);
-			char pid[5];
-			to_hex((char const*)&m_peer_id[10], 4, pid);
-			fprintf(m_ses.m_request_logger, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n"
-				, total_milliseconds(time_now_hires() - start), ih, pid
-				, r.piece, r.start, r.length, m_statistics.upload_rate());
-#endif
+			// increase the allowed fast set counter
+			if (fast_idx != -1)
+				++m_accept_fast_piece_cnt[fast_idx];
+
 			if (m_requests.empty())
 				m_ses.inc_stats_counter(counters::num_peers_up_requests);
 

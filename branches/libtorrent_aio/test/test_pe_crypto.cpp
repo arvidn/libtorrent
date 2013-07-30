@@ -196,9 +196,6 @@ int test_main()
 	test_enc_handler(&aes1, &aes2);
 #endif
 
-	test_transfer(pe_settings::enabled, pe_settings::both, false, true);
-	test_transfer(pe_settings::enabled, pe_settings::both, true, true);
-
 	test_transfer(pe_settings::disabled);
 
 	test_transfer(pe_settings::forced, pe_settings::plaintext);
