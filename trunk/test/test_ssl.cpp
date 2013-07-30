@@ -78,7 +78,7 @@ int peer_disconnects = 0;
 
 bool predicate(alert* a)
 {
-	if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(a))
+	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
 	return false;
 }
@@ -178,7 +178,8 @@ void test_ssl(int test_idx)
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
-		TEST_CHECK(st2.state == torrent_status::downloading);
+		TEST_CHECK(st2.state == torrent_status::downloading
+			|| st2.state == torrent_status::checking_files);
 
 		test_sleep(100);
 	}
