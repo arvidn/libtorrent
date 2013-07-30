@@ -4160,7 +4160,8 @@ namespace libtorrent
 
 	void torrent::on_piece_sync(disk_io_job const* j)
 	{
-		TORRENT_ASSERT(has_picker());
+		// the user may have called force_recheck, which clears
+		// the piece picker
 		if (!has_picker()) return;
 
 		// unlock the piece and restore it, as if no block was
