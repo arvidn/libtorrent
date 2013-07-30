@@ -80,7 +80,7 @@ struct dht_server
 			return;
 		}
 
-		fprintf(stderr, "DHT initialized on port %d\n", m_port);
+		fprintf(stderr, "%s: DHT initialized on port %d\n", time_now_string(), m_port);
 
 		m_thread.reset(new thread(boost::bind(&dht_server::thread_fun, this)));
 	}
@@ -165,8 +165,8 @@ int num_dht_hits()
 
 void stop_dht()
 {
-	fprintf(stderr, "stop_dht()\n");
+	fprintf(stderr, "%s: stop_dht()\n", time_now_string());
 	g_dht.reset();
-	fprintf(stderr, "done\n");
+	fprintf(stderr, "%s: stop_dht() done\n", time_now_string());
 }
 
