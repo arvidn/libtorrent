@@ -6751,7 +6751,7 @@ namespace libtorrent
 
 			void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-			if (is_ssl_torrent() && m_ses.settings().ssl_listen != 0)
+			if (is_ssl_torrent() && m_ses.settings().get_int(settings_pack::ssl_listen) != 0)
 			{
 				userdata = m_ssl_ctx.get();
 				// SSL handshakes are slow
@@ -6980,7 +6980,7 @@ namespace libtorrent
 			if (!m_ssl_ctx)
 			{
 				// we don't have a valid cert, don't accept any connection!
-				p->disconnect(errors::invalid_ssl_cert);
+				p->disconnect(errors::invalid_ssl_cert, peer_connection_interface::op_ssl_handshake);
 				return false;
 			}
 
