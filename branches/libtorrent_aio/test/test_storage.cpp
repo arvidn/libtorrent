@@ -545,6 +545,7 @@ void test_fastresume(std::string const& test_path)
 		TEST_CHECK(ra.get());
 		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
 		ses.remove_torrent(h, session::delete_files);
+		std::auto_ptr<alert> da = wait_for_alert(ses, torrent_deleted_alert::alert_type);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("tmp1", "temporary"))));
 	if (exists(combine_path(test_path, combine_path("tmp1", "temporary"))))

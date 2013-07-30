@@ -254,6 +254,8 @@ namespace libtorrent
 		flush_metadata_impl(ec);
 		if (ec) return;
 
+		m_file.close();
+
 		if (!m_piece_map.empty())
 		{
 			std::string old_path = combine_path(m_path, m_name);
