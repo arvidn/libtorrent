@@ -137,7 +137,7 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	h.connect_peer(tcp::endpoint(address_v4::from_string("127.0.0.1"), peer_port));
 
 	rejected_trackers.clear();
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 15; ++i)
 	{
 		print_alerts(*s, "s", false, false, false, &alert_predicate);
 		test_sleep(100);
@@ -170,9 +170,9 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	if (flags & expect_http_reject)
 		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), http_tracker_url) != rejected_trackers.end());
 
-	fprintf(stderr, "destructing session\n");
+	fprintf(stderr, "%s: ~session\n", time_now_string());
 	delete s;
-	fprintf(stderr, "done\n");
+	fprintf(stderr, "%s: ~session done\n", time_now_string());
 
 	stop_peer();
 	stop_dht();
