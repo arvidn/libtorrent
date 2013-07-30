@@ -90,7 +90,7 @@ namespace libtorrent
 		detail::write_uint64(total_microseconds((time_now_hires() - min_time())), ptr);
 		memcpy(ptr, &ih[0], 8);
 		ptr += 8;
-		detail::write_uint32(boost::uint32_t(p), ptr);
+		detail::write_uint32(uintptr_t(p) & 0xffffffff, ptr);
 		detail::write_uint32(r.piece, ptr);
 		detail::write_uint32(r.start, ptr);
 		detail::write_uint32(r.length, ptr);
