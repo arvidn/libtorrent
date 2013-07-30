@@ -48,19 +48,35 @@ namespace libtorrent
 
 	struct peer_class_info
 	{
+		// ``ignore_unchoke_slots`` determines whether peers should always unchoke a peer,
+		// regardless of the choking algorithm, or if it should honor the unchoke slot limits.
+		// It's used for local peers by default. If *any* of the peer classes a peer belongs to
+		// has this set to true, that peer will be unchoked at all times.
 		bool ignore_unchoke_slots;
-		// this is in hundreds. 100 means to honor the normal limit.
-		// 50 means to use half of the set limit, 200 means to use
-		// twice the set limit. This applies to global connections
-		// limit and per-torrent limits
+
+		// adjusts the connection limit (global and per torrent) that
+		// applies to this peer class. By default, local peers are allowed to exceed the normal
+		// connection limit for instance. This is specified as a percent factor. 100 makes
+		// the peer class apply normally to the limit. 200 means as long as there are fewer
+		// connections than twice the limit, we accept this peer. This factor applies both to
+		// the global connection limit and the per-torrent limit. Note that if not used carefully
+		// one peer class can potentially completely starve out all other over time.
 		int connection_limit_factor;
+
+		// not used by libtorrent. It's intended as a potentially user-facing identifier
+		// of this peer class.
 		std::string label;
-		// limits are specified in bytes per second
+
+		// transfer rates limits for the whole peer class.
+		// They are specified in bytes per second and apply to the sum of all peers that are
+		// members of this class.
 		int upload_limit;
 		int download_limit;
-		// relative priority for bandwidth allocation
-		// in rate limiter. Higher number is higher
-		// priority. 0 is default
+
+		// relative priorities used by the
+		// bandwidth allocator in the rate limiter. If no rate limits are in use, the priority
+		// is not used either. Priorities start at 1 (0 is not a valid priority) and may not
+		// exceed 255.
 		int upload_priority;
 		int download_priority;
 	};

@@ -68,7 +68,7 @@ void display_pe_settings(libtorrent::pe_settings s)
 
 void test_transfer(libtorrent::pe_settings::enc_policy policy,
 		   libtorrent::pe_settings::enc_level level = libtorrent::pe_settings::both,
-		   bool pref_rc4 = false, bool encrypted_torrent = false)
+		   bool pref_rc4 = false)
 {
 	using namespace libtorrent;
 
@@ -100,7 +100,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 
 	using boost::tuples::ignore;
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, true
-		, "_pe", 16 * 1024, 0, false, 0, true, encrypted_torrent);	
+		, "_pe", 16 * 1024, 0, false, 0, true);	
 
 	fprintf(stderr, "waiting for transfer to complete\n");
 

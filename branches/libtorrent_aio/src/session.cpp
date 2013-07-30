@@ -811,15 +811,6 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	bool session::listen_on(
-		std::pair<int, int> const& port_range
-		, const char* net_interface, int flags)
-	{
-		error_code ec;
-		listen_on(port_range, ec, net_interface, flags);
-		return ec;
-	}
-
 	void session::listen_on(
 		std::pair<int, int> const& port_range
 		, error_code& ec
@@ -850,6 +841,12 @@ namespace libtorrent
 	unsigned short session::listen_port() const
 	{
 		TORRENT_SYNC_CALL_RET(unsigned short, listen_port);
+		return r;
+	}
+
+	unsigned short session::ssl_listen_port() const
+	{
+		TORRENT_SYNC_CALL_RET(unsigned short, ssl_listen_port);
 		return r;
 	}
 

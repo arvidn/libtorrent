@@ -919,12 +919,13 @@ namespace libtorrent
 			TORRENT_ASSERT(m_num_connecting > 0);
 			--m_num_connecting;
 		}
+
+		bool is_ssl_torrent() const { return m_ssl_torrent; } 
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
 			, std::string const& dh_params
 			, std::string const& passphrase);
-		bool is_ssl_torrent() const { return m_ssl_ctx; } 
 		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
 #endif
 
@@ -1502,6 +1503,11 @@ namespace libtorrent
 		// when this is set, second_tick will perform the actual
 		// work of refreshing the suggest pieces
 		bool m_need_suggest_pieces_refresh:1;
+
+		// even if we're not built to support SSL torrents,
+		// remember that this is an SSL torrent, so that we don't
+		// accidentally start seeding it without any authentication.
+		bool m_ssl_torrent:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

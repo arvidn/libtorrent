@@ -430,9 +430,10 @@ namespace libtorrent
 		else if (m_settings.get_int(settings_pack::seed_choking_algorithm)
 			== settings_pack::anti_leech)
 		{
-			// the anti-leech seeding algorithm ranks peers based on how many pieces
-			// they have, prefering to unchoke peers that just started and peers that
-			// are close to completing. Like this:
+			// the anti-leech seeding algorithm is based on the paper "Improving
+			// BitTorrent: A Simple Approach" from Chow et. al. and ranks peers based
+			// on how many pieces they have, prefering to unchoke peers that just
+			// started and peers that are close to completing. Like this:
 			//   ^
 			//   | \                       / |
 			//   |  \                     /  |
@@ -696,8 +697,13 @@ namespace libtorrent
 				TORRENT_ASSERT(std::find(m_accept_fast.begin()
 					, m_accept_fast.end(), i)
 					== m_accept_fast.end());
-				if (m_accept_fast.empty()) m_accept_fast.reserve(10);
+				if (m_accept_fast.empty())
+				{
+					m_accept_fast.reserve(10);
+					m_accept_fast_piece_cnt.reserve(10);
+				}
 				m_accept_fast.push_back(i);
+				m_accept_fast_piece_cnt.push_back(0);
 			}
 			return;
 		}
@@ -732,8 +738,13 @@ namespace libtorrent
 					peer_log("==> ALLOWED_FAST [ %d ]", piece);
 #endif
 					write_allow_fast(piece);
-					if (m_accept_fast.empty()) m_accept_fast.reserve(10);
+					if (m_accept_fast.empty())
+					{
+						m_accept_fast.reserve(10);
+						m_accept_fast_piece_cnt.reserve(10);
+					}
 					m_accept_fast.push_back(piece);
+					m_accept_fast_piece_cnt.push_back(0);
 					if (int(m_accept_fast.size()) >= num_allowed_pieces
 						|| int(m_accept_fast.size()) == num_pieces) return;
 				}
@@ -2183,6 +2194,11 @@ namespace libtorrent
 			return;
 		}
 
+		int fast_idx = -1;
+		std::vector<int>::iterator fast_iter = std::find(m_accept_fast.begin()
+			, m_accept_fast.end(), r.piece);
+		if (fast_iter != m_accept_fast.end()) fast_idx = fast_iter - m_accept_fast.begin();
+
 		// make sure this request
 		// is legal and that the peer
 		// is not choked
@@ -2197,6 +2213,62 @@ namespace libtorrent
 			|| r.length > t->block_size())
 		{
 			m_ses.inc_stats_counter(counters::invalid_piece_requests);
+
+			// if we have choked the client
+			// ignore the request
+			const int blocks_per_piece = static_cast<int>(
+				(t->torrent_file().piece_length() + t->block_size() - 1) / t->block_size());
+
+			// disconnect peers that downloads more than foo times an allowed
+			// fast piece
+			if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece)
+			{
+				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
+				return;
+			}
+
+			if (m_choked && fast_idx == -1)
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+				peer_log("*** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]");
+				peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
+					, r.piece, r.start, r.length);
+#endif
+#ifdef TORRENT_STATS
+				++m_ses.m_choked_piece_requests;
+#endif
+				write_reject_request(r);
+
+				time_duration since_choked = time_now() - m_last_choke;
+
+				// allow peers to send request up to 2 seconds after getting choked,
+				// the disconnect them
+				if (total_milliseconds(since_choked) > 2000)
+				{
+					disconnect(errors::too_many_requests_when_choked, op_bittorrent);
+					return;
+				}
+			}
+			else
+			{
+				// increase the allowed fast set counter
+				if (fast_idx != -1)
+					++m_accept_fast_piece_cnt[fast_idx];
+
+				m_requests.push_back(r);
+#ifdef TORRENT_REQUEST_LOGGING
+				if (m_ses.m_request_log)
+					write_request_log(m_ses.m_request_log, t->info_hash(), this, r);
+#endif
+				m_last_incoming_request = time_now();
+				fill_send_buffer();
+			}
+		}
+		else
+		{
+#ifdef TORRENT_STATS
+			++m_ses.m_invalid_piece_requests;
+#endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ "
 				"i: %d t: %d n: %d h: %d block_limit: %d ]"
@@ -3185,6 +3257,10 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		if (t->upload_mode()) return false;
+
+		// ignore snubbed peers, since they're not likely to return pieces in a timely
+		// manner anyway
+		if (m_snubbed) return false;
 		return true;
 	}
 
@@ -6315,6 +6391,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_in_use == 1337);
 		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
 		TORRENT_ASSERT(m_recv_end >= m_recv_start);
+		TORRENT_ASSERT(m_accept_fast.size() == m_accept_fast_piece_cnt.size());
 
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
 
@@ -6620,4 +6697,3 @@ namespace libtorrent
 	}
 
 }
-

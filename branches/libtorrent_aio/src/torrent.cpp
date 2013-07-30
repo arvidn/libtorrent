@@ -336,6 +336,7 @@ namespace libtorrent
 		, m_have_all(false)
 		, m_current_gauge_state(no_gauge_state)
 		, m_need_suggest_pieces_refresh(false)
+		, m_ssl_torrent(false)
 	{
 		if (m_pinned)
 			m_ses.inc_stats_counter(counters::num_pinned_torrents);
@@ -1478,6 +1479,12 @@ namespace libtorrent
 		if (!preverified) return false;
 
 		// we're only interested in checking the certificate at the end of the chain.
+		// TODO: is verify_peer_cert called once per certificate in the chain, and
+		// this function just tells us which depth we're at right now? If so, the comment
+		// makes sense.
+		// any certificate that isn't the leaf (i.e. the one presented by the peer)
+		// should be accepted automatically, given preverified is true. The leaf certificate
+		// need to be verified to make sure its DN matches the info-hash
 		int depth = X509_STORE_CTX_get_error_depth(ctx.native_handle());
 		if (depth > 0) return true;
 
@@ -1722,10 +1729,14 @@ namespace libtorrent
 		if (m_file_priority.size() > m_torrent_file->num_files())
 			m_file_priority.resize(m_torrent_file->num_files());
 
-#ifdef TORRENT_USE_OPENSSL
 		std::string cert = m_torrent_file->ssl_cert();
-		if (!cert.empty()) init_ssl(cert);
+		if (!cert.empty())
+		{
+			m_ssl_torrent = true;
+#ifdef TORRENT_USE_OPENSSL
+			init_ssl(cert);
 #endif
+		}
 
 		m_block_size_shift = root2((std::min)(int(block_size()), m_torrent_file->piece_length()));
 
@@ -6739,13 +6750,13 @@ namespace libtorrent
 
 			void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-			if (is_ssl_torrent())
+			if (is_ssl_torrent() && m_ses.settings().ssl_listen != 0)
 			{
 				userdata = m_ssl_ctx.get();
 				// SSL handshakes are slow
 				timeout_extend = 10;
 
-				// we don't support SSL over uTP yet
+				// TODO: 3 support SSL over uTP
 				sm = 0;
 			}
 #endif
@@ -6965,6 +6976,13 @@ namespace libtorrent
 				return false;
 			}
 
+			if (!m_ssl_ctx)
+			{
+				// we don't have a valid cert, don't accept any connection!
+				p->disconnect(errors::invalid_ssl_cert);
+				return false;
+			}
+
 			if (SSL_get_SSL_CTX(ssl_conn) != m_ssl_ctx->native_handle())
 			{
 				// if the SSL_CTX associated with this connection is
@@ -6983,6 +7001,14 @@ namespace libtorrent
 			return false;
 		}
 #endif
+#else // TORRENT_USE_OPENSSL
+		if (is_ssl_torrent())
+		{
+			// Don't accidentally allow seeding of SSL torrents, just
+			// because libtorrent wasn't built with SSL support
+			p->disconnect(errors::requires_ssl_connection, peer_connection_interface::op_ssl_handshake);
+			return false;
+		}
 #endif // TORRENT_USE_OPENSSL
 
 		TORRENT_ASSERT(p != 0);
@@ -9184,6 +9210,11 @@ namespace libtorrent
 			, boost::bind(&peer_connection::download_queue_time, _1, 16*1024)
 			< boost::bind(&peer_connection::download_queue_time, _2, 16*1024));
 
+		// remove the bottom 10% of peers from the candidate set
+		int new_size = (peers.size() * 9 + 9) / 10;
+		TORRENT_ASSERT(new_size <= peers.size());
+		peers.resize(new_size);
+
 		std::set<peer_connection*> peers_with_requests;
 
 		std::vector<piece_block> interesting_blocks;
@@ -9207,7 +9238,7 @@ namespace libtorrent
 		{
 			if (peers.empty()) break;
 
-			// the +1000 is to compensate for the fact that we only call this functions
+			// the +1000 is to compensate for the fact that we only call this function
 			// once per second, so if we need to request it 500 ms from now, we should request
 			// it right away
 			if (i != m_time_critical_pieces.begin() && i->deadline > now
@@ -9222,6 +9253,8 @@ namespace libtorrent
 			piece_picker::downloading_piece pi;
 			m_picker->piece_info(i->piece, pi);
 
+			bool timed_out = false;
+
 			int free_to_request = m_picker->blocks_in_piece(i->piece) - pi.finished - pi.writing - pi.requested;
 			if (free_to_request == 0)
 			{
@@ -9234,8 +9267,13 @@ namespace libtorrent
 					// we're just waiting for it to flush them to disk.
 					// if last_requested is recent enough, we should give it some
 					// more time
-					break;
+					// skip to the next piece
+					continue;
 				}
+
+				// it's been too long since we requested the last block from this piece. Allow re-requesting
+				// blocks from this piece
+				timed_out = true;
 			}
 
 			// loop until every block has been requested from this piece (i->piece)
@@ -9263,6 +9301,14 @@ namespace libtorrent
 				std::vector<pending_block> const& dq = c.download_queue();
 
 				bool added_request = false;
+				bool busy_blocks = false;
+
+				if (timed_out && interesting_blocks.empty())
+				{
+					// if the piece has timed out, allow requesting back-up blocks
+					interesting_blocks.swap(backup1.empty() ? backup2 : backup1);
+					busy_blocks = true;
+				}
 
 				if (!interesting_blocks.empty())
 				{
@@ -9275,6 +9321,7 @@ namespace libtorrent
 						// simply disregard this peer from this piece, since this peer
 						// is likely to be causing the stall. We should request it
 						// from the next peer in the list
+						// the peer will be put back in the set for the next piece
 						ignore_peers.push_back(*p);
 						peers.erase(p);
 						continue;
@@ -9290,7 +9337,8 @@ namespace libtorrent
 					}
 					else
 					{
-						if (!c.add_request(interesting_blocks.front(), peer_connection::req_time_critical))
+						if (!c.add_request(interesting_blocks.front(), peer_connection::req_time_critical
+							| (busy_blocks ? peer_connection::req_busy : 0)))
 						{
 							peers.erase(p);
 							continue;

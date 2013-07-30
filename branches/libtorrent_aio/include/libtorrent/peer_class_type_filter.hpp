@@ -39,6 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// ``peer_class_type_filter`` is a simple container for rules for adding and subtracting
+	// peer-classes from peers. It is applied *after* the peer class filter is applied (which
+	// is based on the peer's IP address).
 	struct peer_class_type_filter
 	{
 		peer_class_type_filter()
@@ -59,6 +62,9 @@ namespace libtorrent
 			num_socket_types
 		};
 
+
+		// ``add()`` and ``remove()`` adds and removes a peer class to be added
+		// to new peers based on socket type.
 		void add(socket_type_t st, int peer_class)
 		{
 			TORRENT_ASSERT(peer_class >= 0);
@@ -69,7 +75,6 @@ namespace libtorrent
 			if (st < 0 || st >= num_socket_types) return;
 			m_peer_class_type[st] |= 1 << peer_class;
 		}
-
 		void remove(socket_type_t st, int peer_class)
 		{
 			TORRENT_ASSERT(peer_class >= 0);
@@ -81,6 +86,11 @@ namespace libtorrent
 			m_peer_class_type[st] &= ~(1 << peer_class);
 		}
 
+		// ``disallow()`` and ``allow()`` adds and removes a peer class to be
+		// removed from new peers based on socket type.
+		// 
+		// The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
+		// peer classes in the ``peer_class_type_filter`` are 32 bits.
 		void disallow(socket_type_t st, int peer_class)
 		{
 			TORRENT_ASSERT(peer_class >= 0);
@@ -91,7 +101,6 @@ namespace libtorrent
 			if (st < 0 || st >= num_socket_types) return;
 			m_peer_class_type_mask[st] &= ~(1 << peer_class);
 		}
-
 		void allow(socket_type_t st, int peer_class)
 		{
 			TORRENT_ASSERT(peer_class >= 0);
@@ -103,6 +112,9 @@ namespace libtorrent
 			m_peer_class_type_mask[st] |= 1 << peer_class;
 		}
 
+		// takes a bitmask of peer classes and returns a new bitmask of
+		// peer classes after the rules have been applied, based on the socket type argument
+		// (``st``).
 		boost::uint32_t apply(int st, boost::uint32_t peer_class_mask)
 		{
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);

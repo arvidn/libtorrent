@@ -216,6 +216,10 @@ namespace libtorrent
 			// It has the same effect as calling ``torrent_handle::sequential_download(true)``
 			// on the torrent handle immediately after adding it.
 			flag_sequential_download = 0x800,
+
+			// indicates that this torrent should never be unloaded from RAM, even
+			// if unloading torrents are allowed in general. Setting this makes the torrent
+			// exempt from loading/unloading management.
 			flag_pinned = 0x1000,
 
 			// internal

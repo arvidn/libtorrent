@@ -204,6 +204,9 @@ namespace libtorrent
 		utp_status utp_stats;
 
 		int peerlist_size;
+
+		// the number of torrents in the
+		// session and the number of them that are currently paused, respectively.
 		int num_torrents;
 		int num_paused_torrents;
 	};
