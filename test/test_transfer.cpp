@@ -414,7 +414,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
-			|| st2.state == torrent_status::checking_files
+			|| st2.state == torrent_status::checking_resume_data
 			|| (test_disk_full && !st2.error.empty()));
 
 		if (peer_disconnects == 2) break;
