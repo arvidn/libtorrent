@@ -164,7 +164,7 @@ void test_ssl(int test_idx)
 				<< std::endl;
 		}
 
-		if (peer_disconnects == 2) break;
+		if (peer_disconnects >= 2) break;
 
 		if (st2.is_finished) break;
 
