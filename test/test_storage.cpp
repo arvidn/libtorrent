@@ -61,7 +61,7 @@ char* piece3 = page_aligned_allocator::malloc(piece_size);
 void signal_bool(bool* b, char const* string)
 {
 	*b = true;
-	std::cerr << string << std::endl;
+	std::cerr << time_now_string() << " " << string << std::endl;
 }
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
