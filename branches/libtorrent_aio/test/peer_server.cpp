@@ -159,6 +159,6 @@ void stop_peer()
 {
 	fprintf(stderr, "%s: stop_peer()\n", time_now_string());
 	g_peer.reset();
-	fprintf(stderr, "%s: done\n", time_now_string());
+	fprintf(stderr, "%s: stop_peer() done\n", time_now_string());
 }
 

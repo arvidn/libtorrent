@@ -57,6 +57,8 @@ bool predicate(alert* a)
 {
 	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
+	else if (alert_cast<peer_error_alert>(a))
+		++peer_disconnects;
 	return false;
 }
 
@@ -354,15 +356,16 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		if (test_disk_full && st2.upload_mode && ++upload_mode_timer > 10)
 		{
 			test_disk_full = false;
-			std::cerr << "lifting write limit in storage" << std::endl;
+			std::cerr << time_now_string() << " lifting write limit in storage" << std::endl;
 			((test_storage*)tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
 			tor2.set_upload_mode(false);
 			// at this point we probably disconnected the seed
 			// so we need to reconnect as well
-			fprintf(stderr, "reconnecting peer\n");
+			fprintf(stderr, "%s: reconnecting peer\n", time_now_string());
 			error_code ec;
 			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 				, ses1.listen_port()));
+			peer_disconnects = 0;
 			continue;
 		}
 
@@ -371,10 +374,10 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
-			|| st2.state == torrent_status::checking_files
+			|| st2.state == torrent_status::checking_resume_data
 			|| (test_disk_full && !st2.error.empty()));
 
-		if (peer_disconnects == 2) break;
+		if (!test_disk_full && peer_disconnects >= 2) break;
 
 		test_sleep(100);
 	}

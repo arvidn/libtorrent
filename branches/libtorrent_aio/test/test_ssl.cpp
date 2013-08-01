@@ -164,7 +164,7 @@ void test_ssl(int test_idx)
 				<< std::endl;
 		}
 
-		if (peer_disconnects == 2) break;
+		if (peer_disconnects >= 2) break;
 
 		if (st2.is_finished) break;
 
@@ -179,7 +179,7 @@ void test_ssl(int test_idx)
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
-			|| st2.state == torrent_status::checking_files);
+			|| st2.state == torrent_status::checking_resume_data);
 
 		test_sleep(100);
 	}

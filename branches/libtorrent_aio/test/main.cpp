@@ -81,6 +81,7 @@ void sig_handler(int sig)
 
 int main()
 {
+	srand(total_microseconds(time_now_hires() - min_time()));
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
 	// which sometimes causes tests to fail with EAGAIN just

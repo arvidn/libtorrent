@@ -108,7 +108,7 @@ namespace libtorrent
 		detail::write_uint64(total_microseconds((time_now_hires() - min_time())), ptr);
 		memcpy(ptr, &ih[0], 8);
 		ptr += 8;
-		detail::write_uint32(uintptr_t(p), ptr);
+		detail::write_uint32(uintptr_t(p) & 0xffffffff, ptr);
 		detail::write_uint32(r.piece, ptr);
 		detail::write_uint32(r.start, ptr);
 		detail::write_uint32(r.length, ptr);
@@ -6104,7 +6104,7 @@ namespace libtorrent
 		if (t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().post_alert(peer_connect_alert(
-				t->get_handle(), remote(), pid()));
+				t->get_handle(), remote(), pid(), m_socket->type()));
 		}
 #if defined TORRENT_VERBOSE_LOGGING
 		peer_log("*** LOCAL ENDPOINT[ e: %s ]", print_endpoint(m_socket->local_endpoint(ec)).c_str());

@@ -57,6 +57,7 @@ const int half = piece_size / 2;
 char* piece0 = page_aligned_allocator::malloc(piece_size);
 char* piece1 = page_aligned_allocator::malloc(piece_size);
 char* piece2 = page_aligned_allocator::malloc(piece_size);
+char* piece3 = page_aligned_allocator::malloc(piece_size);
 
 void signal_bool(bool* b, char const* string)
 {
@@ -66,28 +67,28 @@ void signal_bool(bool* b, char const* string)
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
-	std::cerr << "on_read_piece piece: " << j.piece << std::endl;
+	std::cerr << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
 	TEST_EQUAL(ret, size);
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
 void on_check_resume_data(disk_io_job const* j, bool* done)
 {
-	std::cerr << "on_check_resume_data ret: " << j->ret;
+	std::cerr << time_now_string() << " on_check_resume_data ret: " << j->ret;
 	switch (j->ret)
 	{
 		case piece_manager::no_error:
-			std::cerr << " success" << std::endl;
+			std::cerr << time_now_string() << " success" << std::endl;
 			break;
 		case piece_manager::fatal_disk_error:
-			std::cerr << " disk error: " << j->error.ec.message()
+			std::cerr << time_now_string() << " disk error: " << j->error.ec.message()
 				<< " file: " << j->error.file << std::endl;
 			break;
 		case piece_manager::need_full_check:
-			std::cerr << " need full check" << std::endl;
+			std::cerr << time_now_string() << " need full check" << std::endl;
 			break;
 		case piece_manager::disk_check_aborted:
-			std::cerr << " aborted" << std::endl;
+			std::cerr << time_now_string() << " aborted" << std::endl;
 			break;
 	}
 	*done = true;
@@ -95,8 +96,8 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 
 void print_error(char const* call, int ret, storage_error const& ec)
 {
-	fprintf(stderr, "%s() returned: %d error: \"%s\" in file: %d operation: %d\n"
-		, call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
+	fprintf(stderr, "%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
+		, time_now_string(), call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
 }
 
 void run_until(io_service& ios, bool const& done)
@@ -111,7 +112,7 @@ void run_until(io_service& ios, bool const& done)
 			std::cerr << "run_one: " << ec.message() << std::endl;
 			return;
 		}
-		std::cerr << "done: " << done << std::endl;
+		std::cerr << time_now_string() << " done: " << done << std::endl;
 	}
 }
 
@@ -402,16 +403,26 @@ void run_test(std::string const& test_path, bool unbuffered)
 	const int last_file_size = 4 * piece_size - fs.total_size();
 	fs.add_file("temp_storage/test7.tmp", last_file_size);
 
+	// File layout
+	// +-+--+++-------+-------+----------------------------------------------------------------------------------------+
+	// |1| 2||| file5 | file6 | file7                                                                                  |
+	// +-+--+++-------+-------+----------------------------------------------------------------------------------------+
+	// |                           |                           |                           |                           |
+	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
+
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
+	TEST_CHECK(t.num_pieces() == 4);
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
+	t.set_hash(3, hasher(piece3, piece_size).final());
 	
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	info = boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0);
-	std::cerr << "=== test 1 ===" << std::endl;
+	std::cerr << "=== test 1 === " << (unbuffered?"unbuffered":"buffered") << std::endl;
 
+	// run_storage_tests writes piece 0, 1 and 2. not 3
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
 
 	// make sure the files have the correct size
@@ -419,9 +430,13 @@ void run_test(std::string const& test_path, bool unbuffered)
 	fprintf(stderr, "base = \"%s\"\n", base.c_str());
 	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
 	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
-	// these files should have been allocated since they are 0 sized
+	
+	// these files should have been allocated as 0 size
 	TEST_CHECK(exists(combine_path(base, "test3.tmp")));
 	TEST_CHECK(exists(combine_path(base, "test4.tmp")));
+	TEST_CHECK(file_size(combine_path(base, "test3.tmp")) == 0);
+	TEST_CHECK(file_size(combine_path(base, "test4.tmp")) == 0);
+
 	TEST_EQUAL(file_size(combine_path(base, "test5.tmp")), 3253);
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
 	printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n", int(file_size(combine_path(base, "test7.tmp"))), int(last_file_size - piece_size), last_file_size, piece_size);
@@ -521,16 +536,16 @@ void test_fastresume(std::string const& test_path)
 			return;
 				
 		torrent_status s;
-		for (int i = 0; i < 5; ++i)
+		for (int i = 0; i < 50; ++i)
 		{
 			print_alerts(ses, "ses");
-			test_sleep(1000);
 			s = h.status();
 			if (s.progress == 1.0f) 
 			{
 				std::cout << "progress: 1.0f" << std::endl;
 				break;
 			}
+			test_sleep(100);
 		}
 
 		// the whole point of the test is to have a resume
@@ -629,10 +644,10 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		for (int i = 0; i < 5; ++i)
 		{
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
-			test_sleep(1000);
 			torrent_status s = h.status();
 			if (s.state == torrent_status::downloading) break;
 			if (s.state == torrent_status::seeding && renamed) break;
+			test_sleep(100);
 		}
 		std::cout << "stop loop" << std::endl;
 		torrent_status s = h.status();
@@ -663,12 +678,15 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
-		for (int i = 0; i < 5; ++i)
+		torrent_status stat;
+		for (int i = 0; i < 50; ++i)
 		{
+			stat = h.status();
 			print_alerts(ses, "ses");
-			test_sleep(1000);
+			if (stat.state == torrent_status::seeding)
+				break;
+			test_sleep(100);
 		}
-		torrent_status stat = h.status();
 		TEST_CHECK(stat.state == torrent_status::seeding);
 
 		h.save_resume_data();
@@ -695,6 +713,8 @@ int test_main()
 	for (char* p = piece1, *end(piece1 + piece_size); p < end; ++p)
 		*p = rand();
 	for (char* p = piece2, *end(piece2 + piece_size); p < end; ++p)
+		*p = rand();
+	for (char* p = piece3, *end(piece3 + piece_size); p < end; ++p)
 		*p = rand();
 
 	std::vector<std::string> test_paths;
