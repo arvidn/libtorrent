@@ -56,6 +56,7 @@ const int half = piece_size / 2;
 char* piece0 = page_aligned_allocator::malloc(piece_size);
 char* piece1 = page_aligned_allocator::malloc(piece_size);
 char* piece2 = page_aligned_allocator::malloc(piece_size);
+char* piece3 = page_aligned_allocator::malloc(piece_size);
 
 void signal_bool(bool* b, char const* string)
 {
@@ -822,25 +823,38 @@ void run_test(std::string const& test_path, bool unbuffered)
 	const int last_file_size = 4 * piece_size - fs.total_size();
 	fs.add_file("temp_storage/test7.tmp", last_file_size);
 
+	// File layout
+	// +-+--+++-------+-------+----------------------------------------------------------------------------------------+
+	// |1| 2||| file5 | file6 | file7                                                                                  |
+	// +-+--+++-------+-------+----------------------------------------------------------------------------------------+
+	// |                           |                           |                           |                           |
+	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
+
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
+	t.set_hash(3, hasher(piece3, piece_size).final());
 	
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	info = new torrent_info(&buf[0], buf.size(), ec);
-	std::cerr << "=== test 1 ===" << std::endl;
+	std::cerr << "=== test 1 === " << (unbuffered?"unbuffered":"buffered") << std::endl;
 
+	// run_storage_tests writes piece 0, 1 and 2. not 3
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
 
 	// make sure the files have the correct size
 	std::string base = combine_path(test_path, "temp_storage");
 	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
 	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
-	// these files should have been allocated since they are 0 sized
+	
+	// these files should have been allocated as 0 size
 	TEST_CHECK(exists(combine_path(base, "test3.tmp")));
 	TEST_CHECK(exists(combine_path(base, "test4.tmp")));
+	TEST_CHECK(file_size(combine_path(base, "test3.tmp")) == 0);
+	TEST_CHECK(file_size(combine_path(base, "test4.tmp")) == 0);
+
 	TEST_EQUAL(file_size(combine_path(base, "test5.tmp")), 3253);
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
 	printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n", int(file_size(combine_path(base, "test7.tmp"))), int(last_file_size - piece_size), last_file_size, piece_size);
@@ -861,6 +875,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
+	t.set_hash(3, hasher(piece3, piece_size).final());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -1106,6 +1121,8 @@ int test_main()
 	for (char* p = piece1, *end(piece1 + piece_size); p < end; ++p)
 		*p = rand();
 	for (char* p = piece2, *end(piece2 + piece_size); p < end; ++p)
+		*p = rand();
+	for (char* p = piece3, *end(piece3 + piece_size); p < end; ++p)
 		*p = rand();
 
 	std::vector<std::string> test_paths;
