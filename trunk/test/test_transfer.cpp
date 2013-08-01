@@ -95,7 +95,7 @@ void test_rate()
 
 	ptime start = time_now();
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 70; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &predicate);
 		print_alerts(ses2, "ses2", true, true, true, &predicate);
@@ -120,7 +120,6 @@ void test_rate()
 	
 	std::cerr << "average download rate: " << (t->total_size() / (std::max)(total_milliseconds(dt), 1))
 		<< " kB/s" << std::endl;
-
 }
 
 void print_alert(std::auto_ptr<alert>)
