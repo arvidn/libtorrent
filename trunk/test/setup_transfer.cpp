@@ -638,7 +638,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 {
 	if (ec)
 	{
-		fprintf(stderr, "UDP tracker, read failed: %s\n", ec.message().c_str());
+		fprintf(stderr, "%s: UDP tracker, read failed: %s\n", time_now_string(), ec.message().c_str());
 		return;
 	}
 
@@ -646,7 +646,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 	if (bytes_transferred < 16)
 	{
-		fprintf(stderr, "UDP message too short\n");
+		fprintf(stderr, "%s: UDP message too short\n", time_now_string());
 		return;
 	}
 
@@ -999,7 +999,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				ios.reset();
 				if (stop_thread || ios.run_one(e) == 0)
 				{
-					fprintf(stderr, "io_service stopped: %s\n", e.message().c_str());
+					fprintf(stderr, "%s: io_service stopped: %s\n", time_now_string(), e.message().c_str());
 					break;
 				}
 			}
@@ -1007,20 +1007,20 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			if (ec)
 			{
-				fprintf(stderr, "accept failed: %s\n", ec.message().c_str());
+				fprintf(stderr, "%s: accept failed: %s\n", time_now_string(), ec.message().c_str());
 				return;
 			}
-			DLOG(stderr, "accepting incoming connection\n");
+			DLOG(stderr, "%s: accepting incoming connection\n", time_now_string());
 			if (!s.is_open())
 			{
-				fprintf(stderr, "incoming connection closed\n");
+				fprintf(stderr, "%s: incoming connection closed\n", time_now_string());
 				continue;
 			}
 
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl)
 			{
-				DLOG(stderr, "SSL handshake\n");
+				DLOG(stderr, "%s: SSL handshake\n", time_now_string());
 				s.get<ssl_stream<stream_socket> >()->accept_handshake(ec);
 				if (ec)
 				{
@@ -1146,7 +1146,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			}
 
 			std::string path = p.path();
-			fprintf(stderr, "%s\n", path.c_str());
+			fprintf(stderr, "%s: %s\n", time_now_string(), path.c_str());
 
 			if (path == "/redirect")
 			{
@@ -1318,7 +1318,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 	}
 
 	web_ios = 0;
-	fprintf(stderr, "exiting web server thread\n");
+	fprintf(stderr, "%s: exiting web server thread\n", time_now_string());
 }
 
 

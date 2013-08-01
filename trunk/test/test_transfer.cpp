@@ -59,6 +59,8 @@ bool predicate(alert* a)
 {
 	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
+	else if (alert_cast<peer_error_alert>(a))
+		++peer_disconnects;
 	return false;
 }
 
@@ -398,6 +400,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			test_disk_full = false;
 			((test_storage*)tor2.get_storage_impl())->m_limit = 16 * 1024 * 1024;
 			tor2.set_upload_mode(false);
+			fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
+			peer_disconnects = 0;
+			test_sleep(100);
 			continue;
 		}
 
@@ -417,7 +422,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			|| st2.state == torrent_status::checking_resume_data
 			|| (test_disk_full && !st2.error.empty()));
 
-		if (peer_disconnects == 2) break;
+		if (!test_disk_full && peer_disconnects >= 2) break;
 
 		test_sleep(100);
 	}
