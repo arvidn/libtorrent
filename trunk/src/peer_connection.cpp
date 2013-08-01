@@ -5480,7 +5480,7 @@ namespace libtorrent
 		if (t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().post_alert(peer_connect_alert(
-				t->get_handle(), remote(), pid()));
+				t->get_handle(), remote(), pid(), m_socket->type()));
 		}
 #if defined TORRENT_VERBOSE_LOGGING
 		peer_log("*** LOCAL ENDPOINT[ e: %s ]", print_endpoint(m_socket->local_endpoint(ec)).c_str());

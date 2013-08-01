@@ -497,15 +497,17 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_connect_alert: peer_alert
 	{
 		peer_connect_alert(torrent_handle h, tcp::endpoint const& ep
-			, peer_id const& peer_id)
+			, peer_id const& peer_id, int type)
 			: peer_alert(h, ep, peer_id)
+			, socket_type(type)
 		{}
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert);
 
 		const static int static_category = alert::debug_notification;
-		virtual std::string message() const
-		{ return peer_alert::message() + " connecting to peer"; }
+		virtual std::string message() const;;
+
+		int socket_type;
 	};
 
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
