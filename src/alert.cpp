@@ -442,24 +442,34 @@ namespace libtorrent {
 		return torrent_alert::message() + " needs SSL certificate";
 	}
 
+	static char const* type_str[] = {
+		"null",
+		"TCP",
+		"Socks5/TCP",
+		"HTTP",
+		"uTP",
+		"i2p",
+		"SSL/TCP",
+		"SSL/Socks5",
+		"HTTPS",
+		"SSL/uTP"
+		};
+
 	std::string incoming_connection_alert::message() const
 	{
 		char msg[600];
-		char const* type_str[] = {
-			"null",
-			"TCP",
-			"Socks5/TCP",
-			"HTTP",
-			"uTP",
-			"i2p",
-			"SSL/TCP",
-			"SSL/Socks5",
-			"HTTPS",
-			"SSL/uTP"
-			};
 		error_code ec;
 		snprintf(msg, sizeof(msg), "incoming connection from %s (%s)"
 			, print_endpoint(ip).c_str(), type_str[socket_type]);
+		return msg;
+	}
+
+	std::string peer_connect_alert::message() const
+	{
+		char msg[600];
+		error_code ec;
+		snprintf(msg, sizeof(msg), "%s connecting to peer (%s)"
+			, peer_alert::message().c_str(), type_str[socket_type]);
 		return msg;
 	}
 
