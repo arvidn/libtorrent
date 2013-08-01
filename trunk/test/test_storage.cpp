@@ -440,7 +440,7 @@ void run_until(io_service& ios, bool const& done)
 		ios.run_one(ec);
 		if (ec)
 		{
-			std::cerr << "run_one: " << ec.message() << std::endl;
+			std::cerr << "run_one: " << ec.message().c_str() << std::endl;
 			return;
 		}
 		std::cerr << time_now_string() << " done: " << done << std::endl;

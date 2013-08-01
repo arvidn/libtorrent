@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
+#include <set>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -831,21 +832,15 @@ int test_main()
 
 	std::vector<announce_entry> trackers = t.trackers();
 	TEST_EQUAL(trackers.size(), 3);
-	if (trackers.size() > 0)
-	{
-		TEST_EQUAL(trackers[0].url, "http://1");
-		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
-	}
-	if (trackers.size() > 1)
-	{
-		TEST_EQUAL(trackers[1].url, "http://2");
-		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
-	}
-	if (trackers.size() > 2)
-	{
-		TEST_EQUAL(trackers[2].url, "http://3");
-		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
-	}
+	std::set<std::string> trackers_set;
+	for (std::vector<announce_entry>::iterator i = trackers.begin()
+		, end(trackers.end()); i != end; ++i)
+		trackers_set.insert(i->url);
+	
+
+	TEST_CHECK(trackers_set.count("http://1") == 1);
+	TEST_CHECK(trackers_set.count("http://2") == 1);
+	TEST_CHECK(trackers_set.count("http://3") == 1);
 
 	p.url = "magnet:"
 		"?tr=http://1"
