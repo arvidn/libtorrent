@@ -100,7 +100,18 @@ void save_resume::handle_alert(alert const* a)
 	{
 		bool wrapped = false;
 		boost::unordered_set<torrent_handle>::iterator i = m_torrents.find(td->handle);
-		TORRENT_ASSERT(i != m_torrents.end());
+		if (i == m_torrents.end())
+		{
+			// this is a bit sad...
+			// maybe this should be a bimap, so we can look it up by info-hash as well
+			for (i = m_torrents.begin(); i != m_torrents.end(); ++i)
+			{
+				if (!i->is_valid()) continue;
+				if (i->info_hash() == td->info_hash)
+					break;
+			}
+			if (i == m_torrents.end()) return;
+		}
 		if (m_cursor == i)
 		{
 			++m_cursor;
