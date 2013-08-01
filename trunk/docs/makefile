@@ -72,5 +72,5 @@ reference.rst:gen_reference_doc.py ../include/libtorrent/*.hpp
 	cp $@ $(WEB_PATH)/$@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html reference*.html
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html reference*.html reference*.rst
 
