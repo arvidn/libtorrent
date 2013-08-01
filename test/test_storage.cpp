@@ -66,28 +66,28 @@ void signal_bool(bool* b, char const* string)
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
-	std::cerr << "on_read_piece piece: " << j.piece << std::endl;
+	std::cerr << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
 	TEST_EQUAL(ret, size);
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
 void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
 {
-	std::cerr << "on_check_resume_data ret: " << ret;
+	std::cerr << time_now_string() << " on_check_resume_data ret: " << ret;
 	switch (ret)
 	{
 		case piece_manager::no_error:
-			std::cerr << " success" << std::endl;
+			std::cerr << time_now_string() << " success" << std::endl;
 			break;
 		case piece_manager::fatal_disk_error:
-			std::cerr << " disk error: " << j.str
+			std::cerr << time_now_string() << " disk error: " << j.str
 				<< " file: " << j.error_file << std::endl;
 			break;
 		case piece_manager::need_full_check:
-			std::cerr << " need full check" << std::endl;
+			std::cerr << time_now_string() << " need full check" << std::endl;
 			break;
 		case piece_manager::disk_check_aborted:
-			std::cerr << " aborted" << std::endl;
+			std::cerr << time_now_string() << " aborted" << std::endl;
 			break;
 	}
 	*done = true;
@@ -95,25 +95,25 @@ void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
 
 void on_check_files(int ret, disk_io_job const& j, bool* done)
 {
-	std::cerr << "on_check_files ret: " << ret;
+	std::cerr << " on_check_files ret: " << ret;
 
 	switch (ret)
 	{
 		case piece_manager::no_error:
-			std::cerr << " done" << std::endl;
+			std::cerr << time_now_string() << " done" << std::endl;
 			*done = true;
 			break;
 		case piece_manager::fatal_disk_error:
-			std::cerr << " disk error: " << j.str
+			std::cerr << time_now_string() << " disk error: " << j.str
 				<< " file: " << j.error_file << std::endl;
 			*done = true;
 			break;
 		case piece_manager::need_full_check:
-			std::cerr << " current slot: " << j.piece
+			std::cerr << time_now_string() << " current slot: " << j.piece
 				<< " have: " << j.offset << std::endl;
 			break;
 		case piece_manager::disk_check_aborted:
-			std::cerr << " aborted" << std::endl;
+			std::cerr << time_now_string() << " aborted" << std::endl;
 			*done = true;
 			break;
 	}
@@ -121,7 +121,7 @@ void on_check_files(int ret, disk_io_job const& j, bool* done)
 
 void on_read(int ret, disk_io_job const& j, bool* done)
 {
-	std::cerr << "on_read ret: " << ret << std::endl;
+	std::cerr << time_now_string() << " on_read ret: " << ret << std::endl;
 	*done = true;
 
 	if (ret < 0)
@@ -134,7 +134,7 @@ void on_read(int ret, disk_io_job const& j, bool* done)
 
 void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path)
 {
-	std::cerr << "on_move_storage ret: " << ret << " path: " << j.str << std::endl;
+	std::cerr << time_now_string() << " on_move_storage ret: " << ret << " path: " << j.str << std::endl;
 	TEST_EQUAL(ret, 0);
 	TEST_EQUAL(j.str, path);
 	*done = true;
@@ -142,7 +142,7 @@ void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path
 
 void on_move_storage_exist(int ret, bool* done, disk_io_job const& j, std::string path)
 {
-	std::cerr << "on_move_storage_exist ret: " << ret << " path: " << j.str << std::endl;
+	std::cerr << time_now_string() << " on_move_storage_exist ret: " << ret << " path: " << j.str << std::endl;
 	TEST_EQUAL(ret, piece_manager::file_exist);
 	TEST_EQUAL(j.str, path);
 	TEST_EQUAL(j.error, error_code(boost::system::errc::file_exists, get_system_category()));
@@ -152,7 +152,7 @@ void on_move_storage_exist(int ret, bool* done, disk_io_job const& j, std::strin
 
 void print_error(int ret, boost::scoped_ptr<storage_interface> const& s)
 {
-	std::cerr << "returned: " << ret
+	std::cerr << time_now_string() << " returned: " << ret
 		<< " error: " << s->error().message()
 		<< " file: " << s->error_file()
 		<< std::endl;
@@ -443,7 +443,7 @@ void run_until(io_service& ios, bool const& done)
 			std::cerr << "run_one: " << ec.message() << std::endl;
 			return;
 		}
-		std::cerr << "done: " << done << std::endl;
+		std::cerr << time_now_string() << " done: " << done << std::endl;
 	}
 }
 
@@ -711,7 +711,7 @@ namespace
 {
 	void check_files_fill_array(int ret, disk_io_job const& j, bool* array, bool* done)
 	{
-		std::cerr << "check_files_fill_array ret: " << ret
+		std::cerr << time_now_string() << " check_files_fill_array ret: " << ret
 			<< " piece: " << j.piece
 			<< " have: " << j.offset
 			<< " str: " << j.str
@@ -831,6 +831,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
+	TEST_CHECK(t.num_pieces() == 4);
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
@@ -875,7 +876,6 @@ void run_test(std::string const& test_path, bool unbuffered)
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
-	t.set_hash(3, hasher(piece3, piece_size).final());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -951,16 +951,16 @@ void test_fastresume(std::string const& test_path)
 			return;
 				
 		torrent_status s;
-		for (int i = 0; i < 5; ++i)
+		for (int i = 0; i < 50; ++i)
 		{
 			print_alerts(ses, "ses");
-			test_sleep(1000);
 			s = h.status();
 			if (s.progress == 1.0f) 
 			{
 				std::cout << "progress: 1.0f" << std::endl;
 				break;
 			}
+			test_sleep(100);
 		}
 
 		// the whole point of the test is to have a resume
@@ -1054,9 +1054,9 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		for (int i = 0; i < 100; ++i)
 		{
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
-			test_sleep(1000);
 			torrent_status s = h.status();
 			if (s.state == torrent_status::seeding && renamed) break;
+			test_sleep(100);
 		}
 		std::cout << "stop loop" << std::endl;
 		torrent_status s = h.status();
@@ -1087,12 +1087,15 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
-		for (int i = 0; i < 5; ++i)
+		torrent_status stat;
+		for (int i = 0; i < 50; ++i)
 		{
+			stat = h.status();
 			print_alerts(ses, "ses");
-			test_sleep(1000);
+			if (stat.state == torrent_status::seeding)
+				break;
+			test_sleep(100);
 		}
-		torrent_status stat = h.status();
 		TEST_CHECK(stat.state == torrent_status::seeding);
 
 		h.save_resume_data();
