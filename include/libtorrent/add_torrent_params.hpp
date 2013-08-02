@@ -321,6 +321,10 @@ namespace libtorrent
 		int max_connections;
 		int upload_limit;
 		int download_limit;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> > extensions;
+#endif
 	};
 }
 

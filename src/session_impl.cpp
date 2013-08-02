@@ -5206,6 +5206,17 @@ retry:
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::vector<boost::function<
+			boost::shared_ptr<torrent_plugin>(torrent*, void*)> >
+			torrent_plugins_t;
+
+		for (torrent_plugins_t::const_iterator i = params.extensions.begin()
+			, end(params.extensions.end()); i != end; ++i)
+		{
+			torrent_ptr->add_extension((*i)(torrent_ptr.get(),
+				params.userdata));
+		}
+
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
