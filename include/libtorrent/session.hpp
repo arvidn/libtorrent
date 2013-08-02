@@ -507,10 +507,17 @@ namespace libtorrent
 		void load_country_db(char const* file);
 		int as_for_ip(address const& addr);
 #if TORRENT_USE_WSTRING
-		void load_country_db(wchar_t const* file);
-		void load_asnum_db(wchar_t const* file);
-#endif
-#endif
+		// all wstring APIs are deprecated since 0.16.11
+		// instead, use the wchar -> utf8 conversion functions
+		// and pass in utf8 strings
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		void load_country_db(wchar_t const* file) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void load_asnum_db(wchar_t const* file) TORRENT_DEPRECATED;
+#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
+#endif // TORRENT_DISABLE_GEO_IP
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
