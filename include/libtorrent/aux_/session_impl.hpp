@@ -442,8 +442,10 @@ namespace libtorrent
 			char const* country_for_ip(address const& a);
 
 #if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
 			void load_asnum_dbw(std::wstring file);
 			void load_country_dbw(std::wstring file);
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
 
