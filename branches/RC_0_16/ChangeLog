@@ -1,3 +1,4 @@
+	* deprecate std::wstring overloads. long live utf-8
 	* improve time-critical pieces feature (streaming)
 	* introduce bandwidth exhaustion attack-mitigation in allowed-fast pieces
 	* python binding fix issue where torrent_info objects where destructing when their torrents were deleted

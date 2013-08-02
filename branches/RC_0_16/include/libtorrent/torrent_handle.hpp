@@ -401,9 +401,16 @@ namespace libtorrent
 		void rename_file(int index, std::string const& new_name) const;
 
 #if TORRENT_USE_WSTRING
-		void move_storage(std::wstring const& save_path) const;
-		void rename_file(int index, std::wstring const& new_name) const;
-#endif
+#ifndef TORRENT_NO_DEPRECATE
+		// all wstring APIs are deprecated since 0.16.11
+		// instead, use the wchar -> utf8 conversion functions
+		// and pass in utf8 strings
+		TORRENT_DEPRECATED_PREFIX
+		void move_storage(std::wstring const& save_path) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void rename_file(int index, std::wstring const& new_name) const TORRENT_DEPRECATED;
+#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 
 		void super_seeding(bool on) const;
 

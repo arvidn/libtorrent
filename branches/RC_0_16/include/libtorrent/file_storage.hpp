@@ -186,11 +186,19 @@ namespace libtorrent
 		void rename_file(int index, std::string const& new_filename);
 
 #if TORRENT_USE_WSTRING
+		// all wstring APIs are deprecated since 0.16.11
+		// instead, use the wchar -> utf8 conversion functions
+		// and pass in utf8 strings
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
 		void add_file(std::wstring const& p, size_type size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
-		void rename_file(int index, std::wstring const& new_filename);
-		void set_name(std::wstring const& n);
-#endif
+			, std::time_t mtime = 0, std::string const& s_p = "") TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_name(std::wstring const& n) TORRENT_DEPRECATED;
+#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;

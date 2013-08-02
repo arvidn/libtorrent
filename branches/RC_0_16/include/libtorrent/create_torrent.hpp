@@ -235,8 +235,14 @@ namespace libtorrent
 #if TORRENT_USE_WSTRING
 	// wstring versions
 
+	// all wstring APIs are deprecated since 0.16.11
+	// instead, use the wchar -> utf8 conversion functions
+	// and pass in utf8 strings
+#ifndef TORRENT_NO_DEPRECATE
+
 	template <class Pred>
-	void add_files(file_storage& fs, std::wstring const& wfile, Pred p, boost::uint32_t flags = 0)
+	TORRENT_DEPRECATED_PREFIX
+	void TORRENT_DEPRECATED add_files(file_storage& fs, std::wstring const& wfile, Pred p, boost::uint32_t flags = 0)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
@@ -244,7 +250,8 @@ namespace libtorrent
 			, filename(utf8), p, flags);
 	}
 
-	inline void add_files(file_storage& fs, std::wstring const& wfile, boost::uint32_t flags = 0)
+	TORRENT_DEPRECATED_PREFIX
+	inline void TORRENT_DEPRECATED add_files(file_storage& fs, std::wstring const& wfile, boost::uint32_t flags = 0)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
@@ -257,14 +264,16 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
-	void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f)
+	TORRENT_DEPRECATED_PREFIX
+	void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
 
-	inline void set_piece_hashes(create_torrent& t, std::wstring const& p)
+	TORRENT_DEPRECATED_PREFIX
+	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t, std::wstring const& p)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, detail::nop, ec);
@@ -272,12 +281,13 @@ namespace libtorrent
 	}
 #endif
 
-	inline void set_piece_hashes(create_torrent& t, std::wstring const& p, error_code& ec)
+	TORRENT_DEPRECATED_PREFIX
+	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t, std::wstring const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
-	}
-
-#endif // TORRENT_USE_WPATH
+	} 
+#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 
 }
 
