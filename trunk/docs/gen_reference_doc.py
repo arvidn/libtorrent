@@ -26,10 +26,10 @@ internal = '--internal' in sys.argv
 category_mapping = {
 	'error_code.hpp': 'Error Codes',
 	'file.hpp': 'File',
-	'storage.hpp': 'Storage',
+	'storage.hpp': 'Custom Storage',
 	'storage_defs.hpp': 'Storage',
 	'file_storage.hpp': 'Storage',
-	'file_pool.hpp': 'Storage',
+	'file_pool.hpp': 'Custom Storage',
 	'extensions.hpp': 'Plugins',
 	'ut_metadata.hpp': 'Plugins',
 	'ut_pex.hpp': 'Plugins',
