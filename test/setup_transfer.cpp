@@ -198,6 +198,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 				|| pea->error.message() == "stopping torrent"
 				|| (allow_disconnects && pea->error.message() == "Broken pipe")
 				|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
+				|| (allow_disconnects && pea->error.message() == "no shared cipher")
 				|| (allow_disconnects && pea->error.message() == "End of file."));
 		}
 		delete *i;
