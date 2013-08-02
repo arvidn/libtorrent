@@ -311,6 +311,10 @@ namespace libtorrent { namespace aux
 		virtual bool is_posting_torrent_updates() const = 0;
 #endif
 
+#ifdef TORRENT_REQUEST_LOGGING
+		virtual FILE* get_request_log() = 0;
+#endif
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual boost::shared_ptr<logger> create_log(std::string const& name
 			, int instance, bool append = true) = 0;

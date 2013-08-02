@@ -2296,8 +2296,9 @@ namespace libtorrent
 
 			m_requests.push_back(r);
 #ifdef TORRENT_REQUEST_LOGGING
-			if (m_ses.m_request_log)
-				write_request_log(m_ses.m_request_log, t->info_hash(), this, r);
+			FILE* log = m_ses.get_request_log();
+			if (log)
+				write_request_log(log, t->info_hash(), this, r);
 #endif
 			m_last_incoming_request = time_now();
 			fill_send_buffer();

@@ -1175,6 +1175,7 @@ namespace libtorrent
 #ifdef TORRENT_REQUEST_LOGGING
 			// used to log all requests from peers
 			FILE* m_request_log;
+			FILE* get_request_log() { return m_request_log; }
 #endif
 
 			void inc_stats_counter(int c, int value = 1)

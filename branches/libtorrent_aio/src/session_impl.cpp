@@ -672,10 +672,6 @@ namespace aux {
 		session_log("log created");
 #endif
 
-#if defined TORRENT_REQUEST_LOGGING
-		m_request_logger = fopen("requests.log", "w+");
-#endif
-
 		error_code ec;
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
@@ -6530,9 +6526,6 @@ retry:
 
 	session_impl::~session_impl()
 	{
-#if defined TORRENT_REQUEST_LOGGING
-		fclose(m_request_logger);
-#endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
 
 		// now it's OK for the network thread to exit
