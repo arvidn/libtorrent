@@ -510,7 +510,7 @@ namespace libtorrent
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 		// piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
-		// torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
+		// torrent file.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest for the piece. 
 		// Note that the string is not null-terminated.
 		int piece_size(int index) const { return m_files.piece_size(index); }
