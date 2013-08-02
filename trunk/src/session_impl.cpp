@@ -1636,6 +1636,7 @@ namespace aux {
 	}
 
 #if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::load_asnum_dbw(std::wstring file)
 	{
 		TORRENT_ASSERT(is_network_thread());
@@ -1657,6 +1658,7 @@ namespace aux {
 		m_country_db = GeoIP_open(utf8.c_str(), GEOIP_STANDARD);
 //		return m_country_db;
 	}
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
 	void session_impl::load_country_db(std::string file)
