@@ -76,9 +76,11 @@ test_config_t test_config[] =
 
 int peer_disconnects = 0;
 
-bool predicate(alert* a)
+bool on_alert(alert* a)
 {
 	if (alert_cast<peer_disconnected_alert>(a))
+		++peer_disconnects;
+	if (alert_cast<peer_error_alert>(a))
 		++peer_disconnects;
 	return false;
 }
@@ -142,8 +144,8 @@ void test_ssl(int test_idx)
 
 	for (int i = 0; i < 15; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &predicate);
-		print_alerts(ses2, "ses2", true, true, true, &predicate);
+		print_alerts(ses1, "ses1", true, true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -184,6 +186,8 @@ void test_ssl(int test_idx)
 		test_sleep(100);
 	}
 
+	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
+	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
 }
 
