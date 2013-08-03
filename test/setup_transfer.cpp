@@ -260,14 +260,26 @@ void test_sleep(int millisec)
 	libtorrent::sleep(millisec);
 }
 
+static std::set<int> running_proxies;
+
 void stop_proxy(int port)
 {
 	char buf[100];
 	snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", port);
 	int ret = system(buf);
 	if (ret == 0)
-	{
 		perror("system");	
+	else
+		running_proxies.erase(port);
+}
+
+void stop_all_proxies()
+{
+	std::set<int> proxies = running_proxies;
+	for (std::set<int>::iterator i = proxies.begin()
+		, end(proxies.end()); i != end; ++i)
+	{
+		stop_proxy(*i);
 	}
 }
 
@@ -310,14 +322,15 @@ int start_proxy(int proxy_type)
 		"SERVER=%s %s"
 		, port, type, auth);
 
-	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
+	fprintf(stderr, "%s starting delegated proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
 	int r = system(buf);
 	if (r != 0)
 	{
 		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
 		exit(1);
 	}
-	fprintf(stderr, "launched\n");
+	running_proxies.insert(port);
+	fprintf(stderr, "%s launched\n", time_now_string());
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
 	return port;

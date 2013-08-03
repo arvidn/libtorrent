@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <stdlib.h> // for exit()
 #include "setup_transfer.hpp" // for tests_failure
+#include "dht_server.hpp" // for stop_dht
+#include "peer_server.hpp" // for stop_peer
 
 int test_main();
 
@@ -134,6 +136,15 @@ int main()
 		tests_failure = true;
 	}
 #endif
+
+	// just in case of premature exits
+	// make sure we try to clean up some
+	stop_tracker();
+	stop_all_proxies();
+	stop_web_server();
+	stop_peer();
+	stop_dht();
+
 	fflush(stdout);
 	fflush(stderr);
 	remove_all(test_dir, ec);

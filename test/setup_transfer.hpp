@@ -89,6 +89,7 @@ int EXPORT start_web_server(bool ssl = false, bool chunked = false);
 void EXPORT stop_web_server();
 int EXPORT start_proxy(int type);
 void EXPORT stop_proxy(int port);
+void EXPORT stop_all_proxies();
 
 void EXPORT stop_tracker();
 int EXPORT start_tracker();
