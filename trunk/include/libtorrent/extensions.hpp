@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
@@ -147,6 +148,15 @@ namespace libtorrent
 		// this is not called for web seeds
 		virtual void add_handshake(entry&) {}
 		
+		// called when the peer is being disconnected.
+		virtual void on_disconnect(error_code const& ec) {}
+
+		// called when the peer is successfully connected. Note that
+		// incoming connections will have been connected by the time
+		// the peer plugin is attached to it, and won't have this hook
+		// called.
+		virtual void on_connected() {}
+
 		// throwing an exception from any of the handlers (except add_handshake)
 		// closes the connection
 		
@@ -168,51 +178,21 @@ namespace libtorrent
 		// it will break the plugin chain traversing and not let
 		// anyone else handle the message, including the default
 		// handler.
-
-		virtual bool on_choke()
-		{ return false; }
-
-		virtual bool on_unchoke()
-		{ return false; }
-
-		virtual bool on_interested()
-		{ return false; }
-
-		virtual bool on_not_interested()
-		{ return false; }
-
-		virtual bool on_have(int /*index*/)
-		{ return false; }
-
-		virtual bool on_dont_have(int /*index*/)
-		{ return false; }
-
-		virtual bool on_bitfield(bitfield const& /*bitfield*/)
-		{ return false; }
-
-		virtual bool on_have_all()
-		{ return false; }
-
-		virtual bool on_have_none()
-		{ return false; }
-
-		virtual bool on_allowed_fast(int /*index*/)
-		{ return false; }
-
-		virtual bool on_request(peer_request const&)
-		{ return false; }
-
-		virtual bool on_piece(peer_request const& /*piece*/, disk_buffer_holder& /*data*/)
-		{ return false; }
-
-		virtual bool on_cancel(peer_request const&)
-		{ return false; }
-	
-		virtual bool on_reject(peer_request const&)
-		{ return false; }
-
-		virtual bool on_suggest(int /*index*/)
-		{ return false; }
+		virtual bool on_choke() { return false; }
+		virtual bool on_unchoke() { return false; }
+		virtual bool on_interested() { return false; }
+		virtual bool on_not_interested() { return false; }
+		virtual bool on_have(int /*index*/) { return false; }
+		virtual bool on_dont_have(int /*index*/) { return false; }
+		virtual bool on_bitfield(bitfield const& /*bitfield*/) { return false; }
+		virtual bool on_have_all() { return false; }
+		virtual bool on_have_none() { return false; }
+		virtual bool on_allowed_fast(int /*index*/) { return false; }
+		virtual bool on_request(peer_request const&) { return false; }
+		virtual bool on_piece(peer_request const& /*piece*/, disk_buffer_holder& /*data*/) { return false; }
+		virtual bool on_cancel(peer_request const&) { return false; }
+		virtual bool on_reject(peer_request const&) { return false; }
+		virtual bool on_suggest(int /*index*/) { return false; }
 
 		// called when an extended message is received. If returning true,
 		// the message is not processed by any other plugin and if false
