@@ -108,7 +108,7 @@ void test_pex()
 	torrent_status st1;
 	torrent_status st2;
 	torrent_status st3;
-	for (int i = 0; i < 15; ++i)
+	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -129,7 +129,7 @@ void test_pex()
 		// through session 2
 		if (st3.state == torrent_status::seeding) break;
 
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)

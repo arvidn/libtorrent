@@ -86,7 +86,12 @@ namespace libtorrent { namespace
 	{
 		// randomize when we rebuild the pex message
 		// to evenly spread it out across all torrents
-		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(random() % 60), m_peers_in_message(0) {}
+		// the more torrents we have, the longer we can
+		// delay the rebuilding
+		ut_pex_plugin(torrent& t)
+			: m_torrent(t)
+			, m_1_minute(random() % (std::max)(60 - int(m_torrent.session().get_torrents().size()), 1))
+			, m_peers_in_message(0) {}
 	
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection* pc);
 
@@ -422,7 +427,13 @@ namespace libtorrent { namespace
 		// every minute we send a pex message
 		virtual void tick()
 		{
-			if (!m_message_index) return;	// no handshake yet
+			// no handshake yet
+			if (!m_message_index) return;
+
+			// if there aren't any peers other than this one,
+			// there no need to start the pex logic yet
+			if (m_first_time && m_torrent.num_peers() <= 1) return;
+
 			if (++m_1_minute <= 60) return;
 
 			if (m_first_time)
