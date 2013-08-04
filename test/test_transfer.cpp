@@ -365,7 +365,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	tracker_responses = 0;
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
@@ -414,6 +414,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			|| (test_disk_full && !st2.error.empty()));
 
 		if (!test_disk_full && peer_disconnects >= 2) break;
+
+		// if nothing is being transferred after 2 seconds, we're failing the test
+		if (st1.upload_payload_rate == 0 && i > 20) break;
 
 		test_sleep(100);
 	}
