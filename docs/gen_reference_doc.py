@@ -2,7 +2,14 @@ import glob
 import os
 import sys
 
+verbose = '--verbose' in sys.argv
+dump = '--dump' in sys.argv
+internal = '--internal' in sys.argv
+
 paths = ['include/libtorrent/*.hpp', 'include/libtorrent/kademlia/*.hpp', 'include/libtorrent/extensions/*.hpp']
+
+if internal:
+	paths.append('include/libtorrent/aux_/*.hpp')
 
 files = []
 
@@ -19,9 +26,7 @@ overviews = {}
 # maps names -> URL
 symbols = {}
 
-verbose = '--verbose' in sys.argv
-dump = '--dump' in sys.argv
-internal = '--internal' in sys.argv
+anon_index = 0
 
 category_mapping = {
 	'error_code.hpp': 'Error Codes',
@@ -78,6 +83,7 @@ def first_item(itr):
 	return None
 
 def is_visible(desc):
+	if internal: return True
 	if desc.strip() == 'internal': return False
 	if desc.strip() == 'hidden': return False
 	return True
@@ -129,7 +135,7 @@ def parse_function(lno, lines, filename):
 		start_paren += l.count('(')
 		end_paren += l.count(')')
 
-		sig_line = l.replace('TORRENT_EXPORT ', '').strip()
+		sig_line = l.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT','').strip()
 		if signature != '': sig_line = '\n   ' + sig_line
 		signature += sig_line
 		if verbose: print 'fun     %s' % l
@@ -172,7 +178,7 @@ def parse_class(lno, lines, filename):
 
 	while lno < len(lines):
 		l = lines[lno].strip()
-		name += lines[lno].replace('TORRENT_EXPORT ', '').split('{')[0].strip()
+		name += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
 		if '{' in l: break
 		if verbose: print 'class  %s' % l
 		lno += 1
@@ -279,13 +285,17 @@ def parse_class(lno, lines, filename):
 def parse_enum(lno, lines, filename):
 	start_brace = 0
 	end_brace = 0
+	global anon_index
 
 	l = lines[lno].strip()
 	name = l.replace('enum ', '').split('{')[0].strip()
 	if len(name) == 0:
-		print 'WARNING: anonymous enum at: %s:%d' % (filename, lno)
-		lno = consume_block(lno - 1, lines)
-		return [None, lno]
+		if not internal:
+			print 'WARNING: anonymous enum at: %s:%d' % (filename, lno)
+			lno = consume_block(lno - 1, lines)
+			return [None, lno]
+		name = 'anonymous_enum_%d' % anon_index
+		anon_index += 1
 
 	values = []
 	context = ''
@@ -440,8 +450,9 @@ for filename in files:
 			lno = consume_ifdef(lno - 1, lines)
 			continue
 
-		if l == 'namespace detail' or \
-			l == 'namespace aux':
+		if (l == 'namespace detail' or \
+			l == 'namespace aux') \
+			and not internal:
 			lno = consume_block(lno, lines)
 			continue
 
@@ -454,12 +465,13 @@ for filename in files:
 			if verbose: print 'xx    %s' % l
 			continue
 
-		if 'TORRENT_EXPORT ' in l or l.startswith('inline '):
+		if 'TORRENT_EXPORT ' in l or l.startswith('inline ') or internal:
 			if 'class ' in l or 'struct ' in l:
-				current_class, lno = parse_class(lno -1, lines, filename)
-				if current_class != None and is_visible(context):
-					current_class['desc'] = context
-					classes.append(current_class)
+				if not l.endswith(';'):
+					current_class, lno = parse_class(lno -1, lines, filename)
+					if current_class != None and is_visible(context):
+						current_class['desc'] = context
+						classes.append(current_class)
 				context = ''
 				blanks += 1
 				continue
