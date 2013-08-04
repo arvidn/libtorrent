@@ -46,7 +46,7 @@ def style_output(o):
 		l = l.replace('<', '&lt;')
 		l = l.replace('>', '&gt;')
 		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
-			l.endswith(' second time limit exceeded') or l.startswith('signal: SIG'):
+			' second time limit exceeded' in l or l.startswith('signal: SIG'):
 			ret += '<span class="test-error">%s</span>\n' % l
 		elif '**passed**' in l:
 			ret += '<span class="test-pass">%s</span>\n' % l
@@ -213,21 +213,24 @@ for branch_name in revs:
 		table { border: 0; border-collapse: collapse; }
 		h1 { font-size: 15pt; }
 		th { font-size: 8pt; }
-		td { border: 0; border-spacing: 0px; padding: 1px 1px 0px 0px; }
+		td { border: 0; border-spacing: 0px; padding: 1px 0px 0px 1px; }
 		.left-head { white-space: nowrap; }
 		</style>
 		</head><body><h1>%s - %s</h1>''' % (project_name, project_name, branch_name)
 
 	print >>html, '<table border="1">'
 
-	for r in range(latest_rev, latest_rev - 20, -1):
+	num_printed_revs = 0;
+	for r in range(latest_rev, latest_rev - 40, -1):
 		sys.stdout.write('.')
 		sys.stdout.flush()
 
-		print >>html, '<tr><th colspan="2" style="border:0;">revision %d</th>' % r
-
 		rev_dir = '%s-%d' % (branch_name, r)
 		(platforms, tests) = parse_tests(rev_dir)
+
+		if len(tests) + len(platforms) == 0: continue
+
+		print >>html, '<tr><th colspan="2" style="border:0;">revision %d</th>' % r
 
 		for f in tests:
 			print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 5, f)
@@ -250,6 +253,8 @@ for branch_name in revs:
 
 				print >>html, '</tr>'
 				idx += 1
+		num_printed_revs += 1
+		if num_printed_revs >= 20: break
 
 	print >>html, '</table></body></html>'
 	html.close()
