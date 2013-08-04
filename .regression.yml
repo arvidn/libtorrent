@@ -12,6 +12,6 @@ time_limit: 700
 
 features:
  - variant=release asserts=production
- - encryption=openssl statistics=on logging=verbose disk-stats=on bandwidth-limit-logging=on dht=logging request-log=on
+ - encryption=openssl statistics=on logging=verbose disk-stats=on dht=logging request-log=on
  - ipv6=off dht=off extensions=off logging=none deprecated-functions=off 
 
