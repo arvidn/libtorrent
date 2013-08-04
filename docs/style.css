@@ -9,7 +9,7 @@
 /* Base elements */
 
 * {margin: 0; padding: 0;}
-body, table { font: 1em Verdana, sans-serif;}
+body, table { font: 0.8em Verdana, sans-serif;}
 
 h1, h2, h3 {
     font: 1.5em Georgia "Times New Roman", serif;
@@ -77,7 +77,7 @@ div.section p, div.section ul, div.section dl {
 
 #container {
     text-align: left;
-    width: 70em;
+    width: 65em;
     margin: 0 auto;
     position: relative;
 }
@@ -118,26 +118,37 @@ div.section p, div.section ul, div.section dl {
 
 #header {
     height: 116px;
-    background: url(../img/orange.png) #FDA72A no-repeat top left;
+    background: url(../img/bg.png) #1f5c85;
+    -moz-border-radius: 6pt;
+    border-radius: 6pt;
 }
 
-#header h1 {
+#orange {
+    margin: 0;
+    padding: 0;
+    float: left;
+    width: 159px;
+    height: 116px;
+    background: url(../img/orange.png) no-repeat top left;
+}
+
+#logo {
     margin: 0;
     padding: 0;
     float: right;
-    width: 536px;
+    width: 535px;
     height: 116px;
     background: url(../img/logo.png);
 }
 
-#header h1 span, #header h2 { display: none; }
-
 #footer {
     clear: both;
     height: 49px;
-    background: #D3D3D3 url(../img/footer.png) no-repeat left top;
+    background: #D3D3D3;
     text-align: center;
     margin-bottom: 1em;
+    -moz-border-radius: 6pt;
+    border-radius: 6pt;
 }
 
 #footer span {
@@ -237,10 +248,6 @@ div.sidebar p.sidebar-title {
     padding-bottom: 0.5em;
     margin: 0 0 0.5em 0;
 }
-
-h1 { font-size: 230%; }
-h2 { font-size: 180%; }
-h3 { font-size: 130%; }
 
 table { margin-bottom: 1em; border-collapse: collapse; }
 table, th, td { border: none; }

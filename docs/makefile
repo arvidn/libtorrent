@@ -51,7 +51,7 @@ all: html
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
 
-reference.rst reference-Plugins reference-Core.rst reference-String.rst reference-Storage.rst:gen_reference_doc.py ../include/libtorrent/*.hpp
+reference.rst reference-Create_Torrents.rst reference-Error_Codes.rst reference-Plugins.rst reference-Core.rst reference-String.rst reference-Storage.rst:gen_reference_doc.py ../include/libtorrent/*.hpp
 	python gen_reference_doc.py
 
 %.epub:%.rst
