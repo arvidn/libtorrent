@@ -660,7 +660,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 	if (bytes_transferred < 16)
 	{
-		fprintf(stderr, "%s: UDP message too short\n", time_now_string());
+		fprintf(stderr, "%s: UDP message too short (from: %s)\n", time_now_string(), print_endpoint(*from).c_str());
 		return;
 	}
 
@@ -677,12 +677,13 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 	{
 		case 0: // connect
 
-			fprintf(stderr, "%s: UDP connect\n", time_now_string());
+			fprintf(stderr, "%s: UDP connect from %s\n", time_now_string(), print_endpoint(*from).c_str());
 			ptr = buffer;
 			detail::write_uint32(0, ptr); // action = connect
 			detail::write_uint32(transaction_id, ptr); // transaction_id
 			detail::write_uint64(10, ptr); // connection_id
 			sock->send_to(asio::buffer(buffer, 16), *from, 0, e);
+			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
 			break;
 
 		case 1: // announce
@@ -697,6 +698,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 			++g_udp_tracker_requests;
 			// 0 peers
 			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
+			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
 			break;
 		case 2:
 			// ignore scrapes
