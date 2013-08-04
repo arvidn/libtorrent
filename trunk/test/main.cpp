@@ -45,6 +45,10 @@ int test_main();
 #include "libtorrent/file.hpp"
 #include <signal.h>
 
+#ifdef WIN32
+#include <windows.h> // fot SetErrorMode
+#endif
+
 void sig_handler(int sig)
 {
 	char stack_text[10000];
@@ -80,6 +84,13 @@ using namespace libtorrent;
 
 int main()
 {
+#ifdef WIN32
+	// try to suppress hanging the process by windows displaying
+	// modal dialogs.
+	SetErrorMode(SEM_NOALIGNMENTFAULTEXCEPT | SEM_NOALIGNMENTFAULTEXCEPT
+		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+#endif
+
 	srand(total_microseconds(time_now_hires() - min_time()));
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
