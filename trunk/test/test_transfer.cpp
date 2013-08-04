@@ -111,7 +111,7 @@ void test_rate()
 		if (i % 10 == 0)
 			print_ses_rate(i / 10.f, &st1, &st2);
 
-		if (peer_disconnects >= 2) break;
+		if (peer_disconnects >= 1) break;
 		if (st2.is_seeding) break;
 		test_sleep(100);
 	}
@@ -413,7 +413,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			|| st2.state == torrent_status::checking_resume_data
 			|| (test_disk_full && !st2.error.empty()));
 
-		if (!test_disk_full && peer_disconnects >= 2) break;
+		if (!test_disk_full && peer_disconnects >= 1) break;
 
 		// if nothing is being transferred after 2 seconds, we're failing the test
 		if (st1.upload_payload_rate == 0 && i > 20) break;
@@ -448,7 +448,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 				std::cerr << int(st2.progress * 100) << "% " << std::endl;
 			}
 			if (st2.state != torrent_status::checking_files) break;
-			if (peer_disconnects >= 2) break;
+			if (peer_disconnects >= 1) break;
 			test_sleep(100);
 		}
 
@@ -462,7 +462,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			print_alerts(ses2, "ses2", true, true, true, &on_alert);
 			torrent_status st2 = tor2.status();
 			TEST_CHECK(st2.state == torrent_status::finished);
-			if (peer_disconnects >= 2) break;
+			if (peer_disconnects >= 1) break;
 			test_sleep(100);
 		}
 
@@ -545,7 +545,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			TEST_CHECK(st1.state == torrent_status::seeding);
 			TEST_CHECK(st2.state == torrent_status::finished);
 
-			if (peer_disconnects >= 2) break;
+			if (peer_disconnects >= 1) break;
 
 			test_sleep(100);
 		}
@@ -574,7 +574,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			TEST_CHECK(st1.state == torrent_status::seeding);
 			TEST_CHECK(st2.state == torrent_status::downloading);
 
-			if (peer_disconnects >= 2) break;
+			if (peer_disconnects >= 1) break;
 
 			test_sleep(100);
 		}
