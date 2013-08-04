@@ -604,6 +604,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	j->buffer = 0;
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 	TORRENT_PIECE_ASSERT(j->flags & disk_io_job::in_progress, pe);
+	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 	pe->jobs.push_back(j);
 
 	if (block == 0 && pe->hash == NULL && pe->hashing_done == false)
@@ -724,7 +725,10 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue& jobs)
 		delete pe->hash;
 		pe->hash = NULL;
 
-		jobs.swap(pe->jobs);
+		// append will move the items from pe->jobs onto the end of jobs
+		jobs.append(pe->jobs);
+		TORRENT_ASSERT(pe->jobs.size() == 0);
+
 		if (pe->cache_state == cached_piece_entry::read_lru1_ghost
 			|| pe->cache_state == cached_piece_entry::read_lru2_ghost)
 			return true;
@@ -999,6 +1003,7 @@ void block_cache::clear(tailqueue& jobs)
 			tailqueue_node* job = j;
 			j = j->next;
 			job->next = NULL;
+			TORRENT_PIECE_ASSERT(((disk_io_job*)job)->piece == p->piece, &*p);
 			jobs.push_back(job);
 		}
 
@@ -1362,6 +1367,8 @@ void block_cache::check_invariant() const
 			{
 				disk_io_job* job = (disk_io_job*)j.get();
 				TORRENT_PIECE_ASSERT(job->piece == pe->piece, pe);
+				TORRENT_PIECE_ASSERT(job->in_use, pe);
+				TORRENT_PIECE_ASSERT(!job->callback_called, pe);
 			}
 
 			if (i != cached_piece_entry::read_lru1_ghost
@@ -1626,6 +1633,15 @@ cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 	TORRENT_ASSERT(i == m_pieces.end() || (i->storage.get() == st && i->piece == piece));
 	if (i == m_pieces.end()) return 0;
 	TORRENT_PIECE_ASSERT(i->in_use, &*i);
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	for (tailqueue_iterator j = i->jobs.iterate(); j.get(); j.next())
+	{
+		disk_io_job* job = (disk_io_job*)j.get();
+		TORRENT_PIECE_ASSERT(job->piece == piece, &*i);
+	}
+#endif
+
 	return const_cast<cached_piece_entry*>(&*i);
 }
 

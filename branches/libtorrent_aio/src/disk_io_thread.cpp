@@ -666,15 +666,7 @@ namespace libtorrent
 
 		if (error)
 		{
-			completed_jobs.swap(pe->jobs);
-
-			for (tailqueue_iterator i = completed_jobs.iterate(); i .get(); i.next())
-			{
-				disk_io_job* j = (disk_io_job*)i.get();
-				TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
-				j->ret = -1;
-				j->error = error;
-			}
+			fail_jobs_impl(error, pe->jobs, completed_jobs);
 		}
 		else
 		{
@@ -684,6 +676,7 @@ namespace libtorrent
 				disk_io_job* next = (disk_io_job*)j->next;
 				j->next = NULL;
 				TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
+				TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 				if (j->completed(pe, block_size))
 				{
 					j->ret = j->d.io.buffer_size;
@@ -691,7 +684,9 @@ namespace libtorrent
 					completed_jobs.push_back(j);
 				}
 				else
+				{
 					pe->jobs.push_back(j);
+				}
 				j = next;
 			}
 		}
@@ -1326,6 +1321,7 @@ namespace libtorrent
 				}
 				else
 				{
+					TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 					pe->read_jobs.push_back(j);
 				}
 			}
@@ -1510,6 +1506,7 @@ namespace libtorrent
 
 			if (pe->outstanding_read)
 			{
+				TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 				pe->read_jobs.push_back(j);
 				return;
 			}
@@ -1978,6 +1975,7 @@ namespace libtorrent
 			TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
 			disk_io_job* next = (disk_io_job*)j->next;
 			j->next = NULL;
+			TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 			if (j->action == disk_io_job::hash) hash_jobs.push_back(j);
 			else pe->jobs.push_back(j);
 			j = next;
