@@ -167,7 +167,7 @@ namespace libtorrent
 	// points to a disk buffer
 	bool operation_has_buffer(disk_io_job const& j);
 
-	struct cache_status
+	struct TORRENT_EXPORT cache_status
 	{
 		cache_status()
 			: blocks_written(0)

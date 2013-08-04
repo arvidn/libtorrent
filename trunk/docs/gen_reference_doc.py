@@ -293,6 +293,7 @@ def parse_enum(lno, lines, filename):
 		if verbose: print 'enum  %s' % lines[lno]
 		lno += 1
 
+	val = 0
 	while lno < len(lines):
 		l = lines[lno].strip()
 		lno += 1
@@ -318,10 +319,21 @@ def parse_enum(lno, lines, filename):
 		if len(l):
 			if verbose: print 'enumv %s' % lines[lno-1]
 			for v in l.split(','):
+				v = v.strip();
+				if v.startswith('//'): break
 				if v == '': continue
+				valstr = ''
+				try:
+					if '=' in v: val = int(v.split('=')[1].strip(), 0)
+					valstr = str(val)
+				except: pass
+
+				if '=' in v: v = v.split('=')[0].strip()
 				if is_visible(context):
-					values.append({'name': v.strip(), 'desc': context})
+					values.append({'name': v.strip(), 'desc': context, 'val': valstr})
+					if verbose: print 'enumv %s' % valstr
 				context = ''
+				val += 1
 		else:
 			if verbose: print '??    %s' % lines[lno-1]
 
@@ -674,27 +686,27 @@ for cat in categories:
 			print >>out, '%s' % f['desc']
 
 		for e in c['enums']:
-			if e['desc'] == '': continue
 			print >>out, '.. raw:: html\n'
 			print >>out, '\t<a name="%s"></a>' % e['name']
 			print >>out, ''
 			print >>out, heading('enum %s' % e['name'], '.')
-			width = [len('value'), len('description')]
+			width = [len('name'), len('value'), len('description')]
 			for v in e['values']:
 				width[0] = max(width[0], len(v['name']))
+				width[1] = max(width[1], len(v['val']))
 				for d in v['desc'].split('\n'):
-					width[1] = max(width[1], len(d))
+					width[2] = max(width[2], len(d))
 
-			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
-			print >>out, '| ' + 'value'.ljust(width[0]) + ' | ' + 'description'.ljust(width[1]) + ' |'
-			print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+'
+			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
+			print >>out, '| ' + 'name'.ljust(width[0]) + ' | '  + 'value'.ljust(width[1]) + ' | ' + 'description'.ljust(width[2]) + ' |'
+			print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+=' + ('=' * width[2]) + '=+'
 			for v in e['values']:
 				d = v['desc'].split('\n')
 				if len(d) == 0: d = ['']
-				print >>out, '| ' + v['name'].ljust(width[0]) + ' | ' + d[0].ljust(width[1]) + ' |'
+				print >>out, '| ' + v['name'].ljust(width[0]) + ' | '  + v['val'].ljust(width[1]) + ' | ' + d[0].ljust(width[2]) + ' |'
 				for s in d[1:]:
-					print >>out, '| ' + (' ' * width[0]) + ' | ' + s.ljust(width[1]) + ' |'
-				print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
+					print >>out, '| ' + (' ' * width[0]) + ' | '  + (' ' * width[1]) + ' | ' + s.ljust(width[2]) + ' |'
+				print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
 			print >>out, ''
 
 		for f in c['fields']:
@@ -733,26 +745,24 @@ for cat in categories:
 		print >>out, '.. raw:: html\n'
 		print >>out, '\t<a name="%s"></a>' % e['name']
 		print >>out, ''
-
 		print >>out, heading('enum %s' % e['name'], '.')
-		print_declared_in(out, e)
-
-		width = [len('value'), len('description')]
+		width = [len('name'), len('value'), len('description')]
 		for v in e['values']:
 			width[0] = max(width[0], len(v['name']))
+			width[1] = max(width[1], len(v['val']))
 			for d in v['desc'].split('\n'):
-				width[1] = max(width[1], len(d))
+				width[2] = max(width[2], len(d))
 
-		print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
-		print >>out, '| ' + 'value'.ljust(width[0]) + ' | ' + 'description'.ljust(width[1]) + ' |'
-		print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+'
+		print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
+		print >>out, '| ' + 'name'.ljust(width[0]) + ' | '  + 'value'.ljust(width[1]) + ' | ' + 'description'.ljust(width[2]) + ' |'
+		print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+=' + ('=' * width[2]) + '=+'
 		for v in e['values']:
 			d = v['desc'].split('\n')
 			if len(d) == 0: d = ['']
-			print >>out, '| ' + v['name'].ljust(width[0]) + ' | ' + d[0].ljust(width[1]) + ' |'
+			print >>out, '| ' + v['name'].ljust(width[0]) + ' | '  + v['val'].ljust(width[1]) + ' | ' + d[0].ljust(width[2]) + ' |'
 			for s in d[1:]:
-				print >>out, '| ' + (' ' * width[0]) + ' | ' + s.ljust(width[1]) + ' |'
-			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
+				print >>out, '| ' + (' ' * width[0]) + ' | '  + (' ' * width[1]) + ' | ' + s.ljust(width[2]) + ' |'
+			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
 		print >>out, ''
 
 	print >>out, dump_link_targets()
