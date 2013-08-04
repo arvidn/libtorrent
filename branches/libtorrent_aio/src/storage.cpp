@@ -540,14 +540,14 @@ namespace libtorrent
 		DFLOG(stderr, "[%p] delete_files\n", this);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		// this this is a fence job, we expect no other
+		// this is a fence job, we expect no other
 		// threads to hold any references to any files
 		// in this file storage. Assert that that's the 
 		// case
 		if (!m_pool.assert_idle_files(this))
 		{
 #if TORRENT_DEBUG_FILE_LEAKS
-			print_open_files();
+			print_open_files("delete-files idle assert failed");
 #endif
 			TORRENT_ASSERT(false);
 		}
@@ -601,7 +601,7 @@ namespace libtorrent
 		DFLOG(stderr, "[%p] delete_files result: %s\n", this, ec.ec.message().c_str());
 
 #if TORRENT_DEBUG_FILE_LEAKS
-		print_open_files();
+		print_open_files("delete-files done");
 #endif
 	}
 

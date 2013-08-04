@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 	See slides: http://www-vlsi.stanford.edu/smart_memories/protected/meetings/spring2004/arc-fast.pdf
 
 	This cache has a few modifications to make it fit the bittorrent use
-	case better. It has a few more lists lists and it deferres the eviction
+	case better. It has a few more lists and it deferres the eviction
 	of pieces.
 
 	read_lru1
@@ -1358,6 +1358,11 @@ void block_cache::check_invariant() const
 
 //			if (i == cached_piece_entry::write_lru)
 //				TORRENT_ASSERT(pe->num_dirty > 0);
+			for (tailqueue_iterator j = pe->jobs.iterate(); j.get(); j.next())
+			{
+				disk_io_job* job = (disk_io_job*)j.get();
+				TORRENT_PIECE_ASSERT(job->piece == pe->piece, pe);
+			}
 
 			if (i != cached_piece_entry::read_lru1_ghost
 				&& i != cached_piece_entry::read_lru2_ghost)

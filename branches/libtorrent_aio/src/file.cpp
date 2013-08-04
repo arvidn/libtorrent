@@ -1304,10 +1304,10 @@ namespace libtorrent
 	}
 
 #if TORRENT_DEBUG_FILE_LEAKS
-	void file::print_info() const
+	void file::print_info(FILE* out) const
 	{
 		if (!is_open()) return;
-		printf("\n===> FILE: %s\n", m_file_path.c_str());
+		fprintf(out, "\n===> FILE: %s\n", m_file_path.c_str());
 	}
 #endif
 
@@ -1971,9 +1971,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return *this;
 	}
 
-	void print_open_files()
+	void print_open_files(char const* event)
 	{
-
+		FILE* out = fopen("open_files.log", "a+");
+		fprintf(out, "\n\nEVENT: %s\n\n", event);
 		mutex::scoped_lock l(file_handle_mutex);
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
 			, end(global_file_handles.end()); i != end; ++i)
@@ -1984,9 +1985,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (!h) continue;
 
 			if (!h->is_open()) continue;
-			h->print_info();
-			printf("\n%s\n\n", h.stack);
+			h->print_info(out);
+			fprintf(out, "\n%s\n\n", h.stack);
 		}
+		fclose(out);
 	}
 #endif
 }
