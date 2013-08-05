@@ -23,6 +23,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix SSL authentication issue
 	* deprecate std::wstring overloads. long live utf-8
 	* improve time-critical pieces feature (streaming)
 	* introduce bandwidth exhaustion attack-mitigation in allowed-fast pieces

@@ -588,7 +588,10 @@ namespace aux {
 		if (!t->ssl_ctx()) return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		// use this torrent's certificate
-		SSL_set_SSL_CTX(s, t->ssl_ctx()->native_handle());
+		SSL_CTX *torrent_context = t->ssl_ctx()->native_handle();
+
+		SSL_set_SSL_CTX(s, torrent_context);
+		SSL_set_verify(s, SSL_CTX_get_verify_mode(torrent_context), SSL_CTX_get_verify_callback(torrent_context));
 
 		return SSL_TLSEXT_ERR_OK;
 	}
