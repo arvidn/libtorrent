@@ -149,7 +149,7 @@ void test_ssl(int test_idx)
 			, "test");
 	}
 
-	for (int i = 0; i < 15; ++i)
+	for (int i = 0; i < 40; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
