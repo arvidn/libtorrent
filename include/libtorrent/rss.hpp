@@ -83,16 +83,16 @@ namespace libtorrent
 
 		// By default ``auto_download`` is true, which means all torrents in
 		// the feed will be downloaded. Set this to false in order to manually
-		// add torrents to the session. You may react to the rss_alert_ when
+		// add torrents to the session. You may react to the rss_alert when
 		// a feed has been updated to poll it for the new items in the feed
 		// when adding torrents manually. When torrents are added automatically,
-		// an add_torrent_alert_ is posted which includes the torrent handle
+		// an add_torrent_alert is posted which includes the torrent handle
 		// as well as the error code if it failed to be added. You may also call
 		// ``session::get_torrents()`` to get the handles to the new torrents.
 		bool auto_download;
 
 		// ``auto_map_handles`` defaults to true and determines whether or
-		// not to set the ``handle`` field in the ``feed_item``, returned
+		// not to set the ``handle`` field in the feed_item, returned
 		// as the feed status. If auto-download is enabled, this setting
 		// is ignored. If auto-download is not set, setting this to false
 		// will save one pass through all the feed items trying to find
@@ -110,7 +110,7 @@ namespace libtorrent
 		// This object is used as a template for adding torrents from feeds,
 		// but some torrent specific fields will be overridden by the
 		// individual torrent being added. For more information on the
-		// ``add_torrent_params``, see `async_add_torrent() add_torrent()`_.
+		// add_torrent_params, see async_add_torrent() and add_torrent().
 		add_torrent_params add_args;
 	};
 
