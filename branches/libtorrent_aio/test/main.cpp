@@ -39,12 +39,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "setup_transfer.hpp" // for tests_failure
 #include "test.hpp"
+#include "dht_server.hpp" // for stop_dht
+#include "peer_server.hpp" // for stop_peer
 
 int test_main();
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
 #include <signal.h>
+
+#ifdef WIN32
+#include <windows.h> // fot SetErrorMode
+#endif
 
 using namespace libtorrent;
 
@@ -81,6 +87,13 @@ void sig_handler(int sig)
 
 int main()
 {
+#ifdef WIN32
+	// try to suppress hanging the process by windows displaying
+	// modal dialogs.
+	SetErrorMode(SEM_NOALIGNMENTFAULTEXCEPT | SEM_NOALIGNMENTFAULTEXCEPT
+		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+#endif
+
 	srand(total_microseconds(time_now_hires() - min_time()));
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
@@ -137,6 +150,15 @@ int main()
 		tests_failure = true;
 	}
 #endif
+
+	// just in case of premature exits
+	// make sure we try to clean up some
+	stop_tracker();
+	stop_all_proxies();
+	stop_web_server();
+	stop_peer();
+	stop_dht();
+
 	fflush(stdout);
 	fflush(stderr);
 	remove_all(test_dir, ec);

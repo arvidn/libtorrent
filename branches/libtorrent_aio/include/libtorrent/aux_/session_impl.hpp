@@ -314,6 +314,7 @@ namespace libtorrent
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const;
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
 			boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const;
+			int num_torrents() const { return m_torrents.size(); }
 
 			void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
 				, std::string uuid);
@@ -575,8 +576,10 @@ namespace libtorrent
 			char const* country_for_ip(address const& a);
 
 #if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
 			void load_asnum_dbw(std::wstring file);
 			void load_country_dbw(std::wstring file);
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
 

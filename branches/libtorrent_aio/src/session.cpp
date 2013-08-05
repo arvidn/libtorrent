@@ -609,6 +609,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
 	void session::load_asnum_db(wchar_t const* file)
 	{
 		TORRENT_ASYNC_CALL1(load_asnum_dbw, std::wstring(file));
@@ -618,6 +619,7 @@ namespace libtorrent
 	{
 		TORRENT_ASYNC_CALL1(load_country_dbw, std::wstring(file));
 	}
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_DISABLE_GEO_IP
 

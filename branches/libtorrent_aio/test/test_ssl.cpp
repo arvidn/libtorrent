@@ -76,9 +76,11 @@ test_config_t test_config[] =
 
 int peer_disconnects = 0;
 
-bool predicate(alert* a)
+bool on_alert(alert* a)
 {
 	if (alert_cast<peer_disconnected_alert>(a))
+		++peer_disconnects;
+	if (alert_cast<peer_error_alert>(a))
 		++peer_disconnects;
 	return false;
 }
@@ -98,9 +100,16 @@ void test_ssl(int test_idx)
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
 	session_settings sett;
-	// this disables outgoing SSL connections
-	sett.ssl_listen = 0;
-	if (!test.downloader_has_cert) ses2.set_settings(sett);
+
+	sett.ssl_listen = 1024 + rand() % 50000;
+	ses1.set_settings(sett);
+
+	if (!test.downloader_has_cert)
+		// this disables outgoing SSL connections
+		sett.ssl_listen = 0;
+	else
+		sett.ssl_listen += 10;
+	ses2.set_settings(sett);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -140,10 +149,10 @@ void test_ssl(int test_idx)
 			, "test");
 	}
 
-	for (int i = 0; i < 15; ++i)
+	for (int i = 0; i < 40; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &predicate);
-		print_alerts(ses2, "ses2", true, true, true, &predicate);
+		print_alerts(ses1, "ses1", true, true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -184,6 +193,8 @@ void test_ssl(int test_idx)
 		test_sleep(100);
 	}
 
+	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
+	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
 }
 

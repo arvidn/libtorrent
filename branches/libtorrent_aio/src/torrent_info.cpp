@@ -882,6 +882,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
 	torrent_info::torrent_info(std::wstring const& filename, int flags)
 		: m_merkle_first_leaf(0)
 		, m_piece_hashes(0)
@@ -907,7 +908,8 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 	}
-#endif
+#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 #endif
 
 	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags)
@@ -963,6 +965,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
 	torrent_info::torrent_info(std::wstring const& filename, error_code& ec, int flags)
 		: m_merkle_first_leaf(0)
 		, m_piece_hashes(0)
@@ -985,7 +988,8 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 	}
-#endif
+#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date

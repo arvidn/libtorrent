@@ -93,7 +93,7 @@ namespace libtorrent
 		kind_t kind;
 	};
 	
-	struct cache_status
+	struct TORRENT_EXPORT cache_status
 	{
 		cache_status()
 			: blocks_written(0)

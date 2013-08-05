@@ -130,7 +130,7 @@ namespace libtorrent
 
 		// The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 		// are accessors that return the respective type. If the ``entry`` object isn't of the
-		// type you request, the accessor will throw libtorrent_exception_ (which derives from
+		// type you request, the accessor will throw libtorrent_exception (which derives from
 		// ``std::runtime_error``). You can ask an ``entry`` for its type through the
 		// ``type()`` function.
 		// 
@@ -167,7 +167,7 @@ namespace libtorrent
 		// 	}
 		// 
 		// 
-		// To make it easier to extract information from a torrent file, the class torrent_info_
+		// To make it easier to extract information from a torrent file, the class torrent_info
 		// exists.
 		integer_type& integer();
 		const integer_type& integer() const;

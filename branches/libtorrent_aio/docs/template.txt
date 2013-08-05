@@ -29,8 +29,8 @@
     </ul>
     </div>
     <div id="header">
-    <h1><span>Rasterbar Software</span></h1>
-    <h2><span>Software developement and consulting</span></h2>
+    <div id="orange"></div>
+    <div id="logo"></div>
     </div>
     <div id="main">
 %(body_pre_docinfo)s
@@ -38,7 +38,7 @@
 %(body)s
     </div>
     <div id="footer">
-    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
     </div>
     </div>
     <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">

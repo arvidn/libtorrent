@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // .. note::
 // 	In a future version of libtorrent, these types will be replaced
 // 	by the standard timer types from ``std::chrono``.
+//
 
 namespace libtorrent
 {

@@ -2,7 +2,14 @@ import glob
 import os
 import sys
 
+verbose = '--verbose' in sys.argv
+dump = '--dump' in sys.argv
+internal = '--internal' in sys.argv
+
 paths = ['include/libtorrent/*.hpp', 'include/libtorrent/kademlia/*.hpp', 'include/libtorrent/extensions/*.hpp']
+
+if internal:
+	paths.append('include/libtorrent/aux_/*.hpp')
 
 files = []
 
@@ -19,17 +26,15 @@ overviews = {}
 # maps names -> URL
 symbols = {}
 
-verbose = '--verbose' in sys.argv
-dump = '--dump' in sys.argv
-internal = '--internal' in sys.argv
+anon_index = 0
 
 category_mapping = {
 	'error_code.hpp': 'Error Codes',
 	'file.hpp': 'File',
-	'storage.hpp': 'Storage',
+	'storage.hpp': 'Custom Storage',
 	'storage_defs.hpp': 'Storage',
 	'file_storage.hpp': 'Storage',
-	'file_pool.hpp': 'Storage',
+	'file_pool.hpp': 'Custom Storage',
 	'extensions.hpp': 'Plugins',
 	'ut_metadata.hpp': 'Plugins',
 	'ut_pex.hpp': 'Plugins',
@@ -78,6 +83,7 @@ def first_item(itr):
 	return None
 
 def is_visible(desc):
+	if internal: return True
 	if desc.strip() == 'internal': return False
 	if desc.strip() == 'hidden': return False
 	return True
@@ -129,7 +135,7 @@ def parse_function(lno, lines, filename):
 		start_paren += l.count('(')
 		end_paren += l.count(')')
 
-		sig_line = l.replace('TORRENT_EXPORT ', '').strip()
+		sig_line = l.replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT','').strip()
 		if signature != '': sig_line = '\n   ' + sig_line
 		signature += sig_line
 		if verbose: print 'fun     %s' % l
@@ -152,7 +158,7 @@ def parse_function(lno, lines, filename):
 
 				lno = consume_block(lno - 1, lines)
 				signature += ';'
-			return [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip()])}, lno]
+			return [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip() + '()'])}, lno]
 	if len(signature) > 0:
 		print '\x1b[31mFAILED TO PARSE FUNCTION\x1b[0m %s\nline: %d\nfile: %s' % (signature, lno, filename)
 	return [None, lno]
@@ -172,7 +178,7 @@ def parse_class(lno, lines, filename):
 
 	while lno < len(lines):
 		l = lines[lno].strip()
-		name += lines[lno].replace('TORRENT_EXPORT ', '').split('{')[0].strip()
+		name += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
 		if '{' in l: break
 		if verbose: print 'class  %s' % l
 		lno += 1
@@ -279,13 +285,17 @@ def parse_class(lno, lines, filename):
 def parse_enum(lno, lines, filename):
 	start_brace = 0
 	end_brace = 0
+	global anon_index
 
 	l = lines[lno].strip()
 	name = l.replace('enum ', '').split('{')[0].strip()
 	if len(name) == 0:
-		print 'WARNING: anonymous enum at: %s:%d' % (filename, lno)
-		lno = consume_block(lno - 1, lines)
-		return [None, lno]
+		if not internal:
+			print 'WARNING: anonymous enum at: %s:%d' % (filename, lno)
+			lno = consume_block(lno - 1, lines)
+			return [None, lno]
+		name = 'anonymous_enum_%d' % anon_index
+		anon_index += 1
 
 	values = []
 	context = ''
@@ -293,6 +303,7 @@ def parse_enum(lno, lines, filename):
 		if verbose: print 'enum  %s' % lines[lno]
 		lno += 1
 
+	val = 0
 	while lno < len(lines):
 		l = lines[lno].strip()
 		lno += 1
@@ -318,10 +329,21 @@ def parse_enum(lno, lines, filename):
 		if len(l):
 			if verbose: print 'enumv %s' % lines[lno-1]
 			for v in l.split(','):
+				v = v.strip();
+				if v.startswith('//'): break
 				if v == '': continue
+				valstr = ''
+				try:
+					if '=' in v: val = int(v.split('=')[1].strip(), 0)
+					valstr = str(val)
+				except: pass
+
+				if '=' in v: v = v.split('=')[0].strip()
 				if is_visible(context):
-					values.append({'name': v.strip(), 'desc': context})
+					values.append({'name': v.strip(), 'desc': context, 'val': valstr})
+					if verbose: print 'enumv %s' % valstr
 				context = ''
+				val += 1
 		else:
 			if verbose: print '??    %s' % lines[lno-1]
 
@@ -428,8 +450,9 @@ for filename in files:
 			lno = consume_ifdef(lno - 1, lines)
 			continue
 
-		if l == 'namespace detail' or \
-			l == 'namespace aux':
+		if (l == 'namespace detail' or \
+			l == 'namespace aux') \
+			and not internal:
 			lno = consume_block(lno, lines)
 			continue
 
@@ -442,12 +465,13 @@ for filename in files:
 			if verbose: print 'xx    %s' % l
 			continue
 
-		if 'TORRENT_EXPORT ' in l or l.startswith('inline '):
+		if 'TORRENT_EXPORT ' in l or l.startswith('inline ') or internal:
 			if 'class ' in l or 'struct ' in l:
-				current_class, lno = parse_class(lno -1, lines, filename)
-				if current_class != None and is_visible(context):
-					current_class['desc'] = context
-					classes.append(current_class)
+				if not l.endswith(';'):
+					current_class, lno = parse_class(lno -1, lines, filename)
+					if current_class != None and is_visible(context):
+						current_class['desc'] = context
+						classes.append(current_class)
 				context = ''
 				blanks += 1
 				continue
@@ -485,6 +509,13 @@ for filename in files:
 
 		context = ''
 	h.close()
+
+# ====================================================================
+#
+#                               RENDER PART
+#
+# ====================================================================
+
 
 if dump:
 
@@ -530,8 +561,17 @@ for c in classes:
 	if c['file'] in overviews:
 		categories[cat]['overview'] = overviews[c['file']]
 
+	filename = categories[cat]['filename'].replace('.rst', '.html') + '#'
 	categories[cat]['classes'].append(c)
-	symbols[c['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + c['name']
+	symbols[c['name']] = filename + c['name']
+	for f in c['fun']:
+		for n in f['names']:
+			symbols[n] = filename + n
+
+	for e in c['enums']:
+		symbols[e['name']] = filename + e['name']
+		for v in e['values']:
+			symbols[v['name']] = filename + v['name']
 
 for f in functions:
 	cat = categorize_symbol(first_item(f['names']), f['file'])
@@ -554,6 +594,39 @@ for e in enums:
 
 def print_declared_in(out, o):
 	out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))
+	print >>out, dump_link_targets()
+
+# returns RST marked up string
+def linkify_symbols(string):
+	lines = string.split('\n')
+	abort = False
+	ret = []
+	for l in lines:
+		if l.endswith('::'):
+			abort = True
+		if abort:
+			ret.append(l)
+			continue
+		words = l.split(' ')
+		for i in range(len(words)):
+			# it's important to preserve leading
+			# tabs, since that's relevant for
+			# rst markup
+			leading_tabs = 0
+			while leading_tabs < len(words[i]) and words[i][leading_tabs] == '\t':
+				leading_tabs += 1
+
+			# preserve commas and dots at the end
+			w = words[i].strip()
+			trailing = ''
+			if len(w) > 0 and (w[-1] == '.' or w[-1] == ','):
+				trailing = w[-1]
+				w = w[:-1]
+			
+			if w in symbols:
+				words[i] = (leading_tabs * '\t') + print_link(words[i].strip(), symbols[w]) + trailing
+		ret.append(' '.join(words))
+	return '\n'.join(ret)
 
 link_targets = []
 
@@ -572,6 +645,38 @@ def dump_link_targets():
 
 def heading(string, c):
 	return '\n' + string + '\n' + (c * len(string)) + '\n'
+
+def render_enums(out, enums):
+	for e in enums:
+		print >>out, '.. raw:: html\n'
+		print >>out, '\t<a name="%s"></a>' % e['name']
+		print >>out, ''
+		print >>out, heading('enum %s' % e['name'], '.')
+		width = [len('name'), len('value'), len('description')]
+
+		for i in range(len(e['values'])):
+			e['values'][i]['desc'] = linkify_symbols(e['values'][i]['desc'])
+
+		for v in e['values']:
+			width[0] = max(width[0], len(v['name']))
+			width[1] = max(width[1], len(v['val']))
+			for d in v['desc'].split('\n'):
+				width[2] = max(width[2], len(d))
+
+		print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
+		print >>out, '| ' + 'name'.ljust(width[0]) + ' | '  + 'value'.ljust(width[1]) + ' | ' + 'description'.ljust(width[2]) + ' |'
+		print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+=' + ('=' * width[2]) + '=+'
+		for v in e['values']:
+			d = v['desc'].split('\n')
+			if len(d) == 0: d = ['']
+			print >>out, '| ' + v['name'].ljust(width[0]) + ' | '  + v['val'].ljust(width[1]) + ' | ' + d[0].ljust(width[2]) + ' |'
+			for s in d[1:]:
+				print >>out, '| ' + (' ' * width[0]) + ' | '  + (' ' * width[1]) + ' | ' + s.ljust(width[2]) + ' |'
+			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+-' + ('-' * width[2]) + '-+'
+		print >>out, ''
+
+		print >>out, dump_link_targets()
+
 
 out = open('reference.rst', 'w+')
 out.write('''==================================
@@ -592,7 +697,7 @@ for cat in categories:
 		print >>out, '| ' + print_link(c['name'], symbols[c['name']])
 	for f in categories[cat]['functions']:
 		for n in f['names']:
-			print >>out, '| ' + print_link(n + '()', symbols[n])
+			print >>out, '| ' + print_link(n, symbols[n])
 	for e in categories[cat]['enums']:
 		print >>out, '| ' + print_link(e['name'], symbols[e['name']])
 	print >>out, ''
@@ -626,7 +731,11 @@ for cat in categories:
 
 		out.write('%s\n' % heading(c['name'], '-'))
 		print_declared_in(out, c)
-		out.write('%s\n\n.. parsed-literal::\n\t' % c['desc'])
+		c['desc'] = linkify_symbols(c['desc'])
+		out.write('%s\n' % c['desc'])
+		print >>out, dump_link_targets()
+
+		print >>out,'\n.. parsed-literal::\n\t'
 
 		block = '\n%s\n{\n' % c['decl']
 		for f in c['fun']:
@@ -663,7 +772,7 @@ for cat in categories:
 				print >>out, '\t<a name="%s"></a>' % n
 			print >>out, ''
 			for n in f['names']:
-				title += '%s() ' % n
+				title += '%s ' % n
 			print >>out, heading(title.strip(), '.')
 
 			block = '.. parsed-literal::\n\n'
@@ -671,31 +780,12 @@ for cat in categories:
 			for s in f['signatures']:
 				block += highlight_signature(s.replace('\n', '\n   ')) + '\n'
 			print >>out, '%s\n' % block.replace('\n', '\n\t')
+			f['desc'] = linkify_symbols(f['desc'])
 			print >>out, '%s' % f['desc']
+	
+			print >>out, dump_link_targets()
 
-		for e in c['enums']:
-			if e['desc'] == '': continue
-			print >>out, '.. raw:: html\n'
-			print >>out, '\t<a name="%s"></a>' % e['name']
-			print >>out, ''
-			print >>out, heading('enum %s' % e['name'], '.')
-			width = [len('value'), len('description')]
-			for v in e['values']:
-				width[0] = max(width[0], len(v['name']))
-				for d in v['desc'].split('\n'):
-					width[1] = max(width[1], len(d))
-
-			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
-			print >>out, '| ' + 'value'.ljust(width[0]) + ' | ' + 'description'.ljust(width[1]) + ' |'
-			print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+'
-			for v in e['values']:
-				d = v['desc'].split('\n')
-				if len(d) == 0: d = ['']
-				print >>out, '| ' + v['name'].ljust(width[0]) + ' | ' + d[0].ljust(width[1]) + ' |'
-				for s in d[1:]:
-					print >>out, '| ' + (' ' * width[0]) + ' | ' + s.ljust(width[1]) + ' |'
-				print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
-			print >>out, ''
+		render_enums(out, c['enums'])
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
@@ -708,7 +798,10 @@ for cat in categories:
 			for n in f['names']:
 				print >>out, '%s ' % n,
 			print >>out, ''
+			f['desc'] = linkify_symbols(f['desc'])
 			print >>out, '\t%s' % f['desc'].replace('\n', '\n\t')
+
+			print >>out, dump_link_targets()
 
 
 	for f in functions:
@@ -718,7 +811,7 @@ for cat in categories:
 			print >>out, '\t<a name="%s"></a>' % n
 		print >>out, ''
 		for n in f['names']:
-			h += '%s() ' % n
+			h += '%s ' % n
 		print >>out, heading(h, '.')
 		print_declared_in(out, f)
 
@@ -727,33 +820,11 @@ for cat in categories:
 			block += highlight_signature(s) + '\n'
 
 		print >>out, '%s\n' % block.replace('\n', '\n\t')
-		print >>out, f['desc']
+		print >>out, linkify_symbols(f['desc'])
 
-	for e in enums:
-		print >>out, '.. raw:: html\n'
-		print >>out, '\t<a name="%s"></a>' % e['name']
-		print >>out, ''
-
-		print >>out, heading('enum %s' % e['name'], '.')
-		print_declared_in(out, e)
-
-		width = [len('value'), len('description')]
-		for v in e['values']:
-			width[0] = max(width[0], len(v['name']))
-			for d in v['desc'].split('\n'):
-				width[1] = max(width[1], len(d))
-
-		print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
-		print >>out, '| ' + 'value'.ljust(width[0]) + ' | ' + 'description'.ljust(width[1]) + ' |'
-		print >>out, '+=' + ('=' * width[0]) + '=+=' + ('=' * width[1]) + '=+'
-		for v in e['values']:
-			d = v['desc'].split('\n')
-			if len(d) == 0: d = ['']
-			print >>out, '| ' + v['name'].ljust(width[0]) + ' | ' + d[0].ljust(width[1]) + ' |'
-			for s in d[1:]:
-				print >>out, '| ' + (' ' * width[0]) + ' | ' + s.ljust(width[1]) + ' |'
-			print >>out, '+-' + ('-' * width[0]) + '-+-' + ('-' * width[1]) + '-+'
-		print >>out, ''
+		print >>out, dump_link_targets()
+	
+	render_enums(out, enums)
 
 	print >>out, dump_link_targets()
 

@@ -249,7 +249,7 @@ namespace libtorrent
 
 		// The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 		// is available. The fast-resume data can be acquired from a running torrent by calling
-		// `save_resume_data()`_ on `torrent_handle`_. See `fast resume`_. The ``vector`` that is
+		// save_resume_data() on `torrent_handle`_. See `fast resume`_. The ``vector`` that is
 		// passed in will be swapped into the running torrent instance with ``std::vector::swap()``.
 		std::vector<char> resume_data;
 
@@ -259,8 +259,8 @@ namespace libtorrent
 		// can be used to customize how the data is stored. The default
 		// storage will simply write the data to the files it belongs to, but it could be
 		// overridden to save everything to a single file at a specific location or encrypt the
-		// content on disk for instance. For more information about the ``storage_interface``
-		// that needs to be implemented for a custom storage, see `storage_interface`_.
+		// content on disk for instance. For more information about the storage_interface
+		// that needs to be implemented for a custom storage, see storage_interface.
 		storage_constructor_type storage;
 
 		// The ``userdata`` parameter is optional and will be passed on to the extension
@@ -286,7 +286,7 @@ namespace libtorrent
 		// true info-hash of the .torrent. Instead a placeholder, unique, info-hash is used
 		// which is later updated once the .torrent file has been downloaded.
 		// 
-		// Once the info-hash change happens, a torrent_update_alert_ is posted.
+		// Once the info-hash change happens, a torrent_update_alert is posted.
 		std::string url;
 
 		// if ``uuid`` is specified, it is used to find duplicates. If another torrent is already
@@ -326,6 +326,10 @@ namespace libtorrent
 		int max_connections;
 		int upload_limit;
 		int download_limit;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> > extensions;
+#endif
 	};
 }
 

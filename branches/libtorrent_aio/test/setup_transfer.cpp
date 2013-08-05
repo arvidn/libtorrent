@@ -227,6 +227,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 				|| pea->error.message() == "stopping torrent"
 				|| (allow_disconnects && pea->error.message() == "Broken pipe")
 				|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
+				|| (allow_disconnects && pea->error.message() == "no shared cipher")
 				|| (allow_disconnects && pea->error.message() == "End of file."));
 		}
 
@@ -316,14 +317,26 @@ void test_sleep(int millisec)
 	libtorrent::sleep(millisec);
 }
 
+static std::set<int> running_proxies;
+
 void stop_proxy(int port)
 {
 	char buf[100];
 	snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", port);
 	int ret = system(buf);
 	if (ret == 0)
-	{
 		perror("system");	
+	else
+		running_proxies.erase(port);
+}
+
+void stop_all_proxies()
+{
+	std::set<int> proxies = running_proxies;
+	for (std::set<int>::iterator i = proxies.begin()
+		, end(proxies.end()); i != end; ++i)
+	{
+		stop_proxy(*i);
 	}
 }
 
@@ -367,14 +380,15 @@ int start_proxy(int proxy_type)
 		"SERVER=%s %s"
 		, port, type, auth);
 
-	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
+	fprintf(stderr, "%s starting delegated proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
 	int r = system(buf);
 	if (r != 0)
 	{
 		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
 		exit(1);
 	}
-	fprintf(stderr, "launched\n");
+	running_proxies.insert(port);
+	fprintf(stderr, "%s launched\n", time_now_string());
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
 	return port;
@@ -719,7 +733,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 	if (bytes_transferred < 16)
 	{
-		fprintf(stderr, "%s: UDP message too short\n", time_now_string());
+		fprintf(stderr, "%s: UDP message too short (from: %s)\n", time_now_string(), print_endpoint(*from).c_str());
 		return;
 	}
 
@@ -736,12 +750,13 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 	{
 		case 0: // connect
 
-			fprintf(stderr, "%s: UDP connect\n", time_now_string());
+			fprintf(stderr, "%s: UDP connect from %s\n", time_now_string(), print_endpoint(*from).c_str());
 			ptr = buffer;
 			detail::write_uint32(0, ptr); // action = connect
 			detail::write_uint32(transaction_id, ptr); // transaction_id
 			detail::write_uint64(10, ptr); // connection_id
 			sock->send_to(asio::buffer(buffer, 16), *from, 0, e);
+			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
 			break;
 
 		case 1: // announce
@@ -756,6 +771,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 			++g_udp_tracker_requests;
 			// 0 peers
 			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
+			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
 			break;
 		case 2:
 			// ignore scrapes

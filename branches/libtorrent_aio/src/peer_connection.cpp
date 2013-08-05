@@ -4000,6 +4000,14 @@ namespace libtorrent
 		torrent_handle handle;
 		if (t) handle = t->get_handle();
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			(*i)->on_disconnect(ec);
+		}
+#endif
+
 		if (ec == error::address_in_use
 			&& m_settings.get_int(settings_pack::outgoing_port) != 0
 			&& t)
@@ -6221,6 +6229,14 @@ namespace libtorrent
 			peer_log(">>> SET_TOS[ tos: %d e: %s ]", m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
 #endif
 		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			(*i)->on_connected();
+		}
+#endif
 
 		on_connected();
 		setup_send();

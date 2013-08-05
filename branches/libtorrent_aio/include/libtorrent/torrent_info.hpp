@@ -276,10 +276,10 @@ namespace libtorrent
 		// the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
 		// from the swarm.
 		// 
-		// The constructor that takes a ``lazy_entry`` will create a ``torrent_info`` object from the
-		// information found in the given torrent_file. The ``lazy_entry`` represents a tree node in
+		// The constructor that takes a lazy_entry will create a torrent_info object from the
+		// information found in the given torrent_file. The lazy_entry represents a tree node in
 		// an bencoded file. To load an ordinary .torrent file
-		// into a ``lazy_entry``, use `lazy_bdecode()`_.
+		// into a lazy_entry, use lazy_bdecode().
 		// 
 		// The version that takes a buffer pointer and a size will decode it as a .torrent file and
 		// initialize the torrent_info object for you.
@@ -290,7 +290,7 @@ namespace libtorrent
 		// 
 		// The overloads that takes an ``error_code const&`` never throws if an error occur, they
 		// will simply set the error code to describe what went wrong and not fully initialize the
-		// torrent_info object. The overloads that do not take the extra error_code_ parameter will
+		// torrent_info object. The overloads that do not take the extra error_code parameter will
 		// always throw if an error occurs. These overloads are not available when building without
 		// exception support.
 		// 
@@ -300,7 +300,13 @@ namespace libtorrent
 		torrent_info(char const* buffer, int size, int flags = 0);
 		torrent_info(std::string const& filename, int flags = 0);
 #if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename, int flags = 0);
+		// all wstring APIs are deprecated since 0.16.11
+		// instead, use the wchar -> utf8 conversion functions
+		// and pass in utf8 strings
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		torrent_info(std::wstring const& filename, int flags = 0) TORRENT_DEPRECATED;
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 #endif
 		torrent_info(torrent_info const& t);
@@ -309,22 +315,28 @@ namespace libtorrent
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0);
+		// all wstring APIs are deprecated since 0.16.11
+		// instead, use the wchar -> utf8 conversion functions
+		// and pass in utf8 strings
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0) TORRENT_DEPRECATED;
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
 		~torrent_info();
 
-		// The ``file_storage`` object contains the information on how to map the pieces to
-		// files. It is separated from the ``torrent_info`` object because when creating torrents
+		// The file_storage object contains the information on how to map the pieces to
+		// files. It is separated from the torrent_info object because when creating torrents
 		// a storage object needs to be created without having a torrent file. When renaming files
-		// in a storage, the storage needs to make its own copy of the ``file_storage`` in order
+		// in a storage, the storage needs to make its own copy of the file_storage in order
 		// to make its mapping differ from the one in the torrent file.
 		// 
 		// ``orig_files()`` returns the original (unmodified) file storage for this torrent. This
 		// is used by the web server connection, which needs to request files with the original
 		// names. Filename may be chaged using ``torrent_info::rename_file()``.
 		// 
-		// For more information on the ``file_storage`` object, see the separate document on how
+		// For more information on the file_storage object, see the separate document on how
 		// to create torrents.
 		file_storage const& files() const { return m_files; }
 		file_storage const& orig_files() const
@@ -338,14 +350,14 @@ namespace libtorrent
 		// returned by ``orig_files()``.
 		// 
 		// If you want to rename the base name of the torrent (for a multifile torrent), you
-		// can copy the ``file_storage`` (see `files() orig_files()`_), change the name, and
+		// can copy the ``file_storage`` (see files() and orig_files() ), change the name, and
 		// then use `remap_files()`_.
 		// 
 		// The ``new_filename`` can both be a relative path, in which case the file name
 		// is relative to the ``save_path`` of the torrent. If the ``new_filename`` is
 		// an absolute path (i.e. ``is_complete(new_filename) == true``), then the file
 		// is detached from the ``save_path`` of the torrent. In this case the file is
-		// not moved when move_storage_ is invoked.
+		// not moved when move_storage() is invoked.
 		void rename_file(int index, std::string const& new_filename)
 		{
 			TORRENT_ASSERT(is_loaded());
@@ -353,12 +365,18 @@ namespace libtorrent
 			m_files.rename_file(index, new_filename);
 		}
 #if TORRENT_USE_WSTRING
-		void rename_file(int index, std::wstring const& new_filename)
+		// all wstring APIs are deprecated since 0.16.11
+		// instead, use the wchar -> utf8 conversion functions
+		// and pass in utf8 strings
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED
 		{
 			TORRENT_ASSERT(is_loaded());
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
 		// Remaps the file storage to a new file layout. This can be used to, for instance,
@@ -453,7 +471,7 @@ namespace libtorrent
 
 		// This function will map a piece index, a byte offset within that piece and
 		// a size (in bytes) into the corresponding files with offsets where that data
-		// for that piece is supposed to be stored. See file_slice_.
+		// for that piece is supposed to be stored. See file_slice.
 		std::vector<file_slice> map_block(int piece, size_type offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
@@ -462,7 +480,7 @@ namespace libtorrent
 
 		// This function will map a range in a specific file into a range in the torrent.
 		// The ``file_offset`` parameter is the offset in the file, given in bytes, where
-		// 0 is the start of the file. See peer_request_.
+		// 0 is the start of the file. See peer_request.
 		// 
 		// The input range is assumed to be valid within the torrent. ``file_offset``
 		// + ``size`` is not allowed to be greater than the file size. ``file_index``
@@ -507,7 +525,7 @@ namespace libtorrent
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
 		// piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
-		// torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
+		// torrent file.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest for the piece. 
 		// Note that the string is not null-terminated.
 		int piece_size(int index) const { return m_files.piece_size(index); }

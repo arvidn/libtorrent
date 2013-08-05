@@ -1752,6 +1752,7 @@ namespace aux {
 	}
 
 #if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::load_asnum_dbw(std::wstring file)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1773,6 +1774,7 @@ namespace aux {
 		m_country_db = GeoIP_open(utf8.c_str(), GEOIP_STANDARD);
 //		return m_country_db;
 	}
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
 	void session_impl::load_country_db(std::string file)
@@ -2431,8 +2433,14 @@ namespace aux {
 			return;
 		}
 
+		// SO_REUSEADDR on windows is a bit special. It actually allows
+		// two active sockets to bind to the same port. That means we
+		// may end up binding to the same socket as some other random
+		// application. Don't do it!
+#ifndef TORRENT_WINDOWS
 		error_code err; // ignore errors here
 		s->sock->set_option(socket_acceptor::reuse_address(true), err);
+#endif
 
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
@@ -5860,6 +5868,17 @@ retry:
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::vector<boost::function<
+			boost::shared_ptr<torrent_plugin>(torrent*, void*)> >
+			torrent_plugins_t;
+
+		for (torrent_plugins_t::const_iterator i = params.extensions.begin()
+			, end(params.extensions.end()); i != end; ++i)
+		{
+			torrent_ptr->add_extension((*i)(torrent_ptr.get(),
+				params.userdata));
+		}
+
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
 #endif
 
