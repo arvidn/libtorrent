@@ -294,7 +294,7 @@ namespace libtorrent
 		// 
 		// The overloads that takes an ``error_code const&`` never throws if an error occur, they
 		// will simply set the error code to describe what went wrong and not fully initialize the
-		// torrent_info object. The overloads that do not take the extra error_code_ parameter will
+		// torrent_info object. The overloads that do not take the extra error_code parameter will
 		// always throw if an error occurs. These overloads are not available when building without
 		// exception support.
 		// 
@@ -330,17 +330,17 @@ namespace libtorrent
 
 		~torrent_info();
 
-		// The ``file_storage`` object contains the information on how to map the pieces to
-		// files. It is separated from the ``torrent_info`` object because when creating torrents
+		// The file_storage object contains the information on how to map the pieces to
+		// files. It is separated from the torrent_info object because when creating torrents
 		// a storage object needs to be created without having a torrent file. When renaming files
-		// in a storage, the storage needs to make its own copy of the ``file_storage`` in order
+		// in a storage, the storage needs to make its own copy of the file_storage in order
 		// to make its mapping differ from the one in the torrent file.
 		// 
 		// ``orig_files()`` returns the original (unmodified) file storage for this torrent. This
 		// is used by the web server connection, which needs to request files with the original
 		// names. Filename may be chaged using ``torrent_info::rename_file()``.
 		// 
-		// For more information on the ``file_storage`` object, see the separate document on how
+		// For more information on the file_storage object, see the separate document on how
 		// to create torrents.
 		file_storage const& files() const { return m_files; }
 		file_storage const& orig_files() const { return m_orig_files ? *m_orig_files : m_files; }
@@ -466,13 +466,13 @@ namespace libtorrent
 
 		// This function will map a piece index, a byte offset within that piece and
 		// a size (in bytes) into the corresponding files with offsets where that data
-		// for that piece is supposed to be stored. See file_slice_.
+		// for that piece is supposed to be stored. See file_slice.
 		std::vector<file_slice> map_block(int piece, size_type offset, int size) const
 		{ return m_files.map_block(piece, offset, size); }
 
 		// This function will map a range in a specific file into a range in the torrent.
 		// The ``file_offset`` parameter is the offset in the file, given in bytes, where
-		// 0 is the start of the file. See peer_request_.
+		// 0 is the start of the file. See peer_request.
 		// 
 		// The input range is assumed to be valid within the torrent. ``file_offset``
 		// + ``size`` is not allowed to be greater than the file size. ``file_index``

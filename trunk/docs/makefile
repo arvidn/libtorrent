@@ -2,6 +2,22 @@
 
 WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 
+REFERENCE_TARGETS = \
+	reference \
+	reference-Core \
+	reference-String \
+	reference-Plugins \
+	reference-Create_Torrents \
+	reference-Error_Codes \
+	reference-Time \
+	reference-Storage \
+	reference-Custom_Storage \
+	reference-Utility \
+	reference-Bencoding \
+	reference-Alerts \
+	reference-RSS \
+	reference-Filter
+
 TARGETS = index \
 	udp_tracker_protocol \
 	dht_rss \
@@ -23,20 +39,7 @@ TARGETS = index \
 	utp \
 	tuning \
 	hacking \
-	reference \
-	reference-Core \
-	reference-String \
-	reference-Plugins \
-	reference-Create_Torrents \
-	reference-Error_Codes \
-	reference-Time \
-	reference-Storage \
-	reference-Custom_Storage \
-	reference-Utility \
-	reference-Bencoding \
-	reference-Alerts \
-	reference-RSS \
-	reference-Filter
+	$(REFERENCE_TARGETS)
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
 
@@ -51,7 +54,7 @@ all: html
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
 
-reference.rst reference-Create_Torrents.rst reference-Error_Codes.rst reference-Plugins.rst reference-Core.rst reference-String.rst reference-Storage.rst:gen_reference_doc.py ../include/libtorrent/*.hpp
+$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp
 	python gen_reference_doc.py
 
 %.epub:%.rst
