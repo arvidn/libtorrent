@@ -280,10 +280,10 @@ namespace libtorrent
 		// the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
 		// from the swarm.
 		// 
-		// The constructor that takes a ``lazy_entry`` will create a ``torrent_info`` object from the
-		// information found in the given torrent_file. The ``lazy_entry`` represents a tree node in
+		// The constructor that takes a lazy_entry will create a torrent_info object from the
+		// information found in the given torrent_file. The lazy_entry represents a tree node in
 		// an bencoded file. To load an ordinary .torrent file
-		// into a ``lazy_entry``, use `lazy_bdecode()`_.
+		// into a lazy_entry, use lazy_bdecode().
 		// 
 		// The version that takes a buffer pointer and a size will decode it as a .torrent file and
 		// initialize the torrent_info object for you.
@@ -350,14 +350,14 @@ namespace libtorrent
 		// returned by ``orig_files()``.
 		// 
 		// If you want to rename the base name of the torrent (for a multifile torrent), you
-		// can copy the ``file_storage`` (see `files() orig_files()`_), change the name, and
+		// can copy the ``file_storage`` (see files() and orig_files() ), change the name, and
 		// then use `remap_files()`_.
 		// 
 		// The ``new_filename`` can both be a relative path, in which case the file name
 		// is relative to the ``save_path`` of the torrent. If the ``new_filename`` is
 		// an absolute path (i.e. ``is_complete(new_filename) == true``), then the file
 		// is detached from the ``save_path`` of the torrent. In this case the file is
-		// not moved when move_storage_ is invoked.
+		// not moved when move_storage() is invoked.
 		void rename_file(int index, std::string const& new_filename)
 		{
 			copy_on_write();

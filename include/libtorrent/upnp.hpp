@@ -58,18 +58,37 @@ namespace libtorrent
 
 	namespace upnp_errors
 	{
+		// error codes for the upnp_error_category. They hold error codes
+		// returned by UPnP routers when mapping ports
 		enum error_code_enum
 		{
+			// No error
 			no_error = 0,
+			// One of the arguments in the request is invalid
 			invalid_argument = 402,
+			// The request failed
 			action_failed = 501,
+			// The specified value does not exist in the array
 			value_not_in_array = 714,
+			// The source IP address cannot be wild-carded, but
+			// must be fully specified
 			source_ip_cannot_be_wildcarded = 715,
+			// The external port cannot be wildcarded, but must
+			// be specified
 			external_port_cannot_be_wildcarded = 716,
+			// The port mapping entry specified conflicts with a
+			// mapping assigned previously to another client
 			port_mapping_conflict = 718,
+			// Internal and external port value must be the same
 			internal_port_must_match_external = 724,
+			// The NAT implementation only supports permanent
+			// lease times on port mappings
 			only_permanent_leases_supported = 725,
+			// RemoteHost must be a wildcard and cannot be a
+			// specific IP addres or DNS name
 			remote_host_must_be_wildcard = 726,
+			// ExternalPort must be a wildcard and cannot be a
+			// specific port
 			external_port_must_be_wildcard = 727
 		};
 	}
