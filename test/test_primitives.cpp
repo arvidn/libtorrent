@@ -776,10 +776,6 @@ int test_main()
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 
-	TEST_CHECK(errors::reserved129 == 129);
-	TEST_CHECK(errors::reserved159 == 159);
-	TEST_CHECK(errors::reserved114 == 114);
-
 	TEST_CHECK(error_code(errors::unauthorized, get_http_category()).message() == "401 Unauthorized");
 	TEST_CHECK(error_code(errors::service_unavailable, get_http_category()).message() == "503 Service Unavailable");
 
