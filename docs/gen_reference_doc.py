@@ -63,6 +63,12 @@ category_mapping = {
 	'identify_client.hpp': 'Utility',
 	'thread.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
+	'session_settings.hpp': 'Settings',
+}
+
+category_fun_mapping = {
+	'min_memory_usage()': 'Settings',
+	'high_performance_seed()': 'Settings',
 }
 
 def categorize_symbol(name, filename):
@@ -74,6 +80,9 @@ def categorize_symbol(name, filename):
 		or name.endswith('_error_code') \
 		or name.endswith('error_code_enum'):
 		return 'Error Codes'
+
+	if name in category_fun_mapping:
+		return category_fun_mapping[name]
 
 	return 'Core'
 
@@ -624,7 +633,7 @@ def linkify_symbols(string):
 				w = w[:-1]
 			
 			if w in symbols:
-				words[i] = (leading_tabs * '\t') + print_link(words[i].strip(), symbols[w]) + trailing
+				words[i] = (leading_tabs * '\t') + print_link(w, symbols[w]) + trailing
 		ret.append(' '.join(words))
 	return '\n'.join(ret)
 
