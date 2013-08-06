@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp" // sha1_hash
 #include "libtorrent/version.hpp"
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+#include "libtorrent/extensions.hpp"
+#endif
+
 namespace libtorrent
 {
 	class torrent_info;

@@ -43,8 +43,34 @@ namespace libtorrent
 {
 	struct pool_file_status
 	{
+		// the index of the file this entry refers to into the ``file_storage``
+		// file list of this torrent. This starts indexing at 0.
 		int file_index;
+
+		// a (high precision) timestamp of when the file was last used.
 		ptime last_use;
+
+		// ``open_mode`` is a bitmask of the file flags this file is currently opened with. These
+		// are the flags used in the ``file::open()`` function. This enum is defined as a member
+		// of the ``file`` class.
+		// 
+		// ::
+		// 
+		// 	enum
+		// 	{
+		// 		read_only = 0,
+		// 		write_only = 1,
+		// 		read_write = 2,
+		// 		rw_mask = 3,
+		// 		no_buffer = 4,
+		// 		sparse = 8,
+		// 		no_atime = 16,
+		// 		random_access = 32,
+		// 		lock_file = 64,
+		// 	};
+		// 
+		// Note that the read/write mode is not a bitmask. The two least significant bits are used
+		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
 		int open_mode;
 	};
 

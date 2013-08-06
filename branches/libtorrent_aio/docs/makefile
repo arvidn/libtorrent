@@ -16,7 +16,8 @@ REFERENCE_TARGETS = \
 	reference-Bencoding \
 	reference-Alerts \
 	reference-RSS \
-	reference-Filter
+	reference-Filter \
+	reference-Settings
 
 TARGETS = index \
 	udp_tracker_protocol \
