@@ -52,6 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/uncork_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 
+#include "libtorrent/debug.hpp"
+
 #if TORRENT_USE_RLIMIT
 #include <sys/resource.h>
 #endif
@@ -171,6 +173,9 @@ namespace libtorrent
 		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(alert_disp)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("disk_io_thread::work");
+#endif
 		m_disk_cache.set_settings(m_settings);
 
 #ifdef TORRENT_DISK_STATS
@@ -1546,7 +1551,7 @@ namespace libtorrent
 			// to be cleared first, (async_clear_piece).
 			TORRENT_ASSERT(pe->hashing_done == 0);
 
-			TORRENT_ASSERT(pe->blocks[r.start / 0x4000].buf == NULL);
+			TORRENT_ASSERT(pe->blocks[r.start / 0x4000].refcount == 0 || pe->blocks[r.start / 0x4000].buf == NULL);
 		}
 		l3_.unlock();
 #endif
@@ -2974,6 +2979,9 @@ namespace libtorrent
 #endif
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("disk_io_thread::work");
+#endif
 		m_work.reset();
 	}
 

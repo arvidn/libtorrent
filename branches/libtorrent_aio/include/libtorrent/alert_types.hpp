@@ -127,6 +127,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(torrent_removed_alert, 4);
 		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 		sha1_hash info_hash;
 	};
 

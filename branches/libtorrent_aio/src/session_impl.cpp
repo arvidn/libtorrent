@@ -5997,8 +5997,7 @@ retry:
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
-		if (m_alerts.should_post<torrent_removed_alert>())
-			m_alerts.post_alert(torrent_removed_alert(tptr->get_handle(), tptr->info_hash()));
+		m_alerts.post_alert(torrent_removed_alert(tptr->get_handle(), tptr->info_hash()));
 
 		remove_torrent_impl(tptr, options);
 
