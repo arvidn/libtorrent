@@ -94,7 +94,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT session_settings
 	{
-		session_settings(std::string const& user_agent_ = "libtorrent/"
+		session_settings(std::string const& user_agent = "libtorrent/"
 			LIBTORRENT_VERSION);
 		~session_settings();
 
