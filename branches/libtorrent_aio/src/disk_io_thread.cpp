@@ -2369,6 +2369,7 @@ namespace libtorrent
 		// and clear all read jobs
 		mutex::scoped_lock l(m_cache_mutex);
 		flush_cache(j->storage.get(), flush_read_cache | flush_write_cache, completed_jobs, l);
+		// TODO: is it a good idea to cancel hash jobs here?
 		m_disk_cache.release_memory();
 
 		return 0;
