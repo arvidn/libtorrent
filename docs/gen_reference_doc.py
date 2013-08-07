@@ -59,7 +59,7 @@ category_mapping = {
 	'socket_io.hpp': 'Network',
 	'rss.hpp': 'RSS',
 	'bitfield.hpp': 'Utility',
-	'peer_id.hpp': 'Utility',
+	'sha1_hash.hpp': 'Utility',
 	'identify_client.hpp': 'Utility',
 	'thread.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
