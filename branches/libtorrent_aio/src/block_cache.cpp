@@ -996,18 +996,18 @@ void block_cache::clear(tailqueue& jobs)
 	for (iterator p = m_pieces.begin()
 		, end(m_pieces.end()); p != end; ++p)
 	{
+		cached_piece_entry& pe = const_cast<cached_piece_entry&>(*p);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		for (tailqueue_iterator i = pe.jobs.iterate(); i.get(); i.next())
+			TORRENT_PIECE_ASSERT(((disk_io_job*)i.get())->piece == pe.piece, &pe);
+		for (tailqueue_iterator i = pe.read_jobs.iterate(); i.get(); i.next())
+			TORRENT_PIECE_ASSERT(((disk_io_job*)i.get())->piece == pe.piece, &pe);
+#endif
 		// this also removes the jobs from the piece
-		tailqueue_node* j = const_cast<tailqueue&>(p->jobs).get_all();
-		while (j)
-		{
-			tailqueue_node* job = j;
-			j = j->next;
-			job->next = NULL;
-			TORRENT_PIECE_ASSERT(((disk_io_job*)job)->piece == p->piece, &*p);
-			jobs.push_back(job);
-		}
+		jobs.append(pe.jobs);
+		jobs.append(pe.read_jobs);
 
-		drain_piece_bufs(const_cast<cached_piece_entry&>(*p), bufs);
+		drain_piece_bufs(pe, bufs);
 	}
 
 	if (!bufs.empty()) free_multiple_buffers(&bufs[0], bufs.size());
