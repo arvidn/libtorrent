@@ -82,6 +82,12 @@ struct test_storage_impl : storage_interface
 
 void nop() {}
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#define INITIALIZE_JOB(j) j.in_use = true;
+#else
+#define INITIALIZE_JOB(j) 
+#endif
+
 #define TEST_SETUP \
 	io_service ios; \
 	print_alert ad; \
@@ -102,36 +108,40 @@ void nop() {}
 	boost::shared_ptr<piece_manager> pm(boost::make_shared<piece_manager>(st, boost::shared_ptr<int>(new int), &fs)); \
 	bc.set_settings(sett); \
 	st->m_settings = &sett; \
-	disk_io_job j; \
-	j.storage = pm; \
+	disk_io_job rj; \
+	disk_io_job wj; \
+	INITIALIZE_JOB(rj) \
+	INITIALIZE_JOB(wj) \
+	rj.storage = pm; \
+	wj.storage = pm; \
 	cached_piece_entry* pe = NULL; \
 	int ret = 0; \
 	cache_status status; \
 	file::iovec_t iov[1]
 
 #define WRITE_BLOCK(p, b) \
-	j.flags = disk_io_job::in_progress; \
-	j.action = disk_io_job::write; \
-	j.d.io.offset = b * 0x4000; \
-	j.d.io.buffer_size = 0x4000; \
-	j.piece = p; \
-	j.buffer = bc.allocate_buffer("write-test"); \
-	pe = bc.add_dirty_block(&j)
+	wj.flags = disk_io_job::in_progress; \
+	wj.action = disk_io_job::write; \
+	wj.d.io.offset = b * 0x4000; \
+	wj.d.io.buffer_size = 0x4000; \
+	wj.piece = p; \
+	wj.buffer = bc.allocate_buffer("write-test"); \
+	pe = bc.add_dirty_block(&wj)
 
 #define READ_BLOCK(p, b, r) \
-	j.action = disk_io_job::read; \
-	j.d.io.offset = b * 0x4000; \
-	j.d.io.buffer_size = 0x4000; \
-	j.piece = p; \
-	j.storage = pm; \
-	j.requester = (void*)r; \
-	j.buffer = 0; \
-	ret = bc.try_read(&j)
+	rj.action = disk_io_job::read; \
+	rj.d.io.offset = b * 0x4000; \
+	rj.d.io.buffer_size = 0x4000; \
+	rj.piece = p; \
+	rj.storage = pm; \
+	rj.requester = (void*)r; \
+	rj.buffer = 0; \
+	ret = bc.try_read(&rj)
 
 #define RETURN_BUFFER \
-	if (j.d.io.ref.storage) bc.reclaim_block(j.d.io.ref); \
-	else if (j.buffer) bc.free_buffer(j.buffer); \
-	j.d.io.ref.storage = 0
+	if (rj.d.io.ref.storage) bc.reclaim_block(rj.d.io.ref); \
+	else if (rj.buffer) bc.free_buffer(rj.buffer); \
+	rj.d.io.ref.storage = 0
 
 #define FLUSH(flushing) \
 	for (int i = 0; i < sizeof(flushing)/sizeof(flushing[0]); ++i) \
@@ -142,12 +152,12 @@ void nop() {}
 	bc.blocks_flushed(pe, flushing, sizeof(flushing)/sizeof(flushing[0]))
 
 #define INSERT(p, b) \
-	j.piece = p; \
-	j.requester = (void*)1; \
-	pe = bc.allocate_piece(&j, cached_piece_entry::read_lru1); \
+	wj.piece = p; \
+	wj.requester = (void*)1; \
+	pe = bc.allocate_piece(&wj, cached_piece_entry::read_lru1); \
 	ret = bc.allocate_iovec(iov, 1); \
 	TEST_EQUAL(ret, 0); \
-	bc.insert_blocks(pe, b, iov, 1, &j)
+	bc.insert_blocks(pe, b, iov, 1, &wj)
 
 void test_write()
 {
@@ -416,14 +426,14 @@ void test_unaligned_read()
 	INSERT(0, 0);
 	INSERT(0, 1);
 
-	j.action = disk_io_job::read;
-	j.d.io.offset = 0x2000;
-	j.d.io.buffer_size = 0x4000;
-	j.piece = 0;
-	j.storage = pm;
-	j.requester = (void*)1;
-	j.buffer = 0;
-	ret = bc.try_read(&j);
+	rj.action = disk_io_job::read;
+	rj.d.io.offset = 0x2000;
+	rj.d.io.buffer_size = 0x4000;
+	rj.piece = 0;
+	rj.storage = pm;
+	rj.requester = (void*)1;
+	rj.buffer = 0;
+	ret = bc.try_read(&rj);
 
 	// unaligned reads copies the data into a new buffer
 	// rather than
