@@ -141,7 +141,6 @@ namespace libtorrent
 		, need_save_resume(false)
 		, ip_filter_applies(true)
 		, info_hash(0)
-		, listen_port(0)
 	{}
 
 	torrent_status::~torrent_status() {}
