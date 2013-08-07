@@ -8725,11 +8725,6 @@ namespace libtorrent
 		if (flags & torrent_handle::query_torrent_file)
 			st->torrent_file = m_torrent_file;
 
-		st->listen_port = 0;
-#ifdef TORRENT_USE_OPENSSL
-		if (is_ssl_torrent()) st->listen_port = m_ses.ssl_listen_port();
-#endif
-
 		st->has_incoming = m_has_incoming;
 		if (m_error) st->error = convert_from_native(m_error.message()) + ": " + m_error_file;
 		st->seed_mode = m_seed_mode;
