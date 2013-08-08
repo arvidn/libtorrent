@@ -522,7 +522,7 @@ namespace libtorrent {
 	{
 		char msg[600];
 		snprintf(msg, sizeof(msg), "%s disconnecting: [%s] %s", peer_alert::message().c_str()
-			, error.category().name(), error.message().c_str());
+			, error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
 } // namespace libtorrent
