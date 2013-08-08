@@ -350,7 +350,7 @@ namespace libtorrent
 			, std::string const& url_
 			, error_code const& e)
 			: tracker_alert(h, url_)
-			, msg(e.message())
+			, msg(convert_from_native(e.message()))
 		{ TORRENT_ASSERT(!url.empty()); }
 
 		scrape_failed_alert(torrent_handle const& h
@@ -475,7 +475,7 @@ namespace libtorrent
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			msg = error.message();
+			msg = convert_from_native(error.message());
 #endif
 		}
 
@@ -484,7 +484,7 @@ namespace libtorrent
 		const static int static_category = alert::peer_notification;
 		virtual std::string message() const
 		{
-			return peer_alert::message() + " peer error: " + error.message();
+			return peer_alert::message() + " peer error: " + convert_from_native(error.message());
 		}
 
 		error_code error;
@@ -518,7 +518,7 @@ namespace libtorrent
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			msg = error.message();
+			msg = convert_from_native(error.message());
 #endif
 		}
 
@@ -705,7 +705,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " storage move failed: "
-				+ error.message();
+				+ convert_from_native(error.message());
 		}
 
 		error_code error;
@@ -734,7 +734,7 @@ namespace libtorrent
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			msg = error.message();
+			msg = convert_from_native(error.message());
 #endif
 		}
 	
@@ -745,7 +745,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " torrent deletion failed: "
-				+ error.message();
+				+convert_from_native(error.message());
 		}
 		virtual bool discardable() const { return false; }
 
@@ -782,7 +782,7 @@ namespace libtorrent
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			msg = error.message();
+			msg = convert_from_native(error.message());
 #endif
 		}
 	
@@ -793,7 +793,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " resume data was not generated: "
-				+ error.message();
+				+ convert_from_native(error.message());
 		}
 		virtual bool discardable() const { return false; }
 
@@ -850,7 +850,7 @@ namespace libtorrent
 			, error_code const& e)
 			: torrent_alert(h)
 			, url(url_)
-			, msg(e.message())
+			, msg(convert_from_native(e.message()))
 		{}
 
 		url_seed_alert(
@@ -886,7 +886,7 @@ namespace libtorrent
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			msg = error.message();
+			msg = convert_from_native(error.message());
 #endif
 		}
 
@@ -898,7 +898,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			return torrent_alert::message() + " file (" + file + ") error: "
-				+ error.message();
+				+ convert_from_native(error.message());
 		}
 
 		std::string file;
@@ -951,7 +951,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			error_code ec;
-			return "UDP error: " + error.message() + " from: " + endpoint.address().to_string(ec);
+			return "UDP error: " + convert_from_native(error.message()) + " from: " + endpoint.address().to_string(ec);
 		}
 
 		udp::endpoint endpoint;
@@ -1023,7 +1023,7 @@ namespace libtorrent
 			:  mapping(i), map_type(t), error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			msg = error.message();
+			msg = convert_from_native(error.message());
 #endif
 		}
 
@@ -1080,7 +1080,7 @@ namespace libtorrent
 			, error(e)
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			msg = error.message();
+			msg = convert_from_native(error.message());
 #endif
 		}
 
@@ -1089,7 +1089,7 @@ namespace libtorrent
 		const static int static_category = alert::status_notification
 			| alert::error_notification;
 		virtual std::string message() const
-		{ return torrent_alert::message() + " fast resume rejected: " + error.message(); }
+		{ return torrent_alert::message() + " fast resume rejected: " + convert_from_native(error.message()); }
 
 		error_code error;
 
