@@ -82,6 +82,25 @@ namespace libtorrent
 	class connection_queue;
 	class alert;
 
+	// The default values of the session settings are set for a regular bittorrent client running
+	// on a desktop system. There are functions that can set the session settings to pre set
+	// settings for other environments. These can be used for the basis, and should be tweaked to
+	// fit your needs better.
+	// 
+	// ``min_memory_usage`` returns settings that will use the minimal amount of RAM, at the
+	// potential expense of upload and download performance. It adjusts the socket buffer sizes,
+	// disables the disk cache, lowers the send buffer watermarks so that each connection only has
+	// at most one block in use at any one time. It lowers the outstanding blocks send to the disk
+	// I/O thread so that connections only have one block waiting to be flushed to disk at any given
+	// time. It lowers the max number of peers in the peer list for torrents. It performs multiple
+	// smaller reads when it hashes pieces, instead of reading it all into memory before hashing.
+	// 
+	// This configuration is inteded to be the starting point for embedded devices. It will
+	// significantly reduce memory usage.
+	// 
+	// ``high_performance_seed`` returns settings optimized for a seed box, serving many peers
+	// and that doesn't do any downloading. It has a 128 MB disk cache and has a limit of 400 files
+	// in its file pool. It support fast upload rates by allowing large send buffers.
 	TORRENT_EXPORT session_settings min_memory_usage();
 	TORRENT_EXPORT session_settings high_performance_seed();
 
@@ -497,8 +516,6 @@ namespace libtorrent
 		// 
 		// ``as_for_ip`` returns the AS number for the IP address specified. If the IP is not
 		// in the database or the ASN database is not loaded, 0 is returned.
-		// 
-		// The ``wchar_t`` overloads are for wide character paths.
 		// 
 		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
 		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
