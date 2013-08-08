@@ -144,6 +144,12 @@ namespace libtorrent
 	// loop and manages all torrents.
 	// Once it's created, the session object will spawn the main thread that will do all the work.
 	// The main thread will be idle as long it doesn't have any torrents to participate in.
+	//
+	// You have some control over session configuration through the ``session::apply_settings()``
+	// member function. To change one or more configuration options, create a settings_pack_.
+	// object and fill it with the settings to be set and pass it in to ``session::apply_settings()``.
+	// 
+	// see apply_settings().
 	class TORRENT_EXPORT session: public boost::noncopyable
 	{
 	public:
@@ -161,7 +167,7 @@ namespace libtorrent
 		// (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
 		// them to start, pass 0 as the flags parameter.
 		// 
-		// The ``alert_mask`` is the same mask that you would send to `set_alert_mask()`_.
+		// The ``alert_mask`` is the same mask that you would send to set_alert_mask().
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
@@ -196,7 +202,7 @@ namespace libtorrent
 		// If some trackers are down, they will time out. All this before the destructor of session
 		// returns. So, it's advised that any kind of interface (such as windows) are closed before
 		// destructing the session object. Because it can take a few second for it to finish. The
-		// timeout can be set with ``apply_settings()``.
+		// timeout can be set with apply_settings().
 		~session();
 
 		enum save_state_flags_t
@@ -977,7 +983,7 @@ namespace libtorrent
 		//
 		// ``get_alert_mask()`` returns the current mask;
 		//
-		// See alerts_ for mor information on the alert categories.
+		// See category_t enum for options.
 		void set_alert_mask(boost::uint32_t m);
 		boost::uint32_t get_alert_mask() const;
 

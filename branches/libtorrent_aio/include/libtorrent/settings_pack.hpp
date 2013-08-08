@@ -59,6 +59,16 @@ namespace libtorrent
 
 	// #error add an API to query a settings_pack as well
 	// #error maybe convert all bool types into int-types as well
+
+	// The ``settings_pack`` struct, contains the names of all settings as
+	// enum values. These values are passed in to the ``set_str()``,
+	// ``set_int()``, ``set_bool()`` functions, to specify the setting to
+	// change.
+	//	
+	// These are the available settings:
+	// 
+	// .. include:: settings.rst
+	//
 	struct TORRENT_EXPORT settings_pack
 	{
 		friend struct disk_io_thread;

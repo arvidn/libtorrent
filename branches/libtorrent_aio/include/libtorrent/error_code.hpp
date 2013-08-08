@@ -568,12 +568,15 @@ namespace libtorrent
 		operator bool() const { return ec.value() != 0; }
 		// the error that occurred
 		error_code ec;
+
 		// the file the error occurred on
 		boost::int32_t file:24;
-		// the operation that failed
+
+		// A code from file_operation_t enum, indicating what
+		// kind of operation failed.
 		boost::uint32_t operation:8;
 
-		enum {
+		enum file_operation_t {
 			none,
 			stat,
 			mkdir,
@@ -588,6 +591,9 @@ namespace libtorrent
 			partfile
 		};
 
+		// Returns a string literal representing the file operation
+		// that failed. If there were no failure, it returns
+		// an empty string.
 		char const* operation_str() const
 		{
 			char const* ops[] =

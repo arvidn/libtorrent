@@ -114,7 +114,6 @@ namespace libtorrent
 		, block_size(0)
 		, num_uploads(0)
 		, num_connections(0)
-		, num_undead_peers(0)
 		, uploads_limit(0)
 		, connections_limit(0)
 		, storage_mode(storage_mode_sparse)
@@ -143,7 +142,6 @@ namespace libtorrent
 		, need_save_resume(false)
 		, ip_filter_applies(true)
 		, info_hash(0)
-		, listen_port(0)
 	{}
 
 	torrent_status::~torrent_status() {}

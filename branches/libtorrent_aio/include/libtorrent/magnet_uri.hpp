@@ -43,6 +43,11 @@ namespace libtorrent
 	struct torrent_handle;
 	class session;
 
+	// Generates a magnet URI from the specified torrent. If the torrent
+	// handle is invalid, an empty string is returned.
+	// 
+	// For more information about magnet links, see `magnet links`_.
+	// 
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
 
@@ -70,6 +75,8 @@ namespace libtorrent
 
 #endif
 
+	// This function parses out information from the magnet link and populates the
+	// add_torrent_params object.
 	TORRENT_EXPORT void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec);
 }
 

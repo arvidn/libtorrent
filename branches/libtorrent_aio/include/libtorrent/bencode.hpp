@@ -169,7 +169,6 @@ namespace libtorrent
 			}
 		}
 
-		// returns the number of bytes written
 		template<class OutIt>
 		int bencode_recursive(OutIt& out, const entry& e)
 		{
@@ -378,13 +377,54 @@ namespace libtorrent
 			}
 		}
 	}
-
+	
+	// These functions will encode data to bencoded_ or decode bencoded_ data.
+	// 
+	// If possible, lazy_bdecode() should be preferred over ``bdecode()``.
+	// 
+	// The entry_ class is the internal representation of the bencoded data
+	// and it can be used to retrieve information, an entry_ can also be build by
+	// the program and given to ``bencode()`` to encode it into the ``OutIt``
+	// iterator.
+	// 
+	// The ``OutIt`` and ``InIt`` are iterators
+	// (InputIterator_ and OutputIterator_ respectively). They
+	// are templates and are usually instantiated as ostream_iterator_,
+	// back_insert_iterator_ or istream_iterator_. These
+	// functions will assume that the iterator refers to a character
+	// (``char``). So, if you want to encode entry ``e`` into a buffer
+	// in memory, you can do it like this::
+	// 
+	//	std::vector<char> buffer;
+	//	bencode(std::back_inserter(buf), e);
+	// 
+	// .. _InputIterator: http://www.sgi.com/tech/stl/InputIterator.html
+	// .. _OutputIterator: http://www.sgi.com/tech/stl/OutputIterator.html
+	// .. _ostream_iterator: http://www.sgi.com/tech/stl/ostream_iterator.html
+	// .. _back_insert_iterator: http://www.sgi.com/tech/stl/back_insert_iterator.html
+	// .. _istream_iterator: http://www.sgi.com/tech/stl/istream_iterator.html
+	// 
+	// If you want to decode a torrent file from a buffer in memory, you can do it like this::
+	// 
+	//	std::vector<char> buffer;
+	//	// ...
+	//	entry e = bdecode(buf.begin(), buf.end());
+	// 
+	// Or, if you have a raw char buffer::
+	// 
+	//	const char* buf;
+	// ...
+	//	entry e = bdecode(buf, buf + data_size);
+	// 
+	// Now we just need to know how to retrieve information from the entry.
+	// 
+	// If ``bdecode()`` encounters invalid encoded data in the range given to it
+	// it will throw libtorrent_exception.
 	template<class OutIt>
 	int bencode(OutIt out, const entry& e)
 	{
 		return detail::bencode_recursive(out, e);
 	}
-
 	template<class InIt>
 	entry bdecode(InIt start, InIt end)
 	{
@@ -397,7 +437,6 @@ namespace libtorrent
 		if (err) return entry();
 		return e;
 	}
-
 	template<class InIt>
 	entry bdecode(InIt start, InIt end, int& len)
 	{
