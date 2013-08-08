@@ -58,78 +58,15 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // By default, only errors are reported. set_alert_mask() can be
 // used to specify which kinds of events should be reported. The alert mask
-// is a bitmask with the following bits:
-// 
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``error_notification``         | Enables alerts that report an error. This includes:                 |
-// |                                |                                                                     |
-// |                                | * tracker errors                                                    |
-// |                                | * tracker warnings                                                  |
-// |                                | * file errors                                                       |
-// |                                | * resume data failures                                              |
-// |                                | * web seed errors                                                   |
-// |                                | * .torrent files errors                                             |
-// |                                | * listen socket errors                                              |
-// |                                | * port mapping errors                                               |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``peer_notification``          | Enables alerts when peers send invalid requests, get banned or      |
-// |                                | snubbed.                                                            |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``port_mapping_notification``  | Enables alerts for port mapping events. For NAT-PMP and UPnP.       |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``storage_notification``       | Enables alerts for events related to the storage. File errors and   |
-// |                                | synchronization events for moving the storage, renaming files etc.  |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``tracker_notification``       | Enables all tracker events. Includes announcing to trackers,        |
-// |                                | receiving responses, warnings and errors.                           |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``debug_notification``         | Low level alerts for when peers are connected and disconnected.     |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``status_notification``        | Enables alerts for when a torrent or the session changes state.     |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``progress_notification``      | Alerts for when blocks are requested and completed. Also when       |
-// |                                | pieces are completed.                                               |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``ip_block_notification``      | Alerts when a peer is blocked by the ip blocker or port blocker.    |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``performance_warning``        | Alerts when some limit is reached that might limit the download     |
-// |                                | or upload rate.                                                     |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``stats_notification``         | If you enable these alerts, you will receive a stats_alert          |
-// |                                | approximately once every second, for every active torrent.          |
-// |                                | These alerts contain all statistics counters for the interval since |
-// |                                | the lasts stats alert.                                              |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``dht_notification``           | Alerts on events in the DHT node. For incoming searches or          |
-// |                                | bootstrapping being done etc.                                       |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``rss_notification``           | Alerts on RSS related events, like feeds being updated, feed error  |
-// |                                | conditions and successful RSS feed updates. Enabling this categoty  |
-// |                                | will make you receive rss_alert alerts.                             |
-// +--------------------------------+---------------------------------------------------------------------+
-// | ``all_categories``             | The full bitmask, representing all available categories.            |
-// +--------------------------------+---------------------------------------------------------------------+
+// is comprised by bits from the category_t enum.
 // 
 // Every alert belongs to one or more category. There is a small cost involved in posting alerts. Only
 // alerts that belong to an enabled category are posted. Setting the alert bitmask to 0 will disable
-// all alerts
+// all alerts (except those that are non-discardable).
 // 
-// There's another alert base class that some alerts derive from, all the
-// alerts that are generated for a specific torrent are derived from::
-// 
-//	struct torrent_alert: alert
-//	{
-//		// ...
-//		torrent_handle handle;
-//	};
-// 
-// There's also a base class for all alerts referring to tracker events::
-// 
-//	struct tracker_alert: torrent_alert
-//	{
-//		// ...
-//		std::string url;
-//	};
+// There are other alert base classes that some alerts derive from, all the
+// alerts that are generated for a specific torrent are derived from torrent_alert,
+// and tracker events derive from tracker_alert.
 //
 
 #ifdef _MSC_VER
@@ -161,20 +98,67 @@ namespace libtorrent {
 
 		enum category_t
 		{
+			// Enables alerts that report an error. This includes:
+			// 
+			// * tracker errors
+			// * tracker warnings
+			// * file errors
+			// * resume data failures
+			// * web seed errors
+			// * .torrent files errors
+			// * listen socket errors
+			// * port mapping errors
 			error_notification = 0x1,
+
+			// Enables alerts when peers send invalid requests, get banned or
+			// snubbed.
 			peer_notification = 0x2,
+
+			// Enables alerts for port mapping events. For NAT-PMP and UPnP.
 			port_mapping_notification = 0x4,
+
+			// Enables alerts for events related to the storage. File errors and  
+			// synchronization events for moving the storage, renaming files etc. 
 			storage_notification = 0x8,
+
+			// Enables all tracker events. Includes announcing to trackers,
+			// receiving responses, warnings and errors.
 			tracker_notification = 0x10,
+
+			// Low level alerts for when peers are connected and disconnected.
 			debug_notification = 0x20,
+
+			// Enables alerts for when a torrent or the session changes state.
 			status_notification = 0x40,
+
+			// Alerts for when blocks are requested and completed. Also when
+			// pieces are completed.
 			progress_notification = 0x80,
+
+			// Alerts when a peer is blocked by the ip blocker or port blocker.   
 			ip_block_notification = 0x100,
+
+			// Alerts when some limit is reached that might limit the download    
+			// or upload rate.
 			performance_warning = 0x200,
+
+			// Alerts on events in the DHT node. For incoming searches or
+			// bootstrapping being done etc.
 			dht_notification = 0x400,
+
+			// If you enable these alerts, you will receive a stats_alert
+			// approximately once every second, for every active torrent.
+			// These alerts contain all statistics counters for the interval since
+			// the lasts stats alert.
 			stats_notification = 0x800,
+
+			// Alerts on RSS related events, like feeds being updated, feed error 
+			// conditions and successful RSS feed updates. Enabling this categoty 
+			// will make you receive rss_alert alerts.
 			rss_notification = 0x1000,
 
+			// The full bitmask, representing all available categories.
+			//
 			// since the enum is signed, make sure this isn't
 			// interpreted as -1. For instance, boost.python
 			// does that and fails when assigning it to an
@@ -251,6 +235,7 @@ namespace libtorrent {
 		unhandled_alert() {}
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef BOOST_NO_TYPEID
 
 	namespace detail {
@@ -302,12 +287,10 @@ namespace libtorrent {
 	};
 
 #endif // BOOST_NO_TYPEID
+#endif // TORRENT_NO_DEPRECATE
 
 // When you get an alert, you can use ``alert_cast<>`` to attempt to cast the pointer to a
 // more specific alert type, in order to query it for more information.
-//
-// You can also use a `alert dispatcher`_ mechanism that's available in libtorrent.
-
 template <class T>
 T* alert_cast(alert* a)
 {

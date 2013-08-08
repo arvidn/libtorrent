@@ -118,8 +118,8 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-// TODO: 2 make this a shared_ptr instead
 class TORRENT_EXTRA_EXPORT upnp : public intrusive_ptr_base<upnp>
+// TODO: 2 make this a shared_ptr instead
 {
 public:
 	upnp(io_service& ios, connection_queue& cc
@@ -131,13 +131,37 @@ public:
 	void* drain_state();
 
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
+
+	// Attempts to add a port mapping for the specified protocol. Valid protocols are
+	// ``upnp::tcp`` and ``upnp::udp`` for the UPnP class and ``natpmp::tcp`` and
+	// ``natpmp::udp`` for the NAT-PMP class.
+	// 
+	// ``external_port`` is the port on the external address that will be mapped. This
+	// is a hint, you are not guaranteed that this port will be available, and it may
+	// end up being something else. In the portmap_alert_ notification, the actual
+	// external port is reported.
+	// 
+	// ``local_port`` is the port in the local machine that the mapping should forward
+	// to.
+	// 
+	// The return value is an index that identifies this port mapping. This is used
+	// to refer to mappings that fails or succeeds in the portmap_error_alert_ and
+	// portmap_alert_ respectively. If The mapping fails immediately, the return value
+	// is -1, which means failure. There will not be any error alert notification for
+	// mappings that fail with a -1 return value.
 	int add_mapping(protocol_type p, int external_port, int local_port);
+
+	// This function removes a port mapping. ``mapping_index`` is the index that refers
+	// to the mapping you want to remove, which was returned from add_mapping().
 	void delete_mapping(int mapping_index);
+
 	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
 
 	void discover_device();
 	void close();
 
+	// This is only available for UPnP routers. If the model is advertized by
+	// the router, it can be queried through this function.
 	std::string router_model()
 	{
 		mutex::scoped_lock l(m_mutex);

@@ -45,18 +45,33 @@ namespace libtorrent
 	namespace aux
 	{ struct session_impl; }
 
+	// represents one item from an RSS feed. Specifically
+	// a feed of torrents.
+	//
 	struct TORRENT_EXPORT feed_item
 	{
 		feed_item();
 		~feed_item();
+
+		// these are self explanatory and may be empty if the feed does not specify
+		// those fields.
 		std::string url;
 		std::string uuid;
 		std::string title;
 		std::string description;
 		std::string comment;
 		std::string category;
+
+		// the total size of the content the torrent refers to, or -1
+		// if no size was specified by the feed.
 		size_type size;
+
+		// the handle to the torrent, if the session is already downloading
+		// this torrent.
 		torrent_handle handle;
+
+		// the info-hash of the torrent, or cleared (i.e. all zeroes) if
+		// the feed does not specify the info-hash.
 		sha1_hash info_hash;
 	};
 
@@ -114,28 +129,69 @@ namespace libtorrent
 		add_torrent_params add_args;
 	};
 
+	// holds information about the status of an RSS feed. Retrieved by
+	// calling get_feed_status() on feed_handle.
 	struct TORRENT_EXPORT feed_status
 	{
 		feed_status(): last_update(0), next_update(0)
 			, updating(false), ttl(0) {}
+
+		// the URL of the feed.
 		std::string url;
+
+		// the name of the feed (as specified by the feed itself). This
+		// may be empty if we have not recevied a response from the RSS server yet,
+		// or if the feed does not specify a title.
 		std::string title;
+
+		// the feed description (as specified by the feed itself).
+		// This may be empty if we have not received a response from the RSS server
+		// yet, or if the feed does not specify a description.
 		std::string description;
+
+		// the posix time of the last successful response from the feed.
 		time_t last_update;
+
+		// the number of seconds, from now, when the feed will be
+		// updated again.
 		int next_update;
+
+		// true if the feed is currently being updated (i.e. waiting for
+		// DNS resolution, connecting to the server or waiting for the response to the
+		// HTTP request, or receiving the response).
 		bool updating;
+
+		// a vector of all items that we have received from the feed. See
+		// feed_item for more information.
 		std::vector<feed_item> items;
+
+		// set to the appropriate error code if the feed encountered an
+		// error. See error_code for more info.
 		error_code error;
+
+		// the current refresh time (in minutes). It's either the configured
+		// default ttl, or the ttl specified by the feed.
 		int ttl;
 	};
 
 	struct feed;
 
+	// The ``feed_handle`` refers to a specific RSS feed that is watched by the session.
 	struct TORRENT_EXPORT feed_handle
 	{
 		feed_handle() {}
+
+		// Forces an update/refresh of the feed. Regular updates of the feed is managed
+		// by libtorrent, be careful to not call this too frequently since it may
+		// overload the RSS server.
 		void update_feed();
+
+		// Queries the RSS feed for information, including all the items in the feed.
+		// see feed_status.
 		feed_status get_feed_status() const;
+
+		// Sets and gets settings for this feed. For more information on the
+		// available settings, see add_feed().
 		void set_settings(feed_settings const& s);
 		feed_settings settings() const;
 	private:
