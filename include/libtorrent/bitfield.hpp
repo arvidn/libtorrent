@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// The bitfiled type stores any number of bits as a bitfield in an array.
 	struct TORRENT_EXPORT bitfield
 	{
 		bitfield(): m_bytes(0), m_size(0), m_own(false) {}

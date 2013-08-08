@@ -47,6 +47,91 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
 
+// OVERVIEW
+//
+// The pop_alert() function on session is the interface for retrieving
+// alerts, warnings, messages and errors from libtorrent. If no alerts have
+// been posted by libtorrent pop_alert() will return a default initialized
+// ``std::auto_ptr`` object. If there is an alert in libtorrent's queue, the alert
+// from the front of the queue is popped and returned.
+// You can then use the alert object and query
+// 
+// By default, only errors are reported. set_alert_mask() can be
+// used to specify which kinds of events should be reported. The alert mask
+// is a bitmask with the following bits:
+// 
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``error_notification``         | Enables alerts that report an error. This includes:                 |
+// |                                |                                                                     |
+// |                                | * tracker errors                                                    |
+// |                                | * tracker warnings                                                  |
+// |                                | * file errors                                                       |
+// |                                | * resume data failures                                              |
+// |                                | * web seed errors                                                   |
+// |                                | * .torrent files errors                                             |
+// |                                | * listen socket errors                                              |
+// |                                | * port mapping errors                                               |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``peer_notification``          | Enables alerts when peers send invalid requests, get banned or      |
+// |                                | snubbed.                                                            |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``port_mapping_notification``  | Enables alerts for port mapping events. For NAT-PMP and UPnP.       |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``storage_notification``       | Enables alerts for events related to the storage. File errors and   |
+// |                                | synchronization events for moving the storage, renaming files etc.  |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``tracker_notification``       | Enables all tracker events. Includes announcing to trackers,        |
+// |                                | receiving responses, warnings and errors.                           |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``debug_notification``         | Low level alerts for when peers are connected and disconnected.     |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``status_notification``        | Enables alerts for when a torrent or the session changes state.     |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``progress_notification``      | Alerts for when blocks are requested and completed. Also when       |
+// |                                | pieces are completed.                                               |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``ip_block_notification``      | Alerts when a peer is blocked by the ip blocker or port blocker.    |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``performance_warning``        | Alerts when some limit is reached that might limit the download     |
+// |                                | or upload rate.                                                     |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``stats_notification``         | If you enable these alerts, you will receive a stats_alert          |
+// |                                | approximately once every second, for every active torrent.          |
+// |                                | These alerts contain all statistics counters for the interval since |
+// |                                | the lasts stats alert.                                              |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``dht_notification``           | Alerts on events in the DHT node. For incoming searches or          |
+// |                                | bootstrapping being done etc.                                       |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``rss_notification``           | Alerts on RSS related events, like feeds being updated, feed error  |
+// |                                | conditions and successful RSS feed updates. Enabling this categoty  |
+// |                                | will make you receive rss_alert alerts.                             |
+// +--------------------------------+---------------------------------------------------------------------+
+// | ``all_categories``             | The full bitmask, representing all available categories.            |
+// +--------------------------------+---------------------------------------------------------------------+
+// 
+// Every alert belongs to one or more category. There is a small cost involved in posting alerts. Only
+// alerts that belong to an enabled category are posted. Setting the alert bitmask to 0 will disable
+// all alerts
+// 
+// There's another alert base class that some alerts derive from, all the
+// alerts that are generated for a specific torrent are derived from::
+// 
+//	struct torrent_alert: alert
+//	{
+//		// ...
+//		torrent_handle handle;
+//	};
+// 
+// There's also a base class for all alerts referring to tracker events::
+// 
+//	struct tracker_alert: torrent_alert
+//	{
+//		// ...
+//		std::string url;
+//	};
+//
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -64,6 +149,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+	// The ``alert`` class is the base class that specific messages are derived from.
 	class TORRENT_EXPORT alert
 	{
 	public:
@@ -102,10 +188,50 @@ namespace libtorrent {
 		// a timestamp is automatically created in the constructor
 		ptime timestamp() const;
 
+		// returns an integer that is unique to this alert type. It can be
+		// compared against a specific alert by querying a static constant called ``alert_type``
+		// in the alert. It can be used to determine the run-time type of an alert* in
+		// order to cast to that alert type and access specific members.
+		// 
+		// e.g::
+		//
+		//	std::auto_ptr<alert> a = ses.pop_alert();
+		//	switch (a->type())
+		//	{
+		//		case read_piece_alert::alert_type:
+		//		{
+		//			read_piece_alert* p = (read_piece_alert*)a.get();
+		//			if (p->ec) {
+		//				// read_piece failed
+		//				break;
+		//			}
+		//			// use p
+		//			break;
+		//		}
+		//		case file_renamed_alert::alert_type:
+		//		{
+		//			// etc...
+		//		}
+		//	}
 		virtual int type() const = 0;
+
+		// returns a string literal describing the type of the alert. It does
+		// not include any information that might be bundled with the alert.
 		virtual char const* what() const = 0;
+
+		// generate a string describing the alert and the information bundled
+		// with it. This is mainly intended for debug and development use. It is not suitable
+		// to use this for applications that may be localized. Instead, handle each alert
+		// type individually and extract and render the information from the alert depending
+		// on the locale.
 		virtual std::string message() const = 0;
+
+		// returns a bitmask specifying which categories this alert belong to.
 		virtual int category() const = 0;
+
+		// determines whether or not an alert is allowed to be discarded
+		// when the alert queue is full. There are a few alerts which may not be discared,
+		// since they would break the user contract, such as save_resume_data_alert.
 		virtual bool discardable() const { return true; }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -113,6 +239,7 @@ namespace libtorrent {
 		severity_t severity() const TORRENT_DEPRECATED { return warning; }
 #endif
 
+		// returns a pointer to a copy of the alert.
 		virtual std::auto_ptr<alert> clone() const = 0;
 
 	private:
@@ -176,6 +303,11 @@ namespace libtorrent {
 
 #endif // BOOST_NO_TYPEID
 
+// When you get an alert, you can use ``alert_cast<>`` to attempt to cast the pointer to a
+// more specific alert type, in order to query it for more information.
+//
+// You can also use a `alert dispatcher`_ mechanism that's available in libtorrent.
+
 template <class T>
 T* alert_cast(alert* a)
 {
@@ -183,7 +315,6 @@ T* alert_cast(alert* a)
 	if (a->type() == T::alert_type) return static_cast<T*>(a);
 	return 0;
 }
-
 template <class T>
 T const* alert_cast(alert const* a)
 {

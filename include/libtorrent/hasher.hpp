@@ -74,6 +74,21 @@ namespace libtorrent
 
 namespace libtorrent
 {
+
+	// You use it by first instantiating it, then call ``update()`` to feed it
+	// with data. i.e. you don't have to keep the entire buffer of which you want to
+	// create the hash in memory. You can feed the hasher parts of it at a time. When
+	// You have fed the hasher with all the data, you call ``final()`` and it
+	// will return the sha1-hash of the data.
+	// 
+	// The constructor that takes a ``char const*`` and an integer will construct the
+	// sha1 context and feed it the data passed in.
+	// 
+	// If you want to reuse the hasher object once you have created a hash, you have to
+	// call ``reset()`` to reinitialize it.
+	// 
+	// The sha1-algorithm used was implemented by Steve Reid and released as public domain.
+	// For more info, see ``src/sha1.cpp``.
 	class TORRENT_EXTRA_EXPORT hasher
 	{
 	public:

@@ -134,7 +134,7 @@ namespace libtorrent
 		// (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
 		// them to start, pass 0 as the flags parameter.
 		// 
-		// The ``alert_mask`` is the same mask that you would send to `set_alert_mask()`_.
+		// The ``alert_mask`` is the same mask that you would send to set_alert_mask().
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
@@ -810,7 +810,7 @@ namespace libtorrent
 		// Changes the mask of which alerts to receive. By default only errors are reported.
 		// ``m`` is a bitmask where each bit represents a category of alerts.
 		//
-		// See alerts_ for mor information on the alert categories.
+		// See category_t enum for options.
 		void set_alert_mask(boost::uint32_t m);
 
 		// This sets a function to be called (from within libtorrent's netowrk thread) every time an alert

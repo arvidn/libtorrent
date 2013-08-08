@@ -50,7 +50,39 @@ namespace libtorrent
 {
 	struct lazy_entry;
 
-	// return 0 = success
+	// This function decodes bencoded_ data.
+	// 
+	// .. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+	// 
+	// Whenever possible, ``lazy_bdecode()`` should be preferred over ``bdecode()``.
+	// It is more efficient and more secure. It supports having constraints on the
+	// amount of memory is consumed by the parser.
+	// 
+	// *lazy* refers to the fact that it doesn't copy any actual data out of the
+	// bencoded buffer. It builds a tree of ``lazy_entry`` which has pointers into
+	// the bencoded buffer. This makes it very fast and efficient. On top of that,
+	// it is not recursive, which saves a lot of stack space when parsing deeply
+	// nested trees. However, in order to protect against potential attacks, the
+	// ``depth_limit`` and ``item_limit`` control how many levels deep the tree is
+	// allowed to get. With recursive parser, a few thousand levels would be enough
+	// to exhaust the threads stack and terminate the process. The ``item_limit``
+	// protects against very large structures, not necessarily deep. Each bencoded
+	// item in the structure causes the parser to allocate some amount of memory,
+	// this memory is constant regardless of how much data actually is stored in
+	// the item. One potential attack is to create a bencoded list of hundreds of
+	// thousands empty strings, which would cause the parser to allocate a significant
+	// amount of memory, perhaps more than is available on the machine, and effectively
+	// provide a denial of service. The default item limit is set as a reasonable
+	// upper limit for desktop computers. Very few torrents have more items in them.
+	// The limit corresponds to about 25 MB, which might be a bit much for embedded
+	// systems.
+	// 
+	// ``start`` and ``end`` defines the bencoded buffer to be decoded. ``ret`` is
+	// the ``lazy_entry`` which is filled in with the whole decoded tree. ``ec``
+	// is a reference to an ``error_code`` which is set to describe the error encountered
+	// in case the function fails. ``error_pos`` is an optional pointer to an int,
+	// which will be set to the byte offset into the buffer where an error occurred,
+	// in case the function fails.
 	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, error_code& ec, int* error_pos = 0
 		, int depth_limit = 1000, int item_limit = 1000000);

@@ -43,8 +43,39 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// The fingerprint class represents information about a client and its version. It is used
+	// to encode this information into the client's peer id.
 	struct fingerprint
 	{
+
+		// The constructor takes a ``char const*`` that should point to a string constant containing
+		// exactly two characters. These are the characters that should be unique for your client. Make
+		// sure not to clash with anybody else. Here are some taken id's:
+		// 
+		// +----------+-----------------------+
+		// | id chars | client                |
+		// +==========+=======================+
+		// | 'AZ'     | Azureus               |
+		// +----------+-----------------------+
+		// | 'LT'     | libtorrent (default)  |
+		// +----------+-----------------------+
+		// | 'BX'     | BittorrentX           |
+		// +----------+-----------------------+
+		// | 'MT'     | Moonlight Torrent     |
+		// +----------+-----------------------+
+		// | 'TS'     | Torrent Storm         |
+		// +----------+-----------------------+
+		// | 'SS'     | Swarm Scope           |
+		// +----------+-----------------------+
+		// | 'XT'     | Xan Torrent           |
+		// +----------+-----------------------+
+		// 
+		// There's an informal directory of client id's here_.
+		// 
+		// .. _here: http://wiki.theory.org/BitTorrentSpecification#peer_id
+		//
+		// The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identify the
+		// version of your client.
 		fingerprint(const char* id_string, int major, int minor, int revision, int tag)
 			: major_version(major)
 			, minor_version(minor)
@@ -61,6 +92,7 @@ namespace libtorrent
 			name[1] = id_string[1];
 		}
 
+		// generates the actual string put in the peer-id, and return it.
 		std::string to_string() const
 		{
 			char s[100];
