@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// The ``proxy_settings`` structs contains the information needed to
+	// direct certain traffic to a proxy.
 	struct TORRENT_EXPORT proxy_settings
 	{
 		proxy_settings() : port(0), type(none)
@@ -49,6 +51,9 @@ namespace libtorrent
 			, proxy_peer_connections(true)
 		{}
 
+		// the name or IP of the proxy server. ``port`` is the
+		// port number the proxy listens to. If required, ``username`` and ``password``
+		// can be set to authenticate with the proxy.
 		std::string hostname;
 		int port;
 
@@ -57,38 +62,54 @@ namespace libtorrent
 
 		enum proxy_type
 		{
-			// a plain tcp socket is used, and
-			// the other settings are ignored.
+			// This is the default, no proxy server is used, all other fields
+			// are ignored.
 			none,
-			// socks4 server, requires username.
+
+			// The server is assumed to be a `SOCKS4 server`_ that
+			// requires a username.
+			//
+			// .. _`SOCKS4 server`: http://www.ufasoft.com/doc/socks4_protocol.htm
 			socks4,
-			// the hostname and port settings are
-			// used to connect to the proxy. No
-			// username or password is sent.
+			// The server is assumed to be a SOCKS5 server (`RFC 1928`_) that
+			// does not require any authentication. The username and password are ignored.
+			//
+			// .. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
 			socks5,
-			// the hostname and port are used to
-			// connect to the proxy. the username
-			// and password are used to authenticate
-			// with the proxy server.
+
+			// The server is assumed to be a SOCKS5 server that supports
+			// plain text username and password authentication (`RFC 1929`_). The username
+			// and password specified may be sent to the proxy if it requires.
+			//
+			// .. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
 			socks5_pw,
-			// the http proxy is only available for
-			// tracker and web seed traffic
-			// assumes anonymous access to proxy
+			// The server is assumed to be an HTTP proxy. If the transport used
+			// for the connection is non-HTTP, the server is assumed to support the
+			// CONNECT_ method. i.e. for web seeds and HTTP trackers, a plain proxy will
+			// suffice. The proxy is assumed to not require authorization. The username
+			// and password will not be used.
+			//
+			// .. _CONNECT: http://tools.ietf.org/html/draft-luotonen-web-proxy-tunneling-01
 			http,
-			// http proxy with basic authentication
-			// uses username and password
+			// The server is assumed to be an HTTP proxy that requires
+			// user authorization. The username and password will be sent to the proxy.
 			http_pw,
 			// route through a i2p SAM proxy
 			i2p_proxy
 		};
 		
+		// tells libtorrent what kind of proxy server it is. See proxy_type
+		// enum for options
 		proxy_type type;
 
-		// when set to true, hostname are resolved
-		// through the proxy (if supported)
+		// defaults to true. It means that hostnames should be
+		// attempted to be resolved through the proxy instead of using the local DNS
+		// service. This is only supported by SOCKS5 and HTTP.
 		bool proxy_hostnames;
 
-		// if true, use this proxy for peers too
+		// determines whether or not to excempt peer and
+		// web seed connections from using the proxy. This defaults to true, i.e. peer
+		// connections are proxied by default.
 		bool proxy_peer_connections;
 	};
 
@@ -1065,6 +1086,8 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 
+	// The ``pe_settings`` structure is used to control the settings related
+	// to peer protocol encryption.
 	struct pe_settings
 	{
 		pe_settings()
@@ -1076,9 +1099,19 @@ namespace libtorrent
 
 		enum enc_policy
 		{
-			forced,  // disallow non encrypted connections
-			enabled, // allow encrypted and non encrypted connections
-			disabled // disallow encrypted connections
+			// Only encrypted connections are allowed. Incoming connections
+			// that are not encrypted are closed and if the encrypted outgoing connection
+			// fails, a non-encrypted retry will not be made.
+			forced,
+
+			// encrypted connections are enabled, but non-encrypted
+			// connections are allowed. An incoming non-encrypted connection will
+			// be accepted, and if an outgoing encrypted connection fails, a non-
+			// encrypted connection will be tried.
+			enabled,
+			
+			// only non-encrypted connections are allowed.
+			disabled
 		};
 
 		enum enc_level
@@ -1088,10 +1121,18 @@ namespace libtorrent
 			both = 3 // allow both
 		};
 
+		// control the settings for incoming
+		// and outgoing connections respectively.
+		// see enc_policy enum for the available options.
 		enc_policy out_enc_policy;
 		enc_policy in_enc_policy;
 
+		// determines the encryption level of the
+		// connections.  This setting will adjust which encryption scheme is
+		// offered to the other peer, as well as which encryption scheme is
+		// selected by the client. See enc_level enum for options.
 		enc_level allowed_enc_level;
+
 		// if the allowed encryption level is both, setting this to
 		// true will prefer rc4 if both methods are offered, plaintext
 		// otherwise
