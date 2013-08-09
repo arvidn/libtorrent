@@ -244,7 +244,7 @@ namespace libtorrent
 		// calling this function.
 		// 
 		// When the read operation is completed, it is passed back through an alert,
-		// read_piece_alert_. Since this alert is a reponse to an explicit call, it will
+		// read_piece_alert. Since this alert is a reponse to an explicit call, it will
 		// always be posted, regardless of the alert mask.
 		// 
 		// Note that if you read multiple pieces, the read operations are not guaranteed to
@@ -258,7 +258,7 @@ namespace libtorrent
 
 		// takes a reference to a vector that will be cleared and filled
 		// with one entry for each peer connected to this torrent, given the handle is valid. If the
-		// torrent_handle_ is invalid, it will throw libtorrent_exception exception. Each entry in
+		// torrent_handle is invalid, it will throw libtorrent_exception exception. Each entry in
 		// the vector contains information about that particular peer. See peer_info.
 		void get_peer_info(std::vector<peer_info>& v) const;
 
@@ -285,8 +285,8 @@ namespace libtorrent
 		};
 
 		// ``status()`` will return a structure with information about the status of this
-		// torrent. If the torrent_handle_ is invalid, it will throw libtorrent_exception_ exception.
-		// See torrent_status_. The ``flags`` argument filters what information is returned
+		// torrent. If the torrent_handle is invalid, it will throw libtorrent_exception exception.
+		// See torrent_status. The ``flags`` argument filters what information is returned
 		// in the torrent_status. Some information in there is relatively expensive to calculate, and
 		// if you're not interested in it (and see performance issues), you can filter them out.
 		// 
@@ -311,7 +311,7 @@ namespace libtorrent
 		// 
 		// The ``flags`` parameter can be used to ask libtorrent to send an alert once the
 		// piece has been downloaded, by passing alert_when_available. When set, the
-		// read_piece_alert_ alert will be delivered, with the piece data, when it's downloaded.
+		// read_piece_alert alert will be delivered, with the piece data, when it's downloaded.
 		// 
 		// If the piece is already downloaded when this call is made, nothing happens, unless
 		// the alert_when_available flag is set, in which case it will do the same thing
@@ -359,7 +359,7 @@ namespace libtorrent
 
 		// This function fills in the supplied vector with the the number of bytes downloaded
 		// of each file in this torrent. The progress values are ordered the same as the files
-		// in the `torrent_info`_. This operation is not very cheap. Its complexity is *O(n + mj)*.
+		// in the torrent_info. This operation is not very cheap. Its complexity is *O(n + mj)*.
 		// Where *n* is the number of files, *m* is the number of downloading pieces and *j*
 		// is the number of blocks in a piece.
 		// 
@@ -431,7 +431,7 @@ namespace libtorrent
 		// or if the torrent it refers to has been aborted. Note that a handle may become invalid after
 		// it has been added to the session. Usually this is because the storage for the torrent is
 		// somehow invalid or if the filenames are not allowed (and hence cannot be opened/created) on
-		// your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
+		// your filesystem. If such an error occurs, a file_error_alert is generated and all handles
 		// that refers to that torrent will become invalid.
 		bool is_valid() const;
 
@@ -441,7 +441,7 @@ namespace libtorrent
 		// ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
 		// When a torrent is paused, it will however remember all share ratios to all peers and remember
 		// all potential (not connected) peers. Torrents may be paused automatically if there is a file
-		// error (e.g. disk full) or something similar. See file_error_alert_.
+		// error (e.g. disk full) or something similar. See file_error_alert.
 		// 
 		// To know if a torrent is paused or not, call ``torrent_handle::status()`` and inspect
 		// ``torrent_status::paused``.
@@ -477,7 +477,7 @@ namespace libtorrent
 		
 		// Instructs libtorrent to flush all the disk caches for this torrent and close all
 		// file handles. This is done asynchronously and you will be notified that it's complete
-		// through cache_flushed_alert_.
+		// through cache_flushed_alert.
 		// 
 		// Note that by the time you get the alert, libtorrent may have cached more data for the
 		// torrent, but you are guaranteed that whatever cached data libtorrent had by the time
@@ -497,7 +497,7 @@ namespace libtorrent
 
 		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 
-		// ``save_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
+		// ``save_resume_data()`` generates fast-resume data and returns it as an entry. This entry
 		// is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
 		// 
 		// The ``flags`` argument is a bitmask of flags ORed together. If the flag ``torrent_handle::flush_cache``
@@ -542,7 +542,7 @@ namespace libtorrent
 		//	In full allocation mode the reume data is never invalidated by subsequent
 		//	writes to the files, since pieces won't move around. This means that you don't need to
 		//	pause before writing resume data in full or sparse mode. If you don't, however, any data written to
-		//	disk after you saved resume data and before the session_ closed is lost.
+		//	disk after you saved resume data and before the session closed is lost.
 		// 
 		// It also means that if the resume data is out dated, libtorrent will not re-check the files, but assume
 		// that it is fairly recent. The assumption is that it's better to loose a little bit than to re-check
@@ -647,8 +647,8 @@ namespace libtorrent
 		void queue_position_bottom() const;
 
 		// Sets or gets the flag that derermines if countries should be resolved for the peers of this
-		// torrent. It defaults to false. If it is set to true, the peer_info_ structure for the peers
-		// in this torrent will have their ``country`` member set. See peer_info_ for more information
+		// torrent. It defaults to false. If it is set to true, the peer_info structure for the peers
+		// in this torrent will have their ``country`` member set. See peer_info for more information
 		// on how to interpret this field.
 		void resolve_countries(bool r);
 		bool resolve_countries() const;
@@ -672,7 +672,7 @@ namespace libtorrent
 		// to any peers until it has one. It's typically desirable to resume the torrent after setting the
 		// ssl certificate.
 		// 
-		// If you receive a torrent_need_cert_alert_, you need to call this to provide a valid cert. If you
+		// If you receive a torrent_need_cert_alert, you need to call this to provide a valid cert. If you
 		// don't have a cert you won't be allowed to connect to any peers.
 		void set_ssl_certificate(std::string const& certificate
 			, std::string const& private_key
@@ -761,7 +761,7 @@ namespace libtorrent
 		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
 
 		// ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
-		// connections. By default, it uses the same interface as the session_ uses to listen on. The
+		// connections. By default, it uses the same interface as the session uses to listen on. The
 		// parameter must be a string containing one or more, comma separated, ip-address (either an
 		// IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
 		// which interface to use for each outgoing conneciton. This is useful for clients that are
@@ -870,8 +870,8 @@ namespace libtorrent
 		// downloads etc.
 		// 
 		// This request will specifically update the ``num_complete`` and ``num_incomplete`` fields in
-		// the torrent_status_ struct once it completes. When it completes, it will generate a
-		// scrape_reply_alert_. If it fails, it will generate a scrape_failed_alert_.
+		// the torrent_status struct once it completes. When it completes, it will generate a
+		// scrape_reply_alert. If it fails, it will generate a scrape_failed_alert.
 		void scrape_tracker() const;
 
 		// ``set_upload_limit`` will limit the upload bandwidth used by this particular torrent to the
@@ -899,8 +899,8 @@ namespace libtorrent
 		// torrent. If the peer does not respond, or is not a member of this torrent, it will simply
 		// be disconnected. No harm can be done by using this other than an unnecessary connection
 		// attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-		// will throw libtorrent_exception_. The second (optional) argument will be bitwised ORed into
-		// the source mask of this peer. Typically this is one of the source flags in peer_info_.
+		// will throw libtorrent_exception. The second (optional) argument will be bitwised ORed into
+		// the source mask of this peer. Typically this is one of the source flags in peer_info.
 		// i.e. ``tracker``, ``pex``, ``dht`` etc.
 		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
 
@@ -917,7 +917,7 @@ namespace libtorrent
 		// connections are used up, incoming connections may be refused or poor connections may be closed.
 		// This must be at least 2. The default is unlimited number of connections. If -1 is given to the
 		// function, it means unlimited. There is also a global limit of the number of connections, set
-		// by ``connections_limit`` in session_settings_.
+		// by ``connections_limit`` in session_settings.
 		// 
 		// ``max_connections()`` returns the current settings.
 		void set_max_connections(int max_connections) const;
@@ -1126,7 +1126,7 @@ namespace libtorrent
 		std::string error;
 
 		// the path to the directory where this torrent's files are stored.
-		// It's typically the path as was given to `async_add_torrent() add_torrent()`_ when this torrent
+		// It's typically the path as was given to async_add_torrent() or add_torrent() when this torrent
 		// was started. This field is only included if the torrent status is queried with
 		// ``torrent_handle::query_save_path``.
 		std::string save_path;
@@ -1292,8 +1292,8 @@ namespace libtorrent
 
 		// the size of a block, in bytes. A block is a sub piece, it
 		// is the number of bytes that each piece request asks for and the number of
-		// bytes that each bit in the ``partial_piece_info``'s bitset represents
-		// (see `get_download_queue()`_). This is typically 16 kB, but it may be
+		// bytes that each bit in the ``partial_piece_info``'s bitset represents,
+		// see get_download_queue(). This is typically 16 kB, but it may be
 		// larger if the pieces are larger.
 		int block_size;
 
@@ -1368,8 +1368,8 @@ namespace libtorrent
 		// auto-managed, it will periodically be taken out of this state, in the
 		// hope that the disk condition (be it disk full or permission errors) has
 		// been resolved. If the torrent is not auto-managed, you have to explicitly
-		// take it out of the upload mode by calling `set_upload_mode()`_ on the
-		// torrent_handle_.
+		// take it out of the upload mode by calling set_upload_mode() on the
+		// torrent_handle.
 		bool upload_mode;
 
 		// true if the torrent is currently in share-mode, i.e.

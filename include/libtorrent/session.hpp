@@ -658,7 +658,6 @@ namespace libtorrent
 
 		enum options_t
 		{
-			none = 0,
 			delete_files = 1
 		};
 
@@ -675,7 +674,7 @@ namespace libtorrent
 		// no guarantee that adding the same torrent immediately after it was removed will not throw
 		// a libtorrent_exception exception. Once the torrent is deleted, a torrent_deleted_alert
 		// is posted.
-		void remove_torrent(const torrent_handle& h, int options = none);
+		void remove_torrent(const torrent_handle& h, int options = 0);
 
 		// Sets the session settings and the packet encryption settings respectively.
 		// See session_settings and pe_settings for more information on available
