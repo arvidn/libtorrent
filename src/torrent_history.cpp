@@ -245,7 +245,6 @@ namespace libtorrent
 		CMP_SET(block_size);
 		CMP_SET(num_uploads);
 		CMP_SET(num_connections);
-		CMP_SET(num_undead_peers);
 		CMP_SET(uploads_limit);
 		CMP_SET(connections_limit);
 		CMP_SET(storage_mode);
@@ -273,7 +272,6 @@ namespace libtorrent
 		CMP_SET(queue_position);
 		CMP_SET(need_save_resume);
 		CMP_SET(ip_filter_applies);
-		CMP_SET(listen_port);
 
 		status = s;
 	}
@@ -338,7 +336,6 @@ namespace libtorrent
 		PRINT(block_size, d);
 		PRINT(num_uploads, d);
 		PRINT(num_connections, d);
-		PRINT(num_undead_peers, d);
 		PRINT(uploads_limit, d);
 		PRINT(connections_limit, d);
 		PRINT(storage_mode, d);
@@ -366,7 +363,6 @@ namespace libtorrent
 		PRINT(queue_position, d);
 		PRINT(need_save_resume, d);
 		PRINT(ip_filter_applies, d);
-		PRINT(listen_port, d);
 
 		printf("\x1b[0m\n");
 	}
