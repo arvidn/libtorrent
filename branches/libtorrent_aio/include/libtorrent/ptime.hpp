@@ -84,30 +84,43 @@ namespace libtorrent
 
 	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
 
+	// hidden
 	inline bool operator>(ptime lhs, ptime rhs)
 	{ return lhs.time > rhs.time; }
+	// hidden
 	inline bool operator>=(ptime lhs, ptime rhs)
 	{ return lhs.time >= rhs.time; }
+	// hidden
 	inline bool operator<=(ptime lhs, ptime rhs)
 	{ return lhs.time <= rhs.time; }
+	// hidden
 	inline bool operator<(ptime lhs, ptime rhs)
 	{ return lhs.time < rhs.time; }
+	// hidden
 	inline bool operator!=(ptime lhs, ptime rhs)
 	{ return lhs.time != rhs.time;}
+	// hidden
 	inline bool operator==(ptime lhs, ptime rhs)
 	{ return lhs.time == rhs.time;}
+	// hidden
 	inline bool operator==(time_duration lhs, time_duration rhs)
 	{ return lhs.diff == rhs.diff; }
+	// hidden
 	inline bool operator<(time_duration lhs, time_duration rhs)
 	{ return lhs.diff < rhs.diff; }
+	// hidden
 	inline bool operator<=(time_duration lhs, time_duration rhs)
 	{ return lhs.diff <= rhs.diff; }
+	// hidden
 	inline bool operator>(time_duration lhs, time_duration rhs)
 	{ return lhs.diff > rhs.diff; }
+	// hidden
 	inline bool operator>=(time_duration lhs, time_duration rhs)
 	{ return lhs.diff >= rhs.diff; }
+	// hidden
 	inline time_duration operator*(time_duration lhs, int rhs)
 	{ return time_duration(boost::int64_t(lhs.diff * rhs)); }
+	// hidden
 	inline time_duration operator*(int lhs, time_duration rhs)
 	{ return time_duration(boost::int64_t(lhs * rhs.diff)); }
 

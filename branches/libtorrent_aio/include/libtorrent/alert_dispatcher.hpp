@@ -37,7 +37,7 @@ namespace libtorrent
 {
 	class alert;
 
-	struct alert_dispatcher
+	struct TORRENT_EXPORT alert_dispatcher
 	{
 		// return true if the alert was swallowed (i.e.
 		// ownership was taken over). In this case, the

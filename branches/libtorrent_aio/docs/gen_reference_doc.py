@@ -576,11 +576,18 @@ for c in classes:
 	for f in c['fun']:
 		for n in f['names']:
 			symbols[n] = filename + n
+			symbols[c['name'] + '::' + n] = filename + n
+
+	for f in c['fields']:
+		for n in f['names']:
+			symbols[c['name'] + '::' + n] = filename + n
 
 	for e in c['enums']:
 		symbols[e['name']] = filename + e['name']
 		for v in e['values']:
-			symbols[v['name']] = filename + v['name']
+#			symbols[v['name']] = filename + v['name']
+			symbols[e['name'] + '::' + v['name']] = filename + v['name']
+			symbols[c['name'] + '::' + v['name']] = filename + v['name']
 
 for f in functions:
 	cat = categorize_symbol(first_item(f['names']), f['file'])
@@ -599,7 +606,10 @@ for e in enums:
 	if not cat in categories:
 		categories[cat] = { 'classes': [], 'functions': [], 'enums': [], 'filename': 'reference-%s.rst' % cat.replace(' ', '_')}
 	categories[cat]['enums'].append(e)
-	symbols[e['name']] = categories[cat]['filename'].replace('.rst', '.html') + '#' + e['name']
+	filename = categories[cat]['filename'].replace('.rst', '.html') + '#'
+	symbols[e['name']] = filename + e['name']
+	for v in e['values']:
+		symbols[e['name'] + '::' + v['name']] = filename + v['name']
 
 def print_declared_in(out, o):
 	out.write('Declared in "%s"\n\n' % print_link(o['file'], '../include/%s' % o['file']))

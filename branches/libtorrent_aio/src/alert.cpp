@@ -520,19 +520,11 @@ namespace libtorrent {
 		return msg;
 	}
 
-	std::string peer_disconnected_alert::message() const
-	{
-		char msg[500];
-		snprintf(msg, sizeof(msg), "%s disconnecting [%s]: %s", peer_alert::message().c_str()
-			, operation_name(operation), error.message().c_str());
-		return msg;
-	}
-
 	std::string peer_error_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s peer error [%s]: %s", peer_alert::message().c_str()
-			, operation_name(operation), error.message().c_str());
+		snprintf(msg, sizeof(msg), "%s peer error [%s] [%s]: %s", peer_alert::message().c_str()
+			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
 
@@ -579,6 +571,14 @@ namespace libtorrent {
 		snprintf(msg, sizeof(msg), "feed [%s] has new RSS item %s"
 			, handle.get_feed_status().title.c_str()
 			, item.title.empty() ? item.url.c_str() : item.title.c_str());
+		return msg;
+	}
+
+	std::string peer_disconnected_alert::message() const
+	{
+		char msg[600];
+		snprintf(msg, sizeof(msg), "%s disconnecting [%s] [%s]: %s", peer_alert::message().c_str()
+			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
 
