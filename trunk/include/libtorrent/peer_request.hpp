@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct TORRENT_EXTRA_EXPORT peer_request
+	struct TORRENT_EXPORT peer_request
 	{
 		// the index of the piece in which the range starts.
 		int piece;
