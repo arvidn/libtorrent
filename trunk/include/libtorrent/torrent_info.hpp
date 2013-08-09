@@ -369,11 +369,7 @@ namespace libtorrent
 		// and pass in utf8 strings
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
-		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED
-		{
-			copy_on_write();
-			m_files.rename_file(index, new_filename);
-		}
+		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED;
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
