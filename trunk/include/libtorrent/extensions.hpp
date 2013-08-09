@@ -194,6 +194,10 @@ namespace libtorrent
 		virtual bool on_reject(peer_request const&) { return false; }
 		virtual bool on_suggest(int /*index*/) { return false; }
 
+		// called when libtorrent think this peer should be disconnected.
+		// if the plugin returns false, the peer will not be disconnected.
+		virtual bool can_disconnect(error_code const& ec) { return true; }
+
 		// called when an extended message is received. If returning true,
 		// the message is not processed by any other plugin and if false
 		// is returned the next plugin in the chain will receive it to
