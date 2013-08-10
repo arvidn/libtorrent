@@ -4347,6 +4347,8 @@ namespace libtorrent
 
 	void torrent::do_refresh_suggest_pieces()
 	{
+		m_need_suggest_pieces_refresh = false;
+
 		if (settings().get_int(settings_pack::suggest_mode)
 			== settings_pack::no_piece_suggestions)
 			return;
@@ -4366,9 +4368,10 @@ namespace libtorrent
 		std::vector<suggest_piece_t>& pieces = m_suggested_pieces;
 		pieces.reserve(cs.pieces.size());
 
+		// sort in ascending order, to get most recently used first
 		std::sort(cs.pieces.begin(), cs.pieces.end()
 			, boost::bind(&cached_piece_info::last_use, _1)
-			< boost::bind(&cached_piece_info::last_use, _2));
+			> boost::bind(&cached_piece_info::last_use, _2));
 
 		for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin()
 			, end(cs.pieces.end()); i != end; ++i)
@@ -4377,6 +4380,7 @@ namespace libtorrent
 			// we might have flushed this to disk, but not yet completed the
 			// hash check. We'll add it as a suggest piece once we do though
 			if (!have_piece(i->piece)) continue;
+			TORRENT_ASSERT(has_piece_passed(i->piece));
 			suggest_piece_t p;
 			p.piece_index = i->piece;
 			if (has_picker())
@@ -4415,7 +4419,6 @@ namespace libtorrent
 				p != m_connections.end(); ++p)
 				(*p)->send_suggest(i->piece_index);
 		}
-		m_need_suggest_pieces_refresh = false;
 	}
 
 	void torrent::abort()

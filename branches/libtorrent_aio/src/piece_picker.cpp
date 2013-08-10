@@ -1516,6 +1516,9 @@ namespace libtorrent
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
 		TORRENT_ASSERT(i != m_downloads[state - 1].end());
 
+		TORRENT_ASSERT(i->locked == false);
+		if (i->locked) return;
+
 		TORRENT_ASSERT(!i->passed_hash_check);
 		i->passed_hash_check = true;
 		++m_num_passed;
@@ -2766,6 +2769,21 @@ namespace libtorrent
 		return i;
 	}
 
+	int piece_picker::get_block_state(piece_block block) const
+	{
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
+
+		int state = m_piece_map[block.piece_index].state;
+		if (state == piece_pos::piece_open) return block_info::state_none;
+		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state - 1, block.piece_index);
+
+		TORRENT_ASSERT(i != m_downloads[state - 1].end());
+		TORRENT_ASSERT(i->info[block.block_index].piece_index == block.piece_index);
+		return i->info[block.block_index].state;
+	}
+
 	bool piece_picker::is_requested(piece_block block) const
 	{
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
@@ -3021,7 +3039,15 @@ namespace libtorrent
 		if (i == m_downloads[state - 1].end()) return;
 
 		TORRENT_ASSERT(i->passed_hash_check == false);
-		i->passed_hash_check = false;
+		if (i->passed_hash_check)
+		{
+			// it's not clear why this would happen,
+			// but it seems reasonable to not break the
+			// accounting over it.
+			i->passed_hash_check = false;
+			TORRENT_ASSERT(m_num_passed > 0);
+			--m_num_passed;
+		}
 
 		// prevent this piece from being picked until it's restored
 		i->locked = true;

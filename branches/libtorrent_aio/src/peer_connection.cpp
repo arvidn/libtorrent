@@ -6523,6 +6523,17 @@ namespace libtorrent
 #endif
 		if (t->has_picker() && !t->is_aborted())
 		{
+			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
+				, end(m_download_queue.end()); i != end; ++i)
+			{
+				pending_block const& pb = *i;
+				if (pb.timed_out || pb.not_wanted) continue;
+				TORRENT_ASSERT(t->picker().get_block_state(pb.block) != piece_picker::block_info::state_none);
+			}
+/*
+			// this invariant is not valid anymore since the completion event
+			// might be queued in the io service
+
 			// make sure that pieces that have completed the download
 			// of all their blocks are in the disk io thread's queue
 			// to be checked.
@@ -6541,9 +6552,6 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
-/*
-// this invariant is not valid anymore since the completion event
-// might be queued in the io service
 				if (complete && !piece_failed)
 				{
 					disk_io_job ret = m_ses.m_disk_thread.find_job(
@@ -6551,8 +6559,8 @@ namespace libtorrent
 					TORRENT_ASSERT(ret.action == disk_io_job::hash || ret.action == disk_io_job::write);
 					TORRENT_ASSERT(ret.piece == i->index);
 				}
-*/
 			}
+*/
 		}
 
 // extremely expensive invariant check

@@ -335,6 +335,8 @@ namespace libtorrent
 		void check_peers();
 #endif
 
+		int get_block_state(piece_block block) const;
+
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
 		// or if it already has been successfully downloaded
