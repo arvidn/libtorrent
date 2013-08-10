@@ -2061,7 +2061,9 @@ namespace libtorrent
 		m_num_pieces = num_pieces;
 
 		if (interesting) t->peer_is_interesting(*this);
-		else if (upload_only()) disconnect(errors::upload_upload_connection, op_bittorrent);
+		else if (upload_only()
+			&& can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category())))
+			disconnect(errors::upload_upload_connection, op_bittorrent);
 	}
 
 	bool peer_connection::disconnect_if_redundant()
@@ -2084,7 +2086,8 @@ namespace libtorrent
 		// don't close connections in share mode, we don't know if we need them
 		if (t->share_mode()) return false;
 
-		if (m_upload_only && t->is_upload_only())
+		if (m_upload_only && t->is_upload_only()
+			&& can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category())))
 		{
 			disconnect(errors::upload_upload_connection, op_bittorrent);
 			return true;
@@ -2093,7 +2096,8 @@ namespace libtorrent
 		if (m_upload_only
 			&& !m_interesting
 			&& m_bitfield_received
-			&& t->are_files_checked())
+			&& t->are_files_checked()
+			&& can_disconnect(error_code(errors::uninteresting_upload_peer, get_libtorrent_category())))
 		{
 			disconnect(errors::uninteresting_upload_peer, op_bittorrent);
 			return true;
@@ -2103,6 +2107,18 @@ namespace libtorrent
 		check_invariant();
 #endif
 		return false;
+	}
+
+	bool peer_connection::can_disconnect(error_code const& ec)
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if (!(*i)->can_disconnect(ec)) return false;
+		}
+#endif
+		return true;
 	}
 
 	// -----------------------------
@@ -2239,7 +2255,8 @@ namespace libtorrent
 			// every ten invalid request, remind the peer that it's choked
 			if (!m_peer_interested && m_num_invalid_requests % 10 == 0 && m_choked)
 			{
-				if (m_num_invalid_requests > 300 && !m_peer_choked)
+				if (m_num_invalid_requests > 300 && !m_peer_choked
+					&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
 				{
 					disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 					return;
@@ -2260,7 +2277,8 @@ namespace libtorrent
 
 		// disconnect peers that downloads more than foo times an allowed
 		// fast piece
-		if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece)
+		if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece
+			&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
 		{
 			disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 			return;
@@ -2279,7 +2297,8 @@ namespace libtorrent
 
 			// allow peers to send request up to 2 seconds after getting choked,
 			// then disconnect them
-			if (total_milliseconds(since_choked) > 2000)
+			if (total_milliseconds(since_choked) > 2000
+				&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
 			{
 				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 				return;
@@ -4537,7 +4556,8 @@ namespace libtorrent
 		// the peer and disconnect it
 		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network);
 
-		if (may_timeout && d > seconds(m_timeout) && !m_connecting && m_reading_bytes == 0)
+		if (may_timeout && d > seconds(m_timeout) && !m_connecting && m_reading_bytes == 0
+			&& can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category())))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** LAST ACTIVITY [ %d seconds ago ] ***", int(total_seconds(d)));
@@ -4570,7 +4590,8 @@ namespace libtorrent
 			&& !m_choked
 			&& m_peer_interested
 			&& t && t->is_upload_only()
-			&& d > seconds(60))
+			&& d > seconds(60)
+			&& can_disconnect(error_code(errors::timed_out_no_request, get_libtorrent_category())))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** NO REQUEST [ waited %d seconds ] ***", int(total_seconds(d)));
@@ -4598,7 +4619,8 @@ namespace libtorrent
 			&& d1 > time_limit
 			&& d2 > time_limit
 			&& (m_ses.num_connections() >= m_settings.get_int(settings_pack::connections_limit)
-			|| (t && t->num_peers() >= t->max_connections())))
+				|| (t && t->num_peers() >= t->max_connections()))
+			&& can_disconnect(error_code(errors::timed_out_no_interest, get_libtorrent_category())))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** MUTUAL NO INTEREST [ t1: %d t2: %d ]"
