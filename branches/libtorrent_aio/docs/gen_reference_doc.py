@@ -44,6 +44,7 @@ symbols = \
 	"http-seeding_": "manual.html#http-seeding",
 	"metadata-from-peers_": "manual.html#metadata-from-peers",
 	"magnet-links_": "manual.html#magnet-links",
+	"dynamic-loading-of-torrent-files_": "manual.html#dynamic-loading-of-torrent-files"
 }
 
 static_links = \
@@ -90,6 +91,7 @@ category_mapping = {
 	'thread.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
 	'session_settings.hpp': 'Settings',
+	'settings_pack.hpp': 'Settings',
 }
 
 category_fun_mapping = {

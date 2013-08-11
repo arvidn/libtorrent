@@ -923,7 +923,7 @@ hashes (20 bytes per piece) and the file list. The entire info-dictionary
 of the .torrent file is kept in RAM.
 
 In order to activate the dynamic loading of torrent files, set the load
-function on the session. See `set_load_function()`_.
+function on the session. See set_load_function().
 
 When a load function is set on the session, the dynamic load/unload
 feature is enabled. Torrents are kept in an LRU. Every time an operation
@@ -938,12 +938,12 @@ set ``settings_pack::active_loaded_limit`` on the session.
 Torrents can be exempt from being unloaded by being *pinned*. Pinned torrents
 still count against the limit, but are never considered for eviction.
 You can either pin a torrent when adding it, in ``add_torrent_params``
-(see `async_add_torrent() add_torrent()`_), or after ading it with the
-`set_pinned()`_ function on torrent_handle_.
+(see async_add_torrent() and add_torrent()), or after ading it with the
+set_pinned() function on torrent_handle.
 
 Torrents that start out without metadata (e.g. magnet links or http downloads)
 are automatically pinned. This is important in order to give the client a
-chance to save the metadata to disk once it's received (see metadata_received_alert_).
+chance to save the metadata to disk once it's received (see metadata_received_alert).
 
 Once the metadata is saved to disk, it might make sense to unpin the torrent.
 
