@@ -404,15 +404,15 @@ namespace libtorrent
 		// currently in this torrent. Note that urls that fails may be removed
 		// automatically from the list.
 		// 
-		// See `HTTP seeding`_ for more information.
+		// See http-seeding_ for more information.
 		void add_url_seed(std::string const& url) const;
 		void remove_url_seed(std::string const& url) const;
 		std::set<std::string> url_seeds() const;
 
 		// These functions are identical as the ``*_url_seed()`` variants, but they
-		// operate on BEP 17 web seeds instead of BEP 19.
+		// operate on `BEP 17`_ web seeds instead of `BEP 19`_.
 		// 
-		// See `HTTP seeding`_ for more information.
+		// See http-seeding_ for more information.
 		void add_http_seed(std::string const& url) const;
 		void remove_http_seed(std::string const& url) const;
 		std::set<std::string> http_seeds() const;
@@ -498,7 +498,7 @@ namespace libtorrent
 		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 
 		// ``save_resume_data()`` generates fast-resume data and returns it as an entry. This entry
-		// is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
+		// is suitable for being bencoded. For more information about how fast-resume works, see fast-resume_.
 		// 
 		// The ``flags`` argument is a bitmask of flags ORed together. If the flag ``torrent_handle::flush_cache``
 		// is set, the disk cache will be flushed before creating the resume data. This avoids a problem with
@@ -517,7 +517,7 @@ namespace libtorrent
 		//	2. The torrent is checking (or is queued for checking) its storage, it will obviously
 		//	   not be ready to write resume data.
 		//	3. The torrent hasn't received valid metadata and was started without metadata
-		//	   (see libtorrent's `metadata from peers`_ extension)
+		//	   (see libtorrent's metadata-from-peers_ extension)
 		// 
 		// Note that by the time you receive the fast resume data, it may already be invalid if the torrent
 		// is still downloading! The recommended practice is to first pause the session, then generate the
@@ -1312,7 +1312,7 @@ namespace libtorrent
 		int connections_limit;
 
 		// The allocation mode for the torrent. See storage_mode_t for the options.
-		// For more information, see `Storage allocation`_.
+		// For more information, see storage-allocation_.
 		storage_mode_t storage_mode;
 
 		// the number of peers in this

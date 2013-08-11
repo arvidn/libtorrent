@@ -414,7 +414,7 @@ namespace libtorrent
 		// The ``extra_headers`` argument defaults to an empty list, but can be used to
 		// insert custom HTTP headers in the requests to a specific web seed.
 		// 
-		// See `HTTP seeding`_ for more information.
+		// See http-seeding_ for more information.
  		void add_url_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());

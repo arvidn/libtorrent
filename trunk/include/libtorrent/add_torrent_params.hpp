@@ -248,11 +248,11 @@ namespace libtorrent
 
 		// The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 		// is available. The fast-resume data can be acquired from a running torrent by calling
-		// save_resume_data() on `torrent_handle`_. See `fast resume`_. The ``vector`` that is
+		// save_resume_data() on `torrent_handle`_. See fast-resume_. The ``vector`` that is
 		// passed in will be swapped into the running torrent instance with ``std::vector::swap()``.
 		std::vector<char> resume_data;
 
-		// One of the values from storage_mode_t. For more information, see `storage allocation`_.
+		// One of the values from storage_mode_t. For more information, see storage-allocation_.
 		storage_mode_t storage_mode;
 
 		// can be used to customize how the data is stored. The default

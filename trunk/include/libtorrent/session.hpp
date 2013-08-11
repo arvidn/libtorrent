@@ -689,7 +689,7 @@ namespace libtorrent
 		// These functions sets and queries the proxy settings to be used for the session.
 		//
 		// For more information on what settings are available for proxies, see
-		// `proxy_settings`_.
+		// proxy_settings.
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
 
@@ -854,7 +854,7 @@ namespace libtorrent
 		// The upnp object returned by ``start_upnp()`` can be used to add and remove
 		// arbitrary port mappings. Mapping status is returned through the
 		// portmap_alert and the portmap_error_alert. The object will be valid until
-		// ``stop_upnp()`` is called. See `UPnP and NAT-PMP`_.
+		// ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// It is off by default.
  		void start_upnp();
@@ -866,7 +866,7 @@ namespace libtorrent
 		// The natpmp object returned by ``start_natpmp()`` can be used to add and remove
 		// arbitrary port mappings. Mapping status is returned through the
 		// portmap_alert and the portmap_error_alert. The object will be valid until
-		// ``stop_natpmp()`` is called. See `UPnP and NAT-PMP`_.
+		// ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// It is off by default.
 		void start_natpmp();
