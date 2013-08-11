@@ -18,25 +18,26 @@ the ``session``, it contains the main loop that serves all torrents.
 The basic usage is as follows:
 
 * construct a session
-* load session state from settings file (see `load_state() save_state()`_)
-* start extensions (see `add_extension()`_).
-* start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()`_
-  `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
-* parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `async_add_torrent() add_torrent()`_)
-* main loop (see session_)
+* load session state from settings file (see load_state())
+* start extensions (see add_extension()).
+* start DHT, LSD, UPnP, NAT-PMP etc (see start_dht(), start_lsd(), start_upnp() and start_natpmp()).
+* parse .torrent-files and add them to the session (see torrent_info, async_add_torrent() and add_torrent())
+* main loop (see session)
 
-	* query the torrent_handles for progress (see torrent_handle_)
-	* query the session for information
-	* add and remove torrents from the session at run-time
+	* poll for alerts (see wait_for_alert(), pop_alerts())
+	* handle updates to torrents, (see state_update_alert).
+	* handle other alerts, (see alert).
+	* query the session for information (see session::status()).
+	* add and remove torrents from the session (remove_torrent())
 
 * save resume data for all torrent_handles (optional, see
-  `save_resume_data()`_)
-* save session state (see `load_state() save_state()`_)
+  save_resume_data())
+* save session state (see save_state())
 * destruct session object
 
 Each class and function is described in this manual.
 
-For a description on how to create torrent files, see make_torrent_.
+For a description on how to create torrent files, see make_torrent.
 
 .. _make_torrent: make_torrent.html
 
@@ -64,7 +65,7 @@ the write error is caused by a full disk or write permission errors. If the
 torrent is auto-managed, it will periodically be taken out of the upload
 mode, trying to write things to the disk again. This means torrent will recover
 from certain disk errors if the problem is resolved. If the torrent is not
-auto managed, you have to call `set_upload_mode()`_ to turn
+auto managed, you have to call set_upload_mode() to turn
 downloading back on again.
 
 network primitives
@@ -93,81 +94,6 @@ For documentation on these types, please refer to the `asio documentation`_.
 
 .. _`asio documentation`: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
 
-session customization
-=====================
-
-You have some control over session configuration through the ``session::apply_settings()``
-member function. To change one or more configuration options, create a settings_pack_.
-object and fill it with the settings to be set and pass it in to ``session::apply_settings()``.
-
-see `apply_settings()`_.
-
-You have control over proxy and authorization settings and also the user-agent
-that will be sent to the tracker. The user-agent will also be used to identify the
-client with other peers.
-
-settings_pack
--------------
-
-.. parsed-literal::
-
-	struct settings_pack
-	{
-		void set_str(int name, std::string val);
-		void set_int(int name, int val);
-		void set_bool(int name, bool val);
-
-		std::string get_str(int name);
-		int get_int(int name);
-		bool get_bool(int name);
-
-		void clear();
-
-		*all settings enums, see below*
-
-		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
-
-		enum choking_algorithm_t
-		{
-			fixed_slots_choker,
-			auto_expand_choker,
-			rate_based_choker,
-			bittyrant_choker
-		};
-
-		enum seed_choking_algorithm_t
-		{
-			round_robin,
-			fastest_upload,
-			anti_leech
-		};
-
-		enum io_buffer_mode_t
-		{
-			enable_os_cache = 0,
-			disable_os_cache_for_aligned_files = 1,
-			disable_os_cache = 2
-		};
-
-		enum disk_cache_algo_t
-		{ lru, largest_contiguous, avoid_readback };
-
-		enum bandwidth_mixed_algo_t
-		{
-			prefer_tcp = 0,
-			peer_proportional = 1
-		};
-	};
-
-The ``settings_pack`` struct, contains the names of all settings as
-enum values. These values are passed in to the ``set_str()``,
-``set_int()``, ``set_bool()`` functions, to specify the setting to
-change.
-
-These are the available settings:
-
-.. include:: settings.rst
-
 exceptions
 ==========
 
@@ -178,65 +104,7 @@ error code on errors.
 There is one exception class that is used for errors in libtorrent, it is based
 on boost.system's ``error_code`` class to carry the error code.
 
-libtorrent_exception
---------------------
-
-::
-
-	struct libtorrent_exception: std::exception
-	{
-		libtorrent_exception(error_code const& s);
-		virtual const char* what() const throw();
-		virtual ~libtorrent_exception() throw() {}
-		boost::system::error_code error() const;
-	};
-
-
-error_code
-==========
-
-The names of these error codes are declared in then ``libtorrent::errors`` namespace.
-
-HTTP errors are reported in the ``libtorrent::http_category``, with error code enums in
-the ``libtorrent::errors`` namespace.
-
-====== =========================================
-code   symbol                                   
-====== =========================================
-100    cont                                     
------- -----------------------------------------
-200    ok                                       
------- -----------------------------------------
-201    created                                  
------- -----------------------------------------
-202    accepted                                 
------- -----------------------------------------
-204    no_content                               
------- -----------------------------------------
-300    multiple_choices                         
------- -----------------------------------------
-301    moved_permanently                        
------- -----------------------------------------
-302    moved_temporarily                        
------- -----------------------------------------
-304    not_modified                             
------- -----------------------------------------
-400    bad_request                              
------- -----------------------------------------
-401    unauthorized                             
------- -----------------------------------------
-403    forbidden                                
------- -----------------------------------------
-404    not_found                                
------- -----------------------------------------
-500    internal_server_error                    
------- -----------------------------------------
-501    not_implemented                          
------- -----------------------------------------
-502    bad_gateway                              
------- -----------------------------------------
-503    service_unavailable                      
-====== =========================================
+For more information, see libtorrent_exception and error_code_enum.
 
 translating error codes
 -----------------------
@@ -290,99 +158,6 @@ Here's a simple example of how to translate error codes::
 storage_interface
 =================
 
-The storage interface is a pure virtual class that can be implemented to
-customize how and where data for a torrent is stored. The default storage
-implementation uses regular files in the filesystem, mapping the files in the
-torrent in the way one would assume a torrent is saved to disk. Implementing
-your own storage interface makes it possible to store all data in RAM, or in
-some optimized order on disk (the order the pieces are received for instance),
-or saving multifile torrents in a single file in order to be able to take
-advantage of optimized disk-I/O.
-
-It is also possible to write a thin class that uses the default storage but
-modifies some particular behavior, for instance encrypting the data before
-it's written to disk, and decrypting it when it's read again.
-
-The storage interface is based on slots, each slot is 'piece_size' number
-of bytes. All access is done by writing and reading whole or partial
-slots. One slot is one piece in the torrent, but the data in the slot
-does not necessarily correspond to the piece with the same index (in
-compact allocation mode it won't).
-
-libtorrent comes with two built-in storage implementations; ``default_storage``
-and ``disabled_storage``. Their constructor functions are called ``default_storage_constructor``
-and ``disabled_storage_constructor`` respectively. The disabled storage does
-just what it sounds like. It throws away data that's written, and it
-reads garbage. It's useful mostly for benchmarking and profiling purpose.
-
-
-The interface looks like this::
-
-	struct storage_params
-	{
-		file_storage const* files;
-		file_storage const* mapped_files; // optional
-		std::string path;
-		file_pool* pool;
-		storage_mode_t mode;
-		std::vector<boost::uint8_t> const* priorities; // optional
-		torrent_info const* info;
-	};
-
-	struct storage_interface
-	{
-		virtual void initialize(storage_error& ec) = 0;
-		virtual int readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) = 0;
-		virtual int writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) = 0;
-		virtual bool has_any_file(storage_error& ec) = 0;
-		virtual void move_storage(std::string const& save_path, storage_error& ec) = 0;
-		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) = 0;
-		virtual void write_resume_data(entry& rd, storage_error& ec) const = 0;
-		virtual void release_files(storage_error& ec) = 0;
-		virtual void rename_file(int index, std::string const& new_filenamem, storage_error& ec) = 0;
-		virtual void delete_files(storage_error& ec) = 0;
-		virtual void finalize_file(int, storage_error&);
-		virtual ~storage_interface();
-
-		// non virtual functions
-
-		aux::session_settings const& settings() const { return *m_settings; }
-	};
-
-	struct storage_error
-	{
-		// the actual error code
-		error_code ec;
-
-		// the index of the file the error occurred on
-		int32_t file:24;
-
-		// the operation that failed
-		int32_t operation:8;
-
-		enum {
-			none,
-			stat,
-			mkdir,
-			open,
-			rename,
-			remove,
-			copy,
-			read,
-			write,
-			fallocate,
-			alloc_cache_piece
-		};
-
-		storage_error();
-		operator bool() const;
-
-		// turn the operation ID into a string
-		char const* operation_str() const;
-	};
-
 initialize()
 ------------
 
@@ -409,7 +184,6 @@ If so, the storage will be checked for existing pieces before starting the downl
 If an error occurs, ``storage_error`` should be set to reflect it.
 
 readv() writev()
-----------------
 
 	::
 
@@ -640,7 +414,7 @@ download, without any .torrent file.
 
 The format of the magnet URI is:
 
-**magnet:?xt=urn:btih:** *Base32 encoded info-hash* [ **&dn=** *name of download* ] [ **&tr=** *tracker URL* ]*
+**magnet:?xt=urn:btih:** *Base16 encoded info-hash* [ **&dn=** *name of download* ] [ **&tr=** *tracker URL* ]*
 
 queuing
 =======
@@ -651,7 +425,7 @@ downloaded, the next in line is started.
 
 Torrents that are *auto managed* are subject to the queuing and the active torrents
 limits. To make a torrent auto managed, set ``auto_managed`` to true when adding the
-torrent (see `async_add_torrent() add_torrent()`_).
+torrent (see async_add_torrent() and add_torrent()).
 
 The limits of the number of downloading and seeding torrents are controlled via
 active_downloads_, active_seeds_ and active_limit_ settings.
@@ -667,7 +441,7 @@ which torrents are active and which are queued. This interval can be controlled 
 auto_manage_interval_ setting.
 
 For queuing to work, resume data needs to be saved and restored for all torrents.
-See `save_resume_data()`_.
+See save_resume_data().
 
 downloading
 -----------
@@ -685,7 +459,7 @@ Lower queue position means closer to the front of the queue, and will be started
 torrents with higher queue positions.
 
 To query a torrent for its position in the queue, or change its position, see:
-`queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()`_.
+queue_position(), queue_position_up(), queue_position_down(), queue_position_top() and queue_position_bottom().
 
 seeding
 -------
@@ -699,20 +473,19 @@ downloaing) or seed time limit (time seeded).
 The relevant settings to control these limits are share_ratio_limit_,
 seed_time_ratio_limit_ and seed_time_limit_.
 
-
 fast resume
 ===========
 
 The fast resume mechanism is a way to remember which pieces are downloaded
 and where they are put between sessions. You can generate fast resume data by
-calling `save_resume_data()`_ on torrent_handle_. You can
+calling save_resume_data() on torrent_handle. You can
 then save this data to disk and use it when resuming the torrent. libtorrent
 will not check the piece hashes then, and rely on the information given in the
 fast-resume data. The fast-resume data also contains information about which
 blocks, in the unfinished pieces, were downloaded, so it will not have to
 start from scratch on the partially downloaded pieces.
 
-To use the fast-resume data you simply give it to `async_add_torrent() add_torrent()`_, and it
+To use the fast-resume data you simply give it to async_add_torrent() and add_torrent(), and it
 will skip the time consuming checks. It may have to do the checking anyway, if
 the fast-resume data is corrupt or doesn't fit the storage for that torrent,
 then it will not trust the fast-resume data and just do the checking.
@@ -891,7 +664,7 @@ Support for this is deprecated and will be removed in future versions of libtorr
 It's still described in here for completeness.
 
 The allocation mode is selected when a torrent is started. It is passed as an
-argument to ``session::add_torrent()`` (see `async_add_torrent() add_torrent()`_).
+argument to session::add_torrent() or session::async_add_torrent().
 
 The decision to use full allocation or compact allocation typically depends on whether
 any files have priority 0 and if the filesystem supports sparse files.
@@ -999,12 +772,12 @@ allocating a new slot:
 extensions
 ==========
 
-These extensions all operates within the `extension protocol`__. The
+These extensions all operates within the `extension protocol`_. The
 name of the extension is the name used in the extension-list packets,
 and the payload is the data in the extended message (not counting the
 length-prefix, message-id nor extension-id).
 
-__ extension_protocol.html
+.. _`extension protocol`: extension_protocol.html
 
 Note that since this protocol relies on one of the reserved bits in the
 handshake, it may be incompatible with future versions of the mainline
@@ -1375,9 +1148,9 @@ certificates are expected to be privided to peers through some other means than
 bittorrent. Typically by a peer generating a certificate request which is sent to
 the publisher of the torrent, and the publisher returning a signed certificate.
 
-In libtorrent, `set_ssl_certificate()`_ in torrent_handle_ is used to tell libtorrent where
+In libtorrent, set_ssl_certificate() in torrent_handle is used to tell libtorrent where
 to find the peer certificate and the private key for it. When an SSL torrent is loaded,
-the torrent_need_cert_alert_ is posted to remind the user to provide a certificate.
+the torrent_need_cert_alert is posted to remind the user to provide a certificate.
 
 A peer connecting to an SSL torrent MUST provide the *SNI* TLS extension (server name
 indication). The server name is the hex encoded info-hash of the torrent to connect to.

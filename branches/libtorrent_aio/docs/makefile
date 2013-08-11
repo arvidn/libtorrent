@@ -17,14 +17,14 @@ REFERENCE_TARGETS = \
 	reference-Alerts \
 	reference-RSS \
 	reference-Filter \
-	reference-Settings
+	reference-Settings \
+	manual-ref
 
 TARGETS = index \
 	udp_tracker_protocol \
 	dht_rss \
 	dht_store \
 	client_test \
-	manual \
 	building \
 	features \
 	contributing\
@@ -55,8 +55,8 @@ all: html
 settings.rst: ../include/libtorrent/settings_pack.hpp
 	python gen_settings_doc.py
 
-stats_counters.rst: ../src/session_stats.cpp
-	python gen_stats_doc.py
+#stats_counters.rst: ../src/session_stats.cpp
+#	python gen_stats_doc.py
 
 manual.rst: settings.rst stats_counters.rst
 	touch manual.rst
@@ -64,7 +64,7 @@ manual.rst: settings.rst stats_counters.rst
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
 
-$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp
+$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst
 	python gen_reference_doc.py
 
 %.epub:%.rst

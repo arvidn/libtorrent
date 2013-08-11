@@ -26,6 +26,32 @@ overviews = {}
 # maps names -> URL
 symbols = {}
 
+# some files that need pre-processing to turn symbols into
+# links into the reference documentation
+preprocess_rst = \
+{
+	'manual.rst':'manual-ref.rst',
+}
+
+# some pre-defined sections from the main manual
+symbols = \
+{
+	"queuing_": "manual.html#queuing",
+	"fast-resume_": "manual.html#fast-resume",
+	"storage-allocation_": "manual.html#storage-allocation",
+	"alerts_": "manual.html#alerts",
+	"upnp-and-nat-pmp_": "manual.html#upnp-and-nat-pmp",
+	"http-seeding_": "manual.html#http-seeding",
+	"metadata-from-peers_": "manual.html#metadata-from-peers",
+	"magnet-links_": "manual.html#magnet-links",
+}
+
+static_links = \
+{
+	".. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html",
+	".. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html"
+}
+
 anon_index = 0
 
 category_mapping = {
@@ -100,6 +126,7 @@ def is_visible(desc):
 def highlight_signature(s):
 	name = s.split('(')
 	name2 = name[0].split(' ')
+	if len(name2[-1]) == 0: return s
 	name2[-1] = '**' + name2[-1] + '** '
 	name[0] = ' '.join(name2)
 	return '('.join(name)
@@ -475,7 +502,7 @@ for filename in files:
 			continue
 
 		if 'TORRENT_EXPORT ' in l or l.startswith('inline ') or internal:
-			if 'class ' in l or 'struct ' in l:
+			if l.startswith('class ') or l.startswith('struct '):
 				if not l.endswith(';'):
 					current_class, lno = parse_class(lno -1, lines, filename)
 					if current_class != None and is_visible(context):
@@ -618,15 +645,28 @@ def print_declared_in(out, o):
 # returns RST marked up string
 def linkify_symbols(string):
 	lines = string.split('\n')
-	abort = False
 	ret = []
+	in_literal = False
 	for l in lines:
-		if l.endswith('::'):
-			abort = True
-		if abort:
+		if l.startswith('|'):
 			ret.append(l)
 			continue
+		if in_literal and not l.startswith('\t') and not l == '':
+#			print '  end literal: "%s"' % l
+			in_literal = False
+		if in_literal:
+#			print '  literal: "%s"' % l
+			ret.append(l)
+			continue
+		if l.endswith('::'):
+#			print '  start literal: "%s"' % l
+			in_literal = True
 		words = l.split(' ')
+
+		if len(words) == 1:
+			ret.append(l)
+			continue
+
 		for i in range(len(words)):
 			# it's important to preserve leading
 			# tabs, since that's relevant for
@@ -638,12 +678,25 @@ def linkify_symbols(string):
 			# preserve commas and dots at the end
 			w = words[i].strip()
 			trailing = ''
-			if len(w) > 0 and (w[-1] == '.' or w[-1] == ','):
-				trailing = w[-1]
+
+			if len(w) == 0: continue
+
+			while len(w) > 1 and (w[-1] == '.' or w[-1] == ',' or (w[-1] == ')' and w[-2:] != '()')):
+				trailing = w[-1] + trailing
 				w = w[:-1]
-			
+
+			link_name = w;
+
+#			print w
+
+			if len(w) == 0: continue
+
+			if link_name[-1] == '_': link_name = link_name[:-1]
+
 			if w in symbols:
-				words[i] = (leading_tabs * '\t') + print_link(w, symbols[w]) + trailing
+				link_name = link_name.replace('-', ' ')
+#				print '  found %s -> %s' % (w, link_name)
+				words[i] = (leading_tabs * '\t') + print_link(link_name, symbols[w]) + trailing
 		ret.append(' '.join(words))
 	return '\n'.join(ret)
 
@@ -847,5 +900,24 @@ for cat in categories:
 
 	print >>out, dump_link_targets()
 
+	for i in static_links:
+		print >>out, i
+
 	out.close()
+
+#for s in symbols:
+#	print s
+
+for i,o in preprocess_rst.items():
+	f = open(i, 'r')
+	out = open(o, 'w+')
+	print 'processing %s -> %s' % (i, o)
+	l = linkify_symbols(f.read())
+	print >>out, l,
+
+	print >>out, dump_link_targets()
+
+	out.close()
+	f.close()
+		
 

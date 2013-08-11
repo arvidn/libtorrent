@@ -36,6 +36,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include <vector>
 
+// OVERVIEW
+// 
+// You have some control over session configuration through the ``session::apply_settings()``
+// member function. To change one or more configuration options, create a settings_pack_.
+// object and fill it with the settings to be set and pass it in to ``session::apply_settings()``.
+// 
+// see apply_settings().
+// 
+// You have control over proxy and authorization settings and also the user-agent
+// that will be sent to the tracker. The user-agent will also be used to identify the
+// client with other peers.
+// 
 namespace libtorrent
 {
 	namespace aux { struct session_impl; struct session_settings; }
@@ -57,8 +69,8 @@ namespace libtorrent
 	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret);
 #endif
 
-	// #error add an API to query a settings_pack as well
-	// #error maybe convert all bool types into int-types as well
+	// TODO: 2 add an API to query a settings_pack as well
+	// TODO: 2 maybe convert all bool types into int-types as well
 
 	// The ``settings_pack`` struct, contains the names of all settings as
 	// enum values. These values are passed in to the ``set_str()``,

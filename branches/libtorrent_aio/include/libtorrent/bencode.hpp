@@ -413,20 +413,18 @@ namespace libtorrent
 	// Or, if you have a raw char buffer::
 	// 
 	//	const char* buf;
-	// ...
+	//	// ...
 	//	entry e = bdecode(buf, buf + data_size);
 	// 
 	// Now we just need to know how to retrieve information from the entry.
 	// 
 	// If ``bdecode()`` encounters invalid encoded data in the range given to it
 	// it will throw libtorrent_exception.
-	template<class OutIt>
-	int bencode(OutIt out, const entry& e)
+	TORRENT_EXPORT template<class OutIt> int bencode(OutIt out, const entry& e)
 	{
 		return detail::bencode_recursive(out, e);
 	}
-	template<class InIt>
-	entry bdecode(InIt start, InIt end)
+	TORRENT_EXPORT template<class InIt> entry bdecode(InIt start, InIt end)
 	{
 		entry e;
 		bool err = false;
@@ -437,8 +435,7 @@ namespace libtorrent
 		if (err) return entry();
 		return e;
 	}
-	template<class InIt>
-	entry bdecode(InIt start, InIt end, int& len)
+	TORRENT_EXPORT template<class InIt> entry bdecode(InIt start, InIt end, int& len)
 	{
 		entry e;
 		bool err = false;

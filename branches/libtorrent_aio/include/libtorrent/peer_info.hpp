@@ -192,6 +192,8 @@ namespace libtorrent
 		
 		// the IP-address to this peer. The type is an asio endpoint. For
 		// more info, see the asio_ documentation.
+		//
+		// .. _asio: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
 		tcp::endpoint ip;
 
 		// the current upload and download speed
