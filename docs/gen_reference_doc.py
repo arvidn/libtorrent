@@ -26,6 +26,26 @@ overviews = {}
 # maps names -> URL
 symbols = {}
 
+# some pre-defined sections from the main manual
+
+symbols = \
+{
+	"queuing_": "manual.html#queuing",
+	"fast-resume_": "manual.html#fast-resume",
+	"storage-allocation_": "manual.html#storage-allocation",
+	"alerts_": "manual.html#alerts",
+	"upnp-and-nat-pmp_": "manual.html#upnp-and-nat-pmp",
+	"http-seeding_": "manual.html#http-seeding",
+	"metadata-from-peers_": "manual.html#metadata-from-peers",
+	"magnet-links_": "manual.html#magnet-links",
+}
+
+static_links = \
+{
+	".. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html",
+	".. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html"
+}
+
 anon_index = 0
 
 category_mapping = {
@@ -638,12 +658,19 @@ def linkify_symbols(string):
 			# preserve commas and dots at the end
 			w = words[i].strip()
 			trailing = ''
-			if len(w) > 0 and (w[-1] == '.' or w[-1] == ','):
+			if len(w) == 0: continue
+
+			if (w[-1] == '.' or w[-1] == ',' or (w[-1] == ')' and w[-2:-1] != '()')):
 				trailing = w[-1]
 				w = w[:-1]
-			
+
+			link_name = w;
+
+			if link_name[-1] == '_': link_name = link_name[:-1]
+
 			if w in symbols:
-				words[i] = (leading_tabs * '\t') + print_link(w, symbols[w]) + trailing
+				link_name = link_name.replace('-', ' ')
+				words[i] = (leading_tabs * '\t') + print_link(link_name, symbols[w]) + trailing
 		ret.append(' '.join(words))
 	return '\n'.join(ret)
 
@@ -846,6 +873,9 @@ for cat in categories:
 	render_enums(out, enums)
 
 	print >>out, dump_link_targets()
+
+	for i in static_links:
+		print >>out, i
 
 	out.close()
 

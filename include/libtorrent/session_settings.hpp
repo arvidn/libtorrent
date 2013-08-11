@@ -378,9 +378,9 @@ namespace libtorrent
 		// are kept in memory after the torrent becomes a seed or not. If it is set to
 		// ``true`` the hashes are freed once the torrent is a seed (they're not
 		// needed anymore since the torrent won't download anything more). If it's set
-		// to false they are not freed. If they are freed, the torrent_info_ returned
+		// to false they are not freed. If they are freed, the torrent_info returned
 		// by get_torrent_info() will return an object that may be incomplete, that
-		// cannot be passed back to `async_add_torrent() add_torrent()`_ for instance.
+		// cannot be passed back to async_add_torrent() and add_torrent() for instance.
 		bool free_torrent_hashes;
 
 		// indicates whether or not the UPnP implementation
@@ -798,7 +798,7 @@ namespace libtorrent
 		int max_sparse_regions;
 
 #ifndef TORRENT_DISABLE_MLOCK
-		//  if lock disk cache is set to true the disk cache
+		// if lock disk cache is set to true the disk cache
 		// that's in use, will be locked in physical memory, preventing it from
 		// being swapped out.
 		bool lock_disk_cache;

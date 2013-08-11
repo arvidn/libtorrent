@@ -430,6 +430,8 @@ namespace libtorrent
 			error_code_max
 		};
 
+		// HTTP errors are reported in the libtorrent::http_category, with error code enums in
+		// the ``libtorrent::errors`` namespace.
 		enum http_errors
 		{
 			cont = 100,
