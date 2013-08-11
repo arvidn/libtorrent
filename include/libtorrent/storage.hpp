@@ -63,6 +63,77 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
 
+// OVERVIEW
+//
+// This is an example storage implementation that stores all pieces in a ``std::map``,
+// i.e. in RAM. It's not necessarily very useful in practice, but illustrates the
+// basics of implementing a custom storage.
+//
+//::
+//
+//	struct temp_storage : storage_interface
+//	{
+//		temp_storage(file_storage const& fs) : m_files(fs) {}
+//		virtual bool initialize(bool allocate_files) { return false; }
+//		virtual bool has_any_file() { return false; }
+//		virtual int read(char* buf, int slot, int offset, int size)
+//		{
+//			std::map<int, std::vector<char> >::const_iterator i = m_file_data.find(slot);
+//			if (i == m_file_data.end()) return 0;
+//			int available = i->second.size() - offset;
+//			if (available <= 0) return 0;
+//			if (available > size) available = size;
+//			memcpy(buf, &i->second[offset], available);
+//			return available;
+//		}
+//		virtual int write(const char* buf, int slot, int offset, int size)
+//		{
+//			std::vector<char>& data = m_file_data[slot];
+//			if (data.size() < offset + size) data.resize(offset + size);
+//			std::memcpy(&data[offset], buf, size);
+//			return size;
+//		}
+//		virtual bool rename_file(int file, std::string const& new_name)
+//		{ assert(false); return false; }
+//		virtual bool move_storage(std::string const& save_path) { return false; }
+//		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
+//		virtual bool write_resume_data(entry& rd) const { return false; }
+//		virtual bool move_slot(int src_slot, int dst_slot) { assert(false); return false; }
+//		virtual bool swap_slots(int slot1, int slot2) { assert(false); return false; }
+//		virtual bool swap_slots3(int slot1, int slot2, int slot3) { assert(false); return false; }
+//		virtual size_type physical_offset(int slot, int offset)
+//		{ return slot * m_files.piece_length() + offset; };
+//		virtual sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size)
+//		{
+//			int left = piece_size - ph.offset;
+//			assert(left >= 0);
+//			if (left > 0)
+//			{
+//				std::vector<char>& data = m_file_data[slot];
+//				// if there are padding files, those blocks will be considered
+//				// completed even though they haven't been written to the storage.
+//				// in this case, just extend the piece buffer to its full size
+//				// and fill it with zeroes.
+//				if (data.size() < piece_size) data.resize(piece_size, 0);
+//				ph.h.update(&data[ph.offset], left);
+//			}
+//			return ph.h.final();
+//		}
+//		virtual bool release_files() { return false; }
+//		virtual bool delete_files() { return false; }
+//	
+//		std::map<int, std::vector<char> > m_file_data;
+//		file_storage m_files;
+//	};
+//
+//	storage_interface* temp_storage_constructor(
+//		file_storage const& fs, file_storage const* mapped
+//		, std::string const& path, file_pool& fp
+//		, std::vector<boost::uint8_t> const& prio)
+//	{
+//		return new temp_storage(fs);
+//	}
+
 namespace libtorrent
 {
 	class session;
@@ -123,22 +194,53 @@ namespace libtorrent
 	// and ``disabled_storage_constructor`` respectively. The disabled storage does
 	// just what it sounds like. It throws away data that's written, and it
 	// reads garbage. It's useful mostly for benchmarking and profiling purpose.
+	//
 	struct TORRENT_EXPORT storage_interface
 	{
 		storage_interface(): m_disk_pool(0), m_settings(0) {}
-		// create directories and set file sizes
-		// if allocate_files is true. 
-		// allocate_files is true if allocation mode
-		// is set to full and sparse files are supported
-		// false return value indicates an error
+
+		// This function is called when the storage is to be initialized. The default storage
+		// will create directories and empty files at this point. If ``allocate_files`` is true,
+		// it will also ``ftruncate`` all files to their target size.
+		//
+		// Returning ``true`` indicates an error occurred.
 		virtual bool initialize(bool allocate_files) = 0;
 
+		// This function is called when first checking (or re-checking) the storage for a torrent.
+		// It should return true if any of the files that is used in this storage exists on disk.
+		// If so, the storage will be checked for existing pieces before starting the download.
 		virtual bool has_any_file() = 0;
 
+		// These functions should read or write the data in or to the given ``slot`` at the given ``offset``.
+		// It should read or write ``num_bufs`` buffers sequentially, where the size of each buffer
+		// is specified in the buffer array ``bufs``. The file::iovec_t type has the following members::
+		// 
+		//	struct iovec_t
+		//	{
+		//		void* iov_base;
+		//		size_t iov_len;
+		//	};
+		// 
+		// The return value is the number of bytes actually read or written, or -1 on failure. If
+		// it returns -1, the error code is expected to be set to
+		// 
+		// Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
+		// except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
+		// fully page aligned number of bytes though. This is useful when reading and writing the
+		// last piece of a file in unbuffered mode.
+		// 
+		// The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but there are rare
+		// exceptions when it's not. Specifically if the read cache is disabled/or full and a
+		// client requests unaligned data, or the file itself is not aligned in the torrent.
+		// Most clients request aligned data.
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 
+		// This function is called when a read job is queued. It gives the storage wrapper an
+		// opportunity to hint the operating system about this coming read. For instance, the
+		// storage may call ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
 		virtual void hint_read(int, int, int) {}
+
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 
@@ -147,48 +249,109 @@ namespace libtorrent
 
 		virtual size_type physical_offset(int slot, int offset) = 0;
 
-		// returns the end of the sparse region the slot 'start'
-		// resides in i.e. the next slot with content. If start
-		// is not in a sparse region, start itself is returned
+		// This function is optional. It is supposed to return the first piece, starting at
+		// ``start`` that is fully contained within a data-region on disk (i.e. non-sparse
+		// region). The purpose of this is to skip parts of files that can be known to contain
+		// zeros when checking files.
 		virtual int sparse_end(int start) const { return start; }
 
-		// returns:
-		// no_error = 0,
-		// need_full_check = -1,
-		// fatal_disk_error = -2,
-		// file_exist = -4,
+		// This function should move all the files belonging to the storage to the new save_path.
+		// The default storage moves the single file or the directory of the torrent.
+		// 
+		// Before moving the files, any open file handles may have to be closed, like
+		// ``release_files()``.
+		// 
+		// returns one of:
+		// | no_error = 0
+		// | need_full_check = -1
+		// | fatal_disk_error = -2
+		// | file_exist = -4
 		virtual int move_storage(std::string const& save_path, int flags) = 0;
 
-		// verify storage dependent fast resume entries
+		// This function should verify the resume data ``rd`` with the files
+		// on disk. If the resume data seems to be up-to-date, return true. If
+		// not, set ``error`` to a description of what mismatched and return false.
+		//
+		// The default storage may compare file sizes and time stamps of the files.
+		//
+		// Returning ``false`` indicates an error occurred.
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
 
-		// write storage dependent fast resume entries
+		// This function should fill in resume data, the current state of the
+		// storage, in ``rd``. The default storage adds file timestamps and
+		// sizes.
+		// 
+		// Returning ``true`` indicates an error occurred.
 		virtual bool write_resume_data(entry& rd) const = 0;
 
-		// moves (or copies) the content in src_slot to dst_slot
+		// This function should copy or move the data in slot ``src_slot`` to
+		// the slot ``dst_slot``. This is only used in compact mode.
+		// 
+		// If the storage caches slots, this could be implemented more
+		// efficient than reading and writing the data.
+		// 
+		// Returning ``true`` indicates an error occurred.
 		virtual bool move_slot(int src_slot, int dst_slot) = 0;
 
-		// swaps the data in slot1 and slot2
+		// This function should swap the data in ``slot1`` and ``slot2``. The default
+		// storage uses a scratch buffer to read the data into, then moving the other
+		// slot and finally writing back the temporary slot's data
+		// 
+		// This is only used in compact mode.
+		// 
+		// Returning ``true`` indicates an error occurred.
 		virtual bool swap_slots(int slot1, int slot2) = 0;
 
-		// swaps the puts the data in slot1 in slot2, the data in slot2
-		// in slot3 and the data in slot3 in slot1
+		// This function should do a 3-way swap, or shift of the slots. ``slot1``
+		// should move to ``slot2``, which should be moved to ``slot3`` which in turn
+		// should be moved to ``slot1``.
+		// 
+		// This is only used in compact mode.
+		// 
+		// Returning ``true`` indicates an error occurred.
 		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
 
-		// this will close all open files that are opened for
-		// writing. This is called when a torrent has finished
-		// downloading.
-		// non-zero return value indicates an error
+		// This function should release all the file handles that it keeps open to files
+		// belonging to this storage. The default implementation just calls
+		// ``file_pool::release_files(this)``.
+		// 
+		// Returning ``true`` indicates an error occurred.
 		virtual bool release_files() = 0;
 
-		// this will rename the file specified by index.
+		// Rename file with index ``file`` to the thame ``new_name``. If there is an error,
+		// ``true`` should be returned.
 		virtual bool rename_file(int index, std::string const& new_filename) = 0;
 
-		// this will close all open files and delete them
-		// non-zero return value indicates an error
+		// This function should delete all files and directories belonging to this storage.
+		// 
+		// Returning ``true`` indicates an error occurred.
+		// 
+		// The ``disk_buffer_pool`` is used to allocate and free disk buffers. It has the
+		// following members::
+		//
+		//	struct disk_buffer_pool : boost::noncopyable
+		//	{
+		//		char* allocate_buffer(char const* category);
+		//		void free_buffer(char* buf);
+		//
+		//		char* allocate_buffers(int blocks, char const* category);
+		//		void free_buffers(char* buf, int blocks);
+		//
+		//		int block_size() const { return m_block_size; }
+		//
+		//		void release_memory();
+		//	};
 		virtual bool delete_files() = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
+		// This function is called each time a file is completely downloaded. The
+		//	storage implementation can perform last operations on a file. The file will
+		//	not be opened for writing after this.
+		//
+		//	``index`` is the index of the file that completed.
+		//	
+		// On windows the default storage implementation clears the sparse file flag
+		//	on the specified file.
 		virtual void finalize_file(int) {}
 #endif
 
