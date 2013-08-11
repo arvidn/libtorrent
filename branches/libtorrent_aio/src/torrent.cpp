@@ -4121,6 +4121,13 @@ namespace libtorrent
 		}
 		else
 		{
+			// it doesn't make much sense to fail to hash a piece
+			// without having a storage associated with the torrent.
+			// restoring the piece in the piece picker without calling
+			// clear piece on the disk thread will make them out of
+			// sync, and if we try to write more blocks to this piece
+			// the disk thread will barf, because it hasn't been cleared
+			TORRENT_ASSERT(m_storage);
 			disk_io_job j;
 			j.piece = index;
 			on_piece_sync(&j);

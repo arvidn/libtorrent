@@ -2775,6 +2775,10 @@ namespace libtorrent
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
+		// if we have the piece, the block state is considered finished
+		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index)
+			return block_info::state_finished;
+
 		int state = m_piece_map[block.piece_index].state;
 		if (state == piece_pos::piece_open) return block_info::state_none;
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state - 1, block.piece_index);
