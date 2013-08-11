@@ -17,14 +17,14 @@ REFERENCE_TARGETS = \
 	reference-Alerts \
 	reference-RSS \
 	reference-Filter \
-	reference-Settings
+	reference-Settings \
+	manual-ref
 
 TARGETS = index \
 	udp_tracker_protocol \
 	dht_rss \
 	dht_store \
 	client_test \
-	manual \
 	building \
 	features \
 	contributing\
@@ -55,7 +55,7 @@ all: html
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
 
-$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp
+$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst
 	python gen_reference_doc.py
 
 %.epub:%.rst
