@@ -280,9 +280,7 @@ namespace libtorrent
 	int fmt(int v) { return v; }
 	boost::uint64_t fmt(boost::uint64_t v) { return v; }
 	boost::int64_t fmt(boost::int64_t v) { return v; }
-#ifdef __APPLE__
 	time_t fmt(time_t v) { return v; }
-#endif
 	float fmt(float v) { return v; }
 	int fmt(bool v) { return v; }
 

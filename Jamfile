@@ -57,12 +57,14 @@ lib torrent-webui
 	<include>src
 	<target-os>linux:<library>pthread
 	<target-os>linux:<library>rt
+	<target-os>linux:<library>dynamic-linker
 	;
 
 lib zlib : : <name>z <search>/usr/local/lib ;
 lib pthread : : <name>pthread <search>/usr/local/lib <link>shared ;
 lib rt : : <name>rt <search>/usr/local/lib <link>shared ;
 lib pam : : <name>pam <search>/usr/local/lib ;
+lib dynamic-linker : : <name>dl <link>shared ;
 
 exe webui_test : test.cpp : <library>torrent-webui <library>/torrent//torrent ;
 exe add_user : tools/add_user.cpp : <library>torrent-webui <library>/torrent//torrent ;
