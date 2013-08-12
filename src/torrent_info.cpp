@@ -412,15 +412,15 @@ namespace libtorrent
 			// This is a memory optimization! Instead of having
 			// each entry keep a string for its filename, make it
 			// simply point into the info-section buffer
-			internal_file_entry const& fe = *target.rbegin();
+			int last_index = target.num_files() - 1;
 			// TODO: 1 once the filename renaming is removed from here
 			// this check can be removed as well
-			if (fee && fe.filename() == fee->string_value())
+			if (fee && target.file_name(last_index) == fee->string_value())
 			{
 				// this string pointer does not necessarily point into
 				// the m_info_section buffer.
 				char const* str_ptr = fee->string_ptr() + info_ptr_diff;
-				const_cast<internal_file_entry&>(fe).set_name(str_ptr, fee->string_length());
+				target.rename_file_borrow(last_index, str_ptr, fee->string_length());
 			}
 		}
 		return true;
@@ -1396,20 +1396,19 @@ namespace libtorrent
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const
 	{
-		for (file_storage::iterator i = m_files.begin()
-			, end(m_files.end()); i != end; ++i)
+		for (int i = 0; i < m_files.num_files(); ++i)
 		{
-			TORRENT_ASSERT(i->name != 0);
-			if (i->name_len > 0)
+			TORRENT_ASSERT(m_files.file_name_ptr(i) != 0);
+			if (m_files.file_name_len(i) > 0)
 			{
 				// name needs to point into the allocated info section buffer
-				TORRENT_ASSERT(i->name >= m_info_section.get());
-				TORRENT_ASSERT(i->name < m_info_section.get() + m_info_section_size);
+				TORRENT_ASSERT(m_files.file_name_ptr(i) >= m_info_section.get());
+				TORRENT_ASSERT(m_files.file_name_ptr(i) < m_info_section.get() + m_info_section_size);
 			}
 			else
 			{
 				// name must be a valid string
-				TORRENT_ASSERT(strlen(i->name) < 2048);
+				TORRENT_ASSERT(strlen(m_files.file_name_ptr(i)) < 2048);
 			}
 		}
 

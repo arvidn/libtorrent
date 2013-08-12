@@ -169,14 +169,14 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 
 	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
-		, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec)
+		, int file_index, file_storage const& fs, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
 		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(std::make_pair(st, fs.file_index(*fe)));
+		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -214,7 +214,7 @@ namespace libtorrent
 #else
 				e.file_ptr->close();
 #endif
-				std::string full_path = fs.file_path(*fe, p);
+				std::string full_path = fs.file_path(file_index, p);
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
@@ -244,7 +244,7 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		std::string full_path = fs.file_path(*fe, p);
+		std::string full_path = fs.file_path(file_index, p);
 		if (!e.file_ptr->open(full_path, m, ec))
 			return boost::intrusive_ptr<file>();
 #ifdef TORRENT_WINDOWS
@@ -253,7 +253,7 @@ namespace libtorrent
 #endif
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(std::make_pair(st, fs.file_index(*fe)), e));
+		m_files.insert(std::make_pair(std::make_pair(st, file_index), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}

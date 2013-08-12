@@ -101,10 +101,15 @@ namespace libtorrent
 		std::string symlink_path;
 	};
 
+	// only export this type if deprecated functions are enabled
+#ifdef TORRENT_NO_DEPRECATED
+#define TORRENT_DEPRECATED_EXPORT
+#else
+#define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
+#endif
 	// internal
-	struct TORRENT_EXPORT internal_file_entry
+	struct TORRENT_DEPRECATED_EXPORT internal_file_entry
 	{
-		// TODO: does this really need to be exported?
 		friend class file_storage;
 #ifdef TORRENT_DEBUG
 		// for torrent_info::invariant_check
@@ -249,6 +254,12 @@ namespace libtorrent
 
 		void rename_file(int index, std::string const& new_filename);
 
+		// this is a low-level function that sets the name of a file
+		// by making it reference a buffer that is not owned by the file_storage.
+		// it's an optimization used when loading .torrent files, to not
+		// duplicate names in memory.
+		void rename_file_borrow(int index, char const* new_filename, int len);
+
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
@@ -267,7 +278,7 @@ namespace libtorrent
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
 		peer_request map_file(int file, size_type offset, int size) const;
-		
+
 #ifndef TORRENT_NO_DEPRECATE
 		// all functions depending on internal_file_entry
 		// were deprecated in 1.0. Use the variants that take an
@@ -292,13 +303,14 @@ namespace libtorrent
 			TORRENT_ASSERT(index < int(m_files.size()));
 			return m_files[index];
 		}
+		TORRENT_DEPRECATED_PREFIX
+		file_entry at(iterator i) const TORRENT_DEPRECATED;
 #endif // TORRENT_NO_DEPRECATE
 
 		int num_files() const
 		{ return int(m_files.size()); }
 
 		file_entry at(int index) const;
-		file_entry at(iterator i) const;
 
 		size_type total_size() const { return m_total_size; }
 		void set_num_pieces(int n) { m_num_pieces = n; }
@@ -364,6 +376,18 @@ namespace libtorrent
 		bool pad_file_at(int index) const;
 		size_type file_offset(int index) const;
 
+		enum file_flags_t
+		{
+			flag_pad_file = 1,
+			flag_hidden = 2,
+			flag_executable = 4,
+			flag_symlink = 8,
+		};
+
+		// returns a bitmask of flags from file_flags_t that apply
+		// to file at ``index``.
+		int file_flags(int index) const;
+
 		// The file base of a file is the offset within the file on the filsystem
 		// where it starts to write. For the most part, this is always 0. It's
 		// possible to map several files (in the torrent) into a single file on
@@ -372,6 +396,15 @@ namespace libtorrent
 		// torrent_info::remap_files() can be used to use a new file layout.
 		size_type file_base(int index) const;
 		void set_file_base(int index, size_type off);
+
+		// returns the index of the file at the given offset in the torrent
+		int file_index_at_offset(size_type offset) const;
+
+		// low-level function. returns a pointer to the internal storage for
+		// the filename. This string may not be null terinated!
+		// the ``file_name_len()`` function returns the length of the filename.
+		char const* file_name_ptr(int index) const;
+		int file_name_len(int index) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// these were deprecated in 1.0. Use the versions that take an index instead

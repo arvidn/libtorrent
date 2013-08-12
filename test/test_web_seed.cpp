@@ -174,8 +174,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 	if (proxy) stop_proxy(8002);
 
-	TEST_CHECK(exists(combine_path("tmp2_web_seed", torrent_file->files().file_path(
-		torrent_file->file_at(0)))) || test_ban);
+	TEST_CHECK(exists(combine_path("tmp2_web_seed", torrent_file->files().file_path(0))) || test_ban);
 	remove_all("tmp2_web_seed", ec);
 }
 
