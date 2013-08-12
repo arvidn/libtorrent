@@ -9,7 +9,6 @@
 * examples_
 * `library overview`_
 * `reference documentation`_
-* `create torrents`_
 * `running tests`_
 * `tuning`_
 * screenshot_
@@ -61,7 +60,6 @@ libtorrent
 .. _examples: examples.html
 .. _`library overview`: manual-ref.html
 .. _`reference documentation`: reference.html
-.. _`create torrents`: make_torrent.html
 .. _`running tests`: running_tests.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png

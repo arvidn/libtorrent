@@ -207,6 +207,9 @@ namespace libtorrent
 		size_type size;
 	};
 
+	// The ``file_storage`` class represents a file list and the piece
+	// size. Everything necessary to interpret a regular bittorrent storage
+	// file structure.
 	class TORRENT_EXPORT file_storage
 	{
 	friend class torrent_info;
@@ -226,8 +229,21 @@ namespace libtorrent
 
 		void reserve(int num_files);
 
+		// Adds a file to the file storage. The ``flags`` argument sets attributes on the file.
+		// The file attributes is an extension and may not work in all bittorrent clients.
+		//
+		// For possible file attributes, see file_storage::flags_t.
+		//
+		// If more files than one are added, certain restrictions to their paths apply.
+		// In a multi-file file storage (torrent), all files must share the same root directory.
+		// 
+		// That is, the first path element of all files must be the same.
+		// This shared path element is also set to the name of the torrent. It
+		// can be changed by calling ``set_name``.
+		//
+		// The built in functions to traverse a directory to add files will
+		// make sure this requirement is fulfilled.
 		void add_file(file_entry const& e, char const* filehash = 0);
-
 		void add_file(std::string const& p, size_type size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "");
 
@@ -252,25 +268,37 @@ namespace libtorrent
 			, int size) const;
 		peer_request map_file(int file, size_type offset, int size) const;
 		
+#ifndef TORRENT_NO_DEPRECATE
+		// all functions depending on internal_file_entry
+		// were deprecated in 1.0. Use the variants that take an
+		// index instead
 		typedef std::vector<internal_file_entry>::const_iterator iterator;
 		typedef std::vector<internal_file_entry>::const_reverse_iterator reverse_iterator;
 
-		iterator file_at_offset(size_type offset) const;
-		iterator begin() const { return m_files.begin(); }
-		iterator end() const { return m_files.end(); }
-		reverse_iterator rbegin() const { return m_files.rbegin(); }
-		reverse_iterator rend() const { return m_files.rend(); }
-		int num_files() const
-		{ return int(m_files.size()); }
-
-		file_entry at(int index) const;
-		file_entry at(iterator i) const;
-		internal_file_entry const& internal_at(int index) const
+		TORRENT_DEPRECATED_PREFIX
+		iterator file_at_offset(size_type offset) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		iterator begin() const TORRENT_DEPRECATED { return m_files.begin(); }
+		TORRENT_DEPRECATED_PREFIX
+		iterator end() const TORRENT_DEPRECATED { return m_files.end(); }
+		TORRENT_DEPRECATED_PREFIX
+		reverse_iterator rbegin() const TORRENT_DEPRECATED { return m_files.rbegin(); }
+		TORRENT_DEPRECATED_PREFIX
+		reverse_iterator rend() const TORRENT_DEPRECATED { return m_files.rend(); }
+		TORRENT_DEPRECATED_PREFIX
+		internal_file_entry const& internal_at(int index) const TORRENT_DEPRECATED 
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_files.size()));
 			return m_files[index];
 		}
+#endif // TORRENT_NO_DEPRECATE
+
+		int num_files() const
+		{ return int(m_files.size()); }
+
+		file_entry at(int index) const;
+		file_entry at(iterator i) const;
 
 		size_type total_size() const { return m_total_size; }
 		void set_num_pieces(int n) { m_num_pieces = n; }
@@ -302,28 +330,74 @@ namespace libtorrent
 		// not add any padding
 		void optimize(int pad_file_limit = -1, int alignment = 0x10000);
 
+		// These functions are used to query attributes of files at
+		// a given index.
+		// 
+		// The ``file_hash()`` is a sha-1 hash of the file, or 0 if none was
+		// provided in the torrent file. This can potentially be used to
+		// join a bittorrent network with other file sharing networks.
+		// 
+		// The ``mtime()`` is the modification time is the posix
+		// time when a file was last modified when the torrent
+		// was created, or 0 if it was not included in the torrent file.
+		// 
+		// ``file_path()`` returns the full path to a file.
+		// 
+		// ``file_size()`` returns the size of a file.
+		// 
+		// ``pad_file_at()`` returns true if the file at the given
+		// index is a pad-file.
+		//
+		// ``file_name()`` returns *just* the name of the file, whereas
+		// ``file_path()`` returns the path (inside the torrent file) with
+		// the filename appended.
+		//
+		// ``file_offset()`` returns the byte offset within the torrent file
+		// where this file starts. It can be used to map the file to a piece
+		// index (given the piece size).
 		sha1_hash hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
-		size_type file_base(int index) const;
-		void set_file_base(int index, size_type off);
 		std::string file_path(int index, std::string const& save_path = "") const;
 		std::string file_name(int index) const;
 		size_type file_size(int index) const;
 		bool pad_file_at(int index) const;
 		size_type file_offset(int index) const;
 
-		sha1_hash hash(internal_file_entry const& fe) const;
-		std::string const& symlink(internal_file_entry const& fe) const;
-		time_t mtime(internal_file_entry const& fe) const;
-		int file_index(internal_file_entry const& fe) const;
-		size_type file_base(internal_file_entry const& fe) const;
-		void set_file_base(internal_file_entry const& fe, size_type off);
-		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const;
-		std::string file_name(internal_file_entry const& fe) const;
-		size_type file_size(internal_file_entry const& fe) const;
-		bool pad_file_at(internal_file_entry const& fe) const;
-		size_type file_offset(internal_file_entry const& fe) const;
+		// The file base of a file is the offset within the file on the filsystem
+		// where it starts to write. For the most part, this is always 0. It's
+		// possible to map several files (in the torrent) into a single file on
+		// the filesystem by making them all point to the same filename, but with
+		// different file bases, so that they don't overlap.
+		// torrent_info::remap_files() can be used to use a new file layout.
+		size_type file_base(int index) const;
+		void set_file_base(int index, size_type off);
+
+#ifndef TORRENT_NO_DEPRECATE
+		// these were deprecated in 1.0. Use the versions that take an index instead
+		TORRENT_DEPRECATED_PREFIX
+		sha1_hash hash(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		std::string const& symlink(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		time_t mtime(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int file_index(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		size_type file_base(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_file_base(internal_file_entry const& fe, size_type off) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		std::string file_name(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		size_type file_size(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool pad_file_at(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		size_type file_offset(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+#endif
 
 #if !defined TORRENT_VERBOSE_LOGGING \
 	&& !defined TORRENT_LOGGING \
