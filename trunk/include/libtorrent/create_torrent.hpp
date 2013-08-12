@@ -387,11 +387,10 @@ namespace libtorrent
 	// 
 	// The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
 	// constructor.
-	template <class Pred> TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file, Pred p, boost::uint32_t flags = 0)
+	template <class Pred> void add_files(file_storage& fs, std::string const& file, Pred p, boost::uint32_t flags = 0)
 	{
 		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}
-
 	inline void add_files(file_storage& fs, std::string const& file, boost::uint32_t flags = 0)
 	{
 		detail::add_files_impl(fs, parent_path(complete(file)), filename(file)
