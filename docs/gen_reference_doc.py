@@ -36,14 +36,15 @@ preprocess_rst = \
 # some pre-defined sections from the main manual
 symbols = \
 {
-	"queuing_": "manual.html#queuing",
-	"fast-resume_": "manual.html#fast-resume",
-	"storage-allocation_": "manual.html#storage-allocation",
-	"alerts_": "manual.html#alerts",
-	"upnp-and-nat-pmp_": "manual.html#upnp-and-nat-pmp",
-	"http-seeding_": "manual.html#http-seeding",
-	"metadata-from-peers_": "manual.html#metadata-from-peers",
-	"magnet-links_": "manual.html#magnet-links",
+	"queuing_": "manual-ref.html#queuing",
+	"fast-resume_": "manual-ref.html#fast-resume",
+	"storage-allocation_": "manual-ref.html#storage-allocation",
+	"alerts_": "manual-ref.html#alerts",
+	"upnp-and-nat-pmp_": "manual-ref.html#upnp-and-nat-pmp",
+	"http-seeding_": "manual-ref.html#http-seeding",
+	"metadata-from-peers_": "manual-ref.html#metadata-from-peers",
+	"magnet-links_": "manual-ref.html#magnet-links",
+	"ssl-torrents_": "manual-ref.html#ssl-torrents",
 }
 
 static_links = \
@@ -469,7 +470,9 @@ for filename in files:
 					overviews[filename[11:]] = current_overview
 					current_overview = ''
 					break
-				current_overview += l[2:] + '\n'
+				l = l[2:]
+				if l.startswith(' '): l = l[1:]
+				current_overview += l + '\n'
 
 		if l.startswith('//'):
 			if verbose: print 'desc  %s' % l
@@ -611,6 +614,7 @@ for c in classes:
 
 	for e in c['enums']:
 		symbols[e['name']] = filename + e['name']
+		symbols[c['name'] + '::' + e['name']] = filename + e['name']
 		for v in e['values']:
 #			symbols[v['name']] = filename + v['name']
 			symbols[e['name'] + '::' + v['name']] = filename + v['name']
