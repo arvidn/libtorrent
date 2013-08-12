@@ -872,7 +872,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 	file_storage fs;
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 3 * piece_size);
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
-	TEST_CHECK(fs.file_path(*fs.begin()) == combine_path("temp_storage", "test1.tmp"));
+	TEST_CHECK(fs.file_path(0) == combine_path("temp_storage", "test1.tmp"));
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());

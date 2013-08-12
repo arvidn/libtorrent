@@ -437,6 +437,9 @@ namespace libtorrent
 
 		const sha1_hash& info_hash() const { return m_info_hash; }
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.0. Use the variants that take an index instead
+		// internal_file_entry is no longer exposed in the API
 		typedef file_storage::iterator file_iterator;
 		typedef file_storage::reverse_iterator reverse_file_iterator;
 
@@ -447,18 +450,24 @@ namespace libtorrent
 		// 
 		// You can resolve it into the public representation of a file (``file_entry``)
 		// using the ``file_storage::at`` function, which takes an index and an iterator.
-		file_iterator begin_files() const { return m_files.begin(); }
-		file_iterator end_files() const { return m_files.end(); }
-		reverse_file_iterator rbegin_files() const { return m_files.rbegin(); }
-		reverse_file_iterator rend_files() const { return m_files.rend(); }
+		TORRENT_DEPRECATED_PREFIX
+		file_iterator begin_files() const TORRENT_DEPRECATED { return m_files.begin(); }
+		TORRENT_DEPRECATED_PREFIX
+		file_iterator end_files() const TORRENT_DEPRECATED { return m_files.end(); }
+		reverse_file_iterator rbegin_files() const TORRENT_DEPRECATED { return m_files.rbegin(); }
+		TORRENT_DEPRECATED_PREFIX
+		reverse_file_iterator rend_files() const TORRENT_DEPRECATED { return m_files.rend(); }
+
+		TORRENT_DEPRECATED_PREFIX
+		file_iterator file_at_offset(size_type offset) const TORRENT_DEPRECATED
+		{ return m_files.file_at_offset(offset); }
+
+#endif // TORRENT_NO_DEPRECATE
 
 		// If you need index-access to files you can use the ``num_files()`` and ``file_at()``
 		// to access files using indices.
 		int num_files() const { return m_files.num_files(); }
 		file_entry file_at(int index) const { return m_files.at(index); }
-
-		file_iterator file_at_offset(size_type offset) const
-		{ return m_files.file_at_offset(offset); }
 
 		// This function will map a piece index, a byte offset within that piece and
 		// a size (in bytes) into the corresponding files with offsets where that data

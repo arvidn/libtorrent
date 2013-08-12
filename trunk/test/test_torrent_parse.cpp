@@ -179,24 +179,24 @@ int test_main()
 #endif
 		}
 
-		int index = 0;
-		for (torrent_info::file_iterator i = ti->begin_files();
-			i != ti->end_files(); ++i, ++index)
+		file_storage const& fs = ti->files();
+		for (int i = 0; i < fs.num_files(); ++i)
 		{
-			int first = ti->map_file(index, 0, 0).piece;
-			int last = ti->map_file(index, (std::max)(size_type(i->size)-1, size_type(0)), 0).piece;
+			int first = ti->map_file(i, 0, 0).piece;
+			int last = ti->map_file(i, (std::max)(fs.file_size(i)-1, size_type(0)), 0).piece;
+			int flags = fs.file_flags(i);
 			fprintf(stderr, "  %11"PRId64" %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
-				, i->size
-				, (i->pad_file?'p':'-')
-				, (i->executable_attribute?'x':'-')
-				, (i->hidden_attribute?'h':'-')
-				, (i->symlink_attribute?'l':'-')
+				, fs.file_size(i)
+				, (flags & file_storage::flag_pad_file)?'p':'-'
+				, (flags & file_storage::flag_executable)?'x':'-'
+				, (flags & file_storage::flag_hidden)?'h':'-'
+				, (flags & file_storage::flag_symlink)?'l':'-'
 				, first, last
-				, boost::uint32_t(ti->files().mtime(*i))
-				, ti->files().hash(*i) != sha1_hash(0) ? to_hex(ti->files().hash(*i).to_string()).c_str() : ""
-				, ti->files().file_path(*i).c_str()
-				, i->symlink_attribute ? "-> ": ""
-				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
+				, boost::uint32_t(fs.mtime(i))
+				, fs.hash(i) != sha1_hash(0) ? to_hex(fs.hash(i).to_string()).c_str() : ""
+				, fs.file_path(i).c_str()
+				, flags & file_storage::flag_symlink ? "-> ": ""
+				, flags & file_storage::flag_symlink ? fs.symlink(i).c_str() : "");
 		}
 
 		// test swap

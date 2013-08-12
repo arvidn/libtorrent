@@ -431,7 +431,7 @@ namespace libtorrent
 		file_storage const& m_files;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
+		boost::intrusive_ptr<file> open_file(int file, int mode
 			, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
