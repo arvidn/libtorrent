@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -95,7 +95,7 @@ current state supports and includes the following features:</p>
 without having to modify libtorrent</li>
 <li>supports trackerless torrents (using the Mainline kademlia DHT protocol) with
 some <a class="reference external" href="dht_extensions.html">DHT extensions</a>. <a class="reference external" href="http://bittorrent.org/beps/bep_0005.html">BEP 5</a>.</li>
-<li>supports the bittorrent <a class="reference external" href="extension_protocol.html">extension protocol</a>. See <a class="reference external" href="manual.html#extensions">extensions</a>. <a class="reference external" href="http://bittorrent.org/beps/bep_0010.html">BEP 10</a>.</li>
+<li>supports the bittorrent <a class="reference external" href="extension_protocol.html">extension protocol</a>. See <a class="reference external" href="manual-ref.html#extensions">extensions</a>. <a class="reference external" href="http://bittorrent.org/beps/bep_0010.html">BEP 10</a>.</li>
 <li>supports the uTorrent metadata transfer protocol <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a> (i.e. magnet links).</li>
 <li>supports the uTorrent peer exchange protocol (PEX).</li>
 <li>supports local peer discovery (multicasts for peers on the same local network)</li>
@@ -103,7 +103,7 @@ some <a class="reference external" href="dht_extensions.html">DHT extensions</a>
 uTorrent interpretation).</li>
 <li>tracker scrapes</li>
 <li>supports lt_trackers extension, to exchange trackers between peers</li>
-<li><a class="reference external" href="manual.html#http-seeding">HTTP seeding</a>, as specified in <a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a> and <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a>.</li>
+<li><a class="reference external" href="manual-ref.html#http-seeding">HTTP seeding</a>, as specified in <a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a> and <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a>.</li>
 <li>supports the udp-tracker protocol. (<a class="reference external" href="http://bittorrent.org/beps/bep_0015.html">BEP 15</a>).</li>
 <li>supports the <tt class="docutils literal">no_peer_id=1</tt> extension that will ease the load off trackers.</li>
 <li>supports the <tt class="docutils literal">compact=1</tt> tracker parameter.</li>
@@ -121,7 +121,7 @@ ratio rather than downloading the torrent.</li>
 <h2>disk management</h2>
 <ul class="simple">
 <li>uses a separate disk I/O thread to not have the disk ever block on network or
-client interaction. (see <a class="reference external" href="manual.html#threads">threads</a>).</li>
+client interaction. (see <a class="reference external" href="manualref.html#threads">threads</a>).</li>
 <li>supports files &gt; 2 gigabytes.</li>
 <li>fast resume support, a way to get rid of the costly piece check at the
 start of a resumed torrent. Saves the storage state, piece_picker state
