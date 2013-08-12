@@ -180,11 +180,11 @@ bool print_alerts(libtorrent::session& ses, char const* name
 			&& (*i)->message() != "piece finished"
 			&& !no_output)
 		{
-			fprintf(stderr, "%s: %s: %s\n", time_now_string(), name, (*i)->message().c_str());
+			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
-
+/*
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
 		if (pea)
 		{
@@ -201,6 +201,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 				|| (allow_disconnects && pea->error.message() == "no shared cipher")
 				|| (allow_disconnects && pea->error.message() == "End of file."));
 		}
+*/
 		delete *i;
 	}
 	return ret;
