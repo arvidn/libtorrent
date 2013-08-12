@@ -1317,6 +1317,8 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_WINDOWS
+	// returns true if the given file has any regions that are
+	// sparse, i.e. not allocated.
 	bool is_sparse(HANDLE file)
 	{
 		LARGE_INTEGER file_size;
