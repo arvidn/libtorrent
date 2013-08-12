@@ -504,7 +504,7 @@ for filename in files:
 			if verbose: print 'xx    %s' % l
 			continue
 
-		if 'TORRENT_EXPORT ' in l or l.startswith('inline ') or internal:
+		if 'TORRENT_EXPORT ' in l or l.startswith('inline ') or l.startswith('template') or internal:
 			if l.startswith('class ') or l.startswith('struct '):
 				if not l.endswith(';'):
 					current_class, lno = parse_class(lno -1, lines, filename)
@@ -797,7 +797,7 @@ for cat in categories:
 	enums = categories[cat]['enums']
 
 	if 'overview' in categories[cat]:
-		out.write('%s\n%s' % (heading(cat, '='), categories[cat]['overview']))
+		out.write('%s\n%s\n' % (heading(cat, '='), categories[cat]['overview']))
 
 	for c in classes:
 
