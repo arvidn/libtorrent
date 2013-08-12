@@ -3934,7 +3934,8 @@ namespace libtorrent
 		peers.clear();
 
 		// make the disk cache flush the piece to disk
-		m_ses.disk_thread().async_flush_piece(m_storage.get(), index);
+		if (m_storage)
+			m_ses.disk_thread().async_flush_piece(m_storage.get(), index);
 		m_picker->piece_passed(index);
 		update_gauge();
 		we_have(index);
@@ -4107,19 +4108,8 @@ namespace libtorrent
 			}
 		}
 
-		// don't allow picking any blocks from this piece
-		// until we're done synchronizing with the disk threads.
-		m_picker->lock_piece(index);
-
-		// don't do this until after the plugins have had a chance
-		// to read back the blocks that failed, for blame purposes
-		// this way they have a chance to hit the cache
-		if (m_storage)
-		{
-			m_ses.disk_thread().async_clear_piece(m_storage.get(), index
-				, boost::bind(&torrent::on_piece_sync, shared_from_this(), _1));
-		}
-		else
+		// If m_storage isn't set here, it means we're shutting down
+		if (m_abort)
 		{
 			// it doesn't make much sense to fail to hash a piece
 			// without having a storage associated with the torrent.
@@ -4128,6 +4118,22 @@ namespace libtorrent
 			// sync, and if we try to write more blocks to this piece
 			// the disk thread will barf, because it hasn't been cleared
 			TORRENT_ASSERT(m_storage);
+
+			// don't allow picking any blocks from this piece
+			// until we're done synchronizing with the disk threads.
+			m_picker->lock_piece(index);
+
+			// don't do this until after the plugins have had a chance
+			// to read back the blocks that failed, for blame purposes
+			// this way they have a chance to hit the cache
+			m_ses.disk_thread().async_clear_piece(m_storage.get(), index
+				, boost::bind(&torrent::on_piece_sync, shared_from_this(), _1));
+		}
+		else
+		{
+			// it doesn't really matter what we do
+			// here, since we're about to destruct the
+			// torrent anyway.
 			disk_io_job j;
 			j.piece = index;
 			on_piece_sync(&j);
@@ -4464,6 +4470,7 @@ namespace libtorrent
 		}
 		else
 		{
+			TORRENT_ASSERT(m_abort);
 			if (alerts().should_post<cache_flushed_alert>())
 				alerts().post_alert(cache_flushed_alert(get_handle()));
 		}
@@ -4961,7 +4968,8 @@ namespace libtorrent
 		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
 			m_file_priority.resize(m_torrent_file->num_files(), 1);
 
-		if (m_torrent_file->num_pieces() > 0)
+		// stoage may be NULL during shutdown
+		if (m_torrent_file->num_pieces() > 0 && m_storage)
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
 				, m_file_priority, boost::bind(&nop));
 
@@ -4987,7 +4995,10 @@ namespace libtorrent
 
 		if (m_file_priority[index] == prio) return;
 		m_file_priority[index] = prio;
-		m_ses.disk_thread().async_set_file_priority(m_storage.get(), m_file_priority, boost::bind(&nop));
+
+		// stoage may be NULL during shutdown
+		if (m_storage)
+			m_ses.disk_thread().async_set_file_priority(m_storage.get(), m_file_priority, boost::bind(&nop));
 		update_piece_priorities();
 	}
 	
@@ -7650,6 +7661,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 
+		// stoage may be NULL during shutdown
 		if (!m_storage.get()) return false;
 
 		m_ses.disk_thread().async_rename_file(m_storage.get(), index, name
@@ -7662,6 +7674,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		INVARIANT_CHECK;
 
+		if (m_abort)
+		{
+			if (alerts().should_post<storage_moved_failed_alert>())
+				alerts().post_alert(storage_moved_failed_alert(get_handle(), boost::asio::error::operation_aborted
+					, "", ""));
+			return;
+		}
+
+		// storage may be NULL during shutdown
 		if (m_storage.get())
 		{
 #if TORRENT_USE_UNC_PATHS
@@ -8064,6 +8085,7 @@ namespace libtorrent
 		disconnect_all(errors::torrent_removed, peer_connection_interface::op_bittorrent);
 		stop_announcing();
 
+		// storage may be NULL during shutdown
 		if (m_storage.get())
 		{
 			TORRENT_ASSERT(m_storage);
@@ -8298,7 +8320,8 @@ namespace libtorrent
 			return;
 		}
 
-		if (flags & torrent_handle::flush_disk_cache)
+		// storage may be NULL during shutdown
+		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
 			m_ses.disk_thread().async_release_files(m_storage.get());
 
 		m_ses.queue_async_resume_data(shared_from_this());
@@ -8309,6 +8332,13 @@ namespace libtorrent
 		if (!need_loaded())
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle(), m_error));
+			return false;
+		}
+		// storage may be NULL during shutdown
+		if (!m_storage)
+		{
+			TORRENT_ASSERT(m_abort);
+			alerts().post_alert(save_resume_data_failed_alert(get_handle(), boost::asio::error::operation_aborted));
 			return false;
 		}
 		inc_refcount("save_resume");
@@ -8332,6 +8362,13 @@ namespace libtorrent
 	void torrent::flush_cache()
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
+
+		// storage may be NULL during shutdown
+		if (!m_storage)
+		{
+			TORRENT_ASSERT(m_abort);
+			return;
+		}
 		m_ses.disk_thread().async_release_files(m_storage.get()
 			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
 	}
@@ -8785,7 +8822,7 @@ namespace libtorrent
 		if (m_storage_tick > 0 && is_loaded())
 		{
 			--m_storage_tick;
-			if (m_storage_tick == 0)
+			if (m_storage_tick == 0 && m_storage)
 			{
 				m_ses.disk_thread().async_tick_torrent(&storage()
 					, boost::bind(&torrent::on_disk_tick_done
@@ -9090,6 +9127,7 @@ namespace libtorrent
 		if (!ready_for_connections()) return;
 
 		if (m_abort) return;
+		TORRENT_ASSERT(m_storage);
 
 		// rotate the cached pieces
 		cache_status status;

@@ -427,7 +427,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		else
 		{
 			c->callback(asio::error::timed_out);
-			c->close();
+			c->close(true);
 		}
 		return;
 	}
@@ -443,11 +443,15 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
 }
 
-void http_connection::close()
+void http_connection::close(bool force)
 {
 	if (m_abort) return;
 
-	async_shutdown(m_sock, shared_from_this());
+	error_code ec;
+	if (force)
+		m_sock.close(ec);
+	else
+		async_shutdown(m_sock, shared_from_this());
 
 	if (m_queued_for_connection)
 		m_cc.cancel(this);
@@ -458,7 +462,6 @@ void http_connection::close()
 		m_connection_ticket = -1;
 	}
 
-	error_code ec;
 	m_timer.cancel(ec);
 	m_resolver.cancel();
 	m_limiter_timer.cancel(ec);
