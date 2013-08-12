@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/error.hpp> // for asio::error::get_ssl_category()
+#endif
+
 using namespace libtorrent;
 using boost::tuples::ignore;
 
@@ -56,32 +60,44 @@ struct test_config_t
 	bool seed_has_cert;
 	bool downloader_has_cert;
 	bool expected_to_complete;
+	int peer_errors;
+	int ssl_disconnects;
 };
 
 test_config_t test_config[] =
 {
-	{"nobody has a cert (connect to regular port)", false, false, false, false},
-	{"nobody has a cert (connect to ssl port)", true, false, false, false},
-	{"seed has a cert, but not downloader (connect to regular port)", false, true, false, false},
-	{"seed has a cert, but not downloader (connect to ssl port)", true, true, false, false},
-	{"downloader has a cert, but not seed (connect to regular port)", false, false, true, false},
-	{"downloader has a cert, but not seed (connect to ssl port)", true, false, true, false},
-	{"both downloader and seed has a cert (connect to regular port)", false, true, true, false},
+	{"nobody has a cert (connect to regular port)", false, false, false, false, 0, 0},
+	{"nobody has a cert (connect to ssl port)", true, false, false, false, 1, 1},
+	{"seed has a cert, but not downloader (connect to regular port)", false, true, false, false, 0, 0},
+	{"seed has a cert, but not downloader (connect to ssl port)", true, true, false, false, 1, 1},
+	{"downloader has a cert, but not seed (connect to regular port)", false, false, true, false, 0, 0},
+	{"downloader has a cert, but not seed (connect to ssl port)", true, false, true, false, 1, 1},
+	{"both downloader and seed has a cert (connect to regular port)", false, true, true, false, 0, 0},
 #ifdef TORRENT_USE_OPENSSL
-	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, true},
+	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, true, 0, 0},
 #else
-	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, false},
+	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, false, 0, 0},
 #endif
 };
 
 int peer_disconnects = 0;
+int peer_errors = 0;
+int ssl_peer_disconnects = 0;
 
 bool on_alert(alert* a)
 {
 	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
-	if (alert_cast<peer_error_alert>(a))
+	if (peer_error_alert* e = alert_cast<peer_error_alert>(a))
+	{
 		++peer_disconnects;
+		++peer_errors;
+
+#ifdef TORRENT_USE_OPENSSL
+		if (e->error.category() == boost::asio::error::get_ssl_category())
+			++ssl_peer_disconnects;
+#endif
+	}
 	return false;
 }
 
@@ -127,6 +143,8 @@ void test_ssl(int test_idx)
 	wait_for_listen(ses2, "ses1");
 
 	peer_disconnects = 0;
+	ssl_peer_disconnects = 0;
+	peer_errors = 0;
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_ssl", 16 * 1024, &t, false, NULL, true, test.use_ssl_ports);
@@ -193,6 +211,12 @@ void test_ssl(int test_idx)
 		test_sleep(100);
 	}
 
+	fprintf(stderr, "peer_errors: %d\nssl_disconnects: %d\n", peer_errors, ssl_peer_disconnects);
+
+	TEST_EQUAL(peer_errors, test.peer_errors);
+#ifdef TORRENT_USE_OPENSSL
+	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
+#endif
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
