@@ -1839,18 +1839,17 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(block_size() > 0);
-		int file = 0;
-		for (file_storage::iterator i = m_torrent_file->files().begin()
-			, end(m_torrent_file->files().end()); i != end; ++i, ++file)
+		file_storage const& fs = m_torrent_file->files();
+		for (int i = 0; i < fs.num_files(); ++i)
 		{
-			if (!i->pad_file || i->size == 0) continue;
-			m_padding += i->size;
+			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
+			m_padding += fs.file_size(i);
 			
 			// TODO: instead of creating the picker up front here,
 			// maybe this whole section should move to need_picker()
 			need_picker();
 
-			peer_request pr = m_torrent_file->map_file(file, 0, m_torrent_file->file_at(file).size);
+			peer_request pr = m_torrent_file->map_file(i, 0, fs.file_size(i));
 			int off = pr.start & (block_size()-1);
 			if (off != 0) { pr.length -= block_size() - off; pr.start += block_size() - off; }
 			TORRENT_ASSERT((pr.start & (block_size()-1)) == 0);
@@ -1866,8 +1865,8 @@ namespace libtorrent
 			// ugly edge case where padfiles are not used they way they're
 			// supposed to be. i.e. added back-to back or at the end
 			if (int(pb.block_index) == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-			if (pr.length > 0 && ((boost::next(i) != end && boost::next(i)->pad_file)
-				|| boost::next(i) == end))
+			if (pr.length > 0 && ((i+1 != fs.num_files() && fs.pad_file_at(i+1))
+				|| i + 1 == fs.num_files()))
 			{
 				m_picker->mark_as_finished(pb, 0);
 			}
@@ -3451,12 +3450,10 @@ namespace libtorrent
 			if (!const_cast<torrent*>(this)->need_loaded()) return;
 
 			file_storage const& files = m_torrent_file->files();
-			int fileno = 0;
-			for (file_storage::iterator i = files.begin()
-					, end(files.end()); i != end; ++i, ++fileno)
+			for (int i = 0; i < files.num_files(); ++i)
 			{
-				if (!i->pad_file) continue;
-				peer_request p = files.map_file(fileno, 0, i->size);
+				if (!files.pad_file_at(i)) continue;
+				peer_request p = files.map_file(i, 0, files.file_size(i));
 				for (int j = p.piece; p.length > 0; ++j)
 				{
 					int deduction = (std::min)(p.length, piece_size - p.start);
@@ -3815,15 +3812,15 @@ namespace libtorrent
 		{
 			const int piece_size = m_torrent_file->piece_length();
 			size_type off = size_type(index) * piece_size;
-			file_storage::iterator f = m_torrent_file->files().file_at_offset(off);
+			int file_index = m_torrent_file->files().file_index_at_offset(off);
 			int size = m_torrent_file->piece_size(index);
-			int file_index = f - m_torrent_file->files().begin();
-			for (; size > 0; ++f, ++file_index)
+			file_storage const& fs = m_torrent_file->files();
+			for (; size > 0; ++file_index)
 			{
-				size_type file_offset = off - f->offset;
-				TORRENT_ASSERT(f != m_torrent_file->files().end());
-				TORRENT_ASSERT(file_offset <= f->size);
-				int add = (std::min)(f->size - file_offset, (size_type)size);
+				size_type file_offset = off - fs.file_offset(file_index);
+				TORRENT_ASSERT(file_index != fs.num_files());
+				TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
+				int add = (std::min)(fs.file_size(file_index) - file_offset, (size_type)size);
 				m_file_progress[file_index] += add;
 
 				TORRENT_ASSERT(m_file_progress[file_index]
@@ -5043,20 +5040,20 @@ namespace libtorrent
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
 		std::vector<int> pieces(m_torrent_file->num_pieces(), 0);
-		int index = 0;
-		int num_files = m_torrent_file->num_files();
-		for (file_storage::iterator i = m_torrent_file->files().begin();
-			index < num_files; ++i, ++index)
+		file_storage const& fs = m_torrent_file->files();
+		for (int i = 0; i < fs.num_files(); ++i)
 		{
+			if (i >= fs.num_files()) break;
+
 			size_type start = position;
-			size_type size = m_torrent_file->files().file_size(*i);
+			size_type size = m_torrent_file->files().file_size(i);
 			if (size == 0) continue;
 			position += size;
 			int file_prio;
-			if (m_file_priority.size() <= index)
+			if (m_file_priority.size() <= i)
 				file_prio = 1;
 			else
-				file_prio = m_file_priority[index];
+				file_prio = m_file_priority[i];
 
 			if (file_prio == 0)
 			{
@@ -6451,10 +6448,10 @@ namespace libtorrent
 			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
 		{
 			entry::list_type& fl = ret["mapped_files"].list();
-			for (torrent_info::file_iterator i = m_torrent_file->begin_files()
-				, end(m_torrent_file->end_files()); i != end; ++i)
+			file_storage const& fs = m_torrent_file->files();
+			for (int i = 0; i < fs.num_files(); ++i)
 			{
-				fl.push_back(m_torrent_file->files().file_path(*i));
+				fl.push_back(fs.file_path(i));
 			}
 		}
 
@@ -8128,7 +8125,7 @@ namespace libtorrent
 		if (m_storage && file >= 0)
 		{
 			file_storage const& st = m_torrent_file->files();
-			return combine_path(m_save_path, st.file_path(*(st.begin() + file)));
+			return combine_path(m_save_path, st.file_path(file));
 		}
 		else
 		{
@@ -9778,10 +9775,8 @@ namespace libtorrent
 			if (!need_loaded()) return;
 			fp.resize(m_torrent_file->num_files());
 			file_storage const& fs = m_torrent_file->files();
-			int idx = 0;
-			for (file_storage::iterator i = fs.begin()
-				, end(fs.end()); i != end; ++i, ++idx)
-				fp[idx] = fs.file_size(*i);
+			for (int i = 0; i < fs.num_files(); ++i)
+				fp[i] = fs.file_size(i);
 			return;
 		}
 
@@ -9810,18 +9805,17 @@ namespace libtorrent
 			boost::uint64_t off = 0;
 			boost::uint64_t total_size = m_torrent_file->total_size();
 			int file_index = 0;
-			file_storage::iterator f = m_torrent_file->files().begin();
+			file_storage const& fs = m_torrent_file->files();
 			for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
 			{
-				TORRENT_ASSERT(f != m_torrent_file->files().end());
-				size_type file_offset = off - f->offset;
-				if (file_offset >= f->size)
+				TORRENT_ASSERT(file_index < fs.num_files());
+				size_type file_offset = off - fs.file_offset(file_index);
+				if (file_offset >= fs.file_size(file_index))
 				{
 					++file_index;
-					++f;
 					continue;
 				}
-				TORRENT_ASSERT(file_offset <= f->size);
+				TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
 
 				if (!have_piece(piece)) continue;
 
@@ -9829,11 +9823,10 @@ namespace libtorrent
 
 				while (size)
 				{
-					if (f->size - file_offset < size)
+					if (fs.file_size(file_index) - file_offset < size)
 					{
-						int add = f->size - file_offset;
+						int add = fs.file_size(file_index) - file_offset;
 						m_file_progress[file_index] += add;
-						++f;
 						++file_index;
 						size -= add;
 						file_offset += add;
@@ -9864,26 +9857,25 @@ namespace libtorrent
 			if (!const_cast<torrent&>(*this).need_loaded()) return;
 		}
 
+		file_storage const& fs = m_torrent_file->files();
 		for (std::vector<piece_picker::downloading_piece>::const_iterator
 			i = q.begin(), end(q.end()); i != end; ++i)
 		{
 			size_type offset = size_type(i->index) * m_torrent_file->piece_length();
-			torrent_info::file_iterator file = m_torrent_file->file_at_offset(offset);
-			int file_index = file - m_torrent_file->begin_files();
+			int file = fs.file_index_at_offset(offset);
 			int num_blocks = m_picker->blocks_in_piece(i->index);
 			piece_picker::block_info const* info = i->info;
 			for (int k = 0; k < num_blocks; ++k)
 			{
-				TORRENT_ASSERT(file != m_torrent_file->end_files());
+				TORRENT_ASSERT(file < fs.num_files());
 				TORRENT_ASSERT(offset == size_type(i->index) * m_torrent_file->piece_length()
 					+ k * block_size());
 				TORRENT_ASSERT(offset < m_torrent_file->total_size());
-				while (offset >= file->offset + file->size)
+				while (offset >= fs.file_offset(file) + fs.file_size(file))
 				{
 					++file;
-					++file_index;
 				}
-				TORRENT_ASSERT(file != m_torrent_file->end_files());
+				TORRENT_ASSERT(file < fs.num_files());
 
 				size_type block = block_size();
 
@@ -9914,24 +9906,23 @@ namespace libtorrent
 					}
 				}
 
-				if (offset + block > file->offset + file->size)
+				if (offset + block > fs.file_offset(file) + fs.file_size(file))
 				{
 					int left_over = int(block_size() - block);
 					// split the block on multiple files
 					while (block > 0)
 					{
-						TORRENT_ASSERT(offset <= file->offset + file->size);
-						size_type slice = (std::min)(file->offset + file->size - offset
+						TORRENT_ASSERT(offset <= fs.file_offset(file) + fs.file_size(file));
+						size_type slice = (std::min)(fs.file_offset(file) + fs.file_size(file) - offset
 							, block);
-						fp[file_index] += slice;
+						fp[file] += slice;
 						offset += slice;
 						block -= slice;
-						TORRENT_ASSERT(offset <= file->offset + file->size);
-						if (offset == file->offset + file->size)
+						TORRENT_ASSERT(offset <= fs.file_offset(file) + fs.file_size(file));
+						if (offset == fs.file_offset(file) + fs.file_size(file))
 						{
 							++file;
-							++file_index;
-							if (file == m_torrent_file->end_files())
+							if (file == fs.num_files())
 							{
 								offset += block;
 								break;
@@ -9944,10 +9935,10 @@ namespace libtorrent
 				}
 				else
 				{
-					fp[file_index] += block;
+					fp[file] += block;
 					offset += block_size();
 				}
-				TORRENT_ASSERT(file_index <= m_torrent_file->num_files());
+				TORRENT_ASSERT(file <= m_torrent_file->num_files());
 			}
 		}
 	}

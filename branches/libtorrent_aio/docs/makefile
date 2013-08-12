@@ -30,7 +30,6 @@ TARGETS = index \
 	contributing\
 	examples \
 	extension_protocol \
-	make_torrent \
 	dht_extensions \
 	dht_sec \
 	libtorrent_plugins \

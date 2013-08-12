@@ -6,7 +6,7 @@ project: libtorrent
 branch: aio
 
 clean:
- - test_tmp_*
+ - test_tmp_* bin ../bin
 
 time_limit: 700
 

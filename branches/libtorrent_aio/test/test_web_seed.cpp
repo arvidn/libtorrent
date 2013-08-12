@@ -201,7 +201,7 @@ void test_transfer(boost::shared_ptr<torrent_info> torrent_file
 	// before looking for them
 	ses.reset();
 
-	std::string first_file_path = combine_path("tmp2_web_seed", torrent_file->files().file_path(torrent_file->file_at(0)));
+	std::string first_file_path = combine_path("tmp2_web_seed", torrent_file->files().file_path(0));
 	fprintf(stderr, "checking file: %s\n", first_file_path.c_str());
 	TEST_CHECK(exists(first_file_path) || test_ban);
 	remove_all("tmp2_web_seed", ec);

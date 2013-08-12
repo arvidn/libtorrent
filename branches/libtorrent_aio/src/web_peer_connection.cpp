@@ -232,7 +232,7 @@ namespace libtorrent
 				i != files.end(); ++i)
 			{
 				file_slice const& f = *i;
-				if (info.orig_files().internal_at(f.file_index).pad_file)
+				if (info.orig_files().pad_file_at(f.file_index))
 				{
 					m_file_requests.push_back(f.file_index);
 					continue;
@@ -242,7 +242,7 @@ namespace libtorrent
 				if (using_proxy)
 				{
 					request += m_url;
-					std::string path = info.orig_files().file_path(info.orig_files().internal_at(f.file_index));
+					std::string path = info.orig_files().file_path(f.file_index);
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -251,7 +251,7 @@ namespace libtorrent
 				else
 				{
 					std::string path = m_path;
-					path += info.orig_files().file_path(info.orig_files().internal_at(f.file_index));
+					path += info.orig_files().file_path(f.file_index);
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -534,7 +534,7 @@ namespace libtorrent
 							return;
 						}
 						torrent_info const& info = t->torrent_file();
-						std::string path = info.orig_files().file_path(info.orig_files().at(file_index));
+						std::string path = info.orig_files().file_path(file_index);
 #ifdef TORRENT_WINDOWS
 						convert_path_to_posix(path);
 #endif
@@ -892,7 +892,7 @@ namespace libtorrent
 
 				torrent_info const& info = t->torrent_file();
 				while (!m_file_requests.empty()
-					&& info.orig_files().internal_at(m_file_requests.front()).pad_file)
+					&& info.orig_files().pad_file_at(m_file_requests.front()))
 				{
 					// the next file is a pad file. We didn't actually send
 					// a request for this since it most likely doesn't exist on
@@ -900,7 +900,7 @@ namespace libtorrent
 					// bunch of zeroes here and pop it again
 					int file_index = m_file_requests.front();
 					m_file_requests.pop_front();
-					size_type file_size = info.orig_files().file_size(info.orig_files().internal_at(file_index));
+					size_type file_size = info.orig_files().file_size(file_index);
 					TORRENT_ASSERT(m_block_pos < front_request.length);
 					int pad_size = (std::min)(file_size, size_type(front_request.length - m_block_pos));
 

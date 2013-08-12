@@ -360,7 +360,7 @@ the run-time equivalence.
 The ``what()`` virtual function may simply be a string literal of the class name of
 your alert.
 
-For more information, see the alert section in the `main manual`_.
+For more information, see the `alert section`_.
 
-.. _`main manual`: manual.html
+.. _`alert section`: reference-Alerts.html
 

@@ -118,7 +118,7 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 
 	file_handle file_pool::open_file(void* st, std::string const& p
-		, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec)
+		, int file_index, file_storage const& fs, int m, error_code& ec)
 	{
 		mutex::scoped_lock l(m_mutex);
 
@@ -126,7 +126,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		file_set::iterator i = m_files.find(std::make_pair(st, fs.file_index(*fe)));
+		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -159,7 +159,7 @@ namespace libtorrent
 				// if this is the only reference to the file, it will be closed
 				e.file_ptr.reset(new (std::nothrow)file);
 
-				std::string full_path = fs.file_path(*fe, p);
+				std::string full_path = fs.file_path(file_index, p);
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
@@ -183,7 +183,7 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		std::string full_path = fs.file_path(*fe, p);
+		std::string full_path = fs.file_path(file_index, p);
 		if (!e.file_ptr->open(full_path, m, ec))
 			return file_handle();
 #ifdef TORRENT_WINDOWS
@@ -192,7 +192,7 @@ namespace libtorrent
 #endif
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(std::make_pair(st, fs.file_index(*fe)), e));
+		m_files.insert(std::make_pair(std::make_pair(st, file_index), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 
 		file_handle file_ptr = e.file_ptr;

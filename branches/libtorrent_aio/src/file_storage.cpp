@@ -211,6 +211,12 @@ namespace libtorrent
 		update_path_index(m_files[index]);
 	}
 
+	void file_storage::rename_file_borrow(int index, char const* new_filename, int len)
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		m_files[index].set_name(new_filename, len);
+	}
+
 	namespace
 	{
 		bool compare_file_offset(internal_file_entry const& lhs, internal_file_entry const& rhs)
@@ -219,6 +225,7 @@ namespace libtorrent
 		}
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	file_storage::iterator file_storage::file_at_offset(size_type offset) const
 	{
 		// find the file iterator and file offset
@@ -232,6 +239,32 @@ namespace libtorrent
 		TORRENT_ASSERT(file_iter != begin());
 		--file_iter;
 		return file_iter;
+	}
+#endif
+
+	int file_storage::file_index_at_offset(size_type offset) const
+	{
+		// find the file iterator and file offset
+		internal_file_entry target;
+		target.offset = offset;
+		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
+
+		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+			m_files.begin(), m_files.end(), target, compare_file_offset);
+
+		TORRENT_ASSERT(file_iter != m_files.begin());
+		--file_iter;
+		return file_iter - m_files.begin();
+	}
+
+	char const* file_storage::file_name_ptr(int index) const
+	{
+		return m_files[index].name;
+	}
+
+	int file_storage::file_name_len(int index) const
+	{
+		return m_files[index].name_len;
 	}
 
 	std::vector<file_slice> file_storage::map_block(int piece, size_type offset
@@ -249,20 +282,20 @@ namespace libtorrent
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
-			begin(), end(), target, compare_file_offset);
+			m_files.begin(), m_files.end(), target, compare_file_offset);
 
-		TORRENT_ASSERT(file_iter != begin());
+		TORRENT_ASSERT(file_iter != m_files.begin());
 		--file_iter;
 
 		size_type file_offset = target.offset - file_iter->offset;
 		for (; size > 0; file_offset -= file_iter->size, ++file_iter)
 		{
-			TORRENT_ASSERT(file_iter != end());
+			TORRENT_ASSERT(file_iter != m_files.end());
 			if (file_offset < file_iter->size)
 			{
 				file_slice f;
-				f.file_index = file_iter - begin();
-				f.offset = file_offset + file_base(*file_iter);
+				f.file_index = file_iter - m_files.begin();
+				f.offset = file_offset + file_base(f.file_index);
 				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
@@ -275,25 +308,22 @@ namespace libtorrent
 		return ret;
 	}
 
-	file_entry file_storage::at(file_storage::iterator i) const
-	{ return at(i - begin()); }
-
 	file_entry file_storage::at(int index) const
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		file_entry ret;
 		internal_file_entry const& ife = m_files[index];
-		ret.path = file_path(ife);
+		ret.path = file_path(index);
 		ret.offset = ife.offset;
 		ret.size = ife.size;
-		ret.file_base = file_base(ife);
-		ret.mtime = mtime(ife);
+		ret.file_base = file_base(index);
+		ret.mtime = mtime(index);
 		ret.pad_file = ife.pad_file;
 		ret.hidden_attribute = ife.hidden_attribute;
 		ret.executable_attribute = ife.executable_attribute;
 		ret.symlink_attribute = ife.symlink_attribute;
-		if (ife.symlink_index >= 0) ret.symlink_path = symlink(ife);
-		ret.filehash = hash(ife);
+		if (ife.symlink_index >= 0) ret.symlink_path = symlink(index);
+		ret.filehash = hash(index);
 		return ret;
 	}
 
@@ -394,6 +424,7 @@ namespace libtorrent
 				m_name = split_path(ent.path).c_str();
 		}
 		internal_file_entry ife(ent);
+		int file_index = m_files.size();
 		m_files.push_back(ife);
 		++m_num_files;
 		internal_file_entry& e = m_files.back();
@@ -415,7 +446,7 @@ namespace libtorrent
 			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());
 			m_mtime[m_files.size() - 1] = ent.mtime;
 		}
-		if (ent.file_base) set_file_base(e, ent.file_base);
+		if (ent.file_base) set_file_base(file_index, ent.file_base);
 		update_path_index(e);
 	}
 
@@ -491,6 +522,16 @@ namespace libtorrent
 		return m_files[index].offset;
 	}
 
+	int file_storage::file_flags(int index) const
+	{
+		internal_file_entry const& fe = m_files[index];
+		return (fe.pad_file ? flag_pad_file : 0)
+			| (fe.hidden_attribute ? flag_hidden : 0)
+			| (fe.executable_attribute ? flag_executable : 0)
+			| (fe.symlink_attribute ? flag_symlink : 0);
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
@@ -565,6 +606,10 @@ namespace libtorrent
 		return fe.offset;
 	}
 
+	file_entry file_storage::at(file_storage::iterator i) const
+	{ return at(i - begin()); }
+#endif // TORRENT_NO_DEPRECATE
+
 	bool compare_file_entry_size(internal_file_entry const& fe1, internal_file_entry const& fe2)
 	{ return fe1.size < fe2.size; }
 
@@ -623,8 +668,8 @@ namespace libtorrent
 
 				if (best_match != i)
 				{
-					int index = file_index(*best_match);
-					int cur_index = file_index(*i);
+					int index = best_match - m_files.begin();
+					int cur_index = i - m_files.begin();
 					reorder_file(index, cur_index);
 					i = m_files.begin() + cur_index;
 				}
@@ -656,8 +701,8 @@ namespace libtorrent
 					// look for files <= pad_size, which never is greater than
 					// alignment
 					TORRENT_ASSERT(best_match != i);
-					int index = file_index(*best_match);
-					int cur_index = file_index(*i);
+					int index = best_match - m_files.begin();
+					int cur_index = i - m_files.begin();
 					reorder_file(index, cur_index);
 					i = m_files.begin() + cur_index;
 					i->offset = off;
@@ -674,7 +719,7 @@ namespace libtorrent
 				// then swap it in place. This minimizes the amount
 				// of copying of internal_file_entry, which is somewhat
 				// expensive (until we have move semantics)
-				int cur_index = file_index(*i);
+				int cur_index = i - m_files.begin();
 				int index = m_files.size();
 				m_files.push_back(internal_file_entry());
 				++m_num_files;
