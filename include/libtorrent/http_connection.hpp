@@ -115,7 +115,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 #endif
 		);
 
-	void close();
+	void close(bool force = false);
 
 	socket_type const& socket() const { return m_sock; }
 

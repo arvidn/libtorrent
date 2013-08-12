@@ -933,7 +933,7 @@ namespace libtorrent
 
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
-		// received yet.
+		// received yet, or during shutdown.
 		// the piece_manager keeps the torrent object
 		// alive by holding a shared_ptr to it and
 		// the torrent keeps the piece manager alive

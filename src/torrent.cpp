@@ -3624,6 +3624,7 @@ namespace libtorrent
 		}
 		else
 		{
+			TORRENT_ASSERT(m_abort);
 			if (alerts().should_post<cache_flushed_alert>())
 				alerts().post_alert(cache_flushed_alert(get_handle()));
 		}
@@ -6553,6 +6554,14 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
+		if (m_abort)
+		{
+			if (alerts().should_post<storage_moved_failed_alert>())
+				alerts().post_alert(storage_moved_failed_alert(get_handle(), boost::asio::error::operation_aborted));
+			return;
+		}
+
+		// storage may be NULL during shutdown
 		if (m_owning_storage.get())
 		{
 #if TORRENT_USE_UNC_PATHS
@@ -7016,6 +7025,7 @@ namespace libtorrent
 		disconnect_all(errors::torrent_removed);
 		stop_announcing();
 
+		// storage may be NULL during shutdown
 		if (m_owning_storage.get())
 		{
 			TORRENT_ASSERT(m_storage);
@@ -7215,7 +7225,8 @@ namespace libtorrent
 			return;
 		}
 
-		if (flags & torrent_handle::flush_disk_cache)
+		// storage may be NULL during shutdown
+		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
 			m_storage->async_release_files();
 
 		m_storage->async_save_resume_data(
@@ -7238,6 +7249,13 @@ namespace libtorrent
 	void torrent::flush_cache()
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+		// storage may be NULL during shutdown
+		if (!m_owning_storage)
+		{
+			TORRENT_ASSERT(m_abort);
+			return;
+		}
 		m_storage->async_release_files(
 			boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 	}
@@ -7986,6 +8004,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!ready_for_connections()) return;
+
+		if (m_abort) return;
+		TORRENT_ASSERT(m_storage);
+
 		// rotate the cached pieces
 
 		// add blocks_per_piece / 2 in order to round to closest whole piece

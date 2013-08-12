@@ -420,11 +420,11 @@ namespace libtorrent
 	// 
 	// If ``bdecode()`` encounters invalid encoded data in the range given to it
 	// it will throw libtorrent_exception.
-	TORRENT_EXPORT template<class OutIt> int bencode(OutIt out, const entry& e)
+	template<class OutIt> TORRENT_EXPORT int bencode(OutIt out, const entry& e)
 	{
 		return detail::bencode_recursive(out, e);
 	}
-	TORRENT_EXPORT template<class InIt> entry bdecode(InIt start, InIt end)
+	template<class InIt> TORRENT_EXPORT entry bdecode(InIt start, InIt end)
 	{
 		entry e;
 		bool err = false;
@@ -435,7 +435,7 @@ namespace libtorrent
 		if (err) return entry();
 		return e;
 	}
-	TORRENT_EXPORT template<class InIt> entry bdecode(InIt start, InIt end, int& len)
+	template<class InIt> TORRENT_EXPORT entry bdecode(InIt start, InIt end, int& len)
 	{
 		entry e;
 		bool err = false;
