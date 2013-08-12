@@ -1720,15 +1720,15 @@ namespace libtorrent
 		}
 		l2.unlock();
 
-		if (completed_jobs.size())
-			add_completed_jobs(completed_jobs);
-
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
 		j->storage = storage->shared_from_this();
 		j->callback = handler;
 		add_fence_job(storage, j);
 
 		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), to_abort, completed_jobs);
+
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 	}
 
 	void disk_io_thread::async_check_fastresume(piece_manager* storage
@@ -1768,10 +1768,35 @@ namespace libtorrent
 	void disk_io_thread::async_stop_torrent(piece_manager* storage
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
+		// remove outstanding hash jobs belonging to this torrent
+		mutex::scoped_lock l2(m_job_mutex);
+
+		disk_io_job* qj = (disk_io_job*)m_queued_hash_jobs.get_all();
+		tailqueue to_abort;
+
+		while (qj)
+		{
+			disk_io_job* next = (disk_io_job*)qj->next;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			qj->next = NULL;
+#endif
+			if (qj->storage.get() == storage)
+				to_abort.push_back(qj);
+			else
+				m_queued_hash_jobs.push_back(qj);
+			qj = next;
+		}
+		l2.unlock();
+
 		disk_io_job* j = allocate_job(disk_io_job::stop_torrent);
 		j->storage = storage->shared_from_this();
 		j->callback = handler;
 		add_fence_job(storage, j);
+
+		tailqueue completed_jobs;
+		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), to_abort, completed_jobs);
+		if (completed_jobs.size())
+			add_completed_jobs(completed_jobs);
 	}
 
 	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
@@ -2369,7 +2394,8 @@ namespace libtorrent
 		// and clear all read jobs
 		mutex::scoped_lock l(m_cache_mutex);
 		flush_cache(j->storage.get(), flush_read_cache | flush_write_cache, completed_jobs, l);
-		// TODO: is it a good idea to cancel hash jobs here?
+		l.unlock();
+
 		m_disk_cache.release_memory();
 
 		return 0;
@@ -2529,7 +2555,7 @@ namespace libtorrent
 		c.set_value(counters::num_read_ops, m_cache_stats.reads);
 
 		mutex::scoped_lock jl(m_job_mutex);
-		c.set_value(counters::queued_disk_jobs, m_queued_jobs.size());
+		c.set_value(counters::queued_disk_jobs, m_queued_jobs.size() + m_queued_hash_jobs.size());
 		jl.unlock();
 
 		mutex::scoped_lock l(m_cache_mutex);
@@ -2544,7 +2570,7 @@ namespace libtorrent
 		, piece_manager const* storage) const
 	{
 		mutex::scoped_lock jl(m_job_mutex);
-		ret->queued_jobs = m_queued_jobs.size();
+		ret->queued_jobs = m_queued_jobs.size() + m_queued_hash_jobs.size();
 		jl.unlock();
 
 		mutex::scoped_lock l(m_cache_mutex);
