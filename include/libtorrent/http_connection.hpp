@@ -110,7 +110,7 @@ struct TORRENT_EXTRA_EXPORT http_connection : boost::enable_shared_from_this<htt
 #endif
 		);
 
-	void close();
+	void close(bool force = false);
 
 	socket_type const& socket() const { return m_sock; }
 
