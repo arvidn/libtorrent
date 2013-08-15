@@ -116,7 +116,7 @@ in a swarm has the same IP address.
 
 if set to true, upload, download and unchoke limits
 are ignored for peers on the local network.
-This option is *DEPRECATED*, please use set_peer_class_filter() instead.
+This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
 ``send_redundant_have`` controls if have messages will be sent
 to peers that already have the piece. This is typically not necessary,
 but it might be necessary for collecting statistics in some cases.
@@ -642,7 +642,7 @@ buffer size on the kernel socket, both for IPv4 and IPv6).
 +---------------------+------+---------+
 
 set to true if uTP connections should be rate limited
-This option is *DEPRECATED*, please use set_peer_class_filter() instead.
+This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
 if this is true, the ``&ip=`` argument in tracker requests
 (unless otherwise specified) will be set to the intermediate
 IP address if the user is double NATed. If ther user is not
@@ -1524,7 +1524,7 @@ at any given time. Note that a torrent can be active even though it's not loaded
 if an unloaded torrents finds a peer that wants to access it, the torrent will be
 loaded on demand, using a user-supplied callback function. If the feature of unloading
 torrents is not enabled, this setting have no effect. If this limit is set to 0, it
-means unlimited. For more information, see dynamic-loading-of-torrent-files.
+means unlimited. For more information, see `dynamic loading of torrent files`_.
 
 .. _auto_manage_interval:
 
@@ -1736,7 +1736,7 @@ upload mode, to test if the error condition has been fixed.
 libtorrent will only do this automatically for auto managed torrents.
 
 You can explicitly take a torrent out of upload only mode using
-set_upload_mode().
+`set_upload_mode()`_.
 
 .. _max_suggest_pieces:
 
