@@ -3321,8 +3321,8 @@ retry:
 				num_downloads_peers += t.num_peers();
 			}
 
-			t.second_tick(m_stat, tick_interval_ms);
 			++i;
+			t.second_tick(m_stat, tick_interval_ms);
 		}
 
 		// some people claim that there sometimes can be cases where
