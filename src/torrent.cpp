@@ -7522,6 +7522,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
+		boost::weak_ptr<torrent> self(shared_from_this());
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -7530,6 +7532,8 @@ namespace libtorrent
 				(*i)->tick();
 			} TORRENT_CATCH (std::exception&) {}
 		}
+
+		if (m_abort) return;
 #endif
 
 		m_time_scaler--;

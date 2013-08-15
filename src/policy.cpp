@@ -828,7 +828,13 @@ namespace libtorrent
 			i = *iter;
 			TORRENT_ASSERT(i->in_use);
 			TORRENT_ASSERT(i->connection != &c);
+			TORRENT_ASSERT(i->address() == c.remote().address());
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			c.peer_log("*** DUPLICATE PEER [ this: \"%s\" that: \"%s\" ]"
+				, print_address(c.remote().address()).c_str()
+				, print_address(i->address()).c_str());
+#endif
 			if (i->banned)
 			{
 				c.disconnect(errors::peer_banned);
@@ -897,16 +903,14 @@ namespace libtorrent
 					// to be careful to only look at the target end of a
 					// connection for the endpoint.
 
-					tcp::endpoint our_ep = outgoing1 ? other_socket->local_endpoint(ec1) : this_socket->local_endpoint(ec1);
-					tcp::endpoint other_ep = outgoing1 ? this_socket->remote_endpoint(ec1) : other_socket->remote_endpoint(ec1);
+					int our_port = outgoing1 ? other_socket->local_endpoint(ec1).port() : this_socket->local_endpoint(ec1).port();
+					int other_port = outgoing1 ? this_socket->remote_endpoint(ec1).port() : other_socket->remote_endpoint(ec1).port();
 
-					if (our_ep < other_ep)
+					if (our_port < other_port)
 					{
 #ifdef TORRENT_VERBOSE_LOGGING
-						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" < \"%s\" ]"
-							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
-						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" < \"%s\" ]"
-							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
+						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" < \"%d\" ]", our_port, other_port);
+						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" < \"%d\" ]", our_port, other_port);
 #endif
 
 						// we should keep our outgoing connection
@@ -923,10 +927,8 @@ namespace libtorrent
 					else
 					{
 #ifdef TORRENT_VERBOSE_LOGGING
-						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" >= \"%s\" ]"
-							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
-						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" >= \"%s\" ]"
-							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
+						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" >= \"%d\" ]", our_port, other_port);
+						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" >= \"%d\" ]", our_port, other_port);
 #endif
 						// they should keep their outgoing connection
 						if (outgoing1)
