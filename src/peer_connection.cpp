@@ -5256,8 +5256,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
-				, bytes_transferred, error.message().c_str());
+		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
+			, bytes_transferred, error.message().c_str());
 #endif
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_receive_data");
