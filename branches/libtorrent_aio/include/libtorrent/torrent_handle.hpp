@@ -921,7 +921,7 @@ namespace libtorrent
 		// case, it may be useful to un-pin the torrent once its metadata has been saved to disk.
 		// 
 		// For more information about dynamically loading and unloading torrents, see
-		// `dynamic loading of torrent files`_.
+		// dynamic-loading-of-torrent-files_.
 		// 
 		void set_pinned(bool p) const;
 

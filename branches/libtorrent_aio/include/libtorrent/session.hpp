@@ -86,7 +86,7 @@ namespace libtorrent
 	class alert;
 
 	// describes one statistics metric from the session.
-	// For more information, see the `session statistics`_ section.
+	// For more information, see the session-statistics_ section.
 	struct TORRENT_EXPORT stats_metric
 	{
 		char const* name;
@@ -155,8 +155,8 @@ namespace libtorrent
 
 	// This free function returns the list of available metrics exposed by libtorrent's
 	// statistics API. Each metric has a name and a *value index*. The value index is
-	// the index into the array in `session_stats_alert`_ where this metric's value
-	// can be found when the session stats is sampled (by calling `post_session_stats()`_).
+	// the index into the array in session_stats_alert where this metric's value
+	// can be found when the session stats is sampled (by calling post_session_stats()).
 	std::vector<stats_metric> session_stats_metrics();
 
 	// The session holds all state that spans multiple torrents. Among other things it runs the network
@@ -165,7 +165,7 @@ namespace libtorrent
 	// The main thread will be idle as long it doesn't have any torrents to participate in.
 	//
 	// You have some control over session configuration through the ``session::apply_settings()``
-	// member function. To change one or more configuration options, create a settings_pack_.
+	// member function. To change one or more configuration options, create a settings_pack.
 	// object and fill it with the settings to be set and pass it in to ``session::apply_settings()``.
 	// 
 	// see apply_settings().
@@ -294,11 +294,11 @@ namespace libtorrent
 		// is on by default. See add_torrent_params_.
 		void post_torrent_updates();
 
-		// This function will post a `session_stats_alert`_ object, containing a snapshot of
+		// This function will post a session_stats_alert object, containing a snapshot of
 		// the performance counters from the internals of libtorrent. To interpret these counters,
-		// query the session via `session_stats_metrics()`_.
+		// query the session via session_stats_metrics().
 		//
-		// For more information, see the `session statistics`_ section.
+		// For more information, see the session-statistics_ section.
 		void post_session_stats();
 
 		io_service& get_io_service();
@@ -394,7 +394,7 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const;
 
-		// This function enables `dynamic loading of torrent files`_. When a torrent is unloaded
+		// This function enables dynamic-loading-of-torrent-files_. When a torrent is unloaded
 		// but needs to be availabe in memory, this function is called **from within the libtorrent
 		// network thread**. From within this thread, you can **not** use any of the public APIs of
 		// libtorrent itself. The the info-hash of the torrent is passed in to the function and it
@@ -696,7 +696,7 @@ namespace libtorrent
 		// The ip-filter essentially maps an IP -> uint32. Each bit in that 32 bit integer represents
 		// a peer class. The least significant bit represents class 0, the next bit class 1 and so on.
 		// 
-		// For more info, see ip_filter_.
+		// For more info, see ip_filter.
 		// 
 		// For example, to make all peers in the range 200.1.1.0 - 200.1.255.255 belong to their own
 		// peer class, apply the following filter::
@@ -717,7 +717,7 @@ namespace libtorrent
 		// The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
 		// peer classes in the ``peer_class_filter`` are 32 bits.
 		// 
-		// For more information, see `peer classes`_.
+		// For more information, see peer-classes_.
 		void set_peer_class_filter(ip_filter const& f);
 
 		// Sets and gets the *peer class type filter*. This is controls automatic peer class
@@ -732,11 +732,11 @@ namespace libtorrent
 		// 2. peer-class type filter, removing classes
 		// 3. peer-class type filter, adding classes
 		//
-		// For more information, see `peer classes`_.
+		// For more information, see peer-classes_.
 		// TODO: add get_peer_class_type_filter() as well
 		void set_peer_class_type_filter(peer_class_type_filter const& f);
 
-		// Creates a new peer class (see `peer classes`_) with the given name. The returned integer
+		// Creates a new peer class (see peer-classes_) with the given name. The returned integer
 		// is the new peer class' identifier. Peer classes may have the same name, so each invocation
 		// of this function creates a new class and returns a unique identifier.
 		// 
@@ -744,7 +744,7 @@ namespace libtorrent
 		// classes in a call to `set_peer_class_filter()`_, make sure to create those early on, to get
 		// low identifiers.
 		// 
-		// For more information on peer classes, see `peer classes`_.
+		// For more information on peer classes, see peer-classes_.
 		int create_peer_class(char const* name);
 
 		// This call dereferences the reference count of the specified peer class. When creating a peer
@@ -759,7 +759,7 @@ namespace libtorrent
 		// There is no need to call this function for custom peer classes. All peer classes will be properly
 		// destructed when the session object destructs.
 		// 
-		// For more information on peer classes, see `peer classes`_.
+		// For more information on peer classes, see peer-classes_.
 		void delete_peer_class(int cid);
 
 		// These functions queries information from a peer class and updates the configuration
@@ -774,7 +774,7 @@ namespace libtorrent
 		// A peer or torrent balonging to more than one class, the highest priority among any
 		// of its classes is the one that is taken into account.
 		// 
-		// For more information, see `peer classes`_.
+		// For more information, see peer-classes_.
  		peer_class_info get_peer_class(int cid);
 		void set_peer_class(int cid, peer_class_info const& pci);
 
@@ -851,7 +851,7 @@ namespace libtorrent
 		pe_settings get_pe_settings() const;
 #endif
 
-		// Applies the settings specified by the settings_pack_ ``s``. This is an
+		// Applies the settings specified by the settings_pack ``s``. This is an
 		// asynchronous operation that will return immediately and actually apply
 		// the settings to the main thread of libtorrent some time later.
 		void apply_settings(settings_pack const& s);

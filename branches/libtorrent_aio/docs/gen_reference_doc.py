@@ -45,7 +45,9 @@ symbols = \
 	"metadata-from-peers_": "manual-ref.html#metadata-from-peers",
 	"magnet-links_": "manual-ref.html#magnet-links",
 	"ssl-torrents_": "manual-ref.html#ssl-torrents",
-	"dynamic-loading-of-torrent-files_": "manual.html#dynamic-loading-of-torrent-files"
+	"dynamic-loading-of-torrent-files_": "manual-ref.html#dynamic-loading-of-torrent-files",
+	"session-statistics_": "manual-ref.html#session-statistics",
+	"peer-classes_": "manual-ref.html#peer-classes"
 }
 
 static_links = \

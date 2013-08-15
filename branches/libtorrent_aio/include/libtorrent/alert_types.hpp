@@ -1792,7 +1792,7 @@ namespace libtorrent
 	};
 
 	// The session_stats_alert is posted when the user requests session statistics by
-	// calling post_session_stats() on the session_ object. Its category is
+	// calling post_session_stats() on the session object. Its category is
 	// ``status_notification``, but it is not subject to filtering, since it's only
 	// manually posted anyway.
 	struct TORRENT_EXPORT session_stats_alert : alert
@@ -1819,7 +1819,7 @@ namespace libtorrent
 		// on startup, and then use that mapping to interpret these values throughout
 		// the process' runtime.
 		//
-		// For more information, see the `session statistics`_ section.
+		// For more information, see the session-statistics_ section.
 		std::vector<boost::uint64_t> values;
 	};
 
