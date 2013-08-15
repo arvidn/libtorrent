@@ -2300,6 +2300,10 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		evict_torrents_except(t);
 
+		// we wouldn't be loading the torrent if it was already
+		// in the LRU (and loaded)
+		TORRENT_ASSERT(t->next == NULL && t->prev == NULL && m_torrent_lru.front() != t);
+
 		// now, load t into RAM
 		std::vector<char> buffer;
 		error_code ec;
@@ -2311,7 +2315,7 @@ namespace aux {
 			return false;
 		}
 		bool ret = t->load(buffer);
-		bump_torrent(t);
+		if (ret) bump_torrent(t);
 		return ret;
 	}
 
@@ -7325,6 +7329,7 @@ retry:
 		for (list_iterator i = m_torrent_lru.iterate(); i.get(); i.next())
 		{
 			torrent* t = (torrent*)i.get();
+			TORRENT_ASSERT(t->is_loaded());
 			TORRENT_ASSERT(unique_torrents.count(t) == 0);
 			unique_torrents.insert(t);
 		}

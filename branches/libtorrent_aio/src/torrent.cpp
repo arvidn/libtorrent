@@ -1917,14 +1917,16 @@ namespace libtorrent
 	{
 		m_should_be_loaded = true;
 
-		// bump this torrent to the top of the torrent LRU of
-		// which torrents are most active
-		m_ses.bump_torrent(this);
-
 		// if we don't have the metadata yet, pretend the file is loaded
-		if (!m_torrent_file->is_valid()) return true;
+		if (!m_torrent_file->is_valid()
+			|| m_torrent_file->is_loaded())
+		{
+			// bump this torrent to the top of the torrent LRU of
+			// which torrents are most active
+			m_ses.bump_torrent(this);
 
-		if (m_torrent_file->is_loaded()) return true;
+			return true;
+		}
 
 		// load the specified torrent and also evict one torrent,
 		// except for the one specified. if we're not at our limit
