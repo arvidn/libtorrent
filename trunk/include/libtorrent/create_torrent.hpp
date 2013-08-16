@@ -172,6 +172,7 @@ namespace libtorrent
 			, int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
 		create_torrent(torrent_info const& ti);
 
+		// internal
 		~create_torrent();
 
 		// This function will generate the .torrent file as a bencode tree. In order to
@@ -199,6 +200,8 @@ namespace libtorrent
 		// any files to the ``file_storage``, torrent generation will fail.
 		entry generate() const;
 
+		// returns an immutable reference to the file_storage used to create
+		// the torrent from.
 		file_storage const& files() const { return m_files; }
 
 		// Sets the comment for the torrent. The string ``str`` should be utf-8 encoded.

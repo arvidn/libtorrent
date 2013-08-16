@@ -95,11 +95,21 @@ namespace libtorrent
 		, lazy_entry& ret, int depth_limit = 1000, int item_limit = 1000000) TORRENT_DEPRECATED;
 #endif
 
+	// this is a string that is not NULL-terminated. Instead it
+	// comes with a length, specified in bytes. This is particularly
+	// useful when parsing bencoded structures, because strings are
+	// not NULL-terminated internally, and requiring NULL termination
+	// would require copying the string.
+	//
+	// see lazy_entry::string_pstr().
 	struct TORRENT_EXPORT pascal_string
 	{
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
 		int len;
 		char const* ptr;
+
+		// lexicographical comparison of strings. Order is consisten
+		// with memcmp.
 		bool operator<(pascal_string const& rhs) const
 		{
 			return std::memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
@@ -109,8 +119,19 @@ namespace libtorrent
 
 	struct lazy_dict_entry;
 
+	// this object represent a node in a bencoded structure. It is a variant
+	// type whose concrete type is one of:
+	//
+	// 1. dictionary (maps strings -> lazy_entry)
+	// 2. list (sequence of lazy_entry, i.e. heterogenous)
+	// 3. integer
+	// 4. string
+	//
+	// There is also a ``none`` type, which is used for uninitialized
+	// lazy_entries.
 	struct TORRENT_EXPORT lazy_entry
 	{
+		// The different types a lazy_entry can have
 		enum entry_type_t
 		{
 			none_t, dict_t, list_t, string_t, int_t
@@ -119,6 +140,9 @@ namespace libtorrent
 		lazy_entry() : m_begin(0), m_len(0), m_size(0), m_capacity(0), m_type(none_t)
 		{ m_data.start = 0; }
 
+		// tells you which specific type this lazy entry has.
+		// See entry_type_t. The type determines which subset of
+		// member functions are valid to use.
 		entry_type_t type() const { return (entry_type_t)m_type; }
 
 		// start points to the first decimal digit
@@ -133,14 +157,15 @@ namespace libtorrent
 			m_len = length + 2; // include 'e'
 		}
 
+		// if this is an integer, return the integer value
 		size_type int_value() const;
 
-		// string functions
-		// ================
-
+		// internal
 		void construct_string(char const* start, int length);
 
 		// the string is not null-terminated!
+		// use string_length() to determine how many bytes
+		// are part of the string.
 		char const* string_ptr() const
 		{
 			TORRENT_ASSERT(m_type == string_t);
@@ -156,24 +181,28 @@ namespace libtorrent
 			return m_data.start;
 		}
 
+		// if this is a string, returns a pascal_string
+		// representing the string value.
 		pascal_string string_pstr() const
 		{
 			TORRENT_ASSERT(m_type == string_t);
 			return pascal_string(m_data.start, m_size);
 		}
 
+		// if this is a string, returns the string as a std::string.
+		// (which requires a copy)
 		std::string string_value() const
 		{
 			TORRENT_ASSERT(m_type == string_t);
 			return std::string(m_data.start, m_size);
 		}
 
+		// if the lazy_entry is a string, returns the
+		// length of the string, in bytes.
 		int string_length() const
 		{ return m_size; }
 
-		// dictionary functions
-		// ====================
-
+		// internal
 		void construct_dict(char const* begin)
 		{
 			TORRENT_ASSERT(m_type == none_t);
@@ -183,31 +212,45 @@ namespace libtorrent
 			m_begin = begin;
 		}
 
+		// internal
 		lazy_entry* dict_append(char const* name);
+		// internal
 		void pop();
+
+		// if this is a dictionary, look for a key ``name``, and return
+		// a pointer to its value, or NULL if there is none.
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
+		lazy_entry const* dict_find_string(char const* name) const;
 
+		// if this is a dictionary, look for a key ``name`` whose value
+		// is a string. If such key exist, return a pointer to
+		// its value, otherwise NULL.
 		std::string dict_find_string_value(char const* name) const;
 		pascal_string dict_find_pstr(char const* name) const;
+
+		// if this is a dictionary, look for a key ``name`` whose value
+		// is an int. If such key exist, return a pointer to its value,
+		// otherwise NULL.
 		size_type dict_find_int_value(char const* name, size_type default_val = 0) const;
-		lazy_entry const* dict_find_dict(char const* name) const;
-		lazy_entry const* dict_find_list(char const* name) const;
-		lazy_entry const* dict_find_string(char const* name) const;
 		lazy_entry const* dict_find_int(char const* name) const;
 
+		lazy_entry const* dict_find_dict(char const* name) const;
+		lazy_entry const* dict_find_list(char const* name) const;
+
+		// if this is a dictionary, return the key value pair at
+		// position ``i`` from the dictionary.
 		std::pair<std::string, lazy_entry const*> dict_at(int i) const;
 
+		// if this is a dictionary, return the number of items in it
 		int dict_size() const
 		{
 			TORRENT_ASSERT(m_type == dict_t);
 			return m_size;
 		}
 
-		// list functions
-		// ==============
-
+		// internal
 		void construct_list(char const* begin)
 		{
 			TORRENT_ASSERT(m_type == none_t);
@@ -217,7 +260,10 @@ namespace libtorrent
 			m_begin = begin;
 		}
 
+		// internal
 		lazy_entry* list_append();
+
+		// if this is a list, return the item at index ``i``.
 		lazy_entry* list_at(int i)
 		{
 			TORRENT_ASSERT(m_type == list_t);
@@ -231,19 +277,22 @@ namespace libtorrent
 		pascal_string list_pstr_at(int i) const;
 		size_type list_int_value_at(int i, size_type default_val = 0) const;
 
+		// if this is a list, return the number of items in it.
 		int list_size() const
 		{
 			TORRENT_ASSERT(m_type == list_t);
 			return int(m_size);
 		}
 
-		// end points one byte passed last byte
+		// end points one byte passed last byte in the source
+		// buffer backing the bencoded structure.
 		void set_end(char const* end)
 		{
 			TORRENT_ASSERT(end > m_begin);
 			m_len = end - m_begin;
 		}
 		
+		// internal
 		void clear();
 
 		// releases ownership of any memory allocated
@@ -255,6 +304,7 @@ namespace libtorrent
 			m_type = none_t;
 		}
 
+		// internal
 		~lazy_entry()
 		{ clear(); }
 
@@ -262,6 +312,7 @@ namespace libtorrent
 		// this entry has its bencoded data
 		std::pair<char const*, int> data_section() const;
 
+		// swap values of ``this`` and ``e``.
 		void swap(lazy_entry& e)
 		{
 			using std::swap;

@@ -63,20 +63,32 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT char const* time_now_string();
 	std::string log_time();
 
+	// returns the current time, as represented by ptime. The
+	// resolution of this timer is about 100 ms.
 	TORRENT_EXPORT ptime const& time_now();
+
+	// returns the current time as represented by ptime. This is
+	// more expensive than time_now(), but provides as high resolution
+	// as the operating system can provide.
 	TORRENT_EXPORT ptime time_now_hires();
 
+	// the earliest and latest possible time points
+	// representable by ptime.
 	TORRENT_EXPORT ptime min_time();
 	TORRENT_EXPORT ptime max_time();
 
 #if defined TORRENT_USE_BOOST_DATE_TIME || defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
 
+	// returns a time_duration representing the specified number of seconds, milliseconds
+	// microseconds, minutes and hours.
 	TORRENT_EXPORT time_duration seconds(int s);
 	TORRENT_EXPORT time_duration milliseconds(int s);
 	TORRENT_EXPORT time_duration microsec(int s);
 	TORRENT_EXPORT time_duration minutes(int s);
 	TORRENT_EXPORT time_duration hours(int s);
 
+	// returns the number of seconds, milliseconds and microseconds
+	// a time_duration represents.
 	TORRENT_EXPORT int total_seconds(time_duration td);
 	TORRENT_EXPORT int total_milliseconds(time_duration td);
 	TORRENT_EXPORT boost::int64_t total_microseconds(time_duration td);

@@ -96,6 +96,7 @@ namespace libtorrent {
 		enum severity_t { debug, info, warning, critical, fatal, none };
 #endif
 
+		// these are bits for the alert_mask used by the session. See set_alert_mask().
 		enum category_t
 		{
 			// Enables alerts that report an error. This includes:

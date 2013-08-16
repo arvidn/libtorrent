@@ -199,7 +199,7 @@ namespace libtorrent
 	// 	expensive if done from within a GUI thread that needs to stay responsive.
 	// 	Try to avoid quering for information you don't need, and try to do it
 	// 	in as few calls as possible. You can get most of the interesting information
-	// 	about a torrent from the ``torrent_handle::status()`` call.
+	// 	about a torrent from the torrent_handle::status() call.
 	// 
 	// The default constructor will initialize the handle to an invalid state. Which
 	// means you cannot perform any operation on it, unless you first assign it a
@@ -435,7 +435,7 @@ namespace libtorrent
 		// that refers to that torrent will become invalid.
 		bool is_valid() const;
 
-		// flags for pause()
+		// flags for torrent_session::pause()
 		enum pause_flags_t { graceful_pause = 1 };
 
 		// ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
@@ -993,12 +993,12 @@ namespace libtorrent
 		// ``info_hash()`` returns the info-hash for the torrent.
 		sha1_hash info_hash() const;
 
+		// comparison operators. The order of the torrents is unspecified
+		// but stable.
 		bool operator==(const torrent_handle& h) const
 		{ return m_torrent.lock() == h.m_torrent.lock(); }
-
 		bool operator!=(const torrent_handle& h) const
 		{ return m_torrent.lock() != h.m_torrent.lock(); }
-
 		bool operator<(const torrent_handle& h) const
 		{ return m_torrent.lock() < h.m_torrent.lock(); }
 
@@ -1023,8 +1023,10 @@ namespace libtorrent
 
 	};
 
+	// holds a snapshot of the status of a torrent, as queried by torrent_handle::status().
 	struct TORRENT_EXPORT torrent_status
 	{
+		// hidden
 		torrent_status();
 		~torrent_status();
 
@@ -1034,6 +1036,7 @@ namespace libtorrent
 		// a handle to the torrent whose status the object represents.
 		torrent_handle handle;
 
+		// the different overall states a torrent can be in
 		enum state_t
 		{
 			// The torrent is in the queue for being checked. But there
@@ -1076,6 +1079,7 @@ namespace libtorrent
 			checking_resume_data
 		};
 		
+		// the main state the torrent is in. See torrent_status::state_t.
 		state_t state;
 
 		// set to true if the torrent is paused and false otherwise. It's only true
