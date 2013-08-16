@@ -234,6 +234,8 @@ namespace libtorrent
 				request += "GET ";
 				if (using_proxy)
 				{
+					// m_url is already a properly escaped URL
+					// with the correct slashes. Don't encode it again
 					request += m_url;
 					std::string path = info.orig_files().file_path(f.file_index);
 #ifdef TORRENT_WINDOWS
@@ -243,8 +245,11 @@ namespace libtorrent
 				}
 				else
 				{
-					std::string path = m_path;
-					path += info.orig_files().file_path(f.file_index);
+					// m_path is already a properly escaped URL
+					// with the correct slashes. Don't encode it again
+					request += m_path;
+
+					std::string path = info.orig_files().file_path(f.file_index);
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
