@@ -367,6 +367,7 @@ namespace libtorrent
 		mutable error_code m_error;
 		mutable std::string m_error_file;
 
+		// hidden
 		virtual ~storage_interface() {}
 
 		disk_buffer_pool* m_disk_pool;

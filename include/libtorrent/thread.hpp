@@ -57,6 +57,8 @@ namespace libtorrent
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
 
+	// pauses the calling thread at least for the specified
+	// number of milliseconds
 	TORRENT_EXPORT void sleep(int milliseconds);
 
 	struct TORRENT_EXTRA_EXPORT condition_variable
