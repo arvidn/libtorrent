@@ -247,7 +247,7 @@ namespace libtorrent
 				{
 					// m_path is already a properly escaped URL
 					// with the correct slashes. Don't encode it again
-					m_request += m_path;
+					request += m_path;
 
 					std::string path = info.orig_files().file_path(info.orig_files().internal_at(f.file_index));
 #ifdef TORRENT_WINDOWS
