@@ -1,3 +1,4 @@
+	* fix web seed URL double escape issue
 	* fix string encoding issue in alert messages
 	* fix SSL authentication issue
 	* deprecate std::wstring overloads. long live utf-8

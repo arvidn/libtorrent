@@ -1189,9 +1189,10 @@ int test_main()
 	TEST_CHECK(need_encoding("\n", 1) == true);
 
 	// maybe_url_encode
-	TEST_CHECK(maybe_url_encode("http://bla.com/\n") == "http://bla.com:80/%0a");
-	std::cerr << maybe_url_encode("http://bla.com/\n") << std::endl;
-	TEST_CHECK(maybe_url_encode("?&") == "?&");
+	TEST_EQUAL(maybe_url_encode("http://bla.com/\n"), "http://bla.com:80/%0a");
+	TEST_EQUAL(maybe_url_encode("http://bla.com/foo%20bar"), "http://bla.com/foo%20bar");
+	TEST_EQUAL(maybe_url_encode("http://bla.com/foo%20bar?k=v&k2=v2"), "http://bla.com/foo%20bar?k=v&k2=v2");
+	TEST_EQUAL(maybe_url_encode("?&"), "?&");
 
 	// unescape_string
 	TEST_CHECK(unescape_string(escape_string(test_string, strlen(test_string)), ec)
