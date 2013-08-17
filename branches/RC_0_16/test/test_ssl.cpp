@@ -107,6 +107,14 @@ void test_ssl(int test_idx)
 
 	fprintf(stderr, "\n%s TEST: %s\n\n", time_now_string(), test.name);
 
+#ifndef TORRENT_USE_OPENSSL
+	if (test.use_ssl_ports)
+	{
+		fprintf(stderr, "N/A\n");
+		return;
+	}
+#endif
+
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_ssl", ec);
@@ -115,16 +123,15 @@ void test_ssl(int test_idx)
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
+	wait_for_listen(ses1, "ses1");
+	wait_for_listen(ses2, "ses2");
+
 	session_settings sett;
 
 	sett.ssl_listen = 1024 + rand() % 50000;
-	ses1.set_settings(sett);
 
-	if (!test.downloader_has_cert)
-		// this disables outgoing SSL connections
-		sett.ssl_listen = 0;
-	else
-		sett.ssl_listen += 10;
+	ses1.set_settings(sett);
+	sett.ssl_listen += 10;
 	ses2.set_settings(sett);
 
 	torrent_handle tor1;
@@ -140,7 +147,7 @@ void test_ssl(int test_idx)
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
 	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses1");
+	wait_for_listen(ses2, "ses2");
 
 	peer_disconnects = 0;
 	ssl_peer_disconnects = 0;
@@ -211,10 +218,10 @@ void test_ssl(int test_idx)
 		test_sleep(100);
 	}
 
-	fprintf(stderr, "peer_errors: %d\nssl_disconnects: %d\n", peer_errors, ssl_peer_disconnects);
-
+	fprintf(stderr, "peer_errors: %d  expected: %d\n", peer_errors, test.peer_errors);
 	TEST_EQUAL(peer_errors, test.peer_errors);
 #ifdef TORRENT_USE_OPENSSL
+	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
 	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
 #endif
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
