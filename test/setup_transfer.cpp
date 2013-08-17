@@ -226,6 +226,8 @@ void wait_for_listen(libtorrent::session& ses, char const* name)
 		if (listen_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
+	// we din't receive a listen alert!
+	TEST_CHECK(listen_done);
 }
 
 void print_ses_rate(float time
@@ -440,6 +442,14 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 		&tmp[0], tmp.size(), ec));
 }
 
+void update_settings(session_settings& sess_set, bool allow_multiple_ips)
+{
+	if (allow_multiple_ips) sess_set.allow_multiple_connections_per_ip = true;
+	sess_set.ignore_limits_on_local_network = false;
+	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
+	sess_set.max_failcount = 1;
+}
+
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
@@ -458,13 +468,20 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	}
 
 	session_settings sess_set = ses1->settings();
-	if (ses3) sess_set.allow_multiple_connections_per_ip = true;
-	sess_set.ignore_limits_on_local_network = false;
-	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
-	sess_set.max_failcount = 1;
+	update_settings(sess_set, ses3);
 	ses1->set_settings(sess_set);
+
+	sess_set = ses2->settings();
+	update_settings(sess_set, ses3);
 	ses2->set_settings(sess_set);
-	if (ses3) ses3->set_settings(sess_set);
+
+	if (ses3)
+	{
+		sess_set = ses3->settings();
+		update_settings(sess_set, ses3);
+		ses3->set_settings(sess_set);
+	}
+
 	ses1->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
