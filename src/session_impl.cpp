@@ -2044,6 +2044,10 @@ namespace aux {
 #endif
 		}
 
+		bool reopen_listen_port = false;
+		if (m_settings.ssl_listen != s.ssl_listen)
+			reopen_listen_port = true;
+
 		m_settings = s;
 
 		if (m_settings.cache_buffer_chunk_size <= 0)
@@ -2098,6 +2102,12 @@ namespace aux {
 		while ((i = std::find(i, m_settings.user_agent.end(), '\n'))
 			!= m_settings.user_agent.end())
 			*i = ' ';
+
+		if (reopen_listen_port)
+		{
+			error_code ec;
+			open_listen_port(0, ec);
+		}
 	}
 
 	tcp::endpoint session_impl::get_ipv6_interface() const
@@ -2187,6 +2197,7 @@ namespace aux {
 			return;
 		}
 		s->external_port = s->sock->local_endpoint(ec).port();
+		TORRENT_ASSERT(s->external_port == ep.port() || ep.port() == 0);
 		if (!ec) s->sock->listen(m_settings.listen_queue_size, ec);
 		if (ec)
 		{
