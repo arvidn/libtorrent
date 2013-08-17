@@ -205,7 +205,9 @@ def parse_function(lno, lines, filename):
 
 				lno = consume_block(lno - 1, lines)
 				signature += ';'
-			return [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip() + '()'])}, lno]
+			ret = [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip() + '()'])}, lno]
+			if first_item(ret[0]['names']) == '()': return [None, lno]
+			return ret
 	if len(signature) > 0:
 		print '\x1b[31mFAILED TO PARSE FUNCTION\x1b[0m %s\nline: %d\nfile: %s' % (signature, lno, filename)
 	return [None, lno]
@@ -458,6 +460,11 @@ def consume_ifdef(lno, lines):
 			if l == '#else' and start_if - end_if == 1: break
 			if start_if - end_if == 0: break
 		return lno
+	else:
+		while l.endswith('\\') and lno < len(lines):
+			l = lines[lno].strip()
+			lno += 1
+			if verbose: print 'prep  %s' % l
 
 	return lno
 
@@ -744,12 +751,15 @@ def dump_link_targets():
 def heading(string, c):
 	return '\n' + string + '\n' + (c * len(string)) + '\n'
 
-def render_enums(out, enums):
+def render_enums(out, enums, print_declared_reference):
 	for e in enums:
 		print >>out, '.. raw:: html\n'
 		print >>out, '\t<a name="%s"></a>' % e['name']
 		print >>out, ''
 		print >>out, heading('enum %s' % e['name'], '.')
+
+		print_declared_in(out, e)
+
 		width = [len('name'), len('value'), len('description')]
 
 		for i in range(len(e['values'])):
@@ -895,7 +905,7 @@ for cat in categories:
 	
 			print >>out, dump_link_targets()
 
-		render_enums(out, c['enums'])
+		render_enums(out, c['enums'], False)
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
@@ -934,7 +944,7 @@ for cat in categories:
 
 		print >>out, dump_link_targets()
 	
-	render_enums(out, enums)
+	render_enums(out, enums, True)
 
 	print >>out, dump_link_targets()
 
