@@ -108,6 +108,7 @@ namespace libtorrent
 	// .torrent file using bencode().
 	struct TORRENT_EXPORT create_torrent
 	{
+		// flags for create_torrent::create_torrent().
 		enum flags_t
 		{
 			// This will insert pad files to align the files to piece boundaries, for
