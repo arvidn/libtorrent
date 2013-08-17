@@ -129,9 +129,9 @@ def first_item(itr):
 	return None
 
 def is_visible(desc):
+	if desc.strip() == 'hidden': return False
 	if internal: return True
 	if desc.strip() == 'internal': return False
-	if desc.strip() == 'hidden': return False
 	return True
 
 def highlight_signature(s):
