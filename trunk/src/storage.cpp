@@ -1057,7 +1057,7 @@ ret:
 
 			if (file_bytes_left == 0) continue;
 
-			if (files().file_size(file_index)) continue;
+			if (files().pad_file_at(file_index)) continue;
 
 			error_code ec;
 			file_handle = open_file(file_index, file::read_only | file::random_access, ec);
