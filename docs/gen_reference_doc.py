@@ -49,6 +49,7 @@ symbols = \
 
 static_links = \
 {
+	".. _`BEP 3`: http://bittorrent.org/beps/bep_0003.html",
 	".. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html",
 	".. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html"
 }
@@ -814,8 +815,20 @@ for cat in categories:
 	functions = categories[cat]['functions']
 	enums = categories[cat]['enums']
 
+	out.write('%s\n' % heading(cat, '='))
+
+	out.write('''
+:Author: Arvid Norberg, arvid@rasterbar.com
+:Version: 1.0.0
+
+.. contents:: Table of contents
+  :depth: 2
+  :backlinks: none
+
+''')
+
 	if 'overview' in categories[cat]:
-		out.write('%s\n%s\n' % (heading(cat, '='), categories[cat]['overview']))
+		out.write('%s\n' % categories[cat]['overview'])
 
 	for c in classes:
 

@@ -78,6 +78,9 @@ namespace libtorrent
 {
 	struct lazy_entry;
 
+	// thrown by any accessor function of entry if the accessor
+	// function requires a type different than the actual type
+	// of the entry object.
 	struct TORRENT_EXPORT type_error: std::runtime_error
 	{
 		type_error(const char* error): std::runtime_error(error) {}
