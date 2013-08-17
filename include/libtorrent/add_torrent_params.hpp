@@ -231,7 +231,11 @@ namespace libtorrent
 		// filled in by the constructor and should be left untouched. It
 		// is used for forward binary compatibility.
 		int version;
+
+		// torrent_info object with the torrent to add. Unless the url or info_hash
+		// is set, this is required to be initiazlied.
 		boost::intrusive_ptr<torrent_info> ti;
+
 #ifndef TORRENT_NO_DEPRECATE
 		char const* tracker_url;
 #endif

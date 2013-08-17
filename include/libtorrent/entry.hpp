@@ -101,6 +101,7 @@ namespace libtorrent
 		typedef std::list<entry> list_type;
 		typedef size_type integer_type;
 
+		// the types an entry can have
 		enum data_type
 		{
 			int_t,
@@ -110,20 +111,28 @@ namespace libtorrent
 			undefined_t
 		};
 
+		// returns the concrete type of the entry
 		data_type type() const;
 
+		// constructors directly from a specific type.
+		// The content of the argument is copied into the
+		// newly constructed entry
 		entry(dictionary_type const&);
 		entry(string_type const&);
 		entry(list_type const&);
 		entry(integer_type const&);
 
-		entry();
+		// construct an empty entry of the specified type.
+		// see data_type enum.
 		entry(data_type t);
+
+		// hidden
 		entry(entry const& e);
+		entry();
 		~entry();
 
+		// hidden
 		bool operator==(entry const& e) const;
-		
 		void operator=(lazy_entry const&);
 		void operator=(entry const&);
 		void operator=(dictionary_type const&);
@@ -181,6 +190,7 @@ namespace libtorrent
 		dictionary_type& dict();
 		const dictionary_type& dict() const;
 
+		// swaps the content of *this* with ``e``.
 		void swap(entry& e);
 
 		// All of these functions requires the entry to be a dictionary, if it isn't they
