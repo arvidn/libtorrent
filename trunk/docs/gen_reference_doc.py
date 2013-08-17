@@ -222,17 +222,20 @@ def parse_class(lno, lines, filename):
 	context = ''
 	class_type = 'struct'
 	blanks = 0
+	decl = ''
 
 	while lno < len(lines):
 		l = lines[lno].strip()
-		name += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
+		decl += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
 		if '{' in l: break
 		if verbose: print 'class  %s' % l
 		lno += 1
 
-	if name.startswith('class'):
+	if decl.startswith('class'):
 		state = 'private'
 		class_type = 'class'
+
+	name = decl.split(':')[0].replace('class ', '').replace('struct ', '').strip()
 
 	while lno < len(lines):
 		l = lines[lno].strip()
@@ -275,7 +278,7 @@ def parse_class(lno, lines, filename):
 		elif l == 'public:': state = 'public'
 
 		if start_brace > 0 and start_brace == end_brace:
-			return [{ 'file': filename[11:], 'enums': enums, 'fields':fields, 'type': class_type, 'name': name.split(':')[0].replace('class ', '').replace('struct ', '').strip(), 'decl': name, 'fun': funs}, lno]
+			return [{ 'file': filename[11:], 'enums': enums, 'fields':fields, 'type': class_type, 'name': name, 'decl': decl, 'fun': funs}, lno]
 
 		if state != 'public' and not internal:
 			if verbose: print 'private %s' % l
@@ -822,13 +825,13 @@ for cat in categories:
 :Version: 1.0.0
 
 .. contents:: Table of contents
-  :depth: 2
+  :depth: 1
   :backlinks: none
 
 ''')
 
 	if 'overview' in categories[cat]:
-		out.write('%s\n' % categories[cat]['overview'])
+		out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
 
 	for c in classes:
 

@@ -101,6 +101,8 @@ namespace libtorrent
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection*)
 		{ return boost::shared_ptr<peer_plugin>(); }
 
+		// called when a piece passes or fails the hash check.
+		// the argument is the piece index.
 		virtual void on_piece_pass(int /*index*/) {}
 		virtual void on_piece_failed(int /*index*/) {}
 
@@ -142,6 +144,8 @@ namespace libtorrent
 	{
 		virtual ~peer_plugin() {}
 
+		// This function is expected to return the name of
+		// the plugin.
 		virtual char const* type() const { return ""; }
 
 		// can add entries to the extension handshake

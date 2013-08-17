@@ -90,6 +90,10 @@ namespace libtorrent
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;
+
+		// the current ``&trackerid=`` argument passed to the tracker.
+		// this is optional and is normally empty (in which case no
+		// trackerid is sent).
 		std::string trackerid;
 
 		// if this tracker has returned an error or warning message

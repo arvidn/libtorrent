@@ -46,8 +46,10 @@ namespace libtorrent
 {
 	struct file;
 
+	// information about a file in a file_storage
 	struct TORRENT_EXPORT file_entry
 	{
+		// hidden
 		file_entry();
 		~file_entry();
 
@@ -219,19 +221,39 @@ namespace libtorrent
 	{
 	friend class torrent_info;
 	public:
+		// hidden
 		file_storage();
 		~file_storage() {}
 
+		// returns true if the piece length has been initialized
+		// on the file_storage. This is typically taken as a proxy
+		// of whether the file_storage as a whole is initialized or
+		// not.
 		bool is_valid() const { return m_piece_length > 0; }
 
+		// file attribute flags
 		enum flags_t
 		{
+			// the file is a pad file. It's required to contain zeroes
+			// at it will not be saved to disk. Its purpose is to make
+			// the following file start on a piece boundary.
 			pad_file = 1,
+
+			// this file has the hidden attribute set. This is primarily
+			// a windows attribute
 			attribute_hidden = 2,
+
+			// this file has the executable attribute set.
 			attribute_executable = 4,
+
+			// this file is a symbilic link. It should have a link
+			// target string associated with it.
 			attribute_symlink = 8
 		};
 
+		// allocates space for ``num_files`` in the internal file list. This can
+		// be used to avoid reallocating the internal file list when the number
+		// of files to be added is known up-front.
 		void reserve(int num_files);
 
 		// Adds a file to the file storage. The ``flags`` argument sets attributes on the file.
@@ -252,6 +274,8 @@ namespace libtorrent
 		void add_file(std::string const& p, size_type size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "");
 
+		// renames the file at ``index`` to ``new_filename``. Keep in mind
+		// that filenames are expected to be UTF-8 encoded.
 		void rename_file(int index, std::string const& new_filename);
 
 		// this is a low-level function that sets the name of a file
@@ -275,8 +299,15 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
+		// returns a list of file_slice objects representing the portions of
+		// files the specified piece index, byte offset and size range overlaps.
+		// this is the inverse mapping of map_file().
 		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
+
+		// returns a peer_request representing the piece index, byte offset
+		// and size the specified file range overlaps. This is the inverse
+		// mapping ove map_block().
 		peer_request map_file(int file, size_type offset, int size) const;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -307,21 +338,36 @@ namespace libtorrent
 		file_entry at(iterator i) const TORRENT_DEPRECATED;
 #endif // TORRENT_NO_DEPRECATE
 
+		// returns the number of files in the file_storage
 		int num_files() const
 		{ return int(m_files.size()); }
 
+		// returns a file_entry with information about the file
+		// at ``index``. Index must be in the range [0, ``num_files()`` ).
 		file_entry at(int index) const;
 
+		// returns the total number of bytes all the files in this torrent spans
 		size_type total_size() const { return m_total_size; }
+
+		// set and get the number of pieces in the torrent
 		void set_num_pieces(int n) { m_num_pieces = n; }
 		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
+
+		// set and get the size of each piece in this torrent. This size is typically an even power
+		// of 2. It doesn't have to be though. It should be divisible by 16kiB however.
 		void set_piece_length(int l)  { m_piece_length = l; }
 		int piece_length() const { TORRENT_ASSERT(m_piece_length > 0); return m_piece_length; }
+
+		// returns the piece size of ``index``. This will be the same as piece_length(), except
+		// for the last piece, which may be shorter.
 		int piece_size(int index) const;
 
+		// set and get the name of this torrent. For multi-file torrents, this is also
+		// the name of the root directory all the files are stored in.
 		void set_name(std::string const& n) { m_name = n; }
 		const std::string& name() const { return m_name; }
 
+		// swap all content of *this* with *ti*.
 		void swap(file_storage& ti)
 		{
 			using std::swap;
