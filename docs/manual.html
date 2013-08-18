@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.10</td></tr>
+<td>0.16.11</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -4943,9 +4943,9 @@ quite unthrottled.</p>
 <p><tt class="docutils literal">dht_upload_rate_limit</tt> sets the rate limit on the DHT. This is specified in
 bytes per second and defaults to 4000. For busy boxes with lots of torrents
 that requires more DHT traffic, this should be raised.</p>
-<p><tt class="docutils literal">unchoke_slots_limit</tt> is the max number of unchoked peers in the session.</p>
-<p>The number of unchoke slots may be ignored depending on what
-<tt class="docutils literal">choking_algorithm</tt> is set to.</p>
+<p><tt class="docutils literal">unchoke_slots_limit</tt> is the max number of unchoked peers in the session. The
+number of unchoke slots may be ignored depending on what <tt class="docutils literal">choking_algorithm</tt>
+is set to. A value of -1 means infinite.</p>
 <p><tt class="docutils literal">half_open_limit</tt> sets the maximum number of half-open connections
 libtorrent will have when connecting to peers. A half-open connection is one
 where connect() has been called, but the connection still hasn't been established
