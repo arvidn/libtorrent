@@ -838,14 +838,16 @@ testing
 
 To test incoming SSL connections to an SSL torrent, one can use the following *openssl* command::
 
-	openssl s_client -cert <peer-certificate>.pem -key <peer-private-key>.pem -CAfile <torrent-cert>.pem -debug -connect 127.0.0.1:4433 -tls1 -servername <info-hash>
+	openssl s_client -cert <peer-certificate>.pem -key <peer-private-key>.pem -CAfile \
+	   <torrent-cert>.pem -debug -connect 127.0.0.1:4433 -tls1 -servername <info-hash>
 
 To create a root certificate, the Distinguished Name (*DN*) is not taken into account
 by bittorrent peers. You still need to specify something, but from libtorrent's point of
 view, it doesn't matter what it is. libtorrent only makes sure the peer certificates are
 signed by the correct root certificate.
 
-One way to create the certificates is to use the ``CA.sh`` script that comes with openssl, like thisi (don't forget to enter a common Name for the certificate)::
+One way to create the certificates is to use the ``CA.sh`` script that comes with openssl,
+like thisi (don't forget to enter a common Name for the certificate)::
 
 	CA.sh -newca
 	CA.sh -newreq
