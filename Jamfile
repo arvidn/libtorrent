@@ -23,7 +23,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 0.16.10 ;
+VERSION = 0.16.11 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
