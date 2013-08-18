@@ -10,7 +10,17 @@ KADEMLIA_SOURCES = \
   kademlia/routing_table.cpp    \
   kademlia/rpc_manager.cpp      \
   kademlia/logging.cpp          \
-  kademlia/traversal_algorithm.cpp
+  kademlia/traversal_algorithm.cpp \
+  ../ed25519/src/add_scalar.c   \
+  ../ed25519/src/fe.c           \
+  ../ed25519/src/ge.c           \
+  ../ed25519/src/key_exchange.c \
+  ../ed25519/src/keypair.c      \
+  ../ed25519/src/sc.c           \
+  ../ed25519/src/seed.c         \
+  ../ed25519/src/sha512.c       \
+  ../ed25519/src/sign.c         \
+  ../ed25519/src/verify.c
 endif
 
 if WITH_SHIPPED_GEOIP
@@ -118,7 +128,8 @@ libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@
 
 #AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 #AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
-AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+AM_CPPFLAGS = -ftemplate-depth-100 -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
 
 #AM_CFLAGS= -I$(top_srcdir)/include @DEBUGFLAGS@
 #AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@

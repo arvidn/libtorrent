@@ -29,8 +29,10 @@ test_programs = \
   test_trackers_extension    \
   test_transfer              \
   test_upnp                  \
+  enum_if                    \
   test_utp                   \
   test_session               \
+  test_ssl                   \
   test_web_seed
 
 if ENABLE_TESTS
@@ -49,7 +51,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/slash_path.torrent \
   test_torrents/backslash_path.torrent \
   test_torrents/url_list.torrent \
-  test_torrents/url_list2.torrent \ 
+  test_torrents/url_list2.torrent \
   test_torrents/url_list3.torrent \
   test_torrents/httpseed.torrent \
   test_torrents/empty_httpseed.torrent \
@@ -92,7 +94,20 @@ EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp
 
-libtest_la_SOURCES = main.cpp setup_transfer.cpp
+libtest_la_SOURCES = main.cpp \
+  setup_transfer.cpp \
+  dht_server.cpp \
+  peer_server.cpp \
+  ../ed25519/src/add_scalar.c   \
+  ../ed25519/src/fe.c           \
+  ../ed25519/src/ge.c           \
+  ../ed25519/src/key_exchange.c \
+  ../ed25519/src/keypair.c      \
+  ../ed25519/src/sc.c           \
+  ../ed25519/src/seed.c         \
+  ../ed25519/src/sha512.c       \
+  ../ed25519/src/sign.c         \
+  ../ed25519/src/verify.c
 
 test_file_SOURCES = test_file.cpp
 test_file_storage_SOURCES = test_file_storage.cpp
@@ -124,8 +139,10 @@ test_torrent_parse_SOURCES = test_torrent_parse.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp
 test_transfer_SOURCES = test_transfer.cpp
 test_upnp_SOURCES = test_upnp.cpp
+enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
+test_ssl_SOURCES = test_ssl.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la

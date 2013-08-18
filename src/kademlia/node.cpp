@@ -51,7 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/find_data.hpp"
-#include "libtorrent/rsa.hpp"
+
+#include "ed25519.h"
 
 namespace libtorrent { namespace dht
 {
@@ -807,8 +808,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"v", lazy_entry::none_t, 0, 0},
 			{"seq", lazy_entry::int_t, 0, key_desc_t::optional},
 			// public key
-			{"k", lazy_entry::string_t, 268, key_desc_t::optional},
-			{"sig", lazy_entry::string_t, 256, key_desc_t::optional},
+			{"k", lazy_entry::string_t, 32, key_desc_t::optional},
+			{"sig", lazy_entry::string_t, 64, key_desc_t::optional},
 		};
 
 		// attempt to parse the message
@@ -834,7 +835,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		if (!mutable_put)
 			target = hasher(buf.first, buf.second).final();
 		else
-			target = sha1_hash(msg_keys[3]->string_ptr());
+			target = hasher(msg_keys[3]->string_ptr(), 32).final();
 
 //		fprintf(stderr, "%s PUT target: %s\n"
 //			, mutable_put ? "mutable":"immutable"
@@ -894,17 +895,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			std::pair<char const*, int> buf = msg_keys[1]->data_section();
 			digest.update(buf.first, buf.second);
 
-#ifdef TORRENT_USE_OPENSSL
-			if (!verify_rsa(digest.final(), msg_keys[3]->string_ptr(), msg_keys[3]->string_length()
-				, msg_keys[4]->string_ptr(), msg_keys[4]->string_length()))
+			// msg_keys[4] is the signature, msg_keys[3] is the public key
+			if (ed25519_verify((unsigned char const*)msg_keys[4]->string_ptr()
+				, (unsigned char const*)buf.first, buf.second
+				, (unsigned char const*)msg_keys[3]->string_ptr()) != 0)
 			{
 				incoming_error(e, "invalid signature");
 				return;
 			}
-#else
-			incoming_error(e, "unsupported");
-			return;
-#endif
 
 			sha1_hash target = hasher(msg_keys[3]->string_ptr(), msg_keys[3]->string_length()).final();
 			dht_mutable_table_t::iterator i = m_mutable_table.find(target);

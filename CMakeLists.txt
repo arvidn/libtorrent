@@ -100,6 +100,20 @@ set(kademlia_sources
 	logging
 )
 
+# -- ed25519 --
+set(ed25519_sources
+	add_scalar
+	fe
+	ge
+	key_exchange
+	keypair
+	sc
+	seed
+	sha512
+	sign
+	verify
+)
+
 set(includes include)
 
 option(shared "build libtorrent as a shared library" ON)
@@ -147,6 +161,9 @@ endforeach(s)
 if (dht)
 	foreach(s ${kademlia_sources})
 		list(APPEND sources2 src/kademlia/${s})
+	endforeach(s)
+	foreach(s ${ed25519_sources})
+		list(APPEND sources2 ed25519/src/${s})
 	endforeach(s)
 else (dht)
 	add_definitions(-DTORRENT_DISABLE_DHT)

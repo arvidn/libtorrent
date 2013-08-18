@@ -1,14 +1,11 @@
 example_programs =  \
   client_test       \
   dump_torrent      \
-  enum_if           \
   fragmentation_test\
   make_torrent      \
   simple_client     \
   rss_reader        \
-  parse_request_log \
   upnp_test         \
-  utp_test          \
   connection_tester
 
 if ENABLE_EXAMPLES
@@ -30,20 +27,11 @@ make_torrent_SOURCES = make_torrent.cpp
 simple_client_SOURCES = simple_client.cpp
 #simple_client_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-enum_if_SOURCES = enum_if.cpp
-#enum_if_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
 connection_tester_SOURCES = connection_tester.cpp
 #connection_tester_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 rss_reader_SOURCES = rss_reader.cpp
 #rss_reader_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
-utp_test_SOURCES = rss_reader.cpp
-#utp_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
-parse_request_log_SOURCES = parse_request_log.cpp
-#parse_request_log_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 fragmentation_test_SOURCES = fragmentation_test.cpp
 #fragmentation_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
