@@ -135,7 +135,7 @@ struct rsa_key { char bytes[268]; };
 
 struct dht_mutable_item : dht_immutable_item
 {
-	char sig[256];
+	char sig[64];
 	int seq;
 	rsa_key key;
 };

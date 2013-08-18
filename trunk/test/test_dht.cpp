@@ -36,10 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
-#include "libtorrent/rsa.hpp" // for generate_rsa_keys and sign_rsa
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_dispatcher.hpp"
 #include <iostream>
+
+#include "../ed25519/src/ed25519.h"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -206,7 +207,7 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 			{
 				TEST_EQUAL(parsed[4]->string_value(), "r");
 				token = parsed[2]->string_value();
-				fprintf(stderr, "got token: %s\n", token.c_str());
+//				fprintf(stderr, "got token: %s\n", token.c_str());
 			}
 			else
 			{
@@ -383,7 +384,7 @@ int test_main()
 	{
 		TEST_CHECK(parsed[0]->string_value() == "r");
 		token = parsed[2]->string_value();
-		fprintf(stderr, "got token: %s\n", token.c_str());
+//		fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
 	{
@@ -425,7 +426,7 @@ int test_main()
 		{
 			TEST_CHECK(parsed[0]->string_value() == "r");
 			token = parsed[2]->string_value();
-			fprintf(stderr, "got token: %s\n", token.c_str());
+//			fprintf(stderr, "got token: %s\n", token.c_str());
 		}
 		else
 		{
@@ -540,24 +541,24 @@ int test_main()
 
 	announce_immutable_items(node, eps, items, sizeof(items)/sizeof(items[0]));
 
-#ifdef TORRENT_USE_OPENSSL
-	// RSA functions are only implemented with openssl for now
-
 	// ==== get / put mutable items ===
 
-	char private_key[1192];
-	int private_len = sizeof(private_key);
-	char public_key[268];
-	int public_len = sizeof(public_key);
+	fprintf(stderr, "generating ed25519 keys\n");
+	unsigned char seed[32];
+	ed25519_create_seed(seed);
+	unsigned char private_key[64];
+	unsigned char public_key[32];
 
-	fprintf(stderr, "generating RSA keys\n");
-	ret = generate_rsa_keys(public_key, &public_len, private_key, &private_len, 2048);
-	fprintf(stderr, "pub: %d priv:%d\n", public_len, private_len);
+	ed25519_create_keypair(public_key, private_key, seed);
+	fprintf(stderr, "pub: %s priv: %s\n"
+		, to_hex(std::string((char*)public_key, 32)).c_str()
+		, to_hex(std::string((char*)private_key, 64)).c_str());
 
 	TEST_CHECK(ret);
 
 	send_dht_msg(node, "get", source, &response, "10", 0
-		, 0, no, 0, public_key, 0, false, false, std::string(public_key + 20, public_len-20));
+		, 0, no, 0, (char*)&hasher((char*)public_key, 32).final()[0]
+		, 0, false, false, std::string(), std::string(), 64);
 			
 	key_desc_t desc[] =
 	{
@@ -583,21 +584,18 @@ int test_main()
 		TEST_ERROR(error_string);
 	}
 
-	char signature[256];
-	int sig_len = sizeof(signature);
-	char buffer[1024];
+	unsigned char signature[64];
+	char buffer[1200];
 	int seq = 4;
 	int pos = snprintf(buffer, sizeof(buffer), "3:seqi%de1:v", seq);
-	hasher h(buffer, pos);
-	char* ptr = buffer;
-	int len = bencode(ptr, items[0].ent);
-	h.update(buffer, len);
-	sign_rsa(h.final(), private_key, private_len, signature, sig_len);
+	char* ptr = buffer + pos;
+	pos += bencode(ptr, items[0].ent);
+	ed25519_sign(signature, (unsigned char*)buffer, pos, private_key, public_key);
 
 	send_dht_msg(node, "put", source, &response, "10", 0
 		, 0, token, 0, 0, &items[0].ent, false, false
-		, std::string(public_key, public_len)
-		, std::string(signature, sig_len), seq);
+		, std::string((char*)public_key, 32)
+		, std::string((char*)signature, 64), seq);
 
 	key_desc_t desc2[] =
 	{
@@ -617,7 +615,6 @@ int test_main()
 			, error_string, print_entry(response).c_str());
 		TEST_ERROR(error_string);
 	}
-#endif // TORRENT_USE_OPENSSL
 
 // test routing table
 
