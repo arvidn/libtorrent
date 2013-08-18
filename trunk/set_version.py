@@ -21,7 +21,7 @@ def substitute_file(name):
 			l = 'AC_INIT([libtorrent-rasterbar],[%d.%d.%d],[arvid@rasterbar.com],\n' % (version[0], version[1], version[2])
 		elif 'set (VERSION ' in l and name.endswith('.txt'):
 			l = 'set (VERSION "%d.%d.%d")\n' % (version[0], version[1], version[2])
-		elif ':Version: ' in l and name.endswith('.rst'):
+		elif ':Version: ' in l and (name.endswith('.rst') or name.endswith('.py')):
 			l = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
 		elif 'VERSION = ' in l and name.endswith('Jamfile'):
 			l = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
@@ -35,6 +35,7 @@ def substitute_file(name):
 substitute_file('include/libtorrent/version.hpp')
 substitute_file('CMakeLists.txt')
 substitute_file('configure.ac')
+substitute_file('docs/gen_reference_doc.py')
 for i in glob.glob('docs/*.rst'):
 	substitute_file(i)
 substitute_file('Jamfile')
