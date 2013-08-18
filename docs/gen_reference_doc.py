@@ -800,6 +800,9 @@ libtorrent reference documentation
 for cat in categories:
 	print >>out, '%s' % heading(cat, '-')
 
+	if 'overview' in categories[cat]:
+		print >>out, '| overview__'
+
 	category_filename = categories[cat]['filename'].replace('.rst', '.html')
 	for c in categories[cat]['classes']:
 		print >>out, '| ' + print_link(c['name'], symbols[c['name']])
@@ -810,7 +813,9 @@ for cat in categories:
 		print >>out, '| ' + print_link(e['name'], symbols[e['name']])
 	print >>out, ''
 
-print >>out, dump_link_targets()
+	if 'overview' in categories[cat]:
+		print >>out, '__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html')
+	print >>out, dump_link_targets()
 
 out.write('''
 
