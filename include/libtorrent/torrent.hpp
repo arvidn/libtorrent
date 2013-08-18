@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -140,8 +140,6 @@ namespace libtorrent
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
 
-		peer_connection* find_lowest_ranking_peer() const;
-
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool has_peer(peer_connection* p) const
 		{ return m_connections.find(p) != m_connections.end(); }
@@ -195,7 +193,6 @@ namespace libtorrent
 			boost::shared_array<char> piece_data;
 			int blocks_left;
 			bool fail;
-			error_code error;
 		};
 		void read_piece(int piece);
 		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp);
@@ -267,10 +264,6 @@ namespace libtorrent
 		void force_recheck();
 		void save_resume_data(int flags);
 
-		bool is_active_download() const;
-		bool is_active_finished() const;
-		void update_guage();
-
 		bool need_save_resume_data() const
 		{
 			// save resume data every 15 minutes regardless, just to
@@ -283,7 +276,7 @@ namespace libtorrent
 
 		bool should_check_files() const;
 
-		bool delete_files();
+		void delete_files();
 
 		// ============ start deprecation =============
 		void filter_piece(int index, bool filter);
@@ -350,7 +343,7 @@ namespace libtorrent
 
 		bool resolving_countries() const
 		{
-			return m_resolve_countries && !m_ses.settings().force_proxy;
+			return m_resolve_countries && !m_ses.settings().anonymous_mode;
 		}
 #endif
 
@@ -442,8 +435,8 @@ namespace libtorrent
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& e, int interval, int min_interval
-			, int complete, int incomplete, int downloaded
-			, address const& external_ip, std::string const& trackerid);
+			, int complete, int incomplete, address const& external_ip
+			, std::string const& trackerid);
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
 			, int retry_interval);
@@ -452,18 +445,12 @@ namespace libtorrent
 		virtual void tracker_scrape_response(tracker_request const& req
 			, int complete, int incomplete, int downloaded, int downloaders);
 
-		void update_scrape_state();
-
 		// if no password and username is set
 		// this will return an empty string, otherwise
 		// it will concatenate the login and password
 		// ready to be sent over http (but without
 		// base64 encoding).
 		std::string tracker_login() const;
-
-		// if we need a connect boost, connect some peers
-		// immediately
-		void do_connect_boost();
 
 		// returns the absolute time when the next tracker
 		// announce will take place.
@@ -502,10 +489,7 @@ namespace libtorrent
 		void get_suggested_pieces(std::vector<int>& s) const;
 
 		bool super_seeding() const
-		{
-			// we're not super seeding if we're not a seed
-			return m_super_seeding && is_seed();
-		}
+		{ return m_super_seeding; }
 		
 		void super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);
@@ -530,11 +514,12 @@ namespace libtorrent
 		}
 
 		// when we get a have message, this is called for that piece
-		void peer_has(int index, peer_connection const* peer)
+		void peer_has(int index)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
-				m_picker->inc_refcount(index, peer);
+				TORRENT_ASSERT(!is_seed());
+				m_picker->inc_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -545,14 +530,12 @@ namespace libtorrent
 		}
 		
 		// when we get a bitfield message, this is called for that piece
-		void peer_has(bitfield const& bits, peer_connection const* peer)
+		void peer_has(bitfield const& bits)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
-				if (bits.all_set() && bits.size() > 0)
-					m_picker->inc_refcount_all(peer);
-				else
-					m_picker->inc_refcount(bits, peer);
+				TORRENT_ASSERT(!is_seed());
+				m_picker->inc_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -562,11 +545,12 @@ namespace libtorrent
 #endif
 		}
 
-		void peer_has_all(peer_connection const* peer)
+		void peer_has_all()
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
-				m_picker->inc_refcount_all(peer);
+				TORRENT_ASSERT(!is_seed());
+				m_picker->inc_refcount_all();
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -576,28 +560,12 @@ namespace libtorrent
 #endif
 		}
 
-		void peer_lost(bitfield const& bits, peer_connection const* peer)
+		void peer_lost(int index)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
-				if (bits.all_set() && bits.size() > 0)
-					m_picker->dec_refcount_all(peer);
-				else
-					m_picker->dec_refcount(bits, peer);
-			}
-#ifdef TORRENT_DEBUG
-			else
-			{
-				TORRENT_ASSERT(is_seed());
-			}
-#endif
-		}
-
-		void peer_lost(int index, peer_connection const* peer)
-		{
-			if (has_picker())
-			{
-				m_picker->dec_refcount(index, peer);
+				TORRENT_ASSERT(!is_seed());
+				m_picker->dec_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -717,8 +685,6 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
-		boost::intrusive_ptr<torrent_info> get_torrent_copy();
-
 		std::string const& uuid() const { return m_uuid; }
 		void set_uuid(std::string const& s) { m_uuid = s; }
 		std::string const& url() const { return m_url; }
@@ -747,7 +713,7 @@ namespace libtorrent
 #endif
 
 		// DEBUG
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 
@@ -768,18 +734,17 @@ namespace libtorrent
 		void set_peer_upload_limit(tcp::endpoint ip, int limit);
 		void set_peer_download_limit(tcp::endpoint ip, int limit);
 
-		void set_upload_limit(int limit, bool state_update = true);
+		void set_upload_limit(int limit);
 		int upload_limit() const;
-		void set_download_limit(int limit, bool state_update = true);
+		void set_download_limit(int limit);
 		int download_limit() const;
 
-		void set_max_uploads(int limit, bool state_update = true);
+		void set_max_uploads(int limit);
 		int max_uploads() const { return m_max_uploads; }
-		void set_max_connections(int limit, bool state_update = true);
+		void set_max_connections(int limit);
 		int max_connections() const { return m_max_connections; }
 
-		// flags are defined in storage.hpp
-		void move_storage(std::string const& save_path, int flags);
+		void move_storage(std::string const& save_path);
 
 		// renames the file with the given index to the new name
 		// the name may include a directory path
@@ -1094,17 +1059,8 @@ namespace libtorrent
 		// completed, m_completed_time is 0
 		time_t m_added_time;
 		time_t m_completed_time;
-		time_t m_last_saved_resume;
-
-		// this was the last time _we_ saw a seed in this swarm
 		time_t m_last_seen_complete;
-
-		// this is the time last any of our peers saw a seed
-		// in this swarm
-		time_t m_swarm_last_seen_complete;
-
-		// m_num_verified = m_verified.count()
-		boost::uint32_t m_num_verified;
+		time_t m_last_saved_resume;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is SHA1("req2" + info-hash), used for
@@ -1207,6 +1163,7 @@ namespace libtorrent
 		// paused or auto_managed from the resume data
 		bool m_override_resume_data:1;
 
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		// this is true while there is a country
 		// resolution in progress. To avoid flodding
 		// the DNS request queue, only one ip is resolved
@@ -1216,6 +1173,9 @@ namespace libtorrent
 		// this is true if the user has enabled
 		// country resolution in this torrent
 		bool m_resolve_countries:1;
+#else
+		unsigned int m_dummy_padding_bits_to_align:2;
+#endif
 
 		// set to false when saving resume data. Set to true
 		// whenever something is downloaded
@@ -1314,21 +1274,24 @@ namespace libtorrent
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
 
-		// the number of seconds since the last piece passed for
-		// this torrent
-		boost::uint32_t m_last_download:24;
-
-		// the number of seconds since the last byte was uploaded
-		// from this torrent
-		boost::uint32_t m_last_upload:24;
+		// m_num_verified = m_verified.count()
+		boost::uint32_t m_num_verified;
 
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
-		boost::uint16_t m_last_scrape;
+		boost::uint32_t m_last_scrape;
+
+		// the number of seconds since the last piece passed for
+		// this torrent
+		boost::uint32_t m_last_download;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint32_t m_last_upload;
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		unsigned int m_downloaded:24;
+		unsigned int m_downloaders:24;
 
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;
@@ -1372,12 +1335,6 @@ namespace libtorrent
 		// session_impl's m_state_update list, this bit is set
 		// to never add the same torrent twice
 		bool m_in_state_updates:1;
-
-		// these represent whether or not this torrent is counted
-		// in the total counters of active seeds and downloads
-		// in the session.
-		bool m_is_active_download:1;
-		bool m_is_active_finished:1;
 
 		// even if we're not built to support SSL torrents,
 		// remember that this is an SSL torrent, so that we don't

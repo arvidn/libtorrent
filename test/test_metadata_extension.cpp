@@ -94,7 +94,14 @@ void test_transfer(bool clear_files, bool disconnect
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_ses_rate(i, &st1, &st2);
+		std::cerr
+			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+			<< st1.num_peers << ": "
+			<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st2.progress * 100) << "% "
+			<< st2.num_peers
+			<< std::endl;
 		if (st2.is_seeding) break;
 		test_sleep(1000);
 	}

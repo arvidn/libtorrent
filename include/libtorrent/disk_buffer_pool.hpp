@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007-2011, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,10 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/allocator.hpp"
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-#include <boost/pool/pool.hpp>
-#endif
 
 #ifdef TORRENT_DISK_STATS
 #include <fstream>
@@ -102,25 +98,6 @@ namespace libtorrent
 	private:
 
 		mutable mutex m_pool_mutex;
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// if this is true, all buffers are allocated
-		// from m_pool. If this is false, all buffers
-		// are allocated using page_aligned_allocator.
-		// if the settings change to prefer the other
-		// allocator, this bool will not switch over
-		// to match the settings until all buffers have
-		// been freed. That way, we never have a mixture
-		// of buffers allocated from different sources.
-		// in essence, this make the setting only take
-		// effect after a restart (which seems fine).
-		// or once the client goes idle for a while.
-		bool m_using_pool_allocator;
-
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
 
 #if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		int m_allocations;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 	class alert_manager;
-	struct alert_dispatcher;
 }
 
 namespace libtorrent { namespace dht
@@ -140,13 +139,11 @@ struct dht_mutable_item : dht_immutable_item
 	rsa_key key;
 };
 
-// internal
 inline bool operator<(rsa_key const& lhs, rsa_key const& rhs)
 {
 	return memcmp(lhs.bytes, rhs.bytes, sizeof(lhs.bytes)) < 0;
 }
 
-// internal
 inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
 {
 	return lhs.addr.address() == rhs.addr.address()
@@ -177,12 +174,7 @@ struct count_peers
 		count += t.second.peers.size();
 	}
 };
-
-struct udp_socket_interface
-{
-	virtual bool send_packet(entry& e, udp::endpoint const& addr, int flags) = 0;
-};
-
+	
 class TORRENT_EXTRA_EXPORT node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
@@ -190,9 +182,12 @@ typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
 typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 
 public:
-	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
+	typedef boost::function3<void, address, int, address> external_ip_fun;
+
+	node_impl(libtorrent::alert_manager& alerts
+		, bool (*f)(void*, entry&, udp::endpoint const&, int)
 		, dht_settings const& settings, node_id nid, address const& external_address
-		, dht_observer* observer);
+		, external_ip_fun ext_ip, void* userdata);
 
 	virtual ~node_impl() {}
 
@@ -304,8 +299,9 @@ private:
 	// secret random numbers used to create write tokens
 	int m_secret[2];
 
-	alert_dispatcher* m_post_alert;
-	udp_socket_interface* m_sock;
+	libtorrent::alert_manager& m_alerts;
+	bool (*m_send)(void*, entry&, udp::endpoint const&, int);
+	void* m_userdata;
 };
 
 

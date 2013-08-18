@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <deque>
 
-#include "setup_transfer.hpp"
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/http_parser.hpp"
@@ -70,91 +68,18 @@ bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
-	fprintf(stderr, "\n***** %s:%d \"%s\" *****\n\n", file, line, err);
+#if defined TORRENT_WINDOWS
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(out, FOREGROUND_RED);
+	char buffer[1024];
+	int len = snprintf(buffer, sizeof(buffer), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
+	DWORD written;
+	WriteFile(out, buffer, len, &written, NULL);
+	SetConsoleTextAttribute(out, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+#else
+	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
+#endif
 	tests_failure = true;
-}
-
-std::auto_ptr<alert> wait_for_alert(session& ses, int type)
-{
-	std::auto_ptr<alert> ret;
-	while (!ret.get())
-	{
-		ses.wait_for_alert(milliseconds(5000));
-		std::deque<alert*> alerts;
-		ses.pop_alerts(&alerts);
-		for (std::deque<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
-		{
-			if (!ret.get() && (*i)->type() == type)
-			{
-				ret = std::auto_ptr<alert>(*i);
-			}
-			else
-				delete *i;
-		}
-	}
-	return ret;
-}
-
-int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit)
-{
-	ec.clear();
-	FILE* f = fopen(filename.c_str(), "rb");
-	if (f == NULL)
-	{
-		ec.assign(errno, boost::system::get_generic_category());
-		return -1;
-	}
-
-	int r = fseek(f, 0, SEEK_END);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::get_generic_category());
-		fclose(f);
-		return -1;
-	}
-	long s = ftell(f);
-	if (s < 0)
-	{
-		ec.assign(errno, boost::system::get_generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	if (s > limit)
-	{
-		fclose(f);
-		return -2;
-	}
-
-	r = fseek(f, 0, SEEK_SET);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::get_generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	v.resize(s);
-	if (s == 0)
-	{
-		fclose(f);
-		return 0;
-	}
-
-	r = fread(&v[0], 1, v.size(), f);
-	if (r < 0)
-	{
-		ec.assign(errno, boost::system::get_generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	fclose(f);
-
-	if (r != s) return -3;
-
-	return 0;
 }
 
 bool print_alerts(libtorrent::session& ses, char const* name
@@ -230,40 +155,10 @@ void wait_for_listen(libtorrent::session& ses, char const* name)
 	TEST_CHECK(listen_done);
 }
 
-void print_ses_rate(float time
-	, libtorrent::torrent_status const* st1
-	, libtorrent::torrent_status const* st2
-	, libtorrent::torrent_status const* st3)
-{
-	fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d", time
-		, int(st1->download_payload_rate / 1000)
-		, int(st1->upload_payload_rate / 1000)
-		, int(st1->progress * 100)
-		, st1->num_peers);
-	if (st2)
-		std::cerr << " : "
-			<< int(st2->download_payload_rate / 1000.f) << "kB/s "
-			<< int(st2->upload_payload_rate / 1000.f) << "kB/s "
-			<< int(st2->progress * 100) << "% "
-			<< st2->num_peers
-			<< " cc: " << st2->connect_candidates;
-	if (st3)
-		std::cerr << " : "
-			<< int(st3->download_payload_rate / 1000.f) << "kB/s "
-			<< int(st3->upload_payload_rate / 1000.f) << "kB/s "
-			<< int(st3->progress * 100) << "% "
-			<< st3->num_peers
-			<< " cc: " << st3->connect_candidates;
-
-	fprintf(stderr, "\n");
-}
-
 void test_sleep(int millisec)
 {
 	libtorrent::sleep(millisec);
 }
-
-static std::set<int> running_proxies;
 
 void stop_proxy(int port)
 {
@@ -271,26 +166,14 @@ void stop_proxy(int port)
 	snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", port);
 	int ret = system(buf);
 	if (ret == 0)
-		perror("system");	
-	else
-		running_proxies.erase(port);
-}
-
-void stop_all_proxies()
-{
-	std::set<int> proxies = running_proxies;
-	for (std::set<int>::iterator i = proxies.begin()
-		, end(proxies.end()); i != end; ++i)
 	{
-		stop_proxy(*i);
+		perror("system");	
 	}
 }
 
-int start_proxy(int proxy_type)
+void start_proxy(int port, int proxy_type)
 {
 	using namespace libtorrent;
-
-	int port = 10000 + (rand() % 50000);
 
 	stop_proxy(port);
 
@@ -325,18 +208,16 @@ int start_proxy(int proxy_type)
 		"SERVER=%s %s"
 		, port, type, auth);
 
-	fprintf(stderr, "%s starting delegated proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
 	int r = system(buf);
 	if (r != 0)
 	{
 		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
 		exit(1);
 	}
-	running_proxies.insert(port);
-	fprintf(stderr, "%s launched\n", time_now_string());
+	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
-	return port;
 }
 
 using namespace libtorrent;
@@ -365,7 +246,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		while (to_write > 0)
 		{
 			int s = (std::min)(to_write, 300000);
-			file::iovec_t b = { random_data, size_t(s)};
+			file::iovec_t b = { random_data, s};
 			f.writev(offset, &b, 1, ec);
 			if (ec) fprintf(stderr, "failed to write file \"%s\": (%d) %s\n"
 				, full_path.c_str(), ec.value(), ec.message().c_str());
@@ -670,7 +551,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 {
 	if (ec)
 	{
-		fprintf(stderr, "%s: UDP tracker, read failed: %s\n", time_now_string(), ec.message().c_str());
+		fprintf(stderr, "UDP tracker, read failed: %s\n", ec.message().c_str());
 		return;
 	}
 
@@ -678,7 +559,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 	if (bytes_transferred < 16)
 	{
-		fprintf(stderr, "%s: UDP message too short (from: %s)\n", time_now_string(), print_endpoint(*from).c_str());
+		fprintf(stderr, "UDP message too short\n");
 		return;
 	}
 
@@ -695,13 +576,12 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 	{
 		case 0: // connect
 
-			fprintf(stderr, "%s: UDP connect from %s\n", time_now_string(), print_endpoint(*from).c_str());
+			fprintf(stderr, "%s: UDP connect\n", time_now_string());
 			ptr = buffer;
 			detail::write_uint32(0, ptr); // action = connect
 			detail::write_uint32(transaction_id, ptr); // transaction_id
 			detail::write_uint64(10, ptr); // connection_id
 			sock->send_to(asio::buffer(buffer, 16), *from, 0, e);
-			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
 			break;
 
 		case 1: // announce
@@ -716,7 +596,6 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 			++g_udp_tracker_requests;
 			// 0 peers
 			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
-			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
 			break;
 		case 2:
 			// ignore scrapes
@@ -806,7 +685,6 @@ void stop_web_server()
 		web_server->join();
 		web_server.reset();
 	}
-	remove("server.pem");
 	fprintf(stderr, "%s: stop_web_server() done\n", time_now_string());
 }
 
@@ -972,8 +850,8 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 	boost::asio::ssl::context ssl_ctx(ios, boost::asio::ssl::context::sslv23_server);
 	if (ssl)
 	{
-		ssl_ctx.use_certificate_chain_file("../ssl/server.pem");
-		ssl_ctx.use_private_key_file("../ssl/server.pem", asio::ssl::context::pem);
+		ssl_ctx.use_certificate_chain_file("ssl/server.pem");
+		ssl_ctx.use_private_key_file("ssl/server.pem", asio::ssl::context::pem);
 		ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 
 		ctx = &ssl_ctx;
@@ -1033,7 +911,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				ios.reset();
 				if (stop_thread || ios.run_one(e) == 0)
 				{
-					fprintf(stderr, "%s: io_service stopped: %s\n", time_now_string(), e.message().c_str());
+					fprintf(stderr, "io_service stopped: %s\n", e.message().c_str());
 					break;
 				}
 			}
@@ -1041,20 +919,20 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			if (ec)
 			{
-				fprintf(stderr, "%s: accept failed: %s\n", time_now_string(), ec.message().c_str());
+				fprintf(stderr, "accept failed: %s\n", ec.message().c_str());
 				return;
 			}
-			DLOG(stderr, "%s: accepting incoming connection\n", time_now_string());
+			DLOG(stderr, "accepting incoming connection\n");
 			if (!s.is_open())
 			{
-				fprintf(stderr, "%s: incoming connection closed\n", time_now_string());
+				fprintf(stderr, "incoming connection closed\n");
 				continue;
 			}
 
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl)
 			{
-				DLOG(stderr, "%s: SSL handshake\n", time_now_string());
+				DLOG(stderr, "SSL handshake\n");
 				s.get<ssl_stream<stream_socket> >()->accept_handshake(ec);
 				if (ec)
 				{
@@ -1180,7 +1058,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			}
 
 			std::string path = p.path();
-			fprintf(stderr, "%s: %s\n", time_now_string(), path.c_str());
+			fprintf(stderr, "%s\n", path.c_str());
 
 			if (path == "/redirect")
 			{
@@ -1352,7 +1230,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 	}
 
 	web_ios = 0;
-	fprintf(stderr, "%s: exiting web server thread\n", time_now_string());
+	fprintf(stderr, "exiting web server thread\n");
 }
 
 

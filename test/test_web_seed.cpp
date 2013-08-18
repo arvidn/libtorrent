@@ -70,9 +70,10 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	
 	if (proxy)
 	{
+		start_proxy(8002, proxy);
 		proxy_settings ps;
-		ps.port = start_proxy(proxy);
 		ps.hostname = "127.0.0.1";
+		ps.port = 8002;
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy;
@@ -174,7 +175,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 	if (proxy) stop_proxy(8002);
 
-	TEST_CHECK(exists(combine_path("tmp2_web_seed", torrent_file->files().file_path(0))) || test_ban);
+	TEST_CHECK(exists(combine_path("tmp2_web_seed", torrent_file->files().file_path(
+		torrent_file->file_at(0)))) || test_ban);
 	remove_all("tmp2_web_seed", ec);
 }
 

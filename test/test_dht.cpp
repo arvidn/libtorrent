@@ -38,25 +38,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/rsa.hpp" // for generate_rsa_keys and sign_rsa
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
-#include "libtorrent/alert_dispatcher.hpp"
 #include <iostream>
 
 #include "test.hpp"
-#include "setup_transfer.hpp"
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
 
 std::list<std::pair<udp::endpoint, entry> > g_responses;
 
-struct mock_socket : udp_socket_interface
+bool our_send(void* user, entry& msg, udp::endpoint const& ep, int flags)
 {
-	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
-	{
-		g_responses.push_back(std::make_pair(ep, msg));
-		return true;
-	}
-};
+	g_responses.push_back(std::make_pair(ep, msg));
+	return true;
+}
 
 address rand_v4()
 {
@@ -122,10 +117,7 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	if (seq >= 0) a["seq"] = seq;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-// this yields a lot of output. too much
 //	std::cerr << "sending: " <<  e << "\n";
-#endif
 
 	lazy_entry decoded;
 	error_code ec;
@@ -206,11 +198,9 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 			{
 				TEST_EQUAL(parsed[4]->string_value(), "r");
 				token = parsed[2]->string_value();
-				fprintf(stderr, "got token: %s\n", token.c_str());
 			}
 			else
 			{
-				fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 				fprintf(stderr, "   invalid get response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
@@ -231,17 +221,14 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 				{ "y", lazy_entry::string_t, 1, 0 }
 			};
 
+//			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
 			if (ret)
 			{
-				if (parsed[0]->string_value() != "r")
-					fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-
 				TEST_EQUAL(parsed[0]->string_value(), "r");
 			}
 			else
 			{
-				fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 				fprintf(stderr, "   invalid put response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
@@ -282,25 +269,17 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 //	TEST_CHECK(items_num.find(3) != items_num.end());
 }
 
-struct print_alert : alert_dispatcher
-{
-	virtual bool post_alert(alert* a)
-	{
-		fprintf(stderr, "ALERT: %s\n", a->message().c_str());
-		delete a;
-		return true;
-	}
-};
+void nop(address, int, address) {}
 
 int test_main()
 {
+	io_service ios;
+	alert_manager al(ios, 100);
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
 	address ext = address::from_string("236.0.0.1");
-	mock_socket s;
-	print_alert ad;
-	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0);
+	dht::node_impl node(al, &our_send, sett, node_id(0), ext, boost::bind(nop, _1, _2, _3), 0);
 
 	// DHT should be running on port 48199 now
 	lazy_entry response;
@@ -383,11 +362,9 @@ int test_main()
 	{
 		TEST_CHECK(parsed[0]->string_value() == "r");
 		token = parsed[2]->string_value();
-		fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
 	{
-		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 	}
 
@@ -425,11 +402,9 @@ int test_main()
 		{
 			TEST_CHECK(parsed[0]->string_value() == "r");
 			token = parsed[2]->string_value();
-			fprintf(stderr, "got token: %s\n", token.c_str());
 		}
 		else
 		{
-			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 		}
 		response.clear();
@@ -573,11 +548,9 @@ int test_main()
 	{
 		TEST_EQUAL(parsed[4]->string_value(), "r");
 		token = parsed[2]->string_value();
-		fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
 	{
-		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		fprintf(stderr, "   invalid get response: %s\n%s\n"
 			, error_string, print_entry(response).c_str());
 		TEST_ERROR(error_string);
@@ -622,7 +595,6 @@ int test_main()
 // test routing table
 
 	{
-		sett.extended_routing_table = false;
 		routing_table tbl(random_id(), 8, sett);
    
 		// insert 256 nodes evenly distributed across the ID space.
@@ -631,26 +603,10 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_ep(), 50);
+			tbl.node_seen(id, rand_ep());
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
-		tbl.print_state(std::cerr);
-#endif
-	}
-
-	{
-		sett.extended_routing_table = true;
-		routing_table tbl(random_id(), 8, sett);
-		for (int i = 0; i < 256; ++i)
-		{
-			node_id id = random_id();
-			id[0] = i;
-			tbl.node_seen(id, rand_ep(), 50);
-		}
-		TEST_EQUAL(tbl.num_active_buckets(), 6);
-
 #if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
 		tbl.print_state(std::cerr);
 #endif

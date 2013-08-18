@@ -56,38 +56,37 @@ const int half = piece_size / 2;
 char* piece0 = page_aligned_allocator::malloc(piece_size);
 char* piece1 = page_aligned_allocator::malloc(piece_size);
 char* piece2 = page_aligned_allocator::malloc(piece_size);
-char* piece3 = page_aligned_allocator::malloc(piece_size);
 
 void signal_bool(bool* b, char const* string)
 {
 	*b = true;
-	std::cerr << time_now_string() << " " << string << std::endl;
+	std::cerr << string << std::endl;
 }
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
-	std::cerr << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
+	std::cerr << "on_read_piece piece: " << j.piece << std::endl;
 	TEST_EQUAL(ret, size);
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
 void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
 {
-	std::cerr << time_now_string() << " on_check_resume_data ret: " << ret;
+	std::cerr << "on_check_resume_data ret: " << ret;
 	switch (ret)
 	{
 		case piece_manager::no_error:
-			std::cerr << time_now_string() << " success" << std::endl;
+			std::cerr << " success" << std::endl;
 			break;
 		case piece_manager::fatal_disk_error:
-			std::cerr << time_now_string() << " disk error: " << j.str
+			std::cerr << " disk error: " << j.str
 				<< " file: " << j.error_file << std::endl;
 			break;
 		case piece_manager::need_full_check:
-			std::cerr << time_now_string() << " need full check" << std::endl;
+			std::cerr << " need full check" << std::endl;
 			break;
 		case piece_manager::disk_check_aborted:
-			std::cerr << time_now_string() << " aborted" << std::endl;
+			std::cerr << " aborted" << std::endl;
 			break;
 	}
 	*done = true;
@@ -95,25 +94,25 @@ void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
 
 void on_check_files(int ret, disk_io_job const& j, bool* done)
 {
-	std::cerr << " on_check_files ret: " << ret;
+	std::cerr << "on_check_files ret: " << ret;
 
 	switch (ret)
 	{
 		case piece_manager::no_error:
-			std::cerr << time_now_string() << " done" << std::endl;
+			std::cerr << " done" << std::endl;
 			*done = true;
 			break;
 		case piece_manager::fatal_disk_error:
-			std::cerr << time_now_string() << " disk error: " << j.str
+			std::cerr << " disk error: " << j.str
 				<< " file: " << j.error_file << std::endl;
 			*done = true;
 			break;
 		case piece_manager::need_full_check:
-			std::cerr << time_now_string() << " current slot: " << j.piece
+			std::cerr << " current slot: " << j.piece
 				<< " have: " << j.offset << std::endl;
 			break;
 		case piece_manager::disk_check_aborted:
-			std::cerr << time_now_string() << " aborted" << std::endl;
+			std::cerr << " aborted" << std::endl;
 			*done = true;
 			break;
 	}
@@ -121,7 +120,7 @@ void on_check_files(int ret, disk_io_job const& j, bool* done)
 
 void on_read(int ret, disk_io_job const& j, bool* done)
 {
-	std::cerr << time_now_string() << " on_read ret: " << ret << std::endl;
+	std::cerr << "on_read ret: " << ret << std::endl;
 	*done = true;
 
 	if (ret < 0)
@@ -134,25 +133,15 @@ void on_read(int ret, disk_io_job const& j, bool* done)
 
 void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path)
 {
-	std::cerr << time_now_string() << " on_move_storage ret: " << ret << " path: " << j.str << std::endl;
+	std::cerr << "on_move_storage ret: " << ret << " path: " << j.str << std::endl;
 	TEST_EQUAL(ret, 0);
 	TEST_EQUAL(j.str, path);
 	*done = true;
 }
 
-void on_move_storage_exist(int ret, bool* done, disk_io_job const& j, std::string path)
-{
-	std::cerr << time_now_string() << " on_move_storage_exist ret: " << ret << " path: " << j.str << std::endl;
-	TEST_EQUAL(ret, piece_manager::file_exist);
-	TEST_EQUAL(j.str, path);
-	TEST_EQUAL(j.error, error_code(boost::system::errc::file_exists, get_system_category()));
-	*done = true;
-}
-
-
 void print_error(int ret, boost::scoped_ptr<storage_interface> const& s)
 {
-	std::cerr << time_now_string() << " returned: " << ret
+	std::cerr << "returned: " << ret
 		<< " error: " << s->error().message()
 		<< " file: " << s->error_file()
 		<< std::endl;
@@ -209,8 +198,8 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return start; }
 
-	virtual int move_storage(std::string const&  save_path, int flags)
-	{ return 0; }
+	virtual bool move_storage(std::string const&  save_path)
+	{ return false; }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return false; }
@@ -440,10 +429,10 @@ void run_until(io_service& ios, bool const& done)
 		ios.run_one(ec);
 		if (ec)
 		{
-			std::cerr << "run_one: " << ec.message().c_str() << std::endl;
+			std::cerr << "run_one: " << ec.message() << std::endl;
 			return;
 		}
-		std::cerr << time_now_string() << " done: " << done << std::endl;
+		std::cerr << "done: " << done << std::endl;
 	}
 }
 
@@ -583,8 +572,8 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage")));
 
 	done = false;
-	pm->async_move_storage(combine_path(test_path, "temp_storage2"), 0
-		, boost::bind(&on_move_storage, _1, &done, _2, combine_path(test_path, "temp_storage2")));
+	pm->async_move_storage(combine_path(test_path, "temp_storage2")
+		, boost::bind(on_move_storage, _1, &done, _2, combine_path(test_path, "temp_storage2")));
 	run_until(ios, done);
 
 	if (fs.num_files() > 1)
@@ -595,21 +584,12 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
 
 	done = false;
-	pm->async_move_storage(test_path, 0, boost::bind(&on_move_storage, _1, &done, _2, test_path));
+	pm->async_move_storage(test_path, boost::bind(on_move_storage, _1, &done, _2, test_path));
 	run_until(ios, done);
 
 	TEST_CHECK(exists(combine_path(test_path, "part0")));	
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));	
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
-
-	done = false;
-	pm->async_move_storage(test_path, fail_if_exist, boost::bind(&on_move_storage_exist, _1, &done, _2, test_path));
-	run_until(ios, done);
-
-	TEST_CHECK(exists(combine_path(test_path, "part0")));	
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "temp_storage"))));	
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage2", "part0"))));	
-
 
 	r.piece = 0;
 	r.start = 0;
@@ -679,30 +659,16 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	s->m_settings = &set;
 	s->m_disk_pool = &dp;
 
-	if (s->error())
-	{
-		TEST_ERROR(s->error().message().c_str());
-		fprintf(stderr, "default_storage::constructor %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
-	}
-
 	// allocate the files and create the directories
 	s->initialize(true);
+	TEST_CHECK(!s->error());
 	if (s->error())
-	{
-		TEST_ERROR(s->error().message().c_str());
-		fprintf(stderr, "default_storage::initialize %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
-	}
+		fprintf(stderr, "%s: %s\n", s->error().message().c_str(), s->error_file().c_str());
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("folder2", "test3.tmp")))));	
 
 	s->delete_files();
-
-	if (s->error())
-	{
-		TEST_ERROR(s->error().message().c_str());
-		fprintf(stderr, "default_storage::delete_files %s: %s\n", s->error().message().c_str(), s->error_file().c_str());
-	}
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
 }
@@ -711,7 +677,7 @@ namespace
 {
 	void check_files_fill_array(int ret, disk_io_job const& j, bool* array, bool* done)
 	{
-		std::cerr << time_now_string() << " check_files_fill_array ret: " << ret
+		std::cerr << "check_files_fill_array ret: " << ret
 			<< " piece: " << j.piece
 			<< " have: " << j.offset
 			<< " str: " << j.str
@@ -823,42 +789,27 @@ void run_test(std::string const& test_path, bool unbuffered)
 	const int last_file_size = 4 * piece_size - fs.total_size();
 	fs.add_file("temp_storage/test7.tmp", last_file_size);
 
-	// File layout
-	// +-+--+++-------+-------+----------------------------------------------------------------------------------------+
-	// |1| 2||| file5 | file6 | file7                                                                                  |
-	// +-+--+++-------+-------+----------------------------------------------------------------------------------------+
-	// |                           |                           |                           |                           |
-	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
-
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
-	TEST_CHECK(t.num_pieces() == 4);
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
-	t.set_hash(3, hasher(piece3, piece_size).final());
 	
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	info = new torrent_info(&buf[0], buf.size(), ec);
-	std::cerr << "=== test 1 === " << (unbuffered?"unbuffered":"buffered") << std::endl;
+	std::cerr << "=== test 1 ===" << std::endl;
 
-	// run_storage_tests writes piece 0, 1 and 2. not 3
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
 
 	// make sure the files have the correct size
 	std::string base = combine_path(test_path, "temp_storage");
 	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
 	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
-	
-	// these files should have been allocated as 0 size
+	// these files should have been allocated since they are 0 sized
 	TEST_CHECK(exists(combine_path(base, "test3.tmp")));
 	TEST_CHECK(exists(combine_path(base, "test4.tmp")));
-	TEST_CHECK(file_size(combine_path(base, "test3.tmp")) == 0);
-	TEST_CHECK(file_size(combine_path(base, "test4.tmp")) == 0);
-
 	TEST_EQUAL(file_size(combine_path(base, "test5.tmp")), 3253);
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
-	printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n", int(file_size(combine_path(base, "test7.tmp"))), int(last_file_size - piece_size), last_file_size, piece_size);
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
@@ -870,9 +821,9 @@ void run_test(std::string const& test_path, bool unbuffered)
 	{
 	error_code ec;
 	file_storage fs;
-	fs.add_file(combine_path("temp_storage", "test1.tmp"), 3 * piece_size);
+	fs.add_file("temp_storage/test1.tmp", 3 * piece_size);
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
-	TEST_CHECK(fs.file_path(0) == combine_path("temp_storage", "test1.tmp"));
+	TEST_CHECK(fs.file_path(*fs.begin()) == "temp_storage/test1.tmp");
 	t.set_hash(0, hasher(piece0, piece_size).final());
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
@@ -885,7 +836,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
 
-	TEST_EQUAL(file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))), piece_size * 3);
+	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), piece_size * 3);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
@@ -896,8 +847,8 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	run_storage_tests(info, fs, test_path, storage_mode_allocate, unbuffered);
 
-	std::cerr << file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))) << std::endl;
-	TEST_EQUAL(file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))), 3 * piece_size);
+	std::cerr << file_size(combine_path(test_path, "temp_storage/test1.tmp")) << std::endl;
+	TEST_EQUAL(file_size(combine_path(test_path, "temp_storage/test1.tmp")), 3 * piece_size);
 
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
@@ -931,8 +882,6 @@ void test_fastresume(std::string const& test_path)
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(combine_path(test_path, "tmp1/temporary")));
-	if (!exists(combine_path(test_path, "tmp1/temporary")))
-		return;
 
 	entry resume;
 	{
@@ -946,39 +895,23 @@ void test_fastresume(std::string const& test_path)
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
 		torrent_handle h = ses.add_torrent(p, ec);
-		TEST_CHECK(exists(combine_path(p.save_path, "temporary")));
-		if (!exists(combine_path(p.save_path, "temporary")))
-			return;
 				
-		torrent_status s;
-		for (int i = 0; i < 50; ++i)
+		for (int i = 0; i < 10; ++i)
 		{
 			print_alerts(ses, "ses");
-			s = h.status();
+			test_sleep(1000);
+			torrent_status s = h.status();
 			if (s.progress == 1.0f) 
 			{
 				std::cout << "progress: 1.0f" << std::endl;
 				break;
 			}
-			test_sleep(100);
 		}
-
-		// the whole point of the test is to have a resume
-		// data which expects the file to exist in full. If
-		// we failed to do that, we might as well abort
-		TEST_EQUAL(s.progress, 1.0f);
-		if (s.progress != 1.0f)
-			return;
-
-		h.save_resume_data();
-		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
-		TEST_CHECK(ra.get());
-		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
+		// TODO: 3 don't use this deprecated function
+		resume = h.write_resume_data();
 		ses.remove_torrent(h, session::delete_files);
 	}
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("tmp1", "temporary"))));
-	if (exists(combine_path(test_path, combine_path("tmp1", "temporary"))))
-		return;
+	TEST_CHECK(!exists(combine_path(test_path, "tmp1/temporary")));
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 	resume.print(std::cout);
 #endif
@@ -992,7 +925,9 @@ void test_fastresume(std::string const& test_path)
 		p.ti = new torrent_info(*t);
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
-		bencode(std::back_inserter(p.resume_data), resume);
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
 		torrent_handle h = ses.add_torrent(p, ec);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
@@ -1008,7 +943,6 @@ void test_fastresume(std::string const& test_path)
 			assert(a.get());
 			std::cerr << a->message() << std::endl;
 		}
-		// we expect the fast resume to be rejected because the files were removed
 		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
@@ -1054,18 +988,15 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		for (int i = 0; i < 100; ++i)
 		{
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
+			test_sleep(1000);
 			torrent_status s = h.status();
 			if (s.state == torrent_status::seeding && renamed) break;
-			test_sleep(100);
 		}
 		std::cout << "stop loop" << std::endl;
 		torrent_status s = h.status();
 		TEST_CHECK(s.state == torrent_status::seeding);
-
-		h.save_resume_data();
-		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
-		TEST_CHECK(ra.get());
-		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
+		// TODO: 3 don't use this deprecated function
+		resume = h.write_resume_data();
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
@@ -1084,24 +1015,21 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		p.ti = new torrent_info(*t);
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_compact;
-		bencode(std::back_inserter(p.resume_data), resume);
+		std::vector<char> resume_buf;
+		bencode(std::back_inserter(resume_buf), resume);
+		p.resume_data = &resume_buf;
 		torrent_handle h = ses.add_torrent(p, ec);
 
-		torrent_status stat;
-		for (int i = 0; i < 50; ++i)
+		for (int i = 0; i < 5; ++i)
 		{
-			stat = h.status();
 			print_alerts(ses, "ses");
-			if (stat.state == torrent_status::seeding)
-				break;
-			test_sleep(100);
+			test_sleep(1000);
 		}
+		torrent_status stat = h.status();
 		TEST_CHECK(stat.state == torrent_status::seeding);
 
-		h.save_resume_data();
-		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
-		TEST_CHECK(ra.get());
-		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
+		// TODO: 3 don't use this deprecated function
+		resume = h.write_resume_data();
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
@@ -1125,8 +1053,6 @@ int test_main()
 		*p = rand();
 	for (char* p = piece2, *end(piece2 + piece_size); p < end; ++p)
 		*p = rand();
-	for (char* p = piece3, *end(piece3 + piece_size); p < end; ++p)
-		*p = rand();
 
 	std::vector<std::string> test_paths;
 	char* env = std::getenv("TORRENT_TEST_PATHS");
@@ -1148,6 +1074,31 @@ int test_main()
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_rename_file_in_fastresume, _1));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, true));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, false));
+
+	file_storage fs;
+	fs.set_piece_length(512);
+	fs.add_file("temp_storage/test1.tmp", 17);
+	fs.add_file("temp_storage/test2.tmp", 612);
+	fs.add_file("temp_storage/test3.tmp", 0);
+	fs.add_file("temp_storage/test4.tmp", 0);
+	fs.add_file("temp_storage/test5.tmp", 3253);
+	// size: 3882
+	fs.add_file("temp_storage/test6.tmp", 841);
+	// size: 4723
+
+	peer_request rq = fs.map_file(0, 0, 10);
+	TEST_EQUAL(rq.piece, 0);
+	TEST_EQUAL(rq.start, 0);
+	TEST_EQUAL(rq.length, 10);
+	rq = fs.map_file(5, 0, 10);
+	TEST_EQUAL(rq.piece, 7);
+	TEST_EQUAL(rq.start, 298);
+	TEST_EQUAL(rq.length, 10);
+	rq = fs.map_file(5, 0, 1000);
+	TEST_EQUAL(rq.piece, 7);
+	TEST_EQUAL(rq.start, 298);
+	TEST_EQUAL(rq.length, 841);
+
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -225,7 +225,7 @@ namespace libtorrent
 				i != files.end(); ++i)
 			{
 				file_slice const& f = *i;
-				if (info.orig_files().pad_file_at(f.file_index))
+				if (info.orig_files().internal_at(f.file_index).pad_file)
 				{
 					m_file_requests.push_back(f.file_index);
 					continue;
@@ -237,7 +237,7 @@ namespace libtorrent
 					// m_url is already a properly escaped URL
 					// with the correct slashes. Don't encode it again
 					request += m_url;
-					std::string path = info.orig_files().file_path(f.file_index);
+					std::string path = info.orig_files().file_path(info.orig_files().internal_at(f.file_index));
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -249,7 +249,7 @@ namespace libtorrent
 					// with the correct slashes. Don't encode it again
 					request += m_path;
 
-					std::string path = info.orig_files().file_path(f.file_index);
+					std::string path = info.orig_files().file_path(info.orig_files().internal_at(f.file_index));
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -318,51 +318,6 @@ namespace libtorrent
 		m_piece.clear();
 		TORRENT_ASSERT(m_piece.empty());
 		return true;
-	}
-
-	bool web_peer_connection::received_invalid_data(int index, bool single_peer)
-	{
-		if (!single_peer) return peer_connection::received_invalid_data(index, single_peer);
-
-		// when a web seed fails a hash check, do the following:
-		// 1. if the whole piece only overlaps a single file, mark that file as not
-		//    have for this peer
-		// 2. if the piece overlaps more than one file, mark the piece as not have
-		//    for this peer
-		// 3. if it's a single file torrent, just ban it right away
-		// this handles the case where web seeds may have some files updated but not other
-
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		file_storage const& fs = t->torrent_file().files();
-
-		// single file torrent
-		if (fs.num_files() == 1) return peer_connection::received_invalid_data(index, single_peer);
-
-		std::vector<file_slice> files = fs.map_block(index, 0, fs.piece_size(index));
-
-		if (files.size() == 1)
-		{
-			// assume the web seed has a different copy of this specific file
-			// than what we expect, and pretend not to have it.
-			int fi = files[0].file_index;
-			int first_piece = fs.file_offset(fi) / fs.piece_length();
-			// one past last piece
-			int end_piece = (fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length();
-			for (int i = first_piece; i < end_piece; ++i)
-				incoming_dont_have(i);
-		}
-		else
-		{
-			incoming_dont_have(index);
-		}
-
-		peer_connection::received_invalid_data(index, single_peer);
-
-		// if we don't think we have any of the files, allow banning the web seed
-		if (num_have_pieces() == 0) return true;
-
-		// don't disconnect, we won't request anything from this file again
-		return false;
 	}
 
 	void web_peer_connection::on_receive(error_code const& error
@@ -527,7 +482,7 @@ namespace libtorrent
 						int file_index = m_file_requests.front();
 
 						torrent_info const& info = t->torrent_file();
-						std::string path = info.orig_files().file_path(file_index);
+						std::string path = info.orig_files().file_path(info.orig_files().at(file_index));
 #ifdef TORRENT_WINDOWS
 						convert_path_to_posix(path);
 #endif
@@ -820,6 +775,9 @@ namespace libtorrent
 
 			if (!m_requests.empty())
 			{
+//				range_overlaps_request = in_range.start + in_range.length
+//					> m_requests.front().start + int(m_piece.size());
+
 				if (in_range.start + in_range.length < m_requests.front().start + m_requests.front().length
 					&& (m_received_body + recv_buffer.left() >= range_end - range_start))
 				{
@@ -871,7 +829,7 @@ namespace libtorrent
 				
 				torrent_info const& info = t->torrent_file();
 				while (!m_file_requests.empty()
-					&& info.orig_files().pad_file_at(m_file_requests.front()))
+					&& info.orig_files().internal_at(m_file_requests.front()).pad_file)
 				{
 					// the next file is a pad file. We didn't actually send
 					// a request for this since it most likely doesn't exist on
@@ -879,7 +837,7 @@ namespace libtorrent
 					// bunch of zeroes here and pop it again
 					int file_index = m_file_requests.front();
 					m_file_requests.pop_front();
-					size_type file_size = info.orig_files().file_size(file_index);
+					size_type file_size = info.orig_files().file_size(info.orig_files().internal_at(file_index));
 					TORRENT_ASSERT(m_block_pos < front_request.length);
 					int pad_size = (std::min)(file_size, size_type(front_request.length - m_block_pos));
 

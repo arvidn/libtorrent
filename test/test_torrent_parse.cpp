@@ -34,10 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
 
-#if TORRENT_USE_IOSTREAM
-#include <sstream>
-#endif
-
 struct test_torrent_t
 {
 	char const* file;
@@ -64,12 +60,6 @@ test_torrent_t test_torrents[] =
 	{ "duplicate_files.torrent" },
 	{ "pad_file.torrent" },
 	{ "creation_date.torrent" },
-	{ "no_creation_date.torrent" },
-	{ "url_seed.torrent" },
-	{ "url_seed_multi.torrent" },
-	{ "url_seed_multi_space.torrent" },
-	{ "url_seed_multi_space_nolist.torrent" },
-	{ "root_hash.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -88,18 +78,17 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_name2.torrent", errors::torrent_invalid_name },
 	{ "invalid_info.torrent", errors::torrent_missing_info },
 	{ "string.torrent", errors::torrent_is_no_dict },
-	{ "negative_size.torrent", errors::torrent_invalid_length },
+	{ "negative_size.torrent", errors::torrent_file_parse_failed},
 	{ "negative_file_size.torrent", errors::torrent_file_parse_failed },
 	{ "invalid_path_list.torrent", errors::torrent_file_parse_failed },
 	{ "missing_path_list.torrent", errors::torrent_file_parse_failed },
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces},
-	{ "invalid_file_size.torrent", errors::torrent_file_parse_failed },
 };
 
-// TODO: test remap_files
+// TODO: create a separate list of all torrents that should
+// fail to parse, and include the expected error code in that list
+
 // TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
 // TODO: torrent with 'p' (padfile) attribute
 // TODO: torrent with 'h' (hidden) attribute
@@ -107,24 +96,22 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with 'l' (symlink) attribute
 // TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
+// TODO: torrent with web seed. make sure we append '/' for multifile torrents
 
 int test_main()
 {
-	std::string root_dir = parent_path(current_working_directory());
 	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_torrents[i].file), ec));
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path("test_torrents", test_torrents[i].file), ec));
 		TEST_CHECK(!ec);
 		if (ec) fprintf(stderr, "  -> failed %s\n", ec.message().c_str());
 
 		if (std::string(test_torrents[i].file) == "whitespace_url.torrent")
 		{
 			// make sure we trimmed the url
-			TEST_CHECK(ti->trackers().size() > 0);
-			if (ti->trackers().size() > 0)
-				TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
+			TEST_CHECK(ti->trackers()[0].url == "udp://test.com/announce");
 		}
 		else if (std::string(test_torrents[i].file) == "duplicate_files.torrent")
 		{
@@ -143,82 +130,33 @@ int test_main()
 		{
 			TEST_CHECK(*ti->creation_date() == 1234567);
 		}
-		else if (std::string(test_torrents[i].file) == "no_creation_date.torrent")
-		{
-			TEST_CHECK(!ti->creation_date());
-		}
-		else if (std::string(test_torrents[i].file) == "url_seed.torrent")
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 1);
-			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");
-#ifndef TORRENT_NO_DEPRECATE
-			TEST_EQUAL(ti->http_seeds().size(), 0);
-			TEST_EQUAL(ti->url_seeds().size(), 1);
-			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file");
-#endif
-		}
-		else if (std::string(test_torrents[i].file) == "url_seed_multi.torrent")
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 1);
-			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file/");
-#ifndef TORRENT_NO_DEPRECATE
-			TEST_EQUAL(ti->http_seeds().size(), 0);
-			TEST_EQUAL(ti->url_seeds().size(), 1);
-			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/file/");
-#endif
-		}
-		else if (std::string(test_torrents[i].file) == "url_seed_multi_space.torrent"
-			|| std::string(test_torrents[i].file) == "url_seed_multi_space_nolist.torrent")
-		{
-			TEST_EQUAL(ti->web_seeds().size(), 1);
-			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/test%20file/foo%20bar/");
-#ifndef TORRENT_NO_DEPRECATE
-			TEST_EQUAL(ti->http_seeds().size(), 0);
-			TEST_EQUAL(ti->url_seeds().size(), 1);
-			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
-#endif
-		}
 
-		file_storage const& fs = ti->files();
-		for (int i = 0; i < fs.num_files(); ++i)
+		int index = 0;
+		for (torrent_info::file_iterator i = ti->begin_files();
+			i != ti->end_files(); ++i, ++index)
 		{
-			int first = ti->map_file(i, 0, 0).piece;
-			int last = ti->map_file(i, (std::max)(fs.file_size(i)-1, size_type(0)), 0).piece;
-			int flags = fs.file_flags(i);
+			int first = ti->map_file(index, 0, 0).piece;
+			int last = ti->map_file(index, (std::max)(size_type(i->size)-1, size_type(0)), 0).piece;
 			fprintf(stderr, "  %11"PRId64" %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
-				, fs.file_size(i)
-				, (flags & file_storage::flag_pad_file)?'p':'-'
-				, (flags & file_storage::flag_executable)?'x':'-'
-				, (flags & file_storage::flag_hidden)?'h':'-'
-				, (flags & file_storage::flag_symlink)?'l':'-'
+				, i->size
+				, (i->pad_file?'p':'-')
+				, (i->executable_attribute?'x':'-')
+				, (i->hidden_attribute?'h':'-')
+				, (i->symlink_attribute?'l':'-')
 				, first, last
-				, boost::uint32_t(fs.mtime(i))
-				, fs.hash(i) != sha1_hash(0) ? to_hex(fs.hash(i).to_string()).c_str() : ""
-				, fs.file_path(i).c_str()
-				, flags & file_storage::flag_symlink ? "-> ": ""
-				, flags & file_storage::flag_symlink ? fs.symlink(i).c_str() : "");
+				, boost::uint32_t(ti->files().mtime(*i))
+				, ti->files().hash(*i) != sha1_hash(0) ? to_hex(ti->files().hash(*i).to_string()).c_str() : ""
+				, ti->files().file_path(*i).c_str()
+				, i->symlink_attribute ? "-> ": ""
+				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
 		}
-
-		// test swap
-#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
-		std::stringstream str1;
-		ti->print(str1);
-
-		torrent_info temp("temp", ec);
-		temp.swap(*ti);
-
-		std::stringstream str2;
-		temp.print(str2);
-		TEST_EQUAL(str1.str(), str2.str());
-#endif
-
 	}
 
 	for (int i = 0; i < sizeof(test_error_torrents)/sizeof(test_error_torrents[0]); ++i)
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec));
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path("test_torrents", test_error_torrents[i].file), ec));
 		fprintf(stderr, "E: %s\nexpected: %s\n", ec.message().c_str(), test_error_torrents[i].error.message().c_str());
 		TEST_EQUAL(ec, test_error_torrents[i].error);
 	}

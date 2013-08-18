@@ -55,12 +55,12 @@ char data_buffer[4000];
 
 void print_http_header(http_parser const& p)
 {
-	std::cerr << time_now_string() << " < " << p.status_code() << " " << p.message() << std::endl;
+	std::cerr << " < " << p.status_code() << " " << p.message() << std::endl;
 
 	for (std::multimap<std::string, std::string>::const_iterator i
 		= p.headers().begin(), end(p.headers().end()); i != end; ++i)
 	{
-		std::cerr << time_now_string() << " < " << i->first << ": " << i->second << std::endl;
+		std::cerr << " < " << i->first << ": " << i->second << std::endl;
 	}
 }
 
@@ -69,7 +69,7 @@ void http_connect_handler(http_connection& c)
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
 	error_code ec;
-	std::cerr << time_now_string() << " connected to: " << print_endpoint(c.socket().remote_endpoint(ec))
+	std::cerr << "connected to: " << print_endpoint(c.socket().remote_endpoint(ec))
 		<< std::endl;
 // this is not necessarily true when using a proxy and proxying hostnames
 //	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
@@ -110,26 +110,23 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	std::cerr << " ===== TESTING: " << url << " =====" << std::endl;
 
-	std::cerr << time_now_string()
-		<< " expecting: size: " << size
+	std::cerr << " expecting: size: " << size
 		<< " status: " << status
 		<< " connected: " << connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
-		, &::http_handler, true, 1024*1024, &::http_connect_handler));
+		, &::http_handler, true, &::http_connect_handler));
 	h->get(url, seconds(1), 0, &ps);
 	ios.reset();
 	error_code e;
 	ios.run(e);
-	if (e) std::cerr << time_now_string() << " run failed: " << e.message() << std::endl;
 
-	std::cerr << time_now_string() << " connect_handler_called: " << connect_handler_called << std::endl;
-	std::cerr << time_now_string() << " handler_called: " << handler_called << std::endl;
-	std::cerr << time_now_string() << " status: " << http_status << std::endl;
-	std::cerr << time_now_string() << " size: " << data_size << std::endl;
-	std::cerr << time_now_string() << " expected-size: " << size << std::endl;
-	std::cerr << time_now_string() << " error_code: " << g_error_code.message() << std::endl;
+	std::cerr << "connect_handler_called: " << connect_handler_called << std::endl;
+	std::cerr << "handler_called: " << handler_called << std::endl;
+	std::cerr << "status: " << http_status << std::endl;
+	std::cerr << "size: " << data_size << std::endl;
+	std::cerr << "error_code: " << g_error_code.message() << std::endl;
 	TEST_CHECK(connect_handler_called == connected);
 	TEST_CHECK(handler_called == 1);	
 	TEST_CHECK(data_size == size || size == -1);
@@ -137,17 +134,16 @@ void run_test(std::string const& url, int size, int status, int connected
 	TEST_CHECK(http_status == status || status == -1);
 }
 
-void run_suite(std::string const& protocol, proxy_settings ps, int port)
+void run_suite(std::string const& protocol, proxy_settings const& ps, int port)
 {
 	if (ps.type != proxy_settings::none)
 	{
-		ps.port = start_proxy(ps.type);
+		start_proxy(ps.port, ps.type);
 	}
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5"
 		, "SOCKS5 password protected", "HTTP", "HTTP password protected"};
-
-	printf("\n\n********************** using %s proxy **********************\n"
-		, test_name[ps.type]);
+	std::cout << "\n\n********************** using " << test_name[ps.type]
+		<< " proxy **********************\n" << std::endl;
 
 	typedef boost::optional<error_code> err;
 	// this requires the hosts file to be modified
@@ -167,7 +163,6 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 	// only run the tests to handle NX_DOMAIN if we have a proper internet
 	// connection that doesn't inject false DNS responses (like Comcast does)
 	hostent* h = gethostbyname("non-existent-domain.se");
-	printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n", h, h_errno);
 	if (h == 0 && h_errno == HOST_NOT_FOUND)
 	{
 		// if we're going through an http proxy, we won't get the same error as if the hostname
@@ -177,6 +172,7 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 		else
 			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
 	}
+
 	if (ps.type != proxy_settings::none)
 		stop_proxy(ps.port);
 }
@@ -204,7 +200,6 @@ int test_main()
 	int port = 0;
 	
 	port = start_web_server();
-
 	for (int i = 0; i < 5; ++i)
 	{
 		ps.type = (proxy_settings::proxy_type)i;
@@ -228,6 +223,7 @@ int test_main()
 	run_suite("http", ps, port);
 
 	stop_web_server();
+
 	std::remove("test_file");
 	return 0;
 }

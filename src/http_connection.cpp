@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,10 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+enum { max_bottled_buffer = 2 * 1024 * 1024 };
+
 http_connection::http_connection(io_service& ios, connection_queue& cc
-	, http_handler const& handler
-	, bool bottled
-	, int max_bottled_buffer_size
+	, http_handler const& handler, bool bottled
 	, http_connect_handler const& ch
 	, http_filter_handler const& fh
 #ifdef TORRENT_USE_OPENSSL
@@ -72,7 +72,6 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, m_last_receive(time_now())
 	, m_start_time(time_now())
 	, m_bottled(bottled)
-	, m_max_bottled_buffer_size(max_bottled_buffer_size)
 	, m_called(false)
 #ifdef TORRENT_USE_OPENSSL
 	, m_ssl_ctx(ssl_ctx)
@@ -121,7 +120,6 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		= parse_url_components(url, ec);
 
 	int default_port = protocol == "https" ? 443 : 80;
-	if (port == -1) port = default_port;
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
@@ -184,14 +182,14 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 //	APPEND_FMT("Accept: */*\r\n");
 
+	if (!auth.empty())
+		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
+
 	if (!m_user_agent.empty())
 		APPEND_FMT1("User-Agent: %s\r\n", m_user_agent.c_str());
 	
 	if (m_bottled)
 		APPEND_FMT("Accept-Encoding: gzip\r\n");
-
-	if (!auth.empty())
-		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
 
 	APPEND_FMT("Connection: close\r\n\r\n");
 
@@ -630,7 +628,7 @@ void http_connection::callback(error_code e, char const* data, int size)
 		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
 		{
 			std::string error;
-			if (inflate_gzip(data, size, buf, m_max_bottled_buffer_size, error))
+			if (inflate_gzip(data, size, buf, max_bottled_buffer, error))
 			{
 				if (m_handler) m_handler(errors::http_failed_decompress, m_parser, data, size, *this);
 				close();
@@ -842,8 +840,8 @@ void http_connection::on_read(error_code const& e
 	}
 
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize((std::min)(m_read_pos + 2048, m_max_bottled_buffer_size));
-	if (m_read_pos == m_max_bottled_buffer_size)
+		m_recvbuffer.resize((std::min)(m_read_pos + 2048, int(max_bottled_buffer)));
+	if (m_read_pos == max_bottled_buffer)
 	{
 		callback(asio::error::eof);
 		close();

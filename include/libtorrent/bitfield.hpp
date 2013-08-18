@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// The bitfiled type stores any number of bits as a bitfield in an array.
 	struct TORRENT_EXPORT bitfield
 	{
 		bitfield(): m_bytes(0), m_size(0), m_own(false) {}
@@ -81,28 +80,6 @@ namespace libtorrent
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < m_size);
 			m_bytes[index / 8] &= ~(0x80 >> (index & 7));
-		}
-
-		// returns true if all bits in the bitfield are set
-		bool all_set() const
-		{
-			const int num_words = m_size / 32;
-			const int num_bytes = m_size / 8;
-			boost::uint32_t* bits = (boost::uint32_t*)m_bytes;
-			for (int i = 0; i < num_words; ++i)
-			{
-				if (bits[i] != 0xffffffff) return false;
-			}
-
-			for (int i = num_words * 4; i < num_bytes; ++i)
-			{
-				if (m_bytes[i] != 0xff) return false;
-			}
-			int rest = m_size - num_bytes * 8;
-			boost::uint8_t mask = 0xff << (8-rest);
-			if (rest > 0 && (m_bytes[num_bytes] & mask) != mask)
-				return false;
-			return true;
 		}
 
 		void set_bit(int index)

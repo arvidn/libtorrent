@@ -4,7 +4,6 @@ project(libtorrent)
 set(sources
 	web_connection_base
 	alert
-	alert_manager
 	allocator
 	asio
 	asio_ssl
@@ -25,14 +24,12 @@ set(sources
 	string_util
 	file
 	gzip
-	hasher
 	http_connection
 	http_stream
 	http_parser
 	i2p_stream
 	identify_client
 	ip_filter
-	ip_voter
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
@@ -97,7 +94,6 @@ set(kademlia_sources
 	node_id
 	routing_table
 	traversal_algorithm
-	logging
 )
 
 set(includes include)
@@ -249,7 +245,7 @@ set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
-set (VERSION "1.0.0")
+set (VERSION "0.16.11")
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
@@ -291,7 +287,6 @@ endif(build_examples)
 # === build tests ===
 if(build_tests)
 	set(tests
-		test_file_storage
 		test_auto_unchoke
 		test_http_connection
 		test_buffer
@@ -303,7 +298,6 @@ if(build_tests)
 		test_piece_picker
 		test_fast_extension
 		test_pe_crypto
-		test_peer_priority
 		test_bencoding
 		test_bdecode_performance
 		test_primitives

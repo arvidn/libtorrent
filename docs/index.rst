@@ -7,8 +7,8 @@
 * contributing_
 * `building libtorrent`_
 * examples_
-* `library overview`_
-* `reference documentation`_
+* `api documentation`_
+* `create torrents`_
 * `running tests`_
 * `tuning`_
 * screenshot_
@@ -58,8 +58,8 @@ libtorrent
 .. _contributing: contributing.html
 .. _`building libtorrent`: building.html
 .. _examples: examples.html
-.. _`library overview`: manual-ref.html
-.. _`reference documentation`: reference.html
+.. _`api documentation`: manual.html
+.. _`create torrents`: make_torrent.html
 .. _`running tests`: running_tests.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png

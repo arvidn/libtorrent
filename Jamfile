@@ -23,7 +23,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 1.0.0 ;
+VERSION = 0.16.11 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
@@ -66,9 +66,8 @@ rule linking ( properties * )
 	# dbghelp doesn't appear to exist in mingw
 	if <target-os>windows in $(properties)
 		&& ! <toolset>gcc in $(properties)
-		&& ( <variant>debug in $(properties)
-			|| <asserts>on in $(properties)
-			|| <asserts>production in $(properties)
+		&& ( <asserts>on in $(properties)
+			|| <variant>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		result += <library>dbghelp ;
@@ -140,10 +139,9 @@ rule linking ( properties * )
 
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
-		&& ( <variant>debug in $(properties)
+		&& (<variant>debug in $(properties)
 			|| <asserts>on in $(properties)
-			|| <asserts>production in $(properties)
-			|| <asio-debugging>on in $(properties) )
+			|| <asserts>production in $(properties))
 	{
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
@@ -334,9 +332,6 @@ feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
 feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
 
-feature extensions : on off : composite propagated link-incompatible ;
-feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSION ;
-
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
@@ -371,9 +366,9 @@ feature.compose <logging>default : <define>TORRENT_LOGGING ;
 feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
-feature dht : on off logging : composite propagated link-incompatible ;
-feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
-feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
+feature dht-support : on off logging : composite propagated link-incompatible ;
+feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
+feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
 feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
 feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
@@ -469,7 +464,6 @@ lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
-	alert_manager
 	allocator
 	asio
 	assert
@@ -489,13 +483,11 @@ SOURCES =
 	string_util
 	file
 	gzip
-	hasher
 	http_connection
 	http_stream
 	http_parser
 	identify_client
 	ip_filter
-	ip_voter
 	peer_connection
 	bt_peer_connection
 	web_connection_base
@@ -562,7 +554,6 @@ KADEMLIA_SOURCES =
 	node_id
 	routing_table
 	traversal_algorithm
-	logging
 	;
 
 local usage-requirements = 
@@ -630,8 +621,8 @@ lib torrent
 	<link>shared:<define>BOOST_ASIO_SOURCE
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
-	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -84,7 +84,7 @@ public:
 	}
 #endif
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void check_invariant() const;
 #endif
 
@@ -101,6 +101,9 @@ private:
 		entry(): connecting(false), ticket(0), expires(max_time()), priority(0) {}
 		// called when the connection is initiated
 		// this is when the timeout countdown starts
+		// TODO: if we don't actually need the connection queue
+		// to hold ownership of objects, replace these boost functions
+		// with pointer to a pure virtual interface class
 		boost::function<void(int)> on_connect;
 		// called if done hasn't been called within the timeout
 		// or if the connection queue aborts. This means there
@@ -116,6 +119,9 @@ private:
 		int priority;
 	};
 
+	// TODO: split this into a queue and connecting map. The key for the map
+	// is the ticket. Most field in entry would only be necessary for the
+	// connecting map.
 	std::list<entry> m_queue;
 
 	// the next ticket id a connection will be given

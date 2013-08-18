@@ -33,12 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STRING_UTIL_HPP_INCLUDED
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
-#include "libtorrent/config.hpp"
-
 namespace libtorrent
 {
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
-	TORRENT_EXTRA_EXPORT bool is_digit(char c);
+	TORRENT_EXPORT bool is_digit(char c);
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);
 	TORRENT_EXTRA_EXPORT char to_lower(char c);

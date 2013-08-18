@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -108,46 +108,45 @@ namespace libtorrent
 		int mode;
 	};
 
-	// flags for stat_file
-	enum { dont_follow_links = 1 };
-	TORRENT_EXTRA_EXPORT void stat_file(std::string f, file_status* s
+	enum stat_flags_t { dont_follow_links = 1 };
+	TORRENT_EXPORT void stat_file(std::string f, file_status* s
 		, error_code& ec, int flags = 0);
-	TORRENT_EXTRA_EXPORT void rename(std::string const& f
+	TORRENT_EXPORT void rename(std::string const& f
 		, std::string const& newf, error_code& ec);
-	TORRENT_EXTRA_EXPORT void create_directories(std::string const& f
+	TORRENT_EXPORT void create_directories(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void create_directory(std::string const& f
+	TORRENT_EXPORT void create_directory(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void remove_all(std::string const& f
+	TORRENT_EXPORT void remove_all(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
-	TORRENT_EXTRA_EXPORT size_type file_size(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
+	TORRENT_EXPORT void remove(std::string const& f, error_code& ec);
+	TORRENT_EXPORT bool exists(std::string const& f);
+	TORRENT_EXPORT size_type file_size(std::string const& f);
+	TORRENT_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void recursive_copy(std::string const& old_path
+	TORRENT_EXPORT void recursive_copy(std::string const& old_path
 		, std::string const& new_path, error_code& ec);
-	TORRENT_EXTRA_EXPORT void copy_file(std::string const& f
+	TORRENT_EXPORT void copy_file(std::string const& f
 		, std::string const& newf, error_code& ec);
 
-	TORRENT_EXTRA_EXPORT std::string split_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT char const* next_path_element(char const* p);
-	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);
-	TORRENT_EXTRA_EXPORT void replace_extension(std::string& f, std::string const& ext);
-	TORRENT_EXTRA_EXPORT bool is_root_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string parent_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool has_parent_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
+	TORRENT_EXPORT std::string split_path(std::string const& f);
+	TORRENT_EXPORT char const* next_path_element(char const* p);
+	TORRENT_EXPORT std::string extension(std::string const& f);
+	TORRENT_EXPORT void replace_extension(std::string& f, std::string const& ext);
+	TORRENT_EXPORT bool is_root_path(std::string const& f);
+	TORRENT_EXPORT std::string parent_path(std::string const& f);
+	TORRENT_EXPORT bool has_parent_path(std::string const& f);
+	TORRENT_EXPORT std::string filename(std::string const& f);
+	TORRENT_EXPORT std::string combine_path(std::string const& lhs
 		, std::string const& rhs);
-	TORRENT_EXTRA_EXPORT std::string complete(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string current_working_directory();
+	TORRENT_EXPORT std::string complete(std::string const& f);
+	TORRENT_EXPORT bool is_complete(std::string const& f);
+	TORRENT_EXPORT std::string current_working_directory();
 #if TORRENT_USE_UNC_PATHS
 	TORRENT_EXTRA_EXPORT std::string canonicalize_path(std::string const& f);
 #endif
 
-	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
+	class TORRENT_EXPORT directory : public boost::noncopyable
 	{
 	public:
 		directory(std::string const& path, error_code& ec);
@@ -174,7 +173,7 @@ namespace libtorrent
 		bool m_done;
 	};
 
-	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
+	struct TORRENT_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
 	{
 		enum
 		{

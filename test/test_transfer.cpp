@@ -55,17 +55,10 @@ int const alert_mask = alert::all_categories
 
 int peer_disconnects = 0;
 
-int tracker_responses = 0;
-
-bool on_alert(alert* a)
+bool predicate(alert* a)
 {
-	if (alert_cast<tracker_reply_alert>(a))
-		++tracker_responses;
-	else if (alert_cast<peer_disconnected_alert>(a))
+	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
-	else if (alert_cast<peer_error_alert>(a))
-		++peer_disconnects;
-
 	return false;
 }
 
@@ -100,18 +93,24 @@ void test_rate()
 
 	ptime start = time_now();
 
-	for (int i = 0; i < 70; ++i)
+	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, true, &predicate);
+		print_alerts(ses2, "ses2", true, true, true, &predicate);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
 		if (i % 10 == 0)
-			print_ses_rate(i / 10.f, &st1, &st2);
+		{
+			std::cerr
+				<< "up: \033[33m" << st1.upload_payload_rate / 1000000.f << "MB/s "
+				<< " down: \033[32m" << st2.download_payload_rate / 1000000.f << "MB/s "
+				<< "\033[0m" << int(st2.progress * 100) << "% "
+				<< std::endl;
+		}
 
-		if (peer_disconnects >= 1) break;
+		if (peer_disconnects >= 2) break;
 		if (st2.is_seeding) break;
 		test_sleep(100);
 	}
@@ -125,6 +124,7 @@ void test_rate()
 	
 	std::cerr << "average download rate: " << (t->total_size() / (std::max)(total_milliseconds(dt), 1))
 		<< " kB/s" << std::endl;
+
 }
 
 void print_alert(std::auto_ptr<alert>)
@@ -195,8 +195,8 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return m_lower_layer->sparse_end(start); }
 
-	virtual int move_storage(std::string const& save_path, int flags)
-	{ return m_lower_layer->move_storage(save_path, flags); }
+	virtual bool move_storage(std::string const& save_path)
+	{ return m_lower_layer->move_storage(save_path); }
 
 	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
 	{ return m_lower_layer->verify_resume_data(rd, error); }
@@ -233,6 +233,19 @@ storage_interface* test_storage_constructor(file_storage const& fs
 	return new test_storage(fs, path, fp);
 }
 
+int tracker_responses = 0;
+
+bool on_alert(alert* a)
+{
+	if (alert_cast<tracker_reply_alert>(a))
+		++tracker_responses;
+
+	if (alert_cast<peer_disconnected_alert>(a))
+		++peer_disconnects;
+
+	return false;
+}
+
 void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowed_fast = false, bool test_priorities = false)
 {
 
@@ -252,11 +265,13 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
-	proxy_settings ps;
+	int proxy_port = (rand() % 30000) + 10000;
 	if (proxy_type)
 	{
-		ps.port = start_proxy(proxy_type);
+		start_proxy(proxy_port, proxy_type);
+		proxy_settings ps;
 		ps.hostname = "127.0.0.1";
+		ps.port = proxy_port;
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
@@ -343,7 +358,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
 
-	int num_pieces = tor2.torrent_file()->num_pieces();
+	int num_pieces = tor2.get_torrent_info().num_pieces();
 	std::vector<int> priorities(num_pieces, 1);
 	if (test_priorities)
 	{
@@ -367,17 +382,28 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	tracker_responses = 0;
 
-	for (int i = 0; i < 200; ++i)
+	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, true, on_alert);
+		print_alerts(ses2, "ses2", true, true, true, on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, &st1, &st2);
+			std::cerr
+				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
+				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[0m" << int(st1.progress * 100) << "% "
+				<< st1.num_peers
+				<< ": "
+				<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+				<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[0m" << int(st2.progress * 100) << "% "
+				<< st2.num_peers
+				<< " cc: " << st2.connect_candidates
+				<< std::endl;
 		}
 
 		if (!test_move_storage && st2.progress > 0.25f)
@@ -395,9 +421,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			tor2.set_upload_mode(false);
 			TEST_CHECK(tor2.status().is_finished == false);
 			TEST_EQUAL(peer_disconnects, 2);
-			fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
-			peer_disconnects = -1;
-			test_sleep(100);
+			peer_disconnects = -2;
 			continue;
 		}
 
@@ -418,9 +442,6 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			|| (test_disk_full && !st2.error.empty()));
 
 		if (peer_disconnects >= 2) break;
-
-		// if nothing is being transferred after 2 seconds, we're failing the test
-		if (st1.upload_payload_rate == 0 && i > 20) break;
 
 		test_sleep(100);
 	}
@@ -444,29 +465,24 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		for (int i = 0; i < 50; ++i)
 		{
-			print_alerts(ses2, "ses2", true, true, true, &on_alert);
+			test_sleep(100);
+			print_alerts(ses2, "ses2", true, true, true, on_alert);
 
 			torrent_status st2 = tor2.status();
 			if (i % 10 == 0)
-			{
-				std::cerr << int(st2.progress * 100) << "% " << std::endl;
-			}
+				std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
 			if (st2.state != torrent_status::checking_files) break;
-			if (peer_disconnects >= 1) break;
-			test_sleep(100);
 		}
 
 		std::vector<int> priorities2 = tor2.piece_priorities();
 		TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
-		peer_disconnects = 0;
-
 		for (int i = 0; i < 5; ++i)
 		{
-			print_alerts(ses2, "ses2", true, true, true, &on_alert);
+			print_alerts(ses2, "ses2", true, true, true, on_alert);
 			torrent_status st2 = tor2.status();
+			//		std::cerr << "\033[0m" << int(st2.progress * 100) << "% " << std::endl;
 			TEST_CHECK(st2.state == torrent_status::finished);
-			if (peer_disconnects >= 1) break;
 			test_sleep(100);
 		}
 
@@ -523,7 +539,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = t;
 		p.save_path = "tmp2_transfer_moved";
-		p.resume_data = resume_data;
+		p.resume_data = &resume_data;
 		tor2 = ses2.add_torrent(p, ec);
 		ses2.set_alert_mask(alert::all_categories
 			& ~alert::progress_notification
@@ -536,12 +552,12 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		TEST_CHECK(std::find_if(tr.begin(), tr.end()
 			, boost::bind(&announce_entry::url, _1) == "http://test.com/announce") != tr.end());
 
-		peer_disconnects = 0;
+		test_sleep(100);
 
 		for (int i = 0; i < 5; ++i)
 		{
-			print_alerts(ses1, "ses1", true, true, true, &on_alert);
-			print_alerts(ses2, "ses2", true, true, true, &on_alert);
+			print_alerts(ses1, "ses1", true, true, true, on_alert);
+			print_alerts(ses2, "ses2", true, true, true, on_alert);
 
 			torrent_status st1 = tor1.status();
 			torrent_status st2 = tor2.status();
@@ -549,13 +565,12 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			TEST_CHECK(st1.state == torrent_status::seeding);
 			TEST_CHECK(st2.state == torrent_status::finished);
 
-			if (peer_disconnects >= 1) break;
-
 			if (st2.is_finished) break;
 
 			test_sleep(100);
 		}
 
+		TEST_CHECK(!tor2.status().is_seeding);
 		TEST_CHECK(!tor2.status().is_seeding);
 
 		std::fill(priorities.begin(), priorities.end(), 1);
@@ -563,25 +578,34 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		std::cout << "setting priorities to 1" << std::endl;
 		TEST_EQUAL(tor2.status().is_finished, false);
 
-		peer_disconnects = 0;
-
 		for (int i = 0; i < 130; ++i)
 		{
-			print_alerts(ses1, "ses1", true, true, true, &on_alert);
-			print_alerts(ses2, "ses2", true, true, true, &on_alert);
+			print_alerts(ses1, "ses1", true, true, true, on_alert);
+			print_alerts(ses2, "ses2", true, true, true, on_alert);
 
 			torrent_status st1 = tor1.status();
 			torrent_status st2 = tor2.status();
 
 			if (i % 10 == 0)
-				print_ses_rate(i / 10.f, &st1, &st2);
+			{
+				std::cerr
+					<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
+					<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+					<< "\033[0m" << int(st1.progress * 100) << "% "
+					<< st1.num_peers
+					<< ": "
+					<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+					<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+					<< "\033[0m" << int(st2.progress * 100) << "% "
+					<< st2.num_peers
+					<< " cc: " << st2.connect_candidates
+					<< std::endl;
+			}
 
 			if (st2.is_seeding) break;
 
 			TEST_EQUAL(st1.state, torrent_status::seeding);
 			TEST_EQUAL(st2.state, torrent_status::downloading);
-
-			if (peer_disconnects >= 1) break;
 
 			test_sleep(100);
 		}
@@ -594,7 +618,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		stop_tracker();
 		stop_web_server();
 	}
-	if (proxy_type) stop_proxy(ps.port);
+	if (proxy_type) stop_proxy(proxy_port);
 }
 
 int test_main()

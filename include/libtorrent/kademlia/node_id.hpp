@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-typedef libtorrent::sha1_hash node_id;
+typedef libtorrent::big_number node_id;
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric

@@ -9,7 +9,6 @@ KADEMLIA_SOURCES = \
   kademlia/refresh.cpp          \
   kademlia/routing_table.cpp    \
   kademlia/rpc_manager.cpp      \
-  kademlia/logging.cpp          \
   kademlia/traversal_algorithm.cpp
 endif
 
@@ -24,7 +23,6 @@ endif
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp     \
   alert.cpp                       \
-  alert_manager.cpp               \
   allocator.cpp                   \
   asio.cpp                        \
   assert.cpp                      \
@@ -49,7 +47,6 @@ libtorrent_rasterbar_la_SOURCES = \
   file_pool.cpp                   \
   file_storage.cpp                \
   gzip.cpp                        \
-  hasher.cpp                      \
   http_connection.cpp             \
   http_parser.cpp                 \
   http_seed_connection.cpp        \
@@ -59,7 +56,6 @@ libtorrent_rasterbar_la_SOURCES = \
   identify_client.cpp             \
   instantiate_connection.cpp      \
   ip_filter.cpp                   \
-  ip_voter.cpp                    \
   lazy_bdecode.cpp                \
   logger.cpp                      \
   lsd.cpp                         \

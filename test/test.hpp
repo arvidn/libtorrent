@@ -33,19 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEST_HPP
 #define TEST_HPP
 
+void report_failure(char const* str, char const* file, int line);
+
 #include <boost/config.hpp>
 #include <exception>
 #include <sstream>
-
-#include "libtorrent/config.hpp"
-
-#ifdef TORRENT_BUILDING_TEST_SHARED
-#define EXPORT BOOST_SYMBOL_EXPORT
-#else
-#define EXPORT BOOST_SYMBOL_IMPORT
-#endif
-
-void EXPORT report_failure(char const* err, char const* file, int line);
 
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
@@ -70,7 +62,7 @@ void EXPORT report_failure(char const* err, char const* file, int line);
 #define TEST_EQUAL(x, y) \
 	if (x != y) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << x << "\nexpected: " << y << std::endl; \
+		s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else

@@ -139,7 +139,7 @@ void test_ssl(int test_idx)
 
 	create_directory("tmp1_ssl", ec);
 	std::ofstream file("tmp1_ssl/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false, "../ssl/root_ca_cert.pem");
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false, "ssl/root_ca_cert.pem");
 	file.close();
 
 	add_torrent_params addp;
@@ -159,22 +159,22 @@ void test_ssl(int test_idx)
 	if (test.seed_has_cert)
 	{
 		tor1.set_ssl_certificate(
-			combine_path("..", combine_path("ssl", "peer_certificate.pem"))
-			, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
-			, combine_path("..", combine_path("ssl", "dhparams.pem"))
+			combine_path("ssl", "peer_certificate.pem")
+			, combine_path("ssl", "peer_private_key.pem")
+			, combine_path("ssl", "dhparams.pem")
 			, "test");
 	}
 
 	if (test.downloader_has_cert)
 	{
 		tor2.set_ssl_certificate(
-			combine_path("..", combine_path("ssl", "peer_certificate.pem"))
-			, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
-			, combine_path("..", combine_path("ssl", "dhparams.pem"))
+			combine_path("ssl", "peer_certificate.pem")
+			, combine_path("ssl", "peer_private_key.pem")
+			, combine_path("ssl", "dhparams.pem")
 			, "test");
 	}
 
-	for (int i = 0; i < 40; ++i)
+	for (int i = 0; i < 15; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
@@ -198,7 +198,7 @@ void test_ssl(int test_idx)
 				<< std::endl;
 		}
 
-		if (peer_disconnects >= 2) break;
+		if (peer_disconnects == 2) break;
 
 		if (st2.is_finished) break;
 

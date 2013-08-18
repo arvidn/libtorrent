@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2012, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,10 +63,36 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CFG_IPV6 noipv_-
 #endif
 
+#ifdef TORRENT_DISABLE_DHT
+#define TORRENT_CFG_DHT nodht_
+#else
+#define TORRENT_CFG_DHT dht_
+#endif
+
+#ifdef TORRENT_DISABLE_POOL_ALLOCATORS
+#define TORRENT_CFG_POOL nopools_
+#else
+#define TORRENT_CFG_POOL pools_
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+#define TORRENT_CFG_LOG verboselog_
+#elif defined TORRENT_LOGGING
+#define TORRENT_CFG_LOG log_
+#else
+#define TORRENT_CFG_LOG nolog_
+#endif
+
 #ifdef _UNICODE
 #define TORRENT_CFG_UNICODE unicode_
 #else
 #define TORRENT_CFG_UNICODE ansi_
+#endif
+
+#ifdef TORRENT_DISABLE_RESOLVE_COUNTRIES
+#define TORRENT_CFG_RESOLVE noresolvecountries_
+#else
+#define TORRENT_CFG_RESOLVE resolvecountries_
 #endif
 
 #ifdef TORRENT_NO_DEPRECATE
@@ -81,11 +107,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CFG_STATS fullstats_
 #endif
 
+#ifdef TORRENT_DISABLE_EXTENSIONS
+#define TORRENT_CFG_EXT noext_
+#else
+#define TORRENT_CFG_EXT ext_
+#endif
+
 #define TORRENT_CFG \
 	BOOST_PP_CAT(TORRENT_CFG_DEBUG, \
 	BOOST_PP_CAT(TORRENT_CFG_TIME, \
+	BOOST_PP_CAT(TORRENT_CFG_POOL, \
 	BOOST_PP_CAT(TORRENT_CFG_LOG, \
-	TORRENT_CFG_DEPR)))
+	BOOST_PP_CAT(TORRENT_CFG_RESOLVE, \
+	BOOST_PP_CAT(TORRENT_CFG_DEPR, \
+	BOOST_PP_CAT(TORRENT_CFG_DHT, \
+	TORRENT_CFG_EXT)))))))
 
 #define TORRENT_CFG_STRING BOOST_PP_STRINGIZE(TORRENT_CFG)
 

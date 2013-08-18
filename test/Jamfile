@@ -5,33 +5,35 @@ use-project /torrent : .. ;
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
 	: <threading>multi <debug-iterators>on <invariant-checks>full ;
 
-exe enum_if : enum_if.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
-
 explicit test_natpmp ;
-explicit enum_if ;
 
-lib libtorrent_test
-	: # sources
-	setup_transfer.cpp
-	dht_server.cpp
-	peer_server.cpp
+rule libtorrent_dependency ( properties * )
+{
+	local result ;
 
-	: # requirements
-	<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on
-	# this is used to determine whether
-	# symbols are exported or imported
-	<link>shared:<define>TORRENT_BUILDING_TEST_SHARED
+	if <toolset>msvc in $(properties)
+	{
+		# for some reason, the visual studio debugger seems
+		# to get very confused with the dynamic linking.
+		# since debugging unit tests is common, just link
+		# statically with msvc
+		result += <library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+	}
+	else
+	{
+		result += <library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+	}
 
-	: # default build
-	<link>shared
-;
+	return $(result) ;
+}
 
 project
    : requirements
+	<conditional>@libtorrent_dependency
 	<source>main.cpp
-	<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on
-	<library>libtorrent_test/<link>shared
+	<source>setup_transfer.cpp
+	<source>dht_server.cpp
+	<source>peer_server.cpp
    : default-build
 	<threading>multi
 	<invariant-checks>full
@@ -39,9 +41,6 @@ project
    ;
 
 test-suite libtorrent : 	
-	[ run test_file_storage.cpp ]
-	[ run test_peer_priority.cpp ]
-	[ run test_file.cpp ]
 	[ run test_privacy.cpp ]
 	[ run test_threads.cpp ]
 	[ run test_rss.cpp ]
