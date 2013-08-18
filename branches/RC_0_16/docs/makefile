@@ -36,7 +36,7 @@ all: html
 	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+	rst2html-2.6.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
 	cp $@ $(WEB_PATH)/$@
 
 %.png:%.dot
