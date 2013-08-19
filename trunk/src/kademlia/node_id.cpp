@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <ctime>
+#include <boost/crc.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/hasher.hpp"
@@ -129,11 +130,19 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	for (int i = 0; i < num_octets; ++i)
 		ip[i] &= mask[i];
 
-	hasher h;
-	h.update((char*)ip, num_octets);
 	boost::uint8_t rand = r & 0x7;
-	h.update((char*)&rand, 1);
-	node_id id = h.final();
+
+	boost::crc_32_type crc;
+	crc.process_block(ip, ip + num_octets);
+	crc.process_byte(rand);
+	boost::uint32_t c = crc.checksum();
+	node_id id;
+
+	id[0] = (c >> 24) & 0xff;
+	id[1] = (c >> 16) & 0xff;
+	id[2] = (c >> 8) & 0xff;
+	id[3] = c & 0xff;
+
 	for (int i = 4; i < 19; ++i) id[i] = random();
 	id[19] = r;
 
