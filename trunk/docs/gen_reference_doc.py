@@ -159,6 +159,7 @@ def looks_like_variable(line):
 	if line.startswith('enum '): return False
 	if line.startswith(','): return False
 	if line.startswith(':'): return False
+	if line.startswith('typedef'): return False
 	return True
 
 def looks_like_function(line):
