@@ -2962,6 +2962,7 @@ namespace libtorrent
 
 			l.lock();
 		}
+		l.unlock();
 
 		// do cleanup in the last running thread 
 		if (--m_num_running_threads > 0)
