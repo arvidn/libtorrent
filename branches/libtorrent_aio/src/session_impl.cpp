@@ -2330,6 +2330,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(m_deferred_submit_disk_jobs);
 		m_deferred_submit_disk_jobs = false;
+		if (m_abort) return;
 		m_disk_thread.submit_jobs();
 	}
 

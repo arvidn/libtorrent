@@ -2983,6 +2983,7 @@ namespace libtorrent
 			sleep(100);
 			l2.lock();
 		}
+		l2.unlock();
 
 		DLOG("disk thread %d is the last one alive. cleaning up\n", thread_id);
 
