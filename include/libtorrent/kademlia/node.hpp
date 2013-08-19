@@ -131,17 +131,17 @@ struct dht_immutable_item
 	int size;
 };
 
-struct rsa_key { char bytes[268]; };
+struct ed25519_public_key { char bytes[32]; };
 
 struct dht_mutable_item : dht_immutable_item
 {
 	char sig[64];
 	int seq;
-	rsa_key key;
+	ed25519_public_key key;
 };
 
 // internal
-inline bool operator<(rsa_key const& lhs, rsa_key const& rhs)
+inline bool operator<(ed25519_public_key const& lhs, ed25519_public_key const& rhs)
 {
 	return memcmp(lhs.bytes, rhs.bytes, sizeof(lhs.bytes)) < 0;
 }
