@@ -615,8 +615,8 @@ void udp_socket::close()
 
 	if (m_connection_ticket >= 0)
 	{
-		m_cc.done(m_connection_ticket);
-		m_connection_ticket = -1;
+		if (m_cc.done(m_connection_ticket))
+			m_connection_ticket = -1;
 
 		// we just called done, which means on_timeout
 		// won't be called. Decrement the outstanding
@@ -624,6 +624,8 @@ void udp_socket::close()
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_outstanding_timeout > 0);
 		--m_outstanding_timeout;
+
+		print_backtrace(timeout_stack, sizeof(timeout_stack));
 #endif
 		TORRENT_ASSERT(m_outstanding_ops > 0);
 		--m_outstanding_ops;
@@ -815,6 +817,7 @@ void udp_socket::on_timeout()
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	TORRENT_ASSERT(m_outstanding_timeout > 0);
 	--m_outstanding_timeout;
+	print_backtrace(timeout_stack, sizeof(timeout_stack));
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
@@ -832,6 +835,7 @@ void udp_socket::on_timeout()
 
 	error_code ec;
 	m_socks5_sock.close(ec);
+	TORRENT_ASSERT(m_cc.done(m_connection_ticket) == false);
 	m_connection_ticket = -1;
 }
 
@@ -857,6 +861,7 @@ void udp_socket::on_connect(int ticket)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_outstanding_timeout > 0);
 		--m_outstanding_timeout;
+		print_backtrace(timeout_stack, sizeof(timeout_stack));
 #endif
 		TORRENT_ASSERT(m_outstanding_ops > 0);
 		--m_outstanding_ops;
@@ -904,14 +909,18 @@ void udp_socket::on_connected(error_code const& e)
 		+ m_outstanding_resolve
 		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
-	if (m_abort) return;
 	CHECK_MAGIC;
 
-	if (e == asio::error::operation_aborted) return;
-
 	TORRENT_ASSERT(is_single_thread());
-	m_cc.done(m_connection_ticket);
-	m_connection_ticket = -1;
+	if (m_connection_ticket >= 0)
+	{
+		if (m_cc.done(m_connection_ticket))
+			m_connection_ticket = -1;
+	}
+
+	if (m_abort) return;
+
+	if (e == asio::error::operation_aborted) return;
 
 	// we just called done, which means on_timeout
 	// won't be called. Decrement the outstanding
@@ -919,6 +928,7 @@ void udp_socket::on_connected(error_code const& e)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	TORRENT_ASSERT(m_outstanding_timeout > 0);
 	--m_outstanding_timeout;
+	print_backtrace(timeout_stack, sizeof(timeout_stack));
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;

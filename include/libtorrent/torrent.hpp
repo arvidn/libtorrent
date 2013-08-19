@@ -232,6 +232,10 @@ namespace libtorrent
 
 		void second_tick(stat& accumulator, int tick_interval_ms);
 
+		// see if we need to connect to web seeds, and if so,
+		// connect to them
+		void maybe_connect_web_seeds();
+
 		std::string name() const;
 
 		stat statistics() const { return m_stat; }

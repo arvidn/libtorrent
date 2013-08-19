@@ -158,9 +158,12 @@ int main()
 
 	fflush(stdout);
 	fflush(stderr);
-	remove_all(test_dir, ec);
-	if (ec)
-		fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
+	if (!tests_failure)
+	{
+		remove_all(test_dir, ec);
+		if (ec)
+			fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
+	}
 	return tests_failure ? 1 : 0;
 }
 
