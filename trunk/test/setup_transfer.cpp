@@ -66,12 +66,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-bool tests_failure = false;
+int tests_failure = 0;
+std::vector<std::string> failure_strings;
 
 void report_failure(char const* err, char const* file, int line)
 {
-	fprintf(stderr, "\n***** %s:%d \"%s\" *****\n\n", file, line, err);
-	tests_failure = true;
+	char buf[500];
+	snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
+	fprintf(stderr, "\n%s\n", buf);
+	failure_strings.push_back(buf);
+	++tests_failure;
 }
 
 std::auto_ptr<alert> wait_for_alert(session& ses, int type)

@@ -158,12 +158,21 @@ int main()
 
 	fflush(stdout);
 	fflush(stderr);
-	if (!tests_failure)
+	if (tests_failure == 0)
 	{
 		remove_all(test_dir, ec);
 		if (ec)
 			fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
 	}
-	return tests_failure ? 1 : 0;
+	else
+	{
+		for (std::vector<std::string>::iterator i = failure_strings.begin()
+			, end(failure_strings.end()); i != end; ++i)
+		{
+			fputs(i->c_str(), stderr);
+		}
+		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", tests_failure);
+	}
+	return tests_failure;
 }
 
