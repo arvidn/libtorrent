@@ -62,7 +62,7 @@ public:
 	void enqueue(boost::function<void(int)> const& on_connect
 		, boost::function<void()> const& on_timeout
 		, time_duration timeout, int priority = 0);
-	void done(int ticket);
+	bool done(int ticket);
 	void limit(int limit);
 	int limit() const;
 	void close();

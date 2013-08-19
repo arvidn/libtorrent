@@ -6518,6 +6518,8 @@ namespace libtorrent
 		m_files_checked = true;
 
 		start_announcing();
+
+		maybe_connect_web_seeds();
 	}
 
 	alert_manager& torrent::alerts() const
@@ -7794,24 +7796,7 @@ namespace libtorrent
 
 		// ---- WEB SEEDS ----
 
-		// if we have everything we want we don't need to connect to any web-seed
-		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
-			&& int(m_connections.size()) < m_max_connections
-			&& m_ses.num_connections() < m_ses.settings().connections_limit)
-		{
-			// keep trying web-seeds if there are any
-			// first find out which web seeds we are connected to
-			for (std::list<web_seed_entry>::iterator i = m_web_seeds.begin();
-				i != m_web_seeds.end();)
-			{
-				std::list<web_seed_entry>::iterator w = i++;
-				if (w->peer_info.connection) continue;
-				if (w->retry > time_now()) continue;
-				if (w->resolving) continue;
-
-				connect_to_url_seed(w);
-			}
-		}
+		maybe_connect_web_seeds();
 		
 		m_swarm_last_seen_complete = m_last_seen_complete;
 		for (peer_iterator i = m_connections.begin();
@@ -7852,6 +7837,28 @@ namespace libtorrent
 		// if the rate is 0, there's no update because of network transfers
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 			state_updated();
+	}
+
+	void torrent::maybe_connect_web_seeds()
+	{
+		// if we have everything we want we don't need to connect to any web-seed
+		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
+			&& int(m_connections.size()) < m_max_connections
+			&& m_ses.num_connections() < m_ses.settings().connections_limit)
+		{
+			// keep trying web-seeds if there are any
+			// first find out which web seeds we are connected to
+			for (std::list<web_seed_entry>::iterator i = m_web_seeds.begin();
+				i != m_web_seeds.end();)
+			{
+				std::list<web_seed_entry>::iterator w = i++;
+				if (w->peer_info.connection) continue;
+				if (w->retry > time_now()) continue;
+				if (w->resolving) continue;
+
+				connect_to_url_seed(w);
+			}
+		}
 	}
 
 	void torrent::recalc_share_mode()
@@ -8329,6 +8336,7 @@ namespace libtorrent
 		for (std::list<web_seed_entry>::const_iterator i = m_web_seeds.begin()
 			, end(m_web_seeds.end()); i != end; ++i)
 		{
+			if (i->peer_info.banned) continue;
 			if (i->type != type) continue;
 			ret.insert(i->url);
 		}

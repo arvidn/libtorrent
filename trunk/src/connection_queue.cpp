@@ -104,7 +104,7 @@ namespace libtorrent
 				&connection_queue::on_try_connect, this));
 	}
 
-	void connection_queue::done(int ticket)
+	bool connection_queue::done(int ticket)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
@@ -115,7 +115,8 @@ namespace libtorrent
 		if (i == m_queue.end())
 		{
 			// this might not be here in case on_timeout calls remove
-			return;
+			TORRENT_ASSERT(false);
+			return false;
 		}
 		if (i->connecting) --m_num_connecting;
 		m_queue.erase(i);
@@ -124,6 +125,7 @@ namespace libtorrent
 			|| m_half_open_limit == 0)
 			m_timer.get_io_service().post(boost::bind(
 				&connection_queue::on_try_connect, this));
+		return true;
 	}
 
 	void connection_queue::close()

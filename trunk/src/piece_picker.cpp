@@ -2462,7 +2462,14 @@ namespace libtorrent
 			if (info.state == block_info::state_finished) return;
 
 			TORRENT_ASSERT(info.num_peers == 0);
-			info.peer = peer;
+
+			// peers may have been disconnected in between mark_as_writing
+			// and mark_as_finished. When a peer disconnects, its m_peer_info
+			// pointer is set to NULL. If so, preserve the previous peer
+			// pointer, instead of forgetting who we downloaded this block from
+			if (info.state != block_info::state_writing || peer != 0)
+				info.peer = peer;
+
 			TORRENT_ASSERT(info.state == block_info::state_writing
 				|| peer == 0);
 			TORRENT_ASSERT(i->writing >= 0);

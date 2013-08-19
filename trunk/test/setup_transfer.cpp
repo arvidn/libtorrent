@@ -263,26 +263,30 @@ void test_sleep(int millisec)
 	libtorrent::sleep(millisec);
 }
 
-static std::set<int> running_proxies;
+// maps port to proxy type
+static std::map<int, int> running_proxies;
 
 void stop_proxy(int port)
 {
-	char buf[100];
-	snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", port);
-	int ret = system(buf);
-	if (ret == 0)
-		perror("system");	
-	else
-		running_proxies.erase(port);
+	// don't shut down proxies until the test is
+	// completely done. This saves a lot of time.
+	// they're closed at the end of main() by
+	// calling stop_all_proxies().
 }
 
 void stop_all_proxies()
 {
-	std::set<int> proxies = running_proxies;
-	for (std::set<int>::iterator i = proxies.begin()
+	std::map<int, int> proxies = running_proxies;
+	for (std::map<int, int>::iterator i = proxies.begin()
 		, end(proxies.end()); i != end; ++i)
 	{
-		stop_proxy(*i);
+		char buf[100];
+		snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", i->first);
+		int ret = system(buf);
+		if (ret == 0)
+			perror("system");	
+		else
+			running_proxies.erase(i->first);
 	}
 }
 
@@ -290,9 +294,13 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	int port = 10000 + (rand() % 50000);
+	for (std::map<int, int>::iterator i = running_proxies.begin()
+		, end(running_proxies.end()); i != end; ++i)
+	{
+		if (i->second == proxy_type) return i->first;
+	}
 
-	stop_proxy(port);
+	int port = 10000 + (rand() % 50000);
 
 	char const* type = "";
 	char const* auth = "";
@@ -332,7 +340,7 @@ int start_proxy(int proxy_type)
 		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
 		exit(1);
 	}
-	running_proxies.insert(port);
+	running_proxies.insert(std::make_pair(port, proxy_type));
 	fprintf(stderr, "%s launched\n", time_now_string());
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
