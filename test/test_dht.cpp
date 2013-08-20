@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_dispatcher.hpp"
 #include <iostream>
 
-#include "../ed25519/src/ed25519.h"
-
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
