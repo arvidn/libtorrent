@@ -1811,6 +1811,13 @@ namespace aux {
 		m_timer.cancel(ec);
 		m_lsd_announce_timer.cancel(ec);
 
+		for (std::set<boost::shared_ptr<socket_type> >::iterator i = m_incoming_sockets.begin()
+			, end(m_incoming_sockets.end()); i != end; ++i)
+		{
+			(*i)->close();
+		}
+		m_incoming_sockets.clear();
+
 		// close the listen sockets
 		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
@@ -2710,6 +2717,7 @@ retry:
 #endif
 			s->get<ssl_stream<stream_socket> >()->async_accept_handshake(
 				boost::bind(&session_impl::ssl_handshake, this, _1, s));
+			m_incoming_sockets.insert(s);
 		}
 		else
 #endif
@@ -2731,6 +2739,8 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::ssl_handshake");
 #endif
+		m_incoming_sockets.erase(s);
+
 		error_code e;
 		tcp::endpoint endp = s->remote_endpoint(e);
 		if (e) return;
