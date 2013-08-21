@@ -309,7 +309,7 @@ namespace libtorrent { namespace
 
 			int len;
 			entry msg = bdecode(body.begin, body.end, len);
-			if (msg.type() == entry::undefined_t)
+			if (msg.type() != entry::dictionary_t)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("<== UT_METADATA [ not a dictionary ]");
