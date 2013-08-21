@@ -737,6 +737,12 @@ namespace libtorrent
 			// object. It is the complete list of all connected
 			// peers.
 			connection_map m_connections;
+
+			// this list holds incoming connections while they
+			// are performing SSL handshake. When we shut down
+			// the session, all of these are disconnected, otherwise
+			// they would linger and stall or hang session shutdown
+			std::set<boost::shared_ptr<socket_type> > m_incoming_sockets;
 			
 			// filters incoming connections
 			ip_filter m_ip_filter;
