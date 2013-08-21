@@ -2705,6 +2705,9 @@ retry:
 		{
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("session_impl::ssl_handshake");
+#endif
 			s->get<ssl_stream<stream_socket> >()->async_accept_handshake(
 				boost::bind(&session_impl::ssl_handshake, this, _1, s));
 		}
@@ -2725,6 +2728,9 @@ retry:
 
 	void session_impl::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::ssl_handshake");
+#endif
 		error_code e;
 		tcp::endpoint endp = s->remote_endpoint(e);
 		if (e) return;

@@ -37,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include "libtorrent/proxy_base.hpp"
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
 
 namespace libtorrent {
 
@@ -142,6 +145,9 @@ public:
 		// store it in a shaed_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("socks5_stream::name_lookup");
+#endif
 		tcp::resolver::query q(m_hostname, to_string(m_port).elems);
 		m_resolver.async_resolve(q, boost::bind(
 			&socks5_stream::name_lookup, this, _1, _2, h));
