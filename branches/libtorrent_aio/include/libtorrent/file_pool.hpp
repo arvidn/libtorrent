@@ -90,6 +90,11 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool assert_idle_files(void* st) const;
+
+		// remember that this storage has had
+		// its files deleted. We may not open any
+		// files from it again
+		void mark_deleted(file_storage const& fs);
 #endif
 
 	private:
@@ -114,6 +119,9 @@ namespace libtorrent
 		
 		file_set m_files;
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		std::vector<std::string> m_deleted_storages;
+#endif
 		mutable mutex m_mutex;
 	};
 }

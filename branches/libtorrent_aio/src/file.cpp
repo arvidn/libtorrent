@@ -1973,11 +1973,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return *this;
 	}
 
-	void print_open_files(char const* event)
+	void print_open_files(char const* event, char const* name)
 	{
 		FILE* out = fopen("open_files.log", "a+");
-		fprintf(out, "\n\nEVENT: %s\n\n", event);
 		mutex::scoped_lock l(file_handle_mutex);
+		fprintf(out, "\n\nEVENT: %s TORRENT: %s\n\n", event, name);
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
 			, end(global_file_handles.end()); i != end; ++i)
 		{

@@ -405,6 +405,10 @@ namespace libtorrent
 		// close files that were opened in write mode
 		m_stat_cache.clear();
 		m_pool.release(this);
+
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files("release files", m_files.name().c_str());
+#endif
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -471,6 +475,10 @@ namespace libtorrent
 		std::string old_name = files().file_path(index, m_save_path);
 		m_pool.release(this, index);
 
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files("release files", m_files.name().c_str());
+#endif
+
 		std::string new_path;
 		if (is_complete(new_filename)) new_path = new_filename;
 		else new_path = combine_path(m_save_path, new_filename);
@@ -513,6 +521,10 @@ namespace libtorrent
 	{
 		// make sure we don't have the files open
 		m_pool.release(this);
+
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files("release files", m_files.name().c_str());
+#endif
 	}
 
 	void default_storage::delete_one_file(std::string const& p, error_code& ec)
@@ -537,7 +549,7 @@ namespace libtorrent
 		if (!m_pool.assert_idle_files(this))
 		{
 #if TORRENT_DEBUG_FILE_LEAKS
-			print_open_files("delete-files idle assert failed");
+			print_open_files("delete-files idle assert failed", m_files.name().c_str());
 #endif
 			TORRENT_ASSERT(false);
 		}
@@ -546,6 +558,13 @@ namespace libtorrent
 		// make sure we don't have the files open
 		m_pool.release(this);
 
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files("release files", m_files.name().c_str());
+#endif
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+		m_pool.mark_deleted(m_files);
+#endif
 		// delete the files from disk
 		std::set<std::string> directories;
 		typedef std::set<std::string>::iterator iter_t;
@@ -590,7 +609,7 @@ namespace libtorrent
 		DFLOG(stderr, "[%p] delete_files result: %s\n", this, ec.ec.message().c_str());
 
 #if TORRENT_DEBUG_FILE_LEAKS
-		print_open_files("delete-files done");
+		print_open_files("delete-files done", m_files.name().c_str());
 #endif
 	}
 
@@ -917,6 +936,10 @@ namespace libtorrent
 		}
 
 		m_pool.release(this);
+
+#if TORRENT_DEBUG_FILE_LEAKS
+		print_open_files("release files", m_files.name().c_str());
+#endif
 
 		for (std::map<std::string, int>::const_iterator i = to_move.begin()
 			, end(to_move.end()); i != end; ++i)

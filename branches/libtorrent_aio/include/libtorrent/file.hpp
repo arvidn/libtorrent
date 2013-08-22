@@ -210,7 +210,7 @@ namespace libtorrent
 		boost::intrusive_ptr<file> m_file;
 	};
 
-	void TORRENT_EXTRA_EXPORT print_open_files(char const* event);
+	void TORRENT_EXTRA_EXPORT print_open_files(char const* event, char const* name);
 #else
 typedef boost::intrusive_ptr<file> file_handle;
 #endif
