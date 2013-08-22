@@ -3234,8 +3234,6 @@ namespace libtorrent
 			if (info.state != block_info::state_writing || peer != 0)
 				info.peer = peer;
 
-			TORRENT_ASSERT(info.state == block_info::state_writing
-				|| peer == 0);
 			++i->finished;
 			if (info.state == block_info::state_writing)
 			{
