@@ -748,9 +748,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 		if (print_ip)
 		{
-			snprintf(str, sizeof(str), "%-30s %-22s", (::print_endpoint(i->ip) +
-				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str()
-				, ::print_endpoint(i->local_endpoint).c_str());
+			snprintf(str, sizeof(str), "%-30s ", (::print_endpoint(i->ip) +
+				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str());
 			out += str;
 		}
 
