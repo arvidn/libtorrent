@@ -477,7 +477,7 @@ namespace libtorrent
 				if (!is_ok_status(m_parser.status_code()))
 				{
 					int retry_time = atoi(m_parser.header("retry-after").c_str());
-					if (retry_time <= 0) retry_time = 5 * 60;
+					if (retry_time <= 0) retry_time = m_ses.settings().urlseed_wait_retry;
 					// temporarily unavailable, retry later
 					t->retry_web_seed(this, retry_time);
 					std::string error_msg = to_string(m_parser.status_code()).elems
