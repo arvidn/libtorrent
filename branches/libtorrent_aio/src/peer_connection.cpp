@@ -2746,6 +2746,8 @@ namespace libtorrent
 		if (m_download_queue.empty())
 			m_ses.inc_stats_counter(counters::num_peers_down_requests, -1);
 
+		if (t->is_deleted()) return;
+
 		if (!t->need_loaded())
 		{
 			t->add_redundant_bytes(p.length, torrent::piece_unknown);

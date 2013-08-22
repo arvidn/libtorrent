@@ -337,6 +337,7 @@ namespace libtorrent
 		, m_current_gauge_state(no_gauge_state)
 		, m_need_suggest_pieces_refresh(false)
 		, m_ssl_torrent(false)
+		, m_deleted(false)
 	{
 		if (m_pinned)
 			m_ses.inc_stats_counter(counters::num_pinned_torrents);
@@ -1290,6 +1291,8 @@ namespace libtorrent
 		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+
+		if (m_deleted) return;
 
 		// avoid crash trying to access the picker when there is none
 		if (m_have_all && !has_picker()) return;
@@ -8096,6 +8099,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_storage);
 			m_ses.disk_thread().async_delete_files(m_storage.get()
 				, boost::bind(&torrent::on_files_deleted, shared_from_this(), _1));
+			m_deleted = true;
 			return true;
 		}
 		return false;
