@@ -3194,7 +3194,6 @@ namespace libtorrent
 			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
 			
-			TORRENT_ASSERT(peer == 0);
 			int prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
 				|| m_dirty);
