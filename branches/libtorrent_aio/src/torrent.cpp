@@ -1119,6 +1119,7 @@ namespace libtorrent
 				}
 				else
 				{
+					// TODO: 3 if any other peer has a busy request to this block, we need to cancel it too
 					if (has_picker())
 						picker().write_failed(block_finished);
 
@@ -1211,9 +1212,12 @@ namespace libtorrent
 			// only make uninteresting peers interesting again.
 			if (p->is_interesting()) continue;
 			p->update_interest();
-			if (request_a_block(*this, *p))
-				m_ses.inc_stats_counter(counters::hash_fail_piece_picks);
-			p->send_block_requests();
+			if (!m_abort)
+			{
+				if (request_a_block(*this, *p))
+					m_ses.inc_stats_counter(counters::hash_fail_piece_picks);
+				p->send_block_requests();
+			}
 		}
 	}
 
