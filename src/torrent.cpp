@@ -428,6 +428,7 @@ namespace libtorrent
 		, m_is_active_download(false)
 		, m_is_active_finished(false)
 		, m_ssl_torrent(false)
+		, m_deleted(false)
 	{
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
@@ -1219,6 +1220,8 @@ namespace libtorrent
 		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+
+		if (m_deleted) return;
 
 		// avoid crash trying to access the picker when there is none
 		if (!has_picker()) return;
@@ -7029,6 +7032,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_storage);
 			m_storage->async_delete_files(
 				boost::bind(&torrent::on_files_deleted, shared_from_this(), _1, _2));
+			m_deleted = true;
 			return true;
 		}
 		return false;
