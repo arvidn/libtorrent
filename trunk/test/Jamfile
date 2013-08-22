@@ -11,17 +11,33 @@ exe enum_if : enum_if.cpp /torrent//torrent
 explicit test_natpmp ;
 explicit enum_if ;
 
+ED25519_SOURCES =
+	add_scalar
+	fe
+	ge
+	key_exchange
+	keypair
+	sc
+	seed
+	sha512
+	sign
+	verify
+	;
+
 lib libtorrent_test
 	: # sources
 	setup_transfer.cpp
 	dht_server.cpp
 	peer_server.cpp
+	../ed25519/src/$(ED25519_SOURCES).c
 
 	: # requirements
 	<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on
 	# this is used to determine whether
 	# symbols are exported or imported
 	<link>shared:<define>TORRENT_BUILDING_TEST_SHARED
+	<link>shared:<define>ED25519_BUILD_DLL
+	<include>../ed25519/src
 
 	: # default build
 	<link>shared
