@@ -38,24 +38,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void fun(condition_variable* s, libtorrent::mutex* m, int i)
+void fun(condition_variable* s, libtorrent::mutex* m, int* waiting, int i)
 {
 	fprintf(stderr, "thread %d waiting\n", i);
 	libtorrent::mutex::scoped_lock l(*m);
+	*waiting += 1;
 	s->wait(l);
 	fprintf(stderr, "thread %d done\n", i);
 }
 
-void increment(atomic_count& c)
+void increment(condition_variable* s, libtorrent::mutex* m, int* waiting, atomic_count* c)
 {
+	libtorrent::mutex::scoped_lock l(*m);
+	*waiting += 1;
+	s->wait(l);
+	l.unlock();
 	for (int i = 0; i < 1000000; ++i)
-		++c;
+		++*c;
 }
 
-void decrement(atomic_count& c)
+void decrement(condition_variable* s, libtorrent::mutex* m, int* waiting, atomic_count* c)
 {
+	libtorrent::mutex::scoped_lock l(*m);
+	*waiting += 1;
+	s->wait(l);
+	l.unlock();
 	for (int i = 0; i < 1000000; ++i)
-		--c;
+		--*c;
 }
 
 int test_main()
@@ -63,15 +72,21 @@ int test_main()
 	condition_variable cond;
 	libtorrent::mutex m;
 	std::list<thread*> threads;
+	int waiting = 0;
 	for (int i = 0; i < 20; ++i)
 	{
-		threads.push_back(new thread(boost::bind(&fun, &cond, &m, i)));
+		threads.push_back(new thread(boost::bind(&fun, &cond, &m, &waiting, i)));
 	}
 
 	// make sure all threads are waiting on the condition_variable
-	sleep(10);
-
 	libtorrent::mutex::scoped_lock l(m);
+	while (waiting < 20)
+	{
+		l.unlock();
+		sleep(10);
+		l.lock();
+	}
+
 	cond.notify_all();
 	l.unlock();
 
@@ -80,13 +95,33 @@ int test_main()
 		(*i)->join();
 		delete *i;
 	}
+	threads.clear();
 
-	atomic_count c;
-	thread t1(boost::bind(&increment, boost::ref(c)));
-	thread t2(boost::bind(&decrement, boost::ref(c)));
+	waiting = 0;
+	atomic_count c(0);
+	for (int i = 0; i < 3; ++i)
+	{
+		threads.push_back(new thread(boost::bind(&increment, &cond, &m, &waiting, &c)));
+		threads.push_back(new thread(boost::bind(&decrement, &cond, &m, &waiting, &c)));
+	}
 
-	t1.join();
-	t2.join();
+	// make sure all threads are waiting on the condition_variable
+	l.lock();
+	while (waiting < 6)
+	{
+		l.unlock();
+		sleep(10);
+		l.lock();
+	}
+
+	cond.notify_all();
+	l.unlock();
+
+	for (std::list<thread*>::iterator i = threads.begin(); i != threads.end(); ++i)
+	{
+		(*i)->join();
+		delete *i;
+	}
 
 	TEST_CHECK(c == 0);
 

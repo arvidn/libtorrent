@@ -97,7 +97,7 @@ namespace libtorrent
 
 	}
 
-	void connection_queue::cancel(connection_interface* conn)
+	bool connection_queue::cancel(connection_interface* conn)
 	{
 		std::vector<queue_entry>::iterator i = std::find_if(
 			m_queue.begin(), m_queue.end(), boost::bind(&queue_entry::conn, _1) == conn);
@@ -112,13 +112,15 @@ namespace libtorrent
 				TORRENT_ASSERT(i->second.conn != conn);
 			}
 #endif
-			return;
+			TORRENT_ASSERT(false);
+			return false;
 		}
 
 		m_queue.erase(i);
+		return true;
 	}
 
-	void connection_queue::done(int ticket)
+	bool connection_queue::done(int ticket)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -126,7 +128,7 @@ namespace libtorrent
 
 		std::map<int, connect_entry>::iterator i = m_connecting.find(ticket);
 		// this might not be here in case on_timeout calls remove
-		if (i == m_connecting.end()) return;
+		if (i == m_connecting.end()) return false;
 
 		m_connecting.erase(i);
 
@@ -134,6 +136,7 @@ namespace libtorrent
 			|| m_half_open_limit == 0)
 			m_timer.get_io_service().post(boost::bind(
 				&connection_queue::on_try_connect, this));
+		return true;
 	}
 
 	void connection_queue::close()

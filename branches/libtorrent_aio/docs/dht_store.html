@@ -81,7 +81,7 @@ the key is the public key of the key pair used to sign the data.</p>
 <div class="section" id="terminology">
 <h1>terminology</h1>
 <p>In this document, a <em>storage node</em> refers to the node in the DHT to which
-an item is being announced and stored on. A <em>subscribing node</em> refers to
+an item is being announced and stored on. A <em>requesting node</em> refers to
 a node which makes look-ups in the DHT to find the storage nodes, to
 request items from them, and possibly re-announce those items to keep them
 alive.</p>
@@ -90,15 +90,17 @@ alive.</p>
 <h1>messages</h1>
 <p>The proposed new messages <tt class="docutils literal">get</tt> and <tt class="docutils literal">put</tt> are similar to the existing <tt class="docutils literal">get_peers</tt>
 and <tt class="docutils literal">announce_peer</tt>.</p>
-<p>Responses to <tt class="docutils literal">get</tt> should always include <tt class="docutils literal">nodes</tt> and <tt class="docutils literal">nodes6</tt> has the same
-semantics as in its <tt class="docutils literal">get_peers</tt> response. It should also include a write token,
-<tt class="docutils literal">token</tt>, with the same semantics as <tt class="docutils literal">get_peers</tt>.</p>
+<p>Responses to <tt class="docutils literal">get</tt> should always include <tt class="docutils literal">nodes</tt> and <tt class="docutils literal">nodes6</tt>. Those fields
+have the same semantics as in its <tt class="docutils literal">get_peers</tt> response. It should also include a write token,
+<tt class="docutils literal">token</tt>, with the same semantics as int <tt class="docutils literal">get_peers</tt>. The write token MAY be tied
+specifically to the key which <tt class="docutils literal">get</tt> requested. i.e. the <tt class="docutils literal">token</tt> can only be used
+to store values under that one key.</p>
 <p>The <tt class="docutils literal">id</tt> field in these messages has the same semantics as the standard DHT messages,
 i.e. the node ID of the node sending the message, to maintain the structure of the DHT
 network.</p>
 <p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message <tt class="docutils literal">get_peers</tt>
 and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an item respectively.</p>
-<p>The <tt class="docutils literal">k</tt> field is the PKCS#1 encoded 2048 bit RSA public key, which the signature
+<p>The <tt class="docutils literal">k</tt> field is the 32 byte ed25519 public key, which the signature
 can be authenticated with. When looking up a mutable item, the <tt class="docutils literal">target</tt> field
 MUST be the SHA-1 hash of this key.</p>
 <p>The distinction between storing mutable and immutable items is the inclusion
@@ -113,7 +115,7 @@ its key), its flattened, bencoded, form is used. It is important to use the exac
 bencoded representation as it appeared in the message. decoding and then re-encoding
 bencoded structures is not necessarily an identity operation.</p>
 <p>Storing nodes SHOULD reject <tt class="docutils literal">put</tt> requests where the bencoded form of <tt class="docutils literal">v</tt> is longer
-than 767 bytes.</p>
+than 1000 bytes.</p>
 </div>
 <div class="section" id="immutable-items">
 <h1>immutable items</h1>
@@ -129,7 +131,7 @@ that its hash matches the target that was looked up.</p>
         &quot;a&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
-                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 768&gt;</em>
+                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt;= 1000&gt;</em>
         },
         &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
         &quot;y&quot;: &quot;q&quot;,
@@ -189,7 +191,7 @@ and a node hosting the list node MUST not downgrade a list head from a higher se
 number to a lower one, only upgrade. The sequence number SHOULD not exceed <tt class="docutils literal">MAX_INT64</tt>,
 (i.e. <tt class="docutils literal">0x7fffffffffffffff</tt>. A client MAY reject any message with a sequence number
 exceeding this.</p>
-<p>The signature is a 2048 bit RSA signature of the SHA-1 hash of the bencoded sequence
+<p>The signature is a 64 byte ed25519 signature of the bencoded sequence
 number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
 <div class="section" id="id1">
 <h2>put message</h2>
@@ -199,19 +201,24 @@ number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <
         &quot;a&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
-                &quot;k&quot;: <em>&lt;RSA-2048 public key (PKCS#1 encoded)&gt;</em>,
+                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
-                &quot;sig&quot;: <em>&lt;RSA-2048 signature (256 bytes string)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
-                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 768&gt;</em>
+                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 1000&gt;</em>
         },
         &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
         &quot;y&quot;: &quot;q&quot;,
         &quot;q&quot;: &quot;put&quot;
 }
 </pre>
-<p>Storing nodes receiving a <tt class="docutils literal">put</tt> request where <tt class="docutils literal">seq</tt> is lower than what's already
-stored on the node, MUST reject the request.</p>
+<p>Storing nodes receiving a <tt class="docutils literal">put</tt> request where <tt class="docutils literal">seq</tt> is lower than or equal
+to what's already stored on the node, MUST reject the request. If the sequence
+number is equal, and the value is also the same, the node SHOULD reset its timeout
+counter.</p>
+<p>Note that this request does not contain a target hash. The target hash under
+which this blob is stored is implied by the <tt class="docutils literal">k</tt> argument. The key is
+the SHA-1 hash of the key (<tt class="docutils literal">k</tt>).</p>
 <p>Response:</p>
 <pre class="literal-block">
 {
@@ -242,13 +249,13 @@ stored on the node, MUST reject the request.</p>
         &quot;r&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
-                &quot;k&quot;: <em>&lt;RSA-2048 public key (268 bytes string)&gt;</em>,
+                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
                 &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
                 &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
-                &quot;sig&quot;: <em>&lt;RSA-2048 signature (256 bytes string)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
-                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 768&gt;</em>
+                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt;= 1000&gt;</em>
         },
         &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
         &quot;y&quot;: &quot;r&quot;,
@@ -267,12 +274,11 @@ sequence number 1 of value &quot;Hello World!&quot; would be converted to: 3:seq
 In this way it is not possible to convince a node that part of the length is actually part of the
 sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
 verification failure if a bencoding serializer alters the order of entries in the dictionary.</li>
-<li>hash the concatenated string with SHA-1</li>
-<li>sign or verify the hash digest.</li>
+<li>sign or verify the concatenated string</li>
 </ol>
 <p>On the storage node, the signature MUST be verified before accepting the store command. The data
 MUST be stored under the SHA-1 hash of the public key (as it appears in the bencoded dict).</p>
-<p>On the subscribing nodes, the key they get back from a <tt class="docutils literal">get</tt> request MUST be verified to hash
+<p>On the requesting nodes, the key they get back from a <tt class="docutils literal">get</tt> request MUST be verified to hash
 to the target ID the lookup was made for, as well as verifying the signature. If any of these fail,
 the response SHOULD be considered invalid.</p>
 </div>

@@ -45,6 +45,7 @@ namespace libtorrent
 	struct file_pool;
 	class torrent_info;
 
+	// types of storage allocation used for add_torrent_params::storage_mode.
 	enum storage_mode_t
 	{
 		// All pieces will be written to their final position, all files will be

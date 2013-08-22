@@ -1912,8 +1912,6 @@ namespace libtorrent
 		peer_log("<== DONT_HAVE [ piece: %d ]", index);
 #endif
 
-		if (is_disconnecting()) return;
-
 		// if we got an invalid message, abort
 		if (index >= int(m_have_piece.size()) || index < 0)
 		{
@@ -3838,7 +3836,8 @@ namespace libtorrent
 
 		if (m_connection_ticket != -1)
 		{
-			m_ses.half_open_done(m_connection_ticket);
+			if (m_ses.half_open_done(m_connection_ticket))
+				m_connection_ticket = -1;
 		}
 
 		// a connection attempt using uTP just failed
@@ -4012,8 +4011,8 @@ namespace libtorrent
 		}
 		if (m_connection_ticket >= 0)
 		{
-			m_ses.half_open_done(m_connection_ticket);
-			m_connection_ticket = -1;
+			if (m_ses.half_open_done(m_connection_ticket))
+				m_connection_ticket = -1;
 		}
 
 		torrent_handle handle;
@@ -4502,8 +4501,11 @@ namespace libtorrent
 
 		if (!t || m_disconnecting)
 		{
-			m_ses.half_open_done(m_connection_ticket);
-			if (m_connection_ticket >= -1) m_connection_ticket = -1;
+			if (m_connection_ticket != -1)
+			{
+				if (m_ses.half_open_done(m_connection_ticket))
+					m_connection_ticket = -1;
+			}
 			TORRENT_ASSERT(t || !m_connecting);
 			if (m_connecting)
 			{
@@ -6188,8 +6190,11 @@ namespace libtorrent
 			if (t) t->dec_num_connecting();
 			m_connecting = false;
 		}
-		m_ses.half_open_done(m_connection_ticket);
-		m_connection_ticket = -1;
+		if (m_connection_ticket != -1)
+		{
+			if (m_ses.half_open_done(m_connection_ticket))
+				m_connection_ticket = -1;
+		}
 
 		TORRENT_ASSERT(!m_connected);
 		m_connected = true;

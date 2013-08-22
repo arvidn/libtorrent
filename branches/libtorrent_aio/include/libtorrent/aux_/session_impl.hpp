@@ -478,8 +478,8 @@ namespace libtorrent
 			int max_half_open_connections() const;
 #endif
 
-			void half_open_done(int ticket)
-			{ m_half_open.done(ticket); }
+			bool half_open_done(int ticket)
+			{ return m_half_open.done(ticket); }
 
 			bandwidth_manager* get_bandwidth_manager(int channel);
 
@@ -849,6 +849,12 @@ namespace libtorrent
 			// object. It is the complete list of all connected
 			// peers.
 			connection_map m_connections;
+
+			// this list holds incoming connections while they
+			// are performing SSL handshake. When we shut down
+			// the session, all of these are disconnected, otherwise
+			// they would linger and stall or hang session shutdown
+			std::set<boost::shared_ptr<socket_type> > m_incoming_sockets;
 			
 			// maps IP ranges to bitfields representing peer class IDs
 			// to assign peers matching a specific IP range based on its

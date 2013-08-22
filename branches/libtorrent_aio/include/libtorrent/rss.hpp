@@ -75,6 +75,7 @@ namespace libtorrent
 		sha1_hash info_hash;
 	};
 
+	// given a feed_item ``f``, add the torrent it refers to to session ``s``.
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle TORRENT_EXPORT add_feed_item(session& s, feed_item const& fi
 		, add_torrent_params const& p);

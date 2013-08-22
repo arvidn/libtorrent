@@ -236,7 +236,7 @@ namespace libtorrent { namespace aux
 		virtual void received_synack(bool ipv6) = 0;
 		
 		// half-open
-		virtual void half_open_done(int ticket) = 0;
+		virtual bool half_open_done(int ticket) = 0;
 
 		virtual int peak_up_rate() const = 0;
 

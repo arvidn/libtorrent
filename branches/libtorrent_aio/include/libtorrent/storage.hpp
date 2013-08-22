@@ -351,6 +351,7 @@ namespace libtorrent
 
 		aux::session_settings const& settings() const { return *m_settings; }
 
+		// hidden
 		virtual ~storage_interface() {}
 
 		// initialized in disk_io_thread::perform_async_job

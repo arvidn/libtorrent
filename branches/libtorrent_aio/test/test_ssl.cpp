@@ -107,6 +107,14 @@ void test_ssl(int test_idx)
 
 	fprintf(stderr, "\n%s TEST: %s\n\n", time_now_string(), test.name);
 
+#ifndef TORRENT_USE_OPENSSL
+	if (test.use_ssl_ports)
+	{
+		fprintf(stderr, "N/A\n");
+		return;
+	}
+#endif
+
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_ssl", ec);
@@ -127,6 +135,9 @@ void test_ssl(int test_idx)
 		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
 	ses2.apply_settings(sett);
 
+	wait_for_listen(ses1, "ses1");
+	wait_for_listen(ses2, "ses2");
+
 	torrent_handle tor1;
 	torrent_handle tor2;
 
@@ -140,7 +151,7 @@ void test_ssl(int test_idx)
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
 	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses1");
+	wait_for_listen(ses2, "ses2");
 
 	peer_disconnects = 0;
 	ssl_peer_disconnects = 0;
@@ -211,10 +222,10 @@ void test_ssl(int test_idx)
 		test_sleep(100);
 	}
 
-	fprintf(stderr, "peer_errors: %d\nssl_disconnects: %d\n", peer_errors, ssl_peer_disconnects);
-
+	fprintf(stderr, "peer_errors: %d  expected: %d\n", peer_errors, test.peer_errors);
 	TEST_EQUAL(peer_errors, test.peer_errors);
 #ifdef TORRENT_USE_OPENSSL
+	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
 	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
 #endif
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");

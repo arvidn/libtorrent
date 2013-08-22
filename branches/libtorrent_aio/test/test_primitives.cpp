@@ -71,14 +71,6 @@ using namespace boost::tuples;
 
 namespace libtorrent {
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
-
-#ifndef TORRENT_DISABLE_DHT
-//	namespace dht
-//	{
-//		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
-//			address const& ip_, boost::uint32_t r);
-//	}
-#endif
 }
 
 sha1_hash to_hash(char const* s)
@@ -1374,9 +1366,10 @@ int test_main()
 	TEST_CHECK(need_encoding("\n", 1) == true);
 
 	// maybe_url_encode
-	TEST_CHECK(maybe_url_encode("http://bla.com/\n") == "http://bla.com/%0a");
-	std::cerr << maybe_url_encode("http://bla.com/\n") << std::endl;
-	TEST_CHECK(maybe_url_encode("?&") == "?&");
+	TEST_EQUAL(maybe_url_encode("http://bla.com/\n"), "http://bla.com/%0a");
+	TEST_EQUAL(maybe_url_encode("http://bla.com/foo%20bar"), "http://bla.com/foo%20bar");
+	TEST_EQUAL(maybe_url_encode("http://bla.com/foo%20bar?k=v&k2=v2"), "http://bla.com/foo%20bar?k=v&k2=v2");
+	TEST_EQUAL(maybe_url_encode("?&"), "?&");
 
 	// unescape_string
 	TEST_CHECK(unescape_string(escape_string(test_string, strlen(test_string)), ec)
@@ -2042,11 +2035,11 @@ int test_main()
 
 	boost::uint8_t prefixes[][4] =
 	{
-		{0xf7, 0x66, 0xf9, 0xf5},
-		{0x7e, 0xe0, 0x47, 0x79 },
-		{0x76, 0xa6, 0x26, 0xff },
-		{0xbe, 0xb4, 0xe6, 0x19 },
-		{0xac, 0xe5, 0x61, 0x3a },
+		{ 0x17, 0x12, 0xf6, 0xc7 },
+		{ 0x94, 0x64, 0x06, 0xc1 },
+		{ 0xfe, 0xfd, 0x92, 0x20 },
+		{ 0xaf, 0x15, 0x46, 0xdd },
+		{ 0xa9, 0xe9, 0x20, 0xbf }
 	};
 
 	for (int i = 0; i < 5; ++i)

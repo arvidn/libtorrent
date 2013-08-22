@@ -22,7 +22,7 @@ terminology
 -----------
 
 In this document, a *storage node* refers to the node in the DHT to which
-an item is being announced and stored on. A *subscribing node* refers to
+an item is being announced and stored on. A *requesting node* refers to
 a node which makes look-ups in the DHT to find the storage nodes, to
 request items from them, and possibly re-announce those items to keep them
 alive.
@@ -33,9 +33,11 @@ messages
 The proposed new messages ``get`` and ``put`` are similar to the existing ``get_peers``
 and ``announce_peer``.
 
-Responses to ``get`` should always include ``nodes`` and ``nodes6`` has the same
-semantics as in its ``get_peers`` response. It should also include a write token,
-``token``, with the same semantics as ``get_peers``.
+Responses to ``get`` should always include ``nodes`` and ``nodes6``. Those fields
+have the same semantics as in its ``get_peers`` response. It should also include a write token,
+``token``, with the same semantics as int ``get_peers``. The write token MAY be tied
+specifically to the key which ``get`` requested. i.e. the ``token`` can only be used
+to store values under that one key.
 
 The ``id`` field in these messages has the same semantics as the standard DHT messages,
 i.e. the node ID of the node sending the message, to maintain the structure of the DHT
@@ -44,7 +46,7 @@ network.
 The ``token`` field also has the same semantics as the standard DHT message ``get_peers``
 and ``announce_peer``, when requesting an item and to write an item respectively.
 
-The ``k`` field is the PKCS#1 encoded 2048 bit RSA public key, which the signature
+The ``k`` field is the 32 byte ed25519 public key, which the signature
 can be authenticated with. When looking up a mutable item, the ``target`` field
 MUST be the SHA-1 hash of this key.
 
@@ -63,7 +65,7 @@ bencoded representation as it appeared in the message. decoding and then re-enco
 bencoded structures is not necessarily an identity operation.
 
 Storing nodes SHOULD reject ``put`` requests where the bencoded form of ``v`` is longer
-than 767 bytes.
+than 1000 bytes.
 
 immutable items
 ---------------
@@ -85,7 +87,7 @@ Request:
 		"a":
 		{
 			"id": *<20 byte id of sending node (string)>*,
-			"v": *<any bencoded type, whose encoded size < 768>*
+			"v": *<any bencoded type, whose encoded size <= 1000>*
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "q",
@@ -153,8 +155,8 @@ number to a lower one, only upgrade. The sequence number SHOULD not exceed ``MAX
 (i.e. ``0x7fffffffffffffff``. A client MAY reject any message with a sequence number
 exceeding this.
 
-The signature is a 2048 bit RSA signature of the SHA-1 hash of the bencoded sequence
-number and ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
+The signature is a 64 byte ed25519 signature of the bencoded sequence
+number concatenated with the ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
 
 put message
 ...........
@@ -167,19 +169,25 @@ Request:
 		"a":
 		{
 			"id": *<20 byte id of sending node (string)>*,
-			"k": *<RSA-2048 public key (PKCS#1 encoded)>*,
+			"k": *<ed25519 public key (32 bytes string)>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
-			"sig": *<RSA-2048 signature (256 bytes string)>*,
+			"sig": *<ed25519 signature (64 bytes string)>*,
 			"token": *<write-token (string)>*,
-			"v": *<any bencoded type, whose encoded size < 768>*
+			"v": *<any bencoded type, whose encoded size < 1000>*
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "q",
 		"q": "put"
 	}
 
-Storing nodes receiving a ``put`` request where ``seq`` is lower than what's already
-stored on the node, MUST reject the request.
+Storing nodes receiving a ``put`` request where ``seq`` is lower than or equal
+to what's already stored on the node, MUST reject the request. If the sequence
+number is equal, and the value is also the same, the node SHOULD reset its timeout
+counter.
+
+Note that this request does not contain a target hash. The target hash under
+which this blob is stored is implied by the ``k`` argument. The key is
+the SHA-1 hash of the key (``k``).
 
 Response:
 
@@ -217,13 +225,13 @@ Response:
 		"r":
 		{
 			"id": *<20 byte id of sending node (string)>*,
-			"k": *<RSA-2048 public key (268 bytes string)>*,
+			"k": *<ed25519 public key (32 bytes string)>*,
 			"nodes": *<IPv4 nodes close to 'target'>*,
 			"nodes6": *<IPv6 nodes close to 'target'>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
-			"sig": *<RSA-2048 signature (256 bytes string)>*,
+			"sig": *<ed25519 signature (64 bytes string)>*,
 			"token": *<write-token (string)>*,
-			"v": *<any bencoded type, whose encoded size < 768>*
+			"v": *<any bencoded type, whose encoded size <= 1000>*
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "r",
@@ -241,13 +249,12 @@ value and sequence number should be done as follows:
    In this way it is not possible to convince a node that part of the length is actually part of the
    sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
    verification failure if a bencoding serializer alters the order of entries in the dictionary.
-3. hash the concatenated string with SHA-1
-4. sign or verify the hash digest.
+3. sign or verify the concatenated string
 
 On the storage node, the signature MUST be verified before accepting the store command. The data
 MUST be stored under the SHA-1 hash of the public key (as it appears in the bencoded dict).
 
-On the subscribing nodes, the key they get back from a ``get`` request MUST be verified to hash
+On the requesting nodes, the key they get back from a ``get`` request MUST be verified to hash
 to the target ID the lookup was made for, as well as verifying the signature. If any of these fail,
 the response SHOULD be considered invalid.
 

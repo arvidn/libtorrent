@@ -1925,6 +1925,13 @@ namespace aux {
 #endif
 		m_lsd_announce_timer.cancel(ec);
 
+		for (std::set<boost::shared_ptr<socket_type> >::iterator i = m_incoming_sockets.begin()
+			, end(m_incoming_sockets.end()); i != end; ++i)
+		{
+			(*i)->close();
+		}
+		m_incoming_sockets.clear();
+
 		// close the listen sockets
 		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
@@ -2388,9 +2395,17 @@ namespace aux {
 	// over ownership of it
 	void session_impl::apply_settings_pack(settings_pack* pack)
 	{
+		bool reopen_listen_port = pack->get_int(settings_pack::ssl_listen) != m_settings.get_int(settings_pack::ssl_listen);
+
 		apply_pack(pack, m_settings, this);
 		m_disk_thread.set_settings(pack);
 		delete pack;
+
+		if (reopen_listen_port)
+		{
+			error_code ec;
+			open_listen_port();
+		}
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -2502,6 +2517,7 @@ namespace aux {
 			return;
 		}
 		s->external_port = s->sock->local_endpoint(ec).port();
+		TORRENT_ASSERT(s->external_port == ep.port() || ep.port() == 0);
 		last_op = listen_failed_alert::get_peer_name;
 		if (!ec)
 		{
@@ -2973,8 +2989,12 @@ retry:
 		{
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("session_impl::ssl_handshake");
+#endif
 			s->get<ssl_stream<stream_socket> >()->async_accept_handshake(
 				boost::bind(&session_impl::ssl_handshake, this, _1, s));
+			m_incoming_sockets.insert(s);
 		}
 		else
 #endif
@@ -2993,6 +3013,11 @@ retry:
 
 	void session_impl::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::ssl_handshake");
+#endif
+		m_incoming_sockets.erase(s);
+
 		error_code e;
 		tcp::endpoint endp = s->remote_endpoint(e);
 		if (e) return;

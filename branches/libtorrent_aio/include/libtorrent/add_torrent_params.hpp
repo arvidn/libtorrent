@@ -236,7 +236,10 @@ namespace libtorrent
 		// filled in by the constructor and should be left untouched. It
 		// is used for forward binary compatibility.
 		int version;
+		// torrent_info object with the torrent to add. Unless the url or info_hash
+		// is set, this is required to be initiazlied.
 		boost::shared_ptr<torrent_info> ti;
+
 #ifndef TORRENT_NO_DEPRECATE
 		char const* tracker_url;
 #endif
@@ -332,6 +335,12 @@ namespace libtorrent
 		int download_limit;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		// torrent extension construction functions can be added to this
+		// vector to have them be added immediately when the torrent is
+		// constructed. This may be desired over the torrent_handle::add_extension()
+		// in order to avoid race conditions. For instance it may be important
+		// to have the plugin catch events that happen very early on after
+		// the torrent is created.
 		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> > extensions;
 #endif
 	};

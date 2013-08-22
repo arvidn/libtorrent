@@ -67,7 +67,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-bool tests_failure = false;
+int tests_failure = 0;
+std::vector<std::string> failure_strings;
 
 #if defined TORRENT_WINDOWS
 #include <conio.h>
@@ -99,8 +100,11 @@ udp::endpoint rand_udp_ep()
 
 void report_failure(char const* err, char const* file, int line)
 {
-	fprintf(stderr, "\n***** %s:%d \"%s\" *****\n\n", file, line, err);
-	tests_failure = true;
+	char buf[500];
+	snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
+	fprintf(stderr, "\n%s\n", buf);
+	failure_strings.push_back(buf);
+	++tests_failure;
 }
 
 std::auto_ptr<alert> wait_for_alert(session& ses, int type)
@@ -262,6 +266,8 @@ void wait_for_listen(libtorrent::session& ses, char const* name)
 		if (listen_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
+	// we din't receive a listen alert!
+	TEST_CHECK(listen_done);
 }
 
 bool downloading_done = false;
@@ -318,26 +324,30 @@ void test_sleep(int millisec)
 	libtorrent::sleep(millisec);
 }
 
-static std::set<int> running_proxies;
+// maps port to proxy type
+static std::map<int, int> running_proxies;
 
 void stop_proxy(int port)
 {
-	char buf[100];
-	snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", port);
-	int ret = system(buf);
-	if (ret == 0)
-		perror("system");	
-	else
-		running_proxies.erase(port);
+	// don't shut down proxies until the test is
+	// completely done. This saves a lot of time.
+	// they're closed at the end of main() by
+	// calling stop_all_proxies().
 }
 
 void stop_all_proxies()
 {
-	std::set<int> proxies = running_proxies;
-	for (std::set<int>::iterator i = proxies.begin()
+	std::map<int, int> proxies = running_proxies;
+	for (std::map<int, int>::iterator i = proxies.begin()
 		, end(proxies.end()); i != end; ++i)
 	{
-		stop_proxy(*i);
+		char buf[100];
+		snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", i->first);
+		int ret = system(buf);
+		if (ret == 0)
+			perror("system");	
+		else
+			running_proxies.erase(i->first);
 	}
 }
 
@@ -346,9 +356,13 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	int port = 10000 + (rand() % 50000);
+	for (std::map<int, int>::iterator i = running_proxies.begin()
+		, end(running_proxies.end()); i != end; ++i)
+	{
+		if (i->second == proxy_type) return i->first;
+	}
 
-	stop_proxy(port);
+	int port = 10000 + (rand() % 50000);
 
 	char const* type = "";
 	char const* auth = "";
@@ -388,7 +402,7 @@ int start_proxy(int proxy_type)
 		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
 		exit(1);
 	}
-	running_proxies.insert(port);
+	running_proxies.insert(std::make_pair(port, proxy_type));
 	fprintf(stderr, "%s launched\n", time_now_string());
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
@@ -496,6 +510,14 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 	error_code ec;
 	return boost::make_shared<torrent_info>(
 		&tmp[0], tmp.size(), boost::ref(ec), 0);
+}
+
+void update_settings(session_settings& sess_set, bool allow_multiple_ips)
+{
+	if (allow_multiple_ips) sess_set.allow_multiple_connections_per_ip = true;
+	sess_set.ignore_limits_on_local_network = false;
+	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
+	sess_set.max_failcount = 1;
 }
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>

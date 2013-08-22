@@ -52,6 +52,7 @@ symbols = \
 
 static_links = \
 {
+	".. _`BEP 3`: http://bittorrent.org/beps/bep_0003.html",
 	".. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html",
 	".. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html"
 }
@@ -117,15 +118,24 @@ def categorize_symbol(name, filename):
 
 	return 'Core'
 
+def suppress_warning(filename, name):
+	f = os.path.split(filename)[1]
+	if f != 'alert_types.hpp': return False
+
+#	if name.endswith('_alert') or name == 'message()':
+	return True
+
+#	return False
+
 def first_item(itr):
 	for i in itr:
 		return i
 	return None
 
 def is_visible(desc):
+	if desc.strip() == 'hidden': return False
 	if internal: return True
 	if desc.strip() == 'internal': return False
-	if desc.strip() == 'hidden': return False
 	return True
 
 def highlight_signature(s):
@@ -153,6 +163,7 @@ def looks_like_variable(line):
 	if line.startswith('enum '): return False
 	if line.startswith(','): return False
 	if line.startswith(':'): return False
+	if line.startswith('typedef'): return False
 	return True
 
 def looks_like_function(line):
@@ -199,7 +210,9 @@ def parse_function(lno, lines, filename):
 
 				lno = consume_block(lno - 1, lines)
 				signature += ';'
-			return [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip() + '()'])}, lno]
+			ret = [{ 'file': filename[11:], 'signatures': set([ signature ]), 'names': set([ signature.split('(')[0].split(' ')[-1].strip() + '()'])}, lno]
+			if first_item(ret[0]['names']) == '()': return [None, lno]
+			return ret
 	if len(signature) > 0:
 		print '\x1b[31mFAILED TO PARSE FUNCTION\x1b[0m %s\nline: %d\nfile: %s' % (signature, lno, filename)
 	return [None, lno]
@@ -216,17 +229,20 @@ def parse_class(lno, lines, filename):
 	context = ''
 	class_type = 'struct'
 	blanks = 0
+	decl = ''
 
 	while lno < len(lines):
 		l = lines[lno].strip()
-		name += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
+		decl += lines[lno].replace('TORRENT_EXPORT ', '').replace('TORRENT_EXTRA_EXPORT', '').split('{')[0].strip()
 		if '{' in l: break
 		if verbose: print 'class  %s' % l
 		lno += 1
 
-	if name.startswith('class'):
+	if decl.startswith('class'):
 		state = 'private'
 		class_type = 'class'
+
+	name = decl.split(':')[0].replace('class ', '').replace('struct ', '').strip()
 
 	while lno < len(lines):
 		l = lines[lno].strip()
@@ -269,7 +285,7 @@ def parse_class(lno, lines, filename):
 		elif l == 'public:': state = 'public'
 
 		if start_brace > 0 and start_brace == end_brace:
-			return [{ 'file': filename[11:], 'enums': enums, 'fields':fields, 'type': class_type, 'name': name.split(':')[0].replace('class ', '').replace('struct ', '').strip(), 'decl': name, 'fun': funs}, lno]
+			return [{ 'file': filename[11:], 'enums': enums, 'fields':fields, 'type': class_type, 'name': name, 'decl': decl, 'fun': funs}, lno]
 
 		if state != 'public' and not internal:
 			if verbose: print 'private %s' % l
@@ -289,6 +305,8 @@ def parse_class(lno, lines, filename):
 					funs[-1]['names'].update(current_fun['names'])
 				else:
 					current_fun['desc'] = context
+					if context == '' and not suppress_warning(filename, first_item(current_fun['names'])):
+						print 'WARNING: member function "%s" is not documented' % (name + '::' + first_item(current_fun['names']))
 					funs.append(current_fun)
 			context = ''
 			blanks = 0
@@ -303,6 +321,8 @@ def parse_class(lno, lines, filename):
 				fields[-1]['names'].append(n)
 				fields[-1]['signatures'].append(l)
 			else:
+				if context == '' and not suppress_warning(filename, n):
+					print 'WARNING: field "%s" is not documented' % (name + '::' + n)
 				fields.append({'signatures': [l], 'names': [n], 'desc': context})
 			context = ''
 			blanks = 0
@@ -312,6 +332,8 @@ def parse_class(lno, lines, filename):
 			enum, lno = parse_enum(lno - 1, lines, filename)
 			if enum != None and is_visible(context):
 				enum['desc'] = context
+				if context == '' and not suppress_warning(filename, enum['name']):
+					print 'WARNING: enum "%s" is not documented' % (name + '::' + enum['name'])
 				enums.append(enum)
 			context = ''
 			continue
@@ -443,6 +465,11 @@ def consume_ifdef(lno, lines):
 			if l == '#else' and start_if - end_if == 1: break
 			if start_if - end_if == 0: break
 		return lno
+	else:
+		while l.endswith('\\') and lno < len(lines):
+			l = lines[lno].strip()
+			lno += 1
+			if verbose: print 'prep  %s' % l
 
 	return lno
 
@@ -514,6 +541,7 @@ for filename in files:
 					current_class, lno = parse_class(lno -1, lines, filename)
 					if current_class != None and is_visible(context):
 						current_class['desc'] = context
+						if context == '': print 'WARNING: class "%s" is not documented' % (current_class['name'])
 						classes.append(current_class)
 				context = ''
 				blanks += 1
@@ -527,6 +555,7 @@ for filename in files:
 						functions[-1]['names'].update(current_fun['names'])
 					else:
 						current_fun['desc'] = context
+						if context == '': print 'WARNING: function "%s" is not documented' % (first_item(current_fun['names']))
 						functions.append(current_fun)
 					blanks = 0
 				context = ''
@@ -542,6 +571,7 @@ for filename in files:
 			current_enum, lno = parse_enum(lno - 1, lines, filename)
 			if current_enum != None and is_visible(context):
 				current_enum['desc'] = context
+				if context == '': print 'WARNING: enum "%s" is not documented' % (current_enum['name'])
 				enums.append(current_enum)
 			context = ''
 			blanks += 1
@@ -726,12 +756,15 @@ def dump_link_targets():
 def heading(string, c):
 	return '\n' + string + '\n' + (c * len(string)) + '\n'
 
-def render_enums(out, enums):
+def render_enums(out, enums, print_declared_reference):
 	for e in enums:
 		print >>out, '.. raw:: html\n'
 		print >>out, '\t<a name="%s"></a>' % e['name']
 		print >>out, ''
 		print >>out, heading('enum %s' % e['name'], '.')
+
+		print_declared_in(out, e)
+
 		width = [len('name'), len('value'), len('description')]
 
 		for i in range(len(e['values'])):
@@ -772,6 +805,9 @@ libtorrent reference documentation
 for cat in categories:
 	print >>out, '%s' % heading(cat, '-')
 
+	if 'overview' in categories[cat]:
+		print >>out, '| overview__'
+
 	category_filename = categories[cat]['filename'].replace('.rst', '.html')
 	for c in categories[cat]['classes']:
 		print >>out, '| ' + print_link(c['name'], symbols[c['name']])
@@ -782,7 +818,9 @@ for cat in categories:
 		print >>out, '| ' + print_link(e['name'], symbols[e['name']])
 	print >>out, ''
 
-print >>out, dump_link_targets()
+	if 'overview' in categories[cat]:
+		print >>out, '__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html')
+	print >>out, dump_link_targets()
 
 out.write('''
 
@@ -800,8 +838,20 @@ for cat in categories:
 	functions = categories[cat]['functions']
 	enums = categories[cat]['enums']
 
+	out.write('%s\n' % heading(cat, '='))
+
+	out.write('''
+:Author: Arvid Norberg, arvid@rasterbar.com
+:Version: 1.0.0
+
+.. contents:: Table of contents
+  :depth: 1
+  :backlinks: none
+
+''')
+
 	if 'overview' in categories[cat]:
-		out.write('%s\n%s\n' % (heading(cat, '='), categories[cat]['overview']))
+		out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
 
 	for c in classes:
 
@@ -865,7 +915,7 @@ for cat in categories:
 	
 			print >>out, dump_link_targets()
 
-		render_enums(out, c['enums'])
+		render_enums(out, c['enums'], False)
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
@@ -904,7 +954,7 @@ for cat in categories:
 
 		print >>out, dump_link_targets()
 	
-	render_enums(out, enums)
+	render_enums(out, enums, True)
 
 	print >>out, dump_link_targets()
 
