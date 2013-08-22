@@ -2472,6 +2472,8 @@ namespace libtorrent
 			}
 		}
 
+		if (t->is_deleted()) return;
+
 		int write_queue_size = fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;

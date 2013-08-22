@@ -127,6 +127,8 @@ namespace libtorrent
 			static sha1_hash empty;
 			return m_torrent_file ? m_torrent_file->info_hash() : empty;
 		}
+	
+		bool is_deleted() const { return m_deleted; }
 
 		// starts the announce timer
 		void start();
@@ -1387,6 +1389,11 @@ namespace libtorrent
 		// remember that this is an SSL torrent, so that we don't
 		// accidentally start seeding it without any authentication.
 		bool m_ssl_torrent:1;
+
+		// this is set to true if we're trying to delete the
+		// files belonging to it. When set, don't write any
+		// more blocks to disk!
+		bool m_deleted:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
