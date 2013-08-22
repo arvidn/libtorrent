@@ -115,7 +115,6 @@ namespace libtorrent
 		if (i == m_queue.end())
 		{
 			// this might not be here in case on_timeout calls remove
-			TORRENT_ASSERT(false);
 			return false;
 		}
 		if (i->connecting) --m_num_connecting;
