@@ -100,7 +100,7 @@ namespace libtorrent
 #ifdef TORRENT_NO_DEPRECATE
 #define SET(name, default_value, fun) { #name, fun, default_value }
 #define SET_NOPREV(name, default_value, fun) { #name, fun, default_value }
-#define DEPRECATED_SET(name, default_value, fun) { "", NULL, NULL }
+#define DEPRECATED_SET(name, default_value, fun) { "", NULL, 0 }
 #else
 #define SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
 #define SET_NOPREV(name, default_value, fun) { #name, fun, default_value, 0 }

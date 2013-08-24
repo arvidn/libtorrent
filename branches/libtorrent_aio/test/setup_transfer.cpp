@@ -512,14 +512,6 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 		&tmp[0], tmp.size(), boost::ref(ec), 0);
 }
 
-void update_settings(session_settings& sess_set, bool allow_multiple_ips)
-{
-	if (allow_multiple_ips) sess_set.allow_multiple_connections_per_ip = true;
-	sess_set.ignore_limits_on_local_network = false;
-	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
-	sess_set.max_failcount = 1;
-}
-
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers

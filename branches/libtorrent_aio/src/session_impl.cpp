@@ -6116,7 +6116,7 @@ retry:
 
 		std::string net_interface = m_settings.get_str(settings_pack::listen_interfaces);
 
-		// TODO: make m_listen_interface a list of interfaces we're listening on
+		// TODO 3: make m_listen_interface a list of interfaces we're listening on
 		tcp::endpoint new_interface;
 		if (!net_interface.empty())
 		{

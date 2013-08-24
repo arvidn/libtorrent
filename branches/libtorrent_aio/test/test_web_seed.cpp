@@ -69,14 +69,6 @@ void test_transfer(session& ses, boost::shared_ptr<torrent_info> torrent_file
 
 	TORRENT_ASSERT(torrent_file->web_seeds().size() > 0);
 
-	settings_pack pack;
-	pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
-	pack.set_int(settings_pack::max_retry_port_bind, 1000);
-	ses.apply_settings(pack);
-
-	ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
-
 	remove_all("tmp2_web_seed", ec);
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
@@ -359,14 +351,15 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding, b
 */
 	{
 		session ses(fingerprint("  ", 0,0,0,0), 0);
-		session_settings settings;
-		settings.max_queued_disk_bytes = 256 * 1024;
-		ses.set_settings(settings);
+
+		settings_pack pack;
+		pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
+		pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
+		pack.set_int(settings_pack::max_retry_port_bind, 1000);
+		ses.apply_settings(pack);
+
 		ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
-		error_code ec;
-		ses.listen_on(std::make_pair(51000, 52000), ec);
-		if (ec) fprintf(stderr, "listen_on failed: %s\n", ec.message().c_str());
-   
+
 		for (int i = 0; i < 6; ++i)
 			test_transfer(ses, torrent_file, i, port, protocol, test_url_seed, chunked_encoding, test_ban);
 		

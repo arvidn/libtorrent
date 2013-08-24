@@ -176,14 +176,10 @@ namespace libtorrent
 		// If the fingerprint in the first overload is omited, the client will get a default
 		// fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
 		// used in the peer-id to identify the client and the client's version. For more details see the
-		// fingerprint class. The constructor that only takes a fingerprint will not open a
-		// listen port for the session, to get it running you'll have to call ``session::listen_on()``.
-		// The other constructor, that takes a port range and an interface as well as the fingerprint
-		// will automatically try to listen on a port on the given interface. For more information about
-		// the parameters, see ``listen_on()`` function.
+		// fingerprint class.
 		// 
 		// The flags paramater can be used to start default features (upnp & nat-pmp) and default plugins
-		// (ut_metadata, ut_pex and smart_ban). The default is to start those things. If you do not want
+		// (ut_metadata, ut_pex and smart_ban). The default is to start those features. If you do not want
 		// them to start, pass 0 as the flags parameter.
 		// 
 		// The ``alert_mask`` is the same mask that you would send to set_alert_mask().
@@ -631,22 +627,14 @@ namespace libtorrent
 
 		// ``is_listening()`` will tell you whether or not the session has successfully
 		// opened a listening port. If it hasn't, this function will return false, and
-		// then you can use ``listen_on()`` to make another attempt.
+		// then you can set a new settings_pack::listen_interfaces to try another
+		// interface and port to bind to.
 		// 
-		// ``listen_port()`` returns the port we ended up listening on. Since you just pass
-		// a port-range to the constructor and to ``listen_on()``, to know which port it
-		// ended up using, you have to ask the session using this function.
-		// 
-		// ``listen_on()`` will change the listen port and/or the listen interface. If the
-		// session is already listening on a port, this socket will be closed and a new socket
-		// will be opened with these new settings. The port range is the ports it will try
-		// to listen on, if the first port fails, it will continue trying the next port within
-		// the range and so on. The interface parameter can be left as 0, in that case the
-		// os will decide which interface to listen on, otherwise it should be the ip-address
-		// of the interface you want the listener socket bound to. ``listen_on()`` returns the
-		// error code of the operation in ``ec``. If this indicates success, the session is
-		// listening on a port within the specified range. If it fails, it will also
-		// generate an appropriate alert (listen_failed_alert).
+		// ``listen_port()`` returns the port we ended up listening on. If the port specified
+		// in settings_pack::listen_interfaces failed, libtorrent will try to bind to the
+		// next port, and so on. If it fails settings_pack::max_retry_port_bind times, it
+		// will bind to port 0 (meaning the OS picks the port). The only way to know which
+		// port it ended up binding to is to ask for it by calling ``listen_port()``.
 		// 
 		// If all ports in the specified range fails to be opened for listening, libtorrent will
 		// try to use port 0 (which tells the operating system to pick a port that's free). If
@@ -666,25 +654,6 @@ namespace libtorrent
 		// will set the reuse address socket option on the listen socket(s). By default, the
 		// listen socket does not use reuse address. If you're running a service that needs
 		// to run on a specific port no matter if it's in use, set this flag.
-		// 
-		// If you're also starting the DHT, it is a good idea to do that after you've called
-		// ``listen_on()``, since the default listen port for the DHT is the same as the tcp
-		// listen socket. If you start the DHT first, it will assume the tcp port is free and
-		// open the udp socket on that port, then later, when ``listen_on()`` is called, it
-		// may turn out that the tcp port is in use. That results in the DHT and the bittorrent
-		// socket listening on different ports. If the DHT is active when ``listen_on`` is
-		// called, the udp port will be rebound to the new port, if it was configured to use
-		// the same port as the tcp socket, and if the listen_on call failed to bind to the
-		// same port that the udp uses.
-		// 
-		// If you want the OS to pick a port for you, pass in 0 as both first and second.
-		// 
-		// The reason why it's a good idea to run the DHT and the bittorrent socket on the same
-		// port is because that is an assumption that may be used to increase performance. One
-		// way to accelerate the connecting of peers on windows may be to first ping all peers
-		// with a DHT ping packet, and connect to those that responds first. On windows one
-		// can only connect to a few peers at a time because of a built in limitation (in XP
-		// Service pack 2).
 		unsigned short listen_port() const;
 		unsigned short ssl_listen_port() const;
 		bool is_listening() const;

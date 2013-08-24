@@ -154,7 +154,21 @@ namespace libtorrent
 			outgoing_interfaces,
 
 			// a comma-separated list of (IP, port) pairs. These are the listen ports that will be opened
-			// for accepting incoming uTP and TCP connections.
+			// for accepting incoming uTP and TCP connections. It is possible to listen on multiple interfaces
+			// and multiple ports. Binding to port 0 will make the operating system pick the port.
+			// The default is "0.0.0.0:0", which binds to all interfaces on a port the OS picks.
+			//
+			// if binding fails, the listen_failed_alert is posted, otherwise the listen_succeeded_alert.
+			//
+			// If the DHT is running, it will also have its socket rebound to the same port as the main
+			// listen port.
+			// 
+			// The reason why it's a good idea to run the DHT and the bittorrent socket on the same
+			// port is because that is an assumption that may be used to increase performance. One
+			// way to accelerate the connecting of peers on windows may be to first ping all peers
+			// with a DHT ping packet, and connect to those that responds first. On windows one
+			// can only connect to a few peers at a time because of a built in limitation (in XP
+			// Service pack 2).
 			listen_interfaces,
 
 			max_string_setting_internal,
