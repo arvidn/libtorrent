@@ -462,7 +462,20 @@ namespace libtorrent
 		// the piece will
 		void kick_hasher(cached_piece_entry* pe, mutex::scoped_lock& l);
 
-		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
+		// flags to pass in to flush_cache()
+		enum flush_flags_t
+		{
+			// only flush read cache (this is cheap)
+			flush_read_cache = 1,
+			// flush read cache, and write cache
+			flush_write_cache = 2,
+			// flush read cache, delete write cache without flushing to disk
+			flush_delete_cache = 4,
+			// expect all pieces for the storage to have been
+			// cleared when flush_cache() returns. This is only
+			// used for asserts and only applies for fence jobs
+			flush_expect_clear = 8
+		};
 		void flush_cache(piece_manager* storage, boost::uint32_t flags, tailqueue& completed_jobs, mutex::scoped_lock& l);
 		void flush_expired_write_blocks(tailqueue& completed_jobs, mutex::scoped_lock& l);
 		void flush_piece(cached_piece_entry* pe, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l);

@@ -819,7 +819,7 @@ namespace libtorrent
 			// from disk_io_thread::do_delete, which is a fence job and should
 			// have any other jobs active, i.e. there should not be any references
 			// keeping pieces or blocks alive
-			if (flags & flush_delete_cache)
+			if ((flags & flush_delete_cache) && (flags & flush_expect_clear))
 			{
 				boost::unordered_set<cached_piece_entry*> const& storage_pieces = storage->cached_pieces();
 				for (boost::unordered_set<cached_piece_entry*>::const_iterator i = storage_pieces.begin()
@@ -836,6 +836,7 @@ namespace libtorrent
 			std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
 			while (range.first != range.second)
 			{
+				// TODO: 2 we're not flushing the read cache at all?
 				while (range.first->num_dirty == 0)
 				{
 					++range.first;
@@ -1712,9 +1713,6 @@ namespace libtorrent
 	{
 		// remove cache blocks belonging to this torrent
 		tailqueue completed_jobs;
-		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(storage, flush_delete_cache, completed_jobs, l);
-		l.unlock();
 
 		// remove outstanding jobs belonging to this torrent
 		mutex::scoped_lock l2(m_job_mutex);
@@ -1737,6 +1735,10 @@ namespace libtorrent
 			qj = next;
 		}
 		l2.unlock();
+
+		mutex::scoped_lock l(m_cache_mutex);
+		flush_cache(storage, flush_delete_cache, completed_jobs, l);
+		l.unlock();
 
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
 		j->storage = storage->shared_from_this();
@@ -2362,7 +2364,7 @@ namespace libtorrent
 		m_disk_cache.mark_deleted(*j->storage->files());
 #endif
 		
-		flush_cache(j->storage.get(), flush_delete_cache, completed_jobs, l);
+		flush_cache(j->storage.get(), flush_delete_cache | flush_expect_clear, completed_jobs, l);
 		l.unlock();
 
 		j->storage->get_storage_impl()->delete_files(j->error);
