@@ -540,6 +540,15 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 	return p;
 }
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+void block_cache::mark_deleted(file_storage const& fs)
+{
+	m_deleted_storages.push_back(fs.name());
+	if(m_deleted_storages.size() > 100)
+		m_deleted_storages.erase(m_deleted_storages.begin());
+}
+#endif
+
 cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 {
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR
@@ -547,6 +556,13 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 #endif
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+	// we're not allowed to add dirty blocks
+	// for a deleted storage!
+	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), j->storage->files()->name())
+		== m_deleted_storages.end());
 #endif
 
 	TORRENT_ASSERT(j->buffer);

@@ -65,6 +65,9 @@ namespace libtorrent
 	struct counters;
 	namespace aux { struct session_settings; }
 	struct alert_dispatcher;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	struct file_storage;
+#endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	struct piece_log_t
@@ -450,6 +453,10 @@ namespace libtorrent
 
 		int pinned_blocks() const { return m_pinned_blocks; }
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		void mark_deleted(file_storage const& fs);
+#endif
+
 	private:
 
 		// returns number of bytes read on success, -1 on cache miss
@@ -507,6 +514,10 @@ namespace libtorrent
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted
 		int m_pinned_blocks;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		std::vector<std::string> m_deleted_storages;
+#endif
 	};
 
 }

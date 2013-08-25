@@ -812,6 +812,24 @@ namespace libtorrent
 				TORRENT_PIECE_ASSERT(pe->storage.get() == storage, pe);
 				flush_piece(pe, flags, completed_jobs, l);
 			}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			TORRENT_ASSERT(l.locked());
+			// if the user asked to delete the cache for this storage
+			// we really should not have any pieces left. This is only called
+			// from disk_io_thread::do_delete, which is a fence job and should
+			// have any other jobs active, i.e. there should not be any references
+			// keeping pieces or blocks alive
+			if (flags & flush_delete_cache)
+			{
+				boost::unordered_set<cached_piece_entry*> const& storage_pieces = storage->cached_pieces();
+				for (boost::unordered_set<cached_piece_entry*>::const_iterator i = storage_pieces.begin()
+					, end(storage_pieces.end()); i != end; ++i)
+				{
+					cached_piece_entry* pe = m_disk_cache.find_piece(storage, (*i)->piece);
+					TORRENT_PIECE_ASSERT(false, pe);
+				}
+			}
+#endif
 		}
 		else
 		{
@@ -2340,6 +2358,10 @@ namespace libtorrent
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
 		mutex::scoped_lock l(m_cache_mutex);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_disk_cache.mark_deleted(*j->storage->files());
+#endif
+		
 		flush_cache(j->storage.get(), flush_delete_cache, completed_jobs, l);
 		l.unlock();
 
