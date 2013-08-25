@@ -1134,6 +1134,10 @@ namespace libtorrent
 					}
 					else
 					{
+						// is m_abort true? if so, we should probably just
+						// exit this function early, no need to keep the picker
+						// state up-to-date, right?
+						TORRENT_ASSERT(false);
 						disk_io_job sj;
 						sj.piece = j->piece;
 						on_piece_fail_sync(&sj, block_finished);
@@ -4115,7 +4119,7 @@ namespace libtorrent
 		}
 
 		// If m_storage isn't set here, it means we're shutting down
-		if (m_abort)
+		if (m_storage)
 		{
 			// it doesn't make much sense to fail to hash a piece
 			// without having a storage associated with the torrent.
@@ -4137,6 +4141,10 @@ namespace libtorrent
 		}
 		else
 		{
+			// is m_abort true? if so, we should probably just
+			// exit this function early, no need to keep the picker
+			// state up-to-date, right?
+			TORRENT_ASSERT(false);
 			// it doesn't really matter what we do
 			// here, since we're about to destruct the
 			// torrent anyway.
