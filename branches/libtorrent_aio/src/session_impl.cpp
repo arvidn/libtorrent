@@ -6818,7 +6818,7 @@ retry:
 	void session_impl::on_trigger_auto_manage()
 	{
 		assert(m_pending_auto_manage);
-		if (!m_need_auto_manage) 
+		if (!m_need_auto_manage || m_abort) 
 		{
 			m_pending_auto_manage = false;
 			return;
