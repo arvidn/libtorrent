@@ -660,7 +660,7 @@ feed_status feed_handle::get_feed_status() const
 
 void feed_handle::set_settings(feed_settings const& s)
 {
-	TORRENT_SYNC_CALL1(set_settings, s);
+	TORRENT_ASYNC_CALL1(set_settings, s);
 }
 
 feed_settings feed_handle::settings() const
