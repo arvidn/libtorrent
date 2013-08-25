@@ -272,6 +272,13 @@ int block_cache::try_read(disk_io_job* j, bool count_stats)
 
 	TORRENT_ASSERT(j->buffer == 0);
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+	// we're not allowed to add dirty blocks
+	// for a deleted storage!
+	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), j->storage->files()->name())
+		== m_deleted_storages.end());
+#endif
+
 	cached_piece_entry* p = find_piece(j);
 
 	int ret = 0;
@@ -1126,6 +1133,13 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	TORRENT_PIECE_ASSERT(iov_len > 0, pe);
 	int start = block;
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+	// we're not allowed to add dirty blocks
+	// for a deleted storage!
+	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), j->storage->files()->name())
+		== m_deleted_storages.end());
+#endif
+
 	cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
 
 	for (int i = 0; i < iov_len; ++i)
@@ -1222,6 +1236,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 
 		TORRENT_PIECE_ASSERT(!pe->blocks[i].pending, pe);
 		TORRENT_PIECE_ASSERT(pe->blocks[i].dirty, pe);
+		// TODO: 3 free the buffers in bulk instead of one at a time
 		free_buffer(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
 		pe->blocks[i].dirty = false;

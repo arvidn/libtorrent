@@ -75,6 +75,11 @@ namespace libtorrent
 
 	void assert_print_piece(cached_piece_entry const* pe)
 	{
+		const static char* const cache_state[] =
+		{
+			"write", "volatile-read", "read-lru", "read-lru-ghost", "read-lfu", "read-lfu-ghost"
+		};
+
 		if (pe == NULL)
 		{
 			assert_print("piece: NULL\n");
@@ -83,16 +88,18 @@ namespace libtorrent
 		{
 			assert_print("piece:\nrefcount: %d\npiece_refcount: %d\n"
 				"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n"
-				"cache_state: %d\noutstanding_flush: %d\npiece: %d\n"
+				"cache_state: (%d) %s\noutstanding_flush: %d\npiece: %d\n"
 				"num_dirty: %d\nnum_blocks: %d\nblocks_in_piece: %d\n"
 				"hashing_done: %d\nmarked_for_deletion: %d\nneed_readback: %d\n"
-				"hash_passed: %d\n"
+				"hash_passed: %d\nread_jobs: %d\njobs: %d\n"
 				"piece_log:\n"
 				, pe->refcount, pe->piece_refcount, pe->num_blocks, int(pe->hashing)
 				, pe->hash, pe->hash ? pe->hash->offset : -1, int(pe->cache_state)
+				, pe->cache_state >= 0 && pe->cache_state < cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
 				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
 				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
-				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes);
+				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes
+				, int(pe->read_jobs.size()), int(pe->jobs.size()));
 			for (int i = 0; i < pe->piece_log.size(); ++i)
 			{
 				assert_print(", %s (%d)" + (i==0), job_name(pe->piece_log[i].job), pe->piece_log[i].block);
@@ -769,6 +776,7 @@ namespace libtorrent
 			// delete dirty blocks and post handlers with
 			// operation_aborted error code
 			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->jobs, completed_jobs);
+			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->read_jobs, completed_jobs);
 			m_disk_cache.abort_dirty(pe);
 		}
 		else if ((flags & flush_write_cache) && pe->num_dirty > 0)
@@ -796,6 +804,7 @@ namespace libtorrent
 		if (storage)
 		{
 			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
+			// TODO: 2 should this be allocated on the stack?
 			std::vector<int> piece_index;
 			piece_index.reserve(pieces.size());
 			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
@@ -826,7 +835,7 @@ namespace libtorrent
 					, end(storage_pieces.end()); i != end; ++i)
 				{
 					cached_piece_entry* pe = m_disk_cache.find_piece(storage, (*i)->piece);
-					TORRENT_PIECE_ASSERT(false, pe);
+					TORRENT_PIECE_ASSERT(pe->num_dirty == 0, pe);
 				}
 			}
 #endif

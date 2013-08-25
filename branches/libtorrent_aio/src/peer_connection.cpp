@@ -4872,6 +4872,16 @@ namespace libtorrent
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
 
+			if (t->is_deleted())
+			{
+#if defined TORRENT_VERBOSE_LOGGING
+				peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
+					, r.piece , r.start , r.length);
+#endif
+				write_reject_request(r);
+				continue;
+			}
+
 			if (t->seed_mode() && !t->verified_piece(r.piece))
 			{
 				// we're still verifying the hash of this piece

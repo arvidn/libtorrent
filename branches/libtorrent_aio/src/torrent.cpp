@@ -933,7 +933,7 @@ namespace libtorrent
 
 	void torrent::read_piece(int piece)
 	{
-		if (m_abort)
+		if (m_abort || m_deleted)
 		{
 			// failed
 			m_ses.alerts().post_alert(read_piece_alert(
