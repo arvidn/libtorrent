@@ -323,6 +323,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, upnp_ignore_nonrouters)
  		TORRENT_SETTING(integer, send_buffer_low_watermark)
  		TORRENT_SETTING(integer, send_buffer_watermark)
+		TORRENT_SETTING(integer, send_buffer_watermark_factor)
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, auto_upload_slots)
 		TORRENT_SETTING(boolean, auto_upload_slots_rate_based)
