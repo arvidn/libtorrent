@@ -516,7 +516,7 @@ namespace libtorrent
 		int m_pinned_blocks;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		std::vector<std::string> m_deleted_storages;
+		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
 #endif
 	};
 

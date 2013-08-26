@@ -4141,10 +4141,7 @@ namespace libtorrent
 		}
 		else
 		{
-			// is m_abort true? if so, we should probably just
-			// exit this function early, no need to keep the picker
-			// state up-to-date, right?
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT(m_abort);
 			// it doesn't really matter what we do
 			// here, since we're about to destruct the
 			// torrent anyway.

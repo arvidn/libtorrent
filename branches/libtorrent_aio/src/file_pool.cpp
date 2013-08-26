@@ -125,7 +125,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
 		// we're not allowed to open a file
 		// from a deleted storage!
-		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), fs.name())
+		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), std::make_pair(fs.name(), (void const*)&fs))
 			== m_deleted_storages.end());
 #endif
 
@@ -296,7 +296,7 @@ namespace libtorrent
 	void file_pool::mark_deleted(file_storage const& fs)
 	{
 		mutex::scoped_lock l(m_mutex);
-		m_deleted_storages.push_back(fs.name());
+		m_deleted_storages.push_back(std::make_pair(fs.name(), (void const*)&fs));
 		if(m_deleted_storages.size() > 100)
 			m_deleted_storages.erase(m_deleted_storages.begin());
 	}

@@ -275,7 +275,8 @@ int block_cache::try_read(disk_io_job* j, bool count_stats)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
-	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), j->storage->files()->name())
+	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
+		, std::make_pair(j->storage->files()->name(), (void const*)j->storage->files()))
 		== m_deleted_storages.end());
 #endif
 
@@ -550,7 +551,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 void block_cache::mark_deleted(file_storage const& fs)
 {
-	m_deleted_storages.push_back(fs.name());
+	m_deleted_storages.push_back(std::make_pair(fs.name(), (void const*)&fs));
 	if(m_deleted_storages.size() > 100)
 		m_deleted_storages.erase(m_deleted_storages.begin());
 }
@@ -568,7 +569,8 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
-	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), j->storage->files()->name())
+	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
+		, std::make_pair(j->storage->files()->name(), (void const*)j->storage->files()))
 		== m_deleted_storages.end());
 #endif
 
@@ -1136,7 +1138,8 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
-	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), j->storage->files()->name())
+	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
+		, std::make_pair(j->storage->files()->name(), (void const*)j->storage->files()))
 		== m_deleted_storages.end());
 #endif
 
