@@ -8,7 +8,7 @@ branch: trunk
 clean:
  - test_tmp_* bin ../bin
 
-time_limit: 120
+time_limit: 180
 
 features:
  - variant=release asserts=production
