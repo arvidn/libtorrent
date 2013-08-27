@@ -44,8 +44,7 @@ namespace libtorrent
 	struct session_status;
 }
 
-extern EXPORT int tests_failure;
-extern EXPORT std::vector<std::string> failure_strings;
+int EXPORT print_failures();
 
 int EXPORT load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000);
 
