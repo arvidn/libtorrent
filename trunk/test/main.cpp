@@ -138,13 +138,13 @@ int main()
 	}
 	catch (std::exception const& e)
 	{
-		std::cerr << "Terminated with exception: \"" << e.what() << "\"\n";
-		tests_failure = true;
+		char buf[200];
+		snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
+		report_failure(buf, __FILE__, __LINE__);
 	}
 	catch (...)
 	{
-		std::cerr << "Terminated with unknown exception\n";
-		tests_failure = true;
+		report_failure("Terminated with unknown exception", __FILE__, __LINE__);
 	}
 #endif
 
@@ -158,21 +158,11 @@ int main()
 
 	fflush(stdout);
 	fflush(stderr);
-	if (tests_failure == 0)
-	{
-		remove_all(test_dir, ec);
-		if (ec)
-			fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
-	}
-	else
-	{
-		for (std::vector<std::string>::iterator i = failure_strings.begin()
-			, end(failure_strings.end()); i != end; ++i)
-		{
-			fputs(i->c_str(), stderr);
-		}
-		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", tests_failure);
-	}
-	return tests_failure;
+
+	remove_all(test_dir, ec);
+	if (ec)
+		fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
+
+	return print_failures();
 }
 
