@@ -11,7 +11,7 @@
 
 void bind_utility();
 void bind_fingerprint();
-void bind_big_number();
+void bind_sha1_hash();
 void bind_session();
 void bind_entry();
 void bind_torrent_info();
@@ -38,7 +38,7 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_error_code();
     bind_utility();
     bind_fingerprint();
-    bind_big_number();
+    bind_sha1_hash();
     bind_entry();
     bind_session();
     bind_torrent_info();
