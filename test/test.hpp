@@ -59,6 +59,7 @@ extern "C"
 }
 
 void EXPORT report_failure(char const* err, char const* file, int line);
+int EXPORT print_failures();
 
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
