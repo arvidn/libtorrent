@@ -65,13 +65,13 @@ namespace
 void bind_create_torrent()
 {
     void (file_storage::*add_file0)(std::string const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
     void (file_storage::*add_file1)(std::wstring const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
 #endif
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
     void (file_storage::*rename_file0)(int, std::string const&) = &file_storage::rename_file;
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
     void (file_storage::*rename_file1)(int, std::wstring const&) = &file_storage::rename_file;
 #endif
@@ -87,7 +87,7 @@ void bind_create_torrent()
         .def("is_valid", &file_storage::is_valid)
         .def("add_file", add_file, arg("entry"))
         .def("add_file", add_file0, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def("add_file", add_file1, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
 #endif
         .def("num_files", &file_storage::num_files)
@@ -106,7 +106,7 @@ void bind_create_torrent()
         .def("piece_size", &file_storage::piece_size)
         .def("set_name", set_name0)
         .def("rename_file", rename_file0)
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def("set_name", set_name1)
         .def("rename_file", rename_file1)
 #endif

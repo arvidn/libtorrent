@@ -67,8 +67,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int tests_failure = 0;
-std::vector<std::string> failure_strings;
+static int tests_failure = 0;
+static std::vector<std::string> failure_strings;
 
 #if defined TORRENT_WINDOWS
 #include <conio.h>
@@ -105,6 +105,17 @@ void report_failure(char const* err, char const* file, int line)
 	fprintf(stderr, "\n%s\n", buf);
 	failure_strings.push_back(buf);
 	++tests_failure;
+}
+
+int print_failures()
+{
+	for (std::vector<std::string>::iterator i = failure_strings.begin()
+		, end(failure_strings.end()); i != end; ++i)
+	{
+		fputs(i->c_str(), stderr);
+	}
+	fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", tests_failure);
+	return tests_failure;
 }
 
 std::auto_ptr<alert> wait_for_alert(session& ses, int type)

@@ -112,7 +112,6 @@ namespace libtorrent
 				TORRENT_ASSERT(i->second.conn != conn);
 			}
 #endif
-			TORRENT_ASSERT(false);
 			return false;
 		}
 

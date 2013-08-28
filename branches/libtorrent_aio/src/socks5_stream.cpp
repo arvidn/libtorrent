@@ -383,6 +383,9 @@ namespace libtorrent
 				{
 					if (m_listen == 0)
 					{
+#if defined TORRENT_ASIO_DEBUGGING
+						add_outstanding_async("socks5_stream::connect1");
+#endif
 						m_listen = 1;
 						connect1(e, h);
 						return;
@@ -441,6 +444,9 @@ namespace libtorrent
 				{
 					if (m_listen == 0)
 					{
+#if defined TORRENT_ASIO_DEBUGGING
+						add_outstanding_async("socks5_stream::connect1");
+#endif
 						m_listen = 1;
 						connect1(e, h);
 						return;
@@ -484,6 +490,9 @@ namespace libtorrent
 		{
 			if (m_listen == 0)
 			{
+#if defined TORRENT_ASIO_DEBUGGING
+				add_outstanding_async("socks5_stream::connect1");
+#endif
 				m_listen = 1;
 				connect1(e, h);
 				return;

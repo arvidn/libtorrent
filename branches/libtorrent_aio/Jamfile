@@ -36,12 +36,6 @@ rule linking ( properties * )
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
-
-		if <target-os>windows in $(properties)
-		{
-			result += <library>gdi32 ;
-		}
-
 		if <target-os>windows in $(properties)
 		{
 			result += <library>ssleay32
@@ -49,6 +43,7 @@ rule linking ( properties * )
 				<library>advapi32
 				<library>user32
 				<library>shell32
+				<library>gdi32
 			;
 		}
 		else
@@ -102,6 +97,13 @@ rule linking ( properties * )
 			<define>WIN32
 			<define>_WIN32
 		;
+
+		# when DHT is enabled, we need ed25519 which in turn
+		# needs entropy
+		if ! <dht>off in $(properties)
+		{
+			result += <library>advapi32 ;
+		}
 	}
 
 	if <target-os>beos in $(properties)
