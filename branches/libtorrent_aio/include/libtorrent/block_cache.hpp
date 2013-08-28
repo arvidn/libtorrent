@@ -66,7 +66,7 @@ namespace libtorrent
 	namespace aux { struct session_settings; }
 	struct alert_dispatcher;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	struct file_storage;
+	class file_storage;
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
