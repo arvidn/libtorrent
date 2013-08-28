@@ -158,7 +158,9 @@ void bind_session_settings()
         .def_readwrite("utp_fin_resends", &session_settings::utp_fin_resends)
         .def_readwrite("utp_num_resends", &session_settings::utp_num_resends)
         .def_readwrite("utp_connect_timeout", &session_settings::utp_connect_timeout)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readwrite("utp_delayed_ack", &session_settings::utp_delayed_ack)
+#endif
         .def_readwrite("utp_dynamic_sock_buf", &session_settings::utp_dynamic_sock_buf)
         .def_readwrite("utp_loss_multiplier", &session_settings::utp_loss_multiplier)
         .def_readwrite("mixed_mode_algorithm", &session_settings::mixed_mode_algorithm)
