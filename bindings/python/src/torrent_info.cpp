@@ -86,6 +86,7 @@ namespace
         ti.set_merkle_tree(h);
     }
 
+#ifndef TORRENT_NO_DEPRECATE
     file_storage::iterator begin_files(torrent_info& i)
     {
         return i.begin_files();
@@ -95,6 +96,7 @@ namespace
     {
         return i.end_files();
     }
+#endif
 
     void remap_files(torrent_info& ti, list files) {
         file_storage st;
@@ -107,9 +109,7 @@ namespace
     list files(torrent_info const& ti, bool storage) {
         list result;
 
-        typedef torrent_info::file_iterator iter;
-
-        for (iter i = ti.begin_files(); i != ti.end_files(); ++i)
+        for (int i = 0; i < ti.num_files(); ++i)
             result.append(ti.files().at(i));
 
         return result;
@@ -180,7 +180,7 @@ void bind_torrent_info()
     return_value_policy<copy_const_reference> copy;
 
     void (torrent_info::*rename_file0)(int, std::string const&) = &torrent_info::rename_file;
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
     void (torrent_info::*rename_file1)(int, std::wstring const&) = &torrent_info::rename_file;
 #endif
 
@@ -198,7 +198,7 @@ void bind_torrent_info()
         .def(init<char const*, int, int>((arg("buffer"), arg("length"), arg("flags") = 0)))
         .def(init<std::string, int>((arg("file"), arg("flags") = 0)))
         .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
 #endif
 
@@ -216,6 +216,7 @@ void bind_torrent_info()
         .def("num_pieces", &torrent_info::num_pieces)
 #ifndef TORRENT_NO_DEPRECATE
         .def("info_hash", &torrent_info::info_hash, copy)
+        .def("file_at_offset", &torrent_info::file_at_offset)
 #endif
         .def("hash_for_piece", &hash_for_piece)
         .def("merkle_tree", get_merkle_tree)
@@ -224,11 +225,10 @@ void bind_torrent_info()
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
         .def("file_at", &torrent_info::file_at)
-        .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
         .def("orig_files", &orig_files, (arg("storage")=false))
         .def("rename_file", rename_file0)
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def("rename_file", rename_file1)
 #endif
 
