@@ -23,6 +23,6 @@ void bind_sha1_hash()
         ;
 
     scope().attr("big_number") = scope().attr("sha1_hash"); 
-    scope().attr("peer_id") = scope().attr("peer_id"); 
+    scope().attr("peer_id") = scope().attr("sha1_hash"); 
 }
 
