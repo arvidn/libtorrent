@@ -185,17 +185,6 @@ int test_main()
 	rc42.set_outgoing_key(&test2_key[0], 20);
 	test_enc_handler(&rc41, &rc42);
 	
-#ifdef TORRENT_USE_OPENSSL
-	fprintf(stderr, "testing AES-256 handler\n");
-	char key1[32];
-	std::generate(key1, key1 + 32, &std::rand);
-	aes256_handler aes1;
-	aes1.set_incoming_key((const unsigned char*)key1, 32);
-	aes256_handler aes2;
-	aes2.set_incoming_key((const unsigned char*)key1, 32);
-	test_enc_handler(&aes1, &aes2);
-#endif
-
 	test_transfer(pe_settings::disabled);
 
 	test_transfer(pe_settings::forced, pe_settings::plaintext);
