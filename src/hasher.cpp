@@ -80,7 +80,7 @@ namespace libtorrent
 	}
 #endif
 
-	void hasher::update(const char* data, int len)
+	hasher& hasher::update(const char* data, int len)
 	{
 		TORRENT_ASSERT(data != 0);
 		TORRENT_ASSERT(len > 0);
@@ -93,6 +93,7 @@ namespace libtorrent
 #else
 		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #endif
+		return *this;
 	}
 
 	sha1_hash hasher::final()

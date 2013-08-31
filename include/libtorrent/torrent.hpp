@@ -467,6 +467,10 @@ namespace libtorrent
 		// base64 encoding).
 		std::string tracker_login() const;
 
+		// generate the tracker key for this torrent.
+		// The key is passed to http trackers as ``&key=``.
+		boost::uint32_t tracker_key() const;
+
 		// if we need a connect boost, connect some peers
 		// immediately
 		void do_connect_boost();

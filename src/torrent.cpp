@@ -2358,7 +2358,10 @@ namespace libtorrent
 		else
 #endif
 		req.listen_port = m_ses.listen_port();
-		req.key = m_ses.m_key;
+		if (m_ses.m_key)
+			req.key = m_ses.m_key;
+		else
+			req.key = tracker_key();
 
 		ptime now = time_now_hires();
 
@@ -3778,6 +3781,18 @@ namespace libtorrent
 	{
 		if (m_username.empty() && m_password.empty()) return "";
 		return m_username + ":" + m_password;
+	}
+
+	boost::uint32_t torrent::tracker_key() const
+	{
+		uintptr_t self = (uintptr_t)this;
+		uintptr_t ses = (uintptr_t)&m_ses;
+		sha1_hash h = hasher((char*)&self, sizeof(self))
+			.update((char*)&m_storage, sizeof(m_storage))
+			.update((char*)&ses, sizeof(ses))
+			.final();
+		unsigned char const* ptr = &h[0];
+		return detail::read_uint32(ptr);
 	}
 
 	void torrent::set_piece_deadline(int piece, int t, int flags)

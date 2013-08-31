@@ -101,8 +101,8 @@ namespace libtorrent
 		hasher& operator=(hasher const& h);
 #endif
 
-		void update(std::string const& data) { update(data.c_str(), data.size()); }
-		void update(const char* data, int len);
+		hasher& update(std::string const& data) { update(data.c_str(), data.size()); return *this; }
+		hasher& update(const char* data, int len);
 		sha1_hash final();
 
 		void reset();
