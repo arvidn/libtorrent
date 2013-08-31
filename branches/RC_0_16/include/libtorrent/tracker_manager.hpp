@@ -124,7 +124,7 @@ namespace libtorrent
 		event_t event;
 		std::string url;
 		std::string trackerid;
-		int key;
+		boost::uint32_t key;
 		int num_want;
 		std::string ipv6;
 		std::string ipv4;
