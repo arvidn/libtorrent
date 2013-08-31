@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <gcrypt.h>
 #elif defined TORRENT_USE_OPENSSL
 #include <openssl/rc4.h>
-#include <openssl/evp.h>
-#include <openssl/aes.h>
 #else
 // RC4 state from libtomcrypt
 struct rc4 {
@@ -199,104 +197,6 @@ namespace libtorrent
 		bool m_encrypt;
 		bool m_decrypt;
 	};
-
-#ifdef TORRENT_USE_OPENSSL
-	struct aes256_handler : encryption_handler
-	{
-		aes256_handler() : m_enc_pos(0), m_dec_pos(0)
-		{
-			EVP_CIPHER_CTX_init(&m_enc);
-			EVP_CIPHER_CTX_init(&m_dec);
-		}
-
-		~aes256_handler()
-		{
-			EVP_CIPHER_CTX_cleanup(&m_enc);
-			EVP_CIPHER_CTX_cleanup(&m_dec);
-		}
-
-		void set_incoming_key(unsigned char const* in_key, int len)
-		{
-			const int nrounds = 5;
-			boost::uint8_t salt[8] = { 0xf1, 0x03, 0x46, 0xe2, 0xb1, 0xa8, 0x29, 0x63 };
-			boost::uint8_t key[32];
-			boost::uint8_t iv[32];
-
-			EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), salt, in_key, len, nrounds, key, iv);
-			TORRENT_ASSERT(len == 32);
-			EVP_EncryptInit_ex(&m_enc, EVP_aes_256_cbc(), NULL, key, iv);
-			// since we're using the AES as a stream cipher, both the encrypt and
-			// decrypt context will in fact only _encrypt_ stuff, so initializing
-			// this as encrypt is not a typo
-			EVP_EncryptInit_ex(&m_dec, EVP_aes_256_cbc(), NULL, key, iv);
-			m_enc_pos = 0;
-			m_dec_pos = 0;
-			std::memcpy(m_enc_state, iv, sizeof(m_enc_state));
-			std::memcpy(m_dec_state, iv, sizeof(m_enc_state));
-		}
-		void set_outgoing_key(unsigned char const* key, int len) { /* no-op */ }
-		void encrypt(char* pos, int len)
-		{
-			while (len > 0)
-			{
-				while (m_enc_pos < AES_BLOCK_SIZE && len > 0)
-				{
-					*pos ^= m_enc_state[m_enc_pos];
-					++m_enc_pos;
-					++pos;
-					--len;
-				}
-
-				if (m_enc_pos == AES_BLOCK_SIZE)
-				{
-					next_block(&m_enc, m_enc_state);
-					m_enc_pos = 0;
-				}
-			}
-		}
-
-		void decrypt(char* pos, int len)
-		{
-			while (len > 0)
-			{
-				while (m_dec_pos < AES_BLOCK_SIZE && len > 0)
-				{
-					*pos ^= m_dec_state[m_dec_pos];
-					++m_dec_pos;
-					++pos;
-					--len;
-				}
-
-				if (m_dec_pos == AES_BLOCK_SIZE)
-				{
-					next_block(&m_dec, m_dec_state);
-					m_dec_pos = 0;
-				}
-			}
-		}
-
-	private:
-
-		// we're turning the AES block-cipher into a stream cipher. This
-		// function will produce the next block in the sequence of
-		// block-sized buffers. We're using "Output feedback" (OFB) mode.
-		void next_block(EVP_CIPHER_CTX* ctx, boost::uint8_t* pad)
-		{
-			int outlen = AES_BLOCK_SIZE;
-			EVP_EncryptUpdate(ctx, pad, &outlen, pad, AES_BLOCK_SIZE);
-			TORRENT_ASSERT(outlen == AES_BLOCK_SIZE);
-		}
-
-		EVP_CIPHER_CTX m_enc;
-		EVP_CIPHER_CTX m_dec;
-
-		boost::uint8_t m_enc_state[AES_BLOCK_SIZE];
-		boost::uint8_t m_dec_state[AES_BLOCK_SIZE];
-		int m_enc_pos;
-		int m_dec_pos;
-
-	};
-#endif // TORRENT_USE_OPENSSL
 
 } // namespace libtorrent
 
