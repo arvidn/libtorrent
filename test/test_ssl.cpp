@@ -101,11 +101,17 @@ bool on_alert(alert* a)
 	return false;
 }
 
-void test_ssl(int test_idx)
+void test_ssl(int test_idx, bool use_utp)
 {
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+
 	test_config_t const& test = test_config[test_idx];
 
-	fprintf(stderr, "\n%s TEST: %s\n\n", time_now_string(), test.name);
+	fprintf(stderr, "\n%s TEST: %s Protocol: %s\n\n", time_now_string(), test.name, use_utp ? "uTP": "TCP");
 
 #ifndef TORRENT_USE_OPENSSL
 	if (test.use_ssl_ports)
@@ -127,6 +133,11 @@ void test_ssl(int test_idx)
 	wait_for_listen(ses2, "ses2");
 
 	session_settings sett;
+
+	sett.enable_incoming_utp = use_utp;
+	sett.enable_outgoing_utp = use_utp;
+	sett.enable_incoming_tcp = !use_utp;
+	sett.enable_outgoing_tcp = !use_utp;
 
 	sett.ssl_listen = 1024 + rand() % 50000;
 
@@ -227,14 +238,19 @@ void test_ssl(int test_idx)
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 }
 
 int test_main()
 {
 	using namespace libtorrent;
 
+	// No support for SSL/uTP yet, so always pass in false
 	for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
-		test_ssl(i);
+		test_ssl(i, false);
 	
 	error_code ec;
 	remove_all("tmp1_ssl", ec);

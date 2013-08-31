@@ -72,6 +72,12 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 {
 	using namespace libtorrent;
 
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
 	pe_settings s;
@@ -118,6 +124,10 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
  	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 
 	error_code ec;
 	remove_all("tmp1_pe", ec);

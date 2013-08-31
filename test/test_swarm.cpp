@@ -52,6 +52,13 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	remove_all("tmp2_swarm", ec);
 	remove_all("tmp3_swarm", ec);
 
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+	session_proxy p3;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000), "0.0.0.0", 0);
@@ -182,6 +189,12 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 		std::cerr << ret->message() << std::endl;
 		start = time_now();
 	}
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
+	p3 = ses3.abort();
+
 	TEST_CHECK(time_now_hires() - start < seconds(3));
 	TEST_CHECK(time_now_hires() - start >= seconds(2));
 
