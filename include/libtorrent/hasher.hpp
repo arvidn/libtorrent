@@ -102,8 +102,8 @@ namespace libtorrent
 		}
 #endif
 
-		void update(std::string const& data) { update(data.c_str(), data.size()); }
-		void update(const char* data, int len)
+		hasher& update(std::string const& data) { update(data.c_str(), data.size()); return *this; }
+		hasher& update(const char* data, int len)
 		{
 			TORRENT_ASSERT(data != 0);
 			TORRENT_ASSERT(len > 0);
@@ -112,6 +112,7 @@ namespace libtorrent
 #else
 			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #endif
+			return *this;
 		}
 
 		sha1_hash final()
