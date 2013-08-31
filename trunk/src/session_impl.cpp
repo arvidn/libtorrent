@@ -628,6 +628,7 @@ namespace aux {
 		, m_tracker_manager(*this, m_proxy)
 		, m_num_active_downloading(0)
 		, m_num_active_finished(0)
+		, m_key(0)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
@@ -725,7 +726,6 @@ namespace aux {
 		// ---- generate a peer id ----
 		static seed_random_generator seeder;
 
-		m_key = random() + (random() << 15) + (random() << 30);
 		std::string print = cl_fprint.to_string();
 		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
 
