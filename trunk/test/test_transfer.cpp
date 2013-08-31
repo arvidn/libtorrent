@@ -79,6 +79,12 @@ void test_rate()
 	remove_all("tmp1_transfer_moved", ec);
 	remove_all("tmp2_transfer_moved", ec);
 
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, alert_mask);
 
@@ -125,6 +131,10 @@ void test_rate()
 	
 	std::cerr << "average download rate: " << (t->total_size() / (std::max)(total_milliseconds(dt), 1))
 		<< " kB/s" << std::endl;
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 }
 
 void print_alert(std::auto_ptr<alert>)
@@ -248,6 +258,12 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	remove_all("tmp2_transfer", ec);
 	remove_all("tmp1_transfer_moved", ec);
 	remove_all("tmp2_transfer_moved", ec);
+
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
@@ -589,12 +605,17 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	TEST_CHECK(tor2.status().is_seeding);
 
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
+
 	if (test_priorities)
 	{
 		stop_tracker();
 		stop_web_server();
 	}
 	if (proxy_type) stop_proxy(ps.port);
+
 }
 
 int test_main()

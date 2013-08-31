@@ -5797,9 +5797,6 @@ namespace libtorrent
 				userdata = m_ssl_ctx.get();
 				// SSL handshakes are slow
 				timeout_extend = 10;
-
-				// TODO: 3 support SSL over uTP
-				sm = 0;
 			}
 #endif
 

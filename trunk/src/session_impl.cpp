@@ -659,6 +659,11 @@ namespace aux {
 #endif
 		, m_external_udp_port(0)
 		, m_udp_socket(m_io_service, m_half_open)
+		// TODO: 4 in order to support SSL over uTP, the utp_socket manager either
+		// needs to be able to receive packets on multiple ports, or we need to
+		// peek into the first few bytes the payload stream of a socket to determine
+		// whether or not it's an SSL connection. (The former is simpler but won't
+		// do as well with NATs)
 		, m_utp_socket_manager(m_settings, m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_boost_connections(0)
@@ -2622,7 +2627,6 @@ retry:
 			c->instantiate<stream_socket>(m_io_service);
 			str = c->get<stream_socket>();
 		}
-
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_accept_connection");

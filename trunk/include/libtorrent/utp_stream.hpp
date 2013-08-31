@@ -271,6 +271,12 @@ public:
 		do_connect(endpoint, &utp_stream::on_connect);
 	}
 	
+	template <class Handler>
+	void async_read_some(boost::asio::null_buffers const& buffers, Handler const& handler)
+	{
+		TORRENT_ASSERT(false);
+	}
+
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
@@ -286,14 +292,24 @@ public:
 			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			return;
 		}
+		int bytes_added = 0;
 		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(buffer_size(*i) > 0);
+			if (buffer_size(*i) == 0) continue;
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
+			bytes_added += buffer_size(*i);
 		}
+		if (bytes_added == 0)
+		{
+			// if we're reading 0 bytes, post handler immediately
+			// asio's SSL layer depends on this behavior
+			m_io_service.post(boost::bind<void>(handler, error_code(), 0));
+			return;
+		}
+
 		m_read_handler = handler;
 		set_read_handler(&utp_stream::on_read);
 	}
@@ -374,6 +390,12 @@ public:
 	}
 #endif
 
+	template <class Handler>
+	void async_write_some(boost::asio::null_buffers const& buffers, Handler const& handler)
+	{
+		TORRENT_ASSERT(false);
+	}
+
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
 	{
@@ -390,13 +412,22 @@ public:
 			return;
 		}
 
+		int bytes_added = 0;
 		for (typename Const_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(buffer_size(*i) > 0);
+			if (buffer_size(*i) == 0) continue;
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_write_buffer((void*)buffer_cast<void const*>(*i), buffer_size(*i));
+			bytes_added += buffer_size(*i);
+		}
+		if (bytes_added == 0)
+		{
+			// if we're reading 0 bytes, post handler immediately
+			// asio's SSL layer depends on this behavior
+			m_io_service.post(boost::bind<void>(handler, error_code(), 0));
+			return;
 		}
 		m_write_handler = handler;
 		set_write_handler(&utp_stream::on_write);
