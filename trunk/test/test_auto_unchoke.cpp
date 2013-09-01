@@ -45,6 +45,13 @@ void test_swarm()
 {
 	using namespace libtorrent;
 
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+	session_proxy p3;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000), "0.0.0.0", 0);
@@ -114,6 +121,11 @@ void test_swarm()
 	ses1.remove_torrent(tor1, session::delete_files);
 	ses2.remove_torrent(tor2, session::delete_files);
 	ses3.remove_torrent(tor3, session::delete_files);
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
+	p3 = ses3.abort();
 }
 
 int test_main()

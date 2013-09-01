@@ -56,6 +56,12 @@ void test_transfer()
 	remove_all("./tmp1_utp", ec);
 	remove_all("./tmp2_utp", ec);
 
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48885, 49930), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49885, 50930), "0.0.0.0", 0);
 
@@ -126,6 +132,10 @@ void test_transfer()
 
 	TEST_CHECK(tor1.status().is_finished);
 	TEST_CHECK(tor2.status().is_finished);
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 }
 
 int test_main()
