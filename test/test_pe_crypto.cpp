@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/rsa.hpp"
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
@@ -221,7 +222,7 @@ int test_main()
 	char public_key[268];
 	int public_len = sizeof(public_key);
 
-	ret = generate_rsa_keys(public_key, &public_len, private_key, &private_len, 2048);
+	int ret = generate_rsa_keys(public_key, &public_len, private_key, &private_len, 2048);
 	fprintf(stderr, "keysizes: pub: %d priv: %d\n", public_len, private_len);
 
 	TEST_CHECK(ret);
