@@ -90,7 +90,7 @@ void test_transfer(bool clear_files, bool disconnect
 		test_sleep(100);
 	}
 
-	if (disconnect) return;
+	if (disconnect) goto done;
 
 	TEST_CHECK(tor2.status().has_metadata);
 	TEST_CHECK(tor3.status().has_metadata);
@@ -108,6 +108,8 @@ void test_transfer(bool clear_files, bool disconnect
 
 	TEST_CHECK(tor2.status().is_seeding);
 	if (tor2.status().is_seeding) std::cerr << "done\n";
+
+done:
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
