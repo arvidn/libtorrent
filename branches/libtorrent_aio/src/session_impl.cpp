@@ -592,6 +592,11 @@ namespace aux {
 #endif
 		, m_external_udp_port(0)
 		, m_udp_socket(m_io_service, m_half_open)
+		// TODO: 4 in order to support SSL over uTP, the utp_socket manager either
+		// needs to be able to receive packets on multiple ports, or we need to
+		// peek into the first few bytes the payload stream of a socket to determine
+		// whether or not it's an SSL connection. (The former is simpler but won't
+		// do as well with NATs)
 		, m_utp_socket_manager(m_settings, m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_boost_connections(0)
@@ -655,7 +660,6 @@ namespace aux {
 		// ---- generate a peer id ----
 		static seed_random_generator seeder;
 
-		m_key = random() + (random() << 15) + (random() << 30);
 		std::string print = cl_fprint.to_string();
 		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
 
@@ -2098,10 +2102,14 @@ namespace aux {
 	}
 
 	void session_impl::queue_tracker_request(tracker_request& req
-		, std::string login, boost::weak_ptr<request_callback> c)
+		, std::string login, boost::weak_ptr<request_callback> c, boost::uint32_t key)
 	{
 		req.listen_port = listen_port();
-		req.key = m_key;
+		if (m_key)
+			req.key = m_key;
+		else
+			req.key = key;
+
 #ifdef TORRENT_USE_OPENSSL
 		// SSL torrents use the SSL listen port
 		if (req.ssl_ctx) req.listen_port = ssl_listen_port();
@@ -2900,7 +2908,6 @@ retry:
 			c->instantiate<stream_socket>(m_io_service);
 			str = c->get<stream_socket>();
 		}
-
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_accept_connection");

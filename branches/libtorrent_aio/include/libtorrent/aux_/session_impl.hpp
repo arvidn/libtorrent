@@ -399,7 +399,8 @@ namespace libtorrent
 
 			// TODO: move the login info into the tracker_request object
 			void queue_tracker_request(tracker_request& req
-				, std::string login, boost::weak_ptr<request_callback> c);
+				, std::string login, boost::weak_ptr<request_callback> c
+				, boost::uint32_t key);
 
 			// ==== peer class operations ====
 

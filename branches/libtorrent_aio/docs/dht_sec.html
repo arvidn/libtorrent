@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>BitTorrent DHT security extension</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,13 +55,13 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#id1" id="id2">BitTorrent DHT security extension</a></li>
-<li><a class="reference internal" href="#considerations" id="id3">considerations</a></li>
-<li><a class="reference internal" href="#node-id-restriction" id="id4">Node ID restriction</a></li>
-<li><a class="reference internal" href="#bootstrapping" id="id5">bootstrapping</a></li>
-<li><a class="reference internal" href="#enforcement" id="id6">enforcement</a></li>
-<li><a class="reference internal" href="#backwards-compatibility-and-transition" id="id7">backwards compatibility and transition</a></li>
-<li><a class="reference internal" href="#forward-compatibility" id="id8">forward compatibility</a></li>
+<li><a class="reference internal" href="#id1" id="id3">BitTorrent DHT security extension</a></li>
+<li><a class="reference internal" href="#considerations" id="id4">considerations</a></li>
+<li><a class="reference internal" href="#node-id-restriction" id="id5">Node ID restriction</a></li>
+<li><a class="reference internal" href="#bootstrapping" id="id6">bootstrapping</a></li>
+<li><a class="reference internal" href="#enforcement" id="id7">enforcement</a></li>
+<li><a class="reference internal" href="#backwards-compatibility-and-transition" id="id8">backwards compatibility and transition</a></li>
+<li><a class="reference internal" href="#forward-compatibility" id="id9">forward compatibility</a></li>
 </ul>
 </div>
 <div class="section" id="id1">
@@ -107,19 +107,22 @@ forced to run their DHT nodes on the same node ID.</p>
 <p>In order to avoid the number node IDs controlled to grow linearly by the number
 of IPs, as well as allowing more than one node ID per external IP, the node
 ID can be restricted at each class level of the IP.</p>
+<p>Another important property of the restriction put on node IDs is that the
+distribution of the IDs remoain uniform. This is why CRC32 was chosen
+as the hash function. See <a class="reference external" href="http://blog.libtorrent.org/2012/12/dht-security/">comparisons of hash functions</a>.</p>
 <p>The expression to calculate a valid ID prefix (from an IPv4 address) is:</p>
 <pre class="literal-block">
-sha1((ip &amp; 0x01071f7f) .. r)
+crc32((ip &amp; 0x01071f7f) .. r)
 </pre>
 <p>And for an IPv6 address (<tt class="docutils literal">ip</tt> is the high 64 bits of the address):</p>
 <pre class="literal-block">
-sha1((ip &amp; 0x000103070f1f3f7f) ..  r)
+crc32((ip &amp; 0x000103070f1f3f7f) ..  r)
 </pre>
 <p><tt class="docutils literal">r</tt> is a random number in the range [0, 7]. The resulting integer,
 representing the masked IP address is supposed to be big-endian before
 hashed. The &quot;..&quot; means concatenation.</p>
 <p>The details of implementing this is to evaluate the expression, store the
-result in a big endian 64 bit integer and hash those 8 bytes with SHA-1.</p>
+result in a big endian 64 bit integer and hash those 8 bytes with CRC32.</p>
 <p>The first 4 bytes of the node ID used in the DHT MUST match the first 4
 bytes in the resulting hash. The last byte of the hash MUST match the
 random number (<tt class="docutils literal">r</tt>) used to generate the hash.</p>
@@ -138,13 +141,17 @@ uint8_t* mask = num_octets == 4 ? v4_mask : v8_mask;
 for (int i = 0; i &lt; num_octets; ++i)
         ip[i] &amp;= mask[i];
 
-SHA_CTX ctx;
-SHA1_Init(&amp;ctx);
-SHA1_Update(&amp;ctx, (unsigned char*)ip, num_octets);
 uint32_t rand = rand() &amp; 0xff;
 uint8_t r = rand &amp; 0x7;
-SHA1_Update(&amp;ctx, (unsigned char*)&amp;r, 1);
-SHA1_Final(&amp;ctx, node_id);
+
+uint32_t crc = crc32(0, NULL, 0);
+crc = crc32(crc, ip, num_octets);
+crc = crc32(crc, &amp;r, 1);
+
+node_id[0] = (crc &gt;&gt; 24) &amp; 0xff;
+node_id[1] = (crc &gt;&gt; 16) &amp; 0xff;
+node_id[2] = (crc &gt;&gt; 8) &amp; 0xff;
+node_id[3] = crc &amp; 0xff;
 for (int i = 4; i &lt; 19; ++i) node_id[i] = std::rand();
 node_id[19] = rand;
 </pre>
@@ -152,11 +159,11 @@ node_id[19] = rand;
 <pre class="literal-block">
 IP           rand  example node ID
 ============ ===== ==========================================
-124.31.75.21   1   <strong>f766f9f5</strong> 0c5d6a4ec8a88e4c6ab4c28b95eee4 <strong>01</strong>
-21.75.31.124  86   <strong>7ee04779</strong> 4e7a08645677bbd1cfe7d8f956d532 <strong>56</strong>
-65.23.51.170  22   <strong>76a626ff</strong> bc8f112a3d426c84764f8c2a1150e6 <strong>16</strong>
-84.124.73.14  65   <strong>beb4e619</strong> 1bb1fe518101ceef99462b947a01ff <strong>41</strong>
-43.213.53.83  90   <strong>ace5613a</strong> 5b7c4be0237986d5243b87aa6d5130 <strong>5a</strong>
+124.31.75.21   1   <strong>1712f6c7</strong> 0c5d6a4ec8a88e4c6ab4c28b95eee4 <strong>01</strong>
+21.75.31.124  86   <strong>946406c1</strong> 4e7a08645677bbd1cfe7d8f956d532 <strong>56</strong>
+65.23.51.170  22   <strong>fefd9220</strong> bc8f112a3d426c84764f8c2a1150e6 <strong>16</strong>
+84.124.73.14  65   <strong>af1546dd</strong> 1bb1fe518101ceef99462b947a01ff <strong>41</strong>
+43.213.53.83  90   <strong>a9e920bf</strong> 5b7c4be0237986d5243b87aa6d5130 <strong>5a</strong>
 </pre>
 <p>The bold parts of the node ID are the important parts. The rest are
 random numbers.</p>

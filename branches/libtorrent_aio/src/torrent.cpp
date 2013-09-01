@@ -2878,12 +2878,12 @@ namespace libtorrent
 			if (m_abort)
 			{
 				boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
-				m_ses.queue_tracker_request(req, tracker_login(), tl);
+				m_ses.queue_tracker_request(req, tracker_login(), tl, tracker_key());
 			}
 			else
 #endif
 			{
-				m_ses.queue_tracker_request(req, tracker_login(), shared_from_this());
+				m_ses.queue_tracker_request(req, tracker_login(), shared_from_this(), tracker_key());
 			}
 
 			ae.updating = true;
@@ -2921,7 +2921,7 @@ namespace libtorrent
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind = tracker_request::scrape_request;
 		req.url = m_trackers[i].url;
-		m_ses.queue_tracker_request(req, tracker_login(), shared_from_this());
+		m_ses.queue_tracker_request(req, tracker_login(), shared_from_this(), tracker_key());
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)
@@ -4639,6 +4639,18 @@ namespace libtorrent
 	{
 		if (m_username.empty() && m_password.empty()) return "";
 		return m_username + ":" + m_password;
+	}
+
+	boost::uint32_t torrent::tracker_key() const
+	{
+		uintptr_t self = (uintptr_t)this;
+		uintptr_t ses = (uintptr_t)&m_ses;
+		sha1_hash h = hasher((char*)&self, sizeof(self))
+			.update((char*)&m_storage, sizeof(m_storage))
+			.update((char*)&ses, sizeof(ses))
+			.final();
+		unsigned char const* ptr = &h[0];
+		return detail::read_uint32(ptr);
 	}
 
 	void torrent::set_piece_deadline(int piece, int t, int flags)
@@ -6788,9 +6800,6 @@ namespace libtorrent
 				userdata = m_ssl_ctx.get();
 				// SSL handshakes are slow
 				timeout_extend = 10;
-
-				// TODO: 3 support SSL over uTP
-				sm = 0;
 			}
 #endif
 

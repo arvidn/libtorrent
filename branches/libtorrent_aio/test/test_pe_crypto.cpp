@@ -72,6 +72,12 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 {
 	using namespace libtorrent;
 
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
 	pe_settings s;
@@ -118,6 +124,10 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
  	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 
 	error_code ec;
 	remove_all("tmp1_pe", ec);
@@ -185,17 +195,6 @@ int test_main()
 	rc42.set_outgoing_key(&test2_key[0], 20);
 	test_enc_handler(&rc41, &rc42);
 	
-#ifdef TORRENT_USE_OPENSSL
-	fprintf(stderr, "testing AES-256 handler\n");
-	char key1[32];
-	std::generate(key1, key1 + 32, &std::rand);
-	aes256_handler aes1;
-	aes1.set_incoming_key((const unsigned char*)key1, 32);
-	aes256_handler aes2;
-	aes2.set_incoming_key((const unsigned char*)key1, 32);
-	test_enc_handler(&aes1, &aes2);
-#endif
-
 	test_transfer(pe_settings::disabled);
 
 	test_transfer(pe_settings::forced, pe_settings::plaintext);

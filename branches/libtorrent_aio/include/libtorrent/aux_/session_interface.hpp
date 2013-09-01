@@ -216,7 +216,8 @@ namespace libtorrent { namespace aux
 		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request& req
-			, std::string login, boost::weak_ptr<request_callback> c) = 0;
+			, std::string login, boost::weak_ptr<request_callback> c
+			, boost::uint32_t key) = 0;
 
 		// peer-classes
 		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;

@@ -30,11 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if TORRENT_USE_I2P
-
+#include "libtorrent/config.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
+
+#if TORRENT_USE_I2P
 
 #include <boost/bind.hpp>
 
