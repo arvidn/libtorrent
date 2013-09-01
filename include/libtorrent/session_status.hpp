@@ -112,12 +112,15 @@ namespace libtorrent
 		size_type total_ip_overhead_download;
 		size_type total_ip_overhead_upload;
 
-		// the DHT bandwidth usage.
+		// the upload and download rate used by DHT traffic. Also the total number
+		// of bytes sent and received to and from the DHT.
 		int dht_upload_rate;
 		int dht_download_rate;
 		size_type total_dht_download;
 		size_type total_dht_upload;
 
+		// the upload and download rate used by tracker traffic. Also the total number
+		// of bytes sent and received to and from trackers.
 		int tracker_upload_rate;
 		int tracker_download_rate;
 		size_type total_tracker_download;
@@ -201,6 +204,8 @@ namespace libtorrent
 		// statistics on the uTP sockets.
 		utp_status utp_stats;
 
+		// the number of known peers across all torrents. These are not necessarily
+		// connected peers, just peers we know of.
 		int peerlist_size;
 	};
 

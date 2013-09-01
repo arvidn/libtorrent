@@ -16,7 +16,7 @@ items = []
 # todo-items
 context = []
 
-priority_count = [0, 0, 0, 0]
+priority_count = [0, 0, 0, 0, 0]
 
 def html_sanitize(s):
 	ret = ''
@@ -119,7 +119,7 @@ out.write('''<html><head>
 <table width="100%%" border="1" style="border-collapse: collapse;">''' % \
 	(priority_count[3], priority_count[2], priority_count[1], priority_count[0]))
 
-prio_colors = [ '#ccc', '#ccf', '#cfc', '#fcc']
+prio_colors = [ '#ccc', '#ccf', '#cfc', '#fcc', '#fdd']
 
 index = 0
 for i in items:

@@ -69,8 +69,17 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT plugin
 	{
+		// hidden
 		virtual ~plugin() {}
 
+		// this is called by the session every time a new torrent is added.
+		// The ``torrent*`` points to the internal torrent object created
+		// for the new torrent. The ``void*`` is the userdata pointer as
+		// passed in via add_torrent_params.
+		//
+		// If the plugin returns a torrent_plugin instance, it will be added
+		// to the new torrent. Otherwise, return an empty shared_ptr to a
+		// torrent_plugin (the default).
 		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent*, void*)
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
@@ -92,9 +101,14 @@ namespace libtorrent
 		virtual void load_state(lazy_entry const&) {}
 	};
 
+	// Torrent plugins are associated with a single torrent and have a number
+	// of functions called at certain events. Many of its functions have the
+	// ability to change or override the default libtorrent behavior.
 	struct TORRENT_EXPORT torrent_plugin
 	{
+		// hidden
 		virtual ~torrent_plugin() {}
+
 		// throwing an exception closes the connection
 		// returning a 0 pointer is valid and will not add
 		// the peer_plugin to the peer_connection
@@ -136,12 +150,19 @@ namespace libtorrent
 			filtered = 2
 		};
 
+		// called every time a new peer is added to the peer list.
+		// This is before the peer is connected to. For ``flags``, see
+		// torrent_plugin::flags_t. The ``source`` argument refers to
+		// the source where we learned about this peer from. It's a
+		// bitmask, because many sources may have told us about the same
+		// peer. For peer source flags, see peer_info::peer_source_flags.
 		virtual void on_add_peer(tcp::endpoint const&,
 			int /*src*/, int /*flags*/) {}
 	};
 
 	struct TORRENT_EXPORT peer_plugin
 	{
+		// hidden
 		virtual ~peer_plugin() {}
 
 		// This function is expected to return the name of

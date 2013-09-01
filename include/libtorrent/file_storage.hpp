@@ -51,6 +51,7 @@ namespace libtorrent
 	{
 		// hidden
 		file_entry();
+		// hidden
 		~file_entry();
 
 		// the full path of this file. The paths are unicode strings
@@ -223,6 +224,7 @@ namespace libtorrent
 	public:
 		// hidden
 		file_storage();
+		// hidden
 		~file_storage() {}
 
 		// returns true if the piece length has been initialized

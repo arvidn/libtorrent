@@ -2627,7 +2627,7 @@ namespace libtorrent
 			{
 				ae->trackerid = trackerid;
 				if (m_ses.m_alerts.should_post<trackerid_alert>())
-				m_ses.m_alerts.post_alert(trackerid_alert(get_handle(), r.url, trackerid));
+					m_ses.m_alerts.post_alert(trackerid_alert(get_handle(), r.url, trackerid));
 			}
 
 			update_scrape_state();
