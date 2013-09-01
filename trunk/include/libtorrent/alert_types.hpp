@@ -57,15 +57,21 @@ namespace libtorrent
 	// user defined alerts should use IDs greater than this
 	const static int user_alert_id = 10000;
 
+	// This is a base class for alerts that are associated with a
+	// specific torrent. It contains a handle to the torrent.
 	struct TORRENT_EXPORT torrent_alert: alert
 	{
+		// internal
 		torrent_alert(torrent_handle const& h)
 			: handle(h)
 		{}
 		
+		// internal
 		const static int alert_type = 1;
 		virtual std::string message() const;
 
+		// The torrent_handle pointing to the torrent this
+		// alert is associated with.
 		torrent_handle handle;
 	};
 
@@ -73,6 +79,7 @@ namespace libtorrent
 	// the information to identify the peer. i.e. ``ip`` and ``peer-id``.
 	struct TORRENT_EXPORT peer_alert: torrent_alert
 	{
+		// internal
 		peer_alert(torrent_handle const& h, tcp::endpoint const& i
 			, peer_id const& pi)
 			: torrent_alert(h)
@@ -85,12 +92,19 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const;
 
+		// The peer's IP address and port.
 		tcp::endpoint ip;
+
+		// the peer ID, if known.
 		peer_id pid;
 	};
 
+	// This is a base class used for alerts that are associated with a
+	// specific tracker. It derives from torrent_alert since a tracker
+	// is also associated with a specific torrent.
 	struct TORRENT_EXPORT tracker_alert: torrent_alert
 	{
+		// internal
 		tracker_alert(torrent_handle const& h
 			, std::string const& u)
 			: torrent_alert(h)
@@ -102,6 +116,7 @@ namespace libtorrent
 		virtual int category() const { return static_category; }
 		virtual std::string message() const;
 
+		// The tracker URL
 		std::string url;
 	};
 
@@ -119,6 +134,7 @@ namespace libtorrent
 	// It's posted when the ``status_notification`` bit is set in the alert_mask.
 	struct TORRENT_EXPORT torrent_added_alert: torrent_alert
 	{
+		// internal
 		torrent_added_alert(torrent_handle const& h)
 			: torrent_alert(h)
 		{}
@@ -142,6 +158,7 @@ namespace libtorrent
 	// points to the same non-existent object.
 	struct TORRENT_EXPORT torrent_removed_alert: torrent_alert
 	{
+		// internal
 		torrent_removed_alert(torrent_handle const& h, sha1_hash const& ih)
 			: torrent_alert(h)
 			, info_hash(ih)
@@ -163,6 +180,7 @@ namespace libtorrent
 	// If the operation fails, ec will indicat what went wrong.
  	struct TORRENT_EXPORT read_piece_alert: torrent_alert
 	{
+		// internal
 		read_piece_alert(torrent_handle const& h
 			, int p, boost::shared_array<char> d, int s)
 			: torrent_alert(h)
@@ -170,7 +188,6 @@ namespace libtorrent
 			, piece(p)
 			, size(s)
 		{}
-
 		read_piece_alert(torrent_handle h, int p, error_code e)
 			: torrent_alert(h)
 			, ec(e)
@@ -194,6 +211,7 @@ namespace libtorrent
 	// All pieces overlapping this file have passed their hash check.
 	struct TORRENT_EXPORT file_completed_alert: torrent_alert
 	{
+		// internal
 		file_completed_alert(torrent_handle const& h
 			, int idx)
 			: torrent_alert(h)
@@ -213,6 +231,7 @@ namespace libtorrent
 	// operation succeeds.
 	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
 	{
+		// internal
 		file_renamed_alert(torrent_handle const& h
 			, std::string const& n
 			, int idx)
@@ -238,6 +257,7 @@ namespace libtorrent
 	// operation failed.
 	struct TORRENT_EXPORT file_rename_failed_alert: torrent_alert
 	{
+		// internal
 		file_rename_failed_alert(torrent_handle const& h
 			, int idx
 			, error_code ec)
@@ -343,6 +363,7 @@ namespace libtorrent
 			num_warnings
 		};
 
+		// internal
 		performance_alert(torrent_handle const& h
 			, performance_warning_t w)
 			: torrent_alert(h)
@@ -361,6 +382,7 @@ namespace libtorrent
 	// Generated whenever a torrent changes its state.
 	struct TORRENT_EXPORT state_changed_alert: torrent_alert
 	{
+		// internal
 		state_changed_alert(torrent_handle const& h
 			, torrent_status::state_t st
 			, torrent_status::state_t prev_st)
@@ -392,6 +414,7 @@ namespace libtorrent
 	// to 0.
 	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
 	{
+		// internal
 		tracker_error_alert(torrent_handle const& h
 			, int times
 			, int status
@@ -423,6 +446,7 @@ namespace libtorrent
 	// the client.
 	struct TORRENT_EXPORT tracker_warning_alert: tracker_alert
 	{
+		// internal
 		tracker_warning_alert(torrent_handle const& h
 			, std::string const& u
 			, std::string const& m)
@@ -442,6 +466,7 @@ namespace libtorrent
 	// This alert is generated when a scrape request succeeds.
 	struct TORRENT_EXPORT scrape_reply_alert: tracker_alert
 	{
+		// internal
 		scrape_reply_alert(torrent_handle const& h
 			, int incomp
 			, int comp
@@ -466,6 +491,7 @@ namespace libtorrent
 	// code indicating an error.
 	struct TORRENT_EXPORT scrape_failed_alert: tracker_alert
 	{
+		// internal
 		scrape_failed_alert(torrent_handle const& h
 			, std::string const& u
 			, error_code const& e)
@@ -494,6 +520,7 @@ namespace libtorrent
 	// the DHT.
 	struct TORRENT_EXPORT tracker_reply_alert: tracker_alert
 	{
+		// internal
 		tracker_reply_alert(torrent_handle const& h
 			, int np
 			, std::string const& u)
@@ -517,6 +544,7 @@ namespace libtorrent
 	// a few at a time.
 	struct TORRENT_EXPORT dht_reply_alert: tracker_alert
 	{
+		// internal
 		dht_reply_alert(torrent_handle const& h
 			, int np)
 			: tracker_alert(h, "")
@@ -535,6 +563,7 @@ namespace libtorrent
 	// however.
 	struct TORRENT_EXPORT tracker_announce_alert: tracker_alert
 	{
+		// internal
 		tracker_announce_alert(torrent_handle const& h
 			, std::string const& u, int e)
 			: tracker_alert(h, u)
@@ -558,6 +587,7 @@ namespace libtorrent
 	// to the torrent which got the failed piece and the index of the piece itself from the alert.
 	struct TORRENT_EXPORT hash_failed_alert: torrent_alert
 	{
+		// internal
 		hash_failed_alert(
 			torrent_handle const& h
 			, int index)
@@ -577,6 +607,7 @@ namespace libtorrent
 	// to us. ``ip`` is the endpoint to the peer that was banned.
 	struct TORRENT_EXPORT peer_ban_alert: peer_alert
 	{
+		// internal
 		peer_ban_alert(torrent_handle h, tcp::endpoint const& ep
 			, peer_id const& peer_id)
 			: peer_alert(h, ep, peer_id)
@@ -591,6 +622,7 @@ namespace libtorrent
 	// sending data, and now it started sending data again.
 	struct TORRENT_EXPORT peer_unsnubbed_alert: peer_alert
 	{
+		// internal
 		peer_unsnubbed_alert(torrent_handle h, tcp::endpoint const& ep
 			, peer_id const& peer_id)
 			: peer_alert(h, ep, peer_id)
@@ -605,6 +637,7 @@ namespace libtorrent
 	// it.
 	struct TORRENT_EXPORT peer_snubbed_alert: peer_alert
 	{
+		// internal
 		peer_snubbed_alert(torrent_handle h, tcp::endpoint const& ep
 			, peer_id const& peer_id)
 			: peer_alert(h, ep, peer_id)
@@ -619,6 +652,7 @@ namespace libtorrent
 	// will be disconnected, but you get its ip address from the alert, to identify it.
 	struct TORRENT_EXPORT peer_error_alert: peer_alert
 	{
+		// internal
 		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, error_code const& e)
 			: peer_alert(h, ep, peer_id)
@@ -648,6 +682,7 @@ namespace libtorrent
 	// This alert is posted every time an outgoing peer connect attempts succeeds.
 	struct TORRENT_EXPORT peer_connect_alert: peer_alert
 	{
+		// internal
 		peer_connect_alert(torrent_handle h, tcp::endpoint const& ep
 			, peer_id const& peer_id, int type)
 			: peer_alert(h, ep, peer_id)
@@ -666,6 +701,7 @@ namespace libtorrent
 	// covered by peer_error_alert ).
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
 	{
+		// internal
 		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, error_code const& e)
 			: peer_alert(h, ep, peer_id)
@@ -694,6 +730,7 @@ namespace libtorrent
 	// request from the peer. See peer_request for more info.
 	struct TORRENT_EXPORT invalid_request_alert: peer_alert
 	{
+		// internal
 		invalid_request_alert(torrent_handle const& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, peer_request const& r)
 			: peer_alert(h, ep, peer_id)
@@ -712,6 +749,7 @@ namespace libtorrent
 	// torrent in question.
 	struct TORRENT_EXPORT torrent_finished_alert: torrent_alert
 	{
+		// internal
 		torrent_finished_alert(
 			const torrent_handle& h)
 			: torrent_alert(h)
@@ -724,8 +762,12 @@ namespace libtorrent
 		{ return torrent_alert::message() + " torrent finished downloading"; }
 	};
 
+	// this alert is posted every time a piece completes downloading
+	// and passes the hash check. This alert derives from torrent_alert
+	// which contains the torrent_handle to the torrent the piece belongs to.
 	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
 	{
+		// internal
 		piece_finished_alert(
 			const torrent_handle& h
 			, int piece_num)
@@ -738,12 +780,14 @@ namespace libtorrent
 		const static int static_category = alert::progress_notification;
 		virtual std::string message() const;
 
+		// the index of the piece that finished
 		int piece_index;
 	};
 
 	// This alert is generated when a peer rejects or ignores a piece request.
 	struct TORRENT_EXPORT request_dropped_alert: peer_alert
 	{
+		// internal
 		request_dropped_alert(const torrent_handle& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, int block_num, int piece_num)
 			: peer_alert(h, ep, peer_id)
@@ -764,6 +808,7 @@ namespace libtorrent
 	// This alert is generated when a block request times out.
 	struct TORRENT_EXPORT block_timeout_alert: peer_alert
 	{
+		// internal
 		block_timeout_alert(const torrent_handle& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, int block_num, int piece_num)
 			: peer_alert(h, ep, peer_id)
@@ -784,6 +829,7 @@ namespace libtorrent
 	// This alert is generated when a block request receives a response.
 	struct TORRENT_EXPORT block_finished_alert: peer_alert
 	{
+		// internal
 		block_finished_alert(const torrent_handle& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, int block_num, int piece_num)
 			: peer_alert(h, ep, peer_id)
@@ -803,6 +849,7 @@ namespace libtorrent
 	// This alert is generated when a block request is sent to a peer.
 	struct TORRENT_EXPORT block_downloading_alert: peer_alert
 	{
+		// internal
 		block_downloading_alert(const torrent_handle& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, char const* speedmsg, int block_num, int piece_num)
 			: peer_alert(h, ep, peer_id)
@@ -825,6 +872,7 @@ namespace libtorrent
 	// whose request timed out.
 	struct TORRENT_EXPORT unwanted_block_alert: peer_alert
 	{
+		// internal
 		unwanted_block_alert(const torrent_handle& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, int block_num, int piece_num)
 			: peer_alert(h, ep, peer_id)
@@ -846,6 +894,7 @@ namespace libtorrent
 	// the storage.
 	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
 	{
+		// internal
 		storage_moved_alert(torrent_handle const& h, std::string const& p)
 			: torrent_alert(h)
 			, path(p)
@@ -867,6 +916,7 @@ namespace libtorrent
 	// via torrent_handle::move_storage(), fails.
 	struct TORRENT_EXPORT storage_moved_failed_alert: torrent_alert
 	{
+		// internal
 		storage_moved_failed_alert(torrent_handle const& h, error_code const& e)
 			: torrent_alert(h)
 			, error(e)
@@ -895,6 +945,7 @@ namespace libtorrent
 	// needs to be set in the alert_mask.
 	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
 	{
+		// internal
 		torrent_deleted_alert(torrent_handle const& h, sha1_hash const& ih)
 			: torrent_alert(h)
 		{ info_hash = ih; }
@@ -912,6 +963,7 @@ namespace libtorrent
 	// This alert is generated when a request to delete the files of a torrent fails.
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert
 	{
+		// internal
 		torrent_delete_failed_alert(torrent_handle const& h, error_code const& e)
 			: torrent_alert(h)
 			, error(e)
@@ -942,9 +994,9 @@ namespace libtorrent
 
 	// This alert is generated as a response to a ``torrent_handle::save_resume_data`` request.
 	// It is generated once the disk IO thread is done writing the state for this torrent.
-
 	struct TORRENT_EXPORT save_resume_data_alert: torrent_alert
 	{
+		// internal
 		save_resume_data_alert(boost::shared_ptr<entry> const& rd
 			, torrent_handle const& h)
 			: torrent_alert(h)
@@ -966,6 +1018,7 @@ namespace libtorrent
 	// generating the resume data. ``error`` describes what went wrong.
 	struct TORRENT_EXPORT save_resume_data_failed_alert: torrent_alert
 	{
+		// internal
 		save_resume_data_failed_alert(torrent_handle const& h
 			, error_code const& e)
 			: torrent_alert(h)
@@ -999,6 +1052,7 @@ namespace libtorrent
 	// This is useful for synchronizing with the disk.
 	struct TORRENT_EXPORT torrent_paused_alert: torrent_alert
 	{
+		// internal
 		torrent_paused_alert(torrent_handle const& h)
 			: torrent_alert(h)
 		{}
@@ -1014,6 +1068,7 @@ namespace libtorrent
 	// generated when a torrent goes from a paused state to an active state.
 	struct TORRENT_EXPORT torrent_resumed_alert: torrent_alert
 	{
+		// internal
 		torrent_resumed_alert(torrent_handle const& h)
 			: torrent_alert(h) {}
 
@@ -1024,8 +1079,11 @@ namespace libtorrent
 		{ return torrent_alert::message() + " resumed"; }
 	};
 
+	// This alert is posted when a torrent completes checking. i.e. when it transitions
+	// out of the ``checking files`` state into a state where it is ready to start downloading
 	struct TORRENT_EXPORT torrent_checked_alert: torrent_alert
 	{
+		// internal
 		torrent_checked_alert(torrent_handle const& h)
 			: torrent_alert(h)
 		{}
@@ -1040,6 +1098,7 @@ namespace libtorrent
 	// This alert is generated when a HTTP seed name lookup fails.
 	struct TORRENT_EXPORT url_seed_alert: torrent_alert
 	{
+		// internal
 		url_seed_alert(
 			torrent_handle const& h
 			, std::string const& u
@@ -1048,7 +1107,6 @@ namespace libtorrent
 			, url(u)
 			, msg(convert_from_native(e.message()))
 		{}
-
 		url_seed_alert(
 			torrent_handle const& h
 			, std::string const& u
@@ -1078,6 +1136,7 @@ namespace libtorrent
 	// generated and the torrent is paused.
 	struct TORRENT_EXPORT file_error_alert: torrent_alert
 	{
+		// internal
 		file_error_alert(
 			std::string const& f
 			, torrent_handle const& h
@@ -1119,6 +1178,7 @@ namespace libtorrent
 	// torrent-less download, with the metadata extension provided by libtorrent.
 	struct TORRENT_EXPORT metadata_failed_alert: torrent_alert
 	{
+		// internal
 		metadata_failed_alert(const torrent_handle& h)
 			: torrent_alert(h)
 		{}
@@ -1156,6 +1216,7 @@ namespace libtorrent
 	// 
 	struct TORRENT_EXPORT metadata_received_alert: torrent_alert
 	{
+		// internal
 		metadata_received_alert(
 			const torrent_handle& h)
 			: torrent_alert(h)
@@ -1168,8 +1229,12 @@ namespace libtorrent
 		{ return torrent_alert::message() + " metadata successfully received"; }
 	};
 
+	// This alert is posted when there is an error on the UDP socket. The
+	// UDP socket is used for all uTP, DHT and UDP tracker traffic. It's
+	// global to the session.
 	struct TORRENT_EXPORT udp_error_alert: alert
 	{
+		// internal
 		udp_error_alert(
 			udp::endpoint const& ep
 			, error_code const& ec)
@@ -1186,7 +1251,10 @@ namespace libtorrent
 			return "UDP error: " + convert_from_native(error.message()) + " from: " + endpoint.address().to_string(ec);
 		}
 
+		// the source address associated with the error (if any)
 		udp::endpoint endpoint;
+
+		// the error code describing the error
 		error_code error;
 	};
 
@@ -1196,6 +1264,7 @@ namespace libtorrent
 	// The address can be accessed through the ``external_address`` member.
 	struct TORRENT_EXPORT external_ip_alert: alert
 	{
+		// internal
 		external_ip_alert(address const& ip)
 			: external_address(ip)
 		{}
@@ -1209,6 +1278,7 @@ namespace libtorrent
 			return "external IP received: " + external_address.to_string(ec);
 		}
 
+		// the IP address that is believed to be our external IP
 		address external_address;
 	};
 
@@ -1223,6 +1293,7 @@ namespace libtorrent
 	// listen on it.
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
+		// internal
 		listen_failed_alert(
 			tcp::endpoint const& ep
 			, int op
@@ -1252,6 +1323,7 @@ namespace libtorrent
 	// was opened for listening.
 	struct TORRENT_EXPORT listen_succeeded_alert: alert
 	{
+		// internal
 		listen_succeeded_alert(tcp::endpoint const& ep)
 			: endpoint(ep)
 		{}
@@ -1273,6 +1345,7 @@ namespace libtorrent
 	// mappings.
 	struct TORRENT_EXPORT portmap_error_alert: alert
 	{
+		// internal
 		portmap_error_alert(int i, int t, error_code const& e)
 			:  mapping(i), map_type(t), error(e)
 		{
@@ -1307,6 +1380,7 @@ namespace libtorrent
 	// port and, if DHT is enabled, when the UDP port is mapped.
 	struct TORRENT_EXPORT portmap_alert: alert
 	{
+		// internal
 		portmap_alert(int i, int port, int t)
 			: mapping(i), external_port(port), map_type(t)
 		{}
@@ -1333,6 +1407,7 @@ namespace libtorrent
 	// for debugging the UPnP or NAT-PMP implementation.
 	struct TORRENT_EXPORT portmap_log_alert: alert
 	{
+		// internal
 		portmap_log_alert(int t, std::string const& m)
 			: map_type(t), msg(m)
 		{}
@@ -1351,6 +1426,7 @@ namespace libtorrent
 	// resume file was rejected.
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
+		// internal
 		fastresume_rejected_alert(torrent_handle const& h
 			, error_code const& e)
 			: torrent_alert(h)
@@ -1385,6 +1461,7 @@ namespace libtorrent
 	// * the protocol of the peer is blocked (uTP/TCP blocking)
 	struct TORRENT_EXPORT peer_blocked_alert: torrent_alert
 	{
+		// internal
 		peer_blocked_alert(torrent_handle const& h, address const& i)
 			: torrent_alert(h)
 			, ip(i)
@@ -1407,6 +1484,7 @@ namespace libtorrent
 	// to the ``dht_notification`` category.
 	struct TORRENT_EXPORT dht_announce_alert: alert
 	{
+		// internal
 		dht_announce_alert(address const& i, int p
 			, sha1_hash const& ih)
 			: ip(i)
@@ -1428,6 +1506,7 @@ namespace libtorrent
 	// It belongs to the ``dht_notification`` category.
 	struct TORRENT_EXPORT dht_get_peers_alert: alert
 	{
+		// internal
 		dht_get_peers_alert(sha1_hash const& ih)
 			: info_hash(ih)
 		{}
@@ -1445,6 +1524,7 @@ namespace libtorrent
 	// torrent posts these alerts regularly.
 	struct TORRENT_EXPORT stats_alert: torrent_alert
 	{
+		// internal
 		stats_alert(torrent_handle const& h, int interval
 			, stat const& s);
 
@@ -1487,6 +1567,7 @@ namespace libtorrent
 	// cache flush is complete and the torrent does no longer have any files open.
 	struct TORRENT_EXPORT cache_flushed_alert: torrent_alert
 	{
+		// internal
 		cache_flushed_alert(torrent_handle const& h);
 
 		TORRENT_DEFINE_ALERT(cache_flushed_alert);
@@ -1500,6 +1581,7 @@ namespace libtorrent
 	// when in anonymous mode.
 	struct TORRENT_EXPORT anonymous_mode_alert: torrent_alert
 	{
+		// internal
 		anonymous_mode_alert(torrent_handle const& h
 			, int k, std::string const& s)
 			: torrent_alert(h)
@@ -1529,6 +1611,7 @@ namespace libtorrent
 	// for a torrent we're currently participating in.
 	struct TORRENT_EXPORT lsd_peer_alert: peer_alert
 	{
+		// internal
 		lsd_peer_alert(torrent_handle const& h
 			, tcp::endpoint const& i)
 			: peer_alert(h, i, peer_id(0))
@@ -1540,8 +1623,12 @@ namespace libtorrent
 		virtual std::string message() const;
 	};
 
+	// This alert is posted whenever a tracker responds with a ``trackerid``. The tracker ID
+	// is like a cookie. The libtorrent will store the tracker ID for this tracker and
+	// repeat it in subsequent announces.
 	struct TORRENT_EXPORT trackerid_alert: tracker_alert
 	{
+		// internal
 		trackerid_alert(torrent_handle const& h
 			, std::string const& u
                         , const std::string& id)
@@ -1554,12 +1641,14 @@ namespace libtorrent
 		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 
+		// The tracker ID returned by the tracker
 		std::string trackerid;
 	};
 
 	// This alert is posted when the initial DHT bootstrap is done.
 	struct TORRENT_EXPORT dht_bootstrap_alert: alert
 	{
+		// internal
 		dht_bootstrap_alert() {}
 		
 		TORRENT_DEFINE_ALERT(dht_bootstrap_alert);
@@ -1575,6 +1664,7 @@ namespace libtorrent
 	// in the alert_mask.
 	struct TORRENT_EXPORT rss_alert: alert
 	{
+		// internal
 		rss_alert(feed_handle h, std::string const& u, int s, error_code const& ec)
 			: handle(h), url(u), state(s), error(ec)
 		{}
@@ -1617,6 +1707,7 @@ namespace libtorrent
 	// This is posted whenever a torrent is transitioned into the error state.
 	struct TORRENT_EXPORT torrent_error_alert: torrent_alert
 	{
+		// internal
 		torrent_error_alert(torrent_handle const& h
 			, error_code const& e)
 			: torrent_alert(h)
@@ -1638,6 +1729,7 @@ namespace libtorrent
 	// in the .torrent file.
 	struct TORRENT_EXPORT torrent_need_cert_alert: torrent_alert
 	{
+		// internal
 		torrent_need_cert_alert(torrent_handle const& h)
 			: torrent_alert(h)
 		{}
@@ -1659,6 +1751,7 @@ namespace libtorrent
 	// listen socket for SSL torrents.
 	struct TORRENT_EXPORT incoming_connection_alert: alert
 	{
+		// internal
 		incoming_connection_alert(int t, tcp::endpoint const& i)
 			: socket_type(t)
 			, ip(i)
@@ -1695,6 +1788,7 @@ namespace libtorrent
 	// the torrent failed, ``error`` contains the error code.
 	struct TORRENT_EXPORT add_torrent_alert : torrent_alert
 	{
+		// internal
 		add_torrent_alert(torrent_handle h, add_torrent_params const& p, error_code ec)
 			: torrent_alert(h)
 			, params(p)
@@ -1742,6 +1836,7 @@ namespace libtorrent
 	// of the info-hash changing.
 	struct TORRENT_EXPORT torrent_update_alert : torrent_alert
 	{
+		// internal
 		torrent_update_alert(torrent_handle h, sha1_hash const& old_hash, sha1_hash const& new_hash)
 			: torrent_alert(h)
 			, old_ih(old_hash)
@@ -1766,6 +1861,7 @@ namespace libtorrent
 	// alert_mask.
 	struct TORRENT_EXPORT rss_item_alert : alert
 	{
+		// internal
 		rss_item_alert(feed_handle h, feed_item const& item)
 			: handle(h)
 			, item(item)

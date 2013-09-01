@@ -355,25 +355,41 @@ namespace libtorrent
 		virtual void finalize_file(int) {}
 #endif
 
+		// access global disk_buffer_pool, for allocating and freeing disk buffers
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
+
+		// access global session_settings
 		session_settings const& settings() const { return *m_settings; }
 
+		// called by the storage implementation to set it into an
+		// error state. Typically whenever a critical file operation
+		// fails.
 		void set_error(std::string const& file, error_code const& ec) const;
 
+		// returns the currently set error code and file path associated with it,
+		// if set.
 		error_code const& error() const { return m_error; }
 		std::string const& error_file() const { return m_error_file; }
+
+		// reset the error state to allow continuing reading and writing
+		// to the storage
 		virtual void clear_error() { m_error = error_code(); m_error_file.resize(0); }
 
+		// hidden
 		mutable error_code m_error;
 		mutable std::string m_error_file;
 
 		// hidden
 		virtual ~storage_interface() {}
 
+		// hidden
 		disk_buffer_pool* m_disk_pool;
 		session_settings* m_settings;
 	};
 
+	// The default implementation of storage_interface. Behaves as a normal bittorrent client.
+	// It is possible to derive from this class in order to override some of its behavior, when
+	// implementing a custom storage.
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
 	public:

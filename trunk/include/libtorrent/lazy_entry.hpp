@@ -104,8 +104,16 @@ namespace libtorrent
 	// see lazy_entry::string_pstr().
 	struct TORRENT_EXPORT pascal_string
 	{
+		// construct a string pointing to the characters at ``p``
+		// of length ``l`` characters. No NULL termination is required.
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
+		
+		// the number of characters in the string.
 		int len;
+
+		// the pointer to the first character in the string. This is
+		// not NULL terminated, but instead consult the ``len`` field
+		// to know how many characters follow.
 		char const* ptr;
 
 		// lexicographical comparison of strings. Order is consisten

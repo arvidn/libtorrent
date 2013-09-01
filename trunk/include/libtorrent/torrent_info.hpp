@@ -84,6 +84,7 @@ namespace libtorrent
 	// relates to a specific torrent.
 	struct TORRENT_EXPORT announce_entry
 	{
+		// constructs a tracker announce entry with ``u`` as the URL.
 		announce_entry(std::string const& u);
 		announce_entry();
 		~announce_entry();
@@ -180,6 +181,9 @@ namespace libtorrent
 		// this is false the stats sent to this tracker will be 0
 		bool send_stats:1;
 
+		// reset announce counters and clears the started sent flag.
+		// The announce_entry will look like we've never talked to
+		// the tracker.
 		void reset()
 		{
 			start_sent = false;
@@ -187,23 +191,38 @@ namespace libtorrent
 			min_announce = min_time();
 		}
 
+		// updates the failure counter and time-outs for re-trying.
+		// This is called when the tracker announce fails.
 		void failed(session_settings const& sett, int retry_interval = 0);
 
+/*
 		bool will_announce(ptime now) const
 		{
 			return now <= next_announce
 				&& (fails < fail_limit || fail_limit == 0)
 				&& !updating;
 		}
+*/
 
+		// returns true if we can announec to this tracker now.
+		// The current time is passed in as ``now``. The ``is_seed``
+		// argument is necessary because once we become a seed, we
+		// need to announce right away, even if the re-announce timer
+		// hasn't expired yet.
 		bool can_announce(ptime now, bool is_seed) const;
 
+		// returns true if the last time we tried to announce to this
+		// tracker succeeded, or if we haven't tried yet.
 		bool is_working() const
 		{ return fails == 0; }
 
+		// trims whitespace characters from the beginning of the URL.
 		void trim();
 	};
 
+	// the web_seed_entry holds information about a web seed (also known
+	// as URL seed or HTTP seed). It is essentially a URL with some state
+	// associated with it. For more information, see `BEP 17`_ and `BEP 19`_.
 	struct web_seed_entry
 	{
 		// http seeds are different from url seeds in the
@@ -217,9 +236,11 @@ namespace libtorrent
 			, std::string const& auth_ = std::string()
 			, headers_t const& extra_headers_ = headers_t());
 
+		// URL and type comparison
 		bool operator==(web_seed_entry const& e) const
 		{ return url == e.url && type == e.type; }
 
+		// URL and type less-than comparison
 		bool operator<(web_seed_entry const& e) const
 		{
 			if (url < e.url) return true;
@@ -439,6 +460,7 @@ namespace libtorrent
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
 
+		// returns the info-hash of the torrent
 		const sha1_hash& info_hash() const { return m_info_hash; }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -499,6 +521,9 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
+		// Returns the SSL root certificate for the torrent, if it is an SSL
+		// torrent. Otherwise returns an empty string. The certificate is
+		// the the public certificate in x509 format.
 #ifdef TORRENT_USE_OPENSSL
 		std::string const& ssl_cert() const { return m_ssl_root_cert; }
 #else
@@ -509,12 +534,19 @@ namespace libtorrent
 		}
 #endif
 
+		// returns true if this torrent_info object has a torrent loaded.
+		// This is primarily used to determine if a magnet link has had its
+		// metadata resolved yet or not.
 		bool is_valid() const { return m_files.is_valid(); }
 
 		// returns true if this torrent is private. i.e., it should not be
 		// distributed on the trackerless network (the kademlia DHT).
 		bool priv() const { return m_private; }
 
+		// returns true if this is an i2p torrent. This is determined by whether
+		// or not it has a tracker whose URL domain name ends with ".i2p". i2p
+		// torrents disable the DHT and local peer discovery as well as talking
+		// to peers over anything other than the i2p network.
 		bool is_i2p() const { return m_i2p; }
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
@@ -589,8 +621,16 @@ namespace libtorrent
 		void add_node(std::pair<std::string, int> const& node)
 		{ m_nodes.push_back(node); }
 		
+		// populates the torrent_info by providing just the info-dict buffer. This is used when
+		// loading a torrent from a magnet link for instance, where we only have the info-dict.
+		// The lazy_entry ``e`` points to a parsed info-dictionary. ``ec`` returns an error code
+		// if something fails (typically if the info dictionary is malformed). ``flags`` are currently
+		// unused.
 		bool parse_info_section(lazy_entry const& e, error_code& ec, int flags);
 
+		// This function looks up keys from the info-dictionary of the loaded torrent file.
+		// It can be used to access extension values put in the .torrent file. If the specified
+		// key cannot be found, it returns NULL.
 		lazy_entry const* info(char const* key) const
 		{
 			if (m_info_dict.type() == lazy_entry::none_t)
@@ -598,10 +638,12 @@ namespace libtorrent
 				error_code ec;
 				lazy_bdecode(m_info_section.get(), m_info_section.get()
 					+ m_info_section_size, m_info_dict, ec);
+				if (ec) return NULL;
 			}
 			return m_info_dict.dict_find(key);
 		}
 
+		// swap the content of this and ``ti```.
 		void swap(torrent_info& ti);
 
 		// ``metadata()`` returns a the raw info section of the torrent file. The size
