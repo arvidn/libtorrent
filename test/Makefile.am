@@ -19,7 +19,10 @@ test_programs = \
   test_peer_priority         \
   test_pex                   \
   test_piece_picker          \
+  test_xml                   \
+  test_string                \
   test_primitives            \
+  test_http_parser           \
   test_rss                   \
   test_storage               \
   test_swarm                 \

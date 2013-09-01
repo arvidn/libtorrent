@@ -102,6 +102,132 @@ int test_main()
 	remove_all("file_test_dir2", ec);
 	if (ec) fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
 
+	// test path functions
+	TEST_EQUAL(combine_path("test1/", "test2"), "test1/test2");
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(combine_path("test1\\", "test2"), "test1\\test2");
+	TEST_EQUAL(combine_path("test1", "test2"), "test1\\test2");
+#else
+	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
+#endif
+
+#if TORRENT_USE_UNC_PATHS
+	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
+	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
+	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
+	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
+	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
+	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
+#endif
+
+	TEST_EQUAL(extension("blah"), "");
+	TEST_EQUAL(extension("blah.exe"), ".exe");
+	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
+	TEST_EQUAL(extension("blah.foo."), ".");
+
+	TEST_EQUAL(filename("blah"), "blah");
+	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
+	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");
+	TEST_EQUAL(filename("blah/"), "blah");
+
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(is_root_path("c:\\blah"), false);
+	TEST_EQUAL(is_root_path("c:\\"), true);
+	TEST_EQUAL(is_root_path("\\\\"), true);
+	TEST_EQUAL(is_root_path("\\\\foobar"), true);
+	TEST_EQUAL(is_root_path("\\\\foobar\\"), true);
+	TEST_EQUAL(is_root_path("\\\\foobar/"), true);
+	TEST_EQUAL(is_root_path("\\\\foo/bar"), false);
+	TEST_EQUAL(is_root_path("\\\\foo\\bar\\"), false);
+#else
+	TEST_EQUAL(is_root_path("/blah"), false);
+	TEST_EQUAL(is_root_path("/"), true);
+#endif
+
+	// if has_parent_path() returns false
+	// parent_path() should return the empty string
+	TEST_EQUAL(parent_path("blah"), "");
+	TEST_EQUAL(has_parent_path("blah"), false);
+	TEST_EQUAL(parent_path("/blah/foo/bar"), "/blah/foo/");
+	TEST_EQUAL(has_parent_path("/blah/foo/bar"), true);
+	TEST_EQUAL(parent_path("/blah/foo/bar/"), "/blah/foo/");
+	TEST_EQUAL(has_parent_path("/blah/foo/bar/"), true);
+	TEST_EQUAL(parent_path("/a"), "/");
+	TEST_EQUAL(has_parent_path("/a"), true);
+	TEST_EQUAL(parent_path("/"), "");
+	TEST_EQUAL(has_parent_path("/"), false);
+	TEST_EQUAL(parent_path(""), "");
+	TEST_EQUAL(has_parent_path(""), false);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(parent_path("\\\\"), "");
+	TEST_EQUAL(has_parent_path("\\\\"), false);
+	TEST_EQUAL(parent_path("c:\\"), "");
+	TEST_EQUAL(has_parent_path("c:\\"), false);
+	TEST_EQUAL(parent_path("c:\\a"), "c:\\");
+	TEST_EQUAL(has_parent_path("c:\\a"), true);
+	TEST_EQUAL(has_parent_path("\\\\a"), false);
+	TEST_EQUAL(has_parent_path("\\\\foobar/"), false);
+	TEST_EQUAL(has_parent_path("\\\\foobar\\"), false);
+	TEST_EQUAL(has_parent_path("\\\\foo/bar\\"), true);
+#endif
+
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(is_complete("c:\\"), true);
+	TEST_EQUAL(is_complete("c:\\foo\\bar"), true);
+	TEST_EQUAL(is_complete("\\\\foo\\bar"), true);
+	TEST_EQUAL(is_complete("foo/bar"), false);
+	TEST_EQUAL(is_complete("\\\\"), true);
+#else
+	TEST_EQUAL(is_complete("/foo/bar"), true);
+	TEST_EQUAL(is_complete("foo/bar"), false);
+	TEST_EQUAL(is_complete("/"), true);
+	TEST_EQUAL(is_complete(""), false);
+#endif
+
+	// test split_string
+
+	char const* tags[10];
+	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
+		"extend over the limit of elements \t";
+	int ret = split_string(tags, 10, tags_str);
+
+	TEST_CHECK(ret == 10);
+	TEST_CHECK(strcmp(tags[0], "this") == 0);
+	TEST_CHECK(strcmp(tags[1], "is") == 0);
+	TEST_CHECK(strcmp(tags[2], "a") == 0);
+	TEST_CHECK(strcmp(tags[3], "test") == 0);
+	TEST_CHECK(strcmp(tags[4], "string") == 0);
+	TEST_CHECK(strcmp(tags[5], "to") == 0);
+	TEST_CHECK(strcmp(tags[6], "be") == 0);
+	TEST_CHECK(strcmp(tags[7], "split") == 0);
+	TEST_CHECK(strcmp(tags[8], "and") == 0);
+	TEST_CHECK(strcmp(tags[9], "it") == 0);
+
+	// replace_extension
+	std::string test = "foo.bar";
+	replace_extension(test, "txt");
+	TEST_EQUAL(test, "foo.txt");
+
+	// file class
+	file f;
+#if TORRENT_USE_UNC_PATHS || !defined WIN32
+	TEST_CHECK(f.open("con", file::read_write, ec));
+#else
+	TEST_CHECK(f.open("test_file", file::read_write, ec));
+#endif
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+	file::iovec_t b = {(void*)"test", 4};
+	TEST_CHECK(f.writev(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	char test_buf[5] = {0};
+	b.iov_base = test_buf;
+	b.iov_len = 4;
+	TEST_CHECK(f.readv(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	f.close();
+
 	return 0;
 }
 
