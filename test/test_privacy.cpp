@@ -93,6 +93,9 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
 	session_settings sett;
+	sett.stop_tracker_timeout = 1;
+	sett.tracker_completion_timeout = 1;
+	sett.tracker_receive_timeout = 1;
 	sett.half_open_limit = 1;
 	sett.announce_to_all_trackers = true;
 	sett.announce_to_all_tiers = true;
@@ -143,6 +146,11 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	{
 		print_alerts(*s, "s", false, false, false, &alert_predicate);
 		test_sleep(100);
+
+		if (g_udp_tracker_requests >= prev_udp_announces + 1
+			&& g_http_tracker_requests >= prev_http_announces + 1
+			&& num_peer_hits() > 0)
+			break;
 	}
 
 	// we should have announced to the tracker by now
