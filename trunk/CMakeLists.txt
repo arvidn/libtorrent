@@ -323,7 +323,10 @@ if(build_tests)
 		test_peer_priority
 		test_bencoding
 		test_bdecode_performance
+		test_xml
+		test_string
 		test_primitives
+		test_http_parser
 		test_ip_filter
 		test_hasher
 		test_metadata_extension

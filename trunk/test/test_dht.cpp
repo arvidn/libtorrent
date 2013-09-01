@@ -38,6 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_dispatcher.hpp"
+
+#include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/kademlia/routing_table.hpp"
 #include <iostream>
 
 #include "test.hpp"
@@ -45,6 +48,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
+
+sha1_hash to_hash(char const* s)
+{
+	sha1_hash ret;
+	from_hex(s, 40, (char*)&ret[0]);
+	return ret;
+}
+
+void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id const& add)
+{
+	bool carry = false;
+	for (int k = 19; k >= 0; --k)
+	{
+		int sum = dst[k] + add[k] + (carry?1:0);
+		dst[k] = sum & 255;
+		carry = sum > 255;
+	}
+}
+
+void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
+{
+	using namespace libtorrent::dht;
+	std::vector<node_entry>* nv = (std::vector<node_entry>*)userdata;
+	nv->push_back(n);
+}
+
+void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 
 std::list<std::pair<udp::endpoint, entry> > g_responses;
 
@@ -651,6 +681,327 @@ int test_main()
 #endif
 	}
 
+	// test verify_message
+	const static key_desc_t msg_desc[] = {
+		{"A", lazy_entry::string_t, 4, 0},
+		{"B", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"B1", lazy_entry::string_t, 0, 0},
+			{"B2", lazy_entry::string_t, 0, key_desc_t::last_child},
+		{"C", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"C1", lazy_entry::string_t, 0, 0},
+			{"C2", lazy_entry::string_t, 0, key_desc_t::last_child},
+	};
+
+	lazy_entry const* msg_keys[7];
+
+	lazy_entry ent;
+
+	error_code ec;
+	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
+	lazy_bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
+	TEST_CHECK(msg_keys[1]);
+	TEST_CHECK(msg_keys[2]);
+	if (msg_keys[2]) TEST_EQUAL(msg_keys[2]->string_value(), "test2");
+	TEST_CHECK(msg_keys[3]);
+	if (msg_keys[3]) TEST_EQUAL(msg_keys[3]->string_value(), "test3");
+	TEST_CHECK(msg_keys[4] == 0);
+	TEST_CHECK(msg_keys[5] == 0);
+	TEST_CHECK(msg_keys[6] == 0);
+
+	char const test_msg2[] = "d1:A4:test1:Cd2:C15:test22:C25:test3ee";
+	lazy_bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
+	TEST_CHECK(msg_keys[1] == 0);
+	TEST_CHECK(msg_keys[2] == 0);
+	TEST_CHECK(msg_keys[3] == 0);
+	TEST_CHECK(msg_keys[4]);
+	TEST_CHECK(msg_keys[5]);
+	if (msg_keys[5]) TEST_EQUAL(msg_keys[5]->string_value(), "test2");
+	TEST_CHECK(msg_keys[6]);
+	if (msg_keys[6]) TEST_EQUAL(msg_keys[6]->string_value(), "test3");
+
+
+	char const test_msg3[] = "d1:Cd2:C15:test22:C25:test3ee";
+	lazy_bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'A' key"));
+
+	char const test_msg4[] = "d1:A6:foobare";
+	lazy_bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
+
+	char const test_msg5[] = "d1:A4:test1:Cd2:C15:test2ee";
+	lazy_bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
+
+	// test empty strings [ { "":1 }, "" ]
+	char const test_msg6[] = "ld0:i1ee0:e";
+	lazy_bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	TEST_CHECK(ent.type() == lazy_entry::list_t);
+	if (ent.type() == lazy_entry::list_t)
+	{
+		TEST_CHECK(ent.list_size() == 2);
+		if (ent.list_size() == 2)
+		{
+			TEST_CHECK(ent.list_at(0)->dict_find_int_value("") == 1);
+			TEST_CHECK(ent.list_at(1)->string_value() == "");
+		}
+	}
+
+	// test kademlia functions
+
+	using namespace libtorrent::dht;
+
+	for (int i = 0; i < 160; i += 8)
+	{
+		for (int j = 0; j < 160; j += 8)
+		{
+			node_id a(0);
+			a[(159-i) / 8] = 1 << (i & 7);
+			node_id b(0);
+			b[(159-j) / 8] = 1 << (j & 7);
+			int dist = distance_exp(a, b);
+
+			TEST_CHECK(dist >= 0 && dist < 160);
+			TEST_CHECK(dist == ((i == j)?0:(std::max)(i, j)));
+
+			for (int k = 0; k < 160; k += 8)
+			{
+				node_id c(0);
+				c[(159-k) / 8] = 1 << (k & 7);
+
+				bool cmp = compare_ref(a, b, c);
+				TEST_CHECK(cmp == (distance(a, c) < distance(b, c)));
+			}
+		}
+	}
+
+	{
+		// test kademlia routing table
+		dht_settings s;
+		//	s.restrict_routing_ips = false;
+		node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
+		dht::routing_table table(id, 10, s);
+		std::vector<node_entry> nodes;
+		TEST_EQUAL(table.size().get<0>(), 0);
+
+		node_id tmp = id;
+		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+
+		// test a node with the same IP:port changing ID
+		add_and_replace(tmp, diff);
+		table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
+		table.find_node(id, nodes, 0, 10);
+		TEST_EQUAL(table.bucket_size(0), 1);
+		TEST_EQUAL(table.size().get<0>(), 1);
+		TEST_EQUAL(nodes.size(), 1);
+		if (!nodes.empty())
+		{
+			TEST_EQUAL(nodes[0].id, tmp);
+			TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+			TEST_EQUAL(nodes[0].port(), 4);
+			TEST_EQUAL(nodes[0].timeout_count, 0);
+		}
+
+		// set timeout_count to 1
+		table.node_failed(tmp, udp::endpoint(address_v4::from_string("4.4.4.4"), 4));
+
+		nodes.clear();
+		table.for_each_node(node_push_back, nop, &nodes);
+		TEST_EQUAL(nodes.size(), 1);
+		if (!nodes.empty())
+		{
+			TEST_EQUAL(nodes[0].id, tmp);
+			TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+			TEST_EQUAL(nodes[0].port(), 4);
+			TEST_EQUAL(nodes[0].timeout_count, 1);
+		}
+
+		// add the exact same node again, it should set the timeout_count to 0
+		table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
+		nodes.clear();
+		table.for_each_node(node_push_back, nop, &nodes);
+		TEST_EQUAL(nodes.size(), 1);
+		if (!nodes.empty())
+		{
+			TEST_EQUAL(nodes[0].id, tmp);
+			TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+			TEST_EQUAL(nodes[0].port(), 4);
+			TEST_EQUAL(nodes[0].timeout_count, 0);
+		}
+
+		// test adding the same IP:port again with a new node ID (should replace the old one)
+		add_and_replace(tmp, diff);
+		table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
+		table.find_node(id, nodes, 0, 10);
+		TEST_EQUAL(table.bucket_size(0), 1);
+		TEST_EQUAL(nodes.size(), 1);
+		if (!nodes.empty())
+		{
+			TEST_EQUAL(nodes[0].id, tmp);
+			TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+			TEST_EQUAL(nodes[0].port(), 4);
+		}
+
+		// test adding the same node ID again with a different IP (should be ignored)
+		table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 5), 10);
+		table.find_node(id, nodes, 0, 10);
+		TEST_EQUAL(table.bucket_size(0), 1);
+		if (!nodes.empty())
+		{
+			TEST_EQUAL(nodes[0].id, tmp);
+			TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+			TEST_EQUAL(nodes[0].port(), 4);
+		}
+
+		// test adding a node that ends up in the same bucket with an IP
+		// very close to the current one (should be ignored)
+		// if restrict_routing_ips == true
+		table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.5"), 5), 10);
+		table.find_node(id, nodes, 0, 10);
+		TEST_EQUAL(table.bucket_size(0), 1);
+		if (!nodes.empty())
+		{
+			TEST_EQUAL(nodes[0].id, tmp);
+			TEST_EQUAL(nodes[0].addr(), address_v4::from_string("4.4.4.4"));
+			TEST_EQUAL(nodes[0].port(), 4);
+		}
+
+		s.restrict_routing_ips = false;
+
+		add_and_replace(tmp, diff);
+		table.node_seen(id, udp::endpoint(rand_v4(), rand()), 10);
+
+		nodes.clear();
+		for (int i = 0; i < 7000; ++i)
+		{
+			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), 10);
+			add_and_replace(tmp, diff);
+		}
+		TEST_EQUAL(table.num_active_buckets(), 11);
+		TEST_CHECK(table.size().get<0>() > 10 * 10);
+		//#error test num_global_nodes
+		//#error test need_refresh
+
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+		table.print_state(std::cerr);
+#endif
+
+		table.for_each_node(node_push_back, nop, &nodes);
+
+		std::cout << "nodes: " << nodes.size() << std::endl;
+
+		std::vector<node_entry> temp;
+
+		std::generate(tmp.begin(), tmp.end(), &std::rand);
+		table.find_node(tmp, temp, 0, nodes.size() * 2);
+		std::cout << "returned: " << temp.size() << std::endl;
+		TEST_EQUAL(temp.size(), nodes.size());
+
+		std::generate(tmp.begin(), tmp.end(), &std::rand);
+		table.find_node(tmp, temp, 0, 7);
+		std::cout << "returned: " << temp.size() << std::endl;
+		TEST_EQUAL(temp.size(), 7);
+
+		std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
+				, boost::bind(&node_entry::id, _1)
+				, boost::bind(&node_entry::id, _2), tmp));
+
+		int hits = 0;
+		// This makes sure enough of the nodes returned are actually
+		// part of the closest nodes
+		for (std::vector<node_entry>::iterator i = temp.begin()
+			, end(temp.end()); i != end; ++i)
+		{
+			int hit = std::find_if(nodes.begin(), nodes.end()
+				, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
+			//		std::cerr << hit << std::endl;
+			if (hit < int(temp.size())) ++hits;
+		}
+		std::cout << "hits: " << hits << std::endl;
+		TEST_CHECK(hits == int(temp.size()));
+
+		std::generate(tmp.begin(), tmp.end(), &std::rand);
+		table.find_node(tmp, temp, 0, 15);
+		std::cout << "returned: " << temp.size() << std::endl;
+		TEST_EQUAL(int(temp.size()), (std::min)(15, int(nodes.size())));
+
+		std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
+				, boost::bind(&node_entry::id, _1)
+				, boost::bind(&node_entry::id, _2), tmp));
+
+		hits = 0;
+		// This makes sure enough of the nodes returned are actually
+		// part of the closest nodes
+		for (std::vector<node_entry>::iterator i = temp.begin()
+			, end(temp.end()); i != end; ++i)
+		{
+			int hit = std::find_if(nodes.begin(), nodes.end()
+				, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
+			//		std::cerr << hit << std::endl;
+			if (hit < int(temp.size())) ++hits;
+		}
+		std::cout << "hits: " << hits << std::endl;
+		TEST_CHECK(hits == int(temp.size()));
+
+		using namespace libtorrent::dht;
+
+		char const* ips[] = {
+			"124.31.75.21",
+			"21.75.31.124",
+			"65.23.51.170",
+			"84.124.73.14",
+			"43.213.53.83",
+		};
+
+		int rs[] = { 1,86,22,65,90 };
+
+		boost::uint8_t prefixes[][4] =
+		{
+			{ 0x17, 0x12, 0xf6, 0xc7 },
+			{ 0x94, 0x64, 0x06, 0xc1 },
+			{ 0xfe, 0xfd, 0x92, 0x20 },
+			{ 0xaf, 0x15, 0x46, 0xdd },
+			{ 0xa9, 0xe9, 0x20, 0xbf }
+		};
+
+		for (int i = 0; i < 5; ++i)
+		{
+			address a = address_v4::from_string(ips[i]);
+			node_id id = generate_id_impl(a, rs[i]);
+			for (int j = 0; j < 4; ++j)
+				TEST_CHECK(id[j] == prefixes[i][j]);
+			TEST_CHECK(id[19] == rs[i]);
+			fprintf(stderr, "IP address: %s r: %d node ID: %s\n", ips[i]
+				, rs[i], to_hex(id.to_string()).c_str());
+		}
+	}
 	return 0;
 }
 
