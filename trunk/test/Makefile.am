@@ -23,6 +23,8 @@ test_programs = \
   test_string                \
   test_primitives            \
   test_http_parser           \
+  test_magnet                \
+  test_packet_buffer         \
   test_rss                   \
   test_storage               \
   test_swarm                 \

@@ -327,6 +327,8 @@ if(build_tests)
 		test_string
 		test_primitives
 		test_http_parser
+		test_packet_buffer
+		test_magnet
 		test_ip_filter
 		test_hasher
 		test_metadata_extension
