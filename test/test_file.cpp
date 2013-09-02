@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "test.hpp"
+#include <string.h> // for strcmp
 #include <vector>
 #include <set>
 
