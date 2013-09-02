@@ -2667,7 +2667,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	{
 		// LOSS
 
-		UTP_LOGV("%8p: Packet %d lost.\n", this, m_fast_resend_seq_nr);
+		UTP_LOGV("%8p: Packet %d lost. (%d duplicate acks, trigger fast-resend)\n", this, m_fast_resend_seq_nr, m_duplicate_acks);
 
 		// resend the lost packet
 		packet* p = (packet*)m_outbuf.at(m_fast_resend_seq_nr);
@@ -3253,7 +3253,7 @@ void utp_socket_impl::tick(ptime const& now)
 			p->need_resend = true;
 			TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 			m_bytes_in_flight -= p->size - p->header_size;
-			UTP_LOGV("%8p: Packet %d lost.\n", this, i);
+			UTP_LOGV("%8p: Packet %d lost (timeout).\n", this, i);
 		}
 
 		TORRENT_ASSERT(m_bytes_in_flight == 0);

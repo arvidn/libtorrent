@@ -101,12 +101,17 @@ void test_rate()
 
 	peer_disconnects = 0;
 
+	session_settings sett = high_performance_seed();
+	ses1.set_settings(sett);
+	ses2.set_settings(sett);
+
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
 
 	ptime start = time_now();
 
-	for (int i = 0; i < 70; ++i)
+	// it shouldn't take more than 2 seconds
+	for (int i = 0; i < 20; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
@@ -622,9 +627,12 @@ int test_main()
 {
 	using namespace libtorrent;
 
-#ifdef NDEBUG
+#if !defined TORRENT_DEBUG \
+	&& defined TORRENT_DISABLE_INVARIANT_CHECKS \
+	&& !defined _GLIBCXX_DEBUG
 	// test rate only makes sense in release mode
 	test_rate();
+	return 0;
 #endif
 
 	// test with all kinds of proxies

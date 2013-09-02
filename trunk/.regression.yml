@@ -11,7 +11,7 @@ clean:
 time_limit: 180
 
 features:
- - variant=release asserts=production
+ - variant=release asserts=production invariant-checks=off debug-iterators=off
  - encryption=openssl statistics=on logging=verbose disk-stats=on dht=logging request-log=on
  - ipv6=off dht=off extensions=off logging=none deprecated-functions=off 
 
