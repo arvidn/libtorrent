@@ -997,7 +997,7 @@ void test_fastresume(std::string const& test_path)
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
 		ptime end = time_now() + seconds(20);
-		while (a.get() == 0 || dynamic_cast<fastresume_rejected_alert*>(a.get()) == 0)
+		while (a.get() == 0 || alert_cast<fastresume_rejected_alert>(a.get()) == 0)
 		{
 			if (ses.wait_for_alert(end - time_now()) == 0)
 			{
@@ -1009,7 +1009,7 @@ void test_fastresume(std::string const& test_path)
 			std::cerr << a->message() << std::endl;
 		}
 		// we expect the fast resume to be rejected because the files were removed
-		TEST_CHECK(dynamic_cast<fastresume_rejected_alert*>(a.get()) != 0);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a.get()) != 0);
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
@@ -1018,8 +1018,8 @@ void test_fastresume(std::string const& test_path)
 
 bool got_file_rename_alert(alert* a)
 {
-	return dynamic_cast<libtorrent::file_renamed_alert*>(a)
-		|| dynamic_cast<libtorrent::file_rename_failed_alert*>(a);
+	return alert_cast<libtorrent::file_renamed_alert>(a)
+		|| alert_cast<libtorrent::file_rename_failed_alert>(a);
 }
 
 void test_rename_file_in_fastresume(std::string const& test_path)
