@@ -255,6 +255,9 @@ namespace libtorrent
 
 		set.max_rejects = 10;
 
+		set.recv_socket_buffer_size = 1024 * 1024;
+		set.send_socket_buffer_size = 1024 * 1024;
+
 		set.optimize_hashing_for_speed = true;
 
 		// don't let connections linger for too long

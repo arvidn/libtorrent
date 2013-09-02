@@ -2082,6 +2082,21 @@ namespace aux {
 #endif
 		}
 
+		if (m_settings.send_socket_buffer_size != s.send_socket_buffer_size)
+		{
+			error_code ec;
+			stream_socket::send_buffer_size option(
+				m_settings.send_socket_buffer_size);
+			m_udp_socket.set_option(option, ec);
+		}
+		if (m_settings.recv_socket_buffer_size != s.recv_socket_buffer_size)
+		{
+			error_code ec;
+			stream_socket::receive_buffer_size option(
+				m_settings.recv_socket_buffer_size);
+			m_udp_socket.set_option(option, ec);
+		}
+
 		bool reopen_listen_port = false;
 		if (m_settings.ssl_listen != s.ssl_listen)
 			reopen_listen_port = true;
@@ -2464,6 +2479,18 @@ retry:
 		(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.peer_tos << " e: " << ec.message() << " ]\n";
 #endif
 		ec.clear();
+		if (m_settings.send_socket_buffer_size)
+		{
+			stream_socket::send_buffer_size option(
+				m_settings.send_socket_buffer_size);
+			m_udp_socket.set_option(option, ec);
+		}
+		if (m_settings.recv_socket_buffer_size)
+		{
+			stream_socket::receive_buffer_size option(
+				m_settings.recv_socket_buffer_size);
+			m_udp_socket.set_option(option, ec);
+		}
 
 		// initiate accepting on the listen sockets
 		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
