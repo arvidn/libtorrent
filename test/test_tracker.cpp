@@ -52,9 +52,6 @@ int test_main()
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session_proxy p1;
-	session_proxy p2;
-
 	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
 	session_settings sett;
@@ -95,7 +92,6 @@ int test_main()
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
 	TEST_EQUAL(g_http_tracker_requests, prev_http_announces + 1);
 
-	p1 = s->abort();
 	fprintf(stderr, "destructing session\n");
 	delete s;
 	fprintf(stderr, "done\n");
@@ -161,7 +157,6 @@ int test_main()
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
 	TEST_EQUAL(g_http_tracker_requests, prev_http_announces);
 
-	p2 = s->abort();
 	fprintf(stderr, "destructing session\n");
 	delete s;
 	fprintf(stderr, "done\n");
