@@ -220,7 +220,7 @@ field should be disregarded when determining whether or not to save the item.
 
 The error message (as specified by BEP5_) looks like this:
 
-.. _BEP5: http://www.bitorrent.org/beps/bep0005.html
+.. _BEP5: http://www.bittorrent.org/beps/bep_0005.html
 
 .. parsed-literal::
 
