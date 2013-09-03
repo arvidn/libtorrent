@@ -1,4 +1,5 @@
 import testing ;
+import feature : feature ;
 
 use-project /torrent : .. ;
 
@@ -56,6 +57,9 @@ project
 	<invariant-checks>full
 	<debug-iterators>on
    ;
+
+feature launcher : none valgrind : composite ;
+feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --track-origins=yes --error-exitcode=1" ;
 
 test-suite libtorrent : 	
 	[ run test_file_storage.cpp ]
