@@ -135,7 +135,7 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class GettableSocketOption>
-	void set_option(GettableSocketOption& opt)
+	void get_option(GettableSocketOption& opt)
 	{
 		m_sock.get_option(opt);
 	}
