@@ -1944,6 +1944,45 @@ namespace aux {
 		m_disk_thread.add_job(j);
 	}
 
+	template <class Socket>
+	void static set_socket_buffer_size(Socket& s, session_settings const& sett, error_code& ec)
+	{
+		if (sett.send_socket_buffer_size)
+		{
+			stream_socket::send_buffer_size prev_option;
+			s.get_option(prev_option, ec);
+			if (!ec)
+			{
+				stream_socket::send_buffer_size option(
+					sett.send_socket_buffer_size);
+				s.set_option(option, ec);
+				if (ec)
+				{
+					// restore previous value
+					s.set_option(prev_option, ec);
+					return;
+				}
+			}
+		}
+		if (sett.recv_socket_buffer_size)
+		{
+			stream_socket::receive_buffer_size prev_option;
+			s.get_option(prev_option, ec);
+			if (!ec)
+			{
+				stream_socket::receive_buffer_size option(
+					sett.recv_socket_buffer_size);
+				s.set_option(option, ec);
+				if (ec)
+				{
+					// restore previous value
+					s.set_option(prev_option, ec);
+					return;
+				}
+			}
+		}
+	}
+
 	void session_impl::set_settings(session_settings const& s)
 	{
 		INVARIANT_CHECK;
@@ -2082,19 +2121,14 @@ namespace aux {
 #endif
 		}
 
-		if (m_settings.send_socket_buffer_size != s.send_socket_buffer_size)
 		{
 			error_code ec;
-			stream_socket::send_buffer_size option(
-				m_settings.send_socket_buffer_size);
-			m_udp_socket.set_option(option, ec);
-		}
-		if (m_settings.recv_socket_buffer_size != s.recv_socket_buffer_size)
-		{
-			error_code ec;
-			stream_socket::receive_buffer_size option(
-				m_settings.recv_socket_buffer_size);
-			m_udp_socket.set_option(option, ec);
+			set_socket_buffer_size(m_udp_socket, m_settings, ec);
+			if (ec)
+			{
+				if (m_alerts.should_post<udp_error_alert>())
+					m_alerts.post_alert(udp_error_alert(udp::endpoint(), ec));
+			}
 		}
 
 		bool reopen_listen_port = false;
@@ -2479,17 +2513,12 @@ retry:
 		(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.peer_tos << " e: " << ec.message() << " ]\n";
 #endif
 		ec.clear();
-		if (m_settings.send_socket_buffer_size)
+
+		set_socket_buffer_size(m_udp_socket, m_settings, ec);
+		if (ec)
 		{
-			stream_socket::send_buffer_size option(
-				m_settings.send_socket_buffer_size);
-			m_udp_socket.set_option(option, ec);
-		}
-		if (m_settings.recv_socket_buffer_size)
-		{
-			stream_socket::receive_buffer_size option(
-				m_settings.recv_socket_buffer_size);
-			m_udp_socket.set_option(option, ec);
+			if (m_alerts.should_post<udp_error_alert>())
+				m_alerts.post_alert(udp_error_alert(udp::endpoint(), ec));
 		}
 
 		// initiate accepting on the listen sockets
@@ -2971,18 +3000,7 @@ retry:
 	void session_impl::setup_socket_buffers(socket_type& s)
 	{
 		error_code ec;
-		if (m_settings.send_socket_buffer_size)
-		{
-			stream_socket::send_buffer_size option(
-				m_settings.send_socket_buffer_size);
-			s.set_option(option, ec);
-		}
-		if (m_settings.recv_socket_buffer_size)
-		{
-			stream_socket::receive_buffer_size option(
-				m_settings.recv_socket_buffer_size);
-			s.set_option(option, ec);
-		}
+		set_socket_buffer_size(s, m_settings, ec);
 	}
 
 	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s

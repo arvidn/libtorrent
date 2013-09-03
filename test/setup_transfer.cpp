@@ -89,7 +89,7 @@ int print_failures()
 	return tests_failure;
 }
 
-std::auto_ptr<alert> wait_for_alert(session& ses, int type)
+std::auto_ptr<alert> wait_for_alert(session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;
 	while (!ret.get())
@@ -100,6 +100,7 @@ std::auto_ptr<alert> wait_for_alert(session& ses, int type)
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
+			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
 			if (!ret.get() && (*i)->type() == type)
 			{
 				ret = std::auto_ptr<alert>(*i);
@@ -595,6 +596,14 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	if (connect_peers)
 	{
+		std::auto_ptr<alert> a;
+		do
+		{
+			a = wait_for_alert(*ses2, state_changed_alert::alert_type, "ses2");
+		} while (static_cast<state_changed_alert*>(a.get())->state != torrent_status::downloading);
+
+		wait_for_alert(*ses1, torrent_finished_alert::alert_type, "ses1");
+
 		error_code ec;
 		if (use_ssl_ports)
 		{

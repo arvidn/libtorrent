@@ -107,6 +107,15 @@ namespace libtorrent
 		void set_buf_size(int s);
 
 		template <class SocketOption>
+		void get_option(SocketOption const& opt, error_code& ec)
+		{
+			m_ipv4_sock.get_option(opt, ec);
+#if TORRENT_USE_IPV6
+			m_ipv6_sock.get_option(opt, ec);
+#endif
+		}
+
+		template <class SocketOption>
 		void set_option(SocketOption const& opt, error_code& ec)
 		{
 			m_ipv4_sock.set_option(opt, ec);
