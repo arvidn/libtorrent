@@ -189,7 +189,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
-			fprintf(stderr, "%s: %s(%s): %s\n", time_now_string(), name, print_endpoint(p->ip).c_str(), p->message().c_str());
+			fprintf(stderr, "%s: %s [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
