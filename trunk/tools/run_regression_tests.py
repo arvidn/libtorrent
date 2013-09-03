@@ -73,8 +73,9 @@ between all testsers.
 
 options:
 
-   -j<n>    use n parallel processes for running tests
-   -i       build incrementally (i.e. don't clean between checkouts)
+   -j<n>     use n parallel processes for running tests
+   -i        build incrementally (i.e. don't clean between checkouts)
+   -valgrind run tests with valgrind (requires valgrind to be installed)
 '''
 
 
