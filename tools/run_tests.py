@@ -1,3 +1,4 @@
+
 #!/bin/python
 
 # Copyright (c) 2013, Arvid Norberg
@@ -157,6 +158,7 @@ options:
 -j<n>     use n parallel processes
 -h        prints this message and exits
 -i        build incrementally (i.e. don't clean between checkouts)
+-valgrind run tests with valgrind (requires valgrind to be installed)
 '''
 
 def main(argv):
@@ -165,6 +167,11 @@ def main(argv):
 
 	num_processes = 4
 	incremental = False
+
+	test_dirs = []
+	configs = []
+	options = ['boost=source']
+	time_limit = 1200
 
 	for arg in argv:
 		if arg[0] == '-':
@@ -175,6 +182,8 @@ def main(argv):
 				sys.exit(1)
 			elif arg[1] == 'i':
 				incremental = True
+			elif arg[1:] == 'valgrind':
+				options.append('launcher=valgrind')
 			else:
 				print 'unknown option: %s' % arg
 				print_usage()
@@ -194,10 +203,6 @@ def main(argv):
 
 	cfg = yaml.load(cfg.read())
 
-	test_dirs = []
-	configs = []
-	options = ['boost=source']
-	time_limit = 1200
 	if 'test_dirs' in cfg:
 		for d in cfg['test_dirs']:
 			test_dirs.append(d)
