@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-void incoming_error(entry& e, char const* msg);
+void incoming_error(entry& e, char const* msg, int error_code = 203);
 
 using detail::write_endpoint;
 
@@ -592,11 +592,11 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 	return true;
 }
 
-void incoming_error(entry& e, char const* msg)
+void incoming_error(entry& e, char const* msg, int error_code)
 {
 	e["y"] = "e";
 	entry::list_type& l = e["e"].list();
-	l.push_back(entry(203));
+	l.push_back(entry(error_code));
 	l.push_back(entry(msg));
 }
 
@@ -636,6 +636,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	// its IP is
 	if (!verify_id(id, m.addr.address()))
 		reply["ip"] = address_to_bytes(m.addr.address());
+
+	// mirror back the other node's external port
+	reply["p"] = m.addr.port();
 
 	if (strcmp(query, "ping") == 0)
 	{
@@ -810,11 +813,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			// public key
 			{"k", lazy_entry::string_t, 32, key_desc_t::optional},
 			{"sig", lazy_entry::string_t, 64, key_desc_t::optional},
+			{"cas", lazy_entry::string_t, 20, key_desc_t::optional},
 		};
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[5];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 5, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[6];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -825,9 +829,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		// pointer and length to the whole entry
 		std::pair<char const*, int> buf = msg_keys[1]->data_section();
-		if (buf.second > 767 || buf.second <= 0)
+		if (buf.second > 1000 || buf.second <= 0)
 		{
-			incoming_error(e, "message too big");
+			incoming_error(e, "message too big", 205);
 			return;
 		}
 
@@ -861,6 +865,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				{
 					// delete the least important one (i.e. the one
 					// the fewest peers are announcing)
+					// TODO: 3 also take into account how far away from our node ID
+					// the item is
 					dht_immutable_table_t::iterator j = std::min_element(m_immutable_table.begin()
 						, m_immutable_table.end()
 						, boost::bind(&dht_immutable_item::num_announcers
@@ -888,19 +894,19 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		{
 			// mutable put, we must verify the signature
 			// generate the message digest by merging the sequence number and the
-			hasher digest;
-			char seq[20];
-			int len = snprintf(seq, sizeof(seq), "3:seqi%"PRId64"e1:v", msg_keys[2]->int_value());
-			digest.update(seq, len);
+
+			char seq[1020];
+			int len = snprintf(seq, sizeof(seq), "3:seqi%" PRId64 "e1:v", msg_keys[2]->int_value());
 			std::pair<char const*, int> buf = msg_keys[1]->data_section();
-			digest.update(buf.first, buf.second);
+			memcpy(seq + len, buf.first, buf.second);
+			len += buf.second;
 
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
 			if (ed25519_verify((unsigned char const*)msg_keys[4]->string_ptr()
-				, (unsigned char const*)buf.first, buf.second
+				, (unsigned char const*)seq, len
 				, (unsigned char const*)msg_keys[3]->string_ptr()) != 0)
 			{
-				incoming_error(e, "invalid signature");
+				incoming_error(e, "invalid signature", 206);
 				return;
 			}
 
@@ -908,6 +914,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end())
 			{
+				// this is the case where we don't have an item in this slot
 				// make sure we don't add too many items
 				if (int(m_mutable_table.size()) >= m_settings.max_dht_items)
 				{
@@ -937,11 +944,29 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			}
 			else
 			{
+				// this is the case where we already 
 				dht_mutable_item* item = &i->second;
+
+				// this is the "cas" field in the put message
+				// if it was specified, we MUST make sure the current value
+				// matches the expected value before replacing it
+				if (msg_keys[5])
+				{
+					int len = snprintf(seq, sizeof(seq), "3:seqi%" PRId64 "e1:v", item->seq);
+					memcpy(seq + len, item->value, item->size);
+					len += item->size;
+					sha1_hash h = hasher(seq, len).final();
+
+					if (h != sha1_hash(msg_keys[5]->string_ptr()))
+					{
+						incoming_error(e, "CAS hash failed", 301);
+						return;
+					}
+				}
 
 				if (item->seq > msg_keys[2]->int_value())
 				{
-					incoming_error(e, "old sequence number");
+					incoming_error(e, "old sequence number", 302);
 					return;
 				}
 

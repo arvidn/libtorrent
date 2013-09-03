@@ -127,7 +127,7 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	, char const* target = 0, entry const* value = 0
 	, bool scrape = false, bool seed = false
 	, std::string const key = std::string(), std::string const sig = std::string()
-	, int seq = -1)
+	, int seq = -1, char const* cas = 0)
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -149,6 +149,7 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	if (scrape) a["scrape"] = 1;
 	if (seed) a["seed"] = 1;
 	if (seq >= 0) a["seq"] = seq;
+	if (cas) a["cas"] = std::string(cas, 20);
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
@@ -333,7 +334,7 @@ int test_main()
 
 	// DHT should be running on port 48199 now
 	lazy_entry response;
-	lazy_entry const* parsed[5];
+	lazy_entry const* parsed[10];
 	char error_string[200];
 	bool ret;
 
@@ -640,6 +641,105 @@ int test_main()
 	else
 	{
 		fprintf(stderr, "   invalid put response: %s\n%s\n"
+			, error_string, print_entry(response).c_str());
+		TEST_ERROR(error_string);
+	}
+
+	send_dht_msg(node, "get", source, &response, "10", 0
+		, 0, no, 0, (char*)&hasher((char*)public_key, 32).final()[0]
+		, 0, false, false, std::string(), std::string(), 64);
+			
+	key_desc_t desc3[] =
+	{
+		{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+			{ "id", lazy_entry::string_t, 20, 0},
+			{ "v", lazy_entry::none_t, 0, 0},
+			{ "seq", lazy_entry::int_t, 0, 0},
+			{ "sig", lazy_entry::string_t, 0, 0},
+			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+		{ "y", lazy_entry::string_t, 1, 0},
+	};
+
+	ret = verify_message(&response, desc3, parsed, 7, error_string, sizeof(error_string));
+	if (ret == 0)
+	{
+		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+		fprintf(stderr, "   invalid get response: %s\n%s\n"
+			, error_string, print_entry(response).c_str());
+		TEST_ERROR(error_string);
+	}
+	else
+	{
+		char value[1020];
+		char* ptr = value;
+		int value_len = bencode(ptr, items[0].ent);
+		TEST_EQUAL(value_len, parsed[2]->data_section().second);
+		TEST_CHECK(memcmp(parsed[2]->data_section().first, value, value_len) == 0);
+
+		TEST_EQUAL(seq, parsed[3]->int_value());
+
+	}
+
+	// === test CAS put ===
+
+	// this is the hash that we expect to be there
+	sha1_hash cas = hasher(buffer, pos).final();
+	// increment sequence number
+	++seq;
+	pos = snprintf(buffer, sizeof(buffer), "3:seqi%de1:v", seq);
+	ptr = buffer + pos;
+	// put item 1
+	pos += bencode(ptr, items[1].ent);
+	ed25519_sign(signature, (unsigned char*)buffer, pos, private_key, public_key);
+
+	send_dht_msg(node, "put", source, &response, "10", 0
+		, 0, token, 0, 0, &items[1].ent, false, false
+		, std::string((char*)public_key, 32)
+		, std::string((char*)signature, 64), seq
+		, (char const*)&cas[0]);
+
+	ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
+	if (ret)
+	{
+		fprintf(stderr, "put response: %s\n"
+			, print_entry(response).c_str());
+		TEST_EQUAL(parsed[0]->string_value(), "r");
+	}
+	else
+	{
+		fprintf(stderr, "   invalid put response: %s\n%s\n"
+			, error_string, print_entry(response).c_str());
+		TEST_ERROR(error_string);
+	}
+
+	// put the same message again. This should fail because the
+	// CAS hash is outdated, it's not the hash of the value that's
+	// stored anymore
+	send_dht_msg(node, "put", source, &response, "10", 0
+		, 0, token, 0, 0, &items[1].ent, false, false
+		, std::string((char*)public_key, 32)
+		, std::string((char*)signature, 64), seq
+		, (char const*)&cas[0]);
+
+
+	key_desc_t desc4[] =
+	{
+		{ "e", lazy_entry::list_t, 2, 0 },
+		{ "y", lazy_entry::string_t, 1, 0},
+	};
+
+	ret = verify_message(&response, desc4, parsed, 2, error_string, sizeof(error_string));
+	if (ret)
+	{
+		fprintf(stderr, "put response: %s\n"
+			, print_entry(response).c_str());
+		TEST_EQUAL(parsed[1]->string_value(), "e");
+		// 301 is the error code for CAS hash mismatch
+		TEST_EQUAL(parsed[0]->list_int_value_at(0), 301);
+	}
+	else
+	{
+		fprintf(stderr, "   invalid put response: %s\n%s\nExpected failure 301 (CAS hash mismatch)\n"
 			, error_string, print_entry(response).c_str());
 		TEST_ERROR(error_string);
 	}

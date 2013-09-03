@@ -168,6 +168,7 @@ Request:
 	{
 		"a":
 		{
+			"cas": *<optional 20 byte hash (string)>*,
 			"id": *<20 byte id of sending node (string)>*,
 			"k": *<ed25519 public key (32 bytes string)>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
@@ -185,9 +186,20 @@ to what's already stored on the node, MUST reject the request. If the sequence
 number is equal, and the value is also the same, the node SHOULD reset its timeout
 counter.
 
+If the sequence number in the ``put`` message is lower than the sequence number
+associated with the currently stored value, the storing node MAY return an error
+message with code 302 (see error codes below).
+
 Note that this request does not contain a target hash. The target hash under
 which this blob is stored is implied by the ``k`` argument. The key is
 the SHA-1 hash of the key (``k``).
+
+The ``cas`` field is optional. If present it is interpreted of the sha-1 hash of
+the sequence number and ``v`` field that is expected to be replaced. The buffer
+to hash is the same as the one signed when storing. ``cas`` is short for *compare
+and swap*, it has similar semantics as CAS CPU instructions. If specified as part
+of the put command, and the current value stored under the public key differs from
+the expected value, the store fails. The ``cas`` field only applies to mutable puts.
 
 Response:
 
@@ -198,6 +210,47 @@ Response:
 		"t": *<transaction-id (string)>*,
 		"y": "r",
 	}
+
+If the store fails for any reason an error message is returned instead of the message
+template above, i.e. one where "y" is "e" and "e" is a tuple of [error-code, message]).
+Failures include where the ``cas`` hash mismatches and the sequence number is outdated.
+
+If no ``cas`` field is included in the ``put`` message, the value of the current ``v``
+field should be disregarded when determining whether or not to save the item.
+
+The error message (as specified by BEP5_) looks like this:
+
+.. _BEP5: http://www.bitorrent.org/beps/bep0005.html
+
+.. parsed-literal::
+
+	{
+		"e": [ *<error-code (integer)>*, *<error-string (string)>* ],
+		"t": *<transaction-id (string)>*,
+		"y": "e",
+	}
+
+In addition to the error codes defined in BEP5_, this specification defines 
+some additional error codes.
+
++------------+-----------------------------+
+| error-code | description                 |
++============+=============================+
+| 205        | message (i.e. ``v`` field)  |
+|            | too big.                    |
++------------+-----------------------------+
+| 206        | invalid signature           |
++------------+-----------------------------+
+| 301        | the CAS hash mismatched,    |
+|            | re-read value and try       |
+|            | again.                      |
++------------+-----------------------------+
+| 302        | sequence number less than   |
+|            | current.                    |
++------------+-----------------------------+
+
+An implementation MUST emit 301 errors if the cas-hash mismatches. This is
+a critical feature in synchronization of multiple agents sharing an immutable item.
 
 get message
 ...........
@@ -240,12 +293,16 @@ Response:
 signature verification
 ----------------------
 
+The signature, private and public keys are in the format as produced by this derivative `ed25519 library`_.
+
+.. _`ed25519 library`: https://github.com/nightcracker/ed25519
+
 In order to make it maximally difficult to attack the bencoding parser, signing and verification of the
 value and sequence number should be done as follows:
 
 1. encode value and sequence number separately
-2. concatenate "3:seqi" ``seq`` "e1:v" and the encoded value.
-   sequence number 1 of value "Hello World!" would be converted to: 3:seqi1e1:v12:Hello World!
+2. concatenate *"3:seqi"* ``seq`` *"e1:v"* ``len`` *":"* and the encoded value.
+   sequence number 1 of value "Hello World!" would be converted to: "3:seqi1e1:v12:Hello World!"
    In this way it is not possible to convince a node that part of the length is actually part of the
    sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
    verification failure if a bencoding serializer alters the order of entries in the dictionary.
@@ -264,8 +321,8 @@ expiration
 Without re-announcement, these items MAY expire in 2 hours. In order
 to keep items alive, they SHOULD be re-announced once an hour.
 
-Subscriber nodes MAY help out in announcing items the are interested in to the DHT,
-to keep them alive.
+Any node that's interested in keeping a blob in the DHT alive may announce it. It would simply
+repeat the signature for a mutable put without having the private key.
 
 test vectors
 ------------
