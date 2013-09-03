@@ -84,7 +84,7 @@ int EXPORT print_failures();
 #define TEST_EQUAL(x, y) \
 	if (x != y) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << x << "\nexpected: " << y << std::endl; \
+		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << x << "\nexpected: " << y; \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else
@@ -107,7 +107,7 @@ int EXPORT print_failures();
 	try { \
 		if (x != y) { \
 			std::stringstream s__; \
-			s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
+			s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y; \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
