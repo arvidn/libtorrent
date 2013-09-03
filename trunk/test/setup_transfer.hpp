@@ -50,7 +50,7 @@ int EXPORT load_file(std::string const& filename, std::vector<char>& v, libtorre
 
 void EXPORT report_failure(char const* err, char const* file, int line);
 
-std::auto_ptr<libtorrent::alert> EXPORT wait_for_alert(libtorrent::session& ses, int type);
+std::auto_ptr<libtorrent::alert> EXPORT wait_for_alert(libtorrent::session& ses, int type, char const* name = "");
 
 void EXPORT print_ses_rate(float time
 	, libtorrent::torrent_status const* st1

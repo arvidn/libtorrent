@@ -134,6 +134,20 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
+	template <class GettableSocketOption>
+	void set_option(GettableSocketOption& opt)
+	{
+		m_sock.get_option(opt);
+	}
+#endif
+
+	template <class GettableSocketOption>
+	error_code get_option(GettableSocketOption& opt, error_code& ec)
+	{
+		return m_sock.get_option(opt, ec);
+	}
+
+#ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
 	{
 //		m_sock.bind(endpoint);

@@ -97,11 +97,15 @@ void test_rate()
 	file.close();
 
 	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses1");
+	wait_for_listen(ses2, "ses2");
 
 	peer_disconnects = 0;
 
 	session_settings sett = high_performance_seed();
+	sett.enable_outgoing_utp = true;
+	sett.enable_incoming_utp = true;
+	sett.enable_outgoing_tcp = false;
+	sett.enable_incoming_tcp = false;
 	ses1.set_settings(sett);
 	ses2.set_settings(sett);
 
