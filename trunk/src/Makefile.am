@@ -86,7 +86,6 @@ libtorrent_rasterbar_la_SOURCES = \
   policy.cpp                      \
   puff.cpp                        \
   random.cpp                      \
-  rsa.cpp                         \
   rss.cpp                         \
   session.cpp                     \
   session_impl.cpp                \

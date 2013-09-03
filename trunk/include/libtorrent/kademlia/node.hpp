@@ -136,7 +136,7 @@ struct ed25519_public_key { char bytes[32]; };
 struct dht_mutable_item : dht_immutable_item
 {
 	char sig[64];
-	int seq;
+	boost::uint64_t seq;
 	ed25519_public_key key;
 };
 

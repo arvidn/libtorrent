@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -192,7 +192,7 @@ number to a lower one, only upgrade. The sequence number SHOULD not exceed <tt c
 (i.e. <tt class="docutils literal">0x7fffffffffffffff</tt>. A client MAY reject any message with a sequence number
 exceeding this.</p>
 <p>The signature is a 64 byte ed25519 signature of the bencoded sequence
-number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
+number concatenated with the <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
 <div class="section" id="id1">
 <h2>put message</h2>
 <p>Request:</p>
@@ -200,6 +200,7 @@ number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <
 {
         &quot;a&quot;:
         {
+                &quot;cas&quot;: <em>&lt;optional 20 byte hash (string)&gt;</em>,
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
@@ -216,9 +217,18 @@ number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <
 to what's already stored on the node, MUST reject the request. If the sequence
 number is equal, and the value is also the same, the node SHOULD reset its timeout
 counter.</p>
+<p>If the sequence number in the <tt class="docutils literal">put</tt> message is lower than the sequence number
+associated with the currently stored value, the storing node MAY return an error
+message with code 302 (see error codes below).</p>
 <p>Note that this request does not contain a target hash. The target hash under
 which this blob is stored is implied by the <tt class="docutils literal">k</tt> argument. The key is
 the SHA-1 hash of the key (<tt class="docutils literal">k</tt>).</p>
+<p>The <tt class="docutils literal">cas</tt> field is optional. If present it is interpreted of the sha-1 hash of
+the sequence number and <tt class="docutils literal">v</tt> field that is expected to be replaced. The buffer
+to hash is the same as the one signed when storing. <tt class="docutils literal">cas</tt> is short for <em>compare
+and swap</em>, it has similar semantics as CAS CPU instructions. If specified as part
+of the put command, and the current value stored under the public key differs from
+the expected value, the store fails. The <tt class="docutils literal">cas</tt> field only applies to mutable puts.</p>
 <p>Response:</p>
 <pre class="literal-block">
 {
@@ -227,6 +237,52 @@ the SHA-1 hash of the key (<tt class="docutils literal">k</tt>).</p>
         &quot;y&quot;: &quot;r&quot;,
 }
 </pre>
+<p>If the store fails for any reason an error message is returned instead of the message
+template above, i.e. one where &quot;y&quot; is &quot;e&quot; and &quot;e&quot; is a tuple of [error-code, message]).
+Failures include where the <tt class="docutils literal">cas</tt> hash mismatches and the sequence number is outdated.</p>
+<p>If no <tt class="docutils literal">cas</tt> field is included in the <tt class="docutils literal">put</tt> message, the value of the current <tt class="docutils literal">v</tt>
+field should be disregarded when determining whether or not to save the item.</p>
+<p>The error message (as specified by <a class="reference external" href="http://www.bitorrent.org/beps/bep0005.html">BEP5</a>) looks like this:</p>
+<pre class="literal-block">
+{
+        &quot;e&quot;: [ <em>&lt;error-code (integer)&gt;</em>, <em>&lt;error-string (string)&gt;</em> ],
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;e&quot;,
+}
+</pre>
+<p>In addition to the error codes defined in <a class="reference external" href="http://www.bitorrent.org/beps/bep0005.html">BEP5</a>, this specification defines
+some additional error codes.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="29%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">error-code</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>205</td>
+<td>message (i.e. <tt class="docutils literal">v</tt> field)
+too big.</td>
+</tr>
+<tr><td>206</td>
+<td>invalid signature</td>
+</tr>
+<tr><td>301</td>
+<td>the CAS hash mismatched,
+re-read value and try
+again.</td>
+</tr>
+<tr><td>302</td>
+<td>sequence number less than
+current.</td>
+</tr>
+</tbody>
+</table>
+<p>An implementation MUST emit 301 errors if the cas-hash mismatches. This is
+a critical feature in synchronization of multiple agents sharing an immutable item.</p>
 </div>
 <div class="section" id="id2">
 <h2>get message</h2>
@@ -265,12 +321,13 @@ the SHA-1 hash of the key (<tt class="docutils literal">k</tt>).</p>
 </div>
 <div class="section" id="signature-verification">
 <h1>signature verification</h1>
+<p>The signature, private and public keys are in the format as produced by this derivative <a class="reference external" href="https://github.com/nightcracker/ed25519">ed25519 library</a>.</p>
 <p>In order to make it maximally difficult to attack the bencoding parser, signing and verification of the
 value and sequence number should be done as follows:</p>
 <ol class="arabic simple">
 <li>encode value and sequence number separately</li>
-<li>concatenate &quot;3:seqi&quot; <tt class="docutils literal">seq</tt> &quot;e1:v&quot; and the encoded value.
-sequence number 1 of value &quot;Hello World!&quot; would be converted to: 3:seqi1e1:v12:Hello World!
+<li>concatenate <em>&quot;3:seqi&quot;</em> <tt class="docutils literal">seq</tt> <em>&quot;e1:v&quot;</em> <tt class="docutils literal">len</tt> <em>&quot;:&quot;</em> and the encoded value.
+sequence number 1 of value &quot;Hello World!&quot; would be converted to: &quot;3:seqi1e1:v12:Hello World!&quot;
 In this way it is not possible to convince a node that part of the length is actually part of the
 sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
 verification failure if a bencoding serializer alters the order of entries in the dictionary.</li>
@@ -286,8 +343,8 @@ the response SHOULD be considered invalid.</p>
 <h1>expiration</h1>
 <p>Without re-announcement, these items MAY expire in 2 hours. In order
 to keep items alive, they SHOULD be re-announced once an hour.</p>
-<p>Subscriber nodes MAY help out in announcing items the are interested in to the DHT,
-to keep them alive.</p>
+<p>Any node that's interested in keeping a blob in the DHT alive may announce it. It would simply
+repeat the signature for a mutable put without having the private key.</p>
 </div>
 <div class="section" id="test-vectors">
 <h1>test vectors</h1>
