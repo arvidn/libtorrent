@@ -1415,6 +1415,16 @@ void upnp::on_upnp_unmap_response(error_code const& e
 		log(msg, l);
 	}
 
+	error_code_parse_state s;
+	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
+		, boost::bind(&find_error_code, _1, _2, boost::ref(s)));
+
+	l.unlock();
+	m_callback(mapping, address(), 0, p.status_code() != 200
+		? error_code(p.status_code(), get_http_category())
+		: error_code(s.error_code, upnp_category));
+	l.lock();
+
 	d.mapping[mapping].protocol = none;
 
 	next(d, mapping, l);

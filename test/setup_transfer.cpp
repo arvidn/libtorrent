@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/detail/atomic_count.hpp>
 
-#define DEBUG_WEB_SERVER 0
+#define DEBUG_WEB_SERVER 1
 
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
 
@@ -925,6 +925,7 @@ void send_content(socket_type& s, char const* file, int size, bool chunked)
 	else
 	{
 		write(s, boost::asio::buffer(file, size), boost::asio::transfer_all(), ec);
+		DLOG(stderr, " >> %s\n", std::string(file, size).c_str());
 		if (ec) fprintf(stderr, "*** send failed: %s\n", ec.message().c_str());
 	}
 }
@@ -1310,7 +1311,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			// remove the / from the path
 			path = path.substr(1);
 			error_code ec;
-			int res = load_file(path, file_buf, ec);
+			int res = load_file(path, file_buf, ec, 8000000);
 			if (res == -1)
 			{
 				fprintf(stderr, ">> file not found: %s\n", path.c_str());
