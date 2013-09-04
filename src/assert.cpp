@@ -224,6 +224,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 #endif
 
 	char stack[8192];
+	stack[0] = '\0';
 	print_backtrace(stack, sizeof(stack), 0);
 
 	fprintf(out, "assertion failed. Please file a bugreport at "
