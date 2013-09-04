@@ -228,6 +228,10 @@ def main(argv):
 	if 'time_limit' in cfg:
 		time_limit = int(cfg['time_limit'])
 
+	# it takes a bit longer to run in valgrind
+	if 'launcher=valgrind' in options:
+		time_limit *= 2
+
 	architecture = platform.machine()
 	build_platform = platform.system() + '-' + platform.release()
 
