@@ -252,6 +252,7 @@ int test_main()
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), torrent);
+		buf.push_back('\0');
 		printf("%s\n", &buf[0]);
 		error_code ec;
 		torrent_info ti(&buf[0], buf.size(), ec);
