@@ -1242,7 +1242,11 @@ namespace libtorrent
 		TORRENT_ASSERT(j.cache_min_time >= 0);
 
 		mutex::scoped_lock l(m_piece_mutex);
-		if (!m_settings.use_read_cache) return -2;
+		if (!m_settings.use_read_cache)
+		{
+			hit = false;
+			return -2;
+		}
 
 		cache_piece_index_t& idx = m_read_pieces.get<0>();
 		cache_piece_index_t::iterator p
