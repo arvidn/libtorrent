@@ -276,7 +276,11 @@ rule building ( properties * )
 		# appears to have some types not fully exported)
 		result += <cflags>-fvisibility=hidden ;
 		result += <cxxflags>-fvisibility-inlines-hidden ;
-		result += <linkflags>-Wl,-Bsymbolic ;
+
+		if ( <toolset>gcc in $(properties) )
+		{
+			result += <linkflags>-Wl,-Bsymbolic ;
+		}
 	}
 
 	return $(result) ;
