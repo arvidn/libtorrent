@@ -23,6 +23,10 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix memory allocation issue (virtual addres space waste) on windows
+
+0.16.11 release
+
 	* fix web seed URL double escape issue
 	* fix string encoding issue in alert messages
 	* fix SSL authentication issue
