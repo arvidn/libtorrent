@@ -709,7 +709,8 @@ namespace libtorrent
 			void update_privileged_ports();
 
 			void on_trigger_auto_manage();
-
+			
+			void update_socket_buffer_size();
 			void update_dht_announce_interval();
 			void update_anonymous_mode();
 			void update_force_proxy();

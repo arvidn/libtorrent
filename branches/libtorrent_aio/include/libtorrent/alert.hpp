@@ -174,7 +174,9 @@ namespace libtorrent {
 			all_categories = 0x7fffffff
 		};
 
+		// hidden
 		alert();
+		// hidden
 		virtual ~alert();
 
 		// a timestamp is automatically created in the constructor
@@ -238,12 +240,12 @@ namespace libtorrent {
 		ptime m_timestamp;
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	struct TORRENT_EXPORT unhandled_alert : std::exception
 	{
 		unhandled_alert() {}
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
 #ifndef BOOST_NO_TYPEID
 
 	namespace detail {

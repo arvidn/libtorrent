@@ -256,6 +256,9 @@ namespace libtorrent
 
 		set.set_int(settings_pack::max_rejects, 10);
 
+		set.set_int(settings_pack::recv_socket_buffer_size, 1024 * 1024);
+		set.set_int(settings_pack::send_socket_buffer_size, 1024 * 1024);
+
 		// don't let connections linger for too long
 		set.set_int(settings_pack::request_timeout, 10);
 		set.set_int(settings_pack::peer_timeout, 20);

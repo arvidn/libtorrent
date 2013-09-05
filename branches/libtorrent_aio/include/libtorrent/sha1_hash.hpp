@@ -71,8 +71,12 @@ namespace libtorrent
 	public:
 		enum { size = number_size };
 
+		// constructs an all-sero sha1-hash
 		sha1_hash() { clear(); }
 
+		// returns an all-F sha1-hash. i.e. the maximum value
+		// representable by a 160 bit number (20 bytes). This is
+		// a static member function.
 		static sha1_hash max()
 		{
 			sha1_hash ret;
@@ -80,6 +84,9 @@ namespace libtorrent
 			return ret;
 		}
 
+		// returns an all-zero sha1-hash. i.e. the minimum value
+		// representable by a 160 bit number (20 bytes). This is
+		// a static member function.
 		static sha1_hash min()
 		{
 			sha1_hash ret;
@@ -87,29 +94,32 @@ namespace libtorrent
 			return ret;
 		}
 
+		// copies 20 bytes from the pointer provided, into the sha1-hash.
+		// The passed in string MUST be at least 20 bytes. NULL terminators
+		// are ignored, ``s`` is treated like a raw memory buffer.
 		explicit sha1_hash(char const* s)
 		{
 			if (s == 0) clear();
 			else std::memcpy(m_number, s, size);
 		}
-
 		explicit sha1_hash(std::string const& s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
 			std::memcpy(m_number, s.c_str(), sl);
 		}
-
 		void assign(std::string const& s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
 			int sl = int(s.size()) < size ? int(s.size()) : size;
 			std::memcpy(m_number, s.c_str(), sl);
 		}
-
 		void assign(char const* str) { std::memcpy(m_number, str, size); }
+
+		// set the sha1-hash to all zeroes.
 		void clear() { std::memset(m_number, 0, number_size); }
 
+		// return true if the sha1-hash is all zero.
 		bool is_all_zeros() const
 		{
 			for (const unsigned char* i = m_number; i < m_number+number_size; ++i)
@@ -117,6 +127,7 @@ namespace libtorrent
 			return true;
 		}
 
+		// shift left ``n`` bits.
 		sha1_hash& operator<<=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
@@ -145,6 +156,7 @@ namespace libtorrent
 			return *this;
 		}
 
+		// shift r ``n`` bits.
 		sha1_hash& operator>>=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
@@ -172,6 +184,7 @@ namespace libtorrent
 			return *this;
 		}
 
+		// standard comparison operators
 		bool operator==(sha1_hash const& n) const
 		{
 			return std::equal(n.m_number, n.m_number+number_size, m_number);
@@ -181,7 +194,6 @@ namespace libtorrent
 		{
 			return !std::equal(n.m_number, n.m_number+number_size, m_number);
 		}
-
 		bool operator<(sha1_hash const& n) const
 		{
 			for (int i = 0; i < number_size; ++i)
@@ -192,6 +204,7 @@ namespace libtorrent
 			return false;
 		}
 		
+		// negate every bit in the sha1-hash
 		sha1_hash operator~()
 		{
 			sha1_hash ret;
@@ -200,20 +213,27 @@ namespace libtorrent
 			return ret;
 		}
 		
+		// bit-wise XOR of the two sha1-hash.
 		sha1_hash operator^(sha1_hash const& n) const
 		{
 			sha1_hash ret = *this;
 			ret ^= n;
 			return ret;
 		}
+		sha1_hash& operator^=(sha1_hash const& n)
+		{
+			for (int i = 0; i< number_size; ++i)
+				m_number[i] ^= n.m_number[i];
+			return *this;
+		}
 
+		// bit-wise AND of the two sha1-hash.
 		sha1_hash operator&(sha1_hash const& n) const
 		{
 			sha1_hash ret = *this;
 			ret &= n;
 			return ret;
 		}
-
 		sha1_hash& operator&=(sha1_hash const& n)
 		{
 			for (int i = 0; i< number_size; ++i)
@@ -221,6 +241,7 @@ namespace libtorrent
 			return *this;
 		}
 
+		// bit-wise OR of the two sha1-hash.
 		sha1_hash& operator|=(sha1_hash const& n)
 		{
 			for (int i = 0; i< number_size; ++i)
@@ -228,16 +249,9 @@ namespace libtorrent
 			return *this;
 		}
 
-		sha1_hash& operator^=(sha1_hash const& n)
-		{
-			for (int i = 0; i< number_size; ++i)
-				m_number[i] ^= n.m_number[i];
-			return *this;
-		}
-		
+		// accessors for specific bytes
 		unsigned char& operator[](int i)
 		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
-
 		unsigned char const& operator[](int i) const
 		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
 
@@ -250,6 +264,8 @@ namespace libtorrent
 		iterator begin() { return m_number; }
 		iterator end() { return m_number+number_size; }
 
+		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
+		// It's still a binary string with 20 binary characters.
 		std::string to_string() const
 		{ return std::string((char const*)&m_number[0], number_size); }
 

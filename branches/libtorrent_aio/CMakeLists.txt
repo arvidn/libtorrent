@@ -53,7 +53,6 @@ set(sources
 	puff
 	random
 	request_blocks
-	rsa
 	rss
 	session
 	session_impl

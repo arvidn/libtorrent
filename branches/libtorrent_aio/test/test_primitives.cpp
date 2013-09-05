@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/rsa.hpp"
 #include "libtorrent/ip_voter.hpp"
 #include <boost/bind.hpp>
 #include <iostream>

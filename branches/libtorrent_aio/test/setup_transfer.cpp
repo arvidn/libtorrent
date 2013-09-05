@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
-#define DEBUG_WEB_SERVER 0
+#define DEBUG_WEB_SERVER 1
 
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
 
@@ -118,7 +118,7 @@ int print_failures()
 	return tests_failure;
 }
 
-std::auto_ptr<alert> wait_for_alert(session& ses, int type)
+std::auto_ptr<alert> wait_for_alert(session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;
 	while (!ret.get())
@@ -129,6 +129,7 @@ std::auto_ptr<alert> wait_for_alert(session& ses, int type)
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
+			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
 			if (!ret.get() && (*i)->type() == type)
 			{
 				ret = std::auto_ptr<alert>(*i);
@@ -217,7 +218,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
-			fprintf(stderr, "%s: %s(%s): %s\n", time_now_string(), name, print_endpoint(p->ip).c_str(), p->message().c_str());
+			fprintf(stderr, "%s: %s [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
@@ -653,6 +654,14 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	if (connect_peers)
 	{
+		std::auto_ptr<alert> a;
+		do
+		{
+			a = wait_for_alert(*ses2, state_changed_alert::alert_type, "ses2");
+		} while (static_cast<state_changed_alert*>(a.get())->state != torrent_status::downloading);
+
+		wait_for_alert(*ses1, torrent_finished_alert::alert_type, "ses1");
+
 		error_code ec;
 		if (use_ssl_ports)
 		{
@@ -983,6 +992,7 @@ void send_content(socket_type& s, char const* file, int size, bool chunked)
 	else
 	{
 		write(s, boost::asio::buffer(file, size), boost::asio::transfer_all(), ec);
+		DLOG(stderr, " >> %s\n", std::string(file, size).c_str());
 		if (ec) fprintf(stderr, "*** send failed: %s\n", ec.message().c_str());
 	}
 }
@@ -1377,7 +1387,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			// remove the / from the path
 			path = path.substr(1);
 			error_code ec;
-			int res = load_file(path, file_buf, ec);
+			int res = load_file(path, file_buf, ec, 8000000);
 			if (res == -1)
 			{
 				fprintf(stderr, ">> file not found: %s\n", path.c_str());

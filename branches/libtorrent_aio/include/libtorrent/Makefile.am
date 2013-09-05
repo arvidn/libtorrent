@@ -103,7 +103,6 @@ nobase_include_HEADERS = \
   ptime.hpp                    \
   puff.hpp                     \
   random.hpp                   \
-  rsa.hpp                      \
   rss.hpp                      \
   session.hpp                  \
   session_settings.hpp         \

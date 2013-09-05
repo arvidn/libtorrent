@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/string_util.hpp"
 #include <iostream>
+#include <string.h> // for strcmp
 
 using namespace libtorrent;
 

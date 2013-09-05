@@ -44,6 +44,12 @@ void test_lsd()
 {
 	using namespace libtorrent;
 
+	// these are declared before the session objects
+	// so that they are destructed last. This enables
+	// the sessions to destruct in parallel
+	session_proxy p1;
+	session_proxy p2;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
 
@@ -78,6 +84,10 @@ void test_lsd()
 	TEST_CHECK(tor2.status().is_seeding);
 
 	if (tor2.status().is_seeding) std::cerr << "done\n";
+
+	// this allows shutting down the sessions in parallel
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 }
 
 int test_main()

@@ -58,7 +58,7 @@ libtorrent::address EXPORT rand_v6();
 libtorrent::tcp::endpoint EXPORT rand_tcp_ep();
 libtorrent::udp::endpoint EXPORT rand_udp_ep();
 
-std::auto_ptr<libtorrent::alert> EXPORT wait_for_alert(libtorrent::session& ses, int type);
+std::auto_ptr<libtorrent::alert> EXPORT wait_for_alert(libtorrent::session& ses, int type, char const* name = "");
 
 void EXPORT print_ses_rate(float time
 	, libtorrent::torrent_status const* st1

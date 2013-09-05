@@ -118,7 +118,6 @@ void callback(int mapping, address const& ip, int port, error_code const& err)
 	callbacks.push_back(info);
 	std::cerr << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
 		<< ", error: \"" << err.message() << "\"\n";
-	//TODO: store the callbacks and verify that the ports were successful
 }
 
 int run_upnp_test(char const* root_filename, char const* router_model, char const* control_name)
@@ -158,37 +157,68 @@ int run_upnp_test(char const* root_filename, char const* router_model, char cons
 		, user_agent, &callback, &log_callback, false);
 	upnp_handler->discover_device();
 
-	libtorrent::deadline_timer timer(ios);
-	timer.expires_from_now(seconds(10), ec);
-	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
+	for (int i = 0; i < 20; ++i)
+	{
+		ios.reset();
+		ios.poll(ec);
+		if (ec)
+		{
+			fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
+			ec.clear();
+			break;
+		}
+		if (upnp_handler->router_model() != "") break;
+		test_sleep(100);
+	}
 
-	ios.reset();
-	ios.run(ec);
+	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
+	TEST_EQUAL(upnp_handler->router_model(), router_model);
 
 	int mapping1 = upnp_handler->add_mapping(upnp::tcp, 500, 500);
 	int mapping2 = upnp_handler->add_mapping(upnp::udp, 501, 501);
-	timer.expires_from_now(seconds(10), ec);
-	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
 
-	ios.reset();
-	ios.run(ec);
-
-	xml.open("WANIPConnection", std::ios::trunc);
-	xml.write(soap_delete_response, sizeof(soap_delete_response)-1);
-	xml.close();
-
-	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
-	TEST_CHECK(upnp_handler->router_model() == router_model);
-	upnp_handler->close();
-	sock->close();
-
-	ios.reset();
-	ios.run(ec);
+	for (int i = 0; i < 40; ++i)
+	{
+		ios.reset();
+		ios.poll(ec);
+		if (ec)
+		{
+			fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
+			ec.clear();
+			break;
+		}
+		if (callbacks.size() >= 2) break;
+		test_sleep(100);
+	}
 
 	callback_info expected1 = {mapping1, 500, error_code()};
 	callback_info expected2 = {mapping2, 501, error_code()};
-	TEST_CHECK(std::count(callbacks.begin(), callbacks.end(), expected1) == 1);
-	TEST_CHECK(std::count(callbacks.begin(), callbacks.end(), expected2) == 1);
+	TEST_EQUAL(std::count(callbacks.begin(), callbacks.end(), expected1), 1);
+	TEST_EQUAL(std::count(callbacks.begin(), callbacks.end(), expected2), 1);
+
+	xml.open(control_name, std::ios::trunc);
+	xml.write(soap_delete_response, sizeof(soap_delete_response)-1);
+	xml.close();
+
+	upnp_handler->close();
+	sock->close();
+
+	for (int i = 0; i < 40; ++i)
+	{
+		ios.reset();
+		ios.poll(ec);
+		if (ec)
+		{
+			fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
+			ec.clear();
+			break;
+		}
+		if (callbacks.size() >= 4) break;
+		test_sleep(100);
+	}
+
+	// there should have been two DeleteMapping calls
+	TEST_EQUAL(callbacks.size(), 4);
 
 	stop_web_server();
 

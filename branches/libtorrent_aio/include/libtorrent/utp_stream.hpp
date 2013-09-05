@@ -208,6 +208,15 @@ public:
 	template <class SettableSocketOption>
 	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
 
+#ifndef BOOST_NO_EXCEPTIONS
+	template <class GettableSocketOption>
+	void get_option(GettableSocketOption& opt) {}
+#endif
+
+	template <class GettableSocketOption>
+	error_code get_option(GettableSocketOption& opt, error_code& ec) { return ec; }
+
+
 	void close();
 	void close(error_code const& /*ec*/) { close(); }
 	bool is_open() const { return m_open; }

@@ -349,6 +349,7 @@ namespace libtorrent
 		// off again.
 		virtual bool tick() { return false; }
 
+		// access global session_settings
 		aux::session_settings const& settings() const { return *m_settings; }
 
 		// hidden
@@ -358,6 +359,9 @@ namespace libtorrent
 		aux::session_settings* m_settings;
 	};
 
+	// The default implementation of storage_interface. Behaves as a normal bittorrent client.
+	// It is possible to derive from this class in order to override some of its behavior, when
+	// implementing a custom storage.
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
 	public:
