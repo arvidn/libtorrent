@@ -826,7 +826,7 @@ namespace libtorrent
 			// to be a seed after all
 			if (!seed) force_recheck();
 			m_num_verified = 0;
-			m_verified.free();
+			m_verified.clear();
 		}
 		bool all_verified() const
 		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
