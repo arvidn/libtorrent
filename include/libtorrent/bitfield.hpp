@@ -41,9 +41,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// The bitfiled type stores any number of bits as a bitfield in an array.
+	// The bitfiled type stores any number of bits as a bitfield 
+	// in a heap allocated or borrowed array.
 	struct TORRENT_EXPORT bitfield
 	{
+		// constructs a new bitfield. The default constructor creates an empty
+		// bitfield. ``bits`` is the size of the bitfield (specified in bits).
+		// `` val`` is the value to initialize the bits to. If not specified
+		// all bits are initialized to 0.
+		//
+		// The constructor taking a pointer ``b`` and ``bits`` copies a bitfield
+		// from the specified buffer, and ``bits`` number of bits (rounded up to
+		// the nearest byte boundry).
 		bitfield(): m_bytes(0), m_size(0), m_own(false) {}
 		bitfield(int bits): m_bytes(0), m_size(0), m_own(false)
 		{ resize(bits); }
@@ -54,6 +63,11 @@ namespace libtorrent
 		bitfield(bitfield const& rhs): m_bytes(0), m_size(0), m_own(false)
 		{ assign(rhs.bytes(), rhs.size()); }
 
+		// assigns a bitfield pointed to ``b`` of ``bits`` number of bits, without
+		// taking ownership of the buffer. This is a way to avoid copying data and
+		// yet provide a raw buffer to functions that may operate on the bitfield
+		// type. It is the user's responsibility to make sure the passed-in buffer's
+		// life time exceeds all uses of the bitfield.
 		void borrow_bytes(char* b, int bits)
 		{
 			dealloc();
@@ -61,14 +75,18 @@ namespace libtorrent
 			m_size = bits;
 			m_own = false;
 		}
+
+		// hidden
 		~bitfield() { dealloc(); }
 
+		// copy bitfield from buffer ``b`` of ``bits`` number of bits, rounded up to
+		// the nearest byte boundary.
 		void assign(char const* b, int bits)
 		{ resize(bits); std::memcpy(m_bytes, b, (bits + 7) / 8); clear_trailing_bits(); }
 
+		// query bit at ``index``. Returns true if bit is 1, otherwise false.
 		bool operator[](int index) const
 		{ return get_bit(index); }
-
 		bool get_bit(int index) const
 		{
 			TORRENT_ASSERT(index >= 0);
@@ -76,11 +94,18 @@ namespace libtorrent
 			return (m_bytes[index / 8] & (0x80 >> (index & 7))) != 0;
 		}
 		
+		// set bit at ``index`` to 0 (clear_bit) or 1 (set_bit).
 		void clear_bit(int index)
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < m_size);
 			m_bytes[index / 8] &= ~(0x80 >> (index & 7));
+		}
+		void set_bit(int index)
+		{
+			TORRENT_ASSERT(index >= 0);
+			TORRENT_ASSERT(index < m_size);
+			m_bytes[index / 8] |= (0x80 >> (index & 7));
 		}
 
 		// returns true if all bits in the bitfield are set
@@ -105,24 +130,23 @@ namespace libtorrent
 			return true;
 		}
 
-		void set_bit(int index)
-		{
-			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < m_size);
-			m_bytes[index / 8] |= (0x80 >> (index & 7));
-		}
-
+		// returns the size of the bitfield in bits.
 		std::size_t size() const { return m_size; }
+
+		// returns true if the bitfield has zero size.
 		bool empty() const { return m_size == 0; }
 
+		// returns a pointer to the internal buffer of the bitfield.
 		char const* bytes() const { return (char*)m_bytes; }
 
+		// copy operator
 		bitfield& operator=(bitfield const& rhs)
 		{
 			assign(rhs.bytes(), rhs.size());
 			return *this;
 		}
 
+		// count the number of bits in the bitfield that are set to 1.
 		int count() const
 		{
 			// 0000, 0001, 0010, 0011, 0100, 0101, 0110, 0111,
@@ -211,6 +235,8 @@ namespace libtorrent
 		const_iterator begin() const { return const_iterator(m_bytes, 0); }
 		const_iterator end() const { return const_iterator(m_bytes + m_size / 8, m_size & 7); }
 
+		// set the size of the bitfield to ``bits`` length. If the bitfield is extended,
+		// the new bits are initialized to ``val``.
 		void resize(int bits, bool val)
 		{
 			int s = m_size;
@@ -232,18 +258,6 @@ namespace libtorrent
 					std::memset(m_bytes + old_size_bytes, 0x00, new_size_bytes - old_size_bytes);
 			}
 		}
-
-		void set_all()
-		{
-			std::memset(m_bytes, 0xff, (m_size + 7) / 8);
-			clear_trailing_bits();
-		}
-
-		void clear_all()
-		{
-			std::memset(m_bytes, 0x00, (m_size + 7) / 8);
-		}
-	
 		void resize(int bits)
 		{
 			TORRENT_ASSERT(bits >= 0);
@@ -272,7 +286,19 @@ namespace libtorrent
 			clear_trailing_bits();
 		}
 
-		void free() { dealloc(); m_size = 0; }
+		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
+		void set_all()
+		{
+			std::memset(m_bytes, 0xff, (m_size + 7) / 8);
+			clear_trailing_bits();
+		}
+		void clear_all()
+		{
+			std::memset(m_bytes, 0x00, (m_size + 7) / 8);
+		}
+	
+		// make the bitfield empty, of zero size.
+		void clear() { dealloc(); m_size = 0; }
 
 	private:
 
