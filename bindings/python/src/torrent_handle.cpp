@@ -311,10 +311,24 @@ void connect_peer(torrent_handle& th, tuple ip, int source)
 }
 
 #ifndef TORRENT_NO_DEPRECATE
+#if BOOST_VERSION > 104200
+
 boost::intrusive_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 {
-   return boost::intrusive_ptr<const torrent_info>(&h.get_torrent_info());
+	return boost::intrusive_ptr<const torrent_info>(&h.get_torrent_info());
 }
+
+#else
+
+boost::intrusive_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
+{
+	// I can't figure out how to expose intrusive_ptr<const torrent_info>
+	// as well as supporting mutable instances. So, this hack is better
+	// than compilation errors. It seems to work on newer versions of boost though
+   return boost::intrusive_ptr<torrent_info>(const_cast<torrent_info*>(&h.get_torrent_info()));
+}
+
+#endif
 
 void set_peer_upload_limit(torrent_handle& th, tuple const& ip, int limit)
 {

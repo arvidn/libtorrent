@@ -23,6 +23,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix boost-1.42 support for python bindings
 	* fix memory allocation issue (virtual addres space waste) on windows
 
 0.16.11 release
