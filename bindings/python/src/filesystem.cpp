@@ -47,7 +47,7 @@ struct path_from_python
 #if PY_VERSION_HEX >= 0x03020000
             int len = PyUnicode_AsWideChar(x, &str[0], str.size());
 #else
-            int len = PyUnicode_AsWideChar(PyUnicodeObject*)x, &str[0], str.size());
+            int len = PyUnicode_AsWideChar((PyUnicodeObject*)x, &str[0], str.size());
 #endif
             if (len > -1)
             {
