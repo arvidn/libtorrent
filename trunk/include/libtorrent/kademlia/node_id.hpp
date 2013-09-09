@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
+struct node_entry;
+
 typedef libtorrent::sha1_hash node_id;
 
 // returns the distance between the two nodes
@@ -61,6 +63,7 @@ node_id TORRENT_EXTRA_EXPORT generate_random_id();
 node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, boost::uint32_t r);
 
 bool TORRENT_EXTRA_EXPORT verify_id(node_id const& nid, address const& source_ip);
+bool TORRENT_EXTRA_EXPORT matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index);
 
 } } // namespace libtorrent::dht
 

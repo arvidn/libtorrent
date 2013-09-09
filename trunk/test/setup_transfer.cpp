@@ -597,12 +597,12 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (connect_peers)
 	{
 		std::auto_ptr<alert> a;
-		do
+/*		do
 		{
 			a = wait_for_alert(*ses2, state_changed_alert::alert_type, "ses2");
 		} while (static_cast<state_changed_alert*>(a.get())->state != torrent_status::downloading);
-
-		wait_for_alert(*ses1, torrent_finished_alert::alert_type, "ses1");
+*/
+//		wait_for_alert(*ses1, torrent_finished_alert::alert_type, "ses1");
 
 		error_code ec;
 		if (use_ssl_ports)
