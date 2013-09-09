@@ -74,17 +74,17 @@ public:
 		, nodes_callback const& ncallback
 		, bool noseeds);
 
-	virtual char const* name() const { return "get_peers"; }
+	virtual void start();
+
+	virtual char const* name() const;
 
 	node_id const target() const { return m_target; }
 
 protected:
 
-	void done();
+	virtual void done();
 	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
 	virtual bool invoke(observer_ptr o);
-
-private:
 
 	data_callback m_data_callback;
 	nodes_callback m_nodes_callback;
@@ -93,6 +93,25 @@ private:
 	bool m_done:1;
 	bool m_got_peers:1;
 	bool m_noseeds:1;
+};
+
+class obfuscated_get_peers : public find_data
+{
+public:
+	typedef find_data::nodes_callback done_callback;
+
+	obfuscated_get_peers(node_impl& node, node_id target
+		, data_callback const& dcallback
+		, nodes_callback const& ncallback
+		, bool noseeds);
+
+	virtual char const* name() const;
+
+protected:
+
+	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
+	virtual bool invoke(observer_ptr o);
+	virtual void done();
 };
 
 class find_data_observer : public observer

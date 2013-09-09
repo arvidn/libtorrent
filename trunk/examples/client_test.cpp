@@ -1541,6 +1541,10 @@ int main(int argc, char* argv[])
 	}
 
 #ifndef TORRENT_DISABLE_DHT
+	dht_settings dht;
+	dht.privacy_lookups = true;
+	ses.set_dht_settings(dht);
+
 	if (start_dht)
 	{
 		settings.use_dht_as_fallback = false;

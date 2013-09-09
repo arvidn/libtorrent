@@ -191,6 +191,11 @@ void traversal_algorithm::free_observer(void* ptr)
 	m_node.m_rpc.free_observer(ptr);
 }
 
+char const* traversal_algorithm::name() const
+{
+	return "traversal_algorithm";
+}
+
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING

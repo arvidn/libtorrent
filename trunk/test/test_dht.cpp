@@ -322,6 +322,7 @@ struct print_alert : alert_dispatcher
 	}
 };
 
+// TODO: 3 test find_data, obfuscated_get_peers and bootstrap
 int test_main()
 {
 	dht_settings sett;

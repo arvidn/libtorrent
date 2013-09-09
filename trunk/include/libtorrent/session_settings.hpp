@@ -1405,6 +1405,7 @@ namespace libtorrent
 			, restrict_search_ips(true)
 			, extended_routing_table(true)
 			, aggressive_lookups(true)
+			, privacy_lookups(false)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -1470,6 +1471,10 @@ namespace libtorrent
 		// i.e. every time we get results back with closer nodes, we query them right away.
 		// It lowers the lookup times at the cost of more outstanding queries.
 		bool aggressive_lookups;
+
+		// when set, perform lookups in a way that is slightly more expensive, but which
+		// minimizes the amount of information leaked about you.
+		bool privacy_lookups;
 	};
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
