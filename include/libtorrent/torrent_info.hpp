@@ -195,14 +195,12 @@ namespace libtorrent
 		// This is called when the tracker announce fails.
 		void failed(session_settings const& sett, int retry_interval = 0);
 
-/*
 		bool will_announce(ptime now) const
 		{
 			return now <= next_announce
 				&& (fails < fail_limit || fail_limit == 0)
 				&& !updating;
 		}
-*/
 
 		// returns true if we can announec to this tracker now.
 		// The current time is passed in as ``now``. The ``is_seed``
