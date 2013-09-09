@@ -137,7 +137,7 @@ void udp_socket::send_hostname(char const* hostname, int port
 	// if the sockets are closed, the udp_socket is closing too
 	if (!is_open())
 	{
-		ec = error_code(boost::system::errc::bad_file_descriptor, boost::system::generic_category());
+		ec = error_code(boost::system::errc::bad_file_descriptor, generic_category());
 		return;
 	}
 
@@ -180,7 +180,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 	// if the sockets are closed, the udp_socket is closing too
 	if (!is_open())
 	{
-		ec = error_code(boost::system::errc::bad_file_descriptor, boost::system::generic_category());
+		ec = error_code(boost::system::errc::bad_file_descriptor, generic_category());
 		return;
 	}
 

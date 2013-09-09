@@ -543,6 +543,9 @@ namespace libtorrent
 #endif // BOOST_VERSION < 103600
 #endif // BOOST_VERSION < 103500
 
+	inline boost::system::error_category const& generic_category()
+	{ return get_posix_category(); }
+
 #ifndef BOOST_NO_EXCEPTIONS
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{

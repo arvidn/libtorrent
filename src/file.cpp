@@ -180,7 +180,7 @@ namespace libtorrent
 		if (_stati64(f.c_str(), &ret) < 0)
 #endif
 		{
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			return;
 		}
 #else
@@ -192,7 +192,7 @@ namespace libtorrent
 			retval = ::stat(f.c_str(), &ret);
 		if (retval < 0)
 		{
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			return;
 		}
 #endif // TORRENT_WINDOWS
@@ -231,7 +231,7 @@ namespace libtorrent
 		if (::rename(f1.c_str(), f2.c_str()) < 0)
 #endif
 		{
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			return;
 		}
 	}
@@ -271,7 +271,7 @@ namespace libtorrent
 #else
 		int ret = mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 #endif
 	}
 
@@ -327,13 +327,13 @@ namespace libtorrent
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
 		if (copyfile(f1.c_str(), f2.c_str(), state, COPYFILE_ALL) < 0)
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 		copyfile_state_free(state);
 #else
 		int infd = ::open(inf.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			return;
 		}
 
@@ -347,7 +347,7 @@ namespace libtorrent
 		if (outfd < 0)
 		{
 			close(infd);
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			return;
 		}
 		char buffer[4096];
@@ -357,13 +357,13 @@ namespace libtorrent
 			if (num_read == 0) break;
 			if (num_read < 0)
 			{
-				ec.assign(errno, boost::system::get_generic_category());
+				ec.assign(errno, generic_category());
 				break;
 			}
 			int num_written = write(outfd, buffer, num_read);
 			if (num_written < num_read)
 			{
-				ec.assign(errno, boost::system::get_generic_category());
+				ec.assign(errno, generic_category());
 				break;
 			}
 			if (num_read < int(sizeof(buffer))) break;
@@ -691,7 +691,7 @@ namespace libtorrent
 		std::string f = convert_to_native(inf);
 		if (::remove(f.c_str()) < 0)
 		{
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			return;
 		}
 #endif // TORRENT_WINDOWS
@@ -784,7 +784,7 @@ namespace libtorrent
 		m_handle = opendir(p.c_str());
 		if (m_handle == 0)
 		{
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			m_done = true;
 			return;
 		}
@@ -836,7 +836,7 @@ namespace libtorrent
 		dirent* dummy;
 		if (readdir_r(m_handle, &m_dirent, &dummy) != 0)
 		{
-			ec.assign(errno, boost::system::get_generic_category());
+			ec.assign(errno, generic_category());
 			m_done = true;
 		}
 		if (dummy == 0) m_done = true;

@@ -1134,15 +1134,7 @@ namespace libtorrent
 			if (has_picker() && j.piece >= 0) picker().write_failed(block_finished);
 		}
 
-		if (j.error ==
-#if BOOST_VERSION == 103500
-			error_code(boost::system::posix_error::not_enough_memory, get_posix_category())
-#elif BOOST_VERSION > 103500
-			error_code(boost::system::errc::not_enough_memory, boost::system::generic_category())
-#else
-			asio::error::no_memory
-#endif
-			)
+		if (j.error == error_code(boost::system::errc::not_enough_memory, generic_category()))
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
@@ -7630,7 +7622,7 @@ namespace libtorrent
 		m_announcing = true;
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_policy.num_peers() == 0 && m_ses.m_dht)
+		if (m_policy.num_peers() < 50 && m_ses.m_dht)
 		{
 			// we don't have any peers, prioritize
 			// announcing this torrent with the DHT

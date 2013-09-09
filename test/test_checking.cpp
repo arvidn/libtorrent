@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/create_torrent.hpp"
-
+#include <sys/stat.h> // for chmod
 #include <fstream>
 
 static const int file_sizes[] =
