@@ -278,11 +278,10 @@ namespace libtorrent
 
 	char const* fmt(std::string const& s) { return s.c_str(); }
 	int fmt(int v) { return v; }
-	boost::uint64_t fmt(boost::uint64_t v) { return v; }
-	boost::int64_t fmt(boost::int64_t v) { return v; }
-	time_t fmt(time_t v) { return v; }
 	float fmt(float v) { return v; }
 	int fmt(bool v) { return v; }
+	template <class T>
+	boost::uint64_t fmt(T v) { return boost::uint64_t(v); }
 
 	void torrent_history_entry::debug_print(int current_frame) const
 	{
@@ -291,76 +290,76 @@ namespace libtorrent
 #define PRINT(x, type) frame_diff = (std::min)(current_frame - frame[x], boost::uint32_t(20)); \
 		printf("%s\x1b[38;5;%dm%" #type "\x1b[0m ", frame[x] >= current_frame  ? "\x1b[41m" : "", 255 - frame_diff, fmt(status.x));
 	
-		PRINT(state, d);
-		PRINT(paused, d);
-		PRINT(auto_managed, d);
-		PRINT(sequential_download, d);
-		PRINT(is_seeding, d);
-		PRINT(is_finished, d);
-		PRINT(is_loaded, d);
-		PRINT(has_metadata, d);
+		PRINT(state, PRId64);
+		PRINT(paused, PRId64);
+		PRINT(auto_managed, PRId64);
+		PRINT(sequential_download, PRId64);
+		PRINT(is_seeding, PRId64);
+		PRINT(is_finished, PRId64);
+		PRINT(is_loaded, PRId64);
+		PRINT(has_metadata, PRId64);
 		PRINT(progress, f);
-		PRINT(progress_ppm, d);
+		PRINT(progress_ppm, PRId64);
 		PRINT(error, s);
 //		PRINT(save_path, s);
 		PRINT(name, s);
-//		PRINT(next_announce, d);
-//		PRINT(announce_interval, d);
+//		PRINT(next_announce, PRId64);
+//		PRINT(announce_interval, PRId64);
 		PRINT(current_tracker, s);
-		PRINT(total_download, lld);
-		PRINT(total_upload, lld);
-		PRINT(total_payload_download, lld);
-		PRINT(total_payload_upload, lld);
-		PRINT(total_failed_bytes, lld);
-		PRINT(total_redundant_bytes, lld);
-		PRINT(download_rate, d);
-		PRINT(upload_rate, d);
-		PRINT(download_payload_rate, d);
-		PRINT(upload_payload_rate, d);
-		PRINT(num_seeds, d);
-		PRINT(num_peers, d);
-		PRINT(num_complete, d);
-		PRINT(num_incomplete, d);
-		PRINT(list_seeds, d);
-		PRINT(list_peers, d);
-		PRINT(connect_candidates, d);
-		PRINT(num_pieces, d);
-		PRINT(total_done, lld);
-		PRINT(total_wanted_done, lld);
-		PRINT(total_wanted, lld);
-		PRINT(distributed_full_copies, d);
-		PRINT(distributed_fraction, d);
+		PRINT(total_download, PRId64);
+		PRINT(total_upload, PRId64);
+		PRINT(total_payload_download, PRId64);
+		PRINT(total_payload_upload, PRId64);
+		PRINT(total_failed_bytes, PRId64);
+		PRINT(total_redundant_bytes, PRId64);
+		PRINT(download_rate, PRId64);
+		PRINT(upload_rate, PRId64);
+		PRINT(download_payload_rate, PRId64);
+		PRINT(upload_payload_rate, PRId64);
+		PRINT(num_seeds, PRId64);
+		PRINT(num_peers, PRId64);
+		PRINT(num_complete, PRId64);
+		PRINT(num_incomplete, PRId64);
+		PRINT(list_seeds, PRId64);
+		PRINT(list_peers, PRId64);
+		PRINT(connect_candidates, PRId64);
+		PRINT(num_pieces, PRId64);
+		PRINT(total_done, PRId64);
+		PRINT(total_wanted_done, PRId64);
+		PRINT(total_wanted, PRId64);
+		PRINT(distributed_full_copies, PRId64);
+		PRINT(distributed_fraction, PRId64);
 		PRINT(distributed_copies, f);
-		PRINT(block_size, d);
-		PRINT(num_uploads, d);
-		PRINT(num_connections, d);
-		PRINT(uploads_limit, d);
-		PRINT(connections_limit, d);
-		PRINT(storage_mode, d);
-		PRINT(up_bandwidth_queue, d);
-		PRINT(down_bandwidth_queue, d);
-		PRINT(all_time_upload, lld);
-		PRINT(all_time_download, lld);
-		PRINT(active_time, d);
-		PRINT(finished_time, d);
-		PRINT(seeding_time, d);
-		PRINT(seed_rank, d);
-		PRINT(last_scrape, d);
-		PRINT(has_incoming, d);
-		PRINT(sparse_regions, d);
-		PRINT(seed_mode, d);
-		PRINT(upload_mode, d);
-		PRINT(share_mode, d);
-		PRINT(super_seeding, d);
-		PRINT(priority, d);
-		PRINT(added_time, ld);
-		PRINT(completed_time, ld);
-		PRINT(last_seen_complete, ld);
-		PRINT(time_since_upload, d);
-		PRINT(time_since_download, d);
-		PRINT(queue_position, d);
-		PRINT(need_save_resume, d);
-		PRINT(ip_filter_applies, d);
+		PRINT(block_size, PRId64);
+		PRINT(num_uploads, PRId64);
+		PRINT(num_connections, PRId64);
+		PRINT(uploads_limit, PRId64);
+		PRINT(connections_limit, PRId64);
+		PRINT(storage_mode, PRId64);
+		PRINT(up_bandwidth_queue, PRId64);
+		PRINT(down_bandwidth_queue, PRId64);
+		PRINT(all_time_upload, PRId64);
+		PRINT(all_time_download, PRId64);
+		PRINT(active_time, PRId64);
+		PRINT(finished_time, PRId64);
+		PRINT(seeding_time, PRId64);
+		PRINT(seed_rank, PRId64);
+		PRINT(last_scrape, PRId64);
+		PRINT(has_incoming, PRId64);
+		PRINT(sparse_regions, PRId64);
+		PRINT(seed_mode, PRId64);
+		PRINT(upload_mode, PRId64);
+		PRINT(share_mode, PRId64);
+		PRINT(super_seeding, PRId64);
+		PRINT(priority, PRId64);
+		PRINT(added_time, PRId64);
+		PRINT(completed_time, PRId64);
+		PRINT(last_seen_complete, PRId64);
+		PRINT(time_since_upload, PRId64);
+		PRINT(time_since_download, PRId64);
+		PRINT(queue_position, PRId64);
+		PRINT(need_save_resume, PRId64);
+		PRINT(ip_filter_applies, PRId64);
 
 		printf("\x1b[0m\n");
 	}
