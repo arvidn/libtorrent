@@ -332,9 +332,21 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
 #endif
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
-	boost::intrusive_ptr<find_data> ta(new find_data(*this, info_hash, f
-		, boost::bind(&announce_fun, _1, boost::ref(*this)
-		, listen_port, info_hash, seed), seed));
+
+	boost::intrusive_ptr<find_data> ta;
+	if (m_settings.privacy_lookups)
+	{
+		ta.reset(new obfuscated_get_peers(*this, info_hash, f
+			, boost::bind(&announce_fun, _1, boost::ref(*this)
+			, listen_port, info_hash, seed), seed));
+	}
+	else
+	{
+		ta.reset(new find_data(*this, info_hash, f
+			, boost::bind(&announce_fun, _1, boost::ref(*this)
+			, listen_port, info_hash, seed), seed));
+	}
+
 	ta->start();
 }
 
