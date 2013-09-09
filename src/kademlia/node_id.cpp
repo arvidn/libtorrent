@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/crc.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
@@ -171,6 +172,13 @@ bool verify_id(node_id const& nid, address const& source_ip)
 node_id generate_id(address const& ip)
 {
 	return generate_id_impl(ip, random());
+}
+
+bool matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index)
+{
+	node_id id = n.id;
+	id <<= bucket_index + 1;
+	return (id[0] & mask) == prefix;
 }
 
 } }  // namespace libtorrent::dht
