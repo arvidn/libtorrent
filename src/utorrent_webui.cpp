@@ -1028,6 +1028,7 @@ void utorrent_webui::rss_update(std::vector<char>& response, char const* args, p
 		feed_settings f;
 		f.url = url;
 		f.auto_download = subscribe;
+		f.add_args = m_params_model;
 		m_ses.add_feed(f);
 	}
 	else
