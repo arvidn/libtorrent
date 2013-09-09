@@ -169,7 +169,7 @@ namespace libtorrent
 				{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
 			};
 
-			if (e1 > e2) swap(e1, e2);
+			if (e2 < e1) swap(e1, e2);
 			address_v6::bytes_type b1 = e1.address().to_v6().to_bytes();
 			address_v6::bytes_type b2 = e2.address().to_v6().to_bytes();
 			int mask = memcmp(&b1[0], &b2[0], 4) ? 0
@@ -188,7 +188,7 @@ namespace libtorrent
 				{ 0xff, 0xff, 0xff, 0xff }
 			};
 
-			if (e1 > e2) swap(e1, e2);
+			if (e2 < e1) swap(e1, e2);
 			address_v4::bytes_type b1 = e1.address().to_v4().to_bytes();
 			address_v4::bytes_type b2 = e2.address().to_v4().to_bytes();
 			int mask = memcmp(&b1[0], &b2[0], 2) ? 0
