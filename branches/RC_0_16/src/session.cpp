@@ -619,6 +619,7 @@ namespace libtorrent
 	{
 		add_torrent_params* p = new add_torrent_params(params);
 		if (params.resume_data) p->resume_data = new std::vector<char>(*params.resume_data);
+		if (params.file_priorities) p->file_priorities = new std::vector<boost::uint8_t>(*params.file_priorities);
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
 	}
 
