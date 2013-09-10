@@ -1,3 +1,4 @@
+	* fix bug in async_add_torrent when settings file_priorities
 	* fix boost-1.42 support for python bindings
 	* fix memory allocation issue (virtual addres space waste) on windows
 

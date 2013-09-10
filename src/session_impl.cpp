@@ -4900,8 +4900,12 @@ retry:
 	{
 		error_code ec;
 		torrent_handle handle = add_torrent(*params, ec);
-		m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
+
 		delete params->resume_data;
+		delete params->file_priorities;
+		params->resume_data = NULL;
+		params->file_priorities = NULL;
+		m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
 		delete params;
 	}
 
