@@ -4,8 +4,6 @@ import shutil
 import subprocess
 import sys
 
-port = (int(time.time()) % 50000) + 2000
-
 toolset = ''
 if len(sys.argv) > 1:
 	toolset = sys.argv[1]
@@ -23,42 +21,52 @@ if not os.path.exists('cpu_benchmark.torrent'):
 		print 'ERROR: connection_tester failed: %d' % ret
 		sys.exit(1)
 
-try: shutil.rmtree('torrent_storage')
+try: shutil.rmtree('t')
 except: pass
 
-try: shutil.rmtree('session_stats')
-except: pass
+def run_test(name, test_cmd, client_arg, num_peers):
+	output_dir = 'logs_%s' % name
+	try: os.mkdir(output_dir)
+	except: pass
 
-try: os.mkdir('logs')
-except: pass
+	port = (int(time.time()) % 50000) + 2000
 
-start = time.time();
-client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -0 -z -H -X -q 120' % port
-test_cmd = '../examples/connection_tester upload -c 50 -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % port
+	try: shutil.rmtree('session_stats')
+	except: pass
+	try: shutil.rmtree('session_stats_report')
+	except: pass
 
-client_out = open('logs/client.out', 'w+')
-test_out = open('logs/test.out', 'w+')
-print client_cmd
-c = subprocess.Popen(client_cmd.split(' '), stdout=client_out, stderr=client_out, stdin=subprocess.PIPE)
-time.sleep(2)
-print test_cmd
-t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
+	start = time.time();
+	client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s -h -c %d -T %d' \
+		% (port, client_arg, num_peers *2, num_peers*2)
+	test_cmd = '../examples/connection_tester %s -c %d -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % (test_cmd, num_peers, port)
 
-t.wait()
-c.communicate('q')
-c.wait()
+	client_out = open('%s/client.out' % output_dir, 'w+')
+	test_out = open('%s/test.out' % output_dir, 'w+')
+	print client_cmd
+	c = subprocess.Popen(client_cmd.split(' '), stdout=client_out, stderr=client_out, stdin=subprocess.PIPE)
+	time.sleep(2)
+	print test_cmd
+	t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
 
-end = time.time();
+	t.wait()
+	c.communicate('q')
+	c.wait()
 
-print 'runtime %d seconds' % (end - start)
-print 'analyzing proile...'
-os.system('gprof ../examples/client_test >logs/gprof.out')
-print 'generating profile graph...'
-os.system('python gprof2dot.py <logs/gprof.out | dot -Tpng -o logs/cpu_profile.png')
+	end = time.time();
 
-os.system('python parse_session_stats.py session_stats/*.log')
-try: os.rename('session_stats_report', 'logs/session_stats_report')
-except: pass
-try: os.rename('session_stats', 'logs/session_stats')
-except: pass
+	print 'runtime %d seconds' % (end - start)
+	print 'analyzing proile...'
+	os.system('gprof ../examples/client_test >%s/gprof.out' % output_dir)
+	print 'generating profile graph...'
+	os.system('python gprof2dot.py <%s/gprof.out | dot -Tps -o %s/cpu_profile.ps' % (output_dir, output_dir))
+
+	os.system('python parse_session_stats.py session_stats/*.log')
+	try: shutil.move('session_stats_report', '%s/session_stats_report' % output_dir)
+	except: pass
+	try: shutil.move('session_stats', '%s/session_stats' % output_dir)
+	except: pass
+
+run_test('download', 'upload', '', 50)
+run_test('upload', 'download', '-G', 5)
 
