@@ -26,3 +26,6 @@ exe fragmentation_test : fragmentation_test.cpp ;
 exe rss_reader : rss_reader.cpp ;
 exe upnp_test : upnp_test.cpp ;
 
+install stage_client_test : client_test : <location>. ;
+install stage_connection_tester : connection_tester : <location>. ;
+
