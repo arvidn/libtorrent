@@ -824,8 +824,9 @@ namespace libtorrent
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
-				p.storage->get_storage_impl()->set_error(""
-					, errors::file_too_short);
+				char msg[70];
+				snprintf(msg, sizeof(msg), "reading p: %d b: %d s: %d (read: %d)", p.piece, start_block, buffer_size, ret);
+				p.storage->get_storage_impl()->set_error(msg, errors::file_too_short);
 				free_piece(p, l);
 				return -1;
 			}
@@ -855,8 +856,9 @@ namespace libtorrent
 			if (ret != buffer_size)
 			{
 				// this means the file wasn't big enough for this read
-				p.storage->get_storage_impl()->set_error(""
-					, errors::file_too_short);
+				char msg[70];
+				snprintf(msg, sizeof(msg), "reading p: %d b: %d s: %d (read: %d)", p.piece, start_block, buffer_size, ret);
+				p.storage->get_storage_impl()->set_error(msg, errors::file_too_short);
 				free_piece(p, l);
 				return -1;
 			}
@@ -2032,10 +2034,13 @@ namespace libtorrent
 						}
 						if (ret != j.buffer_size)
 						{
+							char msg[70];
+							snprintf(msg, sizeof(msg), "reading p: %d o: %d s: %d (read: %d)", j.piece, j.offset, j.buffer_size, ret);
+
 							// this means the file wasn't big enough for this read
 							j.buffer = 0;
 							j.error = errors::file_too_short;
-							j.error_file.clear();
+							j.error_file = msg;
 							j.str.clear();
 							ret = -1;
 							break;
