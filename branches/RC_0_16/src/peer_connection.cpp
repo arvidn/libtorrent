@@ -1986,7 +1986,7 @@ namespace libtorrent
 		// peer has
 		// if we're a seed, we don't keep track of piece availability
 		bool interesting = false;
-		if (!t->is_upload_only())
+		if (!t->is_seed())
 		{
 			t->peer_has(bits);
 
@@ -5913,7 +5913,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_disconnect_started);
 		}
 
-		if (!m_disconnect_started && m_initialized)
+		if (!m_disconnect_started && m_initialized && m_ses.settings().close_redundant_connections)
 		{
 			// none of this matters if we're disconnecting anyway
 			if (t->is_upload_only())
