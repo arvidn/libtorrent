@@ -110,7 +110,12 @@ enum
 
 	// the max number of packets to fast-resend per
 	// selective ack message
-	sack_resend_limit = 3,
+	// only re-sending a single packet per sack
+	// appears to improve performance by making it
+	// less likely to loose the re-sent packet. Because
+	// when that happens, we must time-out in order
+	// to continue, which takes a long time.
+	sack_resend_limit = 1,
 };
 
 // compare if lhs is less than rhs, taking wrapping
