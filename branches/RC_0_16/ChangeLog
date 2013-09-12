@@ -1,3 +1,4 @@
+	* uTP performance improvement. only fast retransmit one packet at a time
 	* improve error message for 'file too short'
 	* fix piece-picker stat bug when only selecting some files for download
 	* fix bug in async_add_torrent when settings file_priorities
