@@ -95,6 +95,27 @@ namespace libtorrent
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
 
+		enum counter_t
+		{
+			packet_loss = 0,
+			timeout,
+			packets_in,
+			packets_out,
+			fast_retransmit,
+			packet_resend,
+			samples_above_target,
+			samples_below_target,
+			payload_pkts_in,
+			payload_pkts_out,
+			invalid_pkts_in,
+			redundant_pkts_in,
+
+			num_counters,
+		};
+
+		// used to keep stats of uTP events
+		void inc_stats_counter(int counter);
+
 	private:
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
@@ -143,6 +164,9 @@ namespace libtorrent
 		// the buffer size of the socket. This is used
 		// to now lower the buffer size
 		int m_sock_buf_size;
+
+		// stats counters
+		boost::uint64_t m_counters[num_counters];
 	};
 }
 
