@@ -127,7 +127,7 @@ namespace libtorrent
 			invalid_file_tag,
 			// The fast resume file was missing or had an invalid info-hash
 			missing_info_hash,
-			// The info-hash in the resume file did not match the torrent
+			// The info-hash did not match the torrent
 			mismatching_info_hash,
 			// The URL contained an invalid hostname
 			invalid_hostname,
