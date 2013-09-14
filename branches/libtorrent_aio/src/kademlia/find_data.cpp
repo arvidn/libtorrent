@@ -183,7 +183,16 @@ find_data::find_data(
 	, m_got_peers(false)
 	, m_noseeds(noseeds)
 {
-	node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
+}
+
+void find_data::start()
+{
+	// if the user didn't add seed-nodes manually, grab a bunch of nodes from the
+	// routing table
+	if (m_results.empty())
+		m_node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
+
+	traversal_algorithm::start();
 }
 
 observer_ptr find_data::new_observer(void* ptr
@@ -196,6 +205,8 @@ observer_ptr find_data::new_observer(void* ptr
 	return o;
 }
 
+char const* find_data::name() const { return "get_peers"; }
+
 bool find_data::invoke(observer_ptr o)
 {
 	if (m_done)
@@ -206,17 +217,19 @@ bool find_data::invoke(observer_ptr o)
 
 	entry e;
 	e["y"] = "q";
-	e["q"] = "get_peers";
 	entry& a = e["a"];
+
+	e["q"] = "get_peers";
 	a["info_hash"] = m_target.to_string();
 	if (m_noseeds) a["noseed"] = 1;
+
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
 void find_data::got_peers(std::vector<tcp::endpoint> const& peers)
 {
 	if (!peers.empty()) m_got_peers = true;
-	m_data_callback(peers);
+	if (m_data_callback) m_data_callback(peers);
 }
 
 void find_data::done()
@@ -242,9 +255,94 @@ void find_data::done()
 		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
 		--num_results;
 	}
-	m_nodes_callback(results, m_got_peers);
+	if (m_nodes_callback) m_nodes_callback(results, m_got_peers);
 
 	traversal_algorithm::done();
+}
+
+obfuscated_get_peers::obfuscated_get_peers(
+	node_impl& node
+	, node_id info_hash
+	, data_callback const& dcallback
+	, nodes_callback const& ncallback
+	, bool noseeds)
+	: find_data(node, info_hash, dcallback, ncallback, noseeds)
+{
+}
+
+char const* obfuscated_get_peers::name() const { return "get_peers [obfuscated]"; }
+
+observer_ptr obfuscated_get_peers::new_observer(void* ptr
+	, udp::endpoint const& ep, node_id const& id)
+{
+	observer_ptr o(new (ptr) find_data_observer(this, ep, id));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	return o;
+}
+
+bool obfuscated_get_peers::invoke(observer_ptr o)
+{
+	entry e;
+	e["y"] = "q";
+	e["q"] = "find_node";
+	entry& a = e["a"];
+
+	// This logic will obfuscate the target info-hash
+	// we're looking up, in order to preserve more privacy
+	// on the DHT. This is done by only including enough
+	// bits in the info-hash for the node we're querying to
+	// give a good answer, but not more.
+
+	node_id id = o->id();
+	int shared_prefix = 160 - distance_exp(id, m_target);
+
+	// now, obfuscate the bits past shared_prefix + 5
+	node_id obfuscated_target = generate_random_id();
+	obfuscated_target >>= shared_prefix + 6;
+	obfuscated_target^= m_target;
+	a["target"] = obfuscated_target.to_string();
+
+	return m_node.m_rpc.invoke(e, o->target_ep(), o);
+}
+
+void obfuscated_get_peers::done()
+{
+	boost::intrusive_ptr<find_data> ta(new find_data(m_node, m_target
+		, m_data_callback
+		, m_nodes_callback
+		, m_noseeds));
+
+	// don't call these when the obfuscated_get_peers
+	// is done, we're passing them on to be called when
+	// ta completes.
+	m_data_callback.clear();
+	m_nodes_callback.clear();
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << " [" << this << "]"
+		<< " obfuscated get_peers phase 1 done, spawning get_peers [" << ta.get() << "]";
+#endif
+
+	int num_added = 0;
+	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+		, end(m_results.end()); i != end && num_added < 10; ++i)
+	{
+		observer_ptr o = *i;
+
+		// only add nodes whose node ID we knoe and that
+		// we know are alive
+		if (o->flags & observer::flag_no_id) continue;
+		if ((o->flags & observer::flag_alive) == 0) continue;
+
+		ta->add_entry(o->id(), o->target_ep(), observer::flag_initial);
+		++num_added;
+	}
+
+	ta->start();
+
+	find_data::done();
 }
 
 } } // namespace libtorrent::dht

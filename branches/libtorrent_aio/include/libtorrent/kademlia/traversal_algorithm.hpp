@@ -71,7 +71,7 @@ struct traversal_algorithm : boost::noncopyable
 	void* allocate_observer();
 	void free_observer(void* ptr);
 
-	virtual char const* name() const { return "traversal_algorithm"; }
+	virtual char const* name() const;
 	virtual void start();
 
 	node_id const& target() const { return m_target; }

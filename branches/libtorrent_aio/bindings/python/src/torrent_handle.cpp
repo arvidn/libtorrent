@@ -326,6 +326,25 @@ void connect_peer(torrent_handle& th, tuple ip, int source)
 }
 
 #ifndef TORRENT_NO_DEPRECATE
+#if BOOST_VERSION > 104200
+
+boost::intrusive_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
+{
+	return boost::intrusive_ptr<const torrent_info>(&h.get_torrent_info());
+}
+
+#else
+
+boost::intrusive_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
+{
+	// I can't figure out how to expose intrusive_ptr<const torrent_info>
+	// as well as supporting mutable instances. So, this hack is better
+	// than compilation errors. It seems to work on newer versions of boost though
+   return boost::intrusive_ptr<torrent_info>(const_cast<torrent_info*>(&h.get_torrent_info()));
+}
+
+#endif
+
 void set_peer_upload_limit(torrent_handle& th, tuple const& ip, int limit)
 {
     th.set_peer_upload_limit(tuple_to_endpoint(ip), limit);
@@ -335,7 +354,8 @@ void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
 {
     th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
 }
-#endif
+
+#endif // TORRENT_NO_DEPRECAE
 
 void add_piece(torrent_handle& th, int piece, char const *data, int flags)
 {
@@ -408,7 +428,7 @@ void bind_torrent_handle()
 #endif
         // deprecated
 #ifndef TORRENT_NO_DEPRECATE
-        .def("get_torrent_info", _(&torrent_handle::torrent_file))
+        .def("get_torrent_info", _(&get_torrent_info))
         .def("super_seeding", super_seeding0)
         .def("filter_piece", _(&torrent_handle::filter_piece))
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))

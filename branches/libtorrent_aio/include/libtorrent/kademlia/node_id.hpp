@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
+struct node_entry;
+
 typedef libtorrent::sha1_hash node_id;
 
 // returns the distance between the two nodes
@@ -53,7 +55,10 @@ node_id TORRENT_EXTRA_EXPORT distance(node_id const& n1, node_id const& n2);
 bool TORRENT_EXTRA_EXPORT compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
 
 // returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
-// usefult for finding out which bucket a node belongs to
+// useful for finding out which bucket a node belongs to
+// the value that's returned is the number of trailing bits
+// after the shared bit prefix of ``n1`` and ``n2``.
+// if the first bits are different, that's 160.
 int TORRENT_EXTRA_EXPORT distance_exp(node_id const& n1, node_id const& n2);
 
 node_id TORRENT_EXTRA_EXPORT generate_id(address const& external_ip);
@@ -61,6 +66,7 @@ node_id TORRENT_EXTRA_EXPORT generate_random_id();
 node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, boost::uint32_t r);
 
 bool TORRENT_EXTRA_EXPORT verify_id(node_id const& nid, address const& source_ip);
+bool TORRENT_EXTRA_EXPORT matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index);
 
 } } // namespace libtorrent::dht
 

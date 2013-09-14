@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#include <iostream>
+#endif
+
 using namespace libtorrent;
 
 struct dht_server

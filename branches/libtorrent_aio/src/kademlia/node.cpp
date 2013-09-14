@@ -335,9 +335,21 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
 #endif
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
-	boost::intrusive_ptr<find_data> ta(new find_data(*this, info_hash, f
-		, boost::bind(&announce_fun, _1, boost::ref(*this)
-		, listen_port, info_hash, seed), seed));
+
+	boost::intrusive_ptr<find_data> ta;
+	if (m_settings.privacy_lookups)
+	{
+		ta.reset(new obfuscated_get_peers(*this, info_hash, f
+			, boost::bind(&announce_fun, _1, boost::ref(*this)
+			, listen_port, info_hash, seed), seed));
+	}
+	else
+	{
+		ta.reset(new find_data(*this, info_hash, f
+			, boost::bind(&announce_fun, _1, boost::ref(*this)
+			, listen_port, info_hash, seed), seed));
+	}
+
 	ta->start();
 }
 
@@ -607,6 +619,30 @@ void incoming_error(entry& e, char const* msg, int error_code)
 	l.push_back(entry(error_code));
 	l.push_back(entry(msg));
 }
+
+// return true of the first argument is a better canidate for removal, i.e.
+// less important to keep
+struct immutable_item_comparator
+{
+	immutable_item_comparator(node_id const& our_id) : m_our_id(our_id) {}
+
+	bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
+		, std::pair<node_id, dht_immutable_item> const& rhs) const
+	{
+		int l_distance = distance_exp(lhs.first, m_our_id);
+		int r_distance = distance_exp(rhs.first, m_our_id);
+
+		// this is a score taking the popularity (number of announcers) and the
+		// fit, in terms of distance from ideal storing node, into account.
+		// each additional 5 announcers is worth one extra bit in the distance.
+		// that is, an item with 10 announcers is allowed to be twice as far
+		// from another item with 5 announcers, from our node ID. Twice as far
+		// because it gets one more bit.
+		return lhs.second.num_announcers / 5 - l_distance < rhs.second.num_announcers / 5 - r_distance;
+	}
+
+	node_id const& m_our_id;
+};
 
 // build response
 void node_impl::incoming_request(msg const& m, entry& e)
@@ -885,15 +921,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				if (int(m_immutable_table.size()) >= m_settings.max_dht_items)
 				{
 					// delete the least important one (i.e. the one
-					// the fewest peers are announcing)
-					// TODO: 3 also take into account how far away from our node ID
-					// the item is
+					// the fewest peers are announcing, and farthest
+					// from our node ID)
 					dht_immutable_table_t::iterator j = std::min_element(m_immutable_table.begin()
 						, m_immutable_table.end()
-						, boost::bind(&dht_immutable_item::num_announcers
-							, boost::bind(&dht_immutable_table_t::value_type::second, _1))
-							< boost::bind(&dht_immutable_item::num_announcers
-							, boost::bind(&dht_immutable_table_t::value_type::second, _2)));
+						, immutable_item_comparator(m_id));
+
 					TORRENT_ASSERT(j != m_immutable_table.end());
 					free(j->second.value);
 					m_immutable_table.erase(j);

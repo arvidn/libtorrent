@@ -53,7 +53,6 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-// TODO: 2 make this a shared_ptr instead
 class natpmp : public intrusive_ptr_base<natpmp>
 {
 public:

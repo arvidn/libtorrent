@@ -607,6 +607,8 @@ namespace libtorrent
 			{ return index == p.index && peer_count == p.peer_count; }
 		};
 
+		void set_num_pad_files(int n) { m_num_pad_files = n; }
+
 	private:
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
@@ -695,8 +697,8 @@ namespace libtorrent
 		// point into this vector for its storage
 		std::vector<block_info> m_block_info;
 
-		int m_blocks_per_piece;
-		int m_blocks_in_last_piece;
+		boost::uint16_t m_blocks_per_piece;
+		boost::uint16_t m_blocks_in_last_piece;
 
 		// the number of filtered pieces that we don't already
 		// have. total_number_of_pieces - number_of_pieces_we_have
@@ -728,6 +730,13 @@ namespace libtorrent
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces
 		int m_seeds;
+
+		// this is the number of partial download pieces
+		// that may be caused by pad files. We raise the limit
+		// of number of partial pieces by this amount, to not
+		// prioritize pieces that intersect pad files for no
+		// apparent reason
+		int m_num_pad_files;
 
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.

@@ -1352,6 +1352,19 @@ namespace aux {
 
 			":peers up send buffer"
 
+			":packet_loss"
+			":timeout"
+			":packets_in"
+			":packets_out"
+			":fast_retransmit"
+			":packet_resend"
+			":samples_above_target"
+			":samples_below_target"
+			":payload_pkts_in"
+			":payload_pkts_out"
+			":invalid_pkts_in"
+			":redundant_pkts_in"
+
 			":loaded torrents"
 			":pinned torrents"
 			":loaded torrent churn"
@@ -1932,7 +1945,8 @@ namespace aux {
 		for (std::set<boost::shared_ptr<socket_type> >::iterator i = m_incoming_sockets.begin()
 			, end(m_incoming_sockets.end()); i != end; ++i)
 		{
-			(*i)->close();
+			(*i)->close(ec);
+			TORRENT_ASSERT(!ec);
 		}
 		m_incoming_sockets.clear();
 
@@ -1945,12 +1959,18 @@ namespace aux {
 		}
 		m_listen_sockets.clear();
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-			m_socks_listen_socket->close();
+		{
+			m_socks_listen_socket->close(ec);
+			TORRENT_ASSERT(!ec);
+		}
 		m_socks_listen_socket.reset();
 
 #if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
-			m_i2p_listen_socket->close();
+		{
+			m_i2p_listen_socket->close(ec);
+			TORRENT_ASSERT(!ec);
+		}
 		m_i2p_listen_socket.reset();
 #endif
 
@@ -4386,6 +4406,19 @@ retry:
 			STAT_LOG(d, int(m_stats_counters[counters::num_piece_failed]));
 
 			STAT_LOG(d, peers_up_send_buffer);
+
+			STAT_LOG(PRId64, sst.utp_stats.packet_loss);
+			STAT_LOG(PRId64, sst.utp_stats.timeout);
+			STAT_LOG(PRId64, sst.utp_stats.packets_in);
+			STAT_LOG(PRId64, sst.utp_stats.packets_out);
+			STAT_LOG(PRId64, sst.utp_stats.fast_retransmit);
+			STAT_LOG(PRId64, sst.utp_stats.packet_resend);
+			STAT_LOG(PRId64, sst.utp_stats.samples_above_target);
+			STAT_LOG(PRId64, sst.utp_stats.samples_below_target);
+			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_in);
+			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_out);
+			STAT_LOG(PRId64, sst.utp_stats.invalid_pkts_in);
+			STAT_LOG(PRId64, sst.utp_stats.redundant_pkts_in);
 
 			// loaded torrents
 			STAT_LOG(d, int(m_stats_counters[counters::num_loaded_torrents]));

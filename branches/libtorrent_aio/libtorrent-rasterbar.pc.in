@@ -11,6 +11,6 @@ package=@PACKAGE@
 Name: libtorrent-rasterbar
 Description: Bittorrent library.
 Version: @VERSION@
-Libs: -L${libdir} -ltorrent-rasterbar
-Libs.private: @LIBS@ @BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LIBS@
+Libs: -L${libdir} -ltorrent-rasterbar @BOOST_SYSTEM_LIB@ 
+Libs.private: @LIBS@ @PTHREAD_LIBS@ @OPENSSL_LIBS@
 Cflags: -I${includedir} -I${includedir}/libtorrent @COMPILETIME_OPTIONS@

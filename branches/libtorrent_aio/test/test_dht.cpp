@@ -312,6 +312,7 @@ struct print_alert : alert_dispatcher
 	}
 };
 
+// TODO: 3 test find_data, obfuscated_get_peers and bootstrap
 int test_main()
 {
 	dht_settings sett;
@@ -747,7 +748,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), 50);
+			tbl.node_seen(id, rand_udp_ep(), random() % 20 + 20);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
@@ -763,7 +764,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), 50);
+			tbl.node_seen(id, rand_udp_ep(), random() % 20 + 20);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
@@ -992,7 +993,7 @@ int test_main()
 		nodes.clear();
 		for (int i = 0; i < 7000; ++i)
 		{
-			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), 10);
+			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), random() % 20 + 20);
 			add_and_replace(tmp, diff);
 		}
 		TEST_EQUAL(table.num_active_buckets(), 11);
