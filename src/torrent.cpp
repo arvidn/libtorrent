@@ -1711,10 +1711,13 @@ namespace libtorrent
 		m_resume_data_loaded = true;
 #endif
 
+		int num_pad_files = 0;
 		TORRENT_ASSERT(block_size() > 0);
 		file_storage const& fs = m_torrent_file->files();
 		for (int i = 0; i < fs.num_files(); ++i)
 		{
+			if (fs.pad_file_at(i)) ++num_pad_files;
+
 			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
 			m_padding += fs.file_size(i);
 			
@@ -1765,6 +1768,8 @@ namespace libtorrent
 				we_have(*i);
 			}
 		}
+
+		m_picker->set_num_pad_files(num_pad_files);
 
 		m_storage->async_check_fastresume(&m_resume_entry
 			, boost::bind(&torrent::on_resume_data_checked

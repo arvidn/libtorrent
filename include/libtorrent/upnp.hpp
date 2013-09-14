@@ -118,8 +118,8 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
+// TODO: support using the windows API for UPnP operations as well
 class TORRENT_EXTRA_EXPORT upnp : public intrusive_ptr_base<upnp>
-// TODO: 2 make this a shared_ptr instead
 {
 public:
 	upnp(io_service& ios, connection_queue& cc
