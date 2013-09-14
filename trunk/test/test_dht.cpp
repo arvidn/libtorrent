@@ -757,7 +757,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_ep(), 50);
+			tbl.node_seen(id, rand_ep(), random() % 20 + 20);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
@@ -773,7 +773,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_ep(), 50);
+			tbl.node_seen(id, rand_ep(), random() % 20 + 20);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
@@ -1002,7 +1002,7 @@ int test_main()
 		nodes.clear();
 		for (int i = 0; i < 7000; ++i)
 		{
-			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), 10);
+			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), random() % 20 + 20);
 			add_and_replace(tmp, diff);
 		}
 		TEST_EQUAL(table.num_active_buckets(), 11);

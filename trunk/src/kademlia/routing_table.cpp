@@ -622,20 +622,32 @@ bool routing_table::add_node(node_entry e)
 		// in case bucket_size_limit is not an even power of 2
 		mask = (0xff << mask_shift) & 0xff;
 
-		// TODO: 2 we should really find the node with a matching prefix _and_ the highest
-		// RTT of those (if there are more than one)
 		node_id id = e.id;
 		id <<= bucket_index + 1;
-		j = std::find_if(b.begin(), b.end(), boost::bind(&matching_prefix, _1, mask, id[0] & mask, bucket_index));
-		if (j == b.end())
+
+		// pick out all nodes that have the same prefix as the new node
+		std::vector<bucket_t::iterator> nodes;
+		bool force_replace = false;
+		for (j = b.begin(); j != b.end(); ++j)
 		{
-			// there is no node in this prefix-slot, there must be some
-			// nodes sharing a prefix. Find all noes that do not
+			if (!matching_prefix(*j, mask, id[0] & mask, bucket_index)) continue;
+			nodes.push_back(j);
+		}
+
+		if (!nodes.empty())
+		{
+			j = *std::max_element(nodes.begin(), nodes.end()
+				, boost::bind(&node_entry::rtt, boost::bind(&bucket_t::iterator::operator*, _1))
+				< boost::bind(&node_entry::rtt, boost::bind(&bucket_t::iterator::operator*, _2)));
+		}
+		else
+		{
+			// there is no node in this prefix-slot, there may be some
+			// nodes sharing a prefix. Find all nodes that do not
 			// have a unique prefix
 
 			std::sort(b.begin(), b.end(), boost::bind(&node_entry::id, _1) < boost::bind(&node_entry::id, _2));
 
-			std::vector<bucket_t::iterator> nodes;
 			int last_prefix = -1;
 			nodes.reserve(b.size());
 			for (j = b.begin(); j != b.end(); ++j)
@@ -664,8 +676,9 @@ bool routing_table::add_node(node_entry e)
 					< boost::bind(&node_entry::rtt, boost::bind(&bucket_t::iterator::operator*, _2)));
 
 				// in this case, we would really rather replace the node even if
-				// they have the same RTT. so, to emulate >=
-				e.rtt = (std::max)(0, e.rtt - 1);
+				// the new node has higher RTT, becase it fills a new prefix that we otherwise
+				// don't have.
+				force_replace = true;
 				j = *k;
 			}
 			else
@@ -676,12 +689,14 @@ bool routing_table::add_node(node_entry e)
 			}
 		}
 
-		if (j != b.end() && j->rtt > e.rtt)
+		if (j != b.end() && (force_replace || j->rtt > e.rtt))
 		{
 			m_ips.erase(j->addr().to_v4().to_bytes());
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
-//			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id << " " << e.addr();
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id << " " << e.addr();
+#endif
 			return ret;
 		}
 		// in order to keep lookup times small, prefer nodes with low RTTs
