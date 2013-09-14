@@ -540,6 +540,21 @@ namespace libtorrent { namespace dht
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		parse_dht_client(e);
 		TORRENT_LOG(dht_tracker) << "<== " << ep << " " << print_entry(e, true);
+
+		if (e.dict_find_string_value("y") == "q")
+		{
+			std::string cmd = e.dict_find_string_value("q");
+			int cmd_idx = -1;
+			if (cmd == "ping") cmd_idx = 0;
+			else if (cmd == "find_node") cmd_idx = 1;
+			else if (cmd == "get_peers") cmd_idx = 2;
+			else if (cmd == "announce_peeer") cmd_idx = 3;
+			if (cmd_idx >= 0)
+			{
+				++m_queries_received[cmd_idx];
+				m_queries_bytes_received[cmd_idx] += size;
+			}
+		}
 #endif
 
 		m_dht.incoming(m);
@@ -638,11 +653,17 @@ namespace libtorrent { namespace dht
 		
 			if (e["y"].string() == "r")
 			{
-				// TODO: 2 fix this stats logging. For instance,
-				// the stats counters could be factored out into its own
-				// class, and dht_tracker could take an optional reference to it
-//				++m_replies_sent[e["r"]];
-//				m_replies_bytes_sent[e["r"]] += int(m_send_buf.size());
+				std::string cmd = e["r"].string();
+				int cmd_idx = -1;
+				if (cmd == "ping") cmd_idx = 0;
+				else if (cmd == "find_node") cmd_idx = 1;
+				else if (cmd == "get_peers") cmd_idx = 2;
+				else if (cmd == "announce_peeer") cmd_idx = 3;
+				if (cmd_idx >= 0)
+				{
+					++m_replies_sent[cmd_idx];
+					m_replies_bytes_sent[cmd_idx] += int(m_send_buf.size());
+				}
 			}
 			else if (e["y"].string() == "q")
 			{
