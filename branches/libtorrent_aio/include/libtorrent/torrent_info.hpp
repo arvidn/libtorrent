@@ -288,6 +288,8 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
+	// TODO: 2 there may be some opportunities to optimize the size if torrent_info.
+	// specifically to turn some std::string and std::vector into pointers
 	class TORRENT_EXPORT torrent_info
 	{
 	public:
@@ -719,7 +721,6 @@ namespace libtorrent
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment
-		// TODO: 2 these strings (m_comment, m_created_by, m_ssl_root_cert) could be lazy_entry* to save memory
 		std::string m_comment;
 
 		// an optional string naming the software used
