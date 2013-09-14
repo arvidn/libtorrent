@@ -5964,6 +5964,19 @@ namespace libtorrent
 		return true;
 	}
 
+	bool connecting_time_compare(peer_connection const* lhs, peer_connection const* rhs)
+	{
+		bool lhs_connecting = lhs->is_connecting() && !lhs->is_disconnecting();
+		bool rhs_connecting = rhs->is_connecting() && !rhs->is_disconnecting();
+		if (lhs_connecting > rhs_connecting) return false;
+		if (lhs_connecting < rhs_connecting) return true;
+
+		// a lower value of connected_time means it's been waiting
+		// longer. This is a less-than comparison, so if lhs has
+		// waited longer than rhs, we should return false.
+		return lhs->connected_time() >= rhs->connected_time();
+	}
+
 	bool torrent::attach_peer(peer_connection* p)
 	{
 //		INVARIANT_CHECK;
@@ -6083,13 +6096,12 @@ namespace libtorrent
 				// find any peer that's connecting (i.e. a half-open TCP connection)
 				// that's also not disconnecting
 
-				// TODO: 1 ideally, we would disconnect the oldest connection
-				// i.e. the one that has waited the longest to connect.
-				std::set<peer_connection*>::iterator i = std::find_if(begin(), end()
-					, boost::bind(&peer_connection::is_connecting, _1)
-					&& !boost::bind(&peer_connection::is_disconnecting, _1));
+				// disconnect the peer that's been wating to establish a connection
+				// the longest
+				std::set<peer_connection*>::iterator i = std::max_element(begin(), end()
+					, &connecting_time_compare);
 
-				if (i == end())
+				if (i == end() || !(*i)->is_connecting() || (*i)->is_disconnecting())
 				{
 					// this seems odd, but we might as well handle it
 					p->disconnect(errors::too_many_connections);
