@@ -76,7 +76,6 @@ namespace libtorrent { namespace dht
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
 
-		// TODO: 3 take a udp_socket_interface here instead. Move udp_socket_interface down into libtorrent core
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 			, dht_settings const& settings, entry const* state = 0);
 		virtual ~dht_tracker();

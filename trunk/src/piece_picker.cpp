@@ -74,6 +74,7 @@ namespace libtorrent
 		, m_cursor(0)
 		, m_reverse_cursor(0)
 		, m_sparse_regions(1)
+		, m_num_pad_files(0)
 		, m_dirty(false)
 	{
 #ifdef TORRENT_PICKER_LOG
@@ -1486,9 +1487,7 @@ namespace libtorrent
 		// make this scale by the number of peers we have. For large
 		// scale clients, we would have more peers, and allow a higher
 		// threshold for the number of partials
-		// TODO: 2 m_downloads size will be > 0 just by having pad-files
-		// in the torrent. That should be taken into account here.
-		if (m_downloads.size() > num_peers * 3 / 2) options |= prioritize_partials;
+		if (m_downloads.size() > m_num_pad_files + num_peers * 3 / 2) options |= prioritize_partials;
 
 		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
