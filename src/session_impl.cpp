@@ -1833,7 +1833,8 @@ namespace aux {
 		for (std::set<boost::shared_ptr<socket_type> >::iterator i = m_incoming_sockets.begin()
 			, end(m_incoming_sockets.end()); i != end; ++i)
 		{
-			(*i)->close();
+			(*i)->close(ec);
+			TORRENT_ASSERT(!ec);
 		}
 		m_incoming_sockets.clear();
 
@@ -1846,12 +1847,18 @@ namespace aux {
 		}
 		m_listen_sockets.clear();
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-			m_socks_listen_socket->close();
+		{
+			m_socks_listen_socket->close(ec);
+			TORRENT_ASSERT(!ec);
+		}
 		m_socks_listen_socket.reset();
 
 #if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
-			m_i2p_listen_socket->close();
+		{
+			m_i2p_listen_socket->close(ec);
+			TORRENT_ASSERT(!ec);
+		}
 		m_i2p_listen_socket.reset();
 #endif
 
