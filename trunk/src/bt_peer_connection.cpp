@@ -1751,7 +1751,6 @@ namespace libtorrent
 		std::string myip = root.dict_find_string_value("yourip");
 		if (!myip.empty())
 		{
-			// TODO: don't trust this blindly
 			if (myip.size() == address_v4::bytes_type().size())
 			{
 				address_v4::bytes_type bytes;
