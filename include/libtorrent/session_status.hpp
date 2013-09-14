@@ -70,11 +70,26 @@ namespace libtorrent
 
 	struct utp_status
 	{
+		// gauges
 		int num_idle;
 		int num_syn_sent;
 		int num_connected;
 		int num_fin_sent;
 		int num_close_wait;
+
+		// counters
+		boost::uint64_t packet_loss;
+		boost::uint64_t timeout;
+		boost::uint64_t packets_in;
+		boost::uint64_t packets_out;
+		boost::uint64_t fast_retransmit;
+		boost::uint64_t packet_resend;
+		boost::uint64_t samples_above_target;
+		boost::uint64_t samples_below_target;
+		boost::uint64_t payload_pkts_in;
+		boost::uint64_t payload_pkts_out;
+		boost::uint64_t invalid_pkts_in;
+		boost::uint64_t redundant_pkts_in;
 	};
 
 	struct TORRENT_EXPORT session_status

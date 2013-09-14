@@ -72,6 +72,19 @@ namespace libtorrent
 		s.num_fin_sent = 0;
 		s.num_close_wait = 0;
 
+		s.packet_loss = m_counters[packet_loss];
+		s.timeout = m_counters[timeout];
+		s.packets_in = m_counters[packets_in];
+		s.packets_out = m_counters[packets_out];
+		s.fast_retransmit = m_counters[fast_retransmit];
+		s.packet_resend = m_counters[packet_resend];
+		s.samples_above_target = m_counters[samples_above_target];
+		s.samples_below_target = m_counters[samples_below_target];
+		s.payload_pkts_in = m_counters[payload_pkts_in];
+		s.payload_pkts_out = m_counters[payload_pkts_out];
+		s.invalid_pkts_in = m_counters[invalid_pkts_in];
+		s.redundant_pkts_in = m_counters[redundant_pkts_in];
+
 		for (socket_map_t::const_iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end; ++i)
 		{
@@ -430,6 +443,13 @@ namespace libtorrent
 			m_sock.set_option(datagram_socket::send_buffer_size(size * 3), ec);
 		}
 		m_sock_buf_size = size;
+	}
+
+	void utp_socket_manager::inc_stats_counter(int counter)
+	{
+		TORRENT_ASSERT(counter >= 0);
+		TORRENT_ASSERT(counter < num_counters);
+		++m_counters[counter];
 	}
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)

@@ -1328,6 +1328,19 @@ namespace aux {
 
 			":peers up send buffer"
 
+			":packet_loss"
+			":timeout"
+			":packets_in"
+			":packets_out"
+			":fast_retransmit"
+			":packet_resend"
+			":samples_above_target"
+			":samples_below_target"
+			":payload_pkts_in"
+			":payload_pkts_out"
+			":invalid_pkts_in"
+			":redundant_pkts_in"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -4099,6 +4112,19 @@ retry:
 			STAT_LOG(d, m_piece_rejects);
 
 			STAT_LOG(d, peers_up_send_buffer);
+
+			STAT_LOG(PRId64, sst.utp_stats.packet_loss);
+			STAT_LOG(PRId64, sst.utp_stats.timeout);
+			STAT_LOG(PRId64, sst.utp_stats.packets_in);
+			STAT_LOG(PRId64, sst.utp_stats.packets_out);
+			STAT_LOG(PRId64, sst.utp_stats.fast_retransmit);
+			STAT_LOG(PRId64, sst.utp_stats.packet_resend);
+			STAT_LOG(PRId64, sst.utp_stats.samples_above_target);
+			STAT_LOG(PRId64, sst.utp_stats.samples_below_target);
+			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_in);
+			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_out);
+			STAT_LOG(PRId64, sst.utp_stats.invalid_pkts_in);
+			STAT_LOG(PRId64, sst.utp_stats.redundant_pkts_in);
 
 			fprintf(m_stats_logger, "\n");
 
