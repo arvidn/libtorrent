@@ -603,7 +603,6 @@ struct utp_socket_impl
 	bool m_attached:1;
 
 	// this is true if nagle is enabled (which it is by default)
-	// TODO: 2 support the option to turn it off
 	bool m_nagle:1;
 
 	// this is true while the socket is in slow start mode. It's

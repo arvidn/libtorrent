@@ -1179,8 +1179,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT metadata_failed_alert: torrent_alert
 	{
 		// internal
-		metadata_failed_alert(const torrent_handle& h)
+		metadata_failed_alert(const torrent_handle& h, error_code e)
 			: torrent_alert(h)
+			, error(e)
 		{}
 
 		TORRENT_DEFINE_ALERT(metadata_failed_alert);
@@ -1188,6 +1189,9 @@ namespace libtorrent
 		const static int static_category = alert::error_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " invalid metadata received"; }
+
+		// the error that occurred
+		error_code error;
 	};
 	
 	// This alert is generated when the metadata has been completely received and the torrent
