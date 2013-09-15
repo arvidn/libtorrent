@@ -91,7 +91,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 		results = {}
 		toolset_found = False
    
-   		feature_list = features.split(' ')
+		feature_list = features.split(' ')
 		os.chdir(test_dir)
    
 #		if not incremental:
@@ -101,9 +101,11 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
    
    		
 		for t in tests:
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + feature_list
-#			print 'calling ', cmdline
-			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset] + options + feature_list
+			if t != '': cmdline.append(t)
+			if t == '': t = os.path.split(os.getcwd())[1]
+#			print ''.join(cmdline)
+			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=test_dir)
 			output = ''
 			for l in p.stdout:
 				output += l.decode('latin-1')
@@ -170,7 +172,7 @@ def main(argv):
 
 	test_dirs = []
 	configs = []
-	options = ['boost=source']
+	options = ['boost=source', 'preserve-test-targets=on']
 	time_limit = 1200
 
 	for arg in argv:
@@ -205,7 +207,7 @@ def main(argv):
 
 	if 'test_dirs' in cfg:
 		for d in cfg['test_dirs']:
-			test_dirs.append(d)
+			test_dirs.append(os.path.abspath(d))
 	else:
 		print 'no test directory specified by .regression.yml'
 		sys.exit(1)
@@ -256,13 +258,14 @@ def main(argv):
 		try: os.mkdir(rev_dir)
 		except: pass
 
+		results = {}
 		for test_dir in test_dirs:
 			print 'running tests from "%s" in %s' % (test_dir, branch_name)
 			os.chdir(test_dir)
 			test_dir = os.getcwd()
 
 			# figure out which tests are exported by this Jamfile
-			p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE)
+			p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE, cwd=test_dir)
 
 			tests = []
 
@@ -274,11 +277,10 @@ def main(argv):
 				tests.append(test_name)
 			print 'found %d tests' % len(tests)
 			if len(tests) == 0:
-				print output
-				sys.exit(1)
+				tests = ['']
 
 			for toolset in toolsets:
-				results = {}
+				if not toolset in results: results[toolset] = {}
 				toolset_found = False
 
 				futures = []
@@ -286,29 +288,14 @@ def main(argv):
 					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit, incremental]))
 
 				for future in futures:
-					(toolset, r) = future.get()
-					results.update(r)
+					(compiler, r) = future.get()
+					results[toolset].update(r)
 
 #				for features in configs:
-#					(toolset, r) = run_tests(toolset, tests, features, options, test_dir, time_limit, incremental)
-#					results.update(r)
+#					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit, incremental)
+#					results[toolset].update(r)
 
 				print ''
-
-				# each file contains a full set of tests for one speific toolset and platform
-				try:
-					f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
-				except IOError:
-					rev_dir = os.path.join(current_dir, 'regression_tests')
-					try: os.mkdir(rev_dir)
-					except: pass
-					rev_dir = os.path.join(rev_dir, '%s-%d' % (branch_name, revision))
-					try: os.mkdir(rev_dir)
-					except: pass
-					f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
-			
-				print >>f, json.dumps(results)
-				f.close()
 
 				if len(clean_files) > 0:
 					print 'deleting ',
@@ -321,6 +308,24 @@ def main(argv):
 							try: shutil.rmtree(f)
 							except: pass
 					print ''
+
+		for toolset in toolsets:
+			# each file contains a full set of tests for one speific toolset and platform
+			try:
+				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+			except IOError:
+				rev_dir = os.path.join(current_dir, 'regression_tests')
+				try: os.mkdir(rev_dir)
+				except: pass
+				rev_dir = os.path.join(rev_dir, '%s-%d' % (branch_name, revision))
+				try: os.mkdir(rev_dir)
+				except: pass
+				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
+
+			print >>f, json.dumps(results[toolset])
+			f.close()
+
+			
 	finally:
 		# always restore current directory
 		try:
