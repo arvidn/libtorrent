@@ -1,4 +1,6 @@
 test_dirs:
+ - examples
+ - tools
  - test
 
 project: libtorrent
