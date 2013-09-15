@@ -883,6 +883,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	s->m_connect_handler.clear();
 	if (kill && s->m_impl)
 	{
+		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
 		s->m_impl = 0;
 	}

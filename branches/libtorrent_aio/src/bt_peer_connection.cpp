@@ -3189,7 +3189,6 @@ namespace libtorrent
 #endif
 			peer_id pid;
 			std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)pid.begin());
-			set_pid(pid);
  
 			if (t->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 			{
@@ -3216,6 +3215,8 @@ namespace libtorrent
 					}
 				}
 			}
+
+			set_pid(pid);
 
 			// disconnect if the peer has the same peer-id as ourself
 			// since it most likely is ourself then
