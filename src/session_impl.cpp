@@ -4120,18 +4120,18 @@ retry:
 
 			STAT_LOG(d, peers_up_send_buffer);
 
-			STAT_LOG(PRId64, sst.utp_stats.packet_loss);
-			STAT_LOG(PRId64, sst.utp_stats.timeout);
-			STAT_LOG(PRId64, sst.utp_stats.packets_in);
-			STAT_LOG(PRId64, sst.utp_stats.packets_out);
-			STAT_LOG(PRId64, sst.utp_stats.fast_retransmit);
-			STAT_LOG(PRId64, sst.utp_stats.packet_resend);
-			STAT_LOG(PRId64, sst.utp_stats.samples_above_target);
-			STAT_LOG(PRId64, sst.utp_stats.samples_below_target);
-			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_in);
-			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_out);
-			STAT_LOG(PRId64, sst.utp_stats.invalid_pkts_in);
-			STAT_LOG(PRId64, sst.utp_stats.redundant_pkts_in);
+			STAT_LOG(d, sst.utp_stats.packet_loss);
+			STAT_LOG(d, sst.utp_stats.timeout);
+			STAT_LOG(d, sst.utp_stats.packets_in);
+			STAT_LOG(d, sst.utp_stats.packets_out);
+			STAT_LOG(d, sst.utp_stats.fast_retransmit);
+			STAT_LOG(d, sst.utp_stats.packet_resend);
+			STAT_LOG(d, sst.utp_stats.samples_above_target);
+			STAT_LOG(d, sst.utp_stats.samples_below_target);
+			STAT_LOG(d, sst.utp_stats.payload_pkts_in);
+			STAT_LOG(d, sst.utp_stats.payload_pkts_out);
+			STAT_LOG(d, sst.utp_stats.invalid_pkts_in);
+			STAT_LOG(d, sst.utp_stats.redundant_pkts_in);
 
 			fprintf(m_stats_logger, "\n");
 
