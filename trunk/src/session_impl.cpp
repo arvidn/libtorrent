@@ -5287,7 +5287,15 @@ retry:
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
-		// TODO: 2 if we still can't find the torrent, we should probably look for it by url here
+		// if we still can't find the torrent, look for it by url
+		if (!torrent_ptr && !params.url.empty())
+		{
+			std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i = std::find_if(m_torrents.begin()
+				, m_torrents.end(), boost::bind(&torrent::url, boost::bind(&std::pair<const sha1_hash
+					, boost::shared_ptr<torrent> >::second, _1)) == params.url);
+			if (i != m_torrents.end())
+				torrent_ptr = i->second;
+		}
 
 		if (torrent_ptr)
 		{
