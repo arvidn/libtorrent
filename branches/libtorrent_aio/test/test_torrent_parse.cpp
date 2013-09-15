@@ -330,49 +330,6 @@ int test_main()
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_____foobar");
 
-	// trim_path_element
-
-	fprintf(stderr, "TORRENT_MAX_PATH: %d\n", TORRENT_MAX_PATH);
-
-	// 1100 characters
-	test = "abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij012345.txt";
-	std::string comparison = test;
-	trim_path_element(test);
-	if (comparison.size() > TORRENT_MAX_PATH)
-	{
-		comparison.resize(TORRENT_MAX_PATH - 4);
-		comparison += ".txt"; // the extension is supposed to be preserved
-	}
-	TEST_EQUAL(test, comparison);
-
-	// extensions > 15 characters are ignored
-	test = "abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij.123456789abcdefghij0123456789";
-	comparison = test;
-	trim_path_element(test);
-	if (comparison.size() > TORRENT_MAX_PATH)
-		comparison.resize(TORRENT_MAX_PATH);
-	TEST_EQUAL(test, comparison);
-
 	std::string root_dir = parent_path(current_working_directory());
 	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
 	{
