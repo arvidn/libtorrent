@@ -183,6 +183,9 @@ namespace libtorrent
 		// them to start, pass 0 as the flags parameter.
 		// 
 		// The ``alert_mask`` is the same mask that you would send to set_alert_mask().
+
+		// TODO: 4 pass in settings_pack to constructor. That could probably replace most of these other
+		// parameters. The alert mask should probably be a setting as well
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins

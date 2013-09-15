@@ -294,11 +294,32 @@ namespace libtorrent
 		// the number of RPC observers currently allocated
 		METRIC(dht, dht_allocated_observers, type_gauge)
 
+		// the total number of DHT messages sent and received
 		METRIC(dht, dht_messages_in, type_counter)
 		METRIC(dht, dht_messages_out, type_counter)
+
+		// the number of outgoing messages that failed to be
+		// sent
 		METRIC(dht, dht_messages_out_dropped, type_counter)
+
+		// the total number of bytes sent and received by the DHT
 		METRIC(dht, dht_bytes_in, type_counter)
 		METRIC(dht, dht_bytes_out, type_counter)
+
+		// the number of DHT messages we've sent and received
+		// by kind.
+		METRIC(dht, dht_ping_in, type_counter)
+		METRIC(dht, dht_ping_out, type_counter)
+		METRIC(dht, dht_find_node_in, type_counter)
+		METRIC(dht, dht_find_node_out, type_counter)
+		METRIC(dht, dht_get_peers_in, type_counter)
+		METRIC(dht, dht_get_peers_out, type_counter)
+		METRIC(dht, dht_announce_peer_in, type_counter)
+		METRIC(dht, dht_announce_peer_out, type_counter)
+		METRIC(dht, dht_get_in, type_counter)
+		METRIC(dht, dht_get_out, type_counter)
+		METRIC(dht, dht_put_in, type_counter)
+		METRIC(dht, dht_put_out, type_counter)
 
 		// ... more
 	};

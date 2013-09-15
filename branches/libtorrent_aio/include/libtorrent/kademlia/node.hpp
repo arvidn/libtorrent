@@ -269,6 +269,7 @@ public:
 	void status(libtorrent::session_status& s);
 
 	dht_settings const& settings() const { return m_settings; }
+	counters& stats_counters() const { return m_counters; }
 
 protected:
 
@@ -278,7 +279,7 @@ protected:
 		, char* tags) const;
 
 	dht_settings const& m_settings;
-	
+
 private:
 	typedef libtorrent::mutex mutex_t;
 	mutex_t m_mutex;

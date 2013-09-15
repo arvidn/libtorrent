@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/performance_counters.hpp>
 
 #include <libtorrent/io.hpp>
 
@@ -75,6 +76,7 @@ bool refresh::invoke(observer_ptr o)
 	e["q"] = "find_node";
 	entry& a = e["a"];
 	a["target"] = target().to_string();
+	m_node.stats_counters().inc_stats_counter(counters::dht_find_node_out);
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 

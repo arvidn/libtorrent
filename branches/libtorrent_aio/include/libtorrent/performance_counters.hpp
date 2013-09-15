@@ -198,6 +198,19 @@ namespace libtorrent
 			dht_bytes_in,
 			dht_bytes_out,
 
+			dht_ping_in,
+			dht_ping_out,
+			dht_find_node_in,
+			dht_find_node_out,
+			dht_get_peers_in,
+			dht_get_peers_out,
+			dht_announce_peer_in,
+			dht_announce_peer_out,
+			dht_get_in,
+			dht_get_out,
+			dht_put_in,
+			dht_put_out,
+
 			num_stats_counters
 		};
 

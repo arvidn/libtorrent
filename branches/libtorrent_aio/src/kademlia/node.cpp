@@ -98,7 +98,7 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	, udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid, address const& external_address
 	, dht_observer* observer
-	, counters& cnt)
+	, struct counters& cnt)
 	: m_settings(settings)
 	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
@@ -292,6 +292,7 @@ namespace
 			a["port"] = listen_port;
 			a["token"] = i->second;
 			a["seed"] = int(seed);
+			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_in);
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
 	}
@@ -324,6 +325,7 @@ void node_impl::add_node(udp::endpoint node)
 	entry e;
 	e["y"] = "q";
 	e["q"] = "ping";
+	m_counters.inc_stats_counter(counters::dht_get_peers_out);
 	m_rpc.invoke(e, node, o);
 }
 
@@ -686,6 +688,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	if (strcmp(query, "ping") == 0)
 	{
+		m_counters.inc_stats_counter(counters::dht_ping_in);
 		// we already have 't' and 'id' in the response
 		// no more left to add
 	}
@@ -707,6 +710,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		reply["token"] = generate_token(m.addr, msg_keys[0]->string_ptr());
 		
+		m_counters.inc_stats_counter(counters::dht_get_peers_in);
+
 		sha1_hash info_hash(msg_keys[0]->string_ptr());
 		nodes_t n;
 		// always return nodes as well as peers
@@ -742,6 +747,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
+		m_counters.inc_stats_counter(counters::dht_find_node_in);
 		sha1_hash target(msg_keys[0]->string_ptr());
 
 		// TODO: 1 find_node should write directly to the response entry
@@ -802,6 +808,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			incoming_error(e, "invalid token");
 			return;
 		}
+
+		m_counters.inc_stats_counter(counters::dht_announce_peer_in);
 
 		// the token was correct. That means this
 		// node is not spoofing its address. So, let
@@ -880,6 +888,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			incoming_error(e, error_string);
 			return;
 		}
+
+		m_counters.inc_stats_counter(counters::dht_put_in);
 
 		// is this a mutable put?
 		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
@@ -1075,6 +1085,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
+		m_counters.inc_stats_counter(counters::dht_get_in);
 		sha1_hash target(msg_keys[0]->string_ptr());
 
 //		fprintf(stderr, "%s GET target: %s\n"
