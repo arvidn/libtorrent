@@ -327,25 +327,25 @@ int main(int argc, char* argv[])
 		, make_magnet_uri(t).c_str()
 		, t.name().c_str()
 		, t.num_files());
-	int index = 0;
-	for (torrent_info::file_iterator i = t.begin_files();
-		i != t.end_files(); ++i, ++index)
+	file_storage const& st = t.files();
+	for (int i = 0; i < st.num_files(); ++i)
 	{
-		int first = t.map_file(index, 0, 0).piece;
-		int last = t.map_file(index, (std::max)(size_type(i->size)-1, size_type(0)), 0).piece;
-		printf(" %8"PRIx64" %11"PRId64" %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
-			, i->offset
-			, i->size
-			, (i->pad_file?'p':'-')
-			, (i->executable_attribute?'x':'-')
-			, (i->hidden_attribute?'h':'-')
-			, (i->symlink_attribute?'l':'-')
+		int first = st.map_file(i, 0, 0).piece;
+		int last = st.map_file(i, (std::max)(size_type(st.file_size(i))-1, size_type(0)), 0).piece;
+		int flags = st.file_flags(i);
+		printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
+			, st.file_offset(i)
+			, st.file_size(i)
+			, ((flags & file_storage::flag_pad_file)?'p':'-')
+			, ((flags & file_storage::flag_executable)?'x':'-')
+			, ((flags & file_storage::flag_hidden)?'h':'-')
+			, ((flags & file_storage::flag_symlink)?'l':'-')
 			, first, last
-			, boost::uint32_t(t.files().mtime(*i))
-			, t.files().hash(*i) != sha1_hash(0) ? to_hex(t.files().hash(*i).to_string()).c_str() : ""
-			, t.files().file_path(*i).c_str()
-			, i->symlink_attribute ? "-> ": ""
-			, i->symlink_attribute && i->symlink_index != -1 ? t.files().symlink(*i).c_str() : "");
+			, boost::uint32_t(st.mtime(i))
+			, st.hash(i) != sha1_hash(0) ? to_hex(st.hash(i).to_string()).c_str() : ""
+			, st.file_path(i).c_str()
+			, (flags & file_storage::flag_symlink) ? "-> " : ""
+			, (flags & file_storage::flag_symlink) ? st.symlink(i).c_str() : "");
 	}
 
 	return 0;
