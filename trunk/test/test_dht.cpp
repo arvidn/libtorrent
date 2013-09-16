@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_dispatcher.hpp"
+#include "libtorrent/random.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -757,7 +758,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_ep(), random() % 20 + 20);
+			tbl.node_seen(id, rand_ep(), libtorrent::random() % 20 + 20);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
@@ -773,7 +774,7 @@ int test_main()
 		{
 			node_id id = random_id();
 			id[0] = i;
-			tbl.node_seen(id, rand_ep(), random() % 20 + 20);
+			tbl.node_seen(id, rand_ep(), libtorrent::random() % 20 + 20);
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
@@ -1002,7 +1003,7 @@ int test_main()
 		nodes.clear();
 		for (int i = 0; i < 7000; ++i)
 		{
-			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), random() % 20 + 20);
+			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), libtorrent::random() % 20 + 20);
 			add_and_replace(tmp, diff);
 		}
 		TEST_EQUAL(table.num_active_buckets(), 11);
