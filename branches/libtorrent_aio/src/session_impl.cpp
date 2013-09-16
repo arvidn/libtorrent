@@ -527,12 +527,7 @@ namespace aux {
 	}
 #endif
 
-	session_impl::session_impl(
-		std::pair<int, int> listen_port_range
-		, fingerprint const& cl_fprint
-		, char const* listen_interface
-		, boost::uint32_t alert_mask
-		)
+	session_impl::session_impl(fingerprint const& cl_fprint)
 		:
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_send_buffers(send_buffer_size())
@@ -542,7 +537,7 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
-		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert_mask)
+		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
 		, m_disk_thread(m_io_service, this, (uncork_interface*)this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
@@ -557,7 +552,7 @@ namespace aux {
 		, m_work(io_service::work(m_io_service))
 		, m_max_queue_pos(-1)
 		, m_key(0)
-		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
+		, m_listen_port_retries(10)
 		, m_socks_listen_port(0)
 		, m_interface_index(0)
 #if TORRENT_USE_I2P
@@ -653,8 +648,7 @@ namespace aux {
 #endif
 
 		error_code ec;
-		if (!listen_interface) listen_interface = "0.0.0.0";
-		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
+		m_listen_interface = tcp::endpoint(address_v4::any(), 0);
 		TORRENT_ASSERT_VAL(!ec, ec);
 
 		// ---- generate a peer id ----
@@ -4571,9 +4565,6 @@ retry:
 
 		if (m_abort) return;
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_dht_announce");
-#endif
 		// announce to DHT every 15 minutes
 		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -4586,6 +4577,9 @@ retry:
 			delay = (std::min)(4, delay);
 		}
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_dht_announce");
+#endif
 		error_code ec;
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
@@ -6224,6 +6218,9 @@ retry:
 
 		m_listen_interface = new_interface;
 
+		// if we haven't started yet, don't actually trigger this
+		if (!m_thread) return;
+
 		open_listen_port();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -6887,6 +6884,10 @@ retry:
 
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
+
+		// if we haven't started yet, don't actually trigger this
+		if (!m_thread) return;
+
 		m_io_service.post(boost::bind(&session_impl::on_trigger_auto_manage, this));
 	}
 
@@ -6919,10 +6920,16 @@ retry:
 	void session_impl::update_dht_announce_interval()
 	{
 #ifndef TORRENT_DISABLE_DHT
+		m_dht_interval_update_torrents = m_torrents.size();
+
+		// if we haven't started yet, don't actually trigger this
+		if (!m_thread) return;
+
+		if (m_abort) return;
+
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_announce");
 #endif
-		m_dht_interval_update_torrents = m_torrents.size();
 		error_code ec;
 		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -6945,6 +6952,9 @@ retry:
 		m_udp_socket.set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
 
 		if (!m_settings.get_bool(settings_pack::force_proxy)) return;
+
+		// if we haven't started yet, don't actually trigger this
+		if (!m_thread) return;
 
 		// enable force_proxy mode. We don't want to accept any incoming
 		// connections, except through a proxy.
@@ -7120,6 +7130,11 @@ retry:
 	}
 #endif
 
+	void session_impl::update_alert_mask()
+	{
+		m_alerts.set_alert_mask(m_settings.get_int(settings_pack::alert_mask));
+	}
+
 	void session_impl::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
 		m_alerts.set_dispatch_function(fun);
@@ -7155,16 +7170,6 @@ retry:
 	alert const* session_impl::wait_for_alert(time_duration max_wait)
 	{
 		return m_alerts.wait_for_alert(max_wait);
-	}
-
-	void session_impl::set_alert_mask(boost::uint32_t m)
-	{
-		m_alerts.set_alert_mask(m);
-	}
-
-	boost::uint32_t session_impl::get_alert_mask() const
-	{
-		return m_alerts.alert_mask();
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

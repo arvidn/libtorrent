@@ -476,8 +476,7 @@ namespace libtorrent
 	{ throw; }
 #endif
 
-	void session::init(std::pair<int, int> listen_range, char const* listen_interface
-		, fingerprint const& id, boost::uint32_t alert_mask)
+	void session::init(settings_pack const& pack, fingerprint const& id)
 	{
 #if defined _MSC_VER && defined TORRENT_DEBUG
 		// workaround for microsofts
@@ -486,7 +485,9 @@ namespace libtorrent
 		::_set_se_translator(straight_to_debugger);
 #endif
 
-		m_impl.reset(new session_impl(listen_range, id, listen_interface, alert_mask));
+		m_impl.reset(new session_impl(id));
+
+		apply_pack(&pack, m_impl->m_settings, m_impl.get());
 
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
@@ -1256,18 +1257,19 @@ namespace libtorrent
 		return m_impl->wait_for_alert(max_wait);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_alert_mask(boost::uint32_t m)
 	{
-		TORRENT_ASYNC_CALL1(set_alert_mask, m);
+		settings_pack p;
+		p.set_int(settings_pack::alert_mask, m);
+		apply_settings(p);
 	}
 
 	boost::uint32_t session::get_alert_mask() const
 	{
-		TORRENT_SYNC_CALL_RET(boost::uint32_t, get_alert_mask);
-		return r;
+		return get_settings().get_int(settings_pack::alert_mask);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	size_t session::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
 		TORRENT_SYNC_CALL_RET1(size_t, set_alert_queue_size_limit, queue_size_limit_);
@@ -1290,7 +1292,9 @@ namespace libtorrent
 			default: break;
 		}
 
-		TORRENT_ASYNC_CALL1(set_alert_mask, m);
+		settings_pack p;
+		p.set_int(settings_pack::alert_mask, m);
+		apply_settings(p);
 	}
 #endif
 

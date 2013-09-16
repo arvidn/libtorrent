@@ -126,24 +126,26 @@ void test_ssl(int test_idx, bool use_utp)
 	remove_all("tmp1_ssl", ec);
 	remove_all("tmp2_ssl", ec);
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
-
 	int ssl_port = 1024 + rand() % 50000;
 	settings_pack sett;
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+	sett.set_int(settings_pack::max_retry_port_bind, 100);
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	sett.set_bool(settings_pack::enable_incoming_utp, use_utp);
 	sett.set_bool(settings_pack::enable_outgoing_utp, use_utp);
 	sett.set_bool(settings_pack::enable_incoming_tcp, !use_utp);
 	sett.set_bool(settings_pack::enable_outgoing_tcp, !use_utp);
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
-	ses1.apply_settings(sett);
+
+	session ses1(sett, fingerprint("LT", 0, 1, 0, 0));
 
 	if (!test.downloader_has_cert)
 		// this disables outgoing SSL connections
 		sett.set_int(settings_pack::ssl_listen, 0);
 	else
 		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
-	ses2.apply_settings(sett);
+
+	session ses2(sett, fingerprint("LT", 0, 1, 0, 0));
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");

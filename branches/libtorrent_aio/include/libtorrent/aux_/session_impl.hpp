@@ -235,11 +235,7 @@ namespace libtorrent
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 #endif
 
-			session_impl(
-				std::pair<int, int> listen_port_range
-				, fingerprint const& cl_fprint
-				, char const* listen_interface
-				, boost::uint32_t alert_mask);
+			session_impl(fingerprint const& cl_fprint);
 			virtual ~session_impl();
 
 			void init();
@@ -450,8 +446,6 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents() const;
 			
-			void set_alert_mask(boost::uint32_t m);
-			boost::uint32_t get_alert_mask() const;
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
 			void pop_alerts(std::deque<alert*>* alerts);
@@ -725,6 +719,7 @@ namespace libtorrent
 			void update_rate_limit_utp();
 			void update_ignore_rate_limits_on_local_network();
 #endif
+			void update_alert_mask();
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);

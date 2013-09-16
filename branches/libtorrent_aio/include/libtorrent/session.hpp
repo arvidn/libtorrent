@@ -186,6 +186,14 @@ namespace libtorrent
 
 		// TODO: 4 pass in settings_pack to constructor. That could probably replace most of these other
 		// parameters. The alert mask should probably be a setting as well
+		session(settings_pack const& pack
+			, fingerprint const& print = fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+			, int flags = start_default_features | add_default_plugins)
+		{
+			TORRENT_CFG();
+			init(pack, print);
+			start(flags);
+		}
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
@@ -193,7 +201,9 @@ namespace libtorrent
 			TORRENT_LOGPATH_ARG_DEFAULT)
 		{
 			TORRENT_CFG();
-			init(std::make_pair(0, 0), "0.0.0.0", print, alert_mask);
+			settings_pack pack;
+			pack.set_int(settings_pack::alert_mask, alert_mask);
+			init(pack, print);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			set_log_path(logpath);
 #endif
@@ -208,8 +218,16 @@ namespace libtorrent
 		{
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
-			TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
-			init(listen_port_range, listen_interface, print, alert_mask);
+			TORRENT_ASSERT(listen_port_range.first <= listen_port_range.second);
+
+			settings_pack pack;
+			pack.set_int(settings_pack::alert_mask, alert_mask);
+			pack.set_int(settings_pack::max_retry_port_bind, listen_port_range.second - listen_port_range.first);
+			char if_string[100];
+			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
+			pack.set_str(settings_pack::listen_interfaces, if_string);
+
+			init(pack, print);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			set_log_path(logpath);
 #endif
@@ -919,7 +937,7 @@ namespace libtorrent
 #endif
 
 		// ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
-		// set_alert_mask() you can filter which alerts to receive through ``pop_alert()``.
+		// settings_pack::alert_mask you can filter which alerts to receive through ``pop_alert()``.
 		// For information about the alert categories, see alerts_.
 		// 
 		// ``pop_alerts()`` pops all pending alerts in a single call. In high performance environments
@@ -962,9 +980,9 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
 
+		// use the setting instead
 		TORRENT_DEPRECATED_PREFIX
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_) TORRENT_DEPRECATED;
-#endif
 
 		// Changes the mask of which alerts to receive. By default only errors are reported.
 		// ``m`` is a bitmask where each bit represents a category of alerts.
@@ -972,8 +990,11 @@ namespace libtorrent
 		// ``get_alert_mask()`` returns the current mask;
 		//
 		// See category_t enum for options.
-		void set_alert_mask(boost::uint32_t m);
-		boost::uint32_t get_alert_mask() const;
+		TORRENT_DEPRECATED_PREFIX
+		void set_alert_mask(boost::uint32_t m) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		boost::uint32_t get_alert_mask() const TORRENT_DEPRECATED;
+#endif
 
 		// This sets a function to be called (from within libtorrent's netowrk thread) every time an alert
 		// is posted. Since the function (``fun``) is run in libtorrent's internal thread, it may not call
@@ -1020,8 +1041,7 @@ namespace libtorrent
 		
 	private:
 
-		void init(std::pair<int, int> listen_range, char const* listen_interface
-			, fingerprint const& id, boost::uint32_t alert_mask);
+		void init(settings_pack const& pack, fingerprint const& id);
 		void set_log_path(std::string const& p);
 		void start(int flags);
 

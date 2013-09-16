@@ -1358,6 +1358,10 @@ namespace libtorrent
 			// retry a failed port bind
 			max_retry_port_bind,
 
+			// a bitmask combining flags from alert::category_t defining
+			// which kinds of alerts to receive
+			alert_mask,
+
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
