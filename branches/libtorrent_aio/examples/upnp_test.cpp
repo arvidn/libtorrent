@@ -61,8 +61,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	session s;
-	s.set_alert_mask(alert::port_mapping_notification);
+	settings_pack p;
+	p.set_int(settings_pack::alert_mask, alert::port_mapping_notification);
+	session s(p);
 
 	for (;;)
 	{

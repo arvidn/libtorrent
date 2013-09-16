@@ -129,8 +129,11 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		}
 	}
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
-	ses1.set_alert_mask(alert::all_categories);
+	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, alert::all_categories);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
+	pack.set_int(settings_pack::max_retry_port_bind, 1000);
+	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	add_torrent_params p;
 	p.save_path = "tmp1_checking";

@@ -78,17 +78,13 @@ void test_swarm(int flags = 0)
 	session_proxy p2;
 	session_proxy p3;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000), "0.0.0.0", 0);
-
-	// this is to avoid everything finish from a single peer
-	// immediately. To make the swarm actually connect all
-	// three peers before finishing.
-	float rate_limit = 100000;
+	int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
 
 	settings_pack pack;
-
+	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
 	if (flags & strict_super_seeding)
@@ -106,13 +102,23 @@ void test_swarm(int flags = 0)
 		pack.set_int(settings_pack::explicit_cache_interval, 5);
 	}
 
+	// this is to avoid everything finish from a single peer
+	// immediately. To make the swarm actually connect all
+	// three peers before finishing.
+	float rate_limit = 100000;
+
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
+	pack.set_int(settings_pack::max_retry_port_bind, 1000);
+
+	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+
 	ses1.apply_settings(pack);
 
 	pack.set_int(settings_pack::download_rate_limit, rate_limit / 2);
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
-	ses2.apply_settings(pack);
-	ses3.apply_settings(pack);
+	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -132,14 +138,6 @@ void test_swarm(int flags = 0)
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
 		, false, true, "_swarm", 32 * 1024, 0, flags & super_seeding, &p);
-
-	int mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
-			| alert::stats_notification);
-	ses1.set_alert_mask(mask);
-	ses2.set_alert_mask(mask);
-	ses3.set_alert_mask(mask);
 
 	if (flags & time_critical)
 	{

@@ -83,8 +83,19 @@ void test_rate()
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, mask);
+	settings_pack pack;
+	high_performance_seed(pack);
+	pack.set_bool(settings_pack::enable_outgoing_utp, true);
+	pack.set_bool(settings_pack::enable_incoming_utp, true);
+	pack.set_bool(settings_pack::enable_outgoing_tcp, false);
+	pack.set_bool(settings_pack::enable_incoming_tcp, false);
+	pack.set_int(settings_pack::alert_mask, mask);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48575");
+
+	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49575");
+	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -99,19 +110,8 @@ void test_rate()
 
 	peer_disconnects = 0;
 
-	session_settings sett = high_performance_seed();
-	sett.enable_outgoing_utp = true;
-	sett.enable_incoming_utp = true;
-	sett.enable_outgoing_tcp = false;
-	sett.enable_incoming_tcp = false;
-	ses1.set_settings(sett);
-	ses2.set_settings(sett);
-
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
-
-	ses1.set_alert_mask(mask);
-	ses2.set_alert_mask(mask);
 
 	ptime start = time_now();
 
@@ -215,7 +215,7 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s allow-fast: %s priorities: %s\n\n\n"
+	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s priorities: %s\n\n\n"
 		, test_name[proxy_type], test_disk_full ? "true": "false"
 		, test_priorities ? "true" : "false");
 	
@@ -248,20 +248,6 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 	}
 
 	settings_pack pack = sett;
-	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
-
-	pack.set_int(settings_pack::unchoke_slots_limit, 0);
-	ses1.apply_settings(pack);
-	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
-
-	pack.set_int(settings_pack::unchoke_slots_limit, -1);
-	ses1.apply_settings(pack);
-	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
-
-	pack.set_int(settings_pack::unchoke_slots_limit, 8);
-	ses1.apply_settings(pack);
-	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
-
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
 	// immediately to complete the second half.
@@ -276,8 +262,22 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 	pack.set_bool(settings_pack::prefer_udp_trackers, false);
 	pack.set_bool(settings_pack::enable_outgoing_utp, false);
 	pack.set_bool(settings_pack::enable_incoming_utp, false);
+	pack.set_int(settings_pack::alert_mask, mask);
 
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, 0);
 	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, -1);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, 8);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
+
 	ses2.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -334,8 +334,6 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		std::cerr << std::endl;
 	}
 
-	ses1.set_alert_mask(mask);
-	ses2.set_alert_mask(mask);
 //	ses1.set_alert_dispatch(&print_alert);
 
 	// also test to move the storage of the downloader and the uploader
@@ -527,7 +525,6 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		p.save_path = "tmp2_transfer_moved";
 		p.resume_data = resume_data;
 		tor2 = ses2.add_torrent(p, ec);
-		ses2.set_alert_mask(mask);
 		tor2.prioritize_pieces(priorities);
 		std::cout << "resetting priorities" << std::endl;
 		tor2.resume();

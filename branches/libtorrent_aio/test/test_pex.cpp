@@ -52,9 +52,33 @@ void test_pex()
 	session_proxy p2;
 	session_proxy p3;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48200, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49200, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50200, 51000), "0.0.0.0", 0);
+	int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
+
+	// this is to avoid everything finish from a single peer
+	// immediately. To make the swarm actually connect all
+	// three peers before finishing.
+	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, mask);
+	pack.set_int(settings_pack::download_rate_limit, 0);
+	pack.set_int(settings_pack::upload_rate_limit, 0);
+	pack.set_int(settings_pack::max_retry_port_bind, 800);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48200");
+
+	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49200");
+
+	session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	// make the peer connecting the two worthless to transfer
+	// data, to force peer 3 to connect directly to peer 1 through pex
+	pack.set_int(settings_pack::download_rate_limit, 2000);
+	pack.set_int(settings_pack::upload_rate_limit, 2000);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:50200");
+	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	ses1.add_extension(create_ut_pex_plugin);
 	ses2.add_extension(create_ut_pex_plugin);
@@ -65,27 +89,6 @@ void test_pex()
 
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
 
-	int mask = alert::all_categories
-		& ~(alert::progress_notification
-			| alert::performance_warning
-			| alert::stats_notification);
-	ses1.set_alert_mask(mask);
-	ses2.set_alert_mask(mask);
-	ses3.set_alert_mask(mask);
-
-	// this is to avoid everything finish from a single peer
-	// immediately. To make the swarm actually connect all
-	// three peers before finishing.
-	settings_pack pack;
-	pack.set_int(settings_pack::download_rate_limit, 0);
-	pack.set_int(settings_pack::upload_rate_limit, 0);
-	ses1.apply_settings(pack);
-	ses3.apply_settings(pack);
-
-	// make the peer connecting the two worthless to transfer
-	// data, to force peer 3 to connect directly to peer 1 through pex
-	pack.set_int(settings_pack::download_rate_limit, 2000);
-	pack.set_int(settings_pack::upload_rate_limit, 2000);
 	ses2.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION

@@ -521,8 +521,9 @@ void test_fastresume(std::string const& test_path)
 
 	entry resume;
 	{
-		session ses(fingerprint("  ", 0,0,0,0), 0);
-		ses.set_alert_mask(alert::all_categories);
+		settings_pack pack;
+		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		error_code ec;
 
@@ -571,8 +572,9 @@ void test_fastresume(std::string const& test_path)
 
 	// make sure the fast resume check fails! since we removed the file
 	{
-		session ses(fingerprint("  ", 0,0,0,0), 0);
-		ses.set_alert_mask(alert::all_categories);
+		settings_pack pack;
+		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -628,9 +630,9 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 
 	entry resume;
 	{
-		session ses(fingerprint("  ", 0,0,0,0), 0);
-		ses.set_alert_mask(alert::all_categories);
-
+		settings_pack pack;
+		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -668,8 +670,9 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
-		session ses(fingerprint("  ", 0,0,0,0), 0);
-		ses.set_alert_mask(alert::all_categories);
+		settings_pack pack;
+		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));

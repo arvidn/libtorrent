@@ -39,8 +39,9 @@ using namespace libtorrent;
 
 int test_main()
 {
-	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
-	ses.set_alert_mask(~0);
+	settings_pack p;
+	p.set_int(settings_pack::alert_mask, ~0);
+	session ses(p, fingerprint("LT", 0, 1, 0, 0));
 
 	// make sure the destructor waits properly
 	// for the asynchronous call to set the alert

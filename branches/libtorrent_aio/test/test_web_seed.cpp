@@ -356,9 +356,8 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding, b
 		pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 		pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
 		pack.set_int(settings_pack::max_retry_port_bind, 1000);
+		pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
 		ses.apply_settings(pack);
-
-		ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 
 		for (int i = 0; i < 6; ++i)
 			test_transfer(ses, torrent_file, i, port, protocol, test_url_seed, chunked_encoding, test_ban);

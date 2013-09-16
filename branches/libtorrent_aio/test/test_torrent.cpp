@@ -48,8 +48,11 @@ using namespace libtorrent;
 
 void test_running_torrent(boost::shared_ptr<torrent_info> info, size_type file_size)
 {
-	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
-	ses.set_alert_mask(alert::storage_notification);
+	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
+	pack.set_int(settings_pack::max_retry_port_bind, 10);
+	session ses(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	std::vector<boost::uint8_t> zeroes;
 	zeroes.resize(1000, 0);

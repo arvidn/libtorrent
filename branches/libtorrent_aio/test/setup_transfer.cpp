@@ -552,15 +552,13 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (ses3) ses3->set_peer_class_filter(f);
 
 	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
 	if (ses3) pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 	pack.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 	pack.set_int(settings_pack::max_failcount, 1);
 	ses1->apply_settings(pack);
 	ses2->apply_settings(pack);
 	if (ses3) ses3->apply_settings(pack);
-	ses1->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
-	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
-	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 
 	std::srand((unsigned int)time(0));
 	peer_id pid;

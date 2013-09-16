@@ -53,31 +53,32 @@ void test_swarm()
 	session_proxy p2;
 	session_proxy p3;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000), "0.0.0.0", 0);
-
-	ses1.set_alert_mask(alert::all_categories);
-	ses2.set_alert_mask(alert::all_categories);
-	ses3.set_alert_mask(alert::all_categories);
-
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 100000;
 
 	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 	pack.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
 	pack.set_int(settings_pack::unchoke_slots_limit, 1);
-	ses1.apply_settings(pack);
+	pack.set_int(settings_pack::max_retry_port_bind, 900);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48010");
+
+	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit / 10);
 	pack.set_int(settings_pack::download_rate_limit, rate_limit / 5);
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
-	ses2.apply_settings(pack);
-	ses3.apply_settings(pack);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
+
+	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
+
+	session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
