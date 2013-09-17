@@ -30,10 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
 #include <boost/cstdint.hpp>
 
 namespace libtorrent
 {
 	void random_seed(boost::uint32_t v);
-	boost::uint32_t random();
+	boost::uint32_t TORRENT_EXTRA_EXPORT random();
 }
