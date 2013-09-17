@@ -98,7 +98,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 32 * 1024, 0, super_seeding, &p);
+		, false, true, "_swarm", 8 * 1024, 0, super_seeding, &p);
 
 	int mask = alert::all_categories & ~(alert::progress_notification | alert::performance_warning | alert::stats_notification);
 	ses1.set_alert_mask(mask);

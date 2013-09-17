@@ -530,7 +530,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		error_code ec;
 		create_directory("tmp1" + suffix, ec);
 		std::ofstream file(combine_path("tmp1" + suffix, "temporary").c_str());
-		t = ::create_torrent(&file, piece_size, 19, true);
+		t = ::create_torrent(&file, piece_size, 9, true);
 		file.close();
 		if (clear_files)
 		{
