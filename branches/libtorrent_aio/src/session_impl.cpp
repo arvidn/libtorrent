@@ -920,11 +920,15 @@ namespace aux {
 
 		PRINT_SIZEOF(default_storage)
 		PRINT_OFFSETOF(default_storage, m_mapped_files)
+#ifndef _MSC_VER
 		PRINT_OFFSETOF(default_storage, m_files)
+#endif
 		PRINT_OFFSETOF(default_storage, m_stat_cache)
 		PRINT_OFFSETOF(default_storage, m_file_priority)
 		PRINT_OFFSETOF(default_storage, m_save_path)
+#ifndef _MSC_VER
 		PRINT_OFFSETOF(default_storage, m_pool)
+#endif
 		PRINT_OFFSETOF(default_storage, m_part_file)
 		PRINT_OFFSETOF(default_storage, m_allocate_files)
 		PRINT_OFFSETOF_END(default_storage)
