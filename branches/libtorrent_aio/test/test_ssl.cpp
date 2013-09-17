@@ -162,9 +162,6 @@ void test_ssl(int test_idx, bool use_utp)
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
-	wait_for_listen(ses1, "ses1");
-	wait_for_listen(ses2, "ses2");
-
 	peer_disconnects = 0;
 	ssl_peer_disconnects = 0;
 	peer_errors = 0;
