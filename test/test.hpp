@@ -39,10 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#ifdef TORRENT_BUILDING_TEST_SHARED
+#if defined TORRENT_BUILDING_TEST_SHARED
 #define EXPORT BOOST_SYMBOL_EXPORT
-#else
+#elif defined TORRENT_LINK_TEST_SHARED
 #define EXPORT BOOST_SYMBOL_IMPORT
+#else
+#define EXPORT
 #endif
 
 // the unit tests need access to these.

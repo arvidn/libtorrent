@@ -43,6 +43,9 @@ lib libtorrent_test
 
 	: # default build
 	<link>shared
+
+	: # user-requirements
+	<link>shared:<define>TORRENT_LINK_TEST_SHARED
 ;
 
 lib advapi32 : : <name>Advapi32 ;
