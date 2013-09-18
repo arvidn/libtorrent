@@ -24,6 +24,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* increase max allowed outstanding piece requests from peers
 	* uTP performance improvement. only fast retransmit one packet at a time
 	* improve error message for 'file too short'
 	* fix piece-picker stat bug when only selecting some files for download
