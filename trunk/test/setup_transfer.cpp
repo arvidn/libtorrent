@@ -343,8 +343,7 @@ int start_proxy(int proxy_type)
 	}
 
 	char buf[512];
-	// we need to echo n since dg will ask us to configure it
-	snprintf(buf, sizeof(buf), "echo n | delegated -P%d ADMIN=test@test.com "
+	snprintf(buf, sizeof(buf), "delegated -P%d ADMIN=test@test.com "
 		"PERMIT=\"*:*:localhost\" REMITTABLE=\"*\" RELAY=proxy,delegate "
 		"SERVER=%s %s &"
 		, port, type, auth);
