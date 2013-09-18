@@ -239,7 +239,7 @@ struct utp_socket_impl
 		, m_written(0)
 		, m_receive_buffer_size(0)
 		, m_read_buffer_size(0)
-		, m_in_buf_size(100 * 1024 * 1024)
+		, m_in_buf_size(1024 * 1024)
 		, m_in_packets(0)
 		, m_out_packets(0)
 		, m_send_delay(0)
@@ -1959,6 +1959,9 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p, ptime now)
 	}
 	if (m_receive_buffer_size == 0) m_read_timeout = now + milliseconds(100);
 	// save this packet until the client issues another read
+	// TODO: 4 There's currently no limit on how many packets we save. In the case of the
+	// client setting a download rate limit, we may store incoming packets indefinitely!
+	// Right now, we rely on the other end honoring the advertised receive window.
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
 
