@@ -375,7 +375,7 @@ int start_proxy(int proxy_type)
 	char buf[512];
 	snprintf(buf, sizeof(buf), "delegated -P%d ADMIN=test@test.com "
 		"PERMIT=\"*:*:localhost\" REMITTABLE=\"*\" RELAY=proxy,delegate "
-		"SERVER=%s %s &"
+		"SERVER=%s %s"
 		, port, type, auth);
 
 	fprintf(stderr, "%s starting delegated proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
