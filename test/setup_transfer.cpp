@@ -290,6 +290,38 @@ void stop_proxy(int port)
 	// calling stop_all_proxies().
 }
 
+// returns 0 on success
+int async_run(char const* cmdline)
+{
+#ifdef _WIN32
+	char buf[2048];
+	snprintf(buf, sizeof(buf), "%s", cmdline);
+
+	PROCESS_INFORMATION pi;
+	STARTUPINFOA startup;
+	memset(&startup, 0, sizeof(startup));
+	startup.cb = sizeof(startup);
+	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+	startup.hStdOutput= GetStdHandle(STD_OUTPUT_HANDLE);
+	startup.hStdError = GetStdHandle(STD_INPUT_HANDLE);
+	int ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE, 0, NULL, NULL, &startup, &pi);
+
+	if (ret == 0)
+	{
+		int error = GetLastError();
+		fprintf(stderr, "failed (%d) %s\n", error, error_code(error, get_system_category()).message().c_str());
+	}
+	return ret == 0;
+#else
+	char buf[2048];
+	snprintf(buf, sizeof(buf), "%s &", cmdline);
+	int ret = system(buf);
+	if (ret != 0)
+		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
+	return ret;
+#endif
+}
+
 void stop_all_proxies()
 {
 	std::map<int, int> proxies = running_proxies;
@@ -298,10 +330,8 @@ void stop_all_proxies()
 	{
 		char buf[100];
 		snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", i->first);
-		int ret = system(buf);
+		int ret = async_run(buf);
 		if (ret == 0)
-			perror("system");	
-		else
 			running_proxies.erase(i->first);
 	}
 }
@@ -349,12 +379,8 @@ int start_proxy(int proxy_type)
 		, port, type, auth);
 
 	fprintf(stderr, "%s starting delegated proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
-	int r = system(buf);
-	if (r != 0)
-	{
-		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
-		exit(1);
-	}
+	int r = async_run(buf);
+	if (r != 0) exit(1);
 	running_proxies.insert(std::make_pair(port, proxy_type));
 	fprintf(stderr, "%s launched\n", time_now_string());
 	// apparently delegate takes a while to open its listen port
