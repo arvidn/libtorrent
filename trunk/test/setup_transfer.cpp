@@ -1,4 +1,4 @@
-/*
+	/*
 
 Copyright (c) 2008, Arvid Norberg
 All rights reserved.
@@ -284,6 +284,10 @@ void test_sleep(int millisec)
 	libtorrent::sleep(millisec);
 }
 
+#ifdef _WIN32
+typedef DWORD pid_t;
+#endif
+
 struct proxy_t
 {
 	pid_t pid;
@@ -360,7 +364,13 @@ void stop_all_proxies()
 		, end(proxies.end()); i != end; ++i)
 	{
 #ifdef _WIN32
+		HANDLE proc = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, i->second.pid);
 		GenerateConsoleCtrlEvent(CTRL_C_EVENT, i->second.pid);
+		int ret = WaitForSingleObject(proc, 1000);
+		// if the process didn't terminate in 1 second, kill it
+		if (ret != WAIT_OBJECT_0)
+			TerminateProcess(proc, 138);
+		CloseHandle(proc);
 #else
 		printf("killing pid: %d\n", i->second.pid);
 		kill(i->second.pid, SIGINT);
