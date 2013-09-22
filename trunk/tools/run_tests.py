@@ -241,7 +241,7 @@ def main(argv):
 
 	timestamp = datetime.now()
 
-	tester_pool = Pool(processes=num_processes)
+#	tester_pool = Pool(processes=num_processes)
 
 	print '%s-%d - %s - %s' % (branch_name, revision, author, timestamp)
 
@@ -283,17 +283,17 @@ def main(argv):
 				if not toolset in results: results[toolset] = {}
 				toolset_found = False
 
-				futures = []
-				for features in configs:
-					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit, incremental]))
-
-				for future in futures:
-					(compiler, r) = future.get()
-					results[toolset].update(r)
-
+#				futures = []
 #				for features in configs:
-#					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit, incremental)
+#					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit, incremental]))
+
+#				for future in futures:
+#					(compiler, r) = future.get()
 #					results[toolset].update(r)
+
+				for features in configs:
+					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit, incremental)
+					results[toolset].update(r)
 
 				print ''
 
