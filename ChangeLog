@@ -1,3 +1,4 @@
+	* fix mingw build issues
 	* increase max allowed outstanding piece requests from peers
 	* uTP performance improvement. only fast retransmit one packet at a time
 	* improve error message for 'file too short'
