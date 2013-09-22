@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined TORRENT_BEOS
 #include <kernel/OS.h>
 #include <stdlib.h> // malloc/free
-#else
+#elif !defined TORRENT_WINDOWS
 #include <stdlib.h> // valloc/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
