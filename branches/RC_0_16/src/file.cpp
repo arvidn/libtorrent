@@ -1979,7 +1979,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// only allocate the space if the file
 			// is not fully allocated
 			DWORD high_dword = 0;
-			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
+#if TORRENT_USE_WSTRING
+#define GetCompressedFileSize_ GetCompressedFileSizeW
+#else
+#define GetCompressedFileSize_ GetCompressedFileSizeA
+#endif
+			offs.LowPart = GetCompressedFileSize_(m_path.c_str(), &high_dword);
 			offs.HighPart = high_dword;
 			ec.assign(GetLastError(), get_system_category());
 			if (ec) return false;
