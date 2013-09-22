@@ -60,6 +60,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/detail/atomic_count.hpp>
 
+#ifndef _WIN32
+#include <spawn.h>
+#include <signal.h>
+#endif
+
 #define DEBUG_WEB_SERVER 1
 
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
@@ -279,8 +284,14 @@ void test_sleep(int millisec)
 	libtorrent::sleep(millisec);
 }
 
+struct proxy_t
+{
+	pid_t pid;
+	int type;
+};
+
 // maps port to proxy type
-static std::map<int, int> running_proxies;
+static std::map<int, proxy_t> running_proxies;
 
 void stop_proxy(int port)
 {
@@ -290,8 +301,8 @@ void stop_proxy(int port)
 	// calling stop_all_proxies().
 }
 
-// returns 0 on success
-int async_run(char const* cmdline)
+// returns 0 on failure, otherwise pid
+pid_t async_run(char const* cmdline)
 {
 #ifdef _WIN32
 	char buf[2048];
@@ -304,35 +315,57 @@ int async_run(char const* cmdline)
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	startup.hStdOutput= GetStdHandle(STD_OUTPUT_HANDLE);
 	startup.hStdError = GetStdHandle(STD_INPUT_HANDLE);
-	int ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE, 0, NULL, NULL, &startup, &pi);
+	int ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startup, &pi);
 
 	if (ret == 0)
 	{
 		int error = GetLastError();
 		fprintf(stderr, "failed (%d) %s\n", error, error_code(error, get_system_category()).message().c_str());
+		return 0;
 	}
-	return ret == 0;
+	return pi.dwProcessId;
 #else
-	char buf[2048];
-	snprintf(buf, sizeof(buf), "%s &", cmdline);
-	int ret = system(buf);
+	pid_t p;
+	char arg_storage[4096];
+	char* argp = arg_storage;
+	std::vector<char*> argv;
+	argv.push_back(argp);
+	for (char const* in = cmdline; *in != '\0'; ++in)
+	{
+		if (*in != ' ')
+		{
+			*argp++ = *in;
+			continue;
+		}
+		*argp++ = '\0';
+		argv.push_back(argp);
+	}
+	*argp = '\0';
+	argv.push_back(NULL);
+
+	int ret = posix_spawnp(&p, argv[0], NULL, NULL, &argv[0], NULL);
 	if (ret != 0)
+	{
 		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
-	return ret;
+		return 0;
+	}
+	return p;
 #endif
 }
 
 void stop_all_proxies()
 {
-	std::map<int, int> proxies = running_proxies;
-	for (std::map<int, int>::iterator i = proxies.begin()
+	std::map<int, proxy_t> proxies = running_proxies;
+	for (std::map<int, proxy_t>::iterator i = proxies.begin()
 		, end(proxies.end()); i != end; ++i)
 	{
-		char buf[100];
-		snprintf(buf, sizeof(buf), "delegated -P%d -Fkill", i->first);
-		int ret = async_run(buf);
-		if (ret == 0)
-			running_proxies.erase(i->first);
+#ifdef _WIN32
+		GenerateConsoleCtrlEvent(CTRL_C_EVENT, i->second.pid);
+#else
+		printf("killing pid: %d\n", i->second.pid);
+		kill(i->second.pid, SIGINT);
+#endif
+		running_proxies.erase(i->second.pid);
 	}
 }
 
@@ -340,50 +373,55 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	for (std::map<int, int>::iterator i = running_proxies.begin()
+	for (std::map<int, proxy_t>::iterator i = running_proxies.begin()
 		, end(running_proxies.end()); i != end; ++i)
 	{
-		if (i->second == proxy_type) return i->first;
+		if (i->second.type == proxy_type) return i->first;
 	}
 
 	int port = 10000 + (rand() % 50000);
 
 	char const* type = "";
 	char const* auth = "";
+	char const* cmd = "";
 
 	switch (proxy_type)
 	{
 		case proxy_settings::socks4:
 			type = "socks4";
+			auth = " --allow-v4";
+			cmd = "python ../socks.py";
 			break;
 		case proxy_settings::socks5:
 			type = "socks5";
+			cmd = "python ../socks.py";
 			break;
 		case proxy_settings::socks5_pw:
 			type = "socks5";
-			auth = "AUTHORIZER=-list{testuser:testpass}";
+			auth = " --username testuser --password testpass";
+			cmd = "python ../socks.py";
 			break;
 		case proxy_settings::http:
 			type = "http";
+			cmd = "python ../http.py";
 			break;
 		case proxy_settings::http_pw:
 			type = "http";
-			auth = "AUTHORIZER=-list{testuser:testpass}";
+			auth = " AUTHORIZER=-list{testuser:testpass}";
+			cmd = "python ../http.py";
 			break;
 	}
 
 	char buf[512];
-	snprintf(buf, sizeof(buf), "delegated -P%d ADMIN=test@test.com "
-		"PERMIT=\"*:*:localhost\" REMITTABLE=\"*\" RELAY=proxy,delegate "
-		"SERVER=%s %s"
-		, port, type, auth);
+	snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
 
-	fprintf(stderr, "%s starting delegated proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+	fprintf(stderr, "%s starting socks proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+	fprintf(stderr, "%s\n", buf);
 	int r = async_run(buf);
-	if (r != 0) exit(1);
-	running_proxies.insert(std::make_pair(port, proxy_type));
+	if (r == 0) exit(1);
+	proxy_t t = { r, proxy_type };
+	running_proxies.insert(std::make_pair(port, t));
 	fprintf(stderr, "%s launched\n", time_now_string());
-	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
 	return port;
 }
@@ -959,7 +997,7 @@ void send_content(socket_type& s, char const* file, int size, bool chunked)
 	else
 	{
 		write(s, boost::asio::buffer(file, size), boost::asio::transfer_all(), ec);
-		DLOG(stderr, " >> %s\n", std::string(file, size).c_str());
+//		DLOG(stderr, " >> %s\n", std::string(file, size).c_str());
 		if (ec) fprintf(stderr, "*** send failed: %s\n", ec.message().c_str());
 	}
 }
@@ -1204,14 +1242,6 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			std::string connection = p.header("connection");
 			std::string via = p.header("via");
 
-			// The delegate proxy doesn't say connection close, but it expects it to be closed
-			// the Via: header is an indicator of delegate making the request
-			if (connection == "close" || !via.empty())
-			{
-				DLOG(stderr, "*** got connection close\n");
-				connection_close = true;
-			}
-			
 			if (p.protocol() == "HTTP/1.0")
 			{
 				DLOG(stderr, "*** HTTP/1.0, closing connection when done\n");
