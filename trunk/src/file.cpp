@@ -1978,22 +1978,30 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		if ((m_open_mode & sparse) == 0)
 		{
-			typedef DWORD (WINAPI *GetCompressedFileSizeW_t)(LPCWSTR lpFileName, LPDWORD lpFileSizeHigh);
+#if TORRENT_USE_WSTRING
+			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCWSTR lpFileName, LPDWORD lpFileSizeHigh);
+#else
+			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCSTR lpFileName, LPDWORD lpFileSizeHigh);
+#endif
 			typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE hFile, LONGLONG ValidDataLength);
 
-			static GetCompressedFileSizeW_t GetCompressedFileSizeW = NULL;
+			static GetCompressedFileSize_t GetCompressedFileSize_ = NULL;
 			static SetFileValidData_t SetFileValidData = NULL;
 
 			static bool failed_kernel32 = false;
 
-			if ((GetCompressedFileSizeW == NULL) && !failed_kernel32)
+			if ((GetCompressedFileSize_ == NULL) && !failed_kernel32)
 			{
 				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
 				if (kernel32)
 				{
-					GetCompressedFileSizeW = (GetCompressedFileSizeW_t)GetProcAddress(kernel32, "GetCompressedFileSizeW");
+#if TORRENT_USE_WSTRING
+					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeW");
+#else
+					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeA");
+#endif
 					SetFileValidData = (SetFileValidData_t)GetProcAddress(kernel32, "SetFileValidData");
-					if ((GetCompressedFileSizeW == NULL) || (SetFileValidData == NULL))
+					if ((GetCompressedFileSize_ == NULL) || (SetFileValidData == NULL))
 					{ 
 						failed_kernel32 = true;
 					}
@@ -2004,12 +2012,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				}
 			}
 
-			if (!failed_kernel32 && GetCompressedFileSizeW && SetFileValidData)
+			if (!failed_kernel32 && GetCompressedFileSize_ && SetFileValidData)
 			{
 				// only allocate the space if the file
 				// is not fully allocated
 				DWORD high_dword = 0;
-				offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
+				offs.LowPart = GetCompressedFileSize_(m_path.c_str(), &high_dword);
 				offs.HighPart = high_dword;
 				ec.assign(GetLastError(), get_system_category());
 				if (ec) return false;
