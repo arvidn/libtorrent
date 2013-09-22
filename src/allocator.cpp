@@ -34,18 +34,27 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-#ifdef TORRENT_WINDOWS
-#include <windows.h>
-#elif defined TORRENT_BEOS
+#if defined TORRENT_BEOS
 #include <kernel/OS.h>
 #include <stdlib.h> // malloc/free
-#else
+#elif !defined TORRENT_WINDOWS
 #include <stdlib.h> // valloc/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
 #if TORRENT_USE_MEMALIGN || TORRENT_USE_POSIX_MEMALIGN || defined TORRENT_WINDOWS
 #include <malloc.h> // memalign and _aligned_malloc
+#include <stdlib.h> // _aligned_malloc on mingw
+#endif
+
+#ifdef TORRENT_WINDOWS
+// windows.h must be included after stdlib.h under mingw
+#include <windows.h> 
+#endif
+
+#ifdef TORRENT_MINGW
+#define _aligned_malloc __mingw_aligned_malloc
+#define _aligned_free __mingw_aligned_free
 #endif
 
 #ifdef TORRENT_DEBUG_BUFFERS
