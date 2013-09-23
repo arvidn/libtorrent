@@ -419,7 +419,7 @@ int start_proxy(int proxy_type)
 			break;
 		case proxy_settings::http_pw:
 			type = "http";
-			auth = " AUTHORIZER=-list{testuser:testpass}";
+			auth = " --username testuser --password testpass";
 			cmd = "python ../http.py";
 			break;
 	}
