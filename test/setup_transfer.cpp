@@ -285,12 +285,14 @@ void test_sleep(int millisec)
 }
 
 #ifdef _WIN32
-typedef DWORD pid_t;
+typedef DWORD pid_type;
+#else
+typedef pid_t pid_type;
 #endif
 
 struct proxy_t
 {
-	pid_t pid;
+	pid_type pid;
 	int type;
 };
 
@@ -306,7 +308,7 @@ void stop_proxy(int port)
 }
 
 // returns 0 on failure, otherwise pid
-pid_t async_run(char const* cmdline)
+pid_type async_run(char const* cmdline)
 {
 #ifdef _WIN32
 	char buf[2048];
@@ -329,7 +331,7 @@ pid_t async_run(char const* cmdline)
 	}
 	return pi.dwProcessId;
 #else
-	pid_t p;
+	pid_type p;
 	char arg_storage[4096];
 	char* argp = arg_storage;
 	std::vector<char*> argv;
