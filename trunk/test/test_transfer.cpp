@@ -636,7 +636,6 @@ int test_main()
 	&& !defined _GLIBCXX_DEBUG
 	// test rate only makes sense in release mode
 	test_rate();
-	return 0;
 #endif
 
 	// test with all kinds of proxies
