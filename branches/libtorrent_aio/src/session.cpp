@@ -113,6 +113,9 @@ namespace libtorrent
 
 		set.set_int(settings_pack::alert_queue_size, 100);
 
+		set.set_int(settings_pack::max_out_request_queue, 300);
+		set.set_int(settings_pack::max_allowed_in_request_queue, 100);
+
 		// setting this to a low limit, means more
 		// peers are more likely to request from the
 		// same piece. Which means fewer partial

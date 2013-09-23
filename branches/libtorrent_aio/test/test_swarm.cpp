@@ -137,7 +137,7 @@ void test_swarm(int flags = 0)
 	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 32 * 1024, 0, flags & super_seeding, &p);
+		, false, true, "_swarm", 8 * 1024, 0, flags & super_seeding, &p);
 
 	if (flags & time_critical)
 	{

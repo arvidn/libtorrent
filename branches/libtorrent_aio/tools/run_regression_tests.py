@@ -76,6 +76,7 @@ options:
    -j<n>     use n parallel processes for running tests
    -i        build incrementally (i.e. don't clean between checkouts)
    -valgrind run tests with valgrind (requires valgrind to be installed)
+   -s        skip. always run tests on the latest version
 '''
 
 
@@ -85,17 +86,24 @@ def loop():
 		print_usage()
 		sys.exit(1)
 
-	rev_file = os.path.join(os.getcwd(), '.rev')
-	print 'restoring last state from "%s"' % rev_file
+	skip = '-s' in sys.argv
 
-	try:
-		last_rev = int(open(rev_file, 'r').read())
-	except:
+	if skip:
+		sys.argv.remove('-s')
 		last_rev = run_tests.svn_info()[0] - 1
-		open(rev_file, 'w+').write('%d' % last_rev)
+	else:
+		rev_file = os.path.join(os.getcwd(), '.rev')
+		print 'restoring last state from "%s"' % rev_file
+
+		try:
+			last_rev = int(open(rev_file, 'r').read())
+		except:
+			last_rev = run_tests.svn_info()[0] - 1
+			open(rev_file, 'w+').write('%d' % last_rev)
 
 	while True:
 		revs = svn_fetch(last_rev)
+		if skip and len(revs): revs = revs[-1:]
 
 		for r in revs:
 			print '\n\nREVISION %d ===\n' % r

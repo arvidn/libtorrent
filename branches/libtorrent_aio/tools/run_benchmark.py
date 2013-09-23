@@ -4,12 +4,14 @@ import shutil
 import subprocess
 import sys
 
+cache_size = 300 # in MiB
+
 toolset = ''
 if len(sys.argv) > 1:
 	toolset = sys.argv[1]
 
-ret = os.system('cd ../examples && bjam boost=source profile statistics=on -j3 %s stage_client_test' % toolset)
-ret = os.system('cd ../examples && bjam boost=source release -j3 %s stage_connection_tester' % toolset)
+ret = os.system('cd ../examples && bjam boost=source profile statistics=on %s stage_client_test' % toolset)
+ret = os.system('cd ../examples && bjam boost=source release %s stage_connection_tester' % toolset)
 
 if ret != 0:
 	print 'ERROR: build failed: %d' % ret
@@ -37,8 +39,8 @@ def run_test(name, test_cmd, client_arg, num_peers):
 	except: pass
 
 	start = time.time();
-	client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s -h -c %d -T %d' \
-		% (port, client_arg, num_peers *2, num_peers*2)
+	client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s -h -c %d -T %d -C %d' \
+		% (port, client_arg, num_peers*2, num_peers*2, cache_size * 16)
 	test_cmd = '../examples/connection_tester %s -c %d -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % (test_cmd, num_peers, port)
 
 	client_out = open('%s/client.out' % output_dir, 'w+')
@@ -59,7 +61,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
 	print 'analyzing proile...'
 	os.system('gprof ../examples/client_test >%s/gprof.out' % output_dir)
 	print 'generating profile graph...'
-	os.system('python gprof2dot.py <%s/gprof.out | dot -Tps -o %s/cpu_profile.ps' % (output_dir, output_dir))
+	os.system('python gprof2dot.py --strip <%s/gprof.out | dot -Tpng -o %s/cpu_profile.png' % (output_dir, output_dir))
 
 	os.system('python parse_session_stats.py session_stats/*.log')
 	try: shutil.move('session_stats_report', '%s/session_stats_report' % output_dir)
@@ -68,5 +70,5 @@ def run_test(name, test_cmd, client_arg, num_peers):
 	except: pass
 
 run_test('download', 'upload', '', 50)
-run_test('upload', 'download', '-G', 5)
+run_test('upload', 'download', '-G', 20)
 

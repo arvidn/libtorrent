@@ -4405,18 +4405,18 @@ retry:
 
 			STAT_LOG(d, peers_up_send_buffer);
 
-			STAT_LOG(PRId64, sst.utp_stats.packet_loss);
-			STAT_LOG(PRId64, sst.utp_stats.timeout);
-			STAT_LOG(PRId64, sst.utp_stats.packets_in);
-			STAT_LOG(PRId64, sst.utp_stats.packets_out);
-			STAT_LOG(PRId64, sst.utp_stats.fast_retransmit);
-			STAT_LOG(PRId64, sst.utp_stats.packet_resend);
-			STAT_LOG(PRId64, sst.utp_stats.samples_above_target);
-			STAT_LOG(PRId64, sst.utp_stats.samples_below_target);
-			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_in);
-			STAT_LOG(PRId64, sst.utp_stats.payload_pkts_out);
-			STAT_LOG(PRId64, sst.utp_stats.invalid_pkts_in);
-			STAT_LOG(PRId64, sst.utp_stats.redundant_pkts_in);
+			STAT_LOG(d, sst.utp_stats.packet_loss);
+			STAT_LOG(d, sst.utp_stats.timeout);
+			STAT_LOG(d, sst.utp_stats.packets_in);
+			STAT_LOG(d, sst.utp_stats.packets_out);
+			STAT_LOG(d, sst.utp_stats.fast_retransmit);
+			STAT_LOG(d, sst.utp_stats.packet_resend);
+			STAT_LOG(d, sst.utp_stats.samples_above_target);
+			STAT_LOG(d, sst.utp_stats.samples_below_target);
+			STAT_LOG(d, sst.utp_stats.payload_pkts_in);
+			STAT_LOG(d, sst.utp_stats.payload_pkts_out);
+			STAT_LOG(d, sst.utp_stats.invalid_pkts_in);
+			STAT_LOG(d, sst.utp_stats.redundant_pkts_in);
 
 			// loaded torrents
 			STAT_LOG(d, int(m_stats_counters[counters::num_loaded_torrents]));
@@ -5948,7 +5948,15 @@ retry:
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
-		// TODO: 2 if we still can't find the torrent, we should probably look for it by url here
+		// if we still can't find the torrent, look for it by url
+		if (!torrent_ptr && !params.url.empty())
+		{
+			torrent_map::iterator i = std::find_if(m_torrents.begin()
+				, m_torrents.end(), boost::bind(&torrent::url, boost::bind(&std::pair<const sha1_hash
+					, boost::shared_ptr<torrent> >::second, _1)) == params.url);
+			if (i != m_torrents.end())
+				torrent_ptr = i->second;
+		}
 
 		if (torrent_ptr)
 		{
