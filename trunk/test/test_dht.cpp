@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_dispatcher.hpp"
-#include "libtorrent/random.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -318,8 +317,6 @@ struct print_alert : alert_dispatcher
 // TODO: 3 test find_data, obfuscated_get_peers and bootstrap
 int test_main()
 {
-	libtorrent::random_seed(1936584);
-
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
