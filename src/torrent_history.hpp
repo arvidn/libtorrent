@@ -136,7 +136,7 @@ namespace libtorrent
 		};
 
 		// these are the frames each individual field was last changed
-		boost::uint32_t frame[num_fields];
+		int frame[num_fields];
 
 		torrent_history_entry() {}
 

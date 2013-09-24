@@ -277,18 +277,17 @@ namespace libtorrent
 	}
 
 	char const* fmt(std::string const& s) { return s.c_str(); }
-	int fmt(int v) { return v; }
 	float fmt(float v) { return v; }
-	int fmt(bool v) { return v; }
+	boost::int64_t fmt(bool v) { return v; }
 	template <class T>
-	boost::uint64_t fmt(T v) { return boost::uint64_t(v); }
+	boost::int64_t fmt(T v) { return boost::uint64_t(v); }
 
 	void torrent_history_entry::debug_print(int current_frame) const
 	{
 		int frame_diff;
 
-#define PRINT(x, type) frame_diff = (std::min)(current_frame - frame[x], boost::uint32_t(20)); \
-		printf("%s\x1b[38;5;%dm%" #type "\x1b[0m ", frame[x] >= current_frame  ? "\x1b[41m" : "", 255 - frame_diff, fmt(status.x));
+#define PRINT(x, type) frame_diff = (std::min)(current_frame - frame[x], 20); \
+		printf("%s\x1b[38;5;%dm%" type "\x1b[0m ", frame[x] >= current_frame  ? "\x1b[41m" : "", 255 - frame_diff, fmt(status.x));
 	
 		PRINT(state, PRId64);
 		PRINT(paused, PRId64);
@@ -298,14 +297,14 @@ namespace libtorrent
 		PRINT(is_finished, PRId64);
 		PRINT(is_loaded, PRId64);
 		PRINT(has_metadata, PRId64);
-		PRINT(progress, f);
+		PRINT(progress, "f");
 		PRINT(progress_ppm, PRId64);
-		PRINT(error, s);
-//		PRINT(save_path, s);
-		PRINT(name, s);
+		PRINT(error, "s");
+//		PRINT(save_path, "s");
+		PRINT(name, "s");
 //		PRINT(next_announce, PRId64);
 //		PRINT(announce_interval, PRId64);
-		PRINT(current_tracker, s);
+		PRINT(current_tracker, "s");
 		PRINT(total_download, PRId64);
 		PRINT(total_upload, PRId64);
 		PRINT(total_payload_download, PRId64);
@@ -329,7 +328,7 @@ namespace libtorrent
 		PRINT(total_wanted, PRId64);
 		PRINT(distributed_full_copies, PRId64);
 		PRINT(distributed_fraction, PRId64);
-		PRINT(distributed_copies, f);
+		PRINT(distributed_copies, "f");
 		PRINT(block_size, PRId64);
 		PRINT(num_uploads, PRId64);
 		PRINT(num_connections, PRId64);
