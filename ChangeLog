@@ -1,3 +1,4 @@
+	* fix IPv6 support in UDP socket (uTP)
 	* fix mingw build issues
 	* increase max allowed outstanding piece requests from peers
 	* uTP performance improvement. only fast retransmit one packet at a time
