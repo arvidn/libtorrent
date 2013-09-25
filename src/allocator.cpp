@@ -100,7 +100,6 @@ namespace libtorrent
 	char* page_aligned_allocator::malloc(size_type bytes)
 	{
 		TORRENT_ASSERT(bytes >= page_size());
-		TORRENT_ASSERT(bytes % page_size() == 0);
 #ifdef TORRENT_DEBUG_BUFFERS
 		int page = page_size();
 		int num_pages = (bytes + (page-1)) / page + 2;
