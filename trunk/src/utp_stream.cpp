@@ -2227,9 +2227,6 @@ void utp_socket_impl::incoming(boost::uint8_t const* buf, int size, packet* p, p
 		memcpy(p->buf, buf, size);
 	}
 	// save this packet until the client issues another read
-	// TODO: 4 There's currently no limit on how many packets we save. In the case of the
-	// client setting a download rate limit, we may store incoming packets indefinitely!
-	// Right now, we rely on the other end honoring the advertised receive window.
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
 
@@ -2274,6 +2271,12 @@ bool utp_socket_impl::consume_incoming_data(
 	{
 		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
+		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
+		{
+			UTP_LOGV("%8p: other end is not honoring our advertised window, dropping packet\n", this);
+			return true;
+		}
+
 		// we received a packet in order
 		incoming(ptr, payload_size, 0, now);
 		m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
@@ -2291,8 +2294,7 @@ bool utp_socket_impl::consume_incoming_data(
 
 			packet* p = (packet*)m_inbuf.remove(next_ack_nr);
 
-			if (!p)
-				break;
+			if (!p) break;
 
 			m_buffered_incoming_bytes -= p->size - p->header_size;
 			incoming(0, p->size - p->header_size, p, now);
@@ -2321,6 +2323,13 @@ bool utp_socket_impl::consume_incoming_data(
 		if (m_inbuf.at(ph->seq_nr))
 		{
 			UTP_LOGV("%8p: already received seq_nr: %d\n"
+				, this, int(ph->seq_nr));
+			return true;
+		}
+
+		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
+		{
+			UTP_LOGV("%8p: other end is not honoring our advertised window, dropping packet %d\n"
 				, this, int(ph->seq_nr));
 			return true;
 		}
