@@ -1,3 +1,4 @@
+	* fix building with C++11
 	* fix IPv6 support in UDP socket (uTP)
 	* fix mingw build issues
 	* increase max allowed outstanding piece requests from peers

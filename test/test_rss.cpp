@@ -54,7 +54,7 @@ void print_feed(feed_status const& f)
 		, end(f.items.end()); i != end; ++i)
 	{
 		fprintf(stderr, "\033[32m%s\033[0m\n------------------------------------------------------\n"
-			"   url: %s\n   size: %"PRId64"\n   info-hash: %s\n   uuid: %s\n   description: %s\n"
+			"   url: %s\n   size: %" PRId64 "\n   info-hash: %s\n   uuid: %s\n   description: %s\n"
 			"   comment: %s\n   category: %s\n"
 			, i->title.c_str(), i->url.c_str(), i->size
 			, i->info_hash.is_all_zeros() ? "" : to_hex(i->info_hash.to_string()).c_str()

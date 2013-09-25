@@ -50,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include <stdlib.h> // free
 
+#ifndef BOOST_SYSTEM_NOEXCEPT
+#define BOOST_SYSTEM_NOEXCEPT throw()
+#endif
+
 namespace libtorrent
 {
 
@@ -329,9 +333,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
 	{
-		virtual const char* name() const throw();
-		virtual std::string message(int ev) const throw();
-		virtual boost::system::error_condition default_error_condition(int ev) const throw()
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
+		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
@@ -343,9 +347,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT http_error_category : boost::system::error_category
 	{
-		virtual const char* name() const throw();
-		virtual std::string message(int ev) const throw();
-		virtual boost::system::error_condition default_error_condition(int ev) const throw()
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
+		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
