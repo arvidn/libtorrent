@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
+#include "libtorrent/broadcast_socket.hpp" // for is_any
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
@@ -652,14 +653,19 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 				, _1, _2));
 		}
 	}
+
 #if TORRENT_USE_IPV6
-	else
+	if (ep.address().is_v6() || is_any(ep.address()))
 	{
+		udp::endpoint ep6 = ep;
+		if (is_any(ep.address())) ep6.address(address_v6::any());
+		m_ipv6_sock.open(udp::v6(), ec);
+		if (ec) return;
 #ifdef IPV6_V6ONLY
 		m_ipv6_sock.set_option(v6only(true), ec);
 		if (ec) return;
 #endif
-		m_ipv6_sock.bind(ep, ec);
+		m_ipv6_sock.bind(ep6, ec);
 		if (ec) return;
 		if (m_v6_outstanding == 0)
 		{
