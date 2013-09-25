@@ -40,12 +40,12 @@ namespace libtorrent
 {
 #if BOOST_VERSION >= 103500
 
-	const char* libtorrent_error_category::name() const throw()
+	const char* libtorrent_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
 		return "libtorrent error";
 	}
 
-	std::string libtorrent_error_category::message(int ev) const throw()
+	std::string libtorrent_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
 	{
 		static char const* msgs[] =
 		{
@@ -263,12 +263,12 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
-	const char* http_error_category::name() const throw()
+	const char* http_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
 		return "http error";
 	}
 
-	std::string http_error_category::message(int ev) const throw()
+	std::string http_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
 	{
 		std::string ret;
 		ret += to_string(ev).elems;

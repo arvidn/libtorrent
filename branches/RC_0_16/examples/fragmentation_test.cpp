@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < ti->num_files(); ++i)
 	{
 		if (ti->file_at(i).size == files[i].first) continue;
-		fprintf(stderr, "Files for this torrent are missing or incomplete: %s was %"PRId64" bytes, expected %"PRId64" bytes\n"
+		fprintf(stderr, "Files for this torrent are missing or incomplete: %s was %" PRId64 " bytes, expected %" PRId64 " bytes\n"
 			, ti->files().file_path(ti->file_at(i)).c_str(), files[i].first, ti->file_at(i).size);
 		return 1;
 	}
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 
 	for (int i = 0; i < pieces.size(); ++i)
 	{
-		fprintf(f, "%d %"PRId64"\n", pieces[i].first, pieces[i].second);
+		fprintf(f, "%d %" PRId64 "\n", pieces[i].first, pieces[i].second);
 	}
 
 	fclose(f);

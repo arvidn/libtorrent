@@ -190,7 +190,7 @@ void save_file(char const* filename, char const* data, int size)
 		fprintf(stderr, "ERROR opening file '%s': %s\n", filename, ec.message().c_str());
 		return;
 	}
-	file::iovec_t b = { (void*)data, size };
+	file::iovec_t b = { (void*)data, size_t(size) };
 	out.writev(0, &b, 1, ec);
 	TEST_CHECK(!ec);
 	if (ec)
