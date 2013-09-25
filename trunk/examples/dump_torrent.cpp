@@ -166,7 +166,7 @@ std::string print_entry(libtorrent::lazy_entry const& e, bool single_line = fals
 		case lazy_entry::int_t:
 		{
 			char str[100];
-			snprintf(str, sizeof(str), "%"PRId64, e.int_value());
+			snprintf(str, sizeof(str), "%" PRId64, e.int_value());
 			return str;
 		}
 		case lazy_entry::string_t:

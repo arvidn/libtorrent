@@ -141,10 +141,10 @@ namespace libtorrent
 				, "info_hash=%s"
 				"&peer_id=%s"
 				"&port=%d"
-				"&uploaded=%"PRId64
-				"&downloaded=%"PRId64
-				"&left=%"PRId64
-				"&corrupt=%"PRId64
+				"&uploaded=%" PRId64
+				"&downloaded=%" PRId64
+				"&left=%" PRId64
+				"&corrupt=%" PRId64
 				"&key=%X"
 				"%s%s" // event
 				"&numwant=%d"

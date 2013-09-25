@@ -82,7 +82,7 @@ namespace libtorrent
 	{
 		static const ptime start = time_now_hires();
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%"PRId64, total_microseconds(time_now_hires() - start));
+		snprintf(ret, sizeof(ret), "%" PRId64, total_microseconds(time_now_hires() - start));
 		return ret;
 	}
 }

@@ -437,7 +437,7 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_DISABLE_DHT
-			bool is_dht_running() const { return m_dht; }
+			bool is_dht_running() const { return m_dht.get(); }
 #endif
 
 #if TORRENT_USE_I2P

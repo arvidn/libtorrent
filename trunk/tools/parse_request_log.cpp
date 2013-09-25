@@ -210,7 +210,7 @@ int main(int argc, char* argv[])
 
 		if (first_timestamp == 0) first_timestamp = r.timestamp;
 
-		fprintf(expand_file, "%"PRIu64"\t%"PRIu64"\t%"PRIu32"\t%"PRIu32"\t%"PRIu32"\t%"PRIu32"\n"
+		fprintf(expand_file, "%" PRIu64 "\t%" PRIu64 "\t%" PRIu32 "\t%" PRIu32 "\t%" PRIu32 "\t%" PRIu32 "\n"
 			, r.timestamp, r.infohash, r.peer, r.piece, r.start, r.length);
 
 		bool hit = disk_cache->incoming_request(r);

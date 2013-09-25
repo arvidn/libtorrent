@@ -48,12 +48,12 @@ namespace libtorrent
 
 	i2p_error_category i2p_category;
 
-	const char* i2p_error_category::name() const
+	const char* i2p_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
 		return "i2p error";
 	}
 
-	std::string i2p_error_category::message(int ev) const
+	std::string i2p_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
 	{
 		static char const* messages[] =
 		{

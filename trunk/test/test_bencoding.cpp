@@ -180,7 +180,7 @@ int test_main()
 
 	// test invalid encoding
 	{
-		char buf[] =
+		unsigned char buf[] =
 			{ 0x64	, 0x31	, 0x3a	, 0x61	, 0x64	, 0x32	, 0x3a	, 0x69
 			, 0x64	, 0x32	, 0x30	, 0x3a	, 0x2a	, 0x21	, 0x19	, 0x89
 			, 0x9f	, 0xcd	, 0x5f	, 0xc9	, 0xbc	, 0x80	, 0xc1	, 0x76
@@ -198,7 +198,7 @@ int test_main()
 		printf("%s\n", buf);
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(buf, buf + sizeof(buf), e, ec);
+		int ret = lazy_bdecode((char*)buf, (char*)buf + sizeof(buf), e, ec);
 		TEST_CHECK(ret == -1);	
 	}
 	return 0;

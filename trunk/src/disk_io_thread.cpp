@@ -611,7 +611,7 @@ namespace libtorrent
 				else
 				{
 					TORRENT_ASSERT(buf);
-					file::iovec_t b = { buf.get(), buffer_size };
+					file::iovec_t b = { buf.get(), size_t(buffer_size) };
 					int ret = p.storage->write_impl(&b, p.piece, (std::min)(
 						i * m_block_size, piece_size) - buffer_size, 1);
 					if (ret > 0) ++num_write_calls;
@@ -811,7 +811,7 @@ namespace libtorrent
 		if (buf)
 		{
 			l.unlock();
-			file::iovec_t b = { buf.get(), buffer_size };
+			file::iovec_t b = { buf.get(), size_t(buffer_size) };
 			ret = p.storage->read_impl(&b, p.piece, start_block * m_block_size, 1);
 			l.lock();
 			++m_cache_stats.reads;
@@ -2025,7 +2025,7 @@ namespace libtorrent
 					}
 					else if (ret == -2)
 					{
-						file::iovec_t b = { j.buffer, j.buffer_size };
+						file::iovec_t b = { j.buffer, size_t(j.buffer_size) };
 						ret = j.storage->read_impl(&b, j.piece, j.offset, 1);
 						if (ret < 0)
 						{
@@ -2138,7 +2138,7 @@ namespace libtorrent
 						{
 							l.unlock();
 							ptime start = time_now_hires();
-							file::iovec_t iov = {j.buffer, j.buffer_size};
+							file::iovec_t iov = {j.buffer, size_t(j.buffer_size) };
 							ret = j.storage->write_impl(&iov, j.piece, j.offset, 1);
 							l.lock();
 							if (ret < 0)
