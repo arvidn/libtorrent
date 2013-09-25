@@ -81,12 +81,15 @@ Qual a diferença entre um proxy Elite, Anónimo e Transparente?
 
 """
 
-import socket, thread, select, sys
+import socket, thread, select, sys, base64
 
 __version__ = '0.1.0 Draft 1'
 BUFLEN = 8192
 VERSION = 'Python Proxy/'+__version__
 HTTPVER = 'HTTP/1.1'
+
+username = None
+password = None
 
 class ConnectionHandler:
     def __init__(self, connection, address, timeout):
@@ -94,6 +97,16 @@ class ConnectionHandler:
         self.client_buffer = ''
         self.timeout = timeout
         self.method, self.path, self.protocol = self.get_base_header()
+        global username
+        global password
+        if username != None:
+            auth = base64.b64encode(username + ':' + password)
+            if not 'Proxy-Authorization: Basic ' + auth in self.client_buffer:
+                print 'failed authentication: %s' % self.client_buffer
+                self.client.send(HTTPVER+' 401 Authentication Failed\n'+
+                                'Proxy-agent: %s\n\n'%VERSION)
+                self.client.close()
+                return
         try:
             if self.method=='CONNECT':
                  self.method_CONNECT()
@@ -112,12 +125,13 @@ class ConnectionHandler:
     def get_base_header(self):
         while 1:
             self.client_buffer += self.client.recv(BUFLEN)
-            end = self.client_buffer.find('\n')
+            end = self.client_buffer.find('\r\n\r\n')
             if end!=-1:
                 break
-        print '%s'%self.client_buffer[:end]#debug
-        data = (self.client_buffer[:end+1]).split()
-        self.client_buffer = self.client_buffer[end+1:]
+        line_end = self.client_buffer.find('\n')
+        print '%s'%self.client_buffer[:line_end]#debug
+        data = (self.client_buffer[:line_end+1]).split()
+        self.client_buffer = self.client_buffer[line_end+1:]
         return data
 
     def method_CONNECT(self):
@@ -190,6 +204,12 @@ if __name__ == '__main__':
     while i < len(sys.argv):
         if sys.argv[i] == '--port':
             listen_port = int(sys.argv[i+1])
+            i += 1
+        elif sys.argv[i] == '--username':
+            username = sys.argv[i+1]
+            i += 1
+        elif sys.argv[i] == '--password':
+            password = sys.argv[i+1]
             i += 1
         else:
             if sys.argv[i] != '--help': print('unknown option "%s"' % sys.argv[i])

@@ -96,14 +96,6 @@ sha1_hash generate_next()
 	return ret;
 }
 
-node_id random_id()
-{
-	node_id ret;
-	for (int i = 0; i < 20; ++i)
-		ret[i] = rand();
-	return ret;
-}
-
 boost::array<char, 64> generate_key()
 {
 	boost::array<char, 64> ret;
@@ -742,16 +734,21 @@ int test_main()
 
 	{
 		sett.extended_routing_table = false;
-		routing_table tbl(random_id(), 8, sett);
+		node_id id = to_hash("1234876923549721020394873245098347598635");
+		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+
+		routing_table tbl(id, 8, sett);
    
 		// insert 256 nodes evenly distributed across the ID space.
 		// we expect to fill the top 5 buckets
 		for (int i = 0; i < 256; ++i)
 		{
-			node_id id = random_id();
+			// test a node with the same IP:port changing ID
+			add_and_replace(id, diff);
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), libtorrent::random() % 20 + 20);
+			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
 		}
+		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
 #if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
@@ -761,12 +758,15 @@ int test_main()
 
 	{
 		sett.extended_routing_table = true;
-		routing_table tbl(random_id(), 8, sett);
+		node_id id = to_hash("1234876923549721020394873245098347598635");
+		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+
+		routing_table tbl(id, 8, sett);
 		for (int i = 0; i < 256; ++i)
 		{
-			node_id id = random_id();
+			add_and_replace(id, diff);
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), libtorrent::random() % 20 + 20);
+			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
@@ -995,10 +995,11 @@ int test_main()
 		nodes.clear();
 		for (int i = 0; i < 7000; ++i)
 		{
-			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), libtorrent::random() % 20 + 20);
+			table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), 20 + (tmp[19] & 0xff));
 			add_and_replace(tmp, diff);
 		}
-		TEST_EQUAL(table.num_active_buckets(), 11);
+		printf("active buckets: %d\n", table.num_active_buckets());
+		TEST_EQUAL(table.num_active_buckets(), 10);
 		TEST_CHECK(table.size().get<0>() > 10 * 10);
 		//#error test num_global_nodes
 		//#error test need_refresh

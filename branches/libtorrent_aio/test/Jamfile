@@ -38,6 +38,7 @@ rule link_test ( properties * )
 		result +=
 			<library>libtorrent_test/<link>static ;
 	}
+	return $(result) ;
 }
 
 rule link_libtorrent ( properties * )
@@ -53,6 +54,7 @@ rule link_libtorrent ( properties * )
 		result +=
 			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
 	}
+	return $(result) ;
 }
 
 lib libtorrent_test
