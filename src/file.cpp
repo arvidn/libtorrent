@@ -1084,7 +1084,7 @@ namespace libtorrent
 				0, // start offset
 				0, // length (0 = until EOF)
 				getpid(), // owner
-				(mode & write_only) ? F_WRLCK : F_RDLCK, // lock type
+				short((mode & write_only) ? F_WRLCK : F_RDLCK), // lock type
 				SEEK_SET // whence
 			};
 			if (fcntl(m_fd, F_SETLK, &l) != 0)

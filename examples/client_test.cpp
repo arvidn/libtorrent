@@ -2134,7 +2134,7 @@ int main(int argc, char* argv[])
 				progress_bar_color = "32"; // green
 			}
 
-			snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
+			snprintf(str, sizeof(str), "     %-10s: %s%-11" PRId64 "%s Bytes %6.2f%% %s\n"
 				, s.sequential_download?"sequential":"progress"
 				, esc("32"), s.total_done, esc("0")
 				, s.progress_ppm / 10000.f
@@ -2197,8 +2197,8 @@ int main(int argc, char* argv[])
 		out += str;
 
 		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
-			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %"PRId64"%% r: %"PRId64"%% "
-			"size: %s (%s) / %s dq: %"PRId64" ===\n"
+			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %" PRId64 "%% r: %" PRId64 "%% "
+			"size: %s (%s) / %s dq: %" PRId64 " ===\n"
 			, add_suffix(sess_stat.total_redundant_bytes).c_str()
 			, add_suffix(sess_stat.total_failed_bytes).c_str()
 			, sess_stat.num_unchoked, sess_stat.allowed_upload_slots
@@ -2224,7 +2224,7 @@ int main(int argc, char* argv[])
 		if (show_dht_status)
 		{
 			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
-				"total DHT size: %"PRId64" total observers: %d\n"
+				"total DHT size: %" PRId64 " total observers: %d\n"
 				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes
 				, sess_stat.dht_total_allocations);
 			out += str;

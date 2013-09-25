@@ -1099,12 +1099,12 @@ namespace
 #if BOOST_VERSION >= 103500
 
 
-const char* upnp_error_category::name() const
+const char* upnp_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 {
 	return "UPnP error";
 }
 
-std::string upnp_error_category::message(int ev) const
+std::string upnp_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
 {
 	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 	error_code_t* end = error_codes + num_errors;
