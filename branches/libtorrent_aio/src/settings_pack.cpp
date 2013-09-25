@@ -111,7 +111,7 @@ namespace libtorrent
 
 	str_setting_entry_t str_settings[settings_pack::num_string_settings] =
 	{
-		SET(user_agent, "libtorrent/"LIBTORRENT_VERSION, &session_impl::update_user_agent),
+		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
 		SET(announce_ip, 0, 0),
 		SET(mmap_cache, 0, 0),
 		SET(handshake_client_version, 0, 0),

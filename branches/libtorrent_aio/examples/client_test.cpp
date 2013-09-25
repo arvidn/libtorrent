@@ -2439,7 +2439,7 @@ int main(int argc, char* argv[])
 		if (show_dht_status)
 		{
 			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
-				"total DHT size: %"PRId64" total observers: %d\n"
+				"total DHT size: %" PRId64 " total observers: %d\n"
 				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes
 				, sess_stat.dht_total_allocations);
 			out += str;
@@ -2486,7 +2486,7 @@ int main(int argc, char* argv[])
 			out += str;
 
 			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
-				"queued-bytes: %5"PRId64" kB\n"
+				"queued-bytes: %5" PRId64 " kB\n"
 				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.blocked_jobs
 				, cs.queued_bytes / 1000);
 			out += str;

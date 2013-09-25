@@ -95,7 +95,7 @@ namespace libtorrent
 		{
 			// parse header
 			boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size]);
-			file::iovec_t b = {header.get(), m_header_size};
+			file::iovec_t b = {header.get(), size_t(m_header_size) };
 			int n = m_file.readv(0, &b, 1, ec);
 			if (ec) return;
    
@@ -302,7 +302,7 @@ namespace libtorrent
 				if (!buf) buf.reset(new char[m_piece_size]);
 
 				size_type slot_offset = size_type(m_header_size) + size_type(i->second) * m_piece_size;
-				file::iovec_t v = { buf.get(), block_to_copy };
+				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
 				int ret = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
 				if (ec) return;
 
@@ -369,7 +369,7 @@ namespace libtorrent
 			write_uint32(slot, ptr);
 		}
 
-		file::iovec_t b = {header.get(), m_header_size};
+		file::iovec_t b = {header.get(), size_t(m_header_size) };
 		m_file.writev(0, &b, 1, ec);
 		if (ec) return;
 	}

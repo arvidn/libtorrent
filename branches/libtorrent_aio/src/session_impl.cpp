@@ -4539,7 +4539,7 @@ retry:
 
 	bool session_impl::has_dht() const
 	{
-		return m_dht;
+		return m_dht.get();
 	}
 
 	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)
@@ -6649,7 +6649,7 @@ retry:
 	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
 		, boost::weak_ptr<torrent> const& t)
 	{
-		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t));
+		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t.lock()));
 	}
 
 #endif

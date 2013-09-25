@@ -875,7 +875,7 @@ namespace libtorrent
 		{
 			cached_piece_entry* e = (cached_piece_entry*)p.get();
 			if (e->num_dirty == 0) continue;
-			pieces.push_back(std::make_pair(e->storage.get(), e->piece));
+			pieces.push_back(std::make_pair(e->storage.get(), int(e->piece)));
 		}
 
 		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
@@ -1169,7 +1169,7 @@ namespace libtorrent
 
 		ptime start_time = time_now_hires();
 
-		file::iovec_t b = { j->buffer, j->d.io.buffer_size };
+		file::iovec_t b = { j->buffer, size_t(j->d.io.buffer_size) };
    
 		int ret = j->storage->get_storage_impl()->readv(&b, 1
 			, j->piece, j->d.io.offset, j->flags, j->error);
@@ -1374,7 +1374,7 @@ namespace libtorrent
 	{
 		ptime start_time = time_now_hires();
 
-		file::iovec_t b = { j->buffer, j->d.io.buffer_size };
+		file::iovec_t b = { j->buffer, size_t(j->d.io.buffer_size) };
    
 		++m_num_writing_threads;
 

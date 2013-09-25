@@ -33,6 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEBUG_HPP_INCLUDED
 #define TORRENT_DEBUG_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
+#if (defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#include <pthread.h>
+#endif
+
 #if defined TORRENT_ASIO_DEBUGGING
 
 #include "libtorrent/assert.hpp"

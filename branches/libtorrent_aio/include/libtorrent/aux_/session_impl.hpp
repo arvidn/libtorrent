@@ -539,7 +539,7 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_DISABLE_DHT
-			bool is_dht_running() const { return m_dht; }
+			bool is_dht_running() const { return m_dht.get(); }
 			int external_udp_port() const { return m_external_udp_port; }
 #endif
 
@@ -666,7 +666,7 @@ namespace libtorrent
 			// implements session_interface
 			virtual tcp::endpoint get_interface() const;
 
-			bool has_lsd() const { return m_lsd; }
+			bool has_lsd() const { return m_lsd.get(); }
 
 			std::vector<block_info>& block_info_storage() { return m_block_info_storage; }
 

@@ -2353,7 +2353,7 @@ namespace libtorrent
 
 		if (!m_supports_extensions || m_dont_have_id == 0) return;
 
-		char msg[] = {0,0,0,6,msg_extended,m_dont_have_id,0,0,0,0};
+		char msg[] = {0,0,0,6,msg_extended,char(m_dont_have_id),0,0,0,0};
 		char* ptr = msg + 6;
 		detail::write_int32(index, ptr);
 		send_buffer(msg, sizeof(msg));
