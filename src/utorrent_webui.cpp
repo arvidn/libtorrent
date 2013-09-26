@@ -1159,6 +1159,7 @@ int utorrent_status(torrent_status const& st)
 		ret |= CHECKED;
 	if (!st.error.empty()) ret |= ERROR;
 	if (st.auto_managed) ret |= AUTO;
+	if (st.paused) ret |= PAUSED;
 	return ret;
 }
 
