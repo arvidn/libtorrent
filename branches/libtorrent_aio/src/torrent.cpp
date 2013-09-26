@@ -1916,6 +1916,9 @@ namespace libtorrent
 			m_storage.get(), m_resume_data ? &m_resume_data->entry : NULL
 			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("init, async_check_fastresume");
+#endif
 
 		update_want_peers();
 
@@ -2222,7 +2225,7 @@ namespace libtorrent
 			}
 		}
 
-#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		if (m_policy && m_policy->num_peers() > 0)
 			debug_log("resume added peers (%d)", m_policy->num_peers());
 #endif
@@ -2351,7 +2354,19 @@ namespace libtorrent
 			// either the fastresume data was rejected or there are
 			// some files
 			set_state(torrent_status::checking_files);
-			if (should_check_files()) start_checking();
+			if (should_check_files())
+			{
+				start_checking();
+			}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			else
+			{
+				debug_log("not starting check: state: %d allow_peers: %d has_error: %d "
+					"abort: %d graceful_pause: %d ses.is_paused: %d"
+					, m_state, m_allow_peers, has_error(), m_abort
+					, m_graceful_pause_mode, m_ses.is_paused());
+			}
+#endif
 		}
 
 		maybe_done_flushing();
@@ -2443,13 +2458,27 @@ namespace libtorrent
 
 		// we might already have some outstanding jobs, if we were paused and
 		// resumed quickly, before the outstanding jobs completed
-		if (m_checking_piece >= m_torrent_file->num_pieces()) return;
+		if (m_checking_piece >= m_torrent_file->num_pieces())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("start_checking, checking_piece >= num_pieces. %d >= %d"
+				, m_checking_piece, m_torrent_file->num_pieces());
+#endif
+			return;
+		}
 
 		// subtract the number of pieces we already have outstanding
 		num_outstanding -= (m_checking_piece - m_num_checked_pieces);
 		if (num_outstanding < 0) num_outstanding = 0;
 
-		if (!need_loaded()) return;
+		if (!need_loaded())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			debug_log("start_checking, need_loaded() failed");
+#endif
+			return;
+		}
+
 		for (int i = 0; i < num_outstanding; ++i)
 		{
 			inc_refcount("start_checking");
@@ -2459,6 +2488,9 @@ namespace libtorrent
 					, shared_from_this(), _1), (void*)1);
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
 		}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("start_checking, m_checking_piece: %d", m_checking_piece);
+#endif
 	}
 	
 	void nop() {}
@@ -2478,6 +2510,9 @@ namespace libtorrent
 
 		if (j->ret == piece_manager::disk_check_aborted)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("on_piece_hashed, disk_check_aborted");
+#endif
 			pause();
 			return;
 		}
@@ -2506,7 +2541,7 @@ namespace libtorrent
 						resolve_filename(j->error.file), j->error.operation_str(), get_handle()));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				debug_log("fatal disk error: (%d) %s", j->error.ec.value(), j->error.ec.message().c_str());
+				debug_log("on_piece_hashed, fatal disk error: (%d) %s", j->error.ec.value(), j->error.ec.message().c_str());
 #endif
 				auto_managed(false);
 				pause();
@@ -2522,7 +2557,13 @@ namespace libtorrent
 		m_progress_ppm = size_type(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
 
 		// we're using the piece hashes here, we need the torrent to be loaded
-		if (!need_loaded()) return;
+		if (!need_loaded())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			debug_log("on_piece_hashed, need_loaded failed");
+#endif
+			return;
+		}
 
 		if (m_ses.settings().get_bool(settings_pack::disable_hash_checks)
 			|| sha1_hash(j->d.piece_hash) == m_torrent_file->hash_for_piece(j->piece))
@@ -2554,18 +2595,36 @@ namespace libtorrent
 			}
 
 			// we paused the checking
-			if (!should_check_files()) return;
+			if (!should_check_files())
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+				debug_log("on_piece_hashed, checking paused");
+#endif
+				return;
+			}
 
-			if (!need_loaded()) return;
+			if (!need_loaded())
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				debug_log("on_piece_hashed, need_loaded failed");
+#endif
+				return;
+			}
 
 			inc_refcount("start_checking");
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
 					, shared_from_this(), _1), (void*)1);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("on_piece_hashed, m_checking_piece: %d", m_checking_piece);
+#endif
 			return;
 		}
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("on_piece_hashed, completed");
+#endif
 		// we're done checking!
 		files_checked();
 

@@ -3809,7 +3809,10 @@ namespace libtorrent
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		t->debug_log("END queue peer (timed out) [%p]", this);
+		if (t)
+		{
+			t->debug_log("END queue peer (timed out) [%p]", this);
+		}
 #endif
 		connect_failed(errors::timed_out);
 	}
