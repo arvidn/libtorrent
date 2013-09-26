@@ -2444,7 +2444,9 @@ namespace libtorrent
 		else
 		{
 			set_state(torrent_status::checking_files);
+			if (m_auto_managed) pause(true);
 			if (should_check_files()) start_checking();
+			else m_ses.trigger_auto_manage();
 		}
 	}
 
@@ -2592,6 +2594,14 @@ namespace libtorrent
 				// the remaining pieces. We just need to wait for them
 				// to finish
 				return;
+			}
+
+			if (m_graceful_pause_mode && !m_allow_peers && m_checking_piece == m_num_checked_pieces)
+			{
+				// we are in graceful pause mode, and we just completed the last outstanding job.
+				// now we can be considered paused
+				if (alerts().should_post<torrent_paused_alert>())
+					alerts().post_alert(torrent_paused_alert(get_handle()));
 			}
 
 			// we paused the checking
@@ -8531,22 +8541,34 @@ namespace libtorrent
 		log_to_all_peers("PAUSING TORRENT");
 #endif
 
-		// this will make the storage close all
-		// files and flush all cached data
-		if (m_storage.get())
+		// when checking and being paused in graceful pause mode, we
+		// post the paused alert when the last outstanding disk job completes
+		if (m_state == torrent_status::checking_files)
 		{
-			TORRENT_ASSERT(m_storage);
-			m_ses.disk_thread().async_stop_torrent(m_storage.get()
-				, boost::bind(&torrent::on_torrent_paused, shared_from_this(), _1));
-		}
-		else
-		{
-			if (alerts().should_post<torrent_paused_alert>())
-				alerts().post_alert(torrent_paused_alert(get_handle()));
+			if (m_checking_piece == m_num_checked_pieces)
+			{
+				if (alerts().should_post<torrent_paused_alert>())
+					alerts().post_alert(torrent_paused_alert(get_handle()));
+			}
+			return;
 		}
 
 		if (!m_graceful_pause_mode)
 		{
+			// this will make the storage close all
+			// files and flush all cached data
+			if (m_storage.get())
+			{
+				TORRENT_ASSERT(m_storage);
+				m_ses.disk_thread().async_stop_torrent(m_storage.get()
+					, boost::bind(&torrent::on_torrent_paused, shared_from_this(), _1));
+			}
+			else
+			{
+				if (alerts().should_post<torrent_paused_alert>())
+					alerts().post_alert(torrent_paused_alert(get_handle()));
+			}
+
 			disconnect_all(errors::torrent_paused, peer_connection_interface::op_bittorrent);
 		}
 		else
