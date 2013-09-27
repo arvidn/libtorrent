@@ -1153,13 +1153,12 @@ int utorrent_status(torrent_status const& st)
 		|| st.state == torrent_status::finished))
 		ret |= STARTED;
 
-	if (st.state == torrent_status::queued_for_checking || st.state == torrent_status::checking_files)
+	if (!st.paused && (st.state == torrent_status::queued_for_checking || st.state == torrent_status::checking_files))
 		ret |= CHECKING;
 	else
 		ret |= CHECKED;
 	if (!st.error.empty()) ret |= ERROR;
 	if (st.auto_managed) ret |= AUTO;
-	if (st.paused) ret |= PAUSED;
 	return ret;
 }
 
