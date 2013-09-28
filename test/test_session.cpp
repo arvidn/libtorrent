@@ -46,5 +46,6 @@ int test_main()
 	// for the asynchronous call to set the alert
 	// mask completes, before it goes on to destruct
 	// the session object
+	return 0;
 }
 
