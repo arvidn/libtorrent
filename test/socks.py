@@ -15,7 +15,7 @@ class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
 CLOSE = object()
 
-logging.basicConfig(filename='/dev/stderr', level=logging.INFO)
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 VERSION = '\x05'
 NOAUTH = '\x00'
