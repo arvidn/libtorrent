@@ -6862,12 +6862,39 @@ retry:
 
 	void session_impl::update_network_threads()
 	{
-		m_net_thread_pool.set_num_threads(m_settings.get_int(settings_pack::network_threads));
+		int num_threads = m_settings.get_int(settings_pack::network_threads);
+		int num_pools = num_threads > 0 ? num_threads : 1;
+		while (num_pools > m_net_thread_pool.size())
+		{
+			m_net_thread_pool.push_back(boost::make_shared<network_thread_pool>());
+		}
+
+		while (num_pools < m_net_thread_pool.size())
+		{
+			m_net_thread_pool.erase(m_net_thread_pool.end() - 1);
+		}
+
+		if (num_threads == 0)
+		{
+			m_net_thread_pool[0]->set_num_threads(0);
+		}
 	}
 
 	void session_impl::post_socket_job(socket_job& j)
 	{
-		m_net_thread_pool.post_job(j);
+		uintptr_t idx = 0;
+		if (m_net_thread_pool.size() > 1)
+		{
+			// each peer needs to be pinned to a specific thread
+			// since reading and writing simultaneously on the same
+			// socket from different threads is not supported by asio.
+			// as long as a specific socket is consistently used from
+			// the same thread, it's safe
+			idx = uintptr_t(j.peer.get());
+			idx ^= idx >> 8;
+			idx %= m_net_thread_pool.size();
+		}
+		m_net_thread_pool[idx]->post_job(j);
 	}
 
 	void session_impl::update_cache_buffer_chunk_size()

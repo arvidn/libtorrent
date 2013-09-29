@@ -767,7 +767,7 @@ namespace libtorrent
 
 			// a thread pool used for async_write_some calls,
 			// to distribute its cost to multiple threads
-			network_thread_pool m_net_thread_pool;
+			std::vector<boost::shared_ptr<network_thread_pool> > m_net_thread_pool;
 
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)
