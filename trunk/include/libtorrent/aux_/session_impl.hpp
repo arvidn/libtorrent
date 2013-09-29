@@ -274,6 +274,14 @@ namespace libtorrent
 #endif
 				return true;
 			}
+			bool is_not_network_thread() const
+			{
+#if defined BOOST_HAS_PTHREADS
+				if (m_network_thread == 0) return true;
+				return m_network_thread != pthread_self();
+#endif
+				return true;
+			}
 #endif
 
 			feed_handle add_feed(feed_settings const& feed);

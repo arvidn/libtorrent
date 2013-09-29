@@ -5940,6 +5940,8 @@ retry:
 
 	session_impl::~session_impl()
 	{
+		TORRENT_ASSERT(is_not_network_thread());
+
 		m_io_service.post(boost::bind(&session_impl::abort, this));
 
 		// we need to wait for the disk-io thread to
