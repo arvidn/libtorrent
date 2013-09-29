@@ -321,6 +321,20 @@ namespace libtorrent
 		METRIC(dht, dht_put_in, type_counter)
 		METRIC(dht, dht_put_out, type_counter)
 
+		// uTP counters
+		METRIC(utp, utp_packet_loss, type_counter)
+		METRIC(utp, utp_timeout, type_counter)
+		METRIC(utp, utp_packets_in, type_counter)
+		METRIC(utp, utp_packets_out, type_counter)
+		METRIC(utp, utp_fast_retransmit, type_counter)
+		METRIC(utp, utp_packet_resend, type_counter)
+		METRIC(utp, utp_samples_above_target, type_counter)
+		METRIC(utp, utp_samples_below_target, type_counter)
+		METRIC(utp, utp_payload_pkts_in, type_counter)
+		METRIC(utp, utp_payload_pkts_out, type_counter)
+		METRIC(utp, utp_invalid_pkts_in, type_counter)
+		METRIC(utp, utp_redundant_pkts_in, type_counter)
+
 		// ... more
 	};
 #undef METRIC

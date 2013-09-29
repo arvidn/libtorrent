@@ -37,13 +37,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
+#include "libtorrent/performance_counters.hpp"
 
 // #define TORRENT_DEBUG_MTU 1135
 
 namespace libtorrent
 {
 
-	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett, udp_socket& s
+	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett
+		, udp_socket& s
+		, counters& cnt
 		, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
@@ -53,6 +56,7 @@ namespace libtorrent
 		, m_last_route_update(min_time())
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
+		, m_counters(cnt)
 	{}
 
 	utp_socket_manager::~utp_socket_manager()
@@ -72,18 +76,20 @@ namespace libtorrent
 		s.num_fin_sent = 0;
 		s.num_close_wait = 0;
 
-		s.packet_loss = m_counters[packet_loss];
-		s.timeout = m_counters[timeout];
-		s.packets_in = m_counters[packets_in];
-		s.packets_out = m_counters[packets_out];
-		s.fast_retransmit = m_counters[fast_retransmit];
-		s.packet_resend = m_counters[packet_resend];
-		s.samples_above_target = m_counters[samples_above_target];
-		s.samples_below_target = m_counters[samples_below_target];
-		s.payload_pkts_in = m_counters[payload_pkts_in];
-		s.payload_pkts_out = m_counters[payload_pkts_out];
-		s.invalid_pkts_in = m_counters[invalid_pkts_in];
-		s.redundant_pkts_in = m_counters[redundant_pkts_in];
+#ifndef TORRENT_NO_DEPRECATE
+		s.packet_loss = m_counters[counters::utp_packet_loss];
+		s.timeout = m_counters[counters::utp_timeout];
+		s.packets_in = m_counters[counters::utp_packets_in];
+		s.packets_out = m_counters[counters::utp_packets_out];
+		s.fast_retransmit = m_counters[counters::utp_fast_retransmit];
+		s.packet_resend = m_counters[counters::utp_packet_resend];
+		s.samples_above_target = m_counters[counters::utp_samples_above_target];
+		s.samples_below_target = m_counters[counters::utp_samples_below_target];
+		s.payload_pkts_in = m_counters[counters::utp_payload_pkts_in];
+		s.payload_pkts_out = m_counters[counters::utp_payload_pkts_out];
+		s.invalid_pkts_in = m_counters[counters::utp_invalid_pkts_in];
+		s.redundant_pkts_in = m_counters[counters::utp_redundant_pkts_in];
+#endif
 
 		for (socket_map_t::const_iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end; ++i)
@@ -447,9 +453,9 @@ namespace libtorrent
 
 	void utp_socket_manager::inc_stats_counter(int counter)
 	{
-		TORRENT_ASSERT(counter >= 0);
-		TORRENT_ASSERT(counter < num_counters);
-		++m_counters[counter];
+		TORRENT_ASSERT(counter >= counters::utp_packet_loss);
+		TORRENT_ASSERT(counter <= counters::utp_redundant_pkts_in);
+		m_counters.inc_stats_counter(counter);
 	}
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)

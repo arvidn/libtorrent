@@ -592,7 +592,7 @@ namespace aux {
 		// peek into the first few bytes the payload stream of a socket to determine
 		// whether or not it's an SSL connection. (The former is simpler but won't
 		// do as well with NATs)
-		, m_utp_socket_manager(m_settings, m_udp_socket
+		, m_utp_socket_manager(m_settings, m_udp_socket, m_stats_counters
 			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_boost_connections(0)
 		, m_timer(m_io_service)

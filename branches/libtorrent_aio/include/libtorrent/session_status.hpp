@@ -77,6 +77,9 @@ namespace libtorrent
 		int num_fin_sent;
 		int num_close_wait;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in libtorrent 1.1
+		// use session_stats/performance_counters instead
 		// counters
 		boost::uint64_t packet_loss;
 		boost::uint64_t timeout;
@@ -90,6 +93,7 @@ namespace libtorrent
 		boost::uint64_t payload_pkts_out;
 		boost::uint64_t invalid_pkts_in;
 		boost::uint64_t redundant_pkts_in;
+#endif
 	};
 
 	struct TORRENT_EXPORT session_status

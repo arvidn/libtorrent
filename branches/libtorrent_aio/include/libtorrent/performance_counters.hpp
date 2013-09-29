@@ -211,6 +211,20 @@ namespace libtorrent
 			dht_put_in,
 			dht_put_out,
 
+			// uTP counters
+			utp_packet_loss,
+			utp_timeout,
+			utp_packets_in,
+			utp_packets_out,
+			utp_fast_retransmit,
+			utp_packet_resend,
+			utp_samples_above_target,
+			utp_samples_below_target,
+			utp_payload_pkts_in,
+			utp_payload_pkts_out,
+			utp_invalid_pkts_in,
+			utp_redundant_pkts_in,
+
 			num_stats_counters
 		};
 

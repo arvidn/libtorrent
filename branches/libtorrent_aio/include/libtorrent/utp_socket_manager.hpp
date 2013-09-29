@@ -45,12 +45,13 @@ namespace libtorrent
 	class udp_socket;
 	class utp_stream;
 	struct utp_socket_impl;
+	struct counters;
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
 	struct utp_socket_manager : udp_socket_observer
 	{
-		utp_socket_manager(aux::session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
+		utp_socket_manager(aux::session_settings const& sett, udp_socket& s, counters& cnt, incoming_utp_callback_t cb);
 		~utp_socket_manager();
 
 		void get_status(utp_status& s) const;
@@ -96,25 +97,8 @@ namespace libtorrent
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
 
-		enum counter_t
-		{
-			packet_loss = 0,
-			timeout,
-			packets_in,
-			packets_out,
-			fast_retransmit,
-			packet_resend,
-			samples_above_target,
-			samples_below_target,
-			payload_pkts_in,
-			payload_pkts_out,
-			invalid_pkts_in,
-			redundant_pkts_in,
-
-			num_counters,
-		};
-
 		// used to keep stats of uTP events
+		// the counter is the enum from ``counters``.
 		void inc_stats_counter(int counter);
 
 	private:
@@ -167,7 +151,7 @@ namespace libtorrent
 		int m_sock_buf_size;
 
 		// stats counters
-		boost::uint64_t m_counters[num_counters];
+		counters& m_counters;
 	};
 }
 
