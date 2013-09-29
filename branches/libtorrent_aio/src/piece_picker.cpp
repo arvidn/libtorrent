@@ -239,8 +239,7 @@ namespace libtorrent
 		std::vector<downloading_piece>::iterator i = std::lower_bound(m_downloads[0].begin()
 			, m_downloads[0].end(), cmp);
 		TORRENT_ASSERT(i == m_downloads[0].end() || i->index != piece);
-		i = m_downloads[0].insert(i, downloading_piece());
-		downloading_piece& ret = *i;
+		downloading_piece ret;
 		ret.index = piece;
 		ret.info = &m_block_info[block_index];
 		for (int i = 0; i < m_blocks_per_piece; ++i)
@@ -252,6 +251,7 @@ namespace libtorrent
 			ret.info[i].piece_index = piece;
 #endif
 		}
+		i = m_downloads[0].insert(i, ret);
 
 #ifdef TORRENT_DEBUG
 		check_piece_state();
