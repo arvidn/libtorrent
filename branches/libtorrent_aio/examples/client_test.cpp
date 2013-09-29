@@ -1716,7 +1716,7 @@ int main(int argc, char* argv[])
 					ps.type = proxy_settings::socks5_pw;
 				}
 				break;
-			case 'I': ses.use_interfaces(arg); break;
+			case 'I': settings.set_str(settings_pack::outgoing_interfaces, arg); break;
 			case 'N': start_upnp = false; --i; break;
 			case 'Y':
 				{
@@ -1725,8 +1725,10 @@ int main(int argc, char* argv[])
 					// 1 is the global peer class. This should be done properly in the future
 					pcf.add_rule(address_v4::from_string("0.0.0.0")
 						, address_v4::from_string("255.255.255.255"), 1);
+#if TORRENT_USE_IPV6
 					pcf.add_rule(address_v6::from_string("::")
 						, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
+#endif
 					ses.set_peer_class_filter(pcf);
 					break;
 				}
@@ -1765,14 +1767,7 @@ int main(int argc, char* argv[])
 
 	ses.set_proxy(ps);
 
-	ses.listen_on(std::make_pair(listen_port, listen_port)
-		, ec, bind_to_interface.c_str());
-	if (ec)
-	{
-		fprintf(stderr, "failed to listen%s%s on ports %d-%d: %s\n"
-			, bind_to_interface.empty() ? "" : " on ", bind_to_interface.c_str()
-			, listen_port, listen_port+1, ec.message().c_str());
-	}
+	settings.set_str(settings_pack::listen_interfaces, bind_to_interface + ":" + to_string(listen_port).elems);
 
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht;
