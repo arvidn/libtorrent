@@ -63,6 +63,7 @@ lib libtorrent_test
 	dht_server.cpp
 	peer_server.cpp
 	../ed25519/src/$(ED25519_SOURCES).c
+	web_seed_suite.cpp
 
 	: # requirements
 	# this is used to determine whether
@@ -126,6 +127,12 @@ test-suite libtorrent :
 	[ run test_ssl.cpp ]
 	[ run test_tracker.cpp ]
 	[ run test_checking.cpp ]
+	[ run test_web_seed.cpp ]
+	[ run test_web_seed_socks4.cpp ]
+	[ run test_web_seed_socks5.cpp ]
+	[ run test_web_seed_socks5_pw.cpp ]
+	[ run test_web_seed_http.cpp ]
+	[ run test_web_seed_http_pw.cpp ]
 	[ run test_web_seed.cpp ]
 	[ run test_bdecode_performance.cpp ]
 	[ run test_pe_crypto.cpp ]

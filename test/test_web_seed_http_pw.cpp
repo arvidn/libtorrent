@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-const int proxy = libtorrent::proxy_settings::none;
+const int proxy = libtorrent::proxy_settings::http_pw;
 
 int test_main()
 {
