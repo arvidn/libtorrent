@@ -140,6 +140,11 @@ namespace libtorrent
 			}
 			return m_single_thread == pthread_self();
 		}
+		bool is_not_thread() const
+		{
+			if (m_single_thread == 0) return true;
+			return m_single_thread != pthread_self();
+		}
 
 		void thread_started()
 		{ m_single_thread = pthread_self(); }
@@ -148,7 +153,11 @@ namespace libtorrent
 		mutable pthread_t m_single_thread;
 	};
 #else
-	struct single_threaded { bool is_single_thread() const { return true; } void thread_started() {} };
+	struct single_threaded {
+		bool is_single_thread() const { return true; }
+		void thread_started() {}
+		bool is_not_thread() const {return true; }
+	};
 #endif
 }
 

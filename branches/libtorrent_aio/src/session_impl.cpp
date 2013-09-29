@@ -5759,7 +5759,7 @@ retry:
 		if (string_begins_no_case("file://", params->url.c_str()) && !params->ti)
 		{
 			m_disk_thread.async_load_torrent(params
-				, boost::bind(&session_impl::on_async_load_torrent, shared_from_this(), _1));
+				, boost::bind(&session_impl::on_async_load_torrent, this, _1));
 			return;
 		}
 
@@ -6661,6 +6661,9 @@ retry:
 
 	session_impl::~session_impl()
 	{
+		// that this is not allowed to be the network thread!
+		TORRENT_ASSERT(is_not_thread());
+
 		m_io_service.post(boost::bind(&session_impl::abort, this));
 
 		// now it's OK for the network thread to exit
@@ -7192,7 +7195,7 @@ retry:
 			// we can only issue more resume data jobs from
 			// the network thread
 			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-				, shared_from_this(), false));
+				, this, false));
 		}
 		return ret;
 	}
@@ -7205,7 +7208,7 @@ retry:
 		// we can only issue more resume data jobs from
 		// the network thread
 		m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-			, shared_from_this(), true));
+			, this, true));
 	}
 
 	alert const* session_impl::wait_for_alert(time_duration max_wait)
