@@ -47,6 +47,7 @@ namespace libtorrent
 int EXPORT print_failures();
 
 int EXPORT load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000);
+void EXPORT save_file(char const* filename, char const* data, int size);
 
 void EXPORT report_failure(char const* err, char const* file, int line);
 

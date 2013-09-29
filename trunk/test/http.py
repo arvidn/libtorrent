@@ -192,8 +192,8 @@ def start_server(host='localhost', port=8080, IPv6=False, timeout=60,
     else:
         soc_type=socket.AF_INET
     soc = socket.socket(soc_type)
-    soc.bind((host, port))
     print "Serving on %s:%d."%(host, port)#debug
+    soc.bind((host, port))
     soc.listen(0)
     while 1:
         thread.start_new_thread(handler, soc.accept()+(timeout,))
