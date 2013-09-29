@@ -385,13 +385,14 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
+	static int port = 5000 + (rand() % 55000);
+	++port;
+
 	for (std::map<int, proxy_t>::iterator i = running_proxies.begin()
 		, end(running_proxies.end()); i != end; ++i)
 	{
 		if (i->second.type == proxy_type) return i->first;
 	}
-
-	int port = 10000 + (rand() % 50000);
 
 	char const* type = "";
 	char const* auth = "";
