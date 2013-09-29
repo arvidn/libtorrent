@@ -6880,6 +6880,8 @@ retry:
 		}
 	}
 
+	// TODO: 3 If socket jobs could be higher level, to include RC4 encryption and decryption,
+	// we would offload the main thread even more
 	void session_impl::post_socket_job(socket_job& j)
 	{
 		uintptr_t idx = 0;
