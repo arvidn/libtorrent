@@ -133,7 +133,6 @@ test-suite libtorrent :
 	[ run test_web_seed_socks5_pw.cpp ]
 	[ run test_web_seed_http.cpp ]
 	[ run test_web_seed_http_pw.cpp ]
-	[ run test_web_seed.cpp ]
 	[ run test_bdecode_performance.cpp ]
 	[ run test_pe_crypto.cpp ]
 
