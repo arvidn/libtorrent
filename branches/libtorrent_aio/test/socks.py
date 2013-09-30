@@ -32,7 +32,8 @@ allow_v4 = False
 
 def send(dest, msg):
     if msg == CLOSE:
-        dest.shutdown(socket.SHUT_WR)
+        try: dest.shutdown(socket.SHUT_WR)
+        except: pass
         dest.close()
         return 0
     else:

@@ -207,6 +207,27 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	return 0;
 }
 
+void save_file(char const* filename, char const* data, int size)
+{
+	error_code ec;
+	file out(filename, file::write_only, ec);
+	TEST_CHECK(!ec);
+	if (ec)
+	{
+		fprintf(stderr, "ERROR opening file '%s': %s\n", filename, ec.message().c_str());
+		return;
+	}
+	file::iovec_t b = { (void*)data, size_t(size) };
+	out.writev(0, &b, 1, ec);
+	TEST_CHECK(!ec);
+	if (ec)
+	{
+		fprintf(stderr, "ERROR writing file '%s': %s\n", filename, ec.message().c_str());
+		return;
+	}
+
+}
+
 bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
 	, bool (*predicate)(libtorrent::alert*), bool no_output)
@@ -443,8 +464,8 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	static int port = 5000 + (rand() % 55000);
-	++port;
+	std::srand((unsigned int)total_microseconds(time_now() - min_time()));
+	int port = 5000 + (rand() % 55000);
 
 	for (std::map<int, proxy_t>::iterator i = running_proxies.begin()
 		, end(running_proxies.end()); i != end; ++i)
@@ -636,7 +657,6 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	ses2->apply_settings(pack);
 	if (ses3) ses3->apply_settings(pack);
 
-	std::srand((unsigned int)time(0));
 	peer_id pid;
 	std::generate(&pid[0], &pid[0] + 20, std::rand);
 	ses1->set_peer_id(pid);

@@ -2,6 +2,7 @@ test_dirs:
  - examples
  - tools
  - test
+ - bindings/python
 
 project: libtorrent
 
