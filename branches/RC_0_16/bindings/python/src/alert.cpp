@@ -18,7 +18,7 @@ std::string get_buffer(read_piece_alert const& rpa)
 
 tuple endpoint_to_tuple(tcp::endpoint const& ep)
 {
-    return make_tuple(ep.address().to_string(), ep.port());
+    return boost::python::make_tuple(ep.address().to_string(), ep.port());
 }
 
 tuple peer_alert_ip(peer_alert const& pa)

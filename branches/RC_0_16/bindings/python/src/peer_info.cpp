@@ -34,12 +34,12 @@ str get_country(peer_info const& pi)
 
 tuple get_local_endpoint(peer_info const& pi)
 {
-    return make_tuple(pi.local_endpoint.address().to_string(), pi.local_endpoint.port());
+    return boost::python::make_tuple(pi.local_endpoint.address().to_string(), pi.local_endpoint.port());
 }
 
 tuple get_ip(peer_info const& pi)
 {
-    return make_tuple(pi.ip.address().to_string(), pi.ip.port());
+    return boost::python::make_tuple(pi.ip.address().to_string(), pi.ip.port());
 }
 
 list get_pieces(peer_info const& pi)
