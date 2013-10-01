@@ -204,7 +204,7 @@ static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torre
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 // protocol: "http" or "https"
 // test_url_seed determines whether to use url-seed or http-seed
-int run_http_suite(int proxy, char const* protocol, bool test_url_seed, bool chunked_encoding, bool test_ban)
+int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, bool chunked_encoding, bool test_ban)
 {
 	using namespace libtorrent;
 
