@@ -402,14 +402,16 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	std::srand((unsigned int)total_microseconds(time_now() - min_time()));
-	int port = 5000 + (rand() % 55000);
-
 	for (std::map<int, proxy_t>::iterator i = running_proxies.begin()
 		, end(running_proxies.end()); i != end; ++i)
 	{
 		if (i->second.type == proxy_type) return i->first;
 	}
+
+	unsigned int seed = total_microseconds(time_now_hires() - min_time());
+	printf("random seed: %u\n", seed);
+	std::srand(seed);
+	int port = 5000 + (rand() % 55000);
 
 	char const* type = "";
 	char const* auth = "";
