@@ -43,7 +43,8 @@ int test_main()
 	int ret = 0;
 	for (int url_seed = 0; url_seed < 2; ++url_seed)
 	{
-		for (int chunked = 0; chunked < 2; ++chunked)
+//		for (int chunked = 0; chunked < 2; ++chunked)
+		int chunked = 0;
 		{
 			for (int ban = 0; ban < 2; ++ban)
 			{

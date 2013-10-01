@@ -460,14 +460,16 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	std::srand((unsigned int)total_microseconds(time_now() - min_time()));
-	int port = 5000 + (rand() % 55000);
-
 	for (std::map<int, proxy_t>::iterator i = running_proxies.begin()
 		, end(running_proxies.end()); i != end; ++i)
 	{
 		if (i->second.type == proxy_type) return i->first;
 	}
+
+	unsigned int seed = total_microseconds(time_now_hires() - min_time());
+	printf("random seed: %u\n", seed);
+	std::srand(seed);
+	int port = 5000 + (rand() % 55000);
 
 	char const* type = "";
 	char const* auth = "";
@@ -1364,28 +1366,41 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			std::string path = p.path();
 			fprintf(stderr, "%s: %s\n", time_now_string(), path.c_str());
 
-			if (path == "/redirect")
+			std::vector<char> file_buf;
+			if (path.substr(0, 4) == "http")
+			{
+				// remove the http://hostname and the first / of the path
+				path = path.substr(path.find("://")+3);
+				path = path.substr(path.find_first_of('/')+1);
+			}
+			else
+			{
+				// remove the / from the path
+				path = path.substr(1);
+			}
+
+			if (path == "redirect")
 			{
 				extra_header[0] = "Location: /test_file\r\n";
 				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
 
-			if (path == "/infinite_redirect")
+			if (path == "infinite_redirect")
 			{
 				extra_header[0] = "Location: /infinite_redirect\r\n";
 				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
 
-			if (path == "/relative/redirect")
+			if (path == "relative/redirect")
 			{
 				extra_header[0] = "Location: ../test_file\r\n";
 				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
 
-			if (path.substr(0, 9) == "/announce")
+			if (path.substr(0, 9) == "announce")
 			{
 				fprintf(stderr, "%s\n", path.c_str());
 				entry announce;
@@ -1403,7 +1418,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 					fprintf(stderr, "*** send failed: %s\n", ec.message().c_str());
 			}
 
-			if (path.substr(0, 6) == "/seed?")
+			if (filename(path).substr(0, 5) == "seed?")
 			{
 				char const* piece = strstr(path.c_str(), "&piece=");
 				if (piece == 0) piece = strstr(path.c_str(), "?piece=");
@@ -1439,10 +1454,12 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				boost::uint64_t off = idx * 64 * 1024 + range_start;
 				std::vector<char> file_buf;
 				error_code ec;
-				int res = load_file(combine_path("tmp1_web_seed", "seed"), file_buf, ec);
+				std::string file_path = path.substr(0, path.find_first_of('?'));
+				int res = load_file(file_path.c_str(), file_buf, ec);
 
 				if (res == -1 || file_buf.empty())
 				{
+					fprintf(stderr, "file not found: %s\n", file_path.c_str());
 					send_response(s, ec, 404, "Not Found", extra_header, 0);
 					continue;
 				}
@@ -1465,9 +1482,6 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			}
 
 //			fprintf(stderr, ">> serving file %s\n", path.c_str());
-			std::vector<char> file_buf;
-			// remove the / from the path
-			path = path.substr(1);
 			error_code ec;
 			int res = load_file(path, file_buf, ec, 8000000);
 			if (res == -1)
