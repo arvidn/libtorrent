@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>
 #endif
 
-#define DEBUG_WEB_SERVER 1
+#define DEBUG_WEB_SERVER 0
 
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
 
@@ -1280,7 +1280,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 					failed = true;
 					break;
 				}
-				TORRENT_ASSERT(len < int(sizeof(buf)));
+				TORRENT_ASSERT(len <= int(sizeof(buf)));
 				size_t received = 0;
 				bool done = false;
 				bool timed_out = false;

@@ -68,7 +68,9 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 			if (a.is_v6())
 			{
-				return a.to_v6() == address_v6::loopback();
+				return a.to_v6().is_loopback()
+					|| a.to_v6().is_link_local()
+					|| a.to_v6().is_multicast_link_local();
 			}
 #endif
 			address_v4 a4 = a.to_v4();
@@ -125,7 +127,7 @@ namespace libtorrent
 		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
-	TORRENT_EXPORT bool is_teredo(address const& addr)
+	bool is_teredo(address const& addr)
 	{
 #if TORRENT_USE_IPV6
 		TORRENT_TRY {
