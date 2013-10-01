@@ -120,6 +120,9 @@ static void test_transfer(session& ses, boost::shared_ptr<torrent_info> torrent_
 	p.storage_mode = storage_mode_compact;
 #endif
 	torrent_handle th = ses.add_torrent(p, ec);
+	printf("adding torrent, save_path = \"%s\" cwd = \"%s\" torrent = \"%s\"\n"
+		, save_path.c_str(), current_working_directory().c_str()
+		, torrent_file->name().c_str());
 
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);

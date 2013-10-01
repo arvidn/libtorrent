@@ -1685,9 +1685,17 @@ namespace libtorrent
 	void torrent::construct_storage()
 	{
 		storage_params params;
-		params.files = &m_torrent_file->files();
-		params.mapped_files = &m_torrent_file->orig_files() != &m_torrent_file->files()
-			? &m_torrent_file->orig_files() : 0;
+
+		if (&m_torrent_file->orig_files() != &m_torrent_file->files())
+		{
+			params.mapped_files = &m_torrent_file->files();
+			params.files = &m_torrent_file->orig_files();
+		}
+		else
+		{
+			params.files = &m_torrent_file->files();
+			params.mapped_files = 0;
+		}
 		params.path = m_save_path;
 		params.pool = &m_ses.disk_thread().files();
 		params.mode = (storage_mode_t)m_storage_mode;
