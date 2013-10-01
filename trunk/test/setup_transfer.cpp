@@ -1216,7 +1216,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			while (!p.finished())
 			{
-				TORRENT_ASSERT(len < int(sizeof(buf)));
+				TORRENT_ASSERT(len <= int(sizeof(buf)));
 				size_t received = 0;
 				bool done = false;
 				bool timed_out = false;
