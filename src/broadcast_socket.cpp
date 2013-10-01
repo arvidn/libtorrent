@@ -127,7 +127,7 @@ namespace libtorrent
 		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
-	TORRENT_EXPORT bool is_teredo(address const& addr)
+	bool is_teredo(address const& addr)
 	{
 #if TORRENT_USE_IPV6
 		TORRENT_TRY {
