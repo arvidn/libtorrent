@@ -10502,7 +10502,7 @@ namespace libtorrent
 		vsnprintf(usr, sizeof(usr), fmt, v);
 		va_end(v);
 		char buf[450];
-		snprintf(buf, sizeof(buf), "%"PRId64": %s\n", total_microseconds(time_now_hires() - m_logger_time), usr);
+		snprintf(buf, sizeof(buf), "%" PRId64 ": %s\n", total_microseconds(time_now_hires() - m_logger_time), usr);
 		(*m_logger) << buf;
 	}
 #endif
