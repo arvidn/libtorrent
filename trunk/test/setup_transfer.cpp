@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>
 #endif
 
-#define DEBUG_WEB_SERVER 1
+#define DEBUG_WEB_SERVER 0
 
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
 
