@@ -208,10 +208,12 @@ static void test_transfer(session& ses, boost::shared_ptr<torrent_info> torrent_
 
 	if (proxy) stop_proxy(ps.port);
 
-	ses.remove_torrent(th);
+	th.flush_cache();
 
-	// call this to synchronize with the network thread
-	ses.status();
+	// synchronize to make sure the files have been created on disk
+	wait_for_alert(ses, cache_flushed_alert::alert_type, "ses");
+
+	ses.remove_torrent(th);
 
 	print_alerts(ses, "  >>  ses", true, true, false, &on_alert, true);
 

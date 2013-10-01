@@ -323,7 +323,7 @@ void wait_for_downloading(libtorrent::session& ses, char const* name)
 	alert const* a = 0;
 	do
 	{
-		print_alerts(ses, name, true, true, true, &listen_alert, false);
+		print_alerts(ses, name, true, true, true, &downloading_alert, false);
 		if (downloading_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
