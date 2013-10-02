@@ -9923,11 +9923,11 @@ namespace libtorrent
 			return;
 		}
 		
+		if (!need_loaded()) return;
+
 		int num_files = m_torrent_file->num_files();
 		if (m_file_progress.empty())
 		{
-			if (!need_loaded()) return;
-
 			// This is the first time the client asks for file progress.
 			// allocate it and make sure it's up to date
 			m_file_progress.resize(num_files, 0);
