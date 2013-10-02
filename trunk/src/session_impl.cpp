@@ -46,6 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -3919,7 +3923,11 @@ retry:
 
 			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
 
+#ifdef TORRENT_USE_VALGRIND
+#define STAT_LOG(type, val) VALGRIND_CHECK_VALUE_IS_DEFINED(val); fprintf(m_stats_logger, "%" #type "\t", val)
+#else
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
+#endif
 
 			STAT_LOG(f, total_milliseconds(now - m_last_log_rotation) / 1000.f);
 			size_type uploaded = m_stat.total_upload() - m_last_uploaded;

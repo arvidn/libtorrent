@@ -325,6 +325,9 @@ feature iconv : auto on off : composite propagated ;
 feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
 feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
 
+feature valgrind : off on : composite propagated link-incompatible ;
+feature.compose <valgrind>on : <define>TORRENT_USE_VALGRIND=1 ;
+
 feature full-stats : on off : composite propagated link-incompatible ;
 feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 
