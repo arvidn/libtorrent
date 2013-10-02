@@ -99,12 +99,19 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 #			for l in p.stdout: pass
 #			p.wait()
    
-   		
 		for t in tests:
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset] + options + feature_list
 			if t != '': cmdline.append(t)
-			if t == '': t = os.path.split(os.getcwd())[1]
-#			print ''.join(cmdline)
+			if t == '':
+				t = os.path.split(os.getcwd())[1]
+				# we can't pass in a launcher when just building, that only
+				# works for actual unit tests
+				if 'launcher=valgrind' in options:
+					options = options[:]
+					options.remove('launcher=valgrind')
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset] + options + feature_list
+
+#			print ' '.join(cmdline)
+
 			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=test_dir)
 			output = ''
 			for l in p.stdout:
