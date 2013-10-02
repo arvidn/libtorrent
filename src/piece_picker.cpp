@@ -185,20 +185,33 @@ namespace libtorrent
 		std::vector<downloading_piece>::iterator i = std::lower_bound(m_downloads.begin()
 			, m_downloads.end(), cmp);
 		TORRENT_ASSERT(i == m_downloads.end() || i->index != piece);
-		i = m_downloads.insert(i, downloading_piece());
-		downloading_piece& ret = *i;
+		downloading_piece ret;
 		ret.index = piece;
 		ret.info = &m_block_info[block_index];
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(piece);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block_index);
+#endif
 		for (int i = 0; i < m_blocks_per_piece; ++i)
 		{
 			ret.info[i].num_peers = 0;
 			ret.info[i].state = block_info::state_none;
 			ret.info[i].peer = 0;
+#ifdef TORRENT_USE_VALGRIND
+			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].num_peers);
+			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].state);
+			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].peer);
+#endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			ret.info[i].piece_index = piece;
 #endif
 		}
-		return ret;
+
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret);
+#endif
+		i = m_downloads.insert(i, ret);
+		return *i;
 	}
 
 	void piece_picker::erase_download_piece(std::vector<downloading_piece>::iterator i)

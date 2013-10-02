@@ -55,9 +55,11 @@ def style_output(o):
 			' : error LNK' in l or ': undefined reference to ' in l or \
 			'jump or move depends on uninitialised value(s)' in l or \
 			'Invalid read of size' in l or \
-			'Invalid write of size' in l:
+			'Invalid write of size' in l or \
+			'Use of uninitialised value of size' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
-		elif ': warning: ' in l or ') : warning C' in l:
+		elif ': warning: ' in l or ') : warning C' in l \
+			or 'Uninitialised value was created by a' in l:
 			ret += '<span class="compile-warning">%s</span>\n' % l
 		elif l == '====== END OUTPUT ======' and not subtle:
 			ret += '<span class="subtle">%s\n' % l
