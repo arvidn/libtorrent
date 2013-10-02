@@ -9880,6 +9880,7 @@ namespace libtorrent
 			return;
 		}
 	
+		if (!need_loaded()) return;
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;
 
@@ -9903,11 +9904,12 @@ namespace libtorrent
 			return;
 		}
 
+		if (!need_loaded()) return;
+
 		// if we're a seed, we don't have an m_file_progress anyway
 		// since we don't need one. We know we have all files
 		if (is_seed())
 		{
-			if (!need_loaded()) return;
 			fp.resize(m_torrent_file->num_files());
 			file_storage const& fs = m_torrent_file->files();
 			for (int i = 0; i < fs.num_files(); ++i)
@@ -9923,8 +9925,6 @@ namespace libtorrent
 			return;
 		}
 		
-		if (!need_loaded()) return;
-
 		int num_files = m_torrent_file->num_files();
 		if (m_file_progress.empty())
 		{
