@@ -475,12 +475,12 @@ namespace libtorrent
 		// You can resolve it into the public representation of a file (``file_entry``)
 		// using the ``file_storage::at`` function, which takes an index and an iterator.
 		TORRENT_DEPRECATED_PREFIX
-		file_iterator begin_files() const TORRENT_DEPRECATED { return m_files.begin(); }
+		file_iterator begin_files() const TORRENT_DEPRECATED { return m_files.begin_deprecated(); }
 		TORRENT_DEPRECATED_PREFIX
-		file_iterator end_files() const TORRENT_DEPRECATED { return m_files.end(); }
-		reverse_file_iterator rbegin_files() const TORRENT_DEPRECATED { return m_files.rbegin(); }
+		file_iterator end_files() const TORRENT_DEPRECATED { return m_files.end_deprecated(); }
+		reverse_file_iterator rbegin_files() const TORRENT_DEPRECATED { return m_files.rbegin_deprecated(); }
 		TORRENT_DEPRECATED_PREFIX
-		reverse_file_iterator rend_files() const TORRENT_DEPRECATED { return m_files.rend(); }
+		reverse_file_iterator rend_files() const TORRENT_DEPRECATED { return m_files.rend_deprecated(); }
 
 		TORRENT_DEPRECATED_PREFIX
 		file_iterator file_at_offset(size_type offset) const TORRENT_DEPRECATED

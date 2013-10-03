@@ -338,6 +338,11 @@ namespace libtorrent
 		}
 		TORRENT_DEPRECATED_PREFIX
 		file_entry at(iterator i) const TORRENT_DEPRECATED;
+
+		iterator begin_deprecated() const { return m_files.begin(); }
+		iterator end_deprecated() const { return m_files.end(); }
+		reverse_iterator rbegin_deprecated() const { return m_files.rbegin(); }
+		reverse_iterator rend_deprecated() const { return m_files.rend(); }
 #endif // TORRENT_NO_DEPRECATE
 
 		// returns the number of files in the file_storage
