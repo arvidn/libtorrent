@@ -56,7 +56,7 @@ def style_output(o):
 			'jump or move depends on uninitialised value(s)' in l or \
 			'Invalid read of size' in l or \
 			'Invalid write of size' in l or \
-			'Use of uninitialised value of size' in l \
+			'Use of uninitialised value of size' in l or \
 			'Uninitialised byte(s) found during' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
 		elif ': warning: ' in l or ') : warning C' in l \
