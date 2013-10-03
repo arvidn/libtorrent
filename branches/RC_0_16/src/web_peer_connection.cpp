@@ -692,7 +692,7 @@ namespace libtorrent
 			// 3. the start of a block
 			// in that order, these parts are parsed.
 
-			bool range_overlaps_request = re > fs + int(m_piece.size());
+			bool range_overlaps_request = re >= fs + int(m_piece.size());
 
 			if (!range_overlaps_request)
 			{
