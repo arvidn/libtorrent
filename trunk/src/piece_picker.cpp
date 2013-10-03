@@ -202,8 +202,6 @@ namespace libtorrent
 			ret.info[i].state = block_info::state_none;
 			ret.info[i].peer = 0;
 #ifdef TORRENT_USE_VALGRIND
-			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].num_peers);
-			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].state);
 			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].peer);
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
