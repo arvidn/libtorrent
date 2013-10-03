@@ -13,6 +13,10 @@ import sys
 
 class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
+
+    def handle_timeout(self):
+        raise Exception('timeout')
+
 CLOSE = object()
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
@@ -252,4 +256,6 @@ if __name__ == '__main__':
 
     info('Listening on port %d...' % listen_port)
     server = MyTCPServer(('localhost', listen_port), SocksHandler)
-    server.serve_forever()
+    server.timeout = 50
+    while True:
+        server.handle_request()

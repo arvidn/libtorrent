@@ -107,9 +107,10 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 				if 'launcher=valgrind' in options:
 					options = options[:]
 					options.remove('launcher=valgrind')
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-q', '-l%d' % time_limit, '--abbreviate-paths', toolset, t] + options + feature_list
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-q', '-l%d' % time_limit, '--abbreviate-paths', toolset] + options + feature_list
 			if t != '': cmdline.append(t)
 #			print 'calling ', cmdline
+
 			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=test_dir)
 			output = ''
 			for l in p.stdout:
