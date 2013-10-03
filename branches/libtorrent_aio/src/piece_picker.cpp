@@ -242,15 +242,27 @@ namespace libtorrent
 		downloading_piece ret;
 		ret.index = piece;
 		ret.info = &m_block_info[block_index];
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(piece);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block_index);
+#endif
 		for (int i = 0; i < m_blocks_per_piece; ++i)
 		{
 			ret.info[i].num_peers = 0;
 			ret.info[i].state = block_info::state_none;
 			ret.info[i].peer = 0;
+#ifdef TORRENT_USE_VALGRIND
+			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].num_peers);
+			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].state);
+			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].peer);
+#endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			ret.info[i].piece_index = piece;
 #endif
 		}
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret);
+#endif
 		i = m_downloads[0].insert(i, ret);
 
 #ifdef TORRENT_DEBUG
