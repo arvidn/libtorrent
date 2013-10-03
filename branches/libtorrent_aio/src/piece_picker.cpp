@@ -52,6 +52,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer.hpp"
 #endif
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 #include "libtorrent/invariant_check.hpp"
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
