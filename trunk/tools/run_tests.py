@@ -100,7 +100,6 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 #			p.wait()
    
 		for t in tests:
-			if t != '': cmdline.append(t)
 			if t == '':
 				t = os.path.split(os.getcwd())[1]
 				# we can't pass in a launcher when just building, that only
@@ -109,6 +108,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 					options = options[:]
 					options.remove('launcher=valgrind')
 			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset] + options + feature_list
+			if t != '': cmdline.append(t)
 
 #			print ' '.join(cmdline)
 
