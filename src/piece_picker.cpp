@@ -50,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp" // for policy::peer
 #endif
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 #include "libtorrent/invariant_check.hpp"
 
 #define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
