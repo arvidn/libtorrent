@@ -88,11 +88,11 @@ def loop():
 
 	skip = '-s' in sys.argv
 
+	rev_file = os.path.join(os.getcwd(), '.rev')
 	if skip:
 		sys.argv.remove('-s')
 		last_rev = run_tests.svn_info()[0] - 1
 	else:
-		rev_file = os.path.join(os.getcwd(), '.rev')
 		print 'restoring last state from "%s"' % rev_file
 
 		try:
