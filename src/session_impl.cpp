@@ -3924,75 +3924,76 @@ retry:
 			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
 
 #ifdef TORRENT_USE_VALGRIND
-#define STAT_LOG(type, val) VALGRIND_CHECK_VALUE_IS_DEFINED(val); fprintf(m_stats_logger, "%" #type "\t", val)
+#define STAT_LOGL(type, val) VALGRIND_CHECK_VALUE_IS_DEFINED(val); fprintf(m_stats_logger, "%" #type "\t", val)
 #else
-#define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
+#define STAT_LOGL(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 #endif
+#define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 
 			STAT_LOG(f, total_milliseconds(now - m_last_log_rotation) / 1000.f);
 			size_type uploaded = m_stat.total_upload() - m_last_uploaded;
 			STAT_LOG(d, int(uploaded));
 			size_type downloaded = m_stat.total_download() - m_last_downloaded;
 			STAT_LOG(d, int(downloaded));
-			STAT_LOG(d, downloading_torrents);
-			STAT_LOG(d, seeding_torrents);
-			STAT_LOG(d, num_complete_connections);
-			STAT_LOG(d, num_half_open);
+			STAT_LOGL(d, downloading_torrents);
+			STAT_LOGL(d, seeding_torrents);
+			STAT_LOGL(d, num_complete_connections);
+			STAT_LOGL(d, num_half_open);
 			STAT_LOG(d, m_disk_thread.disk_allocations());
-			STAT_LOG(d, num_peers);
-			STAT_LOG(d, logging_allocator::allocations);
-			STAT_LOG(d, logging_allocator::allocated_bytes);
-			STAT_LOG(d, checking_torrents);
-			STAT_LOG(d, stopped_torrents);
-			STAT_LOG(d, upload_only_torrents);
-			STAT_LOG(d, queued_seed_torrents);
-			STAT_LOG(d, queued_download_torrents);
+			STAT_LOGL(d, num_peers);
+			STAT_LOGL(d, logging_allocator::allocations);
+			STAT_LOGL(d, logging_allocator::allocated_bytes);
+			STAT_LOGL(d, checking_torrents);
+			STAT_LOGL(d, stopped_torrents);
+			STAT_LOGL(d, upload_only_torrents);
+			STAT_LOGL(d, queued_seed_torrents);
+			STAT_LOGL(d, queued_download_torrents);
 			STAT_LOG(d, m_upload_rate.queue_size());
 			STAT_LOG(d, m_download_rate.queue_size());
-			STAT_LOG(d, m_disk_queues[peer_connection::upload_channel]);
-			STAT_LOG(d, m_disk_queues[peer_connection::download_channel]);
+			STAT_LOGL(d, m_disk_queues[peer_connection::upload_channel]);
+			STAT_LOGL(d, m_disk_queues[peer_connection::download_channel]);
 			STAT_LOG(d, m_stat.upload_rate());
 			STAT_LOG(d, m_stat.download_rate());
 			STAT_LOG(d, int(m_disk_thread.queue_buffer_size()));
-			STAT_LOG(d, peer_dl_rate_buckets[0]);
-			STAT_LOG(d, peer_dl_rate_buckets[1]);
-			STAT_LOG(d, peer_dl_rate_buckets[2]);
-			STAT_LOG(d, peer_dl_rate_buckets[3]);
-			STAT_LOG(d, peer_dl_rate_buckets[4]);
-			STAT_LOG(d, peer_dl_rate_buckets[5]);
-			STAT_LOG(d, peer_dl_rate_buckets[6]);
-			STAT_LOG(d, peer_ul_rate_buckets[0]);
-			STAT_LOG(d, peer_ul_rate_buckets[1]);
-			STAT_LOG(d, peer_ul_rate_buckets[2]);
-			STAT_LOG(d, peer_ul_rate_buckets[3]);
-			STAT_LOG(d, peer_ul_rate_buckets[4]);
-			STAT_LOG(d, peer_ul_rate_buckets[5]);
-			STAT_LOG(d, peer_ul_rate_buckets[6]);
-			STAT_LOG(d, m_error_peers);
-			STAT_LOG(d, peers_down_interesting);
-			STAT_LOG(d, peers_down_unchoked);
-			STAT_LOG(d, peers_down_requests);
-			STAT_LOG(d, peers_up_interested);
-			STAT_LOG(d, peers_up_unchoked);
-			STAT_LOG(d, peers_up_requests);
-			STAT_LOG(d, m_disconnected_peers);
-			STAT_LOG(d, m_eof_peers);
-			STAT_LOG(d, m_connreset_peers);
-			STAT_LOG(d, outstanding_requests);
-			STAT_LOG(d, outstanding_end_game_requests);
-			STAT_LOG(d, outstanding_write_blocks);
-			STAT_LOG(d, m_end_game_piece_picker_blocks);
-			STAT_LOG(d, m_piece_picker_blocks);
-			STAT_LOG(d, m_piece_picks);
-			STAT_LOG(d, m_reject_piece_picks);
-			STAT_LOG(d, m_unchoke_piece_picks);
-			STAT_LOG(d, m_incoming_redundant_piece_picks);
-			STAT_LOG(d, m_incoming_piece_picks);
-			STAT_LOG(d, m_end_game_piece_picks);
-			STAT_LOG(d, m_snubbed_piece_picks);
-			STAT_LOG(d, m_connect_timeouts);
-			STAT_LOG(d, m_uninteresting_peers);
-			STAT_LOG(d, m_timeout_peers);
+			STAT_LOGL(d, peer_dl_rate_buckets[0]);
+			STAT_LOGL(d, peer_dl_rate_buckets[1]);
+			STAT_LOGL(d, peer_dl_rate_buckets[2]);
+			STAT_LOGL(d, peer_dl_rate_buckets[3]);
+			STAT_LOGL(d, peer_dl_rate_buckets[4]);
+			STAT_LOGL(d, peer_dl_rate_buckets[5]);
+			STAT_LOGL(d, peer_dl_rate_buckets[6]);
+			STAT_LOGL(d, peer_ul_rate_buckets[0]);
+			STAT_LOGL(d, peer_ul_rate_buckets[1]);
+			STAT_LOGL(d, peer_ul_rate_buckets[2]);
+			STAT_LOGL(d, peer_ul_rate_buckets[3]);
+			STAT_LOGL(d, peer_ul_rate_buckets[4]);
+			STAT_LOGL(d, peer_ul_rate_buckets[5]);
+			STAT_LOGL(d, peer_ul_rate_buckets[6]);
+			STAT_LOGL(d, m_error_peers);
+			STAT_LOGL(d, peers_down_interesting);
+			STAT_LOGL(d, peers_down_unchoked);
+			STAT_LOGL(d, peers_down_requests);
+			STAT_LOGL(d, peers_up_interested);
+			STAT_LOGL(d, peers_up_unchoked);
+			STAT_LOGL(d, peers_up_requests);
+			STAT_LOGL(d, m_disconnected_peers);
+			STAT_LOGL(d, m_eof_peers);
+			STAT_LOGL(d, m_connreset_peers);
+			STAT_LOGL(d, outstanding_requests);
+			STAT_LOGL(d, outstanding_end_game_requests);
+			STAT_LOGL(d, outstanding_write_blocks);
+			STAT_LOGL(d, m_end_game_piece_picker_blocks);
+			STAT_LOGL(d, m_piece_picker_blocks);
+			STAT_LOGL(d, m_piece_picks);
+			STAT_LOGL(d, m_reject_piece_picks);
+			STAT_LOGL(d, m_unchoke_piece_picks);
+			STAT_LOGL(d, m_incoming_redundant_piece_picks);
+			STAT_LOGL(d, m_incoming_piece_picks);
+			STAT_LOGL(d, m_end_game_piece_picks);
+			STAT_LOGL(d, m_snubbed_piece_picks);
+			STAT_LOGL(d, m_connect_timeouts);
+			STAT_LOGL(d, m_uninteresting_peers);
+			STAT_LOGL(d, m_timeout_peers);
 			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
@@ -4006,41 +4007,41 @@ retry:
 			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
 			STAT_LOG(d, int(m_total_failed_bytes - m_last_failed));
 			STAT_LOG(d, int(m_total_redundant_bytes - m_last_redundant));
-			STAT_LOG(d, error_torrents);
-			STAT_LOG(d, cs.read_cache_size);
-			STAT_LOG(d, cs.cache_size);
-			STAT_LOG(d, cs.total_used_buffers);
+			STAT_LOGL(d, error_torrents);
+			STAT_LOGL(d, cs.read_cache_size);
+			STAT_LOGL(d, cs.cache_size);
+			STAT_LOGL(d, cs.total_used_buffers);
 			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_job_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_sort_time) / 1000000.f);
-			STAT_LOG(d, m_connection_attempts);
-			STAT_LOG(d, m_num_banned_peers);
-			STAT_LOG(d, m_banned_for_hash_failure);
-			STAT_LOG(d, m_settings.cache_size);
-			STAT_LOG(d, m_settings.connections_limit);
-			STAT_LOG(d, connect_candidates);
+			STAT_LOGL(d, m_connection_attempts);
+			STAT_LOGL(d, m_num_banned_peers);
+			STAT_LOGL(d, m_banned_for_hash_failure);
+			STAT_LOGL(d, m_settings.cache_size);
+			STAT_LOGL(d, m_settings.connections_limit);
+			STAT_LOGL(d, connect_candidates);
 			STAT_LOG(d, int(m_settings.max_queued_disk_bytes));
-			STAT_LOG(d, low_watermark);
+			STAT_LOGL(d, low_watermark);
 			STAT_LOG(f, float(cs.cumulative_read_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_write_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_hash_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_sort_time * 100.f / total_job_time));
 			STAT_LOG(d, int(cs.total_read_back - m_last_cache_status.total_read_back));
 			STAT_LOG(f, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written)));
-			STAT_LOG(d, cs.read_queue_size);
+			STAT_LOGL(d, cs.read_queue_size);
 			STAT_LOG(f, float(tick_interval_ms) / 1000.f);
 			STAT_LOG(f, float(m_tick_residual) / 1000.f);
-			STAT_LOG(d, m_allowed_upload_slots);
+			STAT_LOGL(d, m_allowed_upload_slots);
 			STAT_LOG(d, m_settings.unchoke_slots_limit * 2);
 			STAT_LOG(d, m_stat.low_pass_upload_rate());
 			STAT_LOG(d, m_stat.low_pass_download_rate());
-			STAT_LOG(d, num_end_game_peers);
-			STAT_LOG(d, tcp_up_rate);
-			STAT_LOG(d, tcp_down_rate);
+			STAT_LOGL(d, num_end_game_peers);
+			STAT_LOGL(d, tcp_up_rate);
+			STAT_LOGL(d, tcp_down_rate);
 			STAT_LOG(d, int(m_tcp_upload_channel.throttle()));
 			STAT_LOG(d, int(m_tcp_download_channel.throttle()));
-			STAT_LOG(d, utp_up_rate);
-			STAT_LOG(d, utp_down_rate);
+			STAT_LOGL(d, utp_up_rate);
+			STAT_LOGL(d, utp_down_rate);
 			STAT_LOG(f, float(utp_peak_send_delay) / 1000000.f);
 			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
 			STAT_LOG(f, float(utp_peak_recv_delay) / 1000000.f);
@@ -4059,16 +4060,22 @@ retry:
 			STAT_LOG(d, m_read_ops.mean());
 			STAT_LOG(d, m_write_ops.mean());
 
-			STAT_LOG(d, reading_bytes);
+			STAT_LOGL(d, reading_bytes);
 
 			for (int i = 0; i < max_messages; ++i)
-				STAT_LOG(d, m_num_messages[i]);
+			{
+				STAT_LOGL(d, m_num_messages[i]);
+			}
 			int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
 			for (int i = 0; i < num_max; ++i)
-				STAT_LOG(d, m_send_buffer_sizes[i]);
+			{
+				STAT_LOGL(d, m_send_buffer_sizes[i]);
+			}
 			num_max = sizeof(m_recv_buffer_sizes)/sizeof(m_recv_buffer_sizes[0]);
 			for (int i = 0; i < num_max; ++i)
-				STAT_LOG(d, m_recv_buffer_sizes[i]);
+			{
+				STAT_LOGL(d, m_recv_buffer_sizes[i]);
+			}
 
 			STAT_LOG(f, total_microseconds(cur_cpu_usage.user_time
 				- m_network_thread_cpu_usage.user_time) / double(tick_interval_ms * 10));
@@ -4079,71 +4086,74 @@ retry:
 				/ double(tick_interval_ms * 10));
 
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
+			{
 				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes == 0 ? 1 : m_total_redundant_bytes));
+			}
 
-			STAT_LOG(d, m_no_memory_peers);
-			STAT_LOG(d, m_too_many_peers);
-			STAT_LOG(d, m_transport_timeout_peers);
+			STAT_LOGL(d, m_no_memory_peers);
+			STAT_LOGL(d, m_too_many_peers);
+			STAT_LOGL(d, m_transport_timeout_peers);
 
-			STAT_LOG(d, sst.utp_stats.num_idle);
-			STAT_LOG(d, sst.utp_stats.num_syn_sent);
-			STAT_LOG(d, sst.utp_stats.num_connected);
-			STAT_LOG(d, sst.utp_stats.num_fin_sent);
-			STAT_LOG(d, sst.utp_stats.num_close_wait);
+			STAT_LOGL(d, sst.utp_stats.num_idle);
+			STAT_LOGL(d, sst.utp_stats.num_syn_sent);
+			STAT_LOGL(d, sst.utp_stats.num_connected);
+			STAT_LOGL(d, sst.utp_stats.num_fin_sent);
+			STAT_LOGL(d, sst.utp_stats.num_close_wait);
 
-			STAT_LOG(d, num_tcp_peers);
-			STAT_LOG(d, num_utp_peers);
+			STAT_LOGL(d, num_tcp_peers);
+			STAT_LOGL(d, num_utp_peers);
 
-			STAT_LOG(d, m_connrefused_peers);
-			STAT_LOG(d, m_connaborted_peers);
-			STAT_LOG(d, m_perm_peers);
-			STAT_LOG(d, m_buffer_peers);
-			STAT_LOG(d, m_unreachable_peers);
-			STAT_LOG(d, m_broken_pipe_peers);
-			STAT_LOG(d, m_addrinuse_peers);
-			STAT_LOG(d, m_no_access_peers);
-			STAT_LOG(d, m_invalid_arg_peers);
-			STAT_LOG(d, m_aborted_peers);
+			STAT_LOGL(d, m_connrefused_peers);
+			STAT_LOGL(d, m_connaborted_peers);
+			STAT_LOGL(d, m_perm_peers);
+			STAT_LOGL(d, m_buffer_peers);
+			STAT_LOGL(d, m_unreachable_peers);
+			STAT_LOGL(d, m_broken_pipe_peers);
+			STAT_LOGL(d, m_addrinuse_peers);
+			STAT_LOGL(d, m_no_access_peers);
+			STAT_LOGL(d, m_invalid_arg_peers);
+			STAT_LOGL(d, m_aborted_peers);
 
-			STAT_LOG(d, m_error_incoming_peers);
-			STAT_LOG(d, m_error_outgoing_peers);
-			STAT_LOG(d, m_error_rc4_peers);
-			STAT_LOG(d, m_error_encrypted_peers);
-			STAT_LOG(d, m_error_tcp_peers);
-			STAT_LOG(d, m_error_utp_peers);
+			STAT_LOGL(d, m_error_incoming_peers);
+			STAT_LOGL(d, m_error_outgoing_peers);
+			STAT_LOGL(d, m_error_rc4_peers);
+			STAT_LOGL(d, m_error_encrypted_peers);
+			STAT_LOGL(d, m_error_tcp_peers);
+			STAT_LOGL(d, m_error_utp_peers);
 
 			STAT_LOG(d, int(m_connections.size()));
-			STAT_LOG(d, pending_incoming_reqs);
+			STAT_LOGL(d, pending_incoming_reqs);
 			STAT_LOG(f, num_complete_connections == 0 ? 0.f : (float(pending_incoming_reqs) / num_complete_connections));
 
-			STAT_LOG(d, num_want_more_peers);
+			STAT_LOGL(d, num_want_more_peers);
 			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
 
-			STAT_LOG(d, m_piece_requests);
-			STAT_LOG(d, m_max_piece_requests);
-			STAT_LOG(d, m_invalid_piece_requests);
-			STAT_LOG(d, m_choked_piece_requests);
-			STAT_LOG(d, m_cancelled_piece_requests);
-			STAT_LOG(d, m_piece_rejects);
+			STAT_LOGL(d, m_piece_requests);
+			STAT_LOGL(d, m_max_piece_requests);
+			STAT_LOGL(d, m_invalid_piece_requests);
+			STAT_LOGL(d, m_choked_piece_requests);
+			STAT_LOGL(d, m_cancelled_piece_requests);
+			STAT_LOGL(d, m_piece_rejects);
 
-			STAT_LOG(d, peers_up_send_buffer);
+			STAT_LOGL(d, peers_up_send_buffer);
 
-			STAT_LOG(d, sst.utp_stats.packet_loss);
-			STAT_LOG(d, sst.utp_stats.timeout);
-			STAT_LOG(d, sst.utp_stats.packets_in);
-			STAT_LOG(d, sst.utp_stats.packets_out);
-			STAT_LOG(d, sst.utp_stats.fast_retransmit);
-			STAT_LOG(d, sst.utp_stats.packet_resend);
-			STAT_LOG(d, sst.utp_stats.samples_above_target);
-			STAT_LOG(d, sst.utp_stats.samples_below_target);
-			STAT_LOG(d, sst.utp_stats.payload_pkts_in);
-			STAT_LOG(d, sst.utp_stats.payload_pkts_out);
-			STAT_LOG(d, sst.utp_stats.invalid_pkts_in);
-			STAT_LOG(d, sst.utp_stats.redundant_pkts_in);
+			STAT_LOGL(d, sst.utp_stats.packet_loss);
+			STAT_LOGL(d, sst.utp_stats.timeout);
+			STAT_LOGL(d, sst.utp_stats.packets_in);
+			STAT_LOGL(d, sst.utp_stats.packets_out);
+			STAT_LOGL(d, sst.utp_stats.fast_retransmit);
+			STAT_LOGL(d, sst.utp_stats.packet_resend);
+			STAT_LOGL(d, sst.utp_stats.samples_above_target);
+			STAT_LOGL(d, sst.utp_stats.samples_below_target);
+			STAT_LOGL(d, sst.utp_stats.payload_pkts_in);
+			STAT_LOGL(d, sst.utp_stats.payload_pkts_out);
+			STAT_LOGL(d, sst.utp_stats.invalid_pkts_in);
+			STAT_LOGL(d, sst.utp_stats.redundant_pkts_in);
 
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
+#undef STAT_LOGL
 
 			m_last_cache_status = cs;
 			m_last_vm_stat = vm_stat;

@@ -156,25 +156,28 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): state(none), index(-1), info(0)
-				, finished(0), writing(0), requested(0) {}
+			downloading_piece(): info(NULL), index(-1)
+				, finished(0), writing(0), requested(0)
+				, state(none) {}
 
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
-			piece_state_t state;
-
-			// the index of the piece
-			int index;
 			// info about each block
 			// this is a pointer into the m_block_info
 			// vector owned by the piece_picker
 			block_info* info;
+			// the index of the piece
+			int index;
 			// the number of blocks in the finished state
 			boost::int16_t finished;
 			// the number of blocks in the writing state
 			boost::int16_t writing;
 			// the number of blocks in the requested state
 			boost::int16_t requested;
+
+			// one of piece_state_t values
+			// really just needs 2 bits
+			boost::uint16_t state;
 		};
 		
 		piece_picker();
