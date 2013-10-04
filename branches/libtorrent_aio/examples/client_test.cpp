@@ -1122,6 +1122,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		torrent_handle h = p->handle;
 		error_code ec;
+		file_status st;
 		std::string base_name = combine_path("certificates", to_hex(h.info_hash().to_string()));
 		std::string cert = base_name + ".pem";
 		std::string priv = base_name + "_key.pem";
