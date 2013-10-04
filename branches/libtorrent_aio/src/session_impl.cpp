@@ -4274,7 +4274,7 @@ retry:
 			STAT_LOG(d, int(m_total_redundant_bytes - m_last_redundant));
 			STAT_LOG(d, int(m_stats_counters[counters::num_error_torrents]));
 			STAT_LOGL(d, cs.read_cache_size);
-			STAT_LOGL(d, cs.write_cache_size + cs.read_cache_size);
+			STAT_LOG(d, cs.write_cache_size + cs.read_cache_size);
 			STAT_LOGL(d, cs.total_used_buffers);
 			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
 			STAT_LOG(d, int(m_stats_counters[counters::connection_attempts]));
