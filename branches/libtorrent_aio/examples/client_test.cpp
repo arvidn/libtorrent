@@ -2628,7 +2628,7 @@ int main(int argc, char* argv[])
 						continue;
 					}
 
-					int progress = ti->file_at(i).size > 0
+					int progress = ti->files().file_size(i) > 0
 						?file_progress[i] * 1000 / ti->files().file_size(i):1000;
 
 					bool complete = file_progress[i] == ti->files().file_size(i);
