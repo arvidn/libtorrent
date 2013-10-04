@@ -167,7 +167,7 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece() : info(0), index(-1)
+			downloading_piece() : info(NULL), index(-1)
 				, finished(0), state(none), writing(0)
 				, passed_hash_check(0), locked(0)
 				, requested(0), outstanding_hash_check(0) {}

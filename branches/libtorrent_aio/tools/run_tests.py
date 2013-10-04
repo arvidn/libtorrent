@@ -100,15 +100,15 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 #			p.wait()
    
 		for t in tests:
+			options_copy = options[:]
+			if t != '': options_copy.append(t)
 			if t == '':
 				t = os.path.split(os.getcwd())[1]
 				# we can't pass in a launcher when just building, that only
 				# works for actual unit tests
-				if 'launcher=valgrind' in options:
-					options = options[:]
-					options.remove('launcher=valgrind')
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-q', '-l%d' % time_limit, '--abbreviate-paths', toolset] + options + feature_list
-			if t != '': cmdline.append(t)
+				if 'launcher=valgrind' in options_copy:
+					options_copy.remove('launcher=valgrind')
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-q', '-l%d' % time_limit, '--abbreviate-paths', toolset] + options_copy + feature_list
 #			print 'calling ', cmdline
 
 			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=test_dir)
@@ -238,7 +238,7 @@ def main(argv):
 
 	# it takes a bit longer to run in valgrind
 	if 'launcher=valgrind' in options:
-		time_limit *= 6
+		time_limit *= 3
 
 	architecture = platform.machine()
 	build_platform = platform.system() + '-' + platform.release()
