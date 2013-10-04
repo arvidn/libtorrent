@@ -256,6 +256,6 @@ if __name__ == '__main__':
 
     info('Listening on port %d...' % listen_port)
     server = MyTCPServer(('localhost', listen_port), SocksHandler)
-    server.timeout = 50
+    server.timeout = 120
     while True:
         server.handle_request()
