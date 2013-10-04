@@ -277,7 +277,7 @@ namespace libtorrent
 		// connection, just to count hash failures
 		// it's also used to hold the peer_connection
 		// pointer, when the web seed is connected
-		policy::ipv4_peer peer_info;
+		ipv4_peer peer_info;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
