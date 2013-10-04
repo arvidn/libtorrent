@@ -340,7 +340,7 @@ namespace libtorrent
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 
-			const address_v4 addr;
+			address_v4 addr;
 		};
 
 #if TORRENT_USE_I2P

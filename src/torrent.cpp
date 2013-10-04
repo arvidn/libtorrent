@@ -4851,6 +4851,11 @@ namespace libtorrent
 		TORRENT_ASSERT(web->peer_info.connection == 0);
 
 		web->endpoint = a;
+		if (a.address().is_v4())
+		{
+			web->peer_info.addr = a.address().to_v4();
+			web->peer_info.port = a.port();
+		}
 
 		if (is_paused()) return;
 		if (m_ses.is_aborted()) return;
