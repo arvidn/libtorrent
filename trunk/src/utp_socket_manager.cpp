@@ -53,7 +53,9 @@ namespace libtorrent
 		, m_last_route_update(min_time())
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
-	{}
+	{
+		memset(m_counters, 0, sizeof(m_counters));
+	}
 
 	utp_socket_manager::~utp_socket_manager()
 	{
