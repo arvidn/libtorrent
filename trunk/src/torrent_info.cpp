@@ -556,7 +556,7 @@ namespace libtorrent
 		: url(url_), type(type_)
 		, auth(auth_), extra_headers(extra_headers_)
 		, retry(time_now()), resolving(false), removed(false)
-		, peer_info(0, true, 0)
+		, peer_info(tcp::endpoint(), true, 0)
 	{
 		peer_info.web_seed = true;
 	}
