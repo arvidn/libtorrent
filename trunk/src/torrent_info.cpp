@@ -1399,7 +1399,7 @@ namespace libtorrent
 		for (int i = 0; i < m_files.num_files(); ++i)
 		{
 			TORRENT_ASSERT(m_files.file_name_ptr(i) != 0);
-			if (m_files.file_name_len(i) > 0)
+			if (m_files.file_name_len(i) != -1)
 			{
 				// name needs to point into the allocated info section buffer
 				TORRENT_ASSERT(m_files.file_name_ptr(i) >= m_info_section.get());
