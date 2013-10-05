@@ -4203,8 +4203,10 @@ retry:
 
 #ifdef TORRENT_USE_VALGRIND
 #define STAT_LOGL(type, val) VALGRIND_CHECK_VALUE_IS_DEFINED(val); fprintf(m_stats_logger, "%" #type "\t", val)
+#define STAT_COUNTER(cnt) VALGRIND_CHECK_VALUE_IS_DEFINED(m_stats_counters[counters:: cnt]); fprintf(m_stats_logger, "%" PRId64 "\t", m_stas_counter[counters:: cnt])
 #else
 #define STAT_LOGL(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
+#define STAT_COUNTER(cnt) fprintf(m_stats_logger, "%" PRId64 "\t", m_stas_counter[counters:: cnt])
 #endif
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 
@@ -4213,23 +4215,23 @@ retry:
 			STAT_LOG(d, int(uploaded));
 			size_type downloaded = m_stat.total_download() - m_last_downloaded;
 			STAT_LOG(d, int(downloaded));
-			STAT_LOG(d, int(m_stats_counters[counters::num_downloading_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_seeding_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_connected]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_half_open]));
+			STAT_COUNTER(num_downloading_torrents);
+			STAT_COUNTER(num_seeding_torrents);
+			STAT_COUNTER(num_peers_connected);
+			STAT_COUNTER(num_peers_half_open);
 			STAT_LOGL(d, cs.total_used_buffers);
 			STAT_LOGL(d, num_peers);
 			STAT_LOG(d, m_peer_allocator.live_allocations());
 			STAT_LOG(d, m_peer_allocator.live_bytes());
-			STAT_LOG(d, int(m_stats_counters[counters::num_checking_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_stopped_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_upload_only_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_queued_seeding_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_queued_download_torrents]));
+			STAT_COUNTER(num_checking_torrents);
+			STAT_COUNTER(num_stopped_torrents);
+			STAT_COUNTER(num_upload_only_torrents);
+			STAT_COUNTER(num_queued_seeding_torrents);
+			STAT_COUNTER(num_queued_download_torrents);
 			STAT_LOG(d, m_upload_rate.queue_size());
 			STAT_LOG(d, m_download_rate.queue_size());
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_up_disk]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_down_disk]));
+			STAT_COUNTER(num_peers_up_disk);
+			STAT_COUNTER(num_peers_down_disk);
 			STAT_LOG(d, m_stat.upload_rate());
 			STAT_LOG(d, m_stat.download_rate());
 			STAT_LOG(d, int(m_writing_bytes));
@@ -4247,30 +4249,30 @@ retry:
 			STAT_LOGL(d, peer_ul_rate_buckets[4]);
 			STAT_LOGL(d, peer_ul_rate_buckets[5]);
 			STAT_LOGL(d, peer_ul_rate_buckets[6]);
-			STAT_LOG(d, int(m_stats_counters[counters::error_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_down_interested]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_down_unchoked]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_down_requests]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_up_interested]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_up_unchoked]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_up_requests]));
-			STAT_LOG(d, int(m_stats_counters[counters::disconnected_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::eof_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::connreset_peers]));
+			STAT_COUNTER(error_peers);
+			STAT_COUNTER(num_peers_down_interested);
+			STAT_COUNTER(num_peers_down_unchoked);
+			STAT_COUNTER(num_peers_down_requests);
+			STAT_COUNTER(num_peers_up_interested);
+			STAT_COUNTER(num_peers_up_unchoked);
+			STAT_COUNTER(num_peers_up_requests);
+			STAT_COUNTER(disconnected_peers);
+			STAT_COUNTER(eof_peers);
+			STAT_COUNTER(connreset_peers);
 			STAT_LOGL(d, outstanding_requests);
 			STAT_LOGL(d, outstanding_end_game_requests);
 			STAT_LOGL(d, outstanding_write_blocks);
-			STAT_LOG(d, int(m_stats_counters[counters::reject_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::unchoke_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::incoming_redundant_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::incoming_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::end_game_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::snubbed_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::interesting_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::hash_fail_piece_picks]));
-			STAT_LOG(d, int(m_stats_counters[counters::connect_timeouts]));
-			STAT_LOG(d, int(m_stats_counters[counters::uninteresting_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::timeout_peers]));
+			STAT_COUNTER(reject_piece_picks);
+			STAT_COUNTER(unchoke_piece_picks);
+			STAT_COUNTER(incoming_redundant_piece_picks);
+			STAT_COUNTER(incoming_piece_picks);
+			STAT_COUNTER(end_game_piece_picks);
+			STAT_COUNTER(snubbed_piece_picks);
+			STAT_COUNTER(interesting_piece_picks);
+			STAT_COUNTER(hash_fail_piece_picks);
+			STAT_COUNTER(connect_timeouts);
+			STAT_COUNTER(uninteresting_peers);
+			STAT_COUNTER(timeout_peers);
 			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
@@ -4283,14 +4285,14 @@ retry:
 			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
 			STAT_LOG(d, int(m_total_failed_bytes - m_last_failed));
 			STAT_LOG(d, int(m_total_redundant_bytes - m_last_redundant));
-			STAT_LOG(d, int(m_stats_counters[counters::num_error_torrents]));
+			STAT_COUNTER(num_error_torrents);
 			STAT_LOGL(d, cs.read_cache_size);
 			STAT_LOG(d, cs.write_cache_size + cs.read_cache_size);
 			STAT_LOGL(d, cs.total_used_buffers);
 			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
-			STAT_LOG(d, int(m_stats_counters[counters::connection_attempts]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_banned_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::banned_for_hash_failure]));
+			STAT_COUNTER(connection_attempts);
+			STAT_COUNTER(num_banned_peers);
+			STAT_COUNTER(banned_for_hash_failure);
 			STAT_LOG(d, m_settings.get_int(settings_pack::cache_size));
 			STAT_LOG(d, m_settings.get_int(settings_pack::connections_limit));
 			STAT_LOGL(d, connect_candidates);
@@ -4307,7 +4309,7 @@ retry:
 			STAT_LOGL(d, m_allowed_upload_slots);
 			STAT_LOG(d, m_stat.low_pass_upload_rate());
 			STAT_LOG(d, m_stat.low_pass_download_rate());
-			STAT_LOG(d, int(m_stats_counters[counters::num_peers_end_game]));
+			STAT_COUNTER(num_peers_end_game);
 			STAT_LOGL(d, tcp_up_rate);
 			STAT_LOGL(d, tcp_down_rate);
 			STAT_LOG(d, int(rate_limit(m_tcp_peer_class, peer_connection::upload_channel)));
@@ -4374,9 +4376,9 @@ retry:
 				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes == 0 ? 1 : m_total_redundant_bytes));
 			}
 
-			STAT_LOG(d, int(m_stats_counters[counters::no_memory_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::too_many_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::transport_timeout_peers]));
+			STAT_COUNTER(no_memory_peers);
+			STAT_COUNTER(too_many_peers);
+			STAT_COUNTER(transport_timeout_peers);
 
 			STAT_LOGL(d, cs.arc_write_size);
 			STAT_LOGL(d, cs.arc_volatile_size);
@@ -4391,26 +4393,26 @@ retry:
 			STAT_LOGL(d, sst.utp_stats.num_fin_sent);
 			STAT_LOGL(d, sst.utp_stats.num_close_wait);
 
-			STAT_LOG(d, int(m_stats_counters[counters::num_tcp_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_utp_peers]));
+			STAT_COUNTER(num_tcp_peers);
+			STAT_COUNTER(num_utp_peers);
 
-			STAT_LOG(d, int(m_stats_counters[counters::connrefused_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::connaborted_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::perm_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::buffer_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::unreachable_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::broken_pipe_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::addrinuse_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::no_access_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::invalid_arg_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::aborted_peers]));
+			STAT_COUNTER(connrefused_peers);
+			STAT_COUNTER(connaborted_peers);
+			STAT_COUNTER(perm_peers);
+			STAT_COUNTER(buffer_peers);
+			STAT_COUNTER(unreachable_peers);
+			STAT_COUNTER(broken_pipe_peers);
+			STAT_COUNTER(addrinuse_peers);
+			STAT_COUNTER(no_access_peers);
+			STAT_COUNTER(invalid_arg_peers);
+			STAT_COUNTER(aborted_peers);
 
-			STAT_LOG(d, int(m_stats_counters[counters::error_incoming_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::error_outgoing_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::error_rc4_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::error_encrypted_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::error_tcp_peers]));
-			STAT_LOG(d, int(m_stats_counters[counters::error_utp_peers]));
+			STAT_COUNTER(error_incoming_peers);
+			STAT_COUNTER(error_outgoing_peers);
+			STAT_COUNTER(error_rc4_peers);
+			STAT_COUNTER(error_encrypted_peers);
+			STAT_COUNTER(error_tcp_peers);
+			STAT_COUNTER(error_utp_peers);
 
 			STAT_LOG(d, int(m_connections.size()));
 			STAT_LOGL(d, pending_incoming_reqs);
@@ -4419,17 +4421,17 @@ retry:
 			STAT_LOGL(d, num_want_more_peers);
 			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
 
-			STAT_LOG(d, int(m_stats_counters[counters::piece_requests]));
-			STAT_LOG(d, int(m_stats_counters[counters::max_piece_requests]));
-			STAT_LOG(d, int(m_stats_counters[counters::invalid_piece_requests]));
-			STAT_LOG(d, int(m_stats_counters[counters::choked_piece_requests]));
-			STAT_LOG(d, int(m_stats_counters[counters::cancelled_piece_requests]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_rejects]));
+			STAT_COUNTER(piece_requests);
+			STAT_COUNTER(max_piece_requests);
+			STAT_COUNTER(invalid_piece_requests);
+			STAT_COUNTER(choked_piece_requests);
+			STAT_COUNTER(cancelled_piece_requests);
+			STAT_COUNTER(piece_rejects);
 
-			STAT_LOG(d, int(m_stats_counters[counters::num_total_pieces_added]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_have_pieces]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_piece_passed]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_piece_failed]));
+			STAT_COUNTER(num_total_pieces_added);
+			STAT_COUNTER(num_have_pieces);
+			STAT_COUNTER(num_piece_passed);
+			STAT_COUNTER(num_piece_failed);
 
 			STAT_LOGL(d, peers_up_send_buffer);
 
@@ -4447,54 +4449,54 @@ retry:
 			STAT_LOGL(d, sst.utp_stats.redundant_pkts_in);
 
 			// loaded torrents
-			STAT_LOG(d, int(m_stats_counters[counters::num_loaded_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_pinned_torrents]));
-			STAT_LOG(d, int(m_stats_counters[counters::torrent_evicted_counter]));
+			STAT_COUNTER(num_loaded_torrents);
+			STAT_COUNTER(num_pinned_torrents);
+			STAT_COUNTER(torrent_evicted_counter);
 
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_choke]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_unchoke]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_interested]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_not_interested]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_have]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_bitfield]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_request]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_piece]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_cancel]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_dht_port]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_suggest]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_have_all]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_have_none]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_reject]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_allowed_fast]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_ext_handshake]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_pex]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_metadata]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_incoming_extended]));
+			STAT_COUNTER(num_incoming_choke);
+			STAT_COUNTER(num_incoming_unchoke);
+			STAT_COUNTER(num_incoming_interested);
+			STAT_COUNTER(num_incoming_not_interested);
+			STAT_COUNTER(num_incoming_have);
+			STAT_COUNTER(num_incoming_bitfield);
+			STAT_COUNTER(num_incoming_request);
+			STAT_COUNTER(num_incoming_piece);
+			STAT_COUNTER(num_incoming_cancel);
+			STAT_COUNTER(num_incoming_dht_port);
+			STAT_COUNTER(num_incoming_suggest);
+			STAT_COUNTER(num_incoming_have_all);
+			STAT_COUNTER(num_incoming_have_none);
+			STAT_COUNTER(num_incoming_reject);
+			STAT_COUNTER(num_incoming_allowed_fast);
+			STAT_COUNTER(num_incoming_ext_handshake);
+			STAT_COUNTER(num_incoming_pex);
+			STAT_COUNTER(num_incoming_metadata);
+			STAT_COUNTER(num_incoming_extended);
 
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_choke]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_unchoke]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_interested]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_not_interested]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_have]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_bitfield]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_request]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_piece]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_cancel]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_dht_port]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_suggest]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_have_all]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_have_none]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_reject]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_allowed_fast]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_ext_handshake]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_pex]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_metadata]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_outgoing_extended]));
+			STAT_COUNTER(num_outgoing_choke);
+			STAT_COUNTER(num_outgoing_unchoke);
+			STAT_COUNTER(num_outgoing_interested);
+			STAT_COUNTER(num_outgoing_not_interested);
+			STAT_COUNTER(num_outgoing_have);
+			STAT_COUNTER(num_outgoing_bitfield);
+			STAT_COUNTER(num_outgoing_request);
+			STAT_COUNTER(num_outgoing_piece);
+			STAT_COUNTER(num_outgoing_cancel);
+			STAT_COUNTER(num_outgoing_dht_port);
+			STAT_COUNTER(num_outgoing_suggest);
+			STAT_COUNTER(num_outgoing_have_all);
+			STAT_COUNTER(num_outgoing_have_none);
+			STAT_COUNTER(num_outgoing_reject);
+			STAT_COUNTER(num_outgoing_allowed_fast);
+			STAT_COUNTER(num_outgoing_ext_handshake);
+			STAT_COUNTER(num_outgoing_pex);
+			STAT_COUNTER(num_outgoing_metadata);
+			STAT_COUNTER(num_outgoing_extended);
 
 			STAT_LOG(d, cs.blocked_jobs);
-			STAT_LOG(d, int(m_stats_counters[counters::num_writing_threads]));
-			STAT_LOG(d, int(m_stats_counters[counters::num_running_threads]));
-			STAT_LOG(d, int(m_stats_counters[counters::incoming_connections]));
+			STAT_COUNTER(num_writing_threads);
+			STAT_COUNTER(num_running_threads);
+			STAT_COUNTER(incoming_connections);
 
 			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::move_storage]);
 			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::release_files]);
@@ -4506,16 +4508,16 @@ retry:
 			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::file_priority]);
 			STAT_LOG(d, cs.num_fence_jobs[disk_io_job::clear_piece]);
 
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_partial_loops]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_suggest_loops]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_sequential_loops]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_reverse_rare_loops]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_rare_loops]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_rand_start_loops]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_rand_loops]));
-			STAT_LOG(d, int(m_stats_counters[counters::piece_picker_busy_loops]));
+			STAT_COUNTER(piece_picker_partial_loops);
+			STAT_COUNTER(piece_picker_suggest_loops);
+			STAT_COUNTER(piece_picker_sequential_loops);
+			STAT_COUNTER(piece_picker_reverse_rare_loops);
+			STAT_COUNTER(piece_picker_rare_loops);
+			STAT_COUNTER(piece_picker_rand_start_loops);
+			STAT_COUNTER(piece_picker_rand_loops);
+			STAT_COUNTER(piece_picker_busy_loops);
 
-			STAT_LOG(d, int(m_stats_counters[counters::connection_attempt_loops]));
+			STAT_COUNTER(connection_attempt_loops);
 
 			fprintf(m_stats_logger, "\n");
 
