@@ -63,9 +63,8 @@ namespace libtorrent
 		{
 			boost::function<void(char*)> free; // destructs the buffer
 			char* buf; // the first byte of the buffer
-			int size; // the total size of the buffer
-
 			char* start; // the first byte to send/receive in the buffer
+			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive
 		};
 
