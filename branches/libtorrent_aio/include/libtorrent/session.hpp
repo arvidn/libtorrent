@@ -190,8 +190,8 @@ namespace libtorrent
 			, int flags = start_default_features | add_default_plugins)
 		{
 			TORRENT_CFG();
-			init(pack, print);
-			start(flags);
+			init(print);
+			start(flags, pack);
 		}
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
@@ -202,11 +202,11 @@ namespace libtorrent
 			TORRENT_CFG();
 			settings_pack pack;
 			pack.set_int(settings_pack::alert_mask, alert_mask);
-			init(pack, print);
+			init(print);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			set_log_path(logpath);
 #endif
-			start(flags);
+			start(flags, pack);
 		}
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
@@ -226,11 +226,11 @@ namespace libtorrent
 			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
 
-			init(pack, print);
+			init(print);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			set_log_path(logpath);
 #endif
-			start(flags);
+			start(flags, pack);
 		}
 			
 		// The destructor of session will notify all trackers that our torrents have been shut down.
@@ -1040,9 +1040,9 @@ namespace libtorrent
 		
 	private:
 
-		void init(settings_pack const& pack, fingerprint const& id);
+		void init(fingerprint const& id);
 		void set_log_path(std::string const& p);
-		void start(int flags);
+		void start(int flags, settings_pack const& pack);
 
 		// data shared between the main thread
 		// and the working thread

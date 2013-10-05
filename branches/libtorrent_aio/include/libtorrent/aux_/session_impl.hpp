@@ -239,7 +239,7 @@ namespace libtorrent
 			virtual ~session_impl();
 
 			void init();
-			void start_session();
+			void start_session(settings_pack const& pack);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			void set_log_path(std::string const& p) { m_logpath = p; }
 #endif
@@ -271,6 +271,7 @@ namespace libtorrent
 			void main_thread();
 
 			void open_listen_port();
+			void maybe_open_listen_port();
 			
 			torrent_peer_allocator_interface* get_peer_allocator() { return &m_peer_allocator; }
 

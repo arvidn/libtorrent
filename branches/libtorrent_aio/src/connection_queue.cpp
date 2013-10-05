@@ -185,7 +185,7 @@ namespace libtorrent
 			TORRENT_TRY {
 				e.second.conn->on_connect_timeout();
 			} TORRENT_CATCH(std::exception&) {}
-			tmp2.erase(tmp2.rbegin().base());
+			tmp2.erase(tmp2.end()-1);
 		}
 	}
 

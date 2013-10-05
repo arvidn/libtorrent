@@ -209,7 +209,7 @@ namespace libtorrent
 			boost::uint16_t locked:1;
 
 			// the number of blocks in the requested state
-			boost::uint16_t requested:14;
+			boost::uint16_t requested:15;
 
 			// set to true while there is an outstanding
 			// hash check for this piece

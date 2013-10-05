@@ -33,6 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_connection.hpp"
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 namespace libtorrent
 {
 	void peer_class::set_upload_limit(int limit)
@@ -94,6 +98,9 @@ namespace libtorrent
 
 	void peer_class_pool::decref(peer_class_t c)
 	{
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(c);
+#endif
 		TORRENT_ASSERT(c < m_peer_classes.size());
 		TORRENT_ASSERT(m_peer_classes[c].get());
 
@@ -105,6 +112,9 @@ namespace libtorrent
 
 	void peer_class_pool::incref(peer_class_t c)
 	{
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(c);
+#endif
 		TORRENT_ASSERT(c < m_peer_classes.size());
 		TORRENT_ASSERT(m_peer_classes[c].get());
 
@@ -113,6 +123,9 @@ namespace libtorrent
 
 	peer_class* peer_class_pool::at(peer_class_t c)
 	{
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(c);
+#endif
 		if (c >= m_peer_classes.size()) return 0;
 		return m_peer_classes[c].get();
 	}

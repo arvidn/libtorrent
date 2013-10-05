@@ -670,7 +670,7 @@ namespace aux {
 		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 	}
 
-	void session_impl::start_session()
+	void session_impl::start_session(settings_pack const& pack)
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
@@ -1114,10 +1114,20 @@ namespace aux {
 		update_disk_threads();
 		update_network_threads();
 
+		settings_pack* copy = new settings_pack(pack);
+		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
+		m_io_service.post(boost::bind(&session_impl::maybe_open_listen_port, this));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		session_log(" spawning network thread");
 #endif
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
+	}
+
+	void session_impl::maybe_open_listen_port()
+	{
+		if (m_listen_sockets.empty())
+			open_listen_port();
 	}
 
 #ifdef TORRENT_STATS
@@ -1525,12 +1535,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		update_dht_announce_interval();
 #endif
-
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		session_log(" open listen port");
-#endif
-		// no reuse_address and allow system defined port
-		open_listen_port();
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		session_log(" done starting session");
@@ -2464,7 +2468,9 @@ namespace aux {
 	// over ownership of it
 	void session_impl::apply_settings_pack(settings_pack* pack)
 	{
-		bool reopen_listen_port = pack->get_int(settings_pack::ssl_listen) != m_settings.get_int(settings_pack::ssl_listen);
+		bool reopen_listen_port =
+			pack->get_int(settings_pack::ssl_listen) != m_settings.get_int(settings_pack::ssl_listen)
+			|| pack->get_str(settings_pack::listen_interfaces) != m_settings.get_str(settings_pack::listen_interfaces) ;
 
 		apply_pack(pack, m_settings, this);
 		m_disk_thread.set_settings(pack);
@@ -2634,6 +2640,11 @@ namespace aux {
 	
 	void session_impl::open_listen_port()
 	{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_logger = create_log("main_session", listen_port(), false);
+		session_log("log created");
+#endif
+
 		TORRENT_ASSERT(is_single_thread());
 
 		TORRENT_ASSERT(!m_abort);
@@ -6247,16 +6258,6 @@ retry:
 			return;
 
 		m_listen_interface = new_interface;
-
-		// if we haven't started yet, don't actually trigger this
-		if (!m_thread) return;
-
-		open_listen_port();
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		m_logger = create_log("main_session", listen_port(), false);
-		session_log("log created");
-#endif
 	}
 
 	void session_impl::update_privileged_ports()

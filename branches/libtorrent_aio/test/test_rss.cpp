@@ -99,7 +99,8 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:100");
 	boost::shared_ptr<aux::session_impl> s = boost::make_shared<aux::session_impl>(
 		fingerprint("TT", 0, 0, 0 ,0));
-	s->start_session();
+	settings_pack p;
+	s->start_session(p);
 
 	feed_settings sett;
 	sett.auto_download = false;
