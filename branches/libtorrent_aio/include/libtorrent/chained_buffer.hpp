@@ -93,14 +93,17 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		void set_ref(block_cache_reference ref)
 		{
+/*
 			int count = 1;
 			for (std::deque<buffer_t>::iterator i = m_vec.begin()
 				, end(m_vec.end()); i != end; ++i)
 			{
 				// technically this is allowed, but not very likely to happen
 				// without being a bug
+				// i->ref may be uninitialized here, it's not valud to access it.
 				if (i->ref.storage == ref.storage && i->ref.piece == ref.piece && i->ref.block == ref.block) ++count;
 			}
+*/
 			m_vec.back().ref = ref;
 		}
 #endif
