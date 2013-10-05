@@ -108,7 +108,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
 				# works for actual unit tests
 				if 'launcher=valgrind' in options_copy:
 					options_copy.remove('launcher=valgrind')
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '--abbreviate-paths', toolset] + options_copy + feature_list
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset] + options_copy + feature_list
 
 #			print ' '.join(cmdline)
 
