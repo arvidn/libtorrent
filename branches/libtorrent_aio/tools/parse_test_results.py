@@ -59,7 +59,7 @@ def style_output(o):
 			'Use of uninitialised value of size' in l or \
 			'Uninitialised byte(s) found during' in l:
 			ret += '<span class="compile-error">%s</span>\n' % l
-		elif ': warning: ' in l or ') : warning C' in or l \
+		elif ': warning: ' in l or ') : warning C' in l or \
 			'Uninitialised value was created by a' in l or \
 			'bytes after a block of size' in l:
 			ret += '<span class="compile-warning">%s</span>\n' % l

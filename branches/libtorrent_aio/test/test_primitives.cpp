@@ -92,7 +92,6 @@ int test_main()
 {
 	using namespace libtorrent;
 	error_code ec;
-	int ret = 0;
 
 	sliding_average<4> avg;
 	TEST_EQUAL(avg.mean(), 0);

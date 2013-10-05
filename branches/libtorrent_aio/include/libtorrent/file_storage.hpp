@@ -119,11 +119,11 @@ namespace libtorrent
 		friend class torrent_info;
 #endif
 		internal_file_entry()
-			: name(0)
+			: name(NULL)
 			, offset(0)
-			, symlink_index(-1)
+			, symlink_index(not_a_symlink)
 			, size(0)
-			, name_len(0)
+			, name_len(name_is_owned)
 			, pad_file(false)
 			, hidden_attribute(false)
 			, executable_attribute(false)
@@ -132,11 +132,11 @@ namespace libtorrent
 		{}
 
 		internal_file_entry(file_entry const& e)
-			: name(0)
+			: name(NULL)
 			, offset(e.offset)
-			, symlink_index(-1)
+			, symlink_index(not_a_symlink)
 			, size(e.size)
-			, name_len(0)
+			, name_len(name_is_owned)
 			, pad_file(e.pad_file)
 			, hidden_attribute(e.hidden_attribute)
 			, executable_attribute(e.executable_attribute)
@@ -151,7 +151,7 @@ namespace libtorrent
 
 		~internal_file_entry();
 
-		void set_name(char const* n, int borrow_chars = 0);
+		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
 		std::string filename() const;
 
 		// make it available for logging
@@ -165,26 +165,30 @@ namespace libtorrent
 		char const* name;
 	public:
 
+		enum {
+			name_is_owned = (1<<12)-1,
+			not_a_symlink = (1<<16)-1
+		};
 		// the offset of this file inside the torrent
-		size_type offset:48;
+		boost::uint64_t offset:48;
 
-		// index into file_storage::m_symlinks or -1
+		// index into file_storage::m_symlinks or not_a_symlink
 		// if this is not a symlink
-		size_type symlink_index:16;
+		boost::uint64_t symlink_index:16;
 
 		// the size of this file
-		size_type size:48;
+		boost::uint64_t size:48;
 
 		// the number of characters in the name. If this is
-		// 0, name is null terminated and owned by this object
+		// name_is_owned, name is null terminated and owned by this object
 		// (i.e. it should be freed in the destructor). If
-		// the len is > 0, the name pointer doesn not belong
+		// the len is not name_is_owned, the name pointer doesn not belong
 		// to this object, and it's not null terminated
-		size_type name_len:10;
-		bool pad_file:1;
-		bool hidden_attribute:1;
-		bool executable_attribute:1;
-		bool symlink_attribute:1;
+		boost::uint64_t name_len:12;
+		boost::uint64_t pad_file:1;
+		boost::uint64_t hidden_attribute:1;
+		boost::uint64_t executable_attribute:1;
+		boost::uint64_t symlink_attribute:1;
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
 		// from that array with the 'name' field in
