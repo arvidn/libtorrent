@@ -4203,10 +4203,10 @@ retry:
 
 #ifdef TORRENT_USE_VALGRIND
 #define STAT_LOGL(type, val) VALGRIND_CHECK_VALUE_IS_DEFINED(val); fprintf(m_stats_logger, "%" #type "\t", val)
-#define STAT_COUNTER(cnt) VALGRIND_CHECK_VALUE_IS_DEFINED(m_stats_counters[counters:: cnt]); fprintf(m_stats_logger, "%" PRId64 "\t", m_stats_counter[counters:: cnt])
+#define STAT_COUNTER(cnt) VALGRIND_CHECK_VALUE_IS_DEFINED(m_stats_counters[counters:: cnt]); fprintf(m_stats_logger, "%" PRId64 "\t", m_stats_counters[counters:: cnt])
 #else
 #define STAT_LOGL(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
-#define STAT_COUNTER(cnt) fprintf(m_stats_logger, "%" PRId64 "\t", m_stats_counter[counters:: cnt])
+#define STAT_COUNTER(cnt) fprintf(m_stats_logger, "%" PRId64 "\t", m_stats_counters[counters:: cnt])
 #endif
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 
