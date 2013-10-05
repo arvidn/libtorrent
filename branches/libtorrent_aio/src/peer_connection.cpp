@@ -3199,7 +3199,6 @@ namespace libtorrent
 			&& !t->has_piece_passed(index)
 			&& t->valid_metadata()
 			&& t->has_picker()
-			&& !t->has_piece_passed(index)
 			&& t->picker().piece_priority(index) > 0)
 		{
 			t->peer_is_interesting(*this);
@@ -3549,6 +3548,9 @@ namespace libtorrent
 				, end(ret.end()); i != end; ++i)
 			{
 				TORRENT_ASSERT(i->piece_index >= 0);
+				// this can happen if a piece fail to be
+				// flushed to disk for whatever reason
+				if (!t->has_piece_passed(i->piece_index)) continue;
 				send_suggest(i->piece_index);
 			}
 
@@ -3622,7 +3624,11 @@ namespace libtorrent
 			return;
 	
 		// we cannot suggest a piece we don't have!
-		TORRENT_ASSERT(m_torrent.lock()->has_piece_passed(piece));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(t->has_piece_passed(piece));
+#endif
 
 		if (m_sent_suggested_pieces.empty())
 		{

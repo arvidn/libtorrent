@@ -4465,6 +4465,7 @@ namespace libtorrent
 			, cs.pieces.end());
 
 		std::vector<suggest_piece_t>& pieces = m_suggested_pieces;
+		pieces.clear();
 		pieces.reserve(cs.pieces.size());
 
 		// sort in ascending order, to get most recently used first
@@ -4476,10 +4477,7 @@ namespace libtorrent
 			, end(cs.pieces.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(i->storage == m_storage.get());
-			// we might have flushed this to disk, but not yet completed the
-			// hash check. We'll add it as a suggest piece once we do though
-			if (!have_piece(i->piece)) continue;
-			TORRENT_ASSERT(has_piece_passed(i->piece));
+			if (!has_piece_passed(i->piece)) continue;
 			suggest_piece_t p;
 			p.piece_index = i->piece;
 			if (has_picker())
