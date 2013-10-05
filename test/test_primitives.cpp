@@ -83,7 +83,6 @@ int test_main()
 	using namespace libtorrent;
 	using namespace libtorrent::dht;
 	error_code ec;
-	int ret = 0;
 
 	// make sure the retry interval keeps growing
 	// on failing announces

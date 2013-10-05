@@ -111,7 +111,7 @@ namespace libtorrent
 
 	file_entry::~file_entry() {}
 
-	internal_file_entry::~internal_file_entry() { if (name_len == 0) free((void*)name); }
+	internal_file_entry::~internal_file_entry() { if (name_len == name_is_owned) free((void*)name); }
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
 		: name(0)
@@ -142,26 +142,40 @@ namespace libtorrent
 		return *this;
 	}
 
-	void internal_file_entry::set_name(char const* n, int borrow_chars)
+	// if borrow_chars >= 0, don't take ownership over n, just
+	// point to it. It points to borrow_chars number of characters.
+	// if borrow_chars == -1, n is a null terminated string that
+	// should be copied 
+	void internal_file_entry::set_name(char const* n, bool borrow_string, int string_len)
 	{
-		TORRENT_ASSERT(borrow_chars >= 0);
-		if (borrow_chars > 1023) borrow_chars = 1023;
-		if (name_len == 0) free((void*)name);
-		if (n == 0 || *n == 0)
+		TORRENT_ASSERT(string_len >= 0);
+
+		// we have limited space in the length field. truncate string
+		// if it's too long
+		if (string_len >= name_is_owned) string_len = name_is_owned - 1;
+
+		// free the current string, before assigning the new one
+		if (name_len == name_is_owned) free((void*)name);
+		if (n == NULL)
 		{
-			TORRENT_ASSERT(borrow_chars == 0);
-			name = 0;
+			TORRENT_ASSERT(borrow_string == false);
+			name = NULL;
+		}
+		else if (borrow_string)
+		{
+			name = n;
+			name_len = string_len;
 		}
 		else
 		{
-			name = borrow_chars ? n : allocate_string_copy(n);
+			name = allocate_string_copy(n);
+			name_len = name_is_owned;
 		}
-		name_len = borrow_chars;
 	}
 
 	std::string internal_file_entry::filename() const
 	{
-		if (name_len) return std::string(name, name_len);
+		if (name_len != name_is_owned) return std::string(name, name_len);
 		return name ? name : "";
 	}
 
@@ -203,7 +217,7 @@ namespace libtorrent
 	void file_storage::rename_file_borrow(int index, char const* new_filename, int len)
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
-		m_files[index].set_name(new_filename, len);
+		m_files[index].set_name(new_filename, true, len);
 	}
 
 	namespace
@@ -253,6 +267,8 @@ namespace libtorrent
 
 	int file_storage::file_name_len(int index) const
 	{
+		if (m_files[index].name_len == internal_file_entry::name_is_owned)
+			return -1;
 		return m_files[index].name_len;
 	}
 
@@ -285,7 +301,7 @@ namespace libtorrent
 				file_slice f;
 				f.file_index = file_iter - m_files.begin();
 				f.offset = file_offset + file_base(f.file_index);
-				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
+				f.size = (std::min)(size_type(file_iter->size) - file_offset, (size_type)size);
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
 				file_offset += f.size;
@@ -311,7 +327,7 @@ namespace libtorrent
 		ret.hidden_attribute = ife.hidden_attribute;
 		ret.executable_attribute = ife.executable_attribute;
 		ret.symlink_attribute = ife.symlink_attribute;
-		if (ife.symlink_index >= 0) ret.symlink_path = symlink(index);
+		if (ife.symlink_index != internal_file_entry::not_a_symlink) ret.symlink_path = symlink(index);
 		ret.filehash = hash(index);
 		return ret;
 	}
@@ -415,7 +431,6 @@ namespace libtorrent
 		int file_index = m_files.size();
 		m_files.push_back(ife);
 		internal_file_entry& e = m_files.back();
-		if (e.size < 0) e.size = 0;
 		e.offset = m_total_size;
 		m_total_size += e.size;
 		if (filehash)
