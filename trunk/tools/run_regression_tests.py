@@ -43,23 +43,38 @@ def indent(s):
 # returns a list of new revisions
 def svn_fetch(last_rev):
 
-	p = subprocess.Popen(['svn', 'up'], stdout=subprocess.PIPE)
+	if os.system('svn up') != 0:
+		print 'svn up failed'
+		return []
+
+# log command and output
+# $ svn log -l10 --incremental -q
+# ------------------------------------------------------------------------
+# r9073 | arvidn | 2013-10-04 21:49:00 -0700 (Fri, 04 Oct 2013)
+# ------------------------------------------------------------------------
+# r9072 | arvidn | 2013-10-04 21:18:24 -0700 (Fri, 04 Oct 2013)
+# ------------------------------------------------------------------------
+# r9068 | arvidn | 2013-10-04 08:51:32 -0700 (Fri, 04 Oct 2013)
+# ------------------------------------------------------------------------
+# r9067 | arvidn | 2013-10-04 08:45:47 -0700 (Fri, 04 Oct 2013)
+# ------------------------------------------------------------------------
+
+	p = subprocess.Popen(['svn', 'log', '-l10', '--incremental', '-q'], stdout=subprocess.PIPE)
 
 	revision = -1
 
 	output = ''
+	ret = []
 	for l in p.stdout:
-		if 'At revision ' in l:
-			revision = int(l.split('At revision')[1].strip()[0:-1])
-		if 'Updated to revision ' in l:
-			revision = int(l.split('Updated to revision')[1].strip()[0:-1])
-		output += l
+		if not l.startswith('r'): continue
+		rev = int(l.split(' ')[0][1:])
+		if rev == last_rev: break
+		ret.append(rev)
 
-	if revision == -1:
-		print '\n\nsvn update failed\n\n%s' % indent(output)
-		return []
-
-	return range(last_rev + 1, revision + 1)
+	print 'svn up: ',
+	for r in ret: print '%d ' % r,
+	print ''
+	return ret
 
 def svn_up(revision):
 	os.system('svn up -r %d' % revision)
@@ -101,20 +116,33 @@ def loop():
 			last_rev = run_tests.svn_info()[0] - 1
 			open(rev_file, 'w+').write('%d' % last_rev)
 
+	revs = []
+
 	while True:
-		revs = svn_fetch(last_rev)
-		if skip and len(revs): revs = revs[-1:]
+		new_revs = svn_fetch(last_rev)
 
-		for r in revs:
-			print '\n\nREVISION %d ===\n' % r
-			svn_up(r)
-	
-			run_tests.main(sys.argv[1:])
-			last_rev = r;
+		if len(new_revs) > 0:
+			revs = new_revs + revs
 
-			open(rev_file, 'w+').write('%d' % last_rev)
+		# in skip mode, only ever run the latest version
+		if skip and len(revs): revs = revs[:1]
+
+		if revs == []:
+			time.sleep(300)
+			continue
+
+		print 'revs: ',
+		for r in revs: print '%d ' % r,
+		print ''
+
+		r = revs[0]
+		print '\n\nREVISION %d ===\n' % r
+		svn_up(r)
 	
-		if revs == []: time.sleep(300)
+		run_tests.main(sys.argv[1:])
+		last_rev = r;
+
+		open(rev_file, 'w+').write('%d' % last_rev)
 
 if __name__ == "__main__":
 	loop()
