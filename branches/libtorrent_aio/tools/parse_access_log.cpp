@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 				if (i->second.timestamp > op.timestamp)
 				{
 					fprintf(stderr, "end-event stamped before "
-						"start-event: %"PRId64" started at: %f\n"
+						"start-event: %" PRId64 " started at: %f\n"
 						, op.offset, double(i->second.timestamp) / 1000000.f);
 					i->second.timestamp = op.timestamp;
 				}
@@ -116,17 +116,17 @@ int main(int argc, char* argv[])
 				double start_time = double(i->second.timestamp - first_timestamp) / 1000000.0;
 				double end_time = double(op.timestamp - first_timestamp) / 1000000.0;
 				double duration_time = double(op.timestamp - i->second.timestamp) / 1000000.0;
-				fprintf(out_file, "%f\t%"PRId64"\t%f\n"
+				fprintf(out_file, "%f\t%" PRId64 "\t%f\n"
 					, start_time, op.offset, duration_time);
 
 				out_file = write ? writes_elev_file : reads_elev_file;
-				fprintf(out_file, "%f\t%"PRId64"\n", end_time, op.offset);
+				fprintf(out_file, "%f\t%" PRId64 "\n", end_time, op.offset);
 
 				outstanding_ops.erase(i);
 			}
 			else
 			{
-				fprintf(stderr, "no start event for (%u): %"PRId64" ended at: %f\n"
+				fprintf(stderr, "no start event for (%u): %" PRId64 " ended at: %f\n"
 					, event_id, op.offset, double(op.timestamp) / 1000000.f);
 			}
 		}
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
 			op_map::iterator i = outstanding_ops.find(event_id);
 			if (i != outstanding_ops.end())
 			{
-				fprintf(stderr, "duplicate start event for (%u): %"PRId64" at: %f"
+				fprintf(stderr, "duplicate start event for (%u): %" PRId64 " at: %f"
 					"(current start is at: %f)\n"
 					, event_id, op.offset, double(i->second.timestamp - first_timestamp) / 1000000.f
 					, double(op.timestamp - first_timestamp) / 1000000.f);
