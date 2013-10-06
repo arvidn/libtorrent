@@ -283,7 +283,7 @@ namespace libtorrent {
 
 	std::string listen_failed_alert::message() const
 	{
-		char const* op_str[] =
+		static char const* op_str[] =
 		{
 			"parse_addr",
 			"open",
@@ -292,18 +292,28 @@ namespace libtorrent {
 			"get_peer_name",
 			"accept"
 		};
+		static char const* type_str[] =
+		{
+			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5"
+		};
 		char ret[250];
-		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] %s"
+		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
 			, print_endpoint(endpoint).c_str()
 			, op_str[operation]
+			, type_str[sock_type]
 			, convert_from_native(error.message()).c_str());
 		return ret;
 	}
 
 	std::string listen_succeeded_alert::message() const
 	{
+		static char const* type_str[] =
+		{
+			"TCP", "TCP/SSL", "UDP"
+		};
 		char ret[200];
-		snprintf(ret, sizeof(ret), "successfully listening on %s", print_endpoint(endpoint).c_str());
+		snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
+			, type_str[sock_type], print_endpoint(endpoint).c_str());
 		return ret;
 	}
 

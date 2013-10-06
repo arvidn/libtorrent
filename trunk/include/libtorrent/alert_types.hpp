@@ -1297,14 +1297,18 @@ namespace libtorrent
 	// listen on it.
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
+		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5 };
+
 		// internal
 		listen_failed_alert(
 			tcp::endpoint const& ep
 			, int op
-			, error_code const& ec)
+			, error_code const& ec
+			, socket_type_t t)
 			: endpoint(ep)
 			, error(ec)
 			, operation(op)
+			, sock_type(t)
 		{}
 
 		TORRENT_DEFINE_ALERT(listen_failed_alert);
@@ -1313,13 +1317,22 @@ namespace libtorrent
 		virtual std::string message() const;
 		virtual bool discardable() const { return false; }
 
+		// the endpoint libtorrent attempted to listen on
 		tcp::endpoint endpoint;
+
+		// the error the system returned
 		error_code error;
+
 		enum op_t
 		{
 			parse_addr, open, bind, listen, get_peer_name, accept
 		};
+
+		// the specific low level operation that failed. See op_t.
 		int operation;
+
+		// the type of listen socket this alert refers to.
+		socket_type_t sock_type;
 	};
 
 	// This alert is posted when the listen port succeeds to be opened on a
@@ -1327,9 +1340,12 @@ namespace libtorrent
 	// was opened for listening.
 	struct TORRENT_EXPORT listen_succeeded_alert: alert
 	{
+		enum socket_type_t { tcp, tcp_ssl, udp };
+
 		// internal
-		listen_succeeded_alert(tcp::endpoint const& ep)
+		listen_succeeded_alert(tcp::endpoint const& ep, socket_type_t t)
 			: endpoint(ep)
+			, sock_type(t)
 		{}
 
 		TORRENT_DEFINE_ALERT(listen_succeeded_alert);
@@ -1338,7 +1354,12 @@ namespace libtorrent
 		virtual std::string message() const;
 		virtual bool discardable() const { return false; }
 
+		// the endpoint libtorrent ended up listening on. The address
+		// refers to the local interface and the port is the listen port.
 		tcp::endpoint endpoint;
+
+		// the type of listen socket this alert refers to.
+		socket_type_t sock_type;
 	};
 
 	// This alert is generated when a NAT router was successfully found but some
