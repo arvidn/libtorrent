@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include <string.h> // for memset
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 namespace libtorrent {
 
 
@@ -46,6 +50,9 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(i >= 0);
 		TORRENT_ASSERT(i < num_counters);
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(m_stats_counter[i]);
+#endif
 		return m_stats_counter[i];
 	}
 
