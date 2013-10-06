@@ -155,7 +155,9 @@ static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torre
 			break;
 		}
 
-//		if (test_ban && peer_disconnects >= 1) break;
+		// if the web seed connection is disconnected, we're going to fail
+		// the test. make sure to do so quickly
+		if (peer_disconnects >= 1) break;
 
 		if (s.is_seeding /* && ss.download_rate == 0.f*/)
 		{
