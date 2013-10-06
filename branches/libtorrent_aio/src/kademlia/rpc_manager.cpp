@@ -320,6 +320,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	lazy_entry const* ret_ent = m.message.dict_find_dict("r");
 	if (ret_ent == 0)
 	{
+		o->timeout();
 		entry e;
 		incoming_error(e, "missing 'r' key");
 		m_sock->send_packet(e, m.addr, 0);
@@ -329,6 +330,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	lazy_entry const* node_id_ent = ret_ent->dict_find_string("id");
 	if (node_id_ent == 0 || node_id_ent->string_length() != 20)
 	{
+		o->timeout();
 		entry e;
 		incoming_error(e, "missing 'id' key");
 		m_sock->send_packet(e, m.addr, 0);
