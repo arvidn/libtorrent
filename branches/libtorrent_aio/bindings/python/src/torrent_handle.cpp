@@ -328,19 +328,21 @@ void connect_peer(torrent_handle& th, tuple ip, int source)
 #ifndef TORRENT_NO_DEPRECATE
 #if BOOST_VERSION > 104200
 
-boost::intrusive_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
+boost::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 {
-	return boost::intrusive_ptr<const torrent_info>(&h.get_torrent_info());
+	allow_threading_guard guard;
+	return h.torrent_file();
 }
 
 #else
 
-boost::intrusive_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
+boost::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
 {
-	// I can't figure out how to expose intrusive_ptr<const torrent_info>
+	// I can't figure out how to expose shared_ptr<const torrent_info>
 	// as well as supporting mutable instances. So, this hack is better
 	// than compilation errors. It seems to work on newer versions of boost though
-   return boost::intrusive_ptr<torrent_info>(const_cast<torrent_info*>(&h.get_torrent_info()));
+	allow_threading_guard guard;
+	return boost::const_pointer_cast<torrent_info>(h.torrent_file());
 }
 
 #endif
@@ -428,7 +430,7 @@ void bind_torrent_handle()
 #endif
         // deprecated
 #ifndef TORRENT_NO_DEPRECATE
-        .def("get_torrent_info", _(&get_torrent_info))
+        .def("get_torrent_info", &get_torrent_info)
         .def("super_seeding", super_seeding0)
         .def("filter_piece", _(&torrent_handle::filter_piece))
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))
