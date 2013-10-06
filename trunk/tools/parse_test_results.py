@@ -270,7 +270,7 @@ for branch_name in revs:
 						else: c = 'failed'
 						log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
 						print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
-						print >>details_file, '<tr><td class="%s"><a href="%s">%s</a></td></tr>' % (c, log_name, t)
+						print >>details_file, '<tr><td class="%s"><a href="%s">%s</a></td></tr>' % (c, os.path.split(log_name)[1], t)
 						save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
 					print >>details_file, '</table>'
 
