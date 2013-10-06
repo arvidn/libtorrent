@@ -614,6 +614,36 @@ namespace libtorrent
 		insort_replace(m_bools, v);
 	}
 
+	bool settings_pack::has_val(int name) const
+	{
+		switch (name & type_mask)
+		{
+			case string_type_base:
+			{
+				std::pair<boost::uint16_t, std::string> v(name, std::string());
+				std::vector<std::pair<boost::uint16_t, std::string> >::const_iterator i =
+					std::lower_bound(m_strings.begin(), m_strings.end(), v);
+				return i != m_strings.end() && i->first == name;
+			}
+			case int_type_base:
+			{
+				std::pair<boost::uint16_t, int> v(name, 0);
+				std::vector<std::pair<boost::uint16_t, int> >::const_iterator i =
+					std::lower_bound(m_ints.begin(), m_ints.end(), v);
+				return i != m_ints.end() && i->first == name;
+			}
+			case bool_type_base:
+			{
+				std::pair<boost::uint16_t, bool> v(name, false);
+				std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i =
+					std::lower_bound(m_bools.begin(), m_bools.end(), v);
+				return i != m_bools.end() && i->first == name;
+			}
+		}
+		TORRENT_ASSERT(false);
+		return false;
+	}
+
 	std::string settings_pack::get_str(int name) const
 	{
 		TORRENT_ASSERT((name & type_mask) == string_type_base);

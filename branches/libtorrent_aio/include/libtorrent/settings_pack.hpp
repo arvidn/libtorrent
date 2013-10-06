@@ -87,6 +87,7 @@ namespace libtorrent
 		void set_str(int name, std::string val);
 		void set_int(int name, int val);
 		void set_bool(int name, bool val);
+		bool has_val(int name) const;
 		void clear();
 
 		std::string get_str(int name) const;

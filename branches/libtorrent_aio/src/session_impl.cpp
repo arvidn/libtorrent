@@ -2469,8 +2469,10 @@ namespace aux {
 	void session_impl::apply_settings_pack(settings_pack* pack)
 	{
 		bool reopen_listen_port =
-			pack->get_int(settings_pack::ssl_listen) != m_settings.get_int(settings_pack::ssl_listen)
-			|| pack->get_str(settings_pack::listen_interfaces) != m_settings.get_str(settings_pack::listen_interfaces) ;
+			(pack->has_val(settings_pack::ssl_listen)
+				&& pack->get_int(settings_pack::ssl_listen) != m_settings.get_int(settings_pack::ssl_listen))
+			|| (pack->has_val(settings_pack::listen_interfaces)
+				&& pack->get_str(settings_pack::listen_interfaces) != m_settings.get_str(settings_pack::listen_interfaces));
 
 		apply_pack(pack, m_settings, this);
 		m_disk_thread.set_settings(pack);
