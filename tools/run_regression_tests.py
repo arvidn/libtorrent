@@ -106,15 +106,13 @@ def loop():
 	rev_file = os.path.join(os.getcwd(), '.rev')
 	if skip:
 		sys.argv.remove('-s')
-		last_rev = run_tests.svn_info()[0] - 1
-	else:
-		print 'restoring last state from "%s"' % rev_file
+	print 'restoring last state from "%s"' % rev_file
 
-		try:
-			last_rev = int(open(rev_file, 'r').read())
-		except:
-			last_rev = run_tests.svn_info()[0] - 1
-			open(rev_file, 'w+').write('%d' % last_rev)
+	try:
+		last_rev = int(open(rev_file, 'r').read())
+	except:
+		last_rev = run_tests.svn_info()[0] - 1
+		open(rev_file, 'w+').write('%d' % last_rev)
 
 	revs = []
 
