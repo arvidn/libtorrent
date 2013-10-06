@@ -60,6 +60,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#include <set>
+#endif
+
 namespace libtorrent
 {
 
@@ -133,6 +137,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			// to allow verifying the invariant of blocks belonging to the right piece
 			int piece_index;
+			std::set<void*> peers;
 #endif
 		};
 

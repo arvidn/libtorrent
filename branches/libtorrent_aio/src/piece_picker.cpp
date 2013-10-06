@@ -260,6 +260,7 @@ namespace libtorrent
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			ret.info[i].piece_index = piece;
+			ret.info[i].peers.clear();
 #endif
 		}
 #ifdef TORRENT_USE_VALGRIND
@@ -2882,6 +2883,10 @@ namespace libtorrent
 			info.state = block_info::state_requested;
 			info.peer = peer;
 			info.num_peers = 1;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			TORRENT_ASSERT(info.peers.count(peer) == 0);
+			info.peers.insert(peer);
+#endif
 			++dp->requested;
 			// update_full may move the downloading piece to
 			// a different vector, so 'dp' may be invalid after
@@ -2913,6 +2918,10 @@ namespace libtorrent
 				i = update_piece_state(i);
 			}
 			++info.num_peers;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			TORRENT_ASSERT(info.peers.count(peer) == 0);
+			info.peers.insert(peer);
+#endif
 			if (i->state == none) i->state = state;
 		}
 		return true;
@@ -2997,6 +3006,9 @@ namespace libtorrent
 			info.state = block_info::state_writing;
 			info.peer = peer;
 			info.num_peers = 0;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			info.peers.clear();
+#endif
 			dp->writing = 1;
 
 			update_piece_state(dp);
@@ -3023,6 +3035,9 @@ namespace libtorrent
 			// all other requests for this block should have been
 			// cancelled now
 			info.num_peers = 0;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			info.peers.clear();
+#endif
 
 			if (i->requested == 0)
 			{
@@ -3392,9 +3407,14 @@ namespace libtorrent
 
 		if (info.state != block_info::state_requested) return;
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(info.peers.count(peer));
+		info.peers.erase(peer);
+#endif
 		TORRENT_ASSERT(info.num_peers > 0);
 		if (info.num_peers > 0) --info.num_peers;
 		if (info.peer == peer) info.peer = 0;
+		TORRENT_ASSERT(info.peers.size() == info.num_peers);
 
 		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
