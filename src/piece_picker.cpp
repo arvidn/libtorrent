@@ -170,6 +170,8 @@ namespace libtorrent
 
 	piece_picker::downloading_piece& piece_picker::add_download_piece(int piece)
 	{
+		TORRENT_ASSERT(piece >= 0);
+		TORRENT_ASSERT(piece < int(m_piece_map.size()));
 		int num_downloads = m_downloads.size();
 		int block_index = num_downloads * m_blocks_per_piece;
 		if (int(m_block_info.size()) < block_index + m_blocks_per_piece)
@@ -184,14 +186,14 @@ namespace libtorrent
 					m_downloads[i].info = &m_block_info[m_downloads[i].info - base];
 			}
 		}
-		downloading_piece cmp;
-		cmp.index = piece;
-		std::vector<downloading_piece>::iterator i = std::lower_bound(m_downloads.begin()
-			, m_downloads.end(), cmp);
-		TORRENT_ASSERT(i == m_downloads.end() || i->index != piece);
 		downloading_piece ret;
 		ret.index = piece;
+		std::vector<downloading_piece>::iterator i = std::lower_bound(m_downloads.begin()
+			, m_downloads.end(), ret);
+		TORRENT_ASSERT(i == m_downloads.end() || i->index != piece);
 		ret.info = &m_block_info[block_index];
+		TORRENT_ASSERT(ret.info >= &m_block_info[0]);
+		TORRENT_ASSERT(ret.info < &m_block_info[0] + m_block_info.size());
 #ifdef TORRENT_USE_VALGRIND
 		VALGRIND_CHECK_VALUE_IS_DEFINED(piece);
 		VALGRIND_CHECK_VALUE_IS_DEFINED(block_index);
@@ -2254,6 +2256,8 @@ namespace libtorrent
 			std::vector<downloading_piece>::iterator i = find_dl_piece(block.piece_index);
 			TORRENT_ASSERT(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
+			TORRENT_ASSERT(&info >= &m_block_info[0]);
+			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			if (info.state == block_info::state_writing
 				|| info.state == block_info::state_finished)
@@ -2288,6 +2292,8 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_downloads.end());
 
 		block_info const& info = i->info[block.block_index];
+		TORRENT_ASSERT(&info >= &m_block_info[0]);
+		TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
 		return info.num_peers;
 	}
@@ -2337,6 +2343,8 @@ namespace libtorrent
 			downloading_piece& dp = add_download_piece(block.piece_index);
 			dp.state = none;
 			block_info& info = dp.info[block.block_index];
+			TORRENT_ASSERT(&info >= &m_block_info[0]);
+			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			info.state = block_info::state_writing;
 			info.peer = peer;
@@ -2351,6 +2359,8 @@ namespace libtorrent
 			TORRENT_ASSERT(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
 
+			TORRENT_ASSERT(&info >= &m_block_info[0]);
+			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 
 			info.peer = peer;
@@ -2388,6 +2398,8 @@ namespace libtorrent
 		if (i == m_downloads.end()) return;
 
 		block_info& info = i->info[block.block_index];
+		TORRENT_ASSERT(&info >= &m_block_info[0]);
+		TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
 		TORRENT_ASSERT(info.state == block_info::state_writing);
 		TORRENT_ASSERT(info.num_peers == 0);
@@ -2451,6 +2463,8 @@ namespace libtorrent
 			downloading_piece& dp = add_download_piece(block.piece_index);
 			dp.state = none;
 			block_info& info = dp.info[block.block_index];
+			TORRENT_ASSERT(&info >= &m_block_info[0]);
+			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_none);
@@ -2471,6 +2485,8 @@ namespace libtorrent
 			std::vector<downloading_piece>::iterator i = find_dl_piece(block.piece_index);
 			TORRENT_ASSERT(i != m_downloads.end());
 			block_info& info = i->info[block.block_index];
+			TORRENT_ASSERT(&info >= &m_block_info[0]);
+			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 
 			if (info.state == block_info::state_finished) return;
@@ -2558,6 +2574,8 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_downloads.end());
 
 		block_info& info = i->info[block.block_index];
+		TORRENT_ASSERT(&info >= &m_block_info[0]);
+		TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 		TORRENT_ASSERT(info.peer == 0 || static_cast<policy::peer*>(info.peer)->in_use);
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
 
