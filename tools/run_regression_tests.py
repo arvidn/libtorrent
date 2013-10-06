@@ -142,6 +142,9 @@ def loop():
 		run_tests.main(sys.argv[1:])
 		last_rev = r;
 
+		# pop the revision we just completed
+		revs = revs[1:]
+
 		open(rev_file, 'w+').write('%d' % last_rev)
 
 if __name__ == "__main__":
