@@ -27,6 +27,7 @@ using namespace libtorrent;
 
 namespace
 {
+#ifndef TORRENT_NO_DEPRECATE
     void listen_on(session& s, int min_, int max_, char const* interface, int flags)
     {
         allow_threading_guard guard;
@@ -34,6 +35,7 @@ namespace
         s.listen_on(std::make_pair(min_, max_), ec, interface, flags);
         if (ec) throw libtorrent_exception(ec);
     }
+#endif
 
     void outgoing_ports(session& s, int _min, int _max)
     {
@@ -72,8 +74,10 @@ namespace
             s.add_extension(create_smart_ban_plugin);
        else if (name == "lt_trackers")
             s.add_extension(create_lt_trackers_plugin);
+#ifndef TORRENT_NO_DEPRECATE
        else if (name == "metadata_transfer")
             s.add_extension(create_metadata_plugin);
+#endif
     }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -415,29 +419,31 @@ namespace
         return ret;
     }
 
+#ifndef TORRENT_NO_DEPRECATE
     list get_cache_info2(session& ses, sha1_hash ih)
     {
-        std::vector<cached_piece_info> ret;
+       std::vector<cached_piece_info> ret;
 
-        {
-           allow_threading_guard guard;
-           ses.get_cache_info(ih, ret);
-        }
+       {
+          allow_threading_guard guard;
+          ses.get_cache_info(ih, ret);
+       }
 
-        list pieces;
-        ptime now = time_now();
-        for (std::vector<cached_piece_info>::iterator i = ret.begin()
-           , end(ret.end()); i != end; ++i)
-        {
-            dict d;
-            d["piece"] = i->piece;
-            d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
-            d["next_to_hash"] = i->next_to_hash;
-            d["kind"] = i->kind;
-            pieces.append(d);
-        }
-        return pieces;
+       list pieces;
+       ptime now = time_now();
+       for (std::vector<cached_piece_info>::iterator i = ret.begin()
+          , end(ret.end()); i != end; ++i)
+       {
+          dict d;
+          d["piece"] = i->piece;
+          d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
+          d["next_to_hash"] = i->next_to_hash;
+          d["kind"] = i->kind;
+          pieces.append(d);
+       }
+       return pieces;
     }
+#endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
     void load_asnum_db(session& s, std::string file)
@@ -639,15 +645,24 @@ void bind_session()
 
     class_<session, boost::noncopyable>("session", no_init)
         .def(
-            init<fingerprint, int>((
-                arg("fingerprint")=fingerprint("LT",0,1,0,0)
+            init<settings_pack const&, fingerprint, int>((
+                arg("settings")
+                , arg("fingerprint")=fingerprint("LT",0,1,0,0)
                 , arg("flags")=session::start_default_features | session::add_default_plugins))
         )
+        .def(
+            init<fingerprint, int, boost::uint32_t>((
+                arg("fingerprint")=fingerprint("LT",0,1,0,0)
+                , arg("flags")=session::start_default_features | session::add_default_plugins
+                , arg("alert_mask")=alert::error_notification))
+        )
         .def("post_torrent_updates", allow_threads(&session::post_torrent_updates))
+#ifndef TORRENT_NO_DEPRECATE
         .def(
             "listen_on", &listen_on
           , (arg("min"), "max", arg("interface") = (char const*)0, arg("flags") = 0)
         )
+#endif
         .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&session::is_listening))
         .def("listen_port", allow_threads(&session::listen_port))
@@ -725,8 +740,8 @@ void bind_session()
         .def("load_state", load_state1)
         .def("set_severity_level", allow_threads(&session::set_severity_level))
         .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
-#endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
+#endif
         .def("pop_alert", &pop_alert)
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
@@ -762,8 +777,8 @@ void bind_session()
         .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
 #ifndef TORRENT_NO_DEPRECATE
         .def("get_cache_status", &get_cache_status)
+        .def("get_cache_info", &get_cache_info2)
 #endif
-		  .def("get_cache_info", &get_cache_info2)
         .def("set_peer_id", allow_threads(&session::set_peer_id))
         ;
 
@@ -783,12 +798,12 @@ void bind_session()
 #endif
     ;
 
-    enum_<session::listen_on_flags_t>("listen_on_flags_t")
 #ifndef TORRENT_NO_DEPRECATE
+    enum_<session::listen_on_flags_t>("listen_on_flags_t")
         .value("listen_reuse_address", session::listen_reuse_address)
-#endif
         .value("listen_no_system_port", session::listen_no_system_port)
     ;
+#endif
 
     class_<feed_handle>("feed_handle")
         .def("update_feed", &feed_handle::update_feed)
@@ -806,22 +821,23 @@ void bind_session()
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 
-	typedef session_settings (*mem_preset1)();
-	typedef session_settings (*perf_preset1)();
-
-	typedef void (*mem_preset2)(settings_pack& s);
-	typedef void (*perf_preset2)(settings_pack& s);
+    typedef void (*mem_preset2)(settings_pack& s);
+    typedef void (*perf_preset2)(settings_pack& s);
 
 #ifndef TORRENT_NO_DEPRECATE
-	 def("high_performance_seed", (perf_preset1)high_performance_seed);
-	 def("min_memory_usage", (mem_preset1)min_memory_usage);
+    typedef session_settings (*mem_preset1)();
+    typedef session_settings (*perf_preset1)();
+
+    def("high_performance_seed", (perf_preset1)high_performance_seed);
+    def("min_memory_usage", (mem_preset1)min_memory_usage);
+    scope().attr("create_metadata_plugin") = "metadata_transfer";
 #endif
 
-	 def("high_performance_seed", (perf_preset2)high_performance_seed);
-	 def("min_memory_usage", (mem_preset2)min_memory_usage);
+    def("high_performance_seed", (perf_preset2)high_performance_seed);
+    def("min_memory_usage", (mem_preset2)min_memory_usage);
 
-	 scope().attr("create_metadata_plugin") = "metadata_transfer";
-	 scope().attr("create_ut_metadata_plugin") = "ut_metadata";
-	 scope().attr("create_ut_pex_plugin") = "ut_pex";
-	 scope().attr("create_smart_ban_plugin") = "smart_ban";
+    scope().attr("create_ut_metadata_plugin") = "ut_metadata";
+    scope().attr("create_ut_pex_plugin") = "ut_pex";
+    scope().attr("create_smart_ban_plugin") = "smart_ban";
 }
+
