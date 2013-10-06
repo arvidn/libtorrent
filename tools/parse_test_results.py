@@ -62,7 +62,7 @@ def style_output(o):
 		elif ': warning: ' in l or ') : warning C' in l or \
 			'Uninitialised value was created by a' in l or \
 			'bytes after a block of size' in l:
-			ret += '<span class="compile-warning">%s</span>\n' % l
+			ret += '<span class="compile-warning">%s</span>\n' % l.strip()
 		elif l == '====== END OUTPUT ======' and not subtle:
 			ret += '<span class="subtle">%s\n' % l
 			subtle = True
@@ -144,8 +144,8 @@ def parse_tests(rev_dir):
 		try:
 			j = json.loads(open(f, 'rb').read())
 			timestamp = os.stat(f).st_mtime
-		except:
-			print '\nFAILED TO LOAD "%s"\n' %f
+		except Exception, e:
+			print '\nFAILED TO LOAD "%s": %s\n' % (f, e)
 			continue
 	
 		platform = platform_toolset[0]
@@ -248,18 +248,37 @@ for branch_name in revs:
 			idx = 0
 			for toolset in platforms[p]:
 				if idx > 0: print >>html, '<tr>'
-				print >>html, '<th class="left-head">%s</th>' % toolset
+				log_dir = 'logs-%s-%d' % (branch_name, r)
+				if not os.path.exists(log_dir):
+					os.mkdir(log_dir)
+				details_name = os.path.join(log_dir, '%s-%s.html' % (p, toolset))
+				details_file = open(details_name, 'w+')
+
+				print >>details_file, '''<html><head><title>%s %s [%s]</title><style type="text/css">
+					.passed { background-color: #6f8 }
+					.failed { background-color: #f68 }
+					table { border: 0; border-collapse: collapse; display: inline-block; }
+					th { font-size: 15pt; }
+					td { border: 0; border-spacing: 0px; padding: 1px 0px 0px 1px; }
+					</style>
+					</head><body>''' % (p, toolset, branch_name)
+				print >>html, '<th class="left-head"><a href="%s">%s</a></th>' % (details_name, toolset)
 				for f in platforms[p][toolset]:
+					print >>details_file, '<table><tr><th>%s</th></tr>' % f
 					for t in platforms[p][toolset][f]:
 						details = platforms[p][toolset][f][t]
 						if details['status'] == 0: c = 'passed'
 						else: c = 'failed'
 						log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
 						print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
+						print >>details_file, '<tr><td class="%s"><a href="%s">%s</a></td></tr>' % (c, log_name, t)
 						save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
+					print >>details_file, '</table>'
 
 				print >>html, '</tr>'
 				idx += 1
+				print >>details_file, '</body></html>'
+				details_file.close()
 		num_printed_revs += 1
 		if num_printed_revs >= 20: break
 
