@@ -1,10 +1,10 @@
 .. _user_agent:
 
-+------------+--------+---------------------------------+
-| name       | type   | default                         |
-+============+========+=================================+
-| user_agent | string | "libtorrent/"LIBTORRENT_VERSION |
-+------------+--------+---------------------------------+
++------------+--------+----------------------------------+
+| name       | type   | default                          |
++============+========+==================================+
+| user_agent | string | "libtorrent/" LIBTORRENT_VERSION |
++------------+--------+----------------------------------+
 
 this is the client identification to the tracker.
 The recommended format of this string is:
@@ -88,7 +88,19 @@ NIC/Adapter. Setting this to an empty string will disable binding of outgoing co
 +-------------------+--------+----------------+
 
 a comma-separated list of (IP, port) pairs. These are the listen ports that will be opened
-for accepting incoming uTP and TCP connections.
+for accepting incoming uTP and TCP connections. It is possible to listen on multiple interfaces
+and multiple ports. Binding to port 0 will make the operating system pick the port.
+The default is "0.0.0.0:0", which binds to all interfaces on a port the OS picks.
+if binding fails, the listen_failed_alert is posted, otherwise the listen_succeeded_alert.
+If the DHT is running, it will also have its socket rebound to the same port as the main
+listen port.
+
+The reason why it's a good idea to run the DHT and the bittorrent socket on the same
+port is because that is an assumption that may be used to increase performance. One
+way to accelerate the connecting of peers on windows may be to first ping all peers
+with a DHT ping packet, and connect to those that responds first. On windows one
+can only connect to a few peers at a time because of a built in limitation (in XP
+Service pack 2).
 
 .. _allow_multiple_connections_per_ip:
 
@@ -959,7 +971,7 @@ depends on the download rate and this number.
 +------------------------------+------+---------+
 | name                         | type | default |
 +==============================+======+=========+
-| max_allowed_in_request_queue | int  | 250     |
+| max_allowed_in_request_queue | int  | 500     |
 +------------------------------+------+---------+
 
 the number of outstanding block requests a peer is
@@ -974,7 +986,7 @@ client can get to a single peer.
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
-| max_out_request_queue | int  | 200     |
+| max_out_request_queue | int  | 500     |
 +-----------------------+------+---------+
 
 ``max_out_request_queue`` is the maximum number of outstanding requests to
@@ -2308,4 +2320,15 @@ the ``url`` provided in ``add_torrent_params``.
 if binding to a specific port fails, should the port be incremented
 by one and tried again? This setting specifies how many times to
 retry a failed port bind
+
+.. _alert_mask:
+
++------------+------+---------------------------+
+| name       | type | default                   |
++============+======+===========================+
+| alert_mask | int  | alert::error_notification |
++------------+------+---------------------------+
+
+a bitmask combining flags from alert::category_t defining
+which kinds of alerts to receive
 

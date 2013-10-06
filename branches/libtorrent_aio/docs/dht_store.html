@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -242,7 +242,7 @@ template above, i.e. one where &quot;y&quot; is &quot;e&quot; and &quot;e&quot; 
 Failures include where the <tt class="docutils literal">cas</tt> hash mismatches and the sequence number is outdated.</p>
 <p>If no <tt class="docutils literal">cas</tt> field is included in the <tt class="docutils literal">put</tt> message, the value of the current <tt class="docutils literal">v</tt>
 field should be disregarded when determining whether or not to save the item.</p>
-<p>The error message (as specified by <a class="reference external" href="http://www.bitorrent.org/beps/bep0005.html">BEP5</a>) looks like this:</p>
+<p>The error message (as specified by <a class="reference external" href="http://www.bittorrent.org/beps/bep_0005.html">BEP5</a>) looks like this:</p>
 <pre class="literal-block">
 {
         &quot;e&quot;: [ <em>&lt;error-code (integer)&gt;</em>, <em>&lt;error-string (string)&gt;</em> ],
@@ -250,7 +250,7 @@ field should be disregarded when determining whether or not to save the item.</p
         &quot;y&quot;: &quot;e&quot;,
 }
 </pre>
-<p>In addition to the error codes defined in <a class="reference external" href="http://www.bitorrent.org/beps/bep0005.html">BEP5</a>, this specification defines
+<p>In addition to the error codes defined in <a class="reference external" href="http://www.bittorrent.org/beps/bep_0005.html">BEP5</a>, this specification defines
 some additional error codes.</p>
 <table border="1" class="docutils">
 <colgroup>

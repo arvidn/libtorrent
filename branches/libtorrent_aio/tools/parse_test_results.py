@@ -39,17 +39,17 @@ import json
 
 # TODO: different parsers could be run on output from different actions
 # if we would use the xml output in stead of stdout/stderr
-def style_output(o):
-	ret = ''
+def style_output(logfile, outfile):
 	subtle = False
-	for l in o.split('\n'):
+	for l in logfile.split('\n'):
+		l = l.encode('utf-8')
 		l = l.replace('<', '&lt;')
 		l = l.replace('>', '&gt;')
 		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
 			' second time limit exceeded' in l or l.startswith('signal: SIG'):
-			ret += '<span class="test-error">%s</span>\n' % l
+			print >>outfile, '<span class="test-error">%s</span>' % l
 		elif '**passed**' in l:
-			ret += '<span class="test-pass">%s</span>\n' % l
+			print >>outfile, '<span class="test-pass">%s</span>' % l
 		elif ': error: ' in l or ': fatal error: ' in l or ' : fatal error ' in l or \
 			'failed to write output file' in l or ') : error C' in l or \
 			' : error LNK' in l or ': undefined reference to ' in l or \
@@ -58,18 +58,17 @@ def style_output(o):
 			'Invalid write of size' in l or \
 			'Use of uninitialised value of size' in l or \
 			'Uninitialised byte(s) found during' in l:
-			ret += '<span class="compile-error">%s</span>\n' % l
+			print >>outfile, '<span class="compile-error">%s</span>' % l
 		elif ': warning: ' in l or ') : warning C' in l or \
 			'Uninitialised value was created by a' in l or \
 			'bytes after a block of size' in l:
-			ret += '<span class="compile-warning">%s</span>\n' % l
+			print >>outfile, '<span class="compile-warning">%s</span>' % l.strip()
 		elif l == '====== END OUTPUT ======' and not subtle:
-			ret += '<span class="subtle">%s\n' % l
+			print >>outfile, '<span class="subtle">%s' % l
 			subtle = True
 		else:
-			ret += '%s\n' % l
-	if subtle: ret += '</span>'
-	return ret
+			print >>outfile, '%s' % l
+	if subtle: print >>outfile, '</span>'
 
 def modification_time(file):
 	mtime = 0
@@ -100,10 +99,10 @@ def save_log_file(log_name, project_name, branch_name, test_name, timestamp, dat
 	pre { color: #999; white-space: pre-wrap; word-wrap: break-word; }
 	</style>
 	</head><body><h1>%s - %s</h1>''' % (project_name, branch_name, project_name, branch_name)
-	print >>html, '<h3>%s</h3><pre>%s</pre>' % \
-		(test_name.encode('utf-8'), style_output(data).encode('utf-8'))
+	print >>html, '<h3>%s</h3><pre>' % test_name.encode('utf-8')
+	style_output(data, html)
 
-	print >>html, '</body></html>'
+	print >>html, '</pre></body></html>'
 	html.close()
 	sys.stdout.write('.')
 	sys.stdout.flush()
@@ -144,8 +143,8 @@ def parse_tests(rev_dir):
 		try:
 			j = json.loads(open(f, 'rb').read())
 			timestamp = os.stat(f).st_mtime
-		except:
-			print '\nFAILED TO LOAD "%s"\n' %f
+		except Exception, e:
+			print '\nFAILED TO LOAD "%s": %s\n' % (f, e)
 			continue
 	
 		platform = platform_toolset[0]
@@ -248,18 +247,37 @@ for branch_name in revs:
 			idx = 0
 			for toolset in platforms[p]:
 				if idx > 0: print >>html, '<tr>'
-				print >>html, '<th class="left-head">%s</th>' % toolset
+				log_dir = 'logs-%s-%d' % (branch_name, r)
+				if not os.path.exists(log_dir):
+					os.mkdir(log_dir)
+				details_name = os.path.join(log_dir, '%s-%s.html' % (p, toolset))
+				details_file = open(details_name, 'w+')
+
+				print >>details_file, '''<html><head><title>%s %s [%s]</title><style type="text/css">
+					.passed { background-color: #6f8 }
+					.failed { background-color: #f68 }
+					table { border: 0; border-collapse: collapse; display: inline-block; }
+					th { font-size: 15pt; }
+					td { border: 0; border-spacing: 0px; padding: 1px 0px 0px 1px; }
+					</style>
+					</head><body>''' % (p, toolset, branch_name)
+				print >>html, '<th class="left-head"><a href="%s">%s</a></th>' % (details_name, toolset)
 				for f in platforms[p][toolset]:
+					print >>details_file, '<table><tr><th>%s</th></tr>' % f
 					for t in platforms[p][toolset][f]:
 						details = platforms[p][toolset][f][t]
 						if details['status'] == 0: c = 'passed'
 						else: c = 'failed'
 						log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
 						print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
+						print >>details_file, '<tr><td class="%s"><a href="%s">%s</a></td></tr>' % (c, os.path.split(log_name)[1], t)
 						save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
+					print >>details_file, '</table>'
 
 				print >>html, '</tr>'
 				idx += 1
+				print >>details_file, '</body></html>'
+				details_file.close()
 		num_printed_revs += 1
 		if num_printed_revs >= 20: break
 
