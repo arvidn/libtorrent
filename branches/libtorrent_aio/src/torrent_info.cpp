@@ -1587,7 +1587,7 @@ namespace libtorrent
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";
-		for (file_storage::iterator i = m_files.begin(); i != m_files.end(); ++i)
+		for (file_storage::iterator i = m_files.begin_deprecated(); i != m_files.end_deprecated(); ++i)
 			os << "  " << std::setw(11) << i->size << "  " << m_files.file_path(*i) << "\n";
 	}
 
