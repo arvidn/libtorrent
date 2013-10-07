@@ -484,7 +484,7 @@ namespace libtorrent
 
 		TORRENT_DEPRECATED_PREFIX
 		file_iterator file_at_offset(size_type offset) const TORRENT_DEPRECATED
-		{ return m_files.file_at_offset(offset); }
+		{ return m_files.file_at_offset_deprecated(offset); }
 
 #endif // TORRENT_NO_DEPRECATE
 
