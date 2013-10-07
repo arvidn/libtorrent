@@ -81,7 +81,7 @@ Qual a diferença entre um proxy Elite, Anónimo e Transparente?
 
 """
 
-import socket, thread, select, sys, base64, time
+import socket, thread, select, sys, base64, time, errno
 
 __version__ = '0.1.0 Draft 1'
 BUFLEN = 8192
@@ -123,15 +123,15 @@ class ConnectionHandler:
         self.target.close()
 
     def get_base_header(self):
+        retries = 0
         while 1:
             try:
                 self.client_buffer += self.client.recv(BUFLEN)
-            except Exception, e:
-                print dir(e)
-                print type(e)
-                # 35 == EAGAIN
-                if e.errno == 35:
+            except socket.error, e:
+                err = e.args[0]
+                if (err == errno.EAGAIN or err == errno.EWOULDBLOCK) and retries < 20:
                     time.sleep(0.5)
+                    retries += 1
                     continue
                 raise e
             end = self.client_buffer.find('\r\n\r\n')
