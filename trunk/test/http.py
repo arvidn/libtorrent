@@ -81,7 +81,7 @@ Qual a diferença entre um proxy Elite, Anónimo e Transparente?
 
 """
 
-import socket, thread, select, sys, base64
+import socket, thread, select, sys, base64, time
 
 __version__ = '0.1.0 Draft 1'
 BUFLEN = 8192
@@ -124,7 +124,16 @@ class ConnectionHandler:
 
     def get_base_header(self):
         while 1:
-            self.client_buffer += self.client.recv(BUFLEN)
+            try:
+                self.client_buffer += self.client.recv(BUFLEN)
+            except Exception, e:
+                print dir(e)
+                print type(e)
+                # 35 == EAGAIN
+                if e.errno == 35:
+                    time.sleep(0.5)
+                    continue
+                raise e
             end = self.client_buffer.find('\r\n\r\n')
             if end!=-1:
                 break
@@ -185,7 +194,7 @@ class ConnectionHandler:
             if count == time_out_max:
                 break
 
-def start_server(host='localhost', port=8080, IPv6=False, timeout=60,
+def start_server(host='localhost', port=8080, IPv6=False, timeout=100,
                   handler=ConnectionHandler):
     if IPv6==True:
         soc_type=socket.AF_INET6
