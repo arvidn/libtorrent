@@ -257,7 +257,7 @@ for branch_name in revs:
 					.passed { background-color: #6f8 }
 					.failed { background-color: #f68 }
 					table { border: 0; border-collapse: collapse; display: inline-block; }
-					th { font-size: 15pt; }
+					th { font-size: 15pt; width: 18em; }
 					td { border: 0; border-spacing: 0px; padding: 1px 0px 0px 1px; }
 					</style>
 					</head><body>''' % (p, toolset, branch_name)

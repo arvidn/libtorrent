@@ -832,14 +832,14 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 		case 1: // announce
 
-			fprintf(stderr, "%s: UDP announce\n", time_now_string());
+			++g_udp_tracker_requests;
+			fprintf(stderr, "%s: UDP announce [%d]\n", time_now_string(), int(g_udp_tracker_requests));
 			ptr = buffer;
 			detail::write_uint32(1, ptr); // action = announce
 			detail::write_uint32(transaction_id, ptr); // transaction_id
 			detail::write_uint32(1800, ptr); // interval
 			detail::write_uint32(1, ptr); // incomplete
 			detail::write_uint32(1, ptr); // complete
-			++g_udp_tracker_requests;
 			// 0 peers
 			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
 			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
@@ -1299,7 +1299,6 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			}
 
 			std::string path = p.path();
-			fprintf(stderr, "%s: %s\n", time_now_string(), path.c_str());
 
 			std::vector<char> file_buf;
 			if (path.substr(0, 4) == "http")
@@ -1313,6 +1312,8 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				// remove the / from the path
 				path = path.substr(1);
 			}
+
+			fprintf(stderr, "%s: [HTTP] %s\n", time_now_string(), path.c_str());
 
 			if (path == "redirect")
 			{
@@ -1335,7 +1336,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				break;
 			}
 
-			if (path.substr(0, 9) == "announce")
+			if (path.substr(0, 8) == "announce")
 			{
 				fprintf(stderr, "%s\n", path.c_str());
 				entry announce;
@@ -1346,11 +1347,12 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				std::vector<char> buf;
 				bencode(std::back_inserter(buf), announce);
 				++g_http_tracker_requests;
+				fprintf(stderr, "[HTTP]: announce [%d]\n", int(g_http_tracker_requests));
 			
 				send_response(s, ec, 200, "OK", extra_header, buf.size());
 				write(s, boost::asio::buffer(&buf[0], buf.size()), boost::asio::transfer_all(), ec);
 				if (ec)
-					fprintf(stderr, "*** send failed: %s\n", ec.message().c_str());
+					fprintf(stderr, "[HTTP] *** send response failed: %s\n", ec.message().c_str());
 			}
 
 			if (filename(path).substr(0, 5) == "seed?")
