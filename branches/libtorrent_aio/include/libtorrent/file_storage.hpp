@@ -343,7 +343,6 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		file_entry at(iterator i) const TORRENT_DEPRECATED;
 
-		iterator file_at_offset_deprecated(size_type offset) const;
 		iterator begin_deprecated() const { return m_files.begin(); }
 		iterator end_deprecated() const { return m_files.end(); }
 		reverse_iterator rbegin_deprecated() const { return m_files.rbegin(); }
