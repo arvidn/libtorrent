@@ -1313,7 +1313,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				path = path.substr(1);
 			}
 
-			fprintf(stderr, "%s: [HTTP] %s\n", time_now_string(), path.c_str());
+//			fprintf(stderr, "%s: [HTTP] %s\n", time_now_string(), path.c_str());
 
 			if (path == "redirect")
 			{
@@ -1418,7 +1418,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				continue;
 			}
 
-//			fprintf(stderr, ">> serving file %s\n", path.c_str());
+			DLOG(stderr, ">> serving file %s\n", path.c_str());
 			error_code ec;
 			int res = load_file(path, file_buf, ec, 8000000);
 			if (res == -1)
@@ -1458,11 +1458,11 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				extra_header[1] = eh;
 				if (end - start + 1 >= 1000)
 				{
-					fprintf(stderr, "request size: %.2f kB\n", int(end - start + 1)/1000.f);
+					DLOG(stderr, "request size: %.2f kB\n", int(end - start + 1)/1000.f);
 				}
 				else
 				{
-					fprintf(stderr, "request size: %d Bytes\n", int(end - start + 1));
+					DLOG(stderr, "request size: %d Bytes\n", int(end - start + 1));
 				}
 				send_response(s, ec, 206, "Partial", extra_header, end - start + 1);
 				if (!file_buf.empty())
