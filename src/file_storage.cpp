@@ -229,6 +229,11 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+	file_storage::iterator file_storage::file_at_offset_deprecated(size_type offset) const
+	{
+		return file_at_offset(offset);
+	}
+
 	file_storage::iterator file_storage::file_at_offset(size_type offset) const
 	{
 		// find the file iterator and file offset
