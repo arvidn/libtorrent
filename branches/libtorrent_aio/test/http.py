@@ -114,8 +114,11 @@ class ConnectionHandler:
                                  'DELETE', 'TRACE'):
                 self.method_others()
         except:
-            self.client.send(HTTPVER+' 502 Connection failed\n'+
-                             'Proxy-agent: %s\n\n'%VERSION)
+            try:
+                self.client.send(HTTPVER+' 502 Connection failed\n'+
+                                'Proxy-agent: %s\n\n'%VERSION)
+            except Exception, e:
+                print e
             self.client.close()
             return
 
