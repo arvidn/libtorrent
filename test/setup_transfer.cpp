@@ -447,7 +447,7 @@ int start_proxy(int proxy_type)
 	char buf[512];
 	snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
 
-	fprintf(stderr, "%s starting socks proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+	fprintf(stderr, "%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
 	fprintf(stderr, "%s\n", buf);
 	int r = async_run(buf);
 	if (r == 0) exit(1);
