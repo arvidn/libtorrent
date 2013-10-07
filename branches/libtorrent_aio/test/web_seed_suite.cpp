@@ -183,6 +183,11 @@ static void test_transfer(session& ses, boost::shared_ptr<torrent_info> torrent_
 //				, total_size - pad_file_size);
 			break;
 		}
+
+		// if the web seed connection is disconnected, we're going to fail
+		// the test. make sure to do so quickly
+		if (peer_disconnects >= 1) break;
+
 		test_sleep(100);
 	}
 

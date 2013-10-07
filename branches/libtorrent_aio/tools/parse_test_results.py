@@ -257,7 +257,7 @@ for branch_name in revs:
 					.passed { background-color: #6f8 }
 					.failed { background-color: #f68 }
 					table { border: 0; border-collapse: collapse; display: inline-block; }
-					th { font-size: 15pt; }
+					th { font-size: 15pt; width: 18em; }
 					td { border: 0; border-spacing: 0px; padding: 1px 0px 0px 1px; }
 					</style>
 					</head><body>''' % (p, toolset, branch_name)
@@ -266,11 +266,19 @@ for branch_name in revs:
 					print >>details_file, '<table><tr><th>%s</th></tr>' % f
 					for t in platforms[p][toolset][f]:
 						details = platforms[p][toolset][f][t]
-						if details['status'] == 0: c = 'passed'
+						exitcode = details['status']
+						if exitcode == 0: c = 'passed'
 						else: c = 'failed'
+						error_state = '%d' % exitcode
+						if exitcode == 222:
+							error_state = 'valgrind error'
+						elif exitcode == 139:
+							error_state = 'crash'
+						elif exitcode == -1073740777:
+							error_state = 'timeout'
 						log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
 						print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
-						print >>details_file, '<tr><td class="%s"><a href="%s">%s</a></td></tr>' % (c, os.path.split(log_name)[1], t)
+						print >>details_file, '<tr><td class="%s"><a href="%s">%s [%s]</a></td></tr>' % (c, os.path.split(log_name)[1], t, error_state)
 						save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
 					print >>details_file, '</table>'
 
