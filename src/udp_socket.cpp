@@ -710,7 +710,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	}
 
 #if TORRENT_USE_IPV6
-	if (ep.address().is_v6() || is_any(ep.address()))
+	if (supports_ipv6() && (ep.address().is_v6() || is_any(ep.address())))
 	{
 		udp::endpoint ep6 = ep;
 		if (is_any(ep.address())) ep6.address(address_v6::any());
