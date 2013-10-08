@@ -663,7 +663,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 #ifdef IPV6_V6ONLY
 		m_ipv6_sock.set_option(v6only(true), ec);
-		if (ec) return;
+		ec.clear();
 #endif
 		m_ipv6_sock.bind(ep6, ec);
 		if (ec) return;
@@ -729,6 +729,7 @@ void udp_socket::bind(int port)
 #endif
 #ifdef IPV6_V6ONLY
 		m_ipv6_sock.set_option(v6only(true), ec);
+		ec.clear();
 #endif
 		m_ipv6_sock.bind(udp::endpoint(address_v6::any(), port), ec);
 
