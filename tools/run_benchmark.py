@@ -10,12 +10,20 @@ toolset = ''
 if len(sys.argv) > 1:
 	toolset = sys.argv[1]
 
-ret = os.system('cd ../examples && bjam boost=source profile statistics=on %s stage_client_test' % toolset)
-ret = os.system('cd ../examples && bjam boost=source release %s stage_connection_tester' % toolset)
-
+ret = os.system('cd ../examples && bjam profile statistics=on %s stage_client_test' % toolset)
 if ret != 0:
 	print 'ERROR: build failed: %d' % ret
 	sys.exit(1)
+
+ret = os.system('cd ../examples && bjam release %s stage_connection_tester' % toolset)
+if ret != 0:
+	print 'ERROR: build failed: %d' % ret
+	sys.exit(1)
+
+try: os.remove('.ses_state')
+except: pass
+try: shutils.rmtree('.resume')
+except: pass
 
 if not os.path.exists('cpu_benchmark.torrent'):
 	ret = os.system('../examples/connection_tester gen-torrent -s 10000 -n 15 -t cpu_benchmark.torrent')
@@ -39,8 +47,8 @@ def run_test(name, test_cmd, client_arg, num_peers):
 	except: pass
 
 	start = time.time();
-	client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s -h -c %d -T %d -C %d' \
-		% (port, client_arg, num_peers*2, num_peers*2, cache_size * 16)
+	client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s -h -c %d -T %d -C %d -f %s/events.log' \
+		% (port, client_arg, num_peers*2, num_peers*2, cache_size * 16, output_dir)
 	test_cmd = '../examples/connection_tester %s -c %d -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % (test_cmd, num_peers, port)
 
 	client_out = open('%s/client.out' % output_dir, 'w+')
@@ -52,10 +60,11 @@ def run_test(name, test_cmd, client_arg, num_peers):
 	t = subprocess.Popen(test_cmd.split(' '), stdout=test_out, stderr=test_out)
 
 	t.wait()
-	c.communicate('q')
-	c.wait()
 
 	end = time.time();
+
+	c.communicate('q')
+	c.wait()
 
 	print 'runtime %d seconds' % (end - start)
 	print 'analyzing proile...'
