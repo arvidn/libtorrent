@@ -3115,9 +3115,8 @@ namespace libtorrent
 			, int(m_num_blocked_jobs) - ret);
 #endif
 
-		TORRENT_ASSERT(m_num_blocked_jobs >= ret);
-
 		m_num_blocked_jobs -= ret;
+		TORRENT_ASSERT(m_num_blocked_jobs >= 0);
 
 		if (new_jobs.size() > 0)
 		{
