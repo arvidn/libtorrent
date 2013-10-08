@@ -839,7 +839,10 @@ int main(int argc, char* argv[])
 	if (strcmp(command, "gen-torrent") == 0)
 	{
 		std::vector<char> tmp;
-		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1, filename(torrent_file).c_str());
+		std::string name = filename(torrent_file);
+		name = name.substr(0, name.find_last_of('.'));
+		printf("generating torrent: %s\n", name.c_str());
+		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1, name.c_str());
 
 		FILE* output = stdout;
 		if (strcmp("-", torrent_file) != 0)
