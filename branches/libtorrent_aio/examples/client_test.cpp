@@ -1768,6 +1768,7 @@ int main(int argc, char* argv[])
 
 	ses.set_proxy(ps);
 
+	if (bind_to_interface.empty()) bind_to_interface = "0.0.0.0";
 	settings.set_str(settings_pack::listen_interfaces, bind_to_interface + ":" + to_string(listen_port).elems);
 
 #ifndef TORRENT_DISABLE_DHT
