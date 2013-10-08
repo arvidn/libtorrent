@@ -97,10 +97,10 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
 	settings_pack sett;
-	sett.set_int(settings_pack::stop_tracker_timeout, 1);
-	sett.set_int(settings_pack::tracker_completion_timeout, 1);
-	sett.set_int(settings_pack::tracker_receive_timeout, 1);
-	sett.set_int(settings_pack::half_open_limit, 1);
+	sett.set_int(settings_pack::stop_tracker_timeout, 2);
+	sett.set_int(settings_pack::tracker_completion_timeout, 2);
+	sett.set_int(settings_pack::tracker_receive_timeout, 2);
+	sett.set_int(settings_pack::half_open_limit, 2);
 	sett.set_bool(settings_pack::announce_to_all_trackers, true);
 	sett.set_bool(settings_pack::announce_to_all_tiers, true);
 	sett.set_bool(settings_pack::anonymous_mode, flags & anonymous_mode);
