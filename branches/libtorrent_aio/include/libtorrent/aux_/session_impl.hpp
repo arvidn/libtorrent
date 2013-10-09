@@ -487,6 +487,7 @@ namespace libtorrent
 			void set_rate_limit(peer_class_t c, int channel, int limit);
 			int rate_limit(peer_class_t c, int channel) const;
 
+			bool preemptive_unchoke() const;
 			int num_uploads() const { return m_num_unchoked; }
 			int num_connections() const
 			{ return m_connections.size(); }

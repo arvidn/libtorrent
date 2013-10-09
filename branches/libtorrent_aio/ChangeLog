@@ -1,3 +1,5 @@
+	* be more aggressive in corking sockets, to coalesce messages into larger packets.
+	* pre-emptively unchoke peers to save one round-trip at connection start-up.
 	* add session constructor overload that takes a settings_pack
 	* torrent_info is no longer an intrusive_ptr type. It is held by shared_ptr. This is a non-backwards compatible change
 	* move listen interface and port to the settings

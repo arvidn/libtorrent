@@ -163,12 +163,14 @@ int main()
 	fflush(stderr);
 
 	int ret = print_failures();
+#ifndef TORRENT_VERBOSE_LOGGING
 	if (ret == 0)
 	{
 		remove_all(test_dir, ec);
 		if (ec)
 			fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
 	}
+#endif
 
 	return ret;
 }

@@ -6870,6 +6870,11 @@ retry:
 		m_alerts.set_alert_queue_size_limit(m_settings.get_int(settings_pack::alert_queue_size));
 	}
 
+	bool session_impl::preemptive_unchoke() const
+	{
+		return m_num_unchoked < m_allowed_upload_slots * 2 / 3;
+	}
+
 	void session_impl::upate_dht_upload_rate_limit()
 	{
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));

@@ -1389,9 +1389,15 @@ namespace libtorrent
 
 	struct cork
 	{
-		cork(peer_connection& p): m_pc(p) { m_pc.cork_socket(); }
-		~cork() { m_pc.uncork_socket(); }
+		cork(peer_connection& p): m_pc(p), m_need_uncork(false)
+		{
+			if (m_pc.is_corked()) return;
+			m_pc.cork_socket();
+			m_need_uncork = true;
+		}
+		~cork() { if (m_need_uncork) m_pc.uncork_socket(); }
 		peer_connection& m_pc;
+		bool m_need_uncork;
 	};
 
 }

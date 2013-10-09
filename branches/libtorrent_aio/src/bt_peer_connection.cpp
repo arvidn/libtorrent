@@ -156,6 +156,10 @@ namespace libtorrent
 
 	void bt_peer_connection::on_connected()
 	{
+		// make sure are much as possible of the response ends up in the same
+		// packet, or at least back-to-back packets
+		cork c_(*this);
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		
 		pe_settings::enc_policy out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
@@ -797,6 +801,30 @@ namespace libtorrent
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
 #endif
 		send_buffer(handshake, sizeof(handshake));
+
+		// we don't know how many pieces there are until we
+		// have the metadata
+		if (t->valid_metadata())
+		{
+			write_bitfield();
+#ifndef TORRENT_DISABLE_DHT
+			if (m_supports_dht_port && m_ses.has_dht())
+				write_dht_port(m_ses.external_udp_port());
+#endif
+
+			// if we don't have any pieces, don't do any preemptive
+			// unchoking at all.
+			if (t->num_have() > 0)
+			{
+				// if the peer is ignoring unchoke slots, or if we have enough
+				// unused slots, unchoke this peer right away, to save a round-trip
+				// in case it's interested.
+				if (ignore_unchoke_slots())
+					send_unchoke();
+				else if (m_ses.preemptive_unchoke())
+					m_ses.unchoke_peer(*this);
+			}
+		}
 	}
 
 	boost::optional<piece_block_progress> bt_peer_connection::downloading_piece_progress() const
@@ -2456,6 +2484,10 @@ namespace libtorrent
 			return;
 		}
 
+		// make sure are much as possible of the response ends up in the same
+		// packet, or at least back-to-back packets
+		cork c_(*this);
+
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 	
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -3144,8 +3176,6 @@ namespace libtorrent
 			// if this is a local connection, we have already
 			// sent the handshake
 			if (!is_outgoing()) write_handshake();
-//			if (t->valid_metadata())
-//				write_bitfield();
 			TORRENT_ASSERT(m_sent_handshake);
 
 			if (is_disconnecting()) return;
@@ -3275,14 +3305,6 @@ namespace libtorrent
 
 			m_state = read_packet_size;
 			reset_recv_buffer(5);
-			if (t->ready_for_connections())
-			{
-				write_bitfield();
-#ifndef TORRENT_DISABLE_DHT
-				if (m_supports_dht_port && m_ses.has_dht())
-					write_dht_port(m_ses.external_udp_port());
-#endif
-			}
 
 			TORRENT_ASSERT(!packet_finished());
 			return;
