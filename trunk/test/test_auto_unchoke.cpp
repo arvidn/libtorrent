@@ -96,14 +96,14 @@ void test_swarm()
 
 	session_status st = ses1.status();
 	TEST_CHECK(st.allowed_upload_slots == 1);
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 100; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 		print_alerts(ses3, "ses3");
 
 		st = ses1.status();
-		std::cerr << st.allowed_upload_slots << " ";
+		fprintf(stderr, "allowed unchoked: %d\n", st.allowed_upload_slots);
 		if (st.allowed_upload_slots >= 2) break;
 
 		torrent_status st1 = tor1.status();
@@ -112,7 +112,7 @@ void test_swarm()
 
 		print_ses_rate(i, &st1, &st2, &st3);
 
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(st.allowed_upload_slots >= 2);
