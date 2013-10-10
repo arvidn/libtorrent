@@ -394,6 +394,12 @@ private:
 		bool m_supports_dht_port:1;
 		bool m_supports_fast:1;
 
+		// this is set to true when we send the bitfield message.
+		// for magnet links we can't do that right away,
+		// since we don't know how many pieces there are in
+		// the torrent.
+		bool m_sent_bitfield:1;
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is set to true after the encryption method has been
 		// succesfully negotiated (either plaintext or rc4), to signal
@@ -429,10 +435,6 @@ private:
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		// this is set to true when the client's
-		// bitfield is sent to this peer
-		bool m_sent_bitfield;
-
 		bool m_in_constructor;
 		
 		bool m_sent_handshake;

@@ -118,13 +118,13 @@ namespace libtorrent
 #endif
 		, m_supports_dht_port(false)
 		, m_supports_fast(false)
+		, m_sent_bitfield(false)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
 		, m_sync_bytes_read(0)
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		, m_sent_bitfield(false)
 		, m_in_constructor(true)
 		, m_sent_handshake(false)
 #endif
@@ -233,10 +233,11 @@ namespace libtorrent
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
-		if (m_state < read_packet_size) return;
+		if (m_sent_bitfield) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		write_bitfield();
+		TORRENT_ASSERT(m_sent_bitfield);
 #ifndef TORRENT_DISABLE_DHT
 		if (m_supports_dht_port && m_ses.has_dht())
 			write_dht_port(m_ses.external_udp_port());
@@ -264,9 +265,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_sent_handshake);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
-#endif
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HAVE_ALL");
 #endif
@@ -280,9 +279,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_sent_handshake);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
-#endif
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HAVE_NONE");
 #endif
@@ -804,7 +801,7 @@ namespace libtorrent
 
 		// we don't know how many pieces there are until we
 		// have the metadata
-		if (t->valid_metadata())
+		if (t->ready_for_connections())
 		{
 			write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
@@ -2051,9 +2048,7 @@ namespace libtorrent
 
 			// if we are super seeding, pretend to not have any piece
 			// and don't send a bitfield
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_sent_bitfield = true;
-#endif
 
 			// bootstrap superseeding by sending two have message
 			superseed_piece(-1, t->get_piece_to_super_seed(get_bitfield()));
@@ -2078,9 +2073,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log(" *** NOT SENDING BITFIELD");
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_sent_bitfield = true;
-#endif
 			return;
 		}
 	
@@ -2159,9 +2152,7 @@ namespace libtorrent
 		}
 		peer_log("==> BITFIELD [ %s ]", bitfield_string.c_str());
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
-#endif
 
 		send_buffer(msg, packet_size);
 
