@@ -1371,6 +1371,7 @@ namespace aux {
 	void session_impl::update_dht_announce_interval()
 	{
 #ifndef TORRENT_DISABLE_DHT
+		if (!m_dht) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_announce");
@@ -4209,6 +4210,7 @@ retry:
 
 	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)
 	{
+		TORRENT_ASSERT(m_dht);
 		m_dht_torrents.push_back(t);
 		// trigger a DHT announce right away if we just
 		// added a new torrent and there's no back-log
@@ -4233,6 +4235,8 @@ retry:
 		if (e) return;
 
 		if (m_abort) return;
+
+		TORRENT_ASSERT(m_dht);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_announce");
