@@ -1150,7 +1150,8 @@ int utorrent_status(torrent_status const& st)
 	if (!st.paused && (st.state == torrent_status::downloading
 		|| st.state == torrent_status::downloading_metadata
 		|| st.state == torrent_status::seeding
-		|| st.state == torrent_status::finished))
+		|| st.state == torrent_status::finished
+		|| st.state == torrent_status::checking_files))
 		ret |= STARTED;
 
 	if (!st.paused && (st.state == torrent_status::queued_for_checking || st.state == torrent_status::checking_files))
