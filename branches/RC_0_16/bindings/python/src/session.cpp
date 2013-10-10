@@ -12,6 +12,8 @@
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/extensions.hpp>
+#include <libtorrent/lazy_entry.hpp>
+#include <libtorrent/bencode.hpp>
 
 #include <libtorrent/extensions/lt_trackers.hpp>
 #include <libtorrent/extensions/metadata_transfer.hpp>
@@ -503,6 +505,18 @@ namespace
         return ret;
     }
 
+    void load_state(session& ses, entry const& st)
+	 {
+		 allow_threading_guard guard;
+
+		 std::vector<char> buf;
+		 bencode(std::back_inserter(buf), st);
+		 lazy_entry e;
+		 error_code ec;
+		 lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		 TORRENT_ASSERT(!ec);
+		 ses.load_state(e);
+	 }
 } // namespace unnamed
 
 
@@ -513,11 +527,6 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
     void (session::*start_dht1)(entry const&) = &session::start_dht;
 #endif
-#endif
-
-    void (session::*load_state0)(lazy_entry const&) = &session::load_state;
-#ifndef TORRENT_NO_DEPRECATE
-    void (session::*load_state1)(entry const&) = &session::load_state;
 #endif
 
     class_<session_status>("session_status")
@@ -724,10 +733,9 @@ void bind_session()
         .def("load_asnum_db", &load_asnum_db)
         .def("load_country_db", &load_country_db)
 #endif
-        .def("load_state", load_state0)
+        .def("load_state", &load_state)
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
 #ifndef TORRENT_NO_DEPRECATE
-        .def("load_state", load_state1)
         .def("set_severity_level", allow_threads(&session::set_severity_level))
         .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
 #endif
