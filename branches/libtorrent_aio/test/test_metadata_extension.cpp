@@ -53,27 +53,22 @@ void test_transfer(bool clear_files, bool disconnect
 	// the sessions to destruct in parallel
 	session_proxy p1;
 	session_proxy p2;
-	session_proxy p3;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50100, 51000), "0.0.0.0", 0);
 	ses1.add_extension(constructor);
 	ses2.add_extension(constructor);
-	ses3.add_extension(constructor);
 	torrent_handle tor1;
 	torrent_handle tor2;
-	torrent_handle tor3;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
 	pes.out_enc_policy = pe_settings::forced;
 	pes.in_enc_policy = pe_settings::forced;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
-	ses3.set_pe_settings(pes);
 #endif
 
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, clear_files, true, true, "_meta");	
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, NULL, clear_files, true, true, "_meta");	
 
 	for (int i = 0; i < 80; ++i)
 	{
@@ -85,15 +80,13 @@ void test_transfer(bool clear_files, bool disconnect
 
 		if (disconnect && tor2.is_valid()) ses2.remove_torrent(tor2);
 		if (!disconnect
-			&& tor2.status().has_metadata
-			&& tor3.status().has_metadata) break;
+			&& tor2.status().has_metadata) break;
 		test_sleep(100);
 	}
 
 	if (disconnect) goto done;
 
 	TEST_CHECK(tor2.status().has_metadata);
-	TEST_CHECK(tor3.status().has_metadata);
 	std::cerr << "waiting for transfer to complete\n";
 
 	for (int i = 0; i < 30; ++i)
@@ -114,12 +107,10 @@ done:
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
 	p2 = ses2.abort();
-	p3 = ses3.abort();
 
 	error_code ec;
 	remove_all("tmp1_meta", ec);
 	remove_all("tmp2_meta", ec);
-	remove_all("tmp3_meta", ec);
 }
 
 int test_main()

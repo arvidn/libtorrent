@@ -1493,6 +1493,7 @@ namespace aux {
 			TORRENT_ASSERT(m_num_queued_resume > 0);
 			--m_num_queued_resume;
 		}
+		if (!m_dht) return;
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 		while (!m_save_resume_queue.empty()
@@ -4582,6 +4583,7 @@ retry:
 
 	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)
 	{
+		TORRENT_ASSERT(m_dht);
 		m_dht_torrents.push_back(t);
 		// trigger a DHT announce right away if we just
 		// added a new torrent and there's no back-log
@@ -4599,14 +4601,16 @@ retry:
 
 	void session_impl::on_dht_announce(error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_dht_announce");
-#endif
 		TORRENT_ASSERT(is_single_thread());
 		if (e) return;
 
 		if (m_abort) return;
 
+		TORRENT_ASSERT(m_dht);
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_dht_announce");
+#endif
 		// announce to DHT every 15 minutes
 		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);

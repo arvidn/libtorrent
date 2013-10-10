@@ -244,7 +244,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
-			fprintf(stderr, "%s: %s [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
+			fprintf(stderr, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
@@ -674,7 +674,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		error_code ec;
 		create_directory("tmp1" + suffix, ec);
 		std::ofstream file(combine_path("tmp1" + suffix, "temporary").c_str());
-		t = ::create_torrent(&file, piece_size, 9, true);
+		t = ::create_torrent(&file, piece_size, 9, false);
 		file.close();
 		if (clear_files)
 		{
@@ -1418,6 +1418,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				write(s, boost::asio::buffer(&buf[0], buf.size()), boost::asio::transfer_all(), ec);
 				if (ec)
 					fprintf(stderr, "[HTTP] *** send response failed: %s\n", ec.message().c_str());
+				continue;
 			}
 
 			if (filename(path).substr(0, 5) == "seed?")

@@ -106,6 +106,7 @@ test-suite libtorrent :
 	[ run test_part_file.cpp ]
 	[ run test_policy.cpp ]
 	[ run test_file_storage.cpp ]
+	[ run test_priority.cpp ]
 	[ run test_peer_priority.cpp ]
 	[ run test_file.cpp ]
 	[ run test_privacy.cpp ]
