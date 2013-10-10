@@ -214,12 +214,12 @@ for branch_name in revs:
 	html = open(html_file, 'w+')
 
 	print >>html, '''<html><head><title>regression tests, %s</title><style type="text/css">
-		.passed { display: block; width: 8px; height: 1em; background-color: #6f8 }
-		.failed { display: block; width: 8px; height: 1em; background-color: #f68 }
+		.passed { display: block; width: 6px; height: 1em; background-color: #6f8 }
+		.failed { display: block; width: 6px; height: 1em; background-color: #f68 }
 		table { border: 0; border-collapse: collapse; }
 		h1 { font-size: 15pt; }
 		th { font-size: 8pt; }
-		td { border: 0; border-spacing: 0px; padding: 1px 0px 0px 1px; }
+		td { border: 0; border-spacing: 0px; padding: 0px 0px 0px 0px; }
 		.left-head { white-space: nowrap; }
 		</style>
 		</head><body><h1>%s - %s</h1>''' % (project_name, project_name, branch_name)
@@ -239,7 +239,7 @@ for branch_name in revs:
 		print >>html, '<tr><th colspan="2" style="border:0;">revision %d</th>' % r
 
 		for f in tests:
-			print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*9 - 5, f)
+			print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*6 - 5, f)
 		print >>html, '</tr>'
 
 		for p in platforms:
