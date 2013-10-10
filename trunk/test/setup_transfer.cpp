@@ -1353,6 +1353,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				write(s, boost::asio::buffer(&buf[0], buf.size()), boost::asio::transfer_all(), ec);
 				if (ec)
 					fprintf(stderr, "[HTTP] *** send response failed: %s\n", ec.message().c_str());
+				continue;
 			}
 
 			if (filename(path).substr(0, 5) == "seed?")
