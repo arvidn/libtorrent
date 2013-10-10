@@ -136,10 +136,6 @@ namespace
         return result;
     }
 
-    torrent_info construct0(std::string path) {
-        return torrent_info(path);
-    }
-
     list map_block(torrent_info& ti, int piece, size_type offset, int size)
     {
        std::vector<file_slice> p = ti.map_block(piece, offset, size);
@@ -214,8 +210,8 @@ void bind_torrent_info()
         .def("total_size", &torrent_info::total_size)
         .def("piece_length", &torrent_info::piece_length)
         .def("num_pieces", &torrent_info::num_pieces)
-#ifndef TORRENT_NO_DEPRECATE
         .def("info_hash", &torrent_info::info_hash, copy)
+#ifndef TORRENT_NO_DEPRECATE
         .def("file_at_offset", &torrent_info::file_at_offset)
 #endif
         .def("hash_for_piece", &hash_for_piece)
