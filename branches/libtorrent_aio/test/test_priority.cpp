@@ -251,41 +251,31 @@ void test_transfer()
 
 	peer_disconnects = 0;
 
+	// wait for force recheck to complete
 	for (int i = 0; i < 5; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 		torrent_status st2 = tor2.status();
-		TEST_CHECK(st2.state == torrent_status::finished);
+		if (st2.state == torrent_status::finished) break;
 		if (peer_disconnects >= 1) break;
 		test_sleep(100);
 	}
 
 	tor2.pause();
-	alert const* a = ses2.wait_for_alert(seconds(10));
-	bool got_paused_alert = false;
-	while (a)
-	{
-		std::auto_ptr<alert> holder = ses2.pop_alert();
-		std::cerr << "ses2: " << a->message() << std::endl;
-		if (alert_cast<torrent_paused_alert>(a))
-		{
-			got_paused_alert = true;
-			break;	
-		}
-		a = ses2.wait_for_alert(seconds(10));
-	}
-	TEST_CHECK(got_paused_alert);	
+	wait_for_alert(ses2, torrent_paused_alert::alert_type, "ses2");
 
 	std::vector<announce_entry> tr = tor2.trackers();
 	tr.push_back(announce_entry("http://test.com/announce"));
 	tor2.replace_trackers(tr);
 	tr.clear();
 
+	fprintf(stderr, "save resume data\n");
 	tor2.save_resume_data();
 
 	std::vector<char> resume_data;
-	a = ses2.wait_for_alert(seconds(10));
+
+	alert const* a = ses2.wait_for_alert(seconds(10));
 	ptime start = time_now_hires();
 	while (a)
 	{
@@ -321,7 +311,7 @@ void test_transfer()
 	p.flags &= ~add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = t;
-	p.save_path = "tmp2_transfer_moved";
+	p.save_path = "tmp2_priority";
 	p.resume_data = resume_data;
 	tor2 = ses2.add_torrent(p, ec);
 	tor2.prioritize_pieces(priorities);
@@ -334,16 +324,19 @@ void test_transfer()
 
 	peer_disconnects = 0;
 
+	// wait for torrent 2 to settle in back to finished state (it will
+	// start as checking)
+	torrent_status st1;
+	torrent_status st2;
 	for (int i = 0; i < 5; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
-		torrent_status st1 = tor1.status();
-		torrent_status st2 = tor2.status();
+		st1 = tor1.status();
+		st2 = tor2.status();
 
 		TEST_CHECK(st1.state == torrent_status::seeding);
-		TEST_CHECK(st2.state == torrent_status::finished);
 
 		if (peer_disconnects >= 1) break;
 
@@ -352,7 +345,10 @@ void test_transfer()
 		test_sleep(100);
 	}
 
-	TEST_CHECK(!tor2.status().is_seeding);
+	// torrent 2 should not be seeding yet, it should
+	// just be 50% finished
+	TEST_CHECK(!st2.is_seeding);
+	TEST_CHECK(st2.is_finished);
 
 	std::fill(priorities.begin(), priorities.end(), 1);
 	tor2.prioritize_pieces(priorities);

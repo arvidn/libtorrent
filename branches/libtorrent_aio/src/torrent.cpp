@@ -2405,7 +2405,17 @@ namespace libtorrent
 
 		// forget that we have any pieces
 		m_have_all = false;
-		m_picker.reset();
+
+// removing the piece picker will clear the user priorities
+// instead, just clear which pieces we have
+//		m_picker.reset();
+		if (m_picker)
+		{
+			int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
+			int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
+				+ block_size() - 1) / block_size();
+			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
+		}
 
 		// file progress is allocated lazily, the first time the client
 		// asks for it
