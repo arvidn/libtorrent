@@ -215,8 +215,18 @@ void test_transfer()
 		std::cerr << "torrent is finished (50% complete)" << std::endl;
 	else return;
 
+	std::vector<int> priorities2 = tor2.piece_priorities();
+	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
+	std::cerr << std::endl;
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+
 	std::cerr << "force recheck" << std::endl;
 	tor2.force_recheck();
+
+	priorities2 = tor2.piece_priorities();
+	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
+	std::cerr << std::endl;
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	peer_disconnects = 0;
 
@@ -235,7 +245,7 @@ void test_transfer()
 		test_sleep(100);
 	}
 
-	std::vector<int> priorities2 = tor2.piece_priorities();
+	priorities2 = tor2.piece_priorities();
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	peer_disconnects = 0;
@@ -302,7 +312,7 @@ void test_transfer()
 	p.flags &= ~add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = t;
-	p.save_path = "tmp2_priority_moved";
+	p.save_path = "tmp2_priority";
 	p.resume_data = resume_data;
 	tor2 = ses2.add_torrent(p, ec);
 	ses2.set_alert_mask(alert::all_categories
