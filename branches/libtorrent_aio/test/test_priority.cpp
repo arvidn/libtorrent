@@ -49,9 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using boost::tuples::ignore;
 
-int const alert_mask = alert::all_categories
-& ~alert::progress_notification
-& ~alert::stats_notification;
+const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
 int peer_disconnects = 0;
 
@@ -69,7 +67,7 @@ bool on_alert(alert* a)
 	return false;
 }
 
-void test_transfer()
+void test_transfer(settings_pack const& sett)
 {
 	// in case the previous run was terminated
 	error_code ec;
@@ -84,39 +82,41 @@ void test_transfer()
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
 
-	session_settings sett;
-	sett.allow_multiple_connections_per_ip = false;
-	sett.ignore_limits_on_local_network = false;
-
-	sett.unchoke_slots_limit = 0;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == 0);
-	sett.unchoke_slots_limit = -1;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == -1);
-	sett.unchoke_slots_limit = 8;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == 8);
-
+	settings_pack pack = sett;
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
 	// immediately to complete the second half.
 	// using a reconnect time > 0 will just add
 	// to the time it will take to complete the test
-	sett.min_reconnect_time = 0;
-	sett.stop_tracker_timeout = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = true;
-	// make sure we announce to both http and udp trackers
-	sett.prefer_udp_trackers = false;
-	sett.enable_outgoing_utp = false;
-	sett.enable_incoming_utp = false;
+	pack.set_int(settings_pack::min_reconnect_time, 0);
+	pack.set_int(settings_pack::stop_tracker_timeout, 1);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 
-	ses1.set_settings(sett);
-	ses2.set_settings(sett);
+	// make sure we announce to both http and udp trackers
+	pack.set_bool(settings_pack::prefer_udp_trackers, false);
+	pack.set_bool(settings_pack::enable_outgoing_utp, false);
+	pack.set_bool(settings_pack::enable_incoming_utp, false);
+	pack.set_int(settings_pack::alert_mask, mask);
+
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, 0);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, -1);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, 8);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
+
+	ses2.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -393,7 +393,12 @@ int test_main()
 	using namespace libtorrent;
 
 	// test with all kinds of proxies
-	test_transfer();
+	settings_pack p;
+
+	// test no contiguous_recv_buffers
+	p = settings_pack();
+	p.set_bool(settings_pack::contiguous_recv_buffer, false);
+	test_transfer(p);
 	
 	error_code ec;
 	remove_all("tmp1_priorities", ec);
