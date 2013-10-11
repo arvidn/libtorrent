@@ -1493,7 +1493,6 @@ namespace aux {
 			TORRENT_ASSERT(m_num_queued_resume > 0);
 			--m_num_queued_resume;
 		}
-		if (!m_dht) return;
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 		while (!m_save_resume_queue.empty()
@@ -7002,6 +7001,8 @@ retry:
 	void session_impl::update_dht_announce_interval()
 	{
 #ifndef TORRENT_DISABLE_DHT
+		if (!m_dht) return;
+
 		m_dht_interval_update_torrents = m_torrents.size();
 
 		// if we haven't started yet, don't actually trigger this
