@@ -274,33 +274,33 @@ int test_main()
 	// test abort_download
 	print_title("test abort_download");
 	p = setup_picker("1111111", "       ", "7110000", ""); 
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
 
-	p->abort_download(piece_block(piece_block(0,0)));
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	p->abort_download(piece_block(0,0), tmp_peer);
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
 
 	p->mark_as_downloading(piece_block(0,0), &tmp1, piece_picker::fast);
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == true);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) == picked.end());
 
-	p->abort_download(piece_block(0,0));
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	p->abort_download(piece_block(0,0), tmp_peer);
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
 
 	p->mark_as_downloading(piece_block(0,0), &tmp1, piece_picker::fast);
 	p->mark_as_downloading(piece_block(0,1), &tmp1, piece_picker::fast);
-	p->abort_download(piece_block(0,0));
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	p->abort_download(piece_block(0,0), tmp_peer);
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
@@ -308,13 +308,13 @@ int test_main()
 	p->mark_as_downloading(piece_block(0,0), &tmp1, piece_picker::fast);
 	p->mark_as_writing(piece_block(0,0), &tmp1);
 	p->write_failed(piece_block(0,0));
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(1,0)) != picked.end()
 		|| std::find(picked.begin(), picked.end(), piece_block(2,0)) != picked.end());
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) == picked.end());
 	p->restore_piece(0);
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
@@ -322,8 +322,8 @@ int test_main()
 	p->mark_as_downloading(piece_block(0,0), &tmp1, piece_picker::fast);
 	p->mark_as_writing(piece_block(0,0), &tmp1);
 	p->mark_as_finished(piece_block(0,0), &tmp1);
-	p->abort_download(piece_block(0,0));
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, 0, piece_picker::fast
+	p->abort_download(piece_block(0,0), tmp_peer);
+	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer, piece_picker::fast
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) == picked.end());
@@ -335,7 +335,7 @@ int test_main()
 	TEST_CHECK(st.requested == 1);
 	TEST_CHECK(st.finished == 1);
 	TEST_CHECK(st.state == piece_picker::fast);
-	p->abort_download(piece_block(0,0));
+	p->abort_download(piece_block(0,0), tmp_peer);
 	p->piece_info(0, st);
 	TEST_CHECK(st.requested == 0);
 	TEST_CHECK(st.finished == 1);
