@@ -333,10 +333,10 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			|| st2.state == torrent_status::checking_resume_data
 			|| (test_disk_full && !st2.error.empty()));
 
-		if (peer_disconnects >= 2) break;
+		if (!test_disk_full && peer_disconnects >= 2) break;
 
 		// if nothing is being transferred after 2 seconds, we're failing the test
-		if (st1.upload_payload_rate == 0 && i > 20) break;
+//		if (!test_disk_full && st1.upload_payload_rate == 0 && i > 20) break;
 
 		test_sleep(100);
 	}
