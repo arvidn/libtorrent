@@ -1643,7 +1643,15 @@ namespace libtorrent
 		disconnect_if_redundant();
 		if (is_disconnecting()) return;
 
-		if (is_choked() && !t->graceful_pause())
+		if (t->graceful_pause())
+		{
+#if defined TORRENT_VERBOSE_LOGGING
+			peer_log("DID NOT UNCHOKE [ graceful pause mode ]");
+#endif
+			return;
+		}
+
+		if (is_choked())
 		{
 			if (ignore_unchoke_slots())
 			{
@@ -1654,6 +1662,8 @@ namespace libtorrent
 				// just unchoke it immediately
 				send_unchoke();
 			}
+			// TODO: 3 we should probably use ses.m_allowed_upload_slots here instead
+			// to work with auto-unchoke logic
 			else if (m_ses.num_uploads() < m_settings.get_int(settings_pack::unchoke_slots_limit)
 				|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0)
 			{
@@ -1678,12 +1688,21 @@ namespace libtorrent
 			}
 #endif
 		}
-#if defined TORRENT_VERBOSE_LOGGING
-		else if (t->graceful_pause())
+		else
 		{
-			peer_log("DID NOT UNCHOKE [ graceful pause mode ]");
-		}
+			// the reason to send an extra unchoke message here is that
+			// because of the handshake-round-trip optimization, we may
+			// end up sending an unchoke before the other end sends us
+			// an interested message. This may confuse clients, not reacting
+			// to the first unchoke, and then not check whether it's unchoked
+			// when sending the interested message. If the other end's client
+			// has this problem, sending another unchoke here will kick it
+			// to react to the fact that it's unchoked.
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("SENDING REDUNDANT UNCHOKE");
 #endif
+			write_unchoke();
+		}
 	}
 
 	// -----------------------------
