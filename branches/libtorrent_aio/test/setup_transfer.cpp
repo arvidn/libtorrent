@@ -1019,6 +1019,8 @@ int start_web_server(bool ssl, bool chunked_encoding)
 	// "relative/../test_file" can resolve
 	error_code ec;
 	create_directory("relative", ec);
+	if (ec)
+		fprintf(stderr, "failed to create directory 'relative': %s\n", ec.message().c_str());
 //	test_sleep(100);
 	return port;
 }
@@ -1040,9 +1042,9 @@ void send_response(socket_type& s, error_code& ec
 		, extra_header[1]
 		, extra_header[2]
 		, extra_header[3]);
-	DLOG(stderr, ">> %s\n", msg);
+	DLOG(stderr, "[HTTP] >> %s\n", msg);
 	write(s, boost::asio::buffer(msg, pkt_len), boost::asio::transfer_all(), ec);
-	if (ec) fprintf(stderr, "*** send failed: %s\n", ec.message().c_str());
+	if (ec) fprintf(stderr, "[HTTP] *** send failed: %s\n", ec.message().c_str());
 }
 
 void on_accept(error_code& accept_ec, error_code const& ec, bool* done)
@@ -1100,7 +1102,7 @@ void on_read(error_code const& ec, size_t bytes_transferred, size_t* bt, error_c
 void on_read_timeout(error_code const& ec, bool* timed_out)
 {
 	if (ec) return;
-	fprintf(stderr, "read timed out\n");
+	fprintf(stderr, "%s: [HTTP] read timed out\n", time_now_string());
 	*timed_out = true;
 }
 
@@ -1273,22 +1275,15 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			while (!p.finished())
 			{
-				if (ec)
-				{
-					fprintf(stderr, "?: %s\n", ec.message().c_str());
-               libtorrent::sleep(500);
-					failed = true;
-					break;
-				}
 				TORRENT_ASSERT(len <= int(sizeof(buf)));
 				size_t received = 0;
 				bool done = false;
 				bool timed_out = false;
-				DLOG(stderr, "async_read_some %d bytes [ len: %d ]\n", int(sizeof(buf) - len), len);
+				DLOG(stderr, "[HTTP] async_read_some %d bytes [ len: %d ]\n", int(sizeof(buf) - len), len);
 				s.async_read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), boost::bind(&on_read, _1, _2, &received, &ec, &done));
 				deadline_timer timer(ios);
-				timer.expires_at(time_now_hires() + seconds(2));
+				timer.expires_from_now(milliseconds(500));
 				timer.async_wait(boost::bind(&on_read_timeout, _1, &timed_out));
 
 				while (!done && !timed_out)
@@ -1297,13 +1292,13 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 					ios.reset();
 					if (stop_thread || ios.run_one(e) == 0)
 					{
-						fprintf(stderr, "io_service stopped: %s\n", e.message().c_str());
+						fprintf(stderr, "[HTTP] io_service stopped: %s\n", e.message().c_str());
 						break;
 					}
 				}
 				if (timed_out)
 				{
-					fprintf(stderr, "read timed out, closing connection\n");
+					fprintf(stderr, "[HTTP] read timed out, closing connection\n");
 					failed = true;
 					break;
 				}
@@ -1311,7 +1306,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 				if (ec || received <= 0)
 				{
-					fprintf(stderr, "read failed: \"%s\" (%s) received: %d\n"
+					fprintf(stderr, "[HTTP] read failed: \"%s\" (%s) received: %d\n"
 						, ec.message().c_str(), ec.category().name(), int(received));
                libtorrent::sleep(500);
 					failed = true;
@@ -1320,7 +1315,8 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 				timer.cancel(ec);
 				if (ec)
-					fprintf(stderr, "timer.cancel failed: %s\n", ec.message().c_str());
+					fprintf(stderr, "[HTTP] timer.cancel failed: %s\n", ec.message().c_str());
+				ec.clear();
 
 				len += received;
 		
@@ -1329,7 +1325,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				TEST_CHECK(error == false);
 				if (error)
 				{
-					fprintf(stderr, "parse failed\n");
+					fprintf(stderr, "[HTTP] parse failed\n");
 					failed = true;
 					break;
 				}
@@ -1348,7 +1344,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			if (failed)
 			{
-				fprintf(stderr, "*** connection failed\n");
+				fprintf(stderr, "[HTTP] *** connection failed, closing connection\n");
 				connection_close = true;
 				break;
 			}
@@ -1378,7 +1374,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				path = path.substr(1);
 			}
 
-//			fprintf(stderr, "%s: [HTTP] %s\n", time_now_string(), path.c_str());
+			fprintf(stderr, "%s: [HTTP] %s\n", time_now_string(), path.c_str());
 
 			if (path == "redirect")
 			{
@@ -1551,7 +1547,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 	}
 
 	web_ios = 0;
-	fprintf(stderr, "%s: exiting web server thread\n", time_now_string());
+	fprintf(stderr, "%s: [HTTP] exiting web server thread\n", time_now_string());
 }
 
 

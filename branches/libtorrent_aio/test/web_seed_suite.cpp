@@ -297,13 +297,13 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 		t.add_http_seed(tmp);
 	}
 	fprintf(stderr, "testing: %s\n", tmp);
-
+/*
 	for (int i = 0; i < fs.num_files(); ++i)
 	{
 		file_entry f = fs.at(i);
 		fprintf(stderr, "  %04x: %d %s\n", int(f.offset), f.pad_file, f.path.c_str());
 	}
-
+*/
 	// calculate the hash for all pieces
 	set_piece_hashes(t, save_path, ec);
 

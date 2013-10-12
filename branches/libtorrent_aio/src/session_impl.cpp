@@ -6693,7 +6693,7 @@ retry:
 
 	session_impl::~session_impl()
 	{
-		// that this is not allowed to be the network thread!
+		// this is not allowed to be the network thread!
 		TORRENT_ASSERT(is_not_thread());
 
 		m_io_service.post(boost::bind(&session_impl::abort, this));
