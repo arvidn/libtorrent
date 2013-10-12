@@ -238,7 +238,10 @@ namespace libtorrent { namespace
 			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			m_pc.peer_log("==> UT_METADATA [ type: %d | piece: %d ]", type, piece);
+			char const* names[] = {"request", "data", "dont-have"};
+			char const* n = "";
+			if (type >= 0 && type < 3) n = names[type];
+			m_pc.peer_log("==> UT_METADATA [ type: %d (%s) | piece: %d ]", type, n, piece);
 #endif
 
 			// abort if the peer doesn't support the metadata extension

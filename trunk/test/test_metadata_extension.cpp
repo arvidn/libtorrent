@@ -43,10 +43,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::tuples::ignore;
 
-void test_transfer(bool clear_files, bool disconnect
-	, boost::shared_ptr<libtorrent::torrent_plugin> (*constructor)(libtorrent::torrent*, void*))
+enum flags_t
+{
+	clear_files = 1,
+	disconnect = 2,
+	full_encryption = 4
+};
+
+void test_transfer(int flags
+	, boost::shared_ptr<libtorrent::torrent_plugin> (*constructor)(libtorrent::torrent*, void*)
+	, int timeout)
 {
 	using namespace libtorrent;
+
+	fprintf(stderr, "test transfer: timeout=%d %s%s%s\n"
+		, timeout
+		, (flags & clear_files) ? "clear-files " : ""
+		, (flags & disconnect) ? "disconnect " : ""
+		, (flags & full_encryption) ? "encryption " : "");
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -54,6 +68,8 @@ void test_transfer(bool clear_files, bool disconnect
 	session_proxy p1;
 	session_proxy p2;
 
+	// TODO: it would be nice to test reversing
+	// which session is making the connection as well
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
 	ses1.add_extension(constructor);
@@ -62,41 +78,45 @@ void test_transfer(bool clear_files, bool disconnect
 	torrent_handle tor2;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
+	pes.prefer_rc4 = (flags & full_encryption);
 	pes.out_enc_policy = pe_settings::forced;
 	pes.in_enc_policy = pe_settings::forced;
 	ses1.set_pe_settings(pes);
 	ses2.set_pe_settings(pes);
 #endif
 
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, NULL, clear_files, true, true, "_meta");	
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, NULL, flags & clear_files, true, true, "_meta");	
 
-	for (int i = 0; i < 80; ++i)
+	for (int i = 0; i < timeout * 10; ++i)
 	{
 		// make sure this function can be called on
 		// torrents without metadata
-		if (!disconnect) tor2.status();
+		if ((flags & disconnect) == 0) tor2.status();
 		print_alerts(ses1, "ses1", false, true);
 		print_alerts(ses2, "ses2", false, true);
 
-		if (disconnect && tor2.is_valid()) ses2.remove_torrent(tor2);
-		if (!disconnect
+		if ((flags & disconnect) && tor2.is_valid()) ses2.remove_torrent(tor2);
+		if ((flags & disconnect) == 0
 			&& tor2.status().has_metadata) break;
 		test_sleep(100);
 	}
 
-	if (disconnect) goto done;
+	if (flags & disconnect) goto done;
 
 	TEST_CHECK(tor2.status().has_metadata);
 	std::cerr << "waiting for transfer to complete\n";
 
-	for (int i = 0; i < 30; ++i)
+	for (int i = 0; i < 20; ++i)
 	{
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_ses_rate(i, &st1, &st2);
+		print_alerts(ses1, "ses1", false, true);
+		print_alerts(ses2, "ses2", false, true);
+
+		print_ses_rate(i / 10.f, &st1, &st2);
 		if (st2.is_seeding) break;
-		test_sleep(1000);
+		test_sleep(100);
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
@@ -117,19 +137,11 @@ int test_main()
 {
 	using namespace libtorrent;
 
-	// test to disconnect one client prematurely
-	test_transfer(true, true, &create_metadata_plugin);
-	// test where one has data and one doesn't
-	test_transfer(true, false, &create_metadata_plugin);
-	// test where both have data (to trigger the file check)
-	test_transfer(false, false, &create_metadata_plugin);
+	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
+		test_transfer(f, &create_metadata_plugin, 5);
 
-	// test to disconnect one client prematurely
-	test_transfer(true, true, &create_ut_metadata_plugin);
-	// test where one has data and one doesn't
-	test_transfer(true, false, &create_ut_metadata_plugin);
-	// test where both have data (to trigger the file check)
-	test_transfer(false, false, &create_ut_metadata_plugin);
+	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
+		test_transfer(f, &create_ut_metadata_plugin, 2);
 
 	error_code ec;
 	remove_all("tmp1", ec);

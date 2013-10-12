@@ -289,8 +289,8 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_pc.m_logger) << time_now_string()
-				<< " ==> METADATA_REQUEST  [ start: " << start << " | size: " << size << " ]\n";
+			m_pc.peer_log("==> METADATA_REQUEST  [ start: %d | size: %d ]\n"
+				, start, size);
 #endif
 
 			char msg[9];
@@ -327,12 +327,8 @@ namespace libtorrent { namespace
 				char* ptr = msg;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_pc.m_logger) << time_now_string()
-					<< " ==> METADATA [ start: " << req.first
-					<< " | size: " << req.second
-					<< " | offset: " << offset.first
-					<< " | byte_size: " << offset.second
-					<< " ]\n";
+				m_pc.peer_log("==> METADATA [ start: %d | total_size: %d | offset: %d | data_size: %d ]"
+					, req.first, req.second, offset.first, offset.second);
 #endif
 				// yes, we have metadata, send it
 				detail::write_uint32(11 + offset.second, ptr);
@@ -349,8 +345,7 @@ namespace libtorrent { namespace
 			else
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_pc.m_logger) << time_now_string()
-					<< " ==> DONT HAVE METADATA\n";
+				m_pc.peer_log("==> DONT HAVE METADATA\n");
 #endif
 				char msg[4+3];
 				char* ptr = msg;
@@ -391,10 +386,8 @@ namespace libtorrent { namespace
 					int size = detail::read_uint8(body.begin) + 1;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_pc.m_logger) << time_now_string()
-						<< " <== METADATA_REQUEST [ start: " << start
-						<< " | size: " << size
-						<< " ]\n";
+					m_pc.peer_log("<== METADATA_REQUEST  [ start: %d | size: %d ]\n"
+						, start, size);
 #endif
 
 					if (length != 3)
@@ -416,11 +409,8 @@ namespace libtorrent { namespace
 					int data_size = length - 9;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_pc.m_logger) << time_now_string()
-						<< " <== METADATA [ total_size: " << total_size
-						<< " | offset: " << offset
-						<< " | data_size: " << data_size
-						<< " ]\n";
+					m_pc.peer_log("<== METADATA [ total_size: %d | offset: %d | data_size: %d ]"
+						,total_size, offset, data_size);
 #endif
 
 					if (total_size > m_torrent.session().settings().max_metadata_size)
@@ -462,8 +452,7 @@ namespace libtorrent { namespace
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_pc.m_logger) << time_now_string()
-					<< " <== DONT HAVE METADATA\n";
+				m_pc.peer_log("<== DONT HAVE METADATA\n");
 #endif
 				break;
 			default:
