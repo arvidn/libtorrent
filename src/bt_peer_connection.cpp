@@ -221,6 +221,9 @@ namespace libtorrent
 	
 	void bt_peer_connection::on_metadata()
 	{
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** ON_METADATA");
+#endif
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
@@ -758,13 +761,13 @@ namespace libtorrent
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
 			for (int i = 0; i < 20; ++i)
-				*ptr++ = random();
+				ptr[i] = random();
 		}
 		else
 		{
 			memcpy(ptr, &m_ses.get_peer_id()[0], 20);
-//			ptr += 20;
 		}
+//		ptr += 20;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
@@ -2020,7 +2023,7 @@ namespace libtorrent
 
 		if (t->is_seed())
 		{
-			memset(ptr, 0xff, packet_size - 6);
+			memset(ptr, 0xff, packet_size - 5);
 
 			// Clear trailing bits
 			unsigned char *p = ((unsigned char *)msg) + packet_size - 1;

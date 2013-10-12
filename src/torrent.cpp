@@ -6527,24 +6527,35 @@ namespace libtorrent
 		}
 #endif
 
-		if (!m_connections_initialized)
+		m_connections_initialized = true;
+		m_files_checked = true;
+
+		for (torrent::peer_iterator i = m_connections.begin();
+			i != m_connections.end();)
 		{
-			m_connections_initialized = true;
+			peer_connection* pc = *i;
+			++i;
+
 			// all peer connections have to initialize themselves now that the metadata
 			// is available
-			for (torrent::peer_iterator i = m_connections.begin();
-				i != m_connections.end();)
+			if (!m_connections_initialized)
 			{
-				peer_connection* pc = *i;
-				++i;
 				if (pc->is_disconnecting()) continue;
 				pc->on_metadata_impl();
 				if (pc->is_disconnecting()) continue;
 				pc->init();
 			}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			pc->peer_log("*** ON_FILES_CHECKED");
+#endif
+			if (pc->is_interesting() && !pc->has_peer_choked())
+			{
+				request_a_block(*this, *pc);
+				pc->send_block_requests();
+			}
 		}
 
-		m_files_checked = true;
 
 		start_announcing();
 
