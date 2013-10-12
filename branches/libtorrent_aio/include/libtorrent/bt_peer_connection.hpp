@@ -229,7 +229,7 @@ namespace libtorrent
 		void write_have(int index);
 		void write_dont_have(int index);
 		void write_piece(peer_request const& r, disk_buffer_holder& buffer);
-		void write_handshake();
+		void write_handshake(bool plain_handshake = false);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_upload_only();

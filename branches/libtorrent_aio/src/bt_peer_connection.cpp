@@ -230,6 +230,9 @@ namespace libtorrent
 	
 	void bt_peer_connection::on_metadata()
 	{
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** ON_METADATA");
+#endif
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
@@ -716,7 +719,7 @@ namespace libtorrent
 	}
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 	
-	void bt_peer_connection::write_handshake()
+	void bt_peer_connection::write_handshake(bool plain_handshake)
 	{
 		INVARIANT_CHECK;
 
@@ -786,18 +789,24 @@ namespace libtorrent
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
 			for (int i = 0; i < 20; ++i)
-				*ptr++ = random();
+				ptr[i] = random();
 		}
 		else
 		{
 			memcpy(ptr, &m_ses.get_peer_id()[0], 20);
-//			ptr += 20;
 		}
+//		ptr += 20;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
 #endif
 		send_buffer(handshake, sizeof(handshake));
+
+		// for encrypted peers, just send a plain handshake. We
+		// don't know at this point if the rest should be
+		// obfuscated or not, we have to wait for the other end's
+		// response first.
+		if (plain_handshake) return;
 
 		// we don't know how many pieces there are until we
 		// have the metadata
@@ -2110,7 +2119,7 @@ namespace libtorrent
 
 		if (t->is_seed())
 		{
-			memset(ptr, 0xff, packet_size - 6);
+			memset(ptr, 0xff, packet_size - 5);
 
 			// Clear trailing bits
 			unsigned char *p = ((unsigned char *)msg) + packet_size - 1;
@@ -2541,7 +2550,7 @@ namespace libtorrent
 				// again according to peer selection.
 				m_rc4_encrypted = true;
 				m_encrypted = true;
-				write_handshake();
+				write_handshake(true);
 				m_rc4_encrypted = false;
 				m_encrypted = false;
 
@@ -2962,6 +2971,28 @@ namespace libtorrent
 			bytes_transferred = 0;
 			TORRENT_ASSERT(m_encrypted);
 
+			if (t->ready_for_connections())
+			{
+				write_bitfield();
+#ifndef TORRENT_DISABLE_DHT
+				if (m_supports_dht_port && m_ses.has_dht())
+					write_dht_port(m_ses.external_udp_port());
+#endif
+
+				// if we don't have any pieces, don't do any preemptive
+				// unchoking at all.
+				if (t->num_have() > 0)
+				{
+					// if the peer is ignoring unchoke slots, or if we have enough
+					// unused slots, unchoke this peer right away, to save a round-trip
+					// in case it's interested.
+					if (ignore_unchoke_slots())
+						send_unchoke();
+					else if (m_ses.preemptive_unchoke())
+						m_ses.unchoke_peer(*this);
+				}
+			}
+
 			// decrypt remaining received bytes
 			if (m_rc4_encrypted)
 			{
@@ -2994,6 +3025,7 @@ namespace libtorrent
 				
 				pi->pe_support = true;
 			}
+
 		}
 
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
