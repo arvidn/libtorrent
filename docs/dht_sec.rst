@@ -137,15 +137,21 @@ bootstrapping
 -------------
 
 In order to set ones initial node ID, the external IP needs to be known. This
-is not a trivial problem. With this extension, *all* DHT requests whose node
-ID does not match its IP address MUST be serviced and MUST also include one
-extra result value (inside the ``r`` dictionary) called ``ip``. The IP field
-contains the raw (big endian) byte representation of the external IP address.
-This is the same byte sequence used to verify the node ID.
+is not a trivial problem. With this extension, *all* DHT responses SHOULD include
+a *top-level* field called ``ip``, containing a compact binary representation of
+the requestor's IP and port. That is big endian IP followed by 2 bytes of big endian
+port.
+
+The IP portion is the same byte sequence used to verify the node ID.
+
+It is important that the ``ip`` field is in the top level dictionary. Nodes that
+enforce the node-ID will respond with an error message ("y": "e", "e": { ... }),
+whereas a node that supports this extension but without enforcing it will respond
+with a normal reply ("y": "r", "r": { ... }).
 
 A DHT node which receives an ``ip`` result in a request SHOULD consider restarting
 its DHT node with a new node ID, taking this IP into account. Since a single node
-can not be trusted, there should be some mechanism of determining whether or
+can not be trusted, there should be some mechanism to determine whether or
 not the node has a correct understanding of its external IP or not. This could
 be done by voting, or only restart the DHT once at least a certain number of
 nodes, from separate searches, tells you your node ID is incorrect.

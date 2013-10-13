@@ -68,6 +68,7 @@ TORRENT_DECLARE_LOG(node);
 #endif
 
 struct traversal_algorithm;
+struct dht_observer;
 
 struct key_desc_t
 {
@@ -295,6 +296,8 @@ public:
 	rpc_manager m_rpc;
 
 private:
+	dht_observer* m_observer;
+
 	table_t m_map;
 	dht_immutable_table_t m_immutable_table;
 	dht_mutable_table_t m_mutable_table;
