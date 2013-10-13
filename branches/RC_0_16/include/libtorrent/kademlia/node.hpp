@@ -290,6 +290,8 @@ public:
 	rpc_manager m_rpc;
 
 private:
+	external_ip_fun m_ext_ip;
+
 	table_t m_map;
 	dht_immutable_table_t m_immutable_table;
 	dht_mutable_table_t m_mutable_table;
