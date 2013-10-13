@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/rpc_manager.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
+#include <libtorrent/kademlia/dht_observer.hpp>
 
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/find_data.hpp"
@@ -100,7 +101,8 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	: m_settings(settings)
 	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, sock, observer)
+	, m_rpc(m_id, m_table, sock)
+	, m_observer(observer)
 	, m_last_tracker_tick(time_now())
 	, m_post_alert(alert_disp)
 	, m_sock(sock)
@@ -220,6 +222,28 @@ void node_impl::incoming(msg const& m)
 	}
 
 	char y = *(y_ent->string_ptr());
+
+	lazy_entry const* ext_ip = m.message.dict_find_string("ip");
+	if (ext_ip && ext_ip->string_length() == 4)
+	{
+		// this node claims we use the wrong node-ID!
+		address_v4::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 4);
+		if (m_observer)
+			m_observer->set_external_address(address_v4(b)
+				, m.addr.address());
+	}
+#if TORRENT_USE_IPV6
+	else if (ext_ip && ext_ip->string_length() == 16)
+	{
+		// this node claims we use the wrong node-ID!
+		address_v6::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 16);
+		if (m_observer)
+			m_observer->set_external_address(address_v6(b)
+				, m.addr.address());
+	}
+#endif
 
 	switch (y)
 	{
@@ -657,6 +681,17 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		return;
 	}
 
+	e["ip"] = endpoint_to_bytes(m.addr);
+/*
+	// if this nodes ID doesn't match its IP, tell it what
+	// its IP is with an error
+	// don't enforce this yet
+	if (!verify_id(id, m.addr.address()))
+	{
+		incoming_error(e, "invalid node ID");
+		return;
+	}
+*/
 	char const* query = top_level[0]->string_cstr();
 
 	lazy_entry const* arg_ent = top_level[1];
@@ -667,11 +702,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	entry& reply = e["r"];
 	m_rpc.add_our_id(reply);
-
-	// if this nodes ID doesn't match its IP, tell it what
-	// its IP is
-	if (!verify_id(id, m.addr.address()))
-		reply["ip"] = address_to_bytes(m.addr.address());
 
 	// mirror back the other node's external port
 	reply["p"] = m.addr.port();

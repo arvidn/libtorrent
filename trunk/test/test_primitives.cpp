@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/ip_voter.hpp"
+#include "libtorrent/socket_io.hpp"
 #include <boost/bind.hpp>
 #include <iostream>
 #include <set>
@@ -402,6 +403,14 @@ int test_main()
 	test1.resize(100, true);
 	TEST_CHECK(test1.all_set() == true);
 
+
+	// test address_to_bytes
+	TEST_EQUAL(address_to_bytes(address_v4::from_string("10.11.12.13")), "\x0a\x0b\x0c\x0d");
+	TEST_EQUAL(address_to_bytes(address_v4::from_string("16.5.127.1")), "\x10\x05\x7f\x01");
+
+	// test endpoint_to_bytes
+	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("10.11.12.13"), 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
+	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
 	return 0;
 }
 
