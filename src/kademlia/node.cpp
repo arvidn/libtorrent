@@ -97,7 +97,8 @@ node_impl::node_impl(libtorrent::alert_manager& alerts
 	: m_settings(settings)
 	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, f, userdata, ext_ip)
+	, m_rpc(m_id, m_table, f, userdata)
+	, m_ext_ip(ext_ip)
 	, m_last_tracker_tick(time_now())
 	, m_alerts(alerts)
 	, m_send(f)
@@ -218,6 +219,22 @@ void node_impl::incoming(msg const& m)
 	}
 
 	char y = *(y_ent->string_ptr());
+
+	lazy_entry const* ext_ip = m.message.dict_find_string("ip");
+	if (ext_ip && ext_ip->string_length() >= 4)
+	{
+		address_v4::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 4);
+		m_ext_ip(address_v4(b), aux::session_impl::source_dht, m.addr.address());
+	}
+#if TORRENT_USE_IPV6
+	else if (ext_ip && ext_ip->string_length() >= 16)
+	{
+		address_v6::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 16);
+		m_ext_ip(address_v6(b), aux::session_impl::source_dht, m.addr.address());
+	}
+#endif
 
 	switch (y)
 	{
@@ -616,6 +633,17 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		return;
 	}
 
+	e["ip"] = endpoint_to_bytes(m.addr);
+/*
+	// if this nodes ID doesn't match its IP, tell it what
+	// its IP is with an error
+	// don't enforce this yet
+	if (!verify_id(id, m.addr.address()))
+	{
+		incoming_error(e, "invalid node ID");
+		return;
+	}
+*/
 	char const* query = top_level[0]->string_cstr();
 
 	lazy_entry const* arg_ent = top_level[1];
@@ -626,11 +654,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	entry& reply = e["r"];
 	m_rpc.add_our_id(reply);
-
-	// if this nodes ID doesn't match its IP, tell it what
-	// its IP is
-	if (!verify_id(id, m.addr.address()))
-		reply["ip"] = address_to_bytes(m.addr.address());
 
 	if (strcmp(query, "ping") == 0)
 	{

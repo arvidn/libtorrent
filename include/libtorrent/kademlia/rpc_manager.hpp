@@ -69,11 +69,10 @@ class TORRENT_EXTRA_EXPORT rpc_manager
 {
 public:
 	typedef bool (*send_fun)(void* userdata, entry&, udp::endpoint const&, int);
-	typedef boost::function3<void, address, int, address> external_ip_fun;
 
 	rpc_manager(node_id const& our_id
 		, routing_table& table, send_fun const& sf
-		, void* userdata, external_ip_fun ext_ip);
+		, void* userdata);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -117,7 +116,6 @@ private:
 	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
-	external_ip_fun m_ext_ip;
 };
 
 } } // namespace libtorrent::dht

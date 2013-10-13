@@ -161,8 +161,7 @@ enum { observer_size = max3<
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, send_fun const& sf
-	, void* userdata
-	, external_ip_fun ext_ip)
+	, void* userdata)
 	: m_pool_allocator(observer_size, 10)
 	, m_send(sf)
 	, m_userdata(userdata)
@@ -172,7 +171,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_random_number(generate_random_id())
 	, m_allocated_observers(0)
 	, m_destructing(false)
-	, m_ext_ip(ext_ip)
 {
 	std::srand(time(0));
 
@@ -339,24 +337,6 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		m_send(m_userdata, e, m.addr, 0);
 		return false;
 	}
-
-	lazy_entry const* ext_ip = ret_ent->dict_find_string("ip");
-	if (ext_ip && ext_ip->string_length() == 4)
-	{
-		// this node claims we use the wrong node-ID!
-		address_v4::bytes_type b;
-		memcpy(&b[0], ext_ip->string_ptr(), 4);
-		m_ext_ip(address_v4(b), aux::session_impl::source_dht, m.addr.address());
-	}
-#if TORRENT_USE_IPV6
-	else if (ext_ip && ext_ip->string_length() == 16)
-	{
-		// this node claims we use the wrong node-ID!
-		address_v6::bytes_type b;
-		memcpy(&b[0], ext_ip->string_ptr(), 16);
-		m_ext_ip(address_v6(b), aux::session_impl::source_dht, m.addr.address());
-	}
-#endif
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Reply with transaction id: " 
