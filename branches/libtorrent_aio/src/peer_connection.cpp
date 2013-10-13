@@ -4865,7 +4865,7 @@ namespace libtorrent
 
 		bool sent_a_piece = false;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t) return;
+		if (!t || t->is_aborted()) return;
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
@@ -4993,7 +4993,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
 		--m_outstanding_piece_verification;
 
-		if (!t) return;
+		if (!t || t->is_aborted()) return;
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!t->need_loaded()) return;
