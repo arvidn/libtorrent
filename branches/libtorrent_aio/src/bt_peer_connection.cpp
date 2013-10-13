@@ -2971,7 +2971,7 @@ namespace libtorrent
 			bytes_transferred = 0;
 			TORRENT_ASSERT(m_encrypted);
 
-			if (t->ready_for_connections())
+			if (is_outgoing() && t->ready_for_connections())
 			{
 				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
