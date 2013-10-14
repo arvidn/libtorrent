@@ -219,7 +219,7 @@ namespace libtorrent
 
 		// we need more DHT capacity to ping more peers
 		// candidates before trying to connect
-		set.dht_upload_rate_limit = 100000;
+		set.dht_upload_rate_limit = 20000;
 
 		// we're more interested in downloading than seeding
 		// only service a read job every 1000 write job (when
