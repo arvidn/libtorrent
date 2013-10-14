@@ -326,8 +326,6 @@ void test_transfer()
 	TEST_CHECK(std::find_if(tr.begin(), tr.end()
 		, boost::bind(&announce_entry::url, _1) == "http://test.com/announce") != tr.end());
 
-	peer_disconnects = 0;
-
 	// wait for the files in ses2 to be checked, i.e. the torrent
 	// to turn into finished state
 	for (int i = 0; i < 5; ++i)
@@ -339,8 +337,6 @@ void test_transfer()
 		torrent_status st2 = tor2.status();
 
 		TEST_EQUAL(st1.state, torrent_status::seeding);
-
-		if (peer_disconnects >= 1) break;
 
 		if (st2.is_finished) break;
 
@@ -356,13 +352,15 @@ void test_transfer()
 
 	peer_disconnects = 0;
 
+	torrent_status st1 = tor1.status();
+	torrent_status st2 = tor2.status();
 	for (int i = 0; i < 130; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
-		torrent_status st1 = tor1.status();
-		torrent_status st2 = tor2.status();
+		st1 = tor1.status();
+		st2 = tor2.status();
 
 		if (i % 10 == 0)
 			print_ses_rate(i / 10.f, &st1, &st2);
@@ -372,12 +370,16 @@ void test_transfer()
 		TEST_EQUAL(st1.state, torrent_status::seeding);
 		TEST_EQUAL(st2.state, torrent_status::downloading);
 
-		if (peer_disconnects >= 1) break;
+		if (peer_disconnects >= 2)
+		{
+			printf("too many disconnects (%d), exiting\n", peer_disconnects);
+			break;
+		}
 
 		test_sleep(100);
 	}
 
-	TEST_CHECK(tor2.status().is_seeding);
+	TEST_CHECK(st2.is_seeding);
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
