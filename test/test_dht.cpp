@@ -119,7 +119,7 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	, char const* target = 0, entry const* value = 0
 	, bool scrape = false, bool seed = false
 	, std::string const key = std::string(), std::string const sig = std::string()
-	, int seq = -1, char const* cas = 0)
+	, int seq = -1, char const* cas = 0, sha1_hash const* nid = NULL)
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -129,7 +129,8 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	e["t"] = t;
 	e["y"] = "q";
 	entry::dictionary_type& a = e["a"].dict();
-	a["id"] = generate_next().to_string();
+	if (nid == NULL) a["id"] = generate_next().to_string();
+	else a["id"] = nid->to_string();
 	if (info_hash) a["info_hash"] = std::string(info_hash, 20);
 	if (name) a["n"] = name;
 	if (!token.empty()) a["token"] = token;
@@ -320,6 +321,7 @@ int test_main()
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
+	sett.enforce_node_id = false;
 	address ext = address::from_string("236.0.0.1");
 	mock_socket s;
 	print_alert ad;
@@ -361,13 +363,11 @@ int test_main()
 
 	dht::key_desc_t err_desc[] = {
 		{"y", lazy_entry::string_t, 1, 0},
-		{"e", lazy_entry::list_t, 2, 0},
-		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
-			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
+		{"e", lazy_entry::list_t, 2, 0}
 	};
 
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(&response, err_desc, parsed, 4, error_string, sizeof(error_string));
+	ret = dht::verify_message(&response, err_desc, parsed, 2, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -497,6 +497,69 @@ int test_main()
 	{
 		fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 	}
+
+	// ====== test node ID enforcement ======
+
+	// enable node_id enforcement
+	sett.enforce_node_id = true;
+
+	// this is one of the test vectors from:
+	// http://libtorrent.org/dht_sec.html
+	source = udp::endpoint(address::from_string("124.31.75.21"), 20);
+	node_id nid = to_hash("1712f6c70c5d6a4ec8a88e4c6ab4c28b95eee401");
+	send_dht_msg(node, "find_node", source, &response, "10", 0, 0, std::string()
+		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
+
+	dht::key_desc_t nodes_desc[] = {
+		{"y", lazy_entry::string_t, 1, 0},
+		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
+	};
+
+	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	ret = dht::verify_message(&response, nodes_desc, parsed, 3, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0]->string_value() == "r");
+	}
+	else
+	{
+		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+		fprintf(stderr, "   invalid error response: %s\n", error_string);
+	}
+
+	// verify that we reject invalid node IDs
+	// this is now an invalid node-id for 'source'
+	nid[0] = 0x18;
+	send_dht_msg(node, "find_node", source, &response, "10", 0, 0, std::string()
+		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
+
+	ret = dht::verify_message(&response, err_desc, parsed, 2, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0]->string_value() == "e");
+		if (parsed[1]->list_at(0)->type() == lazy_entry::int_t
+			&& parsed[1]->list_at(1)->type() == lazy_entry::string_t)
+		{
+			TEST_CHECK(parsed[1]->list_at(1)->string_value() == "invalid node ID");
+		}
+		else
+		{
+			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+			TEST_ERROR("invalid error response");
+		}
+	}
+	else
+	{
+		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+		fprintf(stderr, "   invalid error response: %s\n", error_string);
+	}
+
+	sett.enforce_node_id = false;
+
+// ===========================
 
 	bloom_filter<256> test;
 	for (int i = 0; i < 256; ++i)

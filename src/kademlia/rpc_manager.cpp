@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/hasher.hpp>
+#include <libtorrent/session_settings.hpp> // for dht_settings
 #include <libtorrent/time.hpp>
 #include <time.h> // time()
 
@@ -267,7 +268,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 // defined in node.cpp
 void incoming_error(entry& e, char const* msg, int error_code = 203);
 
-bool rpc_manager::incoming(msg const& m, node_id* id)
+bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings const& settings)
 {
 	INVARIANT_CHECK;
 
@@ -337,12 +338,21 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		return false;
 	}
 
+	node_id nid = node_id(node_id_ent->string_ptr());
+	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
+	{
+		entry e;
+		incoming_error(e, "invalid node ID");
+		m_sock->send_packet(e, m.addr, 0);
+		return false;
+	}
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Reply with transaction id: " 
 		<< tid << " from " << m.addr;
 #endif
 	o->reply(m);
-	*id = node_id(node_id_ent->string_ptr());
+	*id = nid;
 
 	int rtt = total_milliseconds(now - o->sent());
 

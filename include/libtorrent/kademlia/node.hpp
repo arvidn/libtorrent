@@ -192,7 +192,7 @@ typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 
 public:
 	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
-		, dht_settings const& settings, node_id nid, address const& external_address
+		, libtorrent::dht_settings const& settings, node_id nid, address const& external_address
 		, dht_observer* observer);
 
 	virtual ~node_impl() {}
@@ -268,7 +268,7 @@ public:
 
 	void status(libtorrent::session_status& s);
 
-	dht_settings const& settings() const { return m_settings; }
+	libtorrent::dht_settings const& settings() const { return m_settings; }
 
 protected:
 
@@ -277,7 +277,7 @@ protected:
 	bool lookup_torrents(sha1_hash const& target, entry& reply
 		, char* tags) const;
 
-	dht_settings const& m_settings;
+	libtorrent::dht_settings const& m_settings;
 	
 private:
 	typedef libtorrent::mutex mutex_t;

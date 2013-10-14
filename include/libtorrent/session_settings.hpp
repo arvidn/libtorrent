@@ -1406,6 +1406,7 @@ namespace libtorrent
 			, extended_routing_table(true)
 			, aggressive_lookups(true)
 			, privacy_lookups(false)
+			, enforce_node_id(false)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -1475,6 +1476,11 @@ namespace libtorrent
 		// when set, perform lookups in a way that is slightly more expensive, but which
 		// minimizes the amount of information leaked about you.
 		bool privacy_lookups;
+
+		// when set, node's whose IDs that are not correctly generated based on its external
+		// IP are ignored. When a query arrives from such node, an error message is returned
+		// with a message saying "invalid node ID".
+		bool enforce_node_id;
 	};
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
