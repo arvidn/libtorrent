@@ -1019,9 +1019,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			h.set_max_uploads(-1);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
-#ifndef TORRENT_NO_DEPRECATE
 			h.use_interface(outgoing_interface.c_str());
-#endif
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			h.resolve_countries(true);
 #endif
