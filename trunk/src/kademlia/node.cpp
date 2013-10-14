@@ -55,6 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "ed25519.h"
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 namespace libtorrent { namespace dht
 {
 
@@ -962,7 +966,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			std::pair<char const*, int> buf = msg_keys[1]->data_section();
 			memcpy(seq + len, buf.first, buf.second);
 			len += buf.second;
+			TORRENT_ASSERT(len <= 1020);
 
+#ifdef TORRENT_USE_VALGRIND
+			VALGRIND_CHECK_MEM_IS_DEFINED(buf.first, buf.second);
+			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4]->string_ptr(), 64);
+			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[3]->string_ptr(), 32);
+			VALGRIND_CHECK_MEM_IS_DEFINED(seq, len);
+#endif
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
 			if (ed25519_verify((unsigned char const*)msg_keys[4]->string_ptr()
 				, (unsigned char const*)seq, len
