@@ -106,7 +106,7 @@ void test_transfer(int flags
 	TEST_CHECK(tor2.status().has_metadata);
 	std::cerr << "waiting for transfer to complete\n";
 
-	for (int i = 0; i < 20; ++i)
+	for (int i = 0; i < timeout * 10; ++i)
 	{
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -137,11 +137,18 @@ int test_main()
 {
 	using namespace libtorrent;
 
-	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
-		test_transfer(f, &create_metadata_plugin, 5);
+#ifdef TORRENT_USE_VALGRIND
+	const int timeout = 8;
+#else
+	const int timeout = 3;
+#endif
 
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
-		test_transfer(f, &create_ut_metadata_plugin, 2);
+		test_transfer(f, &create_metadata_plugin, timeout * 2);
+
+
+	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
+		test_transfer(f, &create_ut_metadata_plugin, timeout);
 
 	error_code ec;
 	remove_all("tmp1", ec);
