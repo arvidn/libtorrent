@@ -146,7 +146,14 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	h.connect_peer(tcp::endpoint(address_v4::from_string("127.0.0.1"), peer_port));
 
 	rejected_trackers.clear();
-	for (int i = 0; i < 15; ++i)
+
+#ifdef TORRENT_USE_VALGRIND
+	const int timeout = 90;
+#else
+	const int timeout = 15;
+#endif
+
+	for (int i = 0; i < timeout; ++i)
 	{
 		print_alerts(*s, "s", false, false, false, &alert_predicate);
 		test_sleep(100);
