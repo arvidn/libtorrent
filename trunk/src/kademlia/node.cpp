@@ -224,17 +224,8 @@ void node_impl::incoming(msg const& m)
 	char y = *(y_ent->string_ptr());
 
 	lazy_entry const* ext_ip = m.message.dict_find_string("ip");
-	if (ext_ip && ext_ip->string_length() == 4)
-	{
-		// this node claims we use the wrong node-ID!
-		address_v4::bytes_type b;
-		memcpy(&b[0], ext_ip->string_ptr(), 4);
-		if (m_observer)
-			m_observer->set_external_address(address_v4(b)
-				, m.addr.address());
-	}
 #if TORRENT_USE_IPV6
-	else if (ext_ip && ext_ip->string_length() == 16)
+	if (ext_ip && ext_ip->string_length() >= 16)
 	{
 		// this node claims we use the wrong node-ID!
 		address_v6::bytes_type b;
@@ -242,15 +233,23 @@ void node_impl::incoming(msg const& m)
 		if (m_observer)
 			m_observer->set_external_address(address_v6(b)
 				, m.addr.address());
-	}
+	} else
 #endif
+	if (ext_ip && ext_ip->string_length() >= 4)
+	{
+		address_v4::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 4);
+		if (m_observer)
+			m_observer->set_external_address(address_v4(b)
+				, m.addr.address());
+	}
 
 	switch (y)
 	{
 		case 'r':
 		{
 			node_id id;
-			if (m_rpc.incoming(m, &id))
+			if (m_rpc.incoming(m, &id, m_settings))
 				refresh(id, boost::bind(&nop));
 			break;
 		}
@@ -682,21 +681,21 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	}
 
 	e["ip"] = endpoint_to_bytes(m.addr);
-/*
-	// if this nodes ID doesn't match its IP, tell it what
-	// its IP is with an error
-	// don't enforce this yet
-	if (!verify_id(id, m.addr.address()))
-	{
-		incoming_error(e, "invalid node ID");
-		return;
-	}
-*/
+
 	char const* query = top_level[0]->string_cstr();
 
 	lazy_entry const* arg_ent = top_level[1];
 
 	node_id id(top_level[2]->string_ptr());
+
+	// if this nodes ID doesn't match its IP, tell it what
+	// its IP is with an error
+	// don't enforce this yet
+	if (m_settings.enforce_node_id && !verify_id(id, m.addr.address()))
+	{
+		incoming_error(e, "invalid node ID");
+		return;
+	}
 
 	m_table.heard_about(id, m.addr);
 
