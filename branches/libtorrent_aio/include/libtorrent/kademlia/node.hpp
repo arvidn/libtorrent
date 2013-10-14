@@ -69,6 +69,7 @@ TORRENT_DECLARE_LOG(node);
 #endif
 
 struct traversal_algorithm;
+struct dht_observer;
 
 struct key_desc_t
 {
@@ -192,7 +193,7 @@ typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 
 public:
 	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
-		, dht_settings const& settings, node_id nid, address const& external_address
+		, libtorrent::dht_settings const& settings, node_id nid, address const& external_address
 		, dht_observer* observer, counters& cnt);
 
 	virtual ~node_impl() {}
@@ -268,7 +269,7 @@ public:
 
 	void status(libtorrent::session_status& s);
 
-	dht_settings const& settings() const { return m_settings; }
+	libtorrent::dht_settings const& settings() const { return m_settings; }
 	counters& stats_counters() const { return m_counters; }
 
 protected:
@@ -278,7 +279,7 @@ protected:
 	bool lookup_torrents(sha1_hash const& target, entry& reply
 		, char* tags) const;
 
-	dht_settings const& m_settings;
+	libtorrent::dht_settings const& m_settings;
 
 private:
 	typedef libtorrent::mutex mutex_t;
@@ -297,6 +298,8 @@ public:
 	rpc_manager m_rpc;
 
 private:
+	dht_observer* m_observer;
+
 	table_t m_map;
 	dht_immutable_table_t m_immutable_table;
 	dht_mutable_table_t m_mutable_table;

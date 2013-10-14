@@ -7771,8 +7771,6 @@ namespace libtorrent
 			}
 		}
 
-		update_want_peers();
-		update_want_tick();
 
 		start_announcing();
 

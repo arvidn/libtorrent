@@ -163,7 +163,7 @@ int main()
 	fflush(stderr);
 
 	int ret = print_failures();
-#ifndef TORRENT_VERBOSE_LOGGING
+#if !defined TORRENT_LOGGING && !defined TORRENT_VERBOSE_LOGGING
 	if (ret == 0)
 	{
 		remove_all(test_dir, ec);

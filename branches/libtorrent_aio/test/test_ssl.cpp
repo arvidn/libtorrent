@@ -187,7 +187,12 @@ void test_ssl(int test_idx, bool use_utp)
 			, "test");
 	}
 
-	for (int i = 0; i < 40; ++i)
+#ifdef TORRENT_USE_VALGRIND
+	const int timeout = 100;
+#else
+	const int timeout = 40;
+#endif
+	for (int i = 0; i < timeout; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
@@ -211,7 +216,11 @@ void test_ssl(int test_idx, bool use_utp)
 				<< std::endl;
 		}
 
-		if (peer_disconnects >= 2) break;
+		if (peer_disconnects >= 2)
+		{
+			fprintf(stderr, "too many disconnects (%d), breaking\n", peer_disconnects);
+			break;
+		}
 
 		if (st2.is_finished) break;
 

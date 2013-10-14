@@ -48,12 +48,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/rpc_manager.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
+#include <libtorrent/kademlia/dht_observer.hpp>
 
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/find_data.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
 #include "ed25519.h"
+
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
 
 namespace libtorrent { namespace dht
 {
@@ -102,7 +107,8 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	: m_settings(settings)
 	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, sock, observer)
+	, m_rpc(m_id, m_table, sock)
+	, m_observer(observer)
 	, m_last_tracker_tick(time_now())
 	, m_post_alert(alert_disp)
 	, m_sock(sock)
@@ -224,12 +230,33 @@ void node_impl::incoming(msg const& m)
 
 	char y = *(y_ent->string_ptr());
 
+	lazy_entry const* ext_ip = m.message.dict_find_string("ip");
+#if TORRENT_USE_IPV6
+	if (ext_ip && ext_ip->string_length() >= 16)
+	{
+		// this node claims we use the wrong node-ID!
+		address_v6::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 16);
+		if (m_observer)
+			m_observer->set_external_address(address_v6(b)
+				, m.addr.address());
+	} else
+#endif
+	if (ext_ip && ext_ip->string_length() >= 4)
+	{
+		address_v4::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 4);
+		if (m_observer)
+			m_observer->set_external_address(address_v4(b)
+				, m.addr.address());
+	}
+
 	switch (y)
 	{
 		case 'r':
 		{
 			node_id id;
-			if (m_rpc.incoming(m, &id))
+			if (m_rpc.incoming(m, &id, m_settings))
 				refresh(id, boost::bind(&nop));
 			break;
 		}
@@ -667,21 +694,27 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		return;
 	}
 
+	e["ip"] = endpoint_to_bytes(m.addr);
+
 	char const* query = top_level[0]->string_cstr();
 
 	lazy_entry const* arg_ent = top_level[1];
 
 	node_id id(top_level[2]->string_ptr());
 
+	// if this nodes ID doesn't match its IP, tell it what
+	// its IP is with an error
+	// don't enforce this yet
+	if (m_settings.enforce_node_id && !verify_id(id, m.addr.address()))
+	{
+		incoming_error(e, "invalid node ID");
+		return;
+	}
+
 	m_table.heard_about(id, m.addr);
 
 	entry& reply = e["r"];
 	m_rpc.add_our_id(reply);
-
-	// if this nodes ID doesn't match its IP, tell it what
-	// its IP is
-	if (!verify_id(id, m.addr.address()))
-		reply["ip"] = address_to_bytes(m.addr.address());
 
 	// mirror back the other node's external port
 	reply["p"] = m.addr.port();
@@ -966,7 +999,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			std::pair<char const*, int> buf = msg_keys[1]->data_section();
 			memcpy(seq + len, buf.first, buf.second);
 			len += buf.second;
+			TORRENT_ASSERT(len <= 1020);
 
+#ifdef TORRENT_USE_VALGRIND
+			VALGRIND_CHECK_MEM_IS_DEFINED(buf.first, buf.second);
+			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4]->string_ptr(), 64);
+			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[3]->string_ptr(), 32);
+			VALGRIND_CHECK_MEM_IS_DEFINED(seq, len);
+#endif
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
 			if (ed25519_verify((unsigned char const*)msg_keys[4]->string_ptr()
 				, (unsigned char const*)seq, len

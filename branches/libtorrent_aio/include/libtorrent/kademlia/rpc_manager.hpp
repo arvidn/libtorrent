@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux { struct session_impl; } }
 
+namespace libtorrent { struct dht_settings; }
+
 namespace libtorrent { namespace dht
 {
 
@@ -72,23 +74,20 @@ struct null_observer : public observer
 };
 
 class routing_table;
-struct dht_observer;
 
 class TORRENT_EXTRA_EXPORT rpc_manager
 {
 public:
-	typedef boost::function3<void, address, int, address> external_ip_fun;
 
 	rpc_manager(node_id const& our_id
-		, routing_table& table, udp_socket_interface* sock
-		, dht_observer* observer);
+		, routing_table& table, udp_socket_interface* sock);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
 
 	// returns true if the node needs a refresh
 	// if so, id is assigned the node id to refresh
-	bool incoming(msg const&, node_id* id);
+	bool incoming(msg const&, node_id* id, libtorrent::dht_settings const& settings);
 	time_duration tick();
 
 	bool invoke(entry& e, udp::endpoint target
@@ -128,7 +127,6 @@ private:
 	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
-	dht_observer* m_observer;
 };
 
 } } // namespace libtorrent::dht

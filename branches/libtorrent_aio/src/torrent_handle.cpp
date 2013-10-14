@@ -617,9 +617,6 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-// ============ start deprecation ===============
-
 	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const { return -1; }
 	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const { return -1; }
 	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const {}
@@ -630,6 +627,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
 	}
+
+#ifndef TORRENT_NO_DEPRECATE
+// ============ start deprecation ===============
 
 #if !TORRENT_NO_FPU
 	void torrent_handle::file_progress(std::vector<float>& progress) const
