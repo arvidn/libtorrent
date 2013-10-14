@@ -47,7 +47,8 @@ enum flags_t
 {
 	clear_files = 1,
 	disconnect = 2,
-	full_encryption = 4
+	full_encryption = 4,
+	reverse = 8
 };
 
 void test_transfer(int flags
@@ -85,17 +86,25 @@ void test_transfer(int flags
 	ses2.set_pe_settings(pes);
 #endif
 
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, NULL, flags & clear_files, true, true, "_meta");	
+	session* downloader = &ses2;
+	session* seed = &ses1;
+
+	if (flags & reverse)
+	{
+		std::swap(downloader, seed);
+	}
+
+	boost::tie(tor1, tor2, ignore) = setup_transfer(seed, downloader, NULL, flags & clear_files, true, true, "_meta");	
 
 	for (int i = 0; i < timeout * 10; ++i)
 	{
 		// make sure this function can be called on
 		// torrents without metadata
 		if ((flags & disconnect) == 0) tor2.status();
-		print_alerts(ses1, "ses1", false, true);
-		print_alerts(ses2, "ses2", false, true);
+		print_alerts(*seed, "seed", false, true);
+		print_alerts(*downloader, "downloader", false, true);
 
-		if ((flags & disconnect) && tor2.is_valid()) ses2.remove_torrent(tor2);
+		if ((flags & disconnect) && tor2.is_valid()) downloader->remove_torrent(tor2);
 		if ((flags & disconnect) == 0
 			&& tor2.status().has_metadata) break;
 		test_sleep(100);
@@ -111,8 +120,8 @@ void test_transfer(int flags
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_alerts(ses1, "ses1", false, true);
-		print_alerts(ses2, "ses2", false, true);
+		print_alerts(*seed, "seed", false, true);
+		print_alerts(*downloader, "downloader", false, true);
 
 		print_ses_rate(i / 10.f, &st1, &st2);
 		if (st2.is_seeding) break;
@@ -125,8 +134,8 @@ void test_transfer(int flags
 done:
 
 	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
+	p1 = seed->abort();
+	p2 = downloader->abort();
 
 	error_code ec;
 	remove_all("tmp1_meta", ec);
@@ -142,6 +151,9 @@ int test_main()
 #else
 	const int timeout = 3;
 #endif
+
+	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, 2);
+	test_transfer(reverse, &create_ut_metadata_plugin, 2);
 
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
 		test_transfer(f, &create_metadata_plugin, timeout * 2);
