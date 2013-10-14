@@ -935,6 +935,8 @@ int test_main()
 
 	using namespace libtorrent::dht;
 
+	// this is a bit too expensive to do under valgrind
+#ifndef TORRENT_USE_VALGRIND
 	for (int i = 0; i < 160; i += 8)
 	{
 		for (int j = 0; j < 160; j += 8)
@@ -958,6 +960,7 @@ int test_main()
 			}
 		}
 	}
+#endif
 
 	{
 		// test kademlia routing table
