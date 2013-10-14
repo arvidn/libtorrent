@@ -190,7 +190,7 @@ void test_ssl(int test_idx, bool use_utp)
 #else
 	const int timeout = 40;
 #endif
-	for (int i = 0; i < 40; ++i)
+	for (int i = 0; i < timeout; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
