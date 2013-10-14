@@ -219,7 +219,7 @@ namespace libtorrent
 
 		// we need more DHT capacity to ping more peers
 		// candidates before trying to connect
-		set.set_int(settings_pack::dht_upload_rate_limit, 100000);
+		set.set_int(settings_pack::dht_upload_rate_limit, 20000);
 
 		// use 1 GB of cache
 		set.set_int(settings_pack::cache_size, 32768 * 2);
