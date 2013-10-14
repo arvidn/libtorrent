@@ -589,14 +589,14 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-// ============ start deprecation ===============
-
 	void torrent_handle::use_interface(const char* net_interface) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
 	}
+
+#ifndef TORRENT_NO_DEPRECATE
+// ============ start deprecation ===============
 
 #if !TORRENT_NO_FPU
 	void torrent_handle::file_progress(std::vector<float>& progress) const

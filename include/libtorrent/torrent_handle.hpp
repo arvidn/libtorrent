@@ -760,15 +760,6 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
 
-		// ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
-		// connections. By default, it uses the same interface as the session uses to listen on. The
-		// parameter must be a string containing one or more, comma separated, ip-address (either an
-		// IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
-		// which interface to use for each outgoing conneciton. This is useful for clients that are
-		// multi-homed.
-		TORRENT_DEPRECATED_PREFIX
-		void use_interface(const char* net_interface) const TORRENT_DEPRECATED;
-
 		// deprecated in 0.14
 		// use save_resume_data() instead. It is async. and
 		// will return the resume data in an alert
@@ -776,6 +767,14 @@ namespace libtorrent
 		entry write_resume_data() const TORRENT_DEPRECATED;
 		// ================ end deprecation ============
 #endif
+
+		// ``use_interface()`` sets the network interface this torrent will use when it opens outgoing
+		// connections. By default, it uses the same interface as the session uses to listen on. The
+		// parameter must be a string containing one or more, comma separated, ip-address (either an
+		// IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
+		// which interface to use for each outgoing conneciton. This is useful for clients that are
+		// multi-homed.
+		void use_interface(const char* net_interface) const;
 
 		// Fills the specified ``std::vector<int>`` with the availability for each
 		// piece in this torrent. libtorrent does not keep track of availability for
