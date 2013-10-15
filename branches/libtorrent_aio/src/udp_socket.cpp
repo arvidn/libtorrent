@@ -1365,6 +1365,16 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 {
 }
 
+bool rate_limited_udp_socket::has_quota()
+{
+	ptime now = time_now_hires();
+	time_duration delta = now - m_last_tick;
+	m_last_tick = now;
+	// add any new quota we've accrued since last time
+	m_quota += boost::uint64_t(m_rate_limit) * total_microseconds(delta) / 1000000;
+	return m_quota > 0;
+}
+
 bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
 	, int len, error_code& ec, int flags)
 {
@@ -1380,7 +1390,7 @@ bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
 
 	// if there's no quota, and it's OK to drop, just
 	// drop the packet
-	if (m_quota < len && (flags & dont_drop) == 0) return false;
+	if (m_quota < 0 && (flags & dont_drop) == 0) return false;
 
 	m_quota -= len;
 	if (m_quota < 0) m_quota = 0;

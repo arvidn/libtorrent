@@ -676,6 +676,9 @@ struct immutable_item_comparator
 // build response
 void node_impl::incoming_request(msg const& m, entry& e)
 {
+	if (!m_sock->has_quota())
+		return;
+
 	e = entry(entry::dictionary_t);
 	e["y"] = "r";
 	e["t"] = m.message.dict_find_string_value("t");

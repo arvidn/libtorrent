@@ -82,6 +82,7 @@ std::list<std::pair<udp::endpoint, entry> > g_responses;
 
 struct mock_socket : udp_socket_interface
 {
+	bool has_quota() { return true; }
 	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
 	{
 		g_responses.push_back(std::make_pair(ep, msg));

@@ -166,6 +166,7 @@ nobase_include_HEADERS = \
   \
   kademlia/dht_tracker.hpp          \
   kademlia/dht_observer.hpp         \
+  kademlia/dos_blocker.hpp          \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
   kademlia/msg.hpp                  \

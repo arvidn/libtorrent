@@ -603,6 +603,7 @@ KADEMLIA_SOURCES =
 	routing_table
 	traversal_algorithm
 	logging
+	dos_blocker
 	;
 
 ED25519_SOURCES =

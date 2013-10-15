@@ -453,52 +453,8 @@ namespace libtorrent { namespace dht
 		// account for IP and UDP overhead
 		m_received_bytes += size + (ep.address().is_v6() ? 48 : 28);
 
-		node_ban_entry* match = 0;
-		node_ban_entry* min = m_ban_nodes;
-		ptime now = time_now();
-		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
-		{
-			if (i->src == ep.address())
-			{
-				match = i;
-				break;
-			}
-			if (i->count < min->count) min = i;
-		}
-
-		if (match)
-		{
-			++match->count;
-			if (match->count >= 20)
-			{
-				if (now < match->limit)
-				{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					if (match->count == 20)
-					{
-						TORRENT_LOG(dht_tracker) << " BANNING PEER [ ip: "
-							<< ep << " time: " << total_milliseconds((now - match->limit) + seconds(5)) / 1000.f
-							<< " count: " << match->count << " ]";
-					}
-#endif
-					// we've received 20 messages in less than 5 seconds from
-					// this node. Ignore it until it's silent for 5 minutes
-					match->limit = now + minutes(5);
-					return true;
-				}
-
-				// we got 50 messages from this peer, but it was in
-				// more than 5 seconds. Reset the counter and the timer
-				match->count = 0;
-				match->limit = now + seconds(5);
-			}
-		}
-		else
-		{
-			min->count = 1;
-			min->limit = now + seconds(5);
-			min->src = ep.address();
-		}
+		if (!m_blocker.incoming(ep.address(), time_now()))
+			return true;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++m_total_message_input;
@@ -622,6 +578,11 @@ namespace libtorrent { namespace dht
 	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
 		m_dht.add_router_node(node);
+	}
+
+	bool dht_tracker::has_quota()
+	{
+		return m_sock.has_quota();
 	}
 
 	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags)
