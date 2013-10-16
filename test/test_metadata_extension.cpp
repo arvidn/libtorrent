@@ -152,8 +152,8 @@ int test_main()
 	const int timeout = 3;
 #endif
 
-	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, 2);
-	test_transfer(reverse, &create_ut_metadata_plugin, 2);
+	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
+	test_transfer(reverse, &create_ut_metadata_plugin, timeout);
 
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
 		test_transfer(f, &create_metadata_plugin, timeout * 2);
