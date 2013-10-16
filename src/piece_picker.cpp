@@ -2175,8 +2175,7 @@ namespace libtorrent
 	bool piece_picker::is_requested(piece_block block) const
 	{
 #ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block.block_index);
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block.piece_index);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
 #endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
@@ -2193,8 +2192,7 @@ namespace libtorrent
 	bool piece_picker::is_downloaded(piece_block block) const
 	{
 #ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block.block_index);
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block.piece_index);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
 #endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
@@ -2212,8 +2210,7 @@ namespace libtorrent
 	bool piece_picker::is_finished(piece_block block) const
 	{
 #ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block.block_index);
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block.piece_index);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
 #endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
