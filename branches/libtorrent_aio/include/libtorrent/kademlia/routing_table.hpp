@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/size_type.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/ptime.hpp>
+#include <boost/unordered_set.hpp>
 
 namespace libtorrent
 {
@@ -214,7 +215,7 @@ private:
 	// table. It's used to only allow a single entry
 	// per IP in the whole table. Currently only for
 	// IPv4
-	std::set<address_v4::bytes_type> m_ips;
+	boost::unordered_set<address_v4::bytes_type> m_ips;
 };
 
 } } // namespace libtorrent::dht
