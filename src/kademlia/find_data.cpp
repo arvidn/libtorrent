@@ -300,7 +300,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 
 	// now, obfuscate the bits past shared_prefix + 5
 	node_id obfuscated_target = generate_random_id();
-	obfuscated_target >>= shared_prefix + 6;
+	obfuscated_target >>= shared_prefix + 3;
 	obfuscated_target^= m_target;
 	a["target"] = obfuscated_target.to_string();
 
