@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace libtorrent::dht;
 
 	dos_blocker b;
 

@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent
+namespace libtorrent { namespace dht
 {
 
 // this is a class that maintains a list of abusive DHT nodes,
@@ -68,6 +68,7 @@ namespace libtorrent
 
 	};
 
+}
 }
 
 #endif

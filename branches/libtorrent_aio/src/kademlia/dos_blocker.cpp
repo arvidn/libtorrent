@@ -30,10 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "kademlia/dos_blocker.hpp"
+#include "libtorrent/kademlia/dos_blocker.hpp"
 
-namespace libtorrent
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#include "libtorrent/kademlia/logging.hpp"
+#endif
+
+namespace libtorrent { namespace dht
 {
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_DECLARE_LOG(dht_tracker);
+#endif
+
 	dos_blocker::dos_blocker() {}
 
 	bool dos_blocker::incoming(address addr, ptime now)
@@ -61,7 +70,7 @@ namespace libtorrent
 					if (match->count == 20)
 					{
 						TORRENT_LOG(dht_tracker) << " BANNING PEER [ ip: "
-							<< ep << " time: " << total_milliseconds((now - match->limit) + seconds(5)) / 1000.f
+							<< addr << " time: " << total_milliseconds((now - match->limit) + seconds(5)) / 1000.f
 							<< " count: " << match->count << " ]";
 					}
 #endif
@@ -86,5 +95,6 @@ namespace libtorrent
 		}
 		return true;
 	}
+}
 }
 
