@@ -115,7 +115,7 @@ void test_pex()
 	torrent_status st1;
 	torrent_status st2;
 	torrent_status st3;
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 80; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -125,7 +125,7 @@ void test_pex()
 		st2 = tor2.status();
 		st3 = tor3.status();
 
-		print_ses_rate(i, &st1, &st2, &st3);
+		print_ses_rate(i / 10.f, &st1, &st2, &st3);
 
 		// this is the success condition
 		if (st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
