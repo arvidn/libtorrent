@@ -48,6 +48,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 using namespace libtorrent;
 using namespace libtorrent::dht;
 
@@ -141,6 +145,10 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 // this yields a lot of output. too much
 //	std::cerr << "sending: " <<  e << "\n";
+#endif
+
+#ifdef TORRENT_USE_VALGRIND
+	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
 #endif
 
 	lazy_entry decoded;
@@ -670,6 +678,9 @@ int test_main()
 	char* ptr = buffer + pos;
 	pos += bencode(ptr, items[0].ent);
 	ed25519_sign(signature, (unsigned char*)buffer, pos, private_key, public_key);
+#ifdef TORRENT_USE_VALGRIND
+	VALGRIND_CHECK_MEM_IS_DEFINED(signature, 64);
+#endif
 
 	send_dht_msg(node, "put", source, &response, "10", 0
 		, 0, token, 0, 0, &items[0].ent, false, false
@@ -741,6 +752,9 @@ int test_main()
 	// put item 1
 	pos += bencode(ptr, items[1].ent);
 	ed25519_sign(signature, (unsigned char*)buffer, pos, private_key, public_key);
+#ifdef TORRENT_USE_VALGRIND
+	VALGRIND_CHECK_MEM_IS_DEFINED(signature, 64);
+#endif
 
 	send_dht_msg(node, "put", source, &response, "10", 0
 		, 0, token, 0, 0, &items[1].ent, false, false

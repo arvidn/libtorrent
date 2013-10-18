@@ -2807,6 +2807,9 @@ namespace libtorrent
 
 	bool piece_picker::is_requested(piece_block block) const
 	{
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
+#endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -2822,6 +2825,9 @@ namespace libtorrent
 
 	bool piece_picker::is_downloaded(piece_block block) const
 	{
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
+#endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -2838,15 +2844,18 @@ namespace libtorrent
 
 	bool piece_picker::is_finished(piece_block block) const
 	{
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
+#endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
-		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index) return true;
-		int state = m_piece_map[block.piece_index].state;
-		if (state == piece_pos::piece_open) return false;
-		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state - 1, block.piece_index);
-		TORRENT_ASSERT(i != m_downloads[state - 1].end());
+		piece_pos const& p = m_piece_map[block.piece_index];
+		if (p.index == piece_pos::we_have_index) return true;
+		if (p.state == piece_pos::piece_open) return false;
+		std::vector<downloading_piece>::const_iterator i = find_dl_piece(p.state - 1, block.piece_index);
+		TORRENT_ASSERT(i != m_downloads[p.state - 1].end());
 		TORRENT_ASSERT(i->info[block.block_index].piece_index == block.piece_index);
 		return i->info[block.block_index].state == block_info::state_finished;
 	}
