@@ -90,7 +90,7 @@ namespace libtorrent { namespace
 		// delay the rebuilding
 		ut_pex_plugin(torrent& t)
 			: m_torrent(t)
-			, m_1_minute(random() % (std::max)(60 - int(m_torrent.session().get_torrents().size()), 1))
+			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
 	
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection* pc);
@@ -112,9 +112,12 @@ namespace libtorrent { namespace
 		// max_peer_entries limits the packet size
 		virtual void tick()
 		{
-			if (++m_1_minute < 60) return;
+			ptime now = time_now();
+			if (now - m_last_msg < seconds(60)) return;
+			m_last_msg = now;
 
-			m_1_minute = 0;
+			int num_peers = m_torrent.num_peers();
+			if (num_peers == 0) return;
 
 			entry pex;
 			std::string& pla = pex["added"].string();
@@ -226,7 +229,7 @@ namespace libtorrent { namespace
 		torrent& m_torrent;
 
 		std::set<tcp::endpoint> m_old_peers;
-		int m_1_minute;
+		ptime m_last_msg;
 		std::vector<char> m_ut_pex_msg;
 		int m_peers_in_message;
 	};
@@ -238,7 +241,7 @@ namespace libtorrent { namespace
 			: m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
-			, m_1_minute(60)
+			, m_last_msg(min_time())
 			, m_message_index(0)
 			, m_first_time(true)
 		{
@@ -430,11 +433,41 @@ namespace libtorrent { namespace
 			// no handshake yet
 			if (!m_message_index) return;
 
-			// if there aren't any peers other than this one,
-			// there no need to start the pex logic yet
-			if (m_first_time && m_torrent.num_peers() <= 1) return;
+			ptime now = time_now();
+			if (now - m_last_msg < seconds(60))
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				m_pc.peer_log("*** PEX [ waiting: %d seconds to next msg ]"
+					, total_seconds(seconds(60) - (now - m_last_msg)));
+#endif
+				return;
+			}
+			static ptime global_last = min_time();
 
-			if (++m_1_minute <= 60) return;
+			int num_peers = m_torrent.num_peers();
+			if (num_peers == 0) return;
+
+			// don't send pex messages more often than 1 every 100 ms, and
+			// allow pex messages to be sent 5 seconds apart if there isn't
+			// contention
+			int delay = (std::min)((std::max)(60000 / num_peers, 100), 3000);
+
+			if (now - global_last < milliseconds(delay))
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				m_pc.peer_log("*** PEX [ global-wait: %d ]", total_seconds(milliseconds(delay) - (now - global_last)));
+#endif
+				return;
+			}
+
+			// this will allow us to catch up, even if our timer
+			// has lower resolution than delay
+			if (global_last == min_time())
+				global_last = now;
+			else
+				global_last += milliseconds(delay);
+
+			m_last_msg = now;
 
 			if (m_first_time)
 			{
@@ -445,7 +478,6 @@ namespace libtorrent { namespace
 			{
 				send_ut_peer_diff();
 			}
-			m_1_minute = 0;
 		}
 
 		void send_ut_peer_diff()
@@ -600,12 +632,12 @@ namespace libtorrent { namespace
 		// we look at 6 pex messages back.
 		ptime m_last_pex[6];
 
-		int m_1_minute;
+		ptime m_last_msg;
 		int m_message_index;
 
 		// this is initialized to true, and set to
 		// false after the first pex message has been sent.
-		// it is used to know if a diff message or a full
+		// it is used to know if a diff message or a) ful
 		// message should be sent.
 		bool m_first_time;
 	};
