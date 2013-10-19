@@ -335,7 +335,7 @@ namespace libtorrent
 		// peer pointer
 		void clear_peer(void* peer);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG
 		// this is an invariant check
 		void check_peers();
 #endif

@@ -9890,7 +9890,7 @@ namespace libtorrent
 		{
 			m_picker->clear_peer(*i);
 		}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG
 		m_picker->check_peers();
 #endif
 	}
