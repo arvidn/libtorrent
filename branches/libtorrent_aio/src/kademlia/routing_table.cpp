@@ -49,9 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::uint8_t;
 
 #if BOOST_VERSION <= 104700
+namespace boost {
 size_t hash_value(libtorrent::address_v4::bytes_type ip)
 {
 	return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
+}
 }
 #endif
 
