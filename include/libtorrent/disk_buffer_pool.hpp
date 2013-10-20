@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || TORRENT_DISK_STATS
-#include <map>
+#include <boost/unordered_map.hpp>
 #endif
 
 namespace libtorrent
@@ -129,8 +129,8 @@ namespace libtorrent
 	public:
 		void rename_buffer(char* buf, char const* category);
 	protected:
-		std::map<std::string, int> m_categories;
-		std::map<char*, std::string> m_buf_to_category;
+		boost::unordered_map<std::string, int> m_categories;
+		boost::unordered_map<char*, std::string> m_buf_to_category;
 		std::ofstream m_log;
 	private:
 #endif
