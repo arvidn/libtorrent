@@ -646,24 +646,35 @@ bool routing_table::add_node(node_entry e)
 			// nodes sharing a prefix. Find all nodes that do not
 			// have a unique prefix
 
-			std::sort(b.begin(), b.end(), boost::bind(&node_entry::id, _1) < boost::bind(&node_entry::id, _2));
+			// find node entries with duplicate prefixes in O(1)
+			std::vector<bucket_t::iterator> prefix(1 << (8 - mask_shift), b.end());
+			TORRENT_ASSERT(prefix.size() >= bucket_size_limit);
 
-			int last_prefix = -1;
+			// the begin iterator from this object is used as a placeholder
+			// for an occupied slot whose node has already been added to the
+			// duplicate nodes list.
+			bucket_t placeholder;
+
 			nodes.reserve(b.size());
 			for (j = b.begin(); j != b.end(); ++j)
 			{
 				node_id id = j->id;
 				id <<= bucket_index + 1;
-				int this_prefix = id[0] & mask;
-				if (this_prefix != last_prefix)
+				int this_prefix = (id[0] & mask) >> mask_shift;
+				TORRENT_ASSERT(this_prefix >= 0);
+				TORRENT_ASSERT(this_prefix < prefix.size());
+				if (prefix[this_prefix] != b.end())
 				{
-					last_prefix = this_prefix;
-					continue;
-				}
+					// there's already a node with this prefix. Remember both
+					// duplicates.
+					nodes.push_back(j);
 
-				if (nodes.empty() || nodes.back() != j-1)
-					nodes.push_back(j-1);
-				nodes.push_back(j);
+					if (prefix[this_prefix] != placeholder.begin())
+					{
+						nodes.push_back(prefix[this_prefix]);
+						prefix[this_prefix] = placeholder.begin();
+					}
+				}
 			}
 
 			if (!nodes.empty())
@@ -959,6 +970,7 @@ void routing_table::find_node(node_id const& target
 
 	table_t::iterator j = i;
 
+	int unsorted_start_idx = 0;
 	for (; j != m_buckets.end() && int(l.size()) < count; ++j)
 	{
 		bucket_t& b = j->live_nodes;
@@ -974,32 +986,30 @@ void routing_table::find_node(node_id const& target
 				, !boost::bind(&node_entry::confirmed, _1));
 		}
 
-		if (int(l.size()) >= count)
+		if (int(l.size()) == count) return;
+
+		if (int(l.size()) > count)
 		{
 			// sort the nodes by how close they are to the target
-			std::sort(l.begin(), l.end(), boost::bind(&compare_ref
+			std::sort(l.begin() + unsorted_start_idx, l.end(), boost::bind(&compare_ref
 				, boost::bind(&node_entry::id, _1)
 				, boost::bind(&node_entry::id, _2), target));
 
 			l.resize(count);
 			return;
 		}
+		unsorted_start_idx = int(l.size());
 	}
 
 	// if we still don't have enough nodes, copy nodes
 	// further away from us
 
 	if (i == m_buckets.begin())
-	{
-		// sort the nodes by how close they are to the target
-		std::sort(l.begin(), l.end(), boost::bind(&compare_ref
-			, boost::bind(&node_entry::id, _1)
-			, boost::bind(&node_entry::id, _2), target));
 		return;
-	}
 
 	j = i;
 
+	unsorted_start_idx = int(l.size());
 	do
 	{
 		--j;
@@ -1015,26 +1025,23 @@ void routing_table::find_node(node_id const& target
 				, !boost::bind(&node_entry::confirmed, _1));
 		}
 
-		if (int(l.size()) >= count)
+		if (int(l.size()) == count) return;
+
+		if (int(l.size()) > count)
 		{
 			// sort the nodes by how close they are to the target
-			std::sort(l.begin(), l.end(), boost::bind(&compare_ref
+			std::sort(l.begin() + unsorted_start_idx, l.end(), boost::bind(&compare_ref
 				, boost::bind(&node_entry::id, _1)
 				, boost::bind(&node_entry::id, _2), target));
 
 			l.resize(count);
 			return;
 		}
+		unsorted_start_idx = int(l.size());
 	}
 	while (j != m_buckets.begin() && int(l.size()) < count);
 
-	// sort the nodes by how close they are to the target
-	std::sort(l.begin(), l.end(), boost::bind(&compare_ref
-		, boost::bind(&node_entry::id, _1)
-		, boost::bind(&node_entry::id, _2), target));
-
-	if (int(l.size()) >= count)
-		l.resize(count);
+	TORRENT_ASSERT(int(l.size()) <= count);
 }
 
 } } // namespace libtorrent::dht
