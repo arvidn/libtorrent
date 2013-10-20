@@ -148,13 +148,9 @@ void udp_socket::send_hostname(char const* hostname, int port
 		wrap(hostname, port, p, len, ec);
 		return;	
 	}
-	else if (m_force_proxy)
-	{
-		return;
-	}
 
 	// this function is only supported when we're using a proxy
-	if (!m_queue_packets)
+	if (!m_queue_packets && !m_force_proxy)
 	{
 		address target = address::from_string(hostname, ec);
 		if (!ec) send(udp::endpoint(target, port), p, len, ec, 0);
@@ -786,10 +782,20 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	if (e)
 	{
-		call_handler(e, udp::endpoint(), 0, 0);
+		if (m_force_proxy)
+		{
+			call_handler(e, udp::endpoint(), 0, 0);
+		}
+		else
+		{
+			// if we can't connect to the proxy, and
+			// we're not in privacy mode, try to just
+			// not use a proxy
+			m_proxy_settings = proxy_settings();
+			m_tunnel_packets = false;
+		}
 
 		drain_queue();
-
 		return;
 	}
 
@@ -1352,7 +1358,7 @@ void udp_socket::drain_queue()
 			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0], p.buf.size(), ec);
 			free(p.hostname);
 		}
-		else if (!m_force_proxy) // block incoming packets that aren't coming via the proxy
+		else
 		{
 			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);
 		}
