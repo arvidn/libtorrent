@@ -142,7 +142,7 @@ namespace libtorrent
 	void piece_picker::piece_info(int index, piece_picker::downloading_piece& st) const
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-//		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
 		
 		TORRENT_ASSERT(index >= 0);
@@ -153,7 +153,7 @@ namespace libtorrent
 			std::vector<downloading_piece>::const_iterator piece = find_dl_piece(index);
 			TORRENT_ASSERT(piece != m_downloads.end());
 			st = *piece;
-//			st.info = 0;
+			st.info = 0;
 			return;
 		}
 		st.info = 0;
