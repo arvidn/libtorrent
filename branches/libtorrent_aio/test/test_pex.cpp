@@ -62,8 +62,8 @@ void test_pex()
 	// three peers before finishing.
 	settings_pack pack;
 	pack.set_int(settings_pack::alert_mask, mask);
-	pack.set_int(settings_pack::download_rate_limit, 0);
-	pack.set_int(settings_pack::upload_rate_limit, 0);
+	pack.set_int(settings_pack::download_rate_limit, 2000);
+	pack.set_int(settings_pack::upload_rate_limit, 2000);
 	pack.set_int(settings_pack::max_retry_port_bind, 800);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48200");
 
@@ -75,8 +75,6 @@ void test_pex()
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
-	pack.set_int(settings_pack::download_rate_limit, 2000);
-	pack.set_int(settings_pack::upload_rate_limit, 2000);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:50200");
 	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
 
