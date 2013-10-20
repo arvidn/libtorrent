@@ -75,7 +75,7 @@ enum flags_t
 	expect_peer_connection = 64,
 };
 
-void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
+session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 {
 #ifdef TORRENT_DISABLE_DHT
 	// if DHT is disabled, we won't get any requests to it
@@ -112,6 +112,8 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	sett.enable_outgoing_utp = false;
 	s->set_settings(sett);
 
+	// in non-anonymous mode we circumvent/ignore the proxy if it fails
+	// wheras in anonymous mode, we just fail
 	proxy_settings ps;
 	ps.hostname = "non-existing.com";
 	ps.port = 4444;
@@ -148,9 +150,9 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	rejected_trackers.clear();
 
 #ifdef TORRENT_USE_VALGRIND
-	const int timeout = 90;
+	const int timeout = 100;
 #else
-	const int timeout = 15;
+	const int timeout = 20;
 #endif
 
 	for (int i = 0; i < timeout; ++i)
@@ -192,40 +194,42 @@ void test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), http_tracker_url) != rejected_trackers.end());
 
 	fprintf(stderr, "%s: ~session\n", time_now_string());
+	session_proxy pr = s->abort();
 	delete s;
-	fprintf(stderr, "%s: ~session done\n", time_now_string());
 
 	stop_peer();
 	stop_dht();
 	stop_tracker();
 	stop_web_server();
+	return pr;
 }
 
 int test_main()
 {
+	session_proxy pr[20];
 	// not using anonymous mode
 	// UDP fails open if we can't connect to the proxy
 	// or if the proxy doesn't support UDP
-	test_proxy(proxy_settings::none, expect_udp_connection | expect_http_connection | expect_dht_msg | expect_peer_connection);
-	test_proxy(proxy_settings::socks4, expect_udp_connection | expect_dht_msg);
-	test_proxy(proxy_settings::socks5, expect_udp_connection | expect_dht_msg);
-	test_proxy(proxy_settings::socks5_pw, expect_udp_connection | expect_dht_msg);
-	test_proxy(proxy_settings::http, expect_udp_connection | expect_dht_msg);
-	test_proxy(proxy_settings::http_pw, expect_udp_connection | expect_dht_msg);
-	test_proxy(proxy_settings::i2p_proxy, expect_udp_connection | expect_dht_msg);
+	pr[0] = test_proxy(proxy_settings::none, expect_udp_connection | expect_http_connection | expect_dht_msg | expect_peer_connection);
+	pr[1] = test_proxy(proxy_settings::socks4, expect_udp_connection | expect_dht_msg);
+	pr[2] = test_proxy(proxy_settings::socks5, expect_udp_connection | expect_dht_msg);
+	pr[3] = test_proxy(proxy_settings::socks5_pw, expect_udp_connection | expect_dht_msg);
+	pr[4] = test_proxy(proxy_settings::http, expect_udp_connection | expect_dht_msg);
+	pr[5] = test_proxy(proxy_settings::http_pw, expect_udp_connection | expect_dht_msg);
+	pr[6] = test_proxy(proxy_settings::i2p_proxy, expect_udp_connection | expect_dht_msg);
 
 	// using anonymous mode
 
 	// anonymous mode doesn't require a proxy when one isn't configured. It could be
 	// used with a VPN for instance. This will all changed in 1.0, where anonymous
 	// mode is separated from force_proxy
-	test_proxy(proxy_settings::none, anonymous_mode | expect_peer_connection);
-	test_proxy(proxy_settings::socks4, anonymous_mode | expect_udp_reject);
-	test_proxy(proxy_settings::socks5, anonymous_mode);
-	test_proxy(proxy_settings::socks5_pw, anonymous_mode);
-	test_proxy(proxy_settings::http, anonymous_mode | expect_udp_reject);
-	test_proxy(proxy_settings::http_pw, anonymous_mode | expect_udp_reject);
-	test_proxy(proxy_settings::i2p_proxy, anonymous_mode);
+	pr[7] = test_proxy(proxy_settings::none, anonymous_mode | expect_peer_connection);
+	pr[8] = test_proxy(proxy_settings::socks4, anonymous_mode | expect_udp_reject);
+	pr[9] = test_proxy(proxy_settings::socks5, anonymous_mode);
+	pr[10] = test_proxy(proxy_settings::socks5_pw, anonymous_mode);
+	pr[11] = test_proxy(proxy_settings::http, anonymous_mode | expect_udp_reject);
+	pr[12] = test_proxy(proxy_settings::http_pw, anonymous_mode | expect_udp_reject);
+	pr[13] = test_proxy(proxy_settings::i2p_proxy, anonymous_mode);
 	return 0;
 }
 

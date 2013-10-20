@@ -689,7 +689,10 @@ namespace libtorrent
 		// These functions sets and queries the proxy settings to be used for the session.
 		//
 		// For more information on what settings are available for proxies, see
-		// proxy_settings.
+		// proxy_settings. If the session is not in anonymous mode, proxies that
+		// aren't working or fail, will automatically be disabled and packets will
+		// flow without using any proxy. If you want to enforce using a proxy, even when
+		// the proxy doesn't work, enable anonymous_mode in session_settings.
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
 
