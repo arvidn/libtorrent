@@ -66,17 +66,25 @@ void test_pex()
 	pack.set_int(settings_pack::upload_rate_limit, 2000);
 	pack.set_int(settings_pack::max_retry_port_bind, 800);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48200");
+#error set_peer_class_filter to enable rate limiting on local network
 
 	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	// treat all IPs the same, i.e. enable rate limiting for local peers
+	ip_filter f;
+	f.add_rule(address_v4::from_string("0.0.0.0"), address_v4::from_string("255.255.255.255"), 1 << global_peer_class_id);
+	ses1.set_peer_class_filter(f);
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49200");
 
 	session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
+	ses3.set_peer_class_filter(f);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:50200");
 	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	ses2.set_peer_class_filter(f);
 
 	ses1.add_extension(create_ut_pex_plugin);
 	ses2.add_extension(create_ut_pex_plugin);

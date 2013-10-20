@@ -71,6 +71,7 @@ namespace libtorrent
 		, m_state(read_status)
 		, m_recv_buffer(0, 0)
 		, m_body_start_pos(0)
+		, m_connection_close(false)
 		, m_chunked_encoding(false)
 		, m_finished(false)
 		, m_cur_chunk_end(-1)

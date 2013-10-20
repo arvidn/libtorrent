@@ -52,8 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef TORRENT_BUFFER_STATS
-#include <map>
-#include <fstream>
+#include <boost/unordered_map.hpp>
 #endif
 
 namespace libtorrent
@@ -204,9 +203,9 @@ namespace libtorrent
 #ifdef TORRENT_BUFFER_STATS
 	public:
 		void rename_buffer(char* buf, char const* category);
-		std::map<std::string, int> m_categories;
+		boost::unordered_map<std::string, int> m_categories;
 	protected:
-		std::map<char*, std::string> m_buf_to_category;
+		boost::unordered_map<char*, std::string> m_buf_to_category;
 		FILE* m_log;
 	private:
 #endif

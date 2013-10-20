@@ -982,7 +982,8 @@ int test_main()
 		dht_settings s;
 		//	s.restrict_routing_ips = false;
 		node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
-		dht::routing_table table(id, 10, s);
+		const int bucket_size = 10;
+		dht::routing_table table(id, bucket_size, s);
 		std::vector<node_entry> nodes;
 		TEST_EQUAL(table.size().get<0>(), 0);
 
@@ -1101,9 +1102,9 @@ int test_main()
 		TEST_EQUAL(temp.size(), nodes.size());
 
 		std::generate(tmp.begin(), tmp.end(), &std::rand);
-		table.find_node(tmp, temp, 0, 7);
+		table.find_node(tmp, temp, 0, bucket_size);
 		std::cout << "returned: " << temp.size() << std::endl;
-		TEST_EQUAL(temp.size(), 7);
+		TEST_EQUAL(temp.size(), bucket_size);
 
 		std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
 				, boost::bind(&node_entry::id, _1)
@@ -1117,16 +1118,16 @@ int test_main()
 		{
 			int hit = std::find_if(nodes.begin(), nodes.end()
 				, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
-			//		std::cerr << hit << std::endl;
+			std::cerr << hit << std::endl;
 			if (hit < int(temp.size())) ++hits;
 		}
 		std::cout << "hits: " << hits << std::endl;
-		TEST_CHECK(hits == int(temp.size()));
+		TEST_EQUAL(hits, int(temp.size()));
 
 		std::generate(tmp.begin(), tmp.end(), &std::rand);
-		table.find_node(tmp, temp, 0, 15);
+		table.find_node(tmp, temp, 0, bucket_size * 2);
 		std::cout << "returned: " << temp.size() << std::endl;
-		TEST_EQUAL(int(temp.size()), (std::min)(15, int(nodes.size())));
+		TEST_EQUAL(int(temp.size()), (std::min)(bucket_size * 2, int(nodes.size())));
 
 		std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
 				, boost::bind(&node_entry::id, _1)
@@ -1140,11 +1141,11 @@ int test_main()
 		{
 			int hit = std::find_if(nodes.begin(), nodes.end()
 				, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
-			//		std::cerr << hit << std::endl;
+			std::cerr << hit << std::endl;
 			if (hit < int(temp.size())) ++hits;
 		}
 		std::cout << "hits: " << hits << std::endl;
-		TEST_CHECK(hits == int(temp.size()));
+		TEST_EQUAL(hits, int(temp.size()));
 
 		using namespace libtorrent::dht;
 
