@@ -115,6 +115,56 @@ int test_main()
 		== "http://192.168.1.1:5431/dyndev/uuid:000f-66d6-7296000099dc");
 	TEST_CHECK(parser.header("ext") == "");
 	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
+	TEST_EQUAL(parser.connection_close(), false);
+
+	// test connection close
+	parser.reset();
+
+	TEST_CHECK(!parser.finished());
+
+	char const* http1_response =
+		"HTTP/1.0 200 OK\r\n"
+		"Cache-Control: max-age=180\r\n"
+		"DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
+
+	received = feed_bytes(parser, http1_response);
+
+	TEST_CHECK(received == make_tuple(0, int(strlen(http1_response)), false));
+	TEST_CHECK(parser.get_body().left() == 0);
+	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
+	TEST_EQUAL(parser.connection_close(), true);
+
+	parser.reset();
+
+	TEST_CHECK(!parser.finished());
+
+	char const* close_response =
+		"HTTP/1.1 200 OK\r\n"
+		"Connection: close\r\n"
+		"DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
+
+	received = feed_bytes(parser, close_response);
+
+	TEST_CHECK(received == make_tuple(0, int(strlen(close_response)), false));
+	TEST_CHECK(parser.get_body().left() == 0);
+	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
+	TEST_EQUAL(parser.connection_close(), true);
+
+	parser.reset();
+
+	TEST_CHECK(!parser.finished());
+
+	char const* keep_alive_response =
+		"HTTP/1.1 200 OK\r\n"
+		"Connection: keep-alive\r\n"
+		"DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
+
+	received = feed_bytes(parser, keep_alive_response);
+
+	TEST_CHECK(received == make_tuple(0, int(strlen(keep_alive_response)), false));
+	TEST_CHECK(parser.get_body().left() == 0);
+	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
+	TEST_EQUAL(parser.connection_close(), false);
 
 	parser.reset();
 	TEST_CHECK(!parser.finished());
