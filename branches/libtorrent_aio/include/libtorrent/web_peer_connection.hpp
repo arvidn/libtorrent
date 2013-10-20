@@ -115,6 +115,8 @@ namespace libtorrent
 		std::deque<int> m_file_requests;
 
 		std::string m_url;
+	
+		web_seed_entry& m_web;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
@@ -145,6 +147,10 @@ namespace libtorrent
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for
 		int m_partial_chunk_header;
+
+		// the number of responses we've received so far on
+		// this connection
+		int m_num_responses;
 	};
 }
 

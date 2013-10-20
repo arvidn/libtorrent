@@ -72,11 +72,13 @@ namespace libtorrent
 		, web_seed_entry& web)
 		: web_connection_base(ses, sett, allocator, disk_thread, t, s, web)
 		, m_url(web.url)
+		, m_web(web)
 		, m_received_body(0)
 		, m_range_pos(0)
 		, m_block_pos(0)
 		, m_chunk_pos(0)
 		, m_partial_chunk_header(0)
+		, m_num_responses(0)
 	{
 		INVARIANT_CHECK;
 
@@ -89,7 +91,13 @@ namespace libtorrent
 		// we always prefer downloading 1 MiB chunks
 		// from web seeds, or whole pieces if pieces
 		// are larger than a MiB
-		prefer_whole_pieces((std::max)((1024 * 1024) / tor->torrent_file().piece_length(), 1));
+		int preferred_size = 1024 * 1024;
+
+		// if the web server is known not to support keep-alive.
+		// request even larger blocks at a time
+		if (!web.supports_keepalive) preferred_size *= 4;
+
+		prefer_whole_pieces((std::max)(preferred_size / tor->torrent_file().piece_length(), 1));
 		
 		// we want large blocks as well, so
 		// we can request more bytes at once
@@ -473,6 +481,15 @@ namespace libtorrent
 			// we just completed reading the header
 			if (!header_finished)
 			{
+				++m_num_responses;
+
+				if (m_parser.connection_close())
+				{
+					incoming_choke();
+					if (m_num_responses == 1)
+						m_web.supports_keepalive = false;
+				}
+
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** STATUS: %d %s", m_parser.status_code(), m_parser.message().c_str());
 				std::multimap<std::string, std::string> const& headers = m_parser.headers();

@@ -133,6 +133,10 @@ restart_response:
 			{
 				m_status_code = atoi(read_until(line, ' ', line_end).c_str());
 				m_server_message = read_until(line, '\r', line_end);
+
+				// HTTP 1.0 always closes the connection after
+				// each request
+				if (m_protocol == "HTTP/1.0") m_connection_close = true;
 			}
 			else
 			{
@@ -202,6 +206,10 @@ restart_response:
 				if (name == "content-length")
 				{
 					m_content_length = strtoll(value.c_str(), 0, 10);
+				}
+				else if (name == "connection")
+				{
+					m_connection_close = string_begins_no_case("close", value.c_str());
 				}
 				else if (name == "content-range")
 				{
