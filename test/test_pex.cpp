@@ -77,15 +77,13 @@ void test_pex()
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	session_settings set = ses1.settings();
-	set.download_rate_limit = 0;
-	set.upload_rate_limit = 0;
+	set.download_rate_limit = 2000;
+	set.upload_rate_limit = 2000;
 	ses1.set_settings(set);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
 	set = ses2.settings();
-	set.download_rate_limit = 2000;
-	set.upload_rate_limit = 2000;
 	set.ignore_limits_on_local_network = false;
 	set.rate_limit_utp = true;
 	ses2.set_settings(set);
