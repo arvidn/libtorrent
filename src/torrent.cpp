@@ -1654,7 +1654,7 @@ namespace libtorrent
 		}
 
 		// in case file priorities were passed in via the add_torrent_params
-		// ans also in the case of share mode, we need to update the priorities
+		// and also in the case of share mode, we need to update the priorities
 		update_piece_priorities();
 
 		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
