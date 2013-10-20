@@ -1,3 +1,4 @@
+	* improved support for web seeds that don't support keep-alive
 	* improve DHT routing table to return better nodes (lower RTT and closer to target)
 	* don't use pointers to resume_data and file_priorities in add_torrent_params
 	* allow moving files to absolute paths, out of the download directory

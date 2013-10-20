@@ -263,6 +263,11 @@ namespace libtorrent
 		// if this is > now, we can't reconnect yet
 		ptime retry;
 
+		// this is initialized to true, but if we discover the
+		// server not to support it, it's set to false, and we
+		// make larger requests.
+		bool supports_keepalive;
+
 		// this indicates whether or not we're resolving the
 		// hostname of this URL
 		bool resolving;

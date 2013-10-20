@@ -60,14 +60,11 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, std::string const& url
-		, policy::peer* peerinfo
-		, std::string const& auth
-		, web_seed_entry::headers_t const& extra_headers)
-		: peer_connection(ses, t, s, remote, peerinfo)
+		, web_seed_entry& web)
+		: peer_connection(ses, t, s, remote, &web.peer_info)
 		, m_parser(http_parser::dont_parse_chunks)
-		, m_external_auth(auth)
-		, m_extra_headers(extra_headers)
+		, m_external_auth(web.auth)
+		, m_extra_headers(web.extra_headers)
 		, m_first_request(true)
 		, m_ssl(false)
 		, m_body_start(0)
@@ -84,7 +81,7 @@ namespace libtorrent
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
-			= parse_url_components(url, ec);
+			= parse_url_components(web.url, ec);
 		TORRENT_ASSERT(!ec);
 
 		if (m_port == -1 && protocol == "http")

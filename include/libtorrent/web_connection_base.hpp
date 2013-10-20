@@ -95,10 +95,7 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, std::string const& url
-			, policy::peer* peerinfo
-			, std::string const& ext_auth
-			, web_seed_entry::headers_t const& ext_headers);
+			, web_seed_entry& web);
 		void start();
 
 		~web_connection_base();

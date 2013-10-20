@@ -84,10 +84,7 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, std::string const& url
-			, policy::peer* peerinfo
-			, std::string const& ext_auth
-			, web_seed_entry::headers_t const& ext_headers);
+			, web_seed_entry& web);
 
 		virtual int type() const { return peer_connection::url_seed_connection; }
 
@@ -121,6 +118,8 @@ namespace libtorrent
 		std::deque<int> m_file_requests;
 
 		std::string m_url;
+	
+		web_seed_entry& m_web;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
@@ -151,6 +150,10 @@ namespace libtorrent
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for
 		int m_partial_chunk_header;
+
+		// the number of responses we've received so far on
+		// this connection
+		int m_num_responses;
 	};
 }
 

@@ -4924,14 +4924,12 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web->url, &web->peer_info,
-				web->auth, web->extra_headers);
+				m_ses, shared_from_this(), s, a, *web);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web->url, &web->peer_info,
-				web->auth, web->extra_headers);
+				m_ses, shared_from_this(), s, a, *web);
 		}
 		if (!c) return;
 
