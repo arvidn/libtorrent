@@ -122,7 +122,7 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 			std::auto_ptr<alert> al = ses.pop_alert();
 			assert(al.get());
 			std::cout << "  " << al->message() << std::endl;
-			if (read_piece_alert* rpa = dynamic_cast<read_piece_alert*>(al.get()))
+			if (read_piece_alert* rpa = alert_cast<read_piece_alert>(al.get()))
 			{
 				std::cout << "SUCCEEDED!" << std::endl;
 				passed = true;
@@ -145,14 +145,14 @@ int test_main()
 		remove("test_torrent_dir2/tmp2");
 		remove("test_torrent_dir2/tmp3");
 		file_storage fs;
-		size_type file_size = 1 * 1024 * 1024 * 1024;
+		size_type file_size = 256 * 1024;
 		fs.add_file("test_torrent_dir2/tmp1", file_size);
 		fs.add_file("test_torrent_dir2/tmp2", file_size);
 		fs.add_file("test_torrent_dir2/tmp3", file_size);
-		libtorrent::create_torrent t(fs, 4 * 1024 * 1024);
+		libtorrent::create_torrent t(fs, 128 * 1024);
 		t.add_tracker("http://non-existing.com/announce");
 
-		std::vector<char> piece(4 * 1024 * 1024);
+		std::vector<char> piece(128 * 1024);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
 		
@@ -177,7 +177,7 @@ int test_main()
 		file_storage fs;
 
 		fs.add_file("test_torrent_dir2/tmp1", 0);
-		libtorrent::create_torrent t(fs, 4 * 1024 * 1024);
+		libtorrent::create_torrent t(fs, 128 * 1024, 6);
 		t.add_tracker("http://non-existing.com/announce");
 
 		std::vector<char> tmp;
