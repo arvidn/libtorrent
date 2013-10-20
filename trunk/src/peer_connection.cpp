@@ -5883,6 +5883,7 @@ namespace libtorrent
 //					num_requests[i->block].peers.push_back(&p);
 				}
 			}
+			piece_picker::downloading_piece last_piece;
 			for (std::map<piece_block, peer_count_t>::iterator i = num_requests.begin()
 				, end(num_requests.end()); i != end; ++i)
 			{
@@ -5893,12 +5894,18 @@ namespace libtorrent
 				int count_with_nowant = pc.num_peers_with_nowant;
 				(void)count_with_timeouts;
 				(void)count_with_nowant;
-				int picker_count = t->picker().num_peers(b);
-				if (!t->picker().is_downloaded(b))
+				if (b.piece_index != last_piece.index)
+					t->picker().piece_info(b.piece_index, last_piece);
+
+				// has b been downloaded?
+				if ((last_piece.finished == 0 && last_piece.writing == 0)
+					|| (last_piece.info && last_piece.info[b.block_index].state >= piece_picker::block_info::state_writing))
+				{
+					int picker_count = t->picker().num_peers(b);
 					TORRENT_ASSERT(picker_count == count);
+				}
 			}
 		}
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		if (m_peer_info && type() == bittorrent_connection)
 		{
 			policy::const_iterator i = t->get_policy().begin_peer();
@@ -5909,7 +5916,6 @@ namespace libtorrent
 			}
 			TORRENT_ASSERT(i != end);
 		}
-#endif
 		if (t->has_picker() && !t->is_aborted())
 		{
 			// make sure that pieces that have completed the download
@@ -5930,17 +5936,6 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
-/*
-// this invariant is not valid anymore since the completion event
-// might be queued in the io service
-				if (complete && !piece_failed)
-				{
-					disk_io_job ret = m_ses.m_disk_thread.find_job(
-						&t->filesystem(), -1, i->index);
-					TORRENT_ASSERT(ret.action == disk_io_job::hash || ret.action == disk_io_job::write);
-					TORRENT_ASSERT(ret.piece == i->index);
-				}
-*/
 			}
 		}
 

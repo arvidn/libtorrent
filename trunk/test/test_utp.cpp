@@ -100,7 +100,7 @@ void test_transfer()
 
 	create_directory("./tmp1_utp", ec);
 	std::ofstream file("./tmp1_utp/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 512 * 1024, 20, false);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 128 * 1024, 6, false);
 	file.close();
 
 	// for performance testing
