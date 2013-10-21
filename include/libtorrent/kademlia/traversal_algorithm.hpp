@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,7 @@ struct traversal_algorithm : boost::noncopyable
 	void* allocate_observer();
 	void free_observer(void* ptr);
 
-	virtual char const* name() const;
+	virtual char const* name() const { return "traversal_algorithm"; }
 	virtual void start();
 
 	node_id const& target() const { return m_target; }
@@ -79,14 +79,10 @@ struct traversal_algorithm : boost::noncopyable
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 
 	traversal_algorithm(node_impl& node, node_id target);
-	int invoke_count() const { return m_invoke_count; }
-	int branch_factor() const { return m_branch_factor; }
 
 protected:
 
-	// returns true if we're done
-	bool add_requests();
-
+	void add_requests();
 	void add_router_entries();
 	void init();
 

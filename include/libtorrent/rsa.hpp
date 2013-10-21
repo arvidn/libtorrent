@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,30 +30,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "test.hpp"
-#include "setup_transfer.hpp"
-#include "web_seed_suite.hpp"
+#ifndef TORRENT_SIGN_HPP_INCLUDED
+#define TORRENT_SIGN_HPP_INCLUDED
 
-using namespace libtorrent;
+#include "libtorrent/config.hpp"
+#include "libtorrent/hasher.hpp"
 
-const int proxy = libtorrent::proxy_settings::socks4;
-
-int test_main()
+namespace libtorrent
 {
-	int ret = 0;
-	for (int url_seed = 0; url_seed < 2; ++url_seed)
-	{
-		for (int chunked = 0; chunked < 2; ++chunked)
-		{
-			for (int ban = 0; ban < 2; ++ban)
-			{
-#ifdef TORRENT_USE_OPENSSL
-				run_http_suite(proxy, "https", url_seed, chunked, ban);
-#endif
-				run_http_suite(proxy, "http", url_seed, chunked, ban);
-			}
-		}
-	}
-	return ret;
+	// both of these use SHA-1 as the message digest to be signed/verified
+
+	// returns the size of the resulting signature
+	TORRENT_EXTRA_EXPORT int sign_rsa(sha1_hash const& digest
+		, char const* private_key, int private_len
+		, char* signature, int sig_len);
+
+	// returns true if the signature is valid
+	TORRENT_EXTRA_EXPORT bool verify_rsa(sha1_hash const& digest
+		, char const* public_key, int public_len
+		, char const* signature, int sig_len);
+
+	// returns false if it fails, for instance if the key
+	// buffers are too small. public_len and private_len
+	// are in-out values, set to the actual sizes
+	TORRENT_EXTRA_EXPORT bool generate_rsa_keys(char* public_key, int* public_len
+		, char* private_key, int* private_len, int key_size);
 }
 
+#endif // TORRENT_SIGN_HPP_INCLUDED

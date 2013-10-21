@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010, Arvid Norberg
+Copyright (c) 2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,14 +80,12 @@ int test_main()
 	addp.save_path = "tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 100; ++i)
 	{
 		print_alerts(*s, "s");
 		test_sleep(100);
-//		fprintf(stderr, "udp_announces: %d http_announces: %d\n", int(g_udp_tracker_requests), int(g_http_tracker_requests));
 		if (g_udp_tracker_requests == prev_udp_announces + 1
-			&& g_http_tracker_requests == prev_http_announces + 1)
-			break;
+			&& g_http_tracker_requests == prev_http_announces + 1) break;
 	}
 
 	// we should have announced to the tracker by now
@@ -147,10 +145,10 @@ int test_main()
 	addp.save_path = "tmp2_tracker";
 	h = s->add_torrent(addp);
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		print_alerts(*s, "s");
-		test_sleep(100);
+		test_sleep(1000);
 		if (g_udp_tracker_requests == prev_udp_announces + 1) break;
 	}
 

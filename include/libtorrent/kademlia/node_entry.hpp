@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,21 +36,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/union_endpoint.hpp"
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-#include "libtorrent/time.hpp"
-#endif
 
 namespace libtorrent { namespace dht
 {
 
 struct node_entry
 {
-	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff, bool pinged = false)
-		: endpoint(ep)
-		, timeout_count(pinged ? 0 : 0xff)
-		, rtt(roundtriptime)
+	node_entry(node_id const& id_, udp::endpoint ep, bool pinged = false)
+		: addr(ep.address())
+		, port(ep.port())
+		, timeout_count(pinged ? 0 : 0xffff)
 		, id(id_)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -59,9 +54,9 @@ struct node_entry
 	}
 
 	node_entry(udp::endpoint ep)
-		: endpoint(ep)
-		, timeout_count(0xff)
-		, rtt(0xffff)
+		: addr(ep.address())
+		, port(ep.port())
+		, timeout_count(0xffff)
 		, id(0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -70,8 +65,7 @@ struct node_entry
 	}
 
 	node_entry()
-		: timeout_count(0xff)
-		, rtt(0xffff)
+		: timeout_count(0xffff)
 		, id(0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -79,27 +73,20 @@ struct node_entry
 #endif
 	}
 	
-	bool pinged() const { return timeout_count != 0xff; }
-	void set_pinged() { if (timeout_count == 0xff) timeout_count = 0; }
-	void timed_out() { if (pinged() && timeout_count < 0xfe) ++timeout_count; }
+	bool pinged() const { return timeout_count != 0xffff; }
+	void set_pinged() { if (timeout_count == 0xffff) timeout_count = 0; }
+	void timed_out() { if (pinged()) ++timeout_count; }
 	int fail_count() const { return pinged() ? timeout_count : 0; }
 	void reset_fail_count() { if (pinged()) timeout_count = 0; }
-	udp::endpoint ep() const { return udp::endpoint(endpoint); }
+	udp::endpoint ep() const { return udp::endpoint(addr, port); }
 	bool confirmed() const { return timeout_count == 0; }
-	void update_rtt(int new_rtt)
-	{
-		if (rtt == 0xffff) rtt = new_rtt;
-		else rtt = int(rtt) / 3 + int(new_rtt) * 2 / 3;
-	}
-	address addr() const { return endpoint.address(); }
-	int port() const { return endpoint.port; }
 
-	union_endpoint endpoint;
+	// TODO: replace with a union of address_v4 and address_v6
+	address addr;
+	boost::uint16_t port;
 	// the number of times this node has failed to
 	// respond in a row
-	boost::uint8_t timeout_count;
-	// the average RTT of this node
-	boost::uint16_t rtt;
+	boost::uint16_t timeout_count;
 	node_id id;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	ptime first_seen;

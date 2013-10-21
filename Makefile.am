@@ -53,7 +53,6 @@ DOCS_IMAGES = \
   docs/storage.png                \
   docs/style.css                  \
   docs/t2e.jpg                    \
-  docs/todo.html                  \
   docs/tvblob.jpg                 \
   docs/tvitty.jpg                 \
   docs/unicode_support.png        \
@@ -86,6 +85,8 @@ DOCS_PAGES = \
   docs/index.rst                  \
   docs/libtorrent_plugins.html    \
   docs/libtorrent_plugins.rst     \
+  docs/make_torrent.html          \
+  docs/make_torrent.rst           \
   docs/manual.html                \
   docs/manual.rst                 \
   docs/projects.html              \
@@ -110,6 +111,8 @@ EXTRA_DIST = \
   LICENSE \
   libtorrent-rasterbar.pc  \
   libtorrent-rasterbar-cmake.pc  \
+  parse_dht_log.py \
+  parse_session_stats.py \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES)
 

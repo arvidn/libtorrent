@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,15 +68,25 @@ namespace libtorrent
 	std::string print_endpoint(tcp::endpoint const& ep)
 	{
 		error_code ec;
-		char buf[200];
+		std::string ret;
 		address const& addr = ep.address();
 #if TORRENT_USE_IPV6
 		if (addr.is_v6())
-			snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+		{
+			ret += '[';
+			ret += addr.to_string(ec);
+			ret += ']';
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
 		else
 #endif
-			snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
-		return buf;
+		{
+			ret += addr.to_string(ec);
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
+		return ret;
 	}
 
 	std::string print_endpoint(udp::endpoint const& ep)

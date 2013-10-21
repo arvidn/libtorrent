@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,19 +43,11 @@ namespace libtorrent
 	class file_storage;
 	struct file_pool;
 
-	// types of storage allocation used for add_torrent_params::storage_mode.
 	enum storage_mode_t
 	{
-		// All pieces will be written to their final position, all files will be
-		// allocated in full when the torrent is first started. This is done with
-		// ``fallocate()`` and similar calls. This mode minimizes fragmentation.
-		storage_mode_allocate,
-
-		// All pieces will be written to the place where they belong and sparse files
-		// will be used. This is the recommended, and default mode.
+		storage_mode_allocate = 0,
 		storage_mode_sparse,
-
-		// internal
+		// this is here for internal use
 		internal_storage_mode_compact_deprecated,
 #ifndef TORRENT_NO_DEPRECATE
 		storage_mode_compact = internal_storage_mode_compact_deprecated

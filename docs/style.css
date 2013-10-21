@@ -1,3 +1,5 @@
+html>body { font-size: 13px; }
+
 .entry { min-height: 135px; }
 
 #main {
@@ -9,18 +11,22 @@
 /* Base elements */
 
 * {margin: 0; padding: 0;}
-body, table { font: 0.8em Verdana, sans-serif;}
+body { font: 0.8125em Verdana, sans-serif;}
 
 h1, h2, h3 {
     font: 1.5em Georgia "Times New Roman", serif;
-/*    letter-spacing: 1px; */
+    letter-spacing: 1px;
     padding-bottom: 0.5em;
-	 font-weight: bold;
 }
 
 h1 { font-size: 180%; }
 h2 { font-size: 130%; }
 h3 { font-size: 100%; }
+
+p {
+    font-size: 92%;
+    line-height: 1.4em;
+}
 
 a {
     text-decoration: none;
@@ -72,91 +78,9 @@ div.section div.section div.section {
     margin-bottom: 2em;
 }
 
+h3 { text-transform: uppercase; }
+
 div.section p, div.section ul, div.section dl {
-}
-
-#container {
-    text-align: left;
-    width: 65em;
-    margin: 0 auto;
-    position: relative;
-}
-
-#headerNav {
-}
-
-#headerNav ul {
-    margin: 2px;
-    list-style: none;
-    font-family: Tahoma;
-    text-align: right;
-    text-transform: uppercase;
-    line-height: 1em;
-}
-
-#headerNav ul li {
-    display: inline;
-    border-left: solid 1px #ccc;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin: 0;
-    font-size: 80%;
-}
-
-#headerNav ul li.first {
-    border: 0;
-}
-
-#headerNav ul li a {
-    border: none;
-    color: #666;
-}
-
-#headerNav ul li a:hover {
-    background: #eee;
-}
-
-#header {
-    height: 116px;
-    background: url(../img/bg.png) #1f5c85;
-    -moz-border-radius: 6pt;
-    border-radius: 6pt;
-}
-
-#orange {
-    margin: 0;
-    padding: 0;
-    float: left;
-    width: 159px;
-    height: 116px;
-    background: url(../img/orange.png) no-repeat top left;
-}
-
-#logo {
-    margin: 0;
-    padding: 0;
-    float: right;
-    width: 535px;
-    height: 116px;
-    background: url(../img/logo.png);
-}
-
-#footer {
-    clear: both;
-    height: 49px;
-    background: #D3D3D3;
-    text-align: center;
-    margin-bottom: 1em;
-    -moz-border-radius: 6pt;
-    border-radius: 6pt;
-}
-
-#footer span {
-    line-height: 49px;
-    font-size: 88%;
-    text-align: center;
-    color: #777;
-    display: block;
 }
 
 table.docinfo {
@@ -184,16 +108,20 @@ table.docinfo tr.field td, table.docinfo tr.field th {display: none;}
 h1.title { text-align: center; }
 
 dt {
-    line-height: 1.2em;
-    margin-bottom: 0.5em;
+    font-size: 100%;
+    letter-spacing: 2px;
+    line-height: 1em;
     color: #315586;
     color: #000;
-    font-style: italic;
+    font-family: Tahoma;
+    font-weight: bold;
 }
 
 dd {
+/*    line-height: 1.5em;*/
     margin-left: 1em;
     margin-bottom: 1em;
+    font-size: 92%;
 }
 
 tt {
@@ -247,6 +175,10 @@ div.sidebar p.sidebar-title {
     padding-bottom: 0.5em;
     margin: 0 0 0.5em 0;
 }
+
+h1 { font-size: 230%; }
+h2 { font-size: 180%; }
+h3 { font-size: 130%; }
 
 table { margin-bottom: 1em; border-collapse: collapse; }
 table, th, td { border: none; }

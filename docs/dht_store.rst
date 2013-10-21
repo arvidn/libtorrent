@@ -3,7 +3,7 @@ BitTorrent extension for arbitrary DHT store
 ============================================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.12
 
 .. contents:: Table of contents
   :depth: 2
@@ -22,7 +22,7 @@ terminology
 -----------
 
 In this document, a *storage node* refers to the node in the DHT to which
-an item is being announced and stored on. A *requesting node* refers to
+an item is being announced and stored on. A *subscribing node* refers to
 a node which makes look-ups in the DHT to find the storage nodes, to
 request items from them, and possibly re-announce those items to keep them
 alive.
@@ -33,11 +33,9 @@ messages
 The proposed new messages ``get`` and ``put`` are similar to the existing ``get_peers``
 and ``announce_peer``.
 
-Responses to ``get`` should always include ``nodes`` and ``nodes6``. Those fields
-have the same semantics as in its ``get_peers`` response. It should also include a write token,
-``token``, with the same semantics as int ``get_peers``. The write token MAY be tied
-specifically to the key which ``get`` requested. i.e. the ``token`` can only be used
-to store values under that one key.
+Responses to ``get`` should always include ``nodes`` and ``nodes6`` has the same
+semantics as in its ``get_peers`` response. It should also include a write token,
+``token``, with the same semantics as ``get_peers``.
 
 The ``id`` field in these messages has the same semantics as the standard DHT messages,
 i.e. the node ID of the node sending the message, to maintain the structure of the DHT
@@ -46,7 +44,7 @@ network.
 The ``token`` field also has the same semantics as the standard DHT message ``get_peers``
 and ``announce_peer``, when requesting an item and to write an item respectively.
 
-The ``k`` field is the 32 byte ed25519 public key, which the signature
+The ``k`` field is the PKCS#1 encoded 2048 bit RSA public key, which the signature
 can be authenticated with. When looking up a mutable item, the ``target`` field
 MUST be the SHA-1 hash of this key.
 
@@ -65,7 +63,7 @@ bencoded representation as it appeared in the message. decoding and then re-enco
 bencoded structures is not necessarily an identity operation.
 
 Storing nodes SHOULD reject ``put`` requests where the bencoded form of ``v`` is longer
-than 1000 bytes.
+than 767 bytes.
 
 immutable items
 ---------------
@@ -87,7 +85,7 @@ Request:
 		"a":
 		{
 			"id": *<20 byte id of sending node (string)>*,
-			"v": *<any bencoded type, whose encoded size <= 1000>*
+			"v": *<any bencoded type, whose encoded size < 768>*
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "q",
@@ -155,8 +153,8 @@ number to a lower one, only upgrade. The sequence number SHOULD not exceed ``MAX
 (i.e. ``0x7fffffffffffffff``. A client MAY reject any message with a sequence number
 exceeding this.
 
-The signature is a 64 byte ed25519 signature of the bencoded sequence
-number concatenated with the ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
+The signature is a 2048 bit RSA signature of the SHA-1 hash of the bencoded sequence
+number and ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
 
 put message
 ...........
@@ -168,38 +166,20 @@ Request:
 	{
 		"a":
 		{
-			"cas": *<optional 20 byte hash (string)>*,
 			"id": *<20 byte id of sending node (string)>*,
-			"k": *<ed25519 public key (32 bytes string)>*,
+			"k": *<RSA-2048 public key (PKCS#1 encoded)>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
-			"sig": *<ed25519 signature (64 bytes string)>*,
+			"sig": *<RSA-2048 signature (256 bytes string)>*,
 			"token": *<write-token (string)>*,
-			"v": *<any bencoded type, whose encoded size < 1000>*
+			"v": *<any bencoded type, whose encoded size < 768>*
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "q",
 		"q": "put"
 	}
 
-Storing nodes receiving a ``put`` request where ``seq`` is lower than or equal
-to what's already stored on the node, MUST reject the request. If the sequence
-number is equal, and the value is also the same, the node SHOULD reset its timeout
-counter.
-
-If the sequence number in the ``put`` message is lower than the sequence number
-associated with the currently stored value, the storing node MAY return an error
-message with code 302 (see error codes below).
-
-Note that this request does not contain a target hash. The target hash under
-which this blob is stored is implied by the ``k`` argument. The key is
-the SHA-1 hash of the key (``k``).
-
-The ``cas`` field is optional. If present it is interpreted of the sha-1 hash of
-the sequence number and ``v`` field that is expected to be replaced. The buffer
-to hash is the same as the one signed when storing. ``cas`` is short for *compare
-and swap*, it has similar semantics as CAS CPU instructions. If specified as part
-of the put command, and the current value stored under the public key differs from
-the expected value, the store fails. The ``cas`` field only applies to mutable puts.
+Storing nodes receiving a ``put`` request where ``seq`` is lower than what's already
+stored on the node, MUST reject the request.
 
 Response:
 
@@ -210,47 +190,6 @@ Response:
 		"t": *<transaction-id (string)>*,
 		"y": "r",
 	}
-
-If the store fails for any reason an error message is returned instead of the message
-template above, i.e. one where "y" is "e" and "e" is a tuple of [error-code, message]).
-Failures include where the ``cas`` hash mismatches and the sequence number is outdated.
-
-If no ``cas`` field is included in the ``put`` message, the value of the current ``v``
-field should be disregarded when determining whether or not to save the item.
-
-The error message (as specified by BEP5_) looks like this:
-
-.. _BEP5: http://www.bittorrent.org/beps/bep_0005.html
-
-.. parsed-literal::
-
-	{
-		"e": [ *<error-code (integer)>*, *<error-string (string)>* ],
-		"t": *<transaction-id (string)>*,
-		"y": "e",
-	}
-
-In addition to the error codes defined in BEP5_, this specification defines 
-some additional error codes.
-
-+------------+-----------------------------+
-| error-code | description                 |
-+============+=============================+
-| 205        | message (i.e. ``v`` field)  |
-|            | too big.                    |
-+------------+-----------------------------+
-| 206        | invalid signature           |
-+------------+-----------------------------+
-| 301        | the CAS hash mismatched,    |
-|            | re-read value and try       |
-|            | again.                      |
-+------------+-----------------------------+
-| 302        | sequence number less than   |
-|            | current.                    |
-+------------+-----------------------------+
-
-An implementation MUST emit 301 errors if the cas-hash mismatches. This is
-a critical feature in synchronization of multiple agents sharing an immutable item.
 
 get message
 ...........
@@ -278,13 +217,13 @@ Response:
 		"r":
 		{
 			"id": *<20 byte id of sending node (string)>*,
-			"k": *<ed25519 public key (32 bytes string)>*,
+			"k": *<RSA-2048 public key (268 bytes string)>*,
 			"nodes": *<IPv4 nodes close to 'target'>*,
 			"nodes6": *<IPv6 nodes close to 'target'>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
-			"sig": *<ed25519 signature (64 bytes string)>*,
+			"sig": *<RSA-2048 signature (256 bytes string)>*,
 			"token": *<write-token (string)>*,
-			"v": *<any bencoded type, whose encoded size <= 1000>*
+			"v": *<any bencoded type, whose encoded size < 768>*
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "r",
@@ -293,25 +232,22 @@ Response:
 signature verification
 ----------------------
 
-The signature, private and public keys are in the format as produced by this derivative `ed25519 library`_.
-
-.. _`ed25519 library`: https://github.com/nightcracker/ed25519
-
 In order to make it maximally difficult to attack the bencoding parser, signing and verification of the
 value and sequence number should be done as follows:
 
 1. encode value and sequence number separately
-2. concatenate *"3:seqi"* ``seq`` *"e1:v"* ``len`` *":"* and the encoded value.
-   sequence number 1 of value "Hello World!" would be converted to: "3:seqi1e1:v12:Hello World!"
+2. concatenate "3:seqi" ``seq`` "e1:v" and the encoded value.
+   sequence number 1 of value "Hello World!" would be converted to: 3:seqi1e1:v12:Hello World!
    In this way it is not possible to convince a node that part of the length is actually part of the
    sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
    verification failure if a bencoding serializer alters the order of entries in the dictionary.
-3. sign or verify the concatenated string
+3. hash the concatenated string with SHA-1
+4. sign or verify the hash digest.
 
 On the storage node, the signature MUST be verified before accepting the store command. The data
 MUST be stored under the SHA-1 hash of the public key (as it appears in the bencoded dict).
 
-On the requesting nodes, the key they get back from a ``get`` request MUST be verified to hash
+On the subscribing nodes, the key they get back from a ``get`` request MUST be verified to hash
 to the target ID the lookup was made for, as well as verifying the signature. If any of these fail,
 the response SHOULD be considered invalid.
 
@@ -321,8 +257,8 @@ expiration
 Without re-announcement, these items MAY expire in 2 hours. In order
 to keep items alive, they SHOULD be re-announced once an hour.
 
-Any node that's interested in keeping a blob in the DHT alive may announce it. It would simply
-repeat the signature for a mutable put without having the private key.
+Subscriber nodes MAY help out in announcing items the are interested in to the DHT,
+to keep them alive.
 
 test vectors
 ------------

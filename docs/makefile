@@ -2,34 +2,18 @@
 
 WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 
-REFERENCE_TARGETS = \
-	reference \
-	reference-Core \
-	reference-String \
-	reference-Plugins \
-	reference-Create_Torrents \
-	reference-Error_Codes \
-	reference-Time \
-	reference-Storage \
-	reference-Custom_Storage \
-	reference-Utility \
-	reference-Bencoding \
-	reference-Alerts \
-	reference-RSS \
-	reference-Filter \
-	reference-Settings \
-	manual-ref
-
 TARGETS = index \
 	udp_tracker_protocol \
 	dht_rss \
 	dht_store \
 	client_test \
+	manual \
 	building \
 	features \
 	contributing\
 	examples \
 	extension_protocol \
+	make_torrent \
 	dht_extensions \
 	dht_sec \
 	libtorrent_plugins \
@@ -38,27 +22,15 @@ TARGETS = index \
 	running_tests \
 	utp \
 	tuning \
-	hacking \
-	$(REFERENCE_TARGETS)
+	hacking
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
 
-html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
+html: $(TARGETS:=.html) $(FIGURES:=.png)
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
-epub: $(TARGETS:=.epub) $(FIGURES:=.png)
-
 all: html
-
-todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
-	python gen_todo.py
-
-$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst
-	python gen_reference_doc.py
-
-%.epub:%.rst
-	rst2epub $? $@
 
 %.pdf:%.rst
 	rst2pdf $? -o $@ --stylesheets stylesheet
@@ -76,5 +48,5 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 	cp $@ $(WEB_PATH)/$@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html reference*.html reference*.rst
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf)
 

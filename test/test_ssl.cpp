@@ -101,17 +101,11 @@ bool on_alert(alert* a)
 	return false;
 }
 
-void test_ssl(int test_idx, bool use_utp)
+void test_ssl(int test_idx)
 {
-	// these are declared before the session objects
-	// so that they are destructed last. This enables
-	// the sessions to destruct in parallel
-	session_proxy p1;
-	session_proxy p2;
-
 	test_config_t const& test = test_config[test_idx];
 
-	fprintf(stderr, "\n%s TEST: %s Protocol: %s\n\n", time_now_string(), test.name, use_utp ? "uTP": "TCP");
+	fprintf(stderr, "\n%s TEST: %s\n\n", time_now_string(), test.name);
 
 #ifndef TORRENT_USE_OPENSSL
 	if (test.use_ssl_ports)
@@ -134,11 +128,6 @@ void test_ssl(int test_idx, bool use_utp)
 
 	session_settings sett;
 
-	sett.enable_incoming_utp = use_utp;
-	sett.enable_outgoing_utp = use_utp;
-	sett.enable_incoming_tcp = !use_utp;
-	sett.enable_outgoing_tcp = !use_utp;
-
 	sett.ssl_listen = 1024 + rand() % 50000;
 
 	ses1.set_settings(sett);
@@ -150,7 +139,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	create_directory("tmp1_ssl", ec);
 	std::ofstream file("tmp1_ssl/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false, "../ssl/root_ca_cert.pem");
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false, "ssl/root_ca_cert.pem");
 	file.close();
 
 	add_torrent_params addp;
@@ -170,27 +159,22 @@ void test_ssl(int test_idx, bool use_utp)
 	if (test.seed_has_cert)
 	{
 		tor1.set_ssl_certificate(
-			combine_path("..", combine_path("ssl", "peer_certificate.pem"))
-			, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
-			, combine_path("..", combine_path("ssl", "dhparams.pem"))
+			combine_path("ssl", "peer_certificate.pem")
+			, combine_path("ssl", "peer_private_key.pem")
+			, combine_path("ssl", "dhparams.pem")
 			, "test");
 	}
 
 	if (test.downloader_has_cert)
 	{
 		tor2.set_ssl_certificate(
-			combine_path("..", combine_path("ssl", "peer_certificate.pem"))
-			, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
-			, combine_path("..", combine_path("ssl", "dhparams.pem"))
+			combine_path("ssl", "peer_certificate.pem")
+			, combine_path("ssl", "peer_private_key.pem")
+			, combine_path("ssl", "dhparams.pem")
 			, "test");
 	}
 
-#ifdef TORRENT_USE_VALGRIND
-	const int timeout = 100;
-#else
-	const int timeout = 40;
-#endif
-	for (int i = 0; i < timeout; ++i)
+	for (int i = 0; i < 15; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
@@ -214,11 +198,7 @@ void test_ssl(int test_idx, bool use_utp)
 				<< std::endl;
 		}
 
-		if (peer_disconnects >= 2)
-		{
-			fprintf(stderr, "too many disconnects (%d), breaking\n", peer_disconnects);
-			break;
-		}
+		if (peer_disconnects == 2) break;
 
 		if (st2.is_finished) break;
 
@@ -247,19 +227,14 @@ void test_ssl(int test_idx, bool use_utp)
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
-
-	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
 }
 
 int test_main()
 {
 	using namespace libtorrent;
 
-	// No support for SSL/uTP yet, so always pass in false
 	for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
-		test_ssl(i, false);
+		test_ssl(i);
 	
 	error_code ec;
 	remove_all("tmp1_ssl", ec);

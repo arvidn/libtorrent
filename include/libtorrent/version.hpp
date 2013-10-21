@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,15 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_VERSION_HPP_INCLUDED
 #define TORRENT_VERSION_HPP_INCLUDED
 
-#define LIBTORRENT_VERSION_MAJOR 1
-#define LIBTORRENT_VERSION_MINOR 0
-#define LIBTORRENT_VERSION_TINY 0
+#define LIBTORRENT_VERSION_MAJOR 0
+#define LIBTORRENT_VERSION_MINOR 16
+#define LIBTORRENT_VERSION_TINY 12
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
-#define LIBTORRENT_VERSION "1.0.0.0"
+#define LIBTORRENT_VERSION "0.16.12.0"
 #define LIBTORRENT_REVISION "$Rev$" 
 
 #endif

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,8 +63,9 @@ namespace libtorrent
 		{
 			boost::function<void(char*)> free; // destructs the buffer
 			char* buf; // the first byte of the buffer
-			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
+
+			char* start; // the first byte to send/receive in the buffer
 			int used_size; // this is the number of bytes to send/receive
 		};
 

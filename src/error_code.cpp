@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -261,18 +261,6 @@ namespace libtorrent
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";
 		return msgs[ev];
-	}
-
-	boost::system::error_category& get_libtorrent_category()
-	{
-		static libtorrent_error_category libtorrent_category;
-		return libtorrent_category;
-	}
-
-	boost::system::error_category& get_http_category()
-	{
-		static http_error_category http_category;
-		return http_category;
 	}
 
 	const char* http_error_category::name() const BOOST_SYSTEM_NOEXCEPT

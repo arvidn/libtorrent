@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -918,7 +918,7 @@ namespace libtorrent
 		return ret;
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void disk_io_thread::check_invariant() const
 	{
 		int cached_write_blocks = 0;
@@ -1244,11 +1244,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j.cache_min_time >= 0);
 
 		mutex::scoped_lock l(m_piece_mutex);
-		if (!m_settings.use_read_cache)
-		{
-			hit = false;
-			return -2;
-		}
+		if (!m_settings.use_read_cache) return -2;
 
 		cache_piece_index_t& idx = m_read_pieces.get<0>();
 		cache_piece_index_t::iterator p
@@ -2249,15 +2245,8 @@ namespace libtorrent
 					m_log << log_time() << " move" << std::endl;
 #endif
 					TORRENT_ASSERT(j.buffer == 0);
-					ret = j.storage->move_storage_impl(j.str, j.piece);
-					if (ret == piece_manager::file_exist)
-					{
-						j.error = error_code(boost::system::errc::file_exists, get_system_category());
-						j.error_file = -1;
-						j.buffer = NULL;
-						break;
-					}
-					if (ret != piece_manager::no_error && ret != piece_manager::need_full_check)
+					ret = j.storage->move_storage_impl(j.str);
+					if (ret != 0)
 					{
 						test_error(j);
 						break;
