@@ -1,3 +1,5 @@
+0.16.12 release
+
 	* fix building with C++11
 	* fix IPv6 support in UDP socket (uTP)
 	* fix mingw build issues
