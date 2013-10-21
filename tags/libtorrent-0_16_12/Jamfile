@@ -1,0 +1,649 @@
+# This Jamfile requires boost-build v2 to build.
+# The version shipped with boost 1.34.0
+
+import modules ;
+import path ;
+import os ;
+import errors ;
+import feature : feature ;
+import package ;
+import virtual-target ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
+LDFLAGS = [ modules.peek : LDFLAGS ] ;
+
+ECHO "BOOST_ROOT =" $(BOOST_ROOT) ;
+ECHO "CXXFLAGS =" $(CXXFLAGS) ;
+ECHO "LDFLAGS =" $(LDFLAGS) ;
+ECHO "OS =" [ os.name ] ;
+
+if $(BOOST_ROOT)
+{
+	use-project /boost : $(BOOST_ROOT) ;
+}
+
+VERSION = 0.16.12 ;
+
+# rule for linking the correct libraries depending
+# on features and target-os
+rule linking ( properties * )
+{
+	local result ;
+
+	# openssl libraries, if enabled
+	if <encryption>openssl in $(properties)
+	{
+		# exclude gcc from a regular windows build to make mingw
+		# link against the regular unix library name
+
+		if <target-os>windows in $(properties)
+		{
+			result += <library>gdi32 ;
+		}
+
+		if <target-os>windows in $(properties)
+		{
+			result += <library>ssleay32
+				<library>libeay32
+				<library>advapi32
+				<library>user32
+				<library>shell32
+			;
+		}
+		else
+		{
+			result += <library>crypto <library>ssl <library>z ;
+		}
+
+		if <target-os>linux in $(properties)
+		{
+			# linker library on linux, required when using openssl
+			result += <library>dl ;
+		}
+	}
+
+	# dbghelp doesn't appear to exist in mingw
+	if <target-os>windows in $(properties)
+		&& ! <toolset>gcc in $(properties)
+		&& ( <asserts>on in $(properties)
+			|| <variant>debug in $(properties)
+			|| <asio-debugging>on in $(properties) )
+	{
+		result += <library>dbghelp ;
+	}
+
+	# gcrypt libraries, if enabled
+	if <encryption>gcrypt in $(properties)
+	{
+		# on mac os x, adding the /opt/local/include path
+		# would include openssl headers incompatible with
+		# the system library. Only add this include path
+		# if we're not using openssl (which we're most
+		# likely not if we're using libgcrypt)
+		result += <library>gcrypt <include>/opt/local/include ;
+	}
+
+	if <geoip>shared in $(properties)
+	{
+		result += <library>GeoIP ;
+	}
+
+	# socket functions on windows require winsock libraries
+	if <target-os>windows in $(properties)
+		|| <target-os>cygwin in $(properties)
+	{
+		result += <library>ws2_32
+			<library>wsock32
+			<library>iphlpapi
+			<define>WIN32_LEAN_AND_MEAN
+			<define>__USE_W32_SOCKETS
+			<define>WIN32
+			<define>_WIN32
+		;
+	}
+
+	if <target-os>beos in $(properties)
+	{
+		result += <library>netkit <library>gcc ;
+	}
+
+	if <target-os>solaris in $(properties)
+	{
+		result += <library>libsocket <library>libnsl ;
+	}
+
+	if <test-coverage>on in $(properties)
+		&& ( <toolset>gcc in $(properties)
+		|| <toolset>darwin in $(properties) )
+	{
+		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage
+			<linkflags>-lgcov <define>NDEBUG ;
+	}
+
+	# clock_gettime on linux requires librt
+	if <need-librt>yes in $(properties)
+	{
+		result += <library>librt ;
+	}
+
+	if <iconv>on in $(properties)
+	{
+		result += <library>libiconv ;
+	}
+
+	if <tcmalloc>yes in $(properties)
+	{
+		result += <library>tcmalloc ;
+	}
+
+	if <toolset>gcc in $(properties)
+		&& <target-os>linux in $(properties)
+		&& (<variant>debug in $(properties)
+			|| <asserts>on in $(properties)
+			|| <asserts>production in $(properties))
+	{
+		# for backtraces in assertion failures
+		# which only works on ELF targets with gcc
+		result += <linkflags>-export-dynamic <cxxflags>-rdynamic ;
+	}
+
+	if <boost>source in $(properties)
+	{
+		if <boost-link>static in $(properties)
+		{
+			if <link>shared in $(properties)
+			{
+				# if libtorrent is being built as a shared library
+				# but we're linking against boost statically, we still
+				# need to make boost think it's being built as a shared
+				# library, so that it properly exports its symbols
+				result += <define>BOOST_ALL_DYN_LINK ;
+				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			}
+			else
+			{
+				result += <library>/boost/system//boost_system/<link>static ;
+			}
+
+			if <toolset>gcc in $(properties) && <link>shared in $(properties)
+			{
+				result += <fpic>on ;
+			}
+
+		}
+		else
+		{
+			result += <library>/boost/system//boost_system/<link>shared ;
+
+			# when building a shared library with openssl, for some reason we really need
+			# boost date time (at least on windows). Hopefully a future version of asio
+			# will allow disabling this dependency
+			if <encryption>openssl in $(properties)
+			{
+				result += <library>/boost/date_time//boost_date_time/<link>shared ;
+			}
+		}
+		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
+
+	}
+	else
+	{
+		result += <library>boost_system ;
+
+		if <boost-link>shared in $(properties) && <encryption>openssl in $(properties)
+		{
+			result += <library>boost_date_time ;
+		}
+
+		# on mac the boost headers are installed in
+		# a directory that isn't automatically accessable
+		# on open indiana, boost is install at /usr/g++/include
+		result += <include>/opt/local/include/boost-1_35
+			<include>/opt/local/include
+			<include>/usr/g++/include
+			;
+	}
+
+	return $(result) ;
+}
+
+# rule for adding the right source files
+# depending on target-os and features
+rule building ( properties * )
+{
+	local result ;
+
+	if <link>shared in $(properties) && <export-extra>on in $(properties)
+	{
+		# export some internal libtorrent functions
+		# in order to me able to unit test them.
+		# this is off by default to keep the export
+		# symbol table reasonably small
+		result += <define>TORRENT_EXPORT_EXTRA ;
+	}
+
+	if ( <variant>debug in $(properties)
+		|| <asserts>on in $(properties) )
+	{
+		result += <source>src/assert.cpp ;
+	}
+
+	if <encryption>openssl in $(properties)
+	{
+		result += <source>src/asio_ssl.cpp ;
+	}
+
+	if <encryption>tommath in $(properties)
+	{
+		result += <source>src/mpi.c ;
+	}
+
+	if <geoip>static in $(properties)
+	{
+		result += <source>src/GeoIP.c ;
+	}
+
+	if <encryption>off in $(properties)
+		|| <encryption>tommath in $(properties)
+	{
+		result += <source>src/sha1.cpp ;
+	}
+
+	if ! ( <encryption>off in $(properties) )
+	{
+		result += <source>src/pe_crypto.cpp ;
+	}
+
+	if ( <toolset>darwin in $(properties)
+		|| <toolset>gcc in $(properties)
+		|| <toolset>clang in $(propertoes)
+		|| <toolset>clang-darwin in $(propertoes) )
+		&& <link>shared in $(properties)
+		# on GCC, enabling debugging in libstdc++
+		# breaks the ABI and its ability to appear
+		# in shared object interfaces, so when it's
+		# enabled, just export everything (since we're)
+		# probably not a production build anyway
+		&& ! <debug-iterators>on in $(properties)
+	{
+		# hide non-external symbols
+		# use ms-compat because boost.asio (as of 1.47.0
+		# appears to have some types not fully exported)
+		result += <cflags>-fvisibility=hidden ;
+		result += <cxxflags>-fvisibility-inlines-hidden ;
+		result += <linkflags>-Wl,-Bsymbolic ;
+	}
+
+	return $(result) ;
+}
+
+rule tag ( name : type  ? : property-set )
+{
+	name = [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
+
+	if $(type) = SHARED_LIB &&
+		( ! ( [ $(property-set).get <target-os> ] in windows cygwin ) )
+	{
+		name = $(name).$(VERSION) ;
+	}
+
+	return $(name) ;
+}
+
+feature tcmalloc : no yes : composite propagated link-incompatible ;
+
+feature timer : auto boost absolute performance clock system_time
+	: composite propagated link-incompatible ;
+feature.compose <timer>boost : <define>TORRENT_USE_BOOST_DATE_TIME=1 ;
+feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
+feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
+feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
+feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
+
+feature ipv6 : on off : composite propagated link-incompatible ;
+feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
+
+feature need-librt : no yes : composite propagated link-incompatible ;
+
+feature fiemap : off on : composite propagated ;
+feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
+
+feature i2p : on off : composite propagated ;
+feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
+feature.compose <i2p>off : <define>TORRENT_USE_I2P=0 ;
+
+feature iconv : auto on off : composite propagated ;
+feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
+feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
+
+feature full-stats : on off : composite propagated link-incompatible ;
+feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
+
+feature asserts : auto on off production system : composite propagated ;
+feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
+feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 <define>TORRENT_RELEASE_ASSERTS=1 ;
+feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
+feature.compose <asserts>system : <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
+
+feature windows-version : 2k xp vista win7 : composite propagated link-incompatible ;
+feature.compose <windows-version>2k : <define>_WIN32_WINNT=0x0500 ;
+feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
+feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
+feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
+
+feature asio-debugging : off on : composite propagated link-incompatible ;
+feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
+
+feature pool-allocators : on off : composite propagated link-incompatible ;
+feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
+
+feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
+feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
+feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
+
+feature geoip : off static shared : composite propagated link-incompatible ;
+feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;
+
+feature bandwidth-limit-logging : off on : composite propagated link-incompatible ;
+feature.compose <bandwidth-limit-logging>on : <define>TORRENT_VERBOSE_BANDWIDTH_LIMIT ;
+
+feature invariant-checks : on off full : composite propagated link-incompatible ;
+feature.compose <invariant-checks>off : <define>TORRENT_DISABLE_INVARIANT_CHECKS ;
+feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
+
+feature request-log : off on : composite propagated link-incompatible ;
+feature.compose <request-log>on : <define>TORRENT_REQUEST_LOGGING ;
+
+feature disk-stats : off on : composite propagated link-incompatible ;
+feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
+
+feature simulate-slow-read : off on : composite propagated ;
+feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
+
+feature logging : none default errors verbose : composite propagated link-incompatible ;
+feature.compose <logging>default : <define>TORRENT_LOGGING ;
+feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;
+feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
+
+feature dht-support : on off logging : composite propagated link-incompatible ;
+feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
+feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
+
+feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
+feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
+feature.compose <encryption>gcrypt : <define>TORRENT_USE_GCRYPT ;
+feature.compose <encryption>tommath : <define>TORRENT_USE_TOMMATH ;
+feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
+
+feature resolve-countries : on off : composite propagated link-incompatible ;
+feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
+
+feature character-set : unicode ansi : composite propagated link-incompatible ;
+feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
+
+feature deprecated-functions : on off : composite propagated link-incompatible ;
+feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
+
+feature statistics : off on : composite propagated link-incompatible ;
+feature.compose <statistics>on : <define>TORRENT_STATS ;
+
+feature upnp-logging : off on : composite propagated link-incompatible ;
+feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
+
+feature boost : system source : link-incompatible propagated ;
+feature boost-link : static shared : composite ;
+
+feature debug-iterators : off on : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
+
+feature test-coverage : off on : composite propagated ;
+
+feature fpic : off on : composite propagated link-incompatible ;
+feature.compose <fpic>on : <cflags>-fPIC ;
+feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
+
+# controls whether or not to export some internal
+# libtorrent functions. Used for unit testing
+feature export-extra : off on : composite propagated ;
+
+# required for openssl on windows
+lib ssleay32 : : <name>ssleay32 ;
+lib libeay32 : : <name>libeay32 ;
+lib advapi32 : : <name>Advapi32 ;
+lib user32 : : <name>User32 ;
+lib shell32 : : <name>shell32 ;
+lib gdi32 : : <name>gdi32 ;
+lib dbghelp : : <name>dbghelp ;
+
+# required for networking on beos
+lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
+lib gcc : : <name>gcc <link>static ;
+
+# when using iconv
+lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
+
+local boost-library-search-path =
+  <search>/opt/local/lib
+  <search>/usr/lib
+  <search>/usr/local/lib
+  <search>/sw/lib
+  <search>/usr/g++/lib
+  ;
+
+lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-search-path) ;
+lib boost_system : : <target-os>solaris <name>boost_system $(boost-library-search-path) ;
+lib boost_system : : <name>boost_system ;
+
+lib boost_date_time : : <target-os>darwin <name>boost_date_time-mt $(boost-library-search-path) ;
+lib boost_date_time : : <target-os>solaris <name>boost_date_time $(boost-library-search-path) ;
+lib boost_date_time : : <name>boost_date_time ;
+
+# openssl on linux/bsd/macos etc.
+lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
+lib z : : <link>shared <name>z <search>/lib ;
+lib crypto : : <name>crypto <search>/lib <use>z ;
+lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib ;
+lib dl : : <link>shared <name>dl ;
+
+# time functions used on linux require librt
+lib librt : : <name>rt <link>shared ;
+
+lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <link>shared ;
+lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
+
+lib tcmalloc : : <name>tcmalloc <link>shared ;
+
+# GeoIP shared library
+lib GeoIP : : <name>GeoIP <link>shared ;
+
+# socket libraries on windows
+lib wsock32 : : <name>wsock32 <link>shared ;
+lib ws2_32 : : <name>ws2_32 <link>shared ;
+lib iphlpapi : : <name>iphlpapi <link>shared ;
+
+SOURCES =
+	alert
+	allocator
+	asio
+	assert
+	bandwidth_limit
+	bandwidth_manager
+	bandwidth_queue_entry
+	bloom_filter
+	chained_buffer
+	connection_queue
+	create_torrent
+	disk_buffer_holder
+	entry
+	error_code
+	file_storage
+	lazy_bdecode
+	escape_string
+	string_util
+	file
+	gzip
+	http_connection
+	http_stream
+	http_parser
+	identify_client
+	ip_filter
+	peer_connection
+	bt_peer_connection
+	web_connection_base
+	web_peer_connection
+	http_seed_connection
+	i2p_stream
+	instantiate_connection
+	natpmp
+	packet_buffer
+	piece_picker
+	policy
+	puff
+	random
+	rsa
+	rss
+	session
+	session_impl
+	settings
+	socket_io
+	socket_type
+	socks5_stream
+	stat
+	storage
+	torrent
+	torrent_handle
+	torrent_info
+	time
+	tracker_manager
+	http_tracker_connection
+	udp_tracker_connection
+	sha1
+	timestamp_history
+	udp_socket
+	upnp
+	utf8
+	utp_socket_manager
+	utp_stream
+	logger
+	file_pool
+	lsd
+	disk_buffer_pool
+	disk_io_thread
+	enum_net
+	broadcast_socket
+	magnet_uri
+	parse_url
+	ConvertUTF
+	thread
+
+# -- extensions --
+	metadata_transfer
+	ut_pex
+	ut_metadata
+	lt_trackers
+	smart_ban
+	;
+
+KADEMLIA_SOURCES =
+	dht_tracker
+	node
+	refresh
+	rpc_manager
+	find_data
+	node_id
+	routing_table
+	traversal_algorithm
+	;
+
+local usage-requirements = 
+	<include>./include
+	<include>./include/libtorrent
+	<include>/usr/sfw/include
+# freebsd doesn't seem to include this automatically
+# and iconv.h is installed there
+	<include>/usr/local/include
+	<variant>release:<define>NDEBUG
+	<variant>debug:<define>TORRENT_DEBUG
+	<define>_FILE_OFFSET_BITS=64
+	<define>BOOST_EXCEPTION_DISABLE
+# enable cancel support in asio
+	<define>BOOST_ASIO_ENABLE_CANCELIO
+	<conditional>@linking
+# these compiler settings just makes the compiler standard conforming
+	<toolset>msvc:<cflags>/Zc:wchar_t
+	<toolset>msvc:<cflags>/Zc:forScope
+# disable bogus deprecation warnings on msvc8
+	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+# msvc optimizations
+	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
+	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
+# disable warning C4503: decorated name length exceeded, name was truncated
+	<toolset>msvc:<cxxflags>/wd4503
+# disable warning C4275: non-dll interface class 'x' used as base for dll-interface struct 'y'
+	<toolset>msvc:<cxxflags>/wd4275
+# disable warning C4251: 'x' needs to have dll-interface to be used by clients of class 'y'
+	<toolset>msvc:<cxxflags>/wd4251
+# disable some warnings for gcc
+	<toolset>gcc:<cflags>-fno-strict-aliasing
+	<toolset>gcc:<cflags>-Wno-missing-braces
+# assert on integer overflow
+	<toolset>gcc,<variant>debug:<cflags>-ftrapv
+	<toolset>darwin,<variant>debug:<cflags>-ftrapv
+	<toolset>clang:<cflags>-Wno-invalid-offsetof
+	<toolset>clang-darwin:<cflags>-Wno-invalid-offsetof
+	<boost>system:<cxxflags>$(CXXFLAGS)
+	<boost>system:<linkflags>$(LDFLAGS)
+# this works around a bug in asio in boost-1.39
+	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
+# make sure asio symbols are properly exported
+# and imported
+	<link>shared:<define>BOOST_ASIO_DYN_LINK
+	<define>BOOST_ASIO_SEPARATE_COMPILATION
+	<tag>@tag
+	;
+
+project torrent ;
+
+lib torrent
+
+	: # sources
+	src/$(SOURCES).cpp
+
+	: # requirements
+	<threading>multi
+	<link>shared:<define>TORRENT_BUILDING_SHARED
+
+	# on windows, when linking statically against asio
+	# but producing a DLL, everything inside the DLL needs
+	# to declare the symbol as being exported
+	<link>shared:<define>BOOST_ASIO_SOURCE
+	<link>shared:<define>BOOST_SYSTEM_SOURCE
+
+	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<conditional>@building
+	<boost>system:<cxxflags>$(CXXFLAGS)
+
+	$(usage-requirements)
+
+	: # default build
+	<link>static
+	<threading>multi
+
+	: # usage requirements
+	$(usage-requirements)
+	<link>shared:<define>TORRENT_LINKING_SHARED
+	;
+
+headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
+
+package.install install
+ : <install-source-root>libtorrent
+   <install-no-version-symlinks>on
+ :
+ : torrent
+ : $(headers)
+ ;
+

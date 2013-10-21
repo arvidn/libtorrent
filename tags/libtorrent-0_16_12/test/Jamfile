@@ -1,0 +1,80 @@
+import testing ;
+
+use-project /torrent : .. ;
+
+exe test_natpmp : test_natpmp.cpp /torrent//torrent
+	: <threading>multi <debug-iterators>on <invariant-checks>full ;
+
+explicit test_natpmp ;
+
+rule libtorrent_dependency ( properties * )
+{
+	local result ;
+
+	if <toolset>msvc in $(properties)
+	{
+		# for some reason, the visual studio debugger seems
+		# to get very confused with the dynamic linking.
+		# since debugging unit tests is common, just link
+		# statically with msvc
+		result += <library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+	}
+	else
+	{
+		result += <library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+	}
+
+	return $(result) ;
+}
+
+project
+   : requirements
+	<conditional>@libtorrent_dependency
+	<source>main.cpp
+	<source>setup_transfer.cpp
+	<source>dht_server.cpp
+	<source>peer_server.cpp
+   : default-build
+	<threading>multi
+	<invariant-checks>full
+	<debug-iterators>on
+   ;
+
+test-suite libtorrent : 	
+	[ run test_privacy.cpp ]
+	[ run test_threads.cpp ]
+	[ run test_rss.cpp ]
+	[ run test_bandwidth_limiter.cpp ]
+	[ run test_buffer.cpp ]
+	[ run test_piece_picker.cpp ]
+	[ run test_bencoding.cpp ]
+	[ run test_fast_extension.cpp ]
+	[ run test_primitives.cpp ]
+	[ run test_ip_filter.cpp ]
+	[ run test_hasher.cpp ]
+	[ run test_dht.cpp ]
+	[ run test_storage.cpp ]
+	[ run test_torrent_parse.cpp ]
+	[ run test_session.cpp ]
+	[ run test_upnp.cpp ]
+
+	[ run test_ssl.cpp ]
+	[ run test_tracker.cpp ]
+	[ run test_checking.cpp ]
+	[ run test_web_seed.cpp ]
+	[ run test_bdecode_performance.cpp ]
+	[ run test_pe_crypto.cpp ]
+
+	[ run test_utp.cpp ]
+	[ run test_auto_unchoke.cpp ]
+	[ run test_http_connection.cpp ]
+	[ run test_torrent.cpp ]
+	[ run test_transfer.cpp ]
+#	[ run test_entry.cpp ]
+	[ run test_metadata_extension.cpp ]
+	[ run test_trackers_extension.cpp ]
+	[ run test_swarm.cpp ]
+	[ run test_lsd.cpp ]
+	[ run test_pex.cpp ]
+	; 
+

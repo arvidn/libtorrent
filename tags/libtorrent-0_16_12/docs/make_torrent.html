@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>creating torrents</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="creating-torrents">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
+    <div id="main">
+<h1 class="title">creating torrents</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>0.16.11</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#overview" id="id2">overview</a></li>
+<li><a class="reference internal" href="#high-level-example" id="id3">high level example</a></li>
+<li><a class="reference internal" href="#add-files" id="id4">add_files</a></li>
+<li><a class="reference internal" href="#set-piece-hashes" id="id5">set_piece_hashes()</a></li>
+<li><a class="reference internal" href="#file-storage" id="id6">file_storage</a><ul>
+<li><a class="reference internal" href="#add-file" id="id7">add_file()</a></li>
+<li><a class="reference internal" href="#hash-symlink-mtime-file-index" id="id8">hash() symlink() mtime() file_index()</a></li>
+<li><a class="reference internal" href="#file-base-set-file-base" id="id9">file_base() set_file_base()</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#create-torrent" id="id10">create_torrent</a><ul>
+<li><a class="reference internal" href="#id1" id="id11">create_torrent()</a></li>
+<li><a class="reference internal" href="#generate" id="id12">generate()</a></li>
+<li><a class="reference internal" href="#set-comment" id="id13">set_comment()</a></li>
+<li><a class="reference internal" href="#set-creator" id="id14">set_creator()</a></li>
+<li><a class="reference internal" href="#set-hash" id="id15">set_hash()</a></li>
+<li><a class="reference internal" href="#set-file-hash" id="id16">set_file_hash()</a></li>
+<li><a class="reference internal" href="#add-url-seed-add-http-seed" id="id17">add_url_seed() add_http_seed()</a></li>
+<li><a class="reference internal" href="#add-node" id="id18">add_node()</a></li>
+<li><a class="reference internal" href="#add-tracker" id="id19">add_tracker()</a></li>
+<li><a class="reference internal" href="#set-root-cert" id="id20">set_root_cert()</a></li>
+<li><a class="reference internal" href="#set-priv-priv" id="id21">set_priv() priv()</a></li>
+<li><a class="reference internal" href="#merkle-tree" id="id22">merkle_tree()</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h1>overview</h1>
+<p>This section describes the functions and classes that are used
+to create torrent files. It is a layered API with low level classes
+and higher level convenience functions. A torrent is created in 4
+steps:</p>
+<ol class="arabic simple">
+<li>first the files that will be part of the torrent are determined.</li>
+<li>the torrent properties are set, such as tracker url, web seeds,
+DHT nodes etc.</li>
+<li>Read through all the files in the torrent, SHA-1 all the data
+and set the piece hashes.</li>
+<li>The torrent is bencoded into a file or buffer.</li>
+</ol>
+<p>If there are a lot of files and or deep directoy hierarchies to
+traverse, step one can be time consuming.</p>
+<p>Typically step 3 is by far the most time consuming step, since it
+requires to read all the bytes from all the files in the torrent.</p>
+<p>All of these classes and functions are declared by including
+<tt class="docutils literal">libtorrent/create_torrent.hpp</tt>.</p>
+</div>
+<div class="section" id="high-level-example">
+<h1>high level example</h1>
+<pre class="literal-block">
+file_storage fs;
+
+// recursively adds files in directories
+add_files(fs, &quot;./my_torrent&quot;);
+
+create_torrent t(fs);
+t.add_tracker(&quot;http://my.tracker.com/announce&quot;);
+t.set_creator(&quot;libtorrent example&quot;);
+
+// reads the files and calculates the hashes
+set_piece_hashes(t, &quot;.&quot;);
+
+ofstream out(&quot;my_torrent.torrent&quot;, std::ios_base::binary);
+bencode(std::ostream_iterator&lt;char&gt;(out), t.generate());
+</pre>
+</div>
+<div class="section" id="add-files">
+<h1>add_files</h1>
+<blockquote>
+<pre class="literal-block">
+template &lt;class Pred&gt;
+void add_files(file_storage&amp; fs, std::string const&amp; path, Pred p
+        , boost::uint32_t flags = 0);
+template &lt;class Pred&gt;
+void add_files(file_storage&amp; fs, std::wstring const&amp; path, Pred p
+        , boost::uint32_t flags = 0);
+
+void add_files(file_storage&amp; fs, std::string const&amp; path
+        , boost::uint32_t flags = 0);
+void add_files(file_storage&amp; fs, std::wstring const&amp; path
+        , boost::uint32_t flags = 0);
+</pre>
+</blockquote>
+<p>Adds the file specified by <tt class="docutils literal">path</tt> to the <tt class="docutils literal">file_storage</tt> object. In case <tt class="docutils literal">path</tt>
+refers to a diretory, files will be added recursively from the directory.</p>
+<p>If specified, the predicate <tt class="docutils literal">p</tt> is called once for every file and directory that
+is encountered. files for which <tt class="docutils literal">p</tt> returns true are added, and directories for
+which <tt class="docutils literal">p</tt> returns true are traversed. <tt class="docutils literal">p</tt> must have the following signature:</p>
+<pre class="literal-block">
+bool Pred(std::string const&amp; p);
+</pre>
+<p>and for the wide string version:</p>
+<pre class="literal-block">
+bool Pred(std::wstring const&amp; p);
+</pre>
+<p>The path that is passed in to the predicate is the full path of the file or
+directory. If no predicate is specified, all files are added, and all directories
+are traveresed.</p>
+<p>The &quot;..&quot; directory is never traversed.</p>
+<p>The <tt class="docutils literal">flags</tt> argument should be the same as the flags passed to the <a class="reference internal" href="#create-torrent">create_torrent</a>
+constructor.</p>
+</div>
+<div class="section" id="set-piece-hashes">
+<h1>set_piece_hashes()</h1>
+<blockquote>
+<pre class="literal-block">
+template &lt;class Fun&gt;
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p, Fun f);
+template &lt;class Fun&gt;
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p, Fun f);
+template &lt;class Fun&gt;
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p, Fun f
+        , error_code&amp; ec);
+template &lt;class Fun&gt;
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p, Fun f
+        , error_code&amp; ec);
+
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p);
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p);
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p
+        , error_code&amp; ec);
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p
+        , error_code&amp; ec);
+</pre>
+</blockquote>
+<p>This function will assume that the files added to the torrent file exists at path
+<tt class="docutils literal">p</tt>, read those files and hash the content and set the hashes in the <tt class="docutils literal">create_torrent</tt>
+object. The optional function <tt class="docutils literal">f</tt> is called in between every hash that is set. <tt class="docutils literal">f</tt>
+must have the following signature:</p>
+<pre class="literal-block">
+void Fun(int);
+</pre>
+<p>The overloads that don't take an <tt class="docutils literal">error_code&amp;</tt> may throw an exception in case of a
+file error, the other overloads sets the error code to reflect the error, if any.</p>
+</div>
+<div class="section" id="file-storage">
+<h1>file_storage</h1>
+<p>The <tt class="docutils literal">file_storage</tt> class represents a file list and the piece
+size. Everything necessary to interpret a regular bittorrent storage
+file structure. Its synopsis:</p>
+<pre class="literal-block">
+class file_storage
+{
+public:
+
+        bool is_valid() const;
+
+        enum flags_t
+        {
+                pad_file = 1,
+                attribute_hidden = 2,
+                attribute_executable = 4
+        };
+
+        void add_file(file_entry const&amp; e);
+        void add_file(std::string const&amp; p, size_type size, int flags = 0);
+        void add_file(std::wstring const&amp; p, size_type size, int flags = 0);
+        void rename_file(int index, std::string const&amp; new_filename);
+        void rename_file(int index, std::wstring const&amp; new_filename);
+
+        std::vector&lt;file_slice&gt; map_block(int piece, size_type offset
+                , int size) const;
+        peer_request map_file(int file, size_type offset, int size) const;
+
+        typedef std::vector&lt;internal_file_entry&gt;::const_iterator iterator;
+        typedef std::vector&lt;internal_file_entry&gt;::const_reverse_iterator reverse_iterator;
+
+        iterator begin() const;
+        iterator end() const;
+        reverse_iterator rbegin();
+        reverse_iterator rend() const;
+        int num_files() const;
+
+        file_entry at(int index) const;
+
+        size_type total_size() const;
+        void set_num_pieces(int n);
+        int num_pieces() const;
+        void set_piece_length(int l);
+        int piece_length() const;
+        int piece_size(int index) const;
+
+        sha1_hash const&amp; hash(int index) const;
+        std::string const&amp; symlink(int index) const;
+        time_t mtime(int index) const;
+        int file_index(int index) const;
+        size_type file_base(int index) const;
+        void set_file_base(int index, size_type off);
+
+        void set_name(std::string const&amp; n);
+        void set_name(std::wstring const&amp; n);
+        const std::string&amp; name() const;
+
+        void swap(file_storage&amp; ti);
+}
+</pre>
+<div class="section" id="add-file">
+<h2>add_file()</h2>
+<blockquote>
+<pre class="literal-block">
+void add_file(file_entry const&amp; e);
+void add_file(std::string const&amp; p, size_type size, int flags = 0);
+void add_file(std::wstring const&amp; p, size_type size, int flags = 0);
+</pre>
+</blockquote>
+<p>Adds a file to the file storage. The <tt class="docutils literal">flags</tt> argument sets attributes on the file.
+The file attributes is an extension and may not work in all bittorrent clients.
+The possible arreibutes are:</p>
+<pre class="literal-block">
+pad_file
+attribute_hidden
+attribute_executable
+</pre>
+<p>If more files than one are added, certain restrictions to their paths apply.
+In a multi-file file storage (torrent), all files must share the same root directory.</p>
+<p>That is, the first path element of all files must be the same.
+This shared path element is also set to the name of the torrent. It
+can be changed by calling <tt class="docutils literal">set_name</tt>.</p>
+<p>The built in functions to traverse a directory to add files will
+make sure this requirement is fulfilled.</p>
+</div>
+<div class="section" id="hash-symlink-mtime-file-index">
+<h2>hash() symlink() mtime() file_index()</h2>
+<blockquote>
+<pre class="literal-block">
+sha1_hash hash(int index) const;
+std::string const&amp; symlink(int index) const;
+time_t mtime(int index) const;
+int file_index(int index) const;
+</pre>
+</blockquote>
+<p>These functions are used to query the symlink, file hash,
+modification time and the file-index from a file index.</p>
+<p>The file hash is a sha-1 hash of the file, or 0 if none was
+provided in the torrent file. This can potentially be used to
+join a bittorrent network with other file sharing networks.</p>
+<p>The modification time is the posix time when a file was last
+modified when the torrent was created, or 0 if it was not provided.</p>
+<p>The file index of a file is simply a 0 based index of the
+file as they are ordered in the torrent file.</p>
+</div>
+<div class="section" id="file-base-set-file-base">
+<h2>file_base() set_file_base()</h2>
+<blockquote>
+<pre class="literal-block">
+size_type file_base(int index) const;
+void set_file_base(int index, size_type off);
+</pre>
+</blockquote>
+<p>The file base of a file is the offset within the file on the filsystem
+where it starts to write. For the most part, this is always 0. It's
+possible to map several files (in the torrent) into a single file on
+the filesystem by making them all point to the same filename, but with
+different file bases, so that they don't overlap.
+<tt class="docutils literal"><span class="pre">torrent_info::remap_files</span></tt> can be used to use a new file layout.</p>
+</div>
+</div>
+<div class="section" id="create-torrent">
+<h1>create_torrent</h1>
+<p>The <tt class="docutils literal">create_torrent</tt> class has the following synopsis:</p>
+<pre class="literal-block">
+struct create_torrent
+{
+        enum {
+                optimize = 1
+                , merkle = 2
+                , modification_time = 4
+                , symlinks = 8
+                , calculate_file_hashes = 16
+        };
+        create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1
+                , int flags = optimize);
+        create_torrent(torrent_info const&amp; ti);
+
+        entry generate() const;
+
+        file_storage const&amp; files() const;
+
+        void set_comment(char const* str);
+        void set_creator(char const* str);
+        void set_hash(int index, sha1_hash const&amp; h);
+        void set_file_hash(int index, sha1_hash const&amp; h);
+        void add_url_seed(std::string const&amp; url);
+        void add_http_seed(std::string const&amp; url);
+        void add_node(std::pair&lt;std::string, int&gt; const&amp; node);
+        void add_tracker(std::string const&amp; url, int tier = 0);
+        void set_root_cert(std::string const&amp; pem);
+        void set_priv(bool p);
+
+        int num_pieces() const;
+        int piece_length() const;
+        int piece_size(int i) const;
+        bool priv() const;
+};
+</pre>
+<div class="section" id="id1">
+<h2>create_torrent()</h2>
+<blockquote>
+<pre class="literal-block">
+enum {
+        optimize = 1
+        , merkle = 2
+        , modification_time = 4
+        , symlinks = 8
+        , calculate_file_hashes = 16
+};
+create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1
+        , int flags = optimize);
+create_torrent(torrent_info const&amp; ti);
+</pre>
+</blockquote>
+<p>The <tt class="docutils literal">piece_size</tt> is the size of each piece in bytes. It must
+be a multiple of 16 kiB. If a piece size of 0 is specified, a
+piece_size will be calculated such that the torrent file is roughly 40 kB.</p>
+<p>If a <tt class="docutils literal">pad_size_limit</tt> is specified (other than -1), any file larger than
+the specified number of bytes will be preceeded by a pad file to align it
+with the start of a piece. The pad_file_limit is ignored unless the
+<tt class="docutils literal">optimize</tt> flag is passed. Typically it doesn't make sense to set this
+any lower than 4kiB.</p>
+<p>The overload that takes a <tt class="docutils literal">torrent_info</tt> object will make a verbatim
+copy of its info dictionary (to preserve the info-hash). The copy of
+the info dictionary will be used by <tt class="docutils literal">generate()</tt>. This means
+that none of the member functions of create_torrent that affects
+the content of the info dictionary (such as <tt class="docutils literal">set_hash()</tt>), will
+have any affect.</p>
+<p>The <tt class="docutils literal">flags</tt> arguments specifies options for the torrent creation. It can
+be any combination of the following flags:</p>
+<dl class="docutils">
+<dt>optimize</dt>
+<dd>This will insert pad files to align the files to piece boundaries, for
+optimized disk-I/O.</dd>
+<dt>merkle</dt>
+<dd>This will create a merkle hash tree torrent. A merkle torrent cannot
+be opened in clients that don't specifically support merkle torrents.
+The benefit is that the resulting torrent file will be much smaller and
+not grow with more pieces. When this option is specified, it is
+recommended to have a fairly small piece size, say 64 kiB.
+When creating merkle torrents, the full hash tree is also generated
+and should be saved off separately. It is accessed through  the
+<tt class="docutils literal">merkle_tree()</tt> function.</dd>
+<dt>modification_time</dt>
+<dd>This will include the file modification time as part of the torrent.
+This is not enabled by default, as it might cause problems when you
+create a torrent from separate files with the same content, hoping to
+yield the same info-hash. If the files have different modification times,
+with this option enabled, you would get different info-hashes for the
+files.</dd>
+<dt>symlink</dt>
+<dd>If this flag is set, files that are symlinks get a symlink attribute
+set on them and their data will not be included in the torrent. This
+is useful if you need to reconstruct a file hierarchy which contains
+symlinks.</dd>
+<dt>calculate_file_hashes</dt>
+<dd>If this is set, the <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a> function will, as it calculates
+the piece hashes, also calculate the file hashes and add those associated
+with each file. Note that unless you use the <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a> function,
+this flag will have no effect.</dd>
+</dl>
+</div>
+<div class="section" id="generate">
+<h2>generate()</h2>
+<blockquote>
+<pre class="literal-block">
+entry generate() const;
+</pre>
+</blockquote>
+<p>This function will generate the .torrent file as a bencode tree. In order to
+generate the flat file, use the bencode() function.</p>
+<p>It may be useful to add custom entries to the torrent file before bencoding it
+and saving it to disk.</p>
+<p>If anything goes wrong during torrent generation, this function will return
+an empty <tt class="docutils literal">entry</tt> structure. You can test for this condition by querying the
+type of the entry:</p>
+<pre class="literal-block">
+file_storage fs;
+// add file ...
+create_torrent t(fs);
+// add trackers and piece hashes ...
+e = t.generate();
+
+if (e.type() == entry::undefined_t)
+{
+        // something went wrong
+}
+</pre>
+<p>For instance, you cannot generate a torrent with 0 files in it. If you don't add
+any files to the <tt class="docutils literal">file_storage</tt>, torrent generation will fail.</p>
+</div>
+<div class="section" id="set-comment">
+<h2>set_comment()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_comment(char const* str);
+</pre>
+</blockquote>
+<p>Sets the comment for the torrent. The string <tt class="docutils literal">str</tt> should be utf-8 encoded.
+The comment in a torrent file is optional.</p>
+</div>
+<div class="section" id="set-creator">
+<h2>set_creator()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_creator(char const* str);
+</pre>
+</blockquote>
+<p>Sets the creator of the torrent. The string <tt class="docutils literal">str</tt> should be utf-8 encoded.
+This is optional.</p>
+</div>
+<div class="section" id="set-hash">
+<h2>set_hash()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_hash(int index, sha1_hash const&amp; h);
+</pre>
+</blockquote>
+<p>This sets the SHA-1 hash for the specified piece (<tt class="docutils literal">index</tt>). You are required
+to set the hash for every piece in the torrent before generating it. If you have
+the files on disk, you can use the high level convenience function to do this.
+See <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a>.</p>
+</div>
+<div class="section" id="set-file-hash">
+<h2>set_file_hash()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_file_hash(int index, sha1_hash const&amp; h);
+</pre>
+</blockquote>
+<p>This sets the sha1 hash for this file. This hash will end up under the key <tt class="docutils literal">sha1</tt>
+associated with this file (for multi-file torrents) or in the root info dictionary
+for single-file torrents.</p>
+</div>
+<div class="section" id="add-url-seed-add-http-seed">
+<h2>add_url_seed() add_http_seed()</h2>
+<blockquote>
+<pre class="literal-block">
+void add_url_seed(std::string const&amp; url);
+void add_http_seed(std::string const&amp; url);
+</pre>
+</blockquote>
+<p>This adds a url seed to the torrent. You can have any number of url seeds. For a
+single file torrent, this should be an HTTP url, pointing to a file with identical
+content as the file of the torrent. For a multi-file torrent, it should point to
+a directory containing a directory with the same name as this torrent, and all the
+files of the torrent in it.</p>
+<p>The second function, <tt class="docutils literal">add_http_seed()</tt> adds an HTTP seed instead.</p>
+</div>
+<div class="section" id="add-node">
+<h2>add_node()</h2>
+<blockquote>
+<pre class="literal-block">
+void add_node(std::pair&lt;std::string, int&gt; const&amp; node);
+</pre>
+</blockquote>
+<p>This adds a DHT node to the torrent. This especially useful if you're creating a
+tracker less torrent. It can be used by clients to bootstrap their DHT node from.
+The node is a hostname and a port number where there is a DHT node running.
+You can have any number of DHT nodes in a torrent.</p>
+</div>
+<div class="section" id="add-tracker">
+<h2>add_tracker()</h2>
+<blockquote>
+<pre class="literal-block">
+void add_tracker(std::string const&amp; url, int tier = 0);
+</pre>
+</blockquote>
+<p>Adds a tracker to the torrent. This is not strictly required, but most torrents
+use a tracker as their main source of peers. The url should be an <a class="reference external" href="http://">http://</a> or udp://
+url to a machine running a bittorrent tracker that accepts announces for this torrent's
+info-hash. The tier is the fallback priority of the tracker. All trackers with tier 0 are
+tried first (in any order). If all fail, trackers with tier 1 are tried. If all of those
+fail, trackers with tier 2 are tried, and so on.</p>
+</div>
+<div class="section" id="set-root-cert">
+<h2>set_root_cert()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_root_cert(std::string const&amp; pem);
+</pre>
+</blockquote>
+<p>This function sets an X.509 certificate in PEM format to the torrent. This makes the
+torrent an <em>SSL torrent</em>. An SSL torrent requires that each peer has a valid certificate
+signed by this root certificate. For SSL torrents, all peers are connecting over SSL
+connections. For more information on SSL torrents, see the <a class="reference external" href="manual.html#ssl-torrents">manual</a>.</p>
+<p>The string is not the path to the cert, it's the actual content of the certificate,
+loaded into a std::string.</p>
+</div>
+<div class="section" id="set-priv-priv">
+<h2>set_priv() priv()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_priv(bool p);
+bool priv() const;
+</pre>
+</blockquote>
+<p>Sets and queries the private flag of the torrent.</p>
+</div>
+<div class="section" id="merkle-tree">
+<h2>merkle_tree()</h2>
+<blockquote>
+<pre class="literal-block">
+std::vector&lt;sha1_hash&gt; const&amp; merkle_tree() const;
+</pre>
+</blockquote>
+<p>This function returns the merkle hash tree, if the torrent was created as a merkle
+torrent. The tree is created by <tt class="docutils literal">generate()</tt> and won't be valid until that function
+has been called. When creating a merkle tree torrent, the actual tree itself has to
+be saved off separately and fed into libtorrent the first time you start seeding it,
+through the <tt class="docutils literal"><span class="pre">torrent_info::set_merkle_tree()</span></tt> function. From that point onwards, the
+tree will be saved in the resume data.</p>
+</div>
+</div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
+</div>
+</body>
+</html>

@@ -1,0 +1,108 @@
+digraph no_download {
+
+	node [shape=box];
+
+	node_peers [label="Do you have any peers?\n(torrent_status::num_peers)"];
+	node_unchoked [label="Have any of the peers unchoked you?\n(peer_info::flags & peer_info::remote_unchoked)"];
+	node_error [label="Does the torrent have an error state?\n(torrent_status::error)"];
+	node_paused [label="Is the torrent paused?\n(torrent_status::paused)"];
+	node_end_error [label="The error string in the torrent describes what\nwent wrong in the torrent. This is typically\nindicative of a fatal error that, once resolved,\nrequires you to call torrent_handle::clear_error()\nto clear before resuming"];
+	node_tracker [label="Do you have any trackers in the torrent?\n(torrent_handle::trackers())"];
+	node_auto [label="Is the torrent auto managed?\n(torrent_status::auto_managed)"];
+	node_outstanding_reqs [label="Do you have any outstanding requests to any peer?\n(peer_info::download_queue_length)"];
+	node_interested [label="Are you interested in any peers?\n(peer_info::flags & peer_info::interesting)"];
+	node_tracker_peers [label="Did any tracker return any peers?\n(tracker_reply_alert::num_peers)"];
+
+	node_dht_enabled [label="Is DHT enabled?\n(session::is_dht_running())"];
+
+	node_dht_nodes [label="Do you see more than 5 DHT nodes?\n(session_status::dht_nodes)"]
+
+	node_peers_for_sure [label="Do you know for sure the torrent has peers?"];
+
+	node_peers_connected [label="Were any of the peers connected to?\n(peer_info::flags & peer_info::connecting)"];
+
+	node_end_wireshark_tracker [label="Wireshark the tracker announce\nfrom all your peers and make sure\nthey all send identical info-hashes."];
+
+	node_connect_speed [label="connect_speed, connection_limit, ip-filter"];
+
+	node_upload_mode [label="Is the torrent in upload mode?\n(torrent_status::upload_mode)"];
+	node_bwstate [label="What is the peer read_state set to?\n(peer_info::read_state)"];
+
+	node_dl_limit [label="There is a download rate limit in affect on your peers.\nDo you have a download rate limit set?\n(session_settings::download_rate_limit)"];
+
+	node_dl_disk [label="Peers are blocked waiting on the disk.\nThis typically means your disk is overloaded"];
+
+	node_dl_socket [label="The peer is listening on the socket,\nbut no data is coming down"];
+
+// end states
+
+	node_end_queued [label="This means the torrent is 'queued'. i.e. it will\nbe started once the torrents in front of it\ncompletes downloading. To know the queue\norder, see torrent_status::queue_position. To\nconfigure the number of simultaneous downloads,\nsee session_settings::active_limit and\nsession_settings::active_downloads."];
+
+	node_end_stopped [label="This means the torrent is\n'stopped'. To start it call\ntorrent_handle::resume()."];
+
+	node_end_no_peer_source [label="You don't have any peers and you don't\nhave a way to acquire peers. You either\nneed a torrent with a tracker or you need\nDHT to be enabled. The DHT will not help\nfor private torrents"];
+
+	node_end_dht_broken [label="The DHT is probably not working correctly.\nYou might want to add a DHT bootstrap node\nthrough session::add_dht_router(), or have a\ntorrent with DHT nodes in it, or peer\nconnections of peers that are part of the DHT\nnetwork."];
+
+	node_end_no_peers [label="The torrent you are trying to\ndownload may not have any peers,\n and all peers you may see are stale\nand not responding anymore."];
+
+	node_end_supply_demand [label="There might be a much higher demand\nthan supply in this torrent. Waiting\naround will probably get you unchoked\neventually."];
+
+	node_end_flash_crowd [label="The torrent might have a very large number\nof peers and only very few seeds. This sometimes\nhappens with torrents that gain popularity\nvery fast, much faster than the initial seed\nand early peers can keep up distributing\nto. Typically when this happens all your peers,\nand you, will get pieces in lock-step."];
+
+	node_end_no_download [label="This means the torrent is configured to not\ndownload anything. If you want to download,\ntake the torrent out of upload only mode. If\nthe disk the torrent is downloading to is full,\nor if writing to the disk failed in some way, the\ntorrent may have switched into upload mode\nautomatically"];
+	
+	node_peers -> node_error [label="no"];
+	node_peers -> node_unchoked [label="yes"];
+
+	node_error -> node_end_error [label="yes"];
+	node_error -> node_paused [label="no"];
+
+	node_paused -> node_auto [label="yes"];
+	node_paused -> node_tracker [label="no"];
+
+	node_auto -> node_end_queued [label="yes"];
+	node_auto -> node_end_stopped [label="no"];
+
+	node_tracker -> node_tracker_peers [label="yes"];
+	node_tracker -> node_dht_enabled [label="no"];
+
+	node_tracker_peers -> node_peers_for_sure [label="no"];
+	node_tracker_peers -> node_peers_connected [label="yes"];
+
+	node_peers_for_sure -> node_end_wireshark_tracker [label="yes"];
+	node_peers_for_sure -> node_dht_enabled [label="no"];
+
+	node_peers_connected -> node_connect_speed [label="no"];
+	node_peers_connected -> node_end_no_peers [label="yes"];
+
+	node_dht_enabled -> node_end_no_peer_source [label="no"];
+	node_dht_enabled -> node_dht_nodes [label="yes"];
+
+	node_dht_nodes -> node_end_dht_broken [label="no"];
+	node_dht_nodes -> node_end_no_peers [label="yes"];
+
+	node_unchoked -> node_outstanding_reqs [label="yes"];
+	node_unchoked -> node_interested [label="no"];
+
+	node_outstanding_reqs -> node_bwstate [label="yes"];
+	node_outstanding_reqs -> node_upload_mode [label="no"];
+
+	node_upload_mode -> node_end_flash_crowd [label="no"];
+	node_upload_mode -> node_end_no_download [label="yes"];
+
+	node_interested -> node_upload_mode [label="no"];
+	node_interested -> node_end_supply_demand [label="yes"];
+
+	node_bwstate -> "?" [label="peer_info::bw_idle"];
+	node_bwstate -> node_dl_limit [label="peer_info::bw_limit"];
+	node_bwstate -> node_dl_socket [label="peer_info::bw_network"];
+	node_bwstate -> node_dl_disk [label="peer_info::bw_disk"];
+
+	node_dl_limit -> "Your download rate limit may be set too low.\nKeep in mind that it is specified in bytes\nper second." [label="yes"];
+	node_dl_limit -> "mixed mode?" [label="no"];
+
+	node_dl_disk -> "e" [label="yes"];
+	node_dl_disk -> "f" [label="no"];
+}
+
