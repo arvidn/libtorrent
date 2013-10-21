@@ -72,13 +72,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <fcntl.h> // for F_LOG2PHYS
 #include <sys/types.h>
-#include <sys/statvfs.h>
 #include <errno.h>
 #include <dirent.h>
 
 #ifdef TORRENT_LINUX
 // linux specifics
 
+#include <sys/statvfs.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #ifdef HAVE_LINUX_FIEMAP_H
