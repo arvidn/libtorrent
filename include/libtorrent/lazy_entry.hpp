@@ -367,8 +367,41 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
-}
 
+	TORRENT_EXPORT boost::system::error_category& get_bdecode_category();
+
+	namespace bdecode_errors
+	{
+		// libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
+		// its own error category get_bdecode_category() whith the error codes defined by error_code_enum.
+		enum error_code_enum
+		{
+			// Not an error
+			no_error = 0,
+			// expected string in bencoded string
+			expected_string,
+			// expected colon in bencoded string
+			expected_colon,
+			// unexpected end of file in bencoded string
+			unexpected_eof,
+			// expected value (list, dict, int or string) in bencoded string
+			expected_value,
+			// bencoded recursion depth limit exceeded
+			depth_exceeded,
+			// bencoded item count limit exceeded
+			limit_exceeded,
+
+			// the number of error codes
+			error_code_max
+		};
+
+		// hidden
+		inline boost::system::error_code make_error_code(error_code_enum e)
+		{
+			return boost::system::error_code(e, get_bdecode_category());
+		}
+	}
+}
 
 #endif
 

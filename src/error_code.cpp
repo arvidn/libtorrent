@@ -40,6 +40,14 @@ namespace libtorrent
 {
 #if BOOST_VERSION >= 103500
 
+	struct libtorrent_error_category : boost::system::error_category
+	{
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
+		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
 	const char* libtorrent_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
 		return "libtorrent error";
@@ -239,6 +247,7 @@ namespace libtorrent
 			"udp tracker response packet has invalid size",
 			"invalid transaction id in udp tracker response",
 			"invalid action field in udp tracker response",
+#ifndef TORRENT_NO_DEPRECATE
 			"",
 			"",
 			"",
@@ -257,6 +266,7 @@ namespace libtorrent
 			"expected value (list, dict, int or string) in bencoded string",
 			"bencoded nesting depth exceeded",
 			"bencoded item count limit exceeded",
+#endif
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";
