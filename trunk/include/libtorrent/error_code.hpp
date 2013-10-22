@@ -416,7 +416,7 @@ namespace libtorrent
 			// invalid action field in udp tracker response
 			invalid_tracker_action,
 
-
+#ifndef TORRENT_NO_DEPRECATE
 			// expected string in bencoded string
 			expected_string = 190,
 			// expected colon in bencoded string
@@ -429,6 +429,7 @@ namespace libtorrent
 			depth_exceeded,
 			// bencoded item count limit exceeded
 			limit_exceeded,
+#endif
 
 			// the number of error codes
 			error_code_max
@@ -497,14 +498,6 @@ namespace libtorrent
 	}
 
 #else
-
-	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
 
 	struct TORRENT_EXPORT http_error_category : boost::system::error_category
 	{

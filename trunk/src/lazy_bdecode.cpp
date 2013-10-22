@@ -45,7 +45,7 @@ namespace libtorrent
 
 #define TORRENT_FAIL_BDECODE(code) \
 	{ \
-		ec = code; \
+		ec = make_error_code(code); \
 		while (!stack.empty()) { \
 			top = stack.back(); \
 			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) top->pop(); \
@@ -103,11 +103,11 @@ namespace libtorrent
 
 			lazy_entry* top = stack.back();
 
-			if (int(stack.size()) > depth_limit) TORRENT_FAIL_BDECODE(errors::depth_exceeded);
-			if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+			if (int(stack.size()) > depth_limit) TORRENT_FAIL_BDECODE(bdecode_errors::depth_exceeded);
+			if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 			char t = *start;
 			++start;
-			if (start >= end && t != 'e') TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+			if (start >= end && t != 'e') TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 			switch (top->type())
 			{
@@ -119,17 +119,17 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_string);
+					if (!is_digit(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_string);
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 3 > end || *start != ':')
-						TORRENT_FAIL_BDECODE(errors::expected_colon);
+						TORRENT_FAIL_BDECODE(bdecode_errors::expected_colon);
 					++start;
-					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
-					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
+					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
 					start += len;
-					if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					stack.push_back(ent);
 					t = *start;
 					++start;
@@ -144,7 +144,7 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
-					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
+					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
 					stack.push_back(ent);
 					break;
 				}
@@ -152,7 +152,7 @@ namespace libtorrent
 			}
 
 			--item_limit;
-			if (item_limit <= 0) TORRENT_FAIL_BDECODE(errors::limit_exceeded);
+			if (item_limit <= 0) TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
 			top = stack.back();
 			switch (t)
@@ -168,7 +168,7 @@ namespace libtorrent
 					char const* int_start = start;
 					start = find_char(start, end, 'e');
 					top->construct_int(int_start, start - int_start);
-					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					TORRENT_ASSERT(*start == 'e');
 					++start;
 					stack.pop_back();
@@ -177,12 +177,12 @@ namespace libtorrent
 				default:
 				{
 					if (!is_digit(t))
-						TORRENT_FAIL_BDECODE(errors::expected_value);
+						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 1 > end || *start != ':')
-						TORRENT_FAIL_BDECODE(errors::expected_colon);
+						TORRENT_FAIL_BDECODE(bdecode_errors::expected_colon);
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
@@ -555,5 +555,42 @@ namespace libtorrent
 		}
 		return ret;
 	}
+
+	struct bdecode_error_category : boost::system::error_category
+	{
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
+		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+	const char* bdecode_error_category::name() const BOOST_SYSTEM_NOEXCEPT
+	{
+		return "bdecode error";
+	}
+
+	std::string bdecode_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
+	{
+		static char const* msgs[] =
+		{
+			"no error",
+			"expected string in bencoded string",
+			"expected colon in bencoded string",
+			"unexpected end of file in bencoded string",
+			"expected value (list, dict, int or string) in bencoded string",
+			"bencoded nesting depth exceeded",
+			"bencoded item count limit exceeded",
+		};
+		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
+			return "Unknown error";
+		return msgs[ev];
+	}
+
+	boost::system::error_category& get_bdecode_category()
+	{
+		static bdecode_error_category bdecode_category;
+		return bdecode_category;
+	}
+
 };
 
