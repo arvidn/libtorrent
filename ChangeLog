@@ -25,6 +25,10 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* pass along host header with http proxy requests and possible http_connection shutdown hang
+
+0.16.12 release
+
 	* fix building with C++11
 	* fix IPv6 support in UDP socket (uTP)
 	* fix mingw build issues
