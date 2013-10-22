@@ -380,6 +380,7 @@ void test_transfer(settings_pack const& sett)
 		test_sleep(100);
 	}
 
+	st2 = tor2.status();
 	TEST_CHECK(st2.is_seeding);
 
 	// this allows shutting down the sessions in parallel

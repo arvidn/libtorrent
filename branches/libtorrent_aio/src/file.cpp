@@ -87,13 +87,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/statvfs.h>
 #include <errno.h>
 #include <dirent.h>
 
 #ifdef TORRENT_LINUX
 // linux specifics
 
+#include <sys/statvfs.h>
 #include <sys/ioctl.h>
 #include <asm/unistd.h> // For __NR_fallocate
 
