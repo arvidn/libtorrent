@@ -109,8 +109,12 @@ namespace libtorrent
 
 	struct cached_block_entry
 	{
-		cached_block_entry(): buf(0), refcount(0), hitcount(0)
-			, dirty(false), pending(false)
+		cached_block_entry()
+			: buf(0)
+			, refcount(0)
+			, dirty(false)
+			, hitcount(0)
+			, pending(false)
 		{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			hashing_count = 0;
@@ -129,23 +133,23 @@ namespace libtorrent
 		// is always the last to be cleared
 		boost::uint32_t refcount:15;
 
-		// the number of times this block has been copied out of
-		// the cache, serving a request.
-		boost::uint32_t hitcount:13;
-
 		// if this is true, this block needs to be written to
 		// disk before it's freed. Typically all blocks in a piece
 		// would either be dirty (write coalesce cache) or not dirty
 		// (read-ahead cache). Once blocks are written to disk, the
 		// dirty flag is cleared and effectively turns the block
 		// into a read cache block
-		bool dirty:1;
+		boost::uint32_t dirty:1;
+
+		// the number of times this block has been copied out of
+		// the cache, serving a request.
+		boost::uint32_t hitcount:15;
 
 		// pending means that this buffer has not yet been filled in
 		// with valid data. There's an outstanding read job for this.
 		// If the dirty flag is set, it means there's an outstanding
 		// write job to write this block.
-		bool pending:1;
+		boost::uint32_t pending:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// this many of the references are held by hashing operations

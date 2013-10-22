@@ -368,7 +368,7 @@ namespace libtorrent
 				slot = i->second;
 			write_uint32(slot, ptr);
 		}
-		memset(ptr, 0, m_header_size - (ptr - header.get()));
+		memset(ptr, 0, m_header_size - (ptr - (char*)header.get()));
 
 #ifdef TORRENT_USE_VALGRIND
 		VALGRIND_CHECK_MEM_IS_DEFINED(header.get(), m_header_size);
