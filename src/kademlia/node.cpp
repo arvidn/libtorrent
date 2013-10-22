@@ -1117,7 +1117,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				dht_mutable_item const& f = i->second;
 				reply["v"] = bdecode(f.value, f.value + f.size);
 				reply["seq"] = f.seq;
-				reply["sig"] = std::string(f.sig, f.sig + 256);
+				reply["sig"] = std::string(f.sig, f.sig + sizeof(f.sig));
 				reply["k"] = std::string(f.key.bytes, f.key.bytes + sizeof(f.key.bytes));
 			}
 		}
