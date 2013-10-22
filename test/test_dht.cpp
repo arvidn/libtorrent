@@ -41,13 +41,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
-#include <iostream>
+#include <numeric>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
+#endif
+
+#if TORRENT_USE_IOSTREAM
+#include <iostream>
 #endif
 
 using namespace libtorrent;
@@ -322,6 +326,11 @@ struct print_alert : alert_dispatcher
 		return true;
 	}
 };
+
+int sum_distance_exp(int s, node_entry const& e, node_id const& ref)
+{
+	return s + distance_exp(e.id, ref);
+}
 
 // TODO: 3 test find_data, obfuscated_get_peers and bootstrap
 int test_main()
@@ -988,9 +997,15 @@ int test_main()
 		}
 	}
 
-	// test kademlia functions
-
+	// test node-id functions
 	using namespace libtorrent::dht;
+
+	TEST_EQUAL(generate_prefix_mask(1), to_hash("8000000000000000000000000000000000000000"));
+	TEST_EQUAL(generate_prefix_mask(2), to_hash("c000000000000000000000000000000000000000"));
+	TEST_EQUAL(generate_prefix_mask(11), to_hash("ffe0000000000000000000000000000000000000"));
+	TEST_EQUAL(generate_prefix_mask(17), to_hash("ffff800000000000000000000000000000000000"));
+
+	// test kademlia functions
 
 	// this is a bit too expensive to do under valgrind
 #ifndef TORRENT_USE_VALGRIND
@@ -1022,6 +1037,7 @@ int test_main()
 	{
 		// test kademlia routing table
 		dht_settings s;
+		s.extended_routing_table = false;
 		//	s.restrict_routing_ips = false;
 		node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 		const int bucket_size = 10;
@@ -1124,7 +1140,7 @@ int test_main()
 		}
 		printf("active buckets: %d\n", table.num_active_buckets());
 		TEST_EQUAL(table.num_active_buckets(), 10);
-		TEST_CHECK(table.size().get<0>() > 10 * 10);
+		TEST_CHECK(table.size().get<0>() >= 10 * 10);
 		//#error test num_global_nodes
 		//#error test need_refresh
 
@@ -1134,60 +1150,54 @@ int test_main()
 
 		table.for_each_node(node_push_back, nop, &nodes);
 
-		std::cout << "nodes: " << nodes.size() << std::endl;
+		printf("nodes: %d\n", int(nodes.size()));
 
 		std::vector<node_entry> temp;
 
 		std::generate(tmp.begin(), tmp.end(), &std::rand);
 		table.find_node(tmp, temp, 0, nodes.size() * 2);
-		std::cout << "returned: " << temp.size() << std::endl;
+		printf("returned-all: %d\n", int(temp.size()));
 		TEST_EQUAL(temp.size(), nodes.size());
 
-		std::generate(tmp.begin(), tmp.end(), &std::rand);
-		table.find_node(tmp, temp, 0, bucket_size);
-		std::cout << "returned: " << temp.size() << std::endl;
-		TEST_EQUAL(temp.size(), bucket_size);
-
-		std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
-				, boost::bind(&node_entry::id, _1)
-				, boost::bind(&node_entry::id, _2), tmp));
-
-		int hits = 0;
 		// This makes sure enough of the nodes returned are actually
 		// part of the closest nodes
-		for (std::vector<node_entry>::iterator i = temp.begin()
-			, end(temp.end()); i != end; ++i)
+		std::set<node_id> duplicates;
+
+#ifdef TORRENT_USE_VALGRIND
+		const int reps = 3;
+#else
+		const int reps = 50;
+#endif
+
+		for (int r = 0; r < reps; ++r)
 		{
-			int hit = std::find_if(nodes.begin(), nodes.end()
-				, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
-			std::cerr << hit << std::endl;
-			if (hit < int(temp.size())) ++hits;
+			std::generate(tmp.begin(), tmp.end(), &std::rand);
+			table.find_node(tmp, temp, 0, bucket_size * 2);
+			printf("returned: %d\n", int(temp.size()));
+			TEST_EQUAL(int(temp.size()), (std::min)(bucket_size * 2, int(nodes.size())));
+
+			std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
+					, boost::bind(&node_entry::id, _1)
+					, boost::bind(&node_entry::id, _2), tmp));
+
+			int expected = std::accumulate(nodes.begin(), nodes.begin() + (bucket_size * 2)
+				, 0, boost::bind(&sum_distance_exp, _1, _2, tmp));
+			int sum_hits = std::accumulate(temp.begin(), temp.end()
+				, 0, boost::bind(&sum_distance_exp, _1, _2, tmp));
+			TEST_EQUAL(bucket_size * 2, int(temp.size()));
+			printf("expected: %d actual: %d\n", expected, sum_hits);
+			TEST_EQUAL(expected, sum_hits);
+
+			duplicates.clear();
+			// This makes sure enough of the nodes returned are actually
+			// part of the closest nodes
+			for (std::vector<node_entry>::iterator i = temp.begin()
+				, end(temp.end()); i != end; ++i)
+			{
+				TEST_CHECK(duplicates.count(i->id) == 0);
+				duplicates.insert(i->id);
+			}
 		}
-		std::cout << "hits: " << hits << std::endl;
-		TEST_EQUAL(hits, int(temp.size()));
-
-		std::generate(tmp.begin(), tmp.end(), &std::rand);
-		table.find_node(tmp, temp, 0, bucket_size * 2);
-		std::cout << "returned: " << temp.size() << std::endl;
-		TEST_EQUAL(int(temp.size()), (std::min)(bucket_size * 2, int(nodes.size())));
-
-		std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
-				, boost::bind(&node_entry::id, _1)
-				, boost::bind(&node_entry::id, _2), tmp));
-
-		hits = 0;
-		// This makes sure enough of the nodes returned are actually
-		// part of the closest nodes
-		for (std::vector<node_entry>::iterator i = temp.begin()
-			, end(temp.end()); i != end; ++i)
-		{
-			int hit = std::find_if(nodes.begin(), nodes.end()
-				, boost::bind(&node_entry::id, _1) == i->id) - nodes.begin();
-			std::cerr << hit << std::endl;
-			if (hit < int(temp.size())) ++hits;
-		}
-		std::cout << "hits: " << hits << std::endl;
-		TEST_EQUAL(hits, int(temp.size()));
 
 		using namespace libtorrent::dht;
 

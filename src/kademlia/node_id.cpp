@@ -181,5 +181,14 @@ bool matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index
 	return (id[0] & mask) == prefix;
 }
 
+node_id generate_prefix_mask(int bits)
+{
+	node_id mask(0);
+	int b = 0;
+	for (; b < bits - 7; b += 8) mask[b/8] |= 0xff;
+	mask[b/8] |= 0xff << (8 - (bits&7));
+	return mask;
+}
+
 } }  // namespace libtorrent::dht
 
