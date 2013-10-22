@@ -31,12 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/escape_string.hpp"
 #include <cstring>
-
-#if TORRENT_USE_IOSTREAM
-#include <iostream>
-#endif
 
 namespace
 {
@@ -200,7 +195,7 @@ namespace libtorrent
 		return 0;
 	}
 
-	size_type lazy_entry::int_value() const
+	boost::int64_t lazy_entry::int_value() const
 	{
 		TORRENT_ASSERT(m_type == int_t);
 		boost::int64_t val = 0;
@@ -325,7 +320,7 @@ namespace libtorrent
 		return e;
 	}
 
-	size_type lazy_entry::dict_find_int_value(char const* name, size_type default_val) const
+	boost::int64_t lazy_entry::dict_find_int_value(char const* name, boost::int64_t default_val) const
 	{
 		lazy_entry const* e = dict_find(name);
 		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
@@ -399,7 +394,7 @@ namespace libtorrent
 		return e->string_pstr();
 	}
 
-	size_type lazy_entry::list_int_value_at(int i, size_type default_val) const
+	boost::int64_t lazy_entry::list_int_value_at(int i, boost::int64_t default_val) const
 	{
 		lazy_entry const* e = list_at(i);
 		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
@@ -458,7 +453,7 @@ namespace libtorrent
 			break;
 		case lazy_entry::int_t:
 		{
-			size_type val = e.int_value();
+			boost::int64_t val = e.int_value();
 			while (val > 0)
 			{
 				++line_len;
