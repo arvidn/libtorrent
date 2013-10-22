@@ -46,22 +46,24 @@ def style_output(logfile, outfile):
 		l = l.replace('<', '&lt;')
 		l = l.replace('>', '&gt;')
 		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
-			' second time limit exceeded' in l or l.startswith('signal: SIG'):
+			' second time limit exceeded' in l or l.startswith('signal: SIG') or \
+			'jump or move depends on uninitialised value(s)' in l or \
+			'Invalid read of size' in l or \
+			'Invalid write of size' in l or \
+			'Use of uninitialised value of size' in l or \
+			'Uninitialised byte(s) found during' in l or \
+			'points to uninitialised byte(s)' in l:
 			print >>outfile, '<span class="test-error">%s</span>' % l
 		elif '**passed**' in l:
 			print >>outfile, '<span class="test-pass">%s</span>' % l
 		elif ': error: ' in l or ': fatal error: ' in l or ' : fatal error ' in l or \
 			'failed to write output file' in l or ') : error C' in l or \
-			' : error LNK' in l or ': undefined reference to ' in l or \
-			'jump or move depends on uninitialised value(s)' in l or \
-			'Invalid read of size' in l or \
-			'Invalid write of size' in l or \
-			'Use of uninitialised value of size' in l or \
-			'Uninitialised byte(s) found during' in l:
+			' : error LNK' in l or ': undefined reference to ' in l:
 			print >>outfile, '<span class="compile-error">%s</span>' % l
 		elif ': warning: ' in l or ') : warning C' in l or \
 			'Uninitialised value was created by a' in l or \
-			'bytes after a block of size' in l:
+			'bytes after a block of size' in l or \
+			'bytes inside a block of size' in l:
 			print >>outfile, '<span class="compile-warning">%s</span>' % l.strip()
 		elif l == '====== END OUTPUT ======' and not subtle:
 			print >>outfile, '<span class="subtle">%s' % l
