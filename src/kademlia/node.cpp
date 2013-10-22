@@ -961,12 +961,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			// mutable put, we must verify the signature
 			// generate the message digest by merging the sequence number and the
 
-			char seq[1020];
+			char seq[1100];
 			int len = snprintf(seq, sizeof(seq), "3:seqi%" PRId64 "e1:v", msg_keys[2]->int_value());
 			std::pair<char const*, int> buf = msg_keys[1]->data_section();
 			memcpy(seq + len, buf.first, buf.second);
 			len += buf.second;
-			TORRENT_ASSERT(len <= 1020);
+			TORRENT_ASSERT(len <= 1100);
 
 #ifdef TORRENT_USE_VALGRIND
 			VALGRIND_CHECK_MEM_IS_DEFINED(buf.first, buf.second);
@@ -977,7 +977,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
 			if (ed25519_verify((unsigned char const*)msg_keys[4]->string_ptr()
 				, (unsigned char const*)seq, len
-				, (unsigned char const*)msg_keys[3]->string_ptr()) != 0)
+				, (unsigned char const*)msg_keys[3]->string_ptr()) != 1)
 			{
 				incoming_error(e, "invalid signature", 206);
 				return;

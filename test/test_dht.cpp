@@ -683,7 +683,8 @@ int test_main()
 	int pos = snprintf(buffer, sizeof(buffer), "3:seqi%de1:v", seq);
 	char* ptr = buffer + pos;
 	pos += bencode(ptr, items[0].ent);
-	ed25519_sign(signature, (unsigned char*)buffer, pos, private_key, public_key);
+	ed25519_sign(signature, (unsigned char*)buffer, pos, public_key, private_key);
+	TEST_EQUAL(ed25519_verify(signature, (unsigned char*)buffer, pos, public_key), 1);
 #ifdef TORRENT_USE_VALGRIND
 	VALGRIND_CHECK_MEM_IS_DEFINED(signature, 64);
 #endif
@@ -747,6 +748,47 @@ int test_main()
 
 	}
 
+	// also test that invalid signatures fail!
+
+	pos = snprintf(buffer, sizeof(buffer), "3:seqi%de1:v", seq);
+	ptr = buffer + pos;
+	pos += bencode(ptr, items[0].ent);
+	ed25519_sign(signature, (unsigned char*)buffer, pos, public_key, private_key);
+	TEST_EQUAL(ed25519_verify(signature, (unsigned char*)buffer, pos, public_key), 1);
+#ifdef TORRENT_USE_VALGRIND
+	VALGRIND_CHECK_MEM_IS_DEFINED(signature, 64);
+#endif
+	// break the signature 
+	signature[2] ^= 0xaa;
+
+	TEST_CHECK(ed25519_verify(signature, (unsigned char*)buffer, pos, public_key) != 1);
+
+	send_dht_msg(node, "put", source, &response, "10", 0
+		, 0, token, 0, 0, &items[0].ent, false, false
+		, std::string((char*)public_key, 32)
+		, std::string((char*)signature, 64), seq);
+
+	key_desc_t desc_error[] =
+	{
+		{ "e", lazy_entry::list_t, 2, 0 },
+		{ "y", lazy_entry::string_t, 1, 0},
+	};
+
+	ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
+	if (ret)
+	{
+		fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
+		TEST_EQUAL(parsed[1]->string_value(), "e");
+		// 206 is the code for invalid signature
+		TEST_EQUAL(parsed[0]->list_int_value_at(0), 206);
+	}
+	else
+	{
+		fprintf(stderr, "   invalid put response: %s\n%s\n"
+			, error_string, print_entry(response).c_str());
+		TEST_ERROR(error_string);
+	}
+
 	// === test CAS put ===
 
 	// this is the hash that we expect to be there
@@ -757,7 +799,8 @@ int test_main()
 	ptr = buffer + pos;
 	// put item 1
 	pos += bencode(ptr, items[1].ent);
-	ed25519_sign(signature, (unsigned char*)buffer, pos, private_key, public_key);
+	ed25519_sign(signature, (unsigned char*)buffer, pos, public_key, private_key);
+	TEST_EQUAL(ed25519_verify(signature, (unsigned char*)buffer, pos, public_key), 1);
 #ifdef TORRENT_USE_VALGRIND
 	VALGRIND_CHECK_MEM_IS_DEFINED(signature, 64);
 #endif
@@ -791,14 +834,7 @@ int test_main()
 		, std::string((char*)signature, 64), seq
 		, (char const*)&cas[0]);
 
-
-	key_desc_t desc4[] =
-	{
-		{ "e", lazy_entry::list_t, 2, 0 },
-		{ "y", lazy_entry::string_t, 1, 0},
-	};
-
-	ret = verify_message(&response, desc4, parsed, 2, error_string, sizeof(error_string));
+	ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
 	if (ret)
 	{
 		fprintf(stderr, "put response: %s\n"
