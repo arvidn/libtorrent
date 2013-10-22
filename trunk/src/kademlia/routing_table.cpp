@@ -290,8 +290,7 @@ bool routing_table::need_refresh(node_id& target) const
 	// generate a random node_id within the given bucket
 	target = generate_random_id();
 	int num_bits = std::distance(m_buckets.begin(), i) + 1;
-	node_id mask(0);
-	for (int i = 0; i < num_bits; ++i) mask[i/8] |= 0x80 >> (i&7);
+	node_id mask = generate_prefix_mask(num_bits);
 
 	// target = (target & ~mask) | (root & mask)
 	node_id root = m_id;
