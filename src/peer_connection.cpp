@@ -1147,8 +1147,8 @@ namespace libtorrent
 
 	boost::uint32_t peer_connection::peer_rank() const
 	{
-		return m_peer_info->rank(m_ses.external_address()
-			, m_ses.listen_port());
+		return m_peer_info == NULL ? 0
+			: m_peer_info->rank(m_ses.external_address(), m_ses.listen_port());
 	}
 
 	// message handlers
