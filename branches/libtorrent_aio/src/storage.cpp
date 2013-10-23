@@ -180,7 +180,7 @@ namespace libtorrent
 		}
 	}
 
-	TORRENT_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs)
+	TORRENT_EXTRA_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs)
 	{
 		int size = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
