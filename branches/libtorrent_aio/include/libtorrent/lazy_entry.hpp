@@ -39,12 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/error_code.hpp"
-
-#if TORRENT_USE_IOSTREAM
-#include <iosfwd>
-#endif
 
 namespace libtorrent
 {
@@ -166,7 +161,7 @@ namespace libtorrent
 		}
 
 		// if this is an integer, return the integer value
-		size_type int_value() const;
+		boost::int64_t int_value() const;
 
 		// internal
 		void construct_string(char const* start, int length);
@@ -241,7 +236,7 @@ namespace libtorrent
 		// if this is a dictionary, look for a key ``name`` whose value
 		// is an int. If such key exist, return a pointer to its value,
 		// otherwise NULL.
-		size_type dict_find_int_value(char const* name, size_type default_val = 0) const;
+		boost::int64_t dict_find_int_value(char const* name, boost::int64_t default_val = 0) const;
 		lazy_entry const* dict_find_int(char const* name) const;
 
 		lazy_entry const* dict_find_dict(char const* name) const;
@@ -283,7 +278,7 @@ namespace libtorrent
 
 		std::string list_string_value_at(int i) const;
 		pascal_string list_pstr_at(int i) const;
-		size_type list_int_value_at(int i, size_type default_val = 0) const;
+		boost::int64_t list_int_value_at(int i, boost::int64_t default_val = 0) const;
 
 		// if this is a list, return the number of items in it.
 		int list_size() const
@@ -372,8 +367,41 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
-}
 
+	TORRENT_EXPORT boost::system::error_category& get_bdecode_category();
+
+	namespace bdecode_errors
+	{
+		// libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
+		// its own error category get_bdecode_category() whith the error codes defined by error_code_enum.
+		enum error_code_enum
+		{
+			// Not an error
+			no_error = 0,
+			// expected string in bencoded string
+			expected_string,
+			// expected colon in bencoded string
+			expected_colon,
+			// unexpected end of file in bencoded string
+			unexpected_eof,
+			// expected value (list, dict, int or string) in bencoded string
+			expected_value,
+			// bencoded recursion depth limit exceeded
+			depth_exceeded,
+			// bencoded item count limit exceeded
+			limit_exceeded,
+
+			// the number of error codes
+			error_code_max
+		};
+
+		// hidden
+		inline boost::system::error_code make_error_code(error_code_enum e)
+		{
+			return boost::system::error_code(e, get_bdecode_category());
+		}
+	}
+}
 
 #endif
 
