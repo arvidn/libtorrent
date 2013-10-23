@@ -66,6 +66,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include <boost/scoped_array.hpp>
 
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 namespace
 {
 	// round up to even kilobyte
