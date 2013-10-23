@@ -54,6 +54,8 @@ namespace libtorrent
 		if (error_pos) *error_pos = start - orig_start; \
 		return -1; \
 	}
+	namespace { bool numeric(char c) { return c >= '0' && c <= '9'; } }
+
 	// fills in 'val' with what the string between start and the
 	// first occurance of the delimiter is interpreted as an int.
 	// return the pointer to the delimiter, or 0 if there is a
@@ -62,7 +64,7 @@ namespace libtorrent
 	{
 		while (start < end && *start != delimiter)
 		{
-			if (!is_digit(*start)) { return 0; }
+			if (!numeric(*start)) { return 0; }
 			val *= 10;
 			val += *start - '0';
 			++start;
@@ -119,7 +121,7 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!is_digit(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_string);
+					if (!numeric(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_string);
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
 					if (start == 0 || start + len + 3 > end || *start != ':')
@@ -176,7 +178,7 @@ namespace libtorrent
 				}
 				default:
 				{
-					if (!is_digit(t))
+					if (!numeric(t))
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
 					boost::int64_t len = t - '0';
@@ -495,8 +497,8 @@ namespace libtorrent
 				char const* str = e.string_ptr();
 				for (int i = 0; i < e.string_length(); ++i)
 				{
-					using namespace std;
-					if (is_print((unsigned char)str[i])) continue;
+					char c = str[i];
+					if (c >= 32 && c < 127) continue;
 					printable = false;
 					break;
 				}
