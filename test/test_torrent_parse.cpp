@@ -71,6 +71,7 @@ test_torrent_t test_torrents[] =
 	{ "url_seed_multi_space.torrent" },
 	{ "url_seed_multi_space_nolist.torrent" },
 	{ "root_hash.torrent" },
+	{ "empty_path_multi.torrent" },
 };
 
 struct test_failing_torrent_t
