@@ -45,7 +45,10 @@ def style_output(logfile, outfile):
 		l = l.encode('utf-8')
 		l = l.replace('<', '&lt;')
 		l = l.replace('>', '&gt;')
-		if 'TEST_CHECK' in l or 'TEST_EQUAL_ERROR' in l or l.startswith('EXIT STATUS: ') or \
+		if 'TEST_CHECK' in l or \
+			'TEST_EQUAL_ERROR' in l or \
+			'"ERROR: "' in l or \
+			l.startswith('EXIT STATUS: ') or \
 			' second time limit exceeded' in l or l.startswith('signal: SIG') or \
 			'jump or move depends on uninitialised value(s)' in l or \
 			'Invalid read of size' in l or \

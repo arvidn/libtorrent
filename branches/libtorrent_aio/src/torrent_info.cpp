@@ -185,8 +185,6 @@ namespace libtorrent
 
 	void sanitize_append_path_element(std::string& path, char const* element, int element_len)
 	{
-		if (element_len == 0) return;
-
 		if (element_len == 1 && element[0] == '.') return;
 
 #ifdef TORRENT_WINDOWS
@@ -200,6 +198,12 @@ namespace libtorrent
 		{
 			path += TORRENT_SEPARATOR;
 			added_separator = 1;
+		}
+
+		if (element_len == 0)
+		{
+			path += "_";
+			return;
 		}
 
 #if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS

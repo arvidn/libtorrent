@@ -125,6 +125,7 @@ int test_main()
 	TEST_EQUAL(extension("blah.exe"), ".exe");
 	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
 	TEST_EQUAL(extension("blah.foo."), ".");
+	TEST_EQUAL(extension("blah.foo/bar"), "");
 
 	TEST_EQUAL(remove_extension("blah"), "blah");
 	TEST_EQUAL(remove_extension("blah.exe"), "blah");
@@ -213,6 +214,15 @@ int test_main()
 	std::string test = "foo.bar";
 	replace_extension(test, "txt");
 	TEST_EQUAL(test, "foo.txt");
+
+	test = "_";
+	replace_extension(test, "txt");
+	TEST_EQUAL(test, "_.txt");
+
+	test = "1.2.3/_";
+	replace_extension(test, "txt");
+	TEST_EQUAL(test, "1.2.3/_.txt");
+
 
 	// file class
 	file f;
