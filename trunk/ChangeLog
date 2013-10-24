@@ -25,6 +25,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix issue when loading certain malformed .torrent files
 	* pass along host header with http proxy requests and possible http_connection shutdown hang
 
 0.16.12 release

@@ -409,16 +409,33 @@ namespace libtorrent
 
 	std::string extension(std::string const& f)
 	{
-		char const* ext = strrchr(f.c_str(), '.');
-		if (ext == 0) return "";
-		return ext;
+		for (int i = f.size() - 1; i >= 0; --i)
+		{
+			if (f[i] == '/') break;
+#ifdef TORRENT_WINDOWS
+			if (f[i] == '\\') break;
+#endif
+			if (f[i] != '.') continue;
+			return f.substr(i);
+		}
+		return "";
 	}
 
 	void replace_extension(std::string& f, std::string const& ext)
 	{
-		char const* e = strrchr(f.c_str(), '.');
-		if (e == 0) f += '.';
-		else f.resize(e - f.c_str() + 1);
+		for (int i = f.size() - 1; i >= 0; --i)
+		{
+			if (f[i] == '/') break;
+#ifdef TORRENT_WINDOWS
+			if (f[i] == '\\') break;
+#endif
+
+			if (f[i] != '.') continue;
+
+			f.resize(i);
+			break;
+		}
+		f += '.';
 		f += ext;
 	}
 
