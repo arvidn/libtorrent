@@ -8893,7 +8893,7 @@ namespace libtorrent
 		m_announcing = true;
 
 #ifndef TORRENT_DISABLE_DHT
-		if ((!m_policy || m_policy->num_peers()) < 50 && m_ses.dht())
+		if ((!m_policy || m_policy->num_peers() < 50) && m_ses.dht())
 		{
 			// we don't have any peers, prioritize
 			// announcing this torrent with the DHT
