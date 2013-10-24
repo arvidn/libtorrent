@@ -60,6 +60,7 @@ test_torrent_t test_torrents[] =
 	{ "duplicate_files.torrent" },
 	{ "pad_file.torrent" },
 	{ "creation_date.torrent" },
+	{ "empty_path_multi.torrent" },
 };
 
 struct test_failing_torrent_t
