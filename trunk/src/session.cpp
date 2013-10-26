@@ -1312,7 +1312,7 @@ namespace libtorrent
 		, no_recheck_incomplete_resume(false)
 		, anonymous_mode(true)
 		, force_proxy(false)
-		, tick_interval(100)
+		, tick_interval(500)
 		, report_web_seed_downloads(true)
 		, share_mode_target(3)
 		, upload_rate_limit(0)
