@@ -267,10 +267,11 @@ obfuscated_get_peers::obfuscated_get_peers(
 	, nodes_callback const& ncallback
 	, bool noseeds)
 	: find_data(node, info_hash, dcallback, ncallback, noseeds)
+	, m_obfuscated(true)
 {
 }
 
-char const* obfuscated_get_peers::name() const { return "get_peers [obfuscated]"; }
+char const* obfuscated_get_peers::name() const { return !m_obfuscated ? find_data::name() : "get_peers [obfuscated]"; }
 
 observer_ptr obfuscated_get_peers::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
@@ -284,6 +285,34 @@ observer_ptr obfuscated_get_peers::new_observer(void* ptr
 
 bool obfuscated_get_peers::invoke(observer_ptr o)
 {
+	if (!m_obfuscated) return find_data::invoke(o);
+
+	node_id id = o->id();
+	int shared_prefix = 160 - distance_exp(id, m_target);
+
+	// when we get close to the target zone in the DHT
+	// start using the correct info-hash, in order to
+	// start receiving peers
+	if (shared_prefix > m_node.m_table.depth() - 10)
+	{
+		m_obfuscated = false;
+		// clear the queried bits on all successful nodes in
+		// our node-list for this traversal algorithm, to
+		// allow the get_peers traversal to regress in case
+		// nodes further down end up being dead
+		for (std::vector<observer_ptr>::iterator i = m_results.begin()
+			, end(m_results.end()); i != end; ++i)
+		{
+			observer* o = i->get();
+			// don't re-request from nodes that didn't respond
+			if (o->flags & observer::flag_failed) continue;
+			// don't interrupt with queries that are already in-flight
+			if ((o->flags & observer::flag_alive) == 0) continue;
+			o->flags &= ~(observer::flag_queried | observer::flag_alive);
+		}
+		return find_data::invoke(o);
+	}
+
 	entry e;
 	e["y"] = "q";
 	e["q"] = "find_node";
@@ -294,9 +323,6 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	// on the DHT. This is done by only including enough
 	// bits in the info-hash for the node we're querying to
 	// give a good answer, but not more.
-
-	node_id id = o->id();
-	int shared_prefix = 160 - distance_exp(id, m_target);
 
 	// now, obfuscate the bits past shared_prefix + 5
 	node_id obfuscated_target = generate_random_id();
@@ -309,6 +335,11 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 
 void obfuscated_get_peers::done()
 {
+	if (!m_obfuscated) return find_data::done();
+
+	// oops, we failed to switch over to the non-obfuscated
+	// mode early enough. do it now
+
 	boost::intrusive_ptr<find_data> ta(new find_data(m_node, m_target
 		, m_data_callback
 		, m_nodes_callback
@@ -327,11 +358,11 @@ void obfuscated_get_peers::done()
 
 	int num_added = 0;
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end && num_added < 10; ++i)
+		, end(m_results.end()); i != end && num_added < 16; ++i)
 	{
 		observer_ptr o = *i;
 
-		// only add nodes whose node ID we knoe and that
+		// only add nodes whose node ID we know and that
 		// we know are alive
 		if (o->flags & observer::flag_no_id) continue;
 		if ((o->flags & observer::flag_alive) == 0) continue;
