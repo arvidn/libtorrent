@@ -1300,12 +1300,18 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action, block));
 #endif
-		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j);
+		// as soon we insert the blocks they may be evicted
+		// (if using purgeable memory). In order to prevent that
+		// until we can read from them, increment the refcounts
+		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j, block_cache::blocks_inc_refcount);
 
 		int tmp = m_disk_cache.try_read(j, false);
 		TORRENT_ASSERT(tmp >= 0);
 
 		maybe_issue_queued_read_jobs(pe, completed_jobs);
+
+		for (int i = 0; i < iov_len; ++i, ++block)
+			m_disk_cache.dec_block_refcount(pe, block, block_cache::ref_reading);
 
 		return j->d.io.buffer_size;
 	}

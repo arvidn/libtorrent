@@ -1137,7 +1137,7 @@ void block_cache::free_iovec(file::iovec_t* iov, int iov_len)
 }
 
 void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
-	, int iov_len, disk_io_job* j)
+	, int iov_len, disk_io_job* j, int flags)
 {
 	INVARIANT_CHECK;
 
@@ -1164,6 +1164,11 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		TORRENT_PIECE_ASSERT(is_disk_buffer((char*)iov[i].iov_base), pe);
 #endif
 
+		if (pe->blocks[block].buf && (flags & blocks_inc_refcount))
+		{
+			inc_block_refcount(pe, block, ref_reading);
+		}
+
 		// either free the block or insert it. Never replace a block
 		if (pe->blocks[block].buf)
 		{
@@ -1181,27 +1186,35 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			++pe->num_blocks;
 			++m_read_cache_size;
 
-#if TORRENT_USE_PURGABLE_CONTROL
-			// volatile read blocks are group 0, regular reads are group 1
-			int state = VM_PURGABLE_VOLATILE | ((j->flags & disk_io_job::volatile_read) ? VM_VOLATILE_GROUP_0 : VM_VOLATILE_GROUP_1);
-			kern_return_t ret = vm_purgable_control(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-				VM_PURGABLE_SET_STATE,
-				&state);
-#ifdef TORRENT_DEBUG
-//			if ((rand() % 200) == 0) ret = 1;
-#endif
-			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
+			if (flags & blocks_inc_refcount)
 			{
-				fprintf(stderr, "insert_blocks(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
-					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
-				free_buffer(pe->blocks[block].buf);
-				pe->blocks[block].buf = NULL;
-				--pe->num_blocks;
-				--m_read_cache_size;
+				bool ret = inc_block_refcount(pe, block, ref_reading);
+				TORRENT_ASSERT(ret);
 			}
+			else
+			{
+#if TORRENT_USE_PURGABLE_CONTROL
+				// volatile read blocks are group 0, regular reads are group 1
+				int state = VM_PURGABLE_VOLATILE | ((j->flags & disk_io_job::volatile_read) ? VM_VOLATILE_GROUP_0 : VM_VOLATILE_GROUP_1);
+				kern_return_t ret = vm_purgable_control(
+					mach_task_self(),
+					reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
+					VM_PURGABLE_SET_STATE,
+					&state);
+#ifdef TORRENT_DEBUG
+				//			if ((rand() % 200) == 0) ret = 1;
 #endif
+				if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
+				{
+					fprintf(stderr, "insert_blocks(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+						, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
+					free_buffer(pe->blocks[block].buf);
+					pe->blocks[block].buf = NULL;
+					--pe->num_blocks;
+					--m_read_cache_size;
+				}
+#endif
+			}
 		}
 	}
 

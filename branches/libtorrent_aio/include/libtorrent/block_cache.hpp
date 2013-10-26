@@ -433,8 +433,9 @@ namespace libtorrent
 		// flushed, the callback is posted
 		cached_piece_entry* add_dirty_block(disk_io_job* j);
 	
+		enum { blocks_inc_refcount = 1 };
 		void insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
-			, int iov_len, disk_io_job* j);
+			, int iov_len, disk_io_job* j, int flags = 0);
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
