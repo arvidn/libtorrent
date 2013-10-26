@@ -576,12 +576,18 @@ namespace libtorrent
 				continue;
 			}
 
+			// if we fail to lock the block, it' no longer in the cache
+			bool locked = m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_flushing);
+
+			// it should always suceed, since it's a dirty block, and
+			// should never have been marked as volatile
+			TORRENT_ASSERT(locked);
+
 			flushing[num_flushing++] = i + block_base_index;
 			iov[iov_len].iov_base = pe->blocks[i].buf;
 			iov[iov_len].iov_len = (std::min)(block_size, size_left);
 			++iov_len;
 			pe->blocks[i].pending = true;
-			m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_flushing);
 
 			DLOG("x");
 		}
@@ -1981,7 +1987,11 @@ namespace libtorrent
 		{
 			cached_block_entry& bl = pe->blocks[i];
 			if (bl.buf == 0) break;
-			m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_hashing);
+
+			// if we fail to lock the block, it' no longer in the cache
+			if (m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_hashing) == false)
+				break;
+
 			++end;
 		}
 
@@ -2221,12 +2231,14 @@ namespace libtorrent
 		{
 			iov.iov_len = (std::min)(block_size, piece_size - ph->offset);
 
-			// is the block already in the cache?
-			if (pe->blocks[i].buf)
-			{
-				m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_hashing);
-				locked_blocks[num_locked_blocks++] = i;
-			}
+			// is the block not in the cache?
+			if (pe->blocks[i].buf == NULL) continue;
+
+			// if we fail to lock the block, it' no longer in the cache
+			if (m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_hashing) == false)
+				continue;
+
+			locked_blocks[num_locked_blocks++] = i;
 		}
 
 		l.unlock();

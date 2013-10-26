@@ -433,7 +433,8 @@ namespace libtorrent
 
 		void retry_web_seed(peer_connection* p, int retry = 0);
 
-		void remove_web_seed(peer_connection* p);
+		void remove_web_seed(peer_connection* p, error_code const& ec
+			, peer_connection_interface::operation_t op, int error = 0);
 
 		std::list<web_seed_entry> web_seeds() const
 		{ return m_web_seeds; }

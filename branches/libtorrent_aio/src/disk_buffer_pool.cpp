@@ -49,6 +49,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #endif
 
+#if TORRENT_USE_PURGABLE_CONTROL
+#include <mach/mach.h>
+// see comments at:
+// http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
+#endif
+
 #ifdef TORRENT_BUFFER_STATS
 #include "libtorrent/time.hpp"
 #endif
@@ -314,7 +320,17 @@ namespace libtorrent
 		else
 #endif
 		{
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+#if TORRENT_USE_PURGABLE_CONTROL
+			kern_return_t res = vm_allocate(
+				mach_task_self(),
+				reinterpret_cast<vm_address_t*>(&ret),
+				0x4000,
+				VM_FLAGS_PURGABLE |
+				VM_FLAGS_ANYWHERE);
+			if (res != KERN_SUCCESS)
+				ret = NULL;
+
+#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
 			ret = page_aligned_allocator::malloc(m_block_size);
 #else
 			if (m_using_pool_allocator)
@@ -538,7 +554,7 @@ namespace libtorrent
 			VirtualUnlock(buf, m_block_size);
 #else
 			munlock(buf, m_block_size);
-#endif		
+#endif
 		}
 #endif
 
@@ -577,7 +593,13 @@ namespace libtorrent
 		else
 #endif
 		{
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+#if TORRENT_USE_PURGABLE_CONTROL
+			vm_deallocate(
+				mach_task_self(),
+				reinterpret_cast<vm_address_t>(buf),
+				0x4000
+				);
+#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
 		page_aligned_allocator::free(buf);
 #else
 		if (m_using_pool_allocator)

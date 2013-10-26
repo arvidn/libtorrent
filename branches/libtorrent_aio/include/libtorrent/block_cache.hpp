@@ -125,6 +125,8 @@ namespace libtorrent
 
 		char* buf;
 
+		enum { max_refcount = (1 << 15) -1 };
+
 		// the number of references to this buffer. These references
 		// might be in outstanding asyncronous requests or in peer
 		// connection send buffers. We can't free the buffer until
@@ -452,7 +454,7 @@ namespace libtorrent
 		void set_settings(aux::session_settings const& sett);
 
 		enum reason_t { ref_hashing = 0, ref_reading = 1, ref_flushing = 2 };
-		void inc_block_refcount(cached_piece_entry* pe, int block, int reason);
+		bool inc_block_refcount(cached_piece_entry* pe, int block, int reason);
 		void dec_block_refcount(cached_piece_entry* pe, int block, int reason);
 
 		int pinned_blocks() const { return m_pinned_blocks; }

@@ -44,6 +44,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/performance_counters.hpp"
 
+#if TORRENT_USE_PURGABLE_CONTROL
+#include <mach/mach.h>
+// see comments at:
+// http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
+#endif
+
 /*
 
 	The disk cache mimics ARC (adaptive replacement cache).
@@ -660,6 +666,10 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 		TORRENT_PIECE_ASSERT(pe->blocks[block].dirty, pe);
 		TORRENT_PIECE_ASSERT(pe->blocks[block].pending, pe);
 		pe->blocks[block].pending = false;
+		// it's important to mark it as non-dirty
+		// before decrementing the refcount because
+		// the buffer may be marked as discardable/volatile
+		// it this is the last reference to it
 		pe->blocks[block].dirty = false;
 		dec_block_refcount(pe, block, block_cache::ref_flushing);
 #ifdef TORRENT_BUFFER_STATS
@@ -707,7 +717,7 @@ void block_cache::free_block(cached_piece_entry* pe, int block)
 	TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 	--pe->num_blocks;
 	free_buffer(b.buf);
-	b.buf = 0;
+	b.buf = NULL;
 }
 
 bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue& jobs)
@@ -725,7 +735,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue& jobs)
 		TORRENT_PIECE_ASSERT(pe->blocks[i].buf != 0, pe);
 		TORRENT_PIECE_ASSERT(num_to_delete < pe->blocks_in_piece, pe);
 		to_delete[num_to_delete++] = pe->blocks[i].buf;
-		pe->blocks[i].buf = 0;
+		pe->blocks[i].buf = NULL;
 		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 		--pe->num_blocks;
 		if (!pe->blocks[i].dirty)
@@ -908,7 +918,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				if (b.buf == 0 || b.refcount > 0 || b.dirty || b.pending) continue;
 
 				to_delete[num_to_delete++] = b.buf;
-				b.buf = 0;
+				b.buf = NULL;
 				TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 				--pe->num_blocks;
 				TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
@@ -981,7 +991,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 					if (b.buf == 0 || b.refcount > 0 || b.dirty || b.pending) continue;
 
 					to_delete[num_to_delete++] = b.buf;
-					b.buf = 0;
+					b.buf = NULL;
 					TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 					--pe->num_blocks;
 					TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
@@ -1133,7 +1143,6 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 
 	TORRENT_ASSERT(pe);
 	TORRENT_PIECE_ASSERT(iov_len > 0, pe);
-	int start = block;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
 	// we're not allowed to add dirty blocks
@@ -1145,32 +1154,54 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 
 	cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
 
-	for (int i = 0; i < iov_len; ++i)
+	for (int i = 0; i < iov_len; ++i, ++block)
 	{
 		// each iovec buffer has to be the size of a block (or the size of the last block)
 		TORRENT_PIECE_ASSERT(iov[i].iov_len == (std::min)(block_size()
-			, pe->storage->files()->piece_size(pe->piece) - (start + i) * block_size()), pe);
+			, pe->storage->files()->piece_size(pe->piece) - block * block_size()), pe);
 
 #ifdef TORRENT_DEBUG_BUFFERS
 		TORRENT_PIECE_ASSERT(is_disk_buffer((char*)iov[i].iov_base), pe);
 #endif
 
 		// either free the block or insert it. Never replace a block
-		if (pe->blocks[start + i].buf)
+		if (pe->blocks[block].buf)
 		{
 			free_buffer((char*)iov[i].iov_base);
 		}
 		else
 		{
-			pe->blocks[start + i].buf = (char*)iov[i].iov_base;
+			pe->blocks[block].buf = (char*)iov[i].iov_base;
 
 #ifdef TORRENT_BUFFER_STATS
-			rename_buffer(pe->blocks[start + i].buf, "read cache");
+			rename_buffer(pe->blocks[block].buf, "read cache");
 #endif
 			TORRENT_PIECE_ASSERT(iov[i].iov_base != NULL, pe);
-			TORRENT_PIECE_ASSERT(pe->blocks[start + i].dirty == false, pe);
+			TORRENT_PIECE_ASSERT(pe->blocks[block].dirty == false, pe);
 			++pe->num_blocks;
 			++m_read_cache_size;
+
+#if TORRENT_USE_PURGABLE_CONTROL
+			// volatile read blocks are group 0, regular reads are group 1
+			int state = VM_PURGABLE_VOLATILE | ((j->flags & disk_io_job::volatile_read) ? VM_VOLATILE_GROUP_0 : VM_VOLATILE_GROUP_1);
+			kern_return_t ret = vm_purgable_control(
+				mach_task_self(),
+				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
+				VM_PURGABLE_SET_STATE,
+				&state);
+#ifdef TORRENT_DEBUG
+//			if ((rand() % 200) == 0) ret = 1;
+#endif
+			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
+			{
+				fprintf(stderr, "insert_blocks(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
+				free_buffer(pe->blocks[block].buf);
+				pe->blocks[block].buf = NULL;
+				--pe->num_blocks;
+				--m_read_cache_size;
+			}
+#endif
 		}
 	}
 
@@ -1178,16 +1209,45 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	TORRENT_PIECE_ASSERT(pe->cache_state != cached_piece_entry::read_lru2_ghost, pe);
 }
 
-void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
+// return false if the memory was purged
+bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 	TORRENT_PIECE_ASSERT(pe->blocks[block].buf != NULL, pe);
-	++pe->blocks[block].refcount;
-	if (pe->blocks[block].refcount == 1)
+	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount < cached_block_entry::max_refcount, pe);
+	if (pe->blocks[block].refcount == 0)
 	{
+#if TORRENT_USE_PURGABLE_CONTROL
+		// we're adding the first refcount to this block, first make sure
+		// its still here. It's only volatile if it's not dirty and has refcount == 0
+		if (!pe->blocks[block].dirty)
+		{
+			int state = VM_PURGABLE_NONVOLATILE;
+			kern_return_t ret = vm_purgable_control(
+				mach_task_self(),
+				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
+				VM_PURGABLE_SET_STATE,
+				&state);
+#ifdef TORRENT_DEBUG
+//			if ((rand() % 200) == 0) ret = 1;
+#endif
+			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
+			{
+				fprintf(stderr, "inc_block_refcount(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
+
+				free_buffer(pe->blocks[block].buf);
+				pe->blocks[block].buf = NULL;
+				--pe->num_blocks;
+				--m_read_cache_size;
+				return false;
+			}
+		}
+#endif
 		++pe->pinned;
 		++m_pinned_blocks;
 	}
+	++pe->blocks[block].refcount;
 	++pe->refcount;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	switch (reason)
@@ -1197,6 +1257,7 @@ void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 		case ref_flushing: ++pe->blocks[block].flushing_count; break;
 	};
 #endif
+	return true;
 }
 
 void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reason)
@@ -1214,6 +1275,33 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		--pe->pinned;
 		TORRENT_PIECE_ASSERT(m_pinned_blocks > 0, pe);
 		--m_pinned_blocks;
+
+#if TORRENT_USE_PURGABLE_CONTROL
+		// we're removing the last refcount to this block, first make sure
+		// its still here. It's only volatile if it's not dirty and has refcount == 0
+		if (!pe->blocks[block].dirty)
+		{
+			// group 0 is the first one to be reclaimed
+			int state = VM_PURGABLE_VOLATILE | VM_VOLATILE_GROUP_1;
+			kern_return_t ret = vm_purgable_control(
+				mach_task_self(),
+				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
+				VM_PURGABLE_SET_STATE,
+				&state);
+#ifdef TORRENT_DEBUG
+//			if ((rand() % 200) == 0) ret = 1;
+#endif
+			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
+			{
+				fprintf(stderr, "dec_block_refcount(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
+				free_buffer(pe->blocks[block].buf);
+				pe->blocks[block].buf = NULL;
+				--pe->num_blocks;
+				--m_read_cache_size;
+			}
+		}
+#endif
 	}
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	switch (reason)
@@ -1241,7 +1329,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 		TORRENT_PIECE_ASSERT(pe->blocks[i].dirty, pe);
 		// TODO: 3 free the buffers in bulk instead of one at a time
 		free_buffer(pe->blocks[i].buf);
-		pe->blocks[i].buf = 0;
+		pe->blocks[i].buf = NULL;
 		pe->blocks[i].dirty = false;
 		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 		--pe->num_blocks;
@@ -1275,7 +1363,7 @@ void block_cache::free_piece(cached_piece_entry* pe)
 		TORRENT_PIECE_ASSERT(pe->blocks[i].refcount == 0, pe);
 		TORRENT_PIECE_ASSERT(num_to_delete < pe->blocks_in_piece, pe);
 		to_delete[num_to_delete++] = pe->blocks[i].buf;
-		pe->blocks[i].buf = 0;
+		pe->blocks[i].buf = NULL;
 		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 		--pe->num_blocks;
 		if (pe->blocks[i].dirty)
@@ -1309,7 +1397,7 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 		TORRENT_PIECE_ASSERT(p.blocks[i].refcount == 0, &p);
 		buf.push_back(p.blocks[i].buf);
 		++ret;
-		p.blocks[i].buf = 0;
+		p.blocks[i].buf = NULL;
 		TORRENT_PIECE_ASSERT(p.num_blocks > 0, &p);
 		--p.num_blocks;
 
@@ -1558,6 +1646,8 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 	// since it's not pending
 	if (pe->blocks[start_block].buf == 0) return -1;
 
+	if (inc_block_refcount(pe, start_block, ref_reading) == false) return -1;
+
 	// if block_offset > 0, we need to read two blocks, and then
 	// copy parts of both, because it's not aligned to the block
 	// boundaries
@@ -1566,16 +1656,6 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		// special case for block aligned request
 		// don't actually copy the buffer, just reference
 		// the existing block
-		if (bl->refcount == 0)
-		{
-			++pe->pinned;
-			++m_pinned_blocks;
-		}
-		++pe->blocks[start_block].refcount;
-
-		// make sure it didn't wrap
-		TORRENT_PIECE_ASSERT(pe->blocks[start_block].refcount > 0, pe);
-		++pe->refcount;
 
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
@@ -1588,6 +1668,12 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		++pe->blocks[start_block].reading_count;
 #endif
 		return j->d.io.buffer_size;
+	}
+
+	if (inc_block_refcount(pe, start_block + 1, ref_reading) == false)
+	{
+		dec_block_refcount(pe, start_block, ref_reading);
+		return -1;
 	}
 
 	j->buffer = allocate_buffer("send buffer");
@@ -1607,6 +1693,11 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		buffer_offset += to_copy;
 		++block;
 	}
+	// we incremented the refcount for both of these blocks.
+	// now decrement it.
+	// TODO: create a holder for refcounts that automatically decrement
+	dec_block_refcount(pe, start_block, ref_reading);
+	dec_block_refcount(pe, start_block + 1, ref_reading);
 	return j->d.io.buffer_size;
 }
 
