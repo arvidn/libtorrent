@@ -7742,6 +7742,8 @@ namespace libtorrent
 		m_connections_initialized = true;
 		m_files_checked = true;
 
+		update_want_tick();
+
 		for (torrent::peer_iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
@@ -9627,13 +9629,14 @@ namespace libtorrent
 		i->peer_info.connection = 0;
 	}
 
-	void torrent::remove_web_seed(peer_connection* p)
+	void torrent::remove_web_seed(peer_connection* p, error_code const& ec
+		, peer_connection_interface::operation_t op, int error)
 	{
 		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 			, (boost::bind(&torrent_peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
-		p->set_peer_info(0);
+		if (i->peer_info.connection) i->peer_info.connection->disconnect(ec, op, error);
 		if (has_picker()) picker().clear_peer(&i->peer_info);
 		m_web_seeds.erase(i);
 		update_want_tick();

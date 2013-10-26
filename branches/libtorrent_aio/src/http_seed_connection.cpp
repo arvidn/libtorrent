@@ -308,15 +308,13 @@ namespace libtorrent
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed(this);
-						disconnect(errors::missing_location, op_bittorrent, 2);
+						t->remove_web_seed(this, errors::missing_location, op_bittorrent, 2);
 						return;
 					}
 					
 					// add the redirected url and remove the current one
 					t->add_web_seed(location, web_seed_entry::http_seed);
-					t->remove_web_seed(this);
-					disconnect(errors::redirecting, op_bittorrent, 2);
+					t->remove_web_seed(this, errors::redirecting, op_bittorrent, 2);
 					return;
 				}
 
@@ -335,16 +333,14 @@ namespace libtorrent
 				{
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(this);
-					disconnect(errors::no_content_length, op_bittorrent, 2);
+					t->remove_web_seed(this, errors::no_content_length, op_bittorrent, 2);
 					return;
 				}
 				if (m_response_left != front_request.length)
 				{
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(this);
-					disconnect(errors::invalid_range, op_bittorrent, 2);
+					t->remove_web_seed(this, errors::invalid_range, op_bittorrent, 2);
 					return;
 				}
 				m_body_start = m_parser.body_start();

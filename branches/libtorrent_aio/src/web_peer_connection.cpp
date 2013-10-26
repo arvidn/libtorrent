@@ -530,8 +530,8 @@ namespace libtorrent
 					if (location.empty())
 					{
 						// we should not try this server again.
-						t->remove_web_seed(this);
-						disconnect(errors::missing_location, op_bittorrent, 2);
+						t->remove_web_seed(this, errors::missing_location, op_bittorrent, 2);
+						TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 						TORRENT_ASSERT(statistics().last_payload_downloaded()
 							+ statistics().last_protocol_downloaded()
@@ -564,8 +564,8 @@ namespace libtorrent
 						size_t i = location.rfind(path);
 						if (i == std::string::npos)
 						{
-							t->remove_web_seed(this);
-							disconnect(errors::invalid_redirection, op_bittorrent, 2);
+							t->remove_web_seed(this, errors::invalid_redirection, op_bittorrent, 2);
+							TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 							TORRENT_ASSERT(statistics().last_payload_downloaded()
 								+ statistics().last_protocol_downloaded()
@@ -579,8 +579,8 @@ namespace libtorrent
 					peer_log("*** LOCATION: %s", location.c_str());
 #endif
 					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
-					t->remove_web_seed(this);
-					disconnect(errors::redirecting, op_bittorrent, 2);
+					t->remove_web_seed(this, errors::redirecting, op_bittorrent, 2);
+					TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
@@ -626,8 +626,8 @@ namespace libtorrent
 				{
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(this);
-					disconnect(errors::invalid_range, op_bittorrent);
+					t->remove_web_seed(this, errors::invalid_range, op_bittorrent);
+					TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
@@ -646,8 +646,8 @@ namespace libtorrent
 				{
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
-					t->remove_web_seed(this);
-					disconnect(errors::no_content_length, op_bittorrent, 2);
+					t->remove_web_seed(this, errors::no_content_length, op_bittorrent, 2);
+					TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
 						+ statistics().last_protocol_downloaded()
