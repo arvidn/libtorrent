@@ -146,6 +146,11 @@ public:
 
 	boost::tuple<int, int> size() const;
 	size_type num_global_nodes() const;
+
+	// the number of bits down we have full buckets
+	// i.e. essentially the number of full buckets
+	// we have
+	int depth() const;
 	
 	// returns true if there are no working nodes
 	// in the routing table

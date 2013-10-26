@@ -57,7 +57,7 @@ class node_impl;
 
 // -------- find data -----------
 
-//TODO: 3 rename this class to find_peers, since that's what it does
+//TODO: 3 rename this class to get_peers, since that's what it does
 // find_data is an unnecessarily generic name
 class find_data : public traversal_algorithm
 {
@@ -112,6 +112,10 @@ protected:
 	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
 	virtual bool invoke(observer_ptr o);
 	virtual void done();
+private:
+	// when set to false, we no longer obfuscate
+	// the target hash, and send regular get_peers
+	bool m_obfuscated;
 };
 
 class find_data_observer : public observer

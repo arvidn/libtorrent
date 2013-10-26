@@ -126,6 +126,21 @@ size_type routing_table::num_global_nodes() const
 	else return (size_type(2) << deepest_bucket) * deepest_size;
 }
 
+int routing_table::depth() const
+{
+	// TODO: 3 cache the depth!
+	int deepest_bucket = 0;
+	for (table_t::const_iterator i = m_buckets.begin()
+		, end(m_buckets.end()); i != end; ++i)
+	{
+		if (i->live_nodes.size() < m_bucket_size)
+			break;
+		// this bucket is full
+		++deepest_bucket;
+	}
+	return deepest_bucket;
+}
+
 #if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
 
 void routing_table::print_state(std::ostream& os) const
