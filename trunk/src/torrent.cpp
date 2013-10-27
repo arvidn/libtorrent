@@ -7782,7 +7782,7 @@ namespace libtorrent
 			set_upload_mode(false);
 		}
 
-		if (is_paused())
+		if (is_paused() && !m_graceful_pause_mode)
 		{
 			// let the stats fade out to 0
 			accumulator += m_stat;
