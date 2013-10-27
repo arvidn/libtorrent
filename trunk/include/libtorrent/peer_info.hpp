@@ -125,6 +125,9 @@ namespace libtorrent
 			// happens if both peers are behind a NAT and the peers 
 			// connect via the NAT holepunch mechanism.             
 			holepunched = 0x8000,
+
+			i2p_socket = 0x10000,
+			utp_socket = 0x20000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};

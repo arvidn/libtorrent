@@ -449,11 +449,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_I2P
-			void set_i2p_proxy(proxy_settings const& s)
-			{
-				m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
-				open_new_incoming_i2p_connection();
-			}
+			void set_i2p_proxy(proxy_settings const& s);
 			void on_i2p_open(error_code const& ec);
 			proxy_settings const& i2p_proxy() const
 			{ return m_i2p_conn.proxy(); }
