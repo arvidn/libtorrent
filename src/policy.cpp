@@ -1190,8 +1190,11 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		else
 		{
-			std::pair<iterator, iterator> range = find_peers(p->address());
-			TORRENT_ASSERT(range.second - range.first == 1);
+			if (!p->is_i2p_addr)
+			{
+				std::pair<iterator, iterator> range = find_peers(p->address());
+				TORRENT_ASSERT(range.second - range.first == 1);
+			}
 		}
 #endif
 

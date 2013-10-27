@@ -354,6 +354,10 @@ namespace libtorrent
 		if (has_peer_choked()) p.flags |= peer_info::remote_choked;
 		if (support_extensions()) p.flags |= peer_info::supports_extensions;
 		if (is_outgoing()) p.flags |= peer_info::local_connection;
+#if TORRENT_USE_I2P
+		if (is_i2p(*get_socket())) p.flags |= peer_info::i2p_socket;
+#endif
+		if (is_utp(*get_socket())) p.flags |= peer_info::utp_socket;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted)

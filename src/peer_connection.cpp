@@ -475,7 +475,6 @@ namespace libtorrent
 				disconnect(ec);
 				return;
 			}
-			TORRENT_ASSERT(m_remote.address() != address_v4::any());
 			if (m_remote.address().is_v4())
 			{
 				m_socket->set_option(type_of_service(m_ses.settings().peer_tos), ec);
