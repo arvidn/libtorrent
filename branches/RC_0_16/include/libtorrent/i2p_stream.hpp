@@ -61,6 +61,7 @@ namespace libtorrent {
 			invalid_id,
 			timeout,
 			key_not_found,
+			duplicated_id,
 			num_errors
 		};
 	}
@@ -79,12 +80,8 @@ class i2p_stream : public proxy_base
 {
 public:
 
-	explicit i2p_stream(io_service& io_service)
-		: proxy_base(io_service)
-		, m_id(0)
-		, m_command(cmd_create_session)
-		, m_state(0)
-	{}
+	explicit i2p_stream(io_service& io_service);
+	~i2p_stream();
 
 	enum command_t
 	{
@@ -159,6 +156,9 @@ private:
 	};
 
 	int m_state;
+#ifdef TORRENT_DEBUG
+	int m_magic;
+#endif
 };
 
 class i2p_connection
@@ -186,11 +186,13 @@ public:
 
 private:
 
-	void on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h);
+	void on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h
+		, boost::shared_ptr<i2p_stream>);
 	void do_name_lookup(std::string const& name
 		, name_lookup_handler const& h);
 	void on_name_lookup(error_code const& ec
-		, name_lookup_handler handler);
+		, name_lookup_handler handler
+		, boost::shared_ptr<i2p_stream>);
 
 	void set_local_endpoint(error_code const& ec, char const* dest);
 
