@@ -305,6 +305,11 @@ namespace libtorrent
 	// returns true if this is a uTP socket
 	bool is_utp(socket_type const& s);
 
+#if TORRENT_USE_I2P
+	// returns true if this is an i2p socket
+	bool is_i2p(socket_type const& s);
+#endif
+
 	// assuming the socket_type s is an ssl socket, make sure it
 	// verifies the hostname in its SSL handshake
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec);

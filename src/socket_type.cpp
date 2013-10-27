@@ -72,6 +72,17 @@ namespace libtorrent
 			;
 	}
 
+#if TORRENT_USE_I2P
+	bool is_i2p(socket_type const& s)
+	{
+		return s.get<i2p_stream>()
+#ifdef TORRENT_USE_OPENSSL
+			|| s.get<ssl_stream<i2p_stream> >()
+#endif
+			;
+	}
+#endif
+
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec)
 	{
 #if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700

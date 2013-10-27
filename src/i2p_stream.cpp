@@ -61,7 +61,8 @@ namespace libtorrent
 			"invalid key",
 			"invalid id",
 			"timeout",
-			"key not found"
+			"key not found",
+			"duplicated id"
 		};
 
 		if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
@@ -71,7 +72,8 @@ namespace libtorrent
 	i2p_connection::i2p_connection(io_service& ios)
 		: m_state(sam_idle)
 		, m_io_service(ios)
-	{}
+	{
+	}
 
 	i2p_connection::~i2p_connection()
 	{}
@@ -86,7 +88,8 @@ namespace libtorrent
 		// we already seem to have a session to this SAM router
 		if (m_sam_router.hostname == s.hostname
 			&& m_sam_router.port == s.port
-			&& is_open()) return;
+			&& m_sam_socket
+			&& (is_open() || m_state == sam_connecting)) return;
 
 		m_sam_router = s;
 		m_sam_router.type = proxy_settings::i2p_proxy;
@@ -106,10 +109,10 @@ namespace libtorrent
 		m_sam_socket->set_session_id(m_session_id.c_str());
 
 		m_sam_socket->async_connect(tcp::endpoint()
-			, boost::bind(&i2p_connection::on_sam_connect, this, _1, handler));
+			, boost::bind(&i2p_connection::on_sam_connect, this, _1, handler, m_sam_socket));
 	}
 
-	void i2p_connection::on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h)
+	void i2p_connection::on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h, boost::shared_ptr<i2p_stream>)
 	{
 		m_state = sam_idle;
 	
@@ -130,6 +133,7 @@ namespace libtorrent
 	void i2p_connection::async_name_lookup(char const* name
 		, i2p_connection::name_lookup_handler handler)
 	{
+//		TORRENT_ASSERT(is_open());
 		if (m_state == sam_idle && m_name_lookup.empty())
 			do_name_lookup(name, handler);
 		else
@@ -143,12 +147,12 @@ namespace libtorrent
 		m_state = sam_name_lookup;
 		m_sam_socket->set_name_lookup(name.c_str());
 		boost::shared_ptr<i2p_stream::handler_type> h(new i2p_stream::handler_type(
-			boost::bind(&i2p_connection::on_name_lookup, this, _1, handler)));
+			boost::bind(&i2p_connection::on_name_lookup, this, _1, handler, m_sam_socket)));
 		m_sam_socket->send_name_lookup(h);
 	}
 
 	void i2p_connection::on_name_lookup(error_code const& ec
-		, name_lookup_handler handler)
+		, name_lookup_handler handler, boost::shared_ptr<i2p_stream>)
 	{
 		m_state = sam_idle;
 
@@ -169,20 +173,39 @@ namespace libtorrent
 		handler(ec, name.c_str());
 	}
 
+	i2p_stream::i2p_stream(io_service& io_service)
+		: proxy_base(io_service)
+		, m_id(0)
+		, m_command(cmd_create_session)
+		, m_state(0)
+	{
+#ifdef TORRENT_DEBUG
+		m_magic = 0x1337;
+#endif
+	}
+
+	i2p_stream::~i2p_stream()
+	{
+#ifdef TORRENT_DEBUG
+		TORRENT_ASSERT(m_magic == 0x1337);
+		m_magic = 0;
+#endif
+	}
+
 // TODO: move this to proxy_base and use it in all proxies
 	bool i2p_stream::handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		if (!e) return false;
 //		fprintf(stderr, "i2p error \"%s\"\n", e.message().c_str());
 		(*h)(e);
-		error_code ec;
-		close(ec);
 		return true;
 	}
 
 	void i2p_stream::do_connect(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		if (e || i == tcp::resolver::iterator())
 		{
 			(*h)(e);
@@ -197,6 +220,7 @@ namespace libtorrent
 
 	void i2p_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		if (handle_error(e, h)) return;
 
 		// send hello command
@@ -204,11 +228,12 @@ namespace libtorrent
 		static const char cmd[] = "HELLO VERSION MIN=3.0 MAX=3.0\n";
 		async_write(m_sock, asio::buffer(cmd, sizeof(cmd) - 1)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
-//		fputs(cmd, stderr);
+//		fprintf(stderr, ">>> %s", cmd);
 	}
 
 	void i2p_stream::start_read_line(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		if (handle_error(e, h)) return;
 
 		m_buffer.resize(1);
@@ -219,7 +244,17 @@ namespace libtorrent
 	char* string_tokenize(char* last, char sep, char** next)
 	{
 		if (last == 0) return 0;
-		*next = strchr(last, sep);
+		if (last[0] == '"')
+		{
+			*next = strchr(last + 1, '"');
+			// consume the actual separator as well.
+			if (*next != NULL)
+				*next = strchr(*next, sep);
+		}
+		else
+		{
+			*next = strchr(last, sep);
+		}
 		if (*next == 0) return last;
 		**next = 0;
 		++(*next);
@@ -229,11 +264,11 @@ namespace libtorrent
 
 	void i2p_stream::read_line(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		if (handle_error(e, h)) return;
 
 		int read_pos = m_buffer.size();
 
-//		fprintf(stderr, "%c", m_buffer[read_pos - 1]);
 		// look for \n which means end of the response
 		if (m_buffer[read_pos - 1] != '\n')
 		{
@@ -287,6 +322,7 @@ namespace libtorrent
 				break;
 		}
 
+//		fprintf(stderr, "<<< %s\n", &m_buffer[0]);
 		ptr = string_tokenize(next, ' ', &next);
 		if (ptr == 0 || expect1 == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
@@ -300,8 +336,10 @@ namespace libtorrent
 		{
 			char* name = string_tokenize(next, '=', &next);
 			if (name == 0) break;
+//			fprintf(stderr, "name=\"%s\"\n", name);
 			char* ptr = string_tokenize(next, ' ', &next);
 			if (ptr == 0) { handle_error(invalid_response, h); return; }
+//			fprintf(stderr, "value=\"%s\"\n", ptr);
 
 			if (strcmp("RESULT", name) == 0)
 			{
@@ -319,6 +357,8 @@ namespace libtorrent
 					result = i2p_error::timeout;
 				else if (strcmp("KEY_NOT_FOUND", ptr) == 0)
 					result = i2p_error::key_not_found;
+				else if (strcmp("DUPLICATED_ID", ptr) == 0)
+					result = i2p_error::duplicated_id;
 				else
 					result = i2p_error::num_errors; // unknown error
 			}
@@ -389,42 +429,46 @@ namespace libtorrent
 
 	void i2p_stream::send_connect(boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_connect_response;
 		char cmd[1024];
 		int size = snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
 			, m_id, m_dest.c_str());
-//		fputs(cmd, stderr);
+//		fprintf(stderr, ">>> %s", cmd);
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
 	void i2p_stream::send_accept(boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_accept_response;
 		char cmd[400];
 		int size = snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
-//		fputs(cmd, stderr);
+//		fprintf(stderr, ">>> %s", cmd);
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
 	void i2p_stream::send_session_create(boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_session_create_response;
 		char cmd[400];
 		int size = snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
 			, m_id);
-//		fputs(cmd, stderr);
+//		fprintf(stderr, ">>> %s", cmd);
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
 	void i2p_stream::send_name_lookup(boost::shared_ptr<handler_type> h)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_name_lookup_response;
 		char cmd[1024];
 		int size = snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
-//		fputs(cmd, stderr);
+//		fprintf(stderr, ">>> %s", cmd);
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
