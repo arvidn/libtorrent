@@ -25,6 +25,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* graceful pause fix
 	* i2p fixes
 	* fix issue when loading certain malformed .torrent files
 	* pass along host header with http proxy requests and possible http_connection shutdown hang
