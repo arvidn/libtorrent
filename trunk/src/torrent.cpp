@@ -3709,7 +3709,7 @@ namespace libtorrent
 
 		if (ret != 0)
 		{
-			alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error));
+			alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error, m_torrent_file->info_hash()));
 		}
 		else
 		{

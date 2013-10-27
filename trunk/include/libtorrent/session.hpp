@@ -668,12 +668,14 @@ namespace libtorrent
 		};
 
 		// ``remove_torrent()`` will close all peer connections associated with the torrent and tell
-		// the tracker that we've stopped participating in the swarm. The optional second argument
-		// `options`` can be used to delete all the files downloaded by this torrent. To do this, pass
-		// in the value ``session::delete_files``. The removal of the torrent is asyncronous, there is
-		// no guarantee that adding the same torrent immediately after it was removed will not throw
-		// a libtorrent_exception exception. Once the torrent is deleted, a torrent_deleted_alert
-		// is posted.
+		// the tracker that we've stopped participating in the swarm. This operation cannot fail.
+		// When it completes, you will receive a torrent_removed_alert.
+		//
+		// The optional second argument ``options`` can be used to delete all the files downloaded
+		// by this torrent. To do so, pass in the value ``session::delete_files``. The removal
+		// of the torrent is asyncronous, there is no guarantee that adding the same torrent
+		// immediately after it was removed will not throw a libtorrent_exception exception. Once
+		// the torrent is deleted, a torrent_deleted_alert is posted.
 		void remove_torrent(const torrent_handle& h, int options = 0);
 
 		// Sets the session settings and the packet encryption settings respectively.

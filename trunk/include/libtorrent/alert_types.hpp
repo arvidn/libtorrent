@@ -961,12 +961,14 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a request to delete the files of a torrent fails.
+	// Just removing a torrent from the session cannot fail
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert
 	{
 		// internal
-		torrent_delete_failed_alert(torrent_handle const& h, error_code const& e)
+		torrent_delete_failed_alert(torrent_handle const& h, error_code const& e, sha1_hash const& ih)
 			: torrent_alert(h)
 			, error(e)
+			, info_hash(ih)
 		{
 #ifndef TORRENT_NO_DEPRECATE
 			msg = convert_from_native(error.message());
@@ -986,6 +988,9 @@ namespace libtorrent
 
 		// tells you why it failed.
 		error_code error;
+
+		// the info hash of the torrent whose files failed to be deleted
+		sha1_hash info_hash;
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
