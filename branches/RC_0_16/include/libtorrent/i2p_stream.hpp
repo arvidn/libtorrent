@@ -156,7 +156,7 @@ private:
 	};
 
 	int m_state;
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	int m_magic;
 #endif
 };
