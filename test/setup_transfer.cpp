@@ -1152,7 +1152,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			sock = s.get<stream_socket>();
 
 			bool accept_done = false;
-			DLOG(stderr, "waiting for incoming connection\n");
+			fprintf(stderr, "HTTP waiting for incoming connection\n");
 			acceptor.async_accept(*sock, boost::bind(&on_accept, boost::ref(ec), _1, &accept_done));
 			while (!accept_done)
 			{
@@ -1171,7 +1171,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				fprintf(stderr, "%s: accept failed: %s\n", time_now_string(), ec.message().c_str());
 				return;
 			}
-			DLOG(stderr, "%s: accepting incoming connection\n", time_now_string());
+			fprintf(stderr, "%s: accepting incoming connection\n", time_now_string());
 			if (!s.is_open())
 			{
 				fprintf(stderr, "%s: incoming connection closed\n", time_now_string());
@@ -1209,7 +1209,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			TEST_CHECK(error == false);
 			if (error)
 			{
-				fprintf(stderr, "parse failed\n");
+				fprintf(stderr, "HTTP parse failed\n");
 				failed = true;
 				break;
 			}
@@ -1233,13 +1233,13 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 					ios.reset();
 					if (stop_thread || ios.run_one(e) == 0)
 					{
-						fprintf(stderr, "io_service stopped: %s\n", e.message().c_str());
+						fprintf(stderr, "HTTP io_service stopped: %s\n", e.message().c_str());
 						break;
 					}
 				}
 				if (timed_out)
 				{
-					fprintf(stderr, "read timed out, closing connection\n");
+					fprintf(stderr, "HTTP read timed out, closing connection\n");
 					failed = true;
 					break;
 				}
@@ -1247,7 +1247,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 				if (ec || received <= 0)
 				{
-					fprintf(stderr, "read failed: \"%s\" (%s) received: %d\n"
+					fprintf(stderr, "HTTP read failed: \"%s\" (%s) received: %d\n"
 						, ec.message().c_str(), ec.category().name(), int(received));
 					failed = true;
 					break;
@@ -1255,7 +1255,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 				timer.cancel(ec);
 				if (ec)
-					fprintf(stderr, "timer.cancel failed: %s\n", ec.message().c_str());
+					fprintf(stderr, "HTTP timer.cancel failed: %s\n", ec.message().c_str());
 
 				len += received;
 		
@@ -1264,7 +1264,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				TEST_CHECK(error == false);
 				if (error)
 				{
-					fprintf(stderr, "parse failed\n");
+					fprintf(stderr, "HTTP parse failed\n");
 					failed = true;
 					break;
 				}
