@@ -2620,23 +2620,16 @@ retry:
 #if TORRENT_USE_I2P
 	void session_impl::set_i2p_proxy(proxy_settings const& s)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_i2p_open");
-#endif
 		// we need this socket to be open before we
 		// can make name lookups for trackers for instance.
 		// pause the session now and resume it once we've
 		// established the i2p SAM connection
-		pause();
 		m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
 		open_new_incoming_i2p_connection();
 	}
 
 	void session_impl::on_i2p_open(error_code const& ec)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_i2p_open");
-#endif
 		if (ec)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -2645,13 +2638,9 @@ retry:
 			(*m_logger) << msg << "\n";
 #endif
 		}
-		else
-		{
-			// now that we have our i2p connection established
-			// it's OK to start torrents and use this socket to
-			// do i2p name lookups
-			resume();
-		}
+		// now that we have our i2p connection established
+		// it's OK to start torrents and use this socket to
+		// do i2p name lookups
 
 		open_new_incoming_i2p_connection();
 	}
