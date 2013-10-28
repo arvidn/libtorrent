@@ -267,7 +267,7 @@ namespace libtorrent
 		SET(increase_est_reciprocation_rate, 20, 0),
 		SET(decrease_est_reciprocation_rate, 3, 0),
 		SET(max_pex_peers, 50, 0),
-		SET(tick_interval, 100, 0),
+		SET(tick_interval, 500, 0),
 		SET(share_mode_target, 3, 0),
 		SET(upload_rate_limit, 0, &session_impl::update_upload_rate),
 		SET(download_rate_limit, 0, &session_impl::update_download_rate),

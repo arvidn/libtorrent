@@ -4661,7 +4661,8 @@ namespace libtorrent
 		if (j->ret != 0)
 		{
 			if (alerts().should_post<torrent_delete_failed_alert>())
-				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j->error.ec));
+				alerts().post_alert(torrent_delete_failed_alert(get_handle()
+					, j->error.ec, m_torrent_file->info_hash()));
 		}
 		else
 		{
@@ -8984,7 +8985,7 @@ namespace libtorrent
 			}
 		}
 
-		if (is_paused())
+		if (is_paused() && !m_graceful_pause_mode)
 		{
 			// let the stats fade out to 0
  			m_stat.second_tick(tick_interval_ms);

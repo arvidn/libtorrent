@@ -2901,8 +2901,30 @@ retry:
 	}
 
 #if TORRENT_USE_I2P
+	void session_impl::set_i2p_proxy(proxy_settings const& s)
+	{
+		// we need this socket to be open before we
+		// can make name lookups for trackers for instance.
+		// pause the session now and resume it once we've
+		// established the i2p SAM connection
+		m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
+		open_new_incoming_i2p_connection();
+	}
+
 	void session_impl::on_i2p_open(error_code const& ec)
 	{
+		if (ec)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, sizeof(msg), "i2p open failed (%d) %s", ec.value(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
+		}
+		// now that we have our i2p connection established
+		// it's OK to start torrents and use this socket to
+		// do i2p name lookups
+
 		open_new_incoming_i2p_connection();
 	}
 
@@ -3167,8 +3189,6 @@ retry:
 #endif
 			return;
 		}
-
-		TORRENT_ASSERT(endp.address() != address_v4::any());
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		session_log(" <== INCOMING CONNECTION %s type: %s"
@@ -6186,7 +6206,8 @@ retry:
 			if (!t.delete_files())
 			{
 				if (m_alerts.should_post<torrent_delete_failed_alert>())
-					m_alerts.post_alert(torrent_delete_failed_alert(t.get_handle(), error_code()));
+					m_alerts.post_alert(torrent_delete_failed_alert(t.get_handle()
+						, error_code(), t.torrent_file().info_hash()));
 			}
 		}
 
