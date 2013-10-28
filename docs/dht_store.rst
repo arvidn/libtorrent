@@ -194,7 +194,7 @@ Note that this request does not contain a target hash. The target hash under
 which this blob is stored is implied by the ``k`` argument. The key is
 the SHA-1 hash of the key (``k``).
 
-The ``cas`` field is optional. If present it is interpreted of the sha-1 hash of
+The ``cas`` field is optional. If present it is interpreted as the sha-1 hash of
 the sequence number and ``v`` field that is expected to be replaced. The buffer
 to hash is the same as the one signed when storing. ``cas`` is short for *compare
 and swap*, it has similar semantics as CAS CPU instructions. If specified as part
