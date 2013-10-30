@@ -1,3 +1,4 @@
+	* minor fix to peer_proportional mixed_mode algorithm (TCP limit could go too low)
 	* graceful pause fix
 	* i2p fixes
 	* fix issue when loading certain malformed .torrent files
