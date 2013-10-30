@@ -653,7 +653,13 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files)
 
 void generate_data(char const* path, int num_pieces, int piece_size)
 {
-	FILE* f = fopen(path, "w+");
+	FILE* f;
+
+	if ( (f = fopen(path, "w+")) == 0)
+	{
+		fprintf(stderr, "Could not open file '%s' for writing: %s\n", path, strerror(errno));
+		exit(2);
+	}
 
 	boost::uint32_t piece[0x4000 / 4];
 	for (int i = 0; i < num_pieces; ++i)
@@ -742,7 +748,13 @@ int main(int argc, char* argv[])
 
 		FILE* output = stdout;
 		if (strcmp("-", torrent_file) != 0)
-			output = fopen(torrent_file, "wb+");
+		{
+			if( (output = fopen(torrent_file, "wb+")) == 0)
+			{
+				fprintf(stderr, "Could not open file '%s' for writing: %s\n", torrent_file, strerror(errno));
+				exit(2);
+			}
+		}
 		fprintf(stderr, "writing file to: %s\n", torrent_file);
 		fwrite(&tmp[0], 1, tmp.size(), output);
 		if (output != stdout)
@@ -791,7 +803,7 @@ int main(int argc, char* argv[])
 			FILE* f = fopen(torrent_name, "w+");
 			if (f == 0)
 			{
-				perror("open file");
+				fprintf(stderr, "Could not open file '%s' for writing: %s\n", torrent_name, strerror(errno));
 				return 1;
 			}
 			size_t ret = fwrite(&buf[0], 1, buf.size(), f);
@@ -903,5 +915,3 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-
-
