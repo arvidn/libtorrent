@@ -4739,10 +4739,11 @@ namespace libtorrent
 			, channel == upload_channel ? ">>>" : "<<<", amount);
 #endif
 
-		TORRENT_ASSERT(amount > 0);
+		TORRENT_ASSERT(amount > 0 || is_disconnecting());
 		m_quota[channel] += amount;
 		TORRENT_ASSERT(m_channel_state[channel] & peer_info::bw_limit);
 		m_channel_state[channel] &= ~peer_info::bw_limit;
+		if (is_disconnecting()) return;
 		if (channel == upload_channel)
 		{
 			setup_send();
