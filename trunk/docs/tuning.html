@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -170,7 +170,9 @@ large number of paused torrents (that are popular) it will be even more
 significant.</p>
 <p>If you're short of memory, you should consider lowering the limit. 500 is probably
 enough. You can do this by setting <tt class="docutils literal"><span class="pre">session_settings::max_peerlist_size</span></tt> to
-the max number of peers you want in the torrent's peer list.</p>
+the max number of peers you want in a torrent's peer list. This limit applies per
+torrent. For 5 torrents, the total number of peers in peerlists will be 5 times
+the setting.</p>
 <p>You should also lower the same limit but for paused torrents. It might even make sense
 to set that even lower, since you only need a few peers to start up while waiting
 for the tracker and DHT to give you fresh ones. The max peer list size for paused

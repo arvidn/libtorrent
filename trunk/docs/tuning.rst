@@ -110,7 +110,9 @@ significant.
 
 If you're short of memory, you should consider lowering the limit. 500 is probably
 enough. You can do this by setting ``session_settings::max_peerlist_size`` to
-the max number of peers you want in the torrent's peer list.
+the max number of peers you want in a torrent's peer list. This limit applies per
+torrent. For 5 torrents, the total number of peers in peerlists will be 5 times
+the setting.
 
 You should also lower the same limit but for paused torrents. It might even make sense
 to set that even lower, since you only need a few peers to start up while waiting
