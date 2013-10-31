@@ -153,7 +153,7 @@ version, the sequence number ``seq`` must be monotonically increasing for each u
 and a node hosting the list node MUST not downgrade a list head from a higher sequence
 number to a lower one, only upgrade. The sequence number SHOULD not exceed ``MAX_INT64``,
 (i.e. ``0x7fffffffffffffff``. A client MAY reject any message with a sequence number
-exceeding this.
+exceeding this. A client MAY also reject any message with a negative sequence number.
 
 The signature is a 64 byte ed25519 signature of the bencoded sequence
 number concatenated with the ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
@@ -200,6 +200,8 @@ to hash is the same as the one signed when storing. ``cas`` is short for *compar
 and swap*, it has similar semantics as CAS CPU instructions. If specified as part
 of the put command, and the current value stored under the public key differs from
 the expected value, the store fails. The ``cas`` field only applies to mutable puts.
+If there is no current value, the ``cas`` field SHOULD be ignored, not preventing
+the put based on it.
 
 Response:
 
