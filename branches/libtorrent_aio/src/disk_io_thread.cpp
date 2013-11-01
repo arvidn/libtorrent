@@ -2888,6 +2888,7 @@ namespace libtorrent
 
 	void disk_io_thread::add_job(disk_io_job* j)
 	{
+		TORRENT_ASSERT(!j->storage || j->storage->files()->is_valid());
 		TORRENT_ASSERT(j->next == NULL);
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs

@@ -3712,6 +3712,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+		torrent_ref_holder h(this, "verify_piece");
+
+		dec_refcount("verify_piece");
+
 		int ret = j->ret;
 		if (m_ses.settings().get_bool(settings_pack::disable_hash_checks))
 		{
@@ -9834,6 +9838,7 @@ namespace libtorrent
 	{
 		picker().mark_as_checking(piece);
 
+		inc_refcount("verify_piece");
 		m_ses.disk_thread().async_hash(m_storage.get(), piece, 0
 			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1)
 			, (void*)1);
