@@ -171,9 +171,13 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		if (ps->type == proxy_settings::http_pw)
 			APPEND_FMT1("Proxy-Authorization: Basic %s\r\n", base64encode(
 				ps->username + ":" + ps->password).c_str());
-		APPEND_FMT1("Host: %s", hostname.c_str());
+
 		hostname = ps->hostname;
 		port = ps->port;
+
+		APPEND_FMT1("Host: %s", hostname.c_str());
+		if (port != default_port) APPEND_FMT1(":%d\r\n", port);
+		else APPEND_FMT("\r\n");
 	}
 	else
 	{
