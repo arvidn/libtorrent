@@ -81,16 +81,16 @@ namespace libtorrent
 
 	// returns a time_duration representing the specified number of seconds, milliseconds
 	// microseconds, minutes and hours.
-	TORRENT_EXPORT time_duration seconds(int s);
-	TORRENT_EXPORT time_duration milliseconds(int s);
-	TORRENT_EXPORT time_duration microsec(int s);
-	TORRENT_EXPORT time_duration minutes(int s);
-	TORRENT_EXPORT time_duration hours(int s);
+	TORRENT_EXPORT time_duration seconds(boost::int64_t s);
+	TORRENT_EXPORT time_duration milliseconds(boost::int64_t s);
+	TORRENT_EXPORT time_duration microsec(boost::int64_t s);
+	TORRENT_EXPORT time_duration minutes(boost::int64_t s);
+	TORRENT_EXPORT time_duration hours(boost::int64_t s);
 
 	// returns the number of seconds, milliseconds and microseconds
 	// a time_duration represents.
-	TORRENT_EXPORT int total_seconds(time_duration td);
-	TORRENT_EXPORT int total_milliseconds(time_duration td);
+	TORRENT_EXPORT boost::int64_t total_seconds(time_duration td);
+	TORRENT_EXPORT boost::int64_t total_milliseconds(time_duration td);
 	TORRENT_EXPORT boost::int64_t total_microseconds(time_duration td);
 
 #elif TORRENT_USE_CLOCK_GETTIME || TORRENT_USE_SYSTEM_TIME || TORRENT_USE_ABSOLUTE_TIME
