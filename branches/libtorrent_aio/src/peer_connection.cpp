@@ -6561,7 +6561,7 @@ namespace libtorrent
 			&& m_ses.settings().get_bool(settings_pack::close_redundant_connections))
 		{
 			// none of this matters if we're disconnecting anyway
-			if (t->is_upload_only())
+			if (t->is_upload_only() || m_need_interest_update)
 				TORRENT_ASSERT(!m_interesting || t->graceful_pause() || t->has_error());
 			if (is_seed())
 				TORRENT_ASSERT(m_upload_only);
