@@ -3828,10 +3828,13 @@ namespace libtorrent
 			m_predictive_pieces.erase(i);
 		}
 
-		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
+		// make a copy of the peer list since peers
+		// may disconnect while looping
+		std::vector<peer_connection*> peers = m_connections;
+
+		for (peer_iterator i = peers.begin(); i != peers.end(); ++i)
 		{
 			boost::shared_ptr<peer_connection> p = (*i)->self();
-			++i;
 
 			// received_piece will check to see if we're still interested
 			// in this peer, and if neither of us is interested in the other,
@@ -5977,6 +5980,7 @@ namespace libtorrent
 
 		TORRENT_TRY
 		{
+			TORRENT_ASSERT(!c->m_in_constructor);
 			// add the newly connected peer to this torrent's peer list
 			sorted_insert(m_connections, boost::get_pointer(c));
 			update_want_peers();
