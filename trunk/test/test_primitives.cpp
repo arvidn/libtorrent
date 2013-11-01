@@ -213,13 +213,6 @@ int test_main()
 	snprintf(msg, sizeof(msg), "too %s format string", "long");
 	TEST_CHECK(strcmp(msg, "too long ") == 0);
 
-	// make sure the time classes have correct semantics
-
-	TEST_EQUAL(total_milliseconds(milliseconds(100)), 100);
-	TEST_EQUAL(total_milliseconds(milliseconds(1)),  1);
-	TEST_EQUAL(total_milliseconds(seconds(1)), 1000);
-
-
 	if (supports_ipv6())
 	{
 		// make sure the assumption we use in policy's peer list hold
