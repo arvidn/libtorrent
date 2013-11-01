@@ -190,12 +190,12 @@ namespace libtorrent
 
 	int total_seconds(time_duration td)
 	{
-		return int(performance_counter_to_microseconds(td.diff)
+		return boost::int64_t(performance_counter_to_microseconds(td.diff)
 			/ 1000000);
 	}
 	int total_milliseconds(time_duration td)
 	{
-		return int(performance_counter_to_microseconds(td.diff)
+		return boost::uint64_t(performance_counter_to_microseconds(td.diff)
 			/ 1000);
 	}
 	boost::int64_t total_microseconds(time_duration td)
