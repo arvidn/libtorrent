@@ -454,7 +454,7 @@ void traversal_algorithm::status(dht_lookup& l)
 		observer& o = **i;
 		if (o.flags & observer::flag_queried)
 		{
-			last_sent = (std::min)(last_sent, total_seconds(now - o.sent()));
+			last_sent = (std::min)(last_sent, int(total_seconds(now - o.sent())));
 			if (o.has_short_timeout()) ++l.first_timeout;
 			continue;
 		}
