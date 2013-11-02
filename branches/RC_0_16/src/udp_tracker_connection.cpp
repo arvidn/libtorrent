@@ -142,7 +142,7 @@ namespace libtorrent
 		// if that was the last one, fail the whole announce
 		if (m_endpoints.empty())
 		{
-			fail(ec, code, msg, interval, min_interval);
+			tracker_connection::fail(ec, code, msg, interval, min_interval);
 			return;
 		}
 
