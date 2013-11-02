@@ -90,6 +90,8 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 
 	void update_quotas(time_duration const& dt);
 
+private:
+
 	// these are the consumers that want bandwidth
 	typedef std::vector<bw_request> queue_t;
 	queue_t m_queue;

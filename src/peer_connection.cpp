@@ -893,6 +893,9 @@ namespace libtorrent
 			}
 		}
 
+		disconnect_if_redundant();
+		if (is_disconnecting()) return;
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HAVE    [ piece: %d ]", index);
 #endif
@@ -1896,10 +1899,10 @@ namespace libtorrent
 		}
 	}
 
-	bool peer_connection::can_disconnect(error_code const& ec)
+	bool peer_connection::can_disconnect(error_code const& ec) const
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
+		for (extension_list_t::const_iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
 			if (!(*i)->can_disconnect(ec)) return false;
@@ -4637,10 +4640,16 @@ namespace libtorrent
 			, channel == upload_channel ? ">>>" : "<<<", amount);
 #endif
 
-		TORRENT_ASSERT(amount > 0);
+		TORRENT_ASSERT(amount > 0 || is_disconnecting());
 		m_quota[channel] += amount;
 		TORRENT_ASSERT(m_channel_state[channel] & peer_info::bw_limit);
 		m_channel_state[channel] &= ~peer_info::bw_limit;
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		check_invariant();
+#endif
+
+		if (is_disconnecting()) return;
 		if (channel == upload_channel)
 		{
 			setup_send();
@@ -4740,6 +4749,7 @@ namespace libtorrent
 		, bandwidth_channel* bwc3
 		, bandwidth_channel* bwc4)
 	{
+		INVARIANT_CHECK;
 		// we can only have one outstanding bandwidth request at a time
 		if (m_channel_state[download_channel] & peer_info::bw_limit) return 0;
 
@@ -5734,6 +5744,14 @@ namespace libtorrent
 		TORRENT_ASSERT(m_upload_limit >= 0);
 		TORRENT_ASSERT(m_download_limit >= 0);
 
+		// TODO: why does this invariant not hold?
+/*
+		if (m_channel_state[upload_channel] & peer_info::bw_limit)
+			TORRENT_ASSERT(m_ses.m_upload_rate.is_queued(this));
+		if (m_channel_state[download_channel] & peer_info::bw_limit)
+			TORRENT_ASSERT(m_ses.m_download_rate.is_queued(this));
+*/
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (!m_disconnect_started && m_initialized)
@@ -5829,11 +5847,20 @@ namespace libtorrent
 		// in share mode we don't close redundant connections
 		if (m_ses.settings().close_redundant_connections && !t->share_mode())
 		{
+			bool ok_to_disconnect = 
+				can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category()))
+					|| can_disconnect(error_code(errors::uninteresting_upload_peer, get_libtorrent_category()))
+					|| can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category()))
+					|| can_disconnect(error_code(errors::timed_out_no_interest, get_libtorrent_category()))
+					|| can_disconnect(error_code(errors::timed_out_no_request, get_libtorrent_category()))
+					|| can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category()));
+
 			// make sure upload only peers are disconnected
 			if (t->is_upload_only()
 				&& m_upload_only
 				&& t->valid_metadata()
-				&& has_metadata())
+				&& has_metadata()
+				&& ok_to_disconnect)
 				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause() || t->has_error());
 
 			if (m_upload_only
@@ -5841,7 +5868,8 @@ namespace libtorrent
 				&& m_bitfield_received
 				&& t->are_files_checked()
 				&& t->valid_metadata()
-				&& has_metadata())
+				&& has_metadata()
+				&& ok_to_disconnect)
 				TORRENT_ASSERT(m_disconnect_started);
 		}
 

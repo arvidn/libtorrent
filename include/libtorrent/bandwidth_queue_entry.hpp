@@ -62,7 +62,9 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	// from the most limiting one
 	int assign_bandwidth();
 
-	bandwidth_channel* channel[5];
+	enum { max_bandwidth_channels = 5 };
+	// we don't actually support more than 5 channels per peer
+	bandwidth_channel* channel[max_bandwidth_channels];
 };
 
 }

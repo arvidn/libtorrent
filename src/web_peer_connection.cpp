@@ -490,6 +490,9 @@ namespace libtorrent
 				// if the status code is not one of the accepted ones, abort
 				if (!is_ok_status(m_parser.status_code()))
 				{
+					// TODO: 3 just make this peer not have the pieces
+					// associated with the file we just requested. Only
+					// when it doesn't have any of the file do the following
 					int retry_time = atoi(m_parser.header("retry-after").c_str());
 					if (retry_time <= 0) retry_time = m_ses.settings().urlseed_wait_retry;
 					// temporarily unavailable, retry later
@@ -540,6 +543,7 @@ namespace libtorrent
 						TORRENT_ASSERT(!m_file_requests.empty());
 						int file_index = m_file_requests.front();
 
+// TODO: 2 create a mapping of file-index to redirection URLs. Use that to form URLs instead. Support to reconnect to a new server without destructing this peer_connection
 						torrent_info const& info = t->torrent_file();
 						std::string path = info.orig_files().file_path(file_index);
 #ifdef TORRENT_WINDOWS
