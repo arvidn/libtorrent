@@ -3040,6 +3040,7 @@ retry:
 			if (num_connections() >= m_settings.connections_limit)
 				c->peer_exceeds_limit();
 
+			TORRENT_ASSERT(!c->m_in_constructor);
 			m_connections.insert(c);
 			c->start();
 			// update the next disk peer round-robin cursor
@@ -3360,8 +3361,8 @@ retry:
 							int total_peers = num_peers[0][i] + num_peers[1][i];
 							// this are 64 bits since it's multiplied by the number
 							// of peers, which otherwise might overflow an int
-							boost::uint64_t rate = (std::max)(stat_rate[i], lower_limit[i]);
-							tcp_channel[i]->throttle(int(rate * num_peers[0][i] / total_peers));
+							boost::uint64_t rate = stat_rate[i];
+							tcp_channel[i]->throttle((std::max)(int(rate * num_peers[0][i] / total_peers), lower_limit[i]));
 						}
 					}
 				}

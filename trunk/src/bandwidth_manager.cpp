@@ -147,6 +147,8 @@ namespace libtorrent
 
 		std::vector<bandwidth_channel*> channels;
 
+		queue_t tm;
+
 		for (queue_t::iterator i = m_queue.begin();
 			i != m_queue.end();)
 		{
@@ -156,16 +158,18 @@ namespace libtorrent
 
 				// return all assigned quota to all the
 				// bandwidth channels this peer belongs to
-				for (int j = 0; j < 5 && i->channel[j]; ++j)
+				for (int j = 0; j < bw_request::max_bandwidth_channels && i->channel[j]; ++j)
 				{
 					bandwidth_channel* bwc = i->channel[j];
 					bwc->return_quota(i->assigned);
 				}
 
+				i->assigned = 0;
+				tm.push_back(*i);
 				i = m_queue.erase(i);
 				continue;
 			}
-			for (int j = 0; j < 5 && i->channel[j]; ++j)
+			for (int j = 0; j < bw_request::max_bandwidth_channels && i->channel[j]; ++j)
 			{
 				bandwidth_channel* bwc = i->channel[j];
 				bwc->tmp = 0;
@@ -176,7 +180,7 @@ namespace libtorrent
 		for (queue_t::iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{
-			for (int j = 0; j < 5 && i->channel[j]; ++j)
+			for (int j = 0; j < bw_request::max_bandwidth_channels && i->channel[j]; ++j)
 			{
 				bandwidth_channel* bwc = i->channel[j];
 				if (bwc->tmp == 0) channels.push_back(bwc);
@@ -190,8 +194,6 @@ namespace libtorrent
 		{
 			(*i)->update_quota(dt_milliseconds);
 		}
-
-		queue_t tm;
 
 		for (queue_t::iterator i = m_queue.begin();
 			i != m_queue.end();)

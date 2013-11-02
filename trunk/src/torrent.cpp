@@ -4949,6 +4949,7 @@ namespace libtorrent
 
 		TORRENT_TRY
 		{
+			TORRENT_ASSERT(!c->m_in_constructor);
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);

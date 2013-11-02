@@ -486,7 +486,7 @@ namespace libtorrent
 		void start_receive_piece(peer_request const& r);
 		void incoming_cancel(peer_request const& r);
 
-		bool can_disconnect(error_code const& ec);
+		bool can_disconnect(error_code const& ec) const;
 		void incoming_dht_port(int listen_port);
 		
 		void incoming_reject_request(peer_request const& r);
