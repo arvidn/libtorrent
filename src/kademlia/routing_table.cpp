@@ -133,7 +133,7 @@ int routing_table::depth() const
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
-		if (i->live_nodes.size() < m_bucket_size)
+		if (i->live_nodes.size() < m_bucket_size / 2)
 			break;
 		// this bucket is full
 		++deepest_bucket;
