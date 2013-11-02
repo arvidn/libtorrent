@@ -5130,6 +5130,11 @@ namespace libtorrent
 		m_quota[channel] += amount;
 		TORRENT_ASSERT(m_channel_state[channel] & peer_info::bw_limit);
 		m_channel_state[channel] &= ~peer_info::bw_limit;
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		check_invariant();
+#endif
+
 		if (is_disconnecting()) return;
 		if (channel == upload_channel)
 		{
@@ -6438,6 +6443,14 @@ namespace libtorrent
 				TORRENT_ASSERT(m_ses.get_bandwidth_manager(i)->is_queued(this));
 			}
 		}
+
+		// TODO: why does this invariant not hold?
+/*
+		if (m_channel_state[upload_channel] & peer_info::bw_limit)
+			TORRENT_ASSERT(m_ses.m_upload_rate.is_queued(this));
+		if (m_channel_state[download_channel] & peer_info::bw_limit)
+			TORRENT_ASSERT(m_ses.m_download_rate.is_queued(this));
+*/
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 

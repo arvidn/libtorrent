@@ -301,13 +301,6 @@ int test_main()
 	TEST_EQUAL(path, "c/c");
 #endif
 
-	// make sure the time classes have correct semantics
-
-	TEST_EQUAL(total_milliseconds(milliseconds(100)), 100);
-	TEST_EQUAL(total_milliseconds(milliseconds(1)),  1);
-	TEST_EQUAL(total_milliseconds(seconds(1)), 1000);
-
-
 	if (supports_ipv6())
 	{
 		// make sure the assumption we use in policy's peer list hold

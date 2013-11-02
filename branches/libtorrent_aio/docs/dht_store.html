@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -190,7 +190,7 @@ version, the sequence number <tt class="docutils literal">seq</tt> must be monot
 and a node hosting the list node MUST not downgrade a list head from a higher sequence
 number to a lower one, only upgrade. The sequence number SHOULD not exceed <tt class="docutils literal">MAX_INT64</tt>,
 (i.e. <tt class="docutils literal">0x7fffffffffffffff</tt>. A client MAY reject any message with a sequence number
-exceeding this.</p>
+exceeding this. A client MAY also reject any message with a negative sequence number.</p>
 <p>The signature is a 64 byte ed25519 signature of the bencoded sequence
 number concatenated with the <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
 <div class="section" id="id1">
@@ -223,12 +223,14 @@ message with code 302 (see error codes below).</p>
 <p>Note that this request does not contain a target hash. The target hash under
 which this blob is stored is implied by the <tt class="docutils literal">k</tt> argument. The key is
 the SHA-1 hash of the key (<tt class="docutils literal">k</tt>).</p>
-<p>The <tt class="docutils literal">cas</tt> field is optional. If present it is interpreted of the sha-1 hash of
+<p>The <tt class="docutils literal">cas</tt> field is optional. If present it is interpreted as the sha-1 hash of
 the sequence number and <tt class="docutils literal">v</tt> field that is expected to be replaced. The buffer
 to hash is the same as the one signed when storing. <tt class="docutils literal">cas</tt> is short for <em>compare
 and swap</em>, it has similar semantics as CAS CPU instructions. If specified as part
 of the put command, and the current value stored under the public key differs from
-the expected value, the store fails. The <tt class="docutils literal">cas</tt> field only applies to mutable puts.</p>
+the expected value, the store fails. The <tt class="docutils literal">cas</tt> field only applies to mutable puts.
+If there is no current value, the <tt class="docutils literal">cas</tt> field SHOULD be ignored, not preventing
+the put based on it.</p>
 <p>Response:</p>
 <pre class="literal-block">
 {

@@ -965,6 +965,14 @@ namespace libtorrent
 				{
 					e.clear();
 					recursive_copy(old_path, new_path, ec.ec);
+					if (ec.ec == boost::system::errc::no_such_file_or_directory)
+					{
+						// it's a bit weird that rename() would not return
+						// ENOENT, but the file still wouldn't exist. But,
+						// in case it does, we're done.
+						ec.ec.clear();
+						break;
+					}
 					if (ec)
 					{
 						ec.file = i->second;

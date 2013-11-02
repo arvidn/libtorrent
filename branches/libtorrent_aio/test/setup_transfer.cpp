@@ -1211,7 +1211,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			sock = s.get<stream_socket>();
 
 			bool accept_done = false;
-			DLOG(stderr, "waiting for incoming connection\n");
+			fprintf(stderr, "HTTP waiting for incoming connection\n");
 			acceptor.async_accept(*sock, boost::bind(&on_accept, boost::ref(ec), _1, &accept_done));
 			while (!accept_done)
 			{
@@ -1230,7 +1230,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				fprintf(stderr, "%s: accept failed: %s\n", time_now_string(), ec.message().c_str());
 				return;
 			}
-			DLOG(stderr, "%s: accepting incoming connection\n", time_now_string());
+			fprintf(stderr, "%s: accepting incoming connection\n", time_now_string());
 			if (!s.is_open())
 			{
 				fprintf(stderr, "%s: incoming connection closed\n", time_now_string());
@@ -1268,7 +1268,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			TEST_CHECK(error == false);
 			if (error)
 			{
-				fprintf(stderr, "parse failed\n");
+				fprintf(stderr, "HTTP parse failed\n");
 				failed = true;
 				break;
 			}
