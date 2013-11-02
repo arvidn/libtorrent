@@ -2301,7 +2301,7 @@ int main(int argc, char* argv[])
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:!i->will_announce(now)?""
-							:to_string(total_seconds(i->next_announce - now), 8).c_str()
+							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
 						, i->min_announce > now ? total_seconds(i->min_announce - now) : 0
 						, i->last_error ? i->last_error.message().c_str() : ""
 						, i->message.c_str());
