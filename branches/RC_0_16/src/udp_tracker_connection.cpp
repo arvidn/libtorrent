@@ -94,9 +94,7 @@ namespace libtorrent
 
 		if (ec)
 		{
-			// never call fail() when the session mutex is locked!
-			m_ses.m_io_service.post(boost::bind(
-				&tracker_connection::fail_disp, self(), ec));
+			tracker_connection::fail(ec);
 			return;
 		}
 		
@@ -144,7 +142,7 @@ namespace libtorrent
 		// if that was the last one, fail the whole announce
 		if (m_endpoints.empty())
 		{
-			tracker_connection::fail(ec, code, msg, interval, min_interval);
+			fail(ec, code, msg, interval, min_interval);
 			return;
 		}
 
