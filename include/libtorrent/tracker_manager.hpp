@@ -188,6 +188,8 @@ namespace libtorrent
 		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler() {}
 
+		io_service& get_io_service() { return m_timeout.get_io_service(); }
+
 #if !defined TORRENT_VERBOSE_LOGGING \
 	&& !defined TORRENT_LOGGING \
 	&& !defined TORRENT_ERROR_LOGGING
@@ -229,7 +231,6 @@ namespace libtorrent
 
 		tracker_request const& tracker_req() const { return m_req; }
 
-		void fail_disp(error_code ec) { fail(ec); }
 		void fail(error_code const& ec, int code = -1, char const* msg = ""
 			, int interval = 0, int min_interval = 0);
 		virtual void start() = 0;
@@ -242,12 +243,18 @@ namespace libtorrent
 		virtual bool on_receive_hostname(error_code const& ec, char const* hostname
 			, char const* buf, int size) { return false; }
 
+		boost::intrusive_ptr<tracker_connection> self()
+		{ return boost::intrusive_ptr<tracker_connection>(this); }
+
 #if !defined TORRENT_VERBOSE_LOGGING \
 	&& !defined TORRENT_LOGGING \
 	&& !defined TORRENT_ERROR_LOGGING
 	// necessary for logging member offsets
 	protected:
 #endif
+
+		void fail_impl(error_code const& ec, int code = -1, std::string msg = std::string()
+			, int interval = 0, int min_interval = 0);
 
 		boost::weak_ptr<request_callback> m_requester;
 

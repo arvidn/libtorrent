@@ -107,8 +107,7 @@ namespace libtorrent
 			std::size_t pos = url.find("announce");
 			if (pos == std::string::npos)
 			{
-				m_ios.post(boost::bind(&http_tracker_connection::fail_disp, self()
-					, error_code(errors::scrape_not_available)));
+				tracker_connection::fail(error_code(errors::scrape_not_available));
 				return;
 			}
 			url.replace(pos, 8, "scrape");

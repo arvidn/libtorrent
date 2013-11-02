@@ -25,6 +25,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix deadlock caused by some UDP tracker failures
 	* fix potential integer overflow issue in timers on windows
 	* minor fix to peer_proportional mixed_mode algorithm (TCP limit could go too low)
 	* graceful pause fix
