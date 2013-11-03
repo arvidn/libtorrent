@@ -175,6 +175,7 @@ static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torre
 	{
 		TEST_EQUAL(cs.cache_size, 0);
 		TEST_EQUAL(cs.total_used_buffers, 0);
+		TEST_EQUAL(th.status().is_seeding, true);
 	}
 
 	std::cerr << "total_size: " << total_size
@@ -213,11 +214,11 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 {
 	using namespace libtorrent;
 
-	std::string save_path = "tmp1_web_seed";
+	std::string save_path = "web_seed";
 	save_path += proxy_name[proxy];
 
 	error_code ec;
-	create_directories(combine_path(save_path, "test_torrent_dir"), ec);
+	create_directories(combine_path(save_path, "torrent_dir"), ec);
 	if (ec)
 	{
 		fprintf(stderr, "FAILED TO CREATE DIRECTORY: (%d) %s\n"
@@ -235,15 +236,16 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 
 	if (test_url_seed)
 	{
-		create_random_files(combine_path(save_path, "test_torrent_dir"), file_sizes, sizeof(file_sizes)/sizeof(file_sizes[0]));
-		add_files(fs, combine_path(save_path, "test_torrent_dir"));
+		create_random_files(combine_path(save_path, "torrent_dir"), file_sizes, sizeof(file_sizes)/sizeof(file_sizes[0]));
+		add_files(fs, combine_path(save_path, "torrent_dir"));
 	}
 	else
 	{
 		piece_size = 64 * 1024;
 		char* random_data = (char*)malloc(64 * 1024 * num_pieces);
 		std::generate(random_data, random_data + 64 * 1024 * num_pieces, &std::rand);
-		save_file(combine_path(save_path, "seed").c_str(), random_data, 64 * 1024 * num_pieces);
+		std::string seed_filename = combine_path(save_path, "seed");
+		save_file(seed_filename.c_str(), random_data, 64 * 1024 * num_pieces);
 		fs.add_file("seed", 64 * 1024 * num_pieces);
 		free(random_data);
 	}
@@ -290,7 +292,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 		// corrupt the files now, so that the web seed will be banned
 		if (test_url_seed)
 		{
-			create_random_files(combine_path(save_path, "test_torrent_dir"), file_sizes, sizeof(file_sizes)/sizeof(file_sizes[0]));
+			create_random_files(combine_path(save_path, "torrent_dir"), file_sizes, sizeof(file_sizes)/sizeof(file_sizes[0]));
 		}
 		else
 		{
@@ -336,7 +338,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 		
 		if (test_url_seed)
 		{
-			torrent_file->rename_file(0, combine_path(save_path, "test_torrent_dir/renamed_test1"));
+			torrent_file->rename_file(0, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
 			test_transfer(ses, torrent_file, 0, port, protocol, test_url_seed, chunked_encoding, test_ban);
 		}
 	}

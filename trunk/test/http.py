@@ -151,12 +151,12 @@ class ConnectionHandler:
         self.client.send(HTTPVER+' 200 Connection established\n'+
                          'Proxy-agent: %s\n\n'%VERSION)
         self.client_buffer = ''
-        self._read_write()        
+        self._read_write()
 
     def method_others(self):
         self.path = self.path[7:]
         i = self.path.find('/')
-        host = self.path[:i]        
+        host = self.path[:i]
         path = self.path[i:]
         self._connect_target(host)
         self.target.send('%s %s %s\n'%(self.method, path, self.protocol)+
