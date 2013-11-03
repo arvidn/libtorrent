@@ -44,9 +44,9 @@ int test_main()
 	for (int url_seed = 0; url_seed < 2; ++url_seed)
 	{
 #ifdef TORRENT_USE_OPENSSL
-		run_http_suite(proxy, "https", url_seed);
+		run_http_suite(proxy, "https", url_seed, 0, 1);
 #endif
-		run_http_suite(proxy, "http", url_seed);
+		run_http_suite(proxy, "http", url_seed, 0, 1);
 	}
 	return ret;
 }

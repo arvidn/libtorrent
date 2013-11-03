@@ -43,16 +43,10 @@ int test_main()
 	int ret = 0;
 	for (int url_seed = 0; url_seed < 2; ++url_seed)
 	{
-		for (int chunked = 0; chunked < 2; ++chunked)
-		{
-			for (int ban = 0; ban < 2; ++ban)
-			{
 #ifdef TORRENT_USE_OPENSSL
-				run_http_suite(proxy, "https", url_seed, chunked, ban);
+		run_http_suite(proxy, "https", url_seed);
 #endif
-				run_http_suite(proxy, "http", url_seed, chunked, ban);
-			}
-		}
+		run_http_suite(proxy, "http", url_seed);
 	}
 	return ret;
 }
