@@ -186,7 +186,11 @@ class SocksHandler(StreamRequestHandler):
             outbound_sock = socket.socket(socket.AF_INET6)
         else:
             outbound_sock = socket.socket(socket.AF_INET)
-        out_address = socket.getaddrinfo(dest_address,dest_port)[0][4]
+        try:
+            out_address = socket.getaddrinfo(dest_address,dest_port)[0][4]
+        except Exception, e:
+            print e
+            return
         debug("Creating forwarder connection to %r", out_address)
         outbound_sock.connect(out_address)
 

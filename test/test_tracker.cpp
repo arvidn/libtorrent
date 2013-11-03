@@ -46,7 +46,6 @@ int test_main()
 	int udp_port = start_tracker();
 
 	int prev_udp_announces = g_udp_tracker_requests;
-	int prev_http_announces = g_http_tracker_requests;
 
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
@@ -84,15 +83,12 @@ int test_main()
 	{
 		print_alerts(*s, "s");
 		test_sleep(100);
-//		fprintf(stderr, "udp_announces: %d http_announces: %d\n", int(g_udp_tracker_requests), int(g_http_tracker_requests));
-		if (g_udp_tracker_requests == prev_udp_announces + 1
-			&& g_http_tracker_requests == prev_http_announces + 1)
+		if (g_udp_tracker_requests == prev_udp_announces + 1)
 			break;
 	}
 
 	// we should have announced to the tracker by now
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
-	TEST_EQUAL(g_http_tracker_requests, prev_http_announces + 1);
 
 	fprintf(stderr, "destructing session\n");
 	delete s;
@@ -100,7 +96,6 @@ int test_main()
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 2);
-	TEST_EQUAL(g_http_tracker_requests, prev_http_announces + 2);
 
 	// ========================================
 	// test that we move on to try the next tier if the first one fails
@@ -139,7 +134,6 @@ int test_main()
 	t->add_tracker(tracker_url, 3);
 
 	prev_udp_announces = g_udp_tracker_requests;
-	prev_http_announces = g_http_tracker_requests;
 
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
@@ -157,7 +151,6 @@ int test_main()
 	test_sleep(1000);
 
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
-	TEST_EQUAL(g_http_tracker_requests, prev_http_announces);
 
 	fprintf(stderr, "destructing session\n");
 	delete s;

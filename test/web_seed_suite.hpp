@@ -31,5 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 #include "test.hpp"
 
-int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, bool chunked_encoding, bool test_ban);
+int EXPORT run_http_suite(int proxy, char const* protocol
+	, bool test_url_seed, bool chunked_encoding, bool test_ban);
 

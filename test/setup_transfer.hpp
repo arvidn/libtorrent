@@ -69,7 +69,6 @@ void EXPORT wait_for_listen(libtorrent::session& ses, char const* name);
 void EXPORT test_sleep(int millisec);
 
 extern EXPORT boost::detail::atomic_count g_udp_tracker_requests;
-extern EXPORT boost::detail::atomic_count g_http_tracker_requests;
 
 void EXPORT create_random_files(std::string const& path, const int file_sizes[], int num_files);
 

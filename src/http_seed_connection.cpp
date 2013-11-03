@@ -116,7 +116,7 @@ namespace libtorrent
 			int receive_buffer_size = receive_buffer().left() - m_parser.body_start();
 			// TODO: 1 in chunked encoding mode, this assert won't hold.
 			// the chunk headers should be subtracted from the receive_buffer_size
-			TORRENT_ASSERT(receive_buffer_size <= t->block_size());
+			TORRENT_ASSERT_VAL(receive_buffer_size <= t->block_size(), receive_buffer_size);
 			ret.bytes_downloaded = t->block_size() - receive_buffer_size;
 		}
 		// this is used to make sure that the block_index stays within

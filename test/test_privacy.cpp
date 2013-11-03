@@ -88,7 +88,6 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	int peer_port = start_peer();
 
 	int prev_udp_announces = g_udp_tracker_requests;
-	int prev_http_announces = g_http_tracker_requests;
 
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
@@ -161,14 +160,12 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 		test_sleep(100);
 
 		if (g_udp_tracker_requests >= prev_udp_announces + 1
-			&& g_http_tracker_requests >= prev_http_announces + 1
 			&& num_peer_hits() > 0)
 			break;
 	}
 
 	// we should have announced to the tracker by now
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + bool(flags & expect_udp_connection));
-	TEST_EQUAL(g_http_tracker_requests, prev_http_announces + bool(flags & expect_http_connection));
 	if (flags & expect_dht_msg)
 	{
 		TEST_CHECK(num_dht_hits() > 0);
