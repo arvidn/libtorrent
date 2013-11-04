@@ -74,7 +74,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.end_headers()
 				s.wfile.write(data);
 			except Exception, e:
-				print 'FILE NOT FOUND: ', e
+				print 'FILE NOT FOUND: ', os.getcwd(), filename
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
@@ -124,7 +124,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				if chunked_encoding:
 					s.wfile.write('0\r\n\r\n')
 			except Exception, e:
-				print 'FILE NOT FOUND: ', e
+				print 'FILE NOT FOUND: ', os.getcwd(), e
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
