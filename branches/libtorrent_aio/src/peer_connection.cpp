@@ -4388,7 +4388,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_recv_start - size <= m_recv_end);
 
 			if (size > 0)
-				std::memmove(&m_recv_buffer[0] + offset, &m_recv_buffer[0] + offset + size, m_recv_end - size - offset);
+				std::memmove(&m_recv_buffer[0] + m_recv_start + offset
+					, &m_recv_buffer[0] + m_recv_start + offset + size
+					, m_recv_end - size - offset);
 
 			m_recv_pos -= size;
 			m_recv_end -= size;
