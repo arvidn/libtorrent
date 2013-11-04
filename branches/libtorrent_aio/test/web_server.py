@@ -25,19 +25,22 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.send_header("Location", "/test_file")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			s.finish()
+			try: s.finish()
+			except: pass
 		elif s.path == '/infinite_redirect':
 			s.send_response(301)
 			s.send_header("Location", "/infinite_redirect")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			s.finish()
+			try: s.finish()
+			except: pass
 		elif s.path == '/relative/redirect':
 			s.send_response(301)
 			s.send_header("Location", "../test_file")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			s.finish()
+			try: s.finish()
+			except: pass
 		elif s.path.startswith('/announce'):
 			s.send_response(200)
 			response = 'd8:intervali1800e8:completei1e10:incompletei1e5:peers0:e'
@@ -45,7 +48,8 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.send_header("Connection", "close")
 			s.end_headers()
 			s.wfile.write(response)
-			s.finish()
+			try: s.finish()
+			except: pass
 		elif os.path.split(s.path)[1].startswith('seed?'):
 			query = s.path[6:]
 			args_raw = query.split('&')
@@ -129,12 +133,12 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 if __name__ == '__main__':
 	port = int(sys.argv[1])
 	chunked_encoding = sys.argv[2] != '0'
-	ssl = sys.argv[3] != '0'
+	use_ssl = sys.argv[3] != '0'
 
 	# TODO: SSL support
 	http_handler.protocol_version = 'HTTP/1.1'
 	httpd = BaseHTTPServer.HTTPServer(('127.0.0.1', port), http_handler)
-	if ssl:
+	if use_ssl:
 		httpd.socket = ssl.wrap_socket(httpd.socket, certfile='../ssl/server.pem', server_side=True)
 
 	try:

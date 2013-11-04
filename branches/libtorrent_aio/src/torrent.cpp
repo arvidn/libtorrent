@@ -7533,7 +7533,8 @@ namespace libtorrent
 
 		state_updated();
 
-		m_completed_time = time(0);
+		if (m_completed_time == 0)
+			m_completed_time = time(0);
 
 		// disconnect all seeds
 		if (settings().get_bool(settings_pack::close_redundant_connections))
