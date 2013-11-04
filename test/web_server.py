@@ -133,12 +133,12 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 if __name__ == '__main__':
 	port = int(sys.argv[1])
 	chunked_encoding = sys.argv[2] != '0'
-	ssl = sys.argv[3] != '0'
+	use_ssl = sys.argv[3] != '0'
 
 	# TODO: SSL support
 	http_handler.protocol_version = 'HTTP/1.1'
 	httpd = BaseHTTPServer.HTTPServer(('127.0.0.1', port), http_handler)
-	if ssl:
+	if use_ssl:
 		httpd.socket = ssl.wrap_socket(httpd.socket, certfile='../ssl/server.pem', server_side=True)
 
 	try:
