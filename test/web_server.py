@@ -25,22 +25,16 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.send_header("Location", "/test_file")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			try: s.finish()
-			except: pass
 		elif s.path == '/infinite_redirect':
 			s.send_response(301)
 			s.send_header("Location", "/infinite_redirect")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			try: s.finish()
-			except: pass
 		elif s.path == '/relative/redirect':
 			s.send_response(301)
 			s.send_header("Location", "../test_file")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			try: s.finish()
-			except: pass
 		elif s.path.startswith('/announce'):
 			s.send_response(200)
 			response = 'd8:intervali1800e8:completei1e10:incompletei1e5:peers0:e'
@@ -48,8 +42,6 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.send_header("Connection", "close")
 			s.end_headers()
 			s.wfile.write(response)
-			try: s.finish()
-			except: pass
 		elif os.path.split(s.path)[1].startswith('seed?'):
 			query = s.path[6:]
 			args_raw = query.split('&')
