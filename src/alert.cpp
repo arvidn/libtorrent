@@ -68,7 +68,7 @@ namespace libtorrent {
 	std::string peer_alert::message() const
 	{
 		error_code ec;
-		return torrent_alert::message() + " peer (" + ip.address().to_string(ec)
+		return torrent_alert::message() + " peer (" + print_endpoint(ip)
 			+ ", " + identify_client(pid) + ")";
 	}
 
