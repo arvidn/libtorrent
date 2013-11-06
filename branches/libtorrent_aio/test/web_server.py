@@ -6,6 +6,13 @@ import ssl
 
 chunked_encoding = False
 
+class http_server_with_timeout(BaseHTTPServer.HTTPServer):
+	allow_reuse_address = True
+	timeout = 120
+
+	def handle_timeout(self):
+		raise Exception('timeout')
+
 class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	def do_GET(s):
@@ -25,22 +32,16 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.send_header("Location", "/test_file")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			try: s.finish()
-			except: pass
 		elif s.path == '/infinite_redirect':
 			s.send_response(301)
 			s.send_header("Location", "/infinite_redirect")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			try: s.finish()
-			except: pass
 		elif s.path == '/relative/redirect':
 			s.send_response(301)
 			s.send_header("Location", "../test_file")
 			s.send_header("Connection", "close")
 			s.end_headers()
-			try: s.finish()
-			except: pass
 		elif s.path.startswith('/announce'):
 			s.send_response(200)
 			response = 'd8:intervali1800e8:completei1e10:incompletei1e5:peers0:e'
@@ -48,8 +49,6 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.send_header("Connection", "close")
 			s.end_headers()
 			s.wfile.write(response)
-			try: s.finish()
-			except: pass
 		elif os.path.split(s.path)[1].startswith('seed?'):
 			query = s.path[6:]
 			args_raw = query.split('&')
@@ -74,7 +73,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.end_headers()
 				s.wfile.write(data);
 			except Exception, e:
-				print 'FILE NOT FOUND: ', e
+				print 'FILE NOT FOUND: ', os.getcwd(), filename
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
@@ -124,7 +123,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				if chunked_encoding:
 					s.wfile.write('0\r\n\r\n')
 			except Exception, e:
-				print 'FILE NOT FOUND: ', e
+				print 'FILE NOT FOUND: ', os.getcwd(), e
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
@@ -135,15 +134,10 @@ if __name__ == '__main__':
 	chunked_encoding = sys.argv[2] != '0'
 	use_ssl = sys.argv[3] != '0'
 
-	# TODO: SSL support
 	http_handler.protocol_version = 'HTTP/1.1'
-	httpd = BaseHTTPServer.HTTPServer(('127.0.0.1', port), http_handler)
+	httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)
 	if use_ssl:
 		httpd.socket = ssl.wrap_socket(httpd.socket, certfile='../ssl/server.pem', server_side=True)
 
-	try:
-		httpd.serve_forever()
-	except KeyboardInterrupt:
-		pass
-	httpd.server_close()
-
+	while True:
+		httpd.handle_request()
