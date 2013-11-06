@@ -6,6 +6,13 @@ import ssl
 
 chunked_encoding = False
 
+class http_server_with_timeout(BaseHTTPServer.HTTPServer):
+	allow_reuse_address = True
+	timeout = 120
+
+	def handle_timeout(self):
+		raise Exception('timeout')
+
 class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	def do_GET(s):
@@ -127,15 +134,10 @@ if __name__ == '__main__':
 	chunked_encoding = sys.argv[2] != '0'
 	use_ssl = sys.argv[3] != '0'
 
-	# TODO: SSL support
 	http_handler.protocol_version = 'HTTP/1.1'
-	httpd = BaseHTTPServer.HTTPServer(('127.0.0.1', port), http_handler)
+	httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)
 	if use_ssl:
 		httpd.socket = ssl.wrap_socket(httpd.socket, certfile='../ssl/server.pem', server_side=True)
 
-	try:
-		httpd.serve_forever()
-	except KeyboardInterrupt:
-		pass
-	httpd.server_close()
-
+	while True:
+		httpd.handle_request()
