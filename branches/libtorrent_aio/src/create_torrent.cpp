@@ -193,6 +193,12 @@ namespace libtorrent
 		std::string const& path = p;
 #endif
 
+		if (t.files().num_files() == 0)
+		{
+			ec = error_code(errors::no_files_in_torrent, get_libtorrent_category());
+			return;
+		}
+
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy(new char);
 		disk_io_thread disk_thread(ios, 0, 0);
