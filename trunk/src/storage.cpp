@@ -728,7 +728,7 @@ namespace libtorrent
 				fs = file_sizes.begin();
 			// the resume data says we have the entire torrent
 			// make sure the file sizes are the right ones
-			for (int i = 0; i < files().num_files(); ++i)
+			for (int i = 0; i < files().num_files(); ++i, ++fs)
 			{
 				if (!files().pad_file_at(i) && files().file_size(i) != fs->first)
 				{
