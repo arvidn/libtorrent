@@ -89,13 +89,13 @@ int test_main()
 	tor1.force_recheck();
 
 	torrent_status st1 = tor1.status();
-	TEST_CHECK(!st1.progress_ppm < 1000000);
+	TEST_CHECK(st1.progress_ppm < 1000000);
 	wait_for_complete(ses1, tor1);
 
 	tor1.force_recheck();
 
 	st1 = tor1.status();
-	TEST_CHECK(!st1.progress_ppm < 1000000);
+	TEST_CHECK(st1.progress_ppm < 1000000);
 	wait_for_complete(ses1, tor1);
 
 	return 0;

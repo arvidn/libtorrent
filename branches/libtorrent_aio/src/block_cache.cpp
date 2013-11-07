@@ -1683,6 +1683,13 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		return j->d.io.buffer_size;
 	}
 
+	// if we don't have the second block, it's a cache miss
+	if (pe->blocks[start_block + 1].buf == 0)
+	{
+		dec_block_refcount(pe, start_block, ref_reading);
+		return -1;
+	}
+
 	if (inc_block_refcount(pe, start_block + 1, ref_reading) == false)
 	{
 		dec_block_refcount(pe, start_block, ref_reading);
