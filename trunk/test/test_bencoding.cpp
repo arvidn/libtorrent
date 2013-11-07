@@ -201,6 +201,13 @@ int test_main()
 		int ret = lazy_bdecode((char*)buf, (char*)buf + sizeof(buf), e, ec);
 		TEST_CHECK(ret == -1);	
 	}
+
+	{
+		unsigned char buf[] = { 0x44	, 0x91	, 0x3a };
+		entry ent = bdecode(buf, buf + sizeof(buf));
+		TEST_CHECK(ent == entry());
+	}
+
 	return 0;
 }
 
