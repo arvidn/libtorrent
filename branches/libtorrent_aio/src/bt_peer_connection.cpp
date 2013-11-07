@@ -119,6 +119,7 @@ namespace libtorrent
 		, m_supports_dht_port(false)
 		, m_supports_fast(false)
 		, m_sent_bitfield(false)
+		, m_sent_handshake(false)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
@@ -126,7 +127,6 @@ namespace libtorrent
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
-		, m_sent_handshake(false)
 #endif
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -236,6 +236,7 @@ namespace libtorrent
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
+		if (!m_sent_handshake) return;
 		if (m_sent_bitfield) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -728,9 +729,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!m_sent_handshake);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_handshake = true;
-#endif
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);

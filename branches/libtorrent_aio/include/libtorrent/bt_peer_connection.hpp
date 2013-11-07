@@ -400,6 +400,10 @@ private:
 		// the torrent.
 		bool m_sent_bitfield:1;
 
+		// true if we're done sending the bittorrent handshake,
+		// and can send bittorrent messages
+		bool m_sent_handshake:1;
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is set to true after the encryption method has been
 		// succesfully negotiated (either plaintext or rc4), to signal
@@ -435,9 +439,7 @@ private:
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool m_in_constructor;
-		
-		bool m_sent_handshake;
+		bool m_in_constructor;		
 #endif
 
 	};
