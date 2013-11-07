@@ -200,6 +200,12 @@ namespace libtorrent
 		std::string const& path = p;
 #endif
 
+		if (t.files().num_files() == 0)
+		{
+			ec = error_code(errors::no_files_in_torrent, get_libtorrent_category());
+			return;
+		}
+
 		boost::scoped_ptr<storage_interface> st(
 			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, path, fp
 			, std::vector<boost::uint8_t>()));
