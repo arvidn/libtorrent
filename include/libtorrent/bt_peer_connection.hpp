@@ -295,7 +295,7 @@ public:
 		virtual void send_buffer(char const* begin, int size, int flags = 0
 			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
 		template <class Destructor>
-		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
+		void bt_append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			if (m_rc4_encrypted)

@@ -613,7 +613,7 @@ namespace libtorrent
 			// since we'll mutate it
 			char* buf = (char*)malloc(size);
 			memcpy(buf, buffer, size);
-			bt_peer_connection::append_send_buffer(buf, size, boost::bind(&::free, _1));
+			bt_append_send_buffer(buf, size, boost::bind(&::free, _1));
 		}
 		else
 #endif
@@ -2314,7 +2314,7 @@ namespace libtorrent
 			send_buffer(msg, 13);
 		}
 
-		append_send_buffer(buffer.get(), r.length
+		bt_append_send_buffer(buffer.get(), r.length
 			, boost::bind(&session_impl::free_disk_buffer
 			, boost::ref(m_ses), _1));
 		buffer.release();

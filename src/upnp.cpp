@@ -1263,6 +1263,22 @@ void upnp::on_upnp_map_response(error_code const& e
 		return;
 	}
 
+	std::string ct = p.header("content-type");
+	if (!ct.empty()
+		&& ct.find_first_of("text/xml") == std::string::npos
+		&& ct.find_first_of("text/soap+xml") == std::string::npos
+		&& ct.find_first_of("application/xml") == std::string::npos
+		&& ct.find_first_of("application/soap+xml") == std::string::npos
+		)
+	{
+		char msg[300];
+		snprintf(msg, sizeof(msg), "error while adding port map: invalid content-type, \"%s\". Expected text/xml or application/soap+xml"
+			, ct.c_str());
+		log(msg, l);
+		next(d, mapping, l);
+		return;
+	}
+
 	// We don't want to ignore responses with return codes other than 200
 	// since those might contain valid UPnP error codes
 
