@@ -1226,7 +1226,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
-	TORRENT_PIECE_ASSERT(pe->blocks[block].buf != NULL, pe);
+	if (pe->blocks[block].buf == NULL) return false;
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount < cached_block_entry::max_refcount, pe);
 	if (pe->blocks[block].refcount == 0)
 	{
@@ -1637,16 +1637,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 	int size = j->d.io.buffer_size;
 	int blocks_to_read = block_offset > 0 && (size > block_size() - block_offset) ? 2 : 1;
 	TORRENT_PIECE_ASSERT(size <= block_size(), pe);
-	int start_block = block;
-
-	cached_block_entry* bl = &pe->blocks[start_block];
-
-	if (bl->buf != 0
-		&& blocks_to_read > 1)
-	{
-		++start_block;
-		++bl;
-	}
+	const int start_block = block;
 
 #ifdef TORRENT_DEBUG	
 	int piece_size = j->storage->files()->piece_size(j->piece);
@@ -1657,7 +1648,6 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 	// if there's no buffer, we don't have this block in
 	// the cache, and we're not currently reading it in either
 	// since it's not pending
-	if (pe->blocks[start_block].buf == 0) return -1;
 
 	if (inc_block_refcount(pe, start_block, ref_reading) == false) return -1;
 
@@ -1669,27 +1659,22 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		// special case for block aligned request
 		// don't actually copy the buffer, just reference
 		// the existing block
+		cached_block_entry& bl = pe->blocks[start_block];
 
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
 		j->d.io.ref.storage = j->storage.get();
 		j->d.io.ref.piece = pe->piece;
 		j->d.io.ref.block = start_block;
-		j->buffer = bl->buf + (j->d.io.offset & (block_size()-1));
+		j->buffer = bl.buf + (j->d.io.offset & (block_size()-1));
 		++m_send_buffer_blocks;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		++pe->blocks[start_block].reading_count;
+		++bl.reading_count;
 #endif
 		return j->d.io.buffer_size;
 	}
 
 	// if we don't have the second block, it's a cache miss
-	if (pe->blocks[start_block + 1].buf == 0)
-	{
-		dec_block_refcount(pe, start_block, ref_reading);
-		return -1;
-	}
-
 	if (inc_block_refcount(pe, start_block + 1, ref_reading) == false)
 	{
 		dec_block_refcount(pe, start_block, ref_reading);
