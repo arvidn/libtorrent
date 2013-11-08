@@ -1,3 +1,4 @@
+	* fix large file support issue on mingw
 	* add some error handling to set_piece_hashes()
 	* fix completed-on timestamp to not be clobbered on each startup
 	* fix deadlock caused by some UDP tracker failures
