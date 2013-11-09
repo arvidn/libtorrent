@@ -2317,6 +2317,15 @@ namespace libtorrent
 			return;
 		}
 
+		// if we're not allowing peers, there's no point in announcing
+		if (e != tracker_request::stopped && !m_allow_peers)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("*** announce_with_tracker: event != stopped && !m_allow_peers");
+#endif
+			return;
+		}
+
 		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
 
 		if (e == tracker_request::none && is_finished() && !is_seed())
