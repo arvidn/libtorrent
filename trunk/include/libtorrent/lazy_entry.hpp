@@ -368,6 +368,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
 
+	// get the ``error_category`` for bdecode errors
 	TORRENT_EXPORT boost::system::error_category& get_bdecode_category();
 
 	namespace bdecode_errors

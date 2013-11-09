@@ -655,9 +655,15 @@ namespace libtorrent
 		boost::shared_array<char> metadata() const
 		{ return m_info_section; }
 
+		// internal
 		bool add_merkle_nodes(std::map<int, sha1_hash> const& subtree
 			, int piece);
 		std::map<int, sha1_hash> build_merkle_list(int piece) const;
+
+		// returns whether or not this is a merkle torrent.
+		// see BEP30__.
+		//
+		// __ http://bittorrent.org/beps/bep_0030.html
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 		// if we're logging member offsets, we need access to them

@@ -419,6 +419,10 @@ namespace libtorrent
 		bool verify_resume_data(lazy_entry const& rd, error_code& error);
 		bool write_resume_data(entry& rd) const;
 
+		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
+
+	private:
+
 		// this identifies a read or write operation
 		// so that default_storage::readwritev() knows what to
 		// do when it's actually touching the file
@@ -441,8 +445,6 @@ namespace libtorrent
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type write_unaligned(boost::intrusive_ptr<file> const& file_handle
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
-
-		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;

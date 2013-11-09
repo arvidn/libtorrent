@@ -35,7 +35,6 @@ TARGETS = index \
 	libtorrent_plugins \
 	python_binding \
 	projects \
-	running_tests \
 	utp \
 	tuning \
 	hacking \
