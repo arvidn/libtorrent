@@ -492,9 +492,6 @@ namespace libtorrent
 		m_obfuscated_hash = h.final();
 #endif
 
-#ifdef TORRENT_DEBUG
-		m_files_checked = false;
-#endif
 		INVARIANT_CHECK;
 
 		if (p.flags & add_torrent_params::flag_sequential_download)
@@ -6393,6 +6390,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 	
+		if (m_state == torrent_status::checking_resume_data
+			|| m_state == torrent_status::checking_files
+			|| m_state == torrent_status::allocating)
+			return;
+
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());
