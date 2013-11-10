@@ -286,6 +286,13 @@ namespace libtorrent
 		// initializes m_enc_handler
 		void init_pe_rc4_handler(char const* secret, sha1_hash const& stream_key);
 
+		// Returns offset at which bytestream (src, src + src_size)
+		// matches bytestream(target, target + target_size).
+		// If no sync found, return -1
+		int get_syncoffset(char const* src, int src_size
+			, char const* target, int target_size) const;
+#endif
+
 public:
 
 		// these functions encrypt the send buffer if m_rc4_encrypted
@@ -305,13 +312,6 @@ public:
 		}
 
 private:
-
-		// Returns offset at which bytestream (src, src + src_size)
-		// matches bytestream(target, target + target_size).
-		// If no sync found, return -1
-		int get_syncoffset(char const* src, int src_size
-			, char const* target, int target_size) const;
-#endif
 
 		enum state
 		{
