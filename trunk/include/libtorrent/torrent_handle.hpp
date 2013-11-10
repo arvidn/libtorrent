@@ -72,6 +72,7 @@ namespace libtorrent
 	struct torrent_status;
 	class torrent;
 
+	// allows torrent_handle to be used in unordered_map and unordered_set.
 	TORRENT_EXPORT std::size_t hash_value(torrent_status const& ts);
 
 #ifndef BOOST_NO_EXCEPTIONS
