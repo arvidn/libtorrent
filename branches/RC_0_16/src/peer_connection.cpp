@@ -5799,10 +5799,13 @@ namespace libtorrent
 
 		// if we're waiting for bandwidth, we should be in the
 		// bandwidth manager's queue
-		if (m_channel_state[0] & peer_info::bw_limit)
-			TORRENT_ASSERT(m_ses.m_upload_rate.is_queued(this));
-		if (m_channel_state[1] & peer_info::bw_limit)
-			TORRENT_ASSERT(m_ses.m_download_rate.is_queued(this));
+		if (!m_disconnecting)
+		{
+			if (m_channel_state[0] & peer_info::bw_limit)
+				TORRENT_ASSERT(m_ses.m_upload_rate.is_queued(this));
+			if (m_channel_state[1] & peer_info::bw_limit)
+				TORRENT_ASSERT(m_ses.m_download_rate.is_queued(this));
+		}
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
