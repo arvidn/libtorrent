@@ -415,9 +415,6 @@ namespace libtorrent
 			m_resume_data->buf = p.resume_data;
 		}
 
-#ifdef TORRENT_DEBUG
-		m_files_checked = false;
-#endif
 		update_want_peers();
 		update_want_scrape();
 		update_want_tick();
@@ -2820,6 +2817,15 @@ namespace libtorrent
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			debug_log("*** announce_with_tracker: event != stopped && !m_announce_to_trackers");
+#endif
+			return;
+		}
+
+		// if we're not allowing peers, there's no point in announcing
+		if (e != tracker_request::stopped && !m_allow_peers)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("*** announce_with_tracker: event != stopped && !m_allow_peers");
 #endif
 			return;
 		}
@@ -7586,6 +7592,11 @@ namespace libtorrent
 		// to be in downloading state (which it will be set to shortly)
 //		INVARIANT_CHECK;
 	
+		if (m_state == torrent_status::checking_resume_data
+			|| m_state == torrent_status::checking_files
+			|| m_state == torrent_status::allocating)
+			return;
+
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());

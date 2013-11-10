@@ -25,7 +25,7 @@
 <span style="color: #f77">14 important</span>
 <span style="color: #3c3">16 relevant</span>
 <span style="color: #77f">11 feasible</span>
-<span style="color: #999">76 notes</span>
+<span style="color: #999">75 notes</span>
 <table width="100%" border="1" style="border-collapse: collapse;"><tr style="background: #f44"><td>relevance&nbsp;4</td><td><a href="javascript:expand(0)">src/session_impl.cpp:594</a></td><td>in order to support SSL over uTP, the utp_socket manager either needs to be able to receive packets on multiple ports, or we need to peek into the first few bytes the payload stream of a socket to determine whether or not it's an SSL connection. (The former is simpler but won't do as well with NATs)</td></tr><tr id="0" style="display: none;" colspan="3"><td colspan="3"><h2>in order to support SSL over uTP, the utp_socket manager either
 needs to be able to receive packets on multiple ports, or we need to
 peek into the first few bytes the payload stream of a socket to determine
@@ -395,7 +395,7 @@ we would offload the main thread even more</h2><h4>src/session_impl.cpp:6946</h4
 			, end(m_connections.end()); i != end; ++i)
 		{
 			int type = (*i)-&gt;type();
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(7)">src/torrent.cpp:1123</a></td><td>if any other peer has a busy request to this block, we need to cancel it too</td></tr><tr id="7" style="display: none;" colspan="3"><td colspan="3"><h2>if any other peer has a busy request to this block, we need to cancel it too</h2><h4>src/torrent.cpp:1123</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#endif
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(7)">src/torrent.cpp:1120</a></td><td>if any other peer has a busy request to this block, we need to cancel it too</td></tr><tr id="7" style="display: none;" colspan="3"><td colspan="3"><h2>if any other peer has a busy request to this block, we need to cancel it too</h2><h4>src/torrent.cpp:1120</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#endif
 
 		TORRENT_ASSERT(j-&gt;piece &gt;= 0);
 
@@ -446,7 +446,7 @@ we would offload the main thread even more</h2><h4>src/session_impl.cpp:6946</h4
 			if (alerts().should_post&lt;file_error_alert&gt;())
 				alerts().post_alert(file_error_alert(j-&gt;error.ec
 					, resolve_filename(j-&gt;error.file), j-&gt;error.operation_str(), get_handle()));
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(8)">src/torrent.cpp:7310</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it</td></tr><tr id="8" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it</h2><h4>src/torrent.cpp:7310</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(8)">src/torrent.cpp:7316</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it</td></tr><tr id="8" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it</h2><h4>src/torrent.cpp:7316</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log("incoming peer (%d)", int(m_connections.size()));
 #endif
 
@@ -574,7 +574,7 @@ int routing_table::depth() const
 </div>	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
-		if (i-&gt;live_nodes.size() &lt; m_bucket_size)
+		if (i-&gt;live_nodes.size() &lt; m_bucket_size / 2)
 			break;
 		// this bucket is full
 		++deepest_bucket;
@@ -884,7 +884,7 @@ protected:
 			if (e-&gt;num_dirty == 0) continue;
 			pieces.push_back(std::make_pair(e-&gt;storage.get(), int(e-&gt;piece)));
 		}
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(17)">src/file.cpp:1444</a></td><td>use vm_copy here, if available, and if buffers are aligned</td></tr><tr id="17" style="display: none;" colspan="3"><td colspan="3"><h2>use vm_copy here, if available, and if buffers are aligned</h2><h4>src/file.cpp:1444</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		CloseHandle(native_handle());
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(17)">src/file.cpp:1446</a></td><td>use vm_copy here, if available, and if buffers are aligned</td></tr><tr id="17" style="display: none;" colspan="3"><td colspan="3"><h2>use vm_copy here, if available, and if buffers are aligned</h2><h4>src/file.cpp:1446</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		CloseHandle(native_handle());
 		m_path.clear();
 #else
 		if (m_file_handle != INVALID_HANDLE_VALUE)
@@ -914,7 +914,7 @@ protected:
 		int offset = 0;
 		for (int i = 0; i &lt; num_bufs; ++i)
 		{
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(18)">src/file.cpp:1455</a></td><td>use vm_copy here, if available, and if buffers are aligned</td></tr><tr id="18" style="display: none;" colspan="3"><td colspan="3"><h2>use vm_copy here, if available, and if buffers are aligned</h2><h4>src/file.cpp:1455</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	}
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(18)">src/file.cpp:1457</a></td><td>use vm_copy here, if available, and if buffers are aligned</td></tr><tr id="18" style="display: none;" colspan="3"><td colspan="3"><h2>use vm_copy here, if available, and if buffers are aligned</h2><h4>src/file.cpp:1457</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	}
 
 	// defined in storage.cpp
 	int bufs_size(file::iovec_t const* bufs, int num_bufs);
@@ -1017,7 +1017,7 @@ don't have to loop over all torrents, just to find the ones that want to announc
 		if (m_torrents.empty()) return;
 
 		if (m_next_lsd_torrent == m_torrents.end())
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(20)">src/torrent.cpp:9586</a></td><td>will pick_pieces ever return an empty set?</td></tr><tr id="20" style="display: none;" colspan="3"><td colspan="3"><h2>will pick_pieces ever return an empty set?</h2><h4>src/torrent.cpp:9586</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				if (added_request)
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(20)">src/torrent.cpp:9598</a></td><td>will pick_pieces ever return an empty set?</td></tr><tr id="20" style="display: none;" colspan="3"><td colspan="3"><h2>will pick_pieces ever return an empty set?</h2><h4>src/torrent.cpp:9598</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				if (added_request)
 				{
 					peers_with_requests.insert(peers_with_requests.begin(), &amp;c);
 					if (i-&gt;first_requested == min_time()) i-&gt;first_requested = now;
@@ -1554,7 +1554,7 @@ the chunk headers should be subtracted from the receive_buffer_size</h2><h4>src/
 		else
 		{
 			int receive_buffer_size = receive_buffer().left() - m_parser.body_start();
-<div style="background: #ffff00" width="100%">			TORRENT_ASSERT(receive_buffer_size &lt;= t-&gt;block_size());
+<div style="background: #ffff00" width="100%">			TORRENT_ASSERT_VAL(receive_buffer_size &lt;= t-&gt;block_size(), receive_buffer_size);
 </div>			ret.bytes_downloaded = t-&gt;block_size() - receive_buffer_size;
 		}
 		// this is used to make sure that the block_index stays within
@@ -1741,11 +1741,11 @@ is kind of expensive, it would be nice to not do it unnecessarily</h2><h4>src/se
 		, boost::function&lt;void(char*)&gt; const&amp; handler)
 	{
 		return m_disk_thread.async_allocate_disk_buffer(category, handler);
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(35)">src/torrent.cpp:1183</a></td><td>make this depend on the error and on the filesystem the files are being downloaded to. If the error is no_space_left_on_device and the filesystem doesn't support sparse files, only zero the priorities of the pieces that are at the tails of all files, leaving everything up to the highest written piece in each file</td></tr><tr id="35" style="display: none;" colspan="3"><td colspan="3"><h2>make this depend on the error and on the filesystem the
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(35)">src/torrent.cpp:1180</a></td><td>make this depend on the error and on the filesystem the files are being downloaded to. If the error is no_space_left_on_device and the filesystem doesn't support sparse files, only zero the priorities of the pieces that are at the tails of all files, leaving everything up to the highest written piece in each file</td></tr><tr id="35" style="display: none;" colspan="3"><td colspan="3"><h2>make this depend on the error and on the filesystem the
 files are being downloaded to. If the error is no_space_left_on_device
 and the filesystem doesn't support sparse files, only zero the priorities
 of the pieces that are at the tails of all files, leaving everything
-up to the highest written piece in each file</h2><h4>src/torrent.cpp:1183</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			alerts().post_alert(file_error_alert(j-&gt;error.ec
+up to the highest written piece in each file</h2><h4>src/torrent.cpp:1180</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			alerts().post_alert(file_error_alert(j-&gt;error.ec
 				, resolve_filename(j-&gt;error.file), j-&gt;error.operation_str(), get_handle()));
 
 		// put the torrent in an error-state
@@ -1796,8 +1796,8 @@ up to the highest written piece in each file</h2><h4>src/torrent.cpp:1183</h4><p
 				p-&gt;send_block_requests();
 			}
 		}
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(36)">src/torrent.cpp:6509</a></td><td>save the send_stats state instead of throwing them away it may pose an issue when downgrading though</td></tr><tr id="36" style="display: none;" colspan="3"><td colspan="3"><h2>save the send_stats state instead of throwing them away
-it may pose an issue when downgrading though</h2><h4>src/torrent.cpp:6509</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">						? (1 &lt;&lt; k) : 0;
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(36)">src/torrent.cpp:6515</a></td><td>save the send_stats state instead of throwing them away it may pose an issue when downgrading though</td></tr><tr id="36" style="display: none;" colspan="3"><td colspan="3"><h2>save the send_stats state instead of throwing them away
+it may pose an issue when downgrading though</h2><h4>src/torrent.cpp:6515</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">						? (1 &lt;&lt; k) : 0;
 					bitmask.append(1, v);
 					TORRENT_ASSERT(bits == 8 || j == num_bitmask_bytes - 1);
 				}
@@ -1848,10 +1848,9 @@ it may pose an issue when downgrading though</h2><h4>src/torrent.cpp:6509</h4><p
 
 		// write have bitmask
 		// the pieces string has one byte per piece. Each
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(37)">src/torrent.cpp:7541</a></td><td>should disconnect all peers that have the pieces we have not just seeds. It would be pretty expensive to check all pieces for all peers though</td></tr><tr id="37" style="display: none;" colspan="3"><td colspan="3"><h2>should disconnect all peers that have the pieces we have
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(37)">src/torrent.cpp:7548</a></td><td>should disconnect all peers that have the pieces we have not just seeds. It would be pretty expensive to check all pieces for all peers though</td></tr><tr id="37" style="display: none;" colspan="3"><td colspan="3"><h2>should disconnect all peers that have the pieces we have
 not just seeds. It would be pretty expensive to check all pieces
-for all peers though</h2><h4>src/torrent.cpp:7541</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
-		TORRENT_ASSERT(is_finished());
+for all peers though</h2><h4>src/torrent.cpp:7548</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(is_finished());
 
 		set_state(torrent_status::finished);
 		set_queue_position(-1);
@@ -1865,7 +1864,8 @@ for all peers though</h2><h4>src/torrent.cpp:7541</h4><pre style="background: #f
 
 		state_updated();
 
-		m_completed_time = time(0);
+		if (m_completed_time == 0)
+			m_completed_time = time(0);
 
 		// disconnect all seeds
 		if (settings().get_bool(settings_pack::close_redundant_connections))
@@ -2188,7 +2188,7 @@ blocks weren't in this list</h2><h4>src/block_cache.cpp:883</h4><pre style="back
 
 				int end = pe-&gt;blocks_in_piece;
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(44)">src/block_cache.cpp:1711</a></td><td>create a holder for refcounts that automatically decrement</td></tr><tr id="44" style="display: none;" colspan="3"><td colspan="3"><h2>create a holder for refcounts that automatically decrement</h2><h4>src/block_cache.cpp:1711</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(44)">src/block_cache.cpp:1703</a></td><td>create a holder for refcounts that automatically decrement</td></tr><tr id="44" style="display: none;" colspan="3"><td colspan="3"><h2>create a holder for refcounts that automatically decrement</h2><h4>src/block_cache.cpp:1703</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 	j-&gt;buffer = allocate_buffer("send buffer");
 	if (j-&gt;buffer == 0) return -2;
 
@@ -2239,14 +2239,14 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 
 	boost::shared_ptr&lt;piece_manager&gt; s = pe-&gt;storage;
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(45)">src/bt_peer_connection.cpp:690</a></td><td>this could be optimized using knuth morris pratt</td></tr><tr id="45" style="display: none;" colspan="3"><td colspan="3"><h2>this could be optimized using knuth morris pratt</h2><h4>src/bt_peer_connection.cpp:690</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		if (m_encrypted &amp;&amp; m_rc4_encrypted)
-		{
-			fun = encrypt;
-			userdata = m_enc_handler.get();
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(45)">src/bt_peer_connection.cpp:633</a></td><td>this could be optimized using knuth morris pratt</td></tr><tr id="45" style="display: none;" colspan="3"><td colspan="3"><h2>this could be optimized using knuth morris pratt</h2><h4>src/bt_peer_connection.cpp:633</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		{
+			disconnect(errors::no_memory, op_encryption);
+			return;
 		}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log(" computed RC4 keys");
 #endif
-		
-		peer_connection::send_buffer(buf, size, flags, fun, userdata);
 	}
 
 	int bt_peer_connection::get_syncoffset(char const* src, int src_size,
@@ -2290,7 +2290,7 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 // 		}
 
         // no complete sync
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(46)">src/bt_peer_connection.cpp:2183</a></td><td>if we're finished, send upload_only message</td></tr><tr id="46" style="display: none;" colspan="3"><td colspan="3"><h2>if we're finished, send upload_only message</h2><h4>src/bt_peer_connection.cpp:2183</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (msg[5 + k / 8] &amp; (0x80 &gt;&gt; (k % 8))) bitfield_string[k] = '1';
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(46)">src/bt_peer_connection.cpp:2184</a></td><td>if we're finished, send upload_only message</td></tr><tr id="46" style="display: none;" colspan="3"><td colspan="3"><h2>if we're finished, send upload_only message</h2><h4>src/bt_peer_connection.cpp:2184</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (msg[5 + k / 8] &amp; (0x80 &gt;&gt; (k % 8))) bitfield_string[k] = '1';
 			else bitfield_string[k] = '0';
 		}
 		peer_log("==&gt; BITFIELD [ %s ]", bitfield_string.c_str());
@@ -2832,8 +2832,7 @@ turn through this loop</h2><h4>src/disk_io_thread.cpp:2497</h4><pre style="backg
 			std::size_t pos = url.find("announce");
 			if (pos == std::string::npos)
 			{
-				m_ios.post(boost::bind(&amp;http_tracker_connection::fail_disp, self()
-					, error_code(errors::scrape_not_available)));
+				tracker_connection::fail(error_code(errors::scrape_not_available));
 				return;
 			}
 			url.replace(pos, 8, "scrape");
@@ -2853,6 +2852,7 @@ turn through this loop</h2><h4>src/disk_io_thread.cpp:2497</h4><pre style="backg
 		size_t arguments_start = url.find('?');
 		if (arguments_start != std::string::npos)
 			url += "&amp;";
+		else
 </pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(58)">src/metadata_transfer.cpp:361</a></td><td>this is not safe. The torrent could be unloaded while we're still sending the metadata</td></tr><tr id="58" style="display: none;" colspan="3"><td colspan="3"><h2>this is not safe. The torrent could be unloaded while
 we're still sending the metadata</h2><h4>src/metadata_transfer.cpp:361</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				std::pair&lt;int, int&gt; offset
 					= req_to_offset(req, (int)m_tp.metadata().left());
@@ -3113,58 +3113,7 @@ and flushing it, update the slot entries as we go</h2><h4>src/part_file.cpp:336<
 		TORRENT_ASSERT(t-&gt;has_picker());
 		TORRENT_ASSERT(t-&gt;picker().is_requested(block));
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(63)">src/peer_connection.cpp:6447</a></td><td>why does this invariant not hold?</td></tr><tr id="63" style="display: none;" colspan="3"><td colspan="3"><h2>why does this invariant not hold?</h2><h4>src/peer_connection.cpp:6447</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
-	void peer_connection::check_invariant() const
-	{
-		TORRENT_ASSERT(m_in_use == 1337);
-		TORRENT_ASSERT(m_queued_time_critical &lt;= int(m_request_queue.size()));
-		TORRENT_ASSERT(m_recv_end &gt;= m_recv_start);
-		TORRENT_ASSERT(m_accept_fast.size() == m_accept_fast_piece_cnt.size());
-
-		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size &gt; 0));
-
-		for (int i = 0; i &lt; 2; ++i)
-		{
-			if (m_channel_state[i] &amp; peer_info::bw_limit)
-			{
-				// if we're waiting for bandwidth, we should be in the
-				// bandwidth manager's queue
-				TORRENT_ASSERT(m_ses.get_bandwidth_manager(i)-&gt;is_queued(this));
-			}
-		}
-
-<div style="background: #ffff00" width="100%">/*
-</div>		if (m_channel_state[upload_channel] &amp; peer_info::bw_limit)
-			TORRENT_ASSERT(m_ses.m_upload_rate.is_queued(this));
-		if (m_channel_state[download_channel] &amp; peer_info::bw_limit)
-			TORRENT_ASSERT(m_ses.m_download_rate.is_queued(this));
-*/
-
-		boost::shared_ptr&lt;torrent&gt; t = m_torrent.lock();
-
-		if (!m_disconnect_started &amp;&amp; m_initialized)
-		{
-			// none of this matters if we're disconnecting anyway
-			if (t-&gt;is_finished())
-				TORRENT_ASSERT(!is_interesting() || m_need_interest_update);
-			if (is_seed())
-				TORRENT_ASSERT(upload_only());
-		}
-
-		if (m_disconnecting)
-		{
-			TORRENT_ASSERT(m_download_queue.empty());
-			TORRENT_ASSERT(m_request_queue.empty());
-			TORRENT_ASSERT(m_disconnect_started);
-		}
-		else if (!m_in_constructor)
-		{
-			TORRENT_ASSERT(m_ses.has_peer((peer_connection*)this));
-		}
-
-		TORRENT_ASSERT(m_outstanding_bytes &gt;= 0);
-		if (t &amp;&amp; t-&gt;valid_metadata() &amp;&amp; !m_disconnecting)
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(64)">src/piece_picker.cpp:2355</a></td><td>when expanding pieces for cache stripe reasons, the !downloading condition doesn't make much sense</td></tr><tr id="64" style="display: none;" colspan="3"><td colspan="3"><h2>when expanding pieces for cache stripe reasons,
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(63)">src/piece_picker.cpp:2355</a></td><td>when expanding pieces for cache stripe reasons, the !downloading condition doesn't make much sense</td></tr><tr id="63" style="display: none;" colspan="3"><td colspan="3"><h2>when expanding pieces for cache stripe reasons,
 the !downloading condition doesn't make much sense</h2><h4>src/piece_picker.cpp:2355</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(index &lt; (int)m_piece_map.size() || m_piece_map.empty());
 		if (index+1 == (int)m_piece_map.size())
 			return m_blocks_in_last_piece;
@@ -3216,7 +3165,7 @@ the !downloading condition doesn't make much sense</h2><h4>src/piece_picker.cpp:
 		// the second bool is true if this is the only active peer that is requesting
 		// and downloading blocks from this piece. Active means having a connection.
 		boost::tuple&lt;bool, bool&gt; requested_from(piece_picker::downloading_piece const&amp; p
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(65)">src/session_impl.cpp:802</a></td><td>there's no rule here to make uTP connections not have the global or local rate limits apply to it. This used to be the default.</td></tr><tr id="65" style="display: none;" colspan="3"><td colspan="3"><h2>there's no rule here to make uTP connections not have the global or
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(64)">src/session_impl.cpp:802</a></td><td>there's no rule here to make uTP connections not have the global or local rate limits apply to it. This used to be the default.</td></tr><tr id="64" style="display: none;" colspan="3"><td colspan="3"><h2>there's no rule here to make uTP connections not have the global or
 local rate limits apply to it. This used to be the default.</h2><h4>src/session_impl.cpp:802</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		m_global_class = m_classes.new_peer_class("global");
 		m_tcp_peer_class = m_classes.new_peer_class("tcp");
 		m_local_peer_class = m_classes.new_peer_class("local");
@@ -3268,7 +3217,7 @@ local rate limits apply to it. This used to be the default.</h2><h4>src/session_
 		PRINT_OFFSETOF(cached_piece_entry, read_jobs)
 		PRINT_OFFSETOF(cached_piece_entry, hash)
 		PRINT_OFFSETOF(cached_piece_entry, last_requester)
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(66)">src/session_impl.cpp:3375</a></td><td>should this function take a shared_ptr instead?</td></tr><tr id="66" style="display: none;" colspan="3"><td colspan="3"><h2>should this function take a shared_ptr instead?</h2><h4>src/session_impl.cpp:3375</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#if defined TORRENT_ASIO_DEBUGGING
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(65)">src/session_impl.cpp:3375</a></td><td>should this function take a shared_ptr instead?</td></tr><tr id="65" style="display: none;" colspan="3"><td colspan="3"><h2>should this function take a shared_ptr instead?</h2><h4>src/session_impl.cpp:3375</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_socks_accept");
 #endif
 		m_socks_listen_socket.reset();
@@ -3319,7 +3268,7 @@ local rate limits apply to it. This used to be the default.</h2><h4>src/session_
 		TORRENT_ASSERT(p-&gt;is_disconnecting());
 
 		if (!p-&gt;is_choked() &amp;&amp; !p-&gt;ignore_unchoke_slots()) --m_num_unchoked;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(67)">src/session_impl.cpp:3752</a></td><td>have a separate list for these connections, instead of having to loop through all of them</td></tr><tr id="67" style="display: none;" colspan="3"><td colspan="3"><h2>have a separate list for these connections, instead of having to loop through all of them</h2><h4>src/session_impl.cpp:3752</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		if (m_auto_manage_time_scaler &lt; 0)
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(66)">src/session_impl.cpp:3752</a></td><td>have a separate list for these connections, instead of having to loop through all of them</td></tr><tr id="66" style="display: none;" colspan="3"><td colspan="3"><h2>have a separate list for these connections, instead of having to loop through all of them</h2><h4>src/session_impl.cpp:3752</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		if (m_auto_manage_time_scaler &lt; 0)
 		{
 			INVARIANT_CHECK;
 			m_auto_manage_time_scaler = settings().get_int(settings_pack::auto_manage_interval);
@@ -3370,7 +3319,7 @@ local rate limits apply to it. This used to be the default.</h2><h4>src/session_
 			int dht_down;
 			int dht_up;
 			m_dht-&gt;network_stats(dht_up, dht_down);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(68)">src/session_impl.cpp:3789</a></td><td>this should apply to all bandwidth channels</td></tr><tr id="68" style="display: none;" colspan="3"><td colspan="3"><h2>this should apply to all bandwidth channels</h2><h4>src/session_impl.cpp:3789</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			t.second_tick(tick_interval_ms, m_tick_residual / 1000);
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(67)">src/session_impl.cpp:3789</a></td><td>this should apply to all bandwidth channels</td></tr><tr id="67" style="display: none;" colspan="3"><td colspan="3"><h2>this should apply to all bandwidth channels</h2><h4>src/session_impl.cpp:3789</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			t.second_tick(tick_interval_ms, m_tick_residual / 1000);
 
 			// if the call to second_tick caused the torrent
 			// to no longer want to be ticked (i.e. it was
@@ -3421,7 +3370,7 @@ local rate limits apply to it. This used to be the default.</h2><h4>src/session_
 				&amp;&amp; m_stat.upload_ip_overhead() &gt;= up_limit
 				&amp;&amp; m_alerts.should_post&lt;performance_alert&gt;())
 			{
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(69)">src/session_impl.cpp:4801</a></td><td>these vectors could be copied from m_torrent_lists, if we would maintain them. That way the first pass over all torrents could be avoided. It would be especially efficient if most torrents are not auto-managed whenever we receive a scrape response (or anything that may change the rank of a torrent) that one torrent could re-sort itself in a list that's kept sorted at all times. That way, this pass over all torrents could be avoided alltogether.</td></tr><tr id="69" style="display: none;" colspan="3"><td colspan="3"><h2>these vectors could be copied from m_torrent_lists,
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(68)">src/session_impl.cpp:4801</a></td><td>these vectors could be copied from m_torrent_lists, if we would maintain them. That way the first pass over all torrents could be avoided. It would be especially efficient if most torrents are not auto-managed whenever we receive a scrape response (or anything that may change the rank of a torrent) that one torrent could re-sort itself in a list that's kept sorted at all times. That way, this pass over all torrents could be avoided alltogether.</td></tr><tr id="68" style="display: none;" colspan="3"><td colspan="3"><h2>these vectors could be copied from m_torrent_lists,
 if we would maintain them. That way the first pass over
 all torrents could be avoided. It would be especially
 efficient if most torrents are not auto-managed
@@ -3480,7 +3429,7 @@ avoided alltogether.</h2><h4>src/session_impl.cpp:4801</h4><pre style="backgroun
             
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(70)">src/session_impl.cpp:4886</a></td><td>allow extensions to sort torrents for queuing</td></tr><tr id="70" style="display: none;" colspan="3"><td colspan="3"><h2>allow extensions to sort torrents for queuing</h2><h4>src/session_impl.cpp:4886</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">					continue;
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(69)">src/session_impl.cpp:4886</a></td><td>allow extensions to sort torrents for queuing</td></tr><tr id="69" style="display: none;" colspan="3"><td colspan="3"><h2>allow extensions to sort torrents for queuing</h2><h4>src/session_impl.cpp:4886</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">					continue;
 				}
 				TORRENT_ASSERT(t-&gt;m_resume_data_loaded || !t-&gt;valid_metadata());
 				--hard_limit;
@@ -3531,7 +3480,7 @@ avoided alltogether.</h2><h4>src/session_impl.cpp:4801</h4><pre style="backgroun
 		}
 	}
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(71)">src/session_impl.cpp:5052</a></td><td>use a lower limit than m_settings.connections_limit to allocate the to 10% or so of connection slots for incoming connections</td></tr><tr id="71" style="display: none;" colspan="3"><td colspan="3"><h2>use a lower limit than m_settings.connections_limit
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(70)">src/session_impl.cpp:5052</a></td><td>use a lower limit than m_settings.connections_limit to allocate the to 10% or so of connection slots for incoming connections</td></tr><tr id="70" style="display: none;" colspan="3"><td colspan="3"><h2>use a lower limit than m_settings.connections_limit
 to allocate the to 10% or so of connection slots for incoming
 connections</h2><h4>src/session_impl.cpp:5052</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// if we don't have any free slots, return
 		if (free_slots &lt;= -m_half_open.limit()) return;
@@ -3584,7 +3533,7 @@ connections</h2><h4>src/session_impl.cpp:5052</h4><pre style="background: #f6f6f
 				m_next_finished_connect_torrent = 0;
 
 			torrent* t = NULL;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(72)">src/session_impl.cpp:5246</a></td><td>make configurable</td></tr><tr id="72" style="display: none;" colspan="3"><td colspan="3"><h2>make configurable</h2><h4>src/session_impl.cpp:5246</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(71)">src/session_impl.cpp:5246</a></td><td>make configurable</td></tr><tr id="71" style="display: none;" colspan="3"><td colspan="3"><h2>make configurable</h2><h4>src/session_impl.cpp:5246</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 #ifdef TORRENT_DEBUG
 			for (std::vector&lt;peer_connection*&gt;::const_iterator i = peers.begin()
 				, end(peers.end()), prev(peers.end()); i != end; ++i)
@@ -3617,7 +3566,7 @@ connections</h2><h4>src/session_impl.cpp:5052</h4><pre style="background: #f6f6f
 
 				++m_allowed_upload_slots;
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(73)">src/session_impl.cpp:5260</a></td><td>make configurable</td></tr><tr id="73" style="display: none;" colspan="3"><td colspan="3"><h2>make configurable</h2><h4>src/session_impl.cpp:5260</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">						&gt;= (*i)-&gt;uploaded_in_last_round() * 1000
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(72)">src/session_impl.cpp:5260</a></td><td>make configurable</td></tr><tr id="72" style="display: none;" colspan="3"><td colspan="3"><h2>make configurable</h2><h4>src/session_impl.cpp:5260</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">						&gt;= (*i)-&gt;uploaded_in_last_round() * 1000
 						* (1 + t2-&gt;priority()) / total_milliseconds(unchoke_interval));
 				}
 				prev = i;
@@ -3668,7 +3617,7 @@ connections</h2><h4>src/session_impl.cpp:5052</h4><pre style="background: #f6f6f
 		{
 			// if our current upload rate is less than 90% of our 
 			// limit
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(74)">src/session_impl.cpp:5339</a></td><td>this should be called for all peers!</td></tr><tr id="74" style="display: none;" colspan="3"><td colspan="3"><h2>this should be called for all peers!</h2><h4>src/session_impl.cpp:5339</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// measurement of the peak, use that + 10kB/s, otherwise
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(73)">src/session_impl.cpp:5339</a></td><td>this should be called for all peers!</td></tr><tr id="73" style="display: none;" colspan="3"><td colspan="3"><h2>this should be called for all peers!</h2><h4>src/session_impl.cpp:5339</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// measurement of the peak, use that + 10kB/s, otherwise
 				// assume 20 kB/s
 				upload_capacity_left = (std::max)(20000, m_peak_up_rate + 10000);
 				if (m_alerts.should_post&lt;performance_alert&gt;())
@@ -3719,7 +3668,7 @@ connections</h2><h4>src/session_impl.cpp:5052</h4><pre style="background: #f6f6f
 				--unchoke_set_size;
 				++m_num_unchoked;
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(75)">src/session_impl.cpp:5754</a></td><td>it might be a nice feature here to limit the number of torrents to send in a single update. By just posting the first n torrents, they would nicely be round-robined because the torrent lists are always pushed back</td></tr><tr id="75" style="display: none;" colspan="3"><td colspan="3"><h2>it might be a nice feature here to limit the number of torrents
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(74)">src/session_impl.cpp:5754</a></td><td>it might be a nice feature here to limit the number of torrents to send in a single update. By just posting the first n torrents, they would nicely be round-robined because the torrent lists are always pushed back</td></tr><tr id="74" style="display: none;" colspan="3"><td colspan="3"><h2>it might be a nice feature here to limit the number of torrents
 to send in a single update. By just posting the first n torrents, they
 would nicely be round-robined because the torrent lists are always
 pushed back</h2><h4>src/session_impl.cpp:5754</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			t-&gt;status(&amp;*i, flags);
@@ -3773,7 +3722,7 @@ pushed back</h2><h4>src/session_impl.cpp:5754</h4><pre style="background: #f6f6f
 		m_disk_thread.update_stats_counters(m_stats_counters);
 
 		for (int i = 0; i &lt; counters::num_counters; ++i)
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(76)">src/storage.cpp:700</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance maybe use the same format as .torrent files and reuse some code from torrent_info</td></tr><tr id="76" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(75)">src/storage.cpp:700</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance maybe use the same format as .torrent files and reuse some code from torrent_info</td></tr><tr id="75" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
 renamed, but also if they have been merged into a single file for instance
 maybe use the same format as .torrent files and reuse some code from torrent_info</h2><h4>src/storage.cpp:700</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		for (;;)
 		{
@@ -3826,7 +3775,7 @@ maybe use the same format as .torrent files and reuse some code from torrent_inf
 		if (file_sizes_ent-&gt;list_size() == 0)
 		{
 			ec.ec = errors::no_files_in_resume_data;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(77)">src/storage.cpp:996</a></td><td>if everything moves OK, except for the partfile we currently won't update the save path, which breaks things. it would probably make more sense to give up on the partfile</td></tr><tr id="77" style="display: none;" colspan="3"><td colspan="3"><h2>if everything moves OK, except for the partfile
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(76)">src/storage.cpp:996</a></td><td>if everything moves OK, except for the partfile we currently won't update the save path, which breaks things. it would probably make more sense to give up on the partfile</td></tr><tr id="76" style="display: none;" colspan="3"><td colspan="3"><h2>if everything moves OK, except for the partfile
 we currently won't update the save path, which breaks things.
 it would probably make more sense to give up on the partfile</h2><h4>src/storage.cpp:996</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">					if (ec)
 					{
@@ -3879,8 +3828,8 @@ it would probably make more sense to give up on the partfile</h2><h4>src/storage
 	{
 		fileop op = { &amp;file::writev
 			, file::read_write | flags };
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(78)">src/torrent.cpp:583</a></td><td>if the existing torrent doesn't have metadata, insert the metadata we just downloaded into it.</td></tr><tr id="78" style="display: none;" colspan="3"><td colspan="3"><h2>if the existing torrent doesn't have metadata, insert
-the metadata we just downloaded into it.</h2><h4>src/torrent.cpp:583</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(77)">src/torrent.cpp:580</a></td><td>if the existing torrent doesn't have metadata, insert the metadata we just downloaded into it.</td></tr><tr id="77" style="display: none;" colspan="3"><td colspan="3"><h2>if the existing torrent doesn't have metadata, insert
+the metadata we just downloaded into it.</h2><h4>src/torrent.cpp:580</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		m_torrent_file = tf;
 
 		// now, we might already have this torrent in the session.
@@ -3931,8 +3880,8 @@ the metadata we just downloaded into it.</h2><h4>src/torrent.cpp:583</h4><pre st
 		hasher h;
 		h.update("req2", 4);
 		h.update((char*)&amp;m_torrent_file-&gt;info_hash()[0], 20);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(79)">src/torrent.cpp:734</a></td><td>if the existing torrent doesn't have metadata, insert the metadata we just downloaded into it.</td></tr><tr id="79" style="display: none;" colspan="3"><td colspan="3"><h2>if the existing torrent doesn't have metadata, insert
-the metadata we just downloaded into it.</h2><h4>src/torrent.cpp:734</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(78)">src/torrent.cpp:731</a></td><td>if the existing torrent doesn't have metadata, insert the metadata we just downloaded into it.</td></tr><tr id="78" style="display: none;" colspan="3"><td colspan="3"><h2>if the existing torrent doesn't have metadata, insert
+the metadata we just downloaded into it.</h2><h4>src/torrent.cpp:731</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		m_torrent_file = tf;
 
 		// now, we might already have this torrent in the session.
@@ -3983,12 +3932,12 @@ the metadata we just downloaded into it.</h2><h4>src/torrent.cpp:734</h4><pre st
 		h.update((char*)&amp;m_torrent_file-&gt;info_hash()[0], 20);
 		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(80)">src/torrent.cpp:1485</a></td><td>is verify_peer_cert called once per certificate in the chain, and this function just tells us which depth we're at right now? If so, the comment makes sense. any certificate that isn't the leaf (i.e. the one presented by the peer) should be accepted automatically, given preverified is true. The leaf certificate need to be verified to make sure its DN matches the info-hash</td></tr><tr id="80" style="display: none;" colspan="3"><td colspan="3"><h2>is verify_peer_cert called once per certificate in the chain, and
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(79)">src/torrent.cpp:1482</a></td><td>is verify_peer_cert called once per certificate in the chain, and this function just tells us which depth we're at right now? If so, the comment makes sense. any certificate that isn't the leaf (i.e. the one presented by the peer) should be accepted automatically, given preverified is true. The leaf certificate need to be verified to make sure its DN matches the info-hash</td></tr><tr id="79" style="display: none;" colspan="3"><td colspan="3"><h2>is verify_peer_cert called once per certificate in the chain, and
 this function just tells us which depth we're at right now? If so, the comment
 makes sense.
 any certificate that isn't the leaf (i.e. the one presented by the peer)
 should be accepted automatically, given preverified is true. The leaf certificate
-need to be verified to make sure its DN matches the info-hash</h2><h4>src/torrent.cpp:1485</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (pp) p-&gt;add_extension(pp);
+need to be verified to make sure its DN matches the info-hash</h2><h4>src/torrent.cpp:1482</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (pp) p-&gt;add_extension(pp);
 		}
 
 		// if files are checked for this torrent, call the extension
@@ -4039,8 +3988,8 @@ need to be verified to make sure its DN matches the info-hash</h2><h4>src/torren
 			{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				match = true;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(81)">src/torrent.cpp:1862</a></td><td>instead of creating the picker up front here, maybe this whole section should move to need_picker()</td></tr><tr id="81" style="display: none;" colspan="3"><td colspan="3"><h2>instead of creating the picker up front here,
-maybe this whole section should move to need_picker()</h2><h4>src/torrent.cpp:1862</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			else
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(80)">src/torrent.cpp:1859</a></td><td>instead of creating the picker up front here, maybe this whole section should move to need_picker()</td></tr><tr id="80" style="display: none;" colspan="3"><td colspan="3"><h2>instead of creating the picker up front here,
+maybe this whole section should move to need_picker()</h2><h4>src/torrent.cpp:1859</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			else
 			{
 				read_resume_data(m_resume_data-&gt;entry);
 			}
@@ -4091,10 +4040,10 @@ maybe this whole section should move to need_picker()</h2><h4>src/torrent.cpp:18
 			// need to consider it finished
 
 			std::vector&lt;piece_picker::downloading_piece&gt; dq
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(82)">src/torrent.cpp:2060</a></td><td>there may be peer extensions relying on the torrent extension still being alive. Only do this if there are no peers. And when the last peer is disconnected, if the torrent is unloaded, clear the extensions m_extensions.clear();</td></tr><tr id="82" style="display: none;" colspan="3"><td colspan="3"><h2>there may be peer extensions relying on the torrent extension
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(81)">src/torrent.cpp:2057</a></td><td>there may be peer extensions relying on the torrent extension still being alive. Only do this if there are no peers. And when the last peer is disconnected, if the torrent is unloaded, clear the extensions m_extensions.clear();</td></tr><tr id="81" style="display: none;" colspan="3"><td colspan="3"><h2>there may be peer extensions relying on the torrent extension
 still being alive. Only do this if there are no peers. And when the last peer
 is disconnected, if the torrent is unloaded, clear the extensions
-m_extensions.clear();</h2><h4>src/torrent.cpp:2060</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// pinned torrents are not allowed to be swapped out
+m_extensions.clear();</h2><h4>src/torrent.cpp:2057</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// pinned torrents are not allowed to be swapped out
 		TORRENT_ASSERT(!m_pinned);
 
 		m_should_be_loaded = false;
@@ -4145,9 +4094,9 @@ m_extensions.clear();</h2><h4>src/torrent.cpp:2060</h4><pre style="background: #
 			if (was_introduced_by(pp, ep)) return (bt_peer_connection*)p;
 		}
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(83)">src/torrent.cpp:2720</a></td><td>this pattern is repeated in a few places. Factor this into a function and generalize the concept of a torrent having a dedicated listen port</td></tr><tr id="83" style="display: none;" colspan="3"><td colspan="3"><h2>this pattern is repeated in a few places. Factor this into
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(82)">src/torrent.cpp:2717</a></td><td>this pattern is repeated in a few places. Factor this into a function and generalize the concept of a torrent having a dedicated listen port</td></tr><tr id="82" style="display: none;" colspan="3"><td colspan="3"><h2>this pattern is repeated in a few places. Factor this into
 a function and generalize the concept of a torrent having a
-dedicated listen port</h2><h4>src/torrent.cpp:2720</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+dedicated listen port</h2><h4>src/torrent.cpp:2717</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		// if the files haven't been checked yet, we're
 		// not ready for peers
 		if (!m_files_checked) return;
@@ -4198,8 +4147,8 @@ dedicated listen port</h2><h4>src/torrent.cpp:2720</h4><pre style="background: #
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log("START DHT announce");
 		m_dht_start_time = time_now_hires();
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(84)">src/torrent.cpp:3193</a></td><td>instead, borrow host resolvers from a pool in session_impl. That would make the torrent object smaller</td></tr><tr id="84" style="display: none;" colspan="3"><td colspan="3"><h2>instead, borrow host resolvers from a pool in session_impl. That
-would make the torrent object smaller</h2><h4>src/torrent.cpp:3193</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">						, boost::bind(&amp;torrent::on_i2p_resolve
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(83)">src/torrent.cpp:3199</a></td><td>instead, borrow host resolvers from a pool in session_impl. That would make the torrent object smaller</td></tr><tr id="83" style="display: none;" colspan="3"><td colspan="3"><h2>instead, borrow host resolvers from a pool in session_impl. That
+would make the torrent object smaller</h2><h4>src/torrent.cpp:3199</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">						, boost::bind(&amp;torrent::on_i2p_resolve
 						, shared_from_this(), _1));
 					*/
 					// it seems like you're not supposed to do a name lookup
@@ -4250,7 +4199,7 @@ would make the torrent object smaller</h2><h4>src/torrent.cpp:3193</h4><pre styl
 		// we're listening on an interface type that was not used
 		// when talking to the tracker. If there is a matching interface
 		// type in the tracker IP list, make another tracker request
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(85)">src/torrent.cpp:4368</a></td><td>update suggest_piece?</td></tr><tr id="85" style="display: none;" colspan="3"><td colspan="3"><h2>update suggest_piece?</h2><h4>src/torrent.cpp:4368</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(84)">src/torrent.cpp:4374</a></td><td>update suggest_piece?</td></tr><tr id="84" style="display: none;" colspan="3"><td colspan="3"><h2>update suggest_piece?</h2><h4>src/torrent.cpp:4374</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 	void torrent::peer_has_all(peer_connection const* peer)
 	{
 		if (has_picker())
@@ -4301,8 +4250,8 @@ would make the torrent object smaller</h2><h4>src/torrent.cpp:3193</h4><pre styl
 		TORRENT_ASSERT(has_piece_passed(index));
 
 		// in order to avoid unnecessary churn in the suggested pieces
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(86)">src/torrent.cpp:4506</a></td><td>really, we should just keep the picker around in this case to maintain the availability counters</td></tr><tr id="86" style="display: none;" colspan="3"><td colspan="3"><h2>really, we should just keep the picker around
-in this case to maintain the availability counters</h2><h4>src/torrent.cpp:4506</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		pieces.reserve(cs.pieces.size());
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(85)">src/torrent.cpp:4512</a></td><td>really, we should just keep the picker around in this case to maintain the availability counters</td></tr><tr id="85" style="display: none;" colspan="3"><td colspan="3"><h2>really, we should just keep the picker around
+in this case to maintain the availability counters</h2><h4>src/torrent.cpp:4512</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		pieces.reserve(cs.pieces.size());
 
 		// sort in ascending order, to get most recently used first
 		std::sort(cs.pieces.begin(), cs.pieces.end()
@@ -4353,12 +4302,12 @@ in this case to maintain the availability counters</h2><h4>src/torrent.cpp:4506<
 	}
 
 	void torrent::abort()
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(87)">src/torrent.cpp:6222</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance maybe use the same format as .torrent files and reuse some code from torrent_info The mapped_files needs to be read both in the network thread and in the disk thread, since they both have their own mapped files structures which are kept in sync</td></tr><tr id="87" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(86)">src/torrent.cpp:6228</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance maybe use the same format as .torrent files and reuse some code from torrent_info The mapped_files needs to be read both in the network thread and in the disk thread, since they both have their own mapped files structures which are kept in sync</td></tr><tr id="86" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
 renamed, but also if they have been merged into a single file for instance
 maybe use the same format as .torrent files and reuse some code from torrent_info
 The mapped_files needs to be read both in the network thread
 and in the disk thread, since they both have their own mapped files structures
-which are kept in sync</h2><h4>src/torrent.cpp:6222</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			m_verifying.resize(m_torrent_file-&gt;num_pieces(), false);
+which are kept in sync</h2><h4>src/torrent.cpp:6228</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			m_verifying.resize(m_torrent_file-&gt;num_pieces(), false);
 		}
 		super_seeding(rd.dict_find_int_value("super_seeding", 0));
 
@@ -4409,12 +4358,12 @@ which are kept in sync</h2><h4>src/torrent.cpp:6222</h4><pre style="background: 
 			m_file_priority.resize(end_range + 1);
 
 			update_piece_priorities();
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(88)">src/torrent.cpp:6377</a></td><td>if this is a merkle torrent and we can't restore the tree, we need to wipe all the bits in the have array, but not necessarily we might want to do a full check to see if we have all the pieces. This is low priority since almost no one uses merkle torrents</td></tr><tr id="88" style="display: none;" colspan="3"><td colspan="3"><h2>if this is a merkle torrent and we can't
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(87)">src/torrent.cpp:6383</a></td><td>if this is a merkle torrent and we can't restore the tree, we need to wipe all the bits in the have array, but not necessarily we might want to do a full check to see if we have all the pieces. This is low priority since almost no one uses merkle torrents</td></tr><tr id="87" style="display: none;" colspan="3"><td colspan="3"><h2>if this is a merkle torrent and we can't
 restore the tree, we need to wipe all the
 bits in the have array, but not necessarily
 we might want to do a full check to see if we have
 all the pieces. This is low priority since almost
-no one uses merkle torrents</h2><h4>src/torrent.cpp:6377</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				add_web_seed(url, web_seed_entry::http_seed);
+no one uses merkle torrents</h2><h4>src/torrent.cpp:6383</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				add_web_seed(url, web_seed_entry::http_seed);
 			}
 		}
 
@@ -4465,9 +4414,9 @@ no one uses merkle torrents</h2><h4>src/torrent.cpp:6377</h4><pre style="backgro
 		ret["num_complete"] = m_complete;
 		ret["num_incomplete"] = m_incomplete;
 		ret["num_downloaded"] = m_downloaded;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(89)">src/torrent.cpp:6567</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance. using file_base</td></tr><tr id="89" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(88)">src/torrent.cpp:6573</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance. using file_base</td></tr><tr id="88" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
 renamed, but also if they have been merged into a single file for instance.
-using file_base</h2><h4>src/torrent.cpp:6567</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		pieces.resize(m_torrent_file-&gt;num_pieces());
+using file_base</h2><h4>src/torrent.cpp:6573</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		pieces.resize(m_torrent_file-&gt;num_pieces());
 		if (!has_picker())
 		{
 			std::memset(&amp;pieces[0], m_have_all, pieces.size());
@@ -4518,9 +4467,9 @@ using file_base</h2><h4>src/torrent.cpp:6567</h4><pre style="background: #f6f6f6
 				, end(m_policy-&gt;end_peer()); i != end; ++i)
 			{
 				error_code ec;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(90)">src/torrent.cpp:8425</a></td><td>add a flag to ignore stats, and only care about resume data for content. For unchanged files, don't trigger a load of the metadata just to save an empty resume data file</td></tr><tr id="90" style="display: none;" colspan="3"><td colspan="3"><h2>add a flag to ignore stats, and only care about resume data for
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(89)">src/torrent.cpp:8437</a></td><td>add a flag to ignore stats, and only care about resume data for content. For unchanged files, don't trigger a load of the metadata just to save an empty resume data file</td></tr><tr id="89" style="display: none;" colspan="3"><td colspan="3"><h2>add a flag to ignore stats, and only care about resume data for
 content. For unchanged files, don't trigger a load of the metadata
-just to save an empty resume data file</h2><h4>src/torrent.cpp:8425</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		if (m_complete != 0xffffff) seeds = m_complete;
+just to save an empty resume data file</h2><h4>src/torrent.cpp:8437</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		if (m_complete != 0xffffff) seeds = m_complete;
 		else seeds = m_policy ? m_policy-&gt;num_seeds() : 0;
 
 		if (m_incomplete != 0xffffff) downloaders = m_incomplete;
@@ -4571,10 +4520,10 @@ just to save an empty resume data file</h2><h4>src/torrent.cpp:8425</h4><pre sty
 			if (!need_loaded())
 			{
 				alerts().post_alert(save_resume_data_failed_alert(get_handle()
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(91)">src/torrent.cpp:9276</a></td><td>go through the pieces we have and count the total number of downloaders we have. Only count peers that are interested in us since some peers might not send have messages for pieces we have it num_interested == 0, we need to pick a new piece</td></tr><tr id="91" style="display: none;" colspan="3"><td colspan="3"><h2>go through the pieces we have and count the total number
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(90)">src/torrent.cpp:9288</a></td><td>go through the pieces we have and count the total number of downloaders we have. Only count peers that are interested in us since some peers might not send have messages for pieces we have it num_interested == 0, we need to pick a new piece</td></tr><tr id="90" style="display: none;" colspan="3"><td colspan="3"><h2>go through the pieces we have and count the total number
 of downloaders we have. Only count peers that are interested in us
 since some peers might not send have messages for pieces we have
-it num_interested == 0, we need to pick a new piece</h2><h4>src/torrent.cpp:9276</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			}
+it num_interested == 0, we need to pick a new piece</h2><h4>src/torrent.cpp:9288</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			}
 
 			rarest_pieces.clear();
 			rarest_rarity = pp.peer_count;
@@ -4625,7 +4574,7 @@ it num_interested == 0, we need to pick a new piece</h2><h4>src/torrent.cpp:9276
 
 		std::vector&lt;int&gt; avail_vec;
 		if (has_picker())
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(92)">src/torrent_peer.cpp:178</a></td><td>how do we deal with our external address changing?</td></tr><tr id="92" style="display: none;" colspan="3"><td colspan="3"><h2>how do we deal with our external address changing?</h2><h4>src/torrent_peer.cpp:178</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		, is_v6_addr(false)
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(91)">src/torrent_peer.cpp:178</a></td><td>how do we deal with our external address changing?</td></tr><tr id="91" style="display: none;" colspan="3"><td colspan="3"><h2>how do we deal with our external address changing?</h2><h4>src/torrent_peer.cpp:178</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		, is_v6_addr(false)
 #endif
 #if TORRENT_USE_I2P
 		, is_i2p_addr(false)
@@ -4676,9 +4625,9 @@ it num_interested == 0, we need to pick a new piece</h2><h4>src/torrent.cpp:9276
 		{
 			return boost::uint64_t(prev_amount_upload) &lt;&lt; 10;
 		}
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(93)">src/udp_tracker_connection.cpp:550</a></td><td>it would be more efficient to not use a string here. however, the problem is that some trackers will respond with actual strings. For example i2p trackers</td></tr><tr id="93" style="display: none;" colspan="3"><td colspan="3"><h2>it would be more efficient to not use a string here.
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(92)">src/udp_tracker_connection.cpp:548</a></td><td>it would be more efficient to not use a string here. however, the problem is that some trackers will respond with actual strings. For example i2p trackers</td></tr><tr id="92" style="display: none;" colspan="3"><td colspan="3"><h2>it would be more efficient to not use a string here.
 however, the problem is that some trackers will respond
-with actual strings. For example i2p trackers</h2><h4>src/udp_tracker_connection.cpp:550</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		}
+with actual strings. For example i2p trackers</h2><h4>src/udp_tracker_connection.cpp:548</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		}
 
 		boost::shared_ptr&lt;request_callback&gt; cb = requester();
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -4729,7 +4678,7 @@ with actual strings. For example i2p trackers</h2><h4>src/udp_tracker_connection
 	{
 		restart_read_timeout();
 		int action = detail::read_int32(buf);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(94)">src/ut_metadata.cpp:322</a></td><td>we really need to increment the refcounter on the torrent while this buffer is still in the peer's send buffer</td></tr><tr id="94" style="display: none;" colspan="3"><td colspan="3"><h2>we really need to increment the refcounter on the torrent
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(93)">src/ut_metadata.cpp:322</a></td><td>we really need to increment the refcounter on the torrent while this buffer is still in the peer's send buffer</td></tr><tr id="93" style="display: none;" colspan="3"><td colspan="3"><h2>we really need to increment the refcounter on the torrent
 while this buffer is still in the peer's send buffer</h2><h4>src/ut_metadata.cpp:322</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				if (!m_tp.need_loaded()) return;
 				metadata = m_tp.metadata().begin + offset;
 				metadata_piece_size = (std::min)(
@@ -4781,7 +4730,7 @@ while this buffer is still in the peer's send buffer</h2><h4>src/ut_metadata.cpp
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("&lt;== UT_METADATA [ not a dictionary ]");
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(95)">src/utp_stream.cpp:1586</a></td><td>this loop may not be very efficient</td></tr><tr id="95" style="display: none;" colspan="3"><td colspan="3"><h2>this loop may not be very efficient</h2><h4>src/utp_stream.cpp:1586</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	TORRENT_ASSERT(p-&gt;header_size &gt;= sizeof(utp_header) + sack_size + 2);
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(94)">src/utp_stream.cpp:1586</a></td><td>this loop may not be very efficient</td></tr><tr id="94" style="display: none;" colspan="3"><td colspan="3"><h2>this loop may not be very efficient</h2><h4>src/utp_stream.cpp:1586</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	TORRENT_ASSERT(p-&gt;header_size &gt;= sizeof(utp_header) + sack_size + 2);
 	memmove(ptr, ptr + sack_size + 2, p-&gt;size - p-&gt;header_size);
 	p-&gt;header_size -= sack_size + 2;
 	p-&gt;size -= sack_size + 2;
@@ -4832,7 +4781,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		if (sack &gt; 32) sack = 32;
 	}
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(96)">src/web_connection_base.cpp:76</a></td><td>introduce a web-seed default class which has a low download priority</td></tr><tr id="96" style="display: none;" colspan="3"><td colspan="3"><h2>introduce a web-seed default class which has a low download priority</h2><h4>src/web_connection_base.cpp:76</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	web_connection_base::web_connection_base(
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(95)">src/web_connection_base.cpp:76</a></td><td>introduce a web-seed default class which has a low download priority</td></tr><tr id="95" style="display: none;" colspan="3"><td colspan="3"><h2>introduce a web-seed default class which has a low download priority</h2><h4>src/web_connection_base.cpp:76</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	web_connection_base::web_connection_base(
 		aux::session_interface&amp; ses
 		, aux::session_settings const&amp; sett
 		, buffer_allocator_interface&amp; allocator
@@ -4883,7 +4832,7 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	void web_connection_base::start()
 	{
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(97)">src/kademlia/routing_table.cpp:289</a></td><td>instad of refreshing a bucket by using find_nodes, ping each node periodically</td></tr><tr id="97" style="display: none;" colspan="3"><td colspan="3"><h2>instad of refreshing a bucket by using find_nodes,
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(96)">src/kademlia/routing_table.cpp:289</a></td><td>instad of refreshing a bucket by using find_nodes, ping each node periodically</td></tr><tr id="96" style="display: none;" colspan="3"><td colspan="3"><h2>instad of refreshing a bucket by using find_nodes,
 ping each node periodically</h2><h4>src/kademlia/routing_table.cpp:289</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		os &lt;&lt; "]\n";
 	}
 }
@@ -4935,7 +4884,7 @@ bool compare_bucket_refresh(routing_table_node const&amp; lhs, routing_table_nod
 	// target = (target &amp; ~mask) | (root &amp; mask)
 	node_id root = m_id;
 	root &amp;= mask;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(98)">include/libtorrent/bitfield.hpp:335</a></td><td>make this operate on words instead of bytes. i.e. uintptr_t probably</td></tr><tr id="98" style="display: none;" colspan="3"><td colspan="3"><h2>make this operate on words instead of bytes. i.e. uintptr_t probably</h2><h4>include/libtorrent/bitfield.hpp:335</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			clear_trailing_bits();
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(97)">include/libtorrent/bitfield.hpp:335</a></td><td>make this operate on words instead of bytes. i.e. uintptr_t probably</td></tr><tr id="97" style="display: none;" colspan="3"><td colspan="3"><h2>make this operate on words instead of bytes. i.e. uintptr_t probably</h2><h4>include/libtorrent/bitfield.hpp:335</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			clear_trailing_bits();
 		}
 		void clear_all()
 		{
@@ -4964,7 +4913,7 @@ bool compare_bucket_refresh(routing_table_node const&amp; lhs, routing_table_nod
 
 #endif // TORRENT_BITFIELD_HPP_INCLUDED
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(99)">include/libtorrent/block_cache.hpp:218</a></td><td>make this 32 bits and to count seconds since the block cache was created</td></tr><tr id="99" style="display: none;" colspan="3"><td colspan="3"><h2>make this 32 bits and to count seconds since the block cache was created</h2><h4>include/libtorrent/block_cache.hpp:218</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(98)">include/libtorrent/block_cache.hpp:218</a></td><td>make this 32 bits and to count seconds since the block cache was created</td></tr><tr id="98" style="display: none;" colspan="3"><td colspan="3"><h2>make this 32 bits and to count seconds since the block cache was created</h2><h4>include/libtorrent/block_cache.hpp:218</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		bool operator==(cached_piece_entry const&amp; rhs) const
 		{ return storage.get() == rhs.storage.get() &amp;&amp; piece == rhs.piece; }
 
@@ -5015,7 +4964,7 @@ bool compare_bucket_refresh(routing_table_node const&amp; lhs, routing_table_nod
 
 		// this is set to true once we flush blocks past
 		// the hash cursor. Once this happens, there's
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(100)">include/libtorrent/config.hpp:348</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="100" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>include/libtorrent/config.hpp:348</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#define TORRENT_USE_WRITEV 0
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(99)">include/libtorrent/config.hpp:348</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="99" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>include/libtorrent/config.hpp:348</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#define TORRENT_USE_WRITEV 0
 #define TORRENT_USE_READV 0
 
 #else
@@ -5066,7 +5015,7 @@ bool compare_bucket_refresh(routing_table_node const&amp; lhs, routing_table_nod
 #include &lt;stdarg.h&gt;
 
 // internal
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(101)">include/libtorrent/debug.hpp:181</a></td><td>rewrite this class to use FILE* instead and have a printf-like interface</td></tr><tr id="101" style="display: none;" colspan="3"><td colspan="3"><h2>rewrite this class to use FILE* instead and
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(100)">include/libtorrent/debug.hpp:181</a></td><td>rewrite this class to use FILE* instead and have a printf-like interface</td></tr><tr id="100" style="display: none;" colspan="3"><td colspan="3"><h2>rewrite this class to use FILE* instead and
 have a printf-like interface</h2><h4>include/libtorrent/debug.hpp:181</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#endif
 }
 
@@ -5118,7 +5067,7 @@ namespace libtorrent
 
 			mutex::scoped_lock l(file_mutex);
 			open(!append);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(102)">include/libtorrent/disk_buffer_pool.hpp:137</a></td><td>try to remove the observers, only using the async_allocate handlers</td></tr><tr id="102" style="display: none;" colspan="3"><td colspan="3"><h2>try to remove the observers, only using the async_allocate handlers</h2><h4>include/libtorrent/disk_buffer_pool.hpp:137</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(101)">include/libtorrent/disk_buffer_pool.hpp:137</a></td><td>try to remove the observers, only using the async_allocate handlers</td></tr><tr id="101" style="display: none;" colspan="3"><td colspan="3"><h2>try to remove the observers, only using the async_allocate handlers</h2><h4>include/libtorrent/disk_buffer_pool.hpp:137</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
 		const int m_block_size;
@@ -5169,7 +5118,7 @@ namespace libtorrent
 		// the pointer to the block of virtual address space
 		// making up the mmapped cache space
 		char* m_cache_pool;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(103)">include/libtorrent/peer_connection.hpp:739</a></td><td>factor this out into its own class with a virtual interface torrent and session should implement this interface</td></tr><tr id="103" style="display: none;" colspan="3"><td colspan="3"><h2>factor this out into its own class with a virtual interface
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(102)">include/libtorrent/peer_connection.hpp:739</a></td><td>factor this out into its own class with a virtual interface torrent and session should implement this interface</td></tr><tr id="102" style="display: none;" colspan="3"><td colspan="3"><h2>factor this out into its own class with a virtual interface
 torrent and session should implement this interface</h2><h4>include/libtorrent/peer_connection.hpp:739</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		void normalize_receive_buffer();
 		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 
@@ -5221,7 +5170,7 @@ torrent and session should implement this interface</h2><h4>include/libtorrent/p
 		void on_receive_data_nb(error_code const&amp; error
 			, std::size_t bytes_transferred);
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(104)">include/libtorrent/peer_connection_interface.hpp:45</a></td><td>make this interface smaller!</td></tr><tr id="104" style="display: none;" colspan="3"><td colspan="3"><h2>make this interface smaller!</h2><h4>include/libtorrent/peer_connection_interface.hpp:45</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(103)">include/libtorrent/peer_connection_interface.hpp:45</a></td><td>make this interface smaller!</td></tr><tr id="103" style="display: none;" colspan="3"><td colspan="3"><h2>make this interface smaller!</h2><h4>include/libtorrent/peer_connection_interface.hpp:45</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
@@ -5272,7 +5221,7 @@ namespace libtorrent
 		virtual tcp::endpoint local_endpoint() const = 0;
 		virtual void disconnect(error_code const&amp; ec, operation_t op, int error = 0) = 0;
 		virtual peer_id const&amp; pid() const = 0;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(105)">include/libtorrent/performance_counters.hpp:131</a></td><td>should keepalives be in here too? how about dont-have, share-mode, upload-only</td></tr><tr id="105" style="display: none;" colspan="3"><td colspan="3"><h2>should keepalives be in here too?
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(104)">include/libtorrent/performance_counters.hpp:131</a></td><td>should keepalives be in here too? how about dont-have, share-mode, upload-only</td></tr><tr id="104" style="display: none;" colspan="3"><td colspan="3"><h2>should keepalives be in here too?
 how about dont-have, share-mode, upload-only</h2><h4>include/libtorrent/performance_counters.hpp:131</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			// a connect candidate
 			connection_attempt_loops,
 			// successful incoming connections (not rejected for any reason)
@@ -5324,7 +5273,7 @@ how about dont-have, share-mode, upload-only</h2><h4>include/libtorrent/performa
 			num_outgoing_cancel,
 			num_outgoing_dht_port,
 			num_outgoing_suggest,
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(106)">include/libtorrent/performance_counters.hpp:311</a></td><td>some space could be saved here by making gauges 32 bits</td></tr><tr id="106" style="display: none;" colspan="3"><td colspan="3"><h2>some space could be saved here by making gauges 32 bits</h2><h4>include/libtorrent/performance_counters.hpp:311</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			dht_nodes,
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(105)">include/libtorrent/performance_counters.hpp:311</a></td><td>some space could be saved here by making gauges 32 bits</td></tr><tr id="105" style="display: none;" colspan="3"><td colspan="3"><h2>some space could be saved here by making gauges 32 bits</h2><h4>include/libtorrent/performance_counters.hpp:311</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			dht_nodes,
 			dht_node_cache,
 			dht_torrents,
 			dht_peers,
@@ -5351,7 +5300,7 @@ how about dont-have, share-mode, upload-only</h2><h4>include/libtorrent/performa
 
 #endif
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(107)">include/libtorrent/piece_picker.hpp:680</a></td><td>should this be allocated lazily?</td></tr><tr id="107" style="display: none;" colspan="3"><td colspan="3"><h2>should this be allocated lazily?</h2><h4>include/libtorrent/piece_picker.hpp:680</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(106)">include/libtorrent/piece_picker.hpp:680</a></td><td>should this be allocated lazily?</td></tr><tr id="106" style="display: none;" colspan="3"><td colspan="3"><h2>should this be allocated lazily?</h2><h4>include/libtorrent/piece_picker.hpp:680</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions
 
@@ -5402,7 +5351,7 @@ how about dont-have, share-mode, upload-only</h2><h4>include/libtorrent/performa
 		// have. total_number_of_pieces - number_of_pieces_we_have
 		// - num_filtered is supposed to the number of pieces
 		// we still want to download
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(108)">include/libtorrent/proxy_base.hpp:166</a></td><td>it would be nice to remember the bind port and bind once we know where the proxy is m_sock.bind(endpoint, ec);</td></tr><tr id="108" style="display: none;" colspan="3"><td colspan="3"><h2>it would be nice to remember the bind port and bind once we know where the proxy is
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(107)">include/libtorrent/proxy_base.hpp:166</a></td><td>it would be nice to remember the bind port and bind once we know where the proxy is m_sock.bind(endpoint, ec);</td></tr><tr id="107" style="display: none;" colspan="3"><td colspan="3"><h2>it would be nice to remember the bind port and bind once we know where the proxy is
 m_sock.bind(endpoint, ec);</h2><h4>include/libtorrent/proxy_base.hpp:166</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	{
 		return m_sock.get_option(opt, ec);
 	}
@@ -5454,7 +5403,7 @@ m_sock.bind(endpoint, ec);</h2><h4>include/libtorrent/proxy_base.hpp:166</h4><pr
 		m_sock.close(ec);
 		m_resolver.cancel();
 	}
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(109)">include/libtorrent/session.hpp:725</a></td><td>add get_peer_class_type_filter() as well</td></tr><tr id="109" style="display: none;" colspan="3"><td colspan="3"><h2>add get_peer_class_type_filter() as well</h2><h4>include/libtorrent/session.hpp:725</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// 
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(108)">include/libtorrent/session.hpp:725</a></td><td>add get_peer_class_type_filter() as well</td></tr><tr id="108" style="display: none;" colspan="3"><td colspan="3"><h2>add get_peer_class_type_filter() as well</h2><h4>include/libtorrent/session.hpp:725</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// 
 		// The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
 		// peer classes in the ``peer_class_filter`` are 32 bits.
 		// 
@@ -5505,7 +5454,7 @@ m_sock.bind(endpoint, ec);</h2><h4>include/libtorrent/proxy_base.hpp:166</h4><pr
 		// These functions queries information from a peer class and updates the configuration
 		// of a peer class, respectively.
 		// 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(110)">include/libtorrent/settings_pack.hpp:1015</a></td><td>deprecate this ``max_rejects`` is the number of piece requests we will reject in a row while a peer is choked before the peer is considered abusive and is disconnected.</td></tr><tr id="110" style="display: none;" colspan="3"><td colspan="3"><h2>deprecate this
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(109)">include/libtorrent/settings_pack.hpp:1015</a></td><td>deprecate this ``max_rejects`` is the number of piece requests we will reject in a row while a peer is choked before the peer is considered abusive and is disconnected.</td></tr><tr id="109" style="display: none;" colspan="3"><td colspan="3"><h2>deprecate this
 ``max_rejects`` is the number of piece requests we will reject in a row
 while a peer is choked before the peer is considered abusive and is
 disconnected.</h2><h4>include/libtorrent/settings_pack.hpp:1015</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			auto_manage_startup,
@@ -5559,7 +5508,7 @@ disconnected.</h2><h4>include/libtorrent/settings_pack.hpp:1015</h4><pre style="
 
 			// ``optimistic_disk_retry`` is the number of seconds from a disk write
 			// errors occur on a torrent until libtorrent will take it out of the
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(111)">include/libtorrent/size_type.hpp:48</a></td><td>remove these and just use boost's types directly</td></tr><tr id="111" style="display: none;" colspan="3"><td colspan="3"><h2>remove these and just use boost's types directly</h2><h4>include/libtorrent/size_type.hpp:48</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(110)">include/libtorrent/size_type.hpp:48</a></td><td>remove these and just use boost's types directly</td></tr><tr id="110" style="display: none;" colspan="3"><td colspan="3"><h2>remove these and just use boost's types directly</h2><h4>include/libtorrent/size_type.hpp:48</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
@@ -5585,7 +5534,7 @@ namespace libtorrent
 
 
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(112)">include/libtorrent/torrent.hpp:1074</a></td><td>this wastes 5 bits per piece</td></tr><tr id="112" style="display: none;" colspan="3"><td colspan="3"><h2>this wastes 5 bits per piece</h2><h4>include/libtorrent/torrent.hpp:1074</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(111)">include/libtorrent/torrent.hpp:1074</a></td><td>this wastes 5 bits per piece</td></tr><tr id="111" style="display: none;" colspan="3"><td colspan="3"><h2>this wastes 5 bits per piece</h2><h4>include/libtorrent/torrent.hpp:1074</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		// used for tracker announces
 		deadline_timer m_tracker_timer;
 
@@ -5636,7 +5585,7 @@ namespace libtorrent
 			ptime first_requested;
 			// when this piece was last requested
 			ptime last_requested;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(113)">include/libtorrent/torrent.hpp:1157</a></td><td>These two bitfields should probably be coalesced into one</td></tr><tr id="113" style="display: none;" colspan="3"><td colspan="3"><h2>These two bitfields should probably be coalesced into one</h2><h4>include/libtorrent/torrent.hpp:1157</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		std::string m_source_feed_url;
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(112)">include/libtorrent/torrent.hpp:1157</a></td><td>These two bitfields should probably be coalesced into one</td></tr><tr id="112" style="display: none;" colspan="3"><td colspan="3"><h2>These two bitfields should probably be coalesced into one</h2><h4>include/libtorrent/torrent.hpp:1157</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		std::string m_source_feed_url;
 
 		// this is used as temporary storage while downloading
 		// the .torrent file from m_url
@@ -5687,7 +5636,7 @@ namespace libtorrent
 		// this is the time last any of our peers saw a seed
 		// in this swarm
 		time_t m_swarm_last_seen_complete;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(114)">include/libtorrent/torrent_info.hpp:124</a></td><td>include the number of peers received from this tracker, at last announce</td></tr><tr id="114" style="display: none;" colspan="3"><td colspan="3"><h2>include the number of peers received from this tracker, at last announce</h2><h4>include/libtorrent/torrent_info.hpp:124</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(113)">include/libtorrent/torrent_info.hpp:124</a></td><td>include the number of peers received from this tracker, at last announce</td></tr><tr id="113" style="display: none;" colspan="3"><td colspan="3"><h2>include the number of peers received from this tracker, at last announce</h2><h4>include/libtorrent/torrent_info.hpp:124</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		// if this tracker failed the last time it was contacted
 		// this error code specifies what error occurred
 		error_code last_error;
@@ -5738,7 +5687,7 @@ namespace libtorrent
 		// flags for the source bitmask, each indicating where
 		// we heard about this tracker
 		enum tracker_source
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(115)">include/libtorrent/upnp.hpp:122</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="115" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>include/libtorrent/upnp.hpp:122</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	{
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(114)">include/libtorrent/upnp.hpp:122</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="114" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>include/libtorrent/upnp.hpp:122</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	{
 		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
 		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
 		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
@@ -5789,7 +5738,7 @@ public:
 	// is -1, which means failure. There will not be any error alert notification for
 	// mappings that fail with a -1 return value.
 	int add_mapping(protocol_type p, int external_port, int local_port);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(116)">include/libtorrent/aux_/session_impl.hpp:397</a></td><td>move the login info into the tracker_request object</td></tr><tr id="116" style="display: none;" colspan="3"><td colspan="3"><h2>move the login info into the tracker_request object</h2><h4>include/libtorrent/aux_/session_impl.hpp:397</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			void on_lsd_announce(error_code const&amp; e);
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(115)">include/libtorrent/aux_/session_impl.hpp:397</a></td><td>move the login info into the tracker_request object</td></tr><tr id="115" style="display: none;" colspan="3"><td colspan="3"><h2>move the login info into the tracker_request object</h2><h4>include/libtorrent/aux_/session_impl.hpp:397</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			void on_lsd_announce(error_code const&amp; e);
 
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
@@ -5840,7 +5789,7 @@ public:
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extensions_to_torrent(
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(117)">include/libtorrent/aux_/session_interface.hpp:200</a></td><td>it would be nice to not have this be part of session_interface</td></tr><tr id="117" style="display: none;" colspan="3"><td colspan="3"><h2>it would be nice to not have this be part of session_interface</h2><h4>include/libtorrent/aux_/session_interface.hpp:200</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		virtual boost::uint16_t ssl_listen_port() const = 0;
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(116)">include/libtorrent/aux_/session_interface.hpp:200</a></td><td>it would be nice to not have this be part of session_interface</td></tr><tr id="116" style="display: none;" colspan="3"><td colspan="3"><h2>it would be nice to not have this be part of session_interface</h2><h4>include/libtorrent/aux_/session_interface.hpp:200</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		virtual boost::uint16_t ssl_listen_port() const = 0;
 
 		// used to (potentially) issue socket write calls onto multiple threads
 		virtual void post_socket_job(socket_job&amp; j) = 0;

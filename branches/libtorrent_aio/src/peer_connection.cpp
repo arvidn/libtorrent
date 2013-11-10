@@ -6446,14 +6446,6 @@ namespace libtorrent
 			}
 		}
 
-		// TODO: why does this invariant not hold?
-/*
-		if (m_channel_state[upload_channel] & peer_info::bw_limit)
-			TORRENT_ASSERT(m_ses.m_upload_rate.is_queued(this));
-		if (m_channel_state[download_channel] & peer_info::bw_limit)
-			TORRENT_ASSERT(m_ses.m_download_rate.is_queued(this));
-*/
-
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (!m_disconnect_started && m_initialized)

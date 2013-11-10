@@ -34,6 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 	Physical file offset patch by Morten Husveit
 */
 
+#define _FILE_OFFSET_BITS 64
+#define _LARGE_FILES 1
+
 #include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
@@ -84,7 +87,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 // posix part
 
-#define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 #include <sys/types.h>
 #include <errno.h>

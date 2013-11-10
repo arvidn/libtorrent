@@ -388,6 +388,10 @@ namespace libtorrent
 		int writev(file::iovec_t const* bufs, int num_bufs
 			, int piece, int offset, int flags, storage_error& ec);
 
+		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
+
+	private:
+
 		// this identifies a read or write operation
 		// so that default_storage::readwritev() knows what to
 		// do when it's actually touching the file
@@ -407,8 +411,6 @@ namespace libtorrent
 		void delete_one_file(std::string const& p, error_code& ec);
 		int readwritev(file::iovec_t const* bufs, int slot, int offset
 			, int num_bufs, fileop const& op, storage_error& ec);
-
-		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
 		void need_partfile();
 
