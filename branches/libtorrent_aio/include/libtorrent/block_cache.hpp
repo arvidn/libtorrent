@@ -381,7 +381,7 @@ namespace libtorrent
 
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
-		int try_read(disk_io_job* j, bool count_stats = true);
+		int try_read(disk_io_job* j, bool count_stats = true, bool expect_no_fail = false);
 
 		// called when we're reading and we found the piece we're
 		// reading from in the hash table (not necessarily that we
@@ -469,7 +469,7 @@ namespace libtorrent
 		// returns number of bytes read on success, -1 on cache miss
 		// (just because the piece is in the cache, doesn't mean all
 		// the blocks are there)
-		int copy_from_piece(cached_piece_entry* p, disk_io_job* j);
+		int copy_from_piece(cached_piece_entry* p, disk_io_job* j, bool expect_no_fail = false);
 
 		void free_piece(cached_piece_entry* p);
 		int drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf);

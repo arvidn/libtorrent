@@ -1305,7 +1305,9 @@ namespace libtorrent
 		// until we can read from them, increment the refcounts
 		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j, block_cache::blocks_inc_refcount);
 
-		int tmp = m_disk_cache.try_read(j, false);
+		TORRENT_ASSERT(pe->blocks[block].buf);
+
+		int tmp = m_disk_cache.try_read(j, false, true);
 		TORRENT_ASSERT(tmp >= 0);
 
 		maybe_issue_queued_read_jobs(pe, completed_jobs);

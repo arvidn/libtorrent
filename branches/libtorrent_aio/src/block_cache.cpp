@@ -272,7 +272,7 @@ block_cache::block_cache(int block_size, io_service& ios
 // returns:
 // -1: not in cache
 // -2: no memory
-int block_cache::try_read(disk_io_job* j, bool count_stats)
+int block_cache::try_read(disk_io_job* j, bool count_stats, bool expect_no_fail)
 {
 	INVARIANT_CHECK;
 
@@ -292,6 +292,7 @@ int block_cache::try_read(disk_io_job* j, bool count_stats)
 
 	// if the piece cannot be found in the cache,
 	// it's a cache miss
+	TORRENT_ASSERT(!expect_no_fail || p != NULL);
 	if (p == 0) return -1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -299,7 +300,7 @@ int block_cache::try_read(disk_io_job* j, bool count_stats)
 #endif
 	cache_hit(p, j->requester, j->flags & disk_io_job::volatile_read);
 
-	ret = copy_from_piece(p, j);
+	ret = copy_from_piece(p, j, expect_no_fail);
 	if (ret < 0) return ret;
 
 	ret = j->d.io.buffer_size;
@@ -1160,6 +1161,9 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		TORRENT_PIECE_ASSERT(iov[i].iov_len == (std::min)(block_size()
 			, pe->storage->files()->piece_size(pe->piece) - block * block_size()), pe);
 
+		// no NULL pointers allowed
+		TORRENT_ASSERT(iov[i].iov_base);
+
 #ifdef TORRENT_DEBUG_BUFFERS
 		TORRENT_PIECE_ASSERT(is_disk_buffer((char*)iov[i].iov_base), pe);
 #endif
@@ -1216,6 +1220,13 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 #endif
 			}
 		}
+
+#if TORRENT_USE_PURGABLE_CONTROL
+		TORRENT_ASSERT(pe->blocks[block].buf != NULL
+			|| (flags & blocks_inc_refcount) == 0);
+#else
+		TORRENT_ASSERT(pe->blocks[block].buf != NULL);
+#endif
 	}
 
 	TORRENT_PIECE_ASSERT(pe->cache_state != cached_piece_entry::read_lru1_ghost, pe);
@@ -1623,7 +1634,7 @@ void block_cache::check_invariant() const
 // -1: block not in cache
 // -2: out of memory
 
-int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
+int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j, bool expect_no_fail)
 {
 	INVARIANT_CHECK;
 
@@ -1649,7 +1660,11 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 	// the cache, and we're not currently reading it in either
 	// since it's not pending
 
-	if (inc_block_refcount(pe, start_block, ref_reading) == false) return -1;
+	if (inc_block_refcount(pe, start_block, ref_reading) == false) 
+	{
+		TORRENT_ASSERT(!expect_no_fail);
+		return -1;
+	}
 
 	// if block_offset > 0, we need to read two blocks, and then
 	// copy parts of both, because it's not aligned to the block
@@ -1677,6 +1692,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 	// if we don't have the second block, it's a cache miss
 	if (inc_block_refcount(pe, start_block + 1, ref_reading) == false)
 	{
+		TORRENT_ASSERT(!expect_no_fail);
 		dec_block_refcount(pe, start_block, ref_reading);
 		return -1;
 	}
