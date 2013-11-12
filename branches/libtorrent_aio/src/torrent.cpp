@@ -4939,6 +4939,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 		if (index < 0 || index >= m_torrent_file->num_pieces()) return;
 
+		need_picker();
+
 		bool was_finished = is_finished();
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
 		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
