@@ -4606,6 +4606,11 @@ retry:
 	{
 		TORRENT_ASSERT(m_dht);
 		m_dht_torrents.push_back(t);
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		boost::shared_ptr<torrent> tor = t.lock();
+		if (tor)
+			session_log("prioritizing DHT announce: \"%s\"", tor->name().c_str());
+#endif
 		// trigger a DHT announce right away if we just
 		// added a new torrent and there's no back-log
 		if (m_dht_torrents.size() == 1)
@@ -4626,9 +4631,22 @@ retry:
 		complete_async("session_impl::on_dht_announce");
 #endif
 		TORRENT_ASSERT(is_single_thread());
-		if (e) return;
+		if (e)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			session_log("aborting DHT announce timer (%d): %s"
+				, e.value(), e.message().c_str());
+#endif
+			return;
+		}
 
-		if (m_abort) return;
+		if (m_abort)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			session_log("aborting DHT announce timer: m_abort set");
+#endif
+			return;
+		}
 
 		TORRENT_ASSERT(m_dht);
 
@@ -4659,8 +4677,8 @@ retry:
 			{
 		  		t = m_dht_torrents.front().lock();
 				m_dht_torrents.pop_front();
-			}
-			while (!t && !m_dht_torrents.empty());
+			} while (!t && !m_dht_torrents.empty());
+
 			if (t)
 			{
 				t->dht_announce();
@@ -7024,14 +7042,32 @@ retry:
 	void session_impl::update_dht_announce_interval()
 	{
 #ifndef TORRENT_DISABLE_DHT
-		if (!m_dht) return;
+		if (!m_dht)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			session_log("not starting DHT announce timer: m_dht == NULL");
+#endif
+			return;
+		}
 
 		m_dht_interval_update_torrents = m_torrents.size();
 
 		// if we haven't started yet, don't actually trigger this
-		if (!m_thread) return;
+		if (!m_thread)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			session_log("not starting DHT announce timer: thread not running yet");
+#endif
+			return;
+		}
 
-		if (m_abort) return;
+		if (m_abort)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			session_log("not starting DHT announce timer: m_abort set");
+#endif
+			return;
+		}
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_announce");

@@ -2734,8 +2734,47 @@ namespace libtorrent
 	void torrent::dht_announce()
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		if (!m_ses.dht()) return;
-		if (!should_announce_dht()) return;
+		if (!m_ses.dht())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			debug_log("DHT: no dht initialized");
+#endif
+			return;
+		}
+		if (!should_announce_dht())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			if (!m_ses.announce_dht())
+				debug_log("DHT: no listen sockets");
+
+			if (m_torrent_file->is_valid() && !m_files_checked)
+				debug_log("DHT: files not checked, skipping DHT announce");
+
+			if (!m_announce_to_dht)
+				debug_log("DHT: queueing disabled DHT announce");
+
+			if (!m_allow_peers)
+				debug_log("DHT: torrent paused, no DHT announce");
+
+			if (!m_torrent_file->is_valid() && !m_url.empty())
+				debug_log("DHT: no info-hash, waiting for \"%s\"", m_url.c_str());
+
+			if (m_torrent_file->is_valid() && m_torrent_file->priv())
+				debug_log("DHT: private torrent, no DHT announce");
+
+			if (settings().get_bool(settings_pack::use_dht_as_fallback))
+			{
+				int verified_trackers = 0;
+				for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
+					, end(m_trackers.end()); i != end; ++i)
+					if (i->verified) ++verified_trackers;
+
+				if (verified_trackers > 0)
+					debug_log("DHT: only using DHT as callback, and there are %d working trackers", verified_trackers);
+			}
+#endif
+			return;
+		}
 
 		TORRENT_ASSERT(m_allow_peers);
 
