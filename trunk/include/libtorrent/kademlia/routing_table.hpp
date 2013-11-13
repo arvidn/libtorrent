@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/array.hpp>
 #include <set>
-#include <list>
 
 #include <libtorrent/kademlia/logging.hpp>
 
@@ -171,7 +170,7 @@ public:
 
 private:
 
-	typedef std::list<routing_table_node> table_t;
+	typedef std::vector<routing_table_node> table_t;
 
 	table_t::iterator find_bucket(node_id const& id);
 
@@ -196,6 +195,10 @@ private:
 	table_t m_buckets;
 
 	node_id m_id; // our own node id
+
+	// the last seen depth (i.e. levels in the routing table)
+	// it's mutable because it's updated by depth(), which is const
+	mutable int m_depth;
 
 	// the last time need_bootstrap() returned true
 	mutable ptime m_last_bootstrap;
