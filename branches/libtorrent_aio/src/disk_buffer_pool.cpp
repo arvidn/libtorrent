@@ -233,6 +233,10 @@ namespace libtorrent
 		return m_buffers_in_use.count(buffer) == 1;
 #endif
 
+#if TORRENT_USE_PURGABLE_CONTROL
+		return true;
+#endif
+
 #ifdef TORRENT_BUFFER_STATS
 		if (m_buf_to_category.find(buffer)
 			== m_buf_to_category.end()) return false;

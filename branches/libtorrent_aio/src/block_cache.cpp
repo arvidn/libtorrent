@@ -1237,6 +1237,8 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
+	TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
+	TORRENT_PIECE_ASSERT(block >= 0, pe);
 	if (pe->blocks[block].buf == NULL) return false;
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount < cached_block_entry::max_refcount, pe);
 	if (pe->blocks[block].refcount == 0)
@@ -1287,6 +1289,8 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
+	TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
+	TORRENT_PIECE_ASSERT(block >= 0, pe);
 
 	TORRENT_PIECE_ASSERT(pe->blocks[block].buf != NULL, pe);
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount > 0, pe);
@@ -1690,7 +1694,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j, bool ex
 	}
 
 	// if we don't have the second block, it's a cache miss
-	if (inc_block_refcount(pe, start_block + 1, ref_reading) == false)
+	if (blocks_to_read == 2 && inc_block_refcount(pe, start_block + 1, ref_reading) == false)
 	{
 		TORRENT_ASSERT(!expect_no_fail);
 		dec_block_refcount(pe, start_block, ref_reading);
@@ -1718,7 +1722,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j, bool ex
 	// now decrement it.
 	// TODO: create a holder for refcounts that automatically decrement
 	dec_block_refcount(pe, start_block, ref_reading);
-	dec_block_refcount(pe, start_block + 1, ref_reading);
+	if (blocks_to_read == 2) dec_block_refcount(pe, start_block + 1, ref_reading);
 	return j->d.io.buffer_size;
 }
 
