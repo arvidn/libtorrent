@@ -60,10 +60,12 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	: m_bucket_size(bucket_size)
 	, m_settings(settings)
 	, m_id(id)
+	, m_depth(0)
 	, m_last_bootstrap(min_time())
 	, m_last_refresh(min_time())
 	, m_last_self_refresh(min_time())
 {
+	m_buckets.reserve(30);
 }
 
 int routing_table::bucket_limit(int bucket) const
@@ -128,17 +130,26 @@ size_type routing_table::num_global_nodes() const
 
 int routing_table::depth() const
 {
-	// TODO: 3 cache the depth!
-	int deepest_bucket = 0;
-	for (table_t::const_iterator i = m_buckets.begin()
-		, end(m_buckets.end()); i != end; ++i)
+	if (m_depth >= m_buckets.size())
+		m_depth = m_buckets.size() - 1;
+
+	if (m_depth < 0) return m_depth;
+
+	// maybe the table is deeper now?
+	while (m_depth < int(m_buckets.size())-1
+		&& m_buckets[m_depth+1].live_nodes.size() >= m_bucket_size / 2)
 	{
-		if (i->live_nodes.size() < m_bucket_size / 2)
-			break;
-		// this bucket is full
-		++deepest_bucket;
+		++m_depth;
 	}
-	return deepest_bucket;
+
+	// maybe the table is more shallow now?
+	while (m_depth > 0
+		&& m_buckets[m_depth-1].live_nodes.size() < m_bucket_size / 2)
+	{
+		--m_depth;
+	}
+
+	return m_depth;
 }
 
 #if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
