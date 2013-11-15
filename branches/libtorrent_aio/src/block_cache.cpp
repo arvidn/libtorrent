@@ -1347,6 +1347,8 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
+	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (!pe->blocks[i].dirty
@@ -1355,8 +1357,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 
 		TORRENT_PIECE_ASSERT(!pe->blocks[i].pending, pe);
 		TORRENT_PIECE_ASSERT(pe->blocks[i].dirty, pe);
-		// TODO: 3 free the buffers in bulk instead of one at a time
-		free_buffer(pe->blocks[i].buf);
+		to_delete[num_to_delete++] = pe->blocks[i].buf;
 		pe->blocks[i].buf = NULL;
 		pe->blocks[i].dirty = false;
 		TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
@@ -1366,6 +1367,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 		TORRENT_PIECE_ASSERT(pe->num_dirty > 0, pe);
 		--pe->num_dirty;
 	}
+	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
 	update_cache_state(pe);
 }
