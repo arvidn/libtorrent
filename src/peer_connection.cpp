@@ -3862,6 +3862,8 @@ namespace libtorrent
 			p.flags |= pi->optimistically_unchoked ? peer_info::optimistic_unchoke : 0;
 #ifndef TORRENT_DISABLE_GEO_IP
 			p.inet_as = pi->inet_as ? pi->inet_as->first : 0xffff;
+#else
+			p.inet_as = 0xffff;
 #endif
 		}
 		else
@@ -3869,9 +3871,7 @@ namespace libtorrent
 			p.source = 0;
 			p.failcount = 0;
 			p.num_hashfails = 0;
-#ifndef TORRENT_DISABLE_GEO_IP
 			p.inet_as = 0xffff;
-#endif
 		}
 
 		p.remote_dl_rate = m_remote_dl_rate;

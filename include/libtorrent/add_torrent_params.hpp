@@ -48,6 +48,10 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent_info;
+#ifdef TORRENT_DISABLE_EXTENSIONS
+	struct torrent;
+	struct torrent_plugin;
+#endif
 
 	// The add_torrent_params is a parameter pack for adding torrents to a session.
 	// The key fields when adding a torrent are:
@@ -330,15 +334,14 @@ namespace libtorrent
 		int upload_limit;
 		int download_limit;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		// torrent extension construction functions can be added to this
 		// vector to have them be added immediately when the torrent is
 		// constructed. This may be desired over the torrent_handle::add_extension()
 		// in order to avoid race conditions. For instance it may be important
 		// to have the plugin catch events that happen very early on after
 		// the torrent is created.
-		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> > extensions;
-#endif
+		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> >
+			extensions;
 	};
 }
 
