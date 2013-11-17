@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
+#include <boost/system/system_error.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/read.hpp>
 #else
@@ -471,8 +472,16 @@ void udp_socket::setup_read(udp::socket* s)
 	add_outstanding_async("udp_socket::on_read");
 #endif
 	udp::endpoint ep;
-	s->async_receive_from(asio::null_buffers()
-		, ep, boost::bind(&udp_socket::on_read, this, _1, s));
+	TORRENT_TRY
+	{
+		s->async_receive_from(asio::null_buffers()
+			, ep, boost::bind(&udp_socket::on_read, this, _1, s));
+	}
+	TORRENT_CATCH(boost::system::system_error& e)
+	{
+		get_io_service().post(boost::bind(&udp_socket::on_read
+			, this, e.code(), s));
+	}
 }
 
 void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec)
