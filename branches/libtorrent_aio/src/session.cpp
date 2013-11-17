@@ -83,11 +83,6 @@ using boost::shared_ptr;
 using boost::weak_ptr;
 using libtorrent::aux::session_impl;
 
-#ifdef TORRENT_MEMDEBUG
-void start_malloc_debug();
-void stop_malloc_debug();
-#endif
-
 namespace libtorrent
 {
 
@@ -489,10 +484,6 @@ namespace libtorrent
 #endif
 
 		m_impl.reset(new session_impl(id));
-
-#ifdef TORRENT_MEMDEBUG
-		start_malloc_debug();
-#endif
 	}
 
 	void session::set_log_path(std::string const& p)
@@ -529,9 +520,6 @@ namespace libtorrent
 
 	session::~session()
 	{
-#ifdef TORRENT_MEMDEBUG
-		stop_malloc_debug();
-#endif
 
 #ifdef TORRENT_PROFILE_CALLS
 		dump_call_profile();

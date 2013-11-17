@@ -274,14 +274,12 @@ namespace libtorrent
 		// __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
 		char country[2];
 
-#ifndef TORRENT_DISABLE_GEO_IP
 		// the name of the AS this peer is located in. This might be
 		// an empty string if there is no name in the geo ip database.
 		std::string inet_as_name;
 
 		// the AS number the peer is located in.
 		int inet_as;
-#endif
 
 #ifndef TORRENT_NO_DEPRECATE
 		// a measurement of the balancing of free download (that we get)

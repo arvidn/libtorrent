@@ -37,12 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 
-#ifdef TORRENT_DEBUG
-#define TORRENT_CFG_DEBUG dbg_
-#else
-#define TORRENT_CFG_DEBUG rel_
-#endif
-
 #if TORRENT_USE_BOOST_DATE_TIME
 #define TORRENT_CFG_TIME boosttime_
 #elif TORRENT_USE_ABSOLUTE_TIME
@@ -63,29 +57,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CFG_IPV6 noipv_-
 #endif
 
-#ifdef _UNICODE
-#define TORRENT_CFG_UNICODE unicode_
-#else
-#define TORRENT_CFG_UNICODE ansi_
-#endif
-
 #ifdef TORRENT_NO_DEPRECATE
 #define TORRENT_CFG_DEPR nodeprecate_
 #else
 #define TORRENT_CFG_DEPR deprecated_
 #endif
 
-#ifdef TORRENT_DISABLE_FULL_STATS
-#define TORRENT_CFG_STATS partialstats_
-#else
-#define TORRENT_CFG_STATS fullstats_
-#endif
-
 #define TORRENT_CFG \
-	BOOST_PP_CAT(TORRENT_CFG_DEBUG, \
 	BOOST_PP_CAT(TORRENT_CFG_TIME, \
 	BOOST_PP_CAT(TORRENT_CFG_LOG, \
-	TORRENT_CFG_DEPR)))
+	TORRENT_CFG_DEPR))
 
 #define TORRENT_CFG_STRING BOOST_PP_STRINGIZE(TORRENT_CFG)
 

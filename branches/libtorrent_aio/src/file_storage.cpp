@@ -92,26 +92,44 @@ namespace libtorrent
 		if (branch_path[0] == 0)
 		{
 			e.path_index = -1;
+			return;
+		}
+
+		int branch_len = strlen(branch_path);
+		if (branch_len >= m_name.size()
+			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0
+			&& (branch_len == m_name.size()
+#ifdef TORRENT_WINDOWS
+				|| branch_path[m_name.size()] == '\\'
+#endif
+				|| branch_path[m_name.size()] == '/'
+			))
+		{
+			branch_path += m_name.size()
+				+ (m_name.size() == branch_len?0:1);
+			e.no_root_dir = false;
 		}
 		else
 		{
-			// do we already have this path in the path list?
-			std::vector<std::string>::reverse_iterator p
-				= std::find(m_paths.rbegin(), m_paths.rend(), branch_path);
-
-			if (p == m_paths.rend())
-			{
-				// no, we don't. add it
-				e.path_index = m_paths.size();
-				m_paths.push_back(branch_path);
-			}
-			else
-			{
-				// yes we do. use it
-				e.path_index = p.base() - m_paths.begin() - 1;
-			}
-			e.set_name(leaf);
+			e.no_root_dir = true;
 		}
+
+		// do we already have this path in the path list?
+		std::vector<std::string>::reverse_iterator p
+			= std::find(m_paths.rbegin(), m_paths.rend(), branch_path);
+
+		if (p == m_paths.rend())
+		{
+			// no, we don't. add it
+			e.path_index = m_paths.size();
+			m_paths.push_back(branch_path);
+		}
+		else
+		{
+			// yes we do. use it
+			e.path_index = p.base() - m_paths.begin() - 1;
+		}
+		e.set_name(leaf);
 	}
 
 	file_entry::file_entry(): offset(0), size(0), file_base(0)
@@ -122,18 +140,22 @@ namespace libtorrent
 
 	file_entry::~file_entry() {}
 
-	internal_file_entry::~internal_file_entry() { if (name_len == name_is_owned) free((void*)name); }
+	internal_file_entry::~internal_file_entry()
+	{
+		if (name_len == name_is_owned) free((void*)name);
+	}
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
 		: name(0)
 		, offset(fe.offset)
-		, symlink_index(fe.symlink_index)
 		, size(fe.size)
+		, symlink_index(fe.symlink_index)
 		, name_len(fe.name_len)
 		, pad_file(fe.pad_file)
 		, hidden_attribute(fe.hidden_attribute)
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
+		, no_root_dir(fe.no_root_dir)
 		, path_index(fe.path_index)
 	{
 		set_name(fe.filename().c_str());
@@ -149,6 +171,7 @@ namespace libtorrent
 		hidden_attribute = fe.hidden_attribute;
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
+		no_root_dir = fe.no_root_dir;
 		set_name(fe.filename().c_str());
 		return *this;
 	}
@@ -343,7 +366,8 @@ namespace libtorrent
 		ret.hidden_attribute = ife.hidden_attribute;
 		ret.executable_attribute = ife.executable_attribute;
 		ret.symlink_attribute = ife.symlink_attribute;
-		if (ife.symlink_index != internal_file_entry::not_a_symlink) ret.symlink_path = symlink(index);
+		if (ife.symlink_index != internal_file_entry::not_a_symlink)
+			ret.symlink_path = symlink(index);
 		ret.filehash = hash(index);
 		return ret;
 	}
@@ -507,14 +531,22 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
-		TORRENT_ASSERT(fe.path_index >= -2 && fe.path_index < int(m_paths.size()));
+
 		// -2 means this is an absolute path filename
 		if (fe.path_index == -2) return fe.filename();
 
 		// -1 means no path
 		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
 
-		return combine_path(save_path, combine_path(m_paths[fe.path_index], fe.filename()));
+		if (fe.no_root_dir)
+			return combine_path(save_path
+				, combine_path(m_paths[fe.path_index]
+				, fe.filename()));
+
+		return combine_path(save_path
+			, combine_path(m_name
+			, combine_path(m_paths[fe.path_index]
+			, fe.filename())));
 	}
 
 	std::string file_storage::file_name(int index) const
@@ -594,16 +626,11 @@ namespace libtorrent
 		return m_file_base[index];
 	}
 
-	std::string file_storage::file_path(internal_file_entry const& fe, std::string const& save_path) const
+	std::string file_storage::file_path(internal_file_entry const& fe
+		, std::string const& save_path) const
 	{
-		TORRENT_ASSERT(fe.path_index >= -2 && fe.path_index < int(m_paths.size()));
-		// -2 means this is an absolute path filename
-		if (fe.path_index == -2) return fe.filename();
-
-		// -1 means no path
-		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
-
-		return combine_path(save_path, combine_path(m_paths[fe.path_index], fe.filename()));
+		int index = &fe - &m_files[0];
+		return file_path(index);
 	}
 
 	std::string file_storage::file_name(internal_file_entry const& fe) const
