@@ -233,27 +233,6 @@ namespace libtorrent
 
 	private:
 
-#ifdef TORRENT_DEBUG
-		// the bitfield is used so that the m_type_queried
-		// field still fits, so that the ABI is the same for
-		// debug builds and release builds. It appears to be
-		// very hard to match debug builds with debug versions
-		// of libtorrent
-		data_type m_type:31;
-
-	public:
-		// in debug mode this is set to false by bdecode
-		// to indicate that the program has not yet queried
-		// the type of this entry, and sould not assume
-		// that it has a certain type. This is asserted in
-		// the accessor functions. This does not apply if
-		// exceptions are used.
-		mutable bool m_type_queried:1;
-	protected:
-#else
-		data_type m_type;
-#endif // TORRENT_DEBUG
-
 #if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED
 		// workaround for msvc-bug.
 		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
@@ -274,6 +253,22 @@ namespace libtorrent
 #endif
 		integer_type data[(union_size + sizeof(integer_type) - 1)
 			/ sizeof(integer_type)];
+
+		// the bitfield is used so that the m_type_queried
+		// field still fits, so that the ABI is the same for
+		// debug builds and release builds. It appears to be
+		// very hard to match debug builds with debug versions
+		// of libtorrent
+		boost::uint8_t m_type:7;
+
+	public:
+		// in debug mode this is set to false by bdecode
+		// to indicate that the program has not yet queried
+		// the type of this entry, and sould not assume
+		// that it has a certain type. This is asserted in
+		// the accessor functions. This does not apply if
+		// exceptions are used.
+		mutable boost::uint8_t m_type_queried:1;
 	};
 
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM

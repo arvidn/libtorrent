@@ -147,7 +147,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		return m_type;
+		return (entry::data_type)m_type;
 	}
 
 	entry::~entry() { destruct(); }
