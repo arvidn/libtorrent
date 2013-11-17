@@ -79,11 +79,6 @@ using boost::shared_ptr;
 using boost::weak_ptr;
 using libtorrent::aux::session_impl;
 
-#ifdef TORRENT_MEMDEBUG
-void start_malloc_debug();
-void stop_malloc_debug();
-#endif
-
 namespace libtorrent
 {
 
@@ -416,10 +411,6 @@ namespace libtorrent
 #endif
 
 		m_impl.reset(new session_impl(listen_range, id, listen_interface, alert_mask));
-
-#ifdef TORRENT_MEMDEBUG
-		start_malloc_debug();
-#endif
 	}
 
 	void session::set_log_path(std::string const& p)
@@ -456,9 +447,6 @@ namespace libtorrent
 
 	session::~session()
 	{
-#ifdef TORRENT_MEMDEBUG
-		stop_malloc_debug();
-#endif
 		TORRENT_ASSERT(m_impl);
 		// if there is at least one destruction-proxy
 		// abort the session and let the destructor
