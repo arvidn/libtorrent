@@ -1388,6 +1388,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(have_piece(j->piece));
 
+		dec_refcount("cache_piece");
+
 		if (j->ret < 0) return;
 
 		// suggest this piece to all peers
@@ -4710,6 +4712,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+		dec_refcount("delete_files");
 		if (j->ret != 0)
 		{
 			if (alerts().should_post<torrent_delete_failed_alert>())
@@ -8287,6 +8290,7 @@ namespace libtorrent
 		if (m_storage.get())
 		{
 			TORRENT_ASSERT(m_storage);
+			inc_refcount("delete_files");
 			m_ses.disk_thread().async_delete_files(m_storage.get()
 				, boost::bind(&torrent::on_files_deleted, shared_from_this(), _1));
 			m_deleted = true;
@@ -9349,6 +9353,8 @@ namespace libtorrent
 		if (m_abort) return;
 		TORRENT_ASSERT(m_storage);
 
+		if (!is_loaded()) return;
+
 		// rotate the cached pieces
 		cache_status status;
 		m_ses.disk_thread().get_cache_info(&status, false, m_storage.get());
@@ -9428,9 +9434,12 @@ namespace libtorrent
 
 			for (std::vector<int>::iterator i = avail_vec.begin()
 				, end(avail_vec.end()); i != end; ++i)
+			{
+				inc_refcount("cache_piece");
 				m_ses.disk_thread().async_cache_piece(m_storage.get(), *i
 					, boost::bind(&torrent::on_disk_cache_complete
 					, shared_from_this(), _1));
+			}
 		}
 	}
 
@@ -10049,19 +10058,17 @@ namespace libtorrent
 
 				while (size)
 				{
-					if (fs.file_size(file_index) - file_offset < size)
+					int add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
+					m_file_progress[file_index] += add;
+
+					TORRENT_ASSERT(m_file_progress[file_index]
+						<= m_torrent_file->files().file_size(file_index));
+
+					size -= add;
+					if (size > 0)
 					{
-						int add = fs.file_size(file_index) - file_offset;
-						m_file_progress[file_index] += add;
 						++file_index;
-						size -= add;
-						file_offset += add;
 						file_offset = 0;
-					}
-					else
-					{
-						m_file_progress[file_index] += size;
-						size = 0;
 					}
 				}
 			}

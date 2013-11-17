@@ -1561,13 +1561,10 @@ void block_cache::check_invariant() const
 		TORRENT_PIECE_ASSERT(p.blocks, &p);
 		
 		TORRENT_PIECE_ASSERT(p.storage, &p);
-		int piece_size = p.storage->files()->piece_size(p.piece);
-		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 		int num_blocks = 0;
 		int num_dirty = 0;
 		int num_pending = 0;
 		int num_refcount = 0;
-		TORRENT_PIECE_ASSERT(blocks_in_piece == p.blocks_in_piece, &p);
 
 		bool in_storage = p.storage->has_piece((cached_piece_entry*)&p);
 		switch (p.cache_state)
@@ -1583,7 +1580,7 @@ void block_cache::check_invariant() const
 				break;
 		}
 
-		for (int k = 0; k < blocks_in_piece; ++k)
+		for (int k = 0; k < p.blocks_in_piece; ++k)
 		{
 			if (p.blocks[k].buf)
 			{

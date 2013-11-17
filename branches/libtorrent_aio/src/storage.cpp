@@ -1316,6 +1316,16 @@ namespace libtorrent
 	piece_manager::~piece_manager()
 	{}
 
+#ifdef TORRENT_DEBUG
+	void piece_manager::assert_torrent_refcount() const
+	{
+		// sorry about this layer violation, but it's
+		// quite convenient to make sure the torrent won't
+		// get unloaded under our feet later
+		TORRENT_ASSERT(static_cast<torrent*>(m_torrent.get())->refcount() > 0);
+	}
+#endif
+
 	// used in torrent_handle.cpp
 	void piece_manager::write_resume_data(entry& rd, storage_error& ec) const
 	{
