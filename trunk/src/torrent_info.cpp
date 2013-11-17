@@ -576,9 +576,6 @@ namespace libtorrent
 		, m_piece_hashes(t.m_piece_hashes)
 		, m_comment(t.m_comment)
 		, m_created_by(t.m_created_by)
-#ifdef TORRENT_USE_OPENSSL
-		, m_ssl_root_cert(t.m_ssl_root_cert)
-#endif
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
 		, m_info_section_size(t.m_info_section_size)
@@ -884,9 +881,6 @@ namespace libtorrent
 		swap(m_creation_date, ti.m_creation_date);
 		m_comment.swap(ti.m_comment);
 		m_created_by.swap(ti.m_created_by);
-#ifdef TORRENT_USE_OPENSSL
-		m_ssl_root_cert.swap(ti.m_ssl_root_cert);
-#endif
 		boost::uint32_t tmp;
 		SWAP(m_multifile, ti.m_multifile);
 		SWAP(m_private, ti.m_private);
@@ -900,6 +894,12 @@ namespace libtorrent
 	}
 
 #undef SWAP
+
+	std::string torrent_info::ssl_cert() const
+	{
+		if (m_info_dict.type() != lazy_entry::dict_t) return "";
+		return m_info_dict.dict_find_string_value("ssl-cert");
+	}
 
 	bool torrent_info::parse_info_section(lazy_entry const& info, error_code& ec, int flags)
 	{
@@ -1063,10 +1063,6 @@ namespace libtorrent
 		}
 
 		m_private = info.dict_find_int_value("private", 0);
-
-#ifdef TORRENT_USE_OPENSSL
-		m_ssl_root_cert = info.dict_find_string_value("ssl-cert");
-#endif
 
 		return true;
 	}

@@ -299,10 +299,6 @@ namespace libtorrent
 	{
 	public:
 
-#ifdef TORRENT_DEBUG
-		void check_invariant() const;
-#endif
-
 		// The constructor that takes an info-hash  will initialize the info-hash to the given value,
 		// but leave all other fields empty. This is used internally when downloading torrents without
 		// the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
@@ -527,15 +523,7 @@ namespace libtorrent
 		// Returns the SSL root certificate for the torrent, if it is an SSL
 		// torrent. Otherwise returns an empty string. The certificate is
 		// the the public certificate in x509 format.
-#ifdef TORRENT_USE_OPENSSL
-		std::string const& ssl_cert() const { return m_ssl_root_cert; }
-#else
-		std::string ssl_cert() const
-		{
-			if (m_info_dict.type() != lazy_entry::dict_t) return "";
-			return m_info_dict.dict_find_string_value("ssl-cert");
-		}
-#endif
+		std::string ssl_cert() const;
 
 		// returns true if this torrent_info object has a torrent loaded.
 		// This is primarily used to determine if a magnet link has had its
@@ -673,6 +661,11 @@ namespace libtorrent
 	private:
 #endif
 
+#ifdef TORRENT_DEBUG
+		friend class invariant_access;
+		void check_invariant() const;
+#endif
+
 		// not assignable
 		torrent_info const& operator=(torrent_info const&);
 
@@ -716,13 +709,6 @@ namespace libtorrent
 		// an optional string naming the software used
 		// to create the torrent file
 		std::string m_created_by;
-
-#ifdef TORRENT_USE_OPENSSL
-		// for ssl-torrens, this contains the root
-		// certificate, in .pem format (i.e. ascii
-		// base64 encoded with head and tails)
-		std::string m_ssl_root_cert;
-#endif
 
 		// the info section parsed. points into m_info_section
 		// parsed lazily

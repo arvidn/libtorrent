@@ -137,8 +137,8 @@ namespace libtorrent
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
 		: name(0)
 		, offset(fe.offset)
-		, symlink_index(fe.symlink_index)
 		, size(fe.size)
+		, symlink_index(fe.symlink_index)
 		, name_len(fe.name_len)
 		, pad_file(fe.pad_file)
 		, hidden_attribute(fe.hidden_attribute)
@@ -518,7 +518,22 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
-		return file_path(fe, save_path);
+
+		// -2 means this is an absolute path filename
+		if (fe.path_index == -2) return fe.filename();
+
+		// -1 means no path
+		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
+
+		if (fe.no_root_dir)
+			return combine_path(save_path
+				, combine_path(m_paths[fe.path_index]
+				, fe.filename()));
+
+		return combine_path(save_path
+			, combine_path(m_name
+			, combine_path(m_paths[fe.path_index]
+			, fe.filename())));
 	}
 
 	std::string file_storage::file_name(int index) const
@@ -601,22 +616,8 @@ namespace libtorrent
 	std::string file_storage::file_path(internal_file_entry const& fe
 		, std::string const& save_path) const
 	{
-		TORRENT_ASSERT(fe.path_index >= -2 && fe.path_index < int(m_paths.size()));
-		// -2 means this is an absolute path filename
-		if (fe.path_index == -2) return fe.filename();
-
-		// -1 means no path
-		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
-
-		if (fe.no_root_dir)
-			return combine_path(save_path
-				, combine_path(m_paths[fe.path_index]
-				, fe.filename()));
-
-		return combine_path(save_path
-			, combine_path(m_name
-			, combine_path(m_paths[fe.path_index]
-			, fe.filename())));
+		int index = &fe - &m_files[0];
+		return file_path(index);
 	}
 
 	std::string file_storage::file_name(internal_file_entry const& fe) const

@@ -254,7 +254,7 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if l.startswith('#'):
-			lno = consume_ifdef(lno - 1, lines)
+			lno = consume_ifdef(lno - 1, lines, True)
 			continue
 
 		if 'TORRENT_DEFINE_ALERT' in l:
@@ -438,7 +438,7 @@ def consume_comment(lno, lines):
 
 	return lno
 
-def consume_ifdef(lno, lines):
+def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 	l = lines[lno].strip()
 	lno += 1
 
@@ -446,6 +446,19 @@ def consume_ifdef(lno, lines):
 	end_if = 0
 
 	if verbose: print 'prep  %s' % l
+
+	if warn_on_ifdefs and ('TORRENT_DEBUG' in l or 'TORRENT_DISABLE_FULL_STATS' in l):
+		print '***\nWARNING: possible ABI breakage in public struct!\n   %s:%d\n***' % \
+			(filename, lno)
+
+	if warn_on_ifdefs and '#if' in l:
+		define = l.replace('#ifndef', '').replace('#ifdef', '') \
+			.replace('#if', '').replace('defined', '') \
+			.replace('TORRENT_USE_IPV6', '').replace('TORRENT_NO_DEPRECATE', '') \
+			.replace('||', '').replace('&&', '').replace('(', '').replace(')','') \
+			.replace('!', '').strip()
+		if define != '':
+			print 'sensitive define in public struct: "%s"\n   %s:%d' % (define, filename, lno)
 
 	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
 		l == '#ifdef TORRENT_DEBUG' or \
