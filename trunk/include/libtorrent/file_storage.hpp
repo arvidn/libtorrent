@@ -121,26 +121,28 @@ namespace libtorrent
 		internal_file_entry()
 			: name(NULL)
 			, offset(0)
-			, symlink_index(not_a_symlink)
 			, size(0)
+			, symlink_index(not_a_symlink)
 			, name_len(name_is_owned)
 			, pad_file(false)
 			, hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
+			, no_root_dir(false)
 			, path_index(-1)
 		{}
 
 		internal_file_entry(file_entry const& e)
 			: name(NULL)
 			, offset(e.offset)
-			, symlink_index(not_a_symlink)
 			, size(e.size)
+			, symlink_index(not_a_symlink)
 			, name_len(name_is_owned)
 			, pad_file(e.pad_file)
 			, hidden_attribute(e.hidden_attribute)
 			, executable_attribute(e.executable_attribute)
 			, symlink_attribute(e.symlink_attribute)
+			, no_root_dir(false)
 			, path_index(-1)
 		{
 			set_name(e.path.c_str());
@@ -167,17 +169,17 @@ namespace libtorrent
 
 		enum {
 			name_is_owned = (1<<12)-1,
-			not_a_symlink = (1<<16)-1
+			not_a_symlink = (1<<15)-1
 		};
 		// the offset of this file inside the torrent
 		boost::uint64_t offset:48;
 
-		// index into file_storage::m_symlinks or not_a_symlink
-		// if this is not a symlink
-		boost::uint64_t symlink_index:16;
-
 		// the size of this file
 		boost::uint64_t size:48;
+
+		// index into file_storage::m_symlinks or not_a_symlink
+		// if this is not a symlink
+		boost::uint64_t symlink_index:15;
 
 		// the number of characters in the name. If this is
 		// name_is_owned, name is null terminated and owned by this object
@@ -189,14 +191,20 @@ namespace libtorrent
 		boost::uint64_t hidden_attribute:1;
 		boost::uint64_t executable_attribute:1;
 		boost::uint64_t symlink_attribute:1;
+
+		// if this is true, don't include m_name as part of the
+		// path to this file
+		boost::uint64_t no_root_dir:1;
+
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
 		// from that array with the 'name' field in
 		// this struct
-		// if path_index == -2, it means the filename
+		// values for path_index include:
+		// -1 means no path (i.e. single file torrent)
+		// -2, it means the filename
 		// in this field contains the full, absolute path
 		// to the file
-		// -1 means no path (i.e. single file torrent)
 		int path_index;
 	};
 
@@ -527,7 +535,10 @@ namespace libtorrent
 		std::vector<size_type> m_file_base;
 
 		// all unique paths files have. The internal_file_entry::path_index
-		// points into this array
+		// points into this array. The paths don't include the root directory
+		// name for multi-file torrents. The m_name field need to be
+		// prepended to these paths, and the filename of a specific file
+		// entry appended, to form full file paths
 		std::vector<std::string> m_paths;
 
 		// name of torrent. For multi-file torrents
