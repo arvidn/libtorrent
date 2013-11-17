@@ -88,6 +88,7 @@ namespace libtorrent
 			, hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
+			, no_root_dir(false)
 			, path_index(-1)
 		{}
 
@@ -101,6 +102,7 @@ namespace libtorrent
 			, hidden_attribute(e.hidden_attribute)
 			, executable_attribute(e.executable_attribute)
 			, symlink_attribute(e.symlink_attribute)
+			, no_root_dir(false)
 			, path_index(-1)
 		{
 			set_name(e.path.c_str());
@@ -145,10 +147,17 @@ namespace libtorrent
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
 		bool symlink_attribute:1;
+
+		// if this is true, don't include m_name as part of the
+		// path to this file
+		boost::uint64_t no_root_dir:1;
+
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
 		// from that array with the 'name' field in
 		// this struct
+		// values for path_index include:
+		// -1 means no path (i.e. single file torrent)
 		int path_index;
 	};
 
@@ -262,6 +271,7 @@ namespace libtorrent
 		void set_file_base(int index, size_type off);
 		std::string file_path(int index) const;
 		size_type file_size(int index) const;
+		std::string file_name(int index) const;
 
 		sha1_hash hash(internal_file_entry const& fe) const;
 		std::string const& symlink(internal_file_entry const& fe) const;
@@ -309,7 +319,10 @@ namespace libtorrent
 		std::vector<size_type> m_file_base;
 
 		// all unique paths files have. The internal_file_entry::path_index
-		// points into this array
+		// points into this array. The paths don't include the root directory
+		// name for multi-file torrents. The m_name field need to be
+		// prepended to these paths, and the filename of a specific file
+		// entry appended, to form full file paths
 		std::vector<std::string> m_paths;
 
 		// name of torrent. For multi-file torrents

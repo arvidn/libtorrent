@@ -41,6 +41,7 @@ project
    ;
 
 test-suite libtorrent : 	
+	[ run test_file_storage.cpp ]
 	[ run test_privacy.cpp ]
 	[ run test_threads.cpp ]
 	[ run test_rss.cpp ]
