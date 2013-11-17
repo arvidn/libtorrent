@@ -25,6 +25,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix set_naem() on file_storage actually affecting save paths
 	* fix large file support issue on mingw
 	* add some error handling to set_piece_hashes()
 	* fix completed-on timestamp to not be clobbered on each startup
