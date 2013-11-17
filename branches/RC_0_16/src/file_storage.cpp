@@ -72,29 +72,47 @@ namespace libtorrent
 	void file_storage::update_path_index(internal_file_entry& e)
 	{
 		std::string parent = parent_path(e.filename());
+
 		if (parent.empty())
 		{
 			e.path_index = -1;
+			return;
+		}
+
+		if (parent.size() >= m_name.size()
+			&& parent.compare(0, m_name.size(), m_name) == 0
+			&& (parent.size() == m_name.size()
+#ifdef TORRENT_WINDOWS
+				|| parent[m_name.size()] == '\\'
+#endif
+				|| parent[m_name.size()] == '/'
+			))
+		{
+			parent.erase(parent.begin(), parent.begin() + m_name.size()
+				+ (m_name.size() == parent.size()?0:1));
+			e.no_root_dir = false;
 		}
 		else
 		{
-			// do we already have this path in the path list?
-			std::vector<std::string>::reverse_iterator p
-				= std::find(m_paths.rbegin(), m_paths.rend(), parent);
-
-			if (p == m_paths.rend())
-			{
-				// no, we don't. add it
-				e.path_index = m_paths.size();
-				m_paths.push_back(parent);
-			}
-			else
-			{
-				// yes we do. use it
-				e.path_index = p.base() - m_paths.begin() - 1;
-			}
-			e.set_name(filename(e.filename()).c_str());
+			e.no_root_dir = true;
 		}
+
+		// do we already have this path in the path list?
+		std::vector<std::string>::reverse_iterator p
+			= std::find(m_paths.rbegin(), m_paths.rend(), parent);
+
+		if (p == m_paths.rend())
+		{
+			// no, we don't. add it
+			e.path_index = m_paths.size();
+			m_paths.push_back(parent);
+		}
+		else
+		{
+			// yes we do. use it
+			e.path_index = p.base() - m_paths.begin() - 1;
+		}
+		e.set_name(filename(e.filename()).c_str());
 	}
 
 	file_entry::file_entry(): offset(0), size(0), file_base(0)
@@ -117,6 +135,7 @@ namespace libtorrent
 		, hidden_attribute(fe.hidden_attribute)
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
+		, no_root_dir(fe.no_root_dir)
 		, path_index(fe.path_index)
 	{
 		set_name(fe.filename().c_str());
@@ -132,6 +151,7 @@ namespace libtorrent
 		hidden_attribute = fe.hidden_attribute;
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
+		no_root_dir = fe.no_root_dir;
 		set_name(fe.filename().c_str());
 		return *this;
 	}
@@ -443,10 +463,16 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
-		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
-		if (fe.path_index == -1) return fe.filename();
-		return combine_path(m_paths[fe.path_index], fe.filename());
+		return file_path(fe);
 	}
+
+	std::string file_storage::file_name(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		internal_file_entry const& fe = m_files[index];
+		return fe.filename();
+	}
+
 
 	size_type file_storage::file_size(int index) const
 	{
@@ -499,8 +525,17 @@ namespace libtorrent
 	std::string file_storage::file_path(internal_file_entry const& fe) const
 	{
 		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
+
+		// -1 means no path
 		if (fe.path_index == -1) return fe.filename();
-		return combine_path(m_paths[fe.path_index], fe.filename());
+
+		if (fe.no_root_dir)
+			return combine_path(m_paths[fe.path_index]
+				, fe.filename());
+
+		return combine_path(m_name
+			, combine_path(m_paths[fe.path_index]
+			, fe.filename()));
 	}
 
 	size_type file_storage::file_size(internal_file_entry const& fe) const
