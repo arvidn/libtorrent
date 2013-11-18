@@ -743,7 +743,7 @@ namespace libtorrent
 		for (std::vector<std::string>::const_iterator i = paths.begin()
 			, end(paths.end()); i != end; ++i)
 		{
-			files.insert(*i);
+			files.insert(combine_path(m_files.name(), *i));
 		}
 
 		for (int i = 0; i < m_files.num_files(); ++i)
