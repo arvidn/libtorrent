@@ -423,6 +423,18 @@ namespace libtorrent
 		return "";
 	}
 
+	std::string remove_extension(std::string const& f)
+	{
+		char const* slash = strrchr(f.c_str(), '/');
+#ifdef TORRENT_WINDOWS
+		slash = (std::max)((char const*)strrchr(f.c_str(), '\\'), slash);
+#endif
+		char const* ext = strrchr(f.c_str(), '.');
+		// if we don't have an extension, just return f
+		if (ext == 0 || ext == &f[0] || (slash != NULL && ext < slash)) return f;
+		return f.substr(0, ext - &f[0]);
+	}
+
 	void replace_extension(std::string& f, std::string const& ext)
 	{
 		for (int i = f.size() - 1; i >= 0; --i)

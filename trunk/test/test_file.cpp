@@ -127,6 +127,11 @@ int test_main()
 	TEST_EQUAL(extension("blah.foo."), ".");
 	TEST_EQUAL(extension("blah.foo/bar"), "");
 
+	TEST_EQUAL(remove_extension("blah"), "blah");
+	TEST_EQUAL(remove_extension("blah.exe"), "blah");
+	TEST_EQUAL(remove_extension("blah.foo.bar"), "blah.foo");
+	TEST_EQUAL(remove_extension("blah.foo."), "blah.foo");
+
 	TEST_EQUAL(filename("blah"), "blah");
 	TEST_EQUAL(filename("/blah/foo/bar"), "bar");
 	TEST_EQUAL(filename("/blah/foo/bar/"), "bar");

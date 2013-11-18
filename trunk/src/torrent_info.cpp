@@ -402,12 +402,17 @@ namespace libtorrent
 			// as long as this file already exists
 			// increase the counter
 			int cnt = 0;
-			while (!files.insert(e.path).second)
+			if (!files.insert(e.path).second)
 			{
-				++cnt;
-				char suffix[50];
-				snprintf(suffix, sizeof(suffix), "%d%s", cnt, extension(e.path).c_str());
-				replace_extension(e.path, suffix);
+				std::string base = remove_extension(e.path);
+				std::string ext = extension(e.path);
+				do
+				{
+					++cnt;
+					char new_ext[50];
+					snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
+					e.path = base + new_ext;
+				} while (!files.insert(e.path).second);
 			}
 			target.add_file(e, file_hash ? file_hash->string_ptr() + info_ptr_diff : 0);
 
