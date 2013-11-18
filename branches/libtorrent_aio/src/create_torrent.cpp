@@ -200,7 +200,7 @@ namespace libtorrent
 		}
 
 		// dummy torrent object pointer
-		boost::shared_ptr<char> dummy(new char);
+		boost::shared_ptr<char> dummy;
 		disk_io_thread disk_thread(ios, 0, 0);
 
 		storage_params params;

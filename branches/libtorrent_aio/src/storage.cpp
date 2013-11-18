@@ -1319,6 +1319,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void piece_manager::assert_torrent_refcount() const
 	{
+		if (!m_torrent) return;
 		// sorry about this layer violation, but it's
 		// quite convenient to make sure the torrent won't
 		// get unloaded under our feet later

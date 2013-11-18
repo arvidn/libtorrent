@@ -7891,6 +7891,7 @@ namespace libtorrent
 #else
 			std::string const& path = save_path;
 #endif
+			inc_refcount("move_storage");
 			m_ses.disk_thread().async_move_storage(m_storage.get(), path, flags
 				, boost::bind(&torrent::on_storage_moved, shared_from_this(), _1));
 		}
@@ -7913,6 +7914,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+		dec_refcount("move_storage");
 		if (j->ret == piece_manager::no_error || j->ret == piece_manager::need_full_check)
 		{
 			if (alerts().should_post<storage_moved_alert>())
