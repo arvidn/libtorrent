@@ -352,6 +352,7 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
+		// frees all storage associated with this torrent_info object
 		~torrent_info();
 
 		// The file_storage object contains the information on how to map the pieces to
