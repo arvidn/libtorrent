@@ -797,12 +797,10 @@ namespace libtorrent
 		// to 0 on all platforms except windows.
 		int max_sparse_regions;
 
-#ifndef TORRENT_DISABLE_MLOCK
 		// if lock disk cache is set to true the disk cache
 		// that's in use, will be locked in physical memory, preventing it from
 		// being swapped out.
 		bool lock_disk_cache;
-#endif
 
 		// the number of piece requests we will reject in a row
 		// while a peer is choked before the peer is considered abusive and is

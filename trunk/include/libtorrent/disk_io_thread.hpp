@@ -167,6 +167,8 @@ namespace libtorrent
 	// points to a disk buffer
 	bool operation_has_buffer(disk_io_job const& j);
 
+	// this struct holds a number of statistics counters
+	// relevant for the disk io thread and disk cache.
 	struct TORRENT_EXPORT cache_status
 	{
 		cache_status()
@@ -205,7 +207,6 @@ namespace libtorrent
 		// The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
 		// the number of saved write operations per total write operations. i.e. a kind
 		// of cache hit ratio for the write cahe.
-
 		size_type writes;
 
 		// the number of blocks that were requested from the
@@ -221,6 +222,8 @@ namespace libtorrent
 		// the number of read operations used
 		size_type reads;
 
+		// the number of bytes waiting, in the disk job queue, to be written
+		// or inserted into the disk cache
 		mutable size_type queued_bytes;
 
 		// the number of 16 KiB blocks currently in the disk cache (both read and write).
@@ -260,12 +263,20 @@ namespace libtorrent
 		// the number of jobs in the job queue.
 		int job_queue_length;
 
+		// the number of milliseconds spent in all disk jobs, and specific ones
+		// since the start of the session. Times are specified in milliseconds
 		boost::uint32_t cumulative_job_time;
 		boost::uint32_t cumulative_read_time;
 		boost::uint32_t cumulative_write_time;
 		boost::uint32_t cumulative_hash_time;
 		boost::uint32_t cumulative_sort_time;
+
+		// the number of bytes that had to be read back from disk because
+		// they were flushed before the SHA-1 hash got to hash them. If this
+		// is large, a larger cache could significantly improve performance
 		int total_read_back;
+
+		// number of read jobs in the disk job queue
 		int read_queue_size;
 	};
 	

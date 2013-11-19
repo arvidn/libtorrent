@@ -66,9 +66,9 @@ namespace libtorrent
 	// peer IDs, node IDs etc.
 	class TORRENT_EXPORT sha1_hash
 	{
-		// the number of bytes of the number
 		enum { number_size = 20 };
 	public:
+		// the number of bytes of the number
 		enum { size = number_size };
 
 		// constructs an all-sero sha1-hash
@@ -279,6 +279,8 @@ namespace libtorrent
 	typedef sha1_hash sha1_hash;
 
 #if TORRENT_USE_IOSTREAM
+
+	// print a sha1_hash object to an ostream as 40 hexadecimal digits
 	inline std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
 	{
 		char out[41];
@@ -286,6 +288,7 @@ namespace libtorrent
 		return os << out;
 	}
 
+	// read 40 hexadecimal digits from an istream into a sha1_hash
 	inline std::istream& operator>>(std::istream& is, sha1_hash& peer)
 	{
 		char hex[40];
