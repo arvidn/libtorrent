@@ -130,7 +130,7 @@ udp_socket::~udp_socket()
 #endif
 
 void udp_socket::send_hostname(char const* hostname, int port
-	, char const* p, int len, error_code& ec)
+	, char const* p, int len, error_code& ec, int flags)
 {
 	CHECK_MAGIC;
 
@@ -158,12 +158,15 @@ void udp_socket::send_hostname(char const* hostname, int port
 		return;
 	}
 
-	if (m_queue.size() > 1000) return;
+	if (m_queue.size() > 1000 || (flags & dont_queue)) return;
 
 	m_queue.push_back(queued_packet());
 	queued_packet& qp = m_queue.back();
 	qp.ep.port(port);
-	qp.hostname = allocate_string_copy(hostname);
+
+	address target = address::from_string(hostname, ec);
+	if (ec) qp.ep.address(target);
+	else qp.hostname = allocate_string_copy(hostname);
 	qp.buf.insert(qp.buf.begin(), p, p + len);
 	qp.flags = 0;
 }
@@ -193,7 +196,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 
 		if (m_queue_packets)
 		{
-			if (m_queue.size() > 1000) return;
+			if (m_queue.size() > 1000 || (flags & dont_queue)) return;
 
 			m_queue.push_back(queued_packet());
 			queued_packet& qp = m_queue.back();
@@ -1364,12 +1367,13 @@ void udp_socket::drain_queue()
 		error_code ec;
 		if (p.hostname)
 		{
-			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0], p.buf.size(), ec);
+			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0]
+				, p.buf.size(), ec, p.flags | dont_queue);
 			free(p.hostname);
 		}
 		else
 		{
-			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);
+			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags | dont_queue);
 		}
 		m_queue.pop_front();
 	}

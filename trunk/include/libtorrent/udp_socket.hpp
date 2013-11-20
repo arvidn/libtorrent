@@ -70,7 +70,7 @@ namespace libtorrent
 		udp_socket(io_service& ios, connection_queue& cc);
 		~udp_socket();
 
-		enum flags_t { dont_drop = 1, peer_connection = 2 };
+		enum flags_t { dont_drop = 1, peer_connection = 2, dont_queue = 4 };
 
 		bool is_open() const
 		{
@@ -86,9 +86,11 @@ namespace libtorrent
 		void unsubscribe(udp_socket_observer* o);
 
 		// this is only valid when using a socks5 proxy
-		void send_hostname(char const* hostname, int port, char const* p, int len, error_code& ec);
+		void send_hostname(char const* hostname, int port, char const* p
+			, int len, error_code& ec, int flags = 0);
 
-		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
+		void send(udp::endpoint const& ep, char const* p, int len
+			, error_code& ec, int flags = 0);
 		void bind(udp::endpoint const& ep, error_code& ec);
 		void close();
 		int local_port() const { return m_bind_port; }
@@ -154,7 +156,8 @@ namespace libtorrent
 		}
 
 	private:
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING \
+	|| defined TORRENT_ERROR_LOGGING
 	// necessary for logging member offsets
 	public:
 #endif
@@ -171,8 +174,10 @@ namespace libtorrent
 		// and they will be added later
 		bool m_observers_locked;
 
-		void call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size);
-		void call_handler(error_code const& ec, const char* host, char const* buf, int size);
+		void call_handler(error_code const& ec, udp::endpoint const& ep
+			, char const* buf, int size);
+		void call_handler(error_code const& ec, const char* host
+			, char const* buf, int size);
 		void call_drained_handler();
 		void call_writable_handler();
 
@@ -292,7 +297,8 @@ namespace libtorrent
 	{
 		rate_limited_udp_socket(io_service& ios, connection_queue& cc);
 		void set_rate_limit(int limit) { m_rate_limit = limit; }
-		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
+		bool send(udp::endpoint const& ep, char const* p, int len
+			, error_code& ec, int flags = 0);
 
 	private:
 
