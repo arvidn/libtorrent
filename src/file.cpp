@@ -2050,8 +2050,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				DWORD high_dword = 0;
 				offs.LowPart = GetCompressedFileSize_(m_path.c_str(), &high_dword);
 				offs.HighPart = high_dword;
-				ec.assign(GetLastError(), get_system_category());
-				if (ec) return false;
+				if (offs.LowPart == INVALID_FILE_SIZE)
+				{
+					ec.assign(GetLastError(), get_system_category());
+					if (ec) return false;
+				}
 				if (offs.QuadPart != s)
 				{
 					// if the user has permissions, avoid filling
