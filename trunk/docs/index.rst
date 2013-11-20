@@ -63,7 +63,7 @@ libtorrent
 .. _screenshot: client_test.png
 .. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
-.. _`plugin interface`: libtorrent_plugins.html
+.. _`plugin interface`: reference-Plugins.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`DHT security extension`: dht_sec.html
 .. _`DHT feed extension`: dht_rss.html
