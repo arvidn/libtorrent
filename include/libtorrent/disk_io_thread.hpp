@@ -171,6 +171,7 @@ namespace libtorrent
 	// relevant for the disk io thread and disk cache.
 	struct TORRENT_EXPORT cache_status
 	{
+		// initializes all counters to 0
 		cache_status()
 			: blocks_written(0)
 			, writes(0)

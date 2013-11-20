@@ -43,7 +43,15 @@ namespace libtorrent
 	namespace aux { struct session_impl; }
 	struct disk_buffer_pool;
 
-	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
+	// The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer
+	// when it's destructed, unless it's released. ``release`` returns the disk
+	// buffer and transferres ownership and responsibility to free it to the caller.
+	// 
+	// A disk buffer is freed by passing it to ``session_impl::free_disk_buffer()``.
+	// 
+	// ``buffer()`` returns the pointer without transferring responsibility. If
+	// this buffer has been released, ``buffer()`` will return 0.
+	struct TORRENT_EXPORT disk_buffer_holder
 	{
 		disk_buffer_holder(aux::session_impl& ses, char* buf);
 		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf);
