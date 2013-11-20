@@ -93,6 +93,8 @@ namespace libtorrent
 		kind_t kind;
 	};
 	
+	// this struct holds a number of statistics counters
+	// relevant for the disk io thread and disk cache.
 	struct TORRENT_EXPORT cache_status
 	{
 		cache_status()
@@ -149,7 +151,6 @@ namespace libtorrent
 		// The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
 		// the number of saved write operations per total write operations. i.e. a kind
 		// of cache hit ratio for the write cahe.
-
 		atomic_count writes;
 
 		// the number of blocks that were requested from the
@@ -209,14 +210,19 @@ namespace libtorrent
 		int average_hash_time;
 		int average_job_time;
 
+		// the number of milliseconds spent in all disk jobs, and specific ones
+		// since the start of the session. Times are specified in milliseconds
 		atomic_count cumulative_job_time;
 		atomic_count cumulative_read_time;
 		atomic_count cumulative_write_time;
 		atomic_count cumulative_hash_time;
 
-		// number of blocks we've read back from disk
-		// because they were evicted before
+		// the number of bytes that had to be read back from disk because
+		// they were flushed before the SHA-1 hash got to hash them. If this
+		// is large, a larger cache could significantly improve performance
 		int total_read_back;
+
+		// number of read jobs in the disk job queue
 		int read_queue_size;
 	
 		// number of jobs blocked because of a fence

@@ -227,6 +227,8 @@ namespace libtorrent
 		friend class torrent;
 		friend std::size_t hash_value(torrent_handle const& th);
 
+		// constructs a torrent handle that does not refer to a torrent.
+		// i.e. is_valid() will return false.
 		torrent_handle() {}
 
 		torrent_handle(torrent_handle const& t)

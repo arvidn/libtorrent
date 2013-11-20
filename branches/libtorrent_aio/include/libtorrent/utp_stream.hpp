@@ -54,7 +54,7 @@ namespace libtorrent
 {
 	struct utp_socket_manager;
 
-	// some MTU and protocol header sizes constants
+	// internal: some MTU and protocol header sizes constants
 	enum
 	{
 		TORRENT_IPV4_HEADER = 20,
@@ -68,7 +68,7 @@ namespace libtorrent
 		TORRENT_INET_MAX_MTU = 0xffff
 	};
 
-	// the point of the bif_endian_int is two-fold
+	// internal: the point of the bif_endian_int is two-fold
 	// one purpuse is to not have any alignment requirements
 	// so that any byffer received from the network can be cast
 	// to it and read as an integer of various sizes without
@@ -118,22 +118,23 @@ namespace libtorrent
 
 */
 
-	enum { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
+// internal: the different kinds of uTP packets
+enum { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
-	struct utp_header
-	{
-		unsigned char type_ver;
-		unsigned char extension;
-		be_uint16 connection_id;
-		be_uint32 timestamp_microseconds;
-		be_uint32 timestamp_difference_microseconds;
-		be_uint32 wnd_size;
-		be_uint16 seq_nr;
-		be_uint16 ack_nr;
+struct utp_header
+{
+	unsigned char type_ver;
+	unsigned char extension;
+	be_uint16 connection_id;
+	be_uint32 timestamp_microseconds;
+	be_uint32 timestamp_difference_microseconds;
+	be_uint32 wnd_size;
+	be_uint16 seq_nr;
+	be_uint16 ack_nr;
 
-		int get_type() const { return type_ver >> 4; }
-		int get_version() const { return type_ver & 0xf; }
-	};
+	int get_type() const { return type_ver >> 4; }
+	int get_version() const { return type_ver & 0xf; }
+};
 
 struct utp_socket_impl;
 
