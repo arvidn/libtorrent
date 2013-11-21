@@ -442,11 +442,27 @@ namespace libtorrent
 		bool pad_file_at(int index) const;
 		size_type file_offset(int index) const;
 
+		// flags indicating various attributes for files in
+		// a file_storage.
 		enum file_flags_t
 		{
+			// this file is a pad file. The creator of the
+			// torrent promises the file is entirely filled with
+			// zeroes and does not need to be downloaded. The
+			// purpose is just to align the next file to either
+			// a block or piece boundary.
 			flag_pad_file = 1,
+
+			// this file is hiddent (sets the hidden attribute
+			// on windows)
 			flag_hidden = 2,
+
+			// this file is executable (sets the executable bit
+			// on posix like systems)
 			flag_executable = 4,
+
+			// this file is a symlink. The symlink target is
+			// specified in a separate field
 			flag_symlink = 8,
 		};
 

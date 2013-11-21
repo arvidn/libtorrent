@@ -108,7 +108,7 @@ namespace libtorrent
 		int mode;
 	};
 
-	// flags for stat_file
+	// internal flags for stat_file
 	enum { dont_follow_links = 1 };
 	TORRENT_EXTRA_EXPORT void stat_file(std::string f, file_status* s
 		, error_code& ec, int flags = 0);
@@ -182,25 +182,57 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
 	{
-		enum
+		// the open mode for files. Used for the file constructor or
+		// file::open().
+		enum open_mode_t
 		{
-			// when a file is opened with no_buffer
+			// open the file for reading only
+			read_only = 0,
+
+			// open the file for writing only
+			write_only = 1,
+
+			// open the file for reading and writing
+			read_write = 2,
+			
+			// the mask for the bits determining read or write mode
+			rw_mask = read_only | write_only | read_write,
+
+			// indicate that the file should be opened in
+			// *direct io* mode, i.e. bypassing the operating
+			// system's disk cache, or as much as possible of it
+			// depending on the system.
+			// when a file is opened with no_buffer,
 			// file offsets have to be aligned to
 			// pos_alignment() and buffer addresses
 			// to buf_alignment() and read/write sizes
 			// to size_alignment()
-			read_only = 0,
-			write_only = 1,
-			read_write = 2,
-			rw_mask = read_only | write_only | read_write,
 			no_buffer = 4,
+
+			// open the file in sparse mode (if supported by the
+			// filesystem).
 			sparse = 8,
+
+			// don't update the access timestamps on the file (if
+			// supported by the operating system and filesystem).
+			// this generally improves disk performance.
 			no_atime = 16,
+			
+			// open the file for random acces. This disables read-ahead
+			// logic
 			random_access = 32,
+
+			// prevent the file from being opened by another process
+			// while it's still being held open by this handle
 			lock_file = 64,
 
+			// when creating a file, set the hidden attribute (windows only)
 			attribute_hidden = 0x1000,
+
+			// when creating a file, set the executable attribute
 			attribute_executable = 0x2000,
+
+			// the mask of all attribute bits
 			attribute_mask = attribute_hidden | attribute_executable
 		};
 

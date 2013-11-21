@@ -264,10 +264,16 @@ namespace libtorrent
 		void set_priv(bool p) { m_private = p; }
 		bool priv() const { return m_private; }
 
+		// returns the number of pieces in the associated file_storage object.
 		int num_pieces() const { return m_files.num_pieces(); }
+
+		// ``piece_length()`` returns the piece size of all pieces but the
+		// last one. ``piece_size()`` returns the size of the specified piece.
+		// these functions are just forwarding to the associated file_storage.
 		int piece_length() const { return m_files.piece_length(); }
 		int piece_size(int i) const { return m_files.piece_size(i); }
 
+		// internal
 		bool should_add_file_hashes() const { return m_calculate_file_hashes; }
 
 		// This function returns the merkle hash tree, if the torrent was created as a merkle
@@ -417,17 +423,17 @@ namespace libtorrent
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
 #ifndef BOOST_NO_EXCEPTIONS
+	inline void set_piece_hashes(create_torrent& t, std::string const& p)
+	{
+		error_code ec;
+		set_piece_hashes(t, p, detail::nop, ec);
+		if (ec) throw libtorrent_exception(ec);
+	}
 	template <class Fun>
 	void set_piece_hashes(create_torrent& t, std::string const& p, Fun f)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
-		if (ec) throw libtorrent_exception(ec);
-	}
-	inline void set_piece_hashes(create_torrent& t, std::string const& p)
-	{
-		error_code ec;
-		set_piece_hashes(t, p, detail::nop, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
 #endif
