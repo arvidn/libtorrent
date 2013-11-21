@@ -63,6 +63,9 @@ namespace libtorrent
 		file_pool(int size = 40);
 		~file_pool();
 
+		// return an open file handle to file at ``file_index`` in the
+		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
+		// file open mode (see file::open_mode_t).
 		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
 			, int file_index, file_storage const& fs, int m, error_code& ec);
 
