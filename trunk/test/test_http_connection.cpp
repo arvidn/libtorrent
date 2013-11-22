@@ -159,7 +159,10 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 
 	run_test(url_base + "relative/redirect", 3216, 200, 2, error_code(), ps);
 	run_test(url_base + "redirect", 3216, 200, 2, error_code(), ps);
-	run_test(url_base + "infinite_redirect", 0, 301, 6, error_code(asio::error::eof), ps);
+	// the actual error code for an abort caused by too many
+	// redirects is a bit unpredictable. under SSL for instance,
+	// it will be an ungraceful shutdown
+	run_test(url_base + "infinite_redirect", 0, 301, 6, err(), ps);
 	run_test(url_base + "test_file", 3216, 200, 1, error_code(), ps);
 	run_test(url_base + "test_file.gz", 3216, 200, 1, error_code(), ps);
 	run_test(url_base + "non-existing-file", -1, 404, 1, err(), ps);
