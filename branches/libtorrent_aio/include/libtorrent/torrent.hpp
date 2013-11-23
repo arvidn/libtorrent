@@ -363,6 +363,7 @@ namespace libtorrent
 		void set_file_priority(int index, int priority);
 		int file_priority(int index) const;
 
+		void on_file_priority();
 		void prioritize_files(std::vector<int> const& files);
 		void file_priorities(std::vector<int>*) const;
 

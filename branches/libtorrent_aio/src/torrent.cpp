@@ -5109,6 +5109,11 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::on_file_priority()
+	{
+		dec_refcount("file_priority");
+	}
+
 	void torrent::prioritize_files(std::vector<int> const& files)
 	{
 		INVARIANT_CHECK;
@@ -5134,8 +5139,11 @@ namespace libtorrent
 
 		// stoage may be NULL during shutdown
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
+		{
+			inc_refcount("file_priority");
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, boost::bind(&nop));
+				, m_file_priority, boost::bind(&torrent::on_file_priority, this));
+		}
 
 		update_piece_priorities();
 	}
@@ -8653,6 +8661,7 @@ namespace libtorrent
 				if (alerts().should_post<torrent_paused_alert>())
 					alerts().post_alert(torrent_paused_alert(get_handle()));
 			}
+			disconnect_all(errors::torrent_paused, peer_connection_interface::op_bittorrent);
 			return;
 		}
 
