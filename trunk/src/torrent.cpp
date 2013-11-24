@@ -7346,7 +7346,12 @@ namespace libtorrent
 		m_graceful_pause_mode = graceful;
 
 		if (!m_ses.is_paused() || (prev_graceful && !m_graceful_pause_mode))
+		{
 			do_pause();
+			// if this torrent was just paused
+			// we might have to resume some other auto-managed torrent
+			m_ses.trigger_auto_manage();
+		}
 	}
 
 	void torrent::do_pause()
@@ -7436,10 +7441,6 @@ namespace libtorrent
 			set_state(torrent_status::queued_for_checking);
 			TORRENT_ASSERT(!m_queued_for_checking);
 		}
-
-		// if this torrent was just paused
-		// we might have to resume some other auto-managed torrent
-		m_ses.trigger_auto_manage();
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
