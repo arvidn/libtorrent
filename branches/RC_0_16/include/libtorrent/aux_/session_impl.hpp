@@ -524,6 +524,8 @@ namespace libtorrent
 
 //		private:
 
+			void trigger_auto_manage();
+
 			void update_connections_limit();
 			void update_unchoke_limit();
 			void update_rate_settings();
