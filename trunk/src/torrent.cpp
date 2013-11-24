@@ -1168,7 +1168,8 @@ namespace libtorrent
 		pause();
 	}
 
-	void torrent::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp)
+	void torrent::on_disk_read_complete(int ret, disk_io_job const& j
+		, peer_request r, read_piece_struct* rp)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
