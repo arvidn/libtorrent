@@ -1,4 +1,6 @@
 test_programs = \
+  test_privacy               \
+  test_file_storage          \
   test_auto_unchoke          \
   test_bandwidth_limiter     \
   test_bdecode_performance   \
@@ -17,12 +19,15 @@ test_programs = \
   test_pex                   \
   test_piece_picker          \
   test_primitives            \
+  test_read_piece            \
   test_rss                   \
+  test_ssl                   \
   test_storage               \
   test_swarm                 \
   test_threads               \
   test_torrent               \
   test_torrent_parse         \
+  test_tracker               \
   test_trackers_extension    \
   test_transfer              \
   test_upnp                  \

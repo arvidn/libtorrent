@@ -42,6 +42,9 @@ namespace libtorrent
 	struct add_torrent_params;
 }
 
+std::auto_ptr<libtorrent::alert> wait_for_alert(libtorrent::session& ses
+	, int type, char const* name);
+
 bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
