@@ -92,15 +92,20 @@ int print_failures()
 std::auto_ptr<alert> wait_for_alert(session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;
+	ptime end = time_now() + seconds(10);
 	while (!ret.get())
 	{
-		ses.wait_for_alert(milliseconds(5000));
+		ptime now = time_now();
+		if (now > end) return std::auto_ptr<alert>();
+
+		ses.wait_for_alert(end - now);
 		std::deque<alert*> alerts;
 		ses.pop_alerts(&alerts);
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
+			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
+				, (*i)->what(), (*i)->message().c_str());
 			if (!ret.get() && (*i)->type() == type)
 			{
 				ret = std::auto_ptr<alert>(*i);
