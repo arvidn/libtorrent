@@ -32,7 +32,6 @@ TARGETS = index \
 	extension_protocol \
 	dht_extensions \
 	dht_sec \
-	libtorrent_plugins \
 	python_binding \
 	projects \
 	utp \

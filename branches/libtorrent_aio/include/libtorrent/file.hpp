@@ -119,7 +119,7 @@ namespace libtorrent
 		int mode;
 	};
 
-	// flags for stat_file
+	// internal flags for stat_file
 	enum { dont_follow_links = 1 };
 	TORRENT_EXTRA_EXPORT void stat_file(std::string f, file_status* s
 		, error_code& ec, int flags = 0);
@@ -223,15 +223,37 @@ typedef boost::intrusive_ptr<file> file_handle;
 
 	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
 	{
-		enum
+		// the open mode for files. Used for the file constructor or
+		// file::open().
+		enum open_mode_t
 		{
-			read_only = 0x0,
-			write_only = 0x1,
-			read_write = 0x2,
+			// open the file for reading only
+			read_only = 0,
+
+			// open the file for writing only
+			write_only = 1,
+
+			// open the file for reading and writing
+			read_write = 2,
+			
+			// the mask for the bits determining read or write mode
 			rw_mask = read_only | write_only | read_write,
+
+			// open the file in sparse mode (if supported by the
+			// filesystem).
 			sparse = 0x4,
+
+			// don't update the access timestamps on the file (if
+			// supported by the operating system and filesystem).
+			// this generally improves disk performance.
 			no_atime = 0x8,
+
+			// open the file for random acces. This disables read-ahead
+			// logic
 			random_access = 0x10,
+
+			// prevent the file from being opened by another process
+			// while it's still being held open by this handle
 			lock_file = 0x20,
 
 			// don't put any pressure on the OS disk cache
@@ -249,8 +271,13 @@ typedef boost::intrusive_ptr<file> file_handle;
 			// this is only used for readv/writev flags
 			coalesce_buffers = 0x100,
 
+			// when creating a file, set the hidden attribute (windows only)
 			attribute_hidden = 0x200,
+
+			// when creating a file, set the executable attribute
 			attribute_executable = 0x400,
+
+			// the mask of all attribute bits
 			attribute_mask = attribute_hidden | attribute_executable
 		};
 

@@ -127,7 +127,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	if (i == m_results.end() || (*i)->id() != id)
 	{
-		if (m_node.settings().restrict_search_ips)
+		if (m_node.settings().restrict_search_ips
+			&& !(flags & observer::flag_initial))
 		{
 			// don't allow multiple entries from IPs very close to each other
 			std::vector<observer_ptr>::iterator j = std::find_if(

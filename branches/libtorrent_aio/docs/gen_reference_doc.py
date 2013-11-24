@@ -306,7 +306,8 @@ def parse_class(lno, lines, filename):
 				else:
 					current_fun['desc'] = context
 					if context == '' and not suppress_warning(filename, first_item(current_fun['names'])):
-						print 'WARNING: member function "%s" is not documented' % (name + '::' + first_item(current_fun['names']))
+						print 'WARNING: member function "%s" is not documented: %s:%d' \
+							% (name + '::' + first_item(current_fun['names']), filename, lno)
 					funs.append(current_fun)
 			context = ''
 			blanks = 0
@@ -322,7 +323,8 @@ def parse_class(lno, lines, filename):
 				fields[-1]['signatures'].append(l)
 			else:
 				if context == '' and not suppress_warning(filename, n):
-					print 'WARNING: field "%s" is not documented' % (name + '::' + n)
+					print 'WARNING: field "%s" is not documented: %s:%d' \
+						% (name + '::' + n, filename, lno)
 				fields.append({'signatures': [l], 'names': [n], 'desc': context})
 			context = ''
 			blanks = 0
@@ -333,7 +335,8 @@ def parse_class(lno, lines, filename):
 			if enum != None and is_visible(context):
 				enum['desc'] = context
 				if context == '' and not suppress_warning(filename, enum['name']):
-					print 'WARNING: enum "%s" is not documented' % (name + '::' + enum['name'])
+					print 'WARNING: enum "%s" is not documented: %s:%d' \
+						% (name + '::' + enum['name'], filename, lno)
 				enums.append(enum)
 			context = ''
 			continue
@@ -554,7 +557,9 @@ for filename in files:
 					current_class, lno = parse_class(lno -1, lines, filename)
 					if current_class != None and is_visible(context):
 						current_class['desc'] = context
-						if context == '': print 'WARNING: class "%s" is not documented' % (current_class['name'])
+						if context == '':
+							print 'WARNING: class "%s" is not documented: %s:%d' \
+							% (current_class['name'], filename, lno)
 						classes.append(current_class)
 				context = ''
 				blanks += 1
@@ -568,7 +573,9 @@ for filename in files:
 						functions[-1]['names'].update(current_fun['names'])
 					else:
 						current_fun['desc'] = context
-						if context == '': print 'WARNING: function "%s" is not documented' % (first_item(current_fun['names']))
+						if context == '':
+							print 'WARNING: function "%s" is not documented: %s:%d' \
+								% (first_item(current_fun['names']), filename, lno)
 						functions.append(current_fun)
 					blanks = 0
 				context = ''
@@ -584,7 +591,9 @@ for filename in files:
 			current_enum, lno = parse_enum(lno - 1, lines, filename)
 			if current_enum != None and is_visible(context):
 				current_enum['desc'] = context
-				if context == '': print 'WARNING: enum "%s" is not documented' % (current_enum['name'])
+				if context == '':
+					print 'WARNING: enum "%s" is not documented: %s:%d' \
+						% (current_enum['name'], filename, lno)
 				enums.append(current_enum)
 			context = ''
 			blanks += 1

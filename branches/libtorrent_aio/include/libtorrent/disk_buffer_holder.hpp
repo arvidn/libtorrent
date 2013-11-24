@@ -57,7 +57,15 @@ namespace libtorrent
 			, boost::function<void(char*)> const& handler) = 0;
 	};
 
-	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
+	// The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer
+	// when it's destructed, unless it's released. ``release`` returns the disk
+	// buffer and transferres ownership and responsibility to free it to the caller.
+	// 
+	// A disk buffer is freed by passing it to ``session_impl::free_disk_buffer()``.
+	// 
+	// ``buffer()`` returns the pointer without transferring responsibility. If
+	// this buffer has been released, ``buffer()`` will return 0.
+	struct TORRENT_EXPORT disk_buffer_holder
 	{
 		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf);
 		disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j);
