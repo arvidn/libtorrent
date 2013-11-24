@@ -1308,6 +1308,13 @@ namespace aux {
 	}
 #endif
 
+	void session_impl::trigger_auto_manage()
+	{
+		// if this torrent was just paused
+		// we might have to resume some other auto-managed torrent
+		m_auto_manage_time_scaler = (std::min)(2, m_auto_manage_time_scaler);
+	}
+
 	void session_impl::start_session()
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
