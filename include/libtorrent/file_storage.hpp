@@ -120,8 +120,7 @@ namespace libtorrent
 		friend class torrent_info;
 #endif
 		internal_file_entry()
-			: name(NULL)
-			, offset(0)
+			: offset(0)
 			, symlink_index(not_a_symlink)
 			, no_root_dir(false)
 			, size(0)
@@ -130,12 +129,12 @@ namespace libtorrent
 			, hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
+			, name(NULL)
 			, path_index(-1)
 		{}
 
 		internal_file_entry(file_entry const& e)
-			: name(NULL)
-			, offset(e.offset)
+			: offset(e.offset)
 			, symlink_index(not_a_symlink)
 			, no_root_dir(false)
 			, size(e.size)
@@ -144,6 +143,7 @@ namespace libtorrent
 			, hidden_attribute(e.hidden_attribute)
 			, executable_attribute(e.executable_attribute)
 			, symlink_attribute(e.symlink_attribute)
+			, name(NULL)
 			, path_index(-1)
 		{
 			set_name(e.path.c_str());

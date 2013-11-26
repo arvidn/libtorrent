@@ -135,8 +135,7 @@ namespace libtorrent
 	}
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
-		: name(0)
-		, offset(fe.offset)
+		: offset(fe.offset)
 		, size(fe.size)
 		, symlink_index(fe.symlink_index)
 		, name_len(fe.name_len)
@@ -145,6 +144,7 @@ namespace libtorrent
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
 		, no_root_dir(fe.no_root_dir)
+		, name(0)
 		, path_index(fe.path_index)
 	{
 		set_name(fe.filename().c_str());

@@ -1176,6 +1176,8 @@ namespace libtorrent
 		// haven't
 		bool m_seed_mode:1;
 
+// ----
+
 		// total time we've been available on this torrent
 		// does not count when the torrent is stopped or paused
 		// in seconds
@@ -1183,6 +1185,8 @@ namespace libtorrent
 
 		// the index to the last tracker that worked
 		boost::int8_t m_last_working_tracker;
+
+// ----
 
 		// total time we've been finished with this torrent
 		// does not count when the torrent is stopped or paused
@@ -1231,6 +1235,8 @@ namespace libtorrent
 		// whenever something is downloaded
 		bool m_need_save_resume_data:1;
 
+// ----
+
 		// total time we've been available as a seed on this torrent
 		// does not count when the torrent is stopped or paused
 		unsigned int m_seeding_time:24;
@@ -1240,12 +1246,16 @@ namespace libtorrent
 		// is called and the time scaler is reset to 10.
 		boost::int8_t m_time_scaler;
 
+// ----
+
 		// the maximum number of uploads for this torrent
 		unsigned int m_max_uploads:24;
 
 		// these are the flags sent in on a call to save_resume_data
 		// we need to save them to check them in write_resume_data
 		boost::uint8_t m_save_resume_flags;
+
+// ----
 
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
@@ -1269,28 +1279,90 @@ namespace libtorrent
 		// checking queue in the session
 		bool m_queued_for_checking:1;
 
+// ----
+
 		// the maximum number of connections for this torrent
 		unsigned int m_max_connections:24;
 
-		// the number of bytes of padding files
-		unsigned int m_padding:24;
+		// set to true when this torrent has been paused but
+		// is waiting to finish all current download requests
+		// before actually closing all connections
+		bool m_graceful_pause_mode:1;
 
-		// the scrape data from the tracker response, this
-		// is optional and may be 0xffffff
-		unsigned int m_complete:24;
+		// this is set to true when the torrent starts up
+		// The first tracker response, when this is true,
+		// will attempt to connect to a bunch of peers immediately
+		// and set this to false. We only do this once to get
+		// the torrent kick-started
+		bool m_need_connect_boost:1;
+
+		// rotating sequence number for LSD announces sent out.
+		// used to only use IP broadcast for every 8th lsd announce
+		boost::uint8_t m_lsd_seq:3;
+
+		// this is set to true if the torrent was started without
+		// metadata. It is used to save metadata in the resume file
+		// by default for such torrents. It does not necessarily
+		// have to be a magnet link.
+		bool m_magnet_link:1;
+
+		// set to true if the session IP filter applies to this
+		// torrent or not. Defaults to true.
+		bool m_apply_ip_filter:1;
+		
+		// if set to true, add tracker URLs loaded from resume
+		// data into this torrent instead of replacing them
+		bool m_merge_resume_trackers:1;
+		
+// ----
+
+		// the number of bytes of padding files
+		boost::uint32_t m_padding:24;
 
 		// this is the priority of the torrent. The higher
 		// the value is, the more bandwidth is assigned to
 		// the torrent's peers
-		boost::uint8_t m_priority;
+		boost::uint32_t m_priority:8;
+
+// ----
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		unsigned int m_incomplete:24;
+		boost::uint32_t m_complete:24;
 
-		// progress parts per million (the number of
-		// millionths of completeness)
-		unsigned int m_progress_ppm:20;
+		// state subscription. If set, a pointer to this torrent
+		// will be added to the m_state_updates set in session_impl
+		// whenever this torrent's state changes (any state).
+		bool m_state_subscription:1;
+
+		// in state_updates list. When adding a torrent to the
+		// session_impl's m_state_update list, this bit is set
+		// to never add the same torrent twice
+		bool m_in_state_updates:1;
+
+		// these represent whether or not this torrent is counted
+		// in the total counters of active seeds and downloads
+		// in the session.
+		bool m_is_active_download:1;
+		bool m_is_active_finished:1;
+
+		// even if we're not built to support SSL torrents,
+		// remember that this is an SSL torrent, so that we don't
+		// accidentally start seeding it without any authentication.
+		bool m_ssl_torrent:1;
+
+		// this is set to true if we're trying to delete the
+		// files belonging to it. When set, don't write any
+		// more blocks to disk!
+		bool m_deleted:1;
+
+		// TODO: there's space for another 2 bits here
+
+// ----
+
+		// the scrape data from the tracker response, this
+		// is optional and may be 0xffffff
+		boost::uint32_t m_incomplete:24;
 
 		// is set to true when the torrent has
 		// been aborted.
@@ -1324,17 +1396,21 @@ namespace libtorrent
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
 
+// ----
+
 		// the number of seconds since the last piece passed for
 		// this torrent
-		boost::uint32_t m_last_download:24;
-
-		// the number of seconds since the last byte was uploaded
-		// from this torrent
-		boost::uint32_t m_last_upload:24;
+		boost::uint64_t m_last_download:24;
 
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
-		boost::uint16_t m_last_scrape;
+		boost::uint64_t m_last_scrape:16;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint64_t m_last_upload:24;
+
+// ----
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
@@ -1343,61 +1419,11 @@ namespace libtorrent
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;
 
-		// set to true when this torrent has been paused but
-		// is waiting to finish all current download requests
-		// before actually closing all connections
-		bool m_graceful_pause_mode:1;
+// ----
 
-		// this is set to true when the torrent starts up
-		// The first tracker response, when this is true,
-		// will attempt to connect to a bunch of peers immediately
-		// and set this to false. We only do this once to get
-		// the torrent kick-started
-		bool m_need_connect_boost:1;
-
-		// rotating sequence number for LSD announces sent out.
-		// used to only use IP broadcast for every 8th lsd announce
-		boost::uint8_t m_lsd_seq:3;
-
-		// this is set to true if the torrent was started without
-		// metadata. It is used to save metadata in the resume file
-		// by default for such torrents. It does not necessarily
-		// have to be a magnet link.
-		bool m_magnet_link:1;
-
-		// set to true if the session IP filter applies to this
-		// torrent or not. Defaults to true.
-		bool m_apply_ip_filter:1;
-		
-		// if set to true, add tracker URLs loaded from resume
-		// data into this torrent instead of replacing them
-		bool m_merge_resume_trackers:1;
-		
-		// state subscription. If set, a pointer to this torrent
-		// will be added to the m_state_updates set in session_impl
-		// whenever this torrent's state changes (any state).
-		bool m_state_subscription:1;
-
-		// in state_updates list. When adding a torrent to the
-		// session_impl's m_state_update list, this bit is set
-		// to never add the same torrent twice
-		bool m_in_state_updates:1;
-
-		// these represent whether or not this torrent is counted
-		// in the total counters of active seeds and downloads
-		// in the session.
-		bool m_is_active_download:1;
-		bool m_is_active_finished:1;
-
-		// even if we're not built to support SSL torrents,
-		// remember that this is an SSL torrent, so that we don't
-		// accidentally start seeding it without any authentication.
-		bool m_ssl_torrent:1;
-
-		// this is set to true if we're trying to delete the
-		// files belonging to it. When set, don't write any
-		// more blocks to disk!
-		bool m_deleted:1;
+		// progress parts per million (the number of
+		// millionths of completeness)
+		unsigned int m_progress_ppm:20;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
