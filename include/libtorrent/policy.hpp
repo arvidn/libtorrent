@@ -154,24 +154,6 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 
-// intended struct layout (on 32 bit architectures)
-// offset size  alignment field
-// 0      8     4         prev_amount_upload, prev_amount_download
-// 8      4     4         connection
-// 12     2     2         last_optimistically_unchoked
-// 14     2     2         last_connected
-// 16     16    1         addr
-// 32     2     2         port
-// 34     2     2         upload_rate_limit
-// 36     2     2         download_rate_limit
-// 38     1     1         hashfails
-// 39     1     1         failcount, connectable, optimistically_unchoked, seed
-// 40     1     1         fast_reconnects, trust_points
-// 41     1     1         source, pe_support, is_v6_addr
-// 42     1     1         on_parole, banned, added_to_dht, supports_utp,
-//                        supports_holepunch, web_seed
-// 43     1     1         <padding>
-// 44
 		struct TORRENT_EXTRA_EXPORT peer
 		{
 			peer(boost::uint16_t port, bool connectable, int src);
@@ -206,11 +188,6 @@ namespace libtorrent
 			// will refer to a valid peer_connection
 			peer_connection* connection;
 
-			// as computed by hashing our IP with the remote
-			// IP of this peer
-			// calculated lazily
-			mutable boost::uint32_t peer_rank;
-
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef TORRENT_DEBUG
 			// only used in debug mode to assert that
@@ -220,6 +197,11 @@ namespace libtorrent
 			// The AS this peer belongs to
 			std::pair<const int, int>* inet_as;
 #endif
+
+			// as computed by hashing our IP with the remote
+			// IP of this peer
+			// calculated lazily
+			mutable boost::uint32_t peer_rank;
 
 			// the time when this peer was optimistically unchoked
 			// the last time. in seconds since session was created
