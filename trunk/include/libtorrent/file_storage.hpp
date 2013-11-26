@@ -58,6 +58,10 @@ namespace libtorrent
 		// encoded in UTF-8.
 		std::string path;
 
+		// the path which this is a symlink to, or empty if this is
+		// not a symlink. This field is only used if the ``symlink_attribute`` is set.
+		std::string symlink_path;
+
 		// the offset of this file inside the torrent
 		size_type offset;
 
@@ -98,10 +102,6 @@ namespace libtorrent
 		// the ``symlink_index`` refers to a string which specifies the original location
 		// where the data for this file was found.
 		bool symlink_attribute:1;
-
-		// the path which this is a symlink to, or empty if this is
-		// not a symlink. This field is only used if the ``symlink_attribute`` is set.
-		std::string symlink_path;
 	};
 
 	// only export this type if deprecated functions are enabled
@@ -110,6 +110,7 @@ namespace libtorrent
 #else
 #define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
 #endif
+
 	// internal
 	struct TORRENT_DEPRECATED_EXPORT internal_file_entry
 	{
@@ -121,28 +122,28 @@ namespace libtorrent
 		internal_file_entry()
 			: name(NULL)
 			, offset(0)
-			, size(0)
 			, symlink_index(not_a_symlink)
+			, no_root_dir(false)
+			, size(0)
 			, name_len(name_is_owned)
 			, pad_file(false)
 			, hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
-			, no_root_dir(false)
 			, path_index(-1)
 		{}
 
 		internal_file_entry(file_entry const& e)
 			: name(NULL)
 			, offset(e.offset)
-			, size(e.size)
 			, symlink_index(not_a_symlink)
+			, no_root_dir(false)
+			, size(e.size)
 			, name_len(name_is_owned)
 			, pad_file(e.pad_file)
 			, hidden_attribute(e.hidden_attribute)
 			, executable_attribute(e.executable_attribute)
 			, symlink_attribute(e.symlink_attribute)
-			, no_root_dir(false)
 			, path_index(-1)
 		{
 			set_name(e.path.c_str());
@@ -156,17 +157,6 @@ namespace libtorrent
 		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
 		std::string filename() const;
 
-		// make it available for logging
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	private:
-#endif
-		// This string is not necessarily null terminated!
-		// that's why it's private, to keep people away from it
-		char const* name;
-	public:
-
 		enum {
 			name_is_owned = (1<<12)-1,
 			not_a_symlink = (1<<15)-1
@@ -174,12 +164,16 @@ namespace libtorrent
 		// the offset of this file inside the torrent
 		boost::uint64_t offset:48;
 
-		// the size of this file
-		boost::uint64_t size:48;
-
 		// index into file_storage::m_symlinks or not_a_symlink
 		// if this is not a symlink
 		boost::uint64_t symlink_index:15;
+
+		// if this is true, don't include m_name as part of the
+		// path to this file
+		boost::uint64_t no_root_dir:1;
+
+		// the size of this file
+		boost::uint64_t size:48;
 
 		// the number of characters in the name. If this is
 		// name_is_owned, name is null terminated and owned by this object
@@ -192,9 +186,16 @@ namespace libtorrent
 		boost::uint64_t executable_attribute:1;
 		boost::uint64_t symlink_attribute:1;
 
-		// if this is true, don't include m_name as part of the
-		// path to this file
-		boost::uint64_t no_root_dir:1;
+		// make it available for logging
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
+	private:
+#endif
+		// This string is not necessarily null terminated!
+		// that's why it's private, to keep people away from it
+		char const* name;
+	public:
 
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
