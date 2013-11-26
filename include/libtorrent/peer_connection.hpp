@@ -866,6 +866,24 @@ namespace libtorrent
 		// for the round-robin unchoke algorithm.
 		size_type m_uploaded_at_last_unchoke;
 
+		template <std::size_t Size>
+		struct handler_storage
+		{
+#ifdef TORRENT_DEBUG
+			handler_storage()
+			  : used(false)
+			{}
+
+			bool used;
+#else
+			handler_storage() {}
+#endif
+			boost::aligned_storage<Size> bytes;
+		};
+
+		handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
+		handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
+
 #ifndef TORRENT_DISABLE_GEO_IP
 		std::string m_inet_as_name;
 #endif
@@ -1206,24 +1224,6 @@ namespace libtorrent
 		// order to know which torrent it belongs to, to know which
 		// other peers to compare it to.
 		bool m_exceeded_limit:1;
-
-		template <std::size_t Size>
-		struct handler_storage
-		{
-#ifdef TORRENT_DEBUG
-			handler_storage()
-			  : used(false)
-			{}
-
-			bool used;
-#else
-			handler_storage() {}
-#endif
-			boost::aligned_storage<Size> bytes;
-		};
-
-		handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
-		handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
 
 		template <class Handler, std::size_t Size>
 		struct allocating_handler
