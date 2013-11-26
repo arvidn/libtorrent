@@ -109,6 +109,9 @@ namespace libtorrent
 			, ses.get_io_service()
 			, tor, s, remote, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_sync_bytes_read(0)
+#endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
@@ -123,7 +126,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
-		, m_sync_bytes_read(0)
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)

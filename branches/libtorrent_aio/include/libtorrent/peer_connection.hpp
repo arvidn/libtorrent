@@ -622,10 +622,6 @@ namespace libtorrent
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 		void set_last_seen_complete(int ago) { m_last_seen_complete = time(0) - ago; }
 
-		// upload and download channel state
-		// enum from peer_info::bw_state
-		char m_channel_state[2];
-
 		size_type uploaded_in_last_round() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_round; }
 
@@ -733,15 +729,6 @@ namespace libtorrent
 		bool verify_piece(peer_request const& p) const;
 
 		void update_desired_queue_size();
-
-	private:
-		// statistics about upload and download speeds
-		// and total amount of uploads and downloads for
-		// this peer
-		// TODO: factor this out into its own class with a virtual interface
-		// torrent and session should implement this interface
-		stat m_statistics;
-	protected:
 
 		// a back reference to the session
 		// the peer belongs to.
@@ -982,6 +969,15 @@ namespace libtorrent
 		// keeps track of the current quotas
 		bandwidth_channel m_bandwidth_channel[num_channels];
 
+	private:
+		// statistics about upload and download speeds
+		// and total amount of uploads and downloads for
+		// this peer
+		// TODO: factor this out into its own class with a virtual interface
+		// torrent and session should implement this interface
+		stat m_statistics;
+	protected:
+
 		// number of bytes this peer can send and receive
 		int m_quota[2];
 
@@ -1141,6 +1137,13 @@ namespace libtorrent
 		// was called to when on_connection_complete
 		// was called. The rtt is specified in milliseconds
 		boost::uint16_t m_rtt;
+
+	public:
+		// upload and download channel state
+		// enum from peer_info::bw_state
+		char m_channel_state[2];
+
+	private:
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		// in case the session settings is set

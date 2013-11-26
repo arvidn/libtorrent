@@ -143,44 +143,63 @@ private:
 	void callback(error_code e, char const* data = 0, int size = 0);
 
 	std::vector<char> m_recvbuffer;
-	socket_type m_sock;
-#if TORRENT_USE_I2P
-	i2p_connection* m_i2p_conn;
-#endif
-	int m_read_pos;
-	tcp::resolver m_resolver;
-	http_parser m_parser;
-	http_handler m_handler;
-	http_connect_handler m_connect_handler;
-	http_filter_handler m_filter_handler;
-	deadline_timer m_timer;
-	time_duration m_read_timeout;
-	time_duration m_completion_timeout;
-	ptime m_last_receive;
-	ptime m_start_time;
-	
-	// bottled means that the handler is called once, when
-	// everything is received (and buffered in memory).
-	// non bottled means that once the headers have been
-	// received, data is streamed to the handler
-	bool m_bottled;
 
-	// maximum size of bottled buffer
-	int m_max_bottled_buffer_size;
-	
-	// set to true the first time the handler is called
-	bool m_called;
 	std::string m_hostname;
 	std::string m_port;
 	std::string m_url;
 	std::string m_user_agent;
 
 	std::vector<tcp::endpoint> m_endpoints;
+
+	// used to keep us alive when queued in the connection_queue
+	boost::shared_ptr<http_connection> m_self_reference;
+
+	connection_queue& m_cc;
+
 #ifdef TORRENT_USE_OPENSSL
 	asio::ssl::context* m_ssl_ctx;
 	bool m_own_ssl_context;
 #endif
 
+	socket_type m_sock;
+#if TORRENT_USE_I2P
+	i2p_connection* m_i2p_conn;
+#endif
+	tcp::resolver m_resolver;
+	http_parser m_parser;
+	http_handler m_handler;
+	http_connect_handler m_connect_handler;
+	http_filter_handler m_filter_handler;
+	deadline_timer m_timer;
+
+	time_duration m_read_timeout;
+	time_duration m_completion_timeout;
+
+	// the timer fires every 250 millisecond as long
+	// as all the quota was used.
+	deadline_timer m_limiter_timer;
+
+	ptime m_last_receive;
+	ptime m_start_time;
+	
+	// specifies whether or not the connection is
+	// configured to use a proxy
+	proxy_settings m_proxy;
+
+	// the address to bind to. address_v4::any()
+	// means do not bind
+	address m_bind_addr;
+
+	int m_read_pos;
+
+	// the number of redirects to follow (in sequence)
+	int m_redirects;
+
+	int m_connection_ticket;
+
+	// maximum size of bottled buffer
+	int m_max_bottled_buffer_size;
+	
 	// the current download limit, in bytes per second
 	// 0 is unlimited.
 	int m_rate_limit;
@@ -188,41 +207,30 @@ private:
 	// the number of bytes we are allowed to receive
 	int m_download_quota;
 
+	// the priority we have in the connection queue.
+	// 0 is normal, 1 is high
+	int m_priority;
+
+	// bottled means that the handler is called once, when
+	// everything is received (and buffered in memory).
+	// non bottled means that once the headers have been
+	// received, data is streamed to the handler
+	bool m_bottled;
+
+	// set to true the first time the handler is called
+	bool m_called;
+
 	// only hand out new quota 4 times a second if the
 	// quota is 0. If it isn't 0 wait for it to reach
 	// 0 and continue to hand out quota at that time.
 	bool m_limiter_timer_active;
 
-	// the timer fires every 250 millisecond as long
-	// as all the quota was used.
-	deadline_timer m_limiter_timer;
-
-	// the number of redirects to follow (in sequence)
-	int m_redirects;
-
-	int m_connection_ticket;
 	bool m_queued_for_connection;
-	connection_queue& m_cc;
-
-	// specifies whether or not the connection is
-	// configured to use a proxy
-	proxy_settings m_proxy;
 
 	// true if the connection is using ssl
 	bool m_ssl;
 
-	// the address to bind to. address_v4::any()
-	// means do not bind
-	address m_bind_addr;
-
-	// the priority we have in the connection queue.
-	// 0 is normal, 1 is high
-	int m_priority;
-
 	bool m_abort;
-
-	// used to keep us alive when queued in the connection_queue
-	boost::shared_ptr<http_connection> m_self_reference;
 };
 
 }

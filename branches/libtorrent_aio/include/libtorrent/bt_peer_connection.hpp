@@ -345,11 +345,6 @@ private:
 
 		std::string m_client_version;
 
-		// state of on_receive
-		state m_state;
-
-		static const message_handler m_message_handler[num_supported_messages];
-
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload
 		// data is located. This is currently
@@ -369,6 +364,39 @@ private:
 		};
 
 		std::vector<range> m_payloads;
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		// initialized during write_pe1_2_dhkey, and destroyed on
+		// creation of m_enc_handler. Cannot reinitialize once
+		// initialized.
+		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
+		
+		// if encryption is negotiated, this is used for
+		// encryption/decryption during the entire session. Destroyed
+		// if plaintext is selected
+		boost::scoped_ptr<encryption_handler> m_enc_handler;
+		
+		// (outgoing only) synchronize verification constant with
+		// remote peer, this will hold rc4_decrypt(vc). Destroyed
+		// after the sync step.
+		boost::scoped_array<char> m_sync_vc;
+
+		// (incoming only) synchronize hash with remote peer, holds
+		// the sync hash (hash("req1",secret)). Destroyed after the
+		// sync step.
+		boost::scoped_ptr<sha1_hash> m_sync_hash;
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+
+		// state of on_receive
+		state m_state;
+
+		static const message_handler m_message_handler[num_supported_messages];
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		// used to disconnect peer if sync points are not found within
+		// the maximum number of bytes
+		int m_sync_bytes_read;
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
@@ -408,35 +436,11 @@ private:
 		// this is set to true after the encryption method has been
 		// succesfully negotiated (either plaintext or rc4), to signal
 		// automatic encryption/decryption.
-		bool m_encrypted;
+		bool m_encrypted:1;
 
 		// true if rc4, false if plaintext
-		bool m_rc4_encrypted;
-
-		// used to disconnect peer if sync points are not found within
-		// the maximum number of bytes
-		int m_sync_bytes_read;
-
-		// initialized during write_pe1_2_dhkey, and destroyed on
-		// creation of m_enc_handler. Cannot reinitialize once
-		// initialized.
-		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
-		
-		// if encryption is negotiated, this is used for
-		// encryption/decryption during the entire session. Destroyed
-		// if plaintext is selected
-		boost::scoped_ptr<encryption_handler> m_enc_handler;
-		
-		// (outgoing only) synchronize verification constant with
-		// remote peer, this will hold rc4_decrypt(vc). Destroyed
-		// after the sync step.
-		boost::scoped_array<char> m_sync_vc;
-
-		// (incoming only) synchronize hash with remote peer, holds
-		// the sync hash (hash("req1",secret)). Destroyed after the
-		// sync step.
-		boost::scoped_ptr<sha1_hash> m_sync_hash;
-#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+		bool m_rc4_encrypted:1;
+#endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_in_constructor;		

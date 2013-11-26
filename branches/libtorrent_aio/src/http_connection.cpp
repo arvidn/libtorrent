@@ -59,35 +59,35 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, boost::asio::ssl::context* ssl_ctx
 #endif
 	)
-	: m_sock(ios)
+	: m_cc(cc)
+#ifdef TORRENT_USE_OPENSSL
+	, m_ssl_ctx(ssl_ctx)
+	, m_own_ssl_context(false)
+#endif
+	, m_sock(ios)
 #if TORRENT_USE_I2P
 	, m_i2p_conn(0)
 #endif
-	, m_read_pos(0)
 	, m_resolver(ios)
 	, m_handler(handler)
 	, m_connect_handler(ch)
 	, m_filter_handler(fh)
 	, m_timer(ios)
+	, m_limiter_timer(ios)
 	, m_last_receive(time_now())
 	, m_start_time(time_now())
-	, m_bottled(bottled)
-	, m_max_bottled_buffer_size(max_bottled_buffer_size)
-	, m_called(false)
-#ifdef TORRENT_USE_OPENSSL
-	, m_ssl_ctx(ssl_ctx)
-	, m_own_ssl_context(false)
-#endif
-	, m_rate_limit(0)
-	, m_download_quota(0)
-	, m_limiter_timer_active(false)
-	, m_limiter_timer(ios)
+	, m_read_pos(0)
 	, m_redirects(5)
 	, m_connection_ticket(-1)
-	, m_queued_for_connection(false)
-	, m_cc(cc)
-	, m_ssl(false)
+	, m_max_bottled_buffer_size(max_bottled_buffer_size)
+	, m_rate_limit(0)
+	, m_download_quota(0)
 	, m_priority(0)
+	, m_bottled(bottled)
+	, m_called(false)
+	, m_limiter_timer_active(false)
+	, m_queued_for_connection(false)
+	, m_ssl(false)
 	, m_abort(false)
 {
 	TORRENT_ASSERT(!m_handler.empty());
