@@ -48,10 +48,10 @@ namespace libtorrent { namespace dht
 struct node_entry
 {
 	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff, bool pinged = false)
-		: endpoint(ep)
-		, timeout_count(pinged ? 0 : 0xff)
+		: id(id_)
+		, endpoint(ep)
 		, rtt(roundtriptime)
-		, id(id_)
+		, timeout_count(pinged ? 0 : 0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		first_seen = time_now();
@@ -59,10 +59,10 @@ struct node_entry
 	}
 
 	node_entry(udp::endpoint ep)
-		: endpoint(ep)
-		, timeout_count(0xff)
+		: id(0)
+		, endpoint(ep)
 		, rtt(0xffff)
-		, id(0)
+		, timeout_count(0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		first_seen = time_now();
@@ -70,9 +70,9 @@ struct node_entry
 	}
 
 	node_entry()
-		: timeout_count(0xff)
+		: id(0)
 		, rtt(0xffff)
-		, id(0)
+		, timeout_count(0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		first_seen = time_now();
@@ -94,16 +94,20 @@ struct node_entry
 	address addr() const { return endpoint.address(); }
 	int port() const { return endpoint.port; }
 
-	union_endpoint endpoint;
-	// the number of times this node has failed to
-	// respond in a row
-	boost::uint8_t timeout_count;
-	// the average RTT of this node
-	boost::uint16_t rtt;
-	node_id id;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	ptime first_seen;
 #endif
+
+	node_id id;
+
+	union_endpoint endpoint;
+
+	// the average RTT of this node
+	boost::uint16_t rtt;
+
+	// the number of times this node has failed to
+	// respond in a row
+	boost::uint8_t timeout_count;
 };
 
 } } // namespace libtorrent::dht
