@@ -98,7 +98,12 @@ private:
 
 	struct entry
 	{
-		entry(): connecting(false), ticket(0), expires(max_time()), priority(0) {}
+		entry()
+			: expires(max_time())
+			, ticket(0)
+			, connecting(false)
+			, priority(0)
+		{}
 		// called when the connection is initiated
 		// this is when the timeout countdown starts
 		boost::function<void(int)> on_connect;
@@ -109,11 +114,11 @@ private:
 		// 2. on_connect, on_timeout
 		// 3. on_timeout
 		boost::function<void()> on_timeout;
-		bool connecting;
-		int ticket;
 		ptime expires;
 		time_duration timeout;
-		int priority;
+		boost::uint32_t ticket;
+		bool connecting;
+		boost::uint8_t priority;
 	};
 
 	std::list<entry> m_queue;

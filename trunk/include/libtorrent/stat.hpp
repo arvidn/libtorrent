@@ -114,6 +114,8 @@ namespace libtorrent
 		int m_5_sec_average;
 		int m_30_sec_average;
 
+		// TODO: this is 4 bytes of padding!
+
 		// total counters
 		size_type m_total_counter;
 	};

@@ -784,6 +784,11 @@ namespace libtorrent
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
 
+#if TORRENT_USE_I2P
+			i2p_connection m_i2p_conn;
+			boost::shared_ptr<socket_type> m_i2p_listen_socket;
+#endif
+
 #ifdef TORRENT_USE_OPENSSL
 			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
 #endif
@@ -795,11 +800,6 @@ namespace libtorrent
 
 			void open_new_incoming_socks_connection();
 
-#if TORRENT_USE_I2P
-			i2p_connection m_i2p_conn;
-			boost::shared_ptr<socket_type> m_i2p_listen_socket;
-#endif
-
 			void setup_listener(listen_socket_t* s, tcp::endpoint ep, int& retries
 				, bool v6_only, int flags, error_code& ec);
 
@@ -809,13 +809,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT	
 			entry m_dht_state;
 #endif
-			// set to true when the session object
-			// is being destructed and the thread
-			// should exit
-			bool m_abort;
-
-			// is true if the session is paused
-			bool m_paused;
 
 			// the number of unchoked peers as set by the auto-unchoker
 			// this should always be >= m_max_uploads
@@ -867,12 +860,6 @@ namespace libtorrent
 			int m_peak_up_rate;
 			int m_peak_down_rate;
 
-			// is false by default and set to true when
-			// the first incoming connection is established
-			// this is used to know if the client is behind
-			// NAT or not.
-			bool m_incoming_connection;
-			
 			void on_disk_queue();
 			void on_tick(error_code const& e);
 
@@ -1206,6 +1193,19 @@ namespace libtorrent
 			// no longer needs to execute the auto-management.
 			bool m_need_auto_manage;
 
+			// set to true when the session object
+			// is being destructed and the thread
+			// should exit
+			bool m_abort;
+
+			// is true if the session is paused
+			bool m_paused;
+			// is false by default and set to true when
+			// the first incoming connection is established
+			// this is used to know if the client is behind
+			// NAT or not.
+			bool m_incoming_connection;
+			
 			// redundant bytes per category
 			size_type m_redundant_bytes[7];
 

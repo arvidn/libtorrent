@@ -637,8 +637,6 @@ namespace aux {
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
-		, m_abort(false)
-		, m_paused(false)
 		, m_allowed_upload_slots(8)
 		, m_num_unchoked(0)
 		, m_unchoke_time_scaler(0)
@@ -650,7 +648,6 @@ namespace aux {
 		, m_cache_rotation_timer(0)
 		, m_peak_up_rate(0)
 		, m_peak_down_rate(0)
-		, m_incoming_connection(false)
 		, m_created(time_now_hires())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
@@ -689,6 +686,9 @@ namespace aux {
 		, m_total_redundant_bytes(0)
 		, m_pending_auto_manage(false)
 		, m_need_auto_manage(false)
+		, m_abort(false)
+		, m_paused(false)
+		, m_incoming_connection(false)
 #if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif

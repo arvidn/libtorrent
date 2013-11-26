@@ -98,6 +98,9 @@ namespace libtorrent
 		e->timeout = timeout;
 		++m_next_ticket;
 
+		if (m_next_ticket >= (1 << 29))
+			m_next_ticket = 0;
+
 		if (m_num_connecting < m_half_open_limit
 			|| m_half_open_limit == 0)
 			m_timer.get_io_service().post(boost::bind(
