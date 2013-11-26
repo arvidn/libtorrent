@@ -181,11 +181,11 @@ private:
 	// port has to match
 	node_entry* find_node(udp::endpoint const& ep, routing_table::table_t::iterator* bucket);
 
+	dht_settings const& m_settings;
+
 	// constant called k in paper
 	int m_bucket_size;
 	
-	dht_settings const& m_settings;
-
 	// (k-bucket, replacement cache) pairs
 	// the first entry is the bucket the furthest
 	// away from our own ID. Each time the bucket

@@ -111,10 +111,9 @@ private:
 	transactions_t m_transactions;
 	
 	udp_socket_interface* m_sock;
-	node_id m_our_id;
 	routing_table& m_table;
 	ptime m_timer;
-	node_id m_random_number;
+	node_id m_our_id;
 	int m_allocated_observers;
 	bool m_destructing;
 };
