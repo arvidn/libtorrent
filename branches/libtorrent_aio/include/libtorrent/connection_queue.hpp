@@ -102,7 +102,9 @@ private:
 		queue_entry(): conn(0), priority(0) {}
 		connection_interface* conn;
 		time_duration timeout;
-		int priority;
+		boost::uint32_t ticket;
+		bool connecting;
+		boost::uint8_t priority;
 	};
 	struct connect_entry
 	{

@@ -39,22 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-// intended struct layout (on 32 bit architectures)
-// offset size  alignment field
-// 0      8     4         prev_amount_upload, prev_amount_download
-// 8      4     4         connection
-// 12     2     2         last_optimistically_unchoked
-// 14     2     2         last_connected
-// 16     2     2         port
-// 18     1     1         hashfails
-// 19     1     1         failcount, connectable, optimistically_unchoked, seed
-// 20     1     1         fast_reconnects, trust_points
-// 21     1     1         source, pe_support, is_v6_addr
-// 22     1     1         on_parole, banned, supports_utp,
-//                        supports_holepunch, web_seed
-// 23     2     1         <padding>
-// 24
-
 	struct peer_connection_interface;
 	struct external_ip;
 

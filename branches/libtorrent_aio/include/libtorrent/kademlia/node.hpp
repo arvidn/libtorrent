@@ -104,8 +104,8 @@ bool TORRENT_EXTRA_EXPORT verify_message(lazy_entry const* msg, key_desc_t const
 // to remove stale peers
 struct peer_entry
 {
-	tcp::endpoint addr;
 	ptime added;
+	tcp::endpoint addr;
 	bool seed;
 };
 

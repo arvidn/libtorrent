@@ -905,6 +905,11 @@ namespace libtorrent
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
 
+#if TORRENT_USE_I2P
+			i2p_connection m_i2p_conn;
+			boost::shared_ptr<socket_type> m_i2p_listen_socket;
+#endif
+
 #ifdef TORRENT_USE_OPENSSL
 			boost::asio::ssl::context* ssl_ctx() { return &m_ssl_ctx; } 
 			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
@@ -920,11 +925,6 @@ namespace libtorrent
 
 			void open_new_incoming_socks_connection();
 
-#if TORRENT_USE_I2P
-			i2p_connection m_i2p_conn;
-			boost::shared_ptr<socket_type> m_i2p_listen_socket;
-#endif
-
 			void setup_listener(listen_socket_t* s, tcp::endpoint ep, int& retries
 				, bool v6_only, int flags, error_code& ec);
 
@@ -934,13 +934,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT	
 			entry m_dht_state;
 #endif
-			// set to true when the session object
-			// is being destructed and the thread
-			// should exit
-			bool m_abort;
-
-			// is true if the session is paused
-			bool m_paused;
 
 			// the number of unchoked peers as set by the auto-unchoker
 			// this should always be >= m_max_uploads
@@ -1007,12 +1000,6 @@ namespace libtorrent
 			int m_peak_up_rate;
 			int m_peak_down_rate;
 
-			// is false by default and set to true when
-			// the first incoming connection is established
-			// this is used to know if the client is behind
-			// NAT or not.
-			bool m_incoming_connection;
-			
 			void on_tick(error_code const& e);
 
 			void try_connect_more_peers();
@@ -1290,6 +1277,14 @@ namespace libtorrent
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
 
+			// the number of bytes we have sent to the disk I/O
+			// thread for writing. Every time we hear back from
+			// the disk I/O thread with a completed write job, this
+			// is updated to the number of bytes the disk I/O thread
+			// is actually waiting for to be written (as opposed to
+			// bytes just hanging out in the cache)
+			int m_writing_bytes;
+			
 			// this is true whenever we have posted a deferred-disk job
 			// it means we don't need to post another one
 			bool m_deferred_submit_disk_jobs;
@@ -1308,13 +1303,18 @@ namespace libtorrent
 			// no longer needs to execute the auto-management.
 			bool m_need_auto_manage;
 
-			// the number of bytes we have sent to the disk I/O
-			// thread for writing. Every time we hear back from
-			// the disk I/O thread with a completed write job, this
-			// is updated to the number of bytes the disk I/O thread
-			// is actually waiting for to be written (as opposed to
-			// bytes just hanging out in the cache)
-			int m_writing_bytes;
+			// set to true when the session object
+			// is being destructed and the thread
+			// should exit
+			bool m_abort;
+
+			// is true if the session is paused
+			bool m_paused;
+			// is false by default and set to true when
+			// the first incoming connection is established
+			// this is used to know if the client is behind
+			// NAT or not.
+			bool m_incoming_connection;
 			
 			// redundant bytes per category
 			size_type m_redundant_bytes[7];

@@ -162,10 +162,9 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, udp_socket_interface* sock)
 	: m_pool_allocator(observer_size, 10)
 	, m_sock(sock)
-	, m_our_id(our_id)
 	, m_table(table)
 	, m_timer(time_now())
-	, m_random_number(generate_random_id())
+	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
 {

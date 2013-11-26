@@ -557,13 +557,11 @@ namespace aux {
 		, m_max_queue_pos(-1)
 		, m_key(0)
 		, m_listen_port_retries(10)
-		, m_socks_listen_port(0)
-		, m_interface_index(0)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
-		, m_abort(false)
-		, m_paused(false)
+		, m_socks_listen_port(0)
+		, m_interface_index(0)
 		, m_allowed_upload_slots(8)
 		, m_num_unchoked(0)
 		, m_unchoke_time_scaler(0)
@@ -577,7 +575,6 @@ namespace aux {
 		, m_suggest_timer(0)
 		, m_peak_up_rate(0)
 		, m_peak_down_rate(0)
-		, m_incoming_connection(false)
 		, m_created(time_now_hires())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
@@ -613,10 +610,13 @@ namespace aux {
 #endif
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
+		, m_writing_bytes(0)
 		, m_deferred_submit_disk_jobs(false)
 		, m_pending_auto_manage(false)
 		, m_need_auto_manage(false)
-		, m_writing_bytes(0)
+		, m_abort(false)
+		, m_paused(false)
+		, m_incoming_connection(false)
 #if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif

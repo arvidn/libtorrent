@@ -133,6 +133,10 @@ namespace libtorrent
 		// send
 		std::deque<buffer_t> m_vec;
 
+		// this is the vector of buffers used when
+		// invoking the async write call
+		std::vector<asio::const_buffer> m_tmp_vec;
+
 		// this is the number of bytes in the send buf.
 		// this will always be equal to the sum of the
 		// size of all buffers in vec
@@ -141,10 +145,6 @@ namespace libtorrent
 		// the total size of all buffers in the chain
 		// including unused space
 		int m_capacity;
-
-		// this is the vector of buffers used when
-		// invoking the async write call
-		std::vector<asio::const_buffer> m_tmp_vec;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_destructed;
