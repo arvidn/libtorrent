@@ -453,6 +453,8 @@ public:
 
 	asio::io_service& m_io_service;
 	utp_socket_impl* m_impl;
+
+	// this field requires another 8 bytes (including padding)
 	bool m_open;
 };
 

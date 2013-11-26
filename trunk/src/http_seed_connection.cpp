@@ -77,8 +77,8 @@ namespace libtorrent
 
 		// multiply with the blocks per piece since that many requests are
 		// merged into one http request
-		m_max_out_request_queue = ses.settings().urlseed_pipeline_size
-			* blocks_per_piece;
+		max_out_request_queue(ses.settings().urlseed_pipeline_size
+			* blocks_per_piece);
 
 		prefer_whole_pieces(1);
 

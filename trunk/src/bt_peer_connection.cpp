@@ -1748,7 +1748,7 @@ namespace libtorrent
 		if (!client_info.empty()) m_client_version = client_info;
 
 		int reqq = int(root.dict_find_int_value("reqq"));
-		if (reqq > 0) m_max_out_request_queue = reqq;
+		if (reqq > 0) max_out_request_queue(reqq);
 
 		if (root.dict_find_int_value("upload_only", 0))
 			set_upload_only(true);
@@ -3143,7 +3143,7 @@ namespace libtorrent
 			if (f && std::equal(f->name, f->name + 2, "BC"))
 			{
 				// if this is a bitcomet client, lower the request queue size limit
-				if (m_max_out_request_queue > 50) m_max_out_request_queue = 50;
+				if (max_out_request_queue() > 50) max_out_request_queue(50);
 			}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

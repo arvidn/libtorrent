@@ -613,6 +613,11 @@ namespace libtorrent
 
 		int receive_pos() const { return m_recv_pos; }
 
+		void max_out_request_queue(int s)
+		{ m_max_out_request_queue = s; }
+		int max_out_request_queue() const
+		{ return m_max_out_request_queue; }
+
 #ifdef TORRENT_DEBUG
 		bool piece_failed;
 #endif
@@ -717,10 +722,6 @@ namespace libtorrent
 
 		void update_desired_queue_size();
 
-		// the bandwidth channels, upload and download
-		// keeps track of the current quotas
-		bandwidth_channel m_bandwidth_channel[num_channels];
-
 		// number of bytes this peer can send and receive
 		int m_quota[2];
 
@@ -733,6 +734,11 @@ namespace libtorrent
 		// the peer belongs to.
 		aux::session_impl& m_ses;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::list<boost::shared_ptr<peer_plugin> > extension_list_t;
+		extension_list_t m_extensions;
+#endif
+
 		// called from the main loop when this connection has any
 		// work to do.
 		void on_send_data(error_code const& error
@@ -740,32 +746,11 @@ namespace libtorrent
 		void on_receive_data(error_code const& error
 			, std::size_t bytes_transferred);
 
-		// this is the limit on the number of outstanding requests
-		// we have to this peer. This is initialized to the settings
-		// in the session_settings structure. But it may be lowered
-		// if the peer is known to require a smaller limit (like BitComet).
-		// or if the extended handshake sets a limit.
-		// web seeds also has a limit on the queue size.
-		int m_max_out_request_queue;
-
 		// the average rate of receiving complete piece messages
 		sliding_average<20> m_piece_rate;
 		sliding_average<20> m_send_rate;
 
 		void set_timeout(int s) { m_timeout = s; }
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::list<boost::shared_ptr<peer_plugin> > extension_list_t;
-		extension_list_t m_extensions;
-#endif
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
-		// in case the session settings is set
-		// to resolve countries, this is set to
-		// the two character country code this
-		// peer resides in.
-		char m_country[2];
-#endif
 
 		boost::intrusive_ptr<peer_connection> self()
 		{
@@ -899,20 +884,13 @@ namespace libtorrent
 		chained_buffer m_send_buffer;
 
 		boost::shared_ptr<socket_type> m_socket;
-		// this is the peer we're actually talking to
-		// it may not necessarily be the peer we're
-		// connected to, in case we use a proxy
-		tcp::endpoint m_remote;
-		
+
 		// this is the torrent this connection is
 		// associated with. If the connection is an
 		// incoming connection, this is set to zero
 		// until the info_hash is received. Then it's
 		// set to the torrent it belongs to.
 		boost::weak_ptr<torrent> m_torrent;
-
-		// remote peer's id
-		peer_id m_peer_id;
 
 		// the pieces the other end have
 		bitfield m_have_piece;
@@ -951,13 +929,30 @@ namespace libtorrent
 		// the piece requests
 		std::vector<int> m_requests_in_buffer;
 
-		// the block we're currently receiving. Or
-		// (-1, -1) if we're not receiving one
-		piece_block m_receiving_block;
+		// this peer's peer info struct. This may
+		// be 0, in case the connection is incoming
+		// and hasn't been added to a torrent yet.
+		policy::peer* m_peer_info;
 
 		// the time when this peer last saw a complete copy
 		// of this torrent
 		time_t m_last_seen_complete;
+
+		// the block we're currently receiving. Or
+		// (-1, -1) if we're not receiving one
+		piece_block m_receiving_block;
+
+		// this is the peer we're actually talking to
+		// it may not necessarily be the peer we're
+		// connected to, in case we use a proxy
+		tcp::endpoint m_remote;
+		
+		// remote peer's id
+		peer_id m_peer_id;
+
+		// the bandwidth channels, upload and download
+		// keeps track of the current quotas
+		bandwidth_channel m_bandwidth_channel[num_channels];
 
 		// if the timeout is extended for the outstanding
 		// requests, this is the number of seconds it was
@@ -1030,11 +1025,6 @@ namespace libtorrent
 		int m_upload_limit;
 		int m_download_limit;
 
-		// this peer's peer info struct. This may
-		// be 0, in case the connection is incoming
-		// and hasn't been added to a torrent yet.
-		policy::peer* m_peer_info;
-
 		// this is a measurement of how fast the peer
 		// it allows some variance without changing
 		// back and forth between states
@@ -1075,11 +1065,27 @@ namespace libtorrent
 		// us
 		int m_est_reciprocation_rate;
 
+		// this is the limit on the number of outstanding requests
+		// we have to this peer. This is initialized to the settings
+		// in the session_settings structure. But it may be lowered
+		// if the peer is known to require a smaller limit (like BitComet).
+		// or if the extended handshake sets a limit.
+		// web seeds also has a limit on the queue size.
+		int m_max_out_request_queue;
+
 		// estimated round trip time to this peer
 		// based on the time from when async_connect
 		// was called to when on_connection_complete
 		// was called. The rtt is specified in milliseconds
 		boost::uint16_t m_rtt;
+
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+		// in case the session settings is set
+		// to resolve countries, this is set to
+		// the two character country code this
+		// peer resides in.
+		char m_country[2];
+#endif
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.

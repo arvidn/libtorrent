@@ -86,6 +86,14 @@ namespace libtorrent
 			, userdata(0)
 #ifndef TORRENT_NO_DEPRECATE
 			, flags(flag_ignore_flags | default_flags)
+#else
+			, flags(default_flags)
+#endif
+			, max_uploads(-1)
+			, max_connections(-1)
+			, upload_limit(-1)
+			, download_limit(-1)
+#ifndef TORRENT_NO_DEPRECATE
 			, seed_mode(false)
 			, override_resume_data(false)
 			, upload_mode(false)
@@ -95,13 +103,7 @@ namespace libtorrent
 			, auto_managed(true)
 			, duplicate_is_error(false)
 			, merge_resume_trackers(false)
-#else
-			, flags(default_flags)
 #endif
-			, max_uploads(-1)
-			, max_connections(-1)
-			, upload_limit(-1)
-			, download_limit(-1)
 		{
 		}
 
