@@ -72,12 +72,12 @@ namespace libtorrent
 		, aux::session_impl& ses
 		, proxy_settings const& proxy)
 		: tracker_connection(man, req, ios, c)
-		, m_abort(false)
-		, m_transaction_id(0)
 		, m_ses(ses)
+		, m_proxy(proxy)
+		, m_transaction_id(0)
 		, m_attempts(0)
 		, m_state(action_error)
-		, m_proxy(proxy)
+		, m_abort(false)
 	{
 	}
 

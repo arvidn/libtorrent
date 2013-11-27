@@ -63,11 +63,11 @@ namespace libtorrent
 		, web_seed_entry& web)
 		: peer_connection(ses, sett, allocator, disk_thread, ses.get_io_service()
 			, t, s, web.endpoint, &web.peer_info)
-		, m_parser(http_parser::dont_parse_chunks)
-		, m_external_auth(web.auth)
-		, m_extra_headers(web.extra_headers)
 		, m_first_request(true)
 		, m_ssl(false)
+		, m_external_auth(web.auth)
+		, m_extra_headers(web.extra_headers)
+		, m_parser(http_parser::dont_parse_chunks)
 		, m_body_start(0)
 	{
 		INVARIANT_CHECK;

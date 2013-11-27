@@ -312,7 +312,7 @@ public:
 
 private:
 
-		enum state
+		enum state_t
 		{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			read_pe_dhkey = 0,
@@ -341,6 +341,36 @@ private:
 			handshake_len = 68,
 			dh_key_len = 96
 		};
+#endif
+
+		// state of on_receive. one of the enums in state_t
+		boost::uint8_t m_state;
+
+		// this is set to true if the handshake from
+		// the peer indicated that it supports the
+		// extension protocol
+		bool m_supports_extensions:1;
+		bool m_supports_dht_port:1;
+		bool m_supports_fast:1;
+
+		// this is set to true when we send the bitfield message.
+		// for magnet links we can't do that right away,
+		// since we don't know how many pieces there are in
+		// the torrent.
+		bool m_sent_bitfield:1;
+
+		// true if we're done sending the bittorrent handshake,
+		// and can send bittorrent messages
+		bool m_sent_handshake:1;
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		// this is set to true after the encryption method has been
+		// succesfully negotiated (either plaintext or rc4), to signal
+		// automatic encryption/decryption.
+		bool m_encrypted:1;
+
+		// true if rc4, false if plaintext
+		bool m_rc4_encrypted:1;
 #endif
 
 		std::string m_client_version;
@@ -387,9 +417,6 @@ private:
 		boost::scoped_ptr<sha1_hash> m_sync_hash;
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
-		// state of on_receive
-		state m_state;
-
 		static const message_handler m_message_handler[num_supported_messages];
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -414,32 +441,6 @@ private:
 		boost::uint8_t m_share_mode_id;
 
 		char m_reserved_bits[8];
-#endif
-		// this is set to true if the handshake from
-		// the peer indicated that it supports the
-		// extension protocol
-		bool m_supports_extensions:1;
-		bool m_supports_dht_port:1;
-		bool m_supports_fast:1;
-
-		// this is set to true when we send the bitfield message.
-		// for magnet links we can't do that right away,
-		// since we don't know how many pieces there are in
-		// the torrent.
-		bool m_sent_bitfield:1;
-
-		// true if we're done sending the bittorrent handshake,
-		// and can send bittorrent messages
-		bool m_sent_handshake:1;
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		// this is set to true after the encryption method has been
-		// succesfully negotiated (either plaintext or rc4), to signal
-		// automatic encryption/decryption.
-		bool m_encrypted:1;
-
-		// true if rc4, false if plaintext
-		bool m_rc4_encrypted:1;
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

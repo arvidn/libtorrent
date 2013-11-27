@@ -58,10 +58,10 @@ namespace
 namespace libtorrent
 {
 	timeout_handler::timeout_handler(io_service& ios)
-		: m_start_time(time_now_hires())
+		: m_completion_timeout(0)
+		, m_start_time(time_now_hires())
 		, m_read_time(m_start_time)
 		, m_timeout(ios)
-		, m_completion_timeout(0)
 		, m_read_timeout(0)
 		, m_abort(false)
 	{}

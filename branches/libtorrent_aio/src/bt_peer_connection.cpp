@@ -109,6 +109,15 @@ namespace libtorrent
 			, ses.get_io_service()
 			, tor, s, remote, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
+		, m_supports_extensions(false)
+		, m_supports_dht_port(false)
+		, m_supports_fast(false)
+		, m_sent_bitfield(false)
+		, m_sent_handshake(false)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_encrypted(false)
+		, m_rc4_encrypted(false)
+#endif
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_sync_bytes_read(0)
 #endif
@@ -117,15 +126,6 @@ namespace libtorrent
 		, m_holepunch_id(0)
 		, m_dont_have_id(0)
 		, m_share_mode_id(0)
-		, m_supports_extensions(false)
-#endif
-		, m_supports_dht_port(false)
-		, m_supports_fast(false)
-		, m_sent_bitfield(false)
-		, m_sent_handshake(false)
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		, m_encrypted(false)
-		, m_rc4_encrypted(false)
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)

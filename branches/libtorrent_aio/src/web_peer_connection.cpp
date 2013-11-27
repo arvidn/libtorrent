@@ -75,8 +75,8 @@ web_peer_connection::web_peer_connection(
 	, m_web(web)
 	, m_received_body(0)
 	, m_range_pos(0)
-	, m_block_pos(0)
 	, m_chunk_pos(0)
+	, m_block_pos(0)
 	, m_partial_chunk_header(0)
 	, m_num_responses(0)
 {

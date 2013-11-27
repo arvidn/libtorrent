@@ -83,8 +83,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT tracker_request
 	{
 		tracker_request()
-			: kind(announce_request)
-			, downloaded(-1)
+			: downloaded(-1)
 			, uploaded(-1)
 			, left(-1)
 			, corrupt(0)
@@ -93,18 +92,13 @@ namespace libtorrent
 			, event(none)
 			, key(0)
 			, num_want(0)
+			, kind(announce_request)
 			, send_stats(true)
 			, apply_ip_filter(true)
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
 #endif
 		{}
-
-		enum
-		{
-			announce_request,
-			scrape_request
-		} kind;
 
 		enum event_t
 		{
@@ -115,8 +109,6 @@ namespace libtorrent
 			paused
 		};
 
-		sha1_hash info_hash;
-		peer_id pid;
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
@@ -128,7 +120,17 @@ namespace libtorrent
 		std::string trackerid;
 		boost::uint32_t key;
 		int num_want;
+		sha1_hash info_hash;
+		peer_id pid;
 		address bind_ip;
+
+		enum kind_t
+		{
+			announce_request,
+			scrape_request
+		};
+		boost::uint8_t kind;
+
 		bool send_stats;
 		bool apply_ip_filter;
 #ifdef TORRENT_USE_OPENSSL
@@ -201,19 +203,23 @@ namespace libtorrent
 		boost::intrusive_ptr<timeout_handler> self()
 		{ return boost::intrusive_ptr<timeout_handler>(this); }
 
-		// used for timeouts
-		// this is set when the request has been sent
-		ptime m_start_time;
-		// this is set every time something is received
-		ptime m_read_time;
-		// the asio async operation
-		deadline_timer m_timeout;
-		
 		int m_completion_timeout;
-		int m_read_timeout;
 
 		typedef mutex mutex_t;
 		mutable mutex_t m_mutex;
+
+		// used for timeouts
+		// this is set when the request has been sent
+		ptime m_start_time;
+
+		// this is set every time something is received
+		ptime m_read_time;
+
+		// the asio async operation
+		deadline_timer m_timeout;
+		
+		int m_read_timeout;
+
 		bool m_abort;
 	};
 
@@ -249,6 +255,15 @@ namespace libtorrent
 	&& !defined TORRENT_LOGGING \
 	&& !defined TORRENT_ERROR_LOGGING
 	// necessary for logging member offsets
+	private:
+#endif
+
+		const tracker_request m_req;
+
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
+	// necessary for logging member offsets
 	protected:
 #endif
 
@@ -258,15 +273,6 @@ namespace libtorrent
 		boost::weak_ptr<request_callback> m_requester;
 
 		tracker_manager& m_man;
-
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	// necessary for logging member offsets
-	private:
-#endif
-
-		const tracker_request m_req;
 	};
 
 	class TORRENT_EXTRA_EXPORT tracker_manager: public udp_socket_observer, boost::noncopyable

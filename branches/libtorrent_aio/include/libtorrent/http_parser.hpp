@@ -131,7 +131,6 @@ namespace libtorrent
 		
 	private:
 		size_type m_recv_pos;
-		int m_status_code;
 		std::string m_method;
 		std::string m_path;
 		std::string m_protocol;
@@ -141,18 +140,8 @@ namespace libtorrent
 		size_type m_range_start;
 		size_type m_range_end;
 
-		enum { read_status, read_header, read_body, error_state } m_state;
-
 		std::multimap<std::string, std::string> m_header;
 		buffer::const_interval m_recv_buffer;
-		int m_body_start_pos;
-
-		// this is true if the server is HTTP/1.0 or
-		// if it sent "connection: close"
-		bool m_connection_close;
-		bool m_chunked_encoding;
-		bool m_finished;
-
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response
 		std::vector<std::pair<size_type, size_type> > m_chunked_ranges;
@@ -162,6 +151,8 @@ namespace libtorrent
 		// in the chunk tail header or the next chunk header)
 		size_type m_cur_chunk_end;
 
+		int m_status_code;
+
 		// the sum of all chunk headers read so far
 		int m_chunk_header_size;
 
@@ -169,6 +160,16 @@ namespace libtorrent
 
 		// controls some behaviors of the parser
 		int m_flags;
+
+		int m_body_start_pos;
+
+		enum { read_status, read_header, read_body, error_state } m_state;
+
+		// this is true if the server is HTTP/1.0 or
+		// if it sent "connection: close"
+		bool m_connection_close;
+		bool m_chunked_encoding;
+		bool m_finished;
 	};
 
 }
