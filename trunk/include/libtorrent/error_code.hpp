@@ -507,7 +507,11 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
+	// return the instance of the libtorrent_error_category which
+	// maps libtorrent error codes to human readable error messages.
 	TORRENT_EXPORT boost::system::error_category& get_libtorrent_category();
+
+	// returns the error_category for HTTP errors
 	TORRENT_EXPORT boost::system::error_category& get_http_category();
 
 	namespace errors

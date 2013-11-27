@@ -44,8 +44,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	TORRENT_EXPORT int utf8_wchar(const std::string &utf8, std::wstring &wide);
-	TORRENT_EXPORT int wchar_utf8(const std::wstring &wide, std::string &utf8);
+	enum utf8_conv_result_t
+	{
+		// conversion successful
+		conversion_oK,
+
+		// partial character in source, but hit end
+		source_exhausted,
+
+		// insuff. room in target for conversion
+		target_exhausted,
+
+		// source sequence is illegal/malformed
+		source_illegal
+	};
+
+	// ``utf8_wchar`` converts a UTF-8 string (``utf8``) to a wide character
+	// string (``wide``). ``wchar_utf8`` converts a wide character string
+	// (``wide``) to a UTF-8 string (``utf8``). The return value is one of
+	// the enumeration values from utf8_conv_result_t.
+	TORRENT_EXPORT utf8_conv_result_t utf8_wchar(
+		const std::string &utf8, std::wstring &wide);
+	TORRENT_EXPORT utf8_conv_result_t wchar_utf8(
+		const std::wstring &wide, std::string &utf8);
 }
 #endif // !BOOST_NO_STD_WSTRING
 

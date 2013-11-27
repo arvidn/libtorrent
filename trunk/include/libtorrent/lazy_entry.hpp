@@ -140,6 +140,7 @@ namespace libtorrent
 			none_t, dict_t, list_t, string_t, int_t
 		};
 
+		// internal
 		lazy_entry() : m_begin(0), m_len(0), m_size(0), m_capacity(0), m_type(none_t)
 		{ m_data.start = 0; }
 
@@ -239,6 +240,12 @@ namespace libtorrent
 		boost::int64_t dict_find_int_value(char const* name, boost::int64_t default_val = 0) const;
 		lazy_entry const* dict_find_int(char const* name) const;
 
+		// these functions require that ``this`` is a dictionary.
+		// (this->type() == dict_t). They look for an element with the
+		// specified name in the dictionary. ``dict_find_dict`` only
+		// finds dictionaries and ``dict_find_list`` only finds lists.
+		// if no key with the corresponding value of the right type is
+		// found, NULL is returned.
 		lazy_entry const* dict_find_dict(char const* name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
 
@@ -246,7 +253,8 @@ namespace libtorrent
 		// position ``i`` from the dictionary.
 		std::pair<std::string, lazy_entry const*> dict_at(int i) const;
 
-		// if this is a dictionary, return the number of items in it
+		// requires that ``this`` is a dictionary. return the
+		// number of items in it
 		int dict_size() const
 		{
 			TORRENT_ASSERT(m_type == dict_t);
@@ -266,7 +274,8 @@ namespace libtorrent
 		// internal
 		lazy_entry* list_append();
 
-		// if this is a list, return the item at index ``i``.
+		// requires that ``this`` is a list. return
+		// the item at index ``i``.
 		lazy_entry* list_at(int i)
 		{
 			TORRENT_ASSERT(m_type == list_t);
@@ -276,8 +285,19 @@ namespace libtorrent
 		lazy_entry const* list_at(int i) const
 		{ return const_cast<lazy_entry*>(this)->list_at(i); }
 
+		// these functions require ``this`` to have the type list.
+		// (this->type() == list_t). ``list_string_value_at`` returns
+		// the string at index ``i``. ``list_pstr_at``
+		// returns a pascal_string of the string value at index ``i``.
+		// if the element at ``i`` is not a string, an empty string
+		// is returned.
 		std::string list_string_value_at(int i) const;
 		pascal_string list_pstr_at(int i) const;
+
+		// this function require ``this`` to have the type list.
+		// (this->type() == list_t). returns the integer value at
+		// index ``i``. If the element at ``i`` is not an integer
+		// ``default_val`` is returned, which defaults to 0.
 		boost::int64_t list_int_value_at(int i, boost::int64_t default_val = 0) const;
 
 		// if this is a list, return the number of items in it.

@@ -556,10 +556,22 @@ namespace libtorrent
 		void set_ip_filter(ip_filter const& f);
 		ip_filter get_ip_filter() const;
 		
+		// apply port_filter ``f`` to incoming and outgoing peers.
+		// a port filter will reject making outgoing peer connections
+		// to certain remote ports. The main intention is to be able
+		// to avoid triggering certain anti-virus software by connecting
+		// to SMTP, FTP ports.
 		void set_port_filter(port_filter const& f);
+
+		// sets and gets the raw peer ID used by libtorrent. When anonymous
+		// mode is set the peer ID is randomized per peer anyway.
 		void set_peer_id(peer_id const& pid);
-		void set_key(int key);
 		peer_id id() const;
+
+		// sets the key sent to trackers. If it's not set, it is initialized
+		// by libtorrent. The key may be used by the tracker to identify the
+		// peer potentially across you changing your IP.
+		void set_key(int key);
 
 
 		// ``is_listening()`` will tell you whether or not the session has successfully
