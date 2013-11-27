@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	int utf8_wchar(const std::string &utf8, std::wstring &wide)
+	utf8_conv_result_t utf8_wchar(const std::string &utf8, std::wstring &wide)
 	{
 		// allocate space for worst-case
 		wide.resize(utf8.size());
@@ -69,7 +69,7 @@ namespace libtorrent
 		}
 	}
 
-	int wchar_utf8(const std::wstring &wide, std::string &utf8)
+	utf8_conv_result_t wchar_utf8(const std::wstring &wide, std::string &utf8)
 	{
 		// allocate space for worst-case
 		utf8.resize(wide.size() * 6);
