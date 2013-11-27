@@ -80,12 +80,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_LINUX
 // linux specifics
 
+#ifdef TORRENT_ANDROID
+#include <sys/vfs.h>
+#define statvfs statfs
+#define fstatvfs fstatfs
+#else
 #include <sys/statvfs.h>
+#endif
+
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #ifdef HAVE_LINUX_FIEMAP_H
 #include <linux/fiemap.h> // FIEMAP_*
 #include <linux/fs.h>  // FS_IOC_FIEMAP
+#endif
+
+#ifdef TORRENT_ANDROID
+#include <sys/syscall.h>
+#define lseek lseek64
 #endif
 
 #include <asm/unistd.h> // For __NR_fallocate

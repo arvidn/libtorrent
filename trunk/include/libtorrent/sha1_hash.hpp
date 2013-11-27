@@ -276,7 +276,6 @@ namespace libtorrent
 	};
 
 	typedef sha1_hash peer_id;
-	typedef sha1_hash sha1_hash;
 
 #if TORRENT_USE_IOSTREAM
 
@@ -301,3 +300,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_ID_HPP_INCLUDED
+

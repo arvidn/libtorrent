@@ -33,6 +33,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CONFIG_HPP_INCLUDED
 #define TORRENT_CONFIG_HPP_INCLUDED
 
+#if !defined _MSC_VER || _MSC_VER >= 1600
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS 1
+#endif
+#ifndef __STDC_CONSTANT_MACROS
+#define __STDC_CONSTANT_MACROS 1
+#endif
+#else
+#if !defined INT64_MAX
+#define INT64_MAX 0x7fffffffffffffffLL
+#endif
+#endif
+
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
@@ -44,15 +57,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
 #error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
-	order for asio's declarations to be correct. If you're linking dynamically against libtorrent, define \
+	order for asios declarations to be correct. If you are linking dynamically against libtorrent, define \
 	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
 	build, to automatically apply these defines
 #endif
 
 #if !defined _MSC_VER || _MSC_VER >= 1600
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS 1
-#endif
 #include <stdint.h> // for INT64_MAX
 #else
 #if !defined INT64_MAX
@@ -215,11 +225,22 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
-#define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
+
+// ===== ANDROID ===== (almost linux, sort of)
+#if defined __ANDROID__
+#define TORRENT_ANDROID
+#define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_ICONV 0
+#define TORRENT_USE_IFADDRS 0
+#define TORRENT_USE_MEMALIGN 1
+#else
+#define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_POSIX_MEMALIGN 1
+#endif
+
 #if __amd64__ || __i386__
 #define TORRENT_USE_EXECINFO 1
 #endif
