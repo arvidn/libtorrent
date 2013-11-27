@@ -161,7 +161,7 @@ namespace libtorrent
 			m_len = length + 2; // include 'e'
 		}
 
-		// if this is an integer, return the integer value
+		// requires the type to be an integer. return the integer value
 		boost::int64_t int_value() const;
 
 		// internal
@@ -307,7 +307,7 @@ namespace libtorrent
 			return int(m_size);
 		}
 
-		// end points one byte passed last byte in the source
+		// internal: end points one byte passed last byte in the source
 		// buffer backing the bencoded structure.
 		void set_end(char const* end)
 		{
@@ -318,7 +318,7 @@ namespace libtorrent
 		// internal
 		void clear();
 
-		// releases ownership of any memory allocated
+		// internal: releases ownership of any memory allocated
 		void release()
 		{
 			m_data.start = 0;

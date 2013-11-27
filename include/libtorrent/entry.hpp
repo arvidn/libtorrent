@@ -128,11 +128,18 @@ namespace libtorrent
 
 		// hidden
 		entry(entry const& e);
+
+		// hidden
 		entry();
+
+		// hidden
 		~entry();
 
 		// hidden
 		bool operator==(entry const& e) const;
+		
+		// copies the structure of the right hand side into this
+		// entry.
 		void operator=(lazy_entry const&);
 		void operator=(entry const&);
 		void operator=(dictionary_type const&);
