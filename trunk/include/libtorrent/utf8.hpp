@@ -44,10 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	// results from UTF-8 conversion functions utf8_wchar and
+	// wchar_utf8
 	enum utf8_conv_result_t
 	{
 		// conversion successful
-		conversion_oK,
+		conversion_ok,
 
 		// partial character in source, but hit end
 		source_exhausted,

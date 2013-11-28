@@ -53,7 +53,7 @@ namespace libtorrent
 				+ utf8.size(), (UTF32**)&dst_start, (UTF32*)dst_start + wide.size()
 				, lenientConversion);
 			wide.resize(dst_start - wide.c_str());
-			return ret;
+			return (utf8_conv_result_t)ret;
 		}
 		else if (sizeof(wchar_t) == sizeof(UTF16))
 		{
@@ -61,11 +61,11 @@ namespace libtorrent
 				+ utf8.size(), (UTF16**)&dst_start, (UTF16*)dst_start + wide.size()
 				, lenientConversion);
 			wide.resize(dst_start - wide.c_str());
-			return ret;
+			return (utf8_conv_result_t)ret;
 		}
 		else
 		{
-			return sourceIllegal;
+			return source_illegal;
 		}
 	}
 
@@ -73,7 +73,7 @@ namespace libtorrent
 	{
 		// allocate space for worst-case
 		utf8.resize(wide.size() * 6);
-		if (wide.empty()) return 0;
+		if (wide.empty()) return conversion_ok;
 		char* dst_start = &utf8[0];
 		wchar_t const* src_start = wide.c_str();
 		ConversionResult ret;
@@ -83,7 +83,7 @@ namespace libtorrent
 				+ wide.size(), (UTF8**)&dst_start, (UTF8*)dst_start + utf8.size()
 				, lenientConversion);
 			utf8.resize(dst_start - &utf8[0]);
-			return ret;
+			return (utf8_conv_result_t)ret;
 		}
 		else if (sizeof(wchar_t) == sizeof(UTF16))
 		{
@@ -91,11 +91,11 @@ namespace libtorrent
 				+ wide.size(), (UTF8**)&dst_start, (UTF8*)dst_start + utf8.size()
 				, lenientConversion);
 			utf8.resize(dst_start - &utf8[0]);
-			return ret;
+			return (utf8_conv_result_t)ret;
 		}
 		else
 		{
-			return sourceIllegal;
+			return source_illegal;
 		}
 	}
 }
