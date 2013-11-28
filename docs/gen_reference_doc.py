@@ -302,7 +302,7 @@ def parse_class(lno, lines, filename):
 				else:
 					current_fun['desc'] = context
 					if context == '' and not suppress_warning(filename, first_item(current_fun['names'])):
-						print 'WARNING: member function "%s" is not documented: %s:%d' \
+						print 'WARNING: member function "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 							% (name + '::' + first_item(current_fun['names']), filename, lno)
 					funs.append(current_fun)
 			context = ''
@@ -319,7 +319,7 @@ def parse_class(lno, lines, filename):
 				fields[-1]['signatures'].append(l)
 			else:
 				if context == '' and not suppress_warning(filename, n):
-					print 'WARNING: field "%s" is not documented: %s:%d' \
+					print 'WARNING: field "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 						% (name + '::' + n, filename, lno)
 				fields.append({'signatures': [l], 'names': [n], 'desc': context})
 			context = ''
@@ -331,7 +331,7 @@ def parse_class(lno, lines, filename):
 			if enum != None and is_visible(context):
 				enum['desc'] = context
 				if context == '' and not suppress_warning(filename, enum['name']):
-					print 'WARNING: enum "%s" is not documented: %s:%d' \
+					print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 						% (name + '::' + enum['name'], filename, lno)
 				enums.append(enum)
 			context = ''
@@ -353,7 +353,7 @@ def parse_enum(lno, lines, filename):
 	name = l.replace('enum ', '').split('{')[0].strip()
 	if len(name) == 0:
 		if not internal:
-			print 'WARNING: anonymous enum at: %s:%d' % (filename, lno)
+			print 'WARNING: anonymous enum at: \x1b[34m%s:%d\x1b[0m' % (filename, lno)
 			lno = consume_block(lno - 1, lines)
 			return [None, lno]
 		name = 'anonymous_enum_%d' % anon_index
@@ -451,7 +451,7 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 	if verbose: print 'prep  %s' % l
 
 	if warn_on_ifdefs and ('TORRENT_DEBUG' in l or 'TORRENT_DISABLE_FULL_STATS' in l):
-		print '***\nWARNING: possible ABI breakage in public struct!\n   %s:%d\n***' % \
+		print '\x1b[31mWARNING: possible ABI breakage in public struct!\x1b[34m %s:%d\x1b[0m' % \
 			(filename, lno)
 
 	if warn_on_ifdefs and '#if' in l:
@@ -461,7 +461,7 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 			.replace('||', '').replace('&&', '').replace('(', '').replace(')','') \
 			.replace('!', '').strip()
 		if define != '':
-			print 'sensitive define in public struct: "%s"\n   %s:%d' % (define, filename, lno)
+			print '\x1b[31msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno)
 
 	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
 		l == '#ifdef TORRENT_DEBUG' or \
@@ -554,7 +554,7 @@ for filename in files:
 					if current_class != None and is_visible(context):
 						current_class['desc'] = context
 						if context == '':
-							print 'WARNING: class "%s" is not documented: %s:%d' \
+							print 'WARNING: class "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 							% (current_class['name'], filename, lno)
 						classes.append(current_class)
 				context = ''
@@ -570,7 +570,7 @@ for filename in files:
 					else:
 						current_fun['desc'] = context
 						if context == '':
-							print 'WARNING: function "%s" is not documented: %s:%d' \
+							print 'WARNING: function "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 								% (first_item(current_fun['names']), filename, lno)
 						functions.append(current_fun)
 					blanks = 0
@@ -588,7 +588,7 @@ for filename in files:
 			if current_enum != None and is_visible(context):
 				current_enum['desc'] = context
 				if context == '':
-					print 'WARNING: enum "%s" is not documented: %s:%d' \
+					print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 						% (current_enum['name'], filename, lno)
 				enums.append(current_enum)
 			context = ''
