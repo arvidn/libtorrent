@@ -2300,7 +2300,6 @@ int main(int argc, char* argv[])
 					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\n"
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
-							:!i->will_announce(now)?""
 							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
 						, i->min_announce > now ? total_seconds(i->min_announce - now) : 0
 						, i->last_error ? i->last_error.message().c_str() : ""
