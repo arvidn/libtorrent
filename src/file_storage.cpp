@@ -136,14 +136,14 @@ namespace libtorrent
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
 		: offset(fe.offset)
-		, size(fe.size)
 		, symlink_index(fe.symlink_index)
+		, no_root_dir(fe.no_root_dir)
+		, size(fe.size)
 		, name_len(fe.name_len)
 		, pad_file(fe.pad_file)
 		, hidden_attribute(fe.hidden_attribute)
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
-		, no_root_dir(fe.no_root_dir)
 		, name(0)
 		, path_index(fe.path_index)
 	{
