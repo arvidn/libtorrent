@@ -48,6 +48,10 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
+
+	// constructor function for the trackers exchange extension. This can
+	// either be passed in the add_torrent_params::extensions field, or
+	// via torrent_handle::add_extension().
 	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent*, void*);
 }
 

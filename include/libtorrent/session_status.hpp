@@ -40,18 +40,43 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct dht_lookup
+	// holds statistics about a current dht_lookup operation.
+	// a DHT lookup is the travesal of nodes, looking up a
+	// set of target nodes in the DHT for retrieving and possibly
+	// storing information in the DHT
+	struct TORRENT_EXPORT dht_lookup
 	{
+		// string literal indicating which kind of lookup this is
 		char const* type;
+
+		// the number of outstanding request to individual nodes
+		// this lookup has right now
 		int outstanding_requests;
+
+		// the total number of requests that have timed out so far
+		// for this lookup
 		int timeouts;
+
+		// the total number of responses we have received for this
+		// lookup so far for this lookup
 		int responses;
+
+		// the branch factor for this lookup. This is the number of
+		// nodes we keep outstanding requests to in parallel by default.
+		// when nodes time out we may increase this.
 		int branch_factor;
+
+		// the number of nodes left that could be queries for this
+		// lookup. Many of these are likely to be part of the trail
+		// while performing the lookup and would never end up actually
+		// being queried.
 		int nodes_left;
+
 		// the number of seconds ago the
 		// last message was sent that's still
 		// outstanding
 		int last_sent;
+
 		// the number of outstanding requests
 		// that have exceeded the short timeout
 		// and are considered timed out in the
@@ -60,24 +85,31 @@ namespace libtorrent
 		int first_timeout;
 	};
 
-	struct dht_routing_bucket
+	// holds dht routing table stats
+	struct TORRENT_EXPORT dht_routing_bucket
 	{
+		// the total number of nodes and replacement nodes
+		// in the routing table
 		int num_nodes;
 		int num_replacements;
+
 		// number of seconds since last activity
 		int last_active;
 	};
 
-	struct utp_status
+	// holds counters and gauges for the uTP sockets
+	struct TORRENT_EXPORT utp_status
 	{
-		// gauges
+		// gauges. These are snapshots of the number of
+		// uTP sockets in each respective state
 		int num_idle;
 		int num_syn_sent;
 		int num_connected;
 		int num_fin_sent;
 		int num_close_wait;
 
-		// counters
+		// counters. These are monotonically increasing
+		// and cumulative counters for their respective event.
 		boost::uint64_t packet_loss;
 		boost::uint64_t timeout;
 		boost::uint64_t packets_in;
@@ -92,6 +124,7 @@ namespace libtorrent
 		boost::uint64_t redundant_pkts_in;
 	};
 
+	// contains session wide state and counters
 	struct TORRENT_EXPORT session_status
 	{
 		// false as long as no incoming connections have been

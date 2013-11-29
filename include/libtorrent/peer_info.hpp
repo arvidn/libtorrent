@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// holds information and statistics about one peer
+	// that libtorrent is connected to
 	struct TORRENT_EXPORT peer_info
 	{
 		enum peer_flags_t
@@ -59,76 +61,85 @@ namespace libtorrent
 			remote_choked = 0x8,
 
 			// means that this peer supports the
-			// `extension protocol`__.          
+			// `extension protocol`__.
 			// 
 			// __ extension_protocol.html
 			supports_extensions = 0x10,
 
-			// The connection was initiated by us, the peer has a   
+			// The connection was initiated by us, the peer has a
 			// listen port open, and that port is the same as in the
-			// address of this peer. If this flag is not set, this  
+			// address of this peer. If this flag is not set, this
 			// peer connection was opened by this peer connecting to
-			// us.                                                  
+			// us.
 			local_connection = 0x20,
 
-			// The connection is opened, and waiting for the        
-			// handshake. Until the handshake is done, the peer     
-			// cannot be identified.                                
+			// The connection is opened, and waiting for the
+			// handshake. Until the handshake is done, the peer
+			// cannot be identified.
 			handshake = 0x40,
 
-			// The connection is in a half-open state (i.e. it is   
-			// being connected).                                    
+			// The connection is in a half-open state (i.e. it is
+			// being connected).
 			connecting = 0x80,
 
-			// The connection is currently queued for a connection  
-			// attempt. This may happen if there is a limit set on  
-			// the number of half-open TCP connections.             
+			// The connection is currently queued for a connection
+			// attempt. This may happen if there is a limit set on
+			// the number of half-open TCP connections.
 			queued = 0x100,
 
-			// The peer has participated in a piece that failed the 
+			// The peer has participated in a piece that failed the
 			// hash check, and is now "on parole", which means we're
-			// only requesting whole pieces from this peer until    
-			// it either fails that piece or proves that it doesn't 
-			// send bad data.                                       
+			// only requesting whole pieces from this peer until
+			// it either fails that piece or proves that it doesn't
+			// send bad data.
 			on_parole = 0x200,
 
-			// This peer is a seed (it has all the pieces).         
+			// This peer is a seed (it has all the pieces).
 			seed = 0x400,
 
 			// This peer is subject to an optimistic unchoke. It has
-			// been unchoked for a while to see if it might unchoke 
-			// us in return an earn an upload/unchoke slot. If it   
+			// been unchoked for a while to see if it might unchoke
+			// us in return an earn an upload/unchoke slot. If it
 			// doesn't within some period of time, it will be choked
-			// and another peer will be optimistically unchoked.    
+			// and another peer will be optimistically unchoked.
 			optimistic_unchoke = 0x800,
 
-			// This peer has recently failed to send a block within 
-			// the request timeout from when the request was sent.  
+			// This peer has recently failed to send a block within
+			// the request timeout from when the request was sent.
 			// We're currently picking one block at a time from this
-			// peer.                                                
+			// peer.
 			snubbed = 0x1000,
 
-			// This peer has either explicitly (with an extension)  
-			// or implicitly (by becoming a seed) told us that it   
-			// will not downloading anything more, regardless of    
-			// which pieces we have.                                
+			// This peer has either explicitly (with an extension)
+			// or implicitly (by becoming a seed) told us that it
+			// will not downloading anything more, regardless of
+			// which pieces we have.
 			upload_only = 0x2000,
 
-			// This means the last time this peer picket a piece,   
-			// it could not pick as many as it wanted because there 
-			// were not enough free ones. i.e. all pieces this peer 
-			// has were already requested from other peers.         
+			// This means the last time this peer picket a piece,
+			// it could not pick as many as it wanted because there
+			// were not enough free ones. i.e. all pieces this peer
+			// has were already requested from other peers.
 			endgame_mode = 0x4000,
 
-			// This flag is set if the peer was in holepunch mode   
-			// when the connection succeeded. This typically only   
-			// happens if both peers are behind a NAT and the peers 
-			// connect via the NAT holepunch mechanism.             
+			// This flag is set if the peer was in holepunch mode
+			// when the connection succeeded. This typically only
+			// happens if both peers are behind a NAT and the peers
+			// connect via the NAT holepunch mechanism.
 			holepunched = 0x8000,
 
+			// indicates that this socket is runnin on top of the
+			// I2P transport.
 			i2p_socket = 0x10000,
+
+			// indicates that this socket is a uTP socket
 			utp_socket = 0x20000,
+
+			// this connection is obfuscated with RC4
 			rc4_encrypted = 0x100000,
+			
+			// the handshake of this connection was obfuscated
+			// with a diffie-hellman exchange
 			plaintext_encrypted = 0x200000
 		};
 
@@ -136,6 +147,9 @@ namespace libtorrent
 		// any combination of the peer_flags_t enum.
 		unsigned int flags;
 
+		// the flags indicating which sources a peer can
+		// have come from. A peer may have been seen from
+		// multiple sources
 		enum peer_source_flags
 		{
 			// The peer was received from the tracker.

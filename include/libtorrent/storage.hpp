@@ -152,15 +152,7 @@ namespace libtorrent
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
 		, std::string* error = 0);
-/*
-	struct TORRENT_EXTRA_EXPORT file_allocation_failed: std::exception
-	{
-		file_allocation_failed(const char* error_msg): m_msg(error_msg) {}
-		virtual const char* what() const throw() { return m_msg.c_str(); }
-		virtual ~file_allocation_failed() throw() {}
-		std::string m_msg;
-	};
-*/
+
 	struct TORRENT_EXTRA_EXPORT partial_hash
 	{
 		partial_hash(): offset(0) {}
@@ -190,13 +182,14 @@ namespace libtorrent
 	// compact allocation mode it won't).
 	// 
 	// libtorrent comes with two built-in storage implementations; ``default_storage``
-	// and ``disabled_storage``. Their constructor functions are called ``default_storage_constructor``
+	// and ``disabled_storage``. Their constructor functions are called default_storage_constructor()
 	// and ``disabled_storage_constructor`` respectively. The disabled storage does
 	// just what it sounds like. It throws away data that's written, and it
 	// reads garbage. It's useful mostly for benchmarking and profiling purpose.
 	//
 	struct TORRENT_EXPORT storage_interface
 	{
+		// hidden
 		storage_interface(): m_disk_pool(0), m_settings(0) {}
 
 		// This function is called when the storage is to be initialized. The default storage
@@ -247,6 +240,8 @@ namespace libtorrent
 		// negative return value indicates an error
 		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 
+		// returns the offset on the physical storage medium for the
+		// byte at offset ``offset`` in slot ``slot``.
 		virtual size_type physical_offset(int slot, int offset) = 0;
 
 		// This function is optional. It is supposed to return the first piece, starting at
@@ -395,6 +390,8 @@ namespace libtorrent
 	public:
 		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
 			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio);
+
+		// hidden
 		~default_storage();
 
 #ifndef TORRENT_NO_DEPRECATE

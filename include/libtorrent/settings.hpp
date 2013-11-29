@@ -41,9 +41,12 @@ namespace libtorrent
 	struct lazy_entry;
 	class entry;
 
-	enum { std_string, character, integer
-		, floating_point, boolean, size_integer
-		, time_integer };
+	// internal
+	enum struct_field_type_t
+	{
+		std_string, character, integer, floating_point,
+		boolean, size_integer, time_integer
+	};
 
 	// this is used to map struct entries
 	// to names in a bencoded dictionary to

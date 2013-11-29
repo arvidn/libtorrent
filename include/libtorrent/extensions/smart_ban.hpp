@@ -48,6 +48,13 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
+
+	// constructor function for the smart ban extension. The extension keeps
+	// track of the data peers have sent us for failing pieces and once the
+	// piece completes and passes the hash check bans the peers that turned
+	// out to have sent corrupt data.
+	// This function can either be passed in the add_torrent_params::extensions
+	// field, or via torrent_handle::add_extension().
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent*, void*);
 }
 

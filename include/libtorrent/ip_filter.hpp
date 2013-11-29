@@ -269,8 +269,11 @@ namespace detail
 // A default constructed ip_filter does not filter any address.
 struct TORRENT_EXPORT ip_filter
 {
+	// the flags defined for an IP range
 	enum access_flags
 	{
+		// indicates that IPs in this range should not be connected
+		// to nor accepted as incoming connections
 		blocked = 1
 	};
 
@@ -321,16 +324,30 @@ private:
 #endif
 };
 
+// the port filter maps non-overlapping port ranges to flags. This
+// is primarily used to indicate whether a range of ports should
+// be connected to or not. The default is to have the full port
+// range (0-65535) set to flag 0.
 class TORRENT_EXPORT port_filter
 {
 public:
 
+	// the defined flags for a port range
 	enum access_flags
 	{
+		// this flag indicates that destination ports in the
+		// range should not be connected to
 		blocked = 1
 	};
 
+	// set the flags for the specified port range (``first``, ``last``) to
+	// ``flags`` overwriting any existing rule for those ports. The range
+	// is inclusive, i.e. the port ``last`` also has the flag set on it.
 	void add_rule(boost::uint16_t first, boost::uint16_t last, int flags);
+
+	// test the specified port (``port``) for whether it is blocked
+	// or not. The returned value is the flags set for this port.
+	// see acces_flags.
 	int access(boost::uint16_t port) const;
 
 private:
