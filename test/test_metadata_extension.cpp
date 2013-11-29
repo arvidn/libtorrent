@@ -146,6 +146,8 @@ int test_main()
 {
 	using namespace libtorrent;
 
+#ifndef TORRENT_NO_DEPRECATE
+
 #ifdef TORRENT_USE_VALGRIND
 	const int timeout = 8;
 #else
@@ -165,6 +167,8 @@ int test_main()
 	error_code ec;
 	remove_all("tmp1", ec);
 	remove_all("tmp2", ec);
+
+#endif // TORRENT_NO_DEPRECATE
 
 	return 0;
 }
