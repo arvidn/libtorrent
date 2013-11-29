@@ -349,8 +349,13 @@ feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSION ;
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
+# deprecated use allocator=pool instead
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
+
+feature allocator : pool system debug : composite ;
+feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
+feature.compose <allocator>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
 
 feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
