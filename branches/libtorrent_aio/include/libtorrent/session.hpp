@@ -317,6 +317,7 @@ namespace libtorrent
 		// For more information, see the session-statistics_ section.
 		void post_session_stats();
 
+		// internal
 		io_service& get_io_service();
 
 		// ``find_torrent()`` looks for a torrent with the given info-hash. In case there
@@ -600,17 +601,17 @@ namespace libtorrent
 		void load_asnum_db(char const* file);
 		void load_country_db(char const* file);
 		int as_for_ip(address const& addr);
+#ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void load_country_db(wchar_t const* file) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		void load_asnum_db(wchar_t const* file) TORRENT_DEPRECATED;
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_DISABLE_GEO_IP
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -633,10 +634,22 @@ namespace libtorrent
 		void set_ip_filter(ip_filter const& f);
 		ip_filter get_ip_filter() const;
 		
+		// apply port_filter ``f`` to incoming and outgoing peers.
+		// a port filter will reject making outgoing peer connections
+		// to certain remote ports. The main intention is to be able
+		// to avoid triggering certain anti-virus software by connecting
+		// to SMTP, FTP ports.
 		void set_port_filter(port_filter const& f);
+
+		// sets and gets the raw peer ID used by libtorrent. When anonymous
+		// mode is set the peer ID is randomized per peer anyway.
 		void set_peer_id(peer_id const& pid);
-		void set_key(int key);
 		peer_id id() const;
+
+		// sets the key sent to trackers. If it's not set, it is initialized
+		// by libtorrent. The key may be used by the tracker to identify the
+		// peer potentially across you changing your IP.
+		void set_key(int key);
 
 		// built-in peer classes
 		enum {

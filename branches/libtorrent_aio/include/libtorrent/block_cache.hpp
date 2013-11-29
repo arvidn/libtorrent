@@ -98,7 +98,7 @@ namespace libtorrent
 
 #endif
 
-	struct partial_hash
+	struct TORRENT_EXTRA_EXPORT partial_hash
 	{
 		partial_hash(): offset(0) {}
 		// the number of bytes in the piece that has been hashed

@@ -191,12 +191,16 @@ namespace libtorrent
 		// This is called when the tracker announce fails.
 		void failed(aux::session_settings const& sett, int retry_interval = 0);
 
-		bool will_announce(ptime now) const
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.0
+		TORRENT_DEPRECATED_PREFIX
+		bool will_announce(ptime now) const TORRENT_DEPRECATED
 		{
 			return now <= next_announce
 				&& (fails < fail_limit || fail_limit == 0)
 				&& !updating;
 		}
+#endif
 
 		// returns true if we can announec to this tracker now.
 		// The current time is passed in as ``now``. The ``is_seed``
@@ -324,30 +328,30 @@ namespace libtorrent
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
 		torrent_info(std::string const& filename, int flags = 0);
+#ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		torrent_info(std::wstring const& filename, int flags = 0) TORRENT_DEPRECATED;
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 #endif
 		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
+#ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0) TORRENT_DEPRECATED;
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 
 		// frees all storage associated with this torrent_info object
 		~torrent_info();
@@ -390,15 +394,15 @@ namespace libtorrent
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
+#ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED;
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 
 		// Remaps the file storage to a new file layout. This can be used to, for instance,
 		// download all data in a torrent to a single file, or to a number of fixed size

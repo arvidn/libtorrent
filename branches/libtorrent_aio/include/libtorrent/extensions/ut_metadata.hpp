@@ -48,6 +48,16 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
+
+	// constructor function for the ut_metadata extension. The ut_metadata
+	// extension allows peers to request the .torrent file (or more
+	// specifically the 'info'-dictionary of the .torrent file) from each
+	// other. This is the main building block in making magnet links work.
+	// This extension is enabled by default unless explicitly disabled in
+	// the session constructor.
+	// 
+	// This can either be passed in the add_torrent_params::extensions field, or
+	// via torrent_handle::add_extension().
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent*, void*);
 }
 

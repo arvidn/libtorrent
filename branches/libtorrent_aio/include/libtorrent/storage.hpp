@@ -195,13 +195,14 @@ namespace libtorrent
 	// slots. One slot is one piece in the torrent.
 	// 
 	// libtorrent comes with two built-in storage implementations; ``default_storage``
-	// and ``disabled_storage``. Their constructor functions are called ``default_storage_constructor``
+	// and ``disabled_storage``. Their constructor functions are called default_storage_constructor()
 	// and ``disabled_storage_constructor`` respectively. The disabled storage does
 	// just what it sounds like. It throws away data that's written, and it
 	// reads garbage. It's useful mostly for benchmarking and profiling purpose.
 	//
 	struct TORRENT_EXPORT storage_interface
 	{
+		// hidden
 		storage_interface(): m_settings(0) {}
 
 		// This function is called when the storage is to be initialized. The default storage
@@ -366,6 +367,8 @@ namespace libtorrent
 	{
 	public:
 		default_storage(storage_params const& params);
+
+		// hidden
 		~default_storage();
 
 #ifndef TORRENT_NO_DEPRECATE

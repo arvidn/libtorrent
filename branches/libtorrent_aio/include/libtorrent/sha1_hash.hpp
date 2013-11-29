@@ -69,7 +69,7 @@ namespace libtorrent
 		enum { number_size = 20 };
 	public:
 		// the number of bytes of the number
-		enum { size = number_size };
+		static const int size = number_size;
 
 		// constructs an all-sero sha1-hash
 		sha1_hash() { clear(); }
@@ -258,9 +258,10 @@ namespace libtorrent
 		typedef const unsigned char* const_iterator;
 		typedef unsigned char* iterator;
 
+		// start and end iterators for the hash. The value type
+		// of these iterators is ``unsigned char``.
 		const_iterator begin() const { return m_number; }
 		const_iterator end() const { return m_number+number_size; }
-
 		iterator begin() { return m_number; }
 		iterator end() { return m_number+number_size; }
 
@@ -276,7 +277,6 @@ namespace libtorrent
 	};
 
 	typedef sha1_hash peer_id;
-	typedef sha1_hash sha1_hash;
 	inline std::size_t hash_value(sha1_hash const& b)
 	{
 		std::size_t ret;
@@ -307,3 +307,4 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_ID_HPP_INCLUDED
+

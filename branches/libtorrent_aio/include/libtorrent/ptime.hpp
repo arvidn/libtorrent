@@ -57,7 +57,9 @@ namespace libtorrent
 	// libtorrent time_duration type
 	struct TORRENT_EXPORT time_duration
 	{
+		// hidden
 		time_duration() {}
+
 		time_duration operator/(int rhs) const { return time_duration(diff / rhs); }
 		explicit time_duration(boost::int64_t d) : diff(d) {}
 		time_duration& operator-=(time_duration const& c) { diff -= c.diff; return *this; }
@@ -73,8 +75,10 @@ namespace libtorrent
 	// This type represents a point in time.
 	struct TORRENT_EXPORT ptime
 	{
+		// hidden
 		ptime() {}
 		explicit ptime(boost::uint64_t t): time(t) {}
+
 		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
 		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
 
@@ -87,40 +91,28 @@ namespace libtorrent
 	// hidden
 	inline bool operator>(ptime lhs, ptime rhs)
 	{ return lhs.time > rhs.time; }
-	// hidden
 	inline bool operator>=(ptime lhs, ptime rhs)
 	{ return lhs.time >= rhs.time; }
-	// hidden
 	inline bool operator<=(ptime lhs, ptime rhs)
 	{ return lhs.time <= rhs.time; }
-	// hidden
 	inline bool operator<(ptime lhs, ptime rhs)
 	{ return lhs.time < rhs.time; }
-	// hidden
 	inline bool operator!=(ptime lhs, ptime rhs)
 	{ return lhs.time != rhs.time;}
-	// hidden
 	inline bool operator==(ptime lhs, ptime rhs)
 	{ return lhs.time == rhs.time;}
-	// hidden
 	inline bool operator==(time_duration lhs, time_duration rhs)
 	{ return lhs.diff == rhs.diff; }
-	// hidden
 	inline bool operator<(time_duration lhs, time_duration rhs)
 	{ return lhs.diff < rhs.diff; }
-	// hidden
 	inline bool operator<=(time_duration lhs, time_duration rhs)
 	{ return lhs.diff <= rhs.diff; }
-	// hidden
 	inline bool operator>(time_duration lhs, time_duration rhs)
 	{ return lhs.diff > rhs.diff; }
-	// hidden
 	inline bool operator>=(time_duration lhs, time_duration rhs)
 	{ return lhs.diff >= rhs.diff; }
-	// hidden
 	inline time_duration operator*(time_duration lhs, int rhs)
 	{ return time_duration(boost::int64_t(lhs.diff * rhs)); }
-	// hidden
 	inline time_duration operator*(int lhs, time_duration rhs)
 	{ return time_duration(boost::int64_t(lhs * rhs.diff)); }
 

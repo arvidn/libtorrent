@@ -79,8 +79,15 @@ namespace libtorrent
 	
 	typedef boost::function<storage_interface*(storage_params const& params)> storage_constructor_type;
 
+	// the constructor function for the regular file storage. This is the
+	// default value for add_torrent_params::storage.
 	TORRENT_EXPORT storage_interface* default_storage_constructor(storage_params const&);
+
+	// the constructor function for the disabled storage. This can be used for
+	// testing and benchmarking. It will throw away any data written to
+	// it and return garbage for anything read from it.
 	TORRENT_EXPORT storage_interface* disabled_storage_constructor(storage_params const&);
+
 	TORRENT_EXPORT storage_interface* zero_storage_constructor(storage_params const&);
 }
 
