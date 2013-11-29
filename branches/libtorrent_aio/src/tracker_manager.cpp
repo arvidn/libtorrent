@@ -152,8 +152,8 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
 		, m_requester(r)
-		, m_man(man)
 		, m_req(req)
+		, m_man(man)
 	{}
 
 	boost::shared_ptr<request_callback> tracker_connection::requester() const
