@@ -48,7 +48,17 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*, void*);
+
+#ifndef TORRENT_NO_DEPRECATE
+	// constructor function for the metadata transfer extension. This
+	// extension has been superceded by the ut_metadata extension and
+	// is deprecated. It can be either be passed in the
+	// add_torrent_params::extensions field, or
+	// via torrent_handle::add_extension().
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
+	create_metadata_plugin(torrent*, void*) TORRENT_DEPRECATED;
+#endif
 }
 
 #endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED

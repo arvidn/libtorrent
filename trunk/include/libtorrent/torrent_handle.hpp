@@ -421,6 +421,11 @@ namespace libtorrent
 		void remove_http_seed(std::string const& url) const;
 		std::set<std::string> http_seeds() const;
 
+		// add the specified extension to this torrent. The ``ext`` argument is
+		// a function that will be called from within libtorrent's context
+		// passing in the internal torrent object and the specified userdata
+		// pointer. The function is expected to return a shared pointer to
+		// a torrent_plugin instance.
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 			, void* userdata = 0);
 
@@ -499,18 +504,24 @@ namespace libtorrent
 		// to peers again, as normal.
 		void force_recheck() const;
 
-		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
+		// flags used in the save_resume_data call to control additional
+		// actions or fields to save.
+		enum save_resume_flags_t
+		{
+			// the disk cache will be flushed before creating the resume data. This avoids a problem with
+			// file timestamps in the resume data in case the cache hasn't been flushed yet.
+			flush_disk_cache = 1,
+
+			// the resume data will contain the metadata
+			// from the torrent file as well. This is default for any torrent that's added without a torrent
+			// file (such as a magnet link or a URL).
+			save_info_dict = 2
+		};
 
 		// ``save_resume_data()`` generates fast-resume data and returns it as an entry. This entry
 		// is suitable for being bencoded. For more information about how fast-resume works, see fast-resume_.
 		// 
-		// The ``flags`` argument is a bitmask of flags ORed together. If the flag ``torrent_handle::flush_cache``
-		// is set, the disk cache will be flushed before creating the resume data. This avoids a problem with
-		// file timestamps in the resume data in case the cache hasn't been flushed yet.
-		// 
-		// If the flag ``torrent_handle::save_info_dict`` is set, the resume data will contain the metadata
-		// from the torrent file as well. This is default for any torrent that's added without a torrent
-		// file (such as a magnet link or a URL).
+		// The ``flags`` argument is a bitmask of flags ORed together. see save_resume_flags_t
 		// 
 		// This operation is asynchronous, ``save_resume_data`` will return immediately. The resume data
 		// is delivered when it's done through an save_resume_data_alert.
@@ -977,8 +988,8 @@ namespace libtorrent
 		// when either a file_renamed_alert or file_rename_failed_alert is posted.
 		void rename_file(int index, std::string const& new_name) const;
 
-#if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
+#if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
@@ -986,8 +997,8 @@ namespace libtorrent
 		void move_storage(std::wstring const& save_path, int flags = 0) const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		void rename_file(int index, std::wstring const& new_name) const TORRENT_DEPRECATED;
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 
 		// Enables or disabled super seeding/initial seeding for this torrent. The torrent
 		// needs to be a seed for this to take effect.
@@ -1018,10 +1029,6 @@ namespace libtorrent
 			: m_torrent(t)
 		{}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-		void check_invariant() const;
-#endif
-
 		boost::weak_ptr<torrent> m_torrent;
 
 	};
@@ -1043,64 +1050,69 @@ namespace libtorrent
 		enum state_t
 		{
 			// The torrent is in the queue for being checked. But there
-			// currently is another torrent that are being checked.    
-			// This torrent will wait for its turn.                    
+			// currently is another torrent that are being checked.
+			// This torrent will wait for its turn.
 			queued_for_checking,
 
 			// The torrent has not started its download yet, and is
-			// currently checking existing files.                  
+			// currently checking existing files.
 			checking_files,
 
-			// The torrent is trying to download metadata from peers. 
+			// The torrent is trying to download metadata from peers.
 			// This assumes the metadata_transfer extension is in use.
 			downloading_metadata,
 
-			// The torrent is being downloaded. This is the state     
+			// The torrent is being downloaded. This is the state
 			// most torrents will be in most of the time. The progress
-			// meter will tell how much of the files that has been    
-			// downloaded.                                            
+			// meter will tell how much of the files that has been
+			// downloaded.
 			downloading,
 
-			// In this state the torrent has finished downloading but 
+			// In this state the torrent has finished downloading but
 			// still doesn't have the entire torrent. i.e. some pieces
-			// are filtered and won't get downloaded.                 
+			// are filtered and won't get downloaded.
 			finished,
 
 			// In this state the torrent has finished downloading and
-			// is a pure seeder.                                     
+			// is a pure seeder.
 			seeding,
 
 			// If the torrent was started in full allocation mode, this
-			// indicates that the (disk) storage for the torrent is    
-			// allocated.                                              
+			// indicates that the (disk) storage for the torrent is
+			// allocated.
 			allocating,
 
 			// The torrent is currently checking the fastresume data and
-			// comparing it to the files on disk. This is typically     
-			// completed in a fraction of a second, but if you add a    
-			// large number of torrents at once, they will queue up.    
+			// comparing it to the files on disk. This is typically
+			// completed in a fraction of a second, but if you add a
+			// large number of torrents at once, they will queue up.
 			checking_resume_data
 		};
 		
-		// may be set to an error message describing why the torrent was paused, in
-		// case it was paused by an error. If the torrent is not paused or if it's paused but
-		// not because of an error, this string is empty.
+		// may be set to an error message describing why the torrent
+		// was paused, in case it was paused by an error. If the torrent
+		// is not paused or if it's paused but not because of an error,
+		// this string is empty.
 		std::string error;
 
 		// the path to the directory where this torrent's files are stored.
-		// It's typically the path as was given to async_add_torrent() or add_torrent() when this torrent
-		// was started. This field is only included if the torrent status is queried with
+		// It's typically the path as was given to async_add_torrent() or
+		// add_torrent() when this torrent was started. This field is only
+		// included if the torrent status is queried with
 		// ``torrent_handle::query_save_path``.
 		std::string save_path;
 
-		// the name of the torrent. Typically this is derived from the .torrent file.
-		// In case the torrent was started without metadata, and hasn't completely received it yet,
-		// it returns the name given to it when added to the session. See ``session::add_torrent``.
-		// This field is only included if the torrent status is queried with ``torrent_handle::query_name``.
+		// the name of the torrent. Typically this is derived from the
+		// .torrent file. In case the torrent was started without metadata,
+		// and hasn't completely received it yet, it returns the name given
+		// to it when added to the session. See ``session::add_torrent``.
+		// This field is only included if the torrent status is queried
+		// with ``torrent_handle::query_name``.
 		std::string name;
 
 		// set to point to the ``torrent_info`` object for this torrent. It's
-		// only included if the torrent status is queried with ``torrent_handle::query_torrent_file``.
+		// only included if the torrent status is queried with
+		// ``torrent_handle::query_torrent_file``.
 		boost::intrusive_ptr<const torrent_info> torrent_file;
 
 		// the time until the torrent will announce itself to the tracker.

@@ -119,7 +119,8 @@ namespace libtorrent
 */
 
 // internal: the different kinds of uTP packets
-enum { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
+enum utp_socket_state_t
+{ ST_DATA, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
 struct utp_header
 {

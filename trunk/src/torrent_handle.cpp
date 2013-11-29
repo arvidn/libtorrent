@@ -266,12 +266,6 @@ namespace libtorrent
 	}
 #endif
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-	void torrent_handle::check_invariant() const
-	{}
-
-#endif
-
 	sha1_hash torrent_handle::info_hash() const
 	{
 		INVARIANT_CHECK;

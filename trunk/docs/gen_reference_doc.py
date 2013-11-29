@@ -305,13 +305,12 @@ def parse_class(lno, lines, filename):
 						print 'WARNING: member function "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 							% (name + '::' + first_item(current_fun['names']), filename, lno)
 					funs.append(current_fun)
-			context = ''
-			blanks = 0
+				context = ''
+				blanks = 0
 			continue
 
 		if looks_like_variable(l):
 			if not is_visible(context):
-				context = ''
 				continue
 			n = l.split(' ')[-1].split(':')[0].split(';')[0]
 			if context == '' and blanks == 0 and len(fields):
@@ -327,14 +326,17 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if l.startswith('enum '):
-			enum, lno = parse_enum(lno - 1, lines, filename)
-			if enum != None and is_visible(context):
-				enum['desc'] = context
-				if context == '' and not suppress_warning(filename, enum['name']):
-					print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-						% (name + '::' + enum['name'], filename, lno)
-				enums.append(enum)
-			context = ''
+			if not is_visible(context):
+				consume_block(lno - 1, lines)
+			else:
+				enum, lno = parse_enum(lno - 1, lines, filename)
+				if enum != None:
+					enum['desc'] = context
+					if context == '' and not suppress_warning(filename, enum['name']):
+						print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
+							% (name + '::' + enum['name'], filename, lno)
+					enums.append(enum)
+				context = ''
 			continue
 
 		context = ''
@@ -441,6 +443,13 @@ def consume_comment(lno, lines):
 
 	return lno
 
+def trim_define(l):
+	return l.replace('#ifndef', '').replace('#ifdef', '') \
+		.replace('#if', '').replace('defined', '') \
+		.replace('TORRENT_USE_IPV6', '').replace('TORRENT_NO_DEPRECATE', '') \
+		.replace('||', '').replace('&&', '').replace('(', '').replace(')','') \
+		.replace('!', '').replace('\\', '').strip()
+
 def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 	l = lines[lno].strip()
 	lno += 1
@@ -451,17 +460,24 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 	if verbose: print 'prep  %s' % l
 
 	if warn_on_ifdefs and ('TORRENT_DEBUG' in l or 'TORRENT_DISABLE_FULL_STATS' in l):
-		print '\x1b[31mWARNING: possible ABI breakage in public struct!\x1b[34m %s:%d\x1b[0m' % \
-			(filename, lno)
+		while l.endswith('\\'):
+			lno += 1
+			l += lines[lno].strip()
+			if verbose: print 'prep  %s' % lines[lno].trim()
+		define = trim_define(l)
+		print '\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' % \
+			(define, filename, lno)
+		# we've already warned once, no need to do it twice
+		warn_on_ifdefs = False
 
 	if warn_on_ifdefs and '#if' in l:
-		define = l.replace('#ifndef', '').replace('#ifdef', '') \
-			.replace('#if', '').replace('defined', '') \
-			.replace('TORRENT_USE_IPV6', '').replace('TORRENT_NO_DEPRECATE', '') \
-			.replace('||', '').replace('&&', '').replace('(', '').replace(')','') \
-			.replace('!', '').strip()
+		while l.endswith('\\'):
+			lno += 1
+			l += lines[lno].strip()
+			if verbose: print 'prep  %s' % lines[lno].trim()
+		define = trim_define(l)
 		if define != '':
-			print '\x1b[31msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno)
+			print '\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno)
 
 	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
 		l == '#ifdef TORRENT_DEBUG' or \
@@ -543,6 +559,9 @@ for filename in files:
 			if verbose: print 'xx    %s' % l
 			continue
 		if 'TORRENT_DEPRECATED' in l:
+			if ('class ' in l or 'struct ' in l) and not ';' in l:
+				lno = consume_block(lno - 1, lines)
+				context = ''
 			blanks += 1
 			if verbose: print 'xx    %s' % l
 			continue
@@ -573,8 +592,8 @@ for filename in files:
 							print 'WARNING: function "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
 								% (first_item(current_fun['names']), filename, lno)
 						functions.append(current_fun)
+					context = ''
 					blanks = 0
-				context = ''
 				continue
 
 		if ('class ' in l or 'struct ' in l) and not ';' in l:
@@ -584,13 +603,16 @@ for filename in files:
 			continue
 
 		if l.startswith('enum '):
-			current_enum, lno = parse_enum(lno - 1, lines, filename)
-			if current_enum != None and is_visible(context):
-				current_enum['desc'] = context
-				if context == '':
-					print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
-						% (current_enum['name'], filename, lno)
-				enums.append(current_enum)
+			if not is_visible(context):
+				consume_block(lno - 1, lines)
+			else:
+				current_enum, lno = parse_enum(lno - 1, lines, filename)
+				if current_enum != None and is_visible(context):
+					current_enum['desc'] = context
+					if context == '':
+						print 'WARNING: enum "%s" is not documented: \x1b[34m%s:%d\x1b[0m' \
+							% (current_enum['name'], filename, lno)
+					enums.append(current_enum)
 			context = ''
 			blanks += 1
 			continue

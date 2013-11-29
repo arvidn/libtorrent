@@ -161,6 +161,7 @@ namespace libtorrent
 			name_is_owned = (1<<12)-1,
 			not_a_symlink = (1<<15)-1
 		};
+
 		// the offset of this file inside the torrent
 		boost::uint64_t offset:48;
 

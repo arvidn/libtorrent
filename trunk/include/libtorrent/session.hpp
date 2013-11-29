@@ -261,6 +261,7 @@ namespace libtorrent
 		// is on by default. See add_torrent_params_.
 		void post_torrent_updates();
 
+		// internal
 		io_service& get_io_service();
 
 		// ``find_torrent()`` looks for a torrent with the given info-hash. In case there
@@ -523,17 +524,17 @@ namespace libtorrent
 		void load_asnum_db(char const* file);
 		void load_country_db(char const* file);
 		int as_for_ip(address const& addr);
+#ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void load_country_db(wchar_t const* file) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		void load_asnum_db(wchar_t const* file) TORRENT_DEPRECATED;
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_DISABLE_GEO_IP
 
 #ifndef TORRENT_NO_DEPRECATE

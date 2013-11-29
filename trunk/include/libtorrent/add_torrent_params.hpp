@@ -318,6 +318,9 @@ namespace libtorrent
 		// flags controlling aspects of this torrent and how it's added. See flags_t for details.
 		boost::uint64_t flags;
 
+		// set this to the info hash of the torrent to add in case the info-hash
+		// is the only known property of the torrent. i.e. you don't have a
+		// .torrent file nor a magnet link.
 		sha1_hash info_hash;
 
 		// ``max_uploads``, ``max_connections``, ``upload_limit``, ``download_limit`` correspond

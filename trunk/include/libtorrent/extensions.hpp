@@ -82,7 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // ================
 // 
 // The plugin interface consists of three base classes that the plugin may
-// implement. These are called ``plugin``, ``torrent_plugin`` and ``peer_plugin``.
+// implement. These are called plugin, torrent_plugin and peer_plugin.
 // They are found in the ``<libtorrent/extensions.hpp>`` header.
 // 
 // These plugins are instantiated for each session, torrent and possibly each peer,
@@ -248,7 +248,7 @@ namespace libtorrent
 		// function).
 		// 
 		// If you need an extension to the peer connection (which most plugins do) you
-		// are supposed to return an instance of your ``peer_plugin`` class. Which in
+		// are supposed to return an instance of your peer_plugin class. Which in
 		// turn will have its hook functions called on event specific to that peer.
 		// 
 		// The ``peer_connection`` will be valid as long as the ``shared_ptr`` is being
@@ -315,6 +315,12 @@ namespace libtorrent
 			int /*src*/, int /*flags*/) {}
 	};
 
+	// peer plugins are associated with a specific peer. A peer could be
+	// both a regular bittorrent peer (``bt_peer_connection``) or one of the
+	// web seed connections (``web_peer_connection`` or ``http_seed_connection``).
+	// In order to only attach to certain peers, make your
+	// torrent_plugin::new_connection only return a plugin for certain peer
+	// connection types
 	struct TORRENT_EXPORT peer_plugin
 	{
 		// hidden
