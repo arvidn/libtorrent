@@ -102,7 +102,6 @@ nobase_include_HEADERS = \
   storage.hpp                  \
   storage_defs.hpp             \
   string_util.hpp              \
-  struct_debug.hpp             \
   thread.hpp                   \
   time.hpp                     \
   timestamp_history.hpp        \

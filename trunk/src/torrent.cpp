@@ -87,10 +87,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // BOOST_VERSION
 #endif // TORRENT_USE_OPENSSL
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#include "libtorrent/struct_debug.hpp"
-#endif
-
 using namespace libtorrent;
 using boost::tuples::tuple;
 using boost::tuples::get;
@@ -204,117 +200,6 @@ namespace
 
 namespace libtorrent
 {
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-
-	void torrent::print_size(logger& l)
-	{
-		char tmp[300];
-		int temp = 0;
-		int prev_size = 0;
-		PRINT_SIZEOF(torrent)
-
-		PRINT_OFFSETOF(torrent, m_tracker_address)
-		PRINT_OFFSETOF(torrent, m_manager)
-		PRINT_OFFSETOF(torrent, m_policy)
-		PRINT_OFFSETOF(torrent, m_total_uploaded)
-		PRINT_OFFSETOF(torrent, m_total_downloaded)
-		PRINT_OFFSETOF(torrent, m_started)
-		PRINT_OFFSETOF(torrent, m_torrent_file)
-		PRINT_OFFSETOF(torrent, m_owning_storage)
-		PRINT_OFFSETOF(torrent, m_storage)
-		PRINT_OFFSETOF(torrent, m_connections)
-		PRINT_OFFSETOF(torrent, m_web_seeds)
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		PRINT_OFFSETOF(torrent, m_extensions)
-#endif
-		PRINT_OFFSETOF(torrent, m_tracker_timer)
-		PRINT_OFFSETOF(torrent, m_stat)
-// some compilers don't like using offsetof on references it seems
-#ifndef _MSC_VER
-		PRINT_OFFSETOF(torrent, m_ses)
-#endif
-		PRINT_OFFSETOF(torrent, m_file_priority)
-		PRINT_OFFSETOF(torrent, m_file_progress)
-		PRINT_OFFSETOF(torrent, m_picker)
-		PRINT_OFFSETOF(torrent, m_trackers)
-		PRINT_OFFSETOF(torrent, m_time_critical_pieces)
-		PRINT_OFFSETOF(torrent, m_username)
-		PRINT_OFFSETOF(torrent, m_password)
-		PRINT_OFFSETOF(torrent, m_net_interfaces)
-		PRINT_OFFSETOF(torrent, m_save_path)
-		PRINT_OFFSETOF(torrent, m_url)
-		PRINT_OFFSETOF(torrent, m_uuid)
-		PRINT_OFFSETOF(torrent, m_source_feed_url)
-		PRINT_OFFSETOF(torrent, m_torrent_file_buf)
-		PRINT_OFFSETOF(torrent, m_verified)
-		PRINT_OFFSETOF(torrent, m_error)
-		PRINT_OFFSETOF(torrent, m_error_file)
-		PRINT_OFFSETOF(torrent, m_resume_data)
-		PRINT_OFFSETOF(torrent, m_resume_entry)
-		PRINT_OFFSETOF(torrent, m_name)
-		PRINT_OFFSETOF(torrent, m_storage_constructor)
-		PRINT_OFFSETOF(torrent, m_added_time)
-		PRINT_OFFSETOF(torrent, m_completed_time)
-		PRINT_OFFSETOF(torrent, m_last_saved_resume)
-		PRINT_OFFSETOF(torrent, m_last_seen_complete)
-		PRINT_OFFSETOF(torrent, m_swarm_last_seen_complete)
-		PRINT_OFFSETOF(torrent, m_num_verified)
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		PRINT_OFFSETOF(torrent, m_obfuscated_hash)
-#endif
-		PRINT_OFFSETOF(torrent, m_ratio)
-		PRINT_OFFSETOF(torrent, m_available_free_upload)
-		PRINT_OFFSETOF(torrent, m_average_piece_time)
-		PRINT_OFFSETOF(torrent, m_piece_time_deviation)
-		PRINT_OFFSETOF(torrent, m_total_failed_bytes)
-		PRINT_OFFSETOF(torrent, m_total_redundant_bytes)
-//		PRINT_OFFSETOF(torrent, m_upload_mode_time:24)
-//		PRINT_OFFSETOF(torrent, m_state:3)
-//		PRINT_OFFSETOF(torrent, m_storage_mode:2)
-//		PRINT_OFFSETOF(torrent, m_announcing:1)
-//		PRINT_OFFSETOF(torrent, m_waiting_tracker:1)
-//		PRINT_OFFSETOF(torrent, m_seed_mode:1)
-//		PRINT_OFFSETOF(torrent, m_active_time:24)
-		PRINT_OFFSETOF(torrent, m_last_working_tracker)
-//		PRINT_OFFSETOF(torrent, m_finished_time:24)
-//		PRINT_OFFSETOF(torrent, m_sequential_download:1)
-//		PRINT_OFFSETOF(torrent, m_got_tracker_response:1)
-//		PRINT_OFFSETOF(torrent, m_connections_initialized:1)
-//		PRINT_OFFSETOF(torrent, m_super_seeding:1)
-//		PRINT_OFFSETOF(torrent, m_override_resume_data:1)
-//		PRINT_OFFSETOF(torrent, m_resolving_country:1)
-//		PRINT_OFFSETOF(torrent, m_resolve_countries:1)
-//		PRINT_OFFSETOF(torrent, m_need_save_resume_data:1)
-//		PRINT_OFFSETOF(torrent, m_seeding_time:24)
-		PRINT_OFFSETOF(torrent, m_time_scaler)
-//		PRINT_OFFSETOF(torrent, m_max_uploads:24)
-//		PRINT_OFFSETOF(torrent, m_num_uploads:24)
-//		PRINT_OFFSETOF(torrent, m_block_size_shift:5)
-//		PRINT_OFFSETOF(torrent, m_has_incoming:1)
-//		PRINT_OFFSETOF(torrent, m_files_checked:1)
-//		PRINT_OFFSETOF(torrent, m_queued_for_checking:1)
-//		PRINT_OFFSETOF(torrent, m_max_connections:24)
-//		PRINT_OFFSETOF(torrent, m_padding:24)
-		PRINT_OFFSETOF(torrent, m_sequence_number)
-//		PRINT_OFFSETOF(torrent, m_complete:24)
-//		PRINT_OFFSETOF(torrent, m_priority)
-//		PRINT_OFFSETOF(torrent, m_incomplete:24)
-//		PRINT_OFFSETOF(torrent, m_progress_ppm:20)
-//		PRINT_OFFSETOF(torrent, m_abort:1)
-//		PRINT_OFFSETOF(torrent, m_announce_to_dht:1)
-//		PRINT_OFFSETOF(torrent, m_announce_to_trackers:1)
-//		PRINT_OFFSETOF(torrent, m_announce_to_lsd:1)
-//		PRINT_OFFSETOF(torrent, m_allow_peers:1)
-//		PRINT_OFFSETOF(torrent, m_upload_mode:1)
-//		PRINT_OFFSETOF(torrent, m_auto_managed:1)
-//		PRINT_OFFSETOF(torrent, m_last_scrape)
-	}
-#undef PRINT_SIZEOF
-#undef PRINT_OFFSETOF
-
-#endif
-
 	int root2(int x)
 	{
 		int ret = 0;

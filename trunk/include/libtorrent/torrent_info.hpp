@@ -660,11 +660,7 @@ namespace libtorrent
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 		// if we're logging member offsets, we need access to them
-#if !defined TORRENT_LOGGING \
-		&& !defined TORRENT_VERBOSE_LOGGING \
-		&& !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
 
 #ifdef TORRENT_DEBUG
 		friend class invariant_access;
