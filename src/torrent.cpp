@@ -5985,7 +5985,7 @@ namespace libtorrent
 		// a lower value of connected_time means it's been waiting
 		// longer. This is a less-than comparison, so if lhs has
 		// waited longer than rhs, we should return false.
-		return lhs->connected_time() >= rhs->connected_time();
+		return lhs->connected_time() > rhs->connected_time();
 	}
 
 	bool torrent::attach_peer(peer_connection* p)
