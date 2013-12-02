@@ -851,10 +851,6 @@ namespace libtorrent
 		// that are not private
 		void lsd_announce();
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		static void print_size(logger& l);
-#endif
-
 		void update_last_upload() { m_last_upload = 0; }
 
 		void set_apply_ip_filter(bool b);
@@ -976,13 +972,7 @@ namespace libtorrent
 		void init_ssl(std::string const& cert);
 #endif
 
-#ifdef TORRENT_DEBUG
-	public:
-#endif
 		std::set<peer_connection*> m_connections;
-#ifdef TORRENT_DEBUG
-	private:
-#endif
 
 		// of all peers in m_connections, this is the number
 		// of peers that are outgoing and still waiting to

@@ -190,12 +190,7 @@ namespace libtorrent
 
 		io_service& get_io_service() { return m_timeout.get_io_service(); }
 
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	// necessary for logging member offsets
 	private:
-#endif
 	
 		void timeout_callback(error_code const&);
 
@@ -246,12 +241,7 @@ namespace libtorrent
 		boost::intrusive_ptr<tracker_connection> self()
 		{ return boost::intrusive_ptr<tracker_connection>(this); }
 
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	// necessary for logging member offsets
 	protected:
-#endif
 
 		void fail_impl(error_code const& ec, int code = -1, std::string msg = std::string()
 			, int interval = 0, int min_interval = 0);
@@ -260,12 +250,7 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	// necessary for logging member offsets
 	private:
-#endif
 
 		const tracker_request m_req;
 	};

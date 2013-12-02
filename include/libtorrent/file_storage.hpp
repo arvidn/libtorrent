@@ -188,11 +188,7 @@ namespace libtorrent
 		boost::uint64_t symlink_attribute:1;
 
 		// make it available for logging
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
 		// This string is not necessarily null terminated!
 		// that's why it's private, to keep people away from it
 		char const* name;
@@ -516,11 +512,7 @@ namespace libtorrent
 		size_type file_offset(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 #endif
 
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
 
 		void update_path_index(internal_file_entry& e);
 		void reorder_file(int index, int dst);

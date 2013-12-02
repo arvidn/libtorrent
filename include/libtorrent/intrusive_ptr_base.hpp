@@ -75,12 +75,8 @@ namespace libtorrent
 
 		intrusive_ptr_base(): m_refs(0) {}
 
-		// so that we can access this when logging
-#if !defined TORRENT_LOGGING \
-		&& !defined TORRENT_VERBOSE_LOGGING \
-		&& !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
+
 		// reference counter for intrusive_ptr
 		mutable boost::detail::atomic_count m_refs;
 	};

@@ -415,7 +415,8 @@ namespace libtorrent
 
 	void session::set_log_path(std::string const& p)
 	{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING \
+	|| defined TORRENT_ERROR_LOGGING
 		m_impl->set_log_path(p);
 #endif
 	}
