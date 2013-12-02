@@ -180,7 +180,7 @@ namespace libtorrent
 #endif
 		::free(block - page);
 		return;
-#endif
+#endif // TORRENT_DEBUG_BUFFERS
 
 #ifdef TORRENT_WINDOWS
 		_aligned_free(block);
@@ -190,7 +190,7 @@ namespace libtorrent
 		delete_area(id);
 #else
 		::free(block);
-#endif
+#endif // TORRENT_WINDOWS
 	}
 
 
