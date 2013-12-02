@@ -68,7 +68,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#include "libtorrent/struct_debug.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/ip_voter.hpp" // for external_ip
 #endif
@@ -135,24 +134,6 @@ namespace libtorrent
 	{
 		thread_started();
 	}
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-
-	void policy::print_size(logger& l)
-	{
-		char tmp[300];
-		int temp = 0;
-		int prev_size = 0;
-		PRINT_SIZEOF(policy)
-
-		PRINT_OFFSETOF(policy, m_peers)
-		PRINT_OFFSETOF(policy, m_round_robin)
-		PRINT_OFFSETOF_END(policy)
-	}
-#undef PRINT_SIZEOF
-#undef PRINT_OFFSETOF
-
-#endif
 
 	// disconnects and removes all peers that are now filtered
 	// fills in 'erased' with torrent_peer pointers that were removed

@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <fstream>
+#include <stdio.h>
 #endif
 
 namespace libtorrent

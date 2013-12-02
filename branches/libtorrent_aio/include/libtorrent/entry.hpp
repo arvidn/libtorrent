@@ -228,6 +228,7 @@ namespace libtorrent
 		entry* find_key(std::string const& key);
 		entry const* find_key(std::string const& key) const;
 
+		// TODO: could this be removed?
 #if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
 		void print(std::ostream& os, int indent = 0) const;
 #endif

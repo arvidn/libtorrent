@@ -677,11 +677,7 @@ namespace libtorrent
 		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
 
 		// if we're logging member offsets, we need access to them
-#if !defined TORRENT_LOGGING \
-		&& !defined TORRENT_VERBOSE_LOGGING \
-		&& !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
 
 		void resolve_duplicate_filenames();
 

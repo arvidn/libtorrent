@@ -107,10 +107,6 @@ namespace libtorrent
 	{
 	public:
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		static void print_size(logger& l);
-#endif
-
 		struct piece_pos;
 
 		enum

@@ -43,10 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#include "libtorrent/debug.hpp" // for logger
-#endif
-
 namespace libtorrent
 {
 	class TORRENT_EXTRA_EXPORT stat_channel

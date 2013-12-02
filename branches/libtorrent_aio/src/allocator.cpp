@@ -203,7 +203,7 @@ namespace libtorrent
 		delete_area(id);
 #else
 		::free(block);
-#endif
+#endif // TORRENT_WINDOWS
 	}
 
 

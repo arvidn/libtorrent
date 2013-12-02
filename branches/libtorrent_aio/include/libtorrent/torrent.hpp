@@ -898,10 +898,6 @@ namespace libtorrent
 		// that are not private
 		void lsd_announce();
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		static void print_size(logger& l);
-#endif
-
 		void update_last_upload() { m_last_upload = 0; }
 
 		void set_apply_ip_filter(bool b);
@@ -1029,18 +1025,12 @@ namespace libtorrent
 		void init_ssl(std::string const& cert);
 #endif
 
-#ifdef TORRENT_DEBUG
-	public:
-#endif
 		// this vector is sorted at all times, by the pointer value.
 		// use sorted_insert() and sorted_find() on it. The GNU STL
 		// implementation on Darwin uses significantly less memory to
 		// represent a vector than a set, and this set is typically
 		// relaitvely small, and it's cheap to copy pointers.
 		std::vector<peer_connection*> m_connections;
-#ifdef TORRENT_DEBUG
-	private:
-#endif
 
 		void setup_peer_class();
 

@@ -107,10 +107,6 @@ namespace libtorrent
 
 		policy();
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		static void print_size(logger& l);
-#endif
-
 #if TORRENT_USE_I2P
 		torrent_peer* add_i2p_peer(char const* destination, int src, char flags
 			, torrent_state* state);
