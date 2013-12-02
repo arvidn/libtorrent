@@ -104,24 +104,22 @@ namespace libtorrent
 		: peer_connection(ses, tor, s, remote
 			, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		, m_upload_only_id(0)
-		, m_holepunch_id(0)
-		, m_dont_have_id(0)
-		, m_share_mode_id(0)
 		, m_supports_extensions(false)
-#endif
 		, m_supports_dht_port(false)
 		, m_supports_fast(false)
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		, m_encrypted(false)
-		, m_rc4_encrypted(false)
-		, m_sync_bytes_read(0)
-#endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
 		, m_sent_handshake(false)
+#endif
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_encrypted(false)
+		, m_rc4_encrypted(false)
+		, m_upload_only_id(0)
+		, m_holepunch_id(0)
+		, m_sync_bytes_read(0)
+		, m_dont_have_id(0)
+		, m_share_mode_id(0)
 #endif
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -153,7 +151,7 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		
-		pe_settings::enc_policy out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
+		boost::uint8_t out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
@@ -481,7 +479,7 @@ namespace libtorrent
 		// write the verification constant and crypto field
 		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
-		pe_settings::enc_level crypto_provide = m_ses.get_pe_settings().allowed_enc_level;
+		boost::uint8_t crypto_provide = m_ses.get_pe_settings().allowed_enc_level;
 
 		// this is an invalid setting, but let's just make the best of the situation
 		if ((crypto_provide & pe_settings::both) == 0) crypto_provide = pe_settings::both;
