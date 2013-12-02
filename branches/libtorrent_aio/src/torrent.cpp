@@ -2840,7 +2840,7 @@ namespace libtorrent
 
 #endif
 
-	void torrent::announce_with_tracker(tracker_request::event_t e
+	void torrent::announce_with_tracker(boost::uint8_t e
 		, address const& bind_interface)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());

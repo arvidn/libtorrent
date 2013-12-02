@@ -854,6 +854,16 @@ namespace libtorrent
 		// for the round-robin unchoke algorithm.
 		size_type m_uploaded_at_last_unchoke;
 
+		// the size (in bytes) of the bittorrent message
+		// we're currently receiving
+		int m_packet_size;
+
+		// some messages needs to be read from the socket
+		// buffer in multiple stages. This soft packet
+		// size limits the read size between message handler
+		// dispatch. Ignored when set to 0
+		int m_soft_packet_size;
+
 		template <std::size_t Size>
 		struct handler_storage
 		{
@@ -1015,16 +1025,6 @@ namespace libtorrent
 		// the timeout in seconds
 		int m_timeout;
 
-		// the size (in bytes) of the bittorrent message
-		// we're currently receiving
-		int m_packet_size;
-
-		// some messages needs to be read from the socket
-		// buffer in multiple stages. This soft packet
-		// size limits the read size between message handler
-		// dispatch. Ignored when set to 0
-		int m_soft_packet_size;
-
 		// the byte offset in m_recv_buffer that we have
 		// are passing on to the upper layer. This is
 		// always <= m_recv_end
@@ -1083,11 +1083,6 @@ namespace libtorrent
 		// we can then clear its download queue
 		// by sending choke, unchoke.
 		int m_num_invalid_requests;
-
-		// this is a measurement of how fast the peer
-		// it allows some variance without changing
-		// back and forth between states
-		peer_speed_t m_speed;
 
 		// the ticket id from the connection queue.
 		// This is used to identify the connection
@@ -1152,6 +1147,12 @@ namespace libtorrent
 		// peer resides in.
 		char m_country[2];
 #endif
+
+		// this is a measurement of how fast the peer
+		// it allows some variance without changing
+		// back and forth between states. values are enums
+		// from peer_speed_t.
+		boost::uint8_t m_speed;
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.

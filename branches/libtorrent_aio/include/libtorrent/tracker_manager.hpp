@@ -90,9 +90,9 @@ namespace libtorrent
 			, redundant(0)
 			, listen_port(0)
 			, event(none)
+			, kind(announce_request)
 			, key(0)
 			, num_want(0)
-			, kind(announce_request)
 			, send_stats(true)
 			, apply_ip_filter(true)
 #ifdef TORRENT_USE_OPENSSL
@@ -109,27 +109,33 @@ namespace libtorrent
 			paused
 		};
 
-		size_type downloaded;
-		size_type uploaded;
-		size_type left;
-		size_type corrupt;
-		size_type redundant;
-		unsigned short listen_port;
-		event_t event;
-		std::string url;
-		std::string trackerid;
-		boost::uint32_t key;
-		int num_want;
-		sha1_hash info_hash;
-		peer_id pid;
-		address bind_ip;
-
 		enum kind_t
 		{
 			announce_request,
 			scrape_request
 		};
+
+		std::string url;
+		std::string trackerid;
+
+		size_type downloaded;
+		size_type uploaded;
+		size_type left;
+		size_type corrupt;
+		size_type redundant;
+		boost::uint16_t listen_port;
+
+		// values from event_t
+		boost::uint8_t event;
+
+		// values from kind_t
 		boost::uint8_t kind;
+
+		boost::uint32_t key;
+		int num_want;
+		sha1_hash info_hash;
+		peer_id pid;
+		address bind_ip;
 
 		bool send_stats;
 		bool apply_ip_filter;

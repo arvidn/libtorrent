@@ -156,6 +156,8 @@ namespace libtorrent
 		, m_downloaded_at_last_round(0)
 		, m_uploaded_at_last_round(0)
 		, m_uploaded_at_last_unchoke(0)
+		, m_packet_size(0)
+		, m_soft_packet_size(0)
 		, m_disk_recv_buffer(allocator, 0)
 		, m_socket(s)
 		, m_torrent(tor)
@@ -169,8 +171,6 @@ namespace libtorrent
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
 		, m_timeout(m_settings.get_int(settings_pack::peer_timeout))
-		, m_packet_size(0)
-		, m_soft_packet_size(0)
 		, m_recv_pos(0)
 		, m_recv_end(0)
 		, m_recv_start(0)
@@ -178,7 +178,6 @@ namespace libtorrent
 		, m_reading_bytes(0)
 		, m_picker_options(0)
 		, m_num_invalid_requests(0)
-		, m_speed(slow)
 		, m_connection_ticket(-1)
 		, m_remote_bytes_dled(0)
 		, m_remote_dl_rate(0)
@@ -187,6 +186,7 @@ namespace libtorrent
 		, m_upload_rate_peak(0)
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
 		, m_rtt(0)
+		, m_speed(slow)
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
 		, m_disk_read_failures(0)
@@ -6678,7 +6678,7 @@ namespace libtorrent
 		else
 			m_speed = slow;
 
-		return m_speed;
+		return peer_connection::peer_speed_t(m_speed);
 	}
 
 	void peer_connection::keep_alive()

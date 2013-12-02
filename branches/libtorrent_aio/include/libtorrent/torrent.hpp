@@ -552,7 +552,7 @@ namespace libtorrent
 		void force_tracker_request();
 		void force_tracker_request(ptime);
 		void scrape_tracker();
-		void announce_with_tracker(tracker_request::event_t e
+		void announce_with_tracker(boost::uint8_t e
 			= tracker_request::none
 			, address const& bind_interface = address_v4::any());
 		int seconds_since_last_scrape() const { return m_last_scrape; }

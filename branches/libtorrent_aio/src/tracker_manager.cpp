@@ -151,8 +151,8 @@ namespace libtorrent
 		, io_service& ios
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
-		, m_requester(r)
 		, m_req(req)
+		, m_requester(r)
 		, m_man(man)
 	{}
 
