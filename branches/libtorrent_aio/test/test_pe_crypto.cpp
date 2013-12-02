@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 
-char const* pe_policy(libtorrent::pe_settings::enc_policy policy)
+char const* pe_policy(boost::uint8_t policy)
 {
 	using namespace libtorrent;
 	

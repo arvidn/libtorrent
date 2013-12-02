@@ -46,7 +46,7 @@ network.
 The ``token`` field also has the same semantics as the standard DHT message ``get_peers``
 and ``announce_peer``, when requesting an item and to write an item respectively.
 
-The ``k`` field is the 32 byte ed25519 public key, which the signature
+The ``k`` field is the 32 byte curve25519 public key, which the signature
 can be authenticated with. When looking up a mutable item, the ``target`` field
 MUST be the SHA-1 hash of this key.
 
@@ -155,7 +155,7 @@ number to a lower one, only upgrade. The sequence number SHOULD not exceed ``MAX
 (i.e. ``0x7fffffffffffffff``. A client MAY reject any message with a sequence number
 exceeding this. A client MAY also reject any message with a negative sequence number.
 
-The signature is a 64 byte ed25519 signature of the bencoded sequence
+The signature is a 64 byte curve25519 signature of the bencoded sequence
 number concatenated with the ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
 
 put message
@@ -170,9 +170,9 @@ Request:
 		{
 			"cas": *<optional 20 byte hash (string)>*,
 			"id": *<20 byte id of sending node (string)>*,
-			"k": *<ed25519 public key (32 bytes string)>*,
+			"k": *<curve25519 public key (32 bytes string)>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
-			"sig": *<ed25519 signature (64 bytes string)>*,
+			"sig": *<curve25519 signature (64 bytes string)>*,
 			"token": *<write-token (string)>*,
 			"v": *<any bencoded type, whose encoded size < 1000>*
 		},
@@ -280,11 +280,11 @@ Response:
 		"r":
 		{
 			"id": *<20 byte id of sending node (string)>*,
-			"k": *<ed25519 public key (32 bytes string)>*,
+			"k": *<curve25519 public key (32 bytes string)>*,
 			"nodes": *<IPv4 nodes close to 'target'>*,
 			"nodes6": *<IPv6 nodes close to 'target'>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
-			"sig": *<ed25519 signature (64 bytes string)>*,
+			"sig": *<curve25519 signature (64 bytes string)>*,
 			"token": *<write-token (string)>*,
 			"v": *<any bencoded type, whose encoded size <= 1000>*
 		},

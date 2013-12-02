@@ -298,11 +298,13 @@ Build features:
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
 +--------------------------+----------------------------------------------------+
-| ``pool-allocators``      | * ``on`` - default, uses pool allocators for send  |
-|                          |   buffers.                                         |
-|                          | * ``off`` - uses ``malloc()`` and ``free()``       |
+| ``allocator``            | * ``pool`` - default, uses pool allocators for     |
+|                          |   send buffers.                                    |
+|                          | * ``system`` - uses ``malloc()`` and ``free()``    |
 |                          |   instead. Might be useful to debug buffer issues  |
 |                          |   with tools like electric fence or libgmalloc.    |
+|                          | * ``debug`` - instruments buffer usage to catch    |
+|                          |   bugs in libtorrent.                              |
 +--------------------------+----------------------------------------------------+
 | ``link``                 | * ``static`` - builds libtorrent as a static       |
 |                          |   library (.a / .lib)                              |

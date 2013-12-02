@@ -164,7 +164,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		
-		pe_settings::enc_policy out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
+		boost::uint8_t out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
@@ -499,7 +499,7 @@ namespace libtorrent
 		// write the verification constant and crypto field
 		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
-		pe_settings::enc_level crypto_provide = m_ses.get_pe_settings().allowed_enc_level;
+		boost::uint8_t crypto_provide = m_ses.get_pe_settings().allowed_enc_level;
 
 		// this is an invalid setting, but let's just make the best of the situation
 		if ((crypto_provide & pe_settings::both) == 0) crypto_provide = pe_settings::both;

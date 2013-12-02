@@ -206,6 +206,7 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_max_connections:24)
 //		PRINT_OFFSETOF(torrent, m_padding:24)
 //		PRINT_OFFSETOF(torrent, m_complete:24)
+//		PRINT_OFFSETOF(torrent, m_priority)
 //		PRINT_OFFSETOF(torrent, m_incomplete:24)
 //		PRINT_OFFSETOF(torrent, m_progress_ppm:20)
 //		PRINT_OFFSETOF(torrent, m_abort:1)
@@ -215,7 +216,7 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_allow_peers:1)
 //		PRINT_OFFSETOF(torrent, m_upload_mode:1)
 //		PRINT_OFFSETOF(torrent, m_auto_managed:1)
-		PRINT_OFFSETOF(torrent, m_last_scrape)
+//		PRINT_OFFSETOF(torrent, m_last_scrape)
 //		PRINT_OFFSETOF(torrent, m_last_download)
 		PRINT_OFFSETOF_END(torrent)
 	}

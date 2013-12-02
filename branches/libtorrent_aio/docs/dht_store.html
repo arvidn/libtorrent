@@ -100,7 +100,7 @@ i.e. the node ID of the node sending the message, to maintain the structure of t
 network.</p>
 <p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message <tt class="docutils literal">get_peers</tt>
 and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an item respectively.</p>
-<p>The <tt class="docutils literal">k</tt> field is the 32 byte ed25519 public key, which the signature
+<p>The <tt class="docutils literal">k</tt> field is the 32 byte curve25519 public key, which the signature
 can be authenticated with. When looking up a mutable item, the <tt class="docutils literal">target</tt> field
 MUST be the SHA-1 hash of this key.</p>
 <p>The distinction between storing mutable and immutable items is the inclusion
@@ -191,7 +191,7 @@ and a node hosting the list node MUST not downgrade a list head from a higher se
 number to a lower one, only upgrade. The sequence number SHOULD not exceed <tt class="docutils literal">MAX_INT64</tt>,
 (i.e. <tt class="docutils literal">0x7fffffffffffffff</tt>. A client MAY reject any message with a sequence number
 exceeding this. A client MAY also reject any message with a negative sequence number.</p>
-<p>The signature is a 64 byte ed25519 signature of the bencoded sequence
+<p>The signature is a 64 byte curve25519 signature of the bencoded sequence
 number concatenated with the <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
 <div class="section" id="id1">
 <h2>put message</h2>
@@ -202,9 +202,9 @@ number concatenated with the <tt class="docutils literal">v</tt> key. e.g. somet
         {
                 &quot;cas&quot;: <em>&lt;optional 20 byte hash (string)&gt;</em>,
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
-                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
+                &quot;k&quot;: <em>&lt;curve25519 public key (32 bytes string)&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
-                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;curve25519 signature (64 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 1000&gt;</em>
         },
@@ -307,11 +307,11 @@ a critical feature in synchronization of multiple agents sharing an immutable it
         &quot;r&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
-                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
+                &quot;k&quot;: <em>&lt;curve25519 public key (32 bytes string)&gt;</em>,
                 &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
                 &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
-                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;curve25519 signature (64 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt;= 1000&gt;</em>
         },

@@ -58,7 +58,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef TORRENT_DEBUG_BUFFERS
+#ifndef TORRENT_WINDOWS
 #include <sys/mman.h>
+#endif
 #include "libtorrent/size_type.hpp"
 
 struct alloc_header
@@ -131,12 +133,22 @@ namespace libtorrent
 		h->size = orig_bytes;
 		h->magic = 0x1337;
 		print_backtrace(h->stack, sizeof(h->stack));
+
+#ifdef TORRENT_WINDOWS
+#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULK)
+#define PROT_READ PAGE_READONLY
+#endif
 		mprotect(ret, page, PROT_READ);
 		mprotect(ret + (num_pages-1) * page, page, PROT_READ);
+
+#ifdef TORRENT_WINDOWS
+#undef mprotect
+#undef PROT_READ
+#endif
 //		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
 
 		return ret + page;
-#endif
+#endif // TORRENT_DEBUG_BUFFERS
 
 		return ret;
 	}
@@ -155,6 +167,12 @@ namespace libtorrent
 		if (block == 0) return;
 
 #ifdef TORRENT_DEBUG_BUFFERS
+
+#ifdef TORRENT_WINDOWS
+#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULK)
+#define PROT_READ PAGE_READONLY
+#define PROT_WRITE PAGE_READWRITE
+#endif
 		int page = page_size();
 		// make the two surrounding pages non-readable and -writable
 		mprotect(block - page, page, PROT_READ | PROT_WRITE);
@@ -165,9 +183,17 @@ namespace libtorrent
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
 		h->magic = 0;
 
+#ifdef TORRENT_WINDOWS
+#undef mprotect
+#undef PROT_READ
+#undef PROT_WRITE
+#endif
+
+#if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
 		print_backtrace(h->stack, sizeof(h->stack));
 		block -= page;
 #endif
+#endif // TORRENT_DEBUG_BUFFERS
 
 #ifdef TORRENT_WINDOWS
 		_aligned_free(block);

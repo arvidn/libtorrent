@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
 
+#include <boost/cstdint.hpp>
 #include <string>
 #include <vector>
 #include <utility>
@@ -47,8 +48,8 @@ namespace libtorrent
 	// direct certain traffic to a proxy.
 	struct TORRENT_EXPORT proxy_settings
 	{
-		proxy_settings() : port(0), type(none)
-			, proxy_hostnames(true)
+		proxy_settings() : type(none)
+			, port(0), proxy_hostnames(true)
 			, proxy_peer_connections(true)
 		{}
 
@@ -56,7 +57,6 @@ namespace libtorrent
 		// port number the proxy listens to. If required, ``username`` and ``password``
 		// can be set to authenticate with the proxy.
 		std::string hostname;
-		int port;
 
 		std::string username;
 		std::string password;
@@ -101,7 +101,10 @@ namespace libtorrent
 		
 		// tells libtorrent what kind of proxy server it is. See proxy_type
 		// enum for options
-		proxy_type type;
+		boost::uint8_t type;
+
+		// the port the proxy server is running on
+		boost::uint16_t port;
 
 		// defaults to true. It means that hostnames should be
 		// attempted to be resolved through the proxy instead of using the local DNS
@@ -1577,14 +1580,14 @@ namespace libtorrent
 		// control the settings for incoming
 		// and outgoing connections respectively.
 		// see enc_policy enum for the available options.
-		enc_policy out_enc_policy;
-		enc_policy in_enc_policy;
+		boost::uint8_t out_enc_policy;
+		boost::uint8_t in_enc_policy;
 
 		// determines the encryption level of the
 		// connections.  This setting will adjust which encryption scheme is
 		// offered to the other peer, as well as which encryption scheme is
 		// selected by the client. See enc_level enum for options.
-		enc_level allowed_enc_level;
+		boost::uint8_t allowed_enc_level;
 
 		// if the allowed encryption level is both, setting this to
 		// true will prefer rc4 if both methods are offered, plaintext
