@@ -293,7 +293,7 @@ namespace libtorrent
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
 		bool can_write() const;
-		bool can_read(char* state = 0) const;
+		bool can_read(boost::uint8_t* state = 0) const;
 
 		bool is_seed() const;
 		int num_have_pieces() const { return m_num_pieces; }
@@ -625,10 +625,6 @@ namespace libtorrent
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 		void set_last_seen_complete(int ago) { m_last_seen_complete = time(0) - ago; }
 
-		// upload and download channel state
-		// enum from peer_info::bw_state
-		char m_channel_state[2];
-
 		size_type uploaded_in_last_round() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_round; }
 
@@ -722,6 +718,98 @@ namespace libtorrent
 
 		void update_desired_queue_size();
 
+		void set_timeout(int s) { m_timeout = s; }
+
+		boost::intrusive_ptr<peer_connection> self()
+		{
+			TORRENT_ASSERT(!m_in_constructor);
+			return boost::intrusive_ptr<peer_connection>(this);
+		}
+
+		// TODO: make this private
+	public:
+
+		// upload and download channel state
+		// enum from peer_info::bw_state
+		boost::uint8_t m_channel_state[2];
+
+	private:
+
+		// is true if we learn the incoming connections listening
+		// during the extended handshake
+		bool m_received_listen_port:1;
+
+		// this is set to true when a have_all
+		// message is received. This information
+		// is used to fill the bitmask in init()
+		bool m_have_all:1;
+
+		// other side says that it's interested in downloading
+		// from us.
+		bool m_peer_interested:1;
+
+		// the other side has told us that it won't send anymore
+		// data to us for a while
+		bool m_peer_choked:1;
+
+		// the peer has pieces we are interested in
+		bool m_interesting:1;
+
+		// we have choked the upload to the peer
+		bool m_choked:1;
+
+		// this is set to true if the connection timed
+		// out or closed the connection. In that
+		// case we will not try to reconnect to
+		// this peer
+		bool m_failed:1;
+
+		// this is true if this connection has been added
+		// to the list of connections that will be closed.
+		bool m_disconnecting:1;
+
+		// this is set to true once the bitfield is received
+		bool m_bitfield_received:1;
+
+		// this is set to true if the last time we tried to
+		// pick a piece to download, we could only find
+		// blocks that were already requested from other
+		// peers. In this case, we should not try to pick
+		// another piece until the last one we requested is done
+		bool m_endgame_mode:1;
+
+		// set to true when we've sent the first round of suggests
+		bool m_sent_suggests:1;
+
+		// set to true while we're trying to holepunch
+		bool m_holepunch_mode:1;
+
+		// when this is set, the transfer stats for this connection
+		// is not included in the torrent or session stats
+		bool m_ignore_stats:1;
+
+		// when this is set, the peer_connection socket is
+		// corked, similar to the linux TCP feature TCP_CORK.
+		// we won't send anything to the actual socket, just
+		// buffer messages up in the application layer send
+		// buffer, and send it once we're uncorked.
+		bool m_corked:1;
+
+		// set to true if this peer has metadata, and false
+		// otherwise.
+		bool m_has_metadata:1;
+
+		// this is set to true if this peer was accepted exceeding
+		// the connection limit. It means it has to disconnect
+		// itself, or some other peer, as soon as it's completed
+		// the handshake. We need to wait for the handshake in
+		// order to know which torrent it belongs to, to know which
+		// other peers to compare it to.
+		bool m_exceeded_limit:1;
+
+		// TODO: make these private as well
+	protected:
+
 		// number of bytes this peer can send and receive
 		int m_quota[2];
 
@@ -749,14 +837,6 @@ namespace libtorrent
 		// the average rate of receiving complete piece messages
 		sliding_average<20> m_piece_rate;
 		sliding_average<20> m_send_rate;
-
-		void set_timeout(int s) { m_timeout = s; }
-
-		boost::intrusive_ptr<peer_connection> self()
-		{
-			TORRENT_ASSERT(!m_in_constructor);
-			return boost::intrusive_ptr<peer_connection>(this);
-		}
 
 	private:
 
@@ -894,7 +974,7 @@ namespace libtorrent
 
 		// the pieces the other end have
 		bitfield m_have_piece;
-
+		
 		// the queue of requests we have got
 		// from this peer that haven't been issued
 		// to the disk thread yet
@@ -947,12 +1027,12 @@ namespace libtorrent
 		// connected to, in case we use a proxy
 		tcp::endpoint m_remote;
 		
-		// remote peer's id
-		peer_id m_peer_id;
-
 		// the bandwidth channels, upload and download
 		// keeps track of the current quotas
 		bandwidth_channel m_bandwidth_channel[num_channels];
+
+		// remote peer's id
+		peer_id m_peer_id;
 
 		// if the timeout is extended for the outstanding
 		// requests, this is the number of seconds it was
@@ -1059,12 +1139,6 @@ namespace libtorrent
 		int m_download_rate_peak;
 		int m_upload_rate_peak;
 
-		// when using the BitTyrant choker, this is our
-		// estimated reciprocation rate. i.e. the rate
-		// we need to send to this peer for it to unchoke
-		// us
-		int m_est_reciprocation_rate;
-
 		// this is the limit on the number of outstanding requests
 		// we have to this peer. This is initialized to the settings
 		// in the session_settings structure. But it may be lowered
@@ -1072,6 +1146,12 @@ namespace libtorrent
 		// or if the extended handshake sets a limit.
 		// web seeds also has a limit on the queue size.
 		int m_max_out_request_queue;
+
+		// when using the BitTyrant choker, this is our
+		// estimated reciprocation rate. i.e. the rate
+		// we need to send to this peer for it to unchoke
+		// us
+		int m_est_reciprocation_rate;
 
 		// estimated round trip time to this peer
 		// based on the time from when async_connect
@@ -1111,30 +1191,6 @@ namespace libtorrent
 		// could be considered: true = local, false = remote
 		bool m_outgoing:1;
 
-		// is true if we learn the incoming connections listening
-		// during the extended handshake
-		bool m_received_listen_port:1;
-
-		// other side says that it's interested in downloading
-		// from us.
-		bool m_peer_interested:1;
-
-		// the other side has told us that it won't send anymore
-		// data to us for a while
-		bool m_peer_choked:1;
-
-		// the peer has pieces we are interested in
-		bool m_interesting:1;
-
-		// we have choked the upload to the peer
-		bool m_choked:1;
-
-		// this is set to true if the connection timed
-		// out or closed the connection. In that
-		// case we will not try to reconnect to
-		// this peer
-		bool m_failed:1;
-
 		// if this is set to true, the peer will not
 		// request bandwidth from the limiter, but instead
 		// just send and receive as much as possible.
@@ -1144,15 +1200,6 @@ namespace libtorrent
 		// state individually, regardless of the global
 		// unchoker
 		bool m_ignore_unchoke_slots:1;
-
-		// this is set to true when a have_all
-		// message is received. This information
-		// is used to fill the bitmask in init()
-		bool m_have_all:1;
-
-		// this is true if this connection has been added
-		// to the list of connections that will be closed.
-		bool m_disconnecting:1;
 
 		// this is true until this socket has become
 		// writable for the first time (i.e. the
@@ -1188,48 +1235,9 @@ namespace libtorrent
 		// is set to 1
 		bool m_snubbed:1;
 
-		// this is set to true once the bitfield is received
-		bool m_bitfield_received:1;
-
 		// if this is set to true, the client will not
 		// pick any pieces from this peer
 		bool m_no_download:1;
-
-		// this is set to true if the last time we tried to
-		// pick a piece to download, we could only find
-		// blocks that were already requested from other
-		// peers. In this case, we should not try to pick
-		// another piece until the last one we requested is done
-		bool m_endgame_mode:1;
-
-		// set to true when we've sent the first round of suggests
-		bool m_sent_suggests:1;
-
-		// set to true while we're trying to holepunch
-		bool m_holepunch_mode:1;
-
-		// when this is set, the transfer stats for this connection
-		// is not included in the torrent or session stats
-		bool m_ignore_stats:1;
-
-		// when this is set, the peer_connection socket is
-		// corked, similar to the linux TCP feature TCP_CORK.
-		// we won't send anything to the actual socket, just
-		// buffer messages up in the application layer send
-		// buffer, and send it once we're uncorked.
-		bool m_corked:1;
-
-		// set to true if this peer has metadata, and false
-		// otherwise.
-		bool m_has_metadata:1;
-
-		// this is set to true if this peer was accepted exceeding
-		// the connection limit. It means it has to disconnect
-		// itself, or some other peer, as soon as it's completed
-		// the handshake. We need to wait for the handshake in
-		// order to know which torrent it belongs to, to know which
-		// other peers to compare it to.
-		bool m_exceeded_limit:1;
 
 		template <class Handler, std::size_t Size>
 		struct allocating_handler

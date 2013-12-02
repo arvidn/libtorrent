@@ -112,7 +112,23 @@ namespace libtorrent
 		, tcp::endpoint const& endp
 		, policy::peer* peerinfo
 		, bool outgoing)
-		: m_ses(ses)
+		: m_received_listen_port(false)
+		, m_have_all(false)
+		, m_peer_interested(false)
+		, m_peer_choked(true)
+		, m_interesting(false)
+		, m_choked(true)
+		, m_failed(false)
+		, m_disconnecting(false)
+		, m_bitfield_received(false)
+		, m_endgame_mode(false)
+		, m_sent_suggests(false)
+		, m_holepunch_mode(false)
+		, m_ignore_stats(false)
+		, m_corked(false)
+		, m_has_metadata(true)
+		, m_exceeded_limit(false)
+		, m_ses(ses)
 		, m_work(ses.m_io_service)
 		, m_last_piece(time_now())
 		, m_last_request(time_now())
@@ -166,31 +182,15 @@ namespace libtorrent
 		, m_desired_queue_size(2)
 		, m_fast_reconnect(false)
 		, m_outgoing(outgoing)
-		, m_received_listen_port(false)
-		, m_peer_interested(false)
-		, m_peer_choked(true)
-		, m_interesting(false)
-		, m_choked(true)
-		, m_failed(false)
 		, m_ignore_bandwidth_limits(false)
 		, m_ignore_unchoke_slots(false)
-		, m_have_all(false)
-		, m_disconnecting(false)
 		, m_connecting(outgoing)
 		, m_queued(outgoing)
 		, m_request_large_blocks(false)
 		, m_share_mode(false)
 		, m_upload_only(false)
 		, m_snubbed(false)
-		, m_bitfield_received(false)
 		, m_no_download(false)
-		, m_endgame_mode(false)
-		, m_sent_suggests(false)
-		, m_holepunch_mode(false)
-		, m_ignore_stats(false)
-		, m_corked(false)
-		, m_has_metadata(true)
-		, m_exceeded_limit(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -5392,7 +5392,7 @@ namespace libtorrent
 			&& !m_connecting;
 	}
 
-	bool peer_connection::can_read(char* state) const
+	bool peer_connection::can_read(boost::uint8_t* state) const
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
