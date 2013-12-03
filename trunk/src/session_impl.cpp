@@ -463,10 +463,10 @@ namespace aux {
 	bencode_map_entry proxy_settings_map[] =
 	{
 		TORRENT_SETTING(std_string, hostname)
-		TORRENT_SETTING(integer, port)
+		TORRENT_SETTING(integer16, port)
 		TORRENT_SETTING(std_string, username)
 		TORRENT_SETTING(std_string, password)
-		TORRENT_SETTING(integer, type)
+		TORRENT_SETTING(character, type)
 		TORRENT_SETTING(boolean, proxy_hostnames)
 		TORRENT_SETTING(boolean, proxy_peer_connections)
 	};
@@ -496,9 +496,9 @@ namespace aux {
 #define TORRENT_SETTING(t, x) {#x, offsetof(pe_settings,x), t},
 	bencode_map_entry pe_settings_map[] = 
 	{
-		TORRENT_SETTING(integer, out_enc_policy)
-		TORRENT_SETTING(integer, in_enc_policy)
-		TORRENT_SETTING(integer, allowed_enc_level)
+		TORRENT_SETTING(character, out_enc_policy)
+		TORRENT_SETTING(character, in_enc_policy)
+		TORRENT_SETTING(character, allowed_enc_level)
 		TORRENT_SETTING(boolean, prefer_rc4)
 	};
 #undef TORRENT_SETTING
