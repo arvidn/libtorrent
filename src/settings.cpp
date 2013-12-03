@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// TODO: 4 eliminate all use of this mechanism
 	void load_struct(lazy_entry const& e, void* s, bencode_map_entry const* m, int num)
 	{
 		for (int i = 0; i < num; ++i)
@@ -56,6 +57,7 @@ namespace libtorrent
 					break;
 				}
 				case character:
+				case integer16:
 				case boolean:
 				case integer:
 				case size_integer:
@@ -67,6 +69,7 @@ namespace libtorrent
 					switch (m[i].type)
 					{
 						case character: *((char*)dest) = char(val); break;
+						case integer16: *((boost::uint16_t*)dest) = boost::uint16_t(val); break;
 						case integer: *((int*)dest) = int(val); break;
 						case size_integer: *((size_type*)dest) = size_type(val); break;
 						case time_integer: *((time_t*)dest) = time_t(val); break;
@@ -100,6 +103,9 @@ namespace libtorrent
 						break;
 					case integer:
 						if (*((int*)src) == *((int*)default_value)) continue;
+						break;
+					case integer16:
+						if (*((boost::uint16_t*)src) == *((boost::uint16_t*)default_value)) continue;
 						break;
 					case size_integer:
 						if (*((size_type*)src) == *((size_type*)default_value)) continue;
