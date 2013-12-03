@@ -45,13 +45,13 @@ struct TORRENT_EXTRA_EXPORT timestamp_history
 {
 	enum { history_size = 20 };
 
-	timestamp_history() : m_index(0), m_initialized(false), m_base(0), m_num_samples(0) {}
-	bool initialized() const { return m_initialized; }
+	timestamp_history() : m_base(0), m_index(0), m_num_samples(not_initialized) {}
+	bool initialized() const { return m_num_samples != not_initialized; }
 
 	// add a sample to the timestamp history. If step is true, it's been
 	// a minute since the last step
 	boost::uint32_t add_sample(boost::uint32_t sample, bool step);
-	boost::uint32_t base() const { TORRENT_ASSERT(m_initialized); return m_base; }
+	boost::uint32_t base() const { TORRENT_ASSERT(initialized()); return m_base; }
 	void adjust_base(int change);
 
 private:
@@ -59,20 +59,23 @@ private:
 	// this is a circular buffer
 	boost::uint32_t m_history[history_size];
 
-	// and this is the index we're currently at
-	// in the circular buffer
-	boost::uint16_t m_index;
-
-	bool m_initialized:1;
-
 	// this is the lowest sample seen in the
 	// last 'history_size' minutes
 	boost::uint32_t m_base;
 
+	// and this is the index we're currently at
+	// in the circular buffer
+	boost::uint16_t m_index;
+
+	enum { not_initialized = 0xffff };
+
 	// this is the number of samples since the
 	// last time we stepped one minute. If we
 	// don't have enough samples, we won't step
-	int m_num_samples;
+	// if this is set to 'not_initialized' we
+	// have bit seen any samples at all yet
+	// and m_base is not initialized yet
+	boost::uint16_t m_num_samples;
 };
 
 }
