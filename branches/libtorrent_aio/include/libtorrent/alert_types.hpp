@@ -1607,14 +1607,12 @@ namespace libtorrent
 			upload_protocol,
 			download_payload,
 			download_protocol,
-#ifndef TORRENT_DISABLE_FULL_STATS
 			upload_ip_protocol,
 			upload_dht_protocol,
 			upload_tracker_protocol,
 			download_ip_protocol,
 			download_dht_protocol,
 			download_tracker_protocol,
-#endif
 			num_channels
 		};
 
