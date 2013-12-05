@@ -72,6 +72,7 @@ test_torrent_t test_torrents[] =
 	{ "url_seed_multi_space_nolist.torrent" },
 	{ "root_hash.torrent" },
 	{ "empty_path_multi.torrent" },
+	{ "invalid_name3.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -422,6 +423,10 @@ int test_main()
 			TEST_EQUAL(ti->url_seeds().size(), 1);
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
 #endif
+		}
+		else if (std::string(test_torrents[i].file) == "invalid_name3.torrent")
+		{
+			TEST_EQUAL(ti->name(), "foobar");
 		}
 
 		file_storage const& fs = ti->files();
