@@ -100,6 +100,7 @@ protected:
 
 	friend void intrusive_ptr_add_ref(traversal_algorithm* p)
 	{
+		TORRENT_ASSERT(p->m_ref_count < 0xffff);
 		p->m_ref_count++;
 	}
 
@@ -109,16 +110,14 @@ protected:
 			delete p;
 	}
 
-	int m_ref_count;
-
 	node_impl& m_node;
-	node_id m_target;
 	std::vector<observer_ptr> m_results;
-	int m_invoke_count;
-	int m_branch_factor;
-	int m_responses;
-	int m_timeouts;
-	int m_num_target_nodes;
+	node_id m_target;
+	boost::uint16_t m_ref_count;
+	boost::uint16_t m_invoke_count;
+	boost::uint16_t m_branch_factor;
+	boost::uint16_t m_responses;
+	boost::uint16_t m_timeouts;
 };
 
 } } // namespace libtorrent::dht

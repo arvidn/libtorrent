@@ -133,7 +133,7 @@ namespace libtorrent
 		// all references are gone and refcount reaches 0. The buf
 		// pointer in this struct doesn't count as a reference and
 		// is always the last to be cleared
-		boost::uint32_t refcount:15;
+		boost::uint16_t refcount:15;
 
 		// if this is true, this block needs to be written to
 		// disk before it's freed. Typically all blocks in a piece
@@ -141,17 +141,17 @@ namespace libtorrent
 		// (read-ahead cache). Once blocks are written to disk, the
 		// dirty flag is cleared and effectively turns the block
 		// into a read cache block
-		boost::uint32_t dirty:1;
+		boost::uint16_t dirty:1;
 
 		// the number of times this block has been copied out of
 		// the cache, serving a request.
-		boost::uint32_t hitcount:15;
+		boost::uint16_t hitcount:15;
 
 		// pending means that this buffer has not yet been filled in
 		// with valid data. There's an outstanding read job for this.
 		// If the dirty flag is set, it means there's an outstanding
 		// write job to write this block.
-		boost::uint32_t pending:1;
+		boost::uint16_t pending:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// this many of the references are held by hashing operations

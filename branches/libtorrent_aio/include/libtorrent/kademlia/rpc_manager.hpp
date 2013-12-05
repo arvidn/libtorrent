@@ -124,8 +124,8 @@ private:
 	routing_table& m_table;
 	ptime m_timer;
 	node_id m_our_id;
-	int m_allocated_observers;
-	bool m_destructing;
+	boost::uint32_t m_allocated_observers:31;
+	boost::uint32_t m_destructing:1;
 };
 
 } } // namespace libtorrent::dht

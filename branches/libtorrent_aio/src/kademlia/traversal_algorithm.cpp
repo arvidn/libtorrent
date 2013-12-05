@@ -62,14 +62,13 @@ observer_ptr traversal_algorithm::new_observer(void* ptr
 traversal_algorithm::traversal_algorithm(
 	node_impl& node
 	, node_id target)
-	: m_ref_count(0)
-	, m_node(node)
+	: m_node(node)
 	, m_target(target)
+	, m_ref_count(0)
 	, m_invoke_count(0)
 	, m_branch_factor(3)
 	, m_responses(0)
 	, m_timeouts(0)
-	, m_num_target_nodes(m_node.m_table.bucket_size())
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(traversal) << "[" << this << "] NEW"
@@ -302,7 +301,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 void traversal_algorithm::done()
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	int results_target = m_num_target_nodes;
+	int results_target = m_node.m_table.bucket_size();
 	int closest_target = 160;
 
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
@@ -334,7 +333,7 @@ void traversal_algorithm::done()
 
 bool traversal_algorithm::add_requests()
 {
-	int results_target = m_num_target_nodes;
+	int results_target = m_node.m_table.bucket_size();
 
 	// this only counts outstanding requests at the top of the
 	// target list. This is <= m_invoke count. m_invoke_count
@@ -403,7 +402,7 @@ bool traversal_algorithm::add_requests()
 		}
 	}
 
-	// this is the completion condition. If we found m_num_target_nodes
+	// this is the completion condition. If we found m_node.m_table.bucket_size()
 	// (i.e. k=8) completed results, without finding any still
 	// outstanding requests, we're done.
 	// also, if invoke count is 0, it means we didn't even find 'k'
