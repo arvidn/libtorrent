@@ -1746,6 +1746,8 @@ namespace aux {
 		m_udp_socket.close();
 		m_external_udp_port = 0;
 
+		m_undead_peers.clear();
+
 #ifndef TORRENT_DISABLE_GEO_IP
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		if (m_country_db) GeoIP_delete(m_country_db);
@@ -2898,6 +2900,12 @@ retry:
 	{
 		TORRENT_ASSERT(is_network_thread());
 
+		// someone else is holding a reference, it's important that
+		// it's destructed from the network thread. Make sure the
+		// last reference is held by the network thread.
+		if (!p->refcount() == 1)
+			m_undead_peers.push_back((peer_connection*)p);
+
 // too expensive
 //		INVARIANT_CHECK;
 
@@ -3081,6 +3089,12 @@ retry:
 			&& m_dht_interval_update_torrents != m_torrents.size())
 			update_dht_announce_interval();
 #endif
+
+		// remove undead peers that only have this list as their reference keeping them alive
+		std::vector<boost::intrusive_ptr<peer_connection> >::iterator i = std::remove_if(
+			m_undead_peers.begin(), m_undead_peers.end()
+			, boost::bind(&peer_connection::refcount, _1) == 1);
+		m_undead_peers.erase(i, m_undead_peers.end());
 
 		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
 		m_last_second_tick = now;
@@ -5828,7 +5842,7 @@ retry:
 		{
 			sleep(1000);
 			++counter;
-			printf("\n==== Waiting to shut down: %d ==== conn-queue: %d connecting: %d timeout (next: %f max: %f)\n\n"
+			printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== conn-queue: %d connecting: %d timeout (next: %f max: %f)\x1b[0m\n\n"
 				, counter, m_half_open.size(), m_half_open.num_connecting(), m_half_open.next_timeout()
 				, m_half_open.max_timeout());
 		}
