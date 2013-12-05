@@ -161,7 +161,7 @@ namespace libtorrent
 		// line caused by this operation stays in the cache
 		int cache_min_time;
 
-		action_t action:5;
+		boost::uint8_t action;
 	};
 
 	// returns true if the fundamental operation
