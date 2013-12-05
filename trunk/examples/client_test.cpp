@@ -1646,280 +1646,287 @@ int main(int argc, char* argv[])
 
 		if (loop_limit > 1) --loop_limit;
 		int c = 0;
-		while (sleep_and_input(&c, refresh_delay))
+
+		if (sleep_and_input(&c, refresh_delay))
 		{
-			if (c == EOF) { break; }
-			if (c == 27)
+			do
 			{
-				// escape code, read another character
-#ifdef _WIN32
-				c = _getch();
-#else
-				int c = getc(stdin);
-#endif
 				if (c == EOF) { break; }
-				if (c != '[') continue;
+				if (c == 27)
+				{
+					// escape code, read another character
 #ifdef _WIN32
-				c = _getch();
+					c = _getch();
 #else
-				c = getc(stdin);
+					int c = getc(stdin);
 #endif
-				if (c == EOF) break;
+					if (c == EOF) { break; }
+					if (c != '[') continue;
+#ifdef _WIN32
+					c = _getch();
+#else
+					c = getc(stdin);
+#endif
+					if (c == EOF) break;
 
-				if (c == 68)
-				{
-					// arrow left
-					if (torrent_filter > 0)
+					if (c == 68)
 					{
-						--torrent_filter;
-						update_filtered_torrents(all_handles, filtered_handles, counters);
+						// arrow left
+						if (torrent_filter > 0)
+						{
+							--torrent_filter;
+							update_filtered_torrents(all_handles, filtered_handles, counters);
+						}
+					}
+					else if (c == 67)
+					{
+						// arrow right
+						if (torrent_filter < torrents_max - 1)
+						{
+							++torrent_filter;
+							update_filtered_torrents(all_handles, filtered_handles, counters);
+						}
+					}
+					else if (c == 65)
+					{
+						// arrow up
+						--active_torrent;
+						if (active_torrent < 0) active_torrent = 0;
+					}
+					else if (c == 66)
+					{
+						// arrow down
+						++active_torrent;
+						if (active_torrent >= int(filtered_handles.size()))
+							active_torrent = filtered_handles.size() - 1;
 					}
 				}
-				else if (c == 67)
+
+				if (c == ' ')
 				{
-					// arrow right
-					if (torrent_filter < torrents_max - 1)
+					if (ses.is_paused()) ses.resume();
+					else ses.pause();
+				}
+
+				// add magnet link
+				if (c == 'm')
+				{
+					char url[4096];
+					puts("Enter magnet link:\n");
+					scanf("%4096s", url);
+
+					add_torrent_params p;
+					if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+					if (disable_storage) p.storage = disabled_storage_constructor;
+					if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
+					p.save_path = save_path;
+					p.storage_mode = (storage_mode_t)allocation_mode;
+					p.url = url;
+
+					std::vector<char> buf;
+					if (std::strstr(url, "magnet:") == url)
 					{
-						++torrent_filter;
-						update_filtered_torrents(all_handles, filtered_handles, counters);
+						add_torrent_params tmp;
+						parse_magnet_uri(url, tmp, ec);
+
+						if (ec) continue;
+
+						std::string filename = combine_path(save_path, combine_path(".resume"
+								, to_hex(tmp.info_hash.to_string()) + ".resume"));
+
+						load_file(filename.c_str(), p.resume_data, ec);
+					}
+
+					printf("adding URL: %s\n", url);
+					ses.async_add_torrent(p);
+				}
+
+				if (c == 'q') break;
+
+				if (c == 'D')
+				{
+					torrent_status const& st = get_active_torrent(filtered_handles);
+					if (st.handle.is_valid())
+					{
+						printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
+							, st.name.c_str());
+						char response = 'n';
+						scanf("%c", &response);
+						if (response == 'y')
+						{
+							// also delete the .torrent file from the torrent directory
+							handles_t::iterator i = std::find_if(files.begin(), files.end()
+								, boost::bind(&handles_t::value_type::second, _1) == st.handle);
+							if (i != files.end())
+							{
+								error_code ec;
+								std::string path;
+								if (is_complete(i->first)) path = i->first;
+								else path = combine_path(monitor_dir, i->first);
+								remove(path, ec);
+								if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
+								files.erase(i);
+							}
+							if (st.handle.is_valid())
+								ses.remove_torrent(st.handle, session::delete_files);
+						}
 					}
 				}
-				else if (c == 65)
+
+				if (c == 'j' && !filtered_handles.empty())
 				{
-					// arrow up
-					--active_torrent;
-					if (active_torrent < 0) active_torrent = 0;
-				}
-				else if (c == 66)
-				{
-					// arrow down
-					++active_torrent;
-					if (active_torrent >= int(filtered_handles.size()))
-						active_torrent = filtered_handles.size() - 1;
-				}
-			}
-
-			if (c == ' ')
-			{
-				if (ses.is_paused()) ses.resume();
-				else ses.pause();
-			}
-
-			// add magnet link
-			if (c == 'm')
-			{
-				char url[4096];
-				puts("Enter magnet link:\n");
-				scanf("%4096s", url);
-
-				add_torrent_params p;
-				if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
-				if (disable_storage) p.storage = disabled_storage_constructor;
-				if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-				p.save_path = save_path;
-				p.storage_mode = (storage_mode_t)allocation_mode;
-				p.url = url;
-
-				std::vector<char> buf;
-				if (std::strstr(url, "magnet:") == url)
-				{
-					add_torrent_params tmp;
-					parse_magnet_uri(url, tmp, ec);
-
-					if (ec) continue;
-
-					std::string filename = combine_path(save_path, combine_path(".resume"
-						, to_hex(tmp.info_hash.to_string()) + ".resume"));
-
-					load_file(filename.c_str(), p.resume_data, ec);
+					get_active_torrent(filtered_handles).handle.force_recheck();
 				}
 
-				printf("adding URL: %s\n", url);
-				ses.async_add_torrent(p);
+				if (c == 'r' && !filtered_handles.empty())
+				{
+					get_active_torrent(filtered_handles).handle.force_reannounce();
+				}
+
+				if (c == 's' && !filtered_handles.empty())
+				{
+					torrent_status const& ts = get_active_torrent(filtered_handles);
+					ts.handle.set_sequential_download(!ts.sequential_download);
+				}
+
+				if (c == 'R')
+				{
+					// save resume data for all torrents
+					for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin()
+						, end(filtered_handles.end()); i != end; ++i)
+					{
+						if ((*i)->need_save_resume)
+						{
+							(*i)->handle.save_resume_data();
+							++num_outstanding_resume_data;
+						}
+					}
+				}
+
+				if (c == 'o' && !filtered_handles.empty())
+				{
+					torrent_status const& ts = get_active_torrent(filtered_handles);
+					int num_pieces = ts.num_pieces;
+					if (num_pieces > 300) num_pieces = 300;
+					for (int i = 0; i < num_pieces; ++i)
+					{
+						ts.handle.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
+					}
+				}
+
+				if (c == 'v' && !filtered_handles.empty())
+				{
+					torrent_status const& ts = get_active_torrent(filtered_handles);
+					ts.handle.scrape_tracker();
+				}
+
+				if (c == 'p' && !filtered_handles.empty())
+				{
+					torrent_status const& ts = get_active_torrent(filtered_handles);
+					if (!ts.auto_managed && ts.paused)
+					{
+						ts.handle.auto_managed(true);
+					}
+					else
+					{
+						ts.handle.auto_managed(false);
+						ts.handle.pause(torrent_handle::graceful_pause);
+					}
+				}
+
+				// toggle force-start
+				if (c == 'k' && !filtered_handles.empty())
+				{
+					torrent_status const& ts = get_active_torrent(filtered_handles);
+					ts.handle.auto_managed(!ts.auto_managed);
+					if (ts.auto_managed && ts.paused) ts.handle.resume();
+				}
+
+				if (c == 'c' && !filtered_handles.empty())
+				{
+					torrent_status const& ts = get_active_torrent(filtered_handles);
+					ts.handle.clear_error();
+				}
+
+				// toggle displays
+				if (c == 't') print_trackers = !print_trackers;
+				if (c == 'i') print_peers = !print_peers;
+				if (c == 'l') print_log = !print_log;
+				if (c == 'd') print_downloads = !print_downloads;
+				if (c == 'f') print_file_progress = !print_file_progress;
+				if (c == 'P') show_pad_files = !show_pad_files;
+				if (c == 'a') print_piece_bar = !print_piece_bar;
+				if (c == 'g') show_dht_status = !show_dht_status;
+				if (c == 'u') print_utp_stats = !print_utp_stats;
+				// toggle columns
+				if (c == '1') print_ip = !print_ip;
+				if (c == '2') print_as = !print_as;
+				if (c == '3') print_timers = !print_timers;
+				if (c == '4') print_block = !print_block;
+				if (c == '5') print_peer_rate = !print_peer_rate;
+				if (c == '6') print_fails = !print_fails;
+				if (c == '7') print_send_bufs = !print_send_bufs;
+				if (c == 'y')
+				{
+					char url[2048];
+					puts("Enter RSS feed URL:\n");
+					scanf("%2048s", url);
+					feed_settings set;
+					set.url = url;
+					set.add_args.save_path = save_path;
+					feed_handle h = ses.add_feed(set);
+					h.update_feed();
+				}
+				if (c == 'h')
+				{
+					clear_home();
+					puts(
+						"HELP SCREEN (press any key to dismiss)\n\n"
+						"CLIENT OPTIONS\n"
+						"[q] quit client                                 [m] add magnet link\n"
+						"[y] add RSS feed\n"
+						"\n"
+						"TORRENT ACTIONS\n"
+						"[p] pause/unpause selected torrent\n"
+						"[s] toggle sequential download                  [j] force recheck\n"
+						"[space] toggle session pause                    [c] clear error\n"
+						"[v] scrape                                      [D] delete torrent and data\n"
+						"[r] force reannounce                            [R] save resume data for all torrents\n"
+						"[o] set piece deadlines (sequential dl)         [P] toggle auto-managed\n"
+						"[k] toggle force-started\n"
+						"\n"
+						"DISPLAY OPTIONS\n"
+						"left/right arrow keys: select torrent filter\n"
+						"up/down arrow keys: select torrent\n"
+						"[i] toggle show peers                           [d] toggle show downloading pieces\n"
+						"[a] toggle piece bar                            [f] toggle show files\n"
+						"[g] show DHT                                    [x] toggle disk cache stats\n"
+						"[t] show trackers                               [l] show alert log\n"
+						"[P] show pad files (in file list)               [u] show uTP stats\n"
+						"\n"
+						"COLUMN OPTIONS\n"
+						"[1] toggle IP column                            [2] toggle AS column\n"
+						"[3] toggle timers column                        [4] toggle block progress column\n"
+						"[5] toggle peer rate column                     [6] toggle failures column\n"
+						"[7] toggle send buffers column\n"
+						);
+					int tmp;
+					while (sleep_and_input(&tmp, 500) == false);
+				}
 			}
+			while (sleep_and_input(&c, 0));
 
 			if (c == 'q') break;
-
-			if (c == 'D')
-			{
-				torrent_status const& st = get_active_torrent(filtered_handles);
-				if (st.handle.is_valid())
-				{
-					printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
-						, st.name.c_str());
-					char response = 'n';
-					scanf("%c", &response);
-					if (response == 'y')
-					{
-						// also delete the .torrent file from the torrent directory
-						handles_t::iterator i = std::find_if(files.begin(), files.end()
-							, boost::bind(&handles_t::value_type::second, _1) == st.handle);
-						if (i != files.end())
-						{
-							error_code ec;
-							std::string path;
-							if (is_complete(i->first)) path = i->first;
-							else path = combine_path(monitor_dir, i->first);
-							remove(path, ec);
-							if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
-							files.erase(i);
-						}
-						if (st.handle.is_valid())
-							ses.remove_torrent(st.handle, session::delete_files);
-					}
-				}
-			}
-
-			if (c == 'j' && !filtered_handles.empty())
-			{
-				get_active_torrent(filtered_handles).handle.force_recheck();
-			}
-
-			if (c == 'r' && !filtered_handles.empty())
-			{
-				get_active_torrent(filtered_handles).handle.force_reannounce();
-			}
-
-			if (c == 's' && !filtered_handles.empty())
-			{
-				torrent_status const& ts = get_active_torrent(filtered_handles);
-				ts.handle.set_sequential_download(!ts.sequential_download);
-			}
-
-			if (c == 'R')
-			{
-				// save resume data for all torrents
-				for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin()
-					, end(filtered_handles.end()); i != end; ++i)
-				{
-					if ((*i)->need_save_resume)
-					{
-						(*i)->handle.save_resume_data();
-						++num_outstanding_resume_data;
-					}
-				}
-			}
-
-			if (c == 'o' && !filtered_handles.empty())
-			{
-				torrent_status const& ts = get_active_torrent(filtered_handles);
-				int num_pieces = ts.num_pieces;
-				if (num_pieces > 300) num_pieces = 300;
-				for (int i = 0; i < num_pieces; ++i)
-				{
-					ts.handle.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
-				}
-			}
-
-			if (c == 'v' && !filtered_handles.empty())
-			{
-				torrent_status const& ts = get_active_torrent(filtered_handles);
-				ts.handle.scrape_tracker();
-			}
-
-			if (c == 'p' && !filtered_handles.empty())
-			{
-				torrent_status const& ts = get_active_torrent(filtered_handles);
-				if (!ts.auto_managed && ts.paused)
-				{
-					ts.handle.auto_managed(true);
-				}
-				else
-				{
-					ts.handle.auto_managed(false);
-					ts.handle.pause(torrent_handle::graceful_pause);
-				}
-			}
-
-			// toggle force-start
-			if (c == 'k' && !filtered_handles.empty())
-			{
-				torrent_status const& ts = get_active_torrent(filtered_handles);
-				ts.handle.auto_managed(!ts.auto_managed);
-				if (ts.auto_managed && ts.paused) ts.handle.resume();
-			}
-
-			if (c == 'c' && !filtered_handles.empty())
-			{
-				torrent_status const& ts = get_active_torrent(filtered_handles);
-				ts.handle.clear_error();
-			}
-
-			// toggle displays
-			if (c == 't') print_trackers = !print_trackers;
-			if (c == 'i') print_peers = !print_peers;
-			if (c == 'l') print_log = !print_log;
-			if (c == 'd') print_downloads = !print_downloads;
-			if (c == 'f') print_file_progress = !print_file_progress;
-			if (c == 'P') show_pad_files = !show_pad_files;
-			if (c == 'a') print_piece_bar = !print_piece_bar;
-			if (c == 'g') show_dht_status = !show_dht_status;
-			if (c == 'u') print_utp_stats = !print_utp_stats;
-			// toggle columns
-			if (c == '1') print_ip = !print_ip;
-			if (c == '2') print_as = !print_as;
-			if (c == '3') print_timers = !print_timers;
-			if (c == '4') print_block = !print_block;
-			if (c == '5') print_peer_rate = !print_peer_rate;
-			if (c == '6') print_fails = !print_fails;
-			if (c == '7') print_send_bufs = !print_send_bufs;
-			if (c == 'y')
-			{
-				char url[2048];
-				puts("Enter RSS feed URL:\n");
-				scanf("%2048s", url);
-				feed_settings set;
-				set.url = url;
-				set.add_args.save_path = save_path;
-				feed_handle h = ses.add_feed(set);
-				h.update_feed();
-			}
-			if (c == 'h')
-			{
-				clear_home();
-				puts(
-					"HELP SCREEN (press any key to dismiss)\n\n"
-					"CLIENT OPTIONS\n"
-					"[q] quit client                                 [m] add magnet link\n"
-					"[y] add RSS feed\n"
-					"\n"
-					"TORRENT ACTIONS\n"
-					"[p] pause/unpause selected torrent\n"
-					"[s] toggle sequential download                  [j] force recheck\n"
-					"[space] toggle session pause                    [c] clear error\n"
-					"[v] scrape                                      [D] delete torrent and data\n"
-					"[r] force reannounce                            [R] save resume data for all torrents\n"
-					"[o] set piece deadlines (sequential dl)         [P] toggle auto-managed\n"
-					"[k] toggle force-started\n"
-					"\n"
-					"DISPLAY OPTIONS\n"
-					"left/right arrow keys: select torrent filter\n"
-					"up/down arrow keys: select torrent\n"
-					"[i] toggle show peers                           [d] toggle show downloading pieces\n"
-					"[a] toggle piece bar                            [f] toggle show files\n"
-					"[g] show DHT                                    [x] toggle disk cache stats\n"
-					"[t] show trackers                               [l] show alert log\n"
-					"[P] show pad files (in file list)               [u] show uTP stats\n"
-					"\n"
-					"COLUMN OPTIONS\n"
-					"[1] toggle IP column                            [2] toggle AS column\n"
-					"[3] toggle timers column                        [4] toggle block progress column\n"
-					"[5] toggle peer rate column                     [6] toggle failures column\n"
-					"[7] toggle send buffers column\n"
-					);
-				int tmp;
-				while (sleep_and_input(&tmp, 500) == false);
-			}
 		}
-		if (c == 'q') break;
 
 		int terminal_width = 80;
 		int terminal_height = 50;
 
 #ifndef _WIN32
 		{
+			int tty = open("/dev/tty", O_RDONLY);
 			winsize size;
-			int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
+			int ret = ioctl(tty, TIOCGWINSZ, (char*)&size);
 			if (ret == 0)
 			{
 				terminal_width = size.ws_col;
@@ -1935,6 +1942,7 @@ int main(int argc, char* argv[])
 				terminal_width = 190;
 				terminal_height = 100;
 			}
+			close(tty);
 		}
 #endif
 
