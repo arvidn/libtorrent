@@ -45,7 +45,7 @@ namespace libtorrent
 	enum struct_field_type_t
 	{
 		std_string, character, integer, floating_point,
-		boolean, size_integer, time_integer
+		boolean, size_integer, time_integer, integer16
 	};
 
 	// this is used to map struct entries
