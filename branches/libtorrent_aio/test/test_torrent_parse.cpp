@@ -73,6 +73,7 @@ test_torrent_t test_torrents[] =
 	{ "root_hash.torrent" },
 	{ "empty_path_multi.torrent" },
 	{ "invalid_name2.torrent" },
+	{ "invalid_name3.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -405,6 +406,10 @@ int test_main()
 			// being empty, it's set to the info-hash. Some torrents also have an empty name
 			// in which case it's also set to the info-hash
 			TEST_EQUAL(ti->name(), "b61560c2918f463768cd122b6d2fdd47b77bdb35");
+		}
+		else if (std::string(test_torrents[i].file) == "invalid_name3.torrent")
+		{
+			TEST_EQUAL(ti->name(), "foobar");
 		}
 
 		file_storage const& fs = ti->files();

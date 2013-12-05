@@ -369,8 +369,10 @@ namespace libtorrent
 		for (int i = path.size() - 1; i >= 0; --i)
 		{
 			if (path[i] != ' ' && path[i] != '.') break;
-			path[i] = '_';
+			path.resize(i);
 		}
+
+		if (path.empty()) path = "_";
 	}
 
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
