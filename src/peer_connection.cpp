@@ -5883,6 +5883,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_upload_only);
 		}
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		if (t->has_picker())
 		{
 			std::map<piece_block, peer_count_t> num_requests;
@@ -5926,7 +5927,7 @@ namespace libtorrent
 					TORRENT_ASSERT(picker_count == count);
 			}
 		}
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
+
 		if (m_peer_info && type() == bittorrent_connection)
 		{
 			policy::const_iterator i = t->get_policy().begin_peer();

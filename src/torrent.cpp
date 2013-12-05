@@ -6579,6 +6579,7 @@ namespace libtorrent
 		else
 			TORRENT_ASSERT(m_queued_for_checking);
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		if (!m_ses.m_queued_for_checking.empty())
 		{
 			// if there are torrents waiting to be checked
@@ -6609,6 +6610,7 @@ namespace libtorrent
 				TORRENT_ASSERT(found >= 1);
 			}
 		}
+#endif
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
 			|| m_resume_entry.type() == lazy_entry::none_t);

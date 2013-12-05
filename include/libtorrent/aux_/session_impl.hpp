@@ -748,6 +748,14 @@ namespace libtorrent
 			// they would linger and stall or hang session shutdown
 			std::set<boost::shared_ptr<socket_type> > m_incoming_sockets;
 			
+			// peer connections are put here when disconnected to avoid
+			// race conditions with the disk thread. It's important that
+			// peer connections are destructed from the network thread,
+			// once a peer is disconnected, it's put in this list and
+			// every second their refcount is checked, and if it's 1,
+			// they are deleted (from the network thread)
+			std::vector<boost::intrusive_ptr<peer_connection> > m_undead_peers;
+
 			// filters incoming connections
 			ip_filter m_ip_filter;
 
