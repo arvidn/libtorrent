@@ -195,47 +195,61 @@ namespace libtorrent
 
 		// on windows, the max path is expressed in
 		// unicode characters, not bytes
-#if defined TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 		std::wstring path_element;
 		utf8_wchar(element, path_element);
-		if (path_element.size() <= max_path_len) return;
-
-		// truncate filenames that are too long. But keep extensions!
-		std::wstring ext;
-		wchar_t const* ext1 = wcsrchr(path_element.c_str(), '.');
-		if (ext1 != NULL) ext = ext1;
-
-		if (ext.size() > 15)
+		if (path_element.size() > max_path_len)
 		{
-			path_element.resize(max_path_len);
-		}
-		else
-		{
-			path_element.resize(max_path_len - ext.size());
-			path_element += ext;
+			// truncate filenames that are too long. But keep extensions!
+			std::wstring ext;
+			wchar_t const* ext1 = wcsrchr(path_element.c_str(), '.');
+			if (ext1 != NULL) ext = ext1;
+
+			if (ext.size() > 15)
+			{
+				path_element.resize(max_path_len);
+			}
+			else
+			{
+				path_element.resize(max_path_len - ext.size());
+				path_element += ext;
+			}
 		}
 		// remove trailing spaces and dots. These aren't allowed in filenames on windows
 		for (int i = path_element.size() - 1; i >= 0; --i)
 		{
 			if (path_element[i] != L' ' && path_element[i] != L'.') break;
-			path_element[i] = L'_';
+			path_element.resize(i);
 		}
+		if (path_element.empty()) path_element = L"_";
 		wchar_utf8(path_element, element);
 #else
 		std::string& path_element = element;
-		if (int(path_element.size()) <= max_path_len) return;
+		if (int(path_element.size()) > max_path_len)
+		{
 
-		// truncate filenames that are too long. But keep extensions!
-		std::string ext = extension(path_element);
-		if (ext.size() > 15)
-		{
-			path_element.resize(max_path_len);
+			// truncate filenames that are too long. But keep extensions!
+			std::string ext = extension(path_element);
+			if (ext.size() > 15)
+			{
+				path_element.resize(max_path_len);
+			}
+			else
+			{
+				path_element.resize(max_path_len - ext.size());
+				path_element += ext;
+			}
 		}
-		else
+
+		// remove trailing spaces and dots. These aren't allowed in filenames on windows
+		// apply rules consistently across platforms though
+		for (int i = path_element.size() - 1; i >= 0; --i)
 		{
-			path_element.resize(max_path_len - ext.size());
-			path_element += ext;
+			if (path_element[i] != ' ' && path_element[i] != '.') break;
+			path_element.resize(i);
 		}
+
+		if (path_element.empty()) path_element = "_";
 #endif
 	}
 
