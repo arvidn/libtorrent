@@ -1953,40 +1953,55 @@ int main(int argc, char* argv[])
 					}
 					else if (c == UP_ARROW)
 					{
-						if (ses.is_paused()) ses.resume();
-						else ses.pause();
+						// arrow up
+						--active_torrent;
+						if (active_torrent < 0) active_torrent = 0;
 					}
 					else if (c == DOWN_ARROW)
 					{
-						char url[4096];
-						puts("Enter magnet link:\n");
-						scanf("%4096s", url);
-
-						add_torrent_params p;
-						if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
-						if (disable_storage) p.storage = disabled_storage_constructor;
-						if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-						p.save_path = save_path;
-						p.storage_mode = (storage_mode_t)allocation_mode;
-						p.url = url;
-
-						std::vector<char> buf;
-						if (std::strstr(url, "magnet:") == url)
-						{
-							add_torrent_params tmp;
-							parse_magnet_uri(url, tmp, ec);
-
-							if (ec) continue;
-
-							std::string filename = combine_path(save_path, combine_path(".resume"
-									, to_hex(tmp.info_hash.to_string()) + ".resume"));
-
-							load_file(filename.c_str(), p.resume_data, ec);
-						}
-
-						printf("adding URL: %s\n", url);
-						ses.async_add_torrent(p);
+						// arrow down
+						++active_torrent;
+						if (active_torrent >= int(filtered_handles.size()))
+							active_torrent = filtered_handles.size() - 1;
 					}
+				}
+
+				if (c == 'p')
+				{
+					if (ses.is_paused()) ses.resume();
+					else ses.pause();
+				}
+
+				if (c == 'm')
+				{
+					char url[4096];
+					puts("Enter magnet link:\n");
+					scanf("%4096s", url);
+
+					add_torrent_params p;
+					if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+					if (disable_storage) p.storage = disabled_storage_constructor;
+					if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
+					p.save_path = save_path;
+					p.storage_mode = (storage_mode_t)allocation_mode;
+					p.url = url;
+
+					std::vector<char> buf;
+					if (std::strstr(url, "magnet:") == url)
+					{
+						add_torrent_params tmp;
+						parse_magnet_uri(url, tmp, ec);
+
+						if (ec) continue;
+
+						std::string filename = combine_path(save_path, combine_path(".resume"
+								, to_hex(tmp.info_hash.to_string()) + ".resume"));
+
+						load_file(filename.c_str(), p.resume_data, ec);
+					}
+
+					printf("adding URL: %s\n", url);
+					ses.async_add_torrent(p);
 				}
 
 				if (c == 'q') break;
