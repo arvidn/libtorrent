@@ -1930,12 +1930,8 @@ int main(int argc, char* argv[])
 						// arrow left
 						if (torrent_filter > 0)
 						{
-							// arrow left
-							if (torrent_filter > 0)
-							{
-								--torrent_filter;
-								update_filtered_torrents(all_handles, filtered_handles, counters);
-							}
+							--torrent_filter;
+							update_filtered_torrents(all_handles, filtered_handles, counters);
 						}
 					}
 					else if (c == RIGHT_ARROW)
@@ -1943,12 +1939,8 @@ int main(int argc, char* argv[])
 						// arrow right
 						if (torrent_filter < torrents_max - 1)
 						{
-							// arrow right
-							if (torrent_filter < torrents_max - 1)
-							{
-								++torrent_filter;
-								update_filtered_torrents(all_handles, filtered_handles, counters);
-							}
+							++torrent_filter;
+							update_filtered_torrents(all_handles, filtered_handles, counters);
 						}
 					}
 					else if (c == UP_ARROW)
@@ -1966,12 +1958,13 @@ int main(int argc, char* argv[])
 					}
 				}
 
-				if (c == 'p')
+				if (c == ' ')
 				{
 					if (ses.is_paused()) ses.resume();
 					else ses.pause();
 				}
 
+				// add magnet link
 				if (c == 'm')
 				{
 					char url[4096];
