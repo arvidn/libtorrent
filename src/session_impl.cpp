@@ -2903,7 +2903,7 @@ retry:
 		// someone else is holding a reference, it's important that
 		// it's destructed from the network thread. Make sure the
 		// last reference is held by the network thread.
-		if (!p->refcount() == 1)
+		if (p->refcount() != 1)
 			m_undead_peers.push_back((peer_connection*)p);
 
 // too expensive
