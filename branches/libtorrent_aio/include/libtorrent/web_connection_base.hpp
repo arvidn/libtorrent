@@ -93,6 +93,8 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, web_seed_entry& web);
+
+		virtual int timeout() const;
 		void start();
 
 		~web_connection_base();

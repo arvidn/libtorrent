@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: remove the m_size and m_own members. Put the size in the
+	// first 4 bytes of the heap allocation. don't support borrowing
+	// arrays
+
 	// The bitfiled type stores any number of bits as a bitfield 
 	// in a heap allocated or borrowed array.
 	struct TORRENT_EXPORT bitfield

@@ -75,10 +75,6 @@ namespace libtorrent
 		// we only want left-over bandwidth
 		// TODO: introduce a web-seed default class which has a low download priority
 		
-		// since this is a web seed, change the timeout
-		// according to the settings.
-		set_timeout(m_settings.get_int(settings_pack::urlseed_timeout));
-
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
@@ -101,6 +97,13 @@ namespace libtorrent
 
 		m_server_string = "URL seed @ ";
 		m_server_string += m_host;
+	}
+
+	int web_connection_base::timeout() const
+	{
+		// since this is a web seed, change the timeout
+		// according to the settings.
+		return m_settings.get_int(settings_pack::urlseed_timeout);
 	}
 
 	void web_connection_base::start()

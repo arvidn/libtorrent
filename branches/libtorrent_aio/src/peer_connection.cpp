@@ -134,25 +134,13 @@ namespace libtorrent
 		, tcp::endpoint const& endp
 		, torrent_peer* peerinfo
 		, bool outgoing)
-		: m_torrent(tor)
-		, m_ses(ses)
-		, m_settings(sett)
-		, m_disconnecting(false)
-		, m_connecting(outgoing)
-		, m_endgame_mode(false)
-		, m_snubbed(false)
-		, m_interesting(false)
-		, m_choked(true)
-		, m_corked(false)
-		, m_ignore_stats(false)
-		, m_recv_pos(0)
+		: peer_connection_hot_members(tor, ses, sett, s, outgoing)
 		, m_socket(s)
-		, m_desired_queue_size(2)
 		, m_peer_info(peerinfo)
 		, m_num_pieces(0)
-		, m_packet_size(0)
+		, m_rtt(0)
 		, m_recv_start(0)
-		, m_timeout(m_settings.get_int(settings_pack::peer_timeout))
+		, m_desired_queue_size(2)
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
 		, m_remote(endp)
 		, m_disk_thread(disk_thread)
@@ -194,7 +182,6 @@ namespace libtorrent
 		, m_outstanding_writing_bytes(0)
 		, m_download_rate_peak(0)
 		, m_upload_rate_peak(0)
-		, m_rtt(0)
 		, m_speed(slow)
 		, m_prefer_whole_pieces(0)
 		, m_disk_read_failures(0)
@@ -245,14 +232,6 @@ namespace libtorrent
 		if (m_connecting && t) t->inc_num_connecting();
 		m_est_reciprocation_rate = m_settings.get_int(settings_pack::default_est_reciprocation_rate);
 
-#if TORRENT_USE_I2P
-		if (peerinfo && peerinfo->is_i2p_addr)
-		{
-			// quadruple the timeout for i2p peers
-			m_timeout *= 4;
-		}
-#endif
-
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
@@ -298,6 +277,19 @@ namespace libtorrent
 		piece_failed = false;
 #endif
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
+	}
+
+	int peer_connection::timeout() const
+	{
+		int ret = m_settings.get_int(settings_pack::peer_timeout);
+#if TORRENT_USE_I2P
+		if (m_peer_info && m_peer_info->is_i2p_addr)
+		{
+			// quadruple the timeout for i2p peers
+			ret *= 4;
+		}
+#endif
+		return ret;
 	}
 
 #ifdef TORRENT_BUFFER_STATS
@@ -4590,7 +4582,7 @@ namespace libtorrent
 		// the peer and disconnect it
 		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network);
 
-		if (may_timeout && d > seconds(m_timeout) && !m_connecting && m_reading_bytes == 0
+		if (may_timeout && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
 			&& can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category())))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -6689,7 +6681,7 @@ namespace libtorrent
 
 		time_duration d;
 		d = time_now() - m_last_sent;
-		if (total_seconds(d) < m_timeout / 2) return;
+		if (total_seconds(d) < timeout() / 2) return;
 		
 		if (m_connecting) return;
 		if (in_handshake()) return;
