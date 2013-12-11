@@ -68,17 +68,17 @@ namespace libtorrent
 	const piece_block piece_block::invalid(0x7FFFF, 0x1FFF);
 
 	piece_picker::piece_picker()
-		: m_priority_boundries(1, int(m_pieces.size()))
+		: m_seeds(0)
+		, m_num_passed(0)
+		, m_priority_boundries(1, int(m_pieces.size()))
 		, m_blocks_per_piece(0)
 		, m_blocks_in_last_piece(0)
 		, m_num_filtered(0)
 		, m_num_have_filtered(0)
-		, m_num_have(0)
-		, m_num_passed(0)
 		, m_cursor(0)
 		, m_reverse_cursor(0)
 		, m_sparse_regions(1)
-		, m_seeds(0)
+		, m_num_have(0)
 		, m_num_pad_files(0)
 		, m_dirty(false)
 	{

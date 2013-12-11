@@ -657,6 +657,22 @@ namespace libtorrent
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions
 
+		// this maps indices to number of peers that has this piece and
+		// index into the m_piece_info vectors.
+		// piece_pos::we_have_index means that we have the piece, so it
+		// doesn't exist in the piece_info buckets
+		// pieces with the filtered flag set doesn't have entries in
+		// the m_piece_info buckets either
+		// TODO: should this be allocated lazily?
+		mutable std::vector<piece_pos> m_piece_map;
+
+		// the number of seeds. These are not added to
+		// the availability counters of the pieces
+		int m_seeds;
+
+		// the number of pieces that have passed the hash check
+		int m_num_passed;
+
 		// this vector contains all piece indices that are pickable
 		// sorted by priority. Pieces are in random random order
 		// among pieces with the same priority
@@ -666,15 +682,6 @@ namespace libtorrent
 		// the m_pieces vector. priority 0 always start at
 		// 0, priority 1 starts at m_priority_boundries[0] etc.
 		mutable std::vector<int> m_priority_boundries;
-
-		// this maps indices to number of peers that has this piece and
-		// index into the m_piece_info vectors.
-		// piece_pos::we_have_index means that we have the piece, so it
-		// doesn't exist in the piece_info buckets
-		// pieces with the filtered flag set doesn't have entries in
-		// the m_piece_info buckets either
-		// TODO: should this be allocated lazily?
-		mutable std::vector<piece_pos> m_piece_map;
 
 		// each piece that's currently being downloaded
 		// has an entry in this list with block allocations.
@@ -710,12 +717,6 @@ namespace libtorrent
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered;
 		
-		// the number of pieces we have (i.e. passed + flushed)
-		int m_num_have;
-		
-		// the number of pieces that have passed the hash check
-		int m_num_passed;
-
 		// we have all pieces in the range [0, m_cursor)
 		// m_cursor is the first piece we don't have
 		int m_cursor;
@@ -728,10 +729,9 @@ namespace libtorrent
 		// the number of regions of pieces we don't have.
 		int m_sparse_regions;
 
-		// the number of seeds. These are not added to
-		// the availability counters of the pieces
-		int m_seeds;
-
+		// the number of pieces we have (i.e. passed + flushed)
+		int m_num_have;
+		
 		// this is the number of partial download pieces
 		// that may be caused by pad files. We raise the limit
 		// of number of partial pieces by this amount, to not

@@ -987,14 +987,29 @@ namespace libtorrent
 		void request_time_critical_pieces();
 
 		void need_policy();
+
+		// the piece picker. This is allocated lazily. When we don't
+		// have anything in the torrent (for instance, if it hasn't
+		// been started yet) or if we have everything, there is no
+		// picker. It's allocated on-demand the first time we need
+		// it in torrent::need_picker(). In order to tell the
+		// difference between having everything and nothing in
+		// the case there is no piece picker, see m_have_all.
+		boost::scoped_ptr<piece_picker> m_picker;
+
+		// a back reference to the session
+		// this torrent belongs to.
+		aux::session_interface& m_ses;
+
+
+		boost::shared_ptr<torrent_info> m_torrent_file;
+
 		boost::scoped_ptr<policy> m_policy;
 
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
 		size_type m_total_uploaded;
 		size_type m_total_downloaded;
-
-		boost::shared_ptr<torrent_info> m_torrent_file;
 
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
@@ -1052,10 +1067,6 @@ namespace libtorrent
 
 		// -----------------------------
 
-		// a back reference to the session
-		// this torrent belongs to.
-		aux::session_interface& m_ses;
-
 		// used to resolve hostnames for web seeds
 		mutable tcp::resolver m_host_resolver;
 
@@ -1076,15 +1087,6 @@ namespace libtorrent
 		// suggesting to peers.
 		std::vector<suggest_piece_t> m_suggested_pieces;
 		
-		// the piece picker. This is allocated lazily. When we don't
-		// have anything in the torrent (for instance, if it hasn't
-		// been started yet) or if we have everything, there is no
-		// picker. It's allocated on-demand the first time we need
-		// it in torrent::need_picker(). In order to tell the
-		// difference between having everything and nothing in
-		// the case there is no piece picker, see m_have_all.
-		boost::scoped_ptr<piece_picker> m_picker;
-
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
 

@@ -131,10 +131,10 @@ namespace libtorrent
 		, int seq
 		, add_torrent_params const& p
 		, sha1_hash const& info_hash)
-		: m_total_uploaded(0)
+		: m_ses(ses)
+		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
-		, m_ses(ses)
 		, m_host_resolver(ses.get_io_service())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))

@@ -524,6 +524,13 @@ namespace libtorrent
 
 	private:
 
+		// the number of bytes in a regular piece
+		// (i.e. not the potentially truncated last piece)
+		int m_piece_length;
+
+		// the number of pieces in the torrent
+		int m_num_pieces;
+
 		void update_path_index(internal_file_entry& e);
 		void reorder_file(int index, int dst);
 
@@ -568,14 +575,10 @@ namespace libtorrent
 		// the sum of all filesizes
 		size_type m_total_size;
 
-		// the number of pieces in the torrent
-		int m_num_pieces;
-
 		// the number of files. This is used when
 		// the torrent is unloaded
 		int m_num_files;
 
-		int m_piece_length;
 	};
 }
 

@@ -217,9 +217,6 @@ namespace libtorrent
 
 		peers_t m_peers;
 
-		// a list of good connect candidates
-		std::vector<torrent_peer*> m_candidate_cache;
-
 		// this shouldbe NULL for the most part. It's set
 		// to point to a valid torrent_peer object if that
 		// object needs to be kept alive. If we ever feel
@@ -227,18 +224,6 @@ namespace libtorrent
 		// first check if the peer matches this one, and
 		// if so, don't delete it.
 		torrent_peer* m_locked_peer;
-
-		// since the torrent_peer list can grow too large
-		// to scan all of it, start at this iterator
-		int m_round_robin;
-
-		// The number of peers in our torrent_peer list
-		// that are connect candidates. i.e. they're
-		// not already connected and they have not
-		// yet reached their max try count and they
-		// have the connectable state (we have a listen
-		// port for them).
-		int m_num_connect_candidates;
 
 		// the number of seeds in the torrent_peer list
 		boost::uint32_t m_num_seeds:31;
@@ -252,6 +237,22 @@ namespace libtorrent
 		// is different from this state, we need to
 		// recalculate the connect candidates.
 		boost::uint32_t m_finished:1;
+
+		// since the torrent_peer list can grow too large
+		// to scan all of it, start at this index
+		int m_round_robin;
+
+		// a list of good connect candidates
+		std::vector<torrent_peer*> m_candidate_cache;
+
+		// The number of peers in our torrent_peer list
+		// that are connect candidates. i.e. they're
+		// not already connected and they have not
+		// yet reached their max try count and they
+		// have the connectable state (we have a listen
+		// port for them).
+		int m_num_connect_candidates;
+
 	};
 
 }

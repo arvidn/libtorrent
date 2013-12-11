@@ -127,10 +127,10 @@ namespace libtorrent
 {
 	policy::policy()
 		: m_locked_peer(NULL)
-		, m_round_robin(0)
-		, m_num_connect_candidates(0)
 		, m_num_seeds(0)
 		, m_finished(0)
+		, m_round_robin(0)
+		, m_num_connect_candidates(0)
 	{
 		thread_started();
 	}
