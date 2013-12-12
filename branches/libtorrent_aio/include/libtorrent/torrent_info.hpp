@@ -249,9 +249,6 @@ namespace libtorrent
 		// The URL of the web seed
 		std::string url;
 
-		// The type of web seed (see type_t)
-		type_t type;
-		
 		// Optional authentication. If this is set, it's passed
 		// in as HTTP basic auth to the web seed. The format is:
 		// username:password.
@@ -263,6 +260,19 @@ namespace libtorrent
 		// if this is > now, we can't reconnect yet
 		ptime retry;
 
+		// if the hostname of the web seed has been resolved,
+		// this is its IP address
+		tcp::endpoint endpoint;
+
+		// this is the peer_info field used for the
+		// connection, just to count hash failures
+		// it's also used to hold the peer_connection
+		// pointer, when the web seed is connected
+		ipv4_peer peer_info;
+
+		// The type of web seed (see type_t)
+		boost::uint8_t type;
+		
 		// this is initialized to true, but if we discover the
 		// server not to support it, it's set to false, and we
 		// make larger requests.
@@ -277,16 +287,6 @@ namespace libtorrent
 		// the removed flag to true, to make the resolver
 		// callback remove it
 		bool removed;
-
-		// if the hostname of the web seed has been resolved,
-		// this is its IP address
-		tcp::endpoint endpoint;
-
-		// this is the peer_info field used for the
-		// connection, just to count hash failures
-		// it's also used to hold the peer_connection
-		// pointer, when the web seed is connected
-		ipv4_peer peer_info;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS

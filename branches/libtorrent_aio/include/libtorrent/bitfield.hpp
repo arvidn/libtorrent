@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// TODO: remove the m_size and m_own members. Put the size in the
+	// TODO: 3 remove the m_size and m_own members. Put the size in the
 	// first 4 bytes of the heap allocation. don't support borrowing
 	// arrays
 

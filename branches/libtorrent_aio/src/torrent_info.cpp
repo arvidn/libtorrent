@@ -673,12 +673,15 @@ namespace libtorrent
 	web_seed_entry::web_seed_entry(std::string const& url_, type_t type_
 		, std::string const& auth_
 		, headers_t const& extra_headers_)
-		: url(url_), type(type_)
-		, auth(auth_), extra_headers(extra_headers_)
+		: url(url_)
+		, auth(auth_)
+		, extra_headers(extra_headers_)
 		, retry(time_now())
-		, supports_keepalive(true)
-		, resolving(false), removed(false)
 		, peer_info(tcp::endpoint(), true, 0)
+		, type(type_)
+		, supports_keepalive(true)
+		, resolving(false)
+		, removed(false)
 	{
 		peer_info.web_seed = true;
 	}

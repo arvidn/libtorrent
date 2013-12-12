@@ -114,6 +114,8 @@ namespace libtorrent
 
 		// the number of times the request
 		// has been skipped by out of order blocks
+		// TODO: the skipped field and its associated feature
+		// should probably be removed
 		boost::uint16_t skipped:13;
 
 		// if any of these are set to true, this block
@@ -1030,6 +1032,12 @@ namespace libtorrent
 		// dispatch. Ignored when set to 0
 		int m_soft_packet_size;
 
+		// the number of bytes that the other
+		// end has to send us in order to respond
+		// to all outstanding piece requests we
+		// have sent to it
+		int m_outstanding_bytes;
+
 		template <std::size_t Size>
 		struct handler_storage
 		{
@@ -1117,12 +1125,6 @@ namespace libtorrent
 		// requests, this is the number of seconds it was
 		// extended.
 		int m_timeout_extend;
-
-		// the number of bytes that the other
-		// end has to send us in order to respond
-		// to all outstanding piece requests we
-		// have sent to it
-		int m_outstanding_bytes;
 
 		// the number of outstanding bytes expected
 		// to be received by extensions

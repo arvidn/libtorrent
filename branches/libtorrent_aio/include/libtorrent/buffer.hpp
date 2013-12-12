@@ -198,6 +198,9 @@ public:
 	}
 private:
 	char* m_begin; // first
+
+	// TODO: 3 instead of m_end and m_last, have two uint32_t of size
+	// and capacity (and save 8 bytes)
 	char* m_end; // one passed end of size
 	char* m_last; // one passed end of allocation
 };
