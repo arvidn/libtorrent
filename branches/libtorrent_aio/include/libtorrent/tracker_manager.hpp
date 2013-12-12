@@ -147,7 +147,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT request_callback
 	{
 		friend class tracker_manager;
-		request_callback(): m_manager(0) {}
+		request_callback() {}
 		virtual ~request_callback() {}
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
@@ -175,10 +175,7 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const char* fmt, ...) const = 0;
-#else
-	private:
 #endif
-		tracker_manager* m_manager;
 	};
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler

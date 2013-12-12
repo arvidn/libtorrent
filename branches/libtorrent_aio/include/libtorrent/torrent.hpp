@@ -112,11 +112,101 @@ namespace libtorrent
 		lazy_entry entry;
 	};
 
+	struct torrent_hot_members
+	{
+		torrent_hot_members(aux::session_interface& ses
+			, add_torrent_params const& p, int block_size);
+
+	protected:
+		// the piece picker. This is allocated lazily. When we don't
+		// have anything in the torrent (for instance, if it hasn't
+		// been started yet) or if we have everything, there is no
+		// picker. It's allocated on-demand the first time we need
+		// it in torrent::need_picker(). In order to tell the
+		// difference between having everything and nothing in
+		// the case there is no piece picker, see m_have_all.
+		boost::scoped_ptr<piece_picker> m_picker;
+
+		// TOOD: make this a raw pointer. perhaps keep the shared_ptr
+		// around further down the object to maintain an owner
+		boost::shared_ptr<torrent_info> m_torrent_file;
+
+		// a back reference to the session
+		// this torrent belongs to.
+		aux::session_interface& m_ses;
+
+		// this vector is sorted at all times, by the pointer value.
+		// use sorted_insert() and sorted_find() on it. The GNU STL
+		// implementation on Darwin uses significantly less memory to
+		// represent a vector than a set, and this set is typically
+		// relaitvely small, and it's cheap to copy pointers.
+		std::vector<peer_connection*> m_connections;
+
+		// the scrape data from the tracker response, this
+		// is optional and may be 0xffffff
+		boost::uint32_t m_complete:24;
+
+		// set to true when this torrent may not download anything
+		bool m_upload_mode:1;
+
+		// this is set to false as long as the connections
+		// of this torrent hasn't been initialized. If we
+		// have metadata from the start, connections are
+		// initialized immediately, if we didn't have metadata,
+		// they are initialized right after files_checked().
+		// valid_resume_data() will return false as long as
+		// the connections aren't initialized, to avoid
+		// them from altering the piece-picker before it
+		// has been initialized with files_checked().
+		bool m_connections_initialized:1;
+
+		// is set to true when the torrent has
+		// been aborted.
+		bool m_abort:1;
+
+		// is true if this torrent has allows having peers
+		bool m_allow_peers:1;
+
+		// this is set when the torrent is in share-mode
+		bool m_share_mode:1;
+
+		// this is true if we have all pieces. If it's false,
+		// it means we either don't have any pieces, or, if
+		// there is a piece_picker object present, it contans
+		// the state of how many pieces we have
+		bool m_have_all:1;
+
+		// set to true when this torrent has been paused but
+		// is waiting to finish all current download requests
+		// before actually closing all connections
+		bool m_graceful_pause_mode:1;
+
+		// state subscription. If set, a pointer to this torrent
+		// will be added to the m_state_updates set in session_impl
+		// whenever this torrent's state changes (any state).
+		bool m_state_subscription:1;
+
+		// the maximum number of connections for this torrent
+		boost::uint32_t m_max_connections:24;
+
+		// the size of a request block
+		// each piece is divided into these
+		// blocks when requested. The block size is
+		// 1 << m_block_size_shift
+		boost::uint32_t m_block_size_shift:5;
+
+		// the state of this torrent (queued, checking, downloading, etc.)
+		boost::uint32_t m_state:3;
+
+		boost::scoped_ptr<policy> m_policy;
+	};
+
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
 	class TORRENT_EXTRA_EXPORT torrent
-		: public request_callback
+		: public torrent_hot_members
+		, public request_callback
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
 		, public list_node // used for torrent activity LRU
@@ -988,24 +1078,6 @@ namespace libtorrent
 
 		void need_policy();
 
-		// the piece picker. This is allocated lazily. When we don't
-		// have anything in the torrent (for instance, if it hasn't
-		// been started yet) or if we have everything, there is no
-		// picker. It's allocated on-demand the first time we need
-		// it in torrent::need_picker(). In order to tell the
-		// difference between having everything and nothing in
-		// the case there is no piece picker, see m_have_all.
-		boost::scoped_ptr<piece_picker> m_picker;
-
-		// a back reference to the session
-		// this torrent belongs to.
-		aux::session_interface& m_ses;
-
-
-		boost::shared_ptr<torrent_info> m_torrent_file;
-
-		boost::scoped_ptr<policy> m_policy;
-
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
 		size_type m_total_uploaded;
@@ -1039,13 +1111,6 @@ namespace libtorrent
 
 		void init_ssl(std::string const& cert);
 #endif
-
-		// this vector is sorted at all times, by the pointer value.
-		// use sorted_insert() and sorted_find() on it. The GNU STL
-		// implementation on Darwin uses significantly less memory to
-		// represent a vector than a set, and this set is typically
-		// relaitvely small, and it's cheap to copy pointers.
-		std::vector<peer_connection*> m_connections;
 
 		void setup_peer_class();
 
@@ -1227,6 +1292,7 @@ namespace libtorrent
 
 		// the average time it takes to download one time critical piece
 		boost::uint32_t m_average_piece_time;
+
 		// the average piece download time deviation
 		boost::uint32_t m_piece_time_deviation;
 
@@ -1260,8 +1326,22 @@ namespace libtorrent
 		// the number of seconds we've been in upload mode
 		unsigned int m_upload_mode_time:24;
 
-		// the state of this torrent (queued, checking, downloading, etc.)
-		unsigned int m_state:3;
+		// true when this torrent should anncounce to
+		// trackers
+		bool m_announce_to_trackers:1;
+
+		// true when this torrent should anncounce to
+		// the local network
+		bool m_announce_to_lsd:1;
+
+		// is set to true every time there is an incoming
+		// connection to this torrent
+		bool m_has_incoming:1;
+
+		// this is set to true when the files are checked
+		// before the files are checked, we don't try to
+		// connect to peers
+		bool m_files_checked:1;
 
 		// determines the storage state for this torrent.
 		unsigned int m_storage_mode:2;
@@ -1274,12 +1354,6 @@ namespace libtorrent
 		// is in use. i.e. one or more trackers are waiting
 		// for a reannounce
 		bool m_waiting_tracker:1;
-
-		// this means we haven't verified the file content
-		// of the files we're seeding. the m_verified bitfield
-		// indicates which pieces have been verified and which
-		// haven't
-		bool m_seed_mode:1;
 
 // ----
 
@@ -1307,16 +1381,11 @@ namespace libtorrent
 		// is received
 		bool m_got_tracker_response:1;
 
-		// this is set to false as long as the connections
-		// of this torrent hasn't been initialized. If we
-		// have metadata from the start, connections are
-		// initialized immediately, if we didn't have metadata,
-		// they are initialized right after files_checked().
-		// valid_resume_data() will return false as long as
-		// the connections aren't initialized, to avoid
-		// them from altering the piece-picker before it
-		// has been initialized with files_checked().
-		bool m_connections_initialized:1;
+		// this means we haven't verified the file content
+		// of the files we're seeding. the m_verified bitfield
+		// indicates which pieces have been verified and which
+		// haven't
+		bool m_seed_mode:1;
 
 		// if this is true, we're currently super seeding this
 		// torrent.
@@ -1365,30 +1434,9 @@ namespace libtorrent
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
 
-		// the size of a request block
-		// each piece is divided into these
-		// blocks when requested. The block size is
-		// 1 << m_block_size_shift
-		unsigned int m_block_size_shift:5;
-
-		// is set to true every time there is an incoming
-		// connection to this torrent
-		bool m_has_incoming:1;
-
-		// this is set to true when the files are checked
-		// before the files are checked, we don't try to
-		// connect to peers
-		bool m_files_checked:1;
-
-// ----
-
-		// the maximum number of connections for this torrent
-		unsigned int m_max_connections:24;
-
-		// set to true when this torrent has been paused but
-		// is waiting to finish all current download requests
-		// before actually closing all connections
-		bool m_graceful_pause_mode:1;
+		// when this is set, second_tick will perform the actual
+		// work of refreshing the suggest pieces
+		bool m_need_suggest_pieces_refresh:1;
 
 		// this is set to true when the torrent starts up
 		// The first tracker response, when this is true,
@@ -1429,12 +1477,12 @@ namespace libtorrent
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		boost::uint32_t m_complete:24;
+		boost::uint32_t m_incomplete:24;
 
-		// state subscription. If set, a pointer to this torrent
-		// will be added to the m_state_updates set in session_impl
-		// whenever this torrent's state changes (any state).
-		bool m_state_subscription:1;
+
+		// true when the torrent should announce to
+		// the DHT
+		bool m_announce_to_dht:1;
 
 		// in state_updates list. When adding a torrent to the
 		// session_impl's m_state_update list, this bit is set
@@ -1469,44 +1517,6 @@ namespace libtorrent
 
 // ----
 
-		// the scrape data from the tracker response, this
-		// is optional and may be 0xffffff
-		boost::uint32_t m_incomplete:24;
-
-		// is set to true when the torrent has
-		// been aborted.
-		bool m_abort:1;
-
-		// true when the torrent should announce to
-		// the DHT
-		bool m_announce_to_dht:1;
-
-		// true when this torrent should anncounce to
-		// trackers
-		bool m_announce_to_trackers:1;
-
-		// true when this torrent should anncounce to
-		// the local network
-		bool m_announce_to_lsd:1;
-
-		// is true if this torrent has allows having peers
-		bool m_allow_peers:1;
-
-		// set to true when this torrent may not download anything
-		bool m_upload_mode:1;
-
-		// if this is true, libtorrent may pause and resume
-		// this torrent depending on queuing rules. Torrents
-		// started with auto_managed flag set may be added in
-		// a paused state in case there are no available
-		// slots.
-		bool m_auto_managed:1;
-
-		// this is set when the torrent is in share-mode
-		bool m_share_mode:1;
-
-// ----
-
 		// the number of seconds since the last piece passed for
 		// this torrent
 		boost::uint64_t m_last_download:24;
@@ -1525,21 +1535,18 @@ namespace libtorrent
 		// from this torrent
 		boost::uint64_t m_last_upload:24;
 
-		// this is true if we have all pieces. If it's false,
-		// it means we either don't have any pieces, or, if
-		// there is a piece_picker object present, it contans
-		// the state of how many pieces we have
-		bool m_have_all:1;
+		// if this is true, libtorrent may pause and resume
+		// this torrent depending on queuing rules. Torrents
+		// started with auto_managed flag set may be added in
+		// a paused state in case there are no available
+		// slots.
+		bool m_auto_managed:1;
 
 		enum { no_gauge_state = 0xf };
 		// the current stats gauge this torrent counts against
 		boost::uint32_t m_current_gauge_state:4;
 
-		// when this is set, second_tick will perform the actual
-		// work of refreshing the suggest pieces
-		bool m_need_suggest_pieces_refresh:1;
-
-		// TODO: there's space for 2 bits here
+		// TODO: there's space for 3 bits here
 
 // ----
 

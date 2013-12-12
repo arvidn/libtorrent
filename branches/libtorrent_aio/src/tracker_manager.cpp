@@ -278,7 +278,6 @@ namespace libtorrent
 		m_connections.push_back(con);
 
 		boost::shared_ptr<request_callback> cb = con->requester();
-		if (cb) cb->m_manager = this;
 		con->start();
 	}
 
