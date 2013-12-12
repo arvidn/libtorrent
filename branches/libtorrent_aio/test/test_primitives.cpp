@@ -238,11 +238,11 @@ int test_main()
 
 	std::string path;
 	sanitize_append_path_element(path, "a...", 4);
-	TEST_EQUAL(path, "a___");
+	TEST_EQUAL(path, "a");
 
 	path.clear();
 	sanitize_append_path_element(path, "a   ", 4);
-	TEST_EQUAL(path, "a___");
+	TEST_EQUAL(path, "a");
 
 	path.clear();
 	sanitize_append_path_element(path, "a...b", 5);
