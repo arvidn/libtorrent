@@ -214,7 +214,7 @@
       "spaceAfter": 5,
       "backColor": "#e7e7e7",
       "borderColor": "#808080",
-      "borderRadius": 3,
+      "borderRadius": 0,
       "borderWidth": 0.5,
       "borderPadding": 4
     }],
