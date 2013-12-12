@@ -925,10 +925,25 @@ int test_main()
 	p->inc_refcount(5, 0);
 	
 	bitfield bits = string2vec("*      ");
+	TEST_EQUAL(bits.get_bit(0), true);
+	TEST_EQUAL(bits.get_bit(1), false);
+	TEST_EQUAL(bits.get_bit(2), false);
+	TEST_EQUAL(bits.get_bit(3), false);
+	TEST_EQUAL(bits.get_bit(4), false);
+	TEST_EQUAL(bits.get_bit(5), false);
+	TEST_EQUAL(bits.get_bit(6), false);
 	p->inc_refcount(bits, 0);
 	bits = string2vec("    *  ");
+
+	TEST_EQUAL(bits.get_bit(0), false);
+	TEST_EQUAL(bits.get_bit(1), false);
+	TEST_EQUAL(bits.get_bit(2), false);
+	TEST_EQUAL(bits.get_bit(3), false);
+	TEST_EQUAL(bits.get_bit(4), true);
+	TEST_EQUAL(bits.get_bit(5), false);
+	TEST_EQUAL(bits.get_bit(6), false);
 	p->dec_refcount(bits, 0);
-	TEST_CHECK(test_pick(p) == 0);
+	TEST_EQUAL(test_pick(p), 0);
 
 // ========================================================
 	

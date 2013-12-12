@@ -1052,7 +1052,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 
 		bitfield bits;
-		bits.borrow_bytes((char*)recv_buffer.begin + 1
+		bits.assign((char*)recv_buffer.begin + 1
 			, t->valid_metadata()?get_bitfield().size():(packet_size()-1)*8);
 		
 		incoming_bitfield(bits);
