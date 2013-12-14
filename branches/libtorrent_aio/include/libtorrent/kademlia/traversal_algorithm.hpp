@@ -120,6 +120,18 @@ protected:
 	boost::uint16_t m_timeouts;
 };
 
+struct traversal_observer : observer
+{
+	traversal_observer(
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		, udp::endpoint const& ep, node_id const& id)
+		: observer(algorithm, ep, id)
+	{}
+
+	// parses out "nodes" and keeps traversing
+	void reply(msg const&);
+};
+
 } } // namespace libtorrent::dht
 
 #endif // TRAVERSAL_ALGORITHM_050324_HPP

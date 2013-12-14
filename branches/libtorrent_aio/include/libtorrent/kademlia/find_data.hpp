@@ -59,7 +59,7 @@ class node_impl;
 
 //TODO: 3 rename this class to get_peers, since that's what it does
 // find_data is an unnecessarily generic name
-class find_data : public traversal_algorithm
+struct find_data : traversal_algorithm
 {
 public:
 	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
@@ -83,7 +83,8 @@ public:
 protected:
 
 	virtual void done();
-	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
+	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
+		, node_id const& id);
 	virtual bool invoke(observer_ptr o);
 
 	data_callback m_data_callback;
@@ -95,9 +96,8 @@ protected:
 	bool m_noseeds:1;
 };
 
-class obfuscated_get_peers : public find_data
+struct obfuscated_get_peers : find_data
 {
-public:
 	typedef find_data::nodes_callback done_callback;
 
 	obfuscated_get_peers(node_impl& node, node_id target
@@ -109,7 +109,8 @@ public:
 
 protected:
 
-	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
+	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
+		, node_id const& id);
 	virtual bool invoke(observer_ptr o);
 	virtual void done();
 private:
@@ -118,13 +119,22 @@ private:
 	bool m_obfuscated;
 };
 
-class find_data_observer : public observer
+struct find_data_observer : traversal_observer
 {
-public:
 	find_data_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: observer(algorithm, ep, id)
+		: traversal_observer(algorithm, ep, id)
+	{}
+	void reply(msg const&);
+};
+
+struct obfuscated_find_data_observer : traversal_observer
+{
+	obfuscated_find_data_observer(
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		, udp::endpoint const& ep, node_id const& id)
+		: traversal_observer(algorithm, ep, id)
 	{}
 	void reply(msg const&);
 };

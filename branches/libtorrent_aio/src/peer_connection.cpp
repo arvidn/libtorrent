@@ -3641,6 +3641,8 @@ namespace libtorrent
 		TORRENT_ASSERT(t->has_piece_passed(piece));
 #endif
 
+		TORRENT_ASSERT(piece >= 0 && piece < t->torrent_file().num_pieces());
+
 		if (m_sent_suggested_pieces.empty())
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();

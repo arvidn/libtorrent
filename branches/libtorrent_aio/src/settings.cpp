@@ -129,6 +129,7 @@ namespace libtorrent
 				case std_string: val = *((std::string*)src); break;
 				case character: val = *((char*)src); break;
 				case integer: val = *((int*)src); break;
+				case integer16: val = *((boost::uint16_t*)src); break;
 				case size_integer: val = *((size_type*)src); break;
 				case time_integer: val = *((time_t*)src); break;
 				case floating_point: val = size_type(*((float*)src) * 1000.f); break;
