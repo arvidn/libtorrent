@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/session_status.hpp>
 #include "libtorrent/broadcast_socket.hpp" // for cidr_distance
+#include <libtorrent/socket_io.hpp> // for read_*_endpoint
 
 #include <boost/bind.hpp>
 
@@ -47,6 +48,11 @@ namespace libtorrent { namespace dht
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(traversal)
+#endif
+
+using detail::read_v4_endpoint;
+#if TORRENT_USE_IPV6
+using detail::read_v6_endpoint;
 #endif
 
 observer_ptr traversal_algorithm::new_observer(void* ptr
@@ -462,6 +468,36 @@ void traversal_algorithm::status(dht_lookup& l)
 		++l.nodes_left;
 	}
 	l.last_sent = last_sent;
+}
+
+void traversal_observer::reply(msg const& m)
+{
+	lazy_entry const* r = m.message.dict_find_dict("r");
+	if (!r)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get()
+			<< "] missing response dict";
+#endif
+		return;
+	}
+
+	// look for nodes
+	lazy_entry const* n = r->dict_find_string("nodes");
+	if (n)
+	{
+		std::vector<node_entry> node_list;
+		char const* nodes = n->string_ptr();
+		char const* end = nodes + n->string_length();
+
+		while (end - nodes >= 26)
+		{
+			node_id id;
+			std::copy(nodes, nodes + 20, id.begin());
+			nodes += 20;
+			m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
+		}
+	}
 }
 
 } } // namespace libtorrent::dht

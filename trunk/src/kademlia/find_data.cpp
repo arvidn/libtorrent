@@ -122,44 +122,35 @@ void find_data_observer::reply(msg const& m)
 		static_cast<find_data*>(m_algorithm.get())->got_peers(peer_list);
 	}
 
-	// look for nodes
-	n = r->dict_find_string("nodes");
-	if (n)
+	traversal_observer::reply(m);
+
+	done();
+}
+
+void obfuscated_find_data_observer::reply(msg const& m)
+{
+	lazy_entry const* r = m.message.dict_find_dict("r");
+	if (!r)
 	{
-		std::vector<node_entry> node_list;
-		char const* nodes = n->string_ptr();
-		char const* end = nodes + n->string_length();
-
-		while (end - nodes >= 26)
-		{
-			node_id id;
-			std::copy(nodes, nodes + 20, id.begin());
-			nodes += 20;
-			m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
-		}
-	}
-
-	n = r->dict_find_list("nodes2");
-	if (n)
-	{
-		for (int i = 0; i < n->list_size(); ++i)
-		{
-			lazy_entry const* p = n->list_at(0);
-			if (p->type() != lazy_entry::string_t) continue;
-			if (p->string_length() < 6 + 20) continue;
-			char const* in = p->string_ptr();
-
-			node_id id;
-			std::copy(in, in + 20, id.begin());
-			in += 20;
-			if (p->string_length() == 6 + 20)
-				m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(in));
-#if TORRENT_USE_IPV6
-			else if (p->string_length() == 18 + 20)
-				m_algorithm->traverse(id, read_v6_endpoint<udp::endpoint>(in));
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get()
+			<< "] missing response dict";
 #endif
-		}
+		return;
 	}
+
+	lazy_entry const* id = r->dict_find_string("id");
+	if (!id || id->string_length() != 20)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get()
+			<< "] invalid id in response";
+#endif
+		return;
+	}
+
+	traversal_observer::reply(m);
+
 	done();
 }
 
@@ -271,16 +262,28 @@ obfuscated_get_peers::obfuscated_get_peers(
 {
 }
 
-char const* obfuscated_get_peers::name() const { return !m_obfuscated ? find_data::name() : "get_peers [obfuscated]"; }
+char const* obfuscated_get_peers::name() const
+{ return !m_obfuscated ? find_data::name() : "get_peers [obfuscated]"; }
 
 observer_ptr obfuscated_get_peers::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
-	observer_ptr o(new (ptr) find_data_observer(this, ep, id));
+	if (m_obfuscated)
+	{
+		observer_ptr o(new (ptr) obfuscated_find_data_observer(this, ep, id));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	o->m_in_constructor = false;
+		o->m_in_constructor = false;
 #endif
-	return o;
+		return o;
+	}
+	else
+	{
+		observer_ptr o(new (ptr) find_data_observer(this, ep, id));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		o->m_in_constructor = false;
+#endif
+		return o;
+	}
 }
 
 bool obfuscated_get_peers::invoke(observer_ptr o)
