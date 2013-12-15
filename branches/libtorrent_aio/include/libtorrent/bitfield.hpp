@@ -150,7 +150,7 @@ namespace libtorrent
 		}
 
 		// returns true if the bitfield has zero size.
-		bool empty() const { return m_buf == NULL ? 0 : m_buf[-1] == 0; }
+		bool empty() const { return m_buf == NULL ? true : m_buf[-1] == 0; }
 
 		// returns a pointer to the internal buffer of the bitfield.
 		// TODO: rename to data() ?

@@ -465,6 +465,7 @@ int test_main()
 	// test bitfield
 	bitfield test1(10, false);
 	TEST_EQUAL(test1.size(), 10);
+	TEST_EQUAL(test1.empty(), false);
 	TEST_EQUAL(test1.count(), 0);
 	test1.set_bit(9);
 	TEST_EQUAL(test1.count(), 1);
@@ -525,6 +526,8 @@ int test_main()
 
 	test1 = bitfield();
 	TEST_EQUAL(test1.size(), 0);
+	TEST_EQUAL(test1.empty(), true);
+	TEST_EQUAL(bitfield().empty(), true);
 
 	test1 = test2;
 	TEST_EQUAL(test1.size(), 20);
