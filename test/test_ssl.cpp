@@ -41,9 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <fstream>
 #include <iostream>
+#include <boost/asio/connect.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/error.hpp> // for asio::error::get_ssl_category()
+#include <boost/asio/ssl.hpp>
 #endif
 
 using namespace libtorrent;
@@ -154,6 +156,7 @@ void test_ssl(int test_idx, bool use_utp)
 	file.close();
 
 	add_torrent_params addp;
+	addp.save_path = ".";
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
@@ -165,7 +168,7 @@ void test_ssl(int test_idx, bool use_utp)
 	peer_errors = 0;
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_ssl", 16 * 1024, &t, false, NULL, true, test.use_ssl_ports);
+		, true, false, true, "_ssl", 16 * 1024, &t, false, &addp, true, test.use_ssl_ports);
 
 	if (test.seed_has_cert)
 	{
@@ -253,9 +256,282 @@ void test_ssl(int test_idx, bool use_utp)
 	p2 = ses2.abort();
 }
 
+std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
+	, std::string pw)
+{
+	if (p != boost::asio::ssl::context::for_reading) return "";
+	return pw;
+}
+
+struct attack_t
+{
+	// flags controlling the connection attempt
+	boost::uint32_t flags;
+	// whether or not we expect to be able to connect
+	bool expect;
+};
+
+enum attack_flags_t
+{
+	valid_certificate = 1,
+	invalid_certificate = 2,
+	valid_sni_hash = 4,
+	invalid_sni_hash = 8,
+	valid_bittorrent_hash = 16,
+};
+
+attack_t attacks[] =
+{
+	// positive test
+	{ valid_certificate | valid_sni_hash | valid_bittorrent_hash, true},
+
+	// SNI
+	{ valid_certificate | invalid_sni_hash | valid_bittorrent_hash, false},
+	{ valid_certificate | valid_bittorrent_hash, false},
+
+	// certificate
+	{ valid_sni_hash | valid_bittorrent_hash, false},
+	{ invalid_certificate | valid_sni_hash | valid_bittorrent_hash, false},
+
+	// bittorrent hash
+	{ valid_certificate | valid_sni_hash, false},
+};
+
+const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
+
+bool try_connect(session& ses1, int port
+	, boost::intrusive_ptr<torrent_info> const& t, boost::uint32_t flags)
+{
+	using boost::asio::ssl::context;
+
+	fprintf(stderr, "\nMALICIOUS PEER TEST: ");
+	if (flags & invalid_certificate) fprintf(stderr, "invalid-certificate ");
+	else if (flags & valid_certificate) fprintf(stderr, "valid-certificate ");
+	else fprintf(stderr, "no-certificate ");
+
+	if (flags & invalid_sni_hash) fprintf(stderr, "invalid-SNI-hash ");
+	else if (flags & valid_sni_hash) fprintf(stderr, "valid-SNI-hash ");
+	else fprintf(stderr, "no-SNI-hash ");
+
+	if (flags & valid_bittorrent_hash) fprintf(stderr, "valid-bittorrent-hash ");
+	else fprintf(stderr, "invalid-bittorrent-hash ");
+
+	fprintf(stderr, "\n");
+
+	error_code ec;
+	boost::asio::io_service ios;
+
+	// create the SSL context for this torrent. We need to
+	// inject the root certificate, and no other, to
+	// verify other peers against
+	context ctx(ios, context::sslv23);
+
+	ctx.set_options(context::default_workarounds
+		| boost::asio::ssl::context::no_sslv2
+		| boost::asio::ssl::context::single_dh_use);
+
+	// we're a malicious peer, we don't have any interest
+	// in verifying peers
+	ctx.set_verify_mode(context::verify_none, ec);
+	if (ec)
+	{
+		fprintf(stderr, "Failed to set SSL verify mode: %s\n"
+			, ec.message().c_str());
+		TEST_CHECK(!ec);
+		return false;
+	}
+
+	std::string certificate = combine_path("ssl", "peer_certificate.pem");
+	std::string private_key = combine_path("ssl", "peer_private_key.pem");
+	std::string dh_params = combine_path("ssl", "dhparams.pem");
+
+	if (flags & invalid_certificate)
+	{
+		certificate = combine_path("ssl", "invalid_peer_certificate.pem");
+		private_key = combine_path("ssl", "invalid_peer_private_key.pem");
+	}
+
+	// TODO: test using a signed certificate with the wrong info-hash in DN
+
+	if (flags & (valid_certificate | invalid_certificate))
+	{
+		ctx.set_password_callback(boost::bind(&password_callback, _1, _2, "test"), ec);
+		if (ec)
+		{
+			fprintf(stderr, "Failed to set certificate password callback: %s\n"
+				, ec.message().c_str());
+			TEST_CHECK(!ec);
+			return false;
+		}
+		ctx.use_certificate_file(certificate, context::pem, ec);
+		if (ec)
+		{
+			fprintf(stderr, "Failed to set certificate file: %s\n"
+				, ec.message().c_str());
+			TEST_CHECK(!ec);
+			return false;
+		}
+		ctx.use_private_key_file(private_key, context::pem, ec);
+		if (ec)
+		{
+			fprintf(stderr, "Failed to set private key: %s\n"
+				, ec.message().c_str());
+			TEST_CHECK(!ec);
+			return false;
+		}
+		ctx.use_tmp_dh_file(dh_params, ec);
+		if (ec)
+		{
+			fprintf(stderr, "Failed to set DH params: %s\n"
+				, ec.message().c_str());
+			TEST_CHECK(!ec);
+			return false;
+		}
+	}
+
+	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_sock(ios, ctx);
+
+	ssl_sock.lowest_layer().connect(tcp::endpoint(
+		address_v4::from_string("127.0.0.1"), port), ec);
+	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+
+	if (ec)
+	{
+		fprintf(stderr, "Failed to connect: %s\n"
+			, ec.message().c_str());
+		TEST_CHECK(!ec);
+		return false;
+	}
+
+	if (flags & valid_sni_hash)
+	{
+		std::string name = to_hex(t->info_hash().to_string());
+		fprintf(stderr, "SNI: %s\n", name.c_str());
+		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
+	}
+	else if (flags & invalid_sni_hash)
+	{
+		char const hex_alphabet[] = "0123456789abcdef";
+		std::string name;
+		name.reserve(40);
+		for (int i = 0; i < 40; ++i)
+			name += hex_alphabet[rand() % 16];
+		
+		fprintf(stderr, "SNI: %s\n", name.c_str());
+		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
+	}
+
+	ssl_sock.handshake(asio::ssl::stream_base::client, ec);
+
+	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+	if (ec)
+	{
+		fprintf(stderr, "Failed SSL handshake: %s\n"
+			, ec.message().c_str());
+		return false;
+	}
+
+	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
+		"                    " // space for info-hash
+		"aaaaaaaaaaaaaaaaaaaa" // peer-id
+		"\0\0\0\x01\x02"; // interested
+	
+	// fill in the info-hash
+	if (flags & valid_bittorrent_hash)
+	{
+		std::memcpy(handshake + 28, &t->info_hash()[0], 20);
+	}
+	else
+	{
+		// TODO: also test using a hash that refers to a valid torrent
+		// but that differs from the SNI hash
+		std::generate(handshake + 28, handshake + 48, &rand);
+	}
+
+	// fill in the peer-id
+	std::generate(handshake + 48, handshake + 68, &rand);
+	boost::asio::write(ssl_sock, libtorrent::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
+	if (ec)
+	{
+		fprintf(stderr, "failed to write bittorrent handshake: %s\n"
+			, ec.message().c_str());
+		return false;
+	}
+	
+	char buf[68];
+	boost::asio::read(ssl_sock, libtorrent::asio::buffer(buf, sizeof(buf)), ec);
+	if (ec)
+	{
+		fprintf(stderr, "failed to read bittorrent handshake: %s\n"
+			, ec.message().c_str());
+		return false;
+	}
+
+	if (memcmp(buf, "\x13" "BitTorrent protocol", 20) != 0)
+	{
+		fprintf(stderr, "invalid bittorrent handshake\n");
+		return false;
+	}
+
+	if (memcmp(buf + 28, &t->info_hash()[0], 20) != 0)
+	{
+		fprintf(stderr, "invalid info-hash in bittorrent handshake\n");
+		return false;
+	}
+
+	fprintf(stderr, "successfully connected over SSL and shook hand over bittorrent\n");
+
+	return true;
+}
+
+void test_malicious_peer()
+{
+	error_code ec;
+	remove_all("tmp3_ssl", ec);
+
+	// set up session
+	session ses1(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+	wait_for_listen(ses1, "ses1");
+	session_settings sett;
+	sett.ssl_listen = 1024 + rand() % 50000;
+	ses1.set_settings(sett);
+
+	// create torrent
+	create_directory("tmp3_ssl", ec);
+	std::ofstream file("tmp3_ssl/temporary");
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file
+		, 16 * 1024, 13, false, "ssl/root_ca_cert.pem");
+	file.close();
+
+	add_torrent_params addp;
+	addp.save_path = ".";
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.ti = t;
+
+	torrent_handle tor1 = ses1.add_torrent(addp, ec);
+
+	tor1.set_ssl_certificate(
+		combine_path("ssl", "peer_certificate.pem")
+		, combine_path("ssl", "peer_private_key.pem")
+		, combine_path("ssl", "dhparams.pem")
+		, "test");
+
+	wait_for_listen(ses1, "ses1");
+
+	for (int i = 0; i < num_attacks; ++i)
+	{
+		bool success = try_connect(ses1, sett.ssl_listen, t, attacks[i].flags);
+		TEST_EQUAL(attacks[i].expect, success);
+	}
+}
+
 int test_main()
 {
 	using namespace libtorrent;
+
+	test_malicious_peer();
 
 	// No support for SSL/uTP yet, so always pass in false
 	for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
