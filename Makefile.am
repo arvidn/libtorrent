@@ -84,24 +84,33 @@ DOCS_PAGES = \
   docs/features.rst               \
   docs/index.html                 \
   docs/index.rst                  \
-  docs/libtorrent_plugins.html    \
-  docs/libtorrent_plugins.rst     \
   docs/manual.html                \
   docs/manual.rst                 \
   docs/projects.html              \
   docs/projects.rst               \
   docs/python_binding.html        \
   docs/python_binding.rst         \
-  docs/dht_rss.html               \
-  docs/dht_rss.rst                \
-  docs/running_tests.html         \
-  docs/running_tests.rst          \
   docs/tuning.html                \
   docs/tuning.rst                 \
   docs/udp_tracker_protocol.html  \
   docs/udp_tracker_protocol.rst   \
   docs/utp.html                   \
-  docs/utp.rst
+  docs/utp.rst                    \
+  docs/reference-Alerts.html      \
+  docs/reference-Bencoding.html   \
+  docs/reference-Core.html        \
+  docs/reference-Create_Torrents.html \
+  docs/reference-Custom_Storage.html \
+  docs/reference-Error_Codes.html \
+  docs/reference-Filter.html      \
+  docs/reference-Plugins.html     \
+  docs/reference-RSS.html         \
+  docs/reference-Settings.html    \
+  docs/reference-Storage.html     \
+  docs/reference-String.html      \
+  docs/reference-Time.html        \
+  docs/reference-Utility.html     \
+  docs/reference.html
 
 EXTRA_DIST = \
   Jamfile \

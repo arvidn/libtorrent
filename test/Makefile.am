@@ -107,6 +107,7 @@ libtest_la_SOURCES = main.cpp \
   setup_transfer.cpp \
   dht_server.cpp \
   peer_server.cpp \
+  web_seed_suite.cpp \
   ../ed25519/src/add_scalar.c   \
   ../ed25519/src/fe.c           \
   ../ed25519/src/ge.c           \
@@ -139,7 +140,12 @@ test_peer_priority_SOURCES = test_peer_priority.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
 test_pex_SOURCES = test_pex.cpp
 test_piece_picker_SOURCES = test_piece_picker.cpp
+test_xml_SOURCES = test_xml.cpp
+test_string_SOURCES = test_string.cpp
 test_primitives_SOURCES = test_primitives.cpp
+test_http_parser_SOURCES = test_http_parser.cpp
+test_magnet_SOURCES = test_magnet.cpp
+test_packet_buffer_SOURCES = test_packet_buffer.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
 test_swarm_SOURCES = test_swarm.cpp
