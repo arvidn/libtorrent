@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/error.hpp> // for asio::error::get_ssl_category()
 #include <boost/asio/ssl.hpp>
-#endif
 
 using namespace libtorrent;
 using boost::tuples::ignore;
@@ -75,11 +74,7 @@ test_config_t test_config[] =
 	{"downloader has a cert, but not seed (connect to regular port)", false, false, true, false, 0, 0},
 	{"downloader has a cert, but not seed (connect to ssl port)", true, false, true, false, 1, 1},
 	{"both downloader and seed has a cert (connect to regular port)", false, true, true, false, 0, 0},
-#ifdef TORRENT_USE_OPENSSL
 	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, true, 0, 0},
-#else
-	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, false, 0, 0},
-#endif
 };
 
 int peer_disconnects = 0;
@@ -95,10 +90,8 @@ bool on_alert(alert* a)
 		++peer_disconnects;
 		++peer_errors;
 
-#ifdef TORRENT_USE_OPENSSL
 		if (e->error.category() == boost::asio::error::get_ssl_category())
 			++ssl_peer_disconnects;
-#endif
 	}
 	return false;
 }
@@ -114,14 +107,6 @@ void test_ssl(int test_idx, bool use_utp)
 	test_config_t const& test = test_config[test_idx];
 
 	fprintf(stderr, "\n%s TEST: %s Protocol: %s\n\n", time_now_string(), test.name, use_utp ? "uTP": "TCP");
-
-#ifndef TORRENT_USE_OPENSSL
-	if (test.use_ssl_ports)
-	{
-		fprintf(stderr, "N/A\n");
-		return;
-	}
-#endif
 
 	// in case the previous run was terminated
 	error_code ec;
@@ -243,10 +228,8 @@ void test_ssl(int test_idx, bool use_utp)
 
 	fprintf(stderr, "peer_errors: %d  expected: %d\n", peer_errors, test.peer_errors);
 	TEST_EQUAL(peer_errors, test.peer_errors);
-#ifdef TORRENT_USE_OPENSSL
 	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
 	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
-#endif
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
@@ -526,11 +509,13 @@ void test_malicious_peer()
 		TEST_EQUAL(attacks[i].expect, success);
 	}
 }
+#endif // TORRENT_USE_OPENSSL
 
 int test_main()
 {
 	using namespace libtorrent;
 
+#ifdef TORRENT_USE_OPENSSL
 	test_malicious_peer();
 
 	// No support for SSL/uTP yet, so always pass in false
@@ -541,6 +526,7 @@ int test_main()
 	remove_all("tmp1_ssl", ec);
 	remove_all("tmp2_ssl", ec);
 
+#endif // TORRENT_USE_OPENSSL
 	return 0;
 }
 

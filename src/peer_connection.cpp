@@ -3960,9 +3960,10 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 
 		if (size > 0)
+		{
 			std::memmove(&m_recv_buffer[0] + offset, &m_recv_buffer[0] + offset + size, m_recv_pos - size - offset);
-
-		m_recv_pos -= size;
+			m_recv_pos -= size;
+		}
 
 #ifdef TORRENT_DEBUG
 		std::fill(m_recv_buffer.begin() + m_recv_pos, m_recv_buffer.end(), 0);
