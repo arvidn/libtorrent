@@ -85,7 +85,10 @@ void report_failure(char const* err, char const* file, int line)
 
 int print_failures()
 {
-	fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", tests_failure);
+	if (tests_failure == 0)
+		fprintf(stderr, "\n\n\x1b[42;30m   == %d ALL TESTS PASSED ==\x1b[0m\n\n\n", tests_failure);
+	else
+		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", tests_failure);
 	return tests_failure;
 }
 
@@ -760,11 +763,19 @@ bool udp_failed = false;
 void stop_tracker()
 {
 	fprintf(stderr, "%s: stop_tracker()\n", time_now_string());
-	if (tracker_server && tracker_ios)
+	if (tracker_ios)
 	{
 		tracker_ios->stop();
+	}
+
+	if (tracker_server)
+	{
 		tracker_server->join();
 		tracker_server.reset();
+	}
+
+	if (tracker_ios)
+	{
 		delete tracker_ios;
 		tracker_ios = 0;
 	}
@@ -784,6 +795,8 @@ int start_tracker()
 
 	int port = 0;
 
+	delete tracker_ios;
+	tracker_ios = new io_service;
 	tracker_server.reset(new libtorrent::thread(boost::bind(&udp_tracker_thread, &port)));
 
 	{
@@ -860,8 +873,6 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 
 void udp_tracker_thread(int* port)
 {
-	tracker_ios = new io_service;
-
 	udp::socket acceptor(*tracker_ios);
 	error_code ec;
 	acceptor.open(udp::v4(), ec);
