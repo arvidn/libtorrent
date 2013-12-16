@@ -341,14 +341,14 @@ bool try_connect(session& ses1, int port
 		return false;
 	}
 
-	std::string certificate = combine_path("ssl", "peer_certificate.pem");
-	std::string private_key = combine_path("ssl", "peer_private_key.pem");
-	std::string dh_params = combine_path("ssl", "dhparams.pem");
+	std::string certificate = combine_path("..", combine_path("ssl", "peer_certificate.pem"));
+	std::string private_key = combine_path("..", combine_path("ssl", "peer_private_key.pem"));
+	std::string dh_params = combine_path("..", combine_path("ssl", "dhparams.pem"));
 
 	if (flags & invalid_certificate)
 	{
-		certificate = combine_path("ssl", "invalid_peer_certificate.pem");
-		private_key = combine_path("ssl", "invalid_peer_private_key.pem");
+		certificate = combine_path("..", combine_path("ssl", "invalid_peer_certificate.pem"));
+		private_key = combine_path("..", combine_path("ssl", "invalid_peer_private_key.pem"));
 	}
 
 	// TODO: test using a signed certificate with the wrong info-hash in DN
