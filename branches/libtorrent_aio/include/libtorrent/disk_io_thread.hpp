@@ -66,9 +66,6 @@ namespace libtorrent
 
 	struct cached_piece_info
 	{
-		// the piece index for this cache entry.
-		int piece;
-
 		piece_manager* storage;
 
 		// holds one entry for each block in this piece. ``true`` represents
@@ -79,18 +76,21 @@ namespace libtorrent
 		// a piece is, the more likely it is to be flushed to disk.
 		ptime last_use;
 
-		bool need_readback;
-
 		// The index of the next block that needs to be hashed.
 		// Blocks are hashed as they are downloaded in order to not
 		// have to re-read them from disk once the piece is complete, to
 		// compare its hash against the hashes in the .torrent file.
 		int next_to_hash;
 
+		// the piece index for this cache entry.
+		int piece;
+
 		enum kind_t { read_cache = 0, write_cache = 1, volatile_read_cache = 2 };
 
 		// specifies if this piece is part of the read cache or the write cache.
 		kind_t kind;
+
+		bool need_readback;
 	};
 	
 	// this struct holds a number of statistics counters
