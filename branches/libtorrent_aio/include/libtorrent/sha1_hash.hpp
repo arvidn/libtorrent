@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstring>
 
+#include <arpa/inet.h> // for ntohl and htonl
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
@@ -66,10 +68,10 @@ namespace libtorrent
 	// peer IDs, node IDs etc.
 	class TORRENT_EXPORT sha1_hash
 	{
-		enum { number_size = 20 };
+		enum { number_size = 5 };
 	public:
 		// the number of bytes of the number
-		static const int size = number_size;
+		static const int size = number_size * sizeof(boost::uint32_t);
 
 		// constructs an all-sero sha1-hash
 		sha1_hash() { clear(); }
@@ -117,13 +119,13 @@ namespace libtorrent
 		void assign(char const* str) { std::memcpy(m_number, str, size); }
 
 		// set the sha1-hash to all zeroes.
-		void clear() { std::memset(m_number, 0, number_size); }
+		void clear() { std::memset(m_number, 0, size); }
 
 		// return true if the sha1-hash is all zero.
 		bool is_all_zeros() const
 		{
-			for (const unsigned char* i = m_number; i < m_number+number_size; ++i)
-				if (*i != 0) return false;
+			for (int i = 0; i < number_size; ++i)
+				if (m_number[i] != 0) return false;
 			return true;
 		}
 
@@ -131,27 +133,37 @@ namespace libtorrent
 		sha1_hash& operator<<=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
-			int num_bytes = n / 8;
-			if (num_bytes >= number_size)
+			int num_words = n / 32;
+			if (num_words >= number_size)
 			{
-				std::memset(m_number, 0, number_size);
+				std::memset(m_number, 0, size);
 				return *this;
 			}
 
-			if (num_bytes > 0)
+			if (num_words > 0)
 			{
-				std::memmove(m_number, m_number + num_bytes, number_size - num_bytes);
-				std::memset(m_number + number_size - num_bytes, 0, num_bytes);
-				n -= num_bytes * 8;
+				std::memmove(m_number, m_number + num_words
+					, (number_size - num_words) * sizeof(boost::uint32_t));
+				std::memset(m_number + (number_size - num_words)
+					, 0, num_words * sizeof(boost::uint32_t));
+				n -= num_words * 32;
 			}
 			if (n > 0)
 			{
+				// keep in mind that the uint32_t are stored in network
+				// byte order, so they have to be byteswapped before
+				// applying the shift operations, and then byteswapped
+				// back again.
+				m_number[0] = ntohl(m_number[0]);
 				for (int i = 0; i < number_size - 1; ++i)
 				{
 					m_number[i] <<= n;
-					m_number[i] |= m_number[i+1] >> (8 - n);
+					m_number[i+1] = ntohl(m_number[i+1]);
+					m_number[i] |= m_number[i+1] >> (32 - n);
+					m_number[i] = htonl(m_number[i]);
 				}
 				m_number[number_size-1] <<= n;
+				m_number[number_size-1] = htonl(m_number[number_size-1]);
 			}
 			return *this;
 		}
@@ -160,26 +172,36 @@ namespace libtorrent
 		sha1_hash& operator>>=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
-			int num_bytes = n / 8;
-			if (num_bytes >= number_size)
+			int num_words = n / 32;
+			if (num_words >= number_size)
 			{
-				std::memset(m_number, 0, number_size);
+				std::memset(m_number, 0, size);
 				return *this;
 			}
-			if (num_bytes > 0)
+			if (num_words > 0)
 			{
-				std::memmove(m_number + num_bytes, m_number, number_size - num_bytes);
-				std::memset(m_number, 0, num_bytes);
-				n -= num_bytes * 8;
+				std::memmove(m_number + num_words
+					, m_number, (number_size - num_words) * sizeof(boost::uint32_t));
+				std::memset(m_number, 0, num_words * sizeof(boost::uint32_t));
+				n -= num_words * 32;
 			}
 			if (n > 0)
 			{
+				// keep in mind that the uint32_t are stored in network
+				// byte order, so they have to be byteswapped before
+				// applying the shift operations, and then byteswapped
+				// back again.
+				m_number[number_size-1] = ntohl(m_number[number_size-1]);
+
 				for (int i = number_size - 1; i > 0; --i)
 				{
 					m_number[i] >>= n;
-					m_number[i] |= m_number[i-1] << (8 - n);
+					m_number[i-1] = ntohl(m_number[i-1]);
+					m_number[i] |= m_number[i-1] << (32 - n);
+					m_number[i] = htonl(m_number[i]);
 				}
 				m_number[0] >>= n;
+				m_number[0] = htonl(m_number[0]);
 			}
 			return *this;
 		}
@@ -198,8 +220,10 @@ namespace libtorrent
 		{
 			for (int i = 0; i < number_size; ++i)
 			{
-				if (m_number[i] < n.m_number[i]) return true;
-				if (m_number[i] > n.m_number[i]) return false;
+				boost::uint32_t lhs = ntohl(m_number[i]);
+				boost::uint32_t rhs = ntohl(n.m_number[i]);
+				if (lhs < rhs) return true;
+				if (lhs > rhs) return false;
 			}
 			return false;
 		}
@@ -208,7 +232,7 @@ namespace libtorrent
 		sha1_hash operator~()
 		{
 			sha1_hash ret;
-			for (int i = 0; i< number_size; ++i)
+			for (int i = 0; i < number_size; ++i)
 				ret.m_number[i] = ~m_number[i];
 			return ret;
 		}
@@ -222,7 +246,7 @@ namespace libtorrent
 		}
 		sha1_hash& operator^=(sha1_hash const& n)
 		{
-			for (int i = 0; i< number_size; ++i)
+			for (int i = 0; i < number_size; ++i)
 				m_number[i] ^= n.m_number[i];
 			return *this;
 		}
@@ -236,7 +260,7 @@ namespace libtorrent
 		}
 		sha1_hash& operator&=(sha1_hash const& n)
 		{
-			for (int i = 0; i< number_size; ++i)
+			for (int i = 0; i < number_size; ++i)
 				m_number[i] &= n.m_number[i];
 			return *this;
 		}
@@ -244,35 +268,45 @@ namespace libtorrent
 		// bit-wise OR of the two sha1-hash.
 		sha1_hash& operator|=(sha1_hash const& n)
 		{
-			for (int i = 0; i< number_size; ++i)
+			for (int i = 0; i < number_size; ++i)
 				m_number[i] |= n.m_number[i];
 			return *this;
 		}
 
 		// accessors for specific bytes
 		unsigned char& operator[](int i)
-		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
+		{
+			TORRENT_ASSERT(i >= 0 && i < size);
+			return reinterpret_cast<unsigned char*>(m_number)[i];
+		}
 		unsigned char const& operator[](int i) const
-		{ TORRENT_ASSERT(i >= 0 && i < number_size); return m_number[i]; }
+		{
+			TORRENT_ASSERT(i >= 0 && i < size);
+			return reinterpret_cast<unsigned char const*>(m_number)[i];
+		}
 
 		typedef const unsigned char* const_iterator;
 		typedef unsigned char* iterator;
 
 		// start and end iterators for the hash. The value type
 		// of these iterators is ``unsigned char``.
-		const_iterator begin() const { return m_number; }
-		const_iterator end() const { return m_number+number_size; }
-		iterator begin() { return m_number; }
-		iterator end() { return m_number+number_size; }
+		const_iterator begin() const
+		{ return reinterpret_cast<unsigned char const*>(m_number); }
+		const_iterator end() const
+		{ return reinterpret_cast<unsigned char const*>(m_number) + size; }
+		iterator begin()
+		{ return reinterpret_cast<unsigned char*>(m_number); }
+		iterator end()
+		{ return reinterpret_cast<unsigned char*>(m_number) + size; }
 
 		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
 		// It's still a binary string with 20 binary characters.
 		std::string to_string() const
-		{ return std::string((char const*)&m_number[0], number_size); }
+		{ return std::string((char const*)&m_number[0], size); }
 
 	private:
 
-		unsigned char m_number[number_size];
+		boost::uint32_t m_number[number_size];
 
 	};
 
