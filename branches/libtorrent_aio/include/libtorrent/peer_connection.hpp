@@ -1161,7 +1161,7 @@ namespace libtorrent
 		//                     ^
 		//                     |
 		//                     |
-		//                     +- m_recv_end (end of received data,
+		// ------------------->x  m_recv_end (end of received data,
 		//                          beyond this point is garbage)
 		// m_recv_buffer
 

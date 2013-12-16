@@ -4366,6 +4366,7 @@ namespace libtorrent
 	
 	// size = the packet size to remove from the receive buffer
 	// packet_size = the next packet size to receive in the buffer
+	// offset = the offset into the receive buffer where to remove `size` bytes
 	void peer_connection::cut_receive_buffer(int size, int packet_size, int offset)
 	{
 		INVARIANT_CHECK;
@@ -4376,6 +4377,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_recv_pos >= size + offset);
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
+		TORRENT_ASSERT(m_recv_start <= m_recv_end);
 
 		if (offset > 0)
 		{
@@ -4384,7 +4386,7 @@ namespace libtorrent
 			if (size > 0)
 				std::memmove(&m_recv_buffer[0] + m_recv_start + offset
 					, &m_recv_buffer[0] + m_recv_start + offset + size
-					, m_recv_end - size - offset);
+					, m_recv_end - m_recv_start - size - offset);
 
 			m_recv_pos -= size;
 			m_recv_end -= size;
