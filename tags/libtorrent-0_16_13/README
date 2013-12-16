@@ -1,0 +1,25 @@
+libtorrent is a C++ library that aims to be a good alternative to all the
+other bittorrent implementations around. It is a
+library and not a full featured client, although it comes with a working
+example client.
+
+The main goals of libtorrent are:
+
+	* to be cpu efficient
+	* to be memory efficient
+	* to be very easy to use
+
+See docs/manual.html for more detailed build and usage instructions.
+
+To build with autotools, run:
+
+   ./configure
+
+Followed by
+
+   make
+
+When libtorrent is built, finish off by running the tests:
+
+   make check
+
