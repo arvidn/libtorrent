@@ -15,7 +15,6 @@ test_programs = \
   test_dht                   \
   test_lsd                   \
   test_metadata_extension    \
-  test_natpmp                \
   test_pe_crypto             \
   test_peer_priority         \
   test_pex                   \
@@ -135,7 +134,6 @@ test_http_connection_SOURCES = test_http_connection.cpp
 test_ip_filter_SOURCES = test_ip_filter.cpp
 test_lsd_SOURCES = test_lsd.cpp
 test_metadata_extension_SOURCES = test_metadata_extension.cpp
-test_natpmp_SOURCES = test_natpmp.cpp
 test_peer_priority_SOURCES = test_peer_priority.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
 test_pex_SOURCES = test_pex.cpp
