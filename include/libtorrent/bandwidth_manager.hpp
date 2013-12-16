@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -89,8 +89,6 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 #endif
 
 	void update_quotas(time_duration const& dt);
-
-private:
 
 	// these are the consumers that want bandwidth
 	typedef std::vector<bw_request> queue_t;

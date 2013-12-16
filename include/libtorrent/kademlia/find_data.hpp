@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,9 +57,8 @@ class node_impl;
 
 // -------- find data -----------
 
-//TODO: 3 rename this class to get_peers, since that's what it does
-// find_data is an unnecessarily generic name
-struct find_data : traversal_algorithm
+//TODO: rename this to find_peers
+class find_data : public traversal_algorithm
 {
 public:
 	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
@@ -74,18 +73,17 @@ public:
 		, nodes_callback const& ncallback
 		, bool noseeds);
 
-	virtual void start();
-
-	virtual char const* name() const;
+	virtual char const* name() const { return "get_peers"; }
 
 	node_id const target() const { return m_target; }
 
 protected:
 
-	virtual void done();
-	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
+	void done();
+	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
 	virtual bool invoke(observer_ptr o);
+
+private:
 
 	data_callback m_data_callback;
 	nodes_callback m_nodes_callback;
@@ -96,45 +94,13 @@ protected:
 	bool m_noseeds:1;
 };
 
-struct obfuscated_get_peers : find_data
+class find_data_observer : public observer
 {
-	typedef find_data::nodes_callback done_callback;
-
-	obfuscated_get_peers(node_impl& node, node_id target
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback
-		, bool noseeds);
-
-	virtual char const* name() const;
-
-protected:
-
-	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
-	virtual bool invoke(observer_ptr o);
-	virtual void done();
-private:
-	// when set to false, we no longer obfuscate
-	// the target hash, and send regular get_peers
-	bool m_obfuscated;
-};
-
-struct find_data_observer : traversal_observer
-{
+public:
 	find_data_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
-	{}
-	void reply(msg const&);
-};
-
-struct obfuscated_find_data_observer : traversal_observer
-{
-	obfuscated_find_data_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
-		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
+		: observer(algorithm, ep, id)
 	{}
 	void reply(msg const&);
 };

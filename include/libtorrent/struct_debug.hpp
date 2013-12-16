@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg & Daniel Wallin
+Copyright (c) 2011, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,26 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/kademlia/logging.hpp"
-#include "libtorrent/time.hpp"
+#ifndef TORRENT_STRUCT_DEBUG
+#define TORRENT_STRUCT_DEBUG
 
-namespace libtorrent { namespace dht
-{
-	log_event::log_event(log& log) 
-		: log_(log) 
-	{
-		if (log_.enabled())
-			log_ << time_now_string() << " [" << log.id() << "] ";
-	}
+#define PRINT_SIZEOF(x) snprintf(tmp, sizeof(tmp), "\nsizeof(" #x ") = %d\n", int(sizeof(x))); \
+	l << tmp; \
+	temp = 0; \
+	prev_size = 0;
 
-	log_event::~log_event()
-	{
-		if (log_.enabled())
-		{
-			log_ << "\n";
-			log_.flush();
-		}
-	}
+#define PRINT_OFFSETOF(x, y) if (offsetof(x, y) > 0) { \
+		snprintf(tmp, sizeof(tmp), "\tsize: %-3d\tpadding: %-3d\n" \
+		, prev_size \
+		, int((offsetof(x, y) - temp)) - prev_size); \
+		l << tmp; \
+	} \
+	snprintf(tmp, sizeof(tmp), "%-50s: %-3d" \
+		, #x "::" #y \
+		, int(offsetof(x, y))); \
+	temp = offsetof(x, y); \
+	prev_size = sizeof(reinterpret_cast<x*>(0)->y); \
+	l << tmp;
 
-}}
+#define PRINT_OFFSETOF_END(x) snprintf(tmp, sizeof(tmp), "\tsize: %-3d\tpadding: %-3d\n" \
+	, prev_size, int((sizeof(x) - temp) - prev_size)); \
+	l << tmp;
+
+#endif // TORRENT_STRUCT_DEBUG
 

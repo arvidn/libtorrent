@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -124,8 +124,6 @@ namespace libtorrent
 		// reset the whole state and start over
 		void reset();
 
-		bool connection_close() const { return m_connection_close; }
-
 		std::multimap<std::string, std::string> const& headers() const { return m_header; }
 		std::vector<std::pair<size_type, size_type> > const& chunks() const { return m_chunked_ranges; }
 		
@@ -147,9 +145,6 @@ namespace libtorrent
 		buffer::const_interval m_recv_buffer;
 		int m_body_start_pos;
 
-		// this is true if the server is HTTP/1.0 or
-		// if it sent "connection: close"
-		bool m_connection_close;
 		bool m_chunked_encoding;
 		bool m_finished;
 

@@ -8,8 +8,6 @@ nobase_include_HEADERS = \
   address.hpp                  \
   add_torrent_params.hpp       \
   alert.hpp                    \
-  alert_manager.hpp            \
-  alert_dispatcher.hpp         \
   alert_types.hpp              \
   alloca.hpp                   \
   allocator.hpp                \
@@ -62,7 +60,6 @@ nobase_include_HEADERS = \
   io_service.hpp               \
   io_service_fwd.hpp           \
   ip_filter.hpp                \
-  ip_voter.hpp                 \
   lazy_entry.hpp               \
   lsd.hpp                      \
   magnet_uri.hpp               \
@@ -84,12 +81,12 @@ nobase_include_HEADERS = \
   ptime.hpp                    \
   puff.hpp                     \
   random.hpp                   \
+  rsa.hpp                      \
   rss.hpp                      \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
   settings.hpp                 \
-  sha1_hash.hpp                \
   size_type.hpp                \
   sliding_average.hpp          \
   socket.hpp                   \
@@ -102,6 +99,7 @@ nobase_include_HEADERS = \
   storage.hpp                  \
   storage_defs.hpp             \
   string_util.hpp              \
+  struct_debug.hpp             \
   thread.hpp                   \
   time.hpp                     \
   timestamp_history.hpp        \
@@ -136,7 +134,6 @@ nobase_include_HEADERS = \
   extensions/ut_pex.hpp             \
   \
   kademlia/dht_tracker.hpp          \
-  kademlia/dht_observer.hpp         \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
   kademlia/msg.hpp                  \

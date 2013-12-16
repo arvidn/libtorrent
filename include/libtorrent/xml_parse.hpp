@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <cstring>
 
-#include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
 
 namespace libtorrent
@@ -166,7 +165,6 @@ namespace libtorrent
 				callback(token, start, val_start);
 				*(p-2) = '-';
 				tag_end = p - 2;
-				continue;
 			}
 			else
 			{

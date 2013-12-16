@@ -37,15 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
-#include "dht_server.hpp"
+#include "libtorrent/time.hpp"
 
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
-
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-#include <iostream>
-#endif
 
 using namespace libtorrent;
 
@@ -91,7 +87,6 @@ struct dht_server
 
 	~dht_server()
 	{
-		m_socket.cancel();
 		m_socket.close();
 		if (m_thread) m_thread->join();
 	}
@@ -99,13 +94,6 @@ struct dht_server
 	int port() const { return m_port; }
 
 	int num_hits() const { return m_dht_requests; }
-
-	static void incoming_packet(error_code const& ec, size_t bytes_transferred, size_t *ret, error_code* error, bool* done)
-	{
-		*ret = bytes_transferred;
-		*error = ec;
-		*done = true;
-	}
 
 	void thread_fun()
 	{
@@ -115,17 +103,8 @@ struct dht_server
 		{
 			error_code ec;
 			udp::endpoint from;
-			size_t bytes_transferred;
-			bool done = false;
-			m_socket.async_receive_from(
-				asio::buffer(buffer, sizeof(buffer)), from, 0
-				, boost::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
-			while (!done)
-			{
-				m_ios.run_one();
-				m_ios.reset();
-			}
-
+			int bytes_transferred = m_socket.receive_from(
+				asio::buffer(buffer, sizeof(buffer)), from, 0, ec);
 			if (ec == boost::asio::error::operation_aborted
 				|| ec == boost::asio::error::bad_descriptor) return;
 

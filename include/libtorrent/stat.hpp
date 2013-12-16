@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/debug.hpp" // for logger
+#endif
 
 namespace libtorrent
 {
@@ -109,8 +113,6 @@ namespace libtorrent
 		// sliding average
 		int m_5_sec_average;
 		int m_30_sec_average;
-
-		// TODO: this is 4 bytes of padding!
 
 		// total counters
 		size_type m_total_counter;

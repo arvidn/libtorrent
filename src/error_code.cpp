@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2012, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,14 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 #if BOOST_VERSION >= 103500
-
-	struct libtorrent_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
 
 	const char* libtorrent_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
@@ -247,7 +239,6 @@ namespace libtorrent
 			"udp tracker response packet has invalid size",
 			"invalid transaction id in udp tracker response",
 			"invalid action field in udp tracker response",
-#ifndef TORRENT_NO_DEPRECATE
 			"",
 			"",
 			"",
@@ -266,23 +257,10 @@ namespace libtorrent
 			"expected value (list, dict, int or string) in bencoded string",
 			"bencoded nesting depth exceeded",
 			"bencoded item count limit exceeded",
-#endif
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";
 		return msgs[ev];
-	}
-
-	boost::system::error_category& get_libtorrent_category()
-	{
-		static libtorrent_error_category libtorrent_category;
-		return libtorrent_category;
-	}
-
-	boost::system::error_category& get_http_category()
-	{
-		static http_error_category http_category;
-		return http_category;
 	}
 
 	const char* http_error_category::name() const BOOST_SYSTEM_NOEXCEPT

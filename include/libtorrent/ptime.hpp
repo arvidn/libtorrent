@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,9 @@ namespace libtorrent
 namespace libtorrent
 {
 	// libtorrent time_duration type
-	struct TORRENT_EXPORT time_duration
+	struct time_duration
 	{
-		// hidden
 		time_duration() {}
-
 		time_duration operator/(int rhs) const { return time_duration(diff / rhs); }
 		explicit time_duration(boost::int64_t d) : diff(d) {}
 		time_duration& operator-=(time_duration const& c) { diff -= c.diff; return *this; }
@@ -67,28 +65,19 @@ namespace libtorrent
 		time_duration& operator*=(int v) { diff *= v; return *this; }
 		time_duration operator+(time_duration const& c) { return time_duration(diff + c.diff); }
 		time_duration operator-(time_duration const& c) { return time_duration(diff - c.diff); }
-
-		// internal
 		boost::int64_t diff;
 	};
 
-	// This type represents a point in time.
-	struct TORRENT_EXPORT ptime
+	// libtorrent time type
+	struct ptime
 	{
-		// hidden
 		ptime() {}
 		explicit ptime(boost::uint64_t t): time(t) {}
-
 		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
 		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
-
-		// internal
 		boost::uint64_t time;
 	};
 
-	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
-
-	// hidden
 	inline bool operator>(ptime lhs, ptime rhs)
 	{ return lhs.time > rhs.time; }
 	inline bool operator>=(ptime lhs, ptime rhs)
@@ -101,6 +90,8 @@ namespace libtorrent
 	{ return lhs.time != rhs.time;}
 	inline bool operator==(ptime lhs, ptime rhs)
 	{ return lhs.time == rhs.time;}
+
+	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
 	inline bool operator==(time_duration lhs, time_duration rhs)
 	{ return lhs.diff == rhs.diff; }
 	inline bool operator<(time_duration lhs, time_duration rhs)
@@ -128,6 +119,18 @@ namespace libtorrent
 }
 
 #endif // TORRENT_USE_BOOST_DATE_TIME
+
+namespace libtorrent
+{
+	TORRENT_EXPORT ptime time_now_hires();
+	TORRENT_EXPORT ptime min_time();
+	TORRENT_EXPORT ptime max_time();
+
+	TORRENT_EXPORT char const* time_now_string();
+	TORRENT_EXPORT std::string log_time();
+
+	TORRENT_EXPORT ptime const& time_now();
+}
 
 #endif
 

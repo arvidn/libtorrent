@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,7 @@ namespace libtorrent
 {
 	struct utp_socket_manager;
 
-	// internal: some MTU and protocol header sizes constants
+	// some MTU and protocol header sizes constants
 	enum
 	{
 		TORRENT_IPV4_HEADER = 20,
@@ -68,7 +68,7 @@ namespace libtorrent
 		TORRENT_INET_MAX_MTU = 0xffff
 	};
 
-	// internal: the point of the bif_endian_int is two-fold
+	// the point of the bif_endian_int is two-fold
 	// one purpuse is to not have any alignment requirements
 	// so that any byffer received from the network can be cast
 	// to it and read as an integer of various sizes without
@@ -118,24 +118,22 @@ namespace libtorrent
 
 */
 
-// internal: the different kinds of uTP packets
-enum utp_socket_state_t
-{ ST_DATA, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
+	enum type { ST_DATA = 0, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
-struct utp_header
-{
-	unsigned char type_ver;
-	unsigned char extension;
-	be_uint16 connection_id;
-	be_uint32 timestamp_microseconds;
-	be_uint32 timestamp_difference_microseconds;
-	be_uint32 wnd_size;
-	be_uint16 seq_nr;
-	be_uint16 ack_nr;
+	struct utp_header
+	{
+		unsigned char type_ver;
+		unsigned char extension;
+		be_uint16 connection_id;
+		be_uint32 timestamp_microseconds;
+		be_uint32 timestamp_difference_microseconds;
+		be_uint32 wnd_size;
+		be_uint16 seq_nr;
+		be_uint16 ack_nr;
 
-	int get_type() const { return type_ver >> 4; }
-	int get_version() const { return type_ver & 0xf; }
-};
+		int get_type() const { return type_ver >> 4; }
+		int get_version() const { return type_ver & 0xf; }
+	};
 
 struct utp_socket_impl;
 
@@ -153,9 +151,6 @@ bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 boost::uint16_t utp_receive_id(utp_socket_impl* s);
 int utp_socket_state(utp_socket_impl const* s);
-void utp_send_ack(utp_socket_impl* s);
-void utp_socket_drained(utp_socket_impl* s);
-void utp_writable(utp_socket_impl* s);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 int socket_impl_size();
@@ -209,15 +204,6 @@ public:
 
 	template <class SettableSocketOption>
 	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
-
-#ifndef BOOST_NO_EXCEPTIONS
-	template <class GettableSocketOption>
-	void get_option(GettableSocketOption& opt) {}
-#endif
-
-	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption& opt, error_code& ec) { return ec; }
-
 
 	void close();
 	void close(error_code const& /*ec*/) { close(); }
@@ -282,12 +268,6 @@ public:
 		do_connect(endpoint, &utp_stream::on_connect);
 	}
 	
-	template <class Handler>
-	void async_read_some(boost::asio::null_buffers const& buffers, Handler const& handler)
-	{
-		TORRENT_ASSERT(false);
-	}
-
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
@@ -303,24 +283,14 @@ public:
 			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			return;
 		}
-		int bytes_added = 0;
 		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
-			if (buffer_size(*i) == 0) continue;
+			TORRENT_ASSERT(buffer_size(*i) > 0);
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
-			bytes_added += buffer_size(*i);
 		}
-		if (bytes_added == 0)
-		{
-			// if we're reading 0 bytes, post handler immediately
-			// asio's SSL layer depends on this behavior
-			m_io_service.post(boost::bind<void>(handler, error_code(), 0));
-			return;
-		}
-
 		m_read_handler = handler;
 		set_read_handler(&utp_stream::on_read);
 	}
@@ -375,7 +345,7 @@ public:
 	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
 		TORRENT_ASSERT(false && "not implemented!");
-		// TODO: 1 implement blocking write. Low priority since it's not used (yet)
+		// TODO: implement
 		return 0;
 	}
 
@@ -401,12 +371,6 @@ public:
 	}
 #endif
 
-	template <class Handler>
-	void async_write_some(boost::asio::null_buffers const& buffers, Handler const& handler)
-	{
-		TORRENT_ASSERT(false);
-	}
-
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
 	{
@@ -423,22 +387,13 @@ public:
 			return;
 		}
 
-		int bytes_added = 0;
 		for (typename Const_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
-			if (buffer_size(*i) == 0) continue;
+			TORRENT_ASSERT(buffer_size(*i) > 0);
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_write_buffer((void*)buffer_cast<void const*>(*i), buffer_size(*i));
-			bytes_added += buffer_size(*i);
-		}
-		if (bytes_added == 0)
-		{
-			// if we're reading 0 bytes, post handler immediately
-			// asio's SSL layer depends on this behavior
-			m_io_service.post(boost::bind<void>(handler, error_code(), 0));
-			return;
 		}
 		m_write_handler = handler;
 		set_write_handler(&utp_stream::on_write);
@@ -454,8 +409,6 @@ public:
 
 	asio::io_service& m_io_service;
 	utp_socket_impl* m_impl;
-
-	// this field requires another 8 bytes (including padding)
 	bool m_open;
 };
 

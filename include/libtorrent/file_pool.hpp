@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,38 +51,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// this is an internal cache of open file handles. It's primarily used by
-	// storage_interface implementations. It provides semi weak guarantees of
-	// not opening more file handles than specified. Given multiple threads,
-	// each with the ability to lock a file handle (via smart pointer), there
-	// may be windows where more file handles are open.
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
-		// ``size`` specifies the number of allowed files handles
-		// to hold open at any given time.
 		file_pool(int size = 40);
 		~file_pool();
 
-		// return an open file handle to file at ``file_index`` in the
-		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
-		// file open mode (see file::open_mode_t).
 		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
-			, int file_index, file_storage const& fs, int m, error_code& ec);
-
-		// release all files belonging to the specified storage_interface (``st``)
-		// the overload that takes ``file_index`` releases only the file with
-		// that index in storage ``st``.
+			, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec);
 		void release(void* st);
 		void release(void* st, int file_index);
-
-		// update the allowed number of open file handles to ``size``.
 		void resize(int size);
-
-		// returns the current limit of number of allowed open file handles held
-		// by the file_pool.
 		int size_limit() const { return m_size; }
-
-		// internal
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 
 	private:

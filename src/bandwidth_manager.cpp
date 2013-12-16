@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@ namespace libtorrent
 
 	bandwidth_manager::bandwidth_manager(int channel
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		, bool log
+		, bool log = false
 #endif		
 		)
 		: m_queued_bytes(0)
@@ -120,7 +120,7 @@ namespace libtorrent
 		return 0;
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void bandwidth_manager::check_invariant() const
 	{
 		int queued = 0;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -99,15 +99,15 @@ namespace libtorrent
 	{ return boost::posix_time::ptime(boost::posix_time::min_date_time); }
 	ptime max_time()
 	{ return boost::posix_time::ptime(boost::posix_time::max_date_time); }
-	time_duration seconds(boost::int64_t s) { return boost::posix_time::seconds(s); }
-	time_duration milliseconds(boost::int64_t s) { return boost::posix_time::milliseconds(s); }
-	time_duration microsec(boost::int64_t s) { return boost::posix_time::microsec(s); }
-	time_duration minutes(boost::int64_t s) { return boost::posix_time::minutes(s); }
-	time_duration hours(boost::int64_t s) { return boost::posix_time::hours(s); }
+	time_duration seconds(int s) { return boost::posix_time::seconds(s); }
+	time_duration milliseconds(int s) { return boost::posix_time::milliseconds(s); }
+	time_duration microsec(int s) { return boost::posix_time::microsec(s); }
+	time_duration minutes(int s) { return boost::posix_time::minutes(s); }
+	time_duration hours(int s) { return boost::posix_time::hours(s); }
 
-	boost::int64_t total_seconds(time_duration td)
+	int total_seconds(time_duration td)
 	{ return td.total_seconds(); }
-	boost::int64_t total_milliseconds(time_duration td)
+	int total_milliseconds(time_duration td)
 	{ return td.total_milliseconds(); }
 	boost::int64_t total_microseconds(time_duration td)
 	{ return td.total_microseconds(); }
@@ -153,32 +153,35 @@ namespace libtorrent
 
 namespace libtorrent
 {
-	boost::int64_t performance_counter_to_microseconds(boost::int64_t pc)
+	namespace aux
 	{
-		static LARGE_INTEGER performace_counter_frequency = {0,0};
-		if (performace_counter_frequency.QuadPart == 0)
-			QueryPerformanceFrequency(&performace_counter_frequency);
+		boost::int64_t performance_counter_to_microseconds(boost::int64_t pc)
+		{
+			static LARGE_INTEGER performace_counter_frequency = {0,0};
+			if (performace_counter_frequency.QuadPart == 0)
+				QueryPerformanceFrequency(&performace_counter_frequency);
 
 #ifdef TORRENT_DEBUG
-		// make sure we don't overflow
-		boost::int64_t ret = (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
-		TORRENT_ASSERT((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
+			// make sure we don't overflow
+			boost::int64_t ret = (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
+			TORRENT_ASSERT((pc >= 0 && pc >= ret) || (pc < 0 && pc < ret));
 #endif
-		return ((pc * 1000 + performace_counter_frequency.QuadPart / 2) / performace_counter_frequency.QuadPart) * 1000;
-	}
+			return (pc * 1000 / performace_counter_frequency.QuadPart) * 1000;
+		}
 
-	boost::int64_t microseconds_to_performance_counter(boost::int64_t ms)
-	{
-		static LARGE_INTEGER performace_counter_frequency = {0,0};
-		if (performace_counter_frequency.QuadPart == 0)
-			QueryPerformanceFrequency(&performace_counter_frequency);
+		boost::int64_t microseconds_to_performance_counter(boost::int64_t ms)
+		{
+			static LARGE_INTEGER performace_counter_frequency = {0,0};
+			if (performace_counter_frequency.QuadPart == 0)
+				QueryPerformanceFrequency(&performace_counter_frequency);
 #ifdef TORRENT_DEBUG
-		// make sure we don't overflow
-		boost::int64_t ret = (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
-		TORRENT_ASSERT((ms >= 0 && ms <= ret)
-			|| (ms < 0 && ms > ret));
+			// make sure we don't overflow
+			boost::int64_t ret = (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
+			TORRENT_ASSERT((ms >= 0 && ms <= ret)
+				|| (ms < 0 && ms > ret));
 #endif
-		return (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
+			return (ms / 1000) * performace_counter_frequency.QuadPart / 1000;
+		}
 	}
 
 	ptime time_now_hires()
@@ -186,46 +189,6 @@ namespace libtorrent
 		LARGE_INTEGER now;
 		QueryPerformanceCounter(&now);
 		return ptime(now.QuadPart);
-	}
-
-	boost::int64_t total_seconds(time_duration td)
-	{
-		return boost::int64_t(performance_counter_to_microseconds(td.diff)
-			/ 1000000);
-	}
-	boost::int64_t total_milliseconds(time_duration td)
-	{
-		return boost::uint64_t(performance_counter_to_microseconds(td.diff)
-			/ 1000);
-	}
-	boost::int64_t total_microseconds(time_duration td)
-	{
-		return performance_counter_to_microseconds(td.diff);
-	}
-
-	time_duration microsec(boost::int64_t s)
-	{
-		return time_duration(microseconds_to_performance_counter(s));
-	}
-	time_duration milliseconds(boost::int64_t s)
-	{
-		return time_duration(microseconds_to_performance_counter(
-			s * 1000));
-	}
-	time_duration seconds(boost::int64_t s)
-	{
-		return time_duration(microseconds_to_performance_counter(
-			s * 1000000));
-	}
-	time_duration minutes(boost::int64_t s)
-	{
-		return time_duration(microseconds_to_performance_counter(
-			s * 1000000 * 60));
-	}
-	time_duration hours(boost::int64_t s)
-	{
-		return time_duration(microseconds_to_performance_counter(
-			s * 1000000 * 60 * 60));
 	}
 }
 

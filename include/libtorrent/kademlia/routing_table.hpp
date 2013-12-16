@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/array.hpp>
 #include <set>
+#include <list>
 
 #include <libtorrent/kademlia/logging.hpp>
 
@@ -101,13 +102,13 @@ public:
 	router_iterator router_begin() const { return m_router_nodes.begin(); }
 	router_iterator router_end() const { return m_router_nodes.end(); }
 
-	bool add_node(node_entry e);
+	bool add_node(node_entry const& e);
 
 	// this function is called every time the node sees
 	// a sign of a node being alive. This node will either
 	// be inserted in the k-buckets or be moved to the top
 	// of its bucket.
-	bool node_seen(node_id const& id, udp::endpoint ep, int rtt);
+	bool node_seen(node_id const& id, udp::endpoint ep);
 
 	// this may add a node to the routing table and mark it as
 	// not pinged. If the bucket the node falls into is full,
@@ -128,12 +129,12 @@ public:
 	void find_node(node_id const& id, std::vector<node_entry>& l
 		, int options, int count = 0);
 	
-	int bucket_size(int bucket) const
+	int bucket_size(int bucket)
 	{
 		int num_buckets = m_buckets.size();
 		if (num_buckets == 0) return 0;
 		if (bucket < num_buckets) bucket = num_buckets - 1;
-		table_t::const_iterator i = m_buckets.begin();
+		table_t::iterator i = m_buckets.begin();
 		std::advance(i, bucket);
 		return (int)i->live_nodes.size();
 	}
@@ -145,11 +146,6 @@ public:
 
 	boost::tuple<int, int> size() const;
 	size_type num_global_nodes() const;
-
-	// the number of bits down we have full buckets
-	// i.e. essentially the number of full buckets
-	// we have
-	int depth() const;
 	
 	// returns true if there are no working nodes
 	// in the routing table
@@ -166,26 +162,22 @@ public:
 
 	void touch_bucket(node_id const& target);
 
-	int bucket_limit(int bucket) const;
-
 private:
 
-	typedef std::vector<routing_table_node> table_t;
+	typedef std::list<routing_table_node> table_t;
 
 	table_t::iterator find_bucket(node_id const& id);
-
-	void split_bucket();
 
 	// return a pointer the node_entry with the given endpoint
 	// or 0 if we don't have such a node. Both the address and the
 	// port has to match
 	node_entry* find_node(udp::endpoint const& ep, routing_table::table_t::iterator* bucket);
 
-	dht_settings const& m_settings;
-
 	// constant called k in paper
 	int m_bucket_size;
 	
+	dht_settings const& m_settings;
+
 	// (k-bucket, replacement cache) pairs
 	// the first entry is the bucket the furthest
 	// away from our own ID. Each time the bucket
@@ -195,10 +187,6 @@ private:
 	table_t m_buckets;
 
 	node_id m_id; // our own node id
-
-	// the last seen depth (i.e. levels in the routing table)
-	// it's mutable because it's updated by depth(), which is const
-	mutable int m_depth;
 
 	// the last time need_bootstrap() returned true
 	mutable ptime m_last_bootstrap;

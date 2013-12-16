@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2005-2012, Arvid Norberg
+Copyright (c) 2005, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,19 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CONFIG_HPP_INCLUDED
 #define TORRENT_CONFIG_HPP_INCLUDED
 
-#if !defined _MSC_VER || _MSC_VER >= 1600
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS 1
-#endif
-#ifndef __STDC_CONSTANT_MACROS
-#define __STDC_CONSTANT_MACROS 1
-#endif
-#else
-#if !defined INT64_MAX
-#define INT64_MAX 0x7fffffffffffffffLL
-#endif
-#endif
-
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
@@ -57,12 +44,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
 #error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
-	order for asios declarations to be correct. If you are linking dynamically against libtorrent, define \
+	order for asio's declarations to be correct. If you're linking dynamically against libtorrent, define \
 	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
 	build, to automatically apply these defines
 #endif
 
 #if !defined _MSC_VER || _MSC_VER >= 1600
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS 1
+#endif
 #include <stdint.h> // for INT64_MAX
 #else
 #if !defined INT64_MAX
@@ -82,12 +72,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined _MSC_VER || defined __MINGW32__
 #define PRId64 "I64d"
 #define PRIu64 "I64u"
-#define PRIx64 "I64x"
 #define PRIu32 "u"
 #else
 #define PRId64 "lld"
 #define PRIu64 "llu"
-#define PRIx64 "llx"
 #define PRIu32 "u"
 #endif
 #endif
@@ -193,22 +181,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 0
 #define TORRENT_CLOSE_MAY_BLOCK 1
-
-#include <AvailabilityMacros.h>
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#ifdef TORRENT_USE_OPENSSL
-#define TORRENT_USE_COMMONCRYPTO 1
-#endif // TORRENT_USE_OPENSSL
-#endif // MAC_OS_X_VERSION_MIN_REQUIRED
-
 // execinfo.h is available in the MacOS X 10.5 SDK.
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-#define TORRENT_USE_EXECINFO 1
+#define TORRENT_USE_EXECINFO MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 #endif
-
-#endif // __APPLE__
-
 #else
 // FreeBSD has a reasonable iconv signature
 // unless we're on glibc
@@ -225,22 +200,11 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
+#define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
-
-// ===== ANDROID ===== (almost linux, sort of)
-#if defined __ANDROID__
-#define TORRENT_ANDROID
-#define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_ICONV 0
-#define TORRENT_USE_IFADDRS 0
-#define TORRENT_USE_MEMALIGN 1
-#else
-#define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_POSIX_MEMALIGN 1
-#endif
-
 #if __amd64__ || __i386__
 #define TORRENT_USE_EXECINFO 1
 #endif
@@ -304,18 +268,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_IFCONF 1
 
-// ==== eCS(OS/2) ===
-#elif defined __OS2__
-#define TORRENT_OS2
-#define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_IFCONF 1
-#define TORRENT_USE_SYSCTL 1
-#define TORRENT_USE_MLOCK 0
-#define TORRENT_USE_IPV6 0
-#define TORRENT_ICONV_ARG (const char**)
-#define TORRENT_USE_WRITEV 0
-#define TORRENT_USE_READV 0
-
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
@@ -354,7 +306,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdarg.h>
 
-// internal
 inline int snprintf(char* buf, int len, char const* fmt, ...)
 {
 	va_list lp;
@@ -444,10 +395,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_DEPRECATED_PREFIX
 #endif
 
-#ifndef TORRENT_USE_COMMONCRYPTO
-#define TORRENT_USE_COMMONCRYPTO 0
-#endif
-
 #ifndef TORRENT_DEPRECATED
 #define TORRENT_DEPRECATED
 #endif
@@ -518,8 +465,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 # ifdef _GLIBCXX_DEBUG
 #  define TORRENT_READ_HANDLER_MAX_SIZE 400
 # else
-// if this is not divisible by 8, we're wasting space
-#  define TORRENT_READ_HANDLER_MAX_SIZE 336
+#  define TORRENT_READ_HANDLER_MAX_SIZE 300
 # endif
 #endif
 
@@ -527,8 +473,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 # ifdef _GLIBCXX_DEBUG
 #  define TORRENT_WRITE_HANDLER_MAX_SIZE 400
 # else
-// if this is not divisible by 8, we're wasting space
-#  define TORRENT_WRITE_HANDLER_MAX_SIZE 336
+#  define TORRENT_WRITE_HANDLER_MAX_SIZE 300
 # endif
 #endif
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2012, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	// TODO: 4 eliminate all use of this mechanism
 	void load_struct(lazy_entry const& e, void* s, bencode_map_entry const* m, int num)
 	{
 		for (int i = 0; i < num; ++i)
@@ -57,7 +56,6 @@ namespace libtorrent
 					break;
 				}
 				case character:
-				case integer16:
 				case boolean:
 				case integer:
 				case size_integer:
@@ -69,7 +67,6 @@ namespace libtorrent
 					switch (m[i].type)
 					{
 						case character: *((char*)dest) = char(val); break;
-						case integer16: *((boost::uint16_t*)dest) = boost::uint16_t(val); break;
 						case integer: *((int*)dest) = int(val); break;
 						case size_integer: *((size_type*)dest) = size_type(val); break;
 						case time_integer: *((time_t*)dest) = time_t(val); break;
@@ -104,9 +101,6 @@ namespace libtorrent
 					case integer:
 						if (*((int*)src) == *((int*)default_value)) continue;
 						break;
-					case integer16:
-						if (*((boost::uint16_t*)src) == *((boost::uint16_t*)default_value)) continue;
-						break;
 					case size_integer:
 						if (*((size_type*)src) == *((size_type*)default_value)) continue;
 						break;
@@ -129,7 +123,6 @@ namespace libtorrent
 				case std_string: val = *((std::string*)src); break;
 				case character: val = *((char*)src); break;
 				case integer: val = *((int*)src); break;
-				case integer16: val = *((boost::uint16_t*)src); break;
 				case size_integer: val = *((size_type*)src); break;
 				case time_integer: val = *((time_t*)src); break;
 				case floating_point: val = size_type(*((float*)src) * 1000.f); break;

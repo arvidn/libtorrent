@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,18 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
+#include "libtorrent/pch.hpp"
+
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 
-#if TORRENT_USE_I2P
-
 #include <boost/bind.hpp>
 
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
+#if TORRENT_USE_I2P
 
 namespace libtorrent
 {
@@ -111,18 +108,12 @@ namespace libtorrent
 		m_sam_socket->set_command(i2p_stream::cmd_create_session);
 		m_sam_socket->set_session_id(m_session_id.c_str());
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::on_sam_connect");
-#endif
 		m_sam_socket->async_connect(tcp::endpoint()
 			, boost::bind(&i2p_connection::on_sam_connect, this, _1, handler, m_sam_socket));
 	}
 
 	void i2p_connection::on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h, boost::shared_ptr<i2p_stream>)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("i2p_stream::on_sam_connect");
-#endif
 		m_state = sam_idle;
 	
 		do_name_lookup("ME", boost::bind(&i2p_connection::set_local_endpoint, this, _1, _2));
@@ -223,9 +214,6 @@ namespace libtorrent
 			return;
 		}
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::connected");
-#endif
 		m_sock.async_connect(i->endpoint(), boost::bind(
 			&i2p_stream::connected, this, _1, h));
 	}
@@ -233,18 +221,11 @@ namespace libtorrent
 	void i2p_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("i2p_stream::connected");
-#endif
 		if (handle_error(e, h)) return;
 
 		// send hello command
 		m_state = read_hello_response;
 		static const char cmd[] = "HELLO VERSION MIN=3.0 MAX=3.0\n";
-
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::start_read_line");
-#endif
 		async_write(m_sock, asio::buffer(cmd, sizeof(cmd) - 1)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 //		fprintf(stderr, ">>> %s", cmd);
@@ -253,14 +234,8 @@ namespace libtorrent
 	void i2p_stream::start_read_line(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("i2p_stream::start_read_line");
-#endif
 		if (handle_error(e, h)) return;
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::read_line");
-#endif
 		m_buffer.resize(1);
 		async_read(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&i2p_stream::read_line, this, _1, h));
@@ -290,9 +265,6 @@ namespace libtorrent
 	void i2p_stream::read_line(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("i2p_stream::read_line");
-#endif
 		if (handle_error(e, h)) return;
 
 		int read_pos = m_buffer.size();
@@ -300,9 +272,6 @@ namespace libtorrent
 		// look for \n which means end of the response
 		if (m_buffer[read_pos - 1] != '\n')
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("i2p_stream::read_line");
-#endif
 			// read another byte from the socket
 			m_buffer.resize(read_pos + 1);
 			async_read(m_sock, asio::buffer(&m_buffer[read_pos], 1)
@@ -360,8 +329,8 @@ namespace libtorrent
 		if (ptr == 0 || expect2 == 0 || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
 
 		int result = 0;
-//		char const* message = 0;
-//		float version = 3.0f;
+		char const* message = 0;
+		float version = 3.0f;
 
 		for(;;)
 		{
@@ -395,11 +364,11 @@ namespace libtorrent
 			}
 			else if (strcmp("MESSAGE", name) == 0)
 			{
-//				message = ptr;
+				message = ptr;
 			}
 			else if (strcmp("VERSION", name) == 0)
 			{
-//				version = float(atof(ptr));
+				version = float(atof(ptr));
 			}
 			else if (strcmp("VALUE", name) == 0)
 			{
@@ -450,9 +419,6 @@ namespace libtorrent
 			// the destination of the remote peer
 			m_command = cmd_incoming;
 			m_buffer.resize(1);
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("i2p_stream::read_line");
-#endif
 			async_read(m_sock, asio::buffer(m_buffer)
 				, boost::bind(&i2p_stream::read_line, this, _1, h));
 			break;
@@ -469,9 +435,6 @@ namespace libtorrent
 		int size = snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
 			, m_id, m_dest.c_str());
 //		fprintf(stderr, ">>> %s", cmd);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::start_read_line");
-#endif
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
@@ -483,9 +446,6 @@ namespace libtorrent
 		char cmd[400];
 		int size = snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
 //		fprintf(stderr, ">>> %s", cmd);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::start_read_line");
-#endif
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
@@ -498,9 +458,6 @@ namespace libtorrent
 		int size = snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
 			, m_id);
 //		fprintf(stderr, ">>> %s", cmd);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::start_read_line");
-#endif
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
@@ -512,9 +469,6 @@ namespace libtorrent
 		char cmd[1024];
 		int size = snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
 //		fprintf(stderr, ">>> %s", cmd);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("i2p_stream::start_read_line");
-#endif
 		async_write(m_sock, asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}

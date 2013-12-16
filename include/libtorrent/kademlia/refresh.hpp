@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,8 +55,7 @@ public:
 
 protected:
 
-	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
+	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
 	virtual bool invoke(observer_ptr o);
 };
 

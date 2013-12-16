@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.13
 
 .. contents:: Table of contents
   :depth: 2
@@ -254,7 +254,7 @@ Build features:
 |                          | * ``verbose`` - verbose peer wire logging.         |
 |                          | * ``errors`` - like verbose, but limited to errors.|
 +--------------------------+----------------------------------------------------+
-| ``dht``                  | * ``on`` - build with support for tracker less     |
+| ``dht-support``          | * ``on`` - build with support for tracker less     |
 |                          |   torrents and DHT support.                        |
 |                          | * ``logging`` - build with DHT support and verbose |
 |                          |   logging of the DHT protocol traffic.             |
@@ -298,13 +298,11 @@ Build features:
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
 +--------------------------+----------------------------------------------------+
-| ``allocator``            | * ``pool`` - default, uses pool allocators for     |
-|                          |   send buffers.                                    |
-|                          | * ``system`` - uses ``malloc()`` and ``free()``    |
+| ``pool-allocators``      | * ``on`` - default, uses pool allocators for send  |
+|                          |   buffers.                                         |
+|                          | * ``off`` - uses ``malloc()`` and ``free()``       |
 |                          |   instead. Might be useful to debug buffer issues  |
 |                          |   with tools like electric fence or libgmalloc.    |
-|                          | * ``debug`` - instruments buffer usage to catch    |
-|                          |   bugs in libtorrent.                              |
 +--------------------------+----------------------------------------------------+
 | ``link``                 | * ``static`` - builds libtorrent as a static       |
 |                          |   library (.a / .lib)                              |
