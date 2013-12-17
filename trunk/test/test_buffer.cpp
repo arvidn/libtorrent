@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cassert>
-#include <boost/timer.hpp>
 #include <iostream>
 #include <vector>
 #include <utility>

@@ -3958,11 +3958,17 @@ namespace libtorrent
 		TORRENT_ASSERT(int(m_recv_buffer.size()) >= m_recv_pos);
 		TORRENT_ASSERT(m_recv_pos >= size + offset);
 		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(size >= 0);
 
 		if (size > 0)
 		{
-			std::memmove(&m_recv_buffer[0] + offset, &m_recv_buffer[0] + offset + size, m_recv_pos - size - offset);
+			if (m_recv_pos - size - offset > 0)
+				std::memmove(&m_recv_buffer[0] + offset, &m_recv_buffer[0] + offset + size, m_recv_pos - size - offset);
 			m_recv_pos -= size;
+
+			// defensive. If this actually happens, we would have triggered
+			// an assert already (if asserts are enabled).
+			if (m_recv_pos < 0) m_recv_pos = 0;
 		}
 
 #ifdef TORRENT_DEBUG
