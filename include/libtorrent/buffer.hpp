@@ -114,6 +114,11 @@ public:
 		std::memcpy(m_begin, b.begin(), b.size());
 	}
 
+#if __cplusplus > 199711L
+	buffer(buffer&& b): m_begin(b.m_begin), m_end(b.m_end), m_last(b.m_last)
+	{ b.m_begin = b.m_end = b.m_last = NULL; }
+#endif
+
 	buffer& operator=(buffer const& b)
 	{
 		if (&b == this) return *this;
