@@ -8668,7 +8668,9 @@ namespace libtorrent
 		if (!m_state_subscription) return;
 		if (m_in_state_updates)
 		{
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 			TORRENT_ASSERT(m_ses.in_state_updates(shared_from_this()));
+#endif
 			return;
 		}
 
