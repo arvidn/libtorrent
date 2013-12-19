@@ -213,7 +213,7 @@ namespace libtorrent
 			flag_merge_resume_trackers = 0x100,
 
 			// on by default and means that this torrent will be part of state
-			// updates when calling `post_torrent_updates()`_.
+			// updates when calling post_torrent_updates().
 			flag_update_subscribe = 0x200,
 
 			// sets the torrent into super seeding mode. If the torrent
@@ -261,7 +261,7 @@ namespace libtorrent
 
 		// The optional parameter, ``resume_data`` can be given if up to date fast-resume data
 		// is available. The fast-resume data can be acquired from a running torrent by calling
-		// save_resume_data() on `torrent_handle`_. See fast-resume_. The ``vector`` that is
+		// save_resume_data() on torrent_handle. See fast-resume_. The ``vector`` that is
 		// passed in will be swapped into the running torrent instance with ``std::vector::swap()``.
 		std::vector<char> resume_data;
 
@@ -329,7 +329,7 @@ namespace libtorrent
 
 		// ``max_uploads``, ``max_connections``, ``upload_limit``, ``download_limit`` correspond
 		// to the ``set_max_uploads()``, ``set_max_connections()``, ``set_upload_limit()`` and
-		// ``set_download_limit()`` functions on torrent_handle_. These values let you initialize
+		// ``set_download_limit()`` functions on torrent_handle. These values let you initialize
 		// these settings when the torrent is added, instead of calling these functions immediately
 		// following adding it.
 		// 

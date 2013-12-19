@@ -72,6 +72,7 @@ namespace libtorrent
 		bitfield(bitfield&& rhs): m_buf(rhs.m_buf)
 		{ rhs.m_buf = NULL; }
 #endif
+
 		// hidden
 		~bitfield() { dealloc(); }
 

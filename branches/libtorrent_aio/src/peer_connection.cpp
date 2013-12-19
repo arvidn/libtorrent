@@ -4378,6 +4378,7 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
 		TORRENT_ASSERT(m_recv_start <= m_recv_end);
+		TORRENT_ASSERT(size >= 0);
 
 		if (offset > 0)
 		{

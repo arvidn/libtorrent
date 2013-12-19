@@ -1881,7 +1881,7 @@ ignore any peer that exceeds this limit
 +---------------+------+---------+
 | name          | type | default |
 +===============+======+=========+
-| tick_interval | int  | 100     |
+| tick_interval | int  | 500     |
 +---------------+------+---------+
 
 ``tick_interval`` specifies the number of milliseconds between internal

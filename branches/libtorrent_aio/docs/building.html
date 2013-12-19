@@ -359,13 +359,15 @@ implementation is used.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">pool-allocators</span></tt></td>
+<tr><td><tt class="docutils literal">allocator</tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">on</tt> - default, uses pool allocators for send
-buffers.</li>
-<li><tt class="docutils literal">off</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
+<li><tt class="docutils literal">pool</tt> - default, uses pool allocators for
+send buffers.</li>
+<li><tt class="docutils literal">system</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
 instead. Might be useful to debug buffer issues
 with tools like electric fence or libgmalloc.</li>
+<li><tt class="docutils literal">debug</tt> - instruments buffer usage to catch
+bugs in libtorrent.</li>
 </ul>
 </td>
 </tr>
@@ -502,6 +504,17 @@ stats.</li>
 working directory session_stats&lt;pid&gt;. The log
 is rotated every hour. It can be parsed by the
 parse_session_stats.py script (requires gnuplot)</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">profile-calls</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal">off</tt> - default. No additional call profiling.</li>
+<li><tt class="docutils literal">on</tt> - Enable logging of stack traces of
+calls into libtorrent that are blocking. On
+session shutdown, a file <tt class="docutils literal">blocking_calls.txt</tt>
+is written with stack traces of blocking calls
+ordered by the number of them.</li>
 </ul>
 </td>
 </tr>

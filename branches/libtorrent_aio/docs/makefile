@@ -4,6 +4,7 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 
 REFERENCE_TARGETS = \
 	reference \
+	reference-Session \
 	reference-Core \
 	reference-String \
 	reference-Plugins \

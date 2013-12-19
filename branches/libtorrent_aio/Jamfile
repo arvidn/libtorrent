@@ -188,7 +188,10 @@ rule linking ( properties * )
 				result += <library>/boost/date_time//boost_date_time/<link>shared ;
 			}
 		}
-		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
+		result += <include>$(BOOST_ROOT)
+			<define>BOOST_ALL_NO_LIB
+			<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+			;
 
 	}
 	else
