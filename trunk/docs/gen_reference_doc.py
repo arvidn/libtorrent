@@ -58,6 +58,8 @@ anon_index = 0
 
 category_mapping = {
 	'session.hpp': 'Session',
+	'add_torrent_params.hpp': 'Session',
+	'session_status.hpp': 'Session',
 	'error_code.hpp': 'Error Codes',
 	'file.hpp': 'File',
 	'storage.hpp': 'Custom Storage',
@@ -98,6 +100,7 @@ category_mapping = {
 category_fun_mapping = {
 	'min_memory_usage()': 'Settings',
 	'high_performance_seed()': 'Settings',
+	'cache_status': 'Session',
 }
 
 def categorize_symbol(name, filename):
