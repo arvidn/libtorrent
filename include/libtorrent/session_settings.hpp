@@ -116,6 +116,9 @@ namespace libtorrent
 		bool proxy_peer_connections;
 	};
 
+	// This holds most of the session-wide settings in libtorrent. Pass this
+	// to session::set_settings() to change the settings, initialize it from
+	// session::get_settings() to get the current settings.
 	struct TORRENT_EXPORT session_settings
 	{
 		session_settings(std::string const& user_agent = "libtorrent/"
@@ -1484,7 +1487,6 @@ namespace libtorrent
 		bool enforce_node_id;
 	};
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
 
 	// The ``pe_settings`` structure is used to control the settings related
 	// to peer protocol encryption.
@@ -1538,7 +1540,6 @@ namespace libtorrent
 		// otherwise
 		bool prefer_rc4;
 	};
-#endif
 
 }
 

@@ -57,6 +57,7 @@ static_links = \
 anon_index = 0
 
 category_mapping = {
+	'session.hpp': 'Session',
 	'error_code.hpp': 'Error Codes',
 	'file.hpp': 'File',
 	'storage.hpp': 'Custom Storage',
@@ -163,6 +164,7 @@ def looks_like_variable(line):
 	return True
 
 def looks_like_function(line):
+	if line.startswith('friend'): return False
 	if '::' in line.split('(')[0].split(' ')[-1]: return False
 	if line.startswith(','): return False
 	if line.startswith(':'): return False

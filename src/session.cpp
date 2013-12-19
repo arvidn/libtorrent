@@ -503,36 +503,46 @@ namespace libtorrent
 #endif
 	}
 
-#ifndef TORRENT_DISABLE_GEO_IP
 	void session::load_asnum_db(char const* file)
 	{
+#ifndef TORRENT_DISABLE_GEO_IP
 		TORRENT_ASYNC_CALL1(load_asnum_db, std::string(file));
+#endif
 	}
 
 	void session::load_country_db(char const* file)
 	{
+#ifndef TORRENT_DISABLE_GEO_IP
 		TORRENT_ASYNC_CALL1(load_country_db, std::string(file));
+#endif
 	}
 
 	int session::as_for_ip(address const& addr)
 	{
+#ifndef TORRENT_DISABLE_GEO_IP
 		return m_impl->as_for_ip(addr);
+#else
+		return 0;
+#endif
 	}
 
 #if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
 	void session::load_asnum_db(wchar_t const* file)
 	{
+#ifndef TORRENT_DISABLE_GEO_IP
 		TORRENT_ASYNC_CALL1(load_asnum_dbw, std::wstring(file));
+#endif
 	}
 
 	void session::load_country_db(wchar_t const* file)
 	{
+#ifndef TORRENT_DISABLE_GEO_IP
 		TORRENT_ASYNC_CALL1(load_country_dbw, std::wstring(file));
+#endif
 	}
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
-#endif // TORRENT_DISABLE_GEO_IP
 
 #ifndef TORRENT_NO_DEPRECATE
 	void session::load_state(entry const& ses_state)
@@ -867,18 +877,22 @@ namespace libtorrent
 #endif
 	}
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
 	void session::set_pe_settings(pe_settings const& settings)
 	{
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASYNC_CALL1(set_pe_settings, settings);
+#endif
 	}
 
 	pe_settings session::get_pe_settings() const
 	{
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_SYNC_CALL_RET(pe_settings, get_pe_settings);
+#else
+		pe_settings r;
+#endif
 		return r;
 	}
-#endif
 
 	bool session::is_listening() const
 	{
@@ -961,18 +975,22 @@ namespace libtorrent
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-#if TORRENT_USE_I2P
 	void session::set_i2p_proxy(proxy_settings const& s)
 	{
+#if TORRENT_USE_I2P
 		TORRENT_ASYNC_CALL1(set_i2p_proxy, s);
+#endif
 	}
 	
 	proxy_settings session::i2p_proxy() const
 	{
+#if TORRENT_USE_I2P
 		TORRENT_SYNC_CALL_RET(proxy_settings, i2p_proxy);
+#else
+		proxy_settings r;
+#endif
 		return r;
 	}
-#endif
 
 #ifdef TORRENT_STATS
 	void session::enable_stats_logging(bool s)
