@@ -979,9 +979,8 @@ void test_fastresume(std::string const& test_path)
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("tmp1", "temporary"))));
 	if (exists(combine_path(test_path, combine_path("tmp1", "temporary"))))
 		return;
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-	resume.print(std::cout);
-#endif
+
+	std::cerr << resume.to_string() << "\n";
 
 	// make sure the fast resume check fails! since we removed the file
 	{
@@ -1071,9 +1070,8 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/testing_renamed_files")));
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-	resume.print(std::cout);
-#endif
+
+	std::cerr << resume.to_string() << "\n";
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
@@ -1105,9 +1103,9 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-	resume.print(std::cout);
-#endif
+
+	std::cerr << resume.to_string() << "\n";
+
 	remove_all(combine_path(test_path, "tmp2"), ec);
 	if (ec) std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
 		<< "': " << ec.message() << std::endl;
