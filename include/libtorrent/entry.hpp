@@ -228,10 +228,7 @@ namespace libtorrent
 		entry* find_key(std::string const& key);
 		entry const* find_key(std::string const& key) const;
 
-		// TODO: could this be removed?
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
-		void print(std::ostream& os, int indent = 0) const;
-#endif
+		std::string to_string() const;
 
 	protected:
 
@@ -240,6 +237,8 @@ namespace libtorrent
 		void destruct();
 
 	private:
+
+		void to_string_impl(std::string& out, int indent) const;
 
 #if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED
 		// workaround for msvc-bug.
@@ -279,10 +278,10 @@ namespace libtorrent
 		mutable boost::uint8_t m_type_queried:1;
 	};
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if TORRENT_USE_IOSTREAM
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
 	{
-		e.print(os, 0);
+		os << e.to_string();
 		return os;
 	}
 #endif
