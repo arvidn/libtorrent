@@ -105,6 +105,7 @@ DOCS_PAGES = \
   docs/reference-Filter.html      \
   docs/reference-Plugins.html     \
   docs/reference-RSS.html         \
+  docs/reference-Session.html     \
   docs/reference-Settings.html    \
   docs/reference-Storage.html     \
   docs/reference-String.html      \

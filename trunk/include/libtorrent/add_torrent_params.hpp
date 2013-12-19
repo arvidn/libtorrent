@@ -213,7 +213,7 @@ namespace libtorrent
 			flag_merge_resume_trackers = 0x100,
 
 			// on by default and means that this torrent will be part of state
-			// updates when calling `post_torrent_updates()`_.
+			// updates when calling post_torrent_updates().
 			flag_update_subscribe = 0x200,
 
 			// sets the torrent into super seeding mode. If the torrent

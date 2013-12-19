@@ -115,10 +115,19 @@ namespace libtorrent
 		struct session_impl;
 	}
 
+	// this is a holder for the internal session implementation
+	// object. Once the session destruction is explicitly initiated,
+	// this holder is used to synchronize the completion of the
+	// shutdown. The lifetime of this object may outlive session,
+	// causing the session destructor to not block.
+	// The session_proxy destructor will block however, until the
+	// underlying session is done shutting down.
 	class TORRENT_EXPORT session_proxy
 	{
 		friend class session;
 	public:
+		// default constructor, does not refer to any session
+		// implementation object.
 		session_proxy() {}
 	private:
 		session_proxy(boost::shared_ptr<aux::session_impl> impl)
@@ -258,7 +267,7 @@ namespace libtorrent
 		// was called.
 		// 
 		// Only torrents who has the state subscription flag set will be included. This flag
-		// is on by default. See add_torrent_params_.
+		// is on by default. See add_torrent_params.
 		void post_torrent_updates();
 
 		// internal
@@ -520,7 +529,6 @@ namespace libtorrent
 		// 
 		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
 		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
-#ifndef TORRENT_DISABLE_GEO_IP
 		void load_asnum_db(char const* file);
 		void load_country_db(char const* file);
 		int as_for_ip(address const& addr);
@@ -535,7 +543,6 @@ namespace libtorrent
 		void load_asnum_db(wchar_t const* file) TORRENT_DEPRECATED;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
-#endif // TORRENT_DISABLE_GEO_IP
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
@@ -696,10 +703,8 @@ namespace libtorrent
 		// options.
 		void set_settings(session_settings const& s);
 		session_settings settings() const;
-#ifndef TORRENT_DISABLE_ENCRYPTION
 		void set_pe_settings(pe_settings const& settings);
 		pe_settings get_pe_settings() const;
-#endif
 
 		// These functions sets and queries the proxy settings to be used for the session.
 		//
@@ -714,6 +719,16 @@ namespace libtorrent
 #ifdef TORRENT_STATS
 		void enable_stats_logging(bool s);
 #endif
+
+		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
+		// connection to it. The only used fields in the proxy settings structs
+		// are ``hostname`` and ``port``.
+		//
+		// ``i2p_proxy`` returns the current i2p proxy in use.
+		//
+		// .. _i2p: http://www.i2p2.de
+		void set_i2p_proxy(proxy_settings const& s);
+		proxy_settings i2p_proxy() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16
@@ -745,21 +760,7 @@ namespace libtorrent
 		void set_dht_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		proxy_settings dht_proxy() const TORRENT_DEPRECATED;
-#endif // TORRENT_NO_DEPRECATE
 
-#if TORRENT_USE_I2P
-		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
-		// connection to it. The only used fields in the proxy settings structs
-		// are ``hostname`` and ``port``.
-		//
-		// ``i2p_proxy`` returns the current i2p proxy in use.
-		//
-		// .. _i2p: http://www.i2p2.de
-		void set_i2p_proxy(proxy_settings const& s);
-		proxy_settings i2p_proxy() const;
-#endif
-
-#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16
 		TORRENT_DEPRECATED_PREFIX
 		int upload_rate_limit() const TORRENT_DEPRECATED;
