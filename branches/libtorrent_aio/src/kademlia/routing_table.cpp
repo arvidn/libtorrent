@@ -1092,7 +1092,7 @@ void routing_table::find_node(node_id const& target
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
-	std::set<address_v4::bytes_type> all_ips;
+	boost::unordered_set<address_v4::bytes_type> all_ips;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
