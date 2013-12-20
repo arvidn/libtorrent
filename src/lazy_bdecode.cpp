@@ -506,15 +506,42 @@ namespace libtorrent
 				ret += "'";
 				if (printable)
 				{
-					ret += e.string_value();
+					if (single_line && e.string_length() > 30)
+					{
+						ret.append(e.string_ptr(), 14);
+						ret += "...";
+						ret.append(e.string_ptr() + e.string_length()-14, 14);
+					}
+					else
+						ret.append(e.string_ptr(), e.string_length());
 					ret += "'";
 					return ret;
 				}
-				for (int i = 0; i < e.string_length(); ++i)
+				if (single_line && e.string_length() > 20)
 				{
-					char tmp[5];
-					snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
-					ret += tmp;
+					for (int i = 0; i < 9; ++i)
+					{
+						char tmp[5];
+						snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
+						ret += tmp;
+					}
+					ret += "...";
+					for (int i = e.string_length() - 9
+						, len(e.string_length()); i < len; ++i)
+					{
+						char tmp[5];
+						snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
+						ret += tmp;
+					}
+				}
+				else
+				{
+					for (int i = 0; i < e.string_length(); ++i)
+					{
+						char tmp[5];
+						snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
+						ret += tmp;
+					}
 				}
 				ret += "'";
 				return ret;
