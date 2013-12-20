@@ -35,6 +35,7 @@ set title "Message round trip times"
 set terminal postscript
 set ylabel "# of requests"
 set xlabel "Round trip time (seconds)"
+set xrange [0:*]
 set grid
 set style fill solid border -1 pattern 2
 set output "round_trip_distribution.ps"
