@@ -172,7 +172,8 @@ plot  "dht_node_uptime_distribution.dat" using 1:2 title "nodes" with boxes
 
 set term png size 1200,700 small
 set output "dht_announce_distribution.png"
-set xrange [0:*]
+set xrange [0:30]
+set xtics 1
 set title "bucket # announces are made against relative to target node-id"
 set ylabel "# of announces"
 set boxwidth 1
