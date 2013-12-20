@@ -89,8 +89,10 @@ namespace libtorrent
 		&bt_peer_connection::on_have_none,
 		&bt_peer_connection::on_reject_request,
 		&bt_peer_connection::on_allowed_fast,
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		0, 0,
 		&bt_peer_connection::on_extended
+#endif
 	};
 
 
@@ -115,6 +117,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
+#endif
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
 		, m_sync_bytes_read(0)
@@ -129,7 +133,9 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_in_constructor = false;
 #endif
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
+#endif
 	}
 
 	void bt_peer_connection::start()
@@ -1564,6 +1570,7 @@ namespace libtorrent
 	// --------- EXTENDED ----------
 	// -----------------------------
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	void bt_peer_connection::on_extended(int received)
 	{
 		INVARIANT_CHECK;
@@ -1664,7 +1671,6 @@ namespace libtorrent
 				, extended_id, packet_size());
 #endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
@@ -1672,7 +1678,6 @@ namespace libtorrent
 				, recv_buffer))
 				return;
 		}
-#endif
 
 		disconnect(errors::invalid_message, 2);
 		return;
@@ -1704,7 +1709,6 @@ namespace libtorrent
 		peer_log("<== EXTENDED HANDSHAKE: %s", print_entry(root).c_str());
 #endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin();
 			!m_extensions.empty() && i != m_extensions.end();)
 		{
@@ -1724,7 +1728,6 @@ namespace libtorrent
 			m_holepunch_id = boost::uint8_t(m->dict_find_int_value("ut_holepunch", 0));
 			m_dont_have_id = boost::uint8_t(m->dict_find_int_value("lt_donthave", 0));
 		}
-#endif
 
 		// there is supposed to be a remote listen port
 		int listen_port = int(root.dict_find_int_value("p"));
@@ -1788,6 +1791,7 @@ namespace libtorrent
 			&& !t->share_mode())
 			disconnect(errors::upload_upload_connection);
 	}
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 	bool bt_peer_connection::dispatch_message(int received)
 	{
