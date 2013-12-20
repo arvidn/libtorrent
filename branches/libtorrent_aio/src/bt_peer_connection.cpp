@@ -2303,9 +2303,7 @@ namespace libtorrent
 		m_ses.inc_stats_counter(counters::num_outgoing_ext_handshake);
 
 #if defined TORRENT_VERBOSE_LOGGING
-		std::stringstream handshake_str;
-		handshake.print(handshake_str);
-		peer_log("==> EXTENDED HANDSHAKE: %s", handshake_str.str().c_str());
+		peer_log("==> EXTENDED HANDSHAKE: %s", handshake.to_string().c_str());
 #endif
 	}
 #endif

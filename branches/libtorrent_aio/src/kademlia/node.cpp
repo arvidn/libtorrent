@@ -231,6 +231,15 @@ void node_impl::incoming(msg const& m)
 	char y = *(y_ent->string_ptr());
 
 	lazy_entry const* ext_ip = m.message.dict_find_string("ip");
+
+	// backwards compatibility
+	if (ext_ip == NULL)
+	{
+		lazy_entry const* r = m.message.dict_find_dict("r");
+		if (r)
+			ext_ip = r->dict_find_string("ip");
+	}
+
 #if TORRENT_USE_IPV6
 	if (ext_ip && ext_ip->string_length() >= 16)
 	{
@@ -319,6 +328,7 @@ namespace
 			a["port"] = listen_port;
 			a["token"] = i->second;
 			a["seed"] = int(seed);
+			// TODO: 3 if uTP is enabled, we should say "implied_port": 1
 			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_in);
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
