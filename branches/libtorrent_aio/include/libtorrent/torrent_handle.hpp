@@ -934,8 +934,8 @@ namespace libtorrent
 		// This is to give the client a chance to get the metadata and save it before it's unloaded. In this
 		// case, it may be useful to un-pin the torrent once its metadata has been saved to disk.
 		// 
-		// For more information about dynamically loading and unloading torrents, see
-		// dynamic-loading-of-torrent-files_.
+		// For more information about dynamically loading and unloading torrents,
+		// see dynamic-loading-of-torrent-files_.
 		// 
 		void set_pinned(bool p) const;
 
@@ -955,6 +955,7 @@ namespace libtorrent
 		// i.e. ``tracker``, ``pex``, ``dht`` etc.
 		//
 		// ``flags`` are the same flags that are passed along with the ``ut_pex`` extension.
+		//
 		// ==== ==========================================
 		// 0x01 peer supports encryption
 		// 

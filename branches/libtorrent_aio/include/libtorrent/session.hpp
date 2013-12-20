@@ -553,7 +553,7 @@ namespace libtorrent
 		// This function adds an extension to this session. The argument is a function
 		// object that is called with a ``torrent*`` and which should return a
 		// ``boost::shared_ptr<torrent_plugin>``. To write custom plugins, see
-		// `libtorrent plugins`_. For the typical bittorrent client all of these
+		// plugin. For the typical bittorrent client all of these
 		// extensions should be added. The main plugins implemented in libtorrent are:
 		// 
 		// metadata extension
@@ -592,8 +592,6 @@ namespace libtorrent
 		// 	#include <libtorrent/extensions/smart_ban.hpp>
 		// 	ses.add_extension(&libtorrent::create_smart_ban_plugin);
 		// 
-		// 
-		// .. _`libtorrent plugins`: libtorrent_plugins.html
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 

@@ -128,7 +128,7 @@ in a swarm has the same IP address.
 
 if set to true, upload, download and unchoke limits
 are ignored for peers on the local network.
-This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
+This option is *DEPRECATED*, please use set_peer_class_filter() instead.
 ``send_redundant_have`` controls if have messages will be sent
 to peers that already have the piece. This is typically not necessary,
 but it might be necessary for collecting statistics in some cases.
@@ -654,7 +654,7 @@ buffer size on the kernel socket, both for IPv4 and IPv6).
 +---------------------+------+---------+
 
 set to true if uTP connections should be rate limited
-This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
+This option is *DEPRECATED*, please use set_peer_class_filter() instead.
 if this is true, the ``&ip=`` argument in tracker requests
 (unless otherwise specified) will be set to the intermediate
 IP address if the user is double NATed. If ther user is not
@@ -1404,10 +1404,10 @@ determines how files are opened when they're in read only mode versus
 read and write mode. The options are:
 
 * enable_os_cache
-	This is the default and files are opened normally, with the OS caching
-	reads and writes.
+   This is the default and files are opened normally, with the OS caching
+   reads and writes.
 * disable_os_cache
-	This opens all files in no-cache mode. This corresponds to the OS not letting
+   This opens all files in no-cache mode. This corresponds to the OS not letting
    blocks for the files linger in the cache. This makes sense in order to avoid
    the bittorrent client to potentially evict all other processes' cache by simply
    handling high throughput and large files. If libtorrent's read cache is disabled,
@@ -1439,10 +1439,10 @@ ports, ``num_outgoing_ports`` is the size of
 the range. It should be more than a few
 
 .. warning:: setting outgoing ports will limit the ability to keep multiple
-	connections to the same client, even for different torrents. It is not
-	recommended to change this setting. Its main purpose is to use as an
-	escape hatch for cheap routers with QoS capability but can only classify
-	flows based on port numbers.
+   connections to the same client, even for different torrents. It is not
+   recommended to change this setting. Its main purpose is to use as an
+   escape hatch for cheap routers with QoS capability but can only classify
+   flows based on port numbers.
 
 It is a range instead of a single port because of the problems with failing to reconnect
 to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
@@ -1536,7 +1536,7 @@ at any given time. Note that a torrent can be active even though it's not loaded
 if an unloaded torrents finds a peer that wants to access it, the torrent will be
 loaded on demand, using a user-supplied callback function. If the feature of unloading
 torrents is not enabled, this setting have no effect. If this limit is set to 0, it
-means unlimited. For more information, see `dynamic loading of torrent files`_.
+means unlimited. For more information, see dynamic-loading-of-torrent-files_.
 
 .. _auto_manage_interval:
 
@@ -1748,7 +1748,7 @@ upload mode, to test if the error condition has been fixed.
 libtorrent will only do this automatically for auto managed torrents.
 
 You can explicitly take a torrent out of upload only mode using
-`set_upload_mode()`_.
+set_upload_mode().
 
 .. _max_suggest_pieces:
 
@@ -2224,7 +2224,7 @@ won't re-open the listen socket simply by changing this setting.
 failing trackers. This value determines *x* in the following formula, determining
 the number of seconds to wait until the next retry:
 
-	delay = 5 + 5 * x / 100 * fails^2
+   delay = 5 + 5 * x / 100 * fails^2
 
 This setting may be useful to make libtorrent more or less aggressive in hitting
 trackers.

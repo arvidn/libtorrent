@@ -867,14 +867,14 @@ The default peer class IDs are defined as enums in the ``session`` class::
 A peer class can be considered a more general form of *lables* that some clients have. Peer
 classes however are not just applied to torrents, but ultimately the peers.
 
-Peer classes can be created with the `create_peer_class()`_ call (on the session object), and
-deleted with the `delete_peer_class()`_ call.
+Peer classes can be created with the create_peer_class() call (on the session object), and
+deleted with the delete_peer_class() call.
 
-Peer classes are configured with the `set_peer_class() get_peer_class()`_ calls.
+Peer classes are configured with the set_peer_class() get_peer_class() calls.
 
 Custom peer classes can be assigned to torrents, with the ??? call, in which case all its
 peers will belong to the class. They can also be assigned based on the peer's IP address.
-See `set_peer_class_filter()`_ for more information.
+See set_peer_class_filter() for more information.
 
 SSL torrents
 ============
@@ -988,19 +988,19 @@ that are currenly being downloaded.
 
 It's important to know whether a value is a counter or a gauge in order to interpret it correctly.
 In order to query libtorrent for which counters and gauges are available, call
-`session_stats_metrics()`_. This will return metadata about the values available for inspection
+session_stats_metrics(). This will return metadata about the values available for inspection
 in libtorrent. It will include whether a value is a counter or a gauge. The key information
 it includes is the index used to extract the actual measurements for a specific counter or
 gauge.
 
-In order to take a sample, call `post_session_stats()`_ in the session object. This will result
-in a `session_stats_alert`_ being posted. In this alert object, there is an array of values,
+In order to take a sample, call post_session_stats() in the session object. This will result
+in a session_stats_alert being posted. In this alert object, there is an array of values,
 these values make up the sample. The value index in the stats metric indicates which index the
 metric's value is stored in.
 
 The mapping between metric and value is not stable across versions of libtorrent. Always query
 the metrics first, to find out the index at which the value is stored, before interpreting the
-values array in the `session_stats_alert`_. The mapping will *not* change during the runtime of
+values array in the session_stats_alert. The mapping will *not* change during the runtime of
 your process though, it's tied to a specific libtorrent version. You only have to query the
 mapping once on startup (or every time ``libtorrent.so`` is loaded, if it's done dynamically).
 

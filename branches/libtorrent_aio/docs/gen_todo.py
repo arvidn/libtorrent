@@ -88,7 +88,7 @@ items.sort(key = lambda x: x['priority'], reverse = True)
 #	if 'context' in i:
 #		print i['context'], '\n'
 
-out = open('docs/todo.html', 'w+')
+out = open('todo.html', 'w+')
 out.write('''<html><head>
 <script type="text/javascript">
 /* <![CDATA[ */

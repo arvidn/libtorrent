@@ -77,7 +77,7 @@ namespace libtorrent
 	//	
 	// These are the available settings:
 	// 
-	// .. include:: settings.rst
+	// .. include:: settings-ref.rst
 	//
 	struct TORRENT_EXPORT settings_pack
 	{
@@ -189,7 +189,7 @@ namespace libtorrent
 
 			// if set to true, upload, download and unchoke limits
 			// are ignored for peers on the local network.
-			// This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
+			// This option is *DEPRECATED*, please use set_peer_class_filter() instead.
 #ifndef TORRENT_NO_DEPRECATE
 			ignore_limits_on_local_network,
 #else
@@ -242,7 +242,7 @@ namespace libtorrent
 			// piece if it would cause is to have to re-read it
 			// once we want to calculate the piece hash
 			dont_flush_write_cache,
-				
+			
 			// ``explicit_read_cache`` defaults to 0. If set to something greater than 0, the
 			// disk read cache will not be evicted by cache misses and will explicitly be
 			// controlled based on the rarity of pieces. Rare pieces are more likely to be
@@ -459,7 +459,7 @@ namespace libtorrent
 			utp_dynamic_sock_buf,
 
 			// set to true if uTP connections should be rate limited
-			// This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
+			// This option is *DEPRECATED*, please use set_peer_class_filter() instead.
 #ifndef TORRENT_NO_DEPRECATE
 			rate_limit_utp,
 #else
@@ -852,10 +852,10 @@ namespace libtorrent
 			// read and write mode. The options are:
 			// 
 			// * enable_os_cache
-			// 	This is the default and files are opened normally, with the OS caching
-			// 	reads and writes.
+			//    This is the default and files are opened normally, with the OS caching
+			//    reads and writes.
 			// * disable_os_cache
-			// 	This opens all files in no-cache mode. This corresponds to the OS not letting
+			//    This opens all files in no-cache mode. This corresponds to the OS not letting
 			//    blocks for the files linger in the cache. This makes sense in order to avoid
 			//    the bittorrent client to potentially evict all other processes' cache by simply
 			//    handling high throughput and large files. If libtorrent's read cache is disabled,
@@ -877,10 +877,10 @@ namespace libtorrent
 			// the range. It should be more than a few
 			// 
 			// .. warning:: setting outgoing ports will limit the ability to keep multiple
-			// 	connections to the same client, even for different torrents. It is not
-			// 	recommended to change this setting. Its main purpose is to use as an
-			// 	escape hatch for cheap routers with QoS capability but can only classify
-			// 	flows based on port numbers.
+			//    connections to the same client, even for different torrents. It is not
+			//    recommended to change this setting. Its main purpose is to use as an
+			//    escape hatch for cheap routers with QoS capability but can only classify
+			//    flows based on port numbers.
 			// 
 			// It is a range instead of a single port because of the problems with failing to reconnect
 			// to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
@@ -937,7 +937,7 @@ namespace libtorrent
 			// if an unloaded torrents finds a peer that wants to access it, the torrent will be
 			// loaded on demand, using a user-supplied callback function. If the feature of unloading
 			// torrents is not enabled, this setting have no effect. If this limit is set to 0, it
-			// means unlimited. For more information, see `dynamic loading of torrent files`_.
+			// means unlimited. For more information, see dynamic-loading-of-torrent-files_.
 			active_downloads,
 			active_seeds,
 			active_dht_limit,
@@ -1052,7 +1052,7 @@ namespace libtorrent
 			// libtorrent will only do this automatically for auto managed torrents.
 			// 
 			// You can explicitly take a torrent out of upload only mode using
-			// `set_upload_mode()`_.
+			// set_upload_mode().
 			optimistic_disk_retry,
 
 			// ``max_suggest_pieces`` is the max number of suggested piece indices received
@@ -1305,7 +1305,7 @@ namespace libtorrent
 			// failing trackers. This value determines *x* in the following formula, determining
 			// the number of seconds to wait until the next retry:
 			// 
-			// 	delay = 5 + 5 * x / 100 * fails^2
+			//    delay = 5 + 5 * x / 100 * fails^2
 			// 
 			// This setting may be useful to make libtorrent more or less aggressive in hitting
 			// trackers.
