@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/time.hpp"
 
+#include "libtorrent/invariant_check.hpp"
+
 using boost::uint8_t;
 
 namespace libtorrent { namespace dht
@@ -292,6 +294,8 @@ bool compare_bucket_refresh(routing_table_node const& lhs, routing_table_node co
 // ping each node periodically
 bool routing_table::need_refresh(node_id& target) const
 {
+	INVARIANT_CHECK;
+
 	ptime now = time_now();
 
 	// refresh our own bucket once every 15 minutes
@@ -384,7 +388,8 @@ bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
 	return dist <= cutoff;
 }
 
-node_entry* routing_table::find_node(udp::endpoint const& ep, routing_table::table_t::iterator* bucket)
+node_entry* routing_table::find_node(udp::endpoint const& ep
+	, routing_table::table_t::iterator* bucket) 
 {
 	for (table_t::iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
@@ -412,6 +417,8 @@ node_entry* routing_table::find_node(udp::endpoint const& ep, routing_table::tab
 
 bool routing_table::add_node(node_entry e)
 {
+	INVARIANT_CHECK;
+
 	// if we already have this (IP,port), don't do anything
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end()) return false;
 
@@ -801,6 +808,8 @@ bool routing_table::add_node(node_entry e)
 
 void routing_table::split_bucket()
 {
+	INVARIANT_CHECK;
+
 	int bucket_index = m_buckets.size()-1;
 	int bucket_size_limit = bucket_limit(bucket_index);
 	TORRENT_ASSERT(m_buckets.back().live_nodes.size() >= bucket_size_limit);
@@ -883,6 +892,8 @@ void routing_table::for_each_node(
 
 void routing_table::node_failed(node_id const& id, udp::endpoint const& ep)
 {
+	INVARIANT_CHECK;
+
 	// if messages to ourself fails, ignore it
 	if (id == m_id) return;
 
@@ -1068,6 +1079,30 @@ void routing_table::find_node(node_id const& target
 
 	TORRENT_ASSERT(int(l.size()) <= count);
 }
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+void routing_table::check_invariant() const
+{
+	std::set<address_v4::bytes_type> all_ips;
+
+	for (table_t::const_iterator i = m_buckets.begin()
+		, end(m_buckets.end()); i != end; ++i)
+	{
+		for (bucket_t::const_iterator j = i->replacements.begin();
+			j != i->replacements.end(); ++j)
+		{
+			all_ips.insert(j->addr().to_v4().to_bytes());
+		}
+		for (bucket_t::const_iterator j = i->live_nodes.begin();
+			j != i->live_nodes.end(); ++j)
+		{
+			all_ips.insert(j->addr().to_v4().to_bytes());
+		}
+	}
+
+	TORRENT_ASSERT(all_ips == m_ips);
+}
+#endif
 
 } } // namespace libtorrent::dht
 

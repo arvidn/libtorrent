@@ -168,6 +168,10 @@ public:
 
 	int bucket_limit(int bucket) const;
 
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+	void check_invariant() const;
+#endif
+
 private:
 
 	typedef std::vector<routing_table_node> table_t;
@@ -179,7 +183,8 @@ private:
 	// return a pointer the node_entry with the given endpoint
 	// or 0 if we don't have such a node. Both the address and the
 	// port has to match
-	node_entry* find_node(udp::endpoint const& ep, routing_table::table_t::iterator* bucket);
+	node_entry* find_node(udp::endpoint const& ep
+		, routing_table::table_t::iterator* bucket);
 
 	dht_settings const& m_settings;
 
