@@ -2195,9 +2195,7 @@ namespace libtorrent
 		send_buffer(&dict_msg[0], dict_msg.size());
 
 #if defined TORRENT_VERBOSE_LOGGING
-		std::stringstream handshake_str;
-		handshake.print(handshake_str);
-		peer_log("==> EXTENDED HANDSHAKE: %s", handshake_str.str().c_str());
+		peer_log("==> EXTENDED HANDSHAKE: %s", handshake.to_string().c_str());
 #endif
 	}
 #endif
