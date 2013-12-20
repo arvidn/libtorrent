@@ -206,11 +206,11 @@ namespace libtorrent
 		void on_allowed_fast(int received);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void on_holepunch();
-#endif
 
 		void on_extended(int received);
 
 		void on_extended_handshake();
+#endif
 
 		typedef void (bt_peer_connection::*message_handler)(int received);
 
