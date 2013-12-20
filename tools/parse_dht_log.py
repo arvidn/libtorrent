@@ -4,7 +4,7 @@ import os
 import time
 import calendar
 
-up_time_quanta = 2000
+up_time_quanta = 500
 
 f = open(sys.argv[1])
 
@@ -160,11 +160,11 @@ replot
 
 set term png size 1200,700 small
 set output "dht_node_uptime_distribution.png"
-set xrange [*:*]
+set xrange [0:*]
 set title "node up time"
 set ylabel "# of nodes"
 set xlabel "uptime (seconds)"
-set xtics auto
+set xtics %f
 unset grid
 set boxwidth %f
 set style fill solid border -1 pattern 2
@@ -175,6 +175,8 @@ set output "dht_announce_distribution.png"
 set xrange [0:*]
 set title "bucket # announces are made against relative to target node-id"
 set ylabel "# of announces"
+set boxwidth 1
+set xlabel "bit prefix of nodes in announces"
 set style fill solid border -1 pattern 2
 plot  "dht_announce_distribution.dat" using 1:2 title "announces" with boxes
 
@@ -182,7 +184,7 @@ set terminal postscript
 set output "dht_announce_distribution.ps"
 replot
 
-''' % up_time_quanta)
+''' % (up_time_quanta, up_time_quanta))
 
 
 out.close()
