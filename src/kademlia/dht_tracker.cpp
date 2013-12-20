@@ -232,8 +232,8 @@ namespace libtorrent { namespace dht
 		
 		// turns on and off individual components' logging
 
-		rpc_log().enable(false);
-		node_log().enable(false);
+//		rpc_log().enable(false);
+//		node_log().enable(false);
 //		traversal_log().enable(false);
 //		dht_tracker_log.enable(false);
 
