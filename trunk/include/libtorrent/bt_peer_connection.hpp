@@ -372,7 +372,9 @@ private:
 
 		// true if rc4, false if plaintext
 		bool m_rc4_encrypted:1;
+#endif
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
 		boost::uint8_t m_upload_only_id;
@@ -434,7 +436,9 @@ private:
 		// used to disconnect peer if sync points are not found within
 		// the maximum number of bytes
 		int m_sync_bytes_read;
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for don't-have message
 		boost::uint8_t m_dont_have_id;
 
@@ -445,8 +449,7 @@ private:
 		// the reserved bits received from the other peer
 		// in the bittorrent handshake
 		char m_reserved_bits[8];
-#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
-
+#endif
 	};
 }
 
