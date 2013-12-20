@@ -5281,6 +5281,7 @@ retry:
 	boost::shared_ptr<torrent> session_impl::delay_load_torrent(sha1_hash const& info_hash
 		, peer_connection* pc)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
@@ -5293,6 +5294,7 @@ retry:
 				return handle.native_handle();
 			}
 		}
+#endif
 		return boost::shared_ptr<torrent>();
 	}
 

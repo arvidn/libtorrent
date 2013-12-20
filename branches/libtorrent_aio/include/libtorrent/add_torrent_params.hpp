@@ -48,10 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent_info;
-#ifdef TORRENT_DISABLE_EXTENSIONS
-	struct torrent;
+	class torrent;
 	struct torrent_plugin;
-#endif
 
 	// The add_torrent_params is a parameter pack for adding torrents to a session.
 	// The key fields when adding a torrent are:
