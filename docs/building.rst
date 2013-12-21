@@ -627,6 +627,10 @@ defines you can use to control the build.
 |                                        | ``TORRENT_USE_OPENSSL`` or                      |
 |                                        | ``TORRENT_USE_GCRYPT`` must be defined.         |
 +----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_EXTENSIONS``         | When defined, libtorrent plugin support is      |
+|                                        | disabled along with support for the extension   |
+|                                        | handskake (BEP 10).                             |
++----------------------------------------+-------------------------------------------------+
 | ``_UNICODE``                           | On windows, this will cause the file IO         |
 |                                        | use wide character API, to properly support     |
 |                                        | non-ansi characters.                            |
