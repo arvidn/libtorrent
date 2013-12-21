@@ -643,7 +643,13 @@ namespace libtorrent { namespace dht
 
 		if (m_sock.send(addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
 		{
-			if (ec) return false;
+			if (ec)
+			{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED (" << ec.message() << ") " << log_line.str();
+#endif
+				return false;
+			}
 
 			// account for IP and UDP overhead
 			m_sent_bytes += m_send_buf.size() + (addr.address().is_v6() ? 48 : 28);
