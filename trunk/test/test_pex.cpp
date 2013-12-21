@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
@@ -165,4 +167,8 @@ int test_main()
 
 	return 0;
 }
+
+#else
+int test_main() { return 0; }
+#endif // TORRENT_DISABLE_EXTENSIONS
 

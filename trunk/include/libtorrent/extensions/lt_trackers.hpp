@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_LT_TRACKERS_HPP_INCLUDED
 #define TORRENT_LT_TRACKERS_HPP_INCLUDED
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -54,6 +56,8 @@ namespace libtorrent
 	// via torrent_handle::add_extension().
 	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent*, void*);
 }
+
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 #endif // TORRENT_LT_TRACKERS_HPP_INCLUDED
 
