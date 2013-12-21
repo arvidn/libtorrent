@@ -114,7 +114,8 @@ namespace libtorrent { namespace dht
 		void tick(error_code const& e);
 
 		// implements udp_socket_interface
-		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags);
+		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
+			, int send_flags);
 
 		node_impl m_dht;
 		rate_limited_udp_socket& m_sock;

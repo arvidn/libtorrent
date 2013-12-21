@@ -659,6 +659,9 @@ namespace libtorrent { namespace dht
 		
 			if (e["y"].string() == "r")
 			{
+/*
+				// This doesn't work. r is a dictionary with return
+				// values. The query type isn't part of the response
 				std::string cmd = e["r"].string();
 				int cmd_idx = -1;
 				if (cmd == "ping") cmd_idx = 0;
@@ -670,6 +673,7 @@ namespace libtorrent { namespace dht
 					++m_replies_sent[cmd_idx];
 					m_replies_bytes_sent[cmd_idx] += int(m_send_buf.size());
 				}
+*/
 			}
 			else if (e["y"].string() == "q")
 			{
