@@ -61,6 +61,7 @@ namespace
 
     void add_extension(session& s, object const& e)
     {
+#ifndef TORRENT_DISABLE_EXTENSIONS
        if (!extract<std::string>(e).check()) return;
 
        std::string name = extract<std::string>(e);
@@ -74,6 +75,7 @@ namespace
             s.add_extension(create_lt_trackers_plugin);
        else if (name == "metadata_transfer")
             s.add_extension(create_metadata_plugin);
+#endif // TORRENT_DISABLE_EXTENSIONS
     }
 
 #ifndef TORRENT_NO_DEPRECATE
