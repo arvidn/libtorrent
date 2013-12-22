@@ -9,6 +9,9 @@ up_time_quanta = 500
 f = open(sys.argv[1])
 
 announce_histogram = {}
+
+#TODO: make this histogram into a CDF
+
 node_uptime_histogram = {}
 
 counter = 0;
@@ -85,8 +88,24 @@ for line in f:
 
 lookup_times_min = []
 lookup_times_max = []
+
+# these are the timestamps for lookups crossing distance
+# to target boundaries
+lookup_distance = []
+for i in range(0, 15):
+	lookup_distance.append([])
+
 for s in searches:
 	for i in s:
+		if not 'last_dist' in i:
+			i['last_dist'] = -1
+		cur_dist = 160 - i['d']
+		last_dist = i['last_dist']
+		if cur_dist > last_dist:
+			for j in range(last_dist + 1, cur_dist + 1):
+				if j >= len(lookup_distance): break
+				lookup_distance[j].append(i['t'])
+			i['last_dist'] = cur_dist
 		if i['e'] != 'PEERS': continue
 		lookup_times_min.append(i['t'])
 		break
@@ -94,6 +113,7 @@ for s in searches:
 		if i['e'] != 'PEERS': continue
 		lookup_times_max.append(i['t'])
 		break
+
 
 lookup_times_min.sort()
 lookup_times_max.sort()
@@ -104,19 +124,32 @@ for i in range(len(lookup_times_min)):
 	print >>out, '%d\t%d\t%f' % (lookup_times_min[i], lookup_times_max[i], counter / float(len(lookup_times_min)))
 out.close()
 
+for i in lookup_distance:
+	i.sort()
+
+dist = 0
+for i in lookup_distance:
+	out = open('dht_lookup_distance_%d.txt' % dist, 'w+')
+	dist += 1
+	counter = 0
+	for j in i:
+		counter += 1
+		print >>out, '%d\t%f' % (j, counter / float(len(i)))
+	out.close()
+
 out = open('dht_lookups.txt', 'w+')
 for s in searches:
 	for i in s:
 		if i['e'] == 'INVOKE':
-			print >>out, ' ->', i['t'], i['d']
+			print >>out, ' ->', i['t'], 160 - i['d']
 		elif i['e'] == '1ST_TIMEOUT':
-			print >>out, ' x ', i['t'], i['d']
+			print >>out, ' x ', i['t'], 160 - i['d']
 		elif i['e'] == 'TIMEOUT':
-			print >>out, ' X ', i['t'], i['d']
+			print >>out, ' X ', i['t'], 160 - i['d']
 		elif i['e'] == 'PEERS':
-			print >>out, ' <-', i['t'], i['d']
+			print >>out, ' <-', i['t'], 160 - i['d']
 		elif i['e'] == 'COMPLETED':
-			print >>out, '***', i['t'], i['d'], '\n'
+			print >>out, '***', i['t'], 160 - i['d'], '\n'
 			break
 out.close()
 
@@ -127,10 +160,17 @@ for k,v in announce_histogram.items():
 	print '%d %d' % (k, v)
 out.close()
 
-out = open('dht_node_uptime_distribution.dat', 'w+')
-print 'node uptimes: %d' % len(node_uptime_histogram)
+out = open('dht_node_uptime_cdf.txt', 'w+')
+s = 0
+
+total_uptime_nodes = 0
 for k,v in node_uptime_histogram.items():
-	print >>out, '%d %d' % (k + up_time_quanta/2, v)
+	total_uptime_nodes += v
+
+for k,v in sorted(node_uptime_histogram.items()):
+	s += v
+	print >>out, '%f %f' % (k / float(60), s / float(total_uptime_nodes))
+	print '%f %f' % (k / float(60), s / float(total_uptime_nodes))
 out.close()
 
 out = open('dht.gnuplot', 'w+')
@@ -159,16 +199,14 @@ set output "dht_min_lookup_times_cdf.ps"
 replot
 
 set term png size 1200,700 small
-set output "dht_node_uptime_distribution.png"
+set output "dht_node_uptime_cdf.png"
 set xrange [0:*]
 set title "node up time"
-set ylabel "# of nodes"
-set xlabel "uptime (seconds)"
-set xtics %f
+set ylabel "portion of nodes being offline"
+set xlabel "time from first seeing the node (minutes)"
+set xtics 10
 unset grid
-set boxwidth %f
-set style fill solid border -1 pattern 2
-plot  "dht_node_uptime_distribution.dat" using 1:2 title "nodes" with boxes
+plot  "dht_node_uptime_cdf.txt" using 1:2 title "nodes" with lines
 
 set term png size 1200,700 small
 set output "dht_announce_distribution.png"
@@ -185,8 +223,21 @@ set terminal postscript
 set output "dht_announce_distribution.ps"
 replot
 
-''' % (up_time_quanta, up_time_quanta))
+set term png size 1200,700 small
+set output "dht_lookup_distance_cdf.png"
+set title "portion of lookups that have reached a certain distance in their lookups"
+set ylabel "portion of lookups"
+set xlabel "time from start of lookup (ms)"
+set xrange [0:2000]
+set xtics 100
+set grid
+plot ''')
 
+dist = 0
+for i in lookup_distance:
+	if dist > 0: out.write(', ')
+	out.write('"dht_lookup_distance_%d.txt" using 1:2 title "%d" with lines' % (dist, dist))
+	dist += 1
 
 out.close()
 
