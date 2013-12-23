@@ -72,6 +72,7 @@ test_torrent_t test_torrents[] =
 	{ "url_seed_multi_space_nolist.torrent" },
 	{ "root_hash.torrent" },
 	{ "empty_path_multi.torrent" },
+	{ "duplicate_web_seeds.torrent" },
 	{ "invalid_name3.torrent" },
 };
 
@@ -382,12 +383,16 @@ int test_main()
 		else if (std::string(test_torrents[i].file) == "pad_file.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_CHECK(ti->file_at(0).pad_file == false);
-			TEST_CHECK(ti->file_at(1).pad_file == true);
+			TEST_EQUAL(ti->file_at(0).pad_file, false);
+			TEST_EQUAL(ti->file_at(1).pad_file, true);
 		}
 		else if (std::string(test_torrents[i].file) == "creation_date.torrent")
 		{
-			TEST_CHECK(*ti->creation_date() == 1234567);
+			TEST_EQUAL(*ti->creation_date(), 1234567);
+		}
+		else if (std::string(test_torrents[i].file) == "duplicate_web_seeds.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 3);
 		}
 		else if (std::string(test_torrents[i].file) == "no_creation_date.torrent")
 		{
