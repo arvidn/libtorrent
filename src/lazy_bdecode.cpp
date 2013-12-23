@@ -64,15 +64,22 @@ namespace libtorrent
 	// first occurance of the delimiter is interpreted as an int.
 	// return the pointer to the delimiter, or 0 if there is a
 	// parse error. val should be initialized to zero
-	char const* parse_int(char const* start, char const* end, char delimiter, boost::int64_t& val)
+	char const* parse_int(char const* start, char const* end, char delimiter
+		, boost::int64_t& val, error_code& ec)
 	{
 		while (start < end && *start != delimiter)
 		{
-			if (!is_digit(*start)) { return 0; }
+			if (!is_digit(*start))
+			{
+				ec = errors::expected_string;
+				return start;
+			}
 			val *= 10;
 			val += *start - '0';
 			++start;
 		}
+		if (*start != delimiter)
+			ec = errors::expected_colon;
 		return start;
 	}
 
@@ -127,9 +134,14 @@ namespace libtorrent
 					}
 					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_string);
 					boost::int64_t len = t - '0';
-					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 3 > end || *start != ':')
-						TORRENT_FAIL_BDECODE(errors::expected_colon);
+					error_code e;
+					start = parse_int(start, end, ':', len, e);
+					if (e)
+						TORRENT_FAIL_BDECODE(e);
+
+					if (start + len + 1 > end)
+						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+
 					++start;
 					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
@@ -186,9 +198,12 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(errors::expected_value);
 
 					boost::int64_t len = t - '0';
-					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 1 > end || *start != ':')
-						TORRENT_FAIL_BDECODE(errors::expected_colon);
+					error_code e;
+					start = parse_int(start, end, ':', len, e);
+					if (e)
+						TORRENT_FAIL_BDECODE(e);
+					if (start + len + 1 > end)
+						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
@@ -207,7 +222,10 @@ namespace libtorrent
 		boost::int64_t val = 0;
 		bool negative = false;
 		if (*m_data.start == '-') negative = true;
-		parse_int(negative?m_data.start+1:m_data.start, m_data.start + m_size, 'e', val);
+		error_code ec;
+		parse_int(negative?m_data.start+1:m_data.start
+			, m_data.start + m_size, 'e', val, ec);
+		TORRENT_ASSERT(!ec);
 		if (negative) val = -val;
 		return val;
 	}

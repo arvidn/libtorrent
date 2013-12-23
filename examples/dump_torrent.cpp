@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	lazy_entry e;
-	int pos;
+	int pos = -1;
 	printf("decoding. recursion limit: %d total item count limit: %d\n"
 		, depth_limit, item_limit);
 	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos

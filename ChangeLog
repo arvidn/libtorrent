@@ -1,3 +1,6 @@
+	* deduplicate web seed entries from torrent files
+	* improve error reporting from lazy_decode()
+
 0.16.13 release
 
 	* fix auto-manage issue when pausing session

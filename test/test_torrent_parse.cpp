@@ -61,6 +61,7 @@ test_torrent_t test_torrents[] =
 	{ "pad_file.torrent" },
 	{ "creation_date.torrent" },
 	{ "empty_path_multi.torrent" },
+	{ "duplicate_web_seeds.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -124,12 +125,16 @@ int test_main()
 		else if (std::string(test_torrents[i].file) == "pad_file.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_CHECK(ti->file_at(0).pad_file == false);
-			TEST_CHECK(ti->file_at(1).pad_file == true);
+			TEST_EQUAL(ti->file_at(0).pad_file, false);
+			TEST_EQUAL(ti->file_at(1).pad_file, true);
 		}
 		else if (std::string(test_torrents[i].file) == "creation_date.torrent")
 		{
-			TEST_CHECK(*ti->creation_date() == 1234567);
+			TEST_EQUAL(*ti->creation_date(), 1234567);
+		}
+		else if (std::string(test_torrents[i].file) == "duplicate_web_seeds.torrent")
+		{
+			TEST_EQUAL(ti->web_seeds().size(), 3);
 		}
 
 		int index = 0;

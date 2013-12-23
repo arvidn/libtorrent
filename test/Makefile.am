@@ -73,6 +73,8 @@ EXTRA_DIST = Jamfile \
   test_torrents/invalid_pieces.torrent \
   test_torrents/unaligned_pieces.torrent \
   test_torrents/creation_date.torrent \
+  test_torrents/empty_path_multi.torrent \
+  test_torrents/duplicate_web_seeds.torrent \
   eztv.xml \
   kat.xml \
   cb.xml \
