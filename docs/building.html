@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -359,13 +359,15 @@ implementation is used.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">pool-allocators</span></tt></td>
+<tr><td><tt class="docutils literal">allocator</tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">on</tt> - default, uses pool allocators for send
-buffers.</li>
-<li><tt class="docutils literal">off</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
+<li><tt class="docutils literal">pool</tt> - default, uses pool allocators for
+send buffers.</li>
+<li><tt class="docutils literal">system</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
 instead. Might be useful to debug buffer issues
 with tools like electric fence or libgmalloc.</li>
+<li><tt class="docutils literal">debug</tt> - instruments buffer usage to catch
+bugs in libtorrent.</li>
 </ul>
 </td>
 </tr>
@@ -740,6 +742,11 @@ uTorrent, Azureus and KTorrent.
 If this is not defined, either
 <tt class="docutils literal">TORRENT_USE_OPENSSL</tt> or
 <tt class="docutils literal">TORRENT_USE_GCRYPT</tt> must be defined.</td>
+</tr>
+<tr><td><tt class="docutils literal">TORRENT_DISABLE_EXTENSIONS</tt></td>
+<td>When defined, libtorrent plugin support is
+disabled along with support for the extension
+handskake (BEP 10).</td>
 </tr>
 <tr><td><tt class="docutils literal">_UNICODE</tt></td>
 <td>On windows, this will cause the file IO
