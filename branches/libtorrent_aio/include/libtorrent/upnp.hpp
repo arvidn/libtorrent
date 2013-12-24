@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/enum_net.hpp"
+#include "libtorrent/resolver.hpp"
 
 #include <boost/function/function1.hpp>
 #include <boost/function/function4.hpp>
@@ -344,6 +345,8 @@ private:
 	int m_retry_count;
 
 	io_service& m_io_service;
+
+	resolver m_resolver;
 
 	// the udp socket used to send and receive
 	// multicast messages on the network

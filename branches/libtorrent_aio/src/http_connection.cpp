@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/socket_type.hpp" // for async_shutdown
+#include "libtorrent/resolver_interface.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -49,7 +50,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-http_connection::http_connection(io_service& ios, connection_queue& cc
+http_connection::http_connection(io_service& ios
+	, connection_queue& cc
+	, resolver_interface& resolver
 	, http_handler const& handler
 	, bool bottled
 	, int max_bottled_buffer_size
@@ -68,7 +71,7 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 #if TORRENT_USE_I2P
 	, m_i2p_conn(0)
 #endif
-	, m_resolver(ios)
+	, m_resolver(resolver)
 	, m_handler(handler)
 	, m_connect_handler(ch)
 	, m_filter_handler(fh)
@@ -103,13 +106,14 @@ http_connection::~http_connection()
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, address const& bind_addr
+	, address const& bind_addr, int resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
 	)
 {
 	m_user_agent = user_agent;
+	m_resolve_flags = resolve_flags;
 
 	std::string protocol;
 	std::string auth;
@@ -130,7 +134,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (ec)
 	{
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(boost::bind(&http_connection::callback
 			, me, ec, (char*)0, 0));
 		return;
 	}
@@ -142,7 +146,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		)
 	{
 		error_code ec(errors::unsupported_url_protocol);
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(boost::bind(&http_connection::callback
 			, me, ec, (char*)0, 0));
 		return;
 	}
@@ -203,17 +207,19 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	sendbuffer.assign(request);
 	m_url = url;
-	start(hostname, to_string(port).elems, timeout, prio
-		, ps, ssl, handle_redirects, bind_addr
+	start(hostname, port, timeout, prio
+		, ps, ssl, handle_redirects, bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 		, i2p_conn
 #endif
 		);
 }
 
-void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl, int handle_redirects
+void http_connection::start(std::string const& hostname, int port
+	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl
+	, int handle_redirects
 	, address const& bind_addr
+	, int resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -222,6 +228,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	TORRENT_ASSERT(prio >= 0 && prio < 3);
 
 	m_redirects = handle_redirects;
+	m_resolve_flags = resolve_flags;
 	if (ps) m_proxy = *ps;
 
 	// keep ourselves alive even if the callback function
@@ -245,7 +252,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 	if (ec)
 	{
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(boost::bind(&http_connection::callback
 			, me, ec, (char*)0, 0));
 		return;
 	}
@@ -285,7 +292,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #if TORRENT_USE_I2P
 		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
 		{
-			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			m_timer.get_io_service().post(boost::bind(&http_connection::callback
 				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
 			return;
 		}
@@ -314,7 +321,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			if (m_ssl_ctx == 0)
 			{
 				m_ssl_ctx = new (std::nothrow) boost::asio::ssl::context(
-					m_resolver.get_io_service(), asio::ssl::context::sslv23_client);
+					m_timer.get_io_service(), asio::ssl::context::sslv23_client);
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
@@ -326,7 +333,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			userdata = m_ssl_ctx;
 		}
 #endif
-		instantiate_connection(m_resolver.get_io_service()
+		instantiate_connection(m_timer.get_io_service()
 			, proxy ? *proxy : null_proxy, m_sock, userdata);
 
 		if (m_bind_addr != address_v4::any())
@@ -336,7 +343,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
 			{
-				m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+				m_timer.get_io_service().post(boost::bind(&http_connection::callback
 					, me, ec, (char*)0, 0));
 				return;
 			}
@@ -345,7 +352,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
-			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			m_timer.get_io_service().post(boost::bind(&http_connection::callback
 				, me, ec, (char*)0, 0));
 			return;
 		}
@@ -367,7 +374,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		{
 			m_hostname = hostname;
 			m_port = port;
-			m_endpoints.push_back(tcp::endpoint(address(), atoi(port.c_str())));
+			m_endpoints.push_back(tcp::endpoint(address(), port));
 			queue_connect();
 		}
 		else
@@ -377,8 +384,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #endif
 			TORRENT_ASSERT(!m_self_reference);
 			m_endpoints.clear();
-			tcp::resolver::query query(hostname, port);
-			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
+			m_resolver.async_resolve(hostname, m_resolve_flags
+				, boost::bind(&http_connection::on_resolve
 				, me, _1, _2));
 		}
 		m_hostname = hostname;
@@ -468,11 +475,10 @@ void http_connection::close(bool force)
 	}
 
 	m_timer.cancel(ec);
-	m_resolver.cancel();
 	m_limiter_timer.cancel(ec);
 
 	m_hostname.clear();
-	m_port.clear();
+	m_port = 0;
 	m_handler.clear();
 	m_abort = true;
 }
@@ -512,7 +518,7 @@ void http_connection::on_i2p_resolve(error_code const& e
 #endif
 
 void http_connection::on_resolve(error_code const& e
-	, tcp::resolver::iterator i)
+	, std::vector<address> const& addresses)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_resolve");
@@ -525,10 +531,11 @@ void http_connection::on_resolve(error_code const& e
 		close();
 		return;
 	}
-	TORRENT_ASSERT(i != tcp::resolver::iterator());
+	TORRENT_ASSERT(!addresses.empty());
 
-	std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
-		, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
+	for (std::vector<address>::const_iterator i = addresses.begin()
+		, end(addresses.end()); i != end; ++i)
+		m_endpoints.push_back(tcp::endpoint(*i, m_port));
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
 	if (m_endpoints.empty())
@@ -827,7 +834,7 @@ void http_connection::on_read(error_code const& e
 				if (!ec)
 				{
 					get(location, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr
+						, m_user_agent, m_bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 						, m_i2p_conn
 #endif
@@ -848,7 +855,7 @@ void http_connection::on_read(error_code const& e
 					url += location;
 
 					get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr
+						, m_user_agent, m_bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 						, m_i2p_conn
 #endif

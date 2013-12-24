@@ -592,6 +592,7 @@ SOURCES =
 	request_blocks
 	session_stats
 	performance_counters
+	resolver
 
 # -- extensions --
 	metadata_transfer

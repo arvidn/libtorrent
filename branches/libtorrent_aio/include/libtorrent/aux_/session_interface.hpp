@@ -87,6 +87,7 @@ namespace libtorrent
 	struct settings_pack;
 	struct torrent_peer_allocator_interface;
 	struct counters;
+	struct resolver_interface;
 
 #ifndef TORRENT_DISABLE_DHT
 	namespace dht
@@ -122,6 +123,7 @@ namespace libtorrent { namespace aux
 
 		virtual torrent_peer_allocator_interface* get_peer_allocator() = 0;
 		virtual io_service& get_io_service() = 0;
+		virtual resolver_interface& get_resolver() = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;
 		virtual void insert_peer(boost::shared_ptr<peer_connection> const& c) = 0;

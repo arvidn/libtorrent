@@ -91,7 +91,8 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void name_lookup(error_code const& error, tcp::resolver::iterator i);
+		void name_lookup(error_code const& error
+			, std::vector<address> const& addresses, int port);
 		void timeout(error_code const& error);
 		void start_announce();
 

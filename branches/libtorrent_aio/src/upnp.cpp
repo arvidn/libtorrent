@@ -71,6 +71,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_log_callback(lcb)
 	, m_retry_count(0)
 	, m_io_service(ios)
+	, m_resolver(ios)
 	, m_socket(udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
 		, boost::bind(&upnp::on_reply, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
@@ -299,7 +300,8 @@ void upnp::resend_request(error_code const& ec)
 				log(msg, l);
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
-					, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
+					, m_cc, m_resolver
+					, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
@@ -561,7 +563,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 					if (d.upnp_connection) d.upnp_connection->close();
 					d.upnp_connection.reset(new http_connection(m_io_service
-						, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
+						, m_cc, m_resolver
+						, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d), _5)));
 					d.upnp_connection->get(d.url, seconds(30), 1);
 				}
@@ -705,21 +708,23 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
+			, m_cc, m_resolver
+			, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
 			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, boost::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
-		d.upnp_connection->start(d.hostname, to_string(d.port).elems
+		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1);
 	}
 	else if (m.action == mapping_t::action_delete)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
+			, m_cc, m_resolver
+			, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, boost::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
-		d.upnp_connection->start(d.hostname, to_string(d.port).elems
+		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1);
 	}
 
@@ -966,10 +971,11 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	d.upnp_connection.reset(new http_connection(m_io_service
-		, m_cc, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
+		, m_cc, m_resolver
+		, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
 		, boost::ref(d), _5), true, default_max_bottled_buffer_size 
 		, boost::bind(&upnp::get_ip_address, self(), boost::ref(d))));
-	d.upnp_connection->start(d.hostname, to_string(d.port).elems
+	d.upnp_connection->start(d.hostname, d.port
 		, seconds(10), 1);
 }
 

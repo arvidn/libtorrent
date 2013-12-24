@@ -6422,28 +6422,27 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_router_name_lookup");
 #endif
-		char port[7];
-		snprintf(port, sizeof(port), "%d", node.second);
-		tcp::resolver::query q(node.first, port);
-		m_host_resolver.async_resolve(q,
-			boost::bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
+		m_host_resolver.async_resolve(node.first, 0
+			, boost::bind(&session_impl::on_dht_router_name_lookup
+				, this, _1, _2, node.second));
 	}
 
 	void session_impl::on_dht_router_name_lookup(error_code const& e
-		, tcp::resolver::iterator host)
+		, std::vector<address> const& addresses, int port)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_dht_router_name_lookup");
 #endif
 		// TODO: 1 report errors as alerts
 		if (e) return;
-		while (host != tcp::resolver::iterator())
+
+		for (std::vector<address>::const_iterator i = addresses.begin()
+			, end(addresses.end()); i != end; ++i)
 		{
 			// router nodes should be added before the DHT is started (and bootstrapped)
-			udp::endpoint ep(host->endpoint().address(), host->endpoint().port());
+			udp::endpoint ep(*i, port);
 			if (m_dht) m_dht->add_router_node(ep);
 			m_dht_router_nodes.push_back(ep);
-			++host;
 		}
 	}
 #endif

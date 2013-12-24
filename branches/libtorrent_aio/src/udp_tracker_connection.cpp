@@ -63,6 +63,7 @@ namespace libtorrent
 
 	mutex udp_tracker_connection::m_cache_mutex;
 
+	// TODO: 2 it would be nice to not have a dependency on session_impl here
 	udp_tracker_connection::udp_tracker_connection(
 		io_service& ios
 		, connection_queue& cc
@@ -114,10 +115,16 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_tracker_connection::name_lookup");
 #endif
-			tcp::resolver::query q(hostname, to_string(port).elems);
-			m_ses.m_host_resolver.async_resolve(q
-				, boost::bind(
-				&udp_tracker_connection::name_lookup, self(), _1, _2));
+			// when stopping, pass in the prefer cache flag, because we
+			// don't want to get stuck on DNS lookups when shutting down
+			// if we can avoid it
+			m_ses.m_host_resolver.async_resolve(hostname
+				, tracker_req().event == tracker_request::stopped
+					? resolver_interface::prefer_cache
+					: 0
+				, boost::bind(&udp_tracker_connection::name_lookup
+					, self(), _1, _2, port));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			boost::shared_ptr<request_callback> cb = requester();
 			if (cb) cb->debug_log("*** UDP_TRACKER [ initiating name lookup: \"%s\" ]"
@@ -165,14 +172,14 @@ namespace libtorrent
 	}
 
 	void udp_tracker_connection::name_lookup(error_code const& error
-		, tcp::resolver::iterator i)
+		, std::vector<address> const& addresses, int port)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("udp_tracker_connection::name_lookup");
 #endif
 		if (m_abort) return;
 		if (error == asio::error::operation_aborted) return;
-		if (error || i == tcp::resolver::iterator())
+		if (error || addresses.empty())
 		{
 			fail(error);
 			return;
@@ -194,8 +201,9 @@ namespace libtorrent
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
 
-		std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
-			, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
+		for (std::vector<address>::const_iterator i = addresses.begin()
+			, end(addresses.end()); i != end; ++i)
+			m_endpoints.push_back(tcp::endpoint(*i, port));
 
 		if (tracker_req().apply_ip_filter)
 		{

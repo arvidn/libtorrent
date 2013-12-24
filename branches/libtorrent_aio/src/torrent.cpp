@@ -721,10 +721,12 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
 		boost::shared_ptr<http_connection> conn(
 			new http_connection(m_ses.get_io_service(), m_ses.half_open()
+				, m_ses.get_resolver()
 				, boost::bind(&torrent::on_torrent_download, shared_from_this()
 					, _1, _2, _3, _4)
-				, true //bottled
-				, m_ses.settings().get_int(settings_pack::max_http_recv_buffer_size) //bottled buffer size
+				, true // bottled
+				//bottled buffer size
+				, m_ses.settings().get_int(settings_pack::max_http_recv_buffer_size)
 				));
 		conn->get(m_url, seconds(30), 0, 0, 5, m_ses.settings().get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);

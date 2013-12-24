@@ -104,6 +104,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/resolver.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -276,6 +277,7 @@ namespace libtorrent
 			torrent_peer_allocator_interface* get_peer_allocator() { return &m_peer_allocator; }
 
 			io_service& get_io_service() { return m_io_service; }
+			resolver_interface& get_resolver() { return m_host_resolver; }
 
 			std::vector<torrent*>& torrent_list(int i)
 			{
@@ -358,7 +360,7 @@ namespace libtorrent
 #endif
 			void on_dht_announce(error_code const& e);
 			void on_dht_router_name_lookup(error_code const& e
-				, tcp::resolver::iterator host);
+				, std::vector<address> const& addresses, int port);
 #endif
 
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
@@ -1123,7 +1125,7 @@ namespace libtorrent
 			// by Local service discovery
 			deadline_timer m_lsd_announce_timer;
 
-			tcp::resolver m_host_resolver;
+			resolver m_host_resolver;
 
 			// the index of the torrent that will be offered to
 			// connect to a peer next time on_tick is called.

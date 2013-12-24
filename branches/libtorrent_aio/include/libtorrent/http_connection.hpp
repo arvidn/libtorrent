@@ -63,6 +63,7 @@ namespace libtorrent
 
 struct http_connection;
 class connection_queue;
+struct resolver_interface;
 
 const int default_max_bottled_buffer_size = 2*1024*1024;
 	
@@ -80,8 +81,11 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	, boost::enable_shared_from_this<http_connection>
 	, boost::noncopyable
 {
-	http_connection(io_service& ios, connection_queue& cc
-		, http_handler const& handler, bool bottled = true
+	http_connection(io_service& ios
+		, connection_queue& cc
+		, resolver_interface& resolver
+		, http_handler const& handler
+		, bool bottled = true
 		, int max_bottled_buffer_size = default_max_bottled_buffer_size
 		, http_connect_handler const& ch = http_connect_handler()
 		, http_filter_handler const& fh = http_filter_handler()
@@ -102,15 +106,17 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	void get(std::string const& url, time_duration timeout = seconds(30)
 		, int prio = 0, proxy_settings const* ps = 0, int handle_redirects = 5
 		, std::string const& user_agent = "", address const& bind_addr = address_v4::any()
+		, int resolve_flags = 0
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
 		);
 
-	void start(std::string const& hostname, std::string const& port
+	void start(std::string const& hostname, int port
 		, time_duration timeout, int prio = 0, proxy_settings const* ps = 0
 		, bool ssl = false, int handle_redirect = 5
 		, address const& bind_addr = address_v4::any()
+		, int resolve_flags = 0
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
@@ -129,7 +135,7 @@ private:
 		, char const* destination);
 #endif
 	void on_resolve(error_code const& e
-		, tcp::resolver::iterator i);
+		, std::vector<address> const& addresses);
 	void queue_connect();
 	void on_allow_connect(int ticket);
 	void on_connect_timeout();
@@ -145,7 +151,6 @@ private:
 	std::vector<char> m_recvbuffer;
 
 	std::string m_hostname;
-	std::string m_port;
 	std::string m_url;
 	std::string m_user_agent;
 
@@ -165,7 +170,8 @@ private:
 #if TORRENT_USE_I2P
 	i2p_connection* m_i2p_conn;
 #endif
-	tcp::resolver m_resolver;
+	resolver_interface& m_resolver;
+
 	http_parser m_parser;
 	http_handler m_handler;
 	http_connect_handler m_connect_handler;
@@ -210,6 +216,11 @@ private:
 	// the priority we have in the connection queue.
 	// 0 is normal, 1 is high
 	int m_priority;
+
+	// used for DNS lookups
+	int m_resolve_flags;
+
+	boost::uint16_t m_port;
 
 	// bottled means that the handler is called once, when
 	// everything is received (and buffered in memory).

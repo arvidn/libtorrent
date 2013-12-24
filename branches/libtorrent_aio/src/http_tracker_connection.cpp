@@ -77,7 +77,7 @@ namespace libtorrent
 		, tracker_manager& man
 		, tracker_request const& req
 		, boost::weak_ptr<request_callback> c
-		, aux::session_impl const& ses
+		, aux::session_impl& ses
 		, proxy_settings const& ps
 		, std::string const& auth
 #if TORRENT_USE_I2P
@@ -210,7 +210,7 @@ namespace libtorrent
 			}
 		}
 
-		m_tracker_connection.reset(new http_connection(m_ios, m_cc
+		m_tracker_connection.reset(new http_connection(m_ios, m_cc, m_ses.m_host_resolver
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, boost::bind(&http_tracker_connection::on_connect, self(), _1)
@@ -229,6 +229,9 @@ namespace libtorrent
 			, &m_ps, 5, settings.get_bool(settings_pack::anonymous_mode)
 				? "" : settings.get_str(settings_pack::user_agent)
 			, bind_interface()
+			, tracker_req().event == tracker_request::stopped
+				? resolver_interface::prefer_cache
+				: 0
 #if TORRENT_USE_I2P
 			, m_i2p_conn
 #endif
