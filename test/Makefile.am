@@ -1,4 +1,5 @@
 test_programs = \
+  test_bitfield              \
   test_file                  \
   test_file_storage          \
   test_privacy               \
@@ -119,6 +120,7 @@ libtest_la_SOURCES = main.cpp \
   ../ed25519/src/sign.c         \
   ../ed25519/src/verify.c
 
+test_bitfield_SOURCES = test_bitfield.cpp
 test_file_SOURCES = test_file.cpp
 test_file_storage_SOURCES = test_file_storage.cpp
 test_privacy_SOURCES = test_privacy.cpp
