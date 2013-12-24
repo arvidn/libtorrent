@@ -58,16 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void print_bitfield(bitfield const& b)
-{
-	std::string out;
-	for (int i = 0; i < b.size(); ++i)
-	{
-		out += b.get_bit(i) ? "1" : "0";
-	}
-	printf("%s\n", out.c_str());
-}
-
 sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
@@ -93,10 +83,6 @@ tcp::endpoint ep(char const* ip, int port)
 {
 	error_code ec;
 	return tcp::endpoint(address::from_string(ip, ec), port);
-}
-
-namespace libtorrent
-{
 }
 
 int test_main()
@@ -476,82 +462,6 @@ int test_main()
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
 	h2 = to_hash("0123456789abcdef11232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
-
-
-	// TODO: move test bitfield out to its own file
-	// test bitfield
-	bitfield test1(10, false);
-	TEST_EQUAL(test1.size(), 10);
-	TEST_EQUAL(test1.empty(), false);
-	TEST_EQUAL(test1.count(), 0);
-	test1.set_bit(9);
-	TEST_EQUAL(test1.count(), 1);
-	test1.clear_bit(9);
-	TEST_EQUAL(test1.count(), 0);
-	test1.set_bit(2);
-	TEST_EQUAL(test1.count(), 1);
-	test1.set_bit(1);
-	test1.set_bit(9);
-	TEST_EQUAL(test1.count(), 3);
-	TEST_CHECK(test1.all_set() == false);
-	test1.clear_bit(2);
-	TEST_EQUAL(test1.count(), 2);
-	int distance = std::distance(test1.begin(), test1.end());
-	std::cerr << distance << std::endl;
-	TEST_CHECK(distance == 10);
-	
-	print_bitfield(test1);
-
-	test1.set_all();
-	TEST_EQUAL(test1.count(), 10);
-
-	test1.clear_all();
-	TEST_EQUAL(test1.count(), 0);
-
-	test1.resize(2);
-	test1.set_bit(0);
-	test1.resize(16, true);
-	TEST_EQUAL(test1.count(), 15);
-	test1.resize(20, true);
-	TEST_EQUAL(test1.count(), 19);
-	TEST_EQUAL(test1.get_bit(0), true);
-	TEST_EQUAL(test1.get_bit(1), false);
-
-	bitfield test2 = test1;
-	print_bitfield(test2);
-	TEST_EQUAL(test2.count(), 19);
-	TEST_EQUAL(test2.get_bit(0), true);
-	TEST_EQUAL(test2.get_bit(1), false);
-	TEST_EQUAL(test2.get_bit(2), true);
-
-	test1.set_bit(1);
-	test1.resize(1);
-	TEST_EQUAL(test1.count(), 1);
-
-	test1.resize(100, true);
-	TEST_CHECK(test1.all_set() == true);
-
-	boost::uint8_t b1[] = { 0x08, 0x10 };
-	test1.assign((char*)b1, 14);
-	print_bitfield(test1);
-	TEST_EQUAL(test1.get_bit(3), false);
-	TEST_EQUAL(test1.get_bit(4), true);
-	TEST_EQUAL(test1.get_bit(5), false);
-	TEST_EQUAL(test1.get_bit(10), false);
-	TEST_EQUAL(test1.get_bit(11), true);
-	TEST_EQUAL(test1.get_bit(12), false);
-
-	test1 = bitfield();
-	TEST_EQUAL(test1.size(), 0);
-	TEST_EQUAL(test1.empty(), true);
-	TEST_EQUAL(bitfield().empty(), true);
-
-	test1 = test2;
-	TEST_EQUAL(test1.size(), 20);
-	TEST_EQUAL(test1.count(), 19);
-	TEST_EQUAL(test1.get_bit(0), true);
-	TEST_EQUAL(test1.get_bit(1), false);
-	TEST_EQUAL(test1.get_bit(2), true);
 
 	// test print_endpoint, parse_endpoint and print_address
 	TEST_EQUAL(print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");

@@ -250,7 +250,7 @@ namespace libtorrent
 
 		const_iterator begin() const { return const_iterator(m_buf, 0); }
 		const_iterator end() const { return const_iterator(
-			m_buf + num_words() -1, size() & 31); }
+			m_buf + num_words() - (((size() & 31) == 0) ? 0 : 1), size() & 31); }
 
 		// set the size of the bitfield to ``bits`` length. If the bitfield is extended,
 		// the new bits are initialized to ``val``.

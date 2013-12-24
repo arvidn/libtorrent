@@ -1,4 +1,5 @@
 test_programs = \
+  test_bitfield              \
   test_connection_queue      \
   test_torrent_info          \
   test_recheck               \
@@ -128,6 +129,7 @@ libtest_la_SOURCES = main.cpp \
   ../ed25519/src/sign.c         \
   ../ed25519/src/verify.c
 
+test_bitfield_SOURCES = test_bitfield.cpp
 test_connection_queue_SOURCES = test_connection_queue.cpp
 test_torrent_info_SOURCES = test_torrent_info.cpp
 test_recheck_SOURCES = test_recheck.cpp

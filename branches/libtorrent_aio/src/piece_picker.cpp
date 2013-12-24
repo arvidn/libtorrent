@@ -414,7 +414,20 @@ namespace libtorrent
 #endif // TORRENT_DEBUG
 
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-	void piece_picker::check_invariant(const torrent* t) const
+	void piece_picker::check_peer_invariant(bitfield const& have
+		, void const* p) const
+	{
+#ifdef TORRENT_DEBUG_REFCOUNTS
+		int num_pieces = have.size();
+		for (int i = 0; i < num_pieces; ++i)
+		{
+			int h = have[i];
+			TORRENT_ASSERT(m_piece_map[i].have_peers.count(p) == h);
+		}
+#endif
+	}
+
+	void piece_picker::check_invariant(torrent const* t) const
 	{
 #ifndef TORRENT_DEBUG_REFCOUNTS
 #if TORRENT_OPTIMIZE_MEMORY_USAGE
@@ -448,7 +461,8 @@ namespace libtorrent
 						{
 							torrent_peer* p = (torrent_peer*)dp.info[k].peer;
 							TORRENT_ASSERT(p->in_use);
-							TORRENT_ASSERT(p->connection == NULL || static_cast<peer_connection*>(p->connection)->m_in_use);
+							TORRENT_ASSERT(p->connection == NULL
+								|| static_cast<peer_connection*>(p->connection)->m_in_use);
 						}
 					}
 				}

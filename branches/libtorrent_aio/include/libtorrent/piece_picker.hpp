@@ -446,6 +446,7 @@ namespace libtorrent
 			, bitfield const& bits) const;
 #endif
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		void check_peer_invariant(bitfield const& have, void const* p) const;
 		void check_invariant(const torrent* t = 0) const;
 #endif
 #if defined TORRENT_PICKER_LOG

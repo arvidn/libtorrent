@@ -804,11 +804,20 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
+
+			TORRENT_ASSERT(m_have_piece.all_set());
+			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
+			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+
 			// if this is a web seed. we don't have a peer_info struct
 			t->set_seed(m_peer_info, true);
 			m_upload_only = true;
 
 			t->peer_has_all(this);
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+			t->picker().check_peer_invariant(m_have_piece, this);
+#endif
 			if (t->is_upload_only()) send_not_interested();
 			else t->peer_is_interesting(*this);
 			return;
@@ -1870,9 +1879,18 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
+
+			TORRENT_ASSERT(m_have_piece.all_set());
+			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
+			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+
 			t->seen_complete();
 			t->set_seed(m_peer_info, true);
 			m_upload_only = true;
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+			t->picker().check_peer_invariant(m_have_piece, this);
+#endif
 			disconnect_if_redundant();
 			if (is_disconnecting()) return;
 		}
@@ -2023,6 +2041,10 @@ namespace libtorrent
 			m_have_piece = bits;
 			m_num_pieces = bits.count();
 			t->set_seed(m_peer_info, m_num_pieces == int(bits.size()));
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+			t->picker().check_peer_invariant(m_have_piece, this);
+#endif
 			return;
 		}
 
@@ -2034,6 +2056,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
+
 			// if this is a web seed. we don't have a peer_info struct
 			t->set_seed(m_peer_info, true);
 			m_upload_only = true;
@@ -2041,6 +2064,14 @@ namespace libtorrent
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
 			t->peer_has_all(this);
+
+			TORRENT_ASSERT(m_have_piece.all_set());
+			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
+			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+			t->picker().check_peer_invariant(m_have_piece, this);
+#endif
 			if (!t->is_upload_only())
 				t->peer_is_interesting(*this);
 
@@ -3088,6 +3119,14 @@ namespace libtorrent
 		m_num_pieces = m_have_piece.size();
 		
 		t->peer_has_all(this);
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		t->picker().check_peer_invariant(m_have_piece, this);
+#endif
+
+		TORRENT_ASSERT(m_have_piece.all_set());
+		TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
+		TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
 
 		// if we're finished, we're not interested
 		if (t->is_upload_only()) send_not_interested();
@@ -6444,6 +6483,12 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS \
+	&& !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
+		if (t->has_picker())
+			t->picker().check_peer_invariant(m_have_piece, this);
+#endif
 
 		if (!m_disconnect_started && m_initialized)
 		{
