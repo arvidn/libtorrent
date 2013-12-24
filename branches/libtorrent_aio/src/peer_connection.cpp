@@ -6486,7 +6486,7 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS \
 	&& !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
-		if (t->has_picker())
+		if (t && t->has_picker())
 			t->picker().check_peer_invariant(m_have_piece, this);
 #endif
 
