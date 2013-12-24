@@ -1354,7 +1354,7 @@ use allocate_disk_receive_buffer and release_disk_receive_buffer</h2><h4>../incl
 	};
 }
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(26)">../src/bt_peer_connection.cpp:621</a></td><td>this could be optimized using knuth morris pratt</td></tr><tr id="26" style="display: none;" colspan="3"><td colspan="3"><h2>this could be optimized using knuth morris pratt</h2><h4>../src/bt_peer_connection.cpp:621</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		{
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(26)">../src/bt_peer_connection.cpp:625</a></td><td>this could be optimized using knuth morris pratt</td></tr><tr id="26" style="display: none;" colspan="3"><td colspan="3"><h2>this could be optimized using knuth morris pratt</h2><h4>../src/bt_peer_connection.cpp:625</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		{
 			disconnect(errors::no_memory);
 			return;
 		}
@@ -1405,7 +1405,7 @@ use allocate_disk_receive_buffer and release_disk_receive_buffer</h2><h4>../incl
 // 		}
 
         // no complete sync
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(27)">../src/bt_peer_connection.cpp:2085</a></td><td>if we're finished, send upload_only message</td></tr><tr id="27" style="display: none;" colspan="3"><td colspan="3"><h2>if we're finished, send upload_only message</h2><h4>../src/bt_peer_connection.cpp:2085</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (msg[5 + k / 8] &amp; (0x80 &gt;&gt; (k % 8))) bitfield_string[k] = '1';
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(27)">../src/bt_peer_connection.cpp:2089</a></td><td>if we're finished, send upload_only message</td></tr><tr id="27" style="display: none;" colspan="3"><td colspan="3"><h2>if we're finished, send upload_only message</h2><h4>../src/bt_peer_connection.cpp:2089</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (msg[5 + k / 8] &amp; (0x80 &gt;&gt; (k % 8))) bitfield_string[k] = '1';
 			else bitfield_string[k] = '0';
 		}
 		peer_log("==&gt; BITFIELD [ %s ]", bitfield_string.c_str());
@@ -1456,8 +1456,8 @@ use allocate_disk_receive_buffer and release_disk_receive_buffer</h2><h4>../incl
 		std::back_insert_iterator&lt;std::string&gt; out(remote_address);
 		detail::write_address(remote().address(), out);
 		handshake["yourip"] = remote_address;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(28)">../src/bt_peer_connection.cpp:3325</a></td><td>move the erasing into the loop above remove all payload ranges that has been sent</td></tr><tr id="28" style="display: none;" colspan="3"><td colspan="3"><h2>move the erasing into the loop above
-remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.cpp:3325</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			for (std::vector&lt;range&gt;::iterator i = m_payloads.begin();
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(28)">../src/bt_peer_connection.cpp:3329</a></td><td>move the erasing into the loop above remove all payload ranges that has been sent</td></tr><tr id="28" style="display: none;" colspan="3"><td colspan="3"><h2>move the erasing into the loop above
+remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.cpp:3329</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			for (std::vector&lt;range&gt;::iterator i = m_payloads.begin();
 				i != m_payloads.end(); ++i)
 			{
 				i-&gt;start -= bytes_transferred;
