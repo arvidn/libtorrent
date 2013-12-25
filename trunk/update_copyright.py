@@ -11,7 +11,7 @@ def update_file(name):
 	subst = ''
 	f = open(name)
 	for l in f:
-		if l.startswith('Copyright (c) '):
+		if l.startswith('Copyright (c) ') and 'Arvid Norberg' in l:
 			first_year = int(l[14:18])
 			if first_year != this_year:
 				if l[18] == '-':
