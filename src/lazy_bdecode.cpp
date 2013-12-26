@@ -137,7 +137,7 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(e);
 
 					if (start + len + 1 > end)
-						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 					++start;
 					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
@@ -200,7 +200,7 @@ namespace libtorrent
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
 					if (start + len + 1 > end)
-						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
