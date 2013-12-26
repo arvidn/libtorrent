@@ -65,6 +65,7 @@ namespace
 
     void add_extension(session& s, object const& e)
     {
+#ifndef TORRENT_DISABLE_EXTENSIONS
        if (!extract<std::string>(e).check()) return;
 
        std::string name = extract<std::string>(e);

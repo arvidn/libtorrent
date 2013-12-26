@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006-2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -611,6 +611,9 @@ namespace libtorrent { namespace dht
 			if (ec)
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED (" << ec.message() << ") " << log_line.str();
+#endif
 				return false;
 			}
 
@@ -624,6 +627,9 @@ namespace libtorrent { namespace dht
 		
 			if (e["y"].string() == "r")
 			{
+/*
+				// This doesn't work. r is a dictionary with return
+				// values. The query type isn't part of the response
 				std::string cmd = e["r"].string();
 				int cmd_idx = -1;
 				if (cmd == "ping") cmd_idx = 0;
@@ -635,6 +641,7 @@ namespace libtorrent { namespace dht
 					++m_replies_sent[cmd_idx];
 					m_replies_bytes_sent[cmd_idx] += int(m_send_buf.size());
 				}
+*/
 			}
 			else if (e["y"].string() == "q")
 			{

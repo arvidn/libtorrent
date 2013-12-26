@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
-Copyright (c) 2007-2012, Arvid Norberg, Un Shyam
+Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2007-2013, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -124,6 +124,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
+#endif
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_dont_have_id(0)
 		, m_share_mode_id(0)
 #endif

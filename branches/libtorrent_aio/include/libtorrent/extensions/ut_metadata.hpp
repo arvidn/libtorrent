@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UT_METADATA_HPP_INCLUDED
 #define TORRENT_UT_METADATA_HPP_INCLUDED
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -61,5 +63,6 @@ namespace libtorrent
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent*, void*);
 }
 
+#endif // TORRENT_DISABLE_EXTENSIONS
 #endif // TORRENT_UT_METADATA_HPP_INCLUDED
 

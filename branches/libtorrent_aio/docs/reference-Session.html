@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id173">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id174">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id175">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id176">session_proxy</a></li>
-<li><a class="reference internal" href="#id39" id="id177">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id178">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id179">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id180">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id181">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id174">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id175">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id176">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id177">session_proxy</a></li>
+<li><a class="reference internal" href="#id39" id="id178">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id179">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id180">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id181">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id182">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -1060,7 +1060,7 @@ void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;tor
 <p>This function adds an extension to this <a class="reference external" href="reference-Session.html#session">session</a>. The argument is a function
 object that is called with a <tt class="docutils literal">torrent*</tt> and which should return a
 <tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;torrent_plugin&gt;</span></tt>. To write custom plugins, see
-<a class="reference external" href="libtorrent_plugins.html">libtorrent plugins</a>. For the typical bittorrent client all of these
+<a class="reference external" href="reference-Plugins.html#plugin">plugin</a>. For the typical bittorrent client all of these
 extensions should be added. The main plugins implemented in libtorrent are:</p>
 <dl class="docutils">
 <dt>metadata extension</dt>

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007-2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

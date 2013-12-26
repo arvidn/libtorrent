@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006-2013, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -118,7 +118,8 @@ namespace libtorrent { namespace dht
 
 		// implements udp_socket_interface
 		virtual bool has_quota();
-		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags);
+		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
+			, int send_flags);
 
 		counters& m_counters;
 		node_impl m_dht;

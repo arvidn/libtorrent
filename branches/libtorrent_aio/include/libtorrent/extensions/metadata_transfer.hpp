@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 #define TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -63,6 +65,8 @@ namespace libtorrent
 #endif
 }
 #endif
+
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 #endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 
