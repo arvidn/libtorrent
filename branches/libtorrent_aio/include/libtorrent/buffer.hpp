@@ -116,8 +116,14 @@ public:
 	}
 
 #if __cplusplus > 199711L
-	buffer(buffer&& b): m_begin(b.m_begin), m_end(b.m_end), m_last(b.m_last)
-	{ b.m_begin = b.m_end = b.m_last = NULL; }
+	buffer(buffer&& b)
+		: m_begin(b.m_begin)
+		, m_size(b.m_size)
+		, m_capacity(b.m_capacity)
+	{
+		b.m_begin = NULL;
+		b.m_size = b.m_capacity = 0;
+	}
 #endif
 
 	buffer& operator=(buffer const& b)
