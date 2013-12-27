@@ -4030,7 +4030,7 @@ retry:
 			STAT_COUNTER(num_peers_down_disk);
 			STAT_LOG(d, m_stat.upload_rate());
 			STAT_LOG(d, m_stat.download_rate());
-			STAT_COUNTER(ueued_write_bytes);
+			STAT_COUNTER(queued_write_bytes);
 			STAT_LOGL(d, peer_dl_rate_buckets[0]);
 			STAT_LOGL(d, peer_dl_rate_buckets[1]);
 			STAT_LOGL(d, peer_dl_rate_buckets[2]);
@@ -4074,7 +4074,7 @@ retry:
 				: m_stats_counters[counters::recv_failed_bytes]));
 			STAT_LOG(f, (float(m_stats_counters[counters::recv_redundant_bytes]) * 100.f
 				/ (m_stat.total_payload_download() == 0 ? 1
-				: m_stats_counters[counters::recv_failed_bytes]));
+				: m_stats_counters[counters::recv_failed_bytes])));
 			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
 			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
@@ -4331,7 +4331,7 @@ retry:
 			m_last_cache_status = cs;
 			if (!vm_ec) m_last_vm_stat = vm_stat;
 			m_network_thread_cpu_usage = cur_cpu_usage;
-			m_last_failed = m_total_failed_bytes;
+			m_last_failed = m_stats_counters[counters::recv_failed_bytes];
 			m_last_redundant = m_stats_counters[counters::recv_redundant_bytes];
 			m_last_uploaded = m_stat.total_upload();
 			m_last_downloaded = m_stat.total_download();
