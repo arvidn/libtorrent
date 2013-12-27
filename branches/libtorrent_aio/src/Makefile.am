@@ -12,6 +12,9 @@ KADEMLIA_SOURCES = \
   kademlia/logging.cpp          \
   kademlia/traversal_algorithm.cpp \
   kademlia/dos_blocker.cpp      \
+  kademlia/get_peers.cpp        \
+  kademlia/get_item.cpp         \
+  kademlia/item.cpp             \
   ../ed25519/src/add_scalar.c   \
   ../ed25519/src/fe.c           \
   ../ed25519/src/ge.c           \

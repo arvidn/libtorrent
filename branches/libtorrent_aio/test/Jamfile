@@ -52,7 +52,7 @@ rule link_libtorrent ( properties * )
 	else
 	{
 		result +=
-			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on/<test-coverage>on ;
 	}
 	return $(result) ;
 }

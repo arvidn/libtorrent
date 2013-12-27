@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/get_peers.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -43,10 +43,10 @@ namespace libtorrent { namespace dht
 class routing_table;
 class rpc_manager;
 
-class refresh : public find_data
+class refresh : public get_peers
 {
 public:
-	typedef find_data::nodes_callback done_callback;
+	typedef get_peers::nodes_callback done_callback;
 
 	refresh(node_impl& node, node_id target
 		, done_callback const& callback);
