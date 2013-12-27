@@ -118,10 +118,21 @@ rule linking ( properties * )
 
 	if <test-coverage>on in $(properties)
 		&& ( <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties) )
+		|| <toolset>darwin in $(properties)
+		|| <toolset>clang in $(properties) )
 	{
 		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage
-			<linkflags>-lgcov <define>NDEBUG ;
+			<define>NDEBUG ;
+
+		if <toolset>gcc in $(properties)
+			|| <toolset>darwin in $(properties)
+		{
+			result += <linkflags>-lgcov ;
+		}
+		else
+		{
+			result += <linkflags>--coverage ;
+		}
 	}
 
 	# clock_gettime on linux requires librt
@@ -579,6 +590,9 @@ KADEMLIA_SOURCES =
 	routing_table
 	traversal_algorithm
 	logging
+	get_peers
+	item
+	get_item
 	;
 
 ED25519_SOURCES =

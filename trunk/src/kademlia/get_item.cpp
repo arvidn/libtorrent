@@ -1,0 +1,231 @@
+/*
+
+Copyright (c) 2013, Steven Siloti
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the distribution.
+    * Neither the name of the author nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
+#include <libtorrent/hasher.hpp>
+#include <libtorrent/kademlia/get_item.hpp>
+#include <libtorrent/kademlia/node.hpp>
+
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !TORRENT_NO_ASSERTS
+#include <libtorrent/bencode.hpp>
+#endif
+
+namespace libtorrent { namespace dht
+{
+
+void get_item::got_data(lazy_entry const* v,
+	char const* pk,
+	boost::uint64_t seq,
+	char const* sig)
+{
+	if (pk && sig)
+	{
+		if (hasher(pk, item_pk_len).final() != m_target)
+			return;
+
+		if (m_data.empty() || m_data.seq() < seq)
+		{
+			if (!m_data.assign(v, seq, pk, sig))
+				return;
+		}
+	}
+	else if (m_data.empty())
+	{
+		std::pair<char const*, int> buf = v->data_section();
+		if (hasher(buf.first, buf.second).final() != m_target)
+			return;
+
+		m_data.assign(v);
+		bool put_requested = m_data_callback(m_data);
+		if (put_requested)
+		{
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !TORRENT_NO_ASSERTS
+			std::vector<char> buffer;
+			bencode(std::back_inserter(buffer), m_data.value());
+			TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
+#endif
+			m_nodes_callback = boost::bind(&get_item::put, this, _1);
+		}
+		else
+		{
+			// There can only be one true immutable item with a given id
+			// Now that we've got it and the user doesn't want to do a put
+			// there's no point in continuing to query other nodes
+			abort();
+		}
+	}
+}
+
+get_item::get_item(
+	node_impl& node
+	, node_id target
+	, data_callback const& dcallback)
+	: find_data(node, target, nodes_callback())
+	, m_data_callback(dcallback)
+{
+}
+
+char const* get_item::name() const { return "get"; }
+
+observer_ptr get_item::new_observer(void* ptr
+	, udp::endpoint const& ep, node_id const& id)
+{
+	observer_ptr o(new (ptr) get_item_observer(this, ep, id));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	return o;
+}
+
+bool get_item::invoke(observer_ptr o)
+{
+	if (m_done)
+	{
+		m_invoke_count = -1;
+		return false;
+	}
+
+	entry e;
+	e["y"] = "q";
+	entry& a = e["a"];
+
+	e["q"] = "get";
+	a["target"] = m_target.to_string();
+
+	return m_node.m_rpc.invoke(e, o->target_ep(), o);
+}
+
+void get_item::done()
+{
+	if (m_data.is_mutable() || m_data.empty())
+	{
+		bool put_requested = m_data_callback(m_data);
+		if (put_requested)
+		{
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !TORRENT_NO_ASSERTS
+			if (m_data.is_mutable())
+			{
+				TORRENT_ASSERT(m_target == hasher(m_data.pk(), item_pk_len).final());
+			}
+			else
+			{
+				std::vector<char> buffer;
+				bencode(std::back_inserter(buffer), m_data.value());
+				TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
+			}
+#endif
+			m_nodes_callback = boost::bind(&get_item::put, this, _1);
+		}
+	}
+	find_data::done();
+}
+
+void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "sending put [ v: " << m_data.value()
+		<< " seq: " << (m_data.is_mutable() ? m_data.seq() : -1)
+		<< " nodes: " << v.size() << " ]" ;
+#endif
+
+	// create a dummy traversal_algorithm
+	boost::intrusive_ptr<traversal_algorithm> algo(
+		new traversal_algorithm(m_node, (node_id::min)()));
+
+	// store on the first k nodes
+	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
+		, end(v.end()); i != end; ++i)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(node) << "  put-distance: " << (160 - distance_exp(m_target, i->first.id));
+#endif
+
+		void* ptr = m_node.m_rpc.allocate_observer();
+		if (ptr == 0) return;
+		observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		o->m_in_constructor = false;
+#endif
+		entry e;
+		e["y"] = "q";
+		e["q"] = "put";
+		entry& a = e["a"];
+		a["v"] = m_data.value();
+		a["token"] = i->second;
+		if (m_data.is_mutable())
+		{
+			a["k"] = std::string(m_data.pk(), item_pk_len);
+			a["seq"] = m_data.seq();
+			a["sig"] = std::string(m_data.sig(), item_sig_len);
+		}
+		m_node.m_rpc.invoke(e, i->first.ep(), o);
+	}
+}
+
+void get_item_observer::reply(msg const& m)
+{
+	char const* pk = NULL;
+	char const* sig = NULL;
+	boost::uint64_t seq = 0;
+
+	lazy_entry const* r = m.message.dict_find_dict("r");
+	if (!r)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] missing response dict";
+#endif
+		return;
+	}
+
+	lazy_entry const* k = r->dict_find_string("k");
+	if (k && k->string_length() == item_pk_len)
+		pk = k->string_ptr();
+
+	lazy_entry const* s = r->dict_find_string("sig");
+	if (s && s->string_length() == item_sig_len)
+		sig = s->string_ptr();
+
+	lazy_entry const* q = r->dict_find_int("seq");
+	if (q)
+		seq = q->int_value();
+	else if (pk && sig)
+		return;
+
+	lazy_entry const* v = r->dict_find("v");
+	if (v)
+	{
+		static_cast<get_item*>(m_algorithm.get())->got_data(v, pk, seq, sig);
+	}
+
+	find_data_observer::reply(m);
+}
+
+} } // namespace libtorrent::dht

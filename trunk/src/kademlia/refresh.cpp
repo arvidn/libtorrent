@@ -49,7 +49,7 @@ refresh::refresh(
 	node_impl& node
 	, node_id target
 	, done_callback const& callback)
-	: find_data(node, target, find_data::data_callback(), callback, false)
+	: get_peers(node, target, get_peers::data_callback(), callback, false)
 {
 }
 
@@ -61,7 +61,7 @@ char const* refresh::name() const
 observer_ptr refresh::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
-	observer_ptr o(new (ptr) find_data_observer(this, ep, id));
+	observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	o->m_in_constructor = false;
 #endif

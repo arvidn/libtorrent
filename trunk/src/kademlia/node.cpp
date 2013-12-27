@@ -48,12 +48,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/rpc_manager.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
-#include <libtorrent/kademlia/dht_observer.hpp>
+#include "libtorrent/kademlia/dht_observer.hpp"
 
 #include "libtorrent/kademlia/refresh.hpp"
-#include "libtorrent/kademlia/find_data.hpp"
-
-#include "ed25519.h"
+#include "libtorrent/kademlia/get_peers.hpp"
+#include "libtorrent/kademlia/get_item.hpp"
 
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
@@ -370,7 +369,7 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
 
-	boost::intrusive_ptr<find_data> ta;
+	boost::intrusive_ptr<get_peers> ta;
 	if (m_settings.privacy_lookups)
 	{
 		ta.reset(new obfuscated_get_peers(*this, info_hash, f
@@ -379,11 +378,22 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
 	}
 	else
 	{
-		ta.reset(new find_data(*this, info_hash, f
+		ta.reset(new get_peers(*this, info_hash, f
 			, boost::bind(&announce_fun, _1, boost::ref(*this)
 			, listen_port, info_hash, seed), seed));
 	}
 
+	ta->start();
+}
+
+void node_impl::get_item(sha1_hash const& target, boost::function<bool(item&)> f)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "starting get for [ " << target << " ]" ;
+#endif
+
+	boost::intrusive_ptr<dht::get_item> ta;
+	ta.reset(new dht::get_item(*this, target, f));
 	ta->start();
 }
 
@@ -512,9 +522,9 @@ void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& repl
 	return;
 }
 
-namespace
+namespace detail
 {
-	void write_nodes_entry(entry& r, nodes_t const& nodes)
+	void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes)
 	{
 		bool ipv6_nodes = false;
 		entry& n = r["nodes"];
@@ -550,6 +560,7 @@ namespace
 		}
 	}
 }
+using detail::write_nodes_entry;
 
 // verifies that a message has all the required
 // entries and returns them in ret
@@ -890,8 +901,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"v", lazy_entry::none_t, 0, 0},
 			{"seq", lazy_entry::int_t, 0, key_desc_t::optional},
 			// public key
-			{"k", lazy_entry::string_t, 32, key_desc_t::optional},
-			{"sig", lazy_entry::string_t, 64, key_desc_t::optional},
+			{"k", lazy_entry::string_t, item_pk_len, key_desc_t::optional},
+			{"sig", lazy_entry::string_t, item_sig_len, key_desc_t::optional},
 			{"cas", lazy_entry::string_t, 20, key_desc_t::optional},
 		};
 
@@ -918,7 +929,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		if (!mutable_put)
 			target = hasher(buf.first, buf.second).final();
 		else
-			target = hasher(msg_keys[3]->string_ptr(), 32).final();
+			target = hasher(msg_keys[3]->string_ptr(), item_pk_len).final();
 
 //		fprintf(stderr, "%s PUT target: %s\n"
 //			, mutable_put ? "mutable":"immutable"
@@ -969,25 +980,16 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		else
 		{
 			// mutable put, we must verify the signature
-			// generate the message digest by merging the sequence number and the
-
-			char seq[1100];
-			int len = snprintf(seq, sizeof(seq), "3:seqi%" PRId64 "e1:v", msg_keys[2]->int_value());
-			std::pair<char const*, int> buf = msg_keys[1]->data_section();
-			memcpy(seq + len, buf.first, buf.second);
-			len += buf.second;
-			TORRENT_ASSERT(len <= 1100);
 
 #ifdef TORRENT_USE_VALGRIND
-			VALGRIND_CHECK_MEM_IS_DEFINED(buf.first, buf.second);
-			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4]->string_ptr(), 64);
-			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[3]->string_ptr(), 32);
-			VALGRIND_CHECK_MEM_IS_DEFINED(seq, len);
+			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4]->string_ptr(), item_sig_len);
+			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[3]->string_ptr(), item_pk_len);
 #endif
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
-			if (ed25519_verify((unsigned char const*)msg_keys[4]->string_ptr()
-				, (unsigned char const*)seq, len
-				, (unsigned char const*)msg_keys[3]->string_ptr()) != 1)
+			if (!verify_mutable_item(msg_keys[1]->data_section()
+				, msg_keys[2]->int_value()
+				, msg_keys[3]->string_ptr()
+				, msg_keys[4]->string_ptr()))
 			{
 				incoming_error(e, "invalid signature", 206);
 				return;
@@ -1035,10 +1037,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				// matches the expected value before replacing it
 				if (msg_keys[5])
 				{
-					int len = snprintf(seq, sizeof(seq), "3:seqi%" PRId64 "e1:v", item->seq);
-					memcpy(seq + len, item->value, item->size);
-					len += item->size;
-					sha1_hash h = hasher(seq, len).final();
+					sha1_hash h = mutable_item_cas(std::make_pair(item->value, item->size), item->seq);
 
 					if (h != sha1_hash(msg_keys[5]->string_ptr()))
 					{

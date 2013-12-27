@@ -30,72 +30,79 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef FIND_DATA_050323_HPP
-#define FIND_DATA_050323_HPP
+#ifndef LIBTORRENT_GET_PEERS_HPP
+#define LIBTORRENT_GET_PEERS_HPP
 
-#include <vector>
-#include <map>
-
-#include <libtorrent/kademlia/traversal_algorithm.hpp>
-#include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/routing_table.hpp>
-#include <libtorrent/kademlia/rpc_manager.hpp>
-#include <libtorrent/kademlia/observer.hpp>
-#include <libtorrent/kademlia/msg.hpp>
-
-#include <boost/optional.hpp>
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
+#include <libtorrent/kademlia/find_data.hpp>
 
 namespace libtorrent { namespace dht
 {
 
-typedef std::vector<char> packet_t;
-
-class rpc_manager;
-class node_impl;
-
-// -------- find data -----------
-
-struct find_data : traversal_algorithm
+struct get_peers : find_data
 {
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
 
-	void got_write_token(node_id const& n, std::string const& write_token)
-	{ m_write_tokens[n] = write_token; }
+	void got_peers(std::vector<tcp::endpoint> const& peers);
 
-	find_data(node_impl& node, node_id target
-		, nodes_callback const& ncallback);
-
-	virtual void start();
+	get_peers(node_impl& node, node_id target
+		, data_callback const& dcallback
+		, nodes_callback const& ncallback
+		, bool noseeds);
 
 	virtual char const* name() const;
 
-	node_id const target() const { return m_target; }
+protected:
+	virtual bool invoke(observer_ptr o);
+	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
+
+	data_callback m_data_callback;
+	bool m_noseeds;
+};
+
+struct obfuscated_get_peers : get_peers
+{
+	typedef get_peers::nodes_callback done_callback;
+
+	obfuscated_get_peers(node_impl& node, node_id target
+		, data_callback const& dcallback
+		, nodes_callback const& ncallback
+		, bool noseeds);
+
+	virtual char const* name() const;
 
 protected:
 
+	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep,
+		node_id const& id);
+	virtual bool invoke(observer_ptr o);
 	virtual void done();
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
-
-	nodes_callback m_nodes_callback;
-	std::map<node_id, std::string> m_write_tokens;
-	bool m_done;
+private:
+	// when set to false, we no longer obfuscate
+	// the target hash, and send regular get_peers
+	bool m_obfuscated;
 };
 
-struct find_data_observer : traversal_observer
+struct get_peers_observer : find_data_observer
 {
-	find_data_observer(
+	get_peers_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
+		: find_data_observer(algorithm, ep, id)
 	{}
 
 	virtual void reply(msg const&);
 };
 
+struct obfuscated_get_peers_observer : traversal_observer
+{
+	obfuscated_get_peers_observer(
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		, udp::endpoint const& ep, node_id const& id)
+		: traversal_observer(algorithm, ep, id)
+	{}
+	virtual void reply(msg const&);
+};
+
 } } // namespace libtorrent::dht
 
-#endif // FIND_DATA_050323_HPP
-
+#endif // LIBTORRENT_GET_PEERS_HPP

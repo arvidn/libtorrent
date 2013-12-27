@@ -11,6 +11,9 @@ KADEMLIA_SOURCES = \
   kademlia/rpc_manager.cpp      \
   kademlia/logging.cpp          \
   kademlia/traversal_algorithm.cpp \
+  kademlia/get_peers.cpp        \
+  kademlia/get_item.cpp         \
+  kademlia/item.cpp             \
   ../ed25519/src/add_scalar.c   \
   ../ed25519/src/fe.c           \
   ../ed25519/src/ge.c           \

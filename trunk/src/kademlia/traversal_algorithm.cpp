@@ -500,5 +500,18 @@ void traversal_observer::reply(msg const& m)
 	}
 }
 
+void traversal_algorithm::abort()
+{
+	m_num_target_nodes = 0;
+	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+		, end(m_results.end()); i != end; ++i)
+	{
+		observer& o = **i;
+		if (o.flags & observer::flag_queried)
+			o.flags |= observer::flag_done;
+	}
+	done();
+}
+
 } } // namespace libtorrent::dht
 
