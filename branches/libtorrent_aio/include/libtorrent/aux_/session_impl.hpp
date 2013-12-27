@@ -590,14 +590,14 @@ namespace libtorrent
 			void add_redundant_bytes(size_type b, int reason)
 			{
 				TORRENT_ASSERT(b > 0);
-				m_total_redundant_bytes += b;
 				m_redundant_bytes[reason] += b;
+				m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
 			}
 
 			void add_failed_bytes(size_type b)
 			{
 				TORRENT_ASSERT(b > 0);
-				m_total_failed_bytes += b;
+				m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);
 			}
 
 			// load the specified torrent, also
@@ -690,6 +690,7 @@ namespace libtorrent
 			void update_user_agent();
 			void update_choking_algorithm();
 			void update_connection_speed();
+			void update_queued_disk_bytes();
 			void update_alert_queue_size();
 			void upate_dht_upload_rate_limit();
 			void update_disk_threads();
@@ -1170,8 +1171,8 @@ namespace libtorrent
 			FILE* get_request_log() { return m_request_log; }
 #endif
 
-			void inc_stats_counter(int c, int value = 1)
-			{ m_stats_counters.inc_stats_counter(c, value); }
+			boost::uint64_t inc_stats_counter(int c, int value = 1)
+			{ return m_stats_counters.inc_stats_counter(c, value); }
 
 			counters& stats_counters() { return m_stats_counters; }
 
@@ -1275,18 +1276,6 @@ namespace libtorrent
 			std::map<int, int> m_as_peak;
 #endif
 
-			// total redundant and failed bytes
-			size_type m_total_failed_bytes;
-			size_type m_total_redundant_bytes;
-
-			// the number of bytes we have sent to the disk I/O
-			// thread for writing. Every time we hear back from
-			// the disk I/O thread with a completed write job, this
-			// is updated to the number of bytes the disk I/O thread
-			// is actually waiting for to be written (as opposed to
-			// bytes just hanging out in the cache)
-			int m_writing_bytes;
-			
 			// this is true whenever we have posted a deferred-disk job
 			// it means we don't need to post another one
 			bool m_deferred_submit_disk_jobs;

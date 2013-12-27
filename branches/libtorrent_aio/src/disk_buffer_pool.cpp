@@ -195,7 +195,8 @@ namespace libtorrent
 		if (slice != NULL)
 		{
 			l.unlock();
-			m_ios.post(boost::bind(&watermark_callback, (std::vector<boost::shared_ptr<disk_observer> >*)NULL, slice));
+			m_ios.post(boost::bind(&watermark_callback
+				, (std::vector<boost::shared_ptr<disk_observer> >*)NULL, slice));
 			return;
 		}
 
@@ -205,7 +206,8 @@ namespace libtorrent
 		if (m_exceeded_max_size)
 		{
 			l.unlock();
-			m_ios.post(boost::bind(&watermark_callback, (std::vector<boost::shared_ptr<disk_observer> >*)NULL, handlers));
+			m_ios.post(boost::bind(&watermark_callback
+				, (std::vector<boost::shared_ptr<disk_observer> >*)NULL, handlers));
 			return;
 		}
 
@@ -263,7 +265,8 @@ namespace libtorrent
 	}
 #endif
 
-	char* disk_buffer_pool::async_allocate_buffer(char const* category, boost::function<void(char*)> const& handler)
+	char* disk_buffer_pool::async_allocate_buffer(char const* category
+		, boost::function<void(char*)> const& handler)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 		if (m_exceeded_max_size)

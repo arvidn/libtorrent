@@ -2803,7 +2803,21 @@ namespace libtorrent
 		m_disk_thread.async_write(&t->storage(), p, data
 			, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
+
+		boost::uint64_t write_queue_size = m_ses.inc_stats_counter(
+			counters::queued_write_bytes, p.length);
 		m_outstanding_writing_bytes += p.length;
+
+		boost::uint64_t max_queue_size = m_settings.get_int(
+			settings_pack::max_queued_disk_bytes);
+		if (write_queue_size > max_queue_size
+			&& write_queue_size - p.length < max_queue_size
+			&& m_settings.get_int(settings_pack::cache_size) > 5
+			&& t->alerts().should_post<performance_alert>())
+		{
+			t->alerts().post_alert(performance_alert(t->get_handle()
+				, performance_alert::too_high_disk_queue_limit));
+		}
 
 		if (!m_download_queue.empty())
 		{
@@ -2909,6 +2923,7 @@ namespace libtorrent
 			, j->ret, p.piece, p.start, p.length, j->error.ec.message().c_str());
 #endif
 
+		m_ses.inc_stats_counter(counters::queued_write_bytes, -p.length);
 		m_outstanding_writing_bytes -= p.length;
 
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);

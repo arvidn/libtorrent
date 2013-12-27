@@ -280,6 +280,7 @@ namespace libtorrent
 			num_writing_threads,
 			num_running_threads,
 			blocked_disk_jobs,
+			queued_write_bytes,
 
 			arc_mru_size,
 			arc_mru_ghost_size,
@@ -301,7 +302,9 @@ namespace libtorrent
 		};
 
 		counters();
-		void inc_stats_counter(int c, boost::int64_t value = 1);
+
+		// returns the new value
+		boost::uint64_t inc_stats_counter(int c, boost::int64_t value = 1);
 		boost::int64_t operator[](int i) const;
 
 		void set_value(int c, boost::int64_t value);

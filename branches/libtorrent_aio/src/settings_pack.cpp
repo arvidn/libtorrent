@@ -213,7 +213,7 @@ namespace libtorrent
 		SET(initial_picker_threshold, 4, 0),
 		SET(allowed_fast_set_size, 10, 0),
 		SET(suggest_mode, settings_pack::no_piece_suggestions, 0),
-		SET(max_queued_disk_bytes, 1024 * 1024, 0),
+		SET(max_queued_disk_bytes, 1024 * 1024, &session_impl::update_queued_disk_bytes),
 		SET(handshake_timeout, 10, 0),
 		SET(send_buffer_low_watermark, 512, 0),
 		SET(send_buffer_watermark, 500 * 1024, 0),

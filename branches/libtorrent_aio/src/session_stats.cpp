@@ -253,6 +253,14 @@ namespace libtorrent
 		METRIC(disk, num_writing_threads, type_gauge)
 		METRIC(disk, num_running_threads, type_gauge)
 		METRIC(disk, blocked_disk_jobs, type_gauge)
+
+		// the number of bytes we have sent to the disk I/O
+		// thread for writing. Every time we hear back from
+		// the disk I/O thread with a completed write job, this
+		// is updated to the number of bytes the disk I/O thread
+		// is actually waiting for to be written (as opposed to
+		// bytes just hanging out in the cache)
+		METRIC(disk, queued_write_bytes, type_gauge)
 		METRIC(disk, arc_mru_size, type_gauge)
 		METRIC(disk, arc_mru_ghost_size, type_gauge)
 		METRIC(disk, arc_mfu_size, type_gauge)

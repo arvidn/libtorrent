@@ -607,9 +607,6 @@ namespace aux {
 		, m_asnum_db(0)
 		, m_country_db(0)
 #endif
-		, m_total_failed_bytes(0)
-		, m_total_redundant_bytes(0)
-		, m_writing_bytes(0)
 		, m_deferred_submit_disk_jobs(false)
 		, m_pending_auto_manage(false)
 		, m_need_auto_manage(false)
@@ -4018,8 +4015,8 @@ retry:
 			STAT_COUNTER(num_seeding_torrents);
 			STAT_COUNTER(num_peers_connected);
 			STAT_COUNTER(num_peers_half_open);
-			STAT_LOGL(d, cs.total_used_buffers);
-			STAT_LOGL(d, num_peers);
+			STAT_COUNTER(disk_blocks_in_use);
+			STAT_LOGL(d, num_peers); // total number of known peers
 			STAT_LOG(d, m_peer_allocator.live_allocations());
 			STAT_LOG(d, m_peer_allocator.live_bytes());
 			STAT_COUNTER(num_checking_torrents);
@@ -4033,7 +4030,7 @@ retry:
 			STAT_COUNTER(num_peers_down_disk);
 			STAT_LOG(d, m_stat.upload_rate());
 			STAT_LOG(d, m_stat.download_rate());
-			STAT_LOG(d, int(m_writing_bytes));
+			STAT_COUNTER(ueued_write_bytes);
 			STAT_LOGL(d, peer_dl_rate_buckets[0]);
 			STAT_LOGL(d, peer_dl_rate_buckets[1]);
 			STAT_LOGL(d, peer_dl_rate_buckets[2]);
@@ -4072,8 +4069,12 @@ retry:
 			STAT_COUNTER(connect_timeouts);
 			STAT_COUNTER(uninteresting_peers);
 			STAT_COUNTER(timeout_peers);
-			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
-			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
+			STAT_LOG(f, float(m_stats_counters[counters::recv_failed_bytes]) * 100.f
+				/ (m_stats_counters[counters::recv_payload_bytes] == 0 ? 1
+				: m_stats_counters[counters::recv_failed_bytes]));
+			STAT_LOG(f, (float(m_stats_counters[counters::recv_redundant_bytes]) * 100.f
+				/ (m_stat.total_payload_download() == 0 ? 1
+				: m_stats_counters[counters::recv_failed_bytes]));
 			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
 			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
@@ -4082,12 +4083,14 @@ retry:
 			STAT_LOG(d, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit));
 			STAT_LOG(d, int(cs.blocks_read - m_last_cache_status.blocks_read));
 			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
-			STAT_LOG(d, int(m_total_failed_bytes - m_last_failed));
-			STAT_LOG(d, int(m_total_redundant_bytes - m_last_redundant));
+			STAT_LOG(d, int(m_stats_counters[counters::recv_failed_bytes]
+					- m_last_failed));
+			STAT_LOG(d, int(m_stats_counters[counters::recv_redundant_bytes]
+				- m_last_redundant));
 			STAT_COUNTER(num_error_torrents);
 			STAT_LOGL(d, cs.read_cache_size);
 			STAT_LOG(d, cs.write_cache_size + cs.read_cache_size);
-			STAT_LOGL(d, cs.total_used_buffers);
+			STAT_COUNTER(disk_blocks_in_use);
 			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
 			STAT_COUNTER(connection_attempts);
 			STAT_COUNTER(num_banned_peers);
@@ -4172,7 +4175,9 @@ retry:
 
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
 			{
-				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes == 0 ? 1 : m_total_redundant_bytes));
+				STAT_LOG(f, (m_redundant_bytes[i] * 100.)
+					/ double(m_stats_counters[counters::recv_redundant_bytes] == 0 ? 1
+						: m_stats_counters[counters::recv_redundant_bytes]));
 			}
 
 			STAT_COUNTER(no_memory_peers);
@@ -4327,7 +4332,7 @@ retry:
 			if (!vm_ec) m_last_vm_stat = vm_stat;
 			m_network_thread_cpu_usage = cur_cpu_usage;
 			m_last_failed = m_total_failed_bytes;
-			m_last_redundant = m_total_redundant_bytes;
+			m_last_redundant = m_stats_counters[counters::recv_redundant_bytes];
 			m_last_uploaded = m_stat.total_upload();
 			m_last_downloaded = m_stat.total_download();
 		}
@@ -5580,8 +5585,6 @@ retry:
 
 		m_stats_counters.set_value(counters::sent_payload_bytes, m_stat.total_transfer(stat::upload_payload));
 		m_stats_counters.set_value(counters::recv_payload_bytes, m_stat.total_transfer(stat::download_payload));
-		m_stats_counters.set_value(counters::recv_failed_bytes, m_total_failed_bytes);
-		m_stats_counters.set_value(counters::recv_redundant_bytes, m_total_redundant_bytes);
 
 		alert->timestamp = total_microseconds(time_now_hires() - m_created);
 
@@ -6266,8 +6269,8 @@ retry:
 		// only non-paused torrents want tick
 		s.num_paused_torrents = m_torrents.size() - m_torrent_lists[torrent_want_tick].size();
 
-		s.total_redundant_bytes = m_total_redundant_bytes;
-		s.total_failed_bytes = m_total_failed_bytes;
+		s.total_redundant_bytes = m_stats_counters[counters::recv_redundant_bytes];
+		s.total_failed_bytes = m_stats_counters[counters::recv_failed_bytes];
 
 		s.up_bandwidth_queue = m_upload_rate.queue_size();
 		s.down_bandwidth_queue = m_download_rate.queue_size();
@@ -6678,6 +6681,19 @@ retry:
 	{
 		if (m_settings.get_int(settings_pack::connection_speed) < 0)
 			m_settings.set_int(settings_pack::connection_speed, 200);
+	}
+
+	void session_impl::update_queued_disk_bytes()
+	{
+		boost::uint64_t cache_size = m_settings.get_int(settings_pack::cache_size);
+		if (m_settings.get_int(settings_pack::max_queued_disk_bytes) / 16 / 1024
+			> cache_size / 2
+			&& cache_size > 5
+			&& m_alerts.should_post<performance_alert>())
+		{
+			m_alerts.post_alert(performance_alert(torrent_handle()
+				, performance_alert::too_high_disk_queue_limit));
+		}
 	}
 
 	void session_impl::update_alert_queue_size()
