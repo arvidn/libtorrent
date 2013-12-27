@@ -141,7 +141,9 @@ namespace libtorrent
 
 		// total number of bytes sent and received by the session
 		METRIC(net, sent_payload_bytes, type_counter)
+		METRIC(net, sent_bytes, type_counter)
 		METRIC(net, recv_payload_bytes, type_counter)
+		METRIC(net, recv_bytes, type_counter)
 		METRIC(net, recv_failed_bytes, type_counter)
 		METRIC(net, recv_redundant_bytes, type_counter)
 
@@ -250,6 +252,9 @@ namespace libtorrent
 		METRIC(disk, pinned_blocks, type_gauge)
 		METRIC(disk, disk_blocks_in_use, type_gauge)
 		METRIC(disk, queued_disk_jobs, type_gauge)
+		METRIC(disk, num_read_jobs, type_gauge)
+		METRIC(disk, num_write_jobs, type_gauge)
+		METRIC(disk, num_jobs, type_gauge)
 		METRIC(disk, num_writing_threads, type_gauge)
 		METRIC(disk, num_running_threads, type_gauge)
 		METRIC(disk, blocked_disk_jobs, type_gauge)

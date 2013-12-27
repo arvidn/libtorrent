@@ -2687,7 +2687,13 @@ namespace libtorrent
 		c.set_value(counters::num_read_ops, m_cache_stats.reads);
 
 		mutex::scoped_lock jl(m_job_mutex);
-		c.set_value(counters::queued_disk_jobs, m_queued_jobs.size() + m_queued_hash_jobs.size());
+
+		c.set_value(counters::queued_disk_jobs, m_num_blocked_jobs
+			+ m_queued_jobs.size() + m_queued_hash_jobs.size());
+		c.set_value(counters::num_read_jobs, read_jobs_in_use());
+		c.set_value(counters::num_write_jobs, write_jobs_in_use());
+		c.set_value(counters::num_jobs, jobs_in_use());
+
 		jl.unlock();
 
 		mutex::scoped_lock l(m_cache_mutex);
@@ -2974,7 +2980,9 @@ namespace libtorrent
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
-		TORRENT_ASSERT(m_num_threads > 0 || j->action == disk_io_job::flush_piece || j->action == disk_io_job::trim_cache);
+		TORRENT_ASSERT(m_num_threads > 0
+			|| j->action == disk_io_job::flush_piece
+			|| j->action == disk_io_job::trim_cache);
 
 		// this happens for read jobs that get hung on pieces in the
 		// block cache, and then get issued

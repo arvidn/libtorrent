@@ -188,7 +188,9 @@ namespace libtorrent
 			disk_job_time,
 
 			sent_payload_bytes,
+			sent_bytes,
 			recv_payload_bytes,
+			recv_bytes,
 			recv_failed_bytes,
 			recv_redundant_bytes,
 
@@ -277,6 +279,9 @@ namespace libtorrent
 			pinned_blocks,
 			disk_blocks_in_use,
 			queued_disk_jobs,
+			num_read_jobs,
+			num_write_jobs,
+			num_jobs,
 			num_writing_threads,
 			num_running_threads,
 			blocked_disk_jobs,

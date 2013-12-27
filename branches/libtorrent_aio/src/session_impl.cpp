@@ -3996,8 +3996,6 @@ retry:
 			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000000.0 / float(tick_interval_ms));
 			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000000.0 / float(tick_interval_ms));
 
-			int total_job_time = (std::max)(1, int(cs.cumulative_job_time));
-
 #ifdef TORRENT_USE_VALGRIND
 #define STAT_LOGL(type, val) VALGRIND_CHECK_VALUE_IS_DEFINED(val); fprintf(m_stats_logger, "%" #type "\t", val)
 #else
@@ -4070,16 +4068,16 @@ retry:
 			STAT_COUNTER(uninteresting_peers);
 			STAT_COUNTER(timeout_peers);
 			STAT_LOG(f, float(m_stats_counters[counters::recv_failed_bytes]) * 100.f
-				/ (m_stats_counters[counters::recv_payload_bytes] == 0 ? 1
-				: m_stats_counters[counters::recv_failed_bytes]));
-			STAT_LOG(f, (float(m_stats_counters[counters::recv_redundant_bytes]) * 100.f
-				/ (m_stat.total_payload_download() == 0 ? 1
-				: m_stats_counters[counters::recv_failed_bytes])));
-			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
+				/ (std::max)(m_stats_counters[counters::recv_bytes], boost::int64_t(1)));
+			STAT_LOG(f, float(m_stats_counters[counters::recv_redundant_bytes]) * 100.f
+				/ (std::max)(m_stats_counters[counters::recv_bytes], boost::int64_t(1)));
+			STAT_LOG(f, float(m_stats_counters[counters::recv_bytes]
+					- m_stats_counters[counters::recv_payload_bytes]) * 100.f
+				/ (std::max)(m_stats_counters[counters::recv_bytes], boost::int64_t(1)));
 			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
 			STAT_LOG(d, int(cs.pending_jobs + cs.queued_jobs));
-			STAT_LOG(d, int(cs.queued_bytes));
+			STAT_COUNTER(queued_write_bytes);
 			STAT_LOG(d, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit));
 			STAT_LOG(d, int(cs.blocks_read - m_last_cache_status.blocks_read));
 			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
@@ -4100,12 +4098,15 @@ retry:
 			STAT_LOGL(d, connect_candidates);
 			STAT_LOG(d, int(m_settings.get_int(settings_pack::cache_size)
 				- m_settings.get_int(settings_pack::max_queued_disk_bytes) / 0x4000));
-			STAT_LOG(f, float(cs.cumulative_read_time * 100.f / total_job_time));
-			STAT_LOG(f, float(cs.cumulative_write_time * 100.f / total_job_time));
-			STAT_LOG(f, float(cs.cumulative_hash_time * 100.f / total_job_time));
+			STAT_LOG(f, float(m_stats_counters[counters::disk_read_time] * 100.f
+				/ (std::max)(m_stats_counters[counters::disk_job_time], boost::int64_t(1))));
+			STAT_LOG(f, float(m_stats_counters[counters::disk_write_time] * 100.f
+				/ (std::max)(m_stats_counters[counters::disk_job_time], boost::int64_t(1))));
+			STAT_LOG(f, float(m_stats_counters[counters::disk_hash_time] * 100.f
+				/ (std::max)(m_stats_counters[counters::disk_job_time], boost::int64_t(1))));
 			STAT_LOG(d, int(cs.total_read_back - m_last_cache_status.total_read_back));
 			STAT_LOG(f, float(cs.total_read_back * 100.f / (std::max)(1, int(cs.blocks_written))));
-			STAT_LOGL(d, cs.read_queue_size);
+			STAT_COUNTER(num_read_jobs);
 			STAT_LOG(f, float(tick_interval_ms) / 1000.f);
 			STAT_LOG(f, float(m_tick_residual) / 1000.f);
 			STAT_LOGL(d, m_allowed_upload_slots);
@@ -4135,7 +4136,7 @@ retry:
 
 			STAT_LOG(f, m_read_ops.mean() / 1000.f);
 			STAT_LOG(f, m_write_ops.mean() / 1000.f);
-			STAT_LOG(d, cs.pinned_blocks);
+			STAT_COUNTER(pinned_blocks);
 
 			STAT_LOGL(d, partial_pieces);
 			STAT_LOGL(d, partial_downloading_pieces);
@@ -4143,9 +4144,9 @@ retry:
 			STAT_LOGL(d, partial_finished_pieces);
 			STAT_LOGL(d, partial_zero_prio_pieces);
 
-			STAT_LOGL(d, cs.num_jobs);
-			STAT_LOGL(d, cs.num_read_jobs);
-			STAT_LOGL(d, cs.num_write_jobs);
+			STAT_COUNTER(num_jobs);
+			STAT_COUNTER(num_read_jobs);
+			STAT_COUNTER(num_write_jobs);
 
 			STAT_LOGL(d, reading_bytes);
 
@@ -4239,18 +4240,18 @@ retry:
 
 			STAT_LOGL(d, peers_up_send_buffer);
 
-			STAT_LOGL(d, sst.utp_stats.packet_loss);
-			STAT_LOGL(d, sst.utp_stats.timeout);
-			STAT_LOGL(d, sst.utp_stats.packets_in);
-			STAT_LOGL(d, sst.utp_stats.packets_out);
-			STAT_LOGL(d, sst.utp_stats.fast_retransmit);
-			STAT_LOGL(d, sst.utp_stats.packet_resend);
-			STAT_LOGL(d, sst.utp_stats.samples_above_target);
-			STAT_LOGL(d, sst.utp_stats.samples_below_target);
-			STAT_LOGL(d, sst.utp_stats.payload_pkts_in);
-			STAT_LOGL(d, sst.utp_stats.payload_pkts_out);
-			STAT_LOGL(d, sst.utp_stats.invalid_pkts_in);
-			STAT_LOGL(d, sst.utp_stats.redundant_pkts_in);
+			STAT_COUNTER(utp_packet_loss);
+			STAT_COUNTER(utp_timeout);
+			STAT_COUNTER(utp_packets_in);
+			STAT_COUNTER(utp_packets_out);
+			STAT_COUNTER(utp_fast_retransmit);
+			STAT_COUNTER(utp_packet_resend);
+			STAT_COUNTER(utp_samples_above_target);
+			STAT_COUNTER(utp_samples_below_target);
+			STAT_COUNTER(utp_payload_pkts_in);
+			STAT_COUNTER(utp_payload_pkts_out);
+			STAT_COUNTER(utp_invalid_pkts_in);
+			STAT_COUNTER(utp_redundant_pkts_in);
 
 			// loaded torrents
 			STAT_COUNTER(num_loaded_torrents);
@@ -5580,11 +5581,19 @@ retry:
 
 		m_disk_thread.update_stats_counters(m_stats_counters);
 
+		// TODO: 3 it would be really nice to update these counters
+		// as they are incremented. This depends on the session
+		// being ticked, which has a fairly coarse grained resolution
+		m_stats_counters.set_value(counters::sent_bytes, m_stat.total_upload());
+		m_stats_counters.set_value(counters::sent_payload_bytes
+			, m_stat.total_transfer(stat::upload_payload));
+		m_stats_counters.set_value(counters::recv_bytes
+			, m_stat.total_download());
+		m_stats_counters.set_value(counters::recv_payload_bytes
+			, m_stat.total_transfer(stat::download_payload));
+
 		for (int i = 0; i < counters::num_counters; ++i)
 			values[i] = m_stats_counters[i];
-
-		m_stats_counters.set_value(counters::sent_payload_bytes, m_stat.total_transfer(stat::upload_payload));
-		m_stats_counters.set_value(counters::recv_payload_bytes, m_stat.total_transfer(stat::download_payload));
 
 		alert->timestamp = total_microseconds(time_now_hires() - m_created);
 

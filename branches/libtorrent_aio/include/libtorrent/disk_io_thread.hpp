@@ -104,8 +104,8 @@ namespace libtorrent
 			, blocks_read(0)
 			, blocks_read_hit(0)
 			, reads(0)
-			, queued_bytes(0)
 #ifndef TORRENT_NO_DEPRECATE
+			, queued_bytes(0)
 			, cache_size(0)
 #endif
 			, write_cache_size(0)
@@ -167,11 +167,11 @@ namespace libtorrent
 		// the number of read operations used
 		atomic_count reads;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the number of bytes queued for writing, including bytes
 		// submitted to the OS for writing, but not yet complete
 		mutable size_type queued_bytes;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// the number of 16 KiB blocks currently in the disk cache (both read and write).
 		// This includes both read and write cache.
 		int cache_size;
