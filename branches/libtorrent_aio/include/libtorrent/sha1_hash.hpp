@@ -38,10 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstring>
 
-#include <arpa/inet.h> // for ntohl and htonl
-
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/byteswap.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include "libtorrent/escape_string.hpp" // to_hex, from_hex

@@ -29,6 +29,7 @@ nobase_include_HEADERS = \
   bt_peer_connection.hpp       \
   buffer.hpp                   \
   build_config.hpp             \
+  byteswap.hpp                 \
   chained_buffer.hpp           \
   config.hpp                   \
   connection_interface.hpp     \
