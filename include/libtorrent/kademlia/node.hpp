@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 #include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/item.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/session_settings.hpp>
@@ -132,11 +133,11 @@ struct dht_immutable_item
 	int size;
 };
 
-struct ed25519_public_key { char bytes[32]; };
+struct ed25519_public_key { char bytes[item_pk_len]; };
 
 struct dht_mutable_item : dht_immutable_item
 {
-	char sig[64];
+	char sig[item_sig_len];
 	boost::uint64_t seq;
 	ed25519_public_key key;
 };
@@ -231,6 +232,8 @@ public:
 
 	void announce(sha1_hash const& info_hash, int listen_port, bool seed
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
+
+	void get_item(sha1_hash const& target, boost::function<bool(item&)> f);
 
 	bool verify_token(std::string const& token, char const* info_hash
 		, udp::endpoint const& addr);

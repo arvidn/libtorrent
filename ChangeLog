@@ -1,3 +1,4 @@
+	* DHT refactoring and support for storing arbitrary data with put
 	* support building on android
 	* improved support for web seeds that don't support keep-alive
 	* improve DHT routing table to return better nodes (lower RTT and closer to target)

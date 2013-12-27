@@ -147,4 +147,8 @@ nobase_include_HEADERS = \
   kademlia/refresh.hpp              \
   kademlia/routing_table.hpp        \
   kademlia/rpc_manager.hpp          \
-  kademlia/traversal_algorithm.hpp
+  kademlia/traversal_algorithm.hpp  \
+  kademlia/item.hpp                 \
+  kademlia/get_item.hpp             \
+  kademlia/get_peers.hpp
+

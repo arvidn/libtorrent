@@ -67,6 +67,7 @@ struct traversal_algorithm : boost::noncopyable
 	void failed(observer_ptr o, int flags = 0);
 	virtual ~traversal_algorithm();
 	void status(dht_lookup& l);
+	void abort();
 
 	void* allocate_observer();
 	void free_observer(void* ptr);
@@ -112,7 +113,7 @@ protected:
 	int m_ref_count;
 
 	node_impl& m_node;
-	node_id m_target;
+	node_id const m_target;
 	std::vector<observer_ptr> m_results;
 	int m_invoke_count;
 	int m_branch_factor;
@@ -130,7 +131,7 @@ struct traversal_observer : observer
 	{}
 
 	// parses out "nodes" and keeps traversing
-	void reply(msg const&);
+	virtual void reply(msg const&);
 };
 
 } } // namespace libtorrent::dht

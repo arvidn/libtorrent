@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2013, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,66 +30,48 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef FIND_DATA_050323_HPP
-#define FIND_DATA_050323_HPP
+#ifndef LIBTORRENT_GET_ITEM_HPP
+#define LIBTORRENT_GET_ITEM_HPP
 
-#include <vector>
-#include <map>
-
-#include <libtorrent/kademlia/traversal_algorithm.hpp>
-#include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/routing_table.hpp>
-#include <libtorrent/kademlia/rpc_manager.hpp>
-#include <libtorrent/kademlia/observer.hpp>
-#include <libtorrent/kademlia/msg.hpp>
-
-#include <boost/optional.hpp>
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
+#include <string>
+#include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/item.hpp>
 
 namespace libtorrent { namespace dht
 {
 
-typedef std::vector<char> packet_t;
-
-class rpc_manager;
-class node_impl;
-
-// -------- find data -----------
-
-struct find_data : traversal_algorithm
+class get_item : public find_data
 {
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+public:
+	typedef boost::function<bool(item&)> data_callback;
 
-	void got_write_token(node_id const& n, std::string const& write_token)
-	{ m_write_tokens[n] = write_token; }
+	void got_data(lazy_entry const* v,
+		char const* pk,
+		boost::uint64_t seq,
+		char const* sig);
 
-	find_data(node_impl& node, node_id target
-		, nodes_callback const& ncallback);
-
-	virtual void start();
+	get_item(node_impl& node, node_id target, data_callback const& dcallback);
 
 	virtual char const* name() const;
 
-	node_id const target() const { return m_target; }
-
 protected:
-
+	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
+	virtual bool invoke(observer_ptr o);
 	virtual void done();
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
 
-	nodes_callback m_nodes_callback;
-	std::map<node_id, std::string> m_write_tokens;
-	bool m_done;
+	void put(std::vector<std::pair<node_entry, std::string> > const& v);
+
+	data_callback m_data_callback;
+	item m_data;
 };
 
-struct find_data_observer : traversal_observer
+class get_item_observer : public find_data_observer
 {
-	find_data_observer(
+public:
+	get_item_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
+		: find_data_observer(algorithm, ep, id)
 	{}
 
 	virtual void reply(msg const&);
@@ -97,5 +79,4 @@ struct find_data_observer : traversal_observer
 
 } } // namespace libtorrent::dht
 
-#endif // FIND_DATA_050323_HPP
-
+#endif // LIBTORRENT_GET_ITEM_HPP
