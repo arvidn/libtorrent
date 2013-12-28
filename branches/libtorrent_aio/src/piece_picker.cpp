@@ -3402,15 +3402,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(info.state != block_info::state_none);
 
-		if (info.state == block_info::state_finished
-			|| info.state == block_info::state_none
-			|| info.state == block_info::state_writing)
-			return;
+		if (info.state != block_info::state_requested) return;
 
 		piece_pos& p = m_piece_map[block.piece_index];
 		int prev_prio = p.priority(this);
-
-		if (info.state != block_info::state_requested) return;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(info.peers.count(peer));

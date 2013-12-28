@@ -5450,7 +5450,7 @@ namespace libtorrent
 
 	void torrent::remove_peer(peer_connection* p)
 	{
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(m_ses.is_single_thread());
@@ -7946,7 +7946,9 @@ namespace libtorrent
 				{
 					if (picker_count != count)
 					{
-						fprintf(stderr, "picker count discrepancy: %d != %d\n", picker_count, count);
+						fprintf(stderr, "picker count discrepancy: "
+							"picker: %d != peerlist: %d\n", picker_count, count);
+
 						for (const_peer_iterator i = this->begin(); i != this->end(); ++i)
 						{
 							peer_connection const& p = *(*i);

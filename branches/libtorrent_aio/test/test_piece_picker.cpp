@@ -59,6 +59,8 @@ bitfield string2vec(char const* have_str)
 
 ipv4_peer* tmp_peer = 0;
 
+const std::vector<int> empty_vector;
+
 // availability is a string where each character is the
 // availability of that piece, '1', '2' etc.
 // have_str is a string where each character represents a
@@ -228,7 +230,8 @@ void print_title(char const* name)
 
 std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p, char const* availability
 	, int num_blocks, int prefer_whole_pieces, void* peer_struct, piece_picker::piece_state_t state
-	, int options, std::vector<int> const& suggested_pieces)
+		= piece_picker::fast, int options = piece_picker::rarest_first
+	, std::vector<int> const& suggested_pieces = empty_vector)
 {
 	std::vector<piece_block> picked;
 	counters pc;
@@ -265,9 +268,9 @@ int test_main()
 	tmp_peer = &tmp1;
 	std::vector<piece_block> picked;
 	boost::shared_ptr<piece_picker> p;
-	const std::vector<int> empty_vector;
 	int options = piece_picker::rarest_first;
 	std::pair<int, int> dc;
+	counters pc;
 
 // ========================================================
 
@@ -362,6 +365,22 @@ int test_main()
 
 	p->get_downloaders(d, 0);
 	TEST_CHECK(d[3] == &tmp2);
+
+	p = setup_picker("2222", "    ", "", "");
+
+	for (int i = 0; i < 4; ++i)
+		for (int k = 0; k < blocks_per_piece; ++k)
+			p->mark_as_downloading(piece_block(i, k), &tmp1, piece_picker::fast);
+
+	p->mark_as_downloading(piece_block(0, 0), &tmp2, piece_picker::fast);
+
+	fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 2);
+
+	p->abort_download(piece_block(0, 0), &tmp1);
+
+	fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 1);
 
 // ========================================================
 
@@ -527,16 +546,16 @@ int test_main()
 	TEST_CHECK(picked.front().piece_index == first.piece_index);
 
 // ========================================================
-/*
+
 	// make sure downloading pieces closer to completion have higher priority
 	// piece 3 has only 1 block from being completed, and should be picked
-	print_title("test downloading piece order");
-	p = setup_picker("1111111", "       ", "", "013700f");
-	picked = pick_pieces(p, "*******", 1, 0, 0, piece_picker::fast
-		, options | piece_picker::prioritize_partials, empty_vector);
-	TEST_CHECK(int(picked.size()) > 0);
-	TEST_CHECK(picked.front() == piece_block(3, 3));
-*/
+//	print_title("test downloading piece order");
+//	p = setup_picker("1111111", "       ", "", "013700f");
+//	picked = pick_pieces(p, "*******", 1, 0, 0, piece_picker::fast
+//		, options | piece_picker::prioritize_partials, empty_vector);
+//	TEST_CHECK(int(picked.size()) > 0);
+//	TEST_CHECK(picked.front() == piece_block(3, 3));
+
 // ========================================================
 
 	// test sequential download
@@ -752,7 +771,6 @@ int test_main()
 	p->mark_as_downloading(piece_block(1,2), &tmp1, piece_picker::slow);
 
 	picked.clear();
-	counters pc;
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector, 20
 		, pc);
@@ -1095,13 +1113,13 @@ int test_main()
 	// we have less than half of the pieces
 	p = setup_picker("2122222211221222", "                ", "", "");
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	pick_pieces(p, "****************", 1, 1, 0);
 	print_availability(p);
 	p->dec_refcount(string2vec("**  **  **  *   "), (void*)2);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1022112200220222"));
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	pick_pieces(p, "****************", 1, 1, 0);
 	p->inc_refcount(string2vec(" **  **  *   *  "), (void*)3);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1132123201220322"));
@@ -1113,25 +1131,25 @@ int test_main()
 	p = setup_picker("0000000000000000", "                ", "", "");
 
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	pick_pieces(p, "****************", 1, 1, 0);
 
 	p->inc_refcount_all((void*)2);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	pick_pieces(p, "****************", 1, 1, 0);
 	p->dec_refcount(string2vec("  ****  **      "), (void*)4);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1100001100111111"));
 
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	pick_pieces(p, "****************", 1, 1, 0);
 	p->inc_refcount(string2vec("  ****  **      "), (void*)5);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	pick_pieces(p, "****************", 1, 1, 0);
 	p->dec_refcount_all((void*)2);
 	TEST_CHECK(verify_availability(p, "0000000000000000"));
 
@@ -1140,13 +1158,14 @@ int test_main()
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	pick_pieces(p, "****************", 1, 1, 0);
 	p->dec_refcount(3, (void*)4);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1110111111111111"));
 
+// ========================================================
+
 // MISSING TESTS:
-// 1. abort_download
 // 2. write_failed
 
 /*

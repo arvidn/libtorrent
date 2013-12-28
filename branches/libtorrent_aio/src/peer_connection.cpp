@@ -4054,21 +4054,25 @@ namespace libtorrent
 		if (ec == error_code(errors::timed_out_no_handshake))
 			m_ses.inc_stats_counter(counters::connect_timeouts);
 
-		if (is_utp(*m_socket)) m_ses.inc_stats_counter(counters::error_utp_peers);
-		else m_ses.inc_stats_counter(counters::error_tcp_peers);
+		if (error > 0)
+		{
+			if (is_utp(*m_socket)) m_ses.inc_stats_counter(counters::error_utp_peers);
+			else m_ses.inc_stats_counter(counters::error_tcp_peers);
 
-		if (m_outgoing) m_ses.inc_stats_counter(counters::error_outgoing_peers);
-		else m_ses.inc_stats_counter(counters::error_incoming_peers);
-
+			if (m_outgoing) m_ses.inc_stats_counter(counters::error_outgoing_peers);
+			else m_ses.inc_stats_counter(counters::error_incoming_peers);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		if (type() == bittorrent_connection)
-		{
-			bt_peer_connection* bt = static_cast<bt_peer_connection*>(this);
-			if (bt->supports_encryption()) m_ses.inc_stats_counter(counters::error_encrypted_peers);
-			if (bt->rc4_encrypted() && bt->supports_encryption()) m_ses.inc_stats_counter(counters::error_rc4_peers);
-		}
+			if (type() == bittorrent_connection)
+			{
+				bt_peer_connection* bt = static_cast<bt_peer_connection*>(this);
+				if (bt->supports_encryption()) m_ses.inc_stats_counter(
+					counters::error_encrypted_peers);
+				if (bt->rc4_encrypted() && bt->supports_encryption())
+					m_ses.inc_stats_counter(counters::error_rc4_peers);
+			}
 #endif // TORRENT_DISABLE_ENCRYPTION
+		}
 
 		boost::shared_ptr<peer_connection> me(self());
 
@@ -4163,7 +4167,9 @@ namespace libtorrent
 				}
 				while (!m_request_queue.empty())
 				{
-					picker.abort_download(m_request_queue.back().block, peer_info_struct());
+					pending_block& qe = m_request_queue.back();
+					if (!qe.timed_out && !qe.not_wanted)
+						picker.abort_download(qe.block, peer_info_struct());
 					m_request_queue.pop_back();
 				}
 			}
