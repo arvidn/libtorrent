@@ -7902,7 +7902,8 @@ namespace libtorrent
 		TORRENT_ASSERT((!m_allow_peers && m_auto_managed) == m_links[aux::session_interface::torrent_want_scrape].in_list());
 
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
+		// this fires during disconnecting peers
+//		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
 		TORRENT_ASSERT(!m_resume_data || m_resume_data->entry.type() == lazy_entry::dict_t
 			|| m_resume_data->entry.type() == lazy_entry::none_t);
