@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/bitfield.hpp"
+#include <stdlib.h>
 
 using namespace libtorrent;
 
@@ -81,7 +82,7 @@ int test_main()
 	test1.clear_bit(2);
 	TEST_EQUAL(test1.count(), 2);
 	int distance = std::distance(test1.begin(), test1.end());
-	std::cerr << distance << std::endl;
+	printf("distance: %d\n", distance);
 	TEST_CHECK(distance == 10);
 	
 	print_bitfield(test1);

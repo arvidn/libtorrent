@@ -285,7 +285,7 @@ attack_t attacks[] =
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
 bool try_connect(session& ses1, int port
-	, boost::intrusive_ptr<torrent_info> const& t, boost::uint32_t flags)
+	, boost::shared_ptr<torrent_info> const& t, boost::uint32_t flags)
 {
 	using boost::asio::ssl::context;
 
@@ -485,7 +485,7 @@ void test_malicious_peer()
 	// create torrent
 	create_directory("tmp3_ssl", ec);
 	std::ofstream file("tmp3_ssl/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file
 		, 16 * 1024, 13, false, "ssl/root_ca_cert.pem");
 	file.close();
 
