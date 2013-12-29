@@ -55,14 +55,14 @@ using libtorrent::aux::session_impl;
 namespace libtorrent
 {
 	http_seed_connection::http_seed_connection(
-		aux::session_interface& ses
+		struct counters& cnt
 		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, web_seed_entry& web)
-		: web_connection_base(ses, sett, allocator, disk_thread
+		: web_connection_base(cnt, sett, allocator, disk_thread
 			, t, s, web)
 		, m_url(web.url)
 		, m_response_left(0)
@@ -164,7 +164,7 @@ namespace libtorrent
 			size -= pr.length;
 		}
 
-		proxy_settings const& ps = m_ses.proxy();
+		proxy_settings const& ps = t->proxy();
 		bool using_proxy = (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw) && !m_ssl;
 

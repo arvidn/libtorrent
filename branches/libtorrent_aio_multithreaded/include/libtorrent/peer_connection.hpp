@@ -154,12 +154,12 @@ namespace libtorrent
 	{
 		peer_connection_hot_members(
 			boost::weak_ptr<torrent> t
-			, aux::session_interface& ses
+			, counters& cnt
 			, aux::session_settings const& sett
 			, boost::shared_ptr<socket_type> const& sock
 			, bool outgoing)
 			: m_torrent(t)
-			, m_ses(ses)
+			, m_counters(cnt)
 			, m_settings(sett)
 			, m_disconnecting(false)
 			, m_connecting(outgoing)
@@ -172,6 +172,11 @@ namespace libtorrent
 			, m_recv_pos(0)
 			, m_packet_size(0)
 		{}
+
+		aux::session_settings const& settings() const
+		{ return m_settings; }
+
+		counters& counters() const { return m_counters; }
 
 	protected:
 
@@ -190,17 +195,15 @@ namespace libtorrent
 		// outlive their peers
 		boost::weak_ptr<torrent> m_torrent;
 	
-	public:
-
 		// a back reference to the session
 		// the peer belongs to.
-		aux::session_interface& m_ses;
+		struct counters& m_counters;
 
 		// settings that apply to this peer
+		// TODO: 2 these could probably be accessed via
+		// the torrent, to avoid having an extra pointer here
 		aux::session_settings const& m_settings;
 		
-	protected:
-
 		// this is true if this connection has been added
 		// to the list of connections that will be closed.
 		bool m_disconnecting:1;
@@ -262,6 +265,7 @@ namespace libtorrent
 		, public connection_interface 
 		, public peer_connection_interface 
 		, public boost::enable_shared_from_this<peer_connection>
+		, public single_threaded
 	{
 	friend class invariant_access;
 	friend struct network_thread_pool;
@@ -285,7 +289,7 @@ namespace libtorrent
 		};
 
 		peer_connection(
-			aux::session_interface& ses
+			struct counters& cnt
 			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread
@@ -754,10 +758,6 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_in_constructor);
 			return shared_from_this();
 		}
-
-		// TODO: 2 temporary hack until the stats counters are moved out
-		// from the session_interface.
-		aux::session_interface& ses() { return m_ses; }
 
 	protected:
 

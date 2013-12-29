@@ -595,30 +595,6 @@ namespace libtorrent
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 
-		// These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
-		// expects a path to the `MaxMind ASN database`_ and `MaxMind GeoIP database`_
-		// respectively. This will be used to look up which AS and country peers belong to.
-		// 
-		// ``as_for_ip`` returns the AS number for the IP address specified. If the IP is not
-		// in the database or the ASN database is not loaded, 0 is returned.
-		// 
-		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
-		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
-		void load_asnum_db(char const* file);
-		void load_country_db(char const* file);
-		int as_for_ip(address const& addr);
-#ifndef TORRENT_NO_DEPRECATE
-#if TORRENT_USE_WSTRING
-		// all wstring APIs are deprecated since 0.16.11
-		// instead, use the wchar -> utf8 conversion functions
-		// and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
-		void load_country_db(wchar_t const* file) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void load_asnum_db(wchar_t const* file) TORRENT_DEPRECATED;
-#endif // TORRENT_USE_WSTRING
-#endif // TORRENT_NO_DEPRECATE
-
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use load_state and save_state instead

@@ -48,20 +48,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/socket_type.hpp"
 
 using boost::shared_ptr;
 
 namespace libtorrent
 {
 	web_connection_base::web_connection_base(
-		aux::session_interface& ses
+		struct counters& cnt
 		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, web_seed_entry& web)
-		: peer_connection(ses, sett, allocator, disk_thread, ses.get_io_service()
+		: peer_connection(cnt, sett, allocator, disk_thread, s->get_io_service()
 			, t, s, web.endpoint, &web.peer_info)
 		, m_first_request(true)
 		, m_ssl(false)

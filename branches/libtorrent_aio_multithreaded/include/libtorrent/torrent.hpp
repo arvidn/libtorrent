@@ -210,6 +210,7 @@ namespace libtorrent
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
 		, public list_node // used for torrent activity LRU
+		, public single_threaded
 	{
 	public:
 
@@ -225,6 +226,13 @@ namespace libtorrent
 		}
 	
 		bool is_deleted() const { return m_deleted; }
+
+		proxy_settings const& proxy() const { return m_ses.proxy(); }
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		pe_settings const& get_pe_settings() const
+		{ return m_ses.get_pe_settings(); }
+#endif
 
 		// starts the announce timer
 		void start();

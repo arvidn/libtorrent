@@ -727,9 +727,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 {
 	using namespace libtorrent;
 	if (print_ip) out += "IP                             ";
-#ifndef TORRENT_DISABLE_GEO_IP
-	if (print_as) out += "AS                                         ";
-#endif
 	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb rcvb   q-bytes ";
@@ -757,15 +754,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 				).c_str());
 			out += str;
 		}
-
-#ifndef TORRENT_DISABLE_GEO_IP
-		if (print_as)
-		{
-			error_code ec;
-			snprintf(str, sizeof(str), "%-42s ", i->inet_as_name.c_str());
-			out += str;
-		}
-#endif
 
 		char temp[10];
 		snprintf(temp, sizeof(temp), "%d/%d"
@@ -1540,11 +1528,6 @@ int main(int argc, char* argv[])
 		if (lazy_bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
 			ses.load_state(e);
 	}
-
-#ifndef TORRENT_DISABLE_GEO_IP
-	ses.load_asnum_db("GeoIPASNum.dat");
-	ses.load_country_db("GeoIP.dat");
-#endif
 
 	// load the torrents given on the commandline
 

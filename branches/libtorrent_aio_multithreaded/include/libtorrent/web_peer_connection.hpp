@@ -75,7 +75,7 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		web_peer_connection(
-			aux::session_interface& ses
+			struct counters& cnt
 			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread

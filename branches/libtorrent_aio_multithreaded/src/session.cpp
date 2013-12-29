@@ -586,47 +586,6 @@ namespace libtorrent
 #endif
 	}
 
-	void session::load_asnum_db(char const* file)
-	{
-#ifndef TORRENT_DISABLE_GEO_IP
-		TORRENT_ASYNC_CALL1(load_asnum_db, std::string(file));
-#endif
-	}
-
-	void session::load_country_db(char const* file)
-	{
-#ifndef TORRENT_DISABLE_GEO_IP
-		TORRENT_ASYNC_CALL1(load_country_db, std::string(file));
-#endif
-	}
-
-	int session::as_for_ip(address const& addr)
-	{
-#ifndef TORRENT_DISABLE_GEO_IP
-		return m_impl->as_for_ip(addr);
-#else
-		return 0;
-#endif
-	}
-
-#if TORRENT_USE_WSTRING
-#ifndef TORRENT_NO_DEPRECATE
-	void session::load_asnum_db(wchar_t const* file)
-	{
-#ifndef TORRENT_DISABLE_GEO_IP
-		TORRENT_ASYNC_CALL1(load_asnum_dbw, std::wstring(file));
-#endif
-	}
-
-	void session::load_country_db(wchar_t const* file)
-	{
-#ifndef TORRENT_DISABLE_GEO_IP
-		TORRENT_ASYNC_CALL1(load_country_dbw, std::wstring(file));
-#endif
-	}
-#endif // TORRENT_NO_DEPRECATE
-#endif // TORRENT_USE_WSTRING
-
 #ifndef TORRENT_NO_DEPRECATE
 	void session::load_state(entry const& ses_state)
 	{

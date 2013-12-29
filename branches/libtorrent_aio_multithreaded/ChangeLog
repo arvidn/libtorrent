@@ -1,3 +1,4 @@
+	* remove libgeoip support
 	* support for using purgrable memory as disk cache on Mac OS.
 	* be more aggressive in corking sockets, to coalesce messages into larger packets.
 	* pre-emptively unchoke peers to save one round-trip at connection start-up.

@@ -63,14 +63,14 @@ enum
 struct disk_interface;
 
 web_peer_connection::web_peer_connection(
-	aux::session_interface& ses
+	struct counters& cnt
 	, aux::session_settings const& sett
 	, buffer_allocator_interface& allocator
 	, disk_interface& disk_thread
 	, boost::weak_ptr<torrent> t
 	, boost::shared_ptr<socket_type> s
 	, web_seed_entry& web)
-	: web_connection_base(ses, sett, allocator, disk_thread, t, s, web)
+	: web_connection_base(cnt, sett, allocator, disk_thread, t, s, web)
 	, m_url(web.url)
 	, m_web(web)
 	, m_received_body(0)
@@ -205,7 +205,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		size -= pr.length;
 	}
 
-	proxy_settings const& ps = m_ses.proxy();
+	proxy_settings const& ps = t->proxy();
 	bool using_proxy = (ps.type == proxy_settings::http
 		|| ps.type == proxy_settings::http_pw) && !m_ssl;
 
@@ -504,7 +504,7 @@ void web_peer_connection::on_receive(error_code const& error
 				// associated with the file we just requested. Only
 				// when it doesn't have any of the file do the following
 				int retry_time = atoi(m_parser.header("retry-after").c_str());
-				if (retry_time <= 0) retry_time = m_ses.settings().get_int(settings_pack::urlseed_wait_retry);
+				if (retry_time <= 0) retry_time = settings().get_int(settings_pack::urlseed_wait_retry);
 				// temporarily unavailable, retry later
 				t->retry_web_seed(this, retry_time);
 				std::string error_msg = to_string(m_parser.status_code()).elems

@@ -27,10 +27,6 @@ KADEMLIA_SOURCES = \
   ../ed25519/src/verify.c
 endif
 
-if WITH_SHIPPED_GEOIP
-GEOIP_SOURCES = GeoIP.c
-endif
-
 if WITH_OPENSSL
 ASIO_OPENSSL_SOURCES = asio_ssl.cpp
 endif
