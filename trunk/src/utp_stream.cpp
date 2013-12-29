@@ -2291,7 +2291,7 @@ bool utp_socket_impl::consume_incoming_data(
 		// exceeds the advertized receive window, start ignoring
 		// more data packets
 		UTP_LOG("%8p: ERROR: our advertized window is not honored. "
-			"recv_buf: %s buffered_in: %d max_size: %d\n"
+			"recv_buf: %d buffered_in: %d max_size: %d\n"
 			, this, m_receive_buffer_size, m_buffered_incoming_bytes, m_in_buf_size);
 		return false;
 	}
