@@ -329,6 +329,8 @@ namespace libtorrent
 			return true;
 		}
 
+		if (ph->get_type() == ST_RESET) return false;
+
 		// #error send reset
 
 		return false;
