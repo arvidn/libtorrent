@@ -27,6 +27,9 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix resend logic in response to uTP SACK messages
+	* only act on uTP RST packets with correct ack_nr
+	* make uTP errors log in normal log mode (not require verbose)
 	* deduplicate web seed entries from torrent files
 	* improve error reporting from lazy_decode()
 
