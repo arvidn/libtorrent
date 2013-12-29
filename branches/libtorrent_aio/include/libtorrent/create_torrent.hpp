@@ -423,8 +423,7 @@ namespace libtorrent
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
 #ifndef BOOST_NO_EXCEPTIONS
-	inline void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int i)> const& f)
+	inline void set_piece_hashes(create_torrent& t, std::string const& p)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, detail::nop, ec);
