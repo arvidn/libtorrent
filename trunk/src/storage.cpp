@@ -401,6 +401,8 @@ namespace libtorrent
 	{
 		m_allocate_files = allocate_files;
 		error_code ec;
+		m_file_created.resize(files().num_files(), false);
+
 		// first, create all missing directories
 		std::string last_path;
 		for (int file_index = 0; file_index < files().num_files(); ++file_index)
@@ -423,12 +425,10 @@ namespace libtorrent
 				break;
 			}
 
-			// ec is either ENOENT or the file existed and s is valid
-			// allocate file only if it is not exist and (allocate_files == true)
 			// if the file already exists, but is larger than what
-			// it's supposed to be, also truncate it
+			// it's supposed to be, truncate it
 			// if the file is empty, just create it either way.
-			if ((ec && allocate_files) || (!ec && s.file_size > files().file_size(file_index)) || files().file_size(file_index) == 0)
+			if ((!ec && s.file_size > files().file_size(file_index)) || files().file_size(file_index) == 0)
 			{
 				std::string dir = parent_path(file_path);
 
@@ -1200,7 +1200,8 @@ ret:
 
 			error_code ec;
 			file_handle = open_file(file_index, op.mode, ec);
-			if (((op.mode & file::rw_mask) == file::read_write) && ec == boost::system::errc::no_such_file_or_directory)
+			if (((op.mode & file::rw_mask) != file::read_only)
+				&& ec == boost::system::errc::no_such_file_or_directory)
 			{
 				// this means the directory the file is in doesn't exist.
 				// so create it
@@ -1220,6 +1221,22 @@ ret:
 				return -1;
 			}
 
+			if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
+			{
+				TORRENT_ASSERT(m_file_created.size() == files().num_files());
+				if (m_file_created[file_index] == false)
+				{
+					file_handle->set_size(files().file_size(file_index), ec);
+					m_file_created.set_bit(file_index);
+					if (ec)
+					{
+						set_error(combine_path(m_save_path
+							, files().file_path(file_index, m_save_path)), ec);
+						return -1;
+					}
+				}
+			}
+
 			int num_tmp_bufs = copy_bufs(current_buf, file_bytes_left, tmp_bufs);
 			TORRENT_ASSERT(count_bufs(tmp_bufs, file_bytes_left) == num_tmp_bufs);
 			TORRENT_ASSERT(num_tmp_bufs <= num_bufs);
@@ -1235,7 +1252,7 @@ ret:
 			{
 				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
 					, tmp_bufs, num_tmp_bufs, ec);
-				if ((op.mode & file::rw_mask) == file::read_write
+				if ((op.mode & file::rw_mask) != file::read_only
 					&& adjusted_offset + bytes_transferred >= files().file_size(file_index)
 					&& (file_handle->pos_alignment() > 0 || file_handle->size_alignment() > 0))
 				{
