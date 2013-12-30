@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bitfield.hpp"
 
 // OVERVIEW
 //
@@ -443,6 +444,13 @@ namespace libtorrent
 
 		// used for skipped files
 		boost::scoped_ptr<part_file> m_part_file;
+
+		// this is a bitfield with one bit per file. A bit being set means
+		// we've written to that file previously. If we do write to a file
+		// whose bit is 0, we set the file size, to make the file allocated
+		// on disk (in full allocation mode) and just sparsely allocated in
+		// case of sparse allocation mode
+		bitfield m_file_created;
 
 		bool m_allocate_files;
 	};

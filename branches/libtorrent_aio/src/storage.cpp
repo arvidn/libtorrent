@@ -330,6 +330,8 @@ namespace libtorrent
 	{
 		m_stat_cache.init(files().num_files());
 
+		m_file_created.resize(files().num_files(), false);
+
 		// first, create all missing directories
 		std::string last_path;
 		for (int file_index = 0; file_index < files().num_files(); ++file_index)
@@ -360,13 +362,10 @@ namespace libtorrent
 				m_stat_cache.set_cache(file_index, s.file_size, s.mtime);
 			}
 
-			// ec is either ENOENT or the file existed and s is valid
-			// allocate file only if it is not exist and (m_allocate_files == true)
 			// if the file already exists, but is larger than what
-			// it's supposed to be, also truncate it
+			// it's supposed to be, truncate it
 			// if the file is empty, just create it either way.
-			if ((ec && m_allocate_files)
-				|| (!ec && m_stat_cache.get_filesize(file_index) > files().file_size(file_index))
+			if ((!ec && m_stat_cache.get_filesize(file_index) > files().file_size(file_index))
 				|| files().file_size(file_index) == 0)
 			{
 				std::string dir = parent_path(file_path);
@@ -1142,7 +1141,7 @@ namespace libtorrent
 			else
 			{
 				handle = open_file(file_index, op.mode, e);
-				if (((op.mode & file::rw_mask) == file::read_write)
+				if (((op.mode & file::rw_mask) != file::read_only)
 					&& e == boost::system::errc::no_such_file_or_directory)
 				{
 					// this means the directory the file is in doesn't exist.
@@ -1150,9 +1149,18 @@ namespace libtorrent
 					e.clear();
 					std::string path = files().file_path(file_index, m_save_path);
 					create_directories(parent_path(path), e);
+
+					if (e)
+					{
+						ec.ec = e;
+						ec.file = file_index;
+						ec.operation = storage_error::mkdir;
+						return -1;
+					}
+
 					// if the directory creation failed, don't try to open the file again
 					// but actually just fail
-					if (!e) handle = open_file(file_index, op.mode, e);
+					handle = open_file(file_index, op.mode, e);
 				}
 
 				if (!handle || e)
@@ -1161,6 +1169,24 @@ namespace libtorrent
 					ec.file = file_index;
 					ec.operation = storage_error::open;
 					return -1;
+				}
+
+				if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
+				{
+					TORRENT_ASSERT(m_file_created.size() == files().num_files());
+					TORRENT_ASSERT(file_index < m_file_created.size());
+					if (m_file_created[file_index] == false)
+					{
+						handle->set_size(files().file_size(file_index), e);
+						m_file_created.set_bit(file_index);
+						if (e)
+						{
+							ec.ec = e;
+							ec.file = file_index;
+							ec.operation = storage_error::fallocate;
+							return -1;
+						}
+					}
 				}
 
 				size_type adjusted_offset = files().file_base(file_index) + file_offset;

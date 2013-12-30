@@ -84,7 +84,7 @@ DOCS_PAGES = \
   docs/features.rst               \
   docs/index.html                 \
   docs/index.rst                  \
-  docs/manual.html                \
+  docs/manual-ref.html            \
   docs/manual.rst                 \
   docs/projects.html              \
   docs/projects.rst               \
