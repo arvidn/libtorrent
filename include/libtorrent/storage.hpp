@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent
 {
@@ -249,6 +250,13 @@ namespace libtorrent
 		// the session, to make all storage
 		// instances use the same pool
 		file_pool& m_pool;
+
+		// this is a bitfield with one bit per file. A bit being set means
+		// we've written to that file previously. If we do write to a file
+		// whose bit is 0, we set the file size, to make the file allocated
+		// on disk (in full allocation mode) and just sparsely allocated in
+		// case of sparse allocation mode
+		bitfield m_file_created;
 
 		int m_page_size;
 		bool m_allocate_files;

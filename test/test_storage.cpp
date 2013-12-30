@@ -665,8 +665,33 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	if (s->error())
 		fprintf(stderr, "%s: %s\n", s->error().message().c_str(), s->error_file().c_str());
 
-	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
-	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("folder2", "test3.tmp")))));	
+	// files are created on first write
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder2", "test3.tmp")))));	
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp")))));	
+
+	file::iovec_t b = {&buf[0], 4};
+	s->writev(&b, 2, 0, 1);
+
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp")))));	
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	file_status st;
+	stat_file(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp"))), &st, ec);
+	TEST_EQUAL(st.file_size, 8);
+
+	s->writev(&b, 4, 0, 1);
+
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	stat_file(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", "test5.tmp"))), &st, ec);
+	TEST_EQUAL(st.file_size, 8);
 
 	s->delete_files();
 
