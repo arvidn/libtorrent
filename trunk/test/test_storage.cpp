@@ -313,7 +313,8 @@ void run_elevator_test()
 {
 	io_service ios;
 	file_pool fp;
-	boost::intrusive_ptr<torrent_info> ti = ::create_torrent(0, 16, 6000);
+	boost::intrusive_ptr<torrent_info> ti = ::create_torrent(NULL, 16, 6000);
+	TEST_CHECK(ti);
 
 	{
 		error_code ec;
