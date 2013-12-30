@@ -1,16 +1,20 @@
 	* DHT refactoring and support for storing arbitrary data with put
 	* support building on android
 	* improved support for web seeds that don't support keep-alive
-	* improve DHT routing table to return better nodes (lower RTT and closer to target)
-	* don't use pointers to resume_data and file_priorities in add_torrent_params
+	* improve DHT routing table to return better nodes (lower RTT and closer
+	  to target)
+	* don't use pointers to resume_data and file_priorities in
+	  add_torrent_params
 	* allow moving files to absolute paths, out of the download directory
-	* make move_storage more generic to allow both overwriting files as well as taking existing ones
+	* make move_storage more generic to allow both overwriting files as well
+	  as taking existing ones
 	* fix choking issue at high upload rates
 	* optimized rate limiter
 	* make disk cache pool allocator configurable
 	* fix library ABI to not depend on logging being enabled
 	* use hex encoding instead of base32 in create_magnet_uri
-	* include name, save_path and torrent_file in torrent_status, for improved performance
+	* include name, save_path and torrent_file in torrent_status, for
+	  improved performance
 	* separate anonymous mode and force-proxy mode, and tighten it up a bit
 	* add per-tracker scrape information to announce_entry
 	* report errors in read_piece_alert
@@ -23,10 +27,13 @@
 	* improve web seed hash failure case
 	* improve DHT lookup times
 	* uTP path MTU discovery improvements
-	* optimized the torrent creator optimizer to scale significantly better with more files
+	* optimized the torrent creator optimizer to scale significantly better
+	  with more files
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* change semantics of storage allocation to allocate on first write rather
+	  than on startup (behaves better with changing file priorities)
 	* fix resend logic in response to uTP SACK messages
 	* only act on uTP RST packets with correct ack_nr
 	* make uTP errors log in normal log mode (not require verbose)
@@ -36,18 +43,21 @@
 0.16.13 release
 
 	* fix auto-manage issue when pausing session
-	* fix bug in non-sparse mode on windows, causing incorrect file errors to be generated
+	* fix bug in non-sparse mode on windows, causing incorrect file errors to
+	  be generated
 	* fix set_name() on file_storage actually affecting save paths
 	* fix large file support issue on mingw
 	* add some error handling to set_piece_hashes()
 	* fix completed-on timestamp to not be clobbered on each startup
 	* fix deadlock caused by some UDP tracker failures
 	* fix potential integer overflow issue in timers on windows
-	* minor fix to peer_proportional mixed_mode algorithm (TCP limit could go too low)
+	* minor fix to peer_proportional mixed_mode algorithm (TCP limit could go
+	  too low)
 	* graceful pause fix
 	* i2p fixes
 	* fix issue when loading certain malformed .torrent files
-	* pass along host header with http proxy requests and possible http_connection shutdown hang
+	* pass along host header with http proxy requests and possible
+	  http_connection shutdown hang
 
 0.16.12 release
 
@@ -70,7 +80,8 @@
 	* deprecate std::wstring overloads. long live utf-8
 	* improve time-critical pieces feature (streaming)
 	* introduce bandwidth exhaustion attack-mitigation in allowed-fast pieces
-	* python binding fix issue where torrent_info objects where destructing when their torrents were deleted
+	* python binding fix issue where torrent_info objects where destructing when
+	  their torrents were deleted
 	* added missing field to scrape_failed_alert in python bindings
 	* GCC 4.8 fix
 	* fix proxy failure semantics with regards to anonymous mode
@@ -85,19 +96,25 @@
 	* add a number of missing functions to the python binding
 	* fix typo in Jamfile for building shared libraries
 	* prevent tracker exchange for magnet links before metadata is received
-	* fix crash in make_magnet_uri when generating links longer than 1024 characters
+	* fix crash in make_magnet_uri when generating links longer than 1024
+	  characters
 	* fix hanging issue when closing files on windows (completing a download)
-	* fix piece picking edge case that could cause torrents to get stuck at hash failure
-	* try unencrypted connections first, and fall back to encryption if it fails (performance improvement)
-	* add missing functions to python binding (flush_cache(), remap_files() and orig_files())
+	* fix piece picking edge case that could cause torrents to get stuck at
+	  hash failure
+	* try unencrypted connections first, and fall back to encryption if it
+	  fails (performance improvement)
+	* add missing functions to python binding (flush_cache(), remap_files()
+	  and orig_files())
 	* improve handling of filenames that are invalid on windows
 	* support 'implied_port' in DHT announce_peer
-	* don't use pool allocator for disk blocks (cache may now return pages to the kernel)
+	* don't use pool allocator for disk blocks (cache may now return pages
+	  to the kernel)
 
 0.16.9 release
 
 	* fix long filename truncation on windows
-	* distinguish file open mode when checking files and downloading/seeding with bittorrent. updates storage interface
+	* distinguish file open mode when checking files and downloading/seeding
+	  with bittorrent. updates storage interface
 	* improve file_storage::map_file when dealing with invalid input
 	* improve handling of invalid utf-8 sequences in strings in torrent files
 	* handle more cases of broken .torrent files
@@ -120,7 +137,8 @@
 	* fix potential packet allocation alignment issue in utp
 	* make 'close_redudnant_connections' cover more cases
 	* set_piece_deadline() also unfilters the piece (if its priority is 0)
-	* add work-around for bug in windows vista and earlier in GetOverlappedResult
+	* add work-around for bug in windows vista and earlier in
+	  GetOverlappedResult
 	* fix traversal algorithm leak in DHT
 	* fix string encoding conversions on windows
 	* take torrent_handle::query_pieces into account in torrent_handle::statue()
@@ -141,13 +159,15 @@
 	* added missing pop_alerts() to python bindings
 	* fixed typos in configure script, inversing some feature-enable/disable flags
 	* added missing flag_update_subscribe to python bindings
-	* active_dht_limit, active_tracker_limit and active_lsd_limit now interpret -1 as infinite
+	* active_dht_limit, active_tracker_limit and active_lsd_limit now
+	  interpret -1 as infinite
 
 0.16.6 release
 
 	* fixed verbose log error for NAT holepunching
 	* fix a bunch of typos in python bindings
-	* make get_settings available in the python binding regardless of deprecated functions
+	* make get_settings available in the python binding regardless of
+	  deprecated functions
 	* fix typo in python settings binding
 	* fix possible dangling pointer use in peer list
 	* fix support for storing arbitrary data in the DHT
@@ -166,22 +186,27 @@
 	* consistently disconnect the same peer when two peers simultaneously connect
 	* fix local endpoint queries for uTP connections
 	* small optimization to local peer discovery to ignore our own broadcasts
-	* try harder to bind the udp socket (uTP, DHT, UDP-trackers, LSD) to the same port as TCP
+	* try harder to bind the udp socket (uTP, DHT, UDP-trackers, LSD) to the
+	  same port as TCP
 	* relax file timestamp requirements for accepting resume data
-	* fix performance issue in web seed downloader (coalescing of blocks sometimes wouldn't work)
-	* web seed fixes (better support for torrents without trailing / in web seeds)
+	* fix performance issue in web seed downloader (coalescing of blocks
+	  sometimes wouldn't work)
+	* web seed fixes (better support for torrents without trailing / in
+	  web seeds)
 	* fix some issues with SSL over uTP connections
 	* fix UDP trackers trying all endpoints behind the hostname
 
 0.16.4 release
 
-	* raise the default number of torrents allowed to announce to trackers to 1600
+	* raise the default number of torrents allowed to announce to trackers
+	  to 1600
 	* improve uTP slow start behavior
 	* fixed UDP socket error causing it to fail on Win7
 	* update use of boost.system to not use deprecated functions
 	* fix GIL issue in python bindings. Deprecated extension support in python
 	* fixed bug where setting upload slots to -1 would not mean infinite
-	* extend the UDP tracker protocol to include the request string from the tracker URL
+	* extend the UDP tracker protocol to include the request string from the
+	  tracker URL
 	* fix mingw build for linux crosscompiler
 
 0.16.3 release
