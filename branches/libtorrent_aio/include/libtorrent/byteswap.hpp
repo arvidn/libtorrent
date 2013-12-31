@@ -38,9 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#ifdef TORRENT_WINDOWS
+#include <Winsock2.h>
+#else
 // posix header
 // for ntohl and htonl
 #include <arpa/inet.h>
+#endif
 
 #endif // TORRENT_BYTESWAP_HPP_INCLUDED
 

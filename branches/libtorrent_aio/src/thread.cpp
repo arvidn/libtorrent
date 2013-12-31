@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #endif
 
+#include <algorithm>
+
 namespace libtorrent
 {
 	void sleep(int milliseconds)

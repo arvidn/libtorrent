@@ -61,10 +61,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/assert.hpp>
 #if TORRENT_HAS_BOOST_UNORDERED
 #include <boost/unordered_set.hpp>
-#else
-#include <set>
 #endif
 
+#include <set>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
