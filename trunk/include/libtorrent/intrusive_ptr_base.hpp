@@ -47,9 +47,6 @@ namespace libtorrent
 		intrusive_ptr_base(intrusive_ptr_base<T> const&)
 			: m_refs(0) {}
 
-		intrusive_ptr_base& operator=(intrusive_ptr_base const& rhs)
-		{ return *this; }
-
 		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
 		{
 			TORRENT_ASSERT(s != 0);

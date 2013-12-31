@@ -335,7 +335,7 @@ namespace libtorrent
 		virtual void add_handshake(entry&) {}
 		
 		// called when the peer is being disconnected.
-		virtual void on_disconnect(error_code const& ec) {}
+		virtual void on_disconnect(error_code const& /*ec*/) {}
 
 		// called when the peer is successfully connected. Note that
 		// incoming connections will have been connected by the time
@@ -383,7 +383,7 @@ namespace libtorrent
 
 		// called when libtorrent think this peer should be disconnected.
 		// if the plugin returns false, the peer will not be disconnected.
-		virtual bool can_disconnect(error_code const& ec) { return true; }
+		virtual bool can_disconnect(error_code const& /*ec*/) { return true; }
 
 		// called when an extended message is received. If returning true,
 		// the message is not processed by any other plugin and if false
