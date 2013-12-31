@@ -30,54 +30,56 @@ alive.
 messages
 --------
 
-The proposed new messages ``get`` and ``put`` are similar to the existing ``get_peers``
-and ``announce_peer``.
+The proposed new messages ``get`` and ``put`` are similar to the existing
+``get_peers`` and ``announce_peer``.
 
-Responses to ``get`` should always include ``nodes`` and ``nodes6``. Those fields
-have the same semantics as in its ``get_peers`` response. It should also include a write token,
-``token``, with the same semantics as int ``get_peers``. The write token MAY be tied
-specifically to the key which ``get`` requested. i.e. the ``token`` can only be used
-to store values under that one key. It may also be tied to the node ID and IP
-address of the requesting node.
+Responses to ``get`` should always include ``nodes`` and ``nodes6``. Those
+fields have the same semantics as in its ``get_peers`` response. It should also
+include a write token, ``token``, with the same semantics as int ``get_peers``.
+The write token MAY be tied specifically to the key which ``get`` requested.
+i.e. the ``token`` can only be used to store values under that one key. It may
+also be tied to the node ID and IP address of the requesting node.
 
-The ``id`` field in these messages has the same semantics as the standard DHT messages,
-i.e. the node ID of the node sending the message, to maintain the structure of the DHT
-network.
+The ``id`` field in these messages has the same semantics as the standard DHT
+messages, i.e. the node ID of the node sending the message, to maintain the
+structure of the DHT network.
 
-The ``token`` field also has the same semantics as the standard DHT message ``get_peers``
-and ``announce_peer``, when requesting an item and to write an item respectively.
+The ``token`` field also has the same semantics as the standard DHT message
+``get_peers`` and ``announce_peer``, when requesting an item and to write an
+item respectively.
 
-The ``k`` field is the 32 byte curve25519 public key, which the signature
-can be authenticated with. When looking up a mutable item, the ``target`` field
-MUST be the SHA-1 hash of this key concatenated with the ``salt``, if present.
+The ``k`` field is the 32 byte curve25519 public key, which the signature can be
+authenticated with. When looking up a mutable item, the ``target`` field MUST be
+the SHA-1 hash of this key concatenated with the ``salt``, if present.
 
-The distinction between storing mutable and immutable items is the inclusion
-of a public key, a sequence number, signature and an optional salt (``k``,
-``seq``,  ``sig`` and ``salt``).
+The distinction between storing mutable and immutable items is the inclusion of
+a public key, a sequence number, signature and an optional salt (``k``, ``seq``,
+``sig`` and ``salt``).
 
-``get`` requests for mutable items and immutable items cannot be distinguished from
-eachother. An implementation can either store mutable and immutable items in the same
-hash table internally, or in separate ones and potentially do two lookups for ``get``
-requests.
+``get`` requests for mutable items and immutable items cannot be distinguished
+from eachother. An implementation can either store mutable and immutable items
+in the same hash table internally, or in separate ones and potentially do two
+lookups for ``get`` requests.
 
-The ``v`` field is the *value* to be stored. It is allowed to be any bencoded type (list,
-dict, string or integer). When it's being hashed (for verifying its signature or to calculate
-its key), its flattened, bencoded, form is used. It is important to use the verbatim
-bencoded representation as it appeared in the message. decoding and then re-encoding
-bencoded structures is not necessarily an identity operation.
+The ``v`` field is the *value* to be stored. It is allowed to be any bencoded
+type (list, dict, string or integer). When it's being hashed (for verifying its
+signature or to calculate its key), its flattened, bencoded, form is used. It is
+important to use the verbatim bencoded representation as it appeared in the
+message. decoding and then re-encoding bencoded structures is not necessarily an
+identity operation.
 
-Storing nodes MAY reject ``put`` requests where the bencoded form of ``v`` is longer
-than 1000 bytes. In other words, it's not safe to assume storing more than
-1000 bytes will succeed.
+Storing nodes MAY reject ``put`` requests where the bencoded form of ``v`` is
+longer than 1000 bytes. In other words, it's not safe to assume storing more
+than 1000 bytes will succeed.
 
-immutable items
----------------
+immutable items ---------------
 
-Immutable items are stored under their SHA-1 hash, and since they cannot be modified,
-there is no need to authenticate the origin of them. This makes immutable items simple.
+Immutable items are stored under their SHA-1 hash, and since they cannot be
+modified, there is no need to authenticate the origin of them. This makes
+immutable items simple.
 
-A node making a lookup SHOULD verify the data it receives from the network, to verify
-that its hash matches the target that was looked up.
+A node making a lookup SHOULD verify the data it receives from the network, to
+verify that its hash matches the target that was looked up.
 
 put message
 ...........
@@ -147,30 +149,32 @@ mutable items
 -------------
 
 Mutable items can be updated, without changing their DHT keys. To authenticate
-that only the original publisher can update an item, it is signed by a private key
-generated by the original publisher. The target ID mutable items are stored under
-is the SHA-1 hash of the public key (as it appears in the ``put`` message).
+that only the original publisher can update an item, it is signed by a private
+key generated by the original publisher. The target ID mutable items are stored
+under is the SHA-1 hash of the public key (as it appears in the ``put``
+message).
 
 In order to avoid a malicious node to overwrite the list head with an old
-version, the sequence number ``seq`` must be monotonically increasing for each update,
-and a node hosting the list node MUST not downgrade a list head from a higher sequence
-number to a lower one, only upgrade. The sequence number SHOULD not exceed ``MAX_INT64``,
-(i.e. ``0x7fffffffffffffff``. A client MAY reject any message with a sequence number
-exceeding this. A client MAY also reject any message with a negative sequence number.
+version, the sequence number ``seq`` must be monotonically increasing for each
+update, and a node hosting the list node MUST not downgrade a list head from a
+higher sequence number to a lower one, only upgrade. The sequence number SHOULD
+not exceed ``MAX_INT64``, (i.e. ``0x7fffffffffffffff``. A client MAY reject any
+message with a sequence number exceeding this. A client MAY also reject any
+message with a negative sequence number.
 
-The signature is a 64 byte curve25519 signature of the bencoded sequence
-number concatenated with the ``v`` key. e.g. something like this::
+The signature is a 64 byte curve25519 signature of the bencoded sequence number
+concatenated with the ``v`` key. e.g. something like this::
 
 	3:seqi4e1:v12:Hello world!
 
 If the ``salt`` key is present and non-empty, the salt string must be included
-in what's signed. Note that if ``salt`` is specified and an empty string, it
-is as if it was not specified and nothing in addition to the sequence number
-and the data is signed.
+in what's signed. Note that if ``salt`` is specified and an empty string, it is
+as if it was not specified and nothing in addition to the sequence number and
+the data is signed.
 
-When a salt is included in what is signed, the key ``salt`` with the value
-of the key is prepended in its bencoded form. For example, if ``salt`` is
-"foobar", the buffer to be signed is::
+When a salt is included in what is signed, the key ``salt`` with the value of
+the key is prepended in its bencoded form. For example, if ``salt`` is "foobar",
+the buffer to be signed is::
 
 	4:salt6:foobar3:seqi4e1:v12:Hello world!
 
@@ -200,31 +204,31 @@ Request:
 
 Storing nodes receiving a ``put`` request where ``seq`` is lower than or equal
 to what's already stored on the node, MUST reject the request. If the sequence
-number is equal, and the value is also the same, the node SHOULD reset its timeout
-counter.
+number is equal, and the value is also the same, the node SHOULD reset its
+timeout counter.
 
 If the sequence number in the ``put`` message is lower than the sequence number
 associated with the currently stored value, the storing node MAY return an error
 message with code 302 (see error codes below).
 
 Note that this request does not contain a target hash. The target hash under
-which this blob is stored is implied by the ``k`` argument. The key is
-the SHA-1 hash of the key (``k``).
+which this blob is stored is implied by the ``k`` argument. The key is the SHA-1
+hash of the key (``k``).
 
 In order to support a single key being used to store separate items in the DHT,
-an optional ``salt`` can be specified in the ``put`` request of mutable
-items. If the salt entry is not present, it can be assumed to be an empty
-string, and its semantics should be identical as specifying a salt key
-with an empty string. The salt can be any binary string (but probably most
-conveniently a hash of something). This string is appended to the key,
-as specified in the ``k`` field, when calculating the key to store the
-blob under (i.e. the key ``get`` requests specify to retrieve this data).
+an optional ``salt`` can be specified in the ``put`` request of mutable items.
+If the salt entry is not present, it can be assumed to be an empty string, and
+its semantics should be identical as specifying a salt key with an empty string.
+The salt can be any binary string (but probably most conveniently a hash of
+something). This string is appended to the key, as specified in the ``k`` field,
+when calculating the key to store the blob under (i.e. the key ``get`` requests
+specify to retrieve this data).
 
 This lets a single entity, with a single key, publish any number of unrelated
 items, with a single key that readers can verify. This is useful if the
 publisher doesn't know ahead of time how many different items are to be
-published. It can distribute a single public key for users to authenticate
-the published blobs.
+published. It can distribute a single public key for users to authenticate the
+published blobs.
 
 The ``cas`` field is optional. If present it is interpreted as the sha-1 hash of
 the sequence number, ``v`` field and possibly the ``salt`` field, that is
@@ -246,13 +250,14 @@ Response:
 		"y": "r",
 	}
 
-If the store fails for any reason an error message is returned instead of the message
-template above, i.e. one where "y" is "e" and "e" is a tuple of [error-code, message]).
-Failures include where the ``cas`` hash mismatches and the sequence number is outdated.
+If the store fails for any reason an error message is returned instead of the
+message template above, i.e. one where "y" is "e" and "e" is a tuple of
+[error-code, message]). Failures include where the ``cas`` hash mismatches and
+the sequence number is outdated.
 
-If no ``cas`` field is included in the ``put`` message, the value of the current ``v``
-field should be disregarded when determining whether or not to save the item.
-(However, the signature, sequence number obviously still should).
+If no ``cas`` field is included in the ``put`` message, the value of the current
+``v`` field should be disregarded when determining whether or not to save the
+item. (However, the signature, sequence number obviously still should).
 
 The error message (as specified by BEP5_) looks like this:
 
@@ -285,8 +290,9 @@ some additional error codes.
 |            | current.                    |
 +------------+-----------------------------+
 
-An implementation MUST emit 301 errors if the cas-hash mismatches. This is
-a critical feature in synchronization of multiple agents sharing an immutable item.
+An implementation MUST emit 301 errors if the cas-hash mismatches. This is a
+critical feature in synchronization of multiple agents sharing an immutable
+item.
 
 get message
 ...........
@@ -330,26 +336,28 @@ Response:
 signature verification
 ----------------------
 
-In order to make it maximally difficult to attack the bencoding parser, signing and verification of the
-value and sequence number should be done as follows:
+In order to make it maximally difficult to attack the bencoding parser, signing
+and verification of the value and sequence number should be done as follows:
 
 1. encode value and sequence number separately
 2. concatenate ("4:salt" *length-of-salt* ":" *salt*) "3:seqi" *seq*
    "e1:v" *len* ":" and the encoded value.
-   sequence number 1 of value "Hello World!" would be converted to: "3:seqi1e1:v12:Hello World!"
-   In this way it is not possible to convince a node that part of the length is actually part of the
-   sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
-   verification failure if a bencoding serializer alters the order of entries in the dictionary.
-   The salt is in parenthesis because it is optional. It is only prepended if
-   a non-empty salt is specified in the ``put`` request.
+   sequence number 1 of value "Hello World!" would be converted to:
+   "3:seqi1e1:v12:Hello World!". In this way it is not possible to convince a
+   node that part of the length is actually part of the sequence number even if
+   the parser contains certain bugs. Furthermore it is not possible to have a
+   verification failure if a bencoding serializer alters the order of entries in
+   the dictionary. The salt is in parenthesis because it is optional. It is only
+   prepended if a non-empty salt is specified in the ``put`` request.
 3. sign or verify the concatenated string
 
-On the storage node, the signature MUST be verified before accepting the store command. The data
-MUST be stored under the SHA-1 hash of the public key (as it appears in the bencoded dict).
+On the storage node, the signature MUST be verified before accepting the store
+command. The data MUST be stored under the SHA-1 hash of the public key (as it
+appears in the bencoded dict).
 
-On the requesting nodes, the key they get back from a ``get`` request MUST be verified to hash
-to the target ID the lookup was made for, as well as verifying the signature. If any of these fail,
-the response SHOULD be considered invalid.
+On the requesting nodes, the key they get back from a ``get`` request MUST be
+verified to hash to the target ID the lookup was made for, as well as verifying
+the signature. If any of these fail, the response SHOULD be considered invalid.
 
 expiration
 ----------
@@ -357,8 +365,9 @@ expiration
 Without re-announcement, these items MAY expire in 2 hours. In order
 to keep items alive, they SHOULD be re-announced once an hour.
 
-Any node that's interested in keeping a blob in the DHT alive may announce it. It would simply
-repeat the signature for a mutable put without having the private key.
+Any node that's interested in keeping a blob in the DHT alive may announce it.
+It would simply repeat the signature for a mutable put without having the
+private key.
 
 test vector
 -----------

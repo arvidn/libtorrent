@@ -20,8 +20,10 @@ The basic usage is as follows:
 * construct a session
 * load session state from settings file (see load_state())
 * start extensions (see add_extension()).
-* start DHT, LSD, UPnP, NAT-PMP etc (see start_dht(), start_lsd(), start_upnp() and start_natpmp()).
-* parse .torrent-files and add them to the session (see torrent_info, async_add_torrent() and add_torrent())
+* start DHT, LSD, UPnP, NAT-PMP etc (see start_dht(), start_lsd(), start_upnp()
+  and start_natpmp()).
+* parse .torrent-files and add them to the session (see torrent_info,
+  async_add_torrent() and add_torrent())
 * main loop (see session)
 
 	* poll for alerts (see wait_for_alert(), pop_alerts())
@@ -174,52 +176,55 @@ libtorrent supports *queuing*. Which means it makes sure that a limited number o
 torrents are being downloaded at any given time, and once a torrent is completely
 downloaded, the next in line is started.
 
-Torrents that are *auto managed* are subject to the queuing and the active torrents
-limits. To make a torrent auto managed, set ``auto_managed`` to true when adding the
-torrent (see async_add_torrent() and add_torrent()).
+Torrents that are *auto managed* are subject to the queuing and the active
+torrents limits. To make a torrent auto managed, set ``auto_managed`` to true
+when adding the torrent (see async_add_torrent() and add_torrent()).
 
 The limits of the number of downloading and seeding torrents are controlled via
-``active_downloads``, ``active_seeds`` and ``active_limit`` in session_settings. 
-These limits takes non auto managed torrents into account as well. If there are 
-more non-auto managed torrents being downloaded than the ``active_downloads`` 
-setting, any auto managed torrents will be queued until torrents are removed so 
-that the number drops below the limit.
+``active_downloads``, ``active_seeds`` and ``active_limit`` in
+session_settings. These limits takes non auto managed torrents into account as
+well. If there are more non-auto managed torrents being downloaded than the
+``active_downloads`` setting, any auto managed torrents will be queued until
+torrents are removed so that the number drops below the limit.
 
 The default values are 8 active downloads and 5 active seeds.
 
-At a regular interval, torrents are checked if there needs to be any re-ordering of
-which torrents are active and which are queued. This interval can be controlled via
-``auto_manage_interval`` in session_settings. It defaults to every 30 seconds.
+At a regular interval, torrents are checked if there needs to be any
+re-ordering of which torrents are active and which are queued. This interval
+can be controlled via ``auto_manage_interval`` in session_settings. It defaults
+to every 30 seconds.
 
-For queuing to work, resume data needs to be saved and restored for all torrents.
-See save_resume_data().
+For queuing to work, resume data needs to be saved and restored for all
+torrents. See save_resume_data().
 
 downloading
 -----------
 
-Torrents that are currently being downloaded or incomplete (with bytes still to download)
-are queued. The torrents in the front of the queue are started to be actively downloaded
-and the rest are ordered with regards to their queue position. Any newly added torrent
-is placed at the end of the queue. Once a torrent is removed or turns into a seed, its
-queue position is -1 and all torrents that used to be after it in the queue, decreases their
-position in order to fill the gap.
+Torrents that are currently being downloaded or incomplete (with bytes still to
+download) are queued. The torrents in the front of the queue are started to be
+actively downloaded and the rest are ordered with regards to their queue
+position. Any newly added torrent is placed at the end of the queue. Once a
+torrent is removed or turns into a seed, its queue position is -1 and all
+torrents that used to be after it in the queue, decreases their position in
+order to fill the gap.
 
 The queue positions are always in a sequence without any gaps.
 
-Lower queue position means closer to the front of the queue, and will be started sooner than
-torrents with higher queue positions.
+Lower queue position means closer to the front of the queue, and will be
+started sooner than torrents with higher queue positions.
 
 To query a torrent for its position in the queue, or change its position, see:
-queue_position(), queue_position_up(), queue_position_down(), queue_position_top() and queue_position_bottom().
+queue_position(), queue_position_up(), queue_position_down(),
+queue_position_top() and queue_position_bottom().
 
 seeding
 -------
 
-Auto managed seeding torrents are rotated, so that all of them are allocated a fair
-amount of seeding. Torrents with fewer completed *seed cycles* are prioritized for
-seeding. A seed cycle is completed when a torrent meets either the share ratio limit
-(uploaded bytes / downloaded bytes), the share time ratio (time seeding / time
-downloaing) or seed time limit (time seeded).
+Auto managed seeding torrents are rotated, so that all of them are allocated a
+fair amount of seeding. Torrents with fewer completed *seed cycles* are
+prioritized for seeding. A seed cycle is completed when a torrent meets either
+the share ratio limit (uploaded bytes / downloaded bytes), the share time ratio
+(time seeding / time downloaing) or seed time limit (time seeded).
 
 The relevant settings to control these limits are ``share_ratio_limit``,
 ``seed_time_ratio_limit`` and ``seed_time_limit`` in session_settings.
@@ -237,10 +242,11 @@ fast-resume data. The fast-resume data also contains information about which
 blocks, in the unfinished pieces, were downloaded, so it will not have to
 start from scratch on the partially downloaded pieces.
 
-To use the fast-resume data you simply give it to async_add_torrent() and add_torrent(), and it
-will skip the time consuming checks. It may have to do the checking anyway, if
-the fast-resume data is corrupt or doesn't fit the storage for that torrent,
-then it will not trust the fast-resume data and just do the checking.
+To use the fast-resume data you simply give it to async_add_torrent() and
+add_torrent(), and it will skip the time consuming checks. It may have to do
+the checking anyway, if the fast-resume data is corrupt or doesn't fit the
+storage for that torrent, then it will not trust the fast-resume data and just
+do the checking.
 
 file format
 -----------
@@ -402,24 +408,23 @@ storage allocation
 
 There are two modes in which storage (files on disk) are allocated in libtorrent.
 
-1. The traditional *full allocation* mode, where the entire files are filled up with
-   zeros before anything is downloaded. libtorrent will look for sparse files support
-   in the filesystem that is used for storage, and use sparse files or file system
-   zero fill support if present. This means that on NTFS, full allocation mode will
-   only allocate storage for the downloaded pieces.
+1. The traditional *full allocation* mode, where the entire files are filled up
+   with zeros before anything is downloaded. Files are allocated on demand, the
+   first time anything is written to them. The main benefit of this mode is that
+   it avoids creating heavily fragmented files.
 
-2. The *sparse allocation*, sparse files are used, and pieces are downloaded directly
-   to where they belong. This is the recommended (and default) mode.
+2. The *sparse allocation*, sparse files are used, and pieces are downloaded
+   directly to where they belong. This is the recommended (and default) mode.
 
-In previous versions of libtorrent, a 3rd mode was supported, *compact allocation*.
-Support for this is deprecated and will be removed in future versions of libtorrent.
-It's still described in here for completeness.
+In previous versions of libtorrent, a 3rd mode was supported, *compact
+allocation*. Support for this is deprecated and will be removed in future
+versions of libtorrent. It's still described in here for completeness.
 
 The allocation mode is selected when a torrent is started. It is passed as an
 argument to session::add_torrent() or session::async_add_torrent().
 
-The decision to use full allocation or compact allocation typically depends on whether
-any files have priority 0 and if the filesystem supports sparse files.
+The decision to use full allocation or compact allocation typically depends on
+whether any files have priority 0 and if the filesystem supports sparse files.
 
 sparse allocation
 -----------------
@@ -427,45 +432,34 @@ sparse allocation
 On filesystems that supports sparse files, this allocation mode will only use
 as much space as has been downloaded.
 
+The main drawback of this mode is that it may create heavily fragmented files.
+
  * It does not require an allocation pass on startup.
-
- * It supports skipping files (setting prioirty to 0 to not download).
-
- * Fast resume data will remain valid even when file time stamps are out of date.
-
 
 full allocation
 ---------------
 
 When a torrent is started in full allocation mode, the disk-io thread
 will make sure that the entire storage is allocated, and fill any gaps with zeros.
-This will be skipped if the filesystem supports sparse files or automatic zero filling.
 It will of course still check for existing pieces and fast resume data. The main
 drawbacks of this mode are:
 
  * It may take longer to start the torrent, since it will need to fill the files
-   with zeros on some systems. This delay is linearly dependent on the size of
-   the download.
+   with zeroes. This delay is linear to the size of the download.
 
- * The download may occupy unnecessary disk space between download sessions. In case
-   sparse files are not supported.
+ * The download may occupy unnecessary disk space between download sessions.
 
- * Disk caches usually perform extremely poorly with random access to large files
-   and may slow down a download considerably.
+ * Disk caches usually perform poorly with random access to large files
+   and may slow down the download some.
 
 The benefits of this mode are:
 
- * Downloaded pieces are written directly to their final place in the files and the
-   total number of disk operations will be fewer and may also play nicer to
+ * Downloaded pieces are written directly to their final place in the files and
+   the total number of disk operations will be fewer and may also play nicer to
    filesystems' file allocation, and reduce fragmentation.
 
- * No risk of a download failing because of a full disk during download. Unless
-   sparse files are being used.
-
- * The fast resume data will be more likely to be usable, regardless of crashes or
-   out of date data, since pieces won't move around.
-
- * Can be used with prioritizing files to 0.
+ * No risk of a download failing because of a full disk during download, once
+   all files have been created.
 
 compact allocation
 ------------------
@@ -474,10 +468,11 @@ compact allocation
 	Note that support for compact allocation is deprecated in libttorrent, and will
 	be removed in future versions.
 
-The compact allocation will only allocate as much storage as it needs to keep the
-pieces downloaded so far. This means that pieces will be moved around to be placed
-at their final position in the files while downloading (to make sure the completed
-download has all its pieces in the correct place). So, the main drawbacks are:
+The compact allocation will only allocate as much storage as it needs to keep
+the pieces downloaded so far. This means that pieces will be moved around to be
+placed at their final position in the files while downloading (to make sure the
+completed download has all its pieces in the correct place). So, the main
+drawbacks are:
 
  * More disk operations while downloading since pieces are moved around.
 
@@ -491,13 +486,13 @@ The benefits though, are:
 
  * The download will not use unnecessary disk space.
 
- * Disk caches perform much better than in full allocation and raises the download
-   speed limit imposed by the disk.
+ * Disk caches perform much better than in full allocation and raises the
+   download speed limit imposed by the disk.
 
  * Works well on filesystems that don't support sparse files.
 
-The algorithm that is used when allocating pieces and slots isn't very complicated.
-For the interested, a description follows.
+The algorithm that is used when allocating pieces and slots isn't very
+complicated. For the interested, a description follows.
 
 storing a piece:
 
@@ -520,15 +515,14 @@ allocating a new slot:
    2. return slot index **j** as the newly allocated free slot.
 
 5. return **i** as the newly allocated slot.
-                              
- 
+
 extensions
 ==========
 
-These extensions all operates within the `extension protocol`_. The
-name of the extension is the name used in the extension-list packets,
-and the payload is the data in the extended message (not counting the
-length-prefix, message-id nor extension-id).
+These extensions all operates within the `extension protocol`_. The name of the
+extension is the name used in the extension-list packets, and the payload is
+the data in the extended message (not counting the length-prefix, message-id
+nor extension-id).
 
 .. _`extension protocol`: extension_protocol.html
 
@@ -543,18 +537,18 @@ metadata from peers
 
 Extension name: "LT_metadata"
 
-This extension is deprecated in favor of the more widely supported ``ut_metadata``
-extension, see `BEP 9`_.
-The point with this extension is that you don't have to distribute the
-metadata (.torrent-file) separately. The metadata can be distributed
-through the bittorrent swarm. The only thing you need to download such
-a torrent is the tracker url and the info-hash of the torrent.
+This extension is deprecated in favor of the more widely supported
+``ut_metadata`` extension, see `BEP 9`_. The point with this extension is that
+you don't have to distribute the metadata (.torrent-file) separately. The
+metadata can be distributed through the bittorrent swarm. The only thing you
+need to download such a torrent is the tracker url and the info-hash of the
+torrent.
 
-It works by assuming that the initial seeder has the metadata and that
-the metadata will propagate through the network as more peers join.
+It works by assuming that the initial seeder has the metadata and that the
+metadata will propagate through the network as more peers join.
 
-There are three kinds of messages in the metadata extension. These packets
-are put as payload to the extension message. The three packets are:
+There are three kinds of messages in the metadata extension. These packets are
+put as payload to the extension message. The three packets are:
 
 	* request metadata
 	* metadata
@@ -621,13 +615,14 @@ dont_have
 
 Extension name: "lt_dont_have"
 
-The ``dont_have`` extension message is used to tell peers that the client no longer
-has a specific piece. The extension message should be advertised in the ``m`` dictionary
-as ``lt_dont_have``. The message format mimics the regular ``HAVE`` bittorrent message.
+The ``dont_have`` extension message is used to tell peers that the client no
+longer has a specific piece. The extension message should be advertised in the
+``m`` dictionary as ``lt_dont_have``. The message format mimics the regular
+``HAVE`` bittorrent message.
 
-Just like all extension messages, the first 2 bytes in the mssage itself are 20 (the
-bittorrent extension message) and the message ID assigned to this extension in the ``m``
-dictionary in the handshake.
+Just like all extension messages, the first 2 bytes in the mssage itself are 20
+(the bittorrent extension message) and the message ID assigned to this
+extension in the ``m`` dictionary in the handshake.
 
 +-----------+---------------+----------------------------------------+
 | size      | name          | description                            |
@@ -636,27 +631,27 @@ dictionary in the handshake.
 |           |               | has.                                   |
 +-----------+---------------+----------------------------------------+
 
-The length of this message (including the extension message prefix) is
-6 bytes, i.e. one byte longer than the normal ``HAVE`` message, because
-of the extension message wrapping.
+The length of this message (including the extension message prefix) is 6 bytes,
+i.e. one byte longer than the normal ``HAVE`` message, because of the extension
+message wrapping.
 
 HTTP seeding
 ------------
 
-There are two kinds of HTTP seeding. One with that assumes a smart
-(and polite) client and one that assumes a smart server. These
-are specified in `BEP 19`_ and `BEP 17`_ respectively.
+There are two kinds of HTTP seeding. One with that assumes a smart (and polite)
+client and one that assumes a smart server. These are specified in `BEP 19`_
+and `BEP 17`_ respectively.
 
-libtorrent supports both. In the libtorrent source code and API,
-BEP 19 urls are typically referred to as *url seeds* and BEP 17
-urls are typically referred to as *HTTP seeds*.
+libtorrent supports both. In the libtorrent source code and API, BEP 19 urls
+are typically referred to as *url seeds* and BEP 17 urls are typically referred
+to as *HTTP seeds*.
 
-The libtorrent implementation of `BEP 19`_ assumes that, if the URL ends with a slash
-('/'), the filename should be appended to it in order to request pieces from
-that file. The way this works is that if the torrent is a single-file torrent,
-only that filename is appended. If the torrent is a multi-file torrent, the
-torrent's name '/' the file name is appended. This is the same directory
-structure that libtorrent will download torrents into.
+The libtorrent implementation of `BEP 19`_ assumes that, if the URL ends with a
+slash ('/'), the filename should be appended to it in order to request pieces
+from that file. The way this works is that if the torrent is a single-file
+torrent, only that filename is appended. If the torrent is a multi-file
+torrent, the torrent's name '/' the file name is appended. This is the same
+directory structure that libtorrent will download torrents into.
 
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
@@ -679,71 +674,69 @@ The piece picker in libtorrent has the following features:
 internal representation
 -----------------------
 
-It is optimized by, at all times, keeping a list of pieces ordered
-by rarity, randomly shuffled within each rarity class. This list
-is organized as a single vector of contigous memory in RAM, for
-optimal memory locality and to eliminate heap allocations and frees
-when updating rarity of pieces.
+It is optimized by, at all times, keeping a list of pieces ordered by rarity,
+randomly shuffled within each rarity class. This list is organized as a single
+vector of contigous memory in RAM, for optimal memory locality and to eliminate
+heap allocations and frees when updating rarity of pieces.
 
-Expensive events, like a peer joining or leaving, are evaluated
-lazily, since it's cheaper to rebuild the whole list rather than
-updating every single piece in it. This means as long as no blocks
-are picked, peers joining and leaving is no more costly than a single
-peer joining or leaving. Of course the special cases of peers that have
-all or no pieces are optimized to not require rebuilding the list.
+Expensive events, like a peer joining or leaving, are evaluated lazily, since
+it's cheaper to rebuild the whole list rather than updating every single piece
+in it. This means as long as no blocks are picked, peers joining and leaving is
+no more costly than a single peer joining or leaving. Of course the special
+cases of peers that have all or no pieces are optimized to not require
+rebuilding the list.
 
 picker strategy
 ---------------
 
-The normal mode of the picker is of course *rarest first*, meaning
-pieces that few peers have are preferred to be downloaded over pieces
-that more peers have. This is a fundamental algorithm that is the
-basis of the performance of bittorrent. However, the user may set the
-piece picker into sequential download mode. This mode simply picks
-pieces sequentially, always preferring lower piece indices.
+The normal mode of the picker is of course *rarest first*, meaning pieces that
+few peers have are preferred to be downloaded over pieces that more peers have.
+This is a fundamental algorithm that is the basis of the performance of
+bittorrent. However, the user may set the piece picker into sequential download
+mode. This mode simply picks pieces sequentially, always preferring lower piece
+indices.
 
-When a torrent starts out, picking the rarest pieces means increased
-risk that pieces won't be completed early (since there are only a few
-peers they can be downloaded from), leading to a delay of having any
-piece to offer to other peers. This lack of pieces to trade, delays
-the client from getting started into the normal tit-for-tat mode of
-bittorrent, and will result in a long ramp-up time. The heuristic to
-mitigate this problem is to, for the first few pieces, pick random pieces
-rather than rare pieces. The threshold for when to leave this initial
-picker mode is determined by session_settings::initial_picker_threshold.
+When a torrent starts out, picking the rarest pieces means increased risk that
+pieces won't be completed early (since there are only a few peers they can be
+downloaded from), leading to a delay of having any piece to offer to other
+peers. This lack of pieces to trade, delays the client from getting started
+into the normal tit-for-tat mode of bittorrent, and will result in a long
+ramp-up time. The heuristic to mitigate this problem is to, for the first few
+pieces, pick random pieces rather than rare pieces. The threshold for when to
+leave this initial picker mode is determined by
+session_settings::initial_picker_threshold.
 
 reverse order
 -------------
 
-An orthogonal setting is *reverse order*, which is used for *snubbed*
-peers. Snubbed peers are peers that appear very slow, and might have timed
-out a piece request. The idea behind this is to make all snubbed peers
-more likely to be able to do download blocks from the same piece,
-concentrating slow peers on as few pieces as possible. The reverse order
-means that the most common pieces are picked, instead of the rarest pieces
-(or in the case of sequential download, the last pieces, intead of the first).
+An orthogonal setting is *reverse order*, which is used for *snubbed* peers.
+Snubbed peers are peers that appear very slow, and might have timed out a piece
+request. The idea behind this is to make all snubbed peers more likely to be
+able to do download blocks from the same piece, concentrating slow peers on as
+few pieces as possible. The reverse order means that the most common pieces are
+picked, instead of the rarest pieces (or in the case of sequential download,
+the last pieces, intead of the first).
 
-parole mode
------------
+parole mode -----------
 
-Peers that have participated in a piece that failed the hash check, may be
-put in *parole mode*. This means we prefer downloading a full piece  from this
-peer, in order to distinguish which peer is sending corrupt data. Whether to
-do this is or not is controlled by session_settings::use_parole_mode.
+Peers that have participated in a piece that failed the hash check, may be put
+in *parole mode*. This means we prefer downloading a full piece  from this
+peer, in order to distinguish which peer is sending corrupt data. Whether to do
+this is or not is controlled by session_settings::use_parole_mode.
 
 In parole mode, the piece picker prefers picking one whole piece at a time for
 a given peer, avoiding picking any blocks from a piece any other peer has
 contributed to (since that would defeat the purpose of parole mode).
 
-prioritize partial pieces
--------------------------
+prioritize partial pieces -------------------------
 
-This setting determines if partially downloaded or requested pieces should always
-be preferred over other pieces. The benefit of doing this is that the number of
-partial pieces is minimized (and hence the turn-around time for downloading a block
-until it can be uploaded to others is minimized). It also puts less stress on the
-disk cache, since fewer partial pieces need to be kept in the cache. Whether or
-not to enable this is controlled by session_settings::prioritize_partial_pieces.
+This setting determines if partially downloaded or requested pieces should
+always be preferred over other pieces. The benefit of doing this is that the
+number of partial pieces is minimized (and hence the turn-around time for
+downloading a block until it can be uploaded to others is minimized). It also
+puts less stress on the disk cache, since fewer partial pieces need to be kept
+in the cache. Whether or not to enable this is controlled by
+session_settings::prioritize_partial_pieces.
 
 The main benefit of not prioritizing partial pieces is that the rarest first
 algorithm gets to have more influence on which pieces are picked. The picker is
@@ -755,19 +748,17 @@ in the piece picker exceeds the number of peers we're connected to times 1.5.
 This is in order to keep the waste of partial pieces to a minimum, but still
 prefer rarest pieces.
 
-prefer whole pieces
--------------------
+prefer whole pieces -------------------
 
 The *prefer whole pieces* setting makes the piece picker prefer picking entire
 pieces at a time. This is used by web connections (both http seeding
-standards), in order to be able to coalesce the small bittorrent requests
-to larger HTTP requests. This significantly improves performance when
-downloading over HTTP.
+standards), in order to be able to coalesce the small bittorrent requests to
+larger HTTP requests. This significantly improves performance when downloading
+over HTTP.
 
-It is also used by peers that are downloading faster than a certain
-threshold. The main advantage is that these peers will better utilize the
-other peer's disk cache, by requesting all blocks in a single piece, from
-the same peer.
+It is also used by peers that are downloading faster than a certain threshold.
+The main advantage is that these peers will better utilize the other peer's
+disk cache, by requesting all blocks in a single piece, from the same peer.
 
 This threshold is controlled by session_settings::whole_pieces_threshold.
 
@@ -778,8 +769,8 @@ SSL torrents
 ============
 
 Torrents may have an SSL root (CA) certificate embedded in them. Such torrents
-are called *SSL torrents*. An SSL torrent talks to all bittorrent peers over SSL.
-The protocols are layered like this::
+are called *SSL torrents*. An SSL torrent talks to all bittorrent peers over
+SSL. The protocols are layered like this::
 
 	+-----------------------+
 	| BitTorrent protocol   |
@@ -791,70 +782,78 @@ The protocols are layered like this::
 	|           | UDP       |
 	+-----------+-----------+
 
-During the SSL handshake, both peers need to authenticate by providing a certificate
-that is signed by the CA certificate found in the .torrent file. These peer
-certificates are expected to be privided to peers through some other means than 
-bittorrent. Typically by a peer generating a certificate request which is sent to
-the publisher of the torrent, and the publisher returning a signed certificate.
+During the SSL handshake, both peers need to authenticate by providing a
+certificate that is signed by the CA certificate found in the .torrent file.
+These peer certificates are expected to be privided to peers through some other
+means than bittorrent. Typically by a peer generating a certificate request
+which is sent to the publisher of the torrent, and the publisher returning a
+signed certificate.
 
-In libtorrent, set_ssl_certificate() in torrent_handle is used to tell libtorrent where
-to find the peer certificate and the private key for it. When an SSL torrent is loaded,
-the torrent_need_cert_alert is posted to remind the user to provide a certificate.
+In libtorrent, set_ssl_certificate() in torrent_handle is used to tell
+libtorrent where to find the peer certificate and the private key for it. When
+an SSL torrent is loaded, the torrent_need_cert_alert is posted to remind the
+user to provide a certificate.
 
-A peer connecting to an SSL torrent MUST provide the *SNI* TLS extension (server name
-indication). The server name is the hex encoded info-hash of the torrent to connect to.
-This is required for the client accepting the connection to know which certificate to
-present.
+A peer connecting to an SSL torrent MUST provide the *SNI* TLS extension
+(server name indication). The server name is the hex encoded info-hash of the
+torrent to connect to. This is required for the client accepting the connection
+to know which certificate to present.
 
-SSL connections are accepted on a separate socket from normal bittorrent connections. To
-pick which port the SSL socket should bind to, set session_settings::ssl_listen to a
-different port. It defaults to port 4433. This setting is only taken into account when the
-normal listen socket is opened (i.e. just changing this setting won't necessarily close
-and re-open the SSL socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
+SSL connections are accepted on a separate socket from normal bittorrent
+connections. To pick which port the SSL socket should bind to, set
+session_settings::ssl_listen to a different port. It defaults to port 4433.
+This setting is only taken into account when the normal listen socket is opened
+(i.e. just changing this setting won't necessarily close and re-open the SSL
+socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
 
-This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``)
-and requires at least openSSL version 1.0, since it needs SNI support.
+This feature is only available if libtorrent is build with openssl support
+(``TORRENT_USE_OPENSSL``) and requires at least openSSL version 1.0, since it
+needs SNI support.
 
-Peer certificates must have at least one *SubjectAltName* field of type dNSName. At least
-one of the fields must *exactly* match the name of the torrent. This is a byte-by-byte comparison,
-the UTF-8 encoding must be identical (i.e. there's no unicode normalization going on). This is
-the recommended way of verifying certificates for HTTPS servers according to `RFC 2818`_. Note
-the difference that for torrents only *dNSName* fields are taken into account (not IP address fields).
-The most specific (i.e. last) *Common Name* field is also taken into account if no *SubjectAltName*
-did not match.
+Peer certificates must have at least one *SubjectAltName* field of type
+dNSName. At least one of the fields must *exactly* match the name of the
+torrent. This is a byte-by-byte comparison, the UTF-8 encoding must be
+identical (i.e. there's no unicode normalization going on). This is the
+recommended way of verifying certificates for HTTPS servers according to `RFC
+2818`_. Note the difference that for torrents only *dNSName* fields are taken
+into account (not IP address fields). The most specific (i.e. last) *Common
+Name* field is also taken into account if no *SubjectAltName* did not match.
 
-If any of these fields contain a single asterisk ("*"), the certificate is considered covering
-any torrent, allowing it to be reused for any torrent.
+If any of these fields contain a single asterisk ("*"), the certificate is
+considered covering any torrent, allowing it to be reused for any torrent.
 
-The purpose of matching the torrent name with the fields in the peer certificate is to allow
-a publisher to have a single root certificate for all torrents it distributes, and issue
-separate peer certificates for each torrent. A peer receiving a certificate will not necessarily
-be able to access all torrents published by this root certificate (only if it has a "star cert").
+The purpose of matching the torrent name with the fields in the peer
+certificate is to allow a publisher to have a single root certificate for all
+torrents it distributes, and issue separate peer certificates for each torrent.
+A peer receiving a certificate will not necessarily be able to access all
+torrents published by this root certificate (only if it has a "star cert").
 
 .. _`RFC 2818`: http://www.ietf.org/rfc/rfc2818.txt
 
 testing
 -------
 
-To test incoming SSL connections to an SSL torrent, one can use the following *openssl* command::
+To test incoming SSL connections to an SSL torrent, one can use the following
+*openssl* command::
 
 	openssl s_client -cert <peer-certificate>.pem -key <peer-private-key>.pem -CAfile \
 	   <torrent-cert>.pem -debug -connect 127.0.0.1:4433 -tls1 -servername <info-hash>
 
-To create a root certificate, the Distinguished Name (*DN*) is not taken into account
-by bittorrent peers. You still need to specify something, but from libtorrent's point of
-view, it doesn't matter what it is. libtorrent only makes sure the peer certificates are
-signed by the correct root certificate.
+To create a root certificate, the Distinguished Name (*DN*) is not taken into
+account by bittorrent peers. You still need to specify something, but from
+libtorrent's point of view, it doesn't matter what it is. libtorrent only makes
+sure the peer certificates are signed by the correct root certificate.
 
-One way to create the certificates is to use the ``CA.sh`` script that comes with openssl,
-like thisi (don't forget to enter a common Name for the certificate)::
+One way to create the certificates is to use the ``CA.sh`` script that comes
+with openssl, like thisi (don't forget to enter a common Name for the
+certificate)::
 
 	CA.sh -newca
 	CA.sh -newreq
 	CA.sh -sign
 
-The torrent certificate is located in ``./demoCA/private/demoCA/cacert.pem``, this is
-the pem file to include in the .torrent file.
+The torrent certificate is located in ``./demoCA/private/demoCA/cacert.pem``,
+this is the pem file to include in the .torrent file.
 
 The peer's certificate is located in ``./newcert.pem`` and the certificate's
 private key in ``./newkey.pem``.
