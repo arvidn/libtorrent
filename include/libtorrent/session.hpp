@@ -879,6 +879,15 @@ namespace libtorrent
  		void start_upnp();
 		void stop_upnp();
 
+		enum protocol_type { udp = 1, tcp = 2 };
+
+		// add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
+		// whichever is enabled. The return value is a handle referring to
+		// the port mapping that was just created. Pass it to delete_port_mapping()
+		// to remove it.
+		int add_port_mapping(protocol_type t, int external_port, int local_port);
+		void delete_port_mapping(int handle);
+
 		// Starts and stops the NAT-PMP service. When started, the listen port and the DHT
 		// port are attempted to be forwarded on the router through NAT-PMP.
 		// 
