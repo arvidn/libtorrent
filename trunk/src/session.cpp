@@ -1163,12 +1163,13 @@ namespace libtorrent
 
 	int session::add_port_mapping(protocol_type t, int external_port, int local_port)
 	{
-		TORRENT_SYNC_CALL_RET3(add_port_forward, int, t, external_port, local_port);
+		TORRENT_SYNC_CALL_RET3(int, add_port_mapping, int(t), external_port, local_port);
+		return r;
 	}
 
 	void session::delete_port_mapping(int handle)
 	{
-		TORRENT_ASYNC_CALL1(delete_port_forward, handle);
+		TORRENT_ASYNC_CALL1(delete_port_mapping, handle);
 	}
 	
 	void session::stop_lsd()
