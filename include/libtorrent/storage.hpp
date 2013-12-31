@@ -486,7 +486,7 @@ namespace libtorrent
 		bool release_files() { return false; }
 		bool delete_files() { return false; }
 		bool initialize(bool) { return false; }
-		int move_storage(std::string const&, int flags) { return 0; }
+		int move_storage(std::string const&, int) { return 0; }
 		int read(char*, int, int, int size) { return size; }
 		int write(char const*, int, int, int size) { return size; }
 		size_type physical_offset(int, int) { return 0; }
