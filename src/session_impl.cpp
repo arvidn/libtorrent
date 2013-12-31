@@ -6173,22 +6173,22 @@ retry:
 		return u;
 	}
 
-	int session_impl::add_port_mapping(protocol_type t, int external_port
+	int session_impl::add_port_mapping(int t, int external_port
 		, int local_port)
 	{
 		int ret = 0;
-		if (m_upnp) ret = m_upnp->add_mapping(t, external_port
-			, internal_port);
-		if (m_natpmp) ret = m_natpmp->add_mapping(t, external_port
-			, internal_port);
+		if (m_upnp) ret = m_upnp->add_mapping((upnp::protocol_type)t, external_port
+			, local_port);
+		if (m_natpmp) ret = m_natpmp->add_mapping((natpmp::protocol_type)t, external_port
+			, local_port);
 		return ret;
 	}
 
 	void session_impl::delete_port_mapping(int handle)
 	{
 		int ret = 0;
-		if (m_upnp) ret = m_upnp->delete_mapping(handle);
-		if (m_natpmp) ret = m_natpmp->delete_mapping(handle);
+		if (m_upnp) m_upnp->delete_mapping(handle);
+		if (m_natpmp) m_natpmp->delete_mapping(handle);
 	}
 
 	void session_impl::stop_lsd()

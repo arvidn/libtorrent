@@ -485,6 +485,10 @@ namespace libtorrent
 			void stop_natpmp();
 			void stop_upnp();
 
+			int add_port_mapping(int t, int external_port
+				, int local_port);
+			void delete_port_mapping(int handle);
+
 			int next_port();
 
 			void add_redundant_bytes(size_type b, int reason)
