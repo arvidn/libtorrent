@@ -37,7 +37,8 @@ Responses to ``get`` should always include ``nodes`` and ``nodes6``. Those field
 have the same semantics as in its ``get_peers`` response. It should also include a write token,
 ``token``, with the same semantics as int ``get_peers``. The write token MAY be tied
 specifically to the key which ``get`` requested. i.e. the ``token`` can only be used
-to store values under that one key.
+to store values under that one key. It may also be tied to the node ID and IP
+address of the requesting node.
 
 The ``id`` field in these messages has the same semantics as the standard DHT messages,
 i.e. the node ID of the node sending the message, to maintain the structure of the DHT
@@ -48,10 +49,11 @@ and ``announce_peer``, when requesting an item and to write an item respectively
 
 The ``k`` field is the 32 byte curve25519 public key, which the signature
 can be authenticated with. When looking up a mutable item, the ``target`` field
-MUST be the SHA-1 hash of this key.
+MUST be the SHA-1 hash of this key concatenated with the ``salt``, if present.
 
 The distinction between storing mutable and immutable items is the inclusion
-of a public key, a sequence number and signature (``k``, ``seq`` and ``sig``).
+of a public key, a sequence number, signature and an optional salt (``k``,
+``seq``,  ``sig`` and ``salt``).
 
 ``get`` requests for mutable items and immutable items cannot be distinguished from
 eachother. An implementation can either store mutable and immutable items in the same
@@ -60,12 +62,13 @@ requests.
 
 The ``v`` field is the *value* to be stored. It is allowed to be any bencoded type (list,
 dict, string or integer). When it's being hashed (for verifying its signature or to calculate
-its key), its flattened, bencoded, form is used. It is important to use the exact
+its key), its flattened, bencoded, form is used. It is important to use the verbatim
 bencoded representation as it appeared in the message. decoding and then re-encoding
 bencoded structures is not necessarily an identity operation.
 
-Storing nodes SHOULD reject ``put`` requests where the bencoded form of ``v`` is longer
-than 1000 bytes.
+Storing nodes MAY reject ``put`` requests where the bencoded form of ``v`` is longer
+than 1000 bytes. In other words, it's not safe to assume storing more than
+1000 bytes will succeed.
 
 immutable items
 ---------------
@@ -156,7 +159,20 @@ number to a lower one, only upgrade. The sequence number SHOULD not exceed ``MAX
 exceeding this. A client MAY also reject any message with a negative sequence number.
 
 The signature is a 64 byte curve25519 signature of the bencoded sequence
-number concatenated with the ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
+number concatenated with the ``v`` key. e.g. something like this::
+
+	3:seqi4e1:v12:Hello world!
+
+If the ``salt`` key is present and non-empty, the salt string must be included
+in what's signed. Note that if ``salt`` is specified and an empty string, it
+is as if it was not specified and nothing in addition to the sequence number
+and the data is signed.
+
+When a salt is included in what is signed, the key ``salt`` with the value
+of the key is prepended in its bencoded form. For example, if ``salt`` is
+"foobar", the buffer to be signed is::
+
+	4:salt6:foobar3:seqi4e1:v12:Hello world!
 
 put message
 ...........
@@ -171,6 +187,7 @@ Request:
 			"cas": *<optional 20 byte hash (string)>*,
 			"id": *<20 byte id of sending node (string)>*,
 			"k": *<curve25519 public key (32 bytes string)>*,
+			"salt": *<optional salt to be appended to "k" when hashing (string)>*
 			"seq": *<monotonically increasing sequence number (integer)>*,
 			"sig": *<curve25519 signature (64 bytes string)>*,
 			"token": *<write-token (string)>*,
@@ -194,14 +211,30 @@ Note that this request does not contain a target hash. The target hash under
 which this blob is stored is implied by the ``k`` argument. The key is
 the SHA-1 hash of the key (``k``).
 
+In order to support a single key being used to store separate items in the DHT,
+an optional ``salt`` can be specified in the ``put`` request of mutable
+items. If the salt entry is not present, it can be assumed to be an empty
+string, and its semantics should be identical as specifying a salt key
+with an empty string. The salt can be any binary string (but probably most
+conveniently a hash of something). This string is appended to the key,
+as specified in the ``k`` field, when calculating the key to store the
+blob under (i.e. the key ``get`` requests specify to retrieve this data).
+
+This lets a single entity, with a single key, publish any number of unrelated
+items, with a single key that readers can verify. This is useful if the
+publisher doesn't know ahead of time how many different items are to be
+published. It can distribute a single public key for users to authenticate
+the published blobs.
+
 The ``cas`` field is optional. If present it is interpreted as the sha-1 hash of
-the sequence number and ``v`` field that is expected to be replaced. The buffer
-to hash is the same as the one signed when storing. ``cas`` is short for *compare
-and swap*, it has similar semantics as CAS CPU instructions. If specified as part
-of the put command, and the current value stored under the public key differs from
-the expected value, the store fails. The ``cas`` field only applies to mutable puts.
-If there is no current value, the ``cas`` field SHOULD be ignored, not preventing
-the put based on it.
+the sequence number, ``v`` field and possibly the ``salt`` field, that is
+expected to be replaced. The buffer to hash is the same as the one signed when
+storing. ``cas`` is short for *compare and swap*, it has similar semantics as
+CAS CPU instructions. If specified as part of the put command, and the current
+value stored under the public key differs from the expected value, the store
+fails. The ``cas`` field only applies to mutable puts. If there is no current
+value, the ``cas`` field SHOULD be ignored. A put operation should not be
+prevented based on the ``cas`` field if no value is currently present.
 
 Response:
 
@@ -219,6 +252,7 @@ Failures include where the ``cas`` hash mismatches and the sequence number is ou
 
 If no ``cas`` field is included in the ``put`` message, the value of the current ``v``
 field should be disregarded when determining whether or not to save the item.
+(However, the signature, sequence number obviously still should).
 
 The error message (as specified by BEP5_) looks like this:
 
@@ -265,7 +299,7 @@ Request:
 		"a":
 		{
 			"id": *<20 byte id of sending node (string)>*,
-			"target:" *<20 byte SHA-1 hash of public key (string)>*
+			"target:" *<20 byte SHA-1 hash of public key and salt (string)>*
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "q",
@@ -283,6 +317,7 @@ Response:
 			"k": *<curve25519 public key (32 bytes string)>*,
 			"nodes": *<IPv4 nodes close to 'target'>*,
 			"nodes6": *<IPv6 nodes close to 'target'>*,
+			"salt": *<optional salt to be appended to "k" when hashing (string)>*
 			"seq": *<monotonically increasing sequence number (integer)>*,
 			"sig": *<curve25519 signature (64 bytes string)>*,
 			"token": *<write-token (string)>*,
@@ -295,19 +330,18 @@ Response:
 signature verification
 ----------------------
 
-The signature, private and public keys are in the format as produced by this derivative `ed25519 library`_.
-
-.. _`ed25519 library`: https://github.com/nightcracker/ed25519
-
 In order to make it maximally difficult to attack the bencoding parser, signing and verification of the
 value and sequence number should be done as follows:
 
 1. encode value and sequence number separately
-2. concatenate *"3:seqi"* ``seq`` *"e1:v"* ``len`` *":"* and the encoded value.
+2. concatenate ("4:salt" *length-of-salt* ":" *salt*) "3:seqi" *seq*
+   "e1:v" *len* ":" and the encoded value.
    sequence number 1 of value "Hello World!" would be converted to: "3:seqi1e1:v12:Hello World!"
    In this way it is not possible to convince a node that part of the length is actually part of the
    sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
    verification failure if a bencoding serializer alters the order of entries in the dictionary.
+   The salt is in parenthesis because it is optional. It is only prepended if
+   a non-empty salt is specified in the ``put`` request.
 3. sign or verify the concatenated string
 
 On the storage node, the signature MUST be verified before accepting the store command. The data
@@ -326,7 +360,37 @@ to keep items alive, they SHOULD be re-announced once an hour.
 Any node that's interested in keeping a blob in the DHT alive may announce it. It would simply
 repeat the signature for a mutable put without having the private key.
 
-test vectors
-------------
+test vector
+-----------
 
+The buffer being signed::
+
+	3:seqi1e1:v12:Hello World!
+
+public key::
+
+	77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548
+
+private key::
+
+	e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d
+	b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
+
+signature::
+
+	305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff
+	1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01
+
+resources
+---------
+
+Libraries that implement curve25519 DSA:
+
+* NaCl_
+* libsodium_
+* `nightcracker's ed25519`_
+
+.. _NaCl: http://nacl.cr.yp.to/
+.. _libsodium: https://github.com/jedisct1/libsodium
+.. _`nightcracker's ed25519`: https://github.com/nightcracker/ed25519
 

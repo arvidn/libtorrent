@@ -1794,6 +1794,18 @@ int test_main()
 
 	} while (false);
 
+	// test vector
+	from_hex("77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64, public_key);
+	from_hex("e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
+		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128, private_key);
+
+	sign_mutable_item(std::pair<char const*, int>("12:Hello World!", 15), 1
+		, public_key, private_key, signature);
+
+	TEST_EQUAL(to_hex(std::string(signature, 64))
+		, "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff"
+		"1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01");
+
 	return 0;
 }
 
