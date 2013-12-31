@@ -1366,7 +1366,7 @@ namespace libtorrent
 		int priority;
 
 		// the main state the torrent is in. See torrent_status::state_t.
-		boost::uint8_t state;
+		state_t state;
 
 		// true if this torrent has unsaved changes
 		// to its download state and statistics since the last resume data
