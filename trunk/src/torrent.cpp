@@ -5208,7 +5208,7 @@ namespace libtorrent
 		}
 	}
 
-	boost::intrusive_ptr<torrent_info> torrent::get_torrent_copy()
+	boost::intrusive_ptr<torrent_info const> torrent::get_torrent_copy()
 	{
 		if (!m_torrent_file->is_valid()) return boost::intrusive_ptr<torrent_info>();
 

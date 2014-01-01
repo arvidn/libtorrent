@@ -739,9 +739,10 @@ namespace libtorrent
 		return !m_torrent.expired();
 	}
 
-	boost::intrusive_ptr<torrent_info> torrent_handle::torrent_file() const
+	boost::intrusive_ptr<torrent_info const> torrent_handle::torrent_file() const
 	{
-		TORRENT_SYNC_CALL_RET(boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<torrent_info>(), get_torrent_copy);
+		TORRENT_SYNC_CALL_RET(boost::intrusive_ptr<torrent_info const>
+			, boost::intrusive_ptr<torrent_info const>(), get_torrent_copy);
 		return r;
 	}
 

@@ -698,13 +698,14 @@ namespace libtorrent
 		// storage contructor function that was passed to add_torrent.
 		storage_interface* get_storage_impl() const;
 
-		// Returns a pointer to the torrent_info object associated with this torrent. The
-		// torrent_info object is a copy of the internal object. If the torrent doesn't
-		// have metadata, the object being returned will not be fully filled in.
-		// The torrent may be in a state without metadata only if
-		// it was started without a .torrent file, e.g. by using the libtorrent extension of
-		// just supplying a tracker and info-hash.
-		boost::intrusive_ptr<torrent_info> torrent_file() const;
+		// Returns a pointer to the torrent_info object associated with this
+		// torrent. The torrent_info object may be a copy of the internal object.
+		// If the torrent doesn't have metadata, the pointer will not be
+		// initialized (i.e. a NULL pointer). The torrent may be in a state
+		// without metadata only if it was started without a .torrent file, e.g.
+		// by using the libtorrent extension of just supplying a tracker and
+		// info-hash.
+		boost::intrusive_ptr<torrent_info const> torrent_file() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 
