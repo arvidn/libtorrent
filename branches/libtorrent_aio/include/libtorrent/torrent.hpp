@@ -1546,7 +1546,10 @@ namespace libtorrent
 		// the current stats gauge this torrent counts against
 		boost::uint32_t m_current_gauge_state:4;
 
-		// TODO: there's space for 3 bits here
+		// set to true while moving the storage
+		bool m_moving_storage:1;
+
+		// TODO: there's space for 2 bits here
 
 // ----
 

@@ -23,6 +23,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* add moving_storage field to torrent_status
+	* expose UPnP and NAT-PMP mapping in session object
 	* DHT refactoring and support for storing arbitrary data with put
 	* support building on android
 	* improved support for web seeds that don't support keep-alive

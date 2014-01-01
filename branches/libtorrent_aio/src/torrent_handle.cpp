@@ -140,6 +140,7 @@ namespace libtorrent
 		, has_metadata(false)
 		, has_incoming(false)
 		, seed_mode(false)
+		, moving_storage(false)
 		, is_loaded(true)
 		, info_hash(0)
 	{}

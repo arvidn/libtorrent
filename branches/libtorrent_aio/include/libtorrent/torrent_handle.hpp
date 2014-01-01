@@ -1431,7 +1431,7 @@ namespace libtorrent
 		int priority;
 
 		// the main state the torrent is in. See torrent_status::state_t.
-		boost::uint8_t state;
+		state_t state;
 
 		// true if this torrent has unsaved changes
 		// to its download state and statistics since the last resume data
@@ -1495,6 +1495,11 @@ namespace libtorrent
 		// started in seed mode, it will leave seed mode once all pieces have been
 		// checked or as soon as one piece fails the hash check.
 		bool seed_mode;
+
+		// this is true if this torrent's storage is currently being moved from
+		// one location to another. This may potentially be a long operation
+		// if a large file ends up being copied from one drive to another.
+		bool moving_storage;
 
 		// true if this torrent is loaded into RAM. A torrent can be started
 		// and still not loaded into RAM, in case it has not had any peers interested in it

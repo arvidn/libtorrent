@@ -369,7 +369,7 @@ namespace libtorrent
 		inline bool ignore_subdir(std::string const& leaf)
 		{ return leaf == ".." || leaf == "."; }
 
-		inline void nop(int i) {}
+		inline void nop(int) {}
 
 		int get_file_attributes(std::string const& p);
 		std::string get_symlink_path(std::string const& p);

@@ -36,6 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "ed25519.h"
 
+#ifdef TORRENT_DEBUG
+#include "libtorrent/lazy_entry.hpp"
+#endif
+
 namespace libtorrent { namespace dht
 {
 
@@ -44,6 +48,12 @@ namespace
 	enum { canonical_length = 1100 };
 	int canonical_string(std::pair<char const*, int> v, boost::uint64_t seq, char out[canonical_length])
 	{
+		// v must be valid bencoding!
+#ifdef TORRENT_DEBUG
+		lazy_entry e;
+		error_code ec;
+		TORRENT_ASSERT(lazy_bdecode(v.first, v.first + v.second, e, ec) == 0);
+#endif
 		int len = snprintf(out, canonical_length, "3:seqi%" PRId64 "e1:v", seq);
 		memcpy(out + len, v.first, v.second);
 		len += v.second;

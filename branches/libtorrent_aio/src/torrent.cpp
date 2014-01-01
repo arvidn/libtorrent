@@ -225,6 +225,7 @@ namespace libtorrent
 		, m_last_upload(0)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_current_gauge_state(no_gauge_state)
+		, m_moving_storage(false)
 		, m_downloaded(0xffffff)
 		, m_last_scrape(0)
 		, m_progress_ppm(0)
@@ -7794,6 +7795,7 @@ namespace libtorrent
 			inc_refcount("move_storage");
 			m_ses.disk_thread().async_move_storage(m_storage.get(), path, flags
 				, boost::bind(&torrent::on_storage_moved, shared_from_this(), _1));
+			m_moving_storage = true;
 		}
 		else
 		{
@@ -7814,6 +7816,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+		m_moving_storage = false;
 		dec_refcount("move_storage");
 		if (j->ret == piece_manager::no_error || j->ret == piece_manager::need_full_check)
 		{
@@ -10210,6 +10213,7 @@ namespace libtorrent
 		st->has_incoming = m_has_incoming;
 		if (m_error) st->error = convert_from_native(m_error.message()) + ": " + resolve_filename(m_error_file);
 		st->seed_mode = m_seed_mode;
+		st->moving_storage = m_moving_storage;
 
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
