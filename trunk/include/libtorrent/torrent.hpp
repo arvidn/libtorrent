@@ -1346,7 +1346,10 @@ namespace libtorrent
 		// more blocks to disk!
 		bool m_deleted:1;
 
-		// TODO: there's space for another 2 bits here
+		// set to true while moving the storage
+		bool m_moving_storage:1;
+
+		// TODO: there's space for another bit here
 
 // ----
 

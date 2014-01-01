@@ -1431,6 +1431,11 @@ namespace libtorrent
 		// checked or as soon as one piece fails the hash check.
 		bool seed_mode;
 
+		// this is true if this torrent's storage is currently being moved from
+		// one location to another. This may potentially be a long operation
+		// if a large file ends up being copied from one drive to another.
+		bool moving_storage;
+
 		// the info-hash for this torrent
 		sha1_hash info_hash;
 	};
