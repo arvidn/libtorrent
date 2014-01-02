@@ -2682,17 +2682,23 @@ namespace libtorrent
 		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
 	}
 
-	void torrent::force_tracker_request()
-	{
-		force_tracker_request(time_now_hires());
-	}
-
-	void torrent::force_tracker_request(ptime t)
+	void torrent::force_tracker_request(ptime t, int tracker_idx)
 	{
 		if (is_paused()) return;
-		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-			, end(m_trackers.end()); i != end; ++i)
-			i->next_announce = (std::max)(t, i->min_announce) + seconds(1);
+		if (tracker_idx == -1)
+		{
+			for (std::vector<announce_entry>::iterator i = m_trackers.begin()
+				, end(m_trackers.end()); i != end; ++i)
+				i->next_announce = (std::max)(t, i->min_announce) + seconds(1);
+		}
+		else
+		{
+			TORRENT_ASSERT(tracker_idx >= 0 && tracker_idx < int(m_trackers.size()));
+			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
+				return;
+			announce_entry& e = m_trackers[tracker_idx];
+			e.next_announce = (std::max)(t, e.min_announce) + seconds(1);
+		}
 		update_tracker_timer(time_now_hires());
 	}
 

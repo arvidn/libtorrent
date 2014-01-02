@@ -810,11 +810,14 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(add_peer, adr, source);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const
 	{
-		TORRENT_ASYNC_CALL1(force_tracker_request, time_now() + seconds(duration.total_seconds()));
+		TORRENT_ASYNC_CALL2(force_tracker_request, time_now()
+			+ seconds(duration.total_seconds()), -1);
 	}
+#endif
 
 	void torrent_handle::force_dht_announce() const
 	{
@@ -823,9 +826,9 @@ namespace libtorrent
 #endif
 	}
 
-	void torrent_handle::force_reannounce() const
+	void torrent_handle::force_reannounce(int s, int idx) const
 	{
-		TORRENT_ASYNC_CALL1(force_tracker_request, time_now());
+		TORRENT_ASYNC_CALL2(force_tracker_request, time_now() + seconds(s), idx);
 	}
 
 	void torrent_handle::scrape_tracker() const
