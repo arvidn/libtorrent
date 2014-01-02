@@ -862,23 +862,31 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
-		// ``force_reannounce()`` will force this torrent to do another tracker request, to receive new
-		// peers. The second overload of ``force_reannounce`` that takes a ``time_duration`` as
-		// argument will schedule a reannounce in that amount of time from now.
+		// ``force_reannounce()`` will force this torrent to do another tracker
+		// request, to receive new peers. The ``seconds`` argument specifies how
+		// many seconds from now to issue the tracker announces.
 		// 
-		// If the tracker's ``min_interval`` has not passed since the last announce, the forced
-		// announce will be scheduled to happen immediately as the ``min_interval`` expires. This is
-		// to honor trackers minimum re-announce interval settings.
+		// If the tracker's ``min_interval`` has not passed since the last
+		// announce, the forced announce will be scheduled to happen immediately
+		// as the ``min_interval`` expires. This is to honor trackers minimum
+		// re-announce interval settings.
+		//
+		// The ``tracker_index`` argument specifies which tracker to re-announce.
+		// If set to -1 (which is the default), all trackers are re-announce.
 		// 
-		// ``force_dht_announce`` will announce the torrent to the DHT immediately.
-		void force_reannounce() const;
+		// ``force_dht_announce`` will announce the torrent to the DHT
+		// immediately.
+		void force_reannounce(int seconds = 0, int tracker_index = -1) const;
 		void force_dht_announce() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// forces a reannounce in the specified amount of time.
 		// This overrides the default announce interval, and no
 		// announce will take place until the given time has
 		// timed out.
-		void force_reannounce(boost::posix_time::time_duration) const;
+		TORRENT_DEPRECATED_PREFIX
+		void force_reannounce(boost::posix_time::time_duration) const TORRENT_DEPRECATED;
+#endif
 
 		// ``scrape_tracker()`` will send a scrape request to the tracker. A scrape request queries the
 		// tracker for statistics such as total number of incomplete peers, complete peers, number of

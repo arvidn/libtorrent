@@ -480,8 +480,7 @@ namespace libtorrent
 		ptime next_announce() const;
 
 		// forcefully sets next_announce to the current time
-		void force_tracker_request();
-		void force_tracker_request(ptime);
+		void force_tracker_request(ptime, int tracker_idx);
 		void scrape_tracker();
 		void announce_with_tracker(tracker_request::event_t e
 			= tracker_request::none
