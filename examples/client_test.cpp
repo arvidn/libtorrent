@@ -973,7 +973,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 #endif
 
-	boost::intrusive_ptr<torrent_info> ti;
+	boost::intrusive_ptr<torrent_info const> ti;
 
 	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
 	{
@@ -2366,7 +2366,7 @@ int main(int argc, char* argv[])
 			{
 				std::vector<size_type> file_progress;
 				h.file_progress(file_progress);
-				boost::intrusive_ptr<torrent_info> ti = h.torrent_file();
+				boost::intrusive_ptr<torrent_info const> ti = h.torrent_file();
 				for (int i = 0; i < ti->num_files(); ++i)
 				{
 					bool pad_file = ti->file_at(i).pad_file;
