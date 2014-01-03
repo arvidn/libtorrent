@@ -1,3 +1,4 @@
+	* handle DHT error responses correctly
 	* allow force_announce to only affect a single tracker
 	* add moving_storage field to torrent_status
 	* expose UPnP and NAT-PMP mapping in session object

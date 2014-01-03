@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define RPC_MANAGER_HPP
 
 #include <vector>
+#include <deque>
 #include <map>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
@@ -107,7 +108,7 @@ private:
 
 	mutable boost::pool<> m_pool_allocator;
 
-	typedef std::list<observer_ptr> transactions_t;
+	typedef std::deque<observer_ptr> transactions_t;
 	transactions_t m_transactions;
 	
 	udp_socket_interface* m_sock;

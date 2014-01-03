@@ -218,9 +218,11 @@ void node_impl::incoming(msg const& m)
 	lazy_entry const* y_ent = m.message.dict_find_string("y");
 	if (!y_ent || y_ent->string_length() == 0)
 	{
-		entry e;
-		incoming_error(e, "missing 'y' entry");
-		m_sock->send_packet(e, m.addr, 0);
+		// don't respond to this obviously broken messages. We don't
+		// want to open up a magnification opportunity
+//		entry e;
+//		incoming_error(e, "missing 'y' entry");
+//		m_sock->send_packet(e, m.addr, 0);
 		return;
 	}
 
@@ -282,6 +284,8 @@ void node_impl::incoming(msg const& m)
 				TORRENT_LOG(node) << "INCOMING ERROR: " << err->list_string_value_at(1);
 			}
 #endif
+			node_id id;
+			m_rpc.incoming(m, &id, m_settings);
 			break;
 		}
 	}
