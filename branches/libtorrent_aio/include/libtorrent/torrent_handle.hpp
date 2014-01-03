@@ -715,12 +715,13 @@ namespace libtorrent
 		// storage contructor function that was passed to add_torrent.
 		storage_interface* get_storage_impl() const;
 
-		// Returns a pointer to the torrent_info object associated with this torrent. The
-		// torrent_info object is a copy of the internal object. If the torrent doesn't
-		// have metadata, the object being returned will not be fully filled in.
-		// The torrent may be in a state without metadata only if
-		// it was started without a .torrent file, e.g. by using the libtorrent extension of
-		// just supplying a tracker and info-hash.
+		// Returns a pointer to the torrent_info object associated with this
+		// torrent. The torrent_info object may be a copy of the internal object.
+		// If the torrent doesn't have metadata, the pointer will not be
+		// initialized (i.e. a NULL pointer). The torrent may be in a state
+		// without metadata only if it was started without a .torrent file, e.g.
+		// by using the libtorrent extension of just supplying a tracker and
+		// info-hash.
 		boost::shared_ptr<const torrent_info> torrent_file() const;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -885,23 +886,31 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
-		// ``force_reannounce()`` will force this torrent to do another tracker request, to receive new
-		// peers. The second overload of ``force_reannounce`` that takes a ``time_duration`` as
-		// argument will schedule a reannounce in that amount of time from now.
+		// ``force_reannounce()`` will force this torrent to do another tracker
+		// request, to receive new peers. The ``seconds`` argument specifies how
+		// many seconds from now to issue the tracker announces.
 		// 
-		// If the tracker's ``min_interval`` has not passed since the last announce, the forced
-		// announce will be scheduled to happen immediately as the ``min_interval`` expires. This is
-		// to honor trackers minimum re-announce interval settings.
+		// If the tracker's ``min_interval`` has not passed since the last
+		// announce, the forced announce will be scheduled to happen immediately
+		// as the ``min_interval`` expires. This is to honor trackers minimum
+		// re-announce interval settings.
+		//
+		// The ``tracker_index`` argument specifies which tracker to re-announce.
+		// If set to -1 (which is the default), all trackers are re-announce.
 		// 
-		// ``force_dht_announce`` will announce the torrent to the DHT immediately.
-		void force_reannounce() const;
+		// ``force_dht_announce`` will announce the torrent to the DHT
+		// immediately.
+		void force_reannounce(int seconds = 0, int tracker_index = -1) const;
 		void force_dht_announce() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// forces a reannounce in the specified amount of time.
 		// This overrides the default announce interval, and no
 		// announce will take place until the given time has
 		// timed out.
-		void force_reannounce(boost::posix_time::time_duration) const;
+		TORRENT_DEPRECATED_PREFIX
+		void force_reannounce(boost::posix_time::time_duration) const TORRENT_DEPRECATED;
+#endif
 
 		// ``scrape_tracker()`` will send a scrape request to the tracker. A scrape request queries the
 		// tracker for statistics such as total number of incomplete peers, complete peers, number of

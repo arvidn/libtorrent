@@ -221,9 +221,11 @@ void node_impl::incoming(msg const& m)
 	lazy_entry const* y_ent = m.message.dict_find_string("y");
 	if (!y_ent || y_ent->string_length() == 0)
 	{
-		entry e;
-		incoming_error(e, "missing 'y' entry");
-		m_sock->send_packet(e, m.addr, 0);
+		// don't respond to this obviously broken messages. We don't
+		// want to open up a magnification opportunity
+//		entry e;
+//		incoming_error(e, "missing 'y' entry");
+//		m_sock->send_packet(e, m.addr, 0);
 		return;
 	}
 
@@ -285,6 +287,8 @@ void node_impl::incoming(msg const& m)
 				TORRENT_LOG(node) << "INCOMING ERROR: " << err->list_string_value_at(1);
 			}
 #endif
+			node_id id;
+			m_rpc.incoming(m, &id, m_settings);
 			break;
 		}
 	}
@@ -936,11 +940,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"k", lazy_entry::string_t, item_pk_len, key_desc_t::optional},
 			{"sig", lazy_entry::string_t, item_sig_len, key_desc_t::optional},
 			{"cas", lazy_entry::string_t, 20, key_desc_t::optional},
+			{"salt", lazy_entry::string_t, 0, key_desc_t::optional},
 		};
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[6];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[7];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -951,6 +956,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// is this a mutable put?
 		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
 
+		// public key (only set if it's a mutable put)
+		char const* pk = NULL;
+		if (msg_keys[3]) pk = msg_keys[3]->string_ptr();
+
+		// signature (only set if it's a mutable put)
+		char const* sig = NULL;
+		if (msg_keys[4]) sig = msg_keys[4]->string_ptr();
+
 		// pointer and length to the whole entry
 		std::pair<char const*, int> buf = msg_keys[1]->data_section();
 		if (buf.second > 1000 || buf.second <= 0)
@@ -959,15 +972,23 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash target;
-		if (!mutable_put)
-			target = hasher(buf.first, buf.second).final();
-		else
-			target = hasher(msg_keys[3]->string_ptr(), item_pk_len).final();
+		std::pair<char const*, int> salt(NULL, 0);
+		if (msg_keys[6])
+			salt = std::pair<char const*, int>(
+				msg_keys[6]->string_ptr(), msg_keys[6]->string_length());
+		if (salt.second > 64)
+		{
+			incoming_error(e, "salt too big", 207);
+			return;
+		}
 
-//		fprintf(stderr, "%s PUT target: %s\n"
+		sha1_hash target = item_target_id(buf, salt, pk);
+
+//		fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
 //			, mutable_put ? "mutable":"immutable"
-//			, to_hex(target.to_string()).c_str());
+//			, to_hex(target.to_string()).c_str()
+//			, salt.second > 0 ? std::string(salt.first, salt.second).c_str() : ""
+//			, pk ? to_hex(std::string(pk, 32)).c_str() : "");
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
@@ -1019,19 +1040,16 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 #ifdef TORRENT_USE_VALGRIND
 			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4]->string_ptr(), item_sig_len);
-			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[3]->string_ptr(), item_pk_len);
+			VALGRIND_CHECK_MEM_IS_DEFINED(pk, item_pk_len);
 #endif
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
-			if (!verify_mutable_item(msg_keys[1]->data_section()
-				, msg_keys[2]->int_value()
-				, msg_keys[3]->string_ptr()
-				, msg_keys[4]->string_ptr()))
+			if (!verify_mutable_item(buf, salt
+				, msg_keys[2]->int_value(), pk, sig))
 			{
 				incoming_error(e, "invalid signature", 206);
 				return;
 			}
 
-			sha1_hash target = hasher(msg_keys[3]->string_ptr(), msg_keys[3]->string_length()).final();
 			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end())
 			{
@@ -1047,6 +1065,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 							, boost::bind(&dht_mutable_table_t::value_type::second, _1)));
 					TORRENT_ASSERT(j != m_mutable_table.end());
 					free(j->second.value);
+					free(j->second.salt);
 					m_mutable_table.erase(j);
 					m_counters.inc_stats_counter(counters::dht_mutable_data, -1);
 				}
@@ -1054,10 +1073,18 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				to_add.value = (char*)malloc(buf.second);
 				to_add.size = buf.second;
 				to_add.seq = msg_keys[2]->int_value();
-				memcpy(to_add.sig, msg_keys[4]->string_ptr(), sizeof(to_add.sig));
+				to_add.salt = NULL;
+				to_add.salt_size = 0;
+				if (salt.second > 0)
+				{
+					to_add.salt = (char*)malloc(salt.second);
+					to_add.salt_size = salt.second;
+					memcpy(to_add.salt, salt.first, salt.second);
+				}
+				memcpy(to_add.sig, sig, sizeof(to_add.sig));
 				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4]->string_length());
 				memcpy(to_add.value, buf.first, buf.second);
-				memcpy(&to_add.key, msg_keys[3]->string_ptr(), sizeof(to_add.key));
+				memcpy(&to_add.key, pk, sizeof(to_add.key));
 		
 				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
@@ -1075,7 +1102,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				// matches the expected value before replacing it
 				if (msg_keys[5])
 				{
-					sha1_hash h = mutable_item_cas(std::make_pair(item->value, item->size), item->seq);
+					sha1_hash h = mutable_item_cas(
+						std::make_pair(item->value, item->size)
+						, std::make_pair(item->salt, item->salt_size)
+						, item->seq);
 
 					if (h != sha1_hash(msg_keys[5]->string_ptr()))
 					{

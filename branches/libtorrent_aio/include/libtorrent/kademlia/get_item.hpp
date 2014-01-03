@@ -63,6 +63,7 @@ protected:
 
 	data_callback m_data_callback;
 	item m_data;
+	std::string m_salt;
 };
 
 class get_item_observer : public find_data_observer

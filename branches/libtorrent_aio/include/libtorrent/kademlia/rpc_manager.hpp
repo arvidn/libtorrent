@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define RPC_MANAGER_HPP
 
 #include <vector>
+#include <deque>
 #include <map>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>

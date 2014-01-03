@@ -170,7 +170,7 @@ concatenated with the ``v`` key. e.g. something like this::
 If the ``salt`` key is present and non-empty, the salt string must be included
 in what's signed. Note that if ``salt`` is specified and an empty string, it is
 as if it was not specified and nothing in addition to the sequence number and
-the data is signed.
+the data is signed. The salt string may not be longer than 64 bytes.
 
 When a salt is included in what is signed, the key ``salt`` with the value of
 the key is prepended in its bencoded form. For example, if ``salt`` is "foobar",
@@ -230,6 +230,12 @@ publisher doesn't know ahead of time how many different items are to be
 published. It can distribute a single public key for users to authenticate the
 published blobs.
 
+Note that the salt is not returned in the response to a ``get`` request. This
+is intentional. When issuing a ``get`` request for an item is expected to
+know what the salt is (because it is part of what the target ID that is being
+looked up is derived from). There is no need to repeat it back for bystanders
+to see.
+
 The ``cas`` field is optional. If present it is interpreted as the sha-1 hash of
 the sequence number, ``v`` field and possibly the ``salt`` field, that is
 expected to be replaced. The buffer to hash is the same as the one signed when
@@ -282,6 +288,9 @@ some additional error codes.
 +------------+-----------------------------+
 | 206        | invalid signature           |
 +------------+-----------------------------+
+| 207        | salt (i.e. ``salt`` field)  |
+|            | too big.                    |
++------------+-----------------------------+
 | 301        | the CAS hash mismatched,    |
 |            | re-read value and try       |
 |            | again.                      |
@@ -323,7 +332,6 @@ Response:
 			"k": *<curve25519 public key (32 bytes string)>*,
 			"nodes": *<IPv4 nodes close to 'target'>*,
 			"nodes6": *<IPv6 nodes close to 'target'>*,
-			"salt": *<optional salt to be appended to "k" when hashing (string)>*
 			"seq": *<monotonically increasing sequence number (integer)>*,
 			"sig": *<curve25519 signature (64 bytes string)>*,
 			"token": *<write-token (string)>*,
@@ -369,10 +377,17 @@ Any node that's interested in keeping a blob in the DHT alive may announce it.
 It would simply repeat the signature for a mutable put without having the
 private key.
 
-test vector
------------
+test vectors
+------------
 
-The buffer being signed::
+test 1 (mutable)
+................
+
+value::
+	
+	12:Hello World!
+
+buffer being signed::
 
 	3:seqi1e1:v12:Hello World!
 
@@ -385,10 +400,58 @@ private key::
 	e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d
 	b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
 
-signature::
+**target ID**::
+	
+	4a533d47ec9c7d95b1ad75f576cffc641853b750
+
+**signature**::
 
 	305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff
 	1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01
+
+test 2 (mutable with salt)
+..........................
+
+value::
+	
+	12:Hello World!
+
+salt::
+	
+	foobar
+
+buffer being signed::
+
+	4:salt6:foobar3:seqi1e1:v12:Hello World!
+
+public key::
+
+	77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548
+
+private key::
+
+	e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d
+	b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
+
+**target ID**::
+	
+	411eba73b6f087ca51a3795d9c8c938d365e32c1
+
+**signature**::
+
+	6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d
+	df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08
+
+test 3 (immutable)
+..................
+
+value::
+	
+	12:Hello World!
+
+**target ID**::
+	
+	e5f96f6f38320f0f33959cb4d3d656452117aadb
 
 resources
 ---------

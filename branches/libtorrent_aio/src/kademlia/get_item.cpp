@@ -46,23 +46,21 @@ void get_item::got_data(lazy_entry const* v,
 	boost::uint64_t seq,
 	char const* sig)
 {
+	std::pair<char const*, int> salt(m_salt.c_str(), m_salt.size());
+
+	sha1_hash incoming_target = item_target_id(v->data_section(), salt, pk);
+	if (incoming_target != m_target) return;
+
 	if (pk && sig)
 	{
-		if (hasher(pk, item_pk_len).final() != m_target)
-			return;
-
 		if (m_data.empty() || m_data.seq() < seq)
 		{
-			if (!m_data.assign(v, seq, pk, sig))
+			if (!m_data.assign(v, salt, seq, pk, sig))
 				return;
 		}
 	}
 	else if (m_data.empty())
 	{
-		std::pair<char const*, int> buf = v->data_section();
-		if (hasher(buf.first, buf.second).final() != m_target)
-			return;
-
 		m_data.assign(v);
 		bool put_requested = m_data_callback(m_data);
 		if (put_requested)
