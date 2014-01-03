@@ -147,7 +147,8 @@ void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
 	, char const* target = 0, entry const* value = 0
 	, bool scrape = false, bool seed = false
 	, std::string const key = std::string(), std::string const sig = std::string()
-	, int seq = -1, char const* cas = 0, sha1_hash const* nid = NULL)
+	, int seq = -1, char const* cas = 0, sha1_hash const* nid = NULL
+	, char const* put_salt = NULL)
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -171,6 +172,7 @@ void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
 	if (seed) a["seed"] = 1;
 	if (seq >= 0) a["seq"] = seq;
 	if (cas) a["cas"] = std::string(cas, 20);
+	if (put_salt) a["salt"] = put_salt;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
@@ -747,135 +749,10 @@ int test_main()
 
 	announce_immutable_items(node, eps, items, sizeof(items)/sizeof(items[0]));
 
-	// ==== get / put mutable items ===
-
-	fprintf(stderr, "generating ed25519 keys\n");
-	unsigned char seed[32];
-	ed25519_create_seed(seed);
-	char private_key[item_sk_len];
-	char public_key[item_pk_len];
-
-	ed25519_create_keypair((unsigned char*)public_key, (unsigned char*)private_key, seed);
-	fprintf(stderr, "pub: %s priv: %s\n"
-		, to_hex(std::string(public_key, item_pk_len)).c_str()
-		, to_hex(std::string(private_key, item_sk_len)).c_str());
-
-	TEST_CHECK(ret);
-
-	send_dht_request(node, "get", source, &response, "10", 0
-		, 0, no, 0, (char*)&hasher(public_key, item_pk_len).final()[0]
-		, 0, false, false, std::string(), std::string(), 64);
-			
-	key_desc_t desc[] =
-	{
-		{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
-			{ "id", lazy_entry::string_t, 20, 0},
-			{ "token", lazy_entry::string_t, 0, 0},
-			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
-		{ "y", lazy_entry::string_t, 1, 0},
-	};
-
-	ret = verify_message(&response, desc, parsed, 5, error_string, sizeof(error_string));
-	if (ret)
-	{
-		TEST_EQUAL(parsed[4]->string_value(), "r");
-		token = parsed[2]->string_value();
-		fprintf(stderr, "got token: %s\n", token.c_str());
-	}
-	else
-	{
-		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		fprintf(stderr, "   invalid get response: %s\n%s\n"
-			, error_string, print_entry(response).c_str());
-		TEST_ERROR(error_string);
-	}
-
-	char signature[item_sig_len];
-	char buffer[1200];
-	int seq = 4;
-	std::pair<const char*, int> itemv(buffer, bencode(buffer, items[0].ent));
-	sign_mutable_item(itemv, seq, public_key, private_key, signature);
-	TEST_EQUAL(verify_mutable_item(itemv, seq, public_key, signature), true);
-#ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
-#endif
-
-	send_dht_request(node, "put", source, &response, "10", 0
-		, 0, token, 0, 0, &items[0].ent, false, false
-		, std::string(public_key, item_pk_len)
-		, std::string(signature, item_sig_len), seq);
-
 	key_desc_t desc2[] =
 	{
 		{ "y", lazy_entry::string_t, 1, 0 }
 	};
-
-	ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
-	if (ret)
-	{
-		fprintf(stderr, "put response: %s\n"
-			, print_entry(response).c_str());
-		TEST_EQUAL(parsed[0]->string_value(), "r");
-	}
-	else
-	{
-		fprintf(stderr, "   invalid put response: %s\n%s\n"
-			, error_string, print_entry(response).c_str());
-		TEST_ERROR(error_string);
-	}
-
-	send_dht_request(node, "get", source, &response, "10", 0
-		, 0, no, 0, (char*)&hasher(public_key, item_pk_len).final()[0]
-		, 0, false, false, std::string(), std::string(), 64);
-			
-	key_desc_t desc3[] =
-	{
-		{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
-			{ "id", lazy_entry::string_t, 20, 0},
-			{ "v", lazy_entry::none_t, 0, 0},
-			{ "seq", lazy_entry::int_t, 0, 0},
-			{ "sig", lazy_entry::string_t, 0, 0},
-			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
-		{ "y", lazy_entry::string_t, 1, 0},
-	};
-
-	ret = verify_message(&response, desc3, parsed, 7, error_string, sizeof(error_string));
-	if (ret == 0)
-	{
-		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		fprintf(stderr, "   invalid get response: %s\n%s\n"
-			, error_string, print_entry(response).c_str());
-		TEST_ERROR(error_string);
-	}
-	else
-	{
-		char value[1020];
-		char* ptr = value;
-		int value_len = bencode(ptr, items[0].ent);
-		TEST_EQUAL(value_len, parsed[2]->data_section().second);
-		TEST_CHECK(memcmp(parsed[2]->data_section().first, value, value_len) == 0);
-
-		TEST_EQUAL(seq, parsed[3]->int_value());
-
-	}
-
-	// also test that invalid signatures fail!
-
-	itemv.second = bencode(buffer, items[0].ent);
-	sign_mutable_item(itemv, seq, public_key, private_key, signature);
-	TEST_EQUAL(verify_mutable_item(itemv, seq, public_key, signature), 1);
-#ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
-#endif
-	// break the signature 
-	signature[2] ^= 0xaa;
-
-	TEST_CHECK(verify_mutable_item(itemv, seq, public_key, signature) != 1);
-
-	send_dht_request(node, "put", source, &response, "10", 0
-		, 0, token, 0, 0, &items[0].ent, false, false
-		, std::string(public_key, item_pk_len)
-		, std::string(signature, item_sig_len), seq);
 
 	key_desc_t desc_error[] =
 	{
@@ -883,78 +760,236 @@ int test_main()
 		{ "y", lazy_entry::string_t, 1, 0},
 	};
 
-	ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
-	if (ret)
-	{
-		fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
-		TEST_EQUAL(parsed[1]->string_value(), "e");
-		// 206 is the code for invalid signature
-		TEST_EQUAL(parsed[0]->list_int_value_at(0), 206);
-	}
-	else
-	{
-		fprintf(stderr, "   invalid put response: %s\n%s\n"
-			, error_string, print_entry(response).c_str());
-		TEST_ERROR(error_string);
-	}
+	// ==== get / put mutable items ===
 
-	// === test CAS put ===
+	std::pair<const char*, int> itemv;
+	std::pair<char const*, int> empty_salt(NULL, 0);
+	char signature[item_sig_len];
+	char buffer[1200];
+	int seq = 4;
+	char private_key[item_sk_len];
+	char public_key[item_pk_len];
+	for (int with_salt = 0; with_salt < 2; ++with_salt)
+	{
+		seq = 4;
+		fprintf(stderr, "\nTEST GET/PUT%s \ngenerating ed25519 keys\n\n"
+			, with_salt ? " with-salt" : " no-salt");
+		unsigned char seed[32];
+		ed25519_create_seed(seed);
 
-	// this is the hash that we expect to be there
-	sha1_hash cas = mutable_item_cas(itemv, seq);
-	// increment sequence number
-	++seq;
-	// put item 1
-	itemv.second = bencode(buffer, items[1].ent);
-	sign_mutable_item(itemv, seq, public_key, private_key, signature);
-	TEST_EQUAL(verify_mutable_item(itemv, seq, public_key, signature), 1);
+		ed25519_create_keypair((unsigned char*)public_key, (unsigned char*)private_key, seed);
+		fprintf(stderr, "pub: %s priv: %s\n"
+			, to_hex(std::string(public_key, item_pk_len)).c_str()
+			, to_hex(std::string(private_key, item_sk_len)).c_str());
+
+		TEST_CHECK(ret);
+
+		std::pair<const char*, int> salt(NULL, 0);
+		if (with_salt)
+			salt = std::pair<char const*, int>("foobar", 6);
+
+		hasher h(public_key, 32);
+		if (with_salt) h.update(salt.first, salt.second);
+		sha1_hash target_id = h.final();
+
+		fprintf(stderr, "target_id: %s\n"
+			, to_hex(target_id.to_string()).c_str());
+
+		send_dht_request(node, "get", source, &response, "10", 0
+			, 0, no, 0, (char*)&target_id[0]
+			, 0, false, false, std::string(), std::string(), 64);
+
+		key_desc_t desc[] =
+		{
+			{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+			{ "id", lazy_entry::string_t, 20, 0},
+			{ "token", lazy_entry::string_t, 0, 0},
+			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+			{ "y", lazy_entry::string_t, 1, 0},
+		};
+
+		ret = verify_message(&response, desc, parsed, 5, error_string, sizeof(error_string));
+		if (ret)
+		{
+			TEST_EQUAL(parsed[4]->string_value(), "r");
+			token = parsed[2]->string_value();
+			fprintf(stderr, "get response: %s\n"
+				, print_entry(response).c_str());
+			fprintf(stderr, "got token: %s\n", to_hex(token).c_str());
+		}
+		else
+		{
+			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+			fprintf(stderr, "   invalid get response: %s\n%s\n"
+				, error_string, print_entry(response).c_str());
+			TEST_ERROR(error_string);
+		}
+
+		itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
+		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
+		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), true);
 #ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
+		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
 #endif
 
-	send_dht_request(node, "put", source, &response, "10", 0
-		, 0, token, 0, 0, &items[1].ent, false, false
-		, std::string(public_key, item_pk_len)
-		, std::string(signature, item_sig_len), seq
-		, (char const*)&cas[0]);
+		send_dht_request(node, "put", source, &response, "10", 0
+			, 0, token, 0, 0, &items[0].ent, false, false
+			, std::string(public_key, item_pk_len)
+			, std::string(signature, item_sig_len), seq, NULL, NULL, salt.first);
 
-	ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
-	if (ret)
-	{
-		fprintf(stderr, "put response: %s\n"
-			, print_entry(response).c_str());
-		TEST_EQUAL(parsed[0]->string_value(), "r");
-	}
-	else
-	{
-		fprintf(stderr, "   invalid put response: %s\n%s\n"
-			, error_string, print_entry(response).c_str());
-		TEST_ERROR(error_string);
-	}
+		ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
+		if (ret)
+		{
+			fprintf(stderr, "put response: %s\n"
+				, print_entry(response).c_str());
+			TEST_EQUAL(parsed[0]->string_value(), "r");
+		}
+		else
+		{
+			fprintf(stderr, "   invalid put response: %s\n%s\n"
+				, error_string, print_entry(response).c_str());
+			TEST_ERROR(error_string);
+		}
 
-	// put the same message again. This should fail because the
-	// CAS hash is outdated, it's not the hash of the value that's
-	// stored anymore
-	send_dht_request(node, "put", source, &response, "10", 0
-		, 0, token, 0, 0, &items[1].ent, false, false
-		, std::string(public_key, item_pk_len)
-		, std::string(signature, item_sig_len), seq
-		, (char const*)&cas[0]);
+		send_dht_request(node, "get", source, &response, "10", 0
+			, 0, no, 0, (char*)&target_id[0]
+			, 0, false, false, std::string(), std::string(), 64);
 
-	ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
-	if (ret)
-	{
-		fprintf(stderr, "put response: %s\n"
-			, print_entry(response).c_str());
-		TEST_EQUAL(parsed[1]->string_value(), "e");
-		// 301 is the error code for CAS hash mismatch
-		TEST_EQUAL(parsed[0]->list_int_value_at(0), 301);
-	}
-	else
-	{
-		fprintf(stderr, "   invalid put response: %s\n%s\nExpected failure 301 (CAS hash mismatch)\n"
-			, error_string, print_entry(response).c_str());
-		TEST_ERROR(error_string);
+		fprintf(stderr, "target_id: %s\n"
+			, to_hex(target_id.to_string()).c_str());
+
+		key_desc_t desc3[] =
+		{
+			{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+			{ "id", lazy_entry::string_t, 20, 0},
+			{ "v", lazy_entry::none_t, 0, 0},
+			{ "seq", lazy_entry::int_t, 0, 0},
+			{ "sig", lazy_entry::string_t, 0, 0},
+			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+			{ "y", lazy_entry::string_t, 1, 0},
+		};
+
+		ret = verify_message(&response, desc3, parsed, 7, error_string, sizeof(error_string));
+		if (ret == 0)
+		{
+			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+			fprintf(stderr, "   invalid get response: %s\n%s\n"
+				, error_string, print_entry(response).c_str());
+			TEST_ERROR(error_string);
+		}
+		else
+		{
+			fprintf(stderr, "get response: %s\n"
+				, print_entry(response).c_str());
+			char value[1020];
+			char* ptr = value;
+			int value_len = bencode(ptr, items[0].ent);
+			TEST_EQUAL(value_len, parsed[2]->data_section().second);
+			TEST_CHECK(memcmp(parsed[2]->data_section().first, value, value_len) == 0);
+
+			TEST_EQUAL(seq, parsed[3]->int_value());
+		}
+
+		// also test that invalid signatures fail!
+
+		itemv.second = bencode(buffer, items[0].ent);
+		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
+		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), 1);
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
+#endif
+		// break the signature 
+		signature[2] ^= 0xaa;
+
+		fprintf(stderr, "PUT broken signature\n");
+
+		TEST_CHECK(verify_mutable_item(itemv, salt, seq, public_key, signature) != 1);
+
+		send_dht_request(node, "put", source, &response, "10", 0
+			, 0, token, 0, 0, &items[0].ent, false, false
+			, std::string(public_key, item_pk_len)
+			, std::string(signature, item_sig_len), seq, NULL, NULL, salt.first);
+
+		ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
+		if (ret)
+		{
+			fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
+			TEST_EQUAL(parsed[1]->string_value(), "e");
+			// 206 is the code for invalid signature
+			TEST_EQUAL(parsed[0]->list_int_value_at(0), 206);
+		}
+		else
+		{
+			fprintf(stderr, "   invalid put response: %s\n%s\n"
+				, error_string, print_entry(response).c_str());
+			TEST_ERROR(error_string);
+		}
+	
+		// === test CAS put ===
+
+		// this is the hash that we expect to be there
+		sha1_hash cas = mutable_item_cas(itemv, salt, seq);
+		// increment sequence number
+		++seq;
+		// put item 1
+		itemv.second = bencode(buffer, items[1].ent);
+		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
+		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), 1);
+#ifdef TORRENT_USE_VALGRIND
+		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
+#endif
+
+		TEST_CHECK(item_target_id(itemv, salt, public_key) == target_id);
+
+		fprintf(stderr, "PUT CAS 1\n");
+
+		send_dht_request(node, "put", source, &response, "10", 0
+			, 0, token, 0, 0, &items[1].ent, false, false
+			, std::string(public_key, item_pk_len)
+			, std::string(signature, item_sig_len), seq
+			, (char const*)&cas[0], NULL, salt.first);
+
+		ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
+		if (ret)
+		{
+			fprintf(stderr, "put response: %s\n"
+				, print_entry(response).c_str());
+			TEST_EQUAL(parsed[0]->string_value(), "r");
+		}
+		else
+		{
+			fprintf(stderr, "   invalid put response: %s\n%s\n"
+				, error_string, print_entry(response).c_str());
+			TEST_ERROR(error_string);
+		}
+
+		fprintf(stderr, "PUT CAS 2\n");
+
+		// put the same message again. This should fail because the
+		// CAS hash is outdated, it's not the hash of the value that's
+		// stored anymore
+		send_dht_request(node, "put", source, &response, "10", 0
+			, 0, token, 0, 0, &items[1].ent, false, false
+			, std::string(public_key, item_pk_len)
+			, std::string(signature, item_sig_len), seq
+			, (char const*)&cas[0], NULL, salt.first);
+
+		ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
+		if (ret)
+		{
+			fprintf(stderr, "put response: %s\n"
+				, print_entry(response).c_str());
+			TEST_EQUAL(parsed[1]->string_value(), "e");
+			// 301 is the error code for CAS hash mismatch
+			TEST_EQUAL(parsed[0]->list_int_value_at(0), 301);
+		}
+		else
+		{
+			fprintf(stderr, "   invalid put response: %s\n%s\nExpected failure 301 (CAS hash mismatch)\n"
+				, error_string, print_entry(response).c_str());
+			TEST_ERROR(error_string);
+		}
+
 	}
 
 // test routing table
@@ -1589,7 +1624,7 @@ int test_main()
 		g_sent_packets.clear();
 
 		itemv.second = bencode(buffer, items[0].ent);
-		sign_mutable_item(itemv, seq, public_key, private_key, signature);
+		sign_mutable_item(itemv, empty_salt, seq, public_key, private_key, signature);
 		send_dht_response(node, response, initial_node, nodes_t(), "10", 1234, std::set<tcp::endpoint>()
 			, NULL, &items[0].ent, std::string(public_key, item_pk_len), std::string(signature, item_sig_len), seq);
 
@@ -1723,7 +1758,7 @@ int test_main()
 			node.m_table.add_node(nodes[i]);
 
 		sha1_hash target = hasher(public_key, item_pk_len).final();
-		g_put_item.assign(items[0].ent, seq, public_key, private_key);
+		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
 		std::string sig(g_put_item.sig(), item_sig_len);
 		node.get_item(target, get_item_cb);
 
@@ -1794,17 +1829,43 @@ int test_main()
 
 	} while (false);
 
-	// test vector
+	// test vector 1
+
+	// test content
+	std::pair<char const*, int> test_content("12:Hello World!", 15);
+	// test salt
+	std::pair<char const*, int> test_salt("foobar", 6);
+
 	from_hex("77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64, public_key);
 	from_hex("e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
 		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128, private_key);
 
-	sign_mutable_item(std::pair<char const*, int>("12:Hello World!", 15), 1
-		, public_key, private_key, signature);
+	sign_mutable_item(test_content, empty_salt, 1, public_key
+		, private_key, signature);
 
 	TEST_EQUAL(to_hex(std::string(signature, 64))
 		, "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff"
 		"1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01");
+
+	sha1_hash target_id = item_target_id(test_content, empty_salt, public_key);
+	TEST_EQUAL(to_hex(target_id.to_string()), "4a533d47ec9c7d95b1ad75f576cffc641853b750");
+
+	// test vector 2 (the keypair is the same as test 1)
+
+	sign_mutable_item(test_content, test_salt, 1, public_key
+		, private_key, signature);
+
+	TEST_EQUAL(to_hex(std::string(signature, 64))
+		, "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d"
+		"df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08");
+
+	target_id = item_target_id(test_content, test_salt, public_key);
+	TEST_EQUAL(to_hex(target_id.to_string()), "411eba73b6f087ca51a3795d9c8c938d365e32c1");
+
+	// test vector 3
+
+	target_id = item_target_id(test_content, empty_salt, NULL);
+	TEST_EQUAL(to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
 
 	return 0;
 }

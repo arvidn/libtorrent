@@ -42,18 +42,30 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-bool TORRENT_EXTRA_EXPORT verify_mutable_item(std::pair<char const*, int> v,
+sha1_hash TORRENT_EXTRA_EXPORT item_target_id(
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, char const* pk);
+
+bool TORRENT_EXTRA_EXPORT verify_mutable_item(
+	std::pair<char const*, int> v,
+	std::pair<char const*, int> salt,
 	boost::uint64_t seq,
 	char const* pk,
 	char const* sig);
 
-void TORRENT_EXTRA_EXPORT sign_mutable_item(std::pair<char const*, int> v,
+void TORRENT_EXTRA_EXPORT sign_mutable_item(
+	std::pair<char const*, int> v,
+	std::pair<char const*, int> salt,
 	boost::uint64_t seq,
 	char const* pk,
 	char const* sk,
 	char* sig);
 
-sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(std::pair<char const*, int> v, boost::uint64_t seq);
+sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq);
 
 struct TORRENT_EXTRA_EXPORT invalid_item : std::exception
 {
@@ -67,22 +79,32 @@ enum
 	item_sig_len = 64
 };
 
-struct lazy_item;
-
 class TORRENT_EXTRA_EXPORT item
 {
 public:
 	item() : m_mutable(false) {}
 	item(entry const& v) { assign(v); }
-	item(entry const& v, boost::uint64_t seq, char const* pk, char const* sk);
+	item(entry const& v
+		, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sk);
 	item(lazy_entry const* v) { assign(v); }
-	item(lazy_entry const* v, boost::uint64_t seq, char const* pk, char const* sig);
-	item(lazy_item const&);
+	item(lazy_entry const* v, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sig);
 
-	void assign(entry const& v) { assign(v, 0, NULL, NULL); }
-	void assign(entry const& v, boost::uint64_t seq, char const* pk, char const* sk);
-	void assign(lazy_entry const* v) { assign(v, 0, NULL, NULL); }
-	bool assign(lazy_entry const* v, boost::uint64_t seq, char const* pk, char const* sig);
+	void assign(entry const& v)
+	{
+		assign(v, std::pair<char const*, int>(NULL, 0), 0, NULL, NULL);
+	}
+	void assign(entry const& v
+		, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sk);
+	void assign(lazy_entry const* v)
+	{
+		assign(v, std::pair<char const*, int>(NULL, 0), 0, NULL, NULL);
+	}
+	bool assign(lazy_entry const* v
+		, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sig);
 
 	void clear() { m_value = entry(); }
 	bool empty() const { return m_value.type() == entry::undefined_t; }
@@ -98,23 +120,11 @@ public:
 
 private:
 	entry m_value;
+	std::string m_salt;
 	char m_pk[item_pk_len];
 	char m_sig[item_sig_len];
 	boost::uint64_t m_seq;
 	bool m_mutable;
-};
-
-struct lazy_item
-{
-	lazy_item(lazy_entry const* v) : value(v), pk(NULL), sig(NULL), seq(0) {}
-	lazy_item(lazy_entry const* v, char const* pk, char const* sig, boost::uint64_t seq);
-
-	bool is_mutable() const { return pk && sig; }
-
-	lazy_entry const* value;
-	char const* pk;
-	char const* sig;
-	boost::uint64_t const seq;
 };
 
 } } // namespace libtorrent::dht
