@@ -212,9 +212,9 @@ void node_impl::incoming(msg const& m)
 	lazy_entry const* y_ent = m.message.dict_find_string("y");
 	if (!y_ent || y_ent->string_length() == 0)
 	{
-		entry e;
-		incoming_error(e, "missing 'y' entry");
-		m_send(m_userdata, e, m.addr, 0);
+//		entry e;
+//		incoming_error(e, "missing 'y' entry");
+//		m_send(m_userdata, e, m.addr, 0);
 		return;
 	}
 
