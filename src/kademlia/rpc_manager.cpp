@@ -303,12 +303,12 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	if (!o)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "Reply with invalid transaction id size: " 
+		TORRENT_LOG(rpc) << "Reply with unknown transaction id size: " 
 			<< transaction_id.size() << " from " << m.addr;
 #endif
-		entry e;
-		incoming_error(e, "invalid transaction id");
-		m_send(m_userdata, e, m.addr, 0);
+//		entry e;
+//		incoming_error(e, "invalid transaction id");
+//		m_send(m_userdata, e, m.addr, 0);
 		return false;
 	}
 
