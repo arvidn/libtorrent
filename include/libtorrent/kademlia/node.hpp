@@ -140,6 +140,8 @@ struct dht_mutable_item : dht_immutable_item
 	char sig[item_sig_len];
 	boost::uint64_t seq;
 	ed25519_public_key key;
+	char* salt;
+	int salt_size;
 };
 
 // internal
