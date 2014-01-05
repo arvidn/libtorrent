@@ -300,11 +300,6 @@ namespace
     }
 }
 
-void force_reannounce(torrent_handle& th, int s)
-{
-    th.force_reannounce(boost::posix_time::seconds(s));
-}
-
 void connect_peer(torrent_handle& th, tuple ip, int source)
 {
     th.connect_peer(tuple_to_endpoint(ip), source);
@@ -445,9 +440,6 @@ void bind_torrent_handle()
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0)
 			  , (arg("seconds") = 0, arg("tracker_idx") = -1))
-#ifndef TORRENT_NO_DEPRECATE
-        .def("force_reannounce", &force_reannounce)
-#endif
 #ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
