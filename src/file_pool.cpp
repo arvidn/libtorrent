@@ -268,7 +268,6 @@ namespace libtorrent
 
 	void file_pool::remove_oldest()
 	{
-		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(m_in_use == 1337);
 
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
@@ -303,7 +302,6 @@ namespace libtorrent
 	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
-		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(m_in_use == 1337);
 		if (st == 0)
 		{
@@ -325,9 +323,9 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(size > 0);
 
-		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(m_in_use == 1337);
 		if (size == m_size) return;
+		mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 
