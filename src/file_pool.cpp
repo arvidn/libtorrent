@@ -302,6 +302,7 @@ namespace libtorrent
 	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
+		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(m_in_use == 1337);
 		if (st == 0)
 		{
