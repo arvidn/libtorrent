@@ -124,7 +124,7 @@ namespace libtorrent
 //		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
 
 		return ret + page;
-#endif
+#else
 
 #if TORRENT_USE_POSIX_MEMALIGN
 		void* ret;
@@ -143,6 +143,7 @@ namespace libtorrent
 #else
 		return (char*)valloc(bytes);
 #endif
+#endif // TORRENT_DEBUG_BUFFERS
 	}
 
 	void page_aligned_allocator::free(char* const block)
