@@ -72,10 +72,6 @@ struct alloc_header
 
 #endif
 
-#if defined TORRENT_DEBUG_BUFFERS && (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
-	void print_backtrace(char* out, int len, int max_depth = 0);
-#endif
-
 namespace libtorrent
 {
 
