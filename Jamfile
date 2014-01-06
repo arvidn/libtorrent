@@ -25,6 +25,28 @@ if $(BOOST_ROOT)
 
 VERSION = 1.0.0 ;
 
+rule coverage ( properties * )
+{
+	local result ;
+	if <toolset>gcc in $(properties)
+		|| <toolset>darwin in $(properties)
+		|| <toolset>clang in $(properties)
+	{
+		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage ;
+
+		if <toolset>gcc in $(properties)
+			|| <toolset>darwin in $(properties)
+		{
+			result += <linkflags>-lgcov ;
+		}
+		else
+		{
+			result += <linkflags>--coverage ;
+		}
+	}
+	return $(result) ;
+}
+
 # rule for linking the correct libraries depending
 # on features and target-os
 rule linking ( properties * )
@@ -114,25 +136,6 @@ rule linking ( properties * )
 	if <target-os>solaris in $(properties)
 	{
 		result += <library>libsocket <library>libnsl ;
-	}
-
-	if <test-coverage>on in $(properties)
-		&& ( <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties)
-		|| <toolset>clang in $(properties) )
-	{
-		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage
-			<define>NDEBUG ;
-
-		if <toolset>gcc in $(properties)
-			|| <toolset>darwin in $(properties)
-		{
-			result += <linkflags>-lgcov ;
-		}
-		else
-		{
-			result += <linkflags>--coverage ;
-		}
 	}
 
 	# clock_gettime on linux requires librt
@@ -367,7 +370,7 @@ feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
 
-feature allocator : pool system debug : composite ;
+feature allocator : pool system debug : composite propagated ;
 feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
 feature.compose <allocator>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
 
@@ -431,6 +434,7 @@ feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
 
 feature test-coverage : off on : composite propagated ;
+feature.compose <test-coverage>on : <conditional>@coverage ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
