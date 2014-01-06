@@ -1811,21 +1811,28 @@ int test_main()
 
 	int rs[] = { 1,86,22,65,90 };
 
-	boost::uint8_t prefixes[][4] =
+	boost::uint8_t prefixes[][3] =
 	{
-		{ 0x17, 0x12, 0xf6, 0xc7 },
-		{ 0x94, 0x64, 0x06, 0xc1 },
-		{ 0xfe, 0xfd, 0x92, 0x20 },
-		{ 0xaf, 0x15, 0x46, 0xdd },
-		{ 0xa9, 0xe9, 0x20, 0xbf }
+		{ 0xd2, 0xa6, 0xdf },
+		{ 0x51, 0xd0, 0x29 },
+		{ 0xfd, 0x33, 0x4a },
+		{ 0x6a, 0xa1, 0x69 },
+		{ 0xeb, 0x64, 0x34 }
 	};
 
 	for (int i = 0; i < 5; ++i)
 	{
 		address a = address_v4::from_string(ips[i]);
 		node_id id = generate_id_impl(a, rs[i]);
-		for (int j = 0; j < 4; ++j)
-			TEST_CHECK(id[j] == prefixes[i][j]);
+		TEST_CHECK(id[0] == prefixes[i][0]);
+		TEST_CHECK(id[1] == prefixes[i][1]);
+		TEST_CHECK((id[2] & 0xf8) == (prefixes[i][2] & 0xf8));
+
+		fprintf(stderr, "%x %x %x\n"
+			, prefixes[i][0]
+			, prefixes[i][1]
+			, prefixes[i][2]
+			);
 		TEST_CHECK(id[19] == rs[i]);
 		fprintf(stderr, "IP address: %s r: %d node ID: %s\n", ips[i]
 			, rs[i], to_hex(id.to_string()).c_str());
