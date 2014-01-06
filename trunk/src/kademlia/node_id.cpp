@@ -104,8 +104,8 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 {
 	boost::uint8_t* ip = 0;
 	
-	const static boost::uint8_t v4mask[] = { 0x01, 0x07, 0x1f, 0x7f };
-	const static boost::uint8_t v6mask[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f };
+	const static boost::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+	const static boost::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
 	boost::uint8_t const* mask = 0;
 	int num_octets = 0;
 
@@ -141,10 +141,9 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 
 	id[0] = (c >> 24) & 0xff;
 	id[1] = (c >> 16) & 0xff;
-	id[2] = (c >> 8) & 0xff;
-	id[3] = c & 0xff;
+	id[2] = ((c >> 8) & 0xf8) | (random() & 0x7);
 
-	for (int i = 4; i < 19; ++i) id[i] = random();
+	for (int i = 3; i < 19; ++i) id[i] = random();
 	id[19] = r;
 
 	return id;
@@ -166,7 +165,7 @@ bool verify_id(node_id const& nid, address const& source_ip)
 	if (is_local(source_ip)) return true;
 
 	node_id h = generate_id_impl(source_ip, nid[19]);
-	return memcmp(&nid[0], &h[0], 4) == 0;
+	return nid[0] == h[0] && nid[1] == h[1] && (nid[2] & 0xf8) == (h[2] & 0xf8);
 }
 
 node_id generate_id(address const& ip)
