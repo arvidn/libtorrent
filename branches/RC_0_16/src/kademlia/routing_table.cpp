@@ -334,11 +334,11 @@ bool routing_table::add_node(node_entry const& e)
 		// the routing table
 		// pinged means that we have sent a message to the IP, port and received
 		// a response with a correct transaction ID, i.e. it is verified to not
-		// be the result of a poioned routing table
+		// be the result of a poisoned routing table
 
-		node_entry* existing = 0;
 		table_t::iterator existing_bucket;
-		if (!e.pinged() || (existing = find_node(e.ep(), &existing_bucket)) == 0)
+		node_entry* existing = find_node(e.ep(), &existing_bucket);
+		if (!e.pinged() || existing == 0)
 		{
 			// the new node is not pinged, or it's not an existing node
 			// we should ignore it, unless we allow duplicate IPs in our
@@ -352,21 +352,36 @@ bool routing_table::add_node(node_entry const& e)
 				return ret;
 			}
 		}
-		if (e.pinged() && existing)
+		TORRENT_ASSERT(e.pinged() && existing);
+		// if the node ID is the same, just update the failcount
+		// and be done with it
+		if (existing->id == e.id)
 		{
-			// if the node ID is the same, just update the failcount
-			// and be done with it
-			if (existing->id == e.id)
-			{
-				existing->timeout_count = 0;
-				return ret;
-			}
+			existing->timeout_count = 0;
+			return ret;
+		}
 
-			// delete the current entry before we instert the new one
-			bucket_t& b = existing_bucket->live_nodes;
-			bucket_t& rb = existing_bucket->replacements;
-			bool done = false;
-			for (bucket_t::iterator i = b.begin(), end(b.end());
+		// delete the current entry before we instert the new one
+		bucket_t& b = existing_bucket->live_nodes;
+		bucket_t& rb = existing_bucket->replacements;
+		bool done = false;
+		for (bucket_t::iterator i = b.begin(), end(b.end());
+			i != end; ++i)
+		{
+			if (i->addr != e.addr || i->port != e.port) continue;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(table) << "node ID changed, deleting old entry: "
+				<< i->id << " " << i->addr;
+#endif
+			b.erase(i);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			done = true;
+#endif
+			break;
+		}
+		if (!done)
+		{
+			for (bucket_t::iterator i = rb.begin(), end(rb.end());
 				i != end; ++i)
 			{
 				if (i->addr != e.addr || i->port != e.port) continue;
@@ -374,32 +389,15 @@ bool routing_table::add_node(node_entry const& e)
 				TORRENT_LOG(table) << "node ID changed, deleting old entry: "
 					<< i->id << " " << i->addr;
 #endif
-				b.erase(i);
+				rb.erase(i);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				done = true;
 #endif
 				break;
 			}
-			if (!done)
-			{
-				for (bucket_t::iterator i = rb.begin(), end(rb.end());
-					i != end; ++i)
-				{
-					if (i->addr != e.addr || i->port != e.port) continue;
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					TORRENT_LOG(table) << "node ID changed, deleting old entry: "
-						<< i->id << " " << i->addr;
-#endif
-					rb.erase(i);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-					done = true;
-#endif
-					break;
-				}
-			}
-			TORRENT_ASSERT(done);
-			m_ips.erase(e.addr.to_v4().to_bytes());
 		}
+		TORRENT_ASSERT(done);
+		m_ips.erase(e.addr.to_v4().to_bytes());
 	}
 	
 	table_t::iterator i = find_bucket(e.id);
