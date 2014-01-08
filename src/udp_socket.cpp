@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp" // for print_backtrace
 #include "libtorrent/socket.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/connection_queue.hpp"

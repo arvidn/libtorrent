@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/detail/atomic_count.hpp>
 #endif
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
@@ -203,6 +203,10 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth) {}
 
 #endif
+
+#endif
+
+#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
 
 #if TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
