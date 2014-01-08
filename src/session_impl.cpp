@@ -4298,16 +4298,6 @@ retry:
 			{
 				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				--hard_limit;
-			  	if (is_active(t, settings()))
-				{
-					// this is not an auto managed torrent,
-					// if it's running and active, decrease the
-					// counters.
-					if (t->is_finished())
-						--num_seeds;
-					else
-						--num_downloaders;
-				}
 			}
 		}
 
@@ -6186,7 +6176,6 @@ retry:
 
 	void session_impl::delete_port_mapping(int handle)
 	{
-		int ret = 0;
 		if (m_upnp) m_upnp->delete_mapping(handle);
 		if (m_natpmp) m_natpmp->delete_mapping(handle);
 	}
