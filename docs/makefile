@@ -64,7 +64,7 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 
 %.html:%.rst
 	rst2html-2.6.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
-	cp $@ $(WEB_PATH)/$@
+	rst2html-2.6.py --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
 
 %.png:%.dot
 	dot -Tpng $? >$@
