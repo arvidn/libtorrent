@@ -628,8 +628,8 @@ int test_main()
 
 	// this is one of the test vectors from:
 	// http://libtorrent.org/dht_sec.html
-	source = udp::endpoint(address::from_string("124.31.75.21"), 20);
-	node_id nid = to_hash("d2a6dfc70c5d6a4ec8a88e4c6ab4c28b95eee401");
+	source = udp::endpoint(address::from_string("124.31.75.21"), 1);
+	node_id nid = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
 	send_dht_request(node, "find_node", source, &response, "10", 0, 0, std::string()
 		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
 
@@ -1346,11 +1346,11 @@ int test_main()
 
 		boost::uint8_t prefixes[][3] =
 		{
-			{ 0xd2, 0xa6, 0xdf },
-			{ 0x51, 0xd0, 0x29 },
-			{ 0xfd, 0x33, 0x4a },
-			{ 0x6a, 0xa1, 0x69 },
-			{ 0xeb, 0x64, 0x34 }
+			{ 0x5f, 0xbf, 0xbf },
+			{ 0x5a, 0x3c, 0xe9 },
+			{ 0xa5, 0xd4, 0x32 },
+			{ 0x1b, 0x03, 0x21 },
+			{ 0xe5, 0x6f, 0x6c }
 		};
 
 		for (int i = 0; i < 5; ++i)
