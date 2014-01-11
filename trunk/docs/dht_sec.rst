@@ -64,25 +64,23 @@ of IPs, as well as allowing more than one node ID per external IP, the node
 ID can be restricted at each class level of the IP.
 
 Another important property of the restriction put on node IDs is that the
-distribution of the IDs remoain uniform. This is why CRC32 was chosen
-as the hash function. See `comparisons of hash functions`__.
-
-__ http://blog.libtorrent.org/2012/12/dht-security/
+distribution of the IDs remoain uniform. This is why CRC32C (Castagnoli) was
+chosen as the hash function.
 
 The expression to calculate a valid ID prefix (from an IPv4 address) is::
 
-	crc32((ip & 0x030f3fff) .. r)
+	crc32c((ip & 0x030f3fff) | (r << 29))
 
 And for an IPv6 address (``ip`` is the high 64 bits of the address)::
 
-	crc32((ip & 0x0103070f1f3f7fff) ..  r)
+	crc32c((ip & 0x0103070f1f3f7fff) | (r << 61))
 
 ``r`` is a random number in the range [0, 7]. The resulting integer,
 representing the masked IP address is supposed to be big-endian before
-hashed. The ".." means concatenation.
+hashed. The "|" operator means bit-wise OR.
 
 The details of implementing this is to evaluate the expression, store the
-result in a big endian 64 bit integer and hash those 8 bytes with CRC32.
+result in a big endian 64 bit integer and hash those 8 bytes with CRC32C.
 
 The first (most significant) 21 bits of the node ID used in the DHT MUST
 match the first 21 bits of the resulting hash. The last byte of the hash MUST
@@ -106,10 +104,10 @@ Example code code for calculating a valid node ID::
 
 	uint32_t rand = std::rand() & 0xff;
 	uint8_t r = rand & 0x7;
+	ip[0] |= r << 5;
 
-	uint32_t crc = crc32(0, nullptr, 0);
-	crc = crc32(crc, ip, num_octets);
-	crc = crc32(crc, &r, 1);
+	uint32_t crc = 0;
+	crc = crc32c(crc, ip, num_octets);
 
 	// only take the top 21 bits from crc
 	node_id[0] = (crc >> 24) & 0xff;
@@ -124,15 +122,15 @@ test vectors:
 
 	IP           rand  example node ID
 	============ ===== ==========================================
-	124.31.75.21   1   **d2a6df** f10c5d6a4ec8a88e4c6ab4c28b95eee4 **01**
-	21.75.31.124  86   **51d029** c14e7a08645677bbd1cfe7d8f956d532 **56**
-	65.23.51.170  22   **fd334a** 20bc8f112a3d426c84764f8c2a1150e6 **16**
-	84.124.73.14  65   **6aa169** dd1bb1fe518101ceef99462b947a01ff **41**
-	43.213.53.83  90   **eb6434** bf5b7c4be0237986d5243b87aa6d5130 **5a**
+	124.31.75.21   1   **5fbfbf** f10c5d6a4ec8a88e4c6ab4c28b95eee4 **01**
+	21.75.31.124  86   **5a3ce9** c14e7a08645677bbd1cfe7d8f956d532 **56**
+	65.23.51.170  22   **a5d432** 20bc8f112a3d426c84764f8c2a1150e6 **16**
+	84.124.73.14  65   **1b0321** dd1bb1fe518101ceef99462b947a01ff **41**
+	43.213.53.83  90   **e56f6c** bf5b7c4be0237986d5243b87aa6d5130 **5a**
 
 The bold parts of the node ID are the important parts. The rest are
 random numbers. The last bold number of each row has only its most significant
-bit pulled from the CRC function. The lower 3 bits are random.
+bit pulled from the CRC32C function. The lower 3 bits are random.
 
 bootstrapping
 -------------
@@ -160,17 +158,19 @@ nodes, from separate searches, tells you your node ID is incorrect.
 rationale
 ---------
 
-The choice of using CRC32 instead of a more traditional cryptographic hash
+The choice of using CRC32C instead of a more traditional cryptographic hash
 function is justified primarily of these reasons:
 
 1. it is a fast function
 2. produces well distributed results
 3. there is no need for the hash function to be one-way (the input set is
    so small that any hash function could be reversed).
+4. CRC32C (Castagnoli) is supported in hardware by SSE 4.2, which can
+   significantly speed up computation
 
-There are primarily two tests run on SHA-1 and CRC32 to establish the
+There are primarily two tests run on SHA-1 and CRC32C to establish the
 distribution of results. The first one is the number of bits in the output
-set that contain every possible combination of bits. The CRC function
+set that contain every possible combination of bits. The CRC32C function
 has a longer such prefix in its output than SHA-1. This means nodes will still
 have well uniformly distributed IDs, even when IP addresses in use are not
 uniformly distributed.
@@ -186,7 +186,7 @@ account that some /8 blocks are not in use by end-users and exremely unlikely
 to ever run a DHT node. This makes the results likely to be very similar to
 what we would see in the wild.
 
-These results indicate that CRC32 provides the best uniformity in the results
+These results indicate that CRC32C provides the best uniformity in the results
 in terms of bit prefixes where all possibilities are represented, and that
 no more than 21 bits should be used from the result. If more than 21 bits
 were to be used, there would be certain node IDs that would be impossible to
@@ -197,13 +197,18 @@ The target space (32 bit interger) is divided up into 1000 buckets. Every valid
 IP and ``r`` input is run through the algorithm and the result is put in the
 bucket it falls in. The expectation is that each bucket has roughly an equal
 number of results falling into it. The following graph shows the resulting
-histogram, comparing SHA-1 and CRC32.
+histogram, comparing SHA-1 and CRC32C.
 
 .. image:: hash_distribution.png
 
 The source code for these tests can be found here_.
 
 .. _here: https://github.com/arvidn/hash_complete_prefix
+
+The reason to use CRC32C instead of the CRC32 implemented by zlib is that
+Intel CPUs have hardware support for the CRC32C calculations. The input
+being exactly 4 bytes is also deliberate, to make it fit in a single
+instruction.
 
 enforcement
 -----------
