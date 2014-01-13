@@ -47,7 +47,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(limit >= 0);
 		// if the throttle is more than this, we might overflow
-		TORRENT_ASSERT(limit < INT_MAX / 31);
+		TORRENT_ASSERT(limit < INT_MAX);
 		m_limit = limit;
 	}
 	

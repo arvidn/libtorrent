@@ -96,7 +96,7 @@ private:
 	typedef std::vector<bw_request> queue_t;
 	queue_t m_queue;
 	// the number of bytes all the requests in queue are for
-	int m_queued_bytes;
+	boost::int64_t m_queued_bytes;
 
 	// this is the channel within the consumers
 	// that bandwidth is assigned to (upload or download)

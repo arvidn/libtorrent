@@ -4676,8 +4676,9 @@ namespace libtorrent
 		// we can only have one outstanding bandwidth request at a time
 		if (m_channel_state[upload_channel] & peer_info::bw_limit) return 0;
 
-		int bytes = (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
-				* m_ses.m_settings.tick_interval / 1000);
+		int bytes = (std::max)(m_send_buffer.size()
+			, int(boost::int64_t(m_statistics.upload_rate()) * 2
+				* m_ses.m_settings.tick_interval / 1000));
 
 		// we already have quota for the bytes we want to send
 		if (m_quota[upload_channel] >= bytes) return 0;
@@ -4761,7 +4762,8 @@ namespace libtorrent
 		if (m_channel_state[download_channel] & peer_info::bw_limit) return 0;
 
 		int bytes = (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
-				, m_statistics.download_rate() * 2 * m_ses.m_settings.tick_interval / 1000);
+				, int(boost::int64_t(m_statistics.download_rate()) * 2
+				* m_ses.m_settings.tick_interval / 1000));
 
 		// we already have enough quota
 		if (m_quota[download_channel] >= bytes) return 0;

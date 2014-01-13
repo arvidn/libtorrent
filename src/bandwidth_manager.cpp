@@ -123,7 +123,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 	void bandwidth_manager::check_invariant() const
 	{
-		int queued = 0;
+		boost::int64_t queued = 0;
 		for (queue_t::const_iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{

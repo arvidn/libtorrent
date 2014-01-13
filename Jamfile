@@ -245,6 +245,14 @@ rule building ( properties * )
 	}
 
 	if ( <variant>debug in $(properties)
+		&& ( <toolset>clang in $(properties)
+			|| <toolset>gcc in $(properties)
+			|| <toolset>darwin in $(properties) ) )
+	{
+		result += <cflags>-ftrapv ;
+	}
+
+	if ( <variant>debug in $(properties)
 		|| <asserts>on in $(properties) )
 	{
 		result += <source>src/assert.cpp ;
@@ -645,8 +653,6 @@ local usage-requirements =
 	<toolset>gcc:<cflags>-fno-strict-aliasing
 	<toolset>gcc:<cflags>-Wno-missing-braces
 # assert on integer overflow
-	<toolset>gcc,<variant>debug:<cflags>-ftrapv
-	<toolset>darwin,<variant>debug:<cflags>-ftrapv
 	<toolset>clang:<cflags>-Wno-invalid-offsetof
 	<toolset>clang-darwin:<cflags>-Wno-invalid-offsetof
 	<boost>system:<cxxflags>$(CXXFLAGS)

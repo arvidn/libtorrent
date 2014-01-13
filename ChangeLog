@@ -1,3 +1,4 @@
+	* rate limiter overflow fix (for very high limits)
 	* non-auto-managed torrents no longer count against the torrent limits
 	* handle DHT error responses correctly
 	* allow force_announce to only affect a single tracker
