@@ -595,6 +595,7 @@ void test_fastresume(std::string const& test_path)
 		return;
 
 	std::cerr << resume.to_string() << "\n";
+	TEST_CHECK(resume.dict().find("file sizes") != resume.dict().end());
 
 	// make sure the fast resume check fails! since we removed the file
 	{
@@ -669,7 +670,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		h.rename_file(0, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
 		bool renamed = false;
-		for (int i = 0; i < 5; ++i)
+		for (int i = 0; i < 10; ++i)
 		{
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
 			torrent_status s = h.status();
@@ -690,6 +691,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/testing_renamed_files")));
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
+	TEST_CHECK(resume.dict().find("file sizes") != resume.dict().end());
 
 	std::cerr << resume.to_string() << "\n";
 
