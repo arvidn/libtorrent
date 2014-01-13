@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -100,7 +101,7 @@ void peer_connection::assign_bandwidth(int channel, int amount)
 
 void peer_connection::start()
 {
-	m_bwm.request_bandwidth(self(), 150000, m_priority
+	m_bwm.request_bandwidth(self(), 400000000, m_priority
 		, &m_bandwidth_channel
 		, &m_torrent_bandwidth_channel
 		, &global_bwc);
@@ -151,9 +152,11 @@ void run_test(connections_t& v
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::start, _1));
 
-	for (int i = 0; i < int(sample_time * 10); ++i)
+	int tick_interval = session_settings().tick_interval;
+
+	for (int i = 0; i < int(sample_time * 1000 / tick_interval); ++i)
 	{
-		manager.update_quotas(milliseconds(100));
+		manager.update_quotas(milliseconds(tick_interval));
 		if ((i % 15) == 0) f();
 	}
 }
@@ -459,6 +462,7 @@ int test_main()
 	test_equal_connections(7, 20000);
 	test_equal_connections(33, 60000);
 	test_equal_connections(33, 500000);
+	test_equal_connections(1, 100000000);
 	test_connections_variable_rate(2, 20, 0);
 	test_connections_variable_rate(5, 20000, 0);
 	test_connections_variable_rate(3, 2000, 6000);
