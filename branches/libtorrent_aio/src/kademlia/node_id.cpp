@@ -131,11 +131,11 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	for (int i = 0; i < num_octets; ++i)
 		ip[i] &= mask[i];
 
-	boost::uint8_t rand = r & 0x7;
+	ip[0] |= (r & 0x7) << 5;
 
-	boost::crc_32_type crc;
+	// this is the crc32c (Castagnoli) polynomial
+	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 	crc.process_block(ip, ip + num_octets);
-	crc.process_byte(rand);
 	boost::uint32_t c = crc.checksum();
 	node_id id;
 

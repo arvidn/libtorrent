@@ -206,6 +206,10 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 #endif
 
+#endif
+
+#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
+
 #if TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
 // the number of asserts we've printed to the log

@@ -5220,14 +5220,14 @@ namespace libtorrent
 		if (channel == download_channel)
 		{
 			return (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
-				, m_statistics.download_rate() * 2
-				/ (1000 / m_settings.get_int(settings_pack::tick_interval)));
+				, int(boost::int64_t(m_statistics.download_rate()) * 2
+				/ (1000 / m_settings.get_int(settings_pack::tick_interval))));
 		}
 		else
 		{
 			return (std::max)(m_send_buffer.size()
-				, (m_statistics.upload_rate() * 2
-					* m_settings.get_int(settings_pack::tick_interval)) / 1000);
+				, int((boost::int64_t(m_statistics.upload_rate()) * 2
+					* m_settings.get_int(settings_pack::tick_interval)) / 1000));
 		}
 	}
 
