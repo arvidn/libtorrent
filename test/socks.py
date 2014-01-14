@@ -2,14 +2,15 @@
 
 """Minimal non-feature complete socks proxy"""
 
-import logging
-from logging import error, info, debug
 import random
 import socket
 from SocketServer import StreamRequestHandler, ThreadingTCPServer
 from struct import pack, unpack
 import threading
 import sys
+
+def debug(s):
+	print >>sys.stderr, 'socks.py: ', s
 
 class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
@@ -18,8 +19,6 @@ class MyTCPServer(ThreadingTCPServer):
         raise Exception('timeout')
 
 CLOSE = object()
-
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 VERSION = '\x05'
 NOAUTH = '\x00'
@@ -55,7 +54,7 @@ def forward(source, dest, name):
         data = recv(source, 4000)
         if data == CLOSE:
             send(dest, CLOSE)
-            info('%s hung up' % name)
+            debug('%s hung up' % name)
             return
         debug('Sending (%d) %r' % (len(data), data))
         send(dest, data)
@@ -83,7 +82,7 @@ class SocksHandler(StreamRequestHandler):
     def handle(self):
         # IMRPOVEMENT: Report who requests are from in logging
         # IMPROVEMENT: Timeout on client
-        info('Connection - authenticating')
+        debug('Connection - authenticating')
         version = self.read(1)
 
         if allow_v4 and version == '\x04':
@@ -129,7 +128,7 @@ class SocksHandler(StreamRequestHandler):
 
         if password == None and NOAUTH in method_list:
             self.send_no_auth_method()
-            info('Authenticated (no-auth)')
+            debug('Authenticated (no-auth)')
         elif USERPASS in method_list:
             self.send_user_pass_auth_method()
             auth_version = self.read(1)
@@ -146,7 +145,7 @@ class SocksHandler(StreamRequestHandler):
                 error('Invalid username or password')
                 self.close_request()
                 return
-            info('Authenticated (user/password)')
+            debug('Authenticated (user/password)')
             self.send_authenticated()
         else:
             error('Server only supports NOAUTH and user/pass')
@@ -192,7 +191,12 @@ class SocksHandler(StreamRequestHandler):
             print e
             return
         debug("Creating forwarder connection to %r", out_address)
-        outbound_sock.connect(out_address)
+
+        try:
+            outbound_sock.connect(out_address)
+        except Exception, e:
+            print e
+            return
 
         if address_type == IPV6:
             self.send_reply6(outbound_sock.getsockname())
@@ -209,14 +213,14 @@ class SocksHandler(StreamRequestHandler):
     def send_reply(self, (bind_addr, bind_port)):
         bind_tuple = tuple(map(int, bind_addr.split('.')))
         full_address = bind_tuple + (bind_port,)
-        info('Setting up forwarding port %r' % (full_address,))
+        debug('Setting up forwarding port %r' % (full_address,))
         msg = pack('>cccc4BH', VERSION, SUCCESS, '\x00', IPV4, *full_address)
         self.wfile.write(msg)
 
     def send_reply6(self, (bind_addr, bind_port, unused1, unused2)):
         bind_tuple = tuple(map(lambda x: int(x,16), bind_addr.split(':')))
         full_address = bind_tuple + (bind_port,)
-        info('Setting up forwarding port %r' % (full_address,))
+        debug('Setting up forwarding port %r' % (full_address,))
         msg = pack('>cccc8HH', VERSION, SUCCESS, '\x00', IPV6, *full_address)
         self.wfile.write(msg)
 
@@ -253,12 +257,12 @@ if __name__ == '__main__':
         elif sys.argv[i] == '--allow-v4':
             allow_v4 = True
         else:
-            if sys.argv[i] != '--help': info('unknown option "%s"' % sys.argv[i])
+            if sys.argv[i] != '--help': debug('unknown option "%s"' % sys.argv[i])
             print('usage: socks.py [--username <user> --password <password>] [--port <listen-port>]')
             sys.exit(1)
         i += 1
 
-    info('Listening on port %d...' % listen_port)
+    debug('Listening on port %d...' % listen_port)
     server = MyTCPServer(('localhost', listen_port), SocksHandler)
     server.timeout = 120
     while True:
