@@ -3429,8 +3429,8 @@ It contains the following fields::
 		bool paused;
 		bool auto_managed;
 		bool sequential_download;
-		bool seeding;
-		bool finished;
+		bool is_seeding;
+		bool is_finished;
 		float progress;
 		int progress_ppm;
 		std::string error;
