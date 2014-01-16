@@ -106,7 +106,7 @@ class SocksHandler(StreamRequestHandler):
 
             outbound_sock = socket.socket(socket.AF_INET)
             out_address = socket.getaddrinfo(dest_address,dest_port)[0][4]
-            debug("Creating forwarder connection to %r", out_address)
+            debug("Creating forwarder connection to %s:%d" % (out_address[0], out_address[1]))
             outbound_sock.connect(out_address)
 
             self.send_reply_v4(outbound_sock.getsockname())
@@ -190,7 +190,7 @@ class SocksHandler(StreamRequestHandler):
         except Exception, e:
             print e
             return
-        debug("Creating forwarder connection to %r", out_address)
+        debug("Creating forwarder connection to %s:%d" % (out_address[0], out_address[1]))
 
         try:
             outbound_sock.connect(out_address)
