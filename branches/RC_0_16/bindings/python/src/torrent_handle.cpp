@@ -77,14 +77,14 @@ namespace
 
 } // namespace unnamed
 
-list file_progress(torrent_handle& handle)
+list file_progress(torrent_handle& handle, int flags)
 {
     std::vector<size_type> p;
 
     {
         allow_threading_guard guard;
         p.reserve(handle.get_torrent_info().num_files());
-        handle.file_progress(p);
+        handle.file_progress(p, flags);
     }
 
     list result;
@@ -380,7 +380,7 @@ void bind_torrent_handle()
         .def("get_peer_info", get_peer_info)
         .def("status", _(&torrent_handle::status), arg("flags") = 0xffffffff)
         .def("get_download_queue", get_download_queue)
-        .def("file_progress", file_progress)
+        .def("file_progress", file_progress, arg("flags") = 0)
         .def("trackers", trackers)
         .def("replace_trackers", replace_trackers)
         .def("add_tracker", add_tracker)
@@ -478,6 +478,10 @@ void bind_torrent_handle()
         .def("rename_file", _(rename_file1))
 #endif
         ;
+
+    enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
+        .value("piece_granularity", torrent_handle::piece_granularity)
+    ;
 
     enum_<torrent_handle::pause_flags_t>("pause_flags_t")
         .value("graceful_pause", torrent_handle::graceful_pause)
