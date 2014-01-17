@@ -1,3 +1,4 @@
+	* fix DHT memory error
 	* change semantics of storage allocation to allocate on first write rather
 	  than on startup (behaves better with changing file priorities)
 	* fix resend logic in response to uTP SACK messages
