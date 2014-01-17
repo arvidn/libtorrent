@@ -356,6 +356,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 	node_id nid = node_id(node_id_ent->string_ptr());
 	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
+		o->timeout();
 		entry e;
 		incoming_error(e, "invalid node ID");
 		m_sock->send_packet(e, m.addr, 0);
