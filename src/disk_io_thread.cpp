@@ -106,6 +106,8 @@ namespace libtorrent
 		m_waiting_to_shutdown = true;
 		j.action = disk_io_job::abort_thread;
 		j.start_time = time_now_hires();
+
+		TORRENT_ASSERT(l.locked());
 		m_jobs.insert(m_jobs.begin(), j);
 		m_signal.signal(l);
 	}
@@ -1357,6 +1359,7 @@ namespace libtorrent
 			const_cast<disk_io_job&>(j).buffer = 0;
 		}
 */
+		TORRENT_ASSERT(l.locked());
 		m_jobs.push_back(j);
 		m_jobs.back().callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
 

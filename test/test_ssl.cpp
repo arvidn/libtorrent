@@ -375,6 +375,7 @@ bool try_connect(session& ses1, int port
 
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_sock(ios, ctx);
 
+	fprintf(stderr, "connecting\n");
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
 		address_v4::from_string("127.0.0.1"), port), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
@@ -405,6 +406,7 @@ bool try_connect(session& ses1, int port
 		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
 	}
 
+	fprintf(stderr, "SSL handshake\n");
 	ssl_sock.handshake(asio::ssl::stream_base::client, ec);
 
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
@@ -434,6 +436,8 @@ bool try_connect(session& ses1, int port
 
 	// fill in the peer-id
 	std::generate(handshake + 48, handshake + 68, &rand);
+
+	fprintf(stderr, "bittorrent handshake\n");
 	boost::asio::write(ssl_sock, libtorrent::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
 	if (ec)
 	{
@@ -443,6 +447,7 @@ bool try_connect(session& ses1, int port
 	}
 	
 	char buf[68];
+	fprintf(stderr, "read bittorrent handshake\n");
 	boost::asio::read(ssl_sock, libtorrent::asio::buffer(buf, sizeof(buf)), ec);
 	if (ec)
 	{
