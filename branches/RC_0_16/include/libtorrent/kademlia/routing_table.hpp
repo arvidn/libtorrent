@@ -86,6 +86,8 @@ struct routing_table_node
 class TORRENT_EXTRA_EXPORT routing_table
 {
 public:
+	typedef std::vector<routing_table_node> table_t;
+
 	routing_table(node_id const& id, int bucket_size
 		, dht_settings const& settings);
 
@@ -128,6 +130,8 @@ public:
 	// are nearest to the given id.
 	void find_node(node_id const& id, std::vector<node_entry>& l
 		, int options, int count = 0);
+	void remove_node(node_entry* n
+		, table_t::iterator bucket) ;
 	
 	int bucket_size(int bucket)
 	{
@@ -163,8 +167,6 @@ public:
 	void touch_bucket(node_id const& target);
 
 private:
-
-	typedef std::list<routing_table_node> table_t;
 
 	table_t::iterator find_bucket(node_id const& id);
 
@@ -210,7 +212,7 @@ private:
 	// table. It's used to only allow a single entry
 	// per IP in the whole table. Currently only for
 	// IPv4
-	std::set<address_v4::bytes_type> m_ips;
+	std::multiset<address_v4::bytes_type> m_ips;
 };
 
 } } // namespace libtorrent::dht
