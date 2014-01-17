@@ -106,8 +106,16 @@ namespace libtorrent
 			return blk;
 		}
 
+		int k = 0;
 		bw_request bwr(peer, blk, priority);
-		memcpy(bwr.channel, chan, (std::min)(sizeof(*chan) * num_channels, sizeof(bwr.channel)));
+		for (int i = 0; i < num_channels; ++i)
+		{
+			if (chan[i]->need_queueing(blk))
+				bwr.channel[k++] = chan[i];
+		}
+
+		if (k == 0) return blk;
+
 		m_queued_bytes += blk;
 		m_queue.push_back(bwr);
 		return 0;

@@ -64,6 +64,19 @@ struct TORRENT_EXTRA_EXPORT bandwidth_channel
 	void return_quota(int amount);
 	void use_quota(int amount);
 
+	// this is an optimization. If there is more than one second
+	// of quota built up in this channel, just apply it right away
+	// instead of introducing a delay to split it up evenly. This
+	// should especially help in situations where a single peer
+	// has a capacity under the rate limit, but would otherwise be
+	// held back by the latency of getting bandwidth from the limiter
+	bool need_queueing(int amount)
+	{
+		if (m_quota_left - amount < m_limit) return true;
+		m_quota_left -= amount;
+		return false;
+	}
+
 	// used as temporary storage while distributing
 	// bandwidth
 	int tmp;

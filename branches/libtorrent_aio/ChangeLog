@@ -23,6 +23,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* rate limiter optimization
 	* rate limiter overflow fix (for very high limits)
 	* non-auto-managed torrents no longer count against the torrent limits
 	* handle DHT error responses correctly
@@ -63,6 +64,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* expose file_granularity flag to python bindings
+	* fix DHT memory error
 	* change semantics of storage allocation to allocate on first write rather
 	  than on startup (behaves better with changing file priorities)
 	* fix resend logic in response to uTP SACK messages
