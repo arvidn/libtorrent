@@ -38,6 +38,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix DHT memory error
 	* change semantics of storage allocation to allocate on first write rather
 	  than on startup (behaves better with changing file priorities)
 	* fix resend logic in response to uTP SACK messages
