@@ -102,11 +102,17 @@ namespace libtorrent
 
 		bw_request bwr(peer, blk, priority);
 		int i = 0;
-		if (chan1 && chan1->throttle() > 0) bwr.channel[i++] = chan1;
-		if (chan2 && chan2->throttle() > 0) bwr.channel[i++] = chan2;
-		if (chan3 && chan3->throttle() > 0) bwr.channel[i++] = chan3;
-		if (chan4 && chan4->throttle() > 0) bwr.channel[i++] = chan4;
-		if (chan5 && chan5->throttle() > 0) bwr.channel[i++] = chan5;
+		if (chan1 && chan1->throttle() > 0 && chan1->need_queueing(blk))
+			bwr.channel[i++] = chan1;
+		if (chan2 && chan2->throttle() > 0 && chan2->need_queueing(blk))
+			bwr.channel[i++] = chan2;
+		if (chan3 && chan3->throttle() > 0 && chan3->need_queueing(blk))
+			bwr.channel[i++] = chan3;
+		if (chan4 && chan4->throttle() > 0 && chan4->need_queueing(blk))
+			bwr.channel[i++] = chan4;
+		if (chan5 && chan5->throttle() > 0 && chan5->need_queueing(blk))
+			bwr.channel[i++] = chan5;
+
 		if (i == 0)
 		{
 			// the connection is not rate limited by any of its
@@ -115,6 +121,7 @@ namespace libtorrent
 			// the queue, just satisfy the request immediately
 			return blk;
 		}
+
 		m_queued_bytes += blk;
 		m_queue.push_back(bwr);
 		return 0;
