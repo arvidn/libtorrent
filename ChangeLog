@@ -38,6 +38,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* expose file_granularity flag to python bindings
 	* fix DHT memory error
 	* change semantics of storage allocation to allocate on first write rather
 	  than on startup (behaves better with changing file priorities)
