@@ -1577,6 +1577,29 @@ void utp_socket_impl::remove_sack_header(packet* p)
 	p->size -= sack_size + 2;
 }
 
+struct holder
+{
+	holder(char* buf = NULL): m_buf(buf) {}
+	~holder() { free(m_buf); }
+
+	void reset(char* buf)
+	{
+		free(m_buf);
+		m_buf = buf;
+	}
+
+	char* release()
+	{
+		char* ret = m_buf;
+		m_buf = NULL;
+		return ret;
+	}
+
+private:
+
+	char* m_buf;
+};
+
 // sends a packet, pulls data from the write buffer (if there's any)
 // if ack is true, we need to send a packet regardless of if there's
 // any data. Returns true if we could send more data (i.e. call
@@ -1689,6 +1712,10 @@ bool utp_socket_impl::send_pkt(int flags)
 	bool stack_alloced = false;
 #endif
 
+	// used to free the packet buffer in case we exit the
+	// function early
+	holder buf_holder;
+
 	// payload size being zero means we're just sending
 	// an force. We should not pick up the nagle packet
 	if (!m_nagle_packet || (payload_size == 0 && force))
@@ -1699,6 +1726,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		{
 			p = (packet*)malloc(sizeof(packet) + m_mtu);
 			p->allocated = m_mtu;
+			buf_holder.reset((char*)p);
 
 			m_sm->inc_stats_counter(counters::utp_payload_pkts_out);
 		}
@@ -1818,6 +1846,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		TORRENT_ASSERT(m_nagle_packet == NULL);
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 		m_nagle_packet = p;
+		buf_holder.release();
 		return false;
 	}
 
@@ -1913,7 +1942,6 @@ bool utp_socket_impl::send_pkt(int flags)
 	else if (ec)
 	{
 		TORRENT_ASSERT(stack_alloced != bool(payload_size));
-		if (payload_size) free(p);
 		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
 		test_socket_state();
@@ -1938,6 +1966,10 @@ bool utp_socket_impl::send_pkt(int flags)
 		TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 #endif
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
+
+		// release the buffer, we're saving it in the circular
+		// buffer of outgoing packets
+		buf_holder.release();
 		packet* old = (packet*)m_outbuf.insert(m_seq_nr, p);
 		if (old)
 		{

@@ -245,7 +245,8 @@ void test_chained_buffer()
 		TEST_CHECK(!b.empty());
 		TEST_CHECK(b.space_in_last_buffer() == 512 - 12);
 
-		ret = b.append(data, 1024);
+		char data2[1024];
+		ret = b.append(data2, 1024);
 
 		TEST_CHECK(ret == false);
 
