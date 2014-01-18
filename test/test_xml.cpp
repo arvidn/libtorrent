@@ -237,7 +237,7 @@ using namespace libtorrent;
 
 struct parse_state
 {
-	parse_state(): in_service(false) {}
+	parse_state(): in_service(false), service_type("") {}
 	void reset(char const* st)
 	{
 		in_service = false;
