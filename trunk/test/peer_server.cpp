@@ -58,6 +58,7 @@ struct peer_server
 	peer_server()
 		: m_peer_requests(0)
 		, m_acceptor(m_ios)
+		, m_port(0)
 	{
 		error_code ec;
 		m_acceptor.open(tcp::v4(), ec);

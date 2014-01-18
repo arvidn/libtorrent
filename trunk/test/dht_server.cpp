@@ -62,6 +62,7 @@ struct dht_server
 	dht_server()
 		: m_dht_requests(0)
 		, m_socket(m_ios)
+		, m_port(0)
 	{
 		error_code ec;
 		m_socket.open(udp::v4(), ec);
