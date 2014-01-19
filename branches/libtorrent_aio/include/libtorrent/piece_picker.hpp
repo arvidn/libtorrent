@@ -438,14 +438,14 @@ namespace libtorrent
 		// the number of pieces we want and don't have
 		int num_want_left() const { return num_pieces() - m_num_have - m_num_filtered + m_num_have_filtered; }
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_piece_state() const;
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
 #endif
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_peer_invariant(bitfield const& have, void const* p) const;
 		void check_invariant(const torrent* t = 0) const;
 #endif

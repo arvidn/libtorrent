@@ -540,7 +540,7 @@ namespace libtorrent
 	{
 		DFLOG(stderr, "[%p] delete_files\n", this);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		// this is a fence job, we expect no other
 		// threads to hold any references to any files
 		// in this file storage. Assert that that's the 
@@ -561,7 +561,7 @@ namespace libtorrent
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+#if TORRENT_USE_ASSERTS
 		m_pool.mark_deleted(m_files);
 #endif
 		// delete the files from disk
@@ -1307,7 +1307,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->storage.get() == this);
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
 		m_cached_pieces.insert(p);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		p->in_storage = true;
 #endif
 	}
@@ -1322,7 +1322,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->in_storage == true);
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
 		m_cached_pieces.erase(p);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		p->in_storage = false;
 #endif
 	}
@@ -1475,7 +1475,7 @@ namespace libtorrent
 						bj->flags |= disk_io_job::in_progress;
 						++m_outstanding_jobs;
 						++ret;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 						TORRENT_ASSERT(bj->blocked);
 						bj->blocked = false;
 #endif
@@ -1493,7 +1493,7 @@ namespace libtorrent
 
 				++m_outstanding_jobs;
 				++ret;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(bj->blocked);
 				bj->blocked = false;
 #endif
@@ -1519,7 +1519,7 @@ namespace libtorrent
 		bj->flags |= disk_io_job::in_progress;
 
 		++m_outstanding_jobs;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(bj->blocked);
 		bj->blocked = false;
 #endif
@@ -1547,7 +1547,7 @@ namespace libtorrent
 		
 		m_blocked_jobs.push_back(j);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->blocked == false);
 		j->blocked = true;
 #endif
@@ -1598,7 +1598,7 @@ namespace libtorrent
 		++m_has_fence;
 		if (m_has_fence > 1)
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(fj->blocked == false);
 			fj->blocked = true;
 #endif
@@ -1611,7 +1611,7 @@ namespace libtorrent
 			fj->flags |= disk_io_job::in_progress;
 			++m_outstanding_jobs;
 		}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->blocked == false);
 		j->blocked = true;
 #endif
