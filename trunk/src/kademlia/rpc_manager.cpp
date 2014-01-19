@@ -225,7 +225,7 @@ void rpc_manager::free_observer(void* ptr)
 	m_pool_allocator.free(ptr);
 }
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 size_t rpc_manager::allocation_size() const
 {
 	return observer_size;
@@ -393,7 +393,7 @@ time_duration rpc_manager::tick()
 	time_duration ret = seconds(short_timeout);
 	ptime now = time_now();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	ptime last = min_time();
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end(); ++i)
@@ -490,7 +490,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	if (m_sock->send_packet(e, target_addr, 1))
 	{
 		m_transactions.push_back(o);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		o->m_was_sent = true;
 #endif
 		return true;
@@ -506,7 +506,7 @@ observer::~observer()
 	// reported back
 	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done) || m_was_abandoned);
 	TORRENT_ASSERT(!m_in_constructor);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_in_use);
 	m_in_use = false;
 #endif

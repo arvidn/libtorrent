@@ -144,7 +144,7 @@ namespace libtorrent
 
 		peer_connection* find_lowest_ranking_peer() const;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool has_peer(peer_connection* p) const
 		{ return m_connections.find(p) != m_connections.end(); }
 #endif
@@ -1417,7 +1417,7 @@ namespace libtorrent
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	public:
 		// set to false until we've loaded resume data
 		bool m_resume_data_loaded;

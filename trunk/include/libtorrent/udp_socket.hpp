@@ -201,7 +201,7 @@ namespace libtorrent
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 
 #if defined BOOST_HAS_PTHREADS
 		mutable pthread_t m_thread;
@@ -274,7 +274,7 @@ namespace libtorrent
 #endif
 		bool m_v4_write_subscribed:1;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool m_started;
 		int m_magic;
 		int m_outstanding_when_aborted;

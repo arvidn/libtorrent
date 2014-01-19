@@ -229,7 +229,7 @@ namespace libtorrent
 				torrent*, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			bool has_peer(peer_connection const* p) const
 			{
 				TORRENT_ASSERT(is_network_thread());
@@ -265,7 +265,7 @@ namespace libtorrent
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			bool is_network_thread() const
 			{
 #if defined BOOST_HAS_PTHREADS
@@ -561,7 +561,7 @@ namespace libtorrent
 				--m_num_active_finished;
 			}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			bool in_state_updates(boost::shared_ptr<torrent> t)
 			{
 				return std::find_if(m_state_updates.begin(), m_state_updates.end()
@@ -1230,7 +1230,7 @@ namespace libtorrent
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 			pthread_t m_network_thread;
 #endif
 		};

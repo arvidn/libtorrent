@@ -54,7 +54,7 @@ namespace libtorrent
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			m_destructed = false;
 #endif
 		}
@@ -114,7 +114,7 @@ namespace libtorrent
 		// including unused space
 		int m_capacity;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool m_destructed;
 #endif
 	};	

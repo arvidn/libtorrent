@@ -59,7 +59,7 @@ observer_ptr traversal_algorithm::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
 	observer_ptr o(new (ptr) null_observer(boost::intrusive_ptr<traversal_algorithm>(this), ep, id));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	return o;
@@ -170,7 +170,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	if (m_results.size() > 100)
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		for (int i = 100; i < m_results.size(); ++i)
 			m_results[i]->m_was_abandoned = true;
 #endif

@@ -354,7 +354,7 @@ private:
 		bool m_supports_dht_port:1;
 		bool m_supports_fast:1;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		// this is set to true when the client's
 		// bitfield is sent to this peer
 		bool m_sent_bitfield:1;

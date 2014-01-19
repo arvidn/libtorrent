@@ -188,14 +188,14 @@ namespace libtorrent
 		, m_command(cmd_create_session)
 		, m_state(0)
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
 #endif
 	}
 
 	i2p_stream::~i2p_stream()
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_magic = 0;
 #endif

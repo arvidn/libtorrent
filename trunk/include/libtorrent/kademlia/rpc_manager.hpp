@@ -90,7 +90,7 @@ public:
 
 	void add_our_id(entry& e);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	size_t allocation_size() const;
 #endif
 #ifdef TORRENT_DEBUG

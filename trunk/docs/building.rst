@@ -655,7 +655,7 @@ defines you can use to control the build.
 | ``TORRENT_PRODUCTION_ASSERTS``         | Define to either 0 or 1. Enables assert logging |
 |                                        | in release builds.                              |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_NO_ASSERTS``                 | Disables all asserts.                           |
+| ``TORRENT_USE_ASSERTS``                | Define as 0 to disable asserts unconditionally. |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
 |                                        | custom one.                                     |

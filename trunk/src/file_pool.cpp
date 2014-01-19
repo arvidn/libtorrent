@@ -49,14 +49,14 @@ namespace libtorrent
 		, m_closer_thread(boost::bind(&file_pool::closer_thread_fun, this))
 #endif
 	{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		m_in_use = 1337;
 #endif
 	}
 
 	file_pool::~file_pool()
 	{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		m_in_use = 0;
 #endif
 #if TORRENT_CLOSE_MAY_BLOCK

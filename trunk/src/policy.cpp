@@ -81,7 +81,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection const& c) : m_conn(c) {}
@@ -530,7 +530,7 @@ namespace libtorrent
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT((*i)->in_use);
 		(*i)->in_use = false;
 #endif
@@ -1095,7 +1095,7 @@ namespace libtorrent
 #endif
 				new (p) ipv4_peer(c.remote(), false, 0);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
@@ -1399,13 +1399,13 @@ namespace libtorrent
 			m_torrent->session().m_i2p_peer_pool.set_next_size(500);
 			new (p) i2p_peer(destination, true, src);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
 			if (!insert_peer(p, iter, flags))
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				p->in_use = false;
 #endif
 
@@ -1532,13 +1532,13 @@ namespace libtorrent
 #endif
 				new (p) ipv4_peer(remote, true, src);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
 			if (!insert_peer(p, iter, flags))
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				p->in_use = false;
 #endif
 #if TORRENT_USE_IPV6
@@ -1700,7 +1700,7 @@ namespace libtorrent
 		}
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	bool policy::has_connection(const peer_connection* c)
 	{
 		INVARIANT_CHECK;
@@ -1889,7 +1889,7 @@ namespace libtorrent
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
 		, web_seed(false)
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		, in_use(false)
 #endif
 	{

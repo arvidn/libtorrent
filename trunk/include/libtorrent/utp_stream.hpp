@@ -351,7 +351,7 @@ public:
 			ec = asio::error::would_block;
 			return 0;
 		}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		size_t buf_size = 0;
 #endif
 
@@ -361,7 +361,7 @@ public:
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			buf_size += buffer_size(*i);
 #endif
 		}
