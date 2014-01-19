@@ -254,7 +254,7 @@ int test_main()
 	policy::ipv4_peer tmp2(endp, false, 0);
 	policy::ipv4_peer tmp3(endp, false, 0);
 	policy::ipv4_peer peer_struct(endp, true, 0);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	tmp1.in_use = true;
 	tmp2.in_use = true;
 	tmp3.in_use = true;

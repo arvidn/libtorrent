@@ -5,6 +5,7 @@
 #ifndef TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 #define TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent
@@ -66,12 +67,14 @@ namespace libtorrent
 	}
 }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#define TORRENT_USE_INVARIANT_CHECKS 1
 #define INVARIANT_CHECK \
 	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
 	(void)_invariant_check; \
 	do {} while (false)
 #else
+#define TORRENT_USE_INVARIANT_CHECKS 0
 #define INVARIANT_CHECK do {} while (false)
 #endif
 
