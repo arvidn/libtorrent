@@ -450,6 +450,20 @@ namespace libtorrent { namespace dht
 
 		// account for IP and UDP overhead
 		m_received_bytes += size + (ep.address().is_v6() ? 48 : 28);
+	
+		if (m_settings.ignore_dark_internet && ep.address().is_v4())
+		{
+			address_v4::bytes_type b = ep.address().to_v4().to_bytes();
+
+			// these are class A networks not available to the public
+			// if we receive messages from here, that seems suspicious
+			boost::uint8_t class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
+				, 26, 28, 29, 30, 33, 34, 45, 48, 51, 52, 56, 102, 104 };
+
+			int num = sizeof(class_a)/sizeof(class_a[0]);
+			if (std::find(class_a, class_a + num, b[0]) != class_a + num)
+				return true;
+		}
 
 		node_ban_entry* match = 0;
 		node_ban_entry* min = m_ban_nodes;
