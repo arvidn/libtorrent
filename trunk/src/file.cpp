@@ -793,6 +793,7 @@ namespace libtorrent
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
+		m_inode = 0;
 		// the path passed to FindFirstFile() must be
 		// a pattern
 		std::string f = convert_separators(path);
@@ -846,6 +847,15 @@ namespace libtorrent
 #endif
 	}
 
+	boost::uint64_t directory::inode() const
+	{
+#ifdef TORRENT_WINDOWS
+		return m_inode;
+#else
+		return m_dirent.d_ino;
+#endif
+	}
+
 	std::string directory::file() const
 	{
 #ifdef TORRENT_WINDOWS
@@ -875,6 +885,7 @@ namespace libtorrent
 			if (err != ERROR_NO_MORE_FILES)
 				ec.assign(err, boost::system::get_system_category());
 		}
+		++m_inode;
 #else
 		dirent* dummy;
 		if (readdir_r(m_handle, &m_dirent, &dummy) != 0)
