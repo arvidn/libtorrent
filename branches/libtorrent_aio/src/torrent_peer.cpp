@@ -166,7 +166,7 @@ namespace libtorrent
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
 		, web_seed(false)
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		, in_use(false)
 #endif
 	{

@@ -309,7 +309,7 @@ namespace libtorrent { namespace aux
 		virtual std::pair<const int, int>* lookup_as(int as) = 0;
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		virtual bool is_single_thread() const = 0;
 		virtual bool has_peer(peer_connection const* p) const = 0;
 		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;

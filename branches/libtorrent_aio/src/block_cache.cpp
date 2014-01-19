@@ -174,7 +174,7 @@ void log_refcounts(cached_piece_entry const* pe)
 }
 #endif
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !TORRENT_NO_ASSERTS
+#if TORRENT_USE_ASSERTS
 
 	char const* piece_log_t::job_names[7] =
 	{
@@ -230,7 +230,7 @@ cached_piece_entry::cached_piece_entry()
 	, outstanding_read(0)
 	, pinned(0)
 	, refcount(0)
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	, hash_passes(0)
 	, in_storage(false)
 	, in_use(true)
@@ -242,7 +242,7 @@ cached_piece_entry::~cached_piece_entry()
 	TORRENT_ASSERT(piece_refcount == 0);
 	TORRENT_ASSERT(jobs.size() == 0);
 	TORRENT_ASSERT(read_jobs.size() == 0);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	for (int i = 0; i < blocks_in_piece; ++i)
 	{
 		TORRENT_ASSERT(blocks[i].buf == 0);
@@ -278,7 +278,7 @@ int block_cache::try_read(disk_io_job* j, bool count_stats, bool expect_no_fail)
 
 	TORRENT_ASSERT(j->buffer == 0);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+#if TORRENT_USE_ASSERTS
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
 	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
@@ -295,7 +295,7 @@ int block_cache::try_read(disk_io_job* j, bool count_stats, bool expect_no_fail)
 	TORRENT_ASSERT(!expect_no_fail || p != NULL);
 	if (p == 0) return -1;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	p->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
 	cache_hit(p, j->requester, j->flags & disk_io_job::volatile_read);
@@ -390,7 +390,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 	m_lru[target_queue].push_back(p);
 	p->cache_state = target_queue;
 	p->expire = time_now();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
 	{
 		case cached_piece_entry::write_lru:
@@ -429,7 +429,7 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 	dst->push_back(p);
 	p->expire = time_now();
 	p->cache_state = desired_state;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
 	{
 		case cached_piece_entry::write_lru:
@@ -490,7 +490,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		if (cache_state == cached_piece_entry::read_lru1)
 			m_last_cache_op = cache_miss;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		switch (p->cache_state)
 		{
 			case cached_piece_entry::write_lru:
@@ -535,7 +535,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 			p->cache_state = cache_state;
 			m_lru[p->cache_state].push_back(p);
 			p->expire = time_now();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			switch (p->cache_state)
 			{
 				case cached_piece_entry::write_lru:
@@ -555,7 +555,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 	return p;
 }
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 void block_cache::mark_deleted(file_storage const& fs)
 {
 	m_deleted_storages.push_back(std::make_pair(fs.name(), (void const*)&fs));
@@ -573,7 +573,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	INVARIANT_CHECK;
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+#if TORRENT_USE_ASSERTS
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
 	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
@@ -1033,7 +1033,7 @@ void block_cache::clear(tailqueue& jobs)
 		, end(m_pieces.end()); p != end; ++p)
 	{
 		cached_piece_entry& pe = const_cast<cached_piece_entry&>(*p);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		for (tailqueue_iterator i = pe.jobs.iterate(); i.get(); i.next())
 			TORRENT_PIECE_ASSERT(((disk_io_job*)i.get())->piece == pe.piece, &pe);
 		for (tailqueue_iterator i = pe.read_jobs.iterate(); i.get(); i.next())
@@ -1145,7 +1145,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	TORRENT_ASSERT(pe);
 	TORRENT_PIECE_ASSERT(iov_len > 0, pe);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+#if TORRENT_USE_ASSERTS
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
 	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
@@ -1275,7 +1275,7 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	}
 	++pe->blocks[block].refcount;
 	++pe->refcount;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	switch (reason)
 	{
 		case ref_hashing: ++pe->blocks[block].hashing_count; break;
@@ -1331,7 +1331,7 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		}
 #endif
 	}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	switch (reason)
 	{
 		case ref_hashing: --pe->blocks[block].hashing_count; break;
@@ -1686,7 +1686,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j, bool ex
 		j->d.io.ref.block = start_block;
 		j->buffer = bl.buf + (j->d.io.offset & (block_size()-1));
 		++m_send_buffer_blocks;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		++bl.reading_count;
 #endif
 		return j->d.io.buffer_size;
@@ -1783,7 +1783,7 @@ cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 	if (i == m_pieces.end()) return 0;
 	TORRENT_PIECE_ASSERT(i->in_use, &*i);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	for (tailqueue_iterator j = i->jobs.iterate(); j.get(); j.next())
 	{
 		disk_io_job* job = (disk_io_job*)j.get();

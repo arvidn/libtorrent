@@ -44,14 +44,14 @@ namespace libtorrent
 		: m_size(size)
 		, m_low_prio_io(true)
 	{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		m_in_use = 1337;
 #endif
 	}
 
 	file_pool::~file_pool()
 	{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		m_in_use = 0;
 #endif
 	}

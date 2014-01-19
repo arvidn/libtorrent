@@ -69,7 +69,7 @@ namespace libtorrent
 			, alert_dispatcher* alert_disp);
 		~disk_buffer_pool();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS || TORRENT_BUFFER_STATS
 		bool is_disk_buffer(char* buffer
 			, mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
@@ -216,7 +216,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG
 		std::set<char*> m_buffers_in_use;
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int m_magic;
 		bool m_settings_set;
 #endif

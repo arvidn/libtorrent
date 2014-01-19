@@ -120,7 +120,7 @@ namespace libtorrent
 		m_categories["read cache"] = 0;
 		m_categories["write cache"] = 0;
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
 		m_settings_set = false;
 #endif
@@ -129,7 +129,7 @@ namespace libtorrent
 	disk_buffer_pool::~disk_buffer_pool()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_magic = 0;
 #endif
 
@@ -218,7 +218,7 @@ namespace libtorrent
 		m_ios.post(boost::bind(&watermark_callback, cbs, handlers));
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
 	bool disk_buffer_pool::is_disk_buffer(char* buffer
 		, mutex::scoped_lock& l) const
 	{
@@ -479,7 +479,7 @@ namespace libtorrent
 			}
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_settings_set = true;
 #endif
 

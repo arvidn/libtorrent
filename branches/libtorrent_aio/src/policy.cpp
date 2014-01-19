@@ -91,7 +91,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
@@ -277,7 +277,7 @@ namespace libtorrent
 		std::vector<torrent_peer*>::iterator ci = std::find(m_candidate_cache.begin(), m_candidate_cache.end(), *i);
 		if (ci != m_candidate_cache.end()) m_candidate_cache.erase(ci);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT((*i)->in_use);
 		(*i)->in_use = false;
 #endif
@@ -729,7 +729,7 @@ namespace libtorrent
 #endif
 				new (p) ipv4_peer(c.remote(), false, 0);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
@@ -996,13 +996,13 @@ namespace libtorrent
 			if (p == NULL) return NULL;
 			new (p) i2p_peer(destination, true, src);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
 			if (!insert_peer(p, iter, flags, state))
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				p->in_use = false;
 #endif
 
@@ -1080,13 +1080,13 @@ namespace libtorrent
 #endif
 				new (p) ipv4_peer(remote, true, src);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
 			if (!insert_peer(p, iter, flags, state))
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				p->in_use = false;
 #endif
 				state->peer_allocator->free_peer_entry(p);
@@ -1234,7 +1234,7 @@ namespace libtorrent
 		}
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	bool policy::has_connection(const peer_connection_interface* c)
 	{
 		TORRENT_ASSERT(is_single_thread());

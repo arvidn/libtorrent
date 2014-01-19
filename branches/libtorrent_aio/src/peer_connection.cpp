@@ -206,7 +206,7 @@ namespace libtorrent
 		, m_has_metadata(true)
 		, m_queued_for_connection(false)
 		, m_exceeded_limit(false)
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
 		, m_initialized(false)
@@ -790,7 +790,7 @@ namespace libtorrent
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 
 		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(!m_initialized);
 		m_initialized = true;
 #endif
@@ -858,12 +858,12 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disconnecting);
 		TORRENT_ASSERT(m_disconnect_started);
 		TORRENT_ASSERT(!m_destructed);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_destructed = true;
 #endif
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_in_use = 0;
 #endif
 
@@ -911,7 +911,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_request_queue.empty());
 		TORRENT_ASSERT(m_download_queue.empty());
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		if (m_peer_info)
 			TORRENT_ASSERT(m_peer_info->connection == 0);
 #endif
@@ -1010,7 +1010,7 @@ namespace libtorrent
 
 		if (disconnect_if_redundant()) return;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 #endif
@@ -1040,7 +1040,7 @@ namespace libtorrent
 		peer_log("==> HAVE    [ piece: %d ]", index);
 #endif
 		write_have(index);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 #endif
@@ -2391,7 +2391,7 @@ namespace libtorrent
 		m_outstanding_bytes -= bytes;
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_received_in_piece + bytes <= t->block_size());
 		m_received_in_piece += bytes;
 #endif
@@ -2409,7 +2409,7 @@ namespace libtorrent
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 		check_invariant();
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		buffer::const_interval recv_buffer = receive_buffer();
 		int recv_pos = recv_buffer.end - recv_buffer.begin;
 		TORRENT_ASSERT(recv_pos >= 9);
@@ -2588,7 +2588,7 @@ namespace libtorrent
 		{
 			if ((*i)->on_piece(p, data))
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);
 				m_received_in_piece = 0;
 #endif
@@ -2630,7 +2630,7 @@ namespace libtorrent
 		// just ignore it
 		if (t->is_seed())
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(m_received_in_piece == p.length);
 			m_received_in_piece = 0;
 #endif
@@ -2670,7 +2670,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** The block we just got was not in the request queue ***");
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 			m_received_in_piece = 0;
 #endif
@@ -2678,7 +2678,7 @@ namespace libtorrent
 			return;
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		pending_block pending_b = *b;
 #endif
 
@@ -2735,7 +2735,7 @@ namespace libtorrent
 		b = m_download_queue.begin() + block_index;
 		TORRENT_ASSERT(*b == pending_b);
 		
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 		m_received_in_piece = 0;
 #endif
@@ -2885,7 +2885,7 @@ namespace libtorrent
 		t->check_invariant();
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		piece_picker::downloading_piece pi;
 		picker.piece_info(p.piece, pi);
 		int num_blocks = picker.blocks_in_piece(p.piece);
@@ -2987,7 +2987,7 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		if (t->has_picker())
 		{
 			const std::vector<piece_picker::downloading_piece>& q
@@ -3306,7 +3306,7 @@ namespace libtorrent
 		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
 			, m_request_queue.end(), has_block(block));
 		if (rit == m_request_queue.end()) return;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		TORRENT_ASSERT(t->has_picker());
@@ -3694,7 +3694,7 @@ namespace libtorrent
 			return;
 	
 		// we cannot suggest a piece we don't have!
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		TORRENT_ASSERT(t->has_piece_passed(piece));
@@ -3970,7 +3970,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_disconnect_started = true;
 #endif
 
@@ -5416,7 +5416,7 @@ namespace libtorrent
 		add_outstanding_async("peer_connection::on_send_data");
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(!m_socket_is_writing);
 		m_socket_is_writing = true;
 #endif
@@ -6008,7 +6008,7 @@ namespace libtorrent
 			int sub_transferred = 0;
 			do {
 				INVARIANT_CHECK;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				size_type cur_payload_dl = m_statistics.last_payload_downloaded();
 				size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
@@ -6020,7 +6020,7 @@ namespace libtorrent
 				bytes -= sub_transferred;
 				TORRENT_ASSERT(sub_transferred > 0);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
 				size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
@@ -6147,7 +6147,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(m_ses.is_single_thread());
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
 		// exit invariant check is run
@@ -6394,7 +6394,7 @@ namespace libtorrent
 		m_ses.sent_buffer(bytes_transferred);
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_socket_is_writing);
 		m_socket_is_writing = false;
 #endif
@@ -6462,12 +6462,12 @@ namespace libtorrent
 
 		m_last_sent = time_now();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		size_type cur_payload_ul = m_statistics.last_payload_uploaded();
 		size_type cur_protocol_ul = m_statistics.last_protocol_uploaded();
 #endif
 		on_sent(error, bytes_transferred);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_statistics.last_payload_uploaded() - cur_payload_ul >= 0);
 		TORRENT_ASSERT(m_statistics.last_protocol_uploaded() - cur_protocol_ul >= 0);
 		size_type stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul

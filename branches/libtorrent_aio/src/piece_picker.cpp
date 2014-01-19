@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_peer.hpp"
@@ -224,7 +224,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_VALGRIND
 			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].peer);
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			ret.info[i].piece_index = piece;
 			ret.info[i].peers.clear();
 #endif
@@ -251,7 +251,7 @@ namespace libtorrent
 		TORRENT_ASSERT(state > piece_pos::piece_open);
 		int queue = state - 1;
 		TORRENT_ASSERT(find_dl_piece(queue, i->index) == i);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int prev_size = m_downloads[queue].size();
 #endif
 
@@ -1394,7 +1394,7 @@ namespace libtorrent
 
 		int index = 0;
 		bool updated = false;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool seed_broken = false;
 #endif
 		for (bitfield::const_iterator i = bitmask.begin()
@@ -1417,7 +1417,7 @@ namespace libtorrent
 					// piece anymore. we need to break up one of the seed
 					// counters into actual peer counters on the pieces
 					break_one_seed();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 					seed_broken = true;
 #endif
 				}
@@ -2872,7 +2872,7 @@ namespace libtorrent
 			info.state = block_info::state_requested;
 			info.peer = peer;
 			info.num_peers = 1;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(info.peers.count(peer) == 0);
 			info.peers.insert(peer);
 #endif
@@ -2909,7 +2909,7 @@ namespace libtorrent
 				i = update_piece_state(i);
 			}
 			++info.num_peers;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(info.peers.count(peer) == 0);
 			info.peers.insert(peer);
 #endif
@@ -3001,7 +3001,7 @@ namespace libtorrent
 			info.state = block_info::state_writing;
 			info.peer = peer;
 			info.num_peers = 0;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			info.peers.clear();
 #endif
 			dp->writing = 1;
@@ -3032,7 +3032,7 @@ namespace libtorrent
 			// all other requests for this block should have been
 			// cancelled now
 			info.num_peers = 0;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			info.peers.clear();
 #endif
 
@@ -3407,7 +3407,7 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[block.piece_index];
 		int prev_prio = p.priority(this);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(info.peers.count(peer));
 		info.peers.erase(peer);
 #endif

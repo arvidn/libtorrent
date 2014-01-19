@@ -65,11 +65,11 @@ namespace libtorrent
 	struct counters;
 	namespace aux { struct session_settings; }
 	struct alert_dispatcher;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	class file_storage;
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	struct piece_log_t
 	{
 		piece_log_t(int j, int b= -1): job(j), block(b) {}

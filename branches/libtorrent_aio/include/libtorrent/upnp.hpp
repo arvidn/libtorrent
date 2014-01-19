@@ -269,12 +269,12 @@ private:
 			, supports_specific_external(true)
 			, disabled(false)
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			magic = 1337;
 #endif
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		~rootdevice()
 		{
 			TORRENT_ASSERT(magic == 1337);
@@ -310,7 +310,7 @@ private:
 
 		mutable boost::shared_ptr<http_connection> upnp_connection;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int magic;
 #endif
 		void close() const

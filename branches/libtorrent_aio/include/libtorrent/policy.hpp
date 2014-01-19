@@ -147,7 +147,7 @@ namespace libtorrent
 
 		void set_seed(torrent_peer* p, bool s);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool has_connection(const peer_connection_interface* p);
 #endif
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS

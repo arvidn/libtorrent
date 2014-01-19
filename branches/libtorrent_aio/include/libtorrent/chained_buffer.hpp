@@ -63,7 +63,7 @@ namespace libtorrent
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
 			thread_started();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			m_destructed = false;
 #endif
 		}
@@ -146,7 +146,7 @@ namespace libtorrent
 		// invoking the async write call
 		std::vector<asio::const_buffer> m_tmp_vec;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool m_destructed;
 #endif
 	};	

@@ -59,7 +59,7 @@ namespace libtorrent
 		m_queued_bytes = 0;
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	bool bandwidth_manager::is_queued(bandwidth_socket const* peer) const
 	{
 		for (queue_t::const_iterator i = m_queue.begin()

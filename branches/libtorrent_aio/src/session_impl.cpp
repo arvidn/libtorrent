@@ -613,14 +613,14 @@ namespace aux {
 		, m_abort(false)
 		, m_paused(false)
 		, m_incoming_connection(false)
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif
 	{
 		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
 		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
 		m_net_interfaces.push_back(tcp::endpoint(address_v4::any(), 0));
@@ -1775,7 +1775,7 @@ namespace aux {
 		// abort all connections
 		while (!m_connections.empty())
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			int conn = m_connections.size();
 #endif
 			(*m_connections.begin())->disconnect(errors::stopping_torrent, peer_connection::op_bittorrent);
@@ -3090,7 +3090,7 @@ retry:
 		boost::shared_ptr<peer_connection> c
 			= boost::make_shared<bt_peer_connection>(boost::ref(*this), m_settings
 				, boost::ref(*this), boost::ref(m_disk_thread), s, endp, (torrent_peer*)0);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 
@@ -3289,7 +3289,7 @@ retry:
 		set_rate_limit(c, peer_connection::download_channel, limit);
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	bool session_impl::has_peer(peer_connection const* p) const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5253,7 +5253,7 @@ retry:
 
 		// clear the torrent LRU (probably not strictly necessary)
 		list_node* i = m_torrent_lru.get_all();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		// clear the prev and next pointers in all torrents
 		// to avoid the assert when destructing them
 		while (i)
@@ -5269,7 +5269,7 @@ retry:
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 		m_network_thread = 0;
 #endif
 	}
@@ -5533,7 +5533,7 @@ retry:
 
 		alert->status.reserve(state_updates.size());
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = true;
 #endif
 
@@ -5556,7 +5556,7 @@ retry:
 		}
 		state_updates.clear();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
 
@@ -6013,7 +6013,7 @@ retry:
 
 		tptr->update_gauge();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
 #ifndef TORRENT_DISABLE_DHT

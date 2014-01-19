@@ -137,7 +137,7 @@ namespace libtorrent
 		peer_log("*** bt_peer_connection");
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_in_constructor = false;
 #endif
 #ifndef TORRENT_DISABLE_EXTENSIONS

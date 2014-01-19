@@ -361,7 +361,7 @@ namespace libtorrent
 
 		block_cache* cache() { return &m_disk_cache; }
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
 		bool is_disk_buffer(char* buffer) const { return m_disk_cache.is_disk_buffer(buffer); }
 #endif
 

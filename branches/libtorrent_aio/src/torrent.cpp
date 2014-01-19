@@ -240,7 +240,7 @@ namespace libtorrent
 		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
 			m_need_save_resume_data = false;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_resume_data_loaded = false;
 #endif
 #if TORRENT_USE_UNC_PATHS
@@ -440,7 +440,7 @@ namespace libtorrent
 		// update our torrent_info object and move the
 		// torrent from the old info-hash to the new one
 		// as we replace the torrent_info object
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int num_torrents = m_ses.m_torrents.size();
 #endif
 		// we're about to erase the session's reference to this
@@ -590,7 +590,6 @@ namespace libtorrent
 		// update our torrent_info object and move the
 		// torrent from the old info-hash to the new one
 		// as we replace the torrent_info object
-
 		// we're about to erase the session's reference to this
 		// torrent, create another reference
 		boost::shared_ptr<torrent> me(shared_from_this());
@@ -1695,7 +1694,7 @@ namespace libtorrent
 			m_have_all = true;
 			m_ses.get_io_service().post(boost::bind(&torrent::files_checked, shared_from_this()));
 			m_resume_data.reset();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			m_resume_data_loaded = true;
 #endif
 			update_gauge();
@@ -1737,7 +1736,7 @@ namespace libtorrent
 			}
 		}
 	
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_resume_data_loaded = true;
 #endif
 
@@ -5925,7 +5924,7 @@ namespace libtorrent
 		}
 		if (!c) return;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 
@@ -5950,7 +5949,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(!web->peer_info.connection);
 			web->peer_info.connection = c.get();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			web->peer_info.in_use = true;
 #endif
 
@@ -6890,7 +6889,7 @@ namespace libtorrent
 			, boost::ref(m_ses.disk_thread())
 			, s, a, peerinfo, shared_from_this(), true);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 
@@ -7386,7 +7385,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			p->peer_log("*** CLOSING CONNECTION \"%s\"", ec.message().c_str());
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			std::size_t size = m_connections.size();
 #endif
 			if (p->is_disconnecting())
@@ -7460,7 +7459,7 @@ namespace libtorrent
 			peer_connection* p = *i;
 			++ret;
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			int num_conns = m_connections.size();
 #endif
 			p->disconnect(ec, peer_connection_interface::op_bittorrent);
@@ -10097,7 +10096,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(s != 0); // this state isn't used anymore
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		if (s == torrent_status::seeding)
 			TORRENT_ASSERT(is_seed());
 

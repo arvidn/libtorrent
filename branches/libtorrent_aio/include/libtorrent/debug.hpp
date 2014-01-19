@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if (defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 #include <pthread.h>
 #endif
 
@@ -126,7 +126,7 @@ namespace libtorrent
 
 namespace libtorrent
 {
-#if (defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 	struct single_threaded
 	{
 		single_threaded(): m_single_thread(0) {}

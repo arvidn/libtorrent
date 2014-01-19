@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #include <set>
 #endif
 
@@ -130,7 +130,7 @@ namespace libtorrent
 			// the state of this block
 			enum { state_none, state_requested, state_writing, state_finished };
 			unsigned state:2;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			// to allow verifying the invariant of blocks belonging to the right piece
 			int piece_index;
 			std::set<void*> peers;

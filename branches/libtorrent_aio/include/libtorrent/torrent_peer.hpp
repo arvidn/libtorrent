@@ -197,7 +197,7 @@ namespace libtorrent
 		// so, any torrent_peer with the web_seed bit set, is
 		// never considered a connect candidate
 		bool web_seed:1;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool in_use:1;
 #endif
 	};

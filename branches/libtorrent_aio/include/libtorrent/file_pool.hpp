@@ -138,7 +138,7 @@ namespace libtorrent
 		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
 		
 		file_set m_files;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int m_in_use;
 #endif
 
