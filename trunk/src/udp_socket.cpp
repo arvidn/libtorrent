@@ -619,7 +619,7 @@ void udp_socket::close()
 	m_resolver.cancel();
 	m_abort = true;
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	m_outstanding_when_aborted = num_outstanding();
 #endif
 
@@ -737,7 +737,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		setup_read(&m_ipv6_sock);
 	}
 #endif
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	m_started = true;
 #endif
 	m_bind_port = ep.port();

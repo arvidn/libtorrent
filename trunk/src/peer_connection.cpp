@@ -1279,7 +1279,7 @@ namespace libtorrent
 				piece_picker& p = t->picker();
 				p.abort_download(b.block, peer_info_struct());
 			}
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 			check_invariant();
 #endif
 		}
@@ -2123,14 +2123,14 @@ namespace libtorrent
 		// progress of this torrent increased
 		t->state_updated();
 
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		check_invariant();
 #endif
 	}
 
 	void peer_connection::start_receive_piece(peer_request const& r)
 	{
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		check_invariant();
 #endif
 #if TORRENT_USE_ASSERTS
@@ -2308,7 +2308,7 @@ namespace libtorrent
 
 #ifdef TORRENT_DEBUG
 		check_postcondition post_checker_(t);
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
 #endif
@@ -2424,7 +2424,7 @@ namespace libtorrent
 				--i;
 				--block_index;
 				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 				check_invariant();
 #endif
 			}
@@ -2524,7 +2524,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS \
+#if TORRENT_USE_INVARIANT_CHECKS \
 	&& defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
@@ -3302,7 +3302,7 @@ namespace libtorrent
 			TORRENT_ASSERT(verify_piece(t->to_req(block.block)));
 			m_download_queue.push_back(block);
 			m_outstanding_bytes += block_size;
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 			check_invariant();
 #endif
 
@@ -3347,7 +3347,7 @@ namespace libtorrent
 
 					r.length += block_size;
 					m_outstanding_bytes += block_size;
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 					check_invariant();
 #endif
 				}
@@ -3662,7 +3662,7 @@ namespace libtorrent
 			}
 			m_queued_time_critical = 0;
 
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 			check_invariant();
 #endif
 			t->remove_peer(this);
@@ -4652,7 +4652,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[channel] & peer_info::bw_limit);
 		m_channel_state[channel] &= ~peer_info::bw_limit;
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		check_invariant();
 #endif
 
@@ -5731,7 +5731,7 @@ namespace libtorrent
 		setup_send();
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	struct peer_count_t
 	{
 		peer_count_t(): num_peers(0), num_peers_with_timeouts(0), num_peers_with_nowant(0), num_not_requested(0) {}
