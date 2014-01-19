@@ -160,10 +160,12 @@ namespace libtorrent
 		~directory();
 		void next(error_code& ec);
 		std::string file() const;
+		boost::uint64_t inode() const;
 		bool done() const { return m_done; }
 	private:
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
+		int m_inode;
 #if TORRENT_USE_WSTRING
 		WIN32_FIND_DATAW m_fd;
 #else

@@ -829,11 +829,20 @@ void scan_dir(std::string const& dir_path
 	using namespace libtorrent;
 
 	error_code ec;
+	std::vector<std::pair<boost::uint64_t, std::string> > ents;
 	// TODO: don't use internal directory type
 	for (directory i(dir_path, ec); !i.done(); i.next(ec))
 	{
-		std::string file = combine_path(dir_path, i.file());
-		if (extension(file) != ".torrent") continue;
+		if (extension(i.file()) != ".torrent") continue;
+		ents.push_back(std::make_pair(i.inode(), i.file()));
+	}
+
+	std::sort(ents.begin(), ents.end());
+
+	for (std::vector<std::pair<boost::uint64_t, std::string> >::iterator i = ents.begin()
+		, end(ents.end()); i != end; ++i)
+	{
+		std::string file = combine_path(dir_path, i->second);
 
 		handles_t::iterator k = files.find(file);
 		if (k != files.end())
