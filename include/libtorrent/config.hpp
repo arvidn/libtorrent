@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
 #error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
-	order for asios declarations to be correct. If you are linking dynamically against libtorrent, define \
+	order for asio's declarations to be correct. If you are linking dynamically against libtorrent, define \
 	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
 	build, to automatically apply these defines
 #endif
@@ -568,6 +568,17 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #endif
+
+// debug builds have asserts enabled by default, release
+// builds have asserts if they are explicitly enabled by
+// the release_asserts macro.
+#ifndef TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#define TORRENT_USE_ASSERTS 1
+#else
+#define TORRENT_USE_ASSERTS 0
+#endif
+#endif // TORRENT_USE_ASSERTS
 
 // for non-exception builds
 #ifdef BOOST_NO_EXCEPTIONS

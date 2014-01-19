@@ -147,7 +147,7 @@ namespace libtorrent
 
 		void set_seed(policy::peer* p, bool s);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool has_connection(const peer_connection* p);
 #endif
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
@@ -313,7 +313,7 @@ namespace libtorrent
 			// so, any peer with the web_seed bit set, is
 			// never considered a connect candidate
 			bool web_seed:1;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			bool in_use:1;
 #endif
 		};

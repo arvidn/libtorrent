@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || TORRENT_DISK_STATS
+#if TORRENT_USE_ASSERTS || TORRENT_DISK_STATS
 #include <boost/unordered_map.hpp>
 #endif
 
@@ -57,11 +57,11 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		~disk_buffer_pool();
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
+#if TORRENT_USE_ASSERTS || TORRENT_DISK_STATS
 		bool is_disk_buffer(char* buffer
 			, mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
@@ -134,7 +134,7 @@ namespace libtorrent
 		std::ofstream m_log;
 	private:
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int m_magic;
 #endif
 	};

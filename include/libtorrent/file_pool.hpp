@@ -107,7 +107,7 @@ namespace libtorrent
 		
 		file_set m_files;
 		mutex m_mutex;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int m_in_use;
 #endif
 

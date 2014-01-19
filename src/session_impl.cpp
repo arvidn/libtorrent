@@ -688,11 +688,11 @@ namespace aux {
 		, m_abort(false)
 		, m_paused(false)
 		, m_incoming_connection(false)
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
 
@@ -1723,7 +1723,7 @@ namespace aux {
 		// abort all connections
 		while (!m_connections.empty())
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			int conn = m_connections.size();
 #endif
 			(*m_connections.begin())->disconnect(errors::stopping_torrent);
@@ -2849,7 +2849,7 @@ retry:
 
 		boost::intrusive_ptr<peer_connection> c(
 			new bt_peer_connection(*this, s, endp, 0));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 
@@ -4801,7 +4801,7 @@ retry:
 		// it hard to debug stuff
 		::_set_se_translator(straight_to_debugger);
 #endif
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 		m_network_thread = pthread_self();
 #endif
 		TORRENT_ASSERT(is_network_thread());
@@ -4848,7 +4848,7 @@ retry:
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 		m_network_thread = 0;
 #endif
 	}
@@ -4973,7 +4973,7 @@ retry:
 		std::auto_ptr<state_update_alert> alert(new state_update_alert());
 		alert->status.reserve(m_state_updates.size());
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = true;
 #endif
 
@@ -4988,7 +4988,7 @@ retry:
 		}
 		m_state_updates.clear();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
 
@@ -5350,7 +5350,7 @@ retry:
 
 		tptr->update_guage();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
 #ifndef TORRENT_DISABLE_DHT

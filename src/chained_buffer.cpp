@@ -137,7 +137,7 @@ namespace libtorrent
 
 	chained_buffer::~chained_buffer()
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(!m_destructed);
 		m_destructed = true;
 #endif

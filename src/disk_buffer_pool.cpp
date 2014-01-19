@@ -62,12 +62,12 @@ namespace libtorrent
 
 		m_disk_access_log.open("disk_access.log", std::ios::trunc);
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
 #endif
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	disk_buffer_pool::~disk_buffer_pool()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
@@ -75,7 +75,7 @@ namespace libtorrent
 	}
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
+#if TORRENT_USE_ASSERTS || defined TORRENT_DISK_STATS
 	bool disk_buffer_pool::is_disk_buffer(char* buffer
 		, mutex::scoped_lock& l) const
 	{

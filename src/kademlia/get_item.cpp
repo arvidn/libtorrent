@@ -30,11 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <libtorrent/config.hpp>
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
 #include <libtorrent/kademlia/node.hpp>
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !TORRENT_NO_ASSERTS
+#if TORRENT_USE_ASSERTS
 #include <libtorrent/bencode.hpp>
 #endif
 
@@ -65,7 +66,7 @@ void get_item::got_data(lazy_entry const* v,
 		bool put_requested = m_data_callback(m_data);
 		if (put_requested)
 		{
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !TORRENT_NO_ASSERTS
+#if TORRENT_USE_ASSERTS
 			std::vector<char> buffer;
 			bencode(std::back_inserter(buffer), m_data.value());
 			TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
@@ -97,7 +98,7 @@ observer_ptr get_item::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
 	observer_ptr o(new (ptr) get_item_observer(this, ep, id));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	return o;
@@ -128,7 +129,7 @@ void get_item::done()
 		bool put_requested = m_data_callback(m_data);
 		if (put_requested)
 		{
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !TORRENT_NO_ASSERTS
+#if TORRENT_USE_ASSERTS
 			if (m_data.is_mutable())
 			{
 				TORRENT_ASSERT(m_target == hasher(m_data.pk(), item_pk_len).final());
@@ -169,7 +170,7 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 		void* ptr = m_node.m_rpc.allocate_observer();
 		if (ptr == 0) return;
 		observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
 #endif
 		entry e;

@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/policy.hpp" // for policy::peer
@@ -206,7 +206,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_VALGRIND
 			VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info[i].peer);
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			ret.info[i].piece_index = piece;
 #endif
 		}
@@ -1061,7 +1061,7 @@ namespace libtorrent
 
 		int index = 0;
 		bool updated = false;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool seed_broken = false;
 #endif
 		for (bitfield::const_iterator i = bitmask.begin()
@@ -1084,7 +1084,7 @@ namespace libtorrent
 					// piece anymore. we need to break up one of the seed
 					// counters into actual peer counters on the pieces
 					break_one_seed();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 					seed_broken = true;
 #endif
 				}
