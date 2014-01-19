@@ -1468,6 +1468,7 @@ namespace libtorrent
 			, aggressive_lookups(true)
 			, privacy_lookups(false)
 			, enforce_node_id(false)
+			, ignore_dark_internet(true)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -1542,6 +1543,10 @@ namespace libtorrent
 		// IP are ignored. When a query arrives from such node, an error message is returned
 		// with a message saying "invalid node ID".
 		bool enforce_node_id;
+
+		// ignore DHT messages from parts of the internet we wouldn't expect
+		// to see any traffic from
+		bool ignore_dark_internet;
 	};
 
 
