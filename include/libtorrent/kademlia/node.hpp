@@ -232,7 +232,8 @@ public:
 	{ m_table.print_state(os); }
 #endif
 
-	void announce(sha1_hash const& info_hash, int listen_port, bool seed
+	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
+	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	void get_item(sha1_hash const& target, boost::function<bool(item&)> f);

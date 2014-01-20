@@ -89,7 +89,8 @@ namespace libtorrent { namespace dht
 
 		entry state() const;
 
-		void announce(sha1_hash const& ih, int listen_port, bool seed
+		enum flags_t { flag_seed = 1, flag_implied_port = 2 };
+		void announce(sha1_hash const& ih, int listen_port, int flags
 			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
 		void dht_status(session_status& s);

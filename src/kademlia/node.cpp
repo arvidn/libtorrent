@@ -294,7 +294,7 @@ void node_impl::incoming(msg const& m)
 namespace
 {
 	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
-		, node_impl& node, int listen_port, sha1_hash const& ih, bool seed)
+		, node_impl& node, int listen_port, sha1_hash const& ih, int flags)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(node) << "sending announce_peer [ ih: " << ih
@@ -327,8 +327,8 @@ namespace
 			a["info_hash"] = ih.to_string();
 			a["port"] = listen_port;
 			a["token"] = i->second;
-			a["seed"] = int(seed);
-			// TODO: 3 if uTP is enabled, we should say "implied_port": 1
+			a["seed"] = (flags & node_impl::flag_seed) ? 1 : 0;
+			if (flags & node_impl::flag_implied_port) a["implied_port"] = 1;
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
 	}
@@ -364,7 +364,7 @@ void node_impl::add_node(udp::endpoint node)
 	m_rpc.invoke(e, node, o);
 }
 
-void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
+void node_impl::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -378,13 +378,13 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
 	{
 		ta.reset(new obfuscated_get_peers(*this, info_hash, f
 			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, seed), seed));
+			, listen_port, info_hash, flags), flags & node_impl::flag_seed));
 	}
 	else
 	{
 		ta.reset(new get_peers(*this, info_hash, f
 			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, seed), seed));
+			, listen_port, info_hash, flags), flags & node_impl::flag_seed));
 	}
 
 	ta->start();
