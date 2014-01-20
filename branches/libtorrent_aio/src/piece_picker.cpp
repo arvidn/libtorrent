@@ -2338,7 +2338,7 @@ namespace libtorrent
 			&& !m_piece_map[piece].filtered();
 	}
 
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 	void piece_picker::check_peers()
 	{
 		for (std::vector<block_info>::iterator i = m_block_info.begin()

@@ -147,7 +147,7 @@ void test_ssl(int test_idx, bool use_utp)
 	file.close();
 
 	add_torrent_params addp;
-	addp.save_path = ".";
+	addp.save_path = "tmp1_ssl";
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
@@ -341,6 +341,7 @@ bool try_connect(session& ses1, int port
 
 	if (flags & (valid_certificate | invalid_certificate))
 	{
+		fprintf(stderr, "set_password_callback\n");
 		ctx.set_password_callback(boost::bind(&password_callback, _1, _2, "test"), ec);
 		if (ec)
 		{
@@ -349,6 +350,7 @@ bool try_connect(session& ses1, int port
 			TEST_CHECK(!ec);
 			return false;
 		}
+		fprintf(stderr, "use_certificate_file \"%s\"\n", certificate.c_str());
 		ctx.use_certificate_file(certificate, context::pem, ec);
 		if (ec)
 		{
@@ -357,6 +359,7 @@ bool try_connect(session& ses1, int port
 			TEST_CHECK(!ec);
 			return false;
 		}
+		fprintf(stderr, "use_private_key_file \"%s\"\n", private_key.c_str());
 		ctx.use_private_key_file(private_key, context::pem, ec);
 		if (ec)
 		{
@@ -365,6 +368,7 @@ bool try_connect(session& ses1, int port
 			TEST_CHECK(!ec);
 			return false;
 		}
+		fprintf(stderr, "use_tmp_dh_file \"%s\"\n", dh_params.c_str());
 		ctx.use_tmp_dh_file(dh_params, ec);
 		if (ec)
 		{
@@ -377,7 +381,7 @@ bool try_connect(session& ses1, int port
 
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_sock(ios, ctx);
 
-	fprintf(stderr, "connecting\n");
+	fprintf(stderr, "connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
 		address_v4::from_string("127.0.0.1"), port), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
@@ -495,8 +499,10 @@ void test_malicious_peer()
 		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
+	TEST_CHECK(!t->ssl_cert().empty());
+
 	add_torrent_params addp;
-	addp.save_path = ".";
+	addp.save_path = "tmp3_ssl";
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.ti = t;
@@ -504,9 +510,9 @@ void test_malicious_peer()
 	torrent_handle tor1 = ses1.add_torrent(addp, ec);
 
 	tor1.set_ssl_certificate(
-		combine_path("ssl", "peer_certificate.pem")
-		, combine_path("ssl", "peer_private_key.pem")
-		, combine_path("ssl", "dhparams.pem")
+		combine_path("..", combine_path("ssl", "peer_certificate.pem"))
+		, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
+		, combine_path("..", combine_path("ssl", "dhparams.pem"))
 		, "test");
 
 	wait_for_listen(ses1, "ses1");

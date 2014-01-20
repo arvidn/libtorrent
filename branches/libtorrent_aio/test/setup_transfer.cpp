@@ -54,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/atomic.hpp"
-#include "setup_transfer.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>

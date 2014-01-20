@@ -326,10 +326,12 @@ namespace libtorrent
 			// The peer tried to connect to a torrent with a certificate
 			// for a different torrent.
 			invalid_ssl_cert,
+			// the torrent is not an SSL torrent, and the operation requires
+			// an SSL torrent
+			not_an_ssl_torrent,
 			// peer was banned because its listen port is within a banned port
 			// range, as specified by the port_filter.
 			banned_by_port_filter,
-
 
 
 			// The NAT-PMP router responded with an unsupported protocol version
