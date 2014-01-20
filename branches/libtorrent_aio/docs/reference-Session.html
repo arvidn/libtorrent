@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id174">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id175">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id176">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id177">session_proxy</a></li>
-<li><a class="reference internal" href="#id39" id="id178">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id179">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id180">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id181">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id182">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id179">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id180">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id181">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id182">session_proxy</a></li>
+<li><a class="reference internal" href="#id39" id="id183">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id184">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id185">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id186">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id187">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -396,7 +396,6 @@ struct cache_status
    atomic_count blocks_read;
    size_type blocks_read_hit;
    atomic_count reads;
-   mutable size_type queued_bytes;
    int write_cache_size;
    int read_cache_size;
    int pinned_blocks;
@@ -463,11 +462,6 @@ for the read cache.</p>
 <a name="reads"></a><dl class="docutils">
 <dt>reads</dt>
 <dd>the number of read operations used</dd>
-</dl>
-<a name="queued_bytes"></a><dl class="docutils">
-<dt>queued_bytes</dt>
-<dd>the number of bytes queued for writing, including bytes
-submitted to the OS for writing, but not yet complete</dd>
 </dl>
 <a name="write_cache_size"></a><dl class="docutils">
 <dt>write_cache_size</dt>
@@ -716,6 +710,8 @@ class session: public boost::noncopyable
    void <strong>start_lsd</strong> ();
    void <strong>stop_upnp</strong> ();
    void <strong>start_upnp</strong> ();
+   void <strong>delete_port_mapping</strong> (int handle);
+   int <strong>add_port_mapping</strong> (protocol_type t, int external_port, int local_port);
    void <strong>stop_natpmp</strong> ();
    void <strong>start_natpmp</strong> ();
 
@@ -740,6 +736,12 @@ class session: public boost::noncopyable
    {
       add_default_plugins,
       start_default_features,
+   };
+
+   enum protocol_type
+   {
+      udp,
+      tcp,
    };
 };
 </pre>
@@ -1398,7 +1400,8 @@ void <strong>start_lsd</strong> ();
 <p>Starts and stops Local Service Discovery. This service will broadcast
 the infohashes of all the non-private torrents on the local network to
 look for peers on the same swarm within multicast reach.</p>
-<p>It is turned off by default.</p>
+<p>It is turned off by default.
+TODO: move this into <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a></p>
 <a name="stop_upnp()"></a>
 <a name="start_upnp()"></a></div>
 <div class="section" id="stop-upnp-start-upnp">
@@ -1413,7 +1416,20 @@ port are attempted to be forwarded on local UPnP router devices.</p>
 arbitrary port mappings. Mapping status is returned through the
 <a class="reference external" href="reference-Alerts.html#portmap_alert">portmap_alert</a> and the <a class="reference external" href="reference-Alerts.html#portmap_error_alert">portmap_error_alert</a>. The object will be valid until
 <tt class="docutils literal">stop_upnp()</tt> is called. See <a class="reference external" href="manual-ref.html#upnp-and-nat-pmp">upnp and nat pmp</a>.</p>
-<p>It is off by default.</p>
+<p>It is off by default.
+TODO: move this into <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a></p>
+<a name="add_port_mapping()"></a>
+<a name="delete_port_mapping()"></a></div>
+<div class="section" id="add-port-mapping-delete-port-mapping">
+<h2>add_port_mapping() delete_port_mapping()</h2>
+<pre class="literal-block">
+void <strong>delete_port_mapping</strong> (int handle);
+int <strong>add_port_mapping</strong> (protocol_type t, int external_port, int local_port);
+</pre>
+<p>add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
+whichever is enabled. The return value is a handle referring to
+the port mapping that was just created. Pass it to <a class="reference external" href="reference-Session.html#delete_port_mapping()">delete_port_mapping()</a>
+to remove it.</p>
 <a name="start_natpmp()"></a>
 <a name="stop_natpmp()"></a></div>
 <div class="section" id="start-natpmp-stop-natpmp">
@@ -1428,7 +1444,8 @@ port are attempted to be forwarded on the router through NAT-PMP.</p>
 arbitrary port mappings. Mapping status is returned through the
 <a class="reference external" href="reference-Alerts.html#portmap_alert">portmap_alert</a> and the <a class="reference external" href="reference-Alerts.html#portmap_error_alert">portmap_error_alert</a>. The object will be valid until
 <tt class="docutils literal">stop_natpmp()</tt> is called. See <a class="reference external" href="manual-ref.html#upnp-and-nat-pmp">upnp and nat pmp</a>.</p>
-<p>It is off by default.</p>
+<p>It is off by default.
+TODO: move this into <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a></p>
 <a name="save_state_flags_t"></a></div>
 <div class="section" id="enum-save-state-flags-t">
 <h2>enum save_state_flags_t</h2>
@@ -1525,6 +1542,33 @@ arbitrary port mappings. Mapping status is returned through the
 <td>&nbsp;</td>
 </tr>
 <tr><td>start_default_features</td>
+<td>2</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<a name="protocol_type"></a></div>
+<div class="section" id="enum-protocol-type">
+<h2>enum protocol_type</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="27%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>udp</td>
+<td>1</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>tcp</td>
 <td>2</td>
 <td>&nbsp;</td>
 </tr>

@@ -603,5 +603,25 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string dht_error_alert::message() const
+	{
+		const static char* const operation_names[] =
+		{
+			"unknown"
+			"hostname lookup"
+		};
+
+		int op = operation;
+		if (op < 0 || op > sizeof(operation_names)/sizeof(operation_names[0]))
+			op = 0;
+
+		char msg[600];
+		snprintf(msg, sizeof(msg), "DHT error [%s] (%d) %s"
+			, operation_names[op]
+			, error.value()
+			, convert_from_native(error.message()).c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 

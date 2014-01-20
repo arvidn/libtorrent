@@ -2683,9 +2683,18 @@ namespace libtorrent
 		m_dht_start_time = time_now_hires();
 #endif
 
+		// if we're a seed, we tell the DHT for better scrape stats
+		int flags = is_seed() ? dht::dht_tracker::flag_seed : 0;
+		// if we allow incoming uTP connections, set the implied_port
+		// argument in the announce, this will make the DHT node use
+		// our source port in the packet as our listen port, which is
+		// likely more accurate when behind a NAT
+		if (settings().get_bool(settings_pack::enable_incoming_utp))
+			flags |= dht::dht_tracker::flag_implied_port;
+
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.dht()->announce(m_torrent_file->info_hash()
-			, port, is_seed()
+			, port, flags
 			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
@@ -9566,7 +9575,6 @@ namespace libtorrent
 					}
 				}
 
-				// TODO: 2 will pick_pieces ever return an empty set?
 			} while (!interesting_blocks.empty());
 
 			peers.insert(peers.begin(), ignore_peers.begin(), ignore_peers.end());
