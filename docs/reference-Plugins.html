@@ -354,7 +354,7 @@ struct peer_plugin
 {
    virtual char const* <strong>type</strong> () const;
    virtual void <strong>add_handshake</strong> (entry&amp;);
-   virtual void <strong>on_disconnect</strong> (error_code const&amp; ec);
+   virtual void <strong>on_disconnect</strong> (error_code const&amp; /<em>ec</em>/);
    virtual void <strong>on_connected</strong> ();
    virtual bool <strong>on_handshake</strong> (char const* /<em>reserved_bits</em>/);
    virtual bool <strong>on_extension_handshake</strong> (lazy_entry const&amp;);
@@ -374,7 +374,7 @@ struct peer_plugin
    virtual bool <strong>on_suggest</strong> (int /<em>index</em>/);
    virtual bool <strong>on_cancel</strong> (peer_request const&amp;);
    virtual bool <strong>on_dont_have</strong> (int /<em>index</em>/);
-   virtual bool <strong>can_disconnect</strong> (error_code const&amp; ec);
+   virtual bool <strong>can_disconnect</strong> (error_code const&amp; /<em>ec</em>/);
    virtual bool <strong>on_extended</strong> (int /<em>length</em>/, int /<em>msg</em>/,
       buffer::const_interval /<em>body</em>/);
    virtual bool <strong>on_unknown_message</strong> (int /<em>length</em>/, int /<em>msg</em>/,
@@ -404,7 +404,7 @@ this is not called for web seeds</p>
 <div class="section" id="on-disconnect">
 <h3>on_disconnect()</h3>
 <pre class="literal-block">
-virtual void <strong>on_disconnect</strong> (error_code const&amp; ec);
+virtual void <strong>on_disconnect</strong> (error_code const&amp; /<em>ec</em>/);
 </pre>
 <p>called when the peer is being disconnected.</p>
 <a name="on_connected()"></a></div>
@@ -482,7 +482,7 @@ handler.</p>
 <div class="section" id="can-disconnect">
 <h3>can_disconnect()</h3>
 <pre class="literal-block">
-virtual bool <strong>can_disconnect</strong> (error_code const&amp; ec);
+virtual bool <strong>can_disconnect</strong> (error_code const&amp; /<em>ec</em>/);
 </pre>
 <p>called when libtorrent think this peer should be disconnected.
 if the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> returns false, the peer will not be disconnected.</p>
