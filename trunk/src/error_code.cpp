@@ -170,7 +170,7 @@ namespace libtorrent
 			"invalid dont-have message",
 			"SSL connection required",
 			"invalid SSL certificate",
-			"",
+			"not an SSL torrent",
 			"",
 			"",
 			"",
