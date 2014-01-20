@@ -47,7 +47,7 @@ namespace libtorrent
 		typedef std::ptrdiff_t difference_type;
 
 		static char* malloc(const size_type bytes);
-		static void free(char* const block);
+		static void free(char* block);
 	};
 
 	struct TORRENT_EXTRA_EXPORT aligned_holder
