@@ -8271,7 +8271,6 @@ namespace libtorrent
 					}
 				}
 
-				// TODO: 2 will pick_pieces ever return an empty set?
 			} while (!interesting_blocks.empty());
 
 			peers.insert(peers.begin(), ignore_peers.begin(), ignore_peers.end());
