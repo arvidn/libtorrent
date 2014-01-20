@@ -514,6 +514,7 @@ void test_malicious_peer()
 		, "test");
 
 	wait_for_listen(ses1, "ses1");
+	wait_for_alert(ses1, torrent_finished_alert::alert_type);
 
 	for (int i = 0; i < num_attacks; ++i)
 	{
