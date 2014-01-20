@@ -67,14 +67,12 @@ namespace libtorrent
 	}
 }
 
-#if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-#define TORRENT_USE_INVARIANT_CHECKS 1
+#if TORRENT_USE_INVARIANT_CHECKS
 #define INVARIANT_CHECK \
 	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
 	(void)_invariant_check; \
 	do {} while (false)
 #else
-#define TORRENT_USE_INVARIANT_CHECKS 0
 #define INVARIANT_CHECK do {} while (false)
 #endif
 
