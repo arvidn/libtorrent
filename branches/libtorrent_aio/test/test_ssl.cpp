@@ -124,7 +124,7 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_bool(settings_pack::enable_outgoing_tcp, !use_utp);
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
 
-	session ses1(sett, fingerprint("LT", 0, 1, 0, 0));
+	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 
 	if (!test.downloader_has_cert)
 		// this disables outgoing SSL connections
@@ -132,7 +132,7 @@ void test_ssl(int test_idx, bool use_utp)
 	else
 		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
 
-	session ses2(sett, fingerprint("LT", 0, 1, 0, 0));
+	session ses2(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
@@ -485,12 +485,16 @@ void test_malicious_peer()
 	remove_all("tmp3_ssl", ec);
 
 	// set up session
-	session ses1(fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+
+	int ssl_port = 1024 + rand() % 50000;
+	settings_pack sett;
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+	sett.set_int(settings_pack::max_retry_port_bind, 100);
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	sett.set_int(settings_pack::ssl_listen, ssl_port);
+
+	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 	wait_for_listen(ses1, "ses1");
-	session_settings sett;
-	sett.ssl_listen = 1024 + rand() % 50000;
-	ses1.set_settings(sett);
 
 	// create torrent
 	create_directory("tmp3_ssl", ec);
@@ -515,12 +519,11 @@ void test_malicious_peer()
 		, combine_path("..", combine_path("ssl", "dhparams.pem"))
 		, "test");
 
-	wait_for_listen(ses1, "ses1");
 	wait_for_alert(ses1, torrent_finished_alert::alert_type);
 
 	for (int i = 0; i < num_attacks; ++i)
 	{
-		bool success = try_connect(ses1, sett.ssl_listen, t, attacks[i].flags);
+		bool success = try_connect(ses1, ssl_port, t, attacks[i].flags);
 		TEST_EQUAL(attacks[i].expect, success);
 	}
 }

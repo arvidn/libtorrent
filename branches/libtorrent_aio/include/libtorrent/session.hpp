@@ -1028,6 +1028,7 @@ namespace libtorrent
 		// look for peers on the same swarm within multicast reach.
 		//
 		// It is turned off by default.
+		// TODO: move this into settings_pack
 		void start_lsd();
 		void stop_lsd();
 
@@ -1040,6 +1041,7 @@ namespace libtorrent
 		// ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// It is off by default.
+		// TODO: move this into settings_pack
  		void start_upnp();
 		void stop_upnp();
 
@@ -1061,6 +1063,7 @@ namespace libtorrent
 		// ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// It is off by default.
+		// TODO: move this into settings_pack
 		void start_natpmp();
 		void stop_natpmp();
 		
