@@ -129,6 +129,13 @@ namespace libtorrent
 #error TORRENT_CFG is not defined!
 #endif
 
+	// given a vector if stats_metric objects (as returned by
+	// session_stats_metrics()) and a name of a metric, this function returns
+	// the counter index of it, or -1 if it could not be found. The counter
+	// index is the index into the values array returned by session_stats_alert.
+	TORRENT_EXPORT int find_metric_idx(std::vector<stats_metric> const& metrics
+		, char const* name);
+
 	void TORRENT_EXPORT TORRENT_CFG();
 
 	namespace aux
@@ -166,7 +173,7 @@ namespace libtorrent
 	// statistics API. Each metric has a name and a *value index*. The value index is
 	// the index into the array in session_stats_alert where this metric's value
 	// can be found when the session stats is sampled (by calling post_session_stats()).
-	std::vector<stats_metric> session_stats_metrics();
+	TORRENT_EXPORT std::vector<stats_metric> session_stats_metrics();
 
 	// The session holds all state that spans multiple torrents. Among other things it runs the network
 	// loop and manages all torrents.

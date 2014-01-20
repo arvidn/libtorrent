@@ -1127,9 +1127,15 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files
 	, int* counters, boost::unordered_set<torrent_status>& all_handles
 	, std::vector<torrent_status const*>& filtered_handles
-	, bool& need_resort)
+	, bool& need_resort, std::vector<boost::uint64_t>& stats_counters)
 {
 	using namespace libtorrent;
+
+	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
+	{
+		stats_counters.swap(s->values);
+		return true;
+	}
 
 #ifdef TORRENT_USE_OPENSSL
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
@@ -1505,6 +1511,12 @@ int main(int argc, char* argv[])
 	settings_pack settings;
 	settings.set_int(settings_pack::active_loaded_limit, 20);
 
+	std::vector<boost::uint64_t> stats_counters;
+	std::vector<stats_metric> metrics = session_stats_metrics();
+	stats_counters.resize(metrics.size(), 0);
+
+	const int queued_bytes_idx = find_metric_idx(metrics, "queued_write_bytes");
+
 	proxy_settings ps;
 
 	int refresh_delay = 500;
@@ -1874,6 +1886,7 @@ int main(int argc, char* argv[])
 	{
 		++tick;
 		ses.post_torrent_updates();
+		ses.post_session_stats();
 		if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
 		if (active_torrent >= 0)
 		{
@@ -2204,7 +2217,7 @@ int main(int argc, char* argv[])
 			TORRENT_TRY
 			{
 				if (!::handle_alert(ses, *i, files, non_files, counters
-					, all_handles, filtered_handles, need_resort))
+					, all_handles, filtered_handles, need_resort, stats_counters))
 				{
 					// if we didn't handle the alert, print it to the log
 					std::string event_string;
@@ -2503,12 +2516,12 @@ int main(int argc, char* argv[])
 			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
 				"queued-bytes: %5" PRId64 " kB\n"
 				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.blocked_jobs
-				, cs.queued_bytes / 1000);
+				, stats_counters[queued_bytes_idx] / 1000);
 			out += str;
 
 			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d\n"
 				, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size, cs.write_cache_size, cs.pinned_blocks
-				, int(cs.queued_bytes / 0x4000));
+				, int(stats_counters[queued_bytes_idx] / 0x4000));
 			out += str;
 
 			int mru_size = cs.arc_mru_size + cs.arc_mru_ghost_size;
