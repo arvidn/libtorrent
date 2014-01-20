@@ -135,7 +135,7 @@ namespace libtorrent
 		print_backtrace(h->stack, sizeof(h->stack));
 
 #ifdef TORRENT_WINDOWS
-#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULK)
+#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULL)
 #define PROT_READ PAGE_READONLY
 #endif
 		mprotect(ret, page, PROT_READ);
@@ -153,15 +153,6 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifdef TORRENT_DEBUG_BUFFERS
-	bool page_aligned_allocator::in_use(char const* block)
-	{
-		int page = page_size();
-		alloc_header* h = (alloc_header*)(block - page);
-		return h->magic == 0x1337;
-	}
-#endif
-
 	void page_aligned_allocator::free(char* block)
 	{
 		if (block == 0) return;
@@ -169,7 +160,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_BUFFERS
 
 #ifdef TORRENT_WINDOWS
-#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULK)
+#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULL)
 #define PROT_READ PAGE_READONLY
 #define PROT_WRITE PAGE_READWRITE
 #endif
@@ -182,6 +173,7 @@ namespace libtorrent
 		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
 		h->magic = 0;
+		block -= page;
 
 #ifdef TORRENT_WINDOWS
 #undef mprotect
@@ -191,7 +183,6 @@ namespace libtorrent
 
 #if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
 		print_backtrace(h->stack, sizeof(h->stack));
-		block -= page;
 #endif
 #endif // TORRENT_DEBUG_BUFFERS
 
@@ -206,6 +197,14 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 	}
 
+#ifdef TORRENT_DEBUG_BUFFERS
+	bool page_aligned_allocator::in_use(char const* block)
+	{
+		int page = page_size();
+		alloc_header* h = (alloc_header*)(block - page);
+		return h->magic == 0x1337;
+	}
+#endif
 
 }
 
