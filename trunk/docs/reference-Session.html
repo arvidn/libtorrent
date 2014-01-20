@@ -55,14 +55,14 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id159">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id160">cache_status</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id161">session_proxy</a></li>
-<li><a class="reference internal" href="#id36" id="id162">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id163">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id164">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id165">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id166">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id161">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id162">cache_status</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id163">session_proxy</a></li>
+<li><a class="reference internal" href="#id36" id="id164">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id165">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id166">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id167">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id168">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -630,6 +630,8 @@ class session: public boost::noncopyable
    void <strong>start_lsd</strong> ();
    void <strong>stop_upnp</strong> ();
    void <strong>start_upnp</strong> ();
+   void <strong>delete_port_mapping</strong> (int handle);
+   int <strong>add_port_mapping</strong> (protocol_type t, int external_port, int local_port);
    void <strong>stop_natpmp</strong> ();
    void <strong>start_natpmp</strong> ();
 
@@ -659,6 +661,12 @@ class session: public boost::noncopyable
    {
       add_default_plugins,
       start_default_features,
+   };
+
+   enum protocol_type
+   {
+      udp,
+      tcp,
    };
 };
 </pre>
@@ -1267,6 +1275,18 @@ arbitrary port mappings. Mapping status is returned through the
 <a class="reference external" href="reference-Alerts.html#portmap_alert">portmap_alert</a> and the <a class="reference external" href="reference-Alerts.html#portmap_error_alert">portmap_error_alert</a>. The object will be valid until
 <tt class="docutils literal">stop_upnp()</tt> is called. See <a class="reference external" href="manual-ref.html#upnp-and-nat-pmp">upnp and nat pmp</a>.</p>
 <p>It is off by default.</p>
+<a name="add_port_mapping()"></a>
+<a name="delete_port_mapping()"></a></div>
+<div class="section" id="add-port-mapping-delete-port-mapping">
+<h2>add_port_mapping() delete_port_mapping()</h2>
+<pre class="literal-block">
+void <strong>delete_port_mapping</strong> (int handle);
+int <strong>add_port_mapping</strong> (protocol_type t, int external_port, int local_port);
+</pre>
+<p>add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
+whichever is enabled. The return value is a handle referring to
+the port mapping that was just created. Pass it to <a class="reference external" href="reference-Session.html#delete_port_mapping()">delete_port_mapping()</a>
+to remove it.</p>
 <a name="start_natpmp()"></a>
 <a name="stop_natpmp()"></a></div>
 <div class="section" id="start-natpmp-stop-natpmp">
@@ -1401,6 +1421,33 @@ arbitrary port mappings. Mapping status is returned through the
 <td>&nbsp;</td>
 </tr>
 <tr><td>start_default_features</td>
+<td>2</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<a name="protocol_type"></a></div>
+<div class="section" id="enum-protocol-type">
+<h2>enum protocol_type</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="27%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>udp</td>
+<td>1</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>tcp</td>
 <td>2</td>
 <td>&nbsp;</td>
 </tr>

@@ -1104,7 +1104,7 @@ struct torrent_handle
       , std::string const&amp; dh_params
       , std::string const&amp; passphrase = &quot;&quot;);
    storage_interface* <strong>get_storage_impl</strong> () const;
-   boost::intrusive_ptr&lt;torrent_info&gt; <strong>torrent_file</strong> () const;
+   boost::intrusive_ptr&lt;torrent_info const&gt; <strong>torrent_file</strong> () const;
    void <strong>use_interface</strong> (const char* net_interface) const;
    void <strong>piece_availability</strong> (std::vector&lt;int&gt;&amp; avail) const;
    int <strong>piece_priority</strong> (int index) const;
@@ -1115,9 +1115,8 @@ struct torrent_handle
    void <strong>prioritize_files</strong> (std::vector&lt;int&gt; const&amp; files) const;
    void <strong>file_priority</strong> (int index, int priority) const;
    std::vector&lt;int&gt; <strong>file_priorities</strong> () const;
-   void <strong>force_reannounce</strong> () const;
+   void <strong>force_reannounce</strong> (int seconds = 0, int tracker_index = -1) const;
    void <strong>force_dht_announce</strong> () const;
-   void <strong>force_reannounce</strong> (boost::posix_time::time_duration) const;
    void <strong>scrape_tracker</strong> () const;
    int <strong>upload_limit</strong> () const;
    int <strong>download_limit</strong> () const;
@@ -1700,14 +1699,15 @@ storage contructor function that was passed to add_torrent.</p>
 <div class="section" id="torrent-file">
 <h2>torrent_file()</h2>
 <pre class="literal-block">
-boost::intrusive_ptr&lt;torrent_info&gt; <strong>torrent_file</strong> () const;
+boost::intrusive_ptr&lt;torrent_info const&gt; <strong>torrent_file</strong> () const;
 </pre>
-<p>Returns a pointer to the <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object associated with this torrent. The
-<a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object is a copy of the internal object. If the torrent doesn't
-have metadata, the object being returned will not be fully filled in.
-The torrent may be in a state without metadata only if
-it was started without a .torrent file, e.g. by using the libtorrent extension of
-just supplying a tracker and info-hash.</p>
+<p>Returns a pointer to the <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object associated with this
+torrent. The <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object may be a copy of the internal object.
+If the torrent doesn't have metadata, the pointer will not be
+initialized (i.e. a NULL pointer). The torrent may be in a state
+without metadata only if it was started without a .torrent file, e.g.
+by using the libtorrent extension of just supplying a tracker and
+info-hash.</p>
 <a name="use_interface()"></a></div>
 <div class="section" id="use-interface">
 <h2>use_interface()</h2>
@@ -1803,26 +1803,20 @@ have metadata or a torrent that is a seed. <tt class="docutils literal">file_pri
 <div class="section" id="force-reannounce-force-dht-announce">
 <h2>force_reannounce() force_dht_announce()</h2>
 <pre class="literal-block">
-void <strong>force_reannounce</strong> () const;
+void <strong>force_reannounce</strong> (int seconds = 0, int tracker_index = -1) const;
 void <strong>force_dht_announce</strong> () const;
 </pre>
-<p><tt class="docutils literal">force_reannounce()</tt> will force this torrent to do another tracker request, to receive new
-peers. The second overload of <tt class="docutils literal">force_reannounce</tt> that takes a <tt class="docutils literal">time_duration</tt> as
-argument will schedule a reannounce in that amount of time from now.</p>
-<p>If the tracker's <tt class="docutils literal">min_interval</tt> has not passed since the last announce, the forced
-announce will be scheduled to happen immediately as the <tt class="docutils literal">min_interval</tt> expires. This is
-to honor trackers minimum re-announce interval settings.</p>
-<p><tt class="docutils literal">force_dht_announce</tt> will announce the torrent to the DHT immediately.</p>
-<a name="force_reannounce()"></a></div>
-<div class="section" id="force-reannounce">
-<h2>force_reannounce()</h2>
-<pre class="literal-block">
-void <strong>force_reannounce</strong> (boost::posix_time::time_duration) const;
-</pre>
-<p>forces a reannounce in the specified amount of time.
-This overrides the default announce interval, and no
-announce will take place until the given time has
-timed out.</p>
+<p><tt class="docutils literal">force_reannounce()</tt> will force this torrent to do another tracker
+request, to receive new peers. The <tt class="docutils literal">seconds</tt> argument specifies how
+many seconds from now to issue the tracker announces.</p>
+<p>If the tracker's <tt class="docutils literal">min_interval</tt> has not passed since the last
+announce, the forced announce will be scheduled to happen immediately
+as the <tt class="docutils literal">min_interval</tt> expires. This is to honor trackers minimum
+re-announce interval settings.</p>
+<p>The <tt class="docutils literal">tracker_index</tt> argument specifies which tracker to re-announce.
+If set to -1 (which is the default), all trackers are re-announce.</p>
+<p><tt class="docutils literal">force_dht_announce</tt> will announce the torrent to the DHT
+immediately.</p>
 <a name="scrape_tracker()"></a></div>
 <div class="section" id="scrape-tracker">
 <h2>scrape_tracker()</h2>
@@ -2259,7 +2253,7 @@ struct torrent_status
    int last_scrape;
    int sparse_regions;
    int priority;
-   boost::uint8_t state;
+   state_t state;
    bool need_save_resume;
    bool ip_filter_applies;
    bool upload_mode;
@@ -2273,6 +2267,7 @@ struct torrent_status
    bool has_metadata;
    bool has_incoming;
    bool seed_mode;
+   bool moving_storage;
    sha1_hash info_hash;
 };
 </pre>
@@ -2743,6 +2738,12 @@ to this torrent.</dd>
 <dd>true if the torrent is in seed_mode. If the torrent was
 started in seed mode, it will leave seed mode once all pieces have been
 checked or as soon as one piece fails the hash check.</dd>
+</dl>
+<a name="moving_storage"></a><dl class="docutils">
+<dt>moving_storage</dt>
+<dd>this is true if this torrent's storage is currently being moved from
+one location to another. This may potentially be a long operation
+if a large file ends up being copied from one drive to another.</dd>
 </dl>
 <a name="info_hash"></a><dl class="docutils">
 <dt>info_hash</dt>

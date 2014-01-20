@@ -486,6 +486,8 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 
 	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
 		l == '#ifdef TORRENT_DEBUG' or \
+		(l.startswith('#if ') and ' TORRENT_USE_ASSERTS' in l) or \
+		(l.startswith('#if ') and ' TORRENT_USE_INVARIANT_CHECKS' in l) or \
 		l == '#ifdef TORRENT_ASIO_DEBUGGING' or \
 		(l.startswith('#if') and 'defined TORRENT_DEBUG' in l) or \
 		(l.startswith('#if') and 'defined TORRENT_ASIO_DEBUGGING' in l):
