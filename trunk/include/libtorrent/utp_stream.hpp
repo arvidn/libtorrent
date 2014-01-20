@@ -375,7 +375,7 @@ public:
 	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
 		TORRENT_ASSERT(false && "not implemented!");
-		// TODO: 1 implement blocking write. Low priority since it's not used (yet)
+		// TODO: implement blocking write. Low priority since it's not used (yet)
 		return 0;
 	}
 
