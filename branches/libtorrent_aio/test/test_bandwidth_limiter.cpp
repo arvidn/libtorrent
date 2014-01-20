@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -157,7 +157,9 @@ void run_test(connections_t& v
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::start, _1));
 
-	int tick_interval = session_settings().tick_interval;
+	libtorrent::aux::session_settings s;
+	initialize_default_settings(s);
+	int tick_interval = s.get_int(settings_pack::tick_interval);
 
 	for (int i = 0; i < int(sample_time * 1000 / tick_interval); ++i)
 	{
