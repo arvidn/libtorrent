@@ -5750,8 +5750,14 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_dht_router_name_lookup");
 #endif
-		// TODO: 1 report errors as alerts
-		if (e) return;
+		if (e)
+		{
+			if (m_alerts.should_post<dht_error_alert>())
+				m_alerts.post_alert(dht_error_alert(
+					dht_error_alert::hostname_lookup, e));
+			return;
+		}
+
 		while (host != tcp::resolver::iterator())
 		{
 			// router nodes should be added before the DHT is started (and bootstrapped)

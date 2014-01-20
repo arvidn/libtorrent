@@ -1900,8 +1900,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		m_mtu_ceiling = p->size - 1;
 		if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
 		update_mtu_limits();
-		// TODO: 2 we might want to do something else here
-		// as well, to resend the packet immediately without
+		// resend the packet immediately without
 		// it being an MTU probe
 		p->mtu_probe = false;
 		if (m_mtu_seq == m_ack_nr)
