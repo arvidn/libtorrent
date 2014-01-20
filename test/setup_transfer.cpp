@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/instantiate_connection.hpp"
-#include "setup_transfer.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>

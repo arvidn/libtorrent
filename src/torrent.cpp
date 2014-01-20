@@ -4335,7 +4335,13 @@ namespace libtorrent
 		, std::string const& dh_params
 		, std::string const& passphrase)
 	{
-		if (!m_ssl_ctx) return;
+		if (!m_ssl_ctx)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle()
+					, error_code(errors::not_an_ssl_torrent)));
+			return;
+		}
 
 		using boost::asio::ssl::context;
 		error_code ec;

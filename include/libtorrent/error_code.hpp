@@ -326,7 +326,9 @@ namespace libtorrent
 			// The peer tried to connect to a torrent with a certificate
 			// for a different torrent.
 			invalid_ssl_cert,
-
+			// the torrent is not an SSL torrent, and the operation requires
+			// an SSL torrent
+			not_an_ssl_torrent,
 
 
 			// The NAT-PMP router responded with an unsupported protocol version

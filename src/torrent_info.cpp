@@ -919,6 +919,14 @@ namespace libtorrent
 
 	std::string torrent_info::ssl_cert() const
 	{
+		// this is parsed lazily
+		if (m_info_dict.type() == lazy_entry::none_t)
+		{
+			error_code ec;
+			lazy_bdecode(m_info_section.get(), m_info_section.get()
+				+ m_info_section_size, m_info_dict, ec);
+			if (ec) return "";
+		}
 		if (m_info_dict.type() != lazy_entry::dict_t) return "";
 		return m_info_dict.dict_find_string_value("ssl-cert");
 	}
