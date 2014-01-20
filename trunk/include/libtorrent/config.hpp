@@ -580,6 +580,12 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 #endif // TORRENT_USE_ASSERTS
 
+#if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#define TORRENT_USE_INVARIANT_CHECKS 1
+#else
+#define TORRENT_USE_INVARIANT_CHECKS 0
+#endif
+
 // for non-exception builds
 #ifdef BOOST_NO_EXCEPTIONS
 #define TORRENT_TRY if (true)
