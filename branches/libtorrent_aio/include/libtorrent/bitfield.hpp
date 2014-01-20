@@ -170,19 +170,34 @@ namespace libtorrent
 		{
 			int ret = 0;
 			const int words = num_words();
+#if defined _MSC_VER && (defined _M_AMD64 || defined _M_IX86)
+			int cpui[4];
+			__cpuid(cpui, 1);
+			if (cpui[2] & (1 << 23))
+			{
+				for (int i = 0; i < words; ++i)
+					ret += __popcnt(m_buf[i]);
+				return ret;
+			}	
+#endif // _MSC_VER
+
 			for (int i = 0; i < words; ++i)
 			{
-#ifdef _MSC_VER
-				ret += __popcnt(m_buf[i]);
-#elif defined __GNU__
+#if defined __GNU__
 				ret += __builtin_popcount(m_buf[i]);
 #else
 				boost::uint32_t v = m_buf[i];
-				while (v)
-				{
-					ret += v & 1;
-					v >>= 1;
-				}
+				// from:
+				// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+				static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
+				static const int B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
+
+				boost::uint32_t c = v - ((v >> 1) & B[0]);
+				c = ((c >> S[1]) & B[1]) + (c & B[1]);
+				c = ((c >> S[2]) + c) & B[2];
+				c = ((c >> S[3]) + c) & B[3];
+				c = ((c >> S[4]) + c) & B[4];
+				ret += c;
 #endif
 			}
 
