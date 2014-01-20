@@ -1,5 +1,6 @@
 import os
 import shutil
+import glob
 
 to_delete = [
 	'session_stats',
@@ -9,7 +10,8 @@ to_delete = [
 	'upnp.log',
 	'natpmp.log',
 	'bin',
-	'test_tmp_*'
+	'test_tmp_*',
+	'bjam_build.*.xml'
 ]
 
 directories = [
@@ -22,9 +24,11 @@ directories = [
 for d in directories:
 	for f in to_delete:
 		path = os.path.join(d, f)
-		print path
-		try:
-			shutil.rmtree(path)
-		except:
-			pass
+		entries = glob.glob(path)
+		for p in entries:
+			print p
+			try:
+				shutil.rmtree(p)
+			except:
+				pass
 
