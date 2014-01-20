@@ -1,4 +1,5 @@
 import os
+import shutil
 
 to_delete = [
 	'session_stats',
@@ -22,5 +23,8 @@ for d in directories:
 	for f in to_delete:
 		path = os.path.join(d, f)
 		print path
-		os.system('rm -rf %s' % path)
+		try:
+			shutil.rmtree(path)
+		except:
+			pass
 
