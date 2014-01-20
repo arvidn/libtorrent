@@ -304,6 +304,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			std::cerr << "moving storage" << std::endl;
 		}
 
+		// TODO: 3 factor out the disk-full test into its own unit test
 		if (test_disk_full && st2.upload_mode)
 		{
 			test_disk_full = false;

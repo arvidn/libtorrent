@@ -231,34 +231,31 @@ void test_transfer()
 	peer_disconnects = 0;
 
 	// wait until force-recheck is complete
-	for (int i = 0; i < 50; ++i)
-	{
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-
-		torrent_status st2 = tor2.status();
-		if (i % 10 == 0)
-		{
-			std::cerr << int(st2.progress * 100) << "% " << std::endl;
-		}
-		if (st2.state != torrent_status::checking_files) break;
-		if (peer_disconnects >= 1) break;
-		test_sleep(100);
-	}
-
-	priorities2 = tor2.piece_priorities();
-	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
-
-	peer_disconnects = 0;
-
+	// when we're done checking, we're likely to be put in downloading state
+	// for a split second before transitioning to finished. This loop waits
+	// for the finished state
+	torrent_status st2;
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-		torrent_status st2 = tor2.status();
-		TEST_CHECK(st2.state == torrent_status::finished);
-		if (peer_disconnects >= 1) break;
+
+		st2 = tor2.status();
+		if (i % 10 == 0)
+		{
+			std::cerr << int(st2.progress * 100) << "% " << std::endl;
+		}
+		if (st2.state == torrent_status::finished) break;
 		test_sleep(100);
 	}
+
+	TEST_CHECK(st2.state != torrent_status::checking_files);
+	if (st2.state != torrent_status::checking_files) std::cerr << "recheck complete" << std::endl;
+
+	priorities2 = tor2.piece_priorities();
+	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
+	std::cerr << std::endl;
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	tor2.pause();
 	alert const* a = ses2.wait_for_alert(seconds(10));
@@ -350,10 +347,16 @@ void test_transfer()
 	std::cout << "setting priorities to 1" << std::endl;
 	TEST_EQUAL(tor2.status().is_finished, false);
 
+	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
+	std::cerr << std::endl;
+
 	peer_disconnects = 0;
 
+	// this loop makes sure ses2 reconnects to the peer now that it's
+	// in download mode again. If this fails, the reconnect logic may
+	// not work or be inefficient
 	torrent_status st1 = tor1.status();
-	torrent_status st2 = tor2.status();
+	st2 = tor2.status();
 	for (int i = 0; i < 130; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
@@ -372,7 +375,7 @@ void test_transfer()
 
 		if (peer_disconnects >= 2)
 		{
-			printf("too many disconnects (%d), exiting\n", peer_disconnects);
+			fprintf(stderr, "too many disconnects (%d), exiting\n", peer_disconnects);
 			break;
 		}
 
@@ -380,6 +383,8 @@ void test_transfer()
 	}
 
 	st2 = tor2.status();
+	if (!st2.is_seeding)
+		fprintf(stderr, "ses2 failed to reconnect to ses1!\n");
 	TEST_CHECK(st2.is_seeding);
 
 	// this allows shutting down the sessions in parallel
