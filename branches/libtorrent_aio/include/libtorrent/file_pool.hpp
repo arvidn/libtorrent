@@ -108,7 +108,7 @@ namespace libtorrent
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 		void get_status(std::vector<pool_file_status>* files, void* st) const;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool assert_idle_files(void* st) const;
 
 		// remember that this storage has had
@@ -140,9 +140,6 @@ namespace libtorrent
 		file_set m_files;
 #if TORRENT_USE_ASSERTS
 		int m_in_use;
-#endif
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
 #endif
 		mutable mutex m_mutex;
