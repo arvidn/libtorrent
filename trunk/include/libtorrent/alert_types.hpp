@@ -1906,6 +1906,33 @@ namespace libtorrent
 		feed_item item;
 	};
 
+	// posted when something fails in the DHT. This is not necessarily a fatal
+	// error, but it could prevent proper operation
+	struct TORRENT_EXPORT dht_error_alert: alert
+	{
+		// internal
+		dht_error_alert(int op, error_code const& ec)
+			: error(ec), operation(op_t(op)) {}
+		
+		TORRENT_DEFINE_ALERT(dht_error_alert);
+
+		const static int static_category = alert::error_notification
+			| alert::dht_notification;
+		virtual std::string message() const;
+
+		// the error code
+		error_code error;
+
+		enum op_t
+		{
+			unknown,
+			hostname_lookup
+		};
+
+		// the operation that failed
+		op_t operation;
+	};
+
 
 #undef TORRENT_DEFINE_ALERT
 
