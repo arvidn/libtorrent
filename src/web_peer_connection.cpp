@@ -580,18 +580,6 @@ namespace libtorrent
 				}
 			}
 
-			if (m_requests.empty() || m_file_requests.empty())
-			{
-				m_statistics.received_bytes(0, bytes_transferred);
-				disconnect(errors::http_error, 2);
-#ifdef TORRENT_DEBUG
-				TORRENT_ASSERT(m_statistics.last_payload_downloaded()
-					+ m_statistics.last_protocol_downloaded()
-					== dl_target);
-#endif
-				return;
-			}
-
 			// =========================
 			// === CHUNKED ENCODING  ===
 			// =========================
@@ -639,7 +627,22 @@ namespace libtorrent
 #endif
 						m_chunk_pos = -1;
 					}
+					// if all of hte receive buffer was just consumed as chunk
+					// header, we're done
+					if (bytes_transferred == 0) return;
 				}
+			}
+
+			if (m_requests.empty() || m_file_requests.empty())
+			{
+				m_statistics.received_bytes(0, bytes_transferred);
+				disconnect(errors::http_error, 2);
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+					+ m_statistics.last_protocol_downloaded()
+					== dl_target);
+#endif
+				return;
 			}
 
 			size_type left_in_response = range_end - range_start - m_range_pos;
