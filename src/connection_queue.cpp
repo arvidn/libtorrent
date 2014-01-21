@@ -173,7 +173,7 @@ namespace libtorrent
 	int connection_queue::limit() const
 	{ return m_half_open_limit; }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void connection_queue::check_invariant() const
 	{
 		int num_connecting = 0;

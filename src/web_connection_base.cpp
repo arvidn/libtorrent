@@ -192,7 +192,7 @@ namespace libtorrent
 	}
 
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void web_connection_base::check_invariant() const
 	{
 /*

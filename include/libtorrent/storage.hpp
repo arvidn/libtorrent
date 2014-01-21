@@ -697,7 +697,7 @@ namespace libtorrent
 		int move_storage_impl(std::string const& save_path, int flags);
 
 		int allocate_slot_for_piece(int piece_index);
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 #ifdef TORRENT_STORAGE_DEBUG

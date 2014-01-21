@@ -93,7 +93,7 @@ public:
 #if TORRENT_USE_ASSERTS
 	size_t allocation_size() const;
 #endif
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 

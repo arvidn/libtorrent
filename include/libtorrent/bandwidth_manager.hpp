@@ -84,7 +84,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 		, bandwidth_channel* chan4 = 0
 		, bandwidth_channel* chan5 = 0);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 

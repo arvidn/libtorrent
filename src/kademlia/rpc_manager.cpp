@@ -231,7 +231,7 @@ size_t rpc_manager::allocation_size() const
 	return observer_size;
 }
 #endif
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 void rpc_manager::check_invariant() const
 {
 	for (transactions_t::const_iterator i = m_transactions.begin()

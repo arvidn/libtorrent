@@ -605,7 +605,7 @@ namespace libtorrent
 		, m_private(t.m_private)
 		, m_i2p(t.m_i2p)
 	{
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		t.check_invariant();
 #endif
 		if (m_info_section_size > 0)
@@ -1431,7 +1431,7 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const
 	{
 		for (int i = 0; i < m_files.num_files(); ++i)

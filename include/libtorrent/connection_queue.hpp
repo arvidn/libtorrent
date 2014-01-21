@@ -84,7 +84,7 @@ public:
 	}
 #endif
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 

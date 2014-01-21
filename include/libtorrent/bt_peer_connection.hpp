@@ -249,7 +249,7 @@ namespace libtorrent
 		void on_connected();
 		void on_metadata();
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 		ptime m_last_choke;
 #endif
