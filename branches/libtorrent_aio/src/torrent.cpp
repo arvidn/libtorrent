@@ -3494,8 +3494,11 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(st.total_wanted >= st.total_wanted_done);
 
+		// this is expensive, we might not want to do it all the time
+		if (!accurate) return;
+
 		// subtract padding files
-		if (m_padding > 0 && accurate)
+		if (m_padding > 0)
 		{
 			// this is a bit unfortunate
 			// (both the const cast and the requirement to load the torrent)
@@ -3528,9 +3531,6 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
-		// this is expensive, we might not want to do it all the time
-		if (!accurate) return;
-
 		std::vector<piece_picker::downloading_piece> dl_queue
 			= m_picker->get_download_queue();
 
@@ -3547,7 +3547,7 @@ namespace libtorrent
 			if (m_picker->has_piece_passed(index)) continue;
 			TORRENT_ASSERT(i->finished <= m_picker->blocks_in_piece(index));
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
 				j != dl_queue.end(); ++j)
 			{

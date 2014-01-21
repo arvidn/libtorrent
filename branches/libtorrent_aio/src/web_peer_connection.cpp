@@ -661,18 +661,6 @@ void web_peer_connection::on_receive(error_code const& error
 				}
 			}
 
-			if (m_requests.empty() || m_file_requests.empty())
-			{
-				received_bytes(0, bytes_transferred);
-				disconnect(errors::http_error, op_bittorrent, 2);
-#ifdef TORRENT_DEBUG
-				TORRENT_ASSERT(statistics().last_payload_downloaded()
-					+ statistics().last_protocol_downloaded()
-					== dl_target);
-#endif
-				return;
-			}
-
 			// =========================
 			// === CHUNKED ENCODING  ===
 			// =========================
@@ -720,7 +708,22 @@ void web_peer_connection::on_receive(error_code const& error
 #endif
 						m_chunk_pos = -1;
 					}
+					// if all of hte receive buffer was just consumed as chunk
+					// header, we're done
+					if (bytes_transferred == 0) return;
 				}
+			}
+
+			if (m_requests.empty() || m_file_requests.empty())
+			{
+				received_bytes(0, bytes_transferred);
+				disconnect(errors::http_error, op_bittorrent, 2);
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(statistics().last_payload_downloaded()
+					+ statistics().last_protocol_downloaded()
+					== dl_target);
+#endif
+				return;
 			}
 
 			size_type left_in_response = range_end - range_start - m_range_pos;
