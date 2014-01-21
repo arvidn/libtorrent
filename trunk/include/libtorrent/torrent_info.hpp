@@ -662,7 +662,7 @@ namespace libtorrent
 		// if we're logging member offsets, we need access to them
 	private:
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		friend class invariant_access;
 		void check_invariant() const;
 #endif

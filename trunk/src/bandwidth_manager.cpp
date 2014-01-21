@@ -127,7 +127,7 @@ namespace libtorrent
 		return 0;
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void bandwidth_manager::check_invariant() const
 	{
 		boost::int64_t queued = 0;

@@ -334,7 +334,7 @@ struct utp_socket_impl
 
 	void check_receive_buffers() const;
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 
@@ -3448,7 +3448,7 @@ void utp_socket_impl::check_receive_buffers() const
 	TORRENT_ASSERT(int(size) == m_receive_buffer_size);
 }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 void utp_socket_impl::check_invariant() const
 {
 	for (int i = m_outbuf.cursor();

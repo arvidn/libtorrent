@@ -6104,7 +6104,7 @@ namespace libtorrent
 			}
 		}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		m_policy.check_invariant();
 #endif
 
@@ -6586,7 +6586,7 @@ namespace libtorrent
 		return m_ses.settings();
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
 		for (std::deque<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
@@ -8398,7 +8398,7 @@ namespace libtorrent
 
 		m_storage->async_hash(piece_index, boost::bind(&torrent::on_piece_verified
 			, shared_from_this(), _1, _2, f));
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		check_invariant();
 #endif
 	}

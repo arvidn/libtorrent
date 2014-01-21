@@ -6328,7 +6328,7 @@ retry:
 #endif
 	}	
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void session_impl::check_invariant() const
 	{
 		TORRENT_ASSERT(is_network_thread());

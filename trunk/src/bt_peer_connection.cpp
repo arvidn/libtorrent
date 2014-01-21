@@ -3343,7 +3343,7 @@ namespace libtorrent
 		}
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void bt_peer_connection::check_invariant() const
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
