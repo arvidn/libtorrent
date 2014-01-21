@@ -1,3 +1,4 @@
+	* HTTP chunked encoding fix
 	* expose file_granularity flag to python bindings
 	* fix DHT memory error
 	* change semantics of storage allocation to allocate on first write rather
