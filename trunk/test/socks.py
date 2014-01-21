@@ -12,6 +12,9 @@ import sys
 def debug(s):
 	print >>sys.stderr, 'socks.py: ', s
 
+def error(s):
+	print >>sys.stderr, 'socks.py, ERROR: ', s
+
 class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
 
