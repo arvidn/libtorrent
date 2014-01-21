@@ -86,6 +86,8 @@ http_connection::http_connection(io_service& ios
 	, m_rate_limit(0)
 	, m_download_quota(0)
 	, m_priority(0)
+	, m_resolve_flags(0)
+	, m_port(0)
 	, m_bottled(bottled)
 	, m_called(false)
 	, m_limiter_timer_active(false)
