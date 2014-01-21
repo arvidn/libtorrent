@@ -81,7 +81,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			try:
 				filename = s.path[1:]
 				# serve file by invoking default handler
-				f = open(filename)
+				f = open(filename, 'rb')
 				size = int(os.stat(filename).st_size)
 				start_range = 0
 				end_range = size
