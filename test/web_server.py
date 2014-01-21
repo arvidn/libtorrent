@@ -25,7 +25,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.path = s.path[8:]
 			s.path = s.path[s.path.find('/'):]
 
-		s.path = os.path.normpath(s.path)
+		file_path = os.path.normpath(s.path)
 
 		if s.path == '/redirect':
 			s.send_response(301)
@@ -79,7 +79,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.end_headers()
 		else:
 			try:
-				filename = s.path[1:]
+				filename = file_path[1:]
 				# serve file by invoking default handler
 				f = open(filename, 'rb')
 				size = int(os.stat(filename).st_size)
