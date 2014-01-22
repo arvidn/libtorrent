@@ -197,7 +197,6 @@ int test_main()
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
 	test_file.close();
-	std::system("gzip -9 -c test_file > test_file.gz");
 	
 	proxy_settings ps;
 	ps.hostname = "127.0.0.1";
