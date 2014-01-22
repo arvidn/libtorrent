@@ -444,8 +444,7 @@ namespace libtorrent
 		void verify_priority(int start, int end, int prio) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
-#endif
-#if TORRENT_USE_INVARIANT_CHECKS
+
 		void check_peer_invariant(bitfield const& have, void const* p) const;
 		void check_invariant(const torrent* t = 0) const;
 #endif

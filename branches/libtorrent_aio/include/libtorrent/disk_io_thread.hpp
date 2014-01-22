@@ -381,7 +381,7 @@ namespace libtorrent
 
 		io_service& get_io_service() { return m_ios; }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 

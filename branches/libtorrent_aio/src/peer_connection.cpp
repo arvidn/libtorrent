@@ -2492,7 +2492,7 @@ namespace libtorrent
 		}
 	}
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 	struct check_postcondition
 	{
 		check_postcondition(boost::shared_ptr<torrent> const& t_
@@ -2898,7 +2898,7 @@ namespace libtorrent
 		// to disk or are in the disk write cache
 		if (picker.is_piece_finished(p.piece) && !was_finished)
 		{
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 			check_postcondition post_checker2_(t, false);
 #endif
 			t->verify_piece(p.piece);

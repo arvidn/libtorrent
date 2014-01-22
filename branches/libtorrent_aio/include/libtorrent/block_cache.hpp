@@ -437,7 +437,7 @@ namespace libtorrent
 		void insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
 			, int iov_len, disk_io_job* j, int flags = 0);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 		

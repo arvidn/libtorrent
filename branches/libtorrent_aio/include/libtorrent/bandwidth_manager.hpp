@@ -76,7 +76,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 	int request_bandwidth(boost::shared_ptr<bandwidth_socket> const& peer
 		, int blk, int priority, bandwidth_channel** chan, int num_channels);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 

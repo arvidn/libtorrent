@@ -48,7 +48,7 @@ namespace libtorrent {
 		, m_last(0)
 	{}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void packet_buffer::check_invariant() const
 	{
 		int count = 0;

@@ -1493,7 +1493,7 @@ void block_cache::set_settings(aux::session_settings const& sett)
 	disk_buffer_pool::set_settings(sett);
 }
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 void block_cache::check_invariant() const
 {
 	int cached_write_blocks = 0;

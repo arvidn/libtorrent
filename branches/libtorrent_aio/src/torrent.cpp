@@ -7295,7 +7295,7 @@ namespace libtorrent
 			}
 		}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		if (m_policy) m_policy->check_invariant();
 #endif
 
@@ -7873,7 +7873,7 @@ namespace libtorrent
 		return m_ses.settings();
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
 		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + counters::num_checking_torrents

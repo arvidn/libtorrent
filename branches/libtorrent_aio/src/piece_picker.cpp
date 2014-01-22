@@ -411,7 +411,7 @@ namespace libtorrent
 		std::cerr << std::endl;
 	}
 #endif // TORRENT_PIECE_PICKER
-#endif // TORRENT_DEBUG
+#endif // TORRENT_USE_INVARIANT_CHECKS
 
 #if TORRENT_USE_INVARIANT_CHECKS
 	void piece_picker::check_peer_invariant(bitfield const& have

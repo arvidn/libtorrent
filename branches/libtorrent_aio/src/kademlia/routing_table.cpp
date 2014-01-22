@@ -1089,7 +1089,7 @@ void routing_table::find_node(node_id const& target
 	TORRENT_ASSERT(int(l.size()) <= count);
 }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
 	boost::unordered_multiset<address_v4::bytes_type> all_ips;
