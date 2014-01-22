@@ -860,6 +860,8 @@ namespace libtorrent
 		std::vector<downloading_piece>::iterator i = find_dl_piece(index);
 
 		TORRENT_ASSERT(i != m_downloads.end());
+		TORRENT_ASSERT(i->info >= &m_block_info[0]
+			&& i->info < &m_block_info[0] + m_block_info.size());
 #ifdef TORRENT_DEBUG
 		int num_blocks = blocks_in_piece(i->index);
 		for (int k = 0; k < num_blocks; ++k)
@@ -2185,6 +2187,8 @@ namespace libtorrent
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(block.piece_index);
 
 		TORRENT_ASSERT(i != m_downloads.end());
+		TORRENT_ASSERT(i->info >= &m_block_info[0]
+			&& i->info < &m_block_info[0] + m_block_info.size());
 		TORRENT_ASSERT(i->info[block.block_index].piece_index == block.piece_index);
 		return i->info[block.block_index].state == block_info::state_requested;
 	}
@@ -2202,6 +2206,8 @@ namespace libtorrent
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(block.piece_index);
 		TORRENT_ASSERT(i != m_downloads.end());
+		TORRENT_ASSERT(i->info >= &m_block_info[0]
+			&& i->info < &m_block_info[0] + m_block_info.size());
 		TORRENT_ASSERT(i->info[block.block_index].piece_index == block.piece_index);
 		return i->info[block.block_index].state == block_info::state_finished
 			|| i->info[block.block_index].state == block_info::state_writing;
@@ -2221,6 +2227,8 @@ namespace libtorrent
 		if (p.downloading == 0) return false;
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(block.piece_index);
 		TORRENT_ASSERT(i != m_downloads.end());
+		TORRENT_ASSERT(i->info >= &m_block_info[0]
+			&& i->info < &m_block_info[0] + m_block_info.size());
 		TORRENT_ASSERT(i->info[block.block_index].piece_index == block.piece_index);
 		return i->info[block.block_index].state == block_info::state_finished;
 	}
@@ -2533,6 +2541,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0 && index <= (int)m_piece_map.size());
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(index);
 		TORRENT_ASSERT(i != m_downloads.end());
+		TORRENT_ASSERT(i->info >= &m_block_info[0]
+			&& i->info < &m_block_info[0] + m_block_info.size());
 
 		d.clear();
 		for (int j = 0, end(blocks_in_piece(index)); j != end; ++j)

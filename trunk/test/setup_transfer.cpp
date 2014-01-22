@@ -928,7 +928,7 @@ pid_type web_server_pid = 0;
 int start_web_server(bool ssl, bool chunked_encoding)
 {
 	unsigned int seed = total_microseconds(time_now_hires() - min_time());
-	printf("random seed: %u\n", seed);
+	fprintf(stderr, "random seed: %u\n", seed);
 	std::srand(seed);
 	int port = 5000 + (rand() % 55000);
 
