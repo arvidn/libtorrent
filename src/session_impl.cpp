@@ -6307,7 +6307,7 @@ retry:
 		m_buffer_usage_logger << log_time() << " send_buffer_size: " << send_buffer_capacity << std::endl;
 		m_buffer_usage_logger << log_time() << " used_send_buffer: " << used_send_buffer << std::endl;
 		m_buffer_usage_logger << log_time() << " send_buffer_utilization: "
-			<< (used_send_buffer * 100.f / send_buffer_capacity) << std::endl;
+			<< (used_send_buffer * 100.f / (std::max)(send_buffer_capacity, 1)) << std::endl;
 	}
 #endif
 
