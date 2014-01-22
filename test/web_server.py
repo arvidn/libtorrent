@@ -3,8 +3,15 @@ import SimpleHTTPServer
 import sys
 import os
 import ssl
+import gzip
 
 chunked_encoding = False
+
+fin = open('test_file', 'rb')
+f = gzip.open('test_file.gz', 'wb')
+f.writelines(fin)
+f.close()
+fin.close()
 
 class http_server_with_timeout(BaseHTTPServer.HTTPServer):
 	allow_reuse_address = True
