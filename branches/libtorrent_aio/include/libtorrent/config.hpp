@@ -679,9 +679,9 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 // GCC requires the user to enable SSE support in order for
 // the program to have access to the intrinsics, this is
 // indicated by the __SSE4_1__ macro
-#if (defined _M_AMD64 || defined _M_IX86 \
+#if (defined _M_AMD64 || defined _M_IX86 || defined _M_X64 \
 	|| defined __amd64__ || defined __i386 || defined __i386__ \
-	|| defined __x86_64__) \
+	|| defined __x86_64__ || defined __x86_64) \
 	&& ((defined __GNUC__ && defined __SSE4_1__) || defined _MSC_VER)
 #define TORRENT_HAS_SSE 1
 #else
