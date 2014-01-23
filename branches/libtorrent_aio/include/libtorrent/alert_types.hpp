@@ -2019,7 +2019,7 @@ namespace libtorrent
 
 #undef TORRENT_DEFINE_ALERT
 
-	enum { num_alert_types = 73 };
+	enum { num_alert_types = 74 };
 }
 
 
