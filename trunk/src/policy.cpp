@@ -164,7 +164,7 @@ namespace libtorrent
 			boost::uint16_t p[2];
 			p[0] = htons(e1.port());
 			p[1] = htons(e2.port());
-			crc.process_block((char const*)&p[0], (char const*)&p[2]);
+			crc.process_bytes((char const*)&p[0], 4);
 		}
 #if TORRENT_USE_IPV6
 		else if (e1.address().is_v6())
@@ -183,8 +183,8 @@ namespace libtorrent
 			apply_mask(&b1[0], v6mask[mask], 8);
 			apply_mask(&b2[0], v6mask[mask], 8);
 
-			crc.process_block((char const*)&b1[0], (char const*)&b1[16]);
-			crc.process_block((char const*)&b2[0], (char const*)&b2[16]);
+			crc.process_bytes((char const*)&b1[0], 16);
+			crc.process_bytes((char const*)&b2[0], 16);
 		}
 #endif
 		else
@@ -203,8 +203,8 @@ namespace libtorrent
 			apply_mask(&b1[0], v4mask[mask], 4);
 			apply_mask(&b2[0], v4mask[mask], 4);
 
-			crc.process_block((char const*)&b1[0], (char const*)&b1[4]);
-			crc.process_block((char const*)&b2[0], (char const*)&b2[4]);
+			crc.process_bytes((char const*)&b1[0], 4);
+			crc.process_bytes((char const*)&b2[0], 4);
 		}
 
 		return crc.checksum();
