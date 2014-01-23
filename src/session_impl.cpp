@@ -6241,6 +6241,12 @@ retry:
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.post_alert(external_ip_alert(ip));
 
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			i->second->new_external_ip();
+		}
+
 		// since we have a new external IP now, we need to
 		// restart the DHT with a new node ID
 #ifndef TORRENT_DISABLE_DHT

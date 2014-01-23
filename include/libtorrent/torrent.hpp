@@ -216,6 +216,8 @@ namespace libtorrent
 		void abort();
 		bool is_aborted() const { return m_abort; }
 
+		void new_external_ip();
+
 		torrent_status::state_t state() const { return (torrent_status::state_t)m_state; }
 		void set_state(torrent_status::state_t s);
 

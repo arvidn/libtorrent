@@ -8594,6 +8594,11 @@ namespace libtorrent
 		}
 	}
 	
+	void torrent::new_external_ip()
+	{
+		m_policy.clear_peer_prio();
+	}
+
 	void torrent::set_state(torrent_status::state_t s)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());

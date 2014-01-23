@@ -447,6 +447,13 @@ namespace libtorrent
 		, m_finished(false)
 	{ TORRENT_ASSERT(t); }
 
+	void policy::clear_peer_prio()
+	{
+		for (peers_t::iterator i = m_peers.begin()
+			, end(m_peers.end()); i != end; ++i)
+			(*i)->peer_rank = 0;
+	}
+
 	// disconnects and removes all peers that are now filtered
 	void policy::ip_filter_updated()
 	{
@@ -1903,7 +1910,6 @@ namespace libtorrent
 	// TOOD: pass in both an IPv6 and IPv4 address here
 	boost::uint32_t policy::peer::rank(external_ip const& external, int external_port) const
 	{
-//TODO 3: how do we deal with our external address changing? Pass in a force-update maybe? and keep a version number in policy
 		if (peer_rank == 0)
 			peer_rank = peer_priority(
 				tcp::endpoint(external.external_address(this->address()), external_port)
