@@ -39,7 +39,7 @@ namespace libtorrent
 {
 	bool supports_sse42()
 	{
-#if defined _MSC_VER || defined __GNUC__
+#if TORRENT_HAS_SSE
 		unsigned int cpui[4];
 		cpuid(cpui, 1);
 		return cpui[2] & (1 << 20);
@@ -52,7 +52,7 @@ namespace libtorrent
 
 	boost::uint32_t crc32c_32(boost::uint32_t v)
 	{
-#if (defined _MSC_VER || defined __GNUC__) && TORRENT_X86 && defined __SSE4_1__
+#if TORRENT_HAS_SSE
 		if (sse42_support)
 		{
 			boost::uint32_t ret = 0xffffffff;
@@ -67,8 +67,7 @@ namespace libtorrent
 
 	boost::uint32_t crc32c(boost::uint64_t const* buf, int num_words)
 	{
-#if (defined _MSC_VER || defined __GNUC__) \
-	&& TORRENT_X86 && defined __SSE4_1__
+#if TORRENT_HAS_SSE
 		if (sse42_support)
 		{
 #if defined __LP64__ || defined _M_AMD64

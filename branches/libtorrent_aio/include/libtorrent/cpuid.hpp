@@ -33,20 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CPUID_HPP_INCLUDED
 #define TORRENT_CPUID_HPP_INCLUDED
 
-#if defined _M_AMD64 || defined _M_IX86 \
-	|| defined __amd64__ || defined __i386 || defined __i386__ \
-	|| defined __x86_64__
-#define TORRENT_X86 1
-#else
-#define TORRENT_X86 0
-#endif
+#include "libtorrent/config.hpp"
 
-#if defined __GNUC__ && TORRENT_X86
+#if defined __GNUC__ && TORRENT_HAS_SSE
 #include <cpuid.h>
 #include <smmintrin.h>
 #endif
 
-#ifdef _MSC_VER
+#if defined _MSC_VER && TORRENT_HAS_SSE
 #include <intrin.h>
 #include <nmmintrin.h>
 #endif
@@ -55,25 +49,15 @@ namespace libtorrent
 {
 	inline void cpuid(unsigned int info[4], int type)
 	{
-#if TORRENT_X86
-		// cpuinfo is x86 and amd64 specific
-#ifdef _MSC_VER
+#if TORRENT_HAS_SSE && defined _MSC_VER
 		__cpuid((int*)info, type);
 
-#elif defined __GNUC__
+#elif TORRENT_HAS_SSE && defined __GNUC__
 		__get_cpuid(type, &info[0], &info[1], &info[2], &info[3]);
-
 #else
-#warning "don't know how to get cpuinfo with this compiler"
-		memset(info, 0, sizeof(info));
-#endif
-
-#else
-
 		// for non-x86 and non-amd64, just return zeroes
 		memset(info, 0, sizeof(info));
-
-#endif // x86 or amd64
+#endif
 	}
 }
 

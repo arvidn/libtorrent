@@ -172,7 +172,7 @@ namespace libtorrent
 		{
 			int ret = 0;
 			const int words = num_words();
-#if (defined _MSC_VER || defined __GNUC__) && TORRENT_X86
+#if TORRENT_HAS_SSE
 			unsigned int cpui[4];
 			cpuid(cpui, 1);
 			if (cpui[2] & (1 << 23))
@@ -182,13 +182,10 @@ namespace libtorrent
 
 				return ret;
 			}	
-#endif // _MSC_VER
+#endif // TORRENT_HAS_SSE
 
 			for (int i = 0; i < words; ++i)
 			{
-#if defined __GNU__
-				ret += __builtin_popcount(m_buf[i]);
-#else
 				boost::uint32_t v = m_buf[i];
 				// from:
 				// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
@@ -201,7 +198,6 @@ namespace libtorrent
 				c = ((c >> S[3]) + c) & B[3];
 				c = ((c >> S[4]) + c) & B[4];
 				ret += c;
-#endif
 			}
 
 			TORRENT_ASSERT(ret <= size());

@@ -715,6 +715,7 @@ lib torrent
 
 	<toolset>gcc:<cxxflags>-msse4.2
 	<toolset>darwin:<cxxflags>-msse4.2
+	<toolset>clang:<cxxflags>-msse4.2
 
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
@@ -743,6 +744,7 @@ lib torrent
 
 	<toolset>gcc:<cxxflags>-msse4.2
 	<toolset>darwin:<cxxflags>-msse4.2
+	<toolset>clang:<cxxflags>-msse4.2
 
 	;
 

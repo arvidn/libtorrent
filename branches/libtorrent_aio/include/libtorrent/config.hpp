@@ -673,6 +673,20 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_DECLARE_DUMMY(x, y)
 #endif // BOOST_NO_EXCEPTIONS
 
+// SSE is x86 / amd64 specific. On top of that, we only
+// know how to access it on msvc and gcc (and gcc compatibles).
+// GCC requires the user to enable SSE support in order for
+// the program to have access to the intrinsics, this is
+// indicated by the __SSE4_1__ macro
+#if (defined _M_AMD64 || defined _M_IX86 \
+	|| defined __amd64__ || defined __i386 || defined __i386__ \
+	|| defined __x86_64__) \
+	&& ((defined __GNUC__ && defined __SSE4_1__) || defined _MSC_VER)
+#define TORRENT_HAS_SSE 1
+#else
+#define TORRENT_HAS_SSE 0
+#endif
+
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 
