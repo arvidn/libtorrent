@@ -188,12 +188,21 @@ void save_resume::save_all()
 
 void save_resume::load(error_code& ec, add_torrent_params model)
 {
-	for (directory dir(m_resume_dir, ec); !ec && !dir.done(); dir.next(ec))
+	std::vector<std::pair<boost::uint64_t, std::string> > ents;
+	// TODO: don't use internal directory type
+	for (directory i(m_resume_dir, ec); !i.done(); i.next(ec))
 	{
-		if (extension(dir.file()) != ".resume") continue;
+		if (extension(i.file()) != ".resume") continue;
+		ents.push_back(std::make_pair(i.inode(), i.file()));
+	}
 
+	std::sort(ents.begin(), ents.end());
+
+	for (std::vector<std::pair<boost::uint64_t, std::string> >::iterator i = ents.begin()
+		, end(ents.end()); i != end; ++i)
+	{
 		error_code tec;
-		std::string file_path = combine_path(m_resume_dir, dir.file());
+		std::string file_path = combine_path(m_resume_dir, i->second);
 		printf("loading %s\n", file_path.c_str());
 		add_torrent_params p = model;
 		if (load_file(file_path, p.resume_data, tec) < 0 || tec)
