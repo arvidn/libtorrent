@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/ip_voter.hpp"
 
+#include <boost/crc.hpp>
+
 namespace libtorrent
 {
 	void apply_mask(boost::uint8_t* b, boost::uint8_t const* mask, int size)
@@ -73,7 +75,11 @@ namespace libtorrent
 
 		using std::swap;
 
-		hasher h;
+		// this is the crc32c (Castagnoli) polynomial
+		// TODO: 2 this could be optimized if SSE 4.2 is
+		// available. It could also be optimized given
+		// that we have a fixed length
+		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 		if (e1.address() == e2.address())
 		{
 			if (e1.port() > e2.port())
@@ -81,7 +87,7 @@ namespace libtorrent
 			boost::uint16_t p[2];
 			p[0] = htons(e1.port());
 			p[1] = htons(e2.port());
-			h.update((char const*)&p[0], 4);
+			crc.process_block((char const*)&p[0], (char const*)&p[2]);
 		}
 #if TORRENT_USE_IPV6
 		else if (e1.address().is_v6())
@@ -99,8 +105,8 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 6) ? 1 : 2;
 			apply_mask(&b1[0], v6mask[mask], 8);
 			apply_mask(&b2[0], v6mask[mask], 8);
-			h.update((char const*)&b1[0], b1.size());
-			h.update((char const*)&b2[0], b2.size());
+			crc.process_block((char const*)&b1[0], (char const*)&b1[16]);
+			crc.process_block((char const*)&b2[0], (char const*)&b2[16]);
 		}
 #endif
 		else
@@ -118,14 +124,11 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 3) ? 1 : 2;
 			apply_mask(&b1[0], v4mask[mask], 4);
 			apply_mask(&b2[0], v4mask[mask], 4);
-			h.update((char const*)&b1[0], b1.size());
-			h.update((char const*)&b2[0], b2.size());
+			crc.process_block((char const*)&b1[0], (char const*)&b1[4]);
+			crc.process_block((char const*)&b2[0], (char const*)&b2[4]);
 		}
 
-		boost::uint32_t ret;
-		sha1_hash digest = h.final();
-		memcpy(&ret, &digest[0], 4);
-		return ntohl(ret);
+		return crc.checksum();
 	}
 
 	torrent_peer::torrent_peer(boost::uint16_t port, bool conn, int src)

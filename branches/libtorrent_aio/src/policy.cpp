@@ -187,6 +187,13 @@ namespace libtorrent
 		}
 	}
 
+	void policy::clear_peer_prio()
+	{
+		for (peers_t::iterator i = m_peers.begin()
+			, end(m_peers.end()); i != end; ++i)
+			(*i)->peer_rank = 0;
+	}
+
 	// disconnects and removes all peers that are now filtered
 	// fills in 'erased' with torrent_peer pointers that were removed
 	// from the peer list. Any references to these peers must be cleared

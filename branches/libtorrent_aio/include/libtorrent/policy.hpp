@@ -147,6 +147,10 @@ namespace libtorrent
 
 		void set_seed(torrent_peer* p, bool s);
 
+		// this clears all cached peer priorities. It's called when
+		// our external IP changes
+		void clear_peer_prio();
+
 #if TORRENT_USE_ASSERTS
 		bool has_connection(const peer_connection_interface* p);
 #endif

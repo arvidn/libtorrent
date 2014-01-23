@@ -112,6 +112,15 @@ static void test_transfer(session& ses, boost::shared_ptr<torrent_info> torrent_
 		ps.type = (proxy_settings::proxy_type)proxy;
 		ses.set_proxy(ps);
 	}
+	else
+	{
+		ps.port = 0;
+		ps.hostname.clear();
+		ps.username.clear();
+		ps.password.clear();
+		ps.type = proxy_settings::none;
+		ses.set_proxy(ps);
+	}
 
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;

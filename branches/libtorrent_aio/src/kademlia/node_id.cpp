@@ -134,6 +134,9 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	ip[0] |= (r & 0x7) << 5;
 
 	// this is the crc32c (Castagnoli) polynomial
+	// TODO: 2 this could be optimized if SSE 4.2 is
+	// available. It could also be optimized given
+	// that we have a fixed length
 	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 	crc.process_block(ip, ip + num_octets);
 	boost::uint32_t c = crc.checksum();

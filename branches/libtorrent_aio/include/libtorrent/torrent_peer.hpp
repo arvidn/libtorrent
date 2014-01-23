@@ -45,7 +45,8 @@ namespace libtorrent
 	// calculate the priority of a peer based on its address. One of the
 	// endpoint should be our own. The priority is symmetric, so it doesn't
 	// matter which is which
-	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2);
+	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(
+		tcp::endpoint e1, tcp::endpoint e2);
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer
 	{
