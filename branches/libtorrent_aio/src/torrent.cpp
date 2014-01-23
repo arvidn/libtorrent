@@ -9894,7 +9894,7 @@ namespace libtorrent
 		{
 			m_picker->clear_peer(*i);
 		}
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		m_picker->check_peers();
 #endif
 	}
