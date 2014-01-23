@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/utility.hpp>
+#include <boost/crc.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -150,7 +151,12 @@ namespace libtorrent
 
 		using std::swap;
 
-		hasher h;
+		// this is the crc32c (Castagnoli) polynomial
+		// TODO: 2 this could be optimized if SSE 4.2 is
+		// available. It could also be optimized given
+		// that we have a fixed length
+		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+
 		if (e1.address() == e2.address())
 		{
 			if (e1.port() > e2.port())
@@ -158,7 +164,7 @@ namespace libtorrent
 			boost::uint16_t p[2];
 			p[0] = htons(e1.port());
 			p[1] = htons(e2.port());
-			h.update((char const*)&p[0], 4);
+			crc.process_block((char const*)&p[0], (char const*)&p[2]);
 		}
 #if TORRENT_USE_IPV6
 		else if (e1.address().is_v6())
@@ -176,8 +182,9 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 6) ? 1 : 2;
 			apply_mask(&b1[0], v6mask[mask], 8);
 			apply_mask(&b2[0], v6mask[mask], 8);
-			h.update((char const*)&b1[0], b1.size());
-			h.update((char const*)&b2[0], b2.size());
+
+			crc.process_block((char const*)&b1[0], (char const*)&b1[16]);
+			crc.process_block((char const*)&b2[0], (char const*)&b2[16]);
 		}
 #endif
 		else
@@ -195,16 +202,13 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 3) ? 1 : 2;
 			apply_mask(&b1[0], v4mask[mask], 4);
 			apply_mask(&b2[0], v4mask[mask], 4);
-			h.update((char const*)&b1[0], b1.size());
-			h.update((char const*)&b2[0], b2.size());
+
+			crc.process_block((char const*)&b1[0], (char const*)&b1[4]);
+			crc.process_block((char const*)&b2[0], (char const*)&b2[4]);
 		}
 
-		boost::uint32_t ret;
-		sha1_hash digest = h.final();
-		memcpy(&ret, &digest[0], 4);
-		return ntohl(ret);
+		return crc.checksum();
 	}
-
 
 	// returns the rank of a peer's source. We have an affinity
 	// to connecting to peers with higher rank. This is to avoid
@@ -1899,7 +1903,7 @@ namespace libtorrent
 	// TOOD: pass in both an IPv6 and IPv4 address here
 	boost::uint32_t policy::peer::rank(external_ip const& external, int external_port) const
 	{
-//TODO: how do we deal with our external address changing? Pass in a force-update maybe? and keep a version number in policy
+//TODO 3: how do we deal with our external address changing? Pass in a force-update maybe? and keep a version number in policy
 		if (peer_rank == 0)
 			peer_rank = peer_priority(
 				tcp::endpoint(external.external_address(this->address()), external_port)

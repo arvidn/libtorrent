@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
+#include <boost/crc.hpp>
 
 #include "test.hpp"
 
@@ -40,12 +41,9 @@ using namespace libtorrent;
 
 boost::uint32_t hash_buffer(char const* buf, int len)
 {
-	hasher h;
-	h.update(buf, len);
-	sha1_hash digest = h.final();
-	boost::uint32_t ret;
-	memcpy(&ret, &digest[0], 4);
-	return ntohl(ret);
+	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+	crc.process_block(buf, buf + len);
+	return crc.checksum();
 }
 
 int test_main()
