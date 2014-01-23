@@ -36,6 +36,8 @@ nobase_include_HEADERS = \
   connection_queue.hpp         \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \
+  cpuid.hpp                    \
+  crc32c.hpp                   \
   create_torrent.hpp           \
   deadline_timer.hpp           \
   debug.hpp                    \

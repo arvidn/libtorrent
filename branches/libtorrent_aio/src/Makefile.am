@@ -53,6 +53,7 @@ libtorrent_rasterbar_la_SOURCES = \
   chained_buffer.cpp              \
   connection_queue.cpp            \
   ConvertUTF.cpp                  \
+  crc32c.cpp                      \
   create_torrent.cpp              \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \

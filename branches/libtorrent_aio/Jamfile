@@ -535,6 +535,7 @@ SOURCES =
 	bloom_filter
 	chained_buffer
 	connection_queue
+	crc32c
 	create_torrent
 	disk_buffer_holder
 	disk_buffer_pool
@@ -712,6 +713,9 @@ lib torrent
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 
+	<toolset>gcc:<cxxflags>-msse4.2
+	<toolset>darwin:<cxxflags>-msse4.2
+
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
 	# to declare the symbol as being exported
@@ -736,6 +740,10 @@ lib torrent
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
+
+	<toolset>gcc:<cxxflags>-msse4.2
+	<toolset>darwin:<cxxflags>-msse4.2
+
 	;
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
