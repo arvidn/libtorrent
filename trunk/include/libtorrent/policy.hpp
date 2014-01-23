@@ -105,7 +105,8 @@ namespace libtorrent
 	// calculate the priority of a peer based on its address. One of the
 	// endpoint should be our own. The priority is symmetric, so it doesn't
 	// matter which is which
-	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2);
+	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(
+		tcp::endpoint e1, tcp::endpoint e2);
 
 	void request_a_block(torrent& t, peer_connection& c);
 
@@ -146,6 +147,10 @@ namespace libtorrent
 		void ip_filter_updated();
 
 		void set_seed(policy::peer* p, bool s);
+
+		// this clears all cached peer priorities. It's called when
+		// our external IP changes
+		void clear_peer_prio();
 
 #if TORRENT_USE_ASSERTS
 		bool has_connection(const peer_connection* p);
