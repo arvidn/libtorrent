@@ -93,8 +93,6 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
-
 	settings_pack sett;
 	sett.set_int(settings_pack::stop_tracker_timeout, 2);
 	sett.set_int(settings_pack::tracker_completion_timeout, 2);
@@ -104,12 +102,15 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	sett.set_bool(settings_pack::announce_to_all_tiers, true);
 	sett.set_bool(settings_pack::anonymous_mode, flags & anonymous_mode);
 	sett.set_bool(settings_pack::force_proxy, flags & anonymous_mode);
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+	sett.set_str(settings_pack::listen_interfaces, "127.0.0.1:48875");
+	sett.set_bool(settings_pack::enable_dht, true);
 
 	// if we don't do this, the peer connection test
 	// will be delayed by several seconds, by first
 	// trying uTP
 	sett.set_bool(settings_pack::enable_outgoing_utp, false);
-	s->apply_settings(sett);
+	session* s = new libtorrent::session(sett, fingerprint("LT", 0, 1, 0, 0));
 
 	// in non-anonymous mode we circumvent/ignore the proxy if it fails
 	// wheras in anonymous mode, we just fail
@@ -118,8 +119,6 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	ps.port = 4444;
 	ps.type = proxy_type;
 	s->set_proxy(ps);
-
-	s->start_dht();
 
 	error_code ec;
 	create_directory("tmp1_privacy", ec);

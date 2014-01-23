@@ -880,6 +880,10 @@ namespace aux {
 		update_choking_algorithm();
 		update_disk_threads();
 		update_network_threads();
+		update_upnp();
+		update_natpmp();
+		update_lsd();
+		update_dht();
 
 		settings_pack* copy = new settings_pack(pack);
 		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
@@ -6104,6 +6108,40 @@ retry:
 		{
 			m_port_filter.add_rule(0, 1024, 0);
 		}
+	}
+
+	void session_impl::update_upnp()
+	{
+		if (m_settings.get_bool(settings_pack::enable_upnp))
+			start_upnp();
+		else
+			stop_upnp();
+	}
+
+	void session_impl::update_natpmp()
+	{
+		if (m_settings.get_bool(settings_pack::enable_natpmp))
+			start_natpmp();
+		else
+			stop_natpmp();
+	}
+
+	void session_impl::update_lsd()
+	{
+		if (m_settings.get_bool(settings_pack::enable_lsd))
+			start_lsd();
+		else
+			stop_lsd();
+	}
+
+	void session_impl::update_dht()
+	{
+#ifndef TORRENT_DISABLE_DHT	
+		if (m_settings.get_bool(settings_pack::enable_dht))
+			start_dht();
+		else
+			stop_dht();
+#endif
 	}
 
 	address session_impl::listen_address() const

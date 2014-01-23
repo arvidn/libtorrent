@@ -50,16 +50,19 @@ void test_lsd()
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
-
 	settings_pack pack;
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
-	ses1.apply_settings(pack);
-	ses2.apply_settings(pack);
+	pack.set_bool(settings_pack::enable_dht, false);
+	pack.set_bool(settings_pack::enable_lsd, true);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:48100");
 
-	ses1.start_lsd();
-	ses2.start_lsd();
+	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:49100");
+	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+
 	torrent_handle tor1;
 	torrent_handle tor2;
 

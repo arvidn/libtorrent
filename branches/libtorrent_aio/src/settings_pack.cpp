@@ -183,6 +183,10 @@ namespace libtorrent
 		SET_NOPREV(listen_system_port_fallback, true, 0),
 		SET(use_disk_cache_pool, false, 0),
 		SET_NOPREV(announce_crypto_support, true, 0),
+		SET_NOPREV(enable_upnp, true, &session_impl::update_upnp),
+		SET_NOPREV(enable_natpmp, true, &session_impl::update_natpmp),
+		SET_NOPREV(enable_lsd, true, &session_impl::update_lsd),
+		SET_NOPREV(enable_dht, true, &session_impl::update_dht),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =

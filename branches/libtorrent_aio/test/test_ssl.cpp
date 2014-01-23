@@ -122,6 +122,10 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_bool(settings_pack::enable_outgoing_utp, use_utp);
 	sett.set_bool(settings_pack::enable_incoming_tcp, !use_utp);
 	sett.set_bool(settings_pack::enable_outgoing_tcp, !use_utp);
+	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
 
 	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
@@ -492,6 +496,10 @@ void test_malicious_peer()
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
+	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
 
 	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 	wait_for_listen(ses1, "ses1");

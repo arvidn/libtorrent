@@ -169,41 +169,49 @@ namespace libtorrent
 #define TORRENT_LOGPATH_ARG_DEFAULT
 #endif
 
-	// This free function returns the list of available metrics exposed by libtorrent's
-	// statistics API. Each metric has a name and a *value index*. The value index is
-	// the index into the array in session_stats_alert where this metric's value
-	// can be found when the session stats is sampled (by calling post_session_stats()).
+	// This free function returns the list of available metrics exposed by
+	// libtorrent's statistics API. Each metric has a name and a *value index*.
+	// The value index is the index into the array in session_stats_alert where
+	// this metric's value can be found when the session stats is sampled (by
+	// calling post_session_stats()).
 	TORRENT_EXPORT std::vector<stats_metric> session_stats_metrics();
 
-	// The session holds all state that spans multiple torrents. Among other things it runs the network
-	// loop and manages all torrents.
-	// Once it's created, the session object will spawn the main thread that will do all the work.
-	// The main thread will be idle as long it doesn't have any torrents to participate in.
+	// The session holds all state that spans multiple torrents. Among other
+	// things it runs the network loop and manages all torrents. Once it's
+	// created, the session object will spawn the main thread that will do all
+	// the work. The main thread will be idle as long it doesn't have any
+	// torrents to participate in.
 	//
-	// You have some control over session configuration through the ``session::apply_settings()``
-	// member function. To change one or more configuration options, create a settings_pack.
-	// object and fill it with the settings to be set and pass it in to ``session::apply_settings()``.
+	// You have some control over session configuration through the
+	// ``session::apply_settings()`` member function. To change one or more
+	// configuration options, create a settings_pack. object and fill it with
+	// the settings to be set and pass it in to ``session::apply_settings()``.
 	// 
 	// see apply_settings().
 	class TORRENT_EXPORT session: public boost::noncopyable
 	{
 	public:
 
-		// If the fingerprint in the first overload is omited, the client will get a default
-		// fingerprint stating the version of libtorrent. The fingerprint is a short string that will be
-		// used in the peer-id to identify the client and the client's version. For more details see the
+		// If the fingerprint in the first overload is omited, the client will
+		// get a default fingerprint stating the version of libtorrent. The
+		// fingerprint is a short string that will be used in the peer-id to
+		// identify the client and the client's version. For more details see the
 		// fingerprint class.
 		// 
-		// The flags paramater can be used to start default features (upnp & nat-pmp) and default plugins
-		// (ut_metadata, ut_pex and smart_ban). The default is to start those features. If you do not want
-		// them to start, pass 0 as the flags parameter.
+		// The flags paramater can be used to start default features (upnp &
+		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
+		// default is to start those features. If you do not want them to start,
+		// pass 0 as the flags parameter.
 		// 
-		// The ``alert_mask`` is the same mask that you would send to set_alert_mask().
+		// The ``alert_mask`` is the same mask that you would send to
+		// set_alert_mask().
 
-		// TODO: 3 could the fingerprint be a setting as well? And should the settings_pack be optional?
+		// TODO: 3 could the fingerprint be a setting as well? And should the
+		// settings_pack be optional?
 		session(settings_pack const& pack
-			, fingerprint const& print = fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-			, int flags = start_default_features | add_default_plugins)
+			, fingerprint const& print = fingerprint("LT"
+				, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+			, int flags = add_default_plugins)
 		{
 			TORRENT_CFG();
 			init(print);
@@ -218,6 +226,14 @@ namespace libtorrent
 			TORRENT_CFG();
 			settings_pack pack;
 			pack.set_int(settings_pack::alert_mask, alert_mask);
+			if ((flags & start_default_features) == 0)
+			{
+				pack.set_bool(settings_pack::enable_upnp, false);
+				pack.set_bool(settings_pack::enable_natpmp, false);
+				pack.set_bool(settings_pack::enable_lsd, false);
+				pack.set_bool(settings_pack::enable_dht, false);
+			}
+
 			init(print);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			set_log_path(logpath);
@@ -242,6 +258,13 @@ namespace libtorrent
 			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
 
+			if ((flags & start_default_features) == 0)
+			{
+				pack.set_bool(settings_pack::enable_upnp, false);
+				pack.set_bool(settings_pack::enable_natpmp, false);
+				pack.set_bool(settings_pack::enable_lsd, false);
+				pack.set_bool(settings_pack::enable_dht, false);
+			}
 			init(print);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			set_log_path(logpath);
@@ -492,44 +515,23 @@ namespace libtorrent
 		// Returns a list of all RSS feeds that are being watched by the session.
 		void get_feeds(std::vector<feed_handle>& f) const;
 
-		// starts/stops UPnP, NATPMP or LSD port mappers
-		// they are stopped by default
-		// These functions are not available in case ``TORRENT_DISABLE_DHT`` is
-		// defined. ``start_dht`` starts the dht node and makes the trackerless service
-		// available to torrents. The startup state is optional and can contain nodes
-		// and the node id from the previous session. The dht node state is a bencoded
-		// dictionary with the following entries:
-		// 
-		// nodes
-		// 	A list of strings, where each string is a node endpoint encoded in binary. If
-		// 	the string is 6 bytes long, it is an IPv4 address of 4 bytes, encoded in
-		// 	network byte order (big endian), followed by a 2 byte port number (also
-		// 	network byte order). If the string is 18 bytes long, it is 16 bytes of IPv6
-		// 	address followed by a 2 bytes port number (also network byte order).
-		// 
-		// node-id
-		// 	The node id written as a readable string as a hexadecimal number.
-		// 
-		// ``dht_state`` will return the current state of the dht node, this can be used
-		// to start up the node again, passing this entry to ``start_dht``. It is a good
-		// idea to save this to disk when the session is closed, and read it up again
-		// when starting.
-		// 
-		// If the port the DHT is supposed to listen on is already in use, and exception
-		// is thrown, ``asio::error``.
+#ifndef TORRENT_NO_DEPRECATE
+		// ``start_dht`` starts the dht node and makes the trackerless service
+		// available to torrents.
 		// 
 		// ``stop_dht`` stops the dht node.
-		// 
-		// ``add_dht_node`` adds a node to the routing table. This can be used if your
-		// client has its own source of bootstrapping nodes.
-		// 
+		// deprecated. use settings_pack::enable_dht instead
+		TORRENT_DEPRECATED_PREFIX
+		void start_dht() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void stop_dht() TORRENT_DEPRECATED;
+#endif
+
 		// ``set_dht_settings`` sets some parameters availavle to the dht node. See
 		// dht_settings for more information.
 		//
 		// ``is_dht_running()`` returns true if the DHT support has been started and false
 		// otherwise.
-		void start_dht();
-		void stop_dht();
 		void set_dht_settings(dht_settings const& settings);
 		bool is_dht_running() const;
 
@@ -1030,14 +1032,16 @@ namespace libtorrent
 
 		connection_queue& get_connection_queue();
 
+#ifndef TORRENT_NO_DEPRECATE
 		// Starts and stops Local Service Discovery. This service will broadcast
 		// the infohashes of all the non-private torrents on the local network to
 		// look for peers on the same swarm within multicast reach.
 		//
-		// It is turned off by default.
-		// TODO: move this into settings_pack
-		void start_lsd();
-		void stop_lsd();
+		// deprecated. use settings_pack::enable_lsd instead
+		TORRENT_DEPRECATED_PREFIX
+		void start_lsd() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void stop_lsd() TORRENT_DEPRECATED;
 
 		// Starts and stops the UPnP service. When started, the listen port and the DHT
 		// port are attempted to be forwarded on local UPnP router devices.
@@ -1047,10 +1051,26 @@ namespace libtorrent
 		// portmap_alert and the portmap_error_alert. The object will be valid until
 		// ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
 		// 
-		// It is off by default.
-		// TODO: move this into settings_pack
- 		void start_upnp();
-		void stop_upnp();
+		// deprecated. use settings_pack::enable_upnp instead
+		TORRENT_DEPRECATED_PREFIX
+ 		void start_upnp() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void stop_upnp() TORRENT_DEPRECATED;
+
+		// Starts and stops the NAT-PMP service. When started, the listen port and the DHT
+		// port are attempted to be forwarded on the router through NAT-PMP.
+		// 
+		// The natpmp object returned by ``start_natpmp()`` can be used to add and remove
+		// arbitrary port mappings. Mapping status is returned through the
+		// portmap_alert and the portmap_error_alert. The object will be valid until
+		// ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
+		// 
+		// deprecated. use settings_pack::enable_natpmp instead
+		TORRENT_DEPRECATED_PREFIX
+		void start_natpmp() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void stop_natpmp() TORRENT_DEPRECATED;
+#endif
 
 		enum protocol_type { udp = 1, tcp = 2 };
 
@@ -1061,19 +1081,6 @@ namespace libtorrent
 		int add_port_mapping(protocol_type t, int external_port, int local_port);
 		void delete_port_mapping(int handle);
 
-		// Starts and stops the NAT-PMP service. When started, the listen port and the DHT
-		// port are attempted to be forwarded on the router through NAT-PMP.
-		// 
-		// The natpmp object returned by ``start_natpmp()`` can be used to add and remove
-		// arbitrary port mappings. Mapping status is returned through the
-		// portmap_alert and the portmap_error_alert. The object will be valid until
-		// ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
-		// 
-		// It is off by default.
-		// TODO: move this into settings_pack
-		void start_natpmp();
-		void stop_natpmp();
-		
 	private:
 
 		void init(fingerprint const& id);

@@ -507,16 +507,6 @@ namespace libtorrent
 #endif
 
 		m_impl->start_session(pack);
-
-		if (flags & start_default_features)
-		{
-			start_upnp();
-			start_natpmp();
-#ifndef TORRENT_DISABLE_DHT
-			start_dht();
-#endif
-			start_lsd();
-		}
 	}
 
 	session::~session()
@@ -917,20 +907,21 @@ namespace libtorrent
 		m_impl->m_disk_thread.get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::start_dht()
 	{
-#ifndef TORRENT_DISABLE_DHT
-		// the state is loaded in load_state()
-		TORRENT_ASYNC_CALL(start_dht);
-#endif
+		settings_pack p;
+		p.set_bool(settings_pack::enable_dht, true);
+		apply_settings(p);
 	}
 
 	void session::stop_dht()
 	{
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL(stop_dht);
-#endif
+		settings_pack p;
+		p.set_bool(settings_pack::enable_dht, false);
+		apply_settings(p);
 	}
+#endif
 
 	void session::set_dht_settings(dht_settings const& settings)
 	{
@@ -1304,23 +1295,50 @@ namespace libtorrent
 		p.set_int(settings_pack::alert_mask, m);
 		apply_settings(p);
 	}
-#endif
 
 	void session::start_lsd()
 	{
-		TORRENT_ASYNC_CALL(start_lsd);
+		settings_pack p;
+		p.set_bool(settings_pack::enable_lsd, true);
+		apply_settings(p);
 	}
 	
 	void session::start_natpmp()
 	{
-		TORRENT_ASYNC_CALL(start_natpmp);
+		settings_pack p;
+		p.set_bool(settings_pack::enable_natpmp, true);
+		apply_settings(p);
 	}
 	
 	void session::start_upnp()
 	{
-		TORRENT_ASYNC_CALL(start_upnp);
+		settings_pack p;
+		p.set_bool(settings_pack::enable_upnp, true);
+		apply_settings(p);
 	}
 
+	void session::stop_lsd()
+	{
+		settings_pack p;
+		p.set_bool(settings_pack::enable_lsd, false);
+		apply_settings(p);
+	}
+	
+	void session::stop_natpmp()
+	{
+		settings_pack p;
+		p.set_bool(settings_pack::enable_natpmp, false);
+		apply_settings(p);
+	}
+	
+	void session::stop_upnp()
+	{
+		settings_pack p;
+		p.set_bool(settings_pack::enable_upnp, false);
+		apply_settings(p);
+	}
+#endif
+	
 	int session::add_port_mapping(protocol_type t, int external_port, int local_port)
 	{
 		TORRENT_SYNC_CALL_RET3(int, add_port_mapping, int(t), external_port, local_port);
@@ -1330,21 +1348,6 @@ namespace libtorrent
 	void session::delete_port_mapping(int handle)
 	{
 		TORRENT_ASYNC_CALL1(delete_port_mapping, handle);
-	}
-	
-	void session::stop_lsd()
-	{
-		TORRENT_ASYNC_CALL(stop_lsd);
-	}
-	
-	void session::stop_natpmp()
-	{
-		TORRENT_ASYNC_CALL(stop_natpmp);
-	}
-	
-	void session::stop_upnp()
-	{
-		TORRENT_ASYNC_CALL(stop_upnp);
 	}
 	
 	connection_queue& session::get_connection_queue()

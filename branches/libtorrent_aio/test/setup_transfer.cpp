@@ -638,9 +638,11 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 	if (stop_lsd)
 	{
-		ses1->stop_lsd();
-		ses2->stop_lsd();
-		if (ses3) ses3->stop_lsd();
+		settings_pack pack;
+		pack.set_bool(settings_pack::enable_lsd, false);
+		ses1->apply_settings(pack);
+		ses2->apply_settings(pack);
+		if (ses3) ses3->apply_settings(pack);
 	}
 
 	// This has the effect of applying the global

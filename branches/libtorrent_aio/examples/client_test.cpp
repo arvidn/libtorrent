@@ -1521,8 +1521,6 @@ int main(int argc, char* argv[])
 
 	int refresh_delay = 500;
 	bool start_dht = true;
-	bool start_upnp = true;
-	bool start_lsd = true;
 
 	std::deque<std::string> events;
 
@@ -1638,7 +1636,11 @@ int main(int argc, char* argv[])
 			case 'w': settings.set_int(settings_pack::urlseed_wait_retry, atoi(arg)); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
-			case 'H': start_dht = false; --i; break;
+			case 'H':
+				start_dht = false;
+				settings.set_bool(settings_pack::enable_dht, false);
+				--i;
+				break;
 			case 'l': settings.set_int(settings_pack::listen_queue_size, atoi(arg)); break;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			case 'e':
@@ -1744,7 +1746,11 @@ int main(int argc, char* argv[])
 				}
 				break;
 			case 'I': settings.set_str(settings_pack::outgoing_interfaces, arg); break;
-			case 'N': start_upnp = false; --i; break;
+			case 'N':
+				settings.set_bool(settings_pack::enable_upnp, false);
+				settings.set_bool(settings_pack::enable_natpmp, false);
+				--i;
+				break;
 			case 'Y':
 				{
 					--i;
@@ -1759,7 +1765,7 @@ int main(int argc, char* argv[])
 					ses.set_peer_class_filter(pcf);
 					break;
 				}
-			case 'X': start_lsd = false; --i; break;
+			case 'X': settings.set_bool(settings_pack::enable_lsd, false); --i; break;
 			case 'Z':
 				settings.set_str(settings_pack::mmap_cache, arg);
 				settings.set_bool(settings_pack::contiguous_recv_buffer, false);
@@ -1783,15 +1789,6 @@ int main(int argc, char* argv[])
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
 
-	if (start_lsd)
-		ses.start_lsd();
-
-	if (start_upnp)
-	{
-		ses.start_upnp();
-		ses.start_natpmp();
-	}
-
 	ses.set_proxy(ps);
 
 	if (bind_to_interface.empty()) bind_to_interface = "0.0.0.0";
@@ -1812,8 +1809,6 @@ int main(int argc, char* argv[])
 			std::string("router.utorrent.com"), 6881));
 		ses.add_dht_router(std::make_pair(
 			std::string("router.bitcomet.com"), 6881));
-
-		ses.start_dht();
 	}
 #endif
 

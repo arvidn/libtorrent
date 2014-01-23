@@ -567,6 +567,33 @@ namespace libtorrent
 			// is included in http tracker announces
 			announce_crypto_support,
 
+			// Starts and stops the UPnP service. When started, the listen port and the DHT
+			// port are attempted to be forwarded on local UPnP router devices.
+			// 
+			// The upnp object returned by ``start_upnp()`` can be used to add and remove
+			// arbitrary port mappings. Mapping status is returned through the
+			// portmap_alert and the portmap_error_alert. The object will be valid until
+			// ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
+			enable_upnp,
+
+			// Starts and stops the NAT-PMP service. When started, the listen port and the DHT
+			// port are attempted to be forwarded on the router through NAT-PMP.
+			// 
+			// The natpmp object returned by ``start_natpmp()`` can be used to add and remove
+			// arbitrary port mappings. Mapping status is returned through the
+			// portmap_alert and the portmap_error_alert. The object will be valid until
+			// ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
+			enable_natpmp,
+
+			// Starts and stops Local Service Discovery. This service will broadcast
+			// the infohashes of all the non-private torrents on the local network to
+			// look for peers on the same swarm within multicast reach.
+			enable_lsd,
+
+			// starts the dht node and makes the trackerless service
+			// available to torrents.
+			enable_dht,
+
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
 		};
