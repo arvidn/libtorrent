@@ -266,6 +266,13 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		{
 			test_disk_full = false;
 			((test_storage*)tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
+
+			// if we reset the upload mode too soon, there may be more disk
+			// jobs failing right after, putting us back in upload mode. So,
+			// give the disk some time to fail all disk jobs before resetting
+			// upload mode to false
+			test_sleep(500);
+
 			tor2.set_upload_mode(false);
 
 			// at this point we probably disconnected the seed
