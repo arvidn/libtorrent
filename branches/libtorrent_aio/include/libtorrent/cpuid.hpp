@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CPUID_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include <cstring>
 
 #if defined _MSC_VER && TORRENT_HAS_SSE
 #include <intrin.h>
@@ -53,7 +54,7 @@ namespace libtorrent
 			 : "a" (type), "c" (0));
 #else
 		// for non-x86 and non-amd64, just return zeroes
-		memset(info, 0, sizeof(info));
+		std::memset(info, 0, sizeof(info));
 #endif
 	}
 }
