@@ -241,14 +241,19 @@ namespace libtorrent
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
-		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
-			+ to_string(m_remote.port()).elems, m_ses.listen_port());
+		tcp::endpoint local_ep = m_socket->local_endpoint(ec);
+		m_logger = m_ses.create_log(
+			"[" + local_ep.address().to_string(ec) + "#"
+			+ to_string(local_ep.port()).elems + "]-"
+			"[" + m_remote.address().to_string(ec) + "#"
+			+ to_string(m_remote.port()).elems + "]"
+			, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s seed: %d p: %p local: %s]"
 			, m_outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
-			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
+			, print_endpoint(local_ep).c_str());
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -391,13 +396,18 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
-		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
-			+ to_string(remote().port()).elems, m_ses.listen_port());
+		tcp::endpoint local_ep = m_socket->local_endpoint(ec);
+		m_logger = m_ses.create_log(
+			"[" + local_ep.address().to_string(ec) + "#"
+			+ to_string(local_ep.port()).elems + "]-"
+			"[" + m_remote.address().to_string(ec) + "#"
+			+ to_string(m_remote.port()).elems + "]"
+			, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s local: %s]"
 			, m_outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
-			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
+			, print_endpoint(local_ep).c_str());
 #endif
 		
 #ifndef TORRENT_DISABLE_GEO_IP
