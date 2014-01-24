@@ -128,6 +128,7 @@ int main()
 #else
 	chdir(dir);
 #endif
+	fprintf(stderr, "cwd = \"%s\"\n", test_dir.c_str());
 
 #ifndef BOOST_NO_EXCEPTIONS
 	try
