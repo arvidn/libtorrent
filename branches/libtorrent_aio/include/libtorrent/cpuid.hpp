@@ -35,11 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if defined __GNUC__ && TORRENT_HAS_SSE
-#include <cpuid.h>
-#include <smmintrin.h>
-#endif
-
 #if defined _MSC_VER && TORRENT_HAS_SSE
 #include <intrin.h>
 #include <nmmintrin.h>
@@ -53,7 +48,9 @@ namespace libtorrent
 		__cpuid((int*)info, type);
 
 #elif TORRENT_HAS_SSE && defined __GNUC__
-		__get_cpuid(type, &info[0], &info[1], &info[2], &info[3]);
+		asm volatile
+			("cpuid" : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
+			 : "a" (type), "c" (0));
 #else
 		// for non-x86 and non-amd64, just return zeroes
 		memset(info, 0, sizeof(info));

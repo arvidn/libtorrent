@@ -178,7 +178,13 @@ namespace libtorrent
 			if (cpui[2] & (1 << 23))
 			{
 				for (int i = 0; i < words; ++i)
+				{
+#ifdef __GNUC__
+					ret += __builtin_popcount(m_buf[i]);
+#else
 					ret += _mm_popcnt_u32(m_buf[i]);
+#endif
+				}
 
 				return ret;
 			}	

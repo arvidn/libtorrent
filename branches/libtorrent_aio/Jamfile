@@ -713,10 +713,6 @@ lib torrent
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 
-	<toolset>gcc:<cxxflags>-msse4.2
-	<toolset>darwin:<cxxflags>-msse4.2
-	<toolset>clang:<cxxflags>-msse4.2
-
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
 	# to declare the symbol as being exported
@@ -741,10 +737,6 @@ lib torrent
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
-
-	<toolset>gcc:<cxxflags>-msse4.2
-	<toolset>darwin:<cxxflags>-msse4.2
-	<toolset>clang:<cxxflags>-msse4.2
 
 	;
 

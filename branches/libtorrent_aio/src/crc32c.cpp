@@ -56,7 +56,17 @@ namespace libtorrent
 		if (sse42_support)
 		{
 			boost::uint32_t ret = 0xffffffff;
+#ifdef __GNUC__
+			// we can't use these because then we'd have to tell
+			// -msse4.2 to gcc on the command line
+//			return __builtin_ia32_crc32si(ret, v) ^ 0xffffffff;
+			asm ("crc32l\t" "(%1), %0"
+				: "=r"(ret)
+				: "r"(&v), "0"(ret));
+			return ret ^ 0xffffffff;
+#else
 			return _mm_crc32_u32(ret, v) ^ 0xffffffff;
+#endif
 		}
 #endif
 
@@ -70,18 +80,43 @@ namespace libtorrent
 #if TORRENT_HAS_SSE
 		if (sse42_support)
 		{
-#if defined __LP64__ || defined _M_AMD64
+#if defined _M_AMD64 || defined __x86_64__ \
+	|| defined __x86_64 || defined _M_X64 || defined __amd64__
 			boost::uint64_t ret = 0xffffffff;
 			for (int i = 0; i < num_words; ++i)
+			{
+#ifdef __GNUC__
+				// we can't use these because then we'd have to tell
+				// -msse4.2 to gcc on the command line
+//				ret = __builtin_ia32_crc32di(ret, buf[i]);
+				__asm__("crc32q\t" "(%1), %0"
+					: "=r"(ret)
+					: "r"(buf+i), "0"(ret));
+#else
 				ret = _mm_crc32_u64(ret, buf[i]);
+#endif
+			}
 			return boost::uint32_t(ret) ^ 0xffffffff;
 #else
 			boost::uint32_t ret = 0xffffffff;
 			boost::uint32_t const* buf0 = reinterpret_cast<boost::uint32_t const*>(buf);
 			for (int i = 0; i < num_words; ++i)
 			{
+#ifdef __GNUC__
+				// we can't use these because then we'd have to tell
+				// -msse4.2 to gcc on the command line
+//				ret = __builtin_ia32_crc32si(ret, buf0[i*2]);
+//				ret = __builtin_ia32_crc32si(ret, buf0[i*2+1]);
+				asm ("crc32l\t" "(%1), %0"
+					: "=r"(ret)
+					: "r"(buf0+i*2), "0"(ret));
+				asm ("crc32l\t" "(%1), %0"
+					: "=r"(ret)
+					: "r"(buf0+i*2+1), "0"(ret));
+#else
 				ret = _mm_crc32_u32(ret, buf0[i*2]);
 				ret = _mm_crc32_u32(ret, buf0[i*2+1]);
+#endif
 			}
 			return ret ^ 0xffffffff;
 #endif // amd64 or x86
