@@ -240,9 +240,12 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
-		std::string log_name = m_remote.address().to_string(ec) + "_"
-			+ to_string(m_remote.port()).elems;
-
+		tcp::endpoint local_ep = m_socket->local_endpoint(ec);
+		std::string log_name = "[" + local_ep.address().to_string(ec) + "#"
+			+ to_string(local_ep.port()).elems + "]-"
+			"[" + m_remote.address().to_string(ec) + "#"
+			+ to_string(m_remote.port()).elems + "]";
+		
 		if (t) log_name = combine_path(to_hex(t->info_hash().to_string())
 			, log_name);
 
@@ -252,7 +255,7 @@ namespace libtorrent
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
-			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
+			, print_endpoint(local_ep).c_str());
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
 		m_inet_as_name = m_ses.as_name_for_ip(m_remote.address());
