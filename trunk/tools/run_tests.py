@@ -239,7 +239,7 @@ def main(argv):
 
 	# it takes a bit longer to run in valgrind
 	if 'launcher=valgrind' in options:
-		time_limit *= 3
+		time_limit *= 6
 
 	architecture = platform.machine()
 	build_platform = platform.system() + '-' + platform.release()
