@@ -217,7 +217,7 @@ namespace libtorrent
 		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.finished);
 		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.writing);
 		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.requested);
-		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.sate);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.state);
 #endif
 		i = m_downloads.insert(i, ret);
 		return *i;
