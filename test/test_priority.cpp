@@ -350,6 +350,10 @@ void test_transfer()
 	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
 	std::cerr << std::endl;
 
+	// drain alerts
+	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+	print_alerts(ses2, "ses2", true, true, true, &on_alert);
+
 	peer_disconnects = 0;
 
 	// this loop makes sure ses2 reconnects to the peer now that it's
