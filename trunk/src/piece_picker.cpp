@@ -212,7 +212,12 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(ret);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.index);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.finished);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.writing);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.requested);
+		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.sate);
 #endif
 		i = m_downloads.insert(i, ret);
 		return *i;
