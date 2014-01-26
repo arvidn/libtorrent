@@ -700,7 +700,11 @@ namespace libtorrent
 		{ return m_trackers; }
 
 		void replace_trackers(std::vector<announce_entry> const& urls);
-		void add_tracker(announce_entry const& url);
+
+		// returns true if the tracker was added, and false if it was already
+		// in the tracker list (in which case the source was added to the
+		// entry in the list)
+		bool add_tracker(announce_entry const& url);
 
 		torrent_handle get_handle();
 
