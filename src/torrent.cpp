@@ -4268,14 +4268,14 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::add_tracker(announce_entry const& url)
+	bool torrent::add_tracker(announce_entry const& url)
 	{
 		std::vector<announce_entry>::iterator k = std::find_if(m_trackers.begin()
 			, m_trackers.end(), boost::bind(&announce_entry::url, _1) == url.url);
 		if (k != m_trackers.end()) 
 		{
 			k->source |= url.source;
-			return;
+			return false;
 		}
 		k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url
 			, boost::bind(&announce_entry::tier, _1) < boost::bind(&announce_entry::tier, _2));
@@ -4283,6 +4283,7 @@ namespace libtorrent
 		k = m_trackers.insert(k, url);
 		if (k->source == 0) k->source = announce_entry::source_client;
 		if (!m_trackers.empty()) announce_with_tracker();
+		return true;
 	}
 
 	bool torrent::choke_peer(peer_connection& c)
