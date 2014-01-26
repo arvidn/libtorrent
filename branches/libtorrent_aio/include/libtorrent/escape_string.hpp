@@ -56,6 +56,8 @@ namespace libtorrent
 	// convert a file://-URL to a proper path
 	TORRENT_EXTRA_EXPORT std::string resolve_file_url(std::string const& url);
 
+	// returns true if the given string (not null terminated) contains
+	// characters that would need to be escaped if used in a URL
 	TORRENT_EXTRA_EXPORT bool need_encoding(char const* str, int len);
 
 	// encodes a string using the base64 scheme

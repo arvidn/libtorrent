@@ -585,8 +585,20 @@ namespace libtorrent
 		// if m_have_piece is 0, it means the connections
 		// have not been initialized yet. The interested
 		// flag will be updated once they are.
-		if (m_have_piece.size() == 0) return;
-		if (!t->ready_for_connections()) return;
+		if (m_have_piece.size() == 0)
+		{
+#if defined TORRENT_VERBOSE_LOGGING
+			peer_log("*** UPDATE_INTEREST [ connections not initialized ]");
+#endif
+			return;
+		}
+		if (!t->ready_for_connections())
+		{
+#if defined TORRENT_VERBOSE_LOGGING
+			peer_log("*** UPDATE_INTEREST [ not ready for connections ]");
+#endif
+			return;
+		}
 
 		bool interested = false;
 		if (!t->is_upload_only())
@@ -601,10 +613,21 @@ namespace libtorrent
 					&& !p.has_piece_passed(j))
 				{
 					interested = true;
+#if defined TORRENT_VERBOSE_LOGGING
+					peer_log("*** UPDATE_INTEREST [ interesting, piece: %d ]", j);
+#endif
 					break;
 				}
 			}
 		}
+
+#if defined TORRENT_VERBOSE_LOGGING
+		if (!interested)
+		{
+			peer_log("*** UPDATE_INTEREST [ not interesting ]");
+		}
+#endif
+
 		if (!interested) send_not_interested();
 		else t->peer_is_interesting(*this);
 

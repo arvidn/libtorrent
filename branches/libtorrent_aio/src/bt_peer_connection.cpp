@@ -162,6 +162,20 @@ namespace libtorrent
 
 	void bt_peer_connection::on_connected()
 	{
+		if (is_disconnecting()) return;
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+
+		if (t->graceful_pause())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** ON_CONNECTED [ graceful-paused ]");
+#endif
+			disconnect(error_code(errors::torrent_paused), op_bittorrent);
+			return;
+		}
+
 		// make sure are much as possible of the response ends up in the same
 		// packet, or at least back-to-back packets
 		cork c_(*this);
@@ -1965,6 +1979,11 @@ namespace libtorrent
 		// us, at least if it's a seed. If we don't want to close redundant
 		// connections, don't sent upload-only
 		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> UPLOAD_ONLY [ %d ]"
+			, int(t->is_upload_only() && !t->super_seeding()));
+#endif
 
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;

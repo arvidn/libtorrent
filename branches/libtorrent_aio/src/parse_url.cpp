@@ -112,6 +112,12 @@ namespace libtorrent
 		{
 			hostname.assign(start, port_pos);
 			++port_pos;
+			for (std::string::iterator i = port_pos; i < end; ++i)
+			{
+				if (is_digit(*i)) continue;
+				ec = errors::invalid_port;
+				goto exit;
+			}
 			port = std::atoi(std::string(port_pos, end).c_str());
 		}
 		else

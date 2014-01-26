@@ -1230,6 +1230,13 @@ namespace libtorrent
 		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
 		if (lock_files) mode |= file::lock_file;
 		if (!m_allocate_files) mode |= file::sparse;
+
+		if (!m_allocate_files) mode |= file::sparse;
+
+		// files with priority 0 should always be sparse
+		if (m_file_priority.size() > file && m_file_priority[file] == 0)
+			mode |= file::sparse;
+
 		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well

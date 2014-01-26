@@ -901,7 +901,6 @@ namespace libtorrent
 				}
 			}
 
-			p->disconnect_if_redundant();
 
 			if (p->is_disconnecting())
 			{
@@ -5174,6 +5173,11 @@ namespace libtorrent
 			p->update_interest();
 		}
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("*** UPDATE_PEER_INTEREST [ finished: %d was_finished %d ]"
+			, is_finished(), was_finished);
+#endif
+
 		// the torrent just became finished
 		if (is_finished() && !was_finished)
 		{
@@ -5356,14 +5360,14 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::add_tracker(announce_entry const& url)
+	bool torrent::add_tracker(announce_entry const& url)
 	{
 		std::vector<announce_entry>::iterator k = std::find_if(m_trackers.begin()
 			, m_trackers.end(), boost::bind(&announce_entry::url, _1) == url.url);
 		if (k != m_trackers.end()) 
 		{
 			k->source |= url.source;
-			return;
+			return false;
 		}
 		k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url
 			, boost::bind(&announce_entry::tier, _1) < boost::bind(&announce_entry::tier, _2));
@@ -5371,6 +5375,7 @@ namespace libtorrent
 		k = m_trackers.insert(k, url);
 		if (k->source == 0) k->source = announce_entry::source_client;
 		if (m_allow_peers && !m_trackers.empty()) announce_with_tracker();
+		return true;
 	}
 
 	bool torrent::choke_peer(peer_connection& c)
@@ -7560,7 +7565,13 @@ namespace libtorrent
 		if (m_state == torrent_status::checking_resume_data
 			|| m_state == torrent_status::checking_files
 			|| m_state == torrent_status::allocating)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("*** RESUME_DOWNLOAD [ skipping, state: %d ]"
+			, int(m_state));
+#endif
 			return;
+		}
 
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
@@ -7568,6 +7579,9 @@ namespace libtorrent
 
 		m_completed_time = 0;
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("*** RESUME_DOWNLOAD");
+#endif
 		send_upload_only();
 		update_want_tick();
 	}
@@ -10521,7 +10535,6 @@ namespace libtorrent
 			announce_with_tracker(r.event);
 		update_tracker_timer(time_now());
 	}
-
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	void torrent::debug_log(char const* fmt, ...) const
