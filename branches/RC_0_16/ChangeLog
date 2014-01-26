@@ -1,3 +1,5 @@
+0.16.14 release
+
 	* make lt_tex more robust against bugs and malicious behavior
 	* HTTP chunked encoding fix
 	* expose file_granularity flag to python bindings
