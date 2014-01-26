@@ -159,6 +159,20 @@ namespace libtorrent
 
 	void bt_peer_connection::on_connected()
 	{
+		if (is_disconnecting()) return;
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+
+		if (t->graceful_pause())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** ON_CONNECTED [ graceful-paused ]");
+#endif
+			disconnect(error_code(errors::torrent_paused), 0);
+			return;
+		}
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		
 		boost::uint8_t out_enc_policy = m_ses.get_pe_settings().out_enc_policy;

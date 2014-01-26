@@ -1389,9 +1389,6 @@ namespace libtorrent
 			j.str.clear();
 			j.error = ec;
 			j.error_file = j.storage->error_file();
-#ifdef TORRENT_DEBUG
-			printf("ERROR: '%s' in %s\n", ec.message().c_str(), j.error_file.c_str());
-#endif
 			j.storage->clear_error();
 			return true;
 		}
