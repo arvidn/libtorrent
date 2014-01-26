@@ -1221,7 +1221,10 @@ ret:
 				return -1;
 			}
 
-			if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
+			// if the file has priority 0, don't allocate it
+			int file_index = files().file_index(*file_iter);
+			if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only
+				&& (m_file_priority.size() < file_index || m_file_priority[file_index] > 0))
 			{
 				TORRENT_ASSERT(m_file_created.size() == files().num_files());
 				if (m_file_created[file_index] == false)
@@ -1420,6 +1423,12 @@ ret:
 		bool lock_files = m_settings ? settings().lock_files : false;
 		if (lock_files) mode |= file::lock_file;
 		if (!m_allocate_files) mode |= file::sparse;
+
+		// files with priority 0 should always be sparse
+		int file_index = fe - files().begin();
+		if (m_file_priority.size() > file_index && m_file_priority[file_index] == 0)
+			mode |= file::sparse;
+
 		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
 
 		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path, file_index, files(), mode, ec);
