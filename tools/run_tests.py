@@ -47,6 +47,7 @@ from multiprocessing import Pool
 import glob
 import shutil
 import traceback
+import clean
 
 # the .regression.yml configuration file format looks like this (it's yaml):
 
@@ -82,7 +83,7 @@ def svn_info():
 
 	return (revision, author)
 
-def run_tests(toolset, tests, features, options, test_dir, time_limit, incremental):
+def run_tests(toolset, tests, features, options, test_dir, time_limit):
 	assert(type(features) == str)
 
 	xml_file = 'bjam_build.%d.xml' % random.randint(0, 100000)
@@ -93,11 +94,6 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit, increment
    
 		feature_list = features.split(' ')
 		os.chdir(test_dir)
-   
-#		if not incremental:
-#			p = subprocess.Popen(['bjam', '--abbreviate-paths', toolset, 'clean'] + options + feature_list, stdout=subprocess.PIPE)
-#			for l in p.stdout: pass
-#			p.wait()
    
 		for t in tests:
 			options_copy = options[:]
@@ -204,6 +200,10 @@ def main(argv):
 		print_usage()
 		sys.exit(1)
 
+	if not incremental:
+		print 'cleaning repo'
+		clean.clean()
+
 	try:
 		cfg = open('.regression.yml', 'r')
 	except:
@@ -292,14 +292,14 @@ def main(argv):
 
 #				futures = []
 #				for features in configs:
-#					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit, incremental]))
+#					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit]))
 
 #				for future in futures:
 #					(compiler, r) = future.get()
 #					results[toolset].update(r)
 
 				for features in configs:
-					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit, incremental)
+					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
 					results[toolset].update(r)
 
 				print ''
@@ -308,7 +308,7 @@ def main(argv):
 					print 'deleting ',
 					for filt in clean_files:
 						for f in glob.glob(filt):
-							# a precautio to make sure a malicious repo
+							# a precaution to make sure a malicious repo
 							# won't clean things outside of the test directory
 							if not os.path.abspath(f).startswith(test_dir): continue
 							print '%s ' % f,
