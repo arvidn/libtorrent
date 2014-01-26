@@ -1222,7 +1222,6 @@ ret:
 			}
 
 			// if the file has priority 0, don't allocate it
-			int file_index = files().file_index(*file_iter);
 			if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only
 				&& (m_file_priority.size() < file_index || m_file_priority[file_index] > 0))
 			{
@@ -1425,7 +1424,6 @@ ret:
 		if (!m_allocate_files) mode |= file::sparse;
 
 		// files with priority 0 should always be sparse
-		int file_index = fe - files().begin();
 		if (m_file_priority.size() > file_index && m_file_priority[file_index] == 0)
 			mode |= file::sparse;
 
