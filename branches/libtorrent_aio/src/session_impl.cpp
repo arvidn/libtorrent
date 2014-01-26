@@ -884,6 +884,7 @@ namespace aux {
 		update_natpmp();
 		update_lsd();
 		update_dht();
+		update_listen_interfaces();
 
 		settings_pack* copy = new settings_pack(pack);
 		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
