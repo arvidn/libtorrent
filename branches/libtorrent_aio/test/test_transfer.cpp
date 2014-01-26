@@ -150,7 +150,7 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		, std::make_pair(48075 + listen_port, 49000), "0.0.0.0", 0, mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0)
 		, std::make_pair(49075 + listen_port, 50000), "0.0.0.0", 0, mask);
-	++listen_port;
+	listen_port += 10;
 
 	proxy_settings ps;
 	if (proxy_type)
