@@ -2275,8 +2275,7 @@ namespace libtorrent
 		{
 			announce_entry& ae = m_trackers[i];
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[1000];
-			snprintf(msg, sizeof(msg), "*** announce with tracker: considering \"%s\" "
+			debug_log("*** announce with tracker: considering \"%s\" "
 				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d"
 				" i->tier: %d tier: %d "
 				" is_working: %d fails: %d fail_limit: %d updating: %d"
@@ -2285,7 +2284,6 @@ namespace libtorrent
 				, settings().announce_to_all_trackers
 				, ae.tier, tier, ae.is_working(), ae.fails, ae.fail_limit
 				, ae.updating, ae.can_announce(now, is_seed()), sent_announce);
-			debug_log(msg);
 #endif
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
