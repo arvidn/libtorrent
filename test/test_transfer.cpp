@@ -172,6 +172,7 @@ storage_interface* test_storage_constructor(file_storage const& fs
 
 void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowed_fast = false)
 {
+	static int listen_port = 0;
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
@@ -191,8 +192,11 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	session ses1(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(48075 + listen_port, 49000), "0.0.0.0", 0, alert_mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(49075 + listen_port, 50000), "0.0.0.0", 0, alert_mask);
+	++listen_port;
 
 	proxy_settings ps;
 	if (proxy_type)
@@ -316,11 +320,16 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			// upload mode to false
 			test_sleep(500);
 
+			// then we need to drain the alert queue, so the peer_disconnects
+			// counter doesn't get incremented by old alerts
+			print_alerts(ses1, "ses1", true, true, true, &on_alert);
+			print_alerts(ses2, "ses2", true, true, true, &on_alert);
+
 			tor2.set_upload_mode(false);
 			TEST_CHECK(tor2.status().is_finished == false);
 			TEST_EQUAL(peer_disconnects, 2);
 			fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
-			peer_disconnects = -1;
+			peer_disconnects = 0;
 			test_sleep(100);
 			continue;
 		}
