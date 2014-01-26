@@ -1874,6 +1874,11 @@ namespace libtorrent
 		// connections, don't sent upload-only
 		if (!m_ses.settings().close_redundant_connections) return;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> UPLOAD_ONLY [ %d ]"
+			, int(t->is_upload_only() && !t->super_seeding()));
+#endif
+
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
 		detail::write_uint8(m_upload_only_id, ptr);

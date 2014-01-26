@@ -938,7 +938,6 @@ namespace libtorrent
 			++i;
 			if (p->type() == peer_connection::bittorrent_connection)
 				p->write_upload_only();
-			p->disconnect_if_redundant();
 		}
 #endif
 	}
@@ -4088,6 +4087,11 @@ namespace libtorrent
 			p->update_interest();
 		}
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("*** UPDATE_PEER_INTEREST [ finished: %d was_finished %d ]"
+			, is_finished(), was_finished);
+#endif
+
 		// the torrent just became finished
 		if (is_finished() && !was_finished)
 		{
@@ -6302,7 +6306,13 @@ namespace libtorrent
 		if (m_state == torrent_status::checking_resume_data
 			|| m_state == torrent_status::checking_files
 			|| m_state == torrent_status::allocating)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("*** RESUME_DOWNLOAD [ skipping, state: %d ]"
+			, int(m_state));
+#endif
 			return;
+		}
 
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
@@ -6311,6 +6321,9 @@ namespace libtorrent
 
 		m_completed_time = 0;
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("*** RESUME_DOWNLOAD");
+#endif
 		send_upload_only();
 	}
 
@@ -8993,7 +9006,6 @@ namespace libtorrent
 			announce_with_tracker(r.event);
 		update_tracker_timer(time_now());
 	}
-
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	void torrent::debug_log(const char* fmt, ...) const
