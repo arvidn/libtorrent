@@ -2123,12 +2123,16 @@ namespace libtorrent
 		entry handshake;
 		entry::dictionary_type& m = handshake["m"].dict();
 
+		// if we're using a proxy, our listen port won't be useful
+		// anyway.
+		if (!m_ses.settings().force_proxy && is_outgoing())
+			handshake["p"] = m_ses.listen_port();
+
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows
 		// our listen port
 		if (!m_ses.m_settings.anonymous_mode)
 		{
-			if (is_outgoing()) handshake["p"] = m_ses.listen_port();
 			handshake["v"] = m_ses.settings().handshake_client_version.empty()
 				? m_ses.settings().user_agent : m_ses.settings().handshake_client_version;
 		}
