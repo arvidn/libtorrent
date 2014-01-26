@@ -57,6 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/escape_string.hpp"
+#include "libtorrent/parse_url.hpp"
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
 #endif
@@ -78,6 +80,7 @@ namespace libtorrent { namespace
 			: m_torrent(t)
 			, m_updates(0)
 			, m_2_minutes(110)
+			, m_num_trackers(0)
 		{
 			m_old_trackers = t.trackers();
 			update_list_hash();
@@ -133,6 +136,9 @@ namespace libtorrent { namespace
 
 		std::vector<announce_entry> const& trackers() const { return m_old_trackers; }
 
+		void increment_tracker_counter() { m_num_trackers++; }
+		int num_tex_trackers() const { return m_num_trackers; }
+
 	private:
 		torrent& m_torrent;
 		std::vector<announce_entry> m_old_trackers;
@@ -140,6 +146,7 @@ namespace libtorrent { namespace
 		int m_2_minutes;
 		std::vector<char> m_lt_trackers_msg;
 		sha1_hash m_list_hash;
+		int m_num_trackers;
 	};
 
 
@@ -203,12 +210,6 @@ namespace libtorrent { namespace
 
 			lazy_entry const* added = msg.dict_find_list("added");
 
-#ifdef TORRENT_VERBOSE_LOGGING
-			std::stringstream log_line;
-			log_line << time_now_string() << " <== LT_TEX [ "
-				"added: ";
-#endif
-
 			// invalid tex message
 			if (added == 0)
 			{
@@ -218,14 +219,66 @@ namespace libtorrent { namespace
 				return true;
 			}
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			std::stringstream log_line;
+#endif
+			if (m_tp.num_tex_trackers() >= 50)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				log_line << time_now_string() << " <== LT_TEX [ "
+				"we already have " << m_tp.num_tex_trackers() << " trackers "
+				"from tex, don't add any more";
+				(*m_pc.m_logger) << log_line.str();
+#endif
+				return true;
+			}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			log_line << time_now_string() << " <== LT_TEX [ "
+				"added: ";
+#endif
+
 			for (int i = 0; i < added->list_size(); ++i)
 			{
 				announce_entry e(added->list_string_value_at(i));
 				if (e.url.empty()) continue;
-				e.fail_limit = 3;
+
+				// ignore urls with binary data in them
+				if (need_encoding(e.url.c_str(), e.url.size())) continue;
+
+				// ignore invalid URLs
+				error_code ec;
+				std::string protocol;
+				std::string auth;
+				std::string hostname;
+				int port;
+				std::string path;
+				boost::tie(protocol, auth, hostname, port, path)
+					= parse_url_components(e.url, ec);
+				if (ec) continue;
+
+				// ignore unknown protocols
+				if (protocol != "udp" && protocol != "http" && protocol != "https")
+					continue;
+
+				// ignore invalid ports
+				if (port == 0)
+					continue;
+
+				if (m_tp.num_tex_trackers() >= 50)
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					log_line << "**reached-limit** ";
+#endif
+					break;
+				}
+
+				e.fail_limit = 1;
 				e.send_stats = false;
 				e.source = announce_entry::source_tex;
-				m_torrent.add_tracker(e);
+				if (m_torrent.add_tracker(e))
+					m_tp.increment_tracker_counter();
+
 #ifdef TORRENT_VERBOSE_LOGGING
 				log_line << e.url << " ";
 #endif
