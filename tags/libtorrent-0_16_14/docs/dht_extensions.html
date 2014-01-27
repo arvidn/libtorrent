@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title></title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
+    <div id="main">
+
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="section" id="mainline-dht-extensions">
+<h1>Mainline DHT extensions</h1>
+<p>libtorrent implements a few extensions to the Mainline DHT protocol.</p>
+<div class="section" id="get-peers-response">
+<h2>get_peers response</h2>
+<p>libtorrent always responds with <tt class="docutils literal">nodes</tt> to a get_peers request. If it has
+peers for the specified info-hash, it will return <tt class="docutils literal">values</tt> as well. This is
+because just because some peer announced to us, doesn't mean that we are
+among the 8 closest nodes of the info hash. libtorrent also keeps traversing
+nodes using get_peers until it has found the 8 closest ones, and then announces
+to those nodes.</p>
+</div>
+<div class="section" id="forward-compatibility">
+<h2>forward compatibility</h2>
+<p>In order to support future DHT messages, any message which is not recognized
+but has either an <tt class="docutils literal">info_hash</tt> or <tt class="docutils literal">target</tt> argument is interpreted as
+find node for that target. i.e. it returns nodes. This allows future messages
+to be properly forwarded by clients that don't understand them instead of
+being blocked.</p>
+</div>
+<div class="section" id="client-identification">
+<h2>client identification</h2>
+<p>In each DHT packet, an extra key is inserted named &quot;v&quot;. This is a string
+describing the client and version used. This can help alot when debugging
+and finding errors in client implementations. The string is encoded as four
+characters, two characters describing the client and two characters interpreted
+as a binary number describing the client version.</p>
+<p>Currently known clients:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="65%" />
+<col width="35%" />
+</colgroup>
+<tbody valign="top">
+<tr><td>uTorrent</td>
+<td><tt class="docutils literal">UT</tt></td>
+</tr>
+<tr><td>libtorrent</td>
+<td><tt class="docutils literal">LT</tt></td>
+</tr>
+<tr><td>MooPolice</td>
+<td><tt class="docutils literal">MP</tt></td>
+</tr>
+<tr><td>GetRight</td>
+<td><tt class="docutils literal">GR</tt></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="ipv6-support">
+<h2>IPv6 support</h2>
+<p><strong>This extension is superseeded by</strong> <a class="reference external" href="http://bittorrent.org/beps/bep_0032.html">BEP 32</a>.</p>
+<p>The DHT messages that don't support IPv6 are the <tt class="docutils literal">nodes</tt> replies.
+They encode all the contacts as 6 bytes packed together in sequence in a
+string. The problem is that IPv6 endpoints cannot be encoded as 6 bytes, but
+needs 18 bytes. The extension libtorrent applies is to add another key, called
+<tt class="docutils literal">nodes2</tt>.</p>
+<p><tt class="docutils literal">nodes2</tt> may be present in replies that contains a <tt class="docutils literal">nodes</tt> key. It is encoded
+as a list of strings. Each string represents one contact and is encoded as 20
+bytes node-id and then a variable length encoded IP address (6 bytes in IPv4 case
+and 18 bytes in IPv6 case).</p>
+<p>As an optimization, libtorrent does not include the extra key in case there are
+only IPv4 nodes present.</p>
+</div>
+</div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
+</div>
+</body>
+</html>
