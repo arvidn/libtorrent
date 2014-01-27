@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,16 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-	// represents a byte range within a piece. Internally this is
-	// is used for incoming piece requests.
-	struct TORRENT_EXPORT peer_request
+	struct TORRENT_EXTRA_EXPORT peer_request
 	{
-		// the index of the piece in which the range starts.
 		int piece;
-		// the offset within that piece where the range starts.
 		int start;
-		// the size of the range, in bytes.
 		int length;
 		bool operator==(peer_request const& r) const
 		{ return piece == r.piece && start == r.start && length == r.length; }

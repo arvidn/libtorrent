@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -475,7 +475,6 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		// we don't have this device in our list. Add it
 		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
-		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
@@ -701,7 +700,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_cc, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
-			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
+			, boost::ref(d), i, _5), true
 			, boost::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
 		d.upnp_connection->start(d.hostname, to_string(d.port).elems
@@ -712,7 +711,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_cc, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
-			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
+			, boost::ref(d), i, _5), true
 			, boost::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
 		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
@@ -934,7 +933,6 @@ void upnp::on_upnp_xml(error_code const& e
 	{
 		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
-		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 		d.control_url = protocol + "://" + d.hostname + ":"
 			+ to_string(d.port).elems + s.control_url;
 	}
@@ -948,7 +946,6 @@ void upnp::on_upnp_xml(error_code const& e
 
 	boost::tie(protocol, auth, d.hostname, d.port, d.path)
 		= parse_url_components(d.control_url, ec);
-	if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 
 	if (ec)
 	{
@@ -962,7 +959,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	d.upnp_connection.reset(new http_connection(m_io_service
 		, m_cc, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
-		, boost::ref(d), _5), true, default_max_bottled_buffer_size 
+		, boost::ref(d), _5), true
 		, boost::bind(&upnp::get_ip_address, self(), boost::ref(d))));
 	d.upnp_connection->start(d.hostname, to_string(d.port).elems
 		, seconds(10), 1);
@@ -1430,19 +1427,6 @@ void upnp::on_upnp_unmap_response(error_code const& e
 			, std::string(p.get_body().begin, p.get_body().end).c_str());
 		log(msg, l);
 	}
-
-	error_code_parse_state s;
-	if (p.header_finished())
-	{
-		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-			, boost::bind(&find_error_code, _1, _2, boost::ref(s)));
-	}
-
-	l.unlock();
-	m_callback(mapping, address(), 0, p.status_code() != 200
-		? error_code(p.status_code(), get_http_category())
-		: error_code(s.error_code, upnp_category));
-	l.lock();
 
 	d.mapping[mapping].protocol = none;
 

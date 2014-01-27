@@ -23,29 +23,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 1.0.0 ;
-
-rule coverage ( properties * )
-{
-	local result ;
-	if <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties)
-		|| <toolset>clang in $(properties)
-	{
-		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage ;
-
-		if <toolset>gcc in $(properties)
-			|| <toolset>darwin in $(properties)
-		{
-			result += <linkflags>-lgcov ;
-		}
-		else
-		{
-			result += <linkflags>--coverage ;
-		}
-	}
-	return $(result) ;
-}
+VERSION = 0.16.14 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
@@ -58,6 +36,12 @@ rule linking ( properties * )
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
+
+		if <target-os>windows in $(properties)
+		{
+			result += <library>gdi32 ;
+		}
+
 		if <target-os>windows in $(properties)
 		{
 			result += <library>ssleay32
@@ -65,7 +49,6 @@ rule linking ( properties * )
 				<library>advapi32
 				<library>user32
 				<library>shell32
-				<library>gdi32
 			;
 		}
 		else
@@ -83,9 +66,8 @@ rule linking ( properties * )
 	# dbghelp doesn't appear to exist in mingw
 	if <target-os>windows in $(properties)
 		&& ! <toolset>gcc in $(properties)
-		&& ( <variant>debug in $(properties)
-			|| <asserts>on in $(properties)
-			|| <asserts>production in $(properties)
+		&& ( <asserts>on in $(properties)
+			|| <variant>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		result += <library>dbghelp ;
@@ -119,13 +101,6 @@ rule linking ( properties * )
 			<define>WIN32
 			<define>_WIN32
 		;
-
-		# when DHT is enabled, we need ed25519 which in turn
-		# needs entropy
-		if ! <dht>off in $(properties)
-		{
-			result += <library>advapi32 ;
-		}
 	}
 
 	if <target-os>beos in $(properties)
@@ -136,6 +111,14 @@ rule linking ( properties * )
 	if <target-os>solaris in $(properties)
 	{
 		result += <library>libsocket <library>libnsl ;
+	}
+
+	if <test-coverage>on in $(properties)
+		&& ( <toolset>gcc in $(properties)
+		|| <toolset>darwin in $(properties) )
+	{
+		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage
+			<linkflags>-lgcov <define>NDEBUG ;
 	}
 
 	# clock_gettime on linux requires librt
@@ -156,10 +139,9 @@ rule linking ( properties * )
 
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
-		&& ( <variant>debug in $(properties)
+		&& (<variant>debug in $(properties)
 			|| <asserts>on in $(properties)
-			|| <asserts>production in $(properties)
-			|| <asio-debugging>on in $(properties) )
+			|| <asserts>production in $(properties))
 	{
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
@@ -202,10 +184,7 @@ rule linking ( properties * )
 				result += <library>/boost/date_time//boost_date_time/<link>shared ;
 			}
 		}
-		result += <include>$(BOOST_ROOT)
-			<define>BOOST_ALL_NO_LIB
-			<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
-			;
+		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
 
 	}
 	else
@@ -242,14 +221,6 @@ rule building ( properties * )
 		# this is off by default to keep the export
 		# symbol table reasonably small
 		result += <define>TORRENT_EXPORT_EXTRA ;
-	}
-
-	if ( <variant>debug in $(properties)
-		&& ( <toolset>clang in $(properties)
-			|| <toolset>gcc in $(properties)
-			|| <toolset>darwin in $(properties) ) )
-	{
-		result += <cflags>-ftrapv ;
 	}
 
 	if ( <variant>debug in $(properties)
@@ -301,11 +272,7 @@ rule building ( properties * )
 		# appears to have some types not fully exported)
 		result += <cflags>-fvisibility=hidden ;
 		result += <cxxflags>-fvisibility-inlines-hidden ;
-
-		if ( <toolset>gcc in $(properties) )
-		{
-			result += <linkflags>-Wl,-Bsymbolic ;
-		}
+		result += <linkflags>-Wl,-Bsymbolic ;
 	}
 
 	return $(result) ;
@@ -350,16 +317,13 @@ feature iconv : auto on off : composite propagated ;
 feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
 feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
 
-feature valgrind : off on : composite propagated link-incompatible ;
-feature.compose <valgrind>on : <define>TORRENT_USE_VALGRIND=1 ;
-
 feature full-stats : on off : composite propagated link-incompatible ;
 feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 
 feature asserts : auto on off production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 <define>TORRENT_RELEASE_ASSERTS=1 ;
-feature.compose <asserts>off : <define>TORRENT_USE_ASSERTS=0 ;
+feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
 feature.compose <asserts>system : <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 
 feature windows-version : 2k xp vista win7 : composite propagated link-incompatible ;
@@ -368,19 +332,11 @@ feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
 feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
 
-feature extensions : on off : composite propagated link-incompatible ;
-feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSIONS ;
-
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
-# deprecated use allocator=pool instead
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
-
-feature allocator : pool system debug : composite propagated ;
-feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
-feature.compose <allocator>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
 
 feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
@@ -410,9 +366,9 @@ feature.compose <logging>default : <define>TORRENT_LOGGING ;
 feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;
 feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
-feature dht : on off logging : composite propagated link-incompatible ;
-feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
-feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
+feature dht-support : on off logging : composite propagated link-incompatible ;
+feature.compose <dht-support>off : <define>TORRENT_DISABLE_DHT ;
+feature.compose <dht-support>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
 feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
 feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
@@ -442,7 +398,6 @@ feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
 
 feature test-coverage : off on : composite propagated ;
-feature.compose <test-coverage>on : <conditional>@coverage ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
@@ -486,8 +441,8 @@ lib boost_date_time : : <name>boost_date_time ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-lib z : : <link>shared <name>z <search>/usr/lib ;
-lib crypto : : <name>crypto <search>/usr/lib <use>z ;
+lib z : : <link>shared <name>z <search>/lib ;
+lib crypto : : <name>crypto <search>/lib <use>z ;
 lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
 
@@ -509,7 +464,6 @@ lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
-	alert_manager
 	allocator
 	asio
 	assert
@@ -529,13 +483,11 @@ SOURCES =
 	string_util
 	file
 	gzip
-	hasher
 	http_connection
 	http_stream
 	http_parser
 	identify_client
 	ip_filter
-	ip_voter
 	peer_connection
 	bt_peer_connection
 	web_connection_base
@@ -549,6 +501,7 @@ SOURCES =
 	policy
 	puff
 	random
+	rsa
 	rss
 	session
 	session_impl
@@ -601,23 +554,6 @@ KADEMLIA_SOURCES =
 	node_id
 	routing_table
 	traversal_algorithm
-	logging
-	get_peers
-	item
-	get_item
-	;
-
-ED25519_SOURCES =
-	add_scalar
-	fe
-	ge
-	key_exchange
-	keypair
-	sc
-	seed
-	sha512
-	sign
-	verify
 	;
 
 local usage-requirements = 
@@ -653,6 +589,8 @@ local usage-requirements =
 	<toolset>gcc:<cflags>-fno-strict-aliasing
 	<toolset>gcc:<cflags>-Wno-missing-braces
 # assert on integer overflow
+	<toolset>gcc,<variant>debug:<cflags>-ftrapv
+	<toolset>darwin,<variant>debug:<cflags>-ftrapv
 	<toolset>clang:<cflags>-Wno-invalid-offsetof
 	<toolset>clang-darwin:<cflags>-Wno-invalid-offsetof
 	<boost>system:<cxxflags>$(CXXFLAGS)
@@ -674,7 +612,6 @@ lib torrent
 	src/$(SOURCES).cpp
 
 	: # requirements
-	<include>./ed25519/src
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 
@@ -684,12 +621,8 @@ lib torrent
 	<link>shared:<define>BOOST_ASIO_SOURCE
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
-	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-
-	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).c
-	<dht>logging:<source>ed25519/src/$(ED25519_SOURCES).c
-
+	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
+	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 

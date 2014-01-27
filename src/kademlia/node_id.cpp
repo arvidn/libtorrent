@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,12 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/crc.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
 #include "libtorrent/socket_io.hpp" // for hash_address
-#include "libtorrent/random.hpp" // for random
+#include "libtorrent/random.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -134,9 +133,6 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	ip[0] |= (r & 0x7) << 5;
 
 	// this is the crc32c (Castagnoli) polynomial
-	// TODO: 2 this could be optimized if SSE 4.2 is
-	// available. It could also be optimized given
-	// that we have a fixed length
 	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 	crc.process_block(ip, ip + num_octets);
 	boost::uint32_t c = crc.checksum();
@@ -173,23 +169,7 @@ bool verify_id(node_id const& nid, address const& source_ip)
 
 node_id generate_id(address const& ip)
 {
-	return generate_id_impl(ip, random());
-}
-
-bool matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index)
-{
-	node_id id = n.id;
-	id <<= bucket_index + 1;
-	return (id[0] & mask) == prefix;
-}
-
-node_id generate_prefix_mask(int bits)
-{
-	node_id mask(0);
-	int b = 0;
-	for (; b < bits - 7; b += 8) mask[b/8] |= 0xff;
-	mask[b/8] |= 0xff << (8 - (bits&7));
-	return mask;
+	return generate_id_impl(ip, rand());
 }
 
 } }  // namespace libtorrent::dht

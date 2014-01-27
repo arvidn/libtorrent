@@ -3,16 +3,11 @@ libtorrent hacking
 ==================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.14
 
 .. contents:: Table of contents
   :depth: 2
   :backlinks: none
-
-This describe some of the internals of libtorrent. If you're looking for
-something to contribute, please take a look at the `todo list`_.
-
-.. _`todo list`: todo.html
 
 terminology
 ===========

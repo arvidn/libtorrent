@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,42 +57,52 @@ class node_impl;
 
 // -------- find data -----------
 
-struct find_data : traversal_algorithm
+//TODO: rename this to find_peers
+class find_data : public traversal_algorithm
 {
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+public:
+	typedef boost::function<void(std::vector<tcp::endpoint> const&)> data_callback;
+	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&, bool)> nodes_callback;
 
+	void got_peers(std::vector<tcp::endpoint> const& peers);
 	void got_write_token(node_id const& n, std::string const& write_token)
 	{ m_write_tokens[n] = write_token; }
 
 	find_data(node_impl& node, node_id target
-		, nodes_callback const& ncallback);
+		, data_callback const& dcallback
+		, nodes_callback const& ncallback
+		, bool noseeds);
 
-	virtual void start();
-
-	virtual char const* name() const;
+	virtual char const* name() const { return "get_peers"; }
 
 	node_id const target() const { return m_target; }
 
 protected:
 
-	virtual void done();
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
+	void done();
+	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
+	virtual bool invoke(observer_ptr o);
 
+private:
+
+	data_callback m_data_callback;
 	nodes_callback m_nodes_callback;
 	std::map<node_id, std::string> m_write_tokens;
-	bool m_done;
+	node_id const m_target;
+	bool m_done:1;
+	bool m_got_peers:1;
+	bool m_noseeds:1;
 };
 
-struct find_data_observer : traversal_observer
+class find_data_observer : public observer
 {
+public:
 	find_data_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
-		: traversal_observer(algorithm, ep, id)
+		: observer(algorithm, ep, id)
 	{}
-
-	virtual void reply(msg const&);
+	void reply(msg const&);
 };
 
 } } // namespace libtorrent::dht

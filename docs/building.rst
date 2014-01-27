@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.14
 
 .. contents:: Table of contents
   :depth: 2
@@ -254,7 +254,7 @@ Build features:
 |                          | * ``verbose`` - verbose peer wire logging.         |
 |                          | * ``errors`` - like verbose, but limited to errors.|
 +--------------------------+----------------------------------------------------+
-| ``dht``                  | * ``on`` - build with support for tracker less     |
+| ``dht-support``          | * ``on`` - build with support for tracker less     |
 |                          |   torrents and DHT support.                        |
 |                          | * ``logging`` - build with DHT support and verbose |
 |                          |   logging of the DHT protocol traffic.             |
@@ -298,13 +298,11 @@ Build features:
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
 +--------------------------+----------------------------------------------------+
-| ``allocator``            | * ``pool`` - default, uses pool allocators for     |
-|                          |   send buffers.                                    |
-|                          | * ``system`` - uses ``malloc()`` and ``free()``    |
+| ``pool-allocators``      | * ``on`` - default, uses pool allocators for send  |
+|                          |   buffers.                                         |
+|                          | * ``off`` - uses ``malloc()`` and ``free()``       |
 |                          |   instead. Might be useful to debug buffer issues  |
 |                          |   with tools like electric fence or libgmalloc.    |
-|                          | * ``debug`` - instruments buffer usage to catch    |
-|                          |   bugs in libtorrent.                              |
 +--------------------------+----------------------------------------------------+
 | ``link``                 | * ``static`` - builds libtorrent as a static       |
 |                          |   library (.a / .lib)                              |
@@ -627,10 +625,6 @@ defines you can use to control the build.
 |                                        | ``TORRENT_USE_OPENSSL`` or                      |
 |                                        | ``TORRENT_USE_GCRYPT`` must be defined.         |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_EXTENSIONS``         | When defined, libtorrent plugin support is      |
-|                                        | disabled along with support for the extension   |
-|                                        | handskake (BEP 10).                             |
-+----------------------------------------+-------------------------------------------------+
 | ``_UNICODE``                           | On windows, this will cause the file IO         |
 |                                        | use wide character API, to properly support     |
 |                                        | non-ansi characters.                            |
@@ -655,7 +649,7 @@ defines you can use to control the build.
 | ``TORRENT_PRODUCTION_ASSERTS``         | Define to either 0 or 1. Enables assert logging |
 |                                        | in release builds.                              |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_USE_ASSERTS``                | Define as 0 to disable asserts unconditionally. |
+| ``TORRENT_NO_ASSERTS``                 | Disables all asserts.                           |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
 |                                        | custom one.                                     |

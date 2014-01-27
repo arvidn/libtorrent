@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -108,64 +108,55 @@ namespace libtorrent
 		int mode;
 	};
 
-	// internal flags for stat_file
-	enum { dont_follow_links = 1 };
-	TORRENT_EXTRA_EXPORT void stat_file(std::string f, file_status* s
+	enum stat_flags_t { dont_follow_links = 1 };
+	TORRENT_EXPORT void stat_file(std::string f, file_status* s
 		, error_code& ec, int flags = 0);
-	TORRENT_EXTRA_EXPORT void rename(std::string const& f
+	TORRENT_EXPORT void rename(std::string const& f
 		, std::string const& newf, error_code& ec);
-	TORRENT_EXTRA_EXPORT void create_directories(std::string const& f
+	TORRENT_EXPORT void create_directories(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void create_directory(std::string const& f
+	TORRENT_EXPORT void create_directory(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void remove_all(std::string const& f
+	TORRENT_EXPORT void remove_all(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
-	TORRENT_EXTRA_EXPORT size_type file_size(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
+	TORRENT_EXPORT void remove(std::string const& f, error_code& ec);
+	TORRENT_EXPORT bool exists(std::string const& f);
+	TORRENT_EXPORT size_type file_size(std::string const& f);
+	TORRENT_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
-	TORRENT_EXTRA_EXPORT void recursive_copy(std::string const& old_path
+	TORRENT_EXPORT void recursive_copy(std::string const& old_path
 		, std::string const& new_path, error_code& ec);
-	TORRENT_EXTRA_EXPORT void copy_file(std::string const& f
+	TORRENT_EXPORT void copy_file(std::string const& f
 		, std::string const& newf, error_code& ec);
 
-	TORRENT_EXTRA_EXPORT std::string split_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT char const* next_path_element(char const* p);
-	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string remove_extension(std::string const& f);
-	TORRENT_EXTRA_EXPORT void replace_extension(std::string& f, std::string const& ext);
-	TORRENT_EXTRA_EXPORT bool is_root_path(std::string const& f);
-
-
-	// internal used by create_torrent.hpp
+	TORRENT_EXPORT std::string split_path(std::string const& f);
+	TORRENT_EXPORT char const* next_path_element(char const* p);
+	TORRENT_EXPORT std::string extension(std::string const& f);
+	TORRENT_EXPORT void replace_extension(std::string& f, std::string const& ext);
+	TORRENT_EXPORT bool is_root_path(std::string const& f);
 	TORRENT_EXPORT std::string parent_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool has_parent_path(std::string const& f);
-	// internal used by create_torrent.hpp
+	TORRENT_EXPORT bool has_parent_path(std::string const& f);
 	TORRENT_EXPORT std::string filename(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
+	TORRENT_EXPORT std::string combine_path(std::string const& lhs
 		, std::string const& rhs);
-	// internal used by create_torrent.hpp
 	TORRENT_EXPORT std::string complete(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string current_working_directory();
+	TORRENT_EXPORT bool is_complete(std::string const& f);
+	TORRENT_EXPORT std::string current_working_directory();
 #if TORRENT_USE_UNC_PATHS
 	TORRENT_EXTRA_EXPORT std::string canonicalize_path(std::string const& f);
 #endif
 
-	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
+	class TORRENT_EXPORT directory : public boost::noncopyable
 	{
 	public:
 		directory(std::string const& path, error_code& ec);
 		~directory();
 		void next(error_code& ec);
 		std::string file() const;
-		boost::uint64_t inode() const;
 		bool done() const { return m_done; }
 	private:
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
-		int m_inode;
 #if TORRENT_USE_WSTRING
 		WIN32_FIND_DATAW m_fd;
 #else
@@ -182,59 +173,27 @@ namespace libtorrent
 		bool m_done;
 	};
 
-	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
+	struct TORRENT_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
 	{
-		// the open mode for files. Used for the file constructor or
-		// file::open().
-		enum open_mode_t
+		enum
 		{
-			// open the file for reading only
-			read_only = 0,
-
-			// open the file for writing only
-			write_only = 1,
-
-			// open the file for reading and writing
-			read_write = 2,
-			
-			// the mask for the bits determining read or write mode
-			rw_mask = read_only | write_only | read_write,
-
-			// indicate that the file should be opened in
-			// *direct io* mode, i.e. bypassing the operating
-			// system's disk cache, or as much as possible of it
-			// depending on the system.
-			// when a file is opened with no_buffer,
+			// when a file is opened with no_buffer
 			// file offsets have to be aligned to
 			// pos_alignment() and buffer addresses
 			// to buf_alignment() and read/write sizes
 			// to size_alignment()
+			read_only = 0,
+			write_only = 1,
+			read_write = 2,
+			rw_mask = read_only | write_only | read_write,
 			no_buffer = 4,
-
-			// open the file in sparse mode (if supported by the
-			// filesystem).
 			sparse = 8,
-
-			// don't update the access timestamps on the file (if
-			// supported by the operating system and filesystem).
-			// this generally improves disk performance.
 			no_atime = 16,
-			
-			// open the file for random acces. This disables read-ahead
-			// logic
 			random_access = 32,
-
-			// prevent the file from being opened by another process
-			// while it's still being held open by this handle
 			lock_file = 64,
 
-			// when creating a file, set the hidden attribute (windows only)
 			attribute_hidden = 0x1000,
-
-			// when creating a file, set the executable attribute
 			attribute_executable = 0x2000,
-
-			// the mask of all attribute bits
 			attribute_mask = attribute_hidden | attribute_executable
 		};
 

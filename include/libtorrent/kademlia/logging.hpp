@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,8 +87,21 @@ private:
 class log_event
 {
 public:
-	log_event(log& log);
-	~log_event();
+	log_event(log& log) 
+		: log_(log) 
+	{
+		if (log_.enabled())
+			log_ << time_now_string() << " [" << log.id() << "] ";
+	}
+
+	~log_event()
+	{
+		if (log_.enabled())
+		{
+			log_ << "\n";
+			log_.flush();
+		}
+	}
 
 	template<class T>
 	log_event& operator<<(T const& x)

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,86 +41,114 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_GCRYPT
 #include <gcrypt.h>
-
-#elif TORRENT_USE_COMMONCRYPTO
-
-#include <CommonCrypto/CommonDigest.h>
-
 #elif defined TORRENT_USE_OPENSSL
-
 extern "C"
 {
 #include <openssl/sha.h>
 }
-
 #else
 // from sha1.cpp
-namespace libtorrent
+struct TORRENT_EXTRA_EXPORT SHA_CTX
 {
+	boost::uint32_t state[5];
+	boost::uint32_t count[2];
+	boost::uint8_t buffer[64];
+};
 
-	struct TORRENT_EXTRA_EXPORT sha_ctx
-	{
-		boost::uint32_t state[5];
-		boost::uint32_t count[2];
-		boost::uint8_t buffer[64];
-	};
-
-	TORRENT_EXTRA_EXPORT void SHA1_init(sha_ctx* context);
-	TORRENT_EXTRA_EXPORT void SHA1_update(sha_ctx* context, boost::uint8_t const* data, boost::uint32_t len);
-	TORRENT_EXTRA_EXPORT void SHA1_final(boost::uint8_t* digest, sha_ctx* context);
-} // namespace libtorrent
+TORRENT_EXTRA_EXPORT void SHA1_Init(SHA_CTX* context);
+TORRENT_EXTRA_EXPORT void SHA1_Update(SHA_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
+TORRENT_EXTRA_EXPORT void SHA1_Final(boost::uint8_t* digest, SHA_CTX* context);
 
 #endif
 
 namespace libtorrent
 {
-
-	// You use it by first instantiating it, then call ``update()`` to feed it
-	// with data. i.e. you don't have to keep the entire buffer of which you want to
-	// create the hash in memory. You can feed the hasher parts of it at a time. When
-	// You have fed the hasher with all the data, you call ``final()`` and it
-	// will return the sha1-hash of the data.
-	// 
-	// The constructor that takes a ``char const*`` and an integer will construct the
-	// sha1 context and feed it the data passed in.
-	// 
-	// If you want to reuse the hasher object once you have created a hash, you have to
-	// call ``reset()`` to reinitialize it.
-	// 
-	// The sha1-algorithm used was implemented by Steve Reid and released as public domain.
-	// For more info, see ``src/sha1.cpp``.
 	class TORRENT_EXTRA_EXPORT hasher
 	{
 	public:
 
-		hasher();
-		hasher(const char* data, int len);
+		hasher()
+		{
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
+#else
+			SHA1_Init(&m_context);
+#endif
+		}
+		hasher(const char* data, int len)
+		{
+			TORRENT_ASSERT(data != 0);
+			TORRENT_ASSERT(len > 0);
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
+			gcry_md_write(m_context, data, len);
+#else
+			SHA1_Init(&m_context);
+			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+#endif
+		}
 
 #ifdef TORRENT_USE_GCRYPT
-		hasher(hasher const& h);
-		hasher& operator=(hasher const& h);
+		hasher(hasher const& h)
+		{
+			gcry_md_copy(&m_context, h.m_context);
+		}
+
+		hasher& operator=(hasher const& h)
+		{
+			gcry_md_close(m_context);
+			gcry_md_copy(&m_context, h.m_context);
+			return *this;
+		}
 #endif
 
 		hasher& update(std::string const& data) { update(data.c_str(), data.size()); return *this; }
-		hasher& update(const char* data, int len);
-		sha1_hash final();
+		hasher& update(const char* data, int len)
+		{
+			TORRENT_ASSERT(data != 0);
+			TORRENT_ASSERT(len > 0);
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_write(m_context, data, len);
+#else
+			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+#endif
+			return *this;
+		}
 
-		void reset();
+		sha1_hash final()
+		{
+			sha1_hash digest;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_final(m_context);
+			digest.assign((const char*)gcry_md_read(m_context, 0));
+#else
+			SHA1_Final(digest.begin(), &m_context);
+#endif
+			return digest;
+		}
+
+		void reset()
+		{
+#ifdef TORRENT_USE_GCRYPT
+			gcry_md_reset(m_context);
+#else
+			SHA1_Init(&m_context);
+#endif
+		}
 
 #ifdef TORRENT_USE_GCRYPT
-		~hasher();
+		~hasher()
+		{
+			gcry_md_close(m_context);
+		}
 #endif
 
 	private:
 
 #ifdef TORRENT_USE_GCRYPT
 		gcry_md_hd_t m_context;
-#elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA1_CTX m_context;
-#elif defined TORRENT_USE_OPENSSL
-		SHA_CTX m_context;
 #else
-		sha_ctx m_context;
+		SHA_CTX m_context;
 #endif
 	};
 }

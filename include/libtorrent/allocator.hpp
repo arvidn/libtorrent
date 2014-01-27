@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ namespace libtorrent
 		typedef std::ptrdiff_t difference_type;
 
 		static char* malloc(const size_type bytes);
-		static void free(char* block);
+		static void free(char* const block);
 	};
 
 	struct TORRENT_EXTRA_EXPORT aligned_holder

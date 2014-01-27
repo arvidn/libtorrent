@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,11 +60,14 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, web_seed_entry& web)
-		: peer_connection(ses, t, s, remote, &web.peer_info)
+		, std::string const& url
+		, policy::peer* peerinfo
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+		: peer_connection(ses, t, s, remote, peerinfo)
 		, m_parser(http_parser::dont_parse_chunks)
-		, m_external_auth(web.auth)
-		, m_extra_headers(web.extra_headers)
+		, m_external_auth(auth)
+		, m_extra_headers(extra_headers)
 		, m_first_request(true)
 		, m_ssl(false)
 		, m_body_start(0)
@@ -81,18 +84,11 @@ namespace libtorrent
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
-			= parse_url_components(web.url, ec);
+			= parse_url_components(url, ec);
 		TORRENT_ASSERT(!ec);
 
-		if (m_port == -1 && protocol == "http")
-			m_port = 80;
-
 #ifdef TORRENT_USE_OPENSSL
-		if (protocol == "https")
-		{
-			m_ssl = true;
-			if (m_port == -1) m_port = 443;
-		}
+		if (protocol == "https") m_ssl = true;
 #endif
 
 		if (!m_basic_auth.empty())
@@ -192,7 +188,7 @@ namespace libtorrent
 	}
 
 
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void web_connection_base::check_invariant() const
 	{
 /*

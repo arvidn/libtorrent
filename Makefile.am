@@ -53,7 +53,6 @@ DOCS_IMAGES = \
   docs/storage.png                \
   docs/style.css                  \
   docs/t2e.jpg                    \
-  docs/todo.html                  \
   docs/tvblob.jpg                 \
   docs/tvitty.jpg                 \
   docs/unicode_support.png        \
@@ -84,34 +83,26 @@ DOCS_PAGES = \
   docs/features.rst               \
   docs/index.html                 \
   docs/index.rst                  \
-  docs/manual-ref.html            \
+  docs/libtorrent_plugins.html    \
+  docs/libtorrent_plugins.rst     \
+  docs/make_torrent.html          \
+  docs/make_torrent.rst           \
+  docs/manual.html                \
   docs/manual.rst                 \
   docs/projects.html              \
   docs/projects.rst               \
   docs/python_binding.html        \
   docs/python_binding.rst         \
+  docs/dht_rss.html               \
+  docs/dht_rss.rst                \
+  docs/running_tests.html         \
+  docs/running_tests.rst          \
   docs/tuning.html                \
   docs/tuning.rst                 \
   docs/udp_tracker_protocol.html  \
   docs/udp_tracker_protocol.rst   \
   docs/utp.html                   \
-  docs/utp.rst                    \
-  docs/reference-Alerts.html      \
-  docs/reference-Bencoding.html   \
-  docs/reference-Core.html        \
-  docs/reference-Create_Torrents.html \
-  docs/reference-Custom_Storage.html \
-  docs/reference-Error_Codes.html \
-  docs/reference-Filter.html      \
-  docs/reference-Plugins.html     \
-  docs/reference-RSS.html         \
-  docs/reference-Session.html     \
-  docs/reference-Settings.html    \
-  docs/reference-Storage.html     \
-  docs/reference-String.html      \
-  docs/reference-Time.html        \
-  docs/reference-Utility.html     \
-  docs/reference.html
+  docs/utp.rst
 
 EXTRA_DIST = \
   Jamfile \
@@ -120,6 +111,8 @@ EXTRA_DIST = \
   LICENSE \
   libtorrent-rasterbar.pc  \
   libtorrent-rasterbar-cmake.pc  \
+  parse_dht_log.py \
+  parse_session_stats.py \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES)
 

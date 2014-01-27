@@ -37,8 +37,8 @@
     </ul>
     </div>
     <div id="header">
-    <div id="orange"></div>
-    <div id="logo"></div>
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
     </div>
     <div id="main">
 <h1 class="title">libtorrent manual</h1>
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>0.16.14</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -170,9 +170,7 @@ large number of paused torrents (that are popular) it will be even more
 significant.</p>
 <p>If you're short of memory, you should consider lowering the limit. 500 is probably
 enough. You can do this by setting <tt class="docutils literal"><span class="pre">session_settings::max_peerlist_size</span></tt> to
-the max number of peers you want in a torrent's peer list. This limit applies per
-torrent. For 5 torrents, the total number of peers in peerlists will be 5 times
-the setting.</p>
+the max number of peers you want in the torrent's peer list.</p>
 <p>You should also lower the same limit but for paused torrents. It might even make sense
 to set that even lower, since you only need a few peers to start up while waiting
 for the tracker and DHT to give you fresh ones. The max peer list size for paused
@@ -616,7 +614,7 @@ please let us know and we'll update this document.</p>
 </div>
     </div>
     <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
     </div>
     </div>
     <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">

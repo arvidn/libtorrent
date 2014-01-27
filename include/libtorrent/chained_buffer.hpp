@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,7 @@ namespace libtorrent
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_destructed = false;
 #endif
 		}
@@ -63,8 +63,9 @@ namespace libtorrent
 		{
 			boost::function<void(char*)> free; // destructs the buffer
 			char* buf; // the first byte of the buffer
-			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
+
+			char* start; // the first byte to send/receive in the buffer
 			int used_size; // this is the number of bytes to send/receive
 		};
 
@@ -101,10 +102,6 @@ namespace libtorrent
 		// send
 		std::list<buffer_t> m_vec;
 
-		// this is the vector of buffers used when
-		// invoking the async write call
-		std::list<asio::const_buffer> m_tmp_vec;
-
 		// this is the number of bytes in the send buf.
 		// this will always be equal to the sum of the
 		// size of all buffers in vec
@@ -114,7 +111,11 @@ namespace libtorrent
 		// including unused space
 		int m_capacity;
 
-#if TORRENT_USE_ASSERTS
+		// this is the vector of buffers used when
+		// invoking the async write call
+		std::list<asio::const_buffer> m_tmp_vec;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_destructed;
 #endif
 	};	

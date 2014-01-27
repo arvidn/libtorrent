@@ -7,8 +7,9 @@
 * contributing_
 * `building libtorrent`_
 * examples_
-* `library overview`_
-* `reference documentation`_
+* `api documentation`_
+* `create torrents`_
+* `running tests`_
 * `tuning`_
 * screenshot_
 * `mailing list`_ (archive_)
@@ -57,13 +58,14 @@ libtorrent
 .. _contributing: contributing.html
 .. _`building libtorrent`: building.html
 .. _examples: examples.html
-.. _`library overview`: manual-ref.html
-.. _`reference documentation`: reference.html
+.. _`api documentation`: manual.html
+.. _`create torrents`: make_torrent.html
+.. _`running tests`: running_tests.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
 .. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
-.. _`plugin interface`: reference-Plugins.html
+.. _`plugin interface`: libtorrent_plugins.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`DHT security extension`: dht_sec.html
 .. _`DHT feed extension`: dht_rss.html
@@ -135,7 +137,7 @@ It is however greatly appreciated if additional features are contributed
 back to the open source project. Patches can be emailed to the mailing
 list or posted to the `bug tracker`_.
 
-.. _`bug tracker`: https://code.google.com/p/libtorrent/issues/list
+.. _`bug tracker`: http://code.rasterbar.com/libtorrent/newticket
 
 Acknowledgements
 ================

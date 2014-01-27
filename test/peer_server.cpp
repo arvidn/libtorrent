@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
-#include "peer_server.hpp"
+#include "libtorrent/time.hpp"
 
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
@@ -58,7 +58,6 @@ struct peer_server
 	peer_server()
 		: m_peer_requests(0)
 		, m_acceptor(m_ios)
-		, m_port(0)
 	{
 		error_code ec;
 		m_acceptor.open(tcp::v4(), ec);
@@ -94,7 +93,6 @@ struct peer_server
 
 	~peer_server()
 	{
-		m_acceptor.cancel();
 		m_acceptor.close();
 		if (m_thread) m_thread->join();
 	}
@@ -103,12 +101,6 @@ struct peer_server
 
 	int num_hits() const { return m_peer_requests; }
 
-	static void new_connection(error_code const& ec, error_code* ret, bool* done)
-	{
-		*ret = ec;
-		*done = true;
-	}
-
 	void thread_fun()
 	{
 		for (;;)
@@ -116,14 +108,7 @@ struct peer_server
 			error_code ec;
 			tcp::endpoint from;
 			tcp::socket socket(m_ios);
-			condition_variable cond;
-			bool done = false;
-			m_acceptor.async_accept(socket, from, boost::bind(&new_connection, _1, &ec, &done));
-			while (!done)
-			{
-				m_ios.run_one();
-				m_ios.reset();
-			}
+			m_acceptor.accept(socket, from, ec);
 
 			if (ec == boost::asio::error::operation_aborted
 				|| ec == boost::asio::error::bad_descriptor) return;
@@ -160,6 +145,6 @@ void stop_peer()
 {
 	fprintf(stderr, "%s: stop_peer()\n", time_now_string());
 	g_peer.reset();
-	fprintf(stderr, "%s: stop_peer() done\n", time_now_string());
+	fprintf(stderr, "%s: done\n", time_now_string());
 }
 

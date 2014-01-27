@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -123,7 +123,7 @@ namespace libtorrent
 			if (size < 2) return -1;
 
 			size -= 2;
-//			buffer += 2;
+			buffer += 2;
 		}
 
 		return total_size - size;

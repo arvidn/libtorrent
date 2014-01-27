@@ -27,20 +27,16 @@ typedef boost::uint8_t u8;
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent
-{
-
-struct TORRENT_EXPORT sha_ctx
+struct TORRENT_EXPORT SHA_CTX
 {
 	u32 state[5];
 	u32 count[2];
 	u8 buffer[64];
 };
 
-// we don't want these to clash with openssl's libcrypto
-TORRENT_EXPORT void SHA1_init(sha_ctx* context);
-TORRENT_EXPORT void SHA1_update(sha_ctx* context, u8 const* data, u32 len);
-TORRENT_EXPORT void SHA1_final(u8* digest, sha_ctx* context);
+TORRENT_EXPORT void SHA1_Init(SHA_CTX* context);
+TORRENT_EXPORT void SHA1_Update(SHA_CTX* context, u8 const* data, u32 len);
+TORRENT_EXPORT void SHA1_Final(u8* digest, SHA_CTX* context);
 
 namespace
 {
@@ -84,7 +80,7 @@ namespace
 
 	// Hash a single 512-bit block. This is the core of the algorithm.
 	template <class BlkFun>
-	void SHA1transform(u32 state[5], u8 const buffer[64])
+	void SHA1Transform(u32 state[5], u8 const buffer[64])
 	{
 		using namespace std;
 		u32 a, b, c, d, e;
@@ -127,10 +123,12 @@ namespace
 		state[2] += c;
 		state[3] += d;
 		state[4] += e;
+		// Wipe variables
+		a = b = c = d = e = 0;
 	}
 
 #ifdef VERBOSE
-	void SHAPrintContext(sha_ctx *context, char *msg)
+	void SHAPrintContext(SHA_CTX *context, char *msg)
 	{
 		using namespace std;
 		printf("%s (%d,%d) %x %x %x %x %x\n"
@@ -145,7 +143,7 @@ namespace
 #endif
 
 	template <class BlkFun>
-	void internal_update(sha_ctx* context, u8 const* data, u32 len)
+	void internal_update(SHA_CTX* context, u8 const* data, u32 len)
 	{
 		using namespace std;
 		u32 i, j;	// JHB
@@ -159,10 +157,10 @@ namespace
 		if ((j + len) > 63)
 		{
 			memcpy(&context->buffer[j], data, (i = 64-j));
-			SHA1transform<BlkFun>(context->state, context->buffer);
+			SHA1Transform<BlkFun>(context->state, context->buffer);
 			for ( ; i + 63 < len; i += 64)
 			{
-				SHA1transform<BlkFun>(context->state, &data[i]);
+				SHA1Transform<BlkFun>(context->state, &data[i]);
 			}
 			j = 0;
 		}
@@ -187,7 +185,7 @@ namespace
 
 // SHA1Init - Initialize new context
 
-void SHA1_init(sha_ctx* context)
+void SHA1_Init(SHA_CTX* context)
 {
     // SHA1 initialization constants
     context->state[0] = 0x67452301;
@@ -201,7 +199,7 @@ void SHA1_init(sha_ctx* context)
 
 // Run your data through this.
 
-void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
+void SHA1_Update(SHA_CTX* context, u8 const* data, u32 len)
 {
 	// GCC standard defines for endianness
 	// test with: cpp -dM /dev/null
@@ -222,7 +220,7 @@ void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
 
 // Add padding and return the message digest.
 
-void SHA1_final(u8* digest, sha_ctx* context)
+void SHA1_Final(u8* digest, SHA_CTX* context)
 {
 	u8 finalcount[8];
 
@@ -234,10 +232,10 @@ void SHA1_final(u8* digest, sha_ctx* context)
 			>> ((3-(i & 3)) * 8) ) & 255);
 	}
 
-	SHA1_update(context, (u8 const*)"\200", 1);
+	SHA1_Update(context, (u8 const*)"\200", 1);
 	while ((context->count[0] & 504) != 448)
-		SHA1_update(context, (u8 const*)"\0", 1);
-	SHA1_update(context, finalcount, 8);  // Should cause a SHA1transform()
+		SHA1_Update(context, (u8 const*)"\0", 1);
+	SHA1_Update(context, finalcount, 8);  // Should cause a SHA1Transform()
 
 	for (u32 i = 0; i < 20; ++i)
 	{
@@ -245,8 +243,6 @@ void SHA1_final(u8* digest, sha_ctx* context)
 			(context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
 	}
 }
-
-} // libtorrent namespace
   
 /************************************************************
 

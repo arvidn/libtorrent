@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 
 #include "test.hpp"
-#include "setup_transfer.hpp" // for load_file
 
 using namespace libtorrent;
 
@@ -86,14 +85,18 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 	}
 	TEST_CHECK(!ec);
 
-	char* buf = buffer.size() ? &buffer[0] : NULL;
+	char* buf = &buffer[0];
 	int len = buffer.size();
 
 	char const header[] = "HTTP/1.1 200 OK\r\n"
 		"\r\n";
 
 	boost::shared_ptr<aux::session_impl> s = boost::shared_ptr<aux::session_impl>(new aux::session_impl(
-		std::make_pair(100, 200), fingerprint("TT", 0, 0, 0 ,0), NULL, 0));
+		std::make_pair(100, 200), fingerprint("TT", 0, 0, 0 ,0), NULL, 0
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				, "."
+#endif
+		));
 	s->start_session();
 
 	feed_settings sett;
@@ -125,21 +128,20 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 	f->save_state(state);
 
 	fprintf(stderr, "feed_state:\n");
-	std::cerr << state.to_string() << "\n";
+#ifdef TORRENT_DEBUG
+	state.print(std::cerr);
+#endif
 
 	// TODO: verify some key state is saved in 'state'
 }
 
 int test_main()
 {
-	std::string root_dir = parent_path(current_working_directory());
-
-	test_feed(combine_path(root_dir, "eztv.xml"), rss_expect(30, "http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent", "The Daily Show 2012-02-16 [HDTV - LMAO]", 183442338));
-	test_feed(combine_path(root_dir, "cb.xml"), rss_expect(50, "http://www.clearbits.net/get/1911-norbergfestival-2011.torrent", "Norbergfestival 2011", 1160773632));
-	test_feed(combine_path(root_dir, "kat.xml"), rss_expect(25, "http://kat.ph/torrents/benito-di-paula-1975-benito-di-paula-lp-rip-ogg-at-500-jarax4u-t6194897/", "Benito Di Paula - 1975 - Benito Di Paula (LP Rip OGG at 500) [jarax4u]", 168773863));
-	test_feed(combine_path(root_dir, "mn.xml"), rss_expect(20, "http://www.mininova.org/get/13203100", "Dexcell - January TwentyTwelve Mix", 137311179));
-	test_feed(combine_path(root_dir, "pb.xml"), rss_expect(60, "magnet:?xt=urn:btih:FD4CDDB7BBE722D17A018EFD875EB0695ED7159C&dn=Thompson+Twins+-+1989+-+Big+Trash+%5BMP3%5D", "Thompson Twins - 1989 - Big Trash [MP3]", 100160904));
-	test_feed(combine_path(root_dir, "fg.xml"), rss_expect(15, "http://torrage.com/torrent/470BCD2007011E9F31556B36E199D03D948A1A52.torrent", "Top.Gear.S20E04.1080i.ts", -1));
+	test_feed("eztv.xml", rss_expect(30, "http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent", "The Daily Show 2012-02-16 [HDTV - LMAO]", 183442338));
+	test_feed("cb.xml", rss_expect(50, "http://www.clearbits.net/get/1911-norbergfestival-2011.torrent", "Norbergfestival 2011", 1160773632));
+	test_feed("kat.xml", rss_expect(25, "http://kat.ph/torrents/benito-di-paula-1975-benito-di-paula-lp-rip-ogg-at-500-jarax4u-t6194897/", "Benito Di Paula - 1975 - Benito Di Paula (LP Rip OGG at 500) [jarax4u]", 168773863));
+	test_feed("mn.xml", rss_expect(20, "http://www.mininova.org/get/13203100", "Dexcell - January TwentyTwelve Mix", 137311179));
+	test_feed("pb.xml", rss_expect(60, "magnet:?xt=urn:btih:FD4CDDB7BBE722D17A018EFD875EB0695ED7159C&dn=Thompson+Twins+-+1989+-+Big+Trash+%5BMP3%5D", "Thompson Twins - 1989 - Big Trash [MP3]", 100160904));
 	return 0;
 }
 
