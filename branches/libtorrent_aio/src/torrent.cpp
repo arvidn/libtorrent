@@ -4343,6 +4343,11 @@ namespace libtorrent
 
 	void torrent::add_suggest_piece(int index)
 	{
+		// it would be nice if we would keep track of piece
+		// availability even when we're a seed, for
+		// the suggest piece feature
+		if (!has_picker()) return;
+
 		int num_peers = m_picker->get_availability(index);
 
 		TORRENT_ASSERT(has_piece_passed(index));
