@@ -491,6 +491,9 @@ namespace libtorrent
 
 		void try_flush_write_blocks(int num, tailqueue& completed_jobs, mutex::scoped_lock& l);
 
+		// used to batch reclaiming of blocks to once per cycle
+		void commit_reclaimed_blocks();
+
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
@@ -608,6 +611,16 @@ namespace libtorrent
 		// handler functions
 		mutex m_completed_jobs_mutex;
 		tailqueue m_completed_jobs;
+
+		// these are blocks that have been returned by the main thread
+		// but they haven't been freed yet. This is used to batch
+		// reclaiming of blocks, to only need one mutex lock per cycle
+		std::vector<block_cache_reference> m_blocks_to_reclaim;
+
+		// when this is true, there is an outstanding message in the
+		// message queue that will reclaim all blocks in
+		// m_blocks_to_reclaim, there's no need to send another one
+		bool m_outstanding_reclaim_message;
 	};
 }
 

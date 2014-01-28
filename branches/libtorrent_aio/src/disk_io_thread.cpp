@@ -179,6 +179,7 @@ namespace libtorrent
 		, m_work(io_service::work(m_ios))
 		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(alert_disp)
+		, m_outstanding_reclaim_message(false)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("disk_io_thread::work");
@@ -268,8 +269,21 @@ namespace libtorrent
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
 	{
 		TORRENT_ASSERT(ref.storage);
+		m_blocks_to_reclaim.push_back(ref);
+		if (m_outstanding_reclaim_message) return;
+
+		m_ios.post(boost::bind(&disk_io_thread::commit_reclaimed_blocks, this));
+		m_outstanding_reclaim_message = true;
+	}
+
+	void disk_io_thread::commit_reclaimed_blocks()
+	{
+		TORRENT_ASSERT(m_outstanding_reclaim_message);
+		m_outstanding_reclaim_message = false;
 		mutex::scoped_lock l(m_cache_mutex);
-		m_disk_cache.reclaim_block(ref);
+		for (int i = 0; i < m_blocks_to_reclaim.size(); ++i)
+			m_disk_cache.reclaim_block(m_blocks_to_reclaim[i]);
+		m_blocks_to_reclaim.clear();
 	}
 
 	void disk_io_thread::set_settings(settings_pack* pack)
