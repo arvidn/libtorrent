@@ -6779,6 +6779,7 @@ retry:
 		while (num_pools > m_net_thread_pool.size())
 		{
 			m_net_thread_pool.push_back(boost::make_shared<network_thread_pool>());
+			m_net_thread_pool.back()->set_num_threads(1);
 		}
 
 		while (num_pools < m_net_thread_pool.size())
@@ -6786,7 +6787,7 @@ retry:
 			m_net_thread_pool.erase(m_net_thread_pool.end() - 1);
 		}
 
-		if (num_threads == 0)
+		if (num_threads == 0 && m_net_thread_pool.size() > 0)
 		{
 			m_net_thread_pool[0]->set_num_threads(0);
 		}

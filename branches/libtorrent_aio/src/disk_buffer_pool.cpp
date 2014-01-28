@@ -235,10 +235,6 @@ namespace libtorrent
 		return m_buffers_in_use.count(buffer) == 1;
 #endif
 
-#if TORRENT_USE_PURGABLE_CONTROL
-		return true;
-#endif
-
 #ifdef TORRENT_BUFFER_STATS
 		if (m_buf_to_category.find(buffer)
 			== m_buf_to_category.end()) return false;
@@ -327,6 +323,8 @@ namespace libtorrent
 		else
 #endif
 		{
+#if defined TORRENT_DISABLE_POOL_ALLOCATOR
+
 #if TORRENT_USE_PURGABLE_CONTROL
 			kern_return_t res = vm_allocate(
 				mach_task_self(),
@@ -336,9 +334,10 @@ namespace libtorrent
 				VM_FLAGS_ANYWHERE);
 			if (res != KERN_SUCCESS)
 				ret = NULL;
-
-#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
+#else
 			ret = page_aligned_allocator::malloc(m_block_size);
+#endif // TORRENT_USE_PURGABLE_CONTROL
+
 #else
 			if (m_using_pool_allocator)
 			{
@@ -600,14 +599,18 @@ namespace libtorrent
 		else
 #endif
 		{
+#if defined TORRENT_DISABLE_POOL_ALLOCATOR
+
 #if TORRENT_USE_PURGABLE_CONTROL
-			vm_deallocate(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t>(buf),
-				0x4000
-				);
-#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
+		vm_deallocate(
+			mach_task_self(),
+			reinterpret_cast<vm_address_t>(buf),
+			0x4000
+			);
+#else
 		page_aligned_allocator::free(buf);
+#endif // TORRENT_USE_PURGABLE_CONTROL
+
 #else
 		if (m_using_pool_allocator)
 			m_pool.free(buf);
