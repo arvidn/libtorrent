@@ -1197,7 +1197,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			}
 			else
 			{
-#if TORRENT_USE_PURGABLE_CONTROL
+#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
 				// volatile read blocks are group 0, regular reads are group 1
 				int state = VM_PURGABLE_VOLATILE | ((j->flags & disk_io_job::volatile_read) ? VM_VOLATILE_GROUP_0 : VM_VOLATILE_GROUP_1);
 				kern_return_t ret = vm_purgable_control(
@@ -1221,7 +1221,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			}
 		}
 
-#if TORRENT_USE_PURGABLE_CONTROL
+#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
 		TORRENT_ASSERT(pe->blocks[block].buf != NULL
 			|| (flags & blocks_inc_refcount) == 0);
 #else
@@ -1243,7 +1243,7 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount < cached_block_entry::max_refcount, pe);
 	if (pe->blocks[block].refcount == 0)
 	{
-#if TORRENT_USE_PURGABLE_CONTROL
+#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
 		// we're adding the first refcount to this block, first make sure
 		// its still here. It's only volatile if it's not dirty and has refcount == 0
 		if (!pe->blocks[block].dirty)
@@ -1304,7 +1304,7 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		TORRENT_PIECE_ASSERT(m_pinned_blocks > 0, pe);
 		--m_pinned_blocks;
 
-#if TORRENT_USE_PURGABLE_CONTROL
+#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
 		// we're removing the last refcount to this block, first make sure
 		// its still here. It's only volatile if it's not dirty and has refcount == 0
 		if (!pe->blocks[block].dirty)
