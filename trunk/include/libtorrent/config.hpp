@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
 #error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
-	order for asio's declarations to be correct. If you are linking dynamically against libtorrent, define \
+	order for asios declarations to be correct. If you are linking dynamically against libtorrent, define \
 	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
 	build, to automatically apply these defines
 #endif
