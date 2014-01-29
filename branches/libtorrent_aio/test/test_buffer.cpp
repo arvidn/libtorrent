@@ -168,8 +168,9 @@ void test_buffer()
 
 std::set<char*> buffer_list;
 
-void free_buffer(char* m)
+void free_buffer(char* m, void* userdata, block_cache_reference ref)
 {
+	TEST_CHECK(userdata == (void*)0x1337);
 	std::set<char*>::iterator i = buffer_list.find(m);
 	TEST_CHECK(i != buffer_list.end());
 
@@ -222,7 +223,7 @@ void test_chained_buffer()
 
 		char* b1 = allocate_buffer(512);
 		std::memcpy(b1, data, 6);
-		b.append_buffer(b1, 512, 6, (void(*)(char*))&free_buffer);
+		b.append_buffer(b1, 512, 6, &free_buffer, (void*)0x1337);
 		TEST_CHECK(buffer_list.size() == 1);
 
 		TEST_CHECK(b.capacity() == 512);
@@ -252,12 +253,12 @@ void test_chained_buffer()
 
 		char* b2 = allocate_buffer(512);
 		std::memcpy(b2, data, 6);
-		b.append_buffer(b2, 512, 6, (void(*)(char*))&free_buffer);
+		b.append_buffer(b2, 512, 6, free_buffer, (void*)0x1337);
 		TEST_CHECK(buffer_list.size() == 2);
 
 		char* b3 = allocate_buffer(512);
 		std::memcpy(b3, data, 6);
-		b.append_buffer(b3, 512, 6, (void(*)(char*))&free_buffer);
+		b.append_buffer(b3, 512, 6, &free_buffer, (void*)0x1337);
 		TEST_CHECK(buffer_list.size() == 3);
 
 		TEST_CHECK(b.capacity() == 512 * 3);
@@ -292,7 +293,7 @@ void test_chained_buffer()
 		char* b4 = allocate_buffer(20);
 		std::memcpy(b4, data, 6);
 		std::memcpy(b4 + 6, data, 6);
-		b.append_buffer(b4, 20, 12, (void(*)(char*))&free_buffer);
+		b.append_buffer(b4, 20, 12, &free_buffer, (void*)0x1337);
 		TEST_CHECK(b.space_in_last_buffer() == 8);
 
 		ret = b.append(data, 6);
@@ -306,7 +307,7 @@ void test_chained_buffer()
 		
 		char* b5 = allocate_buffer(20);
 		std::memcpy(b4, data, 6);
-		b.append_buffer(b5, 20, 6, (void(*)(char*))&free_buffer);
+		b.append_buffer(b5, 20, 6, &free_buffer, (void*)0x1337);
 
 		b.pop_front(22);
 		TEST_CHECK(b.size() == 5);

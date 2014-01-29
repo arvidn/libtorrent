@@ -686,8 +686,14 @@ namespace libtorrent
 	}
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
+	void regular_c_free(char* buf, void* userdata, block_cache_reference ref)
+	{
+		::free(buf);
+	}
+
 	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size
-		, boost::function<void(char*)> const& destructor)
+		, chained_buffer::free_buffer_fun destructor, void* userdata
+		, block_cache_reference ref)
 	{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted && m_rc4_encrypted)
@@ -696,25 +702,28 @@ namespace libtorrent
 			// since we'll mutate it
 			char* buf = (char*)malloc(size);
 			memcpy(buf, buffer, size);
-			bt_peer_connection::append_send_buffer(buf, size, boost::bind(&::free, _1));
-			destructor((char*)buffer);
+			bt_peer_connection::append_send_buffer(buf, size, &regular_c_free, NULL);
+			destructor((char*)buffer, userdata, ref);
 		}
 		else
 #endif
 		{
-			peer_connection::append_const_send_buffer(buffer, size, destructor);
+			peer_connection::append_const_send_buffer(buffer, size, destructor
+				, userdata, ref);
 		}
 	}
 
 	void bt_peer_connection::append_send_buffer(char* buffer, int size
-		, boost::function<void(char*)> const& destructor, bool encrypted)
+		, chained_buffer::free_buffer_fun destructor, void* userdata
+		, block_cache_reference ref, bool encrypted)
 	{
 		TORRENT_ASSERT(encrypted == false);
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_rc4_encrypted)
 			m_enc_handler->encrypt(buffer, size);
 #endif
-		peer_connection::append_send_buffer(buffer, size, destructor, true);
+		peer_connection::append_send_buffer(buffer, size, destructor
+			, userdata, ref, true);
 	}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -2421,6 +2430,20 @@ namespace libtorrent
 #endif
 	}
 
+	void buffer_reclaim_block(char* buffer, void* userdata
+		, block_cache_reference ref)
+	{
+		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
+		buf->reclaim_block(ref);
+	}
+
+	void buffer_free_disk_buf(char* buffer, void* userdata
+		, block_cache_reference ref)
+	{
+		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
+		buf->free_disk_buffer(buffer);
+	}
+
 	void bt_peer_connection::write_piece(peer_request const& r, disk_buffer_holder& buffer)
 	{
 		INVARIANT_CHECK;
@@ -2481,17 +2504,12 @@ namespace libtorrent
 		if (buffer.ref().storage == 0)
 		{
 			append_send_buffer(buffer.get(), r.length
-				, boost::bind(&buffer_allocator_interface::free_disk_buffer
-				, boost::ref(m_allocator), _1));
+				, &buffer_free_disk_buf, &m_allocator);
 		}
 		else
 		{
 			append_const_send_buffer(buffer.get(), r.length
-				, boost::bind(&buffer_allocator_interface::reclaim_block
-				, boost::ref(m_allocator), buffer.ref()));
-#ifdef TORRENT_DEBUG
-			m_send_buffer.set_ref(buffer.ref());
-#endif
+				, &buffer_reclaim_block, &m_allocator, buffer.ref());
 		}
 		buffer.release();
 

@@ -148,7 +148,7 @@ namespace libtorrent
 		{ return pb.block == block; }
 	};
 
-	inline void nop(char*) {}
+	inline void nop(char*, void*, block_cache_reference) {}
 
 	struct peer_connection_hot_members
 	{
@@ -687,10 +687,15 @@ namespace libtorrent
 		void log_buffer_usage(char* buffer, int size, char const* label);
 #endif
 
-		virtual void append_send_buffer(char* buffer, int size, boost::function<void(char*)> const& destructor
-			, bool encrypted = false);
+		virtual void append_send_buffer(char* buffer, int size
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference(), bool encrypted = false);
 
-		virtual void append_const_send_buffer(char const* buffer, int size, boost::function<void(char*)> const& destructor = &nop);
+		virtual void append_const_send_buffer(char const* buffer, int size
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference());
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)

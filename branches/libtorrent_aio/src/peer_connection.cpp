@@ -5747,7 +5747,8 @@ namespace libtorrent
 	}
 
 	void peer_connection::append_send_buffer(char* buffer, int size
-		, boost::function<void(char*)> const& destructor, bool encrypted)
+		, chained_buffer::free_buffer_fun destructor, void* userdata
+		, block_cache_reference ref, bool encrypted)
 	{
 #if defined TORRENT_BUFFER_STATS
 		log_buffer_usage(buffer, size, "queued send buffer");
@@ -5757,17 +5758,27 @@ namespace libtorrent
 		// encryption. bt_peer_connection overrides this function with
 		// its own version.
 		TORRENT_ASSERT(encrypted || type() != bittorrent_connection);
-		m_send_buffer.append_buffer(buffer, size, size, destructor);
+		m_send_buffer.append_buffer(buffer, size, size, destructor
+			, userdata, ref);
 	}
 
 	void peer_connection::append_const_send_buffer(char const* buffer, int size
-		, boost::function<void(char*)> const& destructor)
+		, chained_buffer::free_buffer_fun destructor, void* userdata
+		, block_cache_reference ref)
 	{
-		m_send_buffer.append_buffer((char*)buffer, size, size, destructor);
+		m_send_buffer.append_buffer((char*)buffer, size, size, destructor
+			, userdata, ref);
+
 #if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
 		m_ses.buffer_usage_logger() << log_time() << " append_const_send_buffer: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif
+	}
+
+	void session_free_buffer(char* buffer, void* userdata, block_cache_reference)
+	{
+		aux::session_interface* ses = (aux::session_interface*)userdata;
+		ses->free_buffer(buffer);
 	}
 
 	void peer_connection::send_buffer(char const* buf, int size, int flags
@@ -5814,7 +5825,7 @@ namespace libtorrent
 			buf += buf_size;
 			size -= buf_size;
 			m_send_buffer.append_buffer(chain_buf, alloc_buf_size, buf_size
-				, boost::bind(&aux::session_interface::free_buffer, boost::ref(m_ses), _1));
+				, &session_free_buffer, &m_ses);
 			++i;
 		}
 		setup_send();

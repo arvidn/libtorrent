@@ -303,12 +303,17 @@ public:
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
 		virtual void append_const_send_buffer(char const* buffer, int size
-			, boost::function<void(char*)> const& destructor = &nop);
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference());
 
 		virtual void send_buffer(char const* begin, int size, int flags = 0
 			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
-		virtual void append_send_buffer(char* buffer, int size, boost::function<void(char*)> const& destructor
-			, bool encrypted = false);
+
+		virtual void append_send_buffer(char* buffer, int size
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference(), bool encrypted = false);
 
 private:
 
