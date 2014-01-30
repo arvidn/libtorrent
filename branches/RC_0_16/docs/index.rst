@@ -3,6 +3,7 @@
    <div id="librarySidebar">
 
 * download_
+* `download python binding`_
 * features_
 * contributing_
 * `building libtorrent`_
@@ -53,7 +54,8 @@ Bindings
 libtorrent
 ==========
 
-.. _download: http://code.google.com/p/libtorrent/downloads/list
+.. _download: https://sourceforge.net/projects/libtorrent/files/libtorrent/
+.. _`download python binding`: https://sourceforge.net/projects/libtorrent/files/py-libtorrent/
 .. _features: features.html
 .. _contributing: contributing.html
 .. _`building libtorrent`: building.html
