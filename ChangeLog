@@ -39,6 +39,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix python binding for external_ip_alert
+
 0.16.14 release
 
 	* make lt_tex more robust against bugs and malicious behavior
