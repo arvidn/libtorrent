@@ -43,6 +43,11 @@ tuple incoming_connection_alert_ip(incoming_connection_alert const& ica)
     return endpoint_to_tuple(ica.ip);
 }
 
+std::string external_ip_alert_ip(external_ip_alert const& eia)
+{
+    return eia.external_address.to_string();
+}
+
 list stats_alert_transferred(stats_alert const& alert)
 {
    list result;
@@ -351,7 +356,7 @@ void bind_alert()
 
     class_<external_ip_alert, bases<alert>, noncopyable>(
         "external_ip_alert", no_init)
-        .def_readonly("external_address", &external_ip_alert::external_address)
+        .add_property("external_address", &external_ip_alert_ip)
         ;
 
     class_<save_resume_data_alert, bases<torrent_alert>, noncopyable>(
