@@ -543,7 +543,7 @@ namespace libtorrent {
 	{
 		const static char* const operation_names[] =
 		{
-			"unknown"
+			"unknown",
 			"hostname lookup"
 		};
 
