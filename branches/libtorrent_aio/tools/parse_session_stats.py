@@ -58,6 +58,16 @@ for i in range(0, 16):
 	c = '#%02x%02x%02x' % (min(r, 255), min(g, 255), min(b, 255))
 	gradient16_colors.append(c)
 
+gradient18_colors = []
+for i in range(0, 18):
+	f = i / 18.
+	pi = 3.1415927
+	r = max(int(255 * (math.sin(f*pi)+0.2)), 0)
+	g = max(int(255 * (math.sin((f-0.5)*pi)+0.2)), 0)
+	b = max(int(255 * (math.sin((f+0.5)*pi)+0.2)), 0)
+	c = '#%02x%02x%02x' % (min(r, 255), min(g, 255), min(b, 255))
+	gradient18_colors.append(c)
+
 gradient6_colors = []
 for i in range(0, 6):
 	f = i / 6.
@@ -112,6 +122,8 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			colors = gradient16_colors
 		elif options['colors'] == 'gradient6':
 			colors = gradient6_colors
+		if options['colors'] == 'gradient18':
+			colors = gradient18_colors
 	except: pass
 
 	if options['type'] == histogram:
@@ -300,10 +312,10 @@ reports = [
 		'disk_counter'], {'type': stacked}),
 	('send_buffer_sizes', 'num', '', '', ['up 8', 'up 16', 'up 32', 'up 64', 'up 128', 'up 256', \
 		'up 512', 'up 1024', 'up 2048', 'up 4096', 'up 8192', 'up 16384', 'up 32768', 'up 65536', \
-		'up 131072', 'up 262144'], {'type': stacked, 'colors':'gradient16'}),
+		'up 131072', 'up 262144', 'up 524288', 'up 1048576'], {'type': stacked, 'colors':'gradient18'}),
 	('recv_buffer_sizes', 'num', '', '', ['down 8', 'down 16', 'down 32', 'down 64', 'down 128', \
 		'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', \
-		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked, 'colors':'gradient16'}),
+		'down 32768', 'down 65536', 'down 131072', 'down 262144', 'down 524288', 'down 1048576'], {'type': stacked, 'colors':'gradient18'}),
 	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True}),
 	('torrent churn', 'num torrents', '', '', ['loaded torrents', 'pinned torrents', 'loaded torrent churn']),
 	('pinned torrents', 'num torrents', '', '', ['pinned torrents']),

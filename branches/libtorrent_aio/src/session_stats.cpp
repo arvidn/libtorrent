@@ -360,6 +360,52 @@ namespace libtorrent
 		METRIC(utp, utp_invalid_pkts_in, type_counter)
 		METRIC(utp, utp_redundant_pkts_in, type_counter)
 
+		// the buffer sizes accepted by
+		// socket send and receive calls respectively.
+		// The larger the buffers are, the more efficient,
+		// because it reqire fewer system calls per byte.
+		// The size is 1 << n, where n is the number
+		// at the end of the counter name. i.e.
+		// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+		// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
+		// bytes
+		METRIC(sock_bufs, socket_send_size3, type_counter)
+		METRIC(sock_bufs, socket_send_size4, type_counter)
+		METRIC(sock_bufs, socket_send_size5, type_counter)
+		METRIC(sock_bufs, socket_send_size6, type_counter)
+		METRIC(sock_bufs, socket_send_size7, type_counter)
+		METRIC(sock_bufs, socket_send_size8, type_counter)
+		METRIC(sock_bufs, socket_send_size9, type_counter)
+		METRIC(sock_bufs, socket_send_size10, type_counter)
+		METRIC(sock_bufs, socket_send_size11, type_counter)
+		METRIC(sock_bufs, socket_send_size12, type_counter)
+		METRIC(sock_bufs, socket_send_size13, type_counter)
+		METRIC(sock_bufs, socket_send_size14, type_counter)
+		METRIC(sock_bufs, socket_send_size15, type_counter)
+		METRIC(sock_bufs, socket_send_size16, type_counter)
+		METRIC(sock_bufs, socket_send_size17, type_counter)
+		METRIC(sock_bufs, socket_send_size18, type_counter)
+		METRIC(sock_bufs, socket_send_size19, type_counter)
+		METRIC(sock_bufs, socket_send_size20, type_counter)
+		METRIC(sock_bufs, socket_recv_size3, type_counter)
+		METRIC(sock_bufs, socket_recv_size4, type_counter)
+		METRIC(sock_bufs, socket_recv_size5, type_counter)
+		METRIC(sock_bufs, socket_recv_size6, type_counter)
+		METRIC(sock_bufs, socket_recv_size7, type_counter)
+		METRIC(sock_bufs, socket_recv_size8, type_counter)
+		METRIC(sock_bufs, socket_recv_size9, type_counter)
+		METRIC(sock_bufs, socket_recv_size10, type_counter)
+		METRIC(sock_bufs, socket_recv_size11, type_counter)
+		METRIC(sock_bufs, socket_recv_size12, type_counter)
+		METRIC(sock_bufs, socket_recv_size13, type_counter)
+		METRIC(sock_bufs, socket_recv_size14, type_counter)
+		METRIC(sock_bufs, socket_recv_size15, type_counter)
+		METRIC(sock_bufs, socket_recv_size16, type_counter)
+		METRIC(sock_bufs, socket_recv_size17, type_counter)
+		METRIC(sock_bufs, socket_recv_size18, type_counter)
+		METRIC(sock_bufs, socket_recv_size19, type_counter)
+		METRIC(sock_bufs, socket_recv_size20, type_counter)
+
 		// ... more
 	};
 #undef METRIC

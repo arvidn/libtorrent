@@ -38,6 +38,9 @@ except: pass
 
 def run_test(name, test_cmd, client_arg, num_peers):
 	output_dir = 'logs_%s' % name
+
+	try: shutil.rmtree(output_dir)
+	except: pass
 	try: os.mkdir(output_dir)
 	except: pass
 
@@ -49,7 +52,7 @@ def run_test(name, test_cmd, client_arg, num_peers):
 	except: pass
 
 	start = time.time();
-	client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -0 -k -z -H -X -q 120 %s -h -c %d -T %d -C %d -f %s/events.log' \
+	client_cmd = '../examples/client_test -p %d cpu_benchmark.torrent -k -z -H -X -q 120 %s -h -c %d -T %d -C %d -f %s/events.log' \
 		% (port, client_arg, num_peers*2, num_peers*2, cache_size * 16, output_dir)
 	test_cmd = '../examples/connection_tester %s -c %d -d 127.0.0.1 -p %d -t cpu_benchmark.torrent' % (test_cmd, num_peers, port)
 
@@ -65,8 +68,12 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
 	end = time.time();
 
-	c.communicate('q')
+	try: c.communicate('q')
+	except: pass
 	c.wait()
+
+	client_out.close();
+	test_out.close();
 
 	print 'runtime %d seconds' % (end - start)
 	print 'analyzing proile...'

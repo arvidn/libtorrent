@@ -617,9 +617,6 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
-		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
-		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
-
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
@@ -3774,24 +3771,35 @@ retry:
 //		m_peer_pool.release_memory();
 	}
 
+	// returns the index of the first set bit.
+	int log2(boost::uint32_t v)
+	{
+// http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
+		static const int MultiplyDeBruijnBitPosition[32] = 
+		{
+			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
+			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+		};
+
+		v |= v >> 1; // first round down to one less than a power of 2 
+		v |= v >> 2;
+		v |= v >> 4;
+		v |= v >> 8;
+		v |= v >> 16;
+
+		return MultiplyDeBruijnBitPosition[boost::uint32_t(v * 0x07C4ACDDU) >> 27];
+	}
+
 	void session_impl::received_buffer(int s)
 	{
-		int size = 8;
-		int index = 0;
-		while (s > size) { size <<= 1; ++index; }
-		int num_max = sizeof(m_recv_buffer_sizes)/sizeof(m_recv_buffer_sizes[0]);
-		if (index >= num_max) index = num_max - 1;
-		++m_recv_buffer_sizes[index];
+		int index = (std::min)(log2(s >> 3), 17);
+		m_stats_counters.inc_stats_counter(counters::socket_recv_size3 + index);
 	}
 
 	void session_impl::sent_buffer(int s)
 	{
-		int size = 8;
-		int index = 0;
-		while (s > size + 13) { size <<= 1; ++index; }
-		int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
-		if (index >= num_max) index = num_max - 1;
-		++m_send_buffer_sizes[index];
+		int index = (std::min)(log2(s >> 3), 17);
+		m_stats_counters.inc_stats_counter(counters::socket_send_size3 + index);
 	}
 
 #ifdef TORRENT_STATS
@@ -4160,15 +4168,13 @@ retry:
 				STAT_LOG(d, int(m_stats_counters[i]));
 			}
 
-			int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
-			for (int i = 0; i < num_max; ++i)
+			for (int i = counters::socket_send_size3; i <= counters::socket_send_size20; ++i)
 			{
-				STAT_LOGL(d, m_send_buffer_sizes[i]);
+				STAT_LOGL(d, int(m_stats_counters[i]));
 			}
-			num_max = sizeof(m_recv_buffer_sizes)/sizeof(m_recv_buffer_sizes[0]);
-			for (int i = 0; i < num_max; ++i)
+			for (int i = counters::socket_recv_size3; i <= counters::socket_recv_size20; ++i)
 			{
-				STAT_LOGL(d, m_recv_buffer_sizes[i]);
+				STAT_LOGL(d, int(m_stats_counters[i]));
 			}
 
 			STAT_LOG(f, total_microseconds(cur_cpu_usage.user_time

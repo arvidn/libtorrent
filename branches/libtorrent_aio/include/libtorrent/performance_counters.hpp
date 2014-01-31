@@ -227,6 +227,60 @@ namespace libtorrent
 			utp_invalid_pkts_in,
 			utp_redundant_pkts_in,
 
+			// the buffer sizes accepted by
+			// socket send calls. The larger
+			// the more efficient. The size is
+			// 1 << n, where n is the number
+			// at the end of the counter name
+
+			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
+			socket_send_size3,
+			socket_send_size4,
+			socket_send_size5,
+			socket_send_size6,
+			socket_send_size7,
+			socket_send_size8,
+			socket_send_size9,
+			socket_send_size10,
+			socket_send_size11,
+			socket_send_size12,
+			socket_send_size13,
+			socket_send_size14,
+			socket_send_size15,
+			socket_send_size16,
+			socket_send_size17,
+			socket_send_size18,
+			socket_send_size19,
+			socket_send_size20,
+
+			// the buffer sizes returned by
+			// socket recv calls. The larger
+			// the more efficient. The size is
+			// 1 << n, where n is the number
+			// at the end of the counter name
+
+			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
+			socket_recv_size3,
+			socket_recv_size4,
+			socket_recv_size5,
+			socket_recv_size6,
+			socket_recv_size7,
+			socket_recv_size8,
+			socket_recv_size9,
+			socket_recv_size10,
+			socket_recv_size11,
+			socket_recv_size12,
+			socket_recv_size13,
+			socket_recv_size14,
+			socket_recv_size15,
+			socket_recv_size16,
+			socket_recv_size17,
+			socket_recv_size18,
+			socket_recv_size19,
+			socket_recv_size20,
+
 			num_stats_counters
 		};
 
