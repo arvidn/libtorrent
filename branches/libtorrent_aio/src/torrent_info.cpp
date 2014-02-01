@@ -52,6 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -1382,6 +1384,23 @@ namespace libtorrent
 		lazy_entry const* info = torrent_file.dict_find_dict("info");
 		if (info == 0)
 		{
+			lazy_entry const* link = torrent_file.dict_find_string("magnet-uri");
+			if (link)
+			{
+				std::string uri = link->string_value();
+
+				add_torrent_params p;
+				parse_magnet_uri(uri, p, ec);
+				if (ec) return false;
+
+				m_info_hash = p.info_hash;
+				for (std::vector<std::string>::iterator i = p.trackers.begin()
+					, end(p.trackers.end()); i != end; ++i)
+					m_urls.push_back(*i);
+
+				return true;
+			}
+
 			ec = errors::torrent_missing_info;
 			return false;
 		}
