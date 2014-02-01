@@ -1,3 +1,4 @@
+	* support magnet links wrapped in .torrent files
 	* rate limiter optimization
 	* rate limiter overflow fix (for very high limits)
 	* non-auto-managed torrents no longer count against the torrent limits
