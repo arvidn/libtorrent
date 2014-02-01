@@ -35,14 +35,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace boost::python;
 using namespace libtorrent;
+using boost::system::error_category;
 
 void bind_error_code()
 {
+    class_<boost::system::error_category, boost::noncopyable>("error_category", no_init)
+        .def("name", &error_category::name)
+        .def("message", &error_category::message)
+        .def(self == self)
+        .def(self < self)
+        .def(self != self)
+        ;
+
     class_<error_code>("error_code")
         .def(init<>())
         .def("message", &error_code::message)
         .def("value", &error_code::value)
         .def("clear", &error_code::clear)
+        .def("category", &error_code::category
+           , return_internal_reference<>())
+        .def("assign", &error_code::assign)
         ;
+
+    def("get_libtorrent_category", &get_libtorrent_category
+       , return_internal_reference<>());
+
+    def("generic_category", &boost::system::generic_category
+       , return_internal_reference<>());
+
+    def("system_category", &boost::system::system_category
+       , return_internal_reference<>());
 }
 
