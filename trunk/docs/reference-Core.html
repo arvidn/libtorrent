@@ -55,16 +55,16 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id166">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#peer-info" id="id167">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id168">peer_request</a></li>
-<li><a class="reference internal" href="#piece-block-progress" id="id169">piece_block_progress</a></li>
-<li><a class="reference internal" href="#block-info" id="id170">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id171">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id172">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id173">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id174">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id175">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id165">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-info" id="id166">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id167">peer_request</a></li>
+<li><a class="reference internal" href="#piece-block-progress" id="id168">piece_block_progress</a></li>
+<li><a class="reference internal" href="#block-info" id="id169">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id170">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id171">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id172">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id173">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id174">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -164,6 +164,7 @@ struct peer_info
       holepunched,
       i2p_socket,
       utp_socket,
+      ssl_socket,
       rc4_encrypted,
       plaintext_encrypted,
    };
@@ -191,14 +192,13 @@ struct peer_info
       standard_bittorrent,
       web_seed,
       http_seed,
-      bittorrent_utp,
    };
 
-   unsigned int flags;
+   boost::uint32_t flags;
    int source;
    char read_state;
    char write_state;
-   <a class="reference external" href="tcp::endpoint">tcp::endpoint</a> ip;
+   tcp::endpoint ip;
    int up_speed;
    int down_speed;
    int payload_up_speed;
@@ -254,8 +254,8 @@ struct peer_info
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/peer_info.hpp">libtorrent/peer_info.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="25%" />
-<col width="11%" />
+<col width="24%" />
+<col width="10%" />
 <col width="65%" />
 </colgroup>
 <thead valign="bottom">
@@ -367,6 +367,11 @@ I2P transport.</td>
 <tr><td>utp_socket</td>
 <td>131072</td>
 <td>indicates that this socket is a uTP socket</td>
+</tr>
+<tr><td>ssl_socket</td>
+<td>262144</td>
+<td>indicates that this socket is running on top of an SSL
+(TLS) channel</td>
 </tr>
 <tr><td>rc4_encrypted</td>
 <td>1048576</td>
@@ -487,14 +492,10 @@ up writing buffers to disk before downloading more.</td>
 </tr>
 <tr><td>web_seed</td>
 <td>1</td>
-<td>Bittorrent connection over uTP</td>
+<td>HTTP connection using the <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a> protocol</td>
 </tr>
 <tr><td>http_seed</td>
 <td>2</td>
-<td>HTTP connection using the <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a> protocol</td>
-</tr>
-<tr><td>bittorrent_utp</td>
-<td>3</td>
 <td>HTTP connection using the <a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a> protocol</td>
 </tr>
 </tbody>
@@ -512,9 +513,8 @@ was received.</dd>
 <a name="read_state"></a>
 <a name="write_state"></a><dl class="docutils">
 <dt>read_state  write_state</dt>
-<dd>bitmasks indicating what state this peer
-is in with regards to sending and receiving data. The states are declared in the
-<a class="reference external" href="reference-Core.html#bw_state">bw_state</a> enum.</dd>
+<dd>bitmasks indicating what state this peer is in with regards to sending
+and receiving data. The states are declared in the <a class="reference external" href="reference-Core.html#bw_state">bw_state</a> enum.</dd>
 </dl>
 <a name="ip"></a><dl class="docutils">
 <dt>ip</dt>
@@ -524,29 +524,26 @@ more info, see the <a class="reference external" href="http://asio.sourceforge.n
 <a name="up_speed"></a>
 <a name="down_speed"></a><dl class="docutils">
 <dt>up_speed  down_speed</dt>
-<dd>the current upload and download speed
-we have to and from this peer (including any protocol messages).
-updated about once per second</dd>
+<dd>the current upload and download speed we have to and from this peer
+(including any protocol messages). updated about once per second</dd>
 </dl>
 <a name="payload_up_speed"></a>
 <a name="payload_down_speed"></a><dl class="docutils">
 <dt>payload_up_speed  payload_down_speed</dt>
-<dd>The transfer rates
-of payload data only
-updated about once per second</dd>
+<dd>The transfer rates of payload data only updated about once per second</dd>
 </dl>
 <a name="total_download"></a>
 <a name="total_upload"></a><dl class="docutils">
 <dt>total_download  total_upload</dt>
-<dd>the total number of bytes downloaded
-from and uploaded to this peer. These numbers do not include the protocol chatter, but only
-the payload data.</dd>
+<dd>the total number of bytes downloaded from and uploaded to this peer.
+These numbers do not include the protocol chatter, but only the
+payload data.</dd>
 </dl>
 <a name="pid"></a><dl class="docutils">
 <dt>pid</dt>
-<dd>the peer's id as used in the bit torrent protocol. This id can be used to
-extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
-is using. See identify_client()_</dd>
+<dd>the peer's id as used in the bit torrent protocol. This id can be used
+to extract 'fingerprints' from the peer. Sometimes it can tell you
+which client the peer is using. See identify_client()_</dd>
 </dl>
 <a name="pieces"></a><dl class="docutils">
 <dt>pieces</dt>
@@ -557,9 +554,9 @@ or if the peer miss that piece (set to 0).</dd>
 <a name="upload_limit"></a>
 <a name="download_limit"></a><dl class="docutils">
 <dt>upload_limit  download_limit</dt>
-<dd>the number of bytes per second we are allowed to send to or receive from this
-peer. It may be -1 if there's no local limit on the peer. The global
-limit and the torrent limit may also be enforced.</dd>
+<dd>the number of bytes per second we are allowed to send to or receive
+from this peer. It may be -1 if there's no local limit on the peer.
+The global limit and the torrent limit may also be enforced.</dd>
 </dl>
 <a name="last_request"></a>
 <a name="last_active"></a><dl class="docutils">
@@ -575,8 +572,9 @@ queue will be d</dd>
 </dl>
 <a name="request_timeout"></a><dl class="docutils">
 <dt>request_timeout</dt>
-<dd>the number of seconds until the current front piece request
-will time out. This timeout can be adjusted through <tt class="docutils literal"><span class="pre">session_settings::request_timeout</span></tt>.
+<dd>the number of seconds until the current front piece request will time
+out. This timeout can be adjusted through
+<tt class="docutils literal"><span class="pre">session_settings::request_timeout</span></tt>.
 -1 means that there is not outstanding request.</dd>
 </dl>
 <a name="send_buffer_size"></a>
@@ -598,12 +596,13 @@ sending us that turned out to fail the hash check.</dd>
 </dl>
 <a name="country[2]"></a><dl class="docutils">
 <dt>country[2]</dt>
-<dd>the two letter <a class="reference external" href="http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html">ISO 3166 country code</a> for the country the peer
-is connected from. If the country hasn't been resolved yet, both chars are set
-to 0. If the resolution failed for some reason, the field is set to &quot;--&quot;. If the
-resolution service returns an invalid country code, it is set to &quot;!!&quot;.
-The <tt class="docutils literal">countries.nerd.dk</tt> service is used to look up countries. This field will
-remain set to 0 unless the torrent is set to resolve countries, see <a class="reference internal" href="#resolve-countries">resolve_countries()</a>.</dd>
+<dd>the two letter <a class="reference external" href="http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html">ISO 3166 country code</a> for the country the peer is
+connected from. If the country hasn't been resolved yet, both chars
+are set to 0. If the resolution failed for some reason, the field is
+set to &quot;--&quot;. If the resolution service returns an invalid country
+code, it is set to &quot;!!&quot;. The <tt class="docutils literal">countries.nerd.dk</tt> service is used to
+look up countries. This field will remain set to 0 unless the torrent
+is set to resolve countries, see <a class="reference internal" href="#resolve-countries">resolve_countries()</a>.</dd>
 </dl>
 <a name="inet_as_name"></a><dl class="docutils">
 <dt>inet_as_name</dt>
@@ -616,11 +615,11 @@ an empty string if there is no name in the geo ip database.</dd>
 </dl>
 <a name="load_balancing"></a><dl class="docutils">
 <dt>load_balancing</dt>
-<dd>a measurement of the balancing of free download (that we get)
-and free upload that we give. Every peer gets a certain amount of free upload, but
-this member says how much <em>extra</em> free upload this peer has got. If it is a negative
-number it means that this was a peer from which we have got this amount of free
-download.</dd>
+<dd>a measurement of the balancing of free download (that we get) and free
+upload that we give. Every peer gets a certain amount of free upload,
+but this member says how much <em>extra</em> free upload this peer has got.
+If it is a negative number it means that this was a peer from which we
+have got this amount of free download.</dd>
 </dl>
 <a name="download_queue_length"></a><dl class="docutils">
 <dt>download_queue_length</dt>
@@ -659,31 +658,33 @@ that we haven't answered with a piece yet.</dd>
 </dl>
 <a name="failcount"></a><dl class="docutils">
 <dt>failcount</dt>
-<dd>the number of times this peer has &quot;failed&quot;. i.e. failed to connect
-or disconnected us. The failcount is decremented when we see this peer in a tracker
-response or peer exchange message.</dd>
+<dd>the number of times this peer has &quot;failed&quot;. i.e. failed to connect or
+disconnected us. The failcount is decremented when we see this peer in
+a tracker response or peer exchange message.</dd>
 </dl>
 <a name="downloading_piece_index"></a>
 <a name="downloading_block_index"></a>
 <a name="downloading_progress"></a>
 <a name="downloading_total"></a><dl class="docutils">
 <dt>downloading_piece_index  downloading_block_index  downloading_progress  downloading_total</dt>
-<dd>You can know which piece, and which part of that piece, that is currently being
-downloaded from a specific peer by looking at these four members.
-<tt class="docutils literal">downloading_piece_index</tt> is the index of the piece that is currently being downloaded.
-This may be set to -1 if there's currently no piece downloading from this peer. If it is
-&gt;= 0, the other three members are valid. <tt class="docutils literal">downloading_block_index</tt> is the index of the
-block (or sub-piece) that is being downloaded. <tt class="docutils literal">downloading_progress</tt> is the number
-of bytes of this block we have received from the peer, and <tt class="docutils literal">downloading_total</tt> is
-the total number of bytes in this block.</dd>
+<dd>You can know which piece, and which part of that piece, that is
+currently being downloaded from a specific peer by looking at these
+four members. <tt class="docutils literal">downloading_piece_index</tt> is the index of the piece
+that is currently being downloaded. This may be set to -1 if there's
+currently no piece downloading from this peer. If it is &gt;= 0, the
+other three members are valid. <tt class="docutils literal">downloading_block_index</tt> is the
+index of the block (or sub-piece) that is being downloaded.
+<tt class="docutils literal">downloading_progress</tt> is the number of bytes of this block we have
+received from the peer, and <tt class="docutils literal">downloading_total</tt> is the total number
+of bytes in this block.</dd>
 </dl>
 <a name="client"></a><dl class="docutils">
 <dt>client</dt>
 <dd>a string describing the software at the other end of the connection.
-In some cases this information is not available, then it will contain a string
-that may give away something about which software is running in the other end.
-In the case of a web seed, the server type and version will be a part of this
-string.</dd>
+In some cases this information is not available, then it will contain
+a string that may give away something about which software is running
+in the other end. In the case of a web seed, the server type and
+version will be a part of this string.</dd>
 </dl>
 <a name="connection_type"></a><dl class="docutils">
 <dt>connection_type</dt>
@@ -696,21 +697,22 @@ bytes per second.</dd>
 </dl>
 <a name="pending_disk_bytes"></a><dl class="docutils">
 <dt>pending_disk_bytes</dt>
-<dd>the number of bytes this peer has pending in the
-disk-io thread. Downloaded and waiting to be written to disk. This is what
-is capped by <tt class="docutils literal"><span class="pre">session_settings::max_queued_disk_bytes</span></tt>.</dd>
+<dd>the number of bytes this peer has pending in the disk-io thread.
+Downloaded and waiting to be written to disk. This is what is capped
+by <tt class="docutils literal"><span class="pre">session_settings::max_queued_disk_bytes</span></tt>.</dd>
 </dl>
 <a name="send_quota"></a>
 <a name="receive_quota"></a><dl class="docutils">
 <dt>send_quota  receive_quota</dt>
-<dd>the number of bytes this peer has been
-assigned to be allowed to send and receive until it has to request more quota
-from the bandwidth manager.</dd>
+<dd>the number of bytes this peer has been assigned to be allowed to send
+and receive until it has to request more quota from the bandwidth
+manager.</dd>
 </dl>
 <a name="rtt"></a><dl class="docutils">
 <dt>rtt</dt>
 <dd>an estimated round trip time to this peer, in milliseconds. It is
-estimated by timing the the tcp <tt class="docutils literal">connect()</tt>. It may be 0 for incoming connections.</dd>
+estimated by timing the the tcp <tt class="docutils literal">connect()</tt>. It may be 0 for
+incoming connections.</dd>
 </dl>
 <a name="num_pieces"></a><dl class="docutils">
 <dt>num_pieces</dt>
@@ -719,20 +721,26 @@ estimated by timing the the tcp <tt class="docutils literal">connect()</tt>. It 
 <a name="download_rate_peak"></a>
 <a name="upload_rate_peak"></a><dl class="docutils">
 <dt>download_rate_peak  upload_rate_peak</dt>
-<dd>the highest download and upload
-rates seen on this connection. They are given in bytes per second. This number is
-reset to 0 on reconnect.</dd>
+<dd>the highest download and upload rates seen on this connection. They
+are given in bytes per second. This number is reset to 0 on reconnect.</dd>
 </dl>
 <a name="progress_ppm"></a><dl class="docutils">
 <dt>progress_ppm</dt>
 <dd>indicates the download progress of the peer in the range [0, 1000000]
 (parts per million).</dd>
 </dl>
+<a name="estimated_reciprocation_rate"></a><dl class="docutils">
+<dt>estimated_reciprocation_rate</dt>
+<dd>this is an estimation of the upload rate, to this peer, where it will
+unchoke us. This is a coarse estimation based on the rate at which
+we sent right before we were choked. This is primarily used for the
+bittyrant choking algorithm.</dd>
+</dl>
 <a name="local_endpoint"></a><dl class="docutils">
 <dt>local_endpoint</dt>
 <dd>the IP and port pair the socket is bound to locally. i.e. the IP
-address of the interface it's going out over. This may be useful for multi-homed
-clients with multiple interfaces to the internet.</dd>
+address of the interface it's going out over. This may be useful for
+multi-homed clients with multiple interfaces to the internet.</dd>
 </dl>
 <a name="peer_request"></a></div>
 </div>
@@ -1047,7 +1055,8 @@ struct torrent_handle
    void <strong>add_http_seed</strong> (std::string const&amp; url) const;
    void <strong>remove_http_seed</strong> (std::string const&amp; url) const;
    std::set&lt;std::string&gt; <strong>http_seeds</strong> () const;
-   void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; const&amp; ext
+   void <strong>add_extension</strong> (
+      boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; const&amp; ext
       , void* userdata = 0);
    bool <strong>set_metadata</strong> (char const* metadata, int size) const;
    bool <strong>is_valid</strong> () const;
@@ -1370,7 +1379,8 @@ they operate on <a class="reference external" href="http://bittorrent.org/beps/b
 <div class="section" id="add-extension">
 <h2>add_extension()</h2>
 <pre class="literal-block">
-void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; const&amp; ext
+void <strong>add_extension</strong> (
+      boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; const&amp; ext
       , void* userdata = 0);
 </pre>
 <p>add the specified extension to this torrent. The <tt class="docutils literal">ext</tt> argument is
@@ -1746,25 +1756,26 @@ info-hash.</p>
 <pre class="literal-block">
 void <strong>use_interface</strong> (const char* net_interface) const;
 </pre>
-<p><tt class="docutils literal">use_interface()</tt> sets the network interface this torrent will use when it opens outgoing
-connections. By default, it uses the same interface as the <a class="reference external" href="reference-Session.html#session">session</a> uses to listen on. The
-parameter must be a string containing one or more, comma separated, ip-address (either an
-IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
-which interface to use for each outgoing conneciton. This is useful for clients that are
-multi-homed.</p>
+<p><tt class="docutils literal">use_interface()</tt> sets the network interface this torrent will use
+when it opens outgoing connections. By default, it uses the same
+interface as the <a class="reference external" href="reference-Session.html#session">session</a> uses to listen on. The parameter must be a
+string containing one or more, comma separated, ip-address (either an
+IPv4 or IPv6 address). When specifying multiple interfaces, the
+torrent will round-robin which interface to use for each outgoing
+conneciton. This is useful for clients that are multi-homed.</p>
 <a name="piece_availability()"></a></div>
 <div class="section" id="piece-availability">
 <h2>piece_availability()</h2>
 <pre class="literal-block">
 void <strong>piece_availability</strong> (std::vector&lt;int&gt;&amp; avail) const;
 </pre>
-<p>Fills the specified <tt class="docutils literal"><span class="pre">std::vector&lt;int&gt;</span></tt> with the availability for each
-piece in this torrent. libtorrent does not keep track of availability for
-seeds, so if the torrent is seeding the availability for all pieces is
-reported as 0.</p>
-<p>The piece availability is the number of peers that we are connected that has
-advertized having a particular piece. This is the information that libtorrent
-uses in order to prefer picking rare pieces.</p>
+<p>Fills the specified <tt class="docutils literal"><span class="pre">std::vector&lt;int&gt;</span></tt> with the availability for
+each piece in this torrent. libtorrent does not keep track of
+availability for seeds, so if the torrent is seeding the availability
+for all pieces is reported as 0.</p>
+<p>The piece availability is the number of peers that we are connected
+that has advertized having a particular piece. This is the information
+that libtorrent uses in order to prefer picking rare pieces.</p>
 <a name="piece_priority()"></a>
 <a name="prioritize_pieces()"></a>
 <a name="piece_priorities()"></a></div>
@@ -1776,11 +1787,11 @@ void <strong>piece_priority</strong> (int index, int priority) const;
 void <strong>prioritize_pieces</strong> (std::vector&lt;int&gt; const&amp; pieces) const;
 std::vector&lt;int&gt; <strong>piece_priorities</strong> () const;
 </pre>
-<p>These functions are used to set and get the prioritiy of individual pieces.
-By default all pieces have priority 1. That means that the random rarest
-first algorithm is effectively active for all pieces. You may however
-change the priority of individual pieces. There are 8 different priority
-levels:</p>
+<p>These functions are used to set and get the prioritiy of individual
+pieces. By default all pieces have priority 1. That means that the
+random rarest first algorithm is effectively active for all pieces.
+You may however change the priority of individual pieces. There are 8
+different priority levels:</p>
 <blockquote>
 <ol class="arabic simple" start="0">
 <li>piece is not downloaded at all</li>
@@ -1792,20 +1803,20 @@ the same availability, but not over pieces with lower availability</li>
 lower availability</li>
 <li><em>currently the same as 4</em></li>
 <li>piece is as likely to be picked as any piece with availability 1</li>
-<li>maximum priority, availability is disregarded, the piece is preferred
-over any other piece with lower priority</li>
+<li>maximum priority, availability is disregarded, the piece is
+preferred over any other piece with lower priority</li>
 </ol>
 </blockquote>
-<p>The exact definitions of these priorities are implementation details, and
-subject to change. The interface guarantees that higher number means higher
-priority, and that 0 means do not download.</p>
+<p>The exact definitions of these priorities are implementation details,
+and subject to change. The interface guarantees that higher number
+means higher priority, and that 0 means do not download.</p>
 <p><tt class="docutils literal">piece_priority</tt> sets or gets the priority for an individual piece,
 specified by <tt class="docutils literal">index</tt>.</p>
-<p><tt class="docutils literal">prioritize_pieces</tt> takes a vector of integers, one integer per piece in
-the torrent. All the piece priorities will be updated with the priorities
-in the vector.</p>
-<p><tt class="docutils literal">piece_priorities</tt> returns a vector with one element for each piece in the
-torrent. Each element is the current priority of that piece.</p>
+<p><tt class="docutils literal">prioritize_pieces</tt> takes a vector of integers, one integer per
+piece in the torrent. All the piece priorities will be updated with
+the priorities in the vector.</p>
+<p><tt class="docutils literal">piece_priorities</tt> returns a vector with one element for each piece
+in the torrent. Each element is the current priority of that piece.</p>
 <a name="file_priorities()"></a>
 <a name="prioritize_files()"></a>
 <a name="file_priority()"></a></div>
@@ -1819,16 +1830,19 @@ std::vector&lt;int&gt; <strong>file_priorities</strong> () const;
 </pre>
 <p><tt class="docutils literal">index</tt> must be in the range [0, number_of_files).</p>
 <p><tt class="docutils literal">file_priority()</tt> queries or sets the priority of file <tt class="docutils literal">index</tt>.</p>
-<p><tt class="docutils literal">prioritize_files()</tt> takes a vector that has at as many elements as there are
-files in the torrent. Each <a class="reference external" href="reference-Bencoding.html#entry">entry</a> is the priority of that file. The function
-sets the priorities of all the pieces in the torrent based on the vector.</p>
-<p><tt class="docutils literal">file_priorities()</tt> returns a vector with the priorities of all files.</p>
+<p><tt class="docutils literal">prioritize_files()</tt> takes a vector that has at as many elements as
+there are files in the torrent. Each <a class="reference external" href="reference-Bencoding.html#entry">entry</a> is the priority of that
+file. The function sets the priorities of all the pieces in the
+torrent based on the vector.</p>
+<p><tt class="docutils literal">file_priorities()</tt> returns a vector with the priorities of all
+files.</p>
 <p>The priority values are the same as for <a class="reference external" href="reference-Core.html#piece_priority()">piece_priority()</a>.</p>
-<p>Whenever a file priority is changed, all other piece priorities are reset
-to match the file priorities. In order to maintain sepcial priorities for
-particular pieces, <a class="reference external" href="reference-Core.html#piece_priority()">piece_priority()</a> has to be called again for those pieces.</p>
-<p>You cannot set the file priorities on a torrent that does not yet
-have metadata or a torrent that is a seed. <tt class="docutils literal">file_priority(int, int)</tt> and
+<p>Whenever a file priority is changed, all other piece priorities are
+reset to match the file priorities. In order to maintain sepcial
+priorities for particular pieces, <a class="reference external" href="reference-Core.html#piece_priority()">piece_priority()</a> has to be called
+again for those pieces.</p>
+<p>You cannot set the file priorities on a torrent that does not yet have
+metadata or a torrent that is a seed. <tt class="docutils literal">file_priority(int, int)</tt> and
 <a class="reference external" href="reference-Core.html#prioritize_files()">prioritize_files()</a> are both no-ops for such torrents.</p>
 <a name="force_reannounce()"></a>
 <a name="force_dht_announce()"></a></div>
@@ -1855,12 +1869,13 @@ immediately.</p>
 <pre class="literal-block">
 void <strong>scrape_tracker</strong> () const;
 </pre>
-<p><tt class="docutils literal">scrape_tracker()</tt> will send a scrape request to the tracker. A scrape request queries the
-tracker for statistics such as total number of incomplete peers, complete peers, number of
-downloads etc.</p>
-<p>This request will specifically update the <tt class="docutils literal">num_complete</tt> and <tt class="docutils literal">num_incomplete</tt> fields in
-the <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> struct once it completes. When it completes, it will generate a
-<a class="reference external" href="reference-Alerts.html#scrape_reply_alert">scrape_reply_alert</a>. If it fails, it will generate a <a class="reference external" href="reference-Alerts.html#scrape_failed_alert">scrape_failed_alert</a>.</p>
+<p><tt class="docutils literal">scrape_tracker()</tt> will send a scrape request to the tracker. A
+scrape request queries the tracker for statistics such as total number
+of incomplete peers, complete peers, number of downloads etc.</p>
+<p>This request will specifically update the <tt class="docutils literal">num_complete</tt> and
+<tt class="docutils literal">num_incomplete</tt> fields in the <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> struct once it
+completes. When it completes, it will generate a <a class="reference external" href="reference-Alerts.html#scrape_reply_alert">scrape_reply_alert</a>.
+If it fails, it will generate a <a class="reference external" href="reference-Alerts.html#scrape_failed_alert">scrape_failed_alert</a>.</p>
 <a name="set_upload_limit()"></a>
 <a name="upload_limit()"></a>
 <a name="download_limit()"></a>
@@ -1873,37 +1888,43 @@ int <strong>download_limit</strong> () const;
 void <strong>set_upload_limit</strong> (int limit) const;
 void <strong>set_download_limit</strong> (int limit) const;
 </pre>
-<p><tt class="docutils literal">set_upload_limit</tt> will limit the upload bandwidth used by this particular torrent to the
-limit you set. It is given as the number of bytes per second the torrent is allowed to upload.
-<tt class="docutils literal">set_download_limit</tt> works the same way but for download bandwidth instead of upload bandwidth.
-Note that setting a higher limit on a torrent then the global limit (<tt class="docutils literal"><span class="pre">session_settings::upload_rate_limit</span></tt>)
-will not override the global rate limit. The torrent can never upload more than the global rate
+<p><tt class="docutils literal">set_upload_limit</tt> will limit the upload bandwidth used by this
+particular torrent to the limit you set. It is given as the number of
+bytes per second the torrent is allowed to upload.
+<tt class="docutils literal">set_download_limit</tt> works the same way but for download bandwidth
+instead of upload bandwidth. Note that setting a higher limit on a
+torrent then the global limit
+(<tt class="docutils literal"><span class="pre">session_settings::upload_rate_limit</span></tt>) will not override the global
+rate limit. The torrent can never upload more than the global rate
 limit.</p>
-<p><tt class="docutils literal">upload_limit</tt> and <tt class="docutils literal">download_limit</tt> will return the current limit setting, for upload and
-download, respectively.</p>
+<p><tt class="docutils literal">upload_limit</tt> and <tt class="docutils literal">download_limit</tt> will return the current limit
+setting, for upload and download, respectively.</p>
 <a name="set_sequential_download()"></a></div>
 <div class="section" id="set-sequential-download">
 <h2>set_sequential_download()</h2>
 <pre class="literal-block">
 void <strong>set_sequential_download</strong> (bool sd) const;
 </pre>
-<p><tt class="docutils literal">set_sequential_download()</tt> enables or disables <em>sequential download</em>. When enabled, the piece
-picker will pick pieces in sequence instead of rarest first.</p>
-<p>Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
-used sparingly.</p>
+<p><tt class="docutils literal">set_sequential_download()</tt> enables or disables <em>sequential
+download</em>. When enabled, the piece picker will pick pieces in sequence
+instead of rarest first.</p>
+<p>Enabling sequential download will affect the piece distribution
+negatively in the swarm. It should be used sparingly.</p>
 <a name="connect_peer()"></a></div>
 <div class="section" id="connect-peer">
 <h2>connect_peer()</h2>
 <pre class="literal-block">
 void <strong>connect_peer</strong> (<a class="reference external" href="tcp::endpoint">tcp::endpoint</a> const&amp; adr, int source = 0) const;
 </pre>
-<p><tt class="docutils literal">connect_peer()</tt> is a way to manually connect to peers that one believe is a part of the
-torrent. If the peer does not respond, or is not a member of this torrent, it will simply
-be disconnected. No harm can be done by using this other than an unnecessary connection
-attempt is made. If the torrent is uninitialized or in queued or checking mode, this
-will throw <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a>. The second (optional) argument will be bitwised ORed into
-the source mask of this peer. Typically this is one of the source flags in <a class="reference external" href="reference-Core.html#peer_info">peer_info</a>.
-i.e. <tt class="docutils literal">tracker</tt>, <tt class="docutils literal">pex</tt>, <tt class="docutils literal">dht</tt> etc.</p>
+<p><tt class="docutils literal">connect_peer()</tt> is a way to manually connect to peers that one
+believe is a part of the torrent. If the peer does not respond, or is
+not a member of this torrent, it will simply be disconnected. No harm
+can be done by using this other than an unnecessary connection attempt
+is made. If the torrent is uninitialized or in queued or checking
+mode, this will throw <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a>. The second (optional)
+argument will be bitwised ORed into the source mask of this peer.
+Typically this is one of the source flags in <a class="reference external" href="reference-Core.html#peer_info">peer_info</a>. i.e.
+<tt class="docutils literal">tracker</tt>, <tt class="docutils literal">pex</tt>, <tt class="docutils literal">dht</tt> etc.</p>
 <a name="max_uploads()"></a>
 <a name="set_max_uploads()"></a></div>
 <div class="section" id="max-uploads-set-max-uploads">
@@ -1912,10 +1933,11 @@ i.e. <tt class="docutils literal">tracker</tt>, <tt class="docutils literal">pex
 int <strong>max_uploads</strong> () const;
 void <strong>set_max_uploads</strong> (int max_uploads) const;
 </pre>
-<p><tt class="docutils literal">set_max_uploads()</tt> sets the maximum number of peers that's unchoked at the same time on this
-torrent. If you set this to -1, there will be no limit. This defaults to infinite. The primary
-setting controlling this is the global unchoke slots limit, set by unchoke_slots_limit
-in <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>.</p>
+<p><tt class="docutils literal">set_max_uploads()</tt> sets the maximum number of peers that's unchoked
+at the same time on this torrent. If you set this to -1, there will be
+no limit. This defaults to infinite. The primary setting controlling
+this is the global unchoke slots limit, set by unchoke_slots_limit in
+session_settings.</p>
 <p><tt class="docutils literal">max_uploads()</tt> returns the current settings.</p>
 <a name="max_connections()"></a>
 <a name="set_max_connections()"></a></div>
@@ -1925,11 +1947,13 @@ in <a class="reference external" href="reference-Settings.html#session_settings"
 int <strong>max_connections</strong> () const;
 void <strong>set_max_connections</strong> (int max_connections) const;
 </pre>
-<p><tt class="docutils literal">set_max_connections()</tt> sets the maximum number of connection this torrent will open. If all
-connections are used up, incoming connections may be refused or poor connections may be closed.
-This must be at least 2. The default is unlimited number of connections. If -1 is given to the
-function, it means unlimited. There is also a global limit of the number of connections, set
-by <tt class="docutils literal">connections_limit</tt> in <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>.</p>
+<p><tt class="docutils literal">set_max_connections()</tt> sets the maximum number of connection this
+torrent will open. If all connections are used up, incoming
+connections may be refused or poor connections may be closed. This
+must be at least 2. The default is unlimited number of connections. If
+-1 is given to the function, it means unlimited. There is also a
+global limit of the number of connections, set by
+<tt class="docutils literal">connections_limit</tt> in <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>.</p>
 <p><tt class="docutils literal">max_connections()</tt> returns the current settings.</p>
 <a name="set_tracker_login()"></a></div>
 <div class="section" id="set-tracker-login">
@@ -1946,17 +1970,20 @@ of the tracker announce. Set this if the tracker requires authorization.</p>
 <pre class="literal-block">
 void <strong>move_storage</strong> (std::string const&amp; save_path, int flags = 0) const;
 </pre>
-<p>Moves the file(s) that this torrent are currently seeding from or downloading to. If
-the given <tt class="docutils literal">save_path</tt> is not located on the same drive as the original save path,
-the files will be copied to the new drive and removed from their original location.
-This will block all other disk IO, and other torrents download and upload rates may
-drop while copying the file.</p>
-<p>Since disk IO is performed in a separate thread, this operation is also asynchronous.
-Once the operation completes, the <tt class="docutils literal">storage_moved_alert</tt> is generated, with the new
-path as the message. If the move fails for some reason, <tt class="docutils literal">storage_moved_failed_alert</tt>
-is generated instead, containing the error message.</p>
-<p>The <tt class="docutils literal">flags</tt> argument determines the behavior of the copying/moving of the files
-in the torrent. see <a class="reference external" href="reference-Custom_Storage.html#move_flags_t">move_flags_t</a>.</p>
+<p>Moves the file(s) that this torrent are currently seeding from or
+downloading to. If the given <tt class="docutils literal">save_path</tt> is not located on the same
+drive as the original save path, the files will be copied to the new
+drive and removed from their original location. This will block all
+other disk IO, and other torrents download and upload rates may drop
+while copying the file.</p>
+<p>Since disk IO is performed in a separate thread, this operation is
+also asynchronous. Once the operation completes, the
+<tt class="docutils literal">storage_moved_alert</tt> is generated, with the new path as the
+message. If the move fails for some reason,
+<tt class="docutils literal">storage_moved_failed_alert</tt> is generated instead, containing the
+error message.</p>
+<p>The <tt class="docutils literal">flags</tt> argument determines the behavior of the copying/moving
+of the files in the torrent. see <a class="reference external" href="reference-Custom_Storage.html#move_flags_t">move_flags_t</a>.</p>
 <blockquote>
 <ul class="simple">
 <li>always_replace_files = 0</li>
@@ -1964,32 +1991,37 @@ in the torrent. see <a class="reference external" href="reference-Custom_Storage
 <li>dont_replace = 2</li>
 </ul>
 </blockquote>
-<p><tt class="docutils literal">always_replace_files</tt> is the default and replaces any file that exist in both the
-source directory and the target directory.</p>
-<p><tt class="docutils literal">fail_if_exist</tt> first check to see that none of the copy operations would cause an
-overwrite. If it would, it will fail. Otherwise it will proceed as if it was in
-<tt class="docutils literal">always_replace_files</tt> mode. Note that there is an inherent race condition here.
-If the files in the target directory appear after the check but before the copy
-or move completes, they will be overwritten. When failing because of files already
-existing in the target path, the <tt class="docutils literal">error</tt> of <tt class="docutils literal">move_storage_failed_alert</tt> is set
-to <tt class="docutils literal"><span class="pre">boost::system::errc::file_exists</span></tt>.</p>
-<p>The intention is that a client may use this as a probe, and if it fails, ask the user
-which mode to use. The client may then re-issue the <tt class="docutils literal">move_storage</tt> call with one
-of the other modes.</p>
-<p><tt class="docutils literal">dont_replace</tt> always takes the existing file in the target directory, if there is
-one. The source files will still be removed in that case.</p>
-<p>Files that have been renamed to have absolute pahts are not moved by this function.
-Keep in mind that files that don't belong to the torrent but are stored in the torrent's
-directory may be moved as well. This goes for files that have been renamed to
-absolute paths that still end up inside the save path.</p>
+<p><tt class="docutils literal">always_replace_files</tt> is the default and replaces any file that
+exist in both the source directory and the target directory.</p>
+<p><tt class="docutils literal">fail_if_exist</tt> first check to see that none of the copy operations
+would cause an overwrite. If it would, it will fail. Otherwise it will
+proceed as if it was in <tt class="docutils literal">always_replace_files</tt> mode. Note that there
+is an inherent race condition here. If the files in the target
+directory appear after the check but before the copy or move
+completes, they will be overwritten. When failing because of files
+already existing in the target path, the <tt class="docutils literal">error</tt> of
+<tt class="docutils literal">move_storage_failed_alert</tt> is set to
+<tt class="docutils literal"><span class="pre">boost::system::errc::file_exists</span></tt>.</p>
+<p>The intention is that a client may use this as a probe, and if it
+fails, ask the user which mode to use. The client may then re-issue
+the <tt class="docutils literal">move_storage</tt> call with one of the other modes.</p>
+<p><tt class="docutils literal">dont_replace</tt> always takes the existing file in the target
+directory, if there is one. The source files will still be removed in
+that case.</p>
+<p>Files that have been renamed to have absolute pahts are not moved by
+this function. Keep in mind that files that don't belong to the
+torrent but are stored in the torrent's directory may be moved as
+well. This goes for files that have been renamed to absolute paths
+that still end up inside the save path.</p>
 <a name="rename_file()"></a></div>
 <div class="section" id="rename-file">
 <h2>rename_file()</h2>
 <pre class="literal-block">
 void <strong>rename_file</strong> (int index, std::string const&amp; new_name) const;
 </pre>
-<p>Renames the file with the given index asynchronously. The rename operation is complete
-when either a <a class="reference external" href="reference-Alerts.html#file_renamed_alert">file_renamed_alert</a> or <a class="reference external" href="reference-Alerts.html#file_rename_failed_alert">file_rename_failed_alert</a> is posted.</p>
+<p>Renames the file with the given index asynchronously. The rename
+operation is complete when either a <a class="reference external" href="reference-Alerts.html#file_renamed_alert">file_renamed_alert</a> or
+<a class="reference external" href="reference-Alerts.html#file_rename_failed_alert">file_rename_failed_alert</a> is posted.</p>
 <a name="super_seeding()"></a></div>
 <div class="section" id="super-seeding">
 <h2>super_seeding()</h2>
@@ -2023,11 +2055,12 @@ but stable.</p>
 <pre class="literal-block">
 boost::shared_ptr&lt;torrent&gt; <strong>native_handle</strong> () const;
 </pre>
-<p>This function is intended only for use by plugins and the <a class="reference external" href="reference-Alerts.html#alert">alert</a> dispatch function. Any code
-that runs in libtorrent's network thread may not use the public API of <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a>.
-Doing so results in a dead-lock. For such routines, the <tt class="docutils literal">native_handle</tt> gives access to the
-underlying type representing the torrent. This type does not have a stable API and should
-be relied on as little as possible.</p>
+<p>This function is intended only for use by plugins and the <a class="reference external" href="reference-Alerts.html#alert">alert</a>
+dispatch function. Any code that runs in libtorrent's network thread
+may not use the public API of <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a>. Doing so results in a
+dead-lock. For such routines, the <tt class="docutils literal">native_handle</tt> gives access to
+the underlying type representing the torrent. This type does not have
+a stable API and should be relied on as little as possible.</p>
 <a name="flags_t"></a></div>
 <div class="section" id="enum-flags-t">
 <h2>enum flags_t</h2>
@@ -2218,7 +2251,8 @@ torrent file (such as a magnet link or a URL).</td>
 <div class="section" id="torrent-status">
 <h1>torrent_status</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
-<p>holds a snapshot of the status of a torrent, as queried by <a class="reference external" href="reference-Core.html#status()">torrent_handle::status()</a>.</p>
+<p>holds a snapshot of the status of a torrent, as queried by
+torrent_handle::status().</p>
 <pre class="literal-block">
 struct torrent_status
 {
@@ -2321,7 +2355,7 @@ bool <strong>operator==</strong> (torrent_status const&amp; st) const;
 <p>compres if the torrent status objects come from the same torrent. i.e.
 only the <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> field is compared.</p>
 <a name="state_t"></a></div>
-<div class="section" id="id105">
+<div class="section" id="id103">
 <h2>enum state_t</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -2437,92 +2471,92 @@ been successful yet, it's set to an empty string.</dd>
 <a name="total_download"></a>
 <a name="total_upload"></a><dl class="docutils">
 <dt>total_download  total_upload</dt>
-<dd>the number of bytes downloaded and
-uploaded to all peers, accumulated, <em>this session</em> only. The <a class="reference external" href="reference-Session.html#session">session</a> is considered
-to restart when a torrent is paused and restarted again. When a torrent is paused,
-these counters are reset to 0. If you want complete, persistent, stats, see
+<dd>the number of bytes downloaded and uploaded to all peers, accumulated,
+<em>this session</em> only. The <a class="reference external" href="reference-Session.html#session">session</a> is considered to restart when a
+torrent is paused and restarted again. When a torrent is paused, these
+counters are reset to 0. If you want complete, persistent, stats, see
 <tt class="docutils literal">all_time_upload</tt> and <tt class="docutils literal">all_time_download</tt>.</dd>
 </dl>
 <a name="total_payload_download"></a>
 <a name="total_payload_upload"></a><dl class="docutils">
 <dt>total_payload_download  total_payload_upload</dt>
-<dd>counts the amount of bytes
-send and received this <a class="reference external" href="reference-Session.html#session">session</a>, but only the actual payload data (i.e the interesting
-data), these counters ignore any protocol overhead.</dd>
+<dd>counts the amount of bytes send and received this <a class="reference external" href="reference-Session.html#session">session</a>, but only
+the actual payload data (i.e the interesting data), these counters
+ignore any protocol overhead.</dd>
 </dl>
 <a name="total_failed_bytes"></a><dl class="docutils">
 <dt>total_failed_bytes</dt>
-<dd>the number of bytes that has been downloaded and that
-has failed the piece hash test. In other words, this is just how much crap that
-has been downloaded.</dd>
+<dd>the number of bytes that has been downloaded and that has failed the
+piece hash test. In other words, this is just how much crap that has
+been downloaded.</dd>
 </dl>
 <a name="total_redundant_bytes"></a><dl class="docutils">
 <dt>total_redundant_bytes</dt>
-<dd>the number of bytes that has been downloaded even
-though that data already was downloaded. The reason for this is that in some
-situations the same data can be downloaded by mistake. When libtorrent sends
-requests to a peer, and the peer doesn't send a response within a certain
-timeout, libtorrent will re-request that block. Another situation when
-libtorrent may re-request blocks is when the requests it sends out are not
-replied in FIFO-order (it will re-request blocks that are skipped by an out of
-order block). This is supposed to be as low as possible.</dd>
+<dd>the number of bytes that has been downloaded even though that data
+already was downloaded. The reason for this is that in some situations
+the same data can be downloaded by mistake. When libtorrent sends
+requests to a peer, and the peer doesn't send a response within a
+certain timeout, libtorrent will re-request that block. Another
+situation when libtorrent may re-request blocks is when the requests
+it sends out are not replied in FIFO-order (it will re-request blocks
+that are skipped by an out of order block). This is supposed to be as
+low as possible.</dd>
 </dl>
 <a name="pieces"></a><dl class="docutils">
 <dt>pieces</dt>
-<dd>a bitmask that represents which pieces we have (set to true) and
-the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
-downloading or seeding.</dd>
+<dd>a bitmask that represents which pieces we have (set to true) and the
+pieces we don't have. It's a pointer and may be set to 0 if the
+torrent isn't downloading or seeding.</dd>
 </dl>
 <a name="verified_pieces"></a><dl class="docutils">
 <dt>verified_pieces</dt>
-<dd>a bitmask representing which pieces has had their hash
-checked. This only applies to torrents in <em>seed mode</em>. If the torrent is not
-in seed mode, this bitmask may be empty.</dd>
+<dd>a bitmask representing which pieces has had their hash checked. This
+only applies to torrents in <em>seed mode</em>. If the torrent is not in seed
+mode, this bitmask may be empty.</dd>
 </dl>
 <a name="total_done"></a><dl class="docutils">
 <dt>total_done</dt>
-<dd>the total number of bytes of the file(s) that we have. All
-this does not necessarily has to be downloaded during this <a class="reference external" href="reference-Session.html#session">session</a> (that's
+<dd>the total number of bytes of the file(s) that we have. All this does
+not necessarily has to be downloaded during this <a class="reference external" href="reference-Session.html#session">session</a> (that's
 <tt class="docutils literal">total_payload_download</tt>).</dd>
 </dl>
 <a name="total_wanted_done"></a><dl class="docutils">
 <dt>total_wanted_done</dt>
-<dd>the number of bytes we have downloaded, only counting the
-pieces that we actually want to download. i.e. excluding any pieces that we have but
-have priority 0 (i.e. not wanted).</dd>
+<dd>the number of bytes we have downloaded, only counting the pieces that
+we actually want to download. i.e. excluding any pieces that we have
+but have priority 0 (i.e. not wanted).</dd>
 </dl>
 <a name="total_wanted"></a><dl class="docutils">
 <dt>total_wanted</dt>
-<dd>The total number of bytes we want to download.
-This may be smaller than the total torrent size
-in case any pieces are prioritized to 0, i.e.  not wanted</dd>
+<dd>The total number of bytes we want to download. This may be smaller
+than the total torrent size in case any pieces are prioritized to 0,
+i.e.  not wanted</dd>
 </dl>
 <a name="all_time_upload"></a>
 <a name="all_time_download"></a><dl class="docutils">
 <dt>all_time_upload  all_time_download</dt>
-<dd>are accumulated upload and download
-payload byte counters. They are saved in and restored from resume data to keep totals
-across sessions.</dd>
+<dd>are accumulated upload and download payload byte counters. They are
+saved in and restored from resume data to keep totals across sessions.</dd>
 </dl>
 <a name="added_time"></a><dl class="docutils">
 <dt>added_time</dt>
-<dd>the posix-time when this torrent was added. i.e. what
-<tt class="docutils literal">time(NULL)</tt> returned at the time.</dd>
+<dd>the posix-time when this torrent was added. i.e. what <tt class="docutils literal">time(NULL)</tt>
+returned at the time.</dd>
 </dl>
 <a name="completed_time"></a><dl class="docutils">
 <dt>completed_time</dt>
-<dd>the posix-time when this torrent was finished. If
-the torrent is not yet finished, this is 0.</dd>
+<dd>the posix-time when this torrent was finished. If the torrent is not
+yet finished, this is 0.</dd>
 </dl>
 <a name="last_seen_complete"></a><dl class="docutils">
 <dt>last_seen_complete</dt>
-<dd>the time when we, or one of our peers, last
-saw a complete copy of this torrent.</dd>
+<dd>the time when we, or one of our peers, last saw a complete copy of
+this torrent.</dd>
 </dl>
 <a name="storage_mode"></a><dl class="docutils">
 <dt>storage_mode</dt>
-<dd>The allocation mode for the torrent. See <a class="reference external" href="reference-Storage.html#storage_mode_t">storage_mode_t</a> for the options.
-For more information, see <a class="reference external" href="manual-ref.html#storage-allocation">storage allocation</a>.</dd>
+<dd>The allocation mode for the torrent. See <a class="reference external" href="reference-Storage.html#storage_mode_t">storage_mode_t</a> for the
+options. For more information, see <a class="reference external" href="manual-ref.html#storage-allocation">storage allocation</a>.</dd>
 </dl>
 <a name="progress"></a><dl class="docutils">
 <dt>progress</dt>
@@ -2531,9 +2565,10 @@ torrent's current task. It may be checking files or downloading.</dd>
 </dl>
 <a name="progress_ppm"></a><dl class="docutils">
 <dt>progress_ppm</dt>
-<dd>reflects the same value as <tt class="docutils literal">progress</tt>, but instead in a range
-[0, 1000000] (ppm = parts per million). When floating point operations are disabled,
-this is the only alternative to the floating point value in progress.</dd>
+<dd>reflects the same value as <tt class="docutils literal">progress</tt>, but instead in a range [0,
+1000000] (ppm = parts per million). When floating point operations are
+disabled, this is the only alternative to the floating point value in
+progress.</dd>
 </dl>
 <a name="queue_position"></a><dl class="docutils">
 <dt>queue_position</dt>
@@ -2543,16 +2578,17 @@ queue. If the torrent is a seed or finished, this is -1.</dd>
 <a name="download_rate"></a>
 <a name="upload_rate"></a><dl class="docutils">
 <dt>download_rate  upload_rate</dt>
-<dd>the total rates for all peers for this
-torrent. These will usually have better precision than summing the rates from
-all peers. The rates are given as the number of bytes per second.</dd>
+<dd>the total rates for all peers for this torrent. These will usually
+have better precision than summing the rates from all peers. The rates
+are given as the number of bytes per second.</dd>
 </dl>
 <a name="download_payload_rate"></a>
 <a name="upload_payload_rate"></a><dl class="docutils">
 <dt>download_payload_rate  upload_payload_rate</dt>
-<dd>the total transfer rate of payload only, not counting protocol chatter. This might
-be slightly smaller than the other rates, but if projected over a long time
-(e.g. when calculating ETA:s) the difference may be noticeable.</dd>
+<dd>the total transfer rate of payload only, not counting protocol
+chatter. This might be slightly smaller than the other rates, but if
+projected over a long time (e.g. when calculating ETA:s) the
+difference may be noticeable.</dd>
 </dl>
 <a name="num_seeds"></a><dl class="docutils">
 <dt>num_seeds</dt>
@@ -2561,71 +2597,66 @@ currently connected to.</dd>
 </dl>
 <a name="num_peers"></a><dl class="docutils">
 <dt>num_peers</dt>
-<dd>the number of peers this torrent currently is connected to.
-Peer connections that are in the half-open state (is attempting to connect)
-or are queued for later connection attempt do not count. Although they are
-visible in the peer list when you call <a class="reference external" href="reference-Core.html#get_peer_info()">get_peer_info()</a>.</dd>
+<dd>the number of peers this torrent currently is connected to. Peer
+connections that are in the half-open state (is attempting to connect)
+or are queued for later connection attempt do not count. Although they
+are visible in the peer list when you call <a class="reference external" href="reference-Core.html#get_peer_info()">get_peer_info()</a>.</dd>
 </dl>
 <a name="num_complete"></a>
 <a name="num_incomplete"></a><dl class="docutils">
 <dt>num_complete  num_incomplete</dt>
-<dd>if the tracker sends scrape info in its
-announce reply, these fields will be
-set to the total number of peers that
-have the whole file and the total number
-of peers that are still downloading.
-set to -1 if the tracker did not
-send any scrape data in its announce reply.</dd>
+<dd>if the tracker sends scrape info in its announce reply, these fields
+will be set to the total number of peers that have the whole file and
+the total number of peers that are still downloading. set to -1 if the
+tracker did not send any scrape data in its announce reply.</dd>
 </dl>
 <a name="list_seeds"></a>
 <a name="list_peers"></a><dl class="docutils">
 <dt>list_seeds  list_peers</dt>
-<dd>the number of seeds in our peer list
-and the total number of peers (including seeds). We are not
-necessarily connected to all the peers in our peer list. This is the number
-of peers we know of in total, including banned peers and peers that we have
-failed to connect to.</dd>
+<dd>the number of seeds in our peer list and the total number of peers
+(including seeds). We are not necessarily connected to all the peers
+in our peer list. This is the number of peers we know of in total,
+including banned peers and peers that we have failed to connect to.</dd>
 </dl>
 <a name="connect_candidates"></a><dl class="docutils">
 <dt>connect_candidates</dt>
-<dd>the number of peers in this torrent's peer list
-that is a candidate to be connected to. i.e. It has fewer connect attempts
-than the max fail count, it is not a seed if we are a seed, it is not banned
-etc. If this is 0, it means we don't know of any more peers that we can try.</dd>
+<dd>the number of peers in this torrent's peer list that is a candidate to
+be connected to. i.e. It has fewer connect attempts than the max fail
+count, it is not a seed if we are a seed, it is not banned etc. If
+this is 0, it means we don't know of any more peers that we can try.</dd>
 </dl>
 <a name="num_pieces"></a><dl class="docutils">
 <dt>num_pieces</dt>
-<dd>the number of pieces that has been downloaded. It is equivalent
-to: <tt class="docutils literal"><span class="pre">std::accumulate(pieces-&gt;begin(),</span> <span class="pre">pieces-&gt;end())</span></tt>. So you don't have to
-count yourself. This can be used to see if anything has updated since last time
-if you want to keep a graph of the pieces up to date.</dd>
+<dd>the number of pieces that has been downloaded. It is equivalent to:
+<tt class="docutils literal"><span class="pre">std::accumulate(pieces-&gt;begin(),</span> <span class="pre">pieces-&gt;end())</span></tt>. So you don't have
+to count yourself. This can be used to see if anything has updated
+since last time if you want to keep a graph of the pieces up to date.</dd>
 </dl>
 <a name="distributed_full_copies"></a><dl class="docutils">
 <dt>distributed_full_copies</dt>
-<dd>the number of distributed copies of the torrent.
-Note that one copy may be spread out among many peers. It tells how many copies
-there are currently of the rarest piece(s) among the peers this client is
+<dd>the number of distributed copies of the torrent. Note that one copy
+may be spread out among many peers. It tells how many copies there are
+currently of the rarest piece(s) among the peers this client is
 connected to.</dd>
 </dl>
 <a name="distributed_fraction"></a><dl class="docutils">
 <dt>distributed_fraction</dt>
-<dd><p class="first">tells the share of pieces that have more copies than
-the rarest piece(s). Divide this number by 1000 to get the fraction.</p>
-<p>For example, if <tt class="docutils literal">distributed_full_copies</tt> is 2 and <tt class="docutils literal">distrbuted_fraction</tt>
-is 500, it means that the rarest pieces have only 2 copies among the peers
-this torrent is connected to, and that 50% of all the pieces have more than
-two copies.</p>
-<p class="last">If we are a seed, the piece picker is deallocated as an optimization, and
-piece availability is no longer tracked. In this case the distributed
-copies members are set to -1.</p>
+<dd><p class="first">tells the share of pieces that have more copies than the rarest
+piece(s). Divide this number by 1000 to get the fraction.</p>
+<p>For example, if <tt class="docutils literal">distributed_full_copies</tt> is 2 and
+<tt class="docutils literal">distrbuted_fraction</tt> is 500, it means that the rarest pieces have
+only 2 copies among the peers this torrent is connected to, and that
+50% of all the pieces have more than two copies.</p>
+<p class="last">If we are a seed, the piece picker is deallocated as an optimization,
+and piece availability is no longer tracked. In this case the
+distributed copies members are set to -1.</p>
 </dd>
 </dl>
 <a name="distributed_copies"></a><dl class="docutils">
 <dt>distributed_copies</dt>
-<dd><p class="first">the number of distributed copies of the file.
-note that one copy may be spread out among many peers.
-This is a floating point representation of the
-distributed copies.</p>
+<dd><p class="first">the number of distributed copies of the file. note that one copy may
+be spread out among many peers. This is a floating point
+representation of the distributed copies.</p>
 <dl class="last docutils">
 <dt>the integer part tells how many copies</dt>
 <dd>there are of the rarest piece(s)</dd>
@@ -2636,8 +2667,8 @@ distributed copies.</p>
 </dl>
 <a name="block_size"></a><dl class="docutils">
 <dt>block_size</dt>
-<dd>the size of a block, in bytes. A block is a sub piece, it
-is the number of bytes that each piece request asks for and the number of
+<dd>the size of a block, in bytes. A block is a sub piece, it is the
+number of bytes that each piece request asks for and the number of
 bytes that each bit in the <tt class="docutils literal">partial_piece_info</tt>'s bitset represents,
 see <a class="reference external" href="reference-Core.html#get_download_queue()">get_download_queue()</a>. This is typically 16 kB, but it may be
 larger if the pieces are larger.</dd>
@@ -2648,9 +2679,9 @@ larger if the pieces are larger.</dd>
 </dl>
 <a name="num_connections"></a><dl class="docutils">
 <dt>num_connections</dt>
-<dd>the number of peer connections this torrent has, including
-half-open connections that hasn't completed the bittorrent handshake yet. This is
-always &gt;= <tt class="docutils literal">num_peers</tt>.</dd>
+<dd>the number of peer connections this torrent has, including half-open
+connections that hasn't completed the bittorrent handshake yet. This
+is always &gt;= <tt class="docutils literal">num_peers</tt>.</dd>
 </dl>
 <a name="uploads_limit"></a><dl class="docutils">
 <dt>uploads_limit</dt>
@@ -2663,36 +2694,37 @@ always &gt;= <tt class="docutils literal">num_peers</tt>.</dd>
 <a name="up_bandwidth_queue"></a>
 <a name="down_bandwidth_queue"></a><dl class="docutils">
 <dt>up_bandwidth_queue  down_bandwidth_queue</dt>
-<dd>the number of peers in this
-torrent that are waiting for more bandwidth quota from the torrent rate limiter.
-This can determine if the rate you get from this torrent is bound by the torrents
-limit or not. If there is no limit set on this torrent, the peers might still be
-waiting for bandwidth quota from the global limiter, but then they are counted in
-the <tt class="docutils literal">session_status</tt> object.</dd>
+<dd>the number of peers in this torrent that are waiting for more
+bandwidth quota from the torrent rate limiter. This can determine if
+the rate you get from this torrent is bound by the torrents limit or
+not. If there is no limit set on this torrent, the peers might still
+be waiting for bandwidth quota from the global limiter, but then they
+are counted in the <tt class="docutils literal">session_status</tt> object.</dd>
 </dl>
 <a name="time_since_upload"></a>
 <a name="time_since_download"></a><dl class="docutils">
 <dt>time_since_upload  time_since_download</dt>
-<dd>the number of
-seconds since any peer last uploaded from this torrent and the last
-time a downloaded piece passed the hash check, respectively.</dd>
+<dd>the number of seconds since any peer last uploaded from this torrent
+and the last time a downloaded piece passed the hash check,
+respectively.</dd>
 </dl>
 <a name="active_time"></a>
 <a name="finished_time"></a>
 <a name="seeding_time"></a><dl class="docutils">
 <dt>active_time  finished_time  seeding_time</dt>
-<dd>These keep track of the number of seconds this torrent has been active (not
-paused) and the number of seconds it has been active while being finished and
-active while being a seed. <tt class="docutils literal">seeding_time</tt> should be &lt;= <tt class="docutils literal">finished_time</tt> which
-should be &lt;= <tt class="docutils literal">active_time</tt>. They are all saved in and restored from resume data,
-to keep totals across sessions.</dd>
+<dd>These keep track of the number of seconds this torrent has been active
+(not paused) and the number of seconds it has been active while being
+finished and active while being a seed. <tt class="docutils literal">seeding_time</tt> should be &lt;=
+<tt class="docutils literal">finished_time</tt> which should be &lt;= <tt class="docutils literal">active_time</tt>. They are all
+saved in and restored from resume data, to keep totals across
+sessions.</dd>
 </dl>
 <a name="seed_rank"></a><dl class="docutils">
 <dt>seed_rank</dt>
-<dd>A rank of how important it is to seed the torrent, it is used
-to determine which torrents to seed and which to queue. It is based on the peer
-to seed ratio from the tracker scrape. For more information, see <a class="reference external" href="manual-ref.html#queuing">queuing</a>.
-Higher value means more important to seed</dd>
+<dd>A rank of how important it is to seed the torrent, it is used to
+determine which torrents to seed and which to queue. It is based on
+the peer to seed ratio from the tracker scrape. For more information,
+see <a class="reference external" href="manual-ref.html#queuing">queuing</a>. Higher value means more important to seed</dd>
 </dl>
 <a name="last_scrape"></a><dl class="docutils">
 <dt>last_scrape</dt>
@@ -2701,9 +2733,9 @@ If it has never done that, this value is -1.</dd>
 </dl>
 <a name="sparse_regions"></a><dl class="docutils">
 <dt>sparse_regions</dt>
-<dd>the number of regions of non-downloaded pieces in the
-torrent. This is an interesting metric on windows vista, since there is
-a limit on the number of sparse regions in a single file there.</dd>
+<dd>the number of regions of non-downloaded pieces in the torrent. This is
+an interesting metric on windows vista, since there is a limit on the
+number of sparse regions in a single file there.</dd>
 </dl>
 <a name="priority"></a><dl class="docutils">
 <dt>priority</dt>
@@ -2726,18 +2758,18 @@ to this torrent. This defaults to true.</dd>
 </dl>
 <a name="upload_mode"></a><dl class="docutils">
 <dt>upload_mode</dt>
-<dd>true if the torrent is blocked from downloading. This
-typically happens when a disk write operation fails. If the torrent is
+<dd>true if the torrent is blocked from downloading. This typically
+happens when a disk write operation fails. If the torrent is
 auto-managed, it will periodically be taken out of this state, in the
-hope that the disk condition (be it disk full or permission errors) has
-been resolved. If the torrent is not auto-managed, you have to explicitly
-take it out of the upload mode by calling <a class="reference external" href="reference-Core.html#set_upload_mode()">set_upload_mode()</a> on the
-torrent_handle.</dd>
+hope that the disk condition (be it disk full or permission errors)
+has been resolved. If the torrent is not auto-managed, you have to
+explicitly take it out of the upload mode by calling <a class="reference external" href="reference-Core.html#set_upload_mode()">set_upload_mode()</a>
+on the <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a>.</dd>
 </dl>
 <a name="share_mode"></a><dl class="docutils">
 <dt>share_mode</dt>
-<dd>true if the torrent is currently in share-mode, i.e.
-not downloading the torrent, but just helping the swarm out.</dd>
+<dd>true if the torrent is currently in share-mode, i.e. not downloading
+the torrent, but just helping the swarm out.</dd>
 </dl>
 <a name="super_seeding"></a><dl class="docutils">
 <dt>super_seeding</dt>
@@ -2745,21 +2777,22 @@ not downloading the torrent, but just helping the swarm out.</dd>
 </dl>
 <a name="paused"></a><dl class="docutils">
 <dt>paused</dt>
-<dd>set to true if the torrent is paused and false otherwise. It's only true
-if the torrent itself is paused. If the torrent is not running because the <a class="reference external" href="reference-Session.html#session">session</a> is
-paused, this is still false. To know if a torrent is active or not, you need to inspect
-both <tt class="docutils literal"><span class="pre">torrent_status::paused</span></tt> and <tt class="docutils literal"><span class="pre">session::is_paused()</span></tt>.</dd>
+<dd>set to true if the torrent is paused and false otherwise. It's only
+true if the torrent itself is paused. If the torrent is not running
+because the <a class="reference external" href="reference-Session.html#session">session</a> is paused, this is still false. To know if a
+torrent is active or not, you need to inspect both
+<tt class="docutils literal"><span class="pre">torrent_status::paused</span></tt> and <tt class="docutils literal"><span class="pre">session::is_paused()</span></tt>.</dd>
 </dl>
 <a name="auto_managed"></a><dl class="docutils">
 <dt>auto_managed</dt>
 <dd>set to true if the torrent is auto managed, i.e. libtorrent is
-responsible for determining whether it should be started or queued. For more info
-see <a class="reference external" href="manual-ref.html#queuing">queuing</a></dd>
+responsible for determining whether it should be started or queued.
+For more info see <a class="reference external" href="manual-ref.html#queuing">queuing</a></dd>
 </dl>
 <a name="sequential_download"></a><dl class="docutils">
 <dt>sequential_download</dt>
-<dd>true when the torrent is in sequential download mode. In
-this mode pieces are downloaded in order rather than rarest first.</dd>
+<dd>true when the torrent is in sequential download mode. In this mode
+pieces are downloaded in order rather than rarest first.</dd>
 </dl>
 <a name="is_seeding"></a><dl class="docutils">
 <dt>is_seeding</dt>
@@ -2768,26 +2801,27 @@ this mode pieces are downloaded in order rather than rarest first.</dd>
 <a name="is_finished"></a><dl class="docutils">
 <dt>is_finished</dt>
 <dd>true if all pieces that have a priority &gt; 0 are downloaded. There is
-only a distinction between finished and seeding if some pieces or files have been
-set to priority 0, i.e. are not downloaded.</dd>
+only a distinction between finished and seeding if some pieces or
+files have been set to priority 0, i.e. are not downloaded.</dd>
 </dl>
 <a name="has_metadata"></a><dl class="docutils">
 <dt>has_metadata</dt>
 <dd>true if this torrent has metadata (either it was started from a
-.torrent file or the metadata has been downloaded). The only scenario where this can be
-false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip, a magnet link for instance).</dd>
+.torrent file or the metadata has been downloaded). The only scenario
+where this can be false is when the torrent was started torrent-less
+(i.e. with just an info-hash and tracker ip, a magnet link for
+instance).</dd>
 </dl>
 <a name="has_incoming"></a><dl class="docutils">
 <dt>has_incoming</dt>
-<dd>true if there has ever been an incoming connection attempt
-to this torrent.</dd>
+<dd>true if there has ever been an incoming connection attempt to this
+torrent.</dd>
 </dl>
 <a name="seed_mode"></a><dl class="docutils">
 <dt>seed_mode</dt>
-<dd>true if the torrent is in seed_mode. If the torrent was
-started in seed mode, it will leave seed mode once all pieces have been
-checked or as soon as one piece fails the hash check.</dd>
+<dd>true if the torrent is in seed_mode. If the torrent was started in
+seed mode, it will leave seed mode once all pieces have been checked
+or as soon as one piece fails the hash check.</dd>
 </dl>
 <a name="moving_storage"></a><dl class="docutils">
 <dt>moving_storage</dt>
@@ -2871,7 +2905,7 @@ allowed to force another tracker update with this tracker.</p>
 <p>If the last time this tracker was contacted failed, <tt class="docutils literal">last_error</tt> is the error
 code describing what error occurred.</p>
 <a name="reset()"></a></div>
-<div class="section" id="id125">
+<div class="section" id="id124">
 <h2>reset()</h2>
 <pre class="literal-block">
 void <strong>reset</strong> ();
@@ -3087,7 +3121,7 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
    bool <strong>is_merkle_torrent</strong> () const;
 };
 </pre>
-<a name="torrent_info()"></a><div class="section" id="id129">
+<a name="torrent_info()"></a><div class="section" id="id128">
 <h2>torrent_info()</h2>
 <pre class="literal-block">
 <strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
@@ -3119,7 +3153,7 @@ always throw if an error occurs. These overloads are not available when building
 exception support.</p>
 <p>The <tt class="docutils literal">flags</tt> argument is currently unused.</p>
 <a name="~torrent_info()"></a></div>
-<div class="section" id="id137">
+<div class="section" id="id136">
 <h2>~torrent_info()</h2>
 <pre class="literal-block">
 <strong>~torrent_info</strong> ();
@@ -3144,7 +3178,7 @@ names. Filename may be chaged using <tt class="docutils literal"><span class="pr
 <p>For more information on the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object, see the separate document on how
 to create torrents.</p>
 <a name="rename_file()"></a></div>
-<div class="section" id="id143">
+<div class="section" id="id142">
 <h2>rename_file()</h2>
 <pre class="literal-block">
 void <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
@@ -3229,7 +3263,7 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as <tt class="docutils literal">piece_length()</tt> except in the case of the last piece, which may
 be smaller.</p>
 <a name="info_hash()"></a></div>
-<div class="section" id="id150">
+<div class="section" id="id149">
 <h2>info_hash()</h2>
 <pre class="literal-block">
 const sha1_hash&amp; <strong>info_hash</strong> () const;
@@ -3276,7 +3310,7 @@ std::string <strong>ssl_cert</strong> () const;
 torrent. Otherwise returns an empty string. The certificate is
 the the public certificate in x509 format.</p>
 <a name="is_valid()"></a></div>
-<div class="section" id="id153">
+<div class="section" id="id152">
 <h2>is_valid()</h2>
 <pre class="literal-block">
 bool <strong>is_valid</strong> () const;
@@ -3389,7 +3423,7 @@ lazy_entry const* <strong>info</strong> (char const* key) const;
 It can be used to access extension values put in the .torrent file. If the specified
 key cannot be found, it returns NULL.</p>
 <a name="swap()"></a></div>
-<div class="section" id="id158">
+<div class="section" id="id157">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (torrent_info&amp; ti);

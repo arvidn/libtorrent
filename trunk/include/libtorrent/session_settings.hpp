@@ -47,6 +47,8 @@ namespace libtorrent
 	// direct certain traffic to a proxy.
 	struct TORRENT_EXPORT proxy_settings
 	{
+		// defaults constructs proxy settings, initializing it to the default
+		// settings.
 		proxy_settings() : type(none)
 			, port(0), proxy_hostnames(true)
 			, proxy_peer_connections(true)
@@ -57,9 +59,13 @@ namespace libtorrent
 		// can be set to authenticate with the proxy.
 		std::string hostname;
 
+		// when using a proy type that requires authentication, the username
+		// and password fields must be set to the credentials for the proxy.
 		std::string username;
 		std::string password;
 
+		// the type of proxy to use. Assign one of these to the
+		// proxy_settings::type field.
 		enum proxy_type
 		{
 			// This is the default, no proxy server is used, all other fields
@@ -121,6 +127,7 @@ namespace libtorrent
 	// session::get_settings() to get the current settings.
 	struct TORRENT_EXPORT session_settings
 	{
+		// initializes the session_settings to the default settings.
 		session_settings(std::string const& user_agent = "libtorrent/"
 			LIBTORRENT_VERSION);
 		~session_settings();
