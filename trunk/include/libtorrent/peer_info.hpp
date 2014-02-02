@@ -201,9 +201,8 @@ namespace libtorrent
 		enum bw_state_deprecated { bw_torrent = bw_limit, bw_global = bw_limit };
 #endif
 
-		// bitmasks indicating what state this peer
-		// is in with regards to sending and receiving data. The states are declared in the
-		// bw_state enum.
+		// bitmasks indicating what state this peer is in with regards to sending
+		// and receiving data. The states are declared in the bw_state enum.
 		char read_state;
 		char write_state;
 		
@@ -213,27 +212,24 @@ namespace libtorrent
 		// .. _asio: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
 		tcp::endpoint ip;
 
-		// the current upload and download speed
-		// we have to and from this peer (including any protocol messages).
-		// updated about once per second
+		// the current upload and download speed we have to and from this peer
+		// (including any protocol messages). updated about once per second
 		int up_speed;
 		int down_speed;
 
-		// The transfer rates
-		// of payload data only 
-		// updated about once per second
+		// The transfer rates of payload data only updated about once per second
 		int payload_up_speed;
 		int payload_down_speed;
 
-		// the total number of bytes downloaded
-		// from and uploaded to this peer. These numbers do not include the protocol chatter, but only
-		// the payload data.
+		// the total number of bytes downloaded from and uploaded to this peer.
+		// These numbers do not include the protocol chatter, but only the
+		// payload data.
 		size_type total_download;
 		size_type total_upload;
 
-		// the peer's id as used in the bit torrent protocol. This id can be used to
-		// extract 'fingerprints' from the peer. Sometimes it can tell you which client the peer
-		// is using. See identify_client()_
+		// the peer's id as used in the bit torrent protocol. This id can be used
+		// to extract 'fingerprints' from the peer. Sometimes it can tell you
+		// which client the peer is using. See identify_client()_
 		peer_id pid;
 
 		// a bitfield, with one bit per piece in the torrent.
@@ -241,9 +237,9 @@ namespace libtorrent
 		// or if the peer miss that piece (set to 0).
 		bitfield pieces;
 
-		// the number of bytes per second we are allowed to send to or receive from this
-		// peer. It may be -1 if there's no local limit on the peer. The global
-		// limit and the torrent limit may also be enforced.
+		// the number of bytes per second we are allowed to send to or receive
+		// from this peer. It may be -1 if there's no local limit on the peer.
+		// The global limit and the torrent limit may also be enforced.
 		int upload_limit;
 		int download_limit;
 
@@ -257,8 +253,9 @@ namespace libtorrent
 		time_duration download_queue_time;
 		int queue_bytes;
 
-		// the number of seconds until the current front piece request
-		// will time out. This timeout can be adjusted through ``session_settings::request_timeout``.
+		// the number of seconds until the current front piece request will time
+		// out. This timeout can be adjusted through
+		// ``session_settings::request_timeout``.
 		// -1 means that there is not outstanding request.
 		int request_timeout;
 
@@ -276,12 +273,13 @@ namespace libtorrent
 		// sending us that turned out to fail the hash check.
 		int num_hashfails;
 
-		// the two letter `ISO 3166 country code`__ for the country the peer
-		// is connected from. If the country hasn't been resolved yet, both chars are set
-		// to 0. If the resolution failed for some reason, the field is set to "--". If the
-		// resolution service returns an invalid country code, it is set to "!!".
-		// The ``countries.nerd.dk`` service is used to look up countries. This field will
-		// remain set to 0 unless the torrent is set to resolve countries, see `resolve_countries()`_.
+		// the two letter `ISO 3166 country code`__ for the country the peer is
+		// connected from. If the country hasn't been resolved yet, both chars
+		// are set to 0. If the resolution failed for some reason, the field is
+		// set to "--". If the resolution service returns an invalid country
+		// code, it is set to "!!". The ``countries.nerd.dk`` service is used to
+		// look up countries. This field will remain set to 0 unless the torrent
+		// is set to resolve countries, see `resolve_countries()`_.
 		// 
 		// __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
 		char country[2];
@@ -293,11 +291,11 @@ namespace libtorrent
 		// the AS number the peer is located in.
 		int inet_as;
 
-		// a measurement of the balancing of free download (that we get)
-		// and free upload that we give. Every peer gets a certain amount of free upload, but
-		// this member says how much *extra* free upload this peer has got. If it is a negative
-		// number it means that this was a peer from which we have got this amount of free
-		// download.
+		// a measurement of the balancing of free download (that we get) and free
+		// upload that we give. Every peer gets a certain amount of free upload,
+		// but this member says how much *extra* free upload this peer has got.
+		// If it is a negative number it means that this was a peer from which we
+		// have got this amount of free download.
 		size_type load_balancing;
 
 		// this is the number of requests
@@ -329,29 +327,31 @@ namespace libtorrent
 		// that we haven't answered with a piece yet.
 		int upload_queue_length;
 
-		// the number of times this peer has "failed". i.e. failed to connect
-		// or disconnected us. The failcount is decremented when we see this peer in a tracker
-		// response or peer exchange message.
+		// the number of times this peer has "failed". i.e. failed to connect or
+		// disconnected us. The failcount is decremented when we see this peer in
+		// a tracker response or peer exchange message.
 		int failcount;
 
-		// You can know which piece, and which part of that piece, that is currently being
-		// downloaded from a specific peer by looking at these four members.
-		// ``downloading_piece_index`` is the index of the piece that is currently being downloaded.
-		// This may be set to -1 if there's currently no piece downloading from this peer. If it is
-		// >= 0, the other three members are valid. ``downloading_block_index`` is the index of the
-		// block (or sub-piece) that is being downloaded. ``downloading_progress`` is the number
-		// of bytes of this block we have received from the peer, and ``downloading_total`` is
-		// the total number of bytes in this block.
+		// You can know which piece, and which part of that piece, that is
+		// currently being downloaded from a specific peer by looking at these
+		// four members. ``downloading_piece_index`` is the index of the piece
+		// that is currently being downloaded. This may be set to -1 if there's
+		// currently no piece downloading from this peer. If it is >= 0, the
+		// other three members are valid. ``downloading_block_index`` is the
+		// index of the block (or sub-piece) that is being downloaded.
+		// ``downloading_progress`` is the number of bytes of this block we have
+		// received from the peer, and ``downloading_total`` is the total number
+		// of bytes in this block.
 		int downloading_piece_index;
 		int downloading_block_index;
 		int downloading_progress;
 		int downloading_total;
 	
 		// a string describing the software at the other end of the connection.
-		// In some cases this information is not available, then it will contain a string
-		// that may give away something about which software is running in the other end.
-		// In the case of a web seed, the server type and version will be a part of this
-		// string.
+		// In some cases this information is not available, then it will contain
+		// a string that may give away something about which software is running
+		// in the other end. In the case of a web seed, the server type and
+		// version will be a part of this string.
 		std::string client;
 		
 		enum connection_type_t
@@ -376,27 +376,27 @@ namespace libtorrent
 		// bytes per second.
 		int remote_dl_rate;
 
-		// the number of bytes this peer has pending in the
-		// disk-io thread. Downloaded and waiting to be written to disk. This is what
-		// is capped by ``session_settings::max_queued_disk_bytes``.
+		// the number of bytes this peer has pending in the disk-io thread.
+		// Downloaded and waiting to be written to disk. This is what is capped
+		// by ``session_settings::max_queued_disk_bytes``.
 		int pending_disk_bytes;
 
-		// the number of bytes this peer has been
-		// assigned to be allowed to send and receive until it has to request more quota
-		// from the bandwidth manager.
+		// the number of bytes this peer has been assigned to be allowed to send
+		// and receive until it has to request more quota from the bandwidth
+		// manager.
 		int send_quota;
 		int receive_quota;
 
 		// an estimated round trip time to this peer, in milliseconds. It is
-		// estimated by timing the the tcp ``connect()``. It may be 0 for incoming connections.
+		// estimated by timing the the tcp ``connect()``. It may be 0 for
+		// incoming connections.
 		int rtt;
 
 		// the number of pieces this peer has.
 		int num_pieces;
 
-		// the highest download and upload
-		// rates seen on this connection. They are given in bytes per second. This number is
-		// reset to 0 on reconnect.
+		// the highest download and upload rates seen on this connection. They
+		// are given in bytes per second. This number is reset to 0 on reconnect.
 		int download_rate_peak;
 		int upload_rate_peak;
 		
@@ -411,11 +411,12 @@ namespace libtorrent
 		int estimated_reciprocation_rate;
 
 		// the IP and port pair the socket is bound to locally. i.e. the IP
-		// address of the interface it's going out over. This may be useful for multi-homed
-		// clients with multiple interfaces to the internet.
+		// address of the interface it's going out over. This may be useful for
+		// multi-homed clients with multiple interfaces to the internet.
 		tcp::endpoint local_endpoint;
 	};
 
+	// internal
 	struct TORRENT_EXPORT peer_list_entry
 	{
 		enum flags_t
