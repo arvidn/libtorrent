@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Bencoding</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -301,6 +301,14 @@ will throw <tt class="docutils literal"><span class="pre">libtorrent::type_error
 <p>They will look for an element at the given key in the dictionary, if the
 element cannot be found, they will return 0. If an element with the given
 key is found, the return a pointer to it.</p>
+<a name="to_string()"></a></div>
+<div class="section" id="to-string">
+<h2>to_string()</h2>
+<pre class="literal-block">
+std::string <strong>to_string</strong> () const;
+</pre>
+<p>returns a pretty-printed string representation
+of the bencoded structure, with JSON-style syntax</p>
 <a name="data_type"></a></div>
 <div class="section" id="enum-data-type">
 <h2>enum data_type</h2>
@@ -721,6 +729,7 @@ it will throw <a class="reference external" href="reference-Error_Codes.html#lib
 <pre class="literal-block">
 inline std::ostream&amp; <strong>operator&lt;&lt;</strong> (std::ostream&amp; os, const entry&amp; e);
 </pre>
+<p>prints the bencoded structure to the ostream as a JSON-style structure.</p>
 <a name="lazy_bdecode()"></a></div>
 <div class="section" id="lazy-bdecode">
 <h2>lazy_bdecode()</h2>

@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -339,8 +339,7 @@ enough to not draining the socket's send buffer before the disk operation comple
 <p>The watermark is bound to a max value, to avoid buffer sizes growing out of control.
 The default max send buffer size might not be enough to sustain very high upload rates,
 and you might have to increase it. It's specified in bytes in
-<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>. The <tt class="docutils literal">high_performance_seed()</tt> preset
-sets this value to 5 MB.</p>
+<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>.</p>
 </div>
 <div class="section" id="peers">
 <h2>peers</h2>

@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent python binding</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -158,7 +158,10 @@ ses.listen_on(6881, 6891)
 e = lt.bdecode(open(&quot;test.torrent&quot;, 'rb').read())
 info = lt.torrent_info(e)
 
-h = ses.add_torrent(info, &quot;./&quot;, storage_mode=storage_mode_sparse)
+params = { save_path: './', \
+        storage_mode: lt.storage_mode_t.storage_mode_sparse, \
+        ti: info }
+h = ses.add_torrent(params)
 
 while (not h.is_seed()):
         s = h.status()

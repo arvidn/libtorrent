@@ -93,20 +93,7 @@ namespace libtorrent
 		};
 	}
 
-#if BOOST_VERSION < 103500
-	extern asio::error::error_category upnp_category;
-#else
-
-	struct TORRENT_EXPORT upnp_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
-
-	extern TORRENT_EXPORT upnp_error_category upnp_category;
-#endif
+	boost::system::error_category& get_upnp_category();
 
 // int: port-mapping index
 // address: external address as queried from router

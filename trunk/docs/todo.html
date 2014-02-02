@@ -812,7 +812,7 @@ for all peers though</h2><h4>../src/torrent.cpp:6261</h4><pre style="background:
 		// under a different limit with the auto-manager. Make sure we
 		// update auto-manage torrents in that case
 		if (m_auto_managed)
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(15)">../src/torrent_info.cpp:181</a></td><td>we might save constructing a std::string if this would take a char const* instead</td></tr><tr id="15" style="display: none;" colspan="3"><td colspan="3"><h2>we might save constructing a std::string if this would take a char const* instead</h2><h4>../src/torrent_info.cpp:181</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			{
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(15)">../src/torrent_info.cpp:183</a></td><td>we might save constructing a std::string if this would take a char const* instead</td></tr><tr id="15" style="display: none;" colspan="3"><td colspan="3"><h2>we might save constructing a std::string if this would take a char const* instead</h2><h4>../src/torrent_info.cpp:183</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			{
 				tmp_path += i[0];
 				tmp_path += i[1];
 				tmp_path += i[2];
@@ -863,9 +863,9 @@ for all peers though</h2><h4>../src/torrent.cpp:6261</h4><pre style="background:
 				path_element.resize(max_path_len);
 			}
 			else
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(16)">../src/torrent_info.cpp:401</a></td><td>this logic should be a separate step done once the torrent is loaded, and the original filenames should be preserved!</td></tr><tr id="16" style="display: none;" colspan="3"><td colspan="3"><h2>this logic should be a separate step
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(16)">../src/torrent_info.cpp:403</a></td><td>this logic should be a separate step done once the torrent is loaded, and the original filenames should be preserved!</td></tr><tr id="16" style="display: none;" colspan="3"><td colspan="3"><h2>this logic should be a separate step
 done once the torrent is loaded, and the original
-filenames should be preserved!</h2><h4>../src/torrent_info.cpp:401</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	
+filenames should be preserved!</h2><h4>../src/torrent_info.cpp:403</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	
 			while (*s1 != 0 || *s2 != 0)
 			{
 				c1 = to_lower(*s1);
@@ -916,8 +916,8 @@ filenames should be preserved!</h2><h4>../src/torrent_info.cpp:401</h4><pre styl
 
 			// This is a memory optimization! Instead of having
 			// each entry keep a string for its filename, make it
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(17)">../src/torrent_info.cpp:437</a></td><td>once the filename renaming is removed from here this check can be removed as well</td></tr><tr id="17" style="display: none;" colspan="3"><td colspan="3"><h2>once the filename renaming is removed from here
-this check can be removed as well</h2><h4>../src/torrent_info.cpp:437</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			// increase the counter
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(17)">../src/torrent_info.cpp:439</a></td><td>once the filename renaming is removed from here this check can be removed as well</td></tr><tr id="17" style="display: none;" colspan="3"><td colspan="3"><h2>once the filename renaming is removed from here
+this check can be removed as well</h2><h4>../src/torrent_info.cpp:439</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			// increase the counter
 			int cnt = 0;
 			if (!files.insert(e.path).second)
 			{
@@ -3003,14 +3003,14 @@ m_sock.bind(endpoint, ec);</h2><h4>../include/libtorrent/proxy_base.hpp:166</h4>
 		// flags for the source bitmask, each indicating where
 		// we heard about this tracker
 		enum tracker_source
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../include/libtorrent/upnp.hpp:121</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>../include/libtorrent/upnp.hpp:121</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../include/libtorrent/upnp.hpp:112</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>../include/libtorrent/upnp.hpp:112</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			external_port_must_be_wildcard = 727
+		};
+	}
 
-	extern TORRENT_EXPORT upnp_error_category upnp_category;
+#if BOOST_VERSION &lt; 103500
+	extern asio::error::error_category upnp_category;
+#else
+	boost::system::error_category&amp; get_upnp_category();
 #endif
 
 // int: port-mapping index
