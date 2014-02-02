@@ -39,34 +39,39 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	socks_error_category socks_category;
-
-#if BOOST_VERSION >= 103500
-	const char* socks_error_category::name() const BOOST_SYSTEM_NOEXCEPT
+	struct socks_error_category : boost::system::error_category
 	{
-		return "socks error";
-	}
-
-	std::string socks_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{
-		static char const* messages[] =
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+		{ return "socks error"; }
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
 		{
-			"SOCKS no error",
-			"SOCKS unsupported version",
-			"SOCKS unsupported authentication method",
-			"SOCKS unsupported authentication version",
-			"SOCKS authentication error",
-			"SOCKS username required",
-			"SOCKS general failure",
-			"SOCKS command not supported",
-			"SOCKS no identd running",
-			"SOCKS identd could not identify username"
-		};
+			static char const* messages[] =
+			{
+				"SOCKS no error",
+				"SOCKS unsupported version",
+				"SOCKS unsupported authentication method",
+				"SOCKS unsupported authentication version",
+				"SOCKS authentication error",
+				"SOCKS username required",
+				"SOCKS general failure",
+				"SOCKS command not supported",
+				"SOCKS no identd running",
+				"SOCKS identd could not identify username"
+			};
 
-		if (ev < 0 || ev >= socks_error::num_errors) return "unknown error";
-		return messages[ev];
+			if (ev < 0 || ev >= socks_error::num_errors) return "unknown error";
+			return messages[ev];
+		}
+		virtual boost::system::error_condition default_error_condition(
+			int ev) const BOOST_SYSTEM_NOEXCEPT
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+	TORRENT_EXPORT boost::system::error_category& get_socks_category()
+	{
+		static socks_error_category socks_category;
+		return socks_category;
 	}
-#endif
 
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
@@ -146,7 +151,7 @@ namespace libtorrent
 		}
 		else
 		{
-			(*h)(error_code(socks_error::unsupported_version, socks_category));
+			(*h)(error_code(socks_error::unsupported_version, get_socks_category()));
 			error_code ec;
 			close(ec);
 		}
@@ -194,7 +199,7 @@ namespace libtorrent
 
 		if (version < m_version)
 		{
-			(*h)(error_code(socks_error::unsupported_version, socks_category));
+			(*h)(error_code(socks_error::unsupported_version, get_socks_category()));
 			error_code ec;
 			close(ec);
 			return;
@@ -208,7 +213,7 @@ namespace libtorrent
 		{
 			if (m_user.empty())
 			{
-				(*h)(error_code(socks_error::username_required, socks_category));
+				(*h)(error_code(socks_error::username_required, get_socks_category()));
 				error_code ec;
 				close(ec);
 				return;
@@ -231,7 +236,7 @@ namespace libtorrent
 		}
 		else
 		{
-			(*h)(error_code(socks_error::unsupported_authentication_method, socks_category));
+			(*h)(error_code(socks_error::unsupported_authentication_method, get_socks_category()));
 			error_code ec;
 			close(ec);
 			return;
@@ -282,7 +287,7 @@ namespace libtorrent
 
 		if (version != 1)
 		{
-			(*h)(error_code(socks_error::unsupported_authentication_version, socks_category));
+			(*h)(error_code(socks_error::unsupported_authentication_version, get_socks_category()));
 			error_code ec;
 			close(ec);
 			return;
@@ -290,7 +295,7 @@ namespace libtorrent
 
 		if (status != 0)
 		{
-			(*h)(error_code(socks_error::authentication_error, socks_category));
+			(*h)(error_code(socks_error::authentication_error, get_socks_category()));
 			error_code ec;
 			close(ec);
 			return;
@@ -343,7 +348,7 @@ namespace libtorrent
 		}
 		else
 		{
-			(*h)(error_code(socks_error::unsupported_version, socks_category));
+			(*h)(error_code(socks_error::unsupported_version, get_socks_category()));
 			error_code ec;
 			close(ec);
 			return;
@@ -405,14 +410,14 @@ namespace libtorrent
 		{
 			if (version < m_version)
 			{
-				(*h)(error_code(socks_error::unsupported_version, socks_category));
+				(*h)(error_code(socks_error::unsupported_version, get_socks_category()));
 				error_code ec;
 				close(ec);
 				return;
 			}
 			if (response != 0)
 			{
-				error_code ec(socks_error::general_failure, socks_category);
+				error_code ec(socks_error::general_failure, get_socks_category());
 				switch (response)
 				{
 					case 2: ec = asio::error::no_permission; break;
@@ -420,7 +425,7 @@ namespace libtorrent
 					case 4: ec = asio::error::host_unreachable; break;
 					case 5: ec = asio::error::connection_refused; break;
 					case 6: ec = asio::error::timed_out; break;
-					case 7: ec = error_code(socks_error::command_not_supported, socks_category); break;
+					case 7: ec = error_code(socks_error::command_not_supported, get_socks_category()); break;
 					case 8: ec = asio::error::address_family_not_supported; break;
 				}
 				(*h)(ec);
@@ -484,7 +489,7 @@ namespace libtorrent
 		{
 			if (version != 0)
 			{
-				(*h)(error_code(socks_error::general_failure, socks_category));
+				(*h)(error_code(socks_error::general_failure, get_socks_category()));
 				error_code ec;
 				close(ec);
 				return;
@@ -524,7 +529,7 @@ namespace libtorrent
 				case 92: code = socks_error::no_identd; break;
 				case 93: code = socks_error::identd_error; break;
 			}
-			error_code ec(code, socks_category);
+			error_code ec(code, get_socks_category());
 			(*h)(ec);
 			close(ec);
 		}

@@ -55,24 +55,10 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#http-error-category" id="id33">http_error_category</a></li>
-<li><a class="reference internal" href="#libtorrent-exception" id="id34">libtorrent_exception</a></li>
-<li><a class="reference internal" href="#i2p-error-category" id="id35">i2p_error_category</a></li>
+<li><a class="reference internal" href="#libtorrent-exception" id="id36">libtorrent_exception</a></li>
 </ul>
 </div>
-<a name="http_error_category"></a><div class="section" id="http-error-category">
-<h1>http_error_category</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/error_code.hpp">libtorrent/error_code.hpp</a>&quot;</p>
-<pre class="literal-block">
-struct http_error_category : boost::system::error_category
-{
-   virtual boost::system::error_condition <strong>default_error_condition</strong> (int ev) const BOOST_SYSTEM_NOEXCEPT;
-   virtual const char* <strong>name</strong> () const BOOST_SYSTEM_NOEXCEPT;
-   virtual std::string <strong>message</strong> (int ev) const BOOST_SYSTEM_NOEXCEPT;
-};
-</pre>
-<a name="libtorrent_exception"></a></div>
-<div class="section" id="libtorrent-exception">
+<a name="libtorrent_exception"></a><div class="section" id="libtorrent-exception">
 <h1>libtorrent_exception</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/error_code.hpp">libtorrent/error_code.hpp</a>&quot;</p>
 <pre class="literal-block">
@@ -82,18 +68,6 @@ struct libtorrent_exception: std::exception
    virtual <strong>~libtorrent_exception</strong> () throw();
    <strong>libtorrent_exception</strong> (error_code const&amp; s);
    virtual const char* <strong>what</strong> () const throw();
-};
-</pre>
-<a name="i2p_error_category"></a></div>
-<div class="section" id="i2p-error-category">
-<h1>i2p_error_category</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/i2p_stream.hpp">libtorrent/i2p_stream.hpp</a>&quot;</p>
-<pre class="literal-block">
-struct i2p_error_category : boost::system::error_category
-{
-   virtual boost::system::error_condition <strong>default_error_condition</strong> (int ev) const BOOST_SYSTEM_NOEXCEPT;
-   virtual const char* <strong>name</strong> () const BOOST_SYSTEM_NOEXCEPT;
-   virtual std::string <strong>message</strong> (int ev) const BOOST_SYSTEM_NOEXCEPT;
 };
 </pre>
 <a name="get_libtorrent_category()"></a><div class="section" id="get-libtorrent-category">
@@ -112,6 +86,30 @@ maps libtorrent error codes to human readable error messages.</p>
 boost::system::error_category&amp; <strong>get_http_category</strong> ();
 </pre>
 <p>returns the error_category for HTTP errors</p>
+<a name="get_i2p_category()"></a></div>
+<div class="section" id="get-i2p-category">
+<h2>get_i2p_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/i2p_stream.hpp">libtorrent/i2p_stream.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_i2p_category</strong> ();
+</pre>
+<p>returns the error category for I2P errors</p>
+<a name="get_bdecode_category()"></a></div>
+<div class="section" id="get-bdecode-category">
+<h2>get_bdecode_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_bdecode_category</strong> ();
+</pre>
+<p>get the <tt class="docutils literal">error_category</tt> for bdecode errors</p>
+<a name="get_socks_category()"></a></div>
+<div class="section" id="get-socks-category">
+<h2>get_socks_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/socks5_stream.hpp">libtorrent/socks5_stream.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_socks_category</strong> ();
+</pre>
+<p>returns the error_category for SOCKS5 errors</p>
 <a name="error_code_enum"></a></div>
 <div class="section" id="enum-error-code-enum">
 <h2>enum error_code_enum</h2>
@@ -912,6 +910,57 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tr>
 </tbody>
 </table>
+<a name="error_code_enum"></a></div>
+<div class="section" id="id30">
+<h2>enum error_code_enum</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="8%" />
+<col width="72%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>Not an error</td>
+</tr>
+<tr><td>expected_string</td>
+<td>1</td>
+<td>expected string in bencoded string</td>
+</tr>
+<tr><td>expected_colon</td>
+<td>2</td>
+<td>expected colon in bencoded string</td>
+</tr>
+<tr><td>unexpected_eof</td>
+<td>3</td>
+<td>unexpected end of file in bencoded string</td>
+</tr>
+<tr><td>expected_value</td>
+<td>4</td>
+<td>expected value (list, dict, int or string) in bencoded string</td>
+</tr>
+<tr><td>depth_exceeded</td>
+<td>5</td>
+<td>bencoded recursion depth limit exceeded</td>
+</tr>
+<tr><td>limit_exceeded</td>
+<td>6</td>
+<td>bencoded item count limit exceeded</td>
+</tr>
+<tr><td>error_code_max</td>
+<td>7</td>
+<td>the number of error codes</td>
+</tr>
+</tbody>
+</table>
 <a name="socks_error_code"></a></div>
 <div class="section" id="enum-socks-error-code">
 <h2>enum socks_error_code</h2>
@@ -976,7 +1025,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id30">
+<div class="section" id="id33">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
 <table border="1" class="docutils">

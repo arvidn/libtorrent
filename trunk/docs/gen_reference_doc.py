@@ -105,16 +105,17 @@ category_fun_mapping = {
 
 def categorize_symbol(name, filename):
 	f = os.path.split(filename)[1]
-	if f in category_mapping:
-		return category_mapping[f]
 
-	if name.endswith('_category') \
+	if name.endswith('_category()') \
 		or name.endswith('_error_code') \
 		or name.endswith('error_code_enum'):
 		return 'Error Codes'
 
 	if name in category_fun_mapping:
 		return category_fun_mapping[name]
+
+	if f in category_mapping:
+		return category_mapping[f]
 
 	return 'Core'
 

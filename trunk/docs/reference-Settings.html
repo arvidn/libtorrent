@@ -55,8 +55,8 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#proxy-settings" id="id30">proxy_settings</a></li>
-<li><a class="reference internal" href="#session-settings" id="id31">session_settings</a></li>
+<li><a class="reference internal" href="#proxy-settings" id="id33">proxy_settings</a></li>
+<li><a class="reference internal" href="#session-settings" id="id34">session_settings</a></li>
 </ul>
 </div>
 <a name="proxy_settings"></a><div class="section" id="proxy-settings">
@@ -1895,6 +1895,31 @@ that the disk cache is less likely and slower at
 returning memory to the kernel when cache pressure
 is low.</dd>
 </dl>
+<a name="min_memory_usage()"></a>
+<a name="high_performance_seed()"></a></div>
+<div class="section" id="min-memory-usage-high-performance-seed">
+<h2>min_memory_usage() high_performance_seed()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
+<pre class="literal-block">
+session_settings <strong>min_memory_usage</strong> ();
+session_settings <strong>high_performance_seed</strong> ();
+</pre>
+<p>The default values of the <a class="reference external" href="reference-Session.html#session">session</a> settings are set for a regular bittorrent client running
+on a desktop system. There are functions that can set the <a class="reference external" href="reference-Session.html#session">session</a> settings to pre set
+settings for other environments. These can be used for the basis, and should be tweaked to
+fit your needs better.</p>
+<p><tt class="docutils literal">min_memory_usage</tt> returns settings that will use the minimal amount of RAM, at the
+potential expense of upload and download performance. It adjusts the socket buffer sizes,
+disables the disk cache, lowers the send buffer watermarks so that each connection only has
+at most one block in use at any one time. It lowers the outstanding blocks send to the disk
+I/O thread so that connections only have one block waiting to be flushed to disk at any given
+time. It lowers the max number of peers in the peer list for torrents. It performs multiple
+smaller reads when it hashes pieces, instead of reading it all into memory before hashing.</p>
+<p>This configuration is inteded to be the starting point for embedded devices. It will
+significantly reduce memory usage.</p>
+<p><tt class="docutils literal">high_performance_seed</tt> returns settings optimized for a seed box, serving many peers
+and that doesn't do any downloading. It has a 128 MB disk cache and has a limit of 400 files
+in its file pool. It support fast upload rates by allowing large send buffers.</p>
 </div>
 </div>
     </div>

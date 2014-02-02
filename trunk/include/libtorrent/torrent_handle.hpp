@@ -278,6 +278,7 @@ namespace libtorrent
 		// otherwise.
 		bool have_piece(int piece) const;
 
+		// internal
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 
 		// takes a reference to a vector that will be cleared and filled with one
@@ -287,6 +288,8 @@ namespace libtorrent
 		// information about that particular peer. See peer_info.
 		void get_peer_info(std::vector<peer_info>& v) const;
 
+		// flags to pass in to status() to specify which properties of the
+		// torrent to query for. By default all flags are set.
 		enum status_flags_t
 		{
 			// calculates ``distributed_copies``, ``distributed_full_copies`` and
@@ -393,8 +396,14 @@ namespace libtorrent
 		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
 #endif
 #endif
+
+		// flags to be passed in file_progress().
 		enum file_progress_flags_t
 		{
+			// only calculate file progress at piece granularity. This makes
+			// the file_progress() call cheaper and also only takes bytes that
+			// have passed the hash check into account, so progress cannot
+			// regress in this mode.
 			piece_granularity = 1
 		};
 
@@ -1138,6 +1147,8 @@ namespace libtorrent
 		torrent_status();
 		~torrent_status();
 
+		// compres if the torrent status objects come from the same torrent. i.e.
+		// only the torrent_handle field is compared.
 		bool operator==(torrent_status const& st) const
 		{ return handle == st.handle; }
 

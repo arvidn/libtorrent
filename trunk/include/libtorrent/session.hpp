@@ -200,15 +200,33 @@ namespace libtorrent
 		// timeout can be set with ``set_settings()``.
 		~session();
 
+		// flags that determines which aspects of the session should be
+		// saved when calling save_state().
 		enum save_state_flags_t
 		{
+			// saves settings (i.e. the session_settings)
 			save_settings =     0x001,
+
+			// saves dht_settings
 			save_dht_settings = 0x002,
+
+			// saves dht state such as nodes and node-id, possibly accelerating
+			// joining the DHT if provided at next session startup.
 			save_dht_state =    0x004,
+
+			// save proxy_settings
 			save_proxy =        0x008,
+
+			// save i2p_proxy settings
 			save_i2p_proxy =    0x010,
+
+			// save pe_settings
 			save_encryption_settings = 0x020,
+
+			// internal
 			save_as_map =       0x040,
+
+			// saves RSS feeds
 			save_feeds =        0x080
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -676,14 +694,22 @@ namespace libtorrent
 			, int flags = 0) TORRENT_DEPRECATED;
 #endif
 
+		// flags to be passed in to remove_torrent().
 		enum options_t
 		{
+			// delete the files belonging to the torrent from disk.
 			delete_files = 1
 		};
 
+		// flags to be passed in to the session constructor
 		enum session_flags_t
 		{
+			// this will add common extensions like ut_pex, ut_metadata, lt_tex
+			// smart_ban and possibly others.
 			add_default_plugins = 1,
+
+			// this will start features like DHT, local service discovery, UPnP
+			// and NAT-PMP.
 			start_default_features = 2
 		};
 
@@ -717,6 +743,7 @@ namespace libtorrent
 		proxy_settings proxy() const;
 
 #ifdef TORRENT_STATS
+		// internal
 		void enable_stats_logging(bool s);
 #endif
 
@@ -857,6 +884,7 @@ namespace libtorrent
 		// on linux, write to a pipe or an eventfd.
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
+		// internal
 		connection_queue& get_connection_queue();
 
 		// Starts and stops Local Service Discovery. This service will broadcast
@@ -879,6 +907,7 @@ namespace libtorrent
  		void start_upnp();
 		void stop_upnp();
 
+		// protocols used by add_port_mapping()
 		enum protocol_type { udp = 1, tcp = 2 };
 
 		// add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
