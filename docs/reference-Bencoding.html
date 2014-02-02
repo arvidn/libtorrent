@@ -55,11 +55,11 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#invalid-encoding" id="id55">invalid_encoding</a></li>
-<li><a class="reference internal" href="#type-error" id="id56">type_error</a></li>
-<li><a class="reference internal" href="#entry" id="id57">entry</a></li>
-<li><a class="reference internal" href="#pascal-string" id="id58">pascal_string</a></li>
-<li><a class="reference internal" href="#lazy-entry" id="id59">lazy_entry</a></li>
+<li><a class="reference internal" href="#invalid-encoding" id="id53">invalid_encoding</a></li>
+<li><a class="reference internal" href="#type-error" id="id54">type_error</a></li>
+<li><a class="reference internal" href="#entry" id="id55">entry</a></li>
+<li><a class="reference internal" href="#pascal-string" id="id56">pascal_string</a></li>
+<li><a class="reference internal" href="#lazy-entry" id="id57">lazy_entry</a></li>
 </ul>
 </div>
 <p>Bencoding is a common representation in bittorrent used for
@@ -767,65 +767,6 @@ is a reference to an <tt class="docutils literal">error_code</tt> which is set t
 in case the function fails. <tt class="docutils literal">error_pos</tt> is an optional pointer to an int,
 which will be set to the byte offset into the buffer where an error occurred,
 in case the function fails.</p>
-<a name="get_bdecode_category()"></a></div>
-<div class="section" id="get-bdecode-category">
-<h2>get_bdecode_category()</h2>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
-<pre class="literal-block">
-boost::system::error_category&amp; <strong>get_bdecode_category</strong> ();
-</pre>
-<p>get the <tt class="docutils literal">error_category</tt> for bdecode errors</p>
-<a name="error_code_enum"></a></div>
-<div class="section" id="enum-error-code-enum">
-<h2>enum error_code_enum</h2>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
-<table border="1" class="docutils">
-<colgroup>
-<col width="20%" />
-<col width="8%" />
-<col width="72%" />
-</colgroup>
-<thead valign="bottom">
-<tr><th class="head">name</th>
-<th class="head">value</th>
-<th class="head">description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr><td>no_error</td>
-<td>0</td>
-<td>Not an error</td>
-</tr>
-<tr><td>expected_string</td>
-<td>1</td>
-<td>expected string in bencoded string</td>
-</tr>
-<tr><td>expected_colon</td>
-<td>2</td>
-<td>expected colon in bencoded string</td>
-</tr>
-<tr><td>unexpected_eof</td>
-<td>3</td>
-<td>unexpected end of file in bencoded string</td>
-</tr>
-<tr><td>expected_value</td>
-<td>4</td>
-<td>expected value (list, dict, int or string) in bencoded string</td>
-</tr>
-<tr><td>depth_exceeded</td>
-<td>5</td>
-<td>bencoded recursion depth limit exceeded</td>
-</tr>
-<tr><td>limit_exceeded</td>
-<td>6</td>
-<td>bencoded item count limit exceeded</td>
-</tr>
-<tr><td>error_code_max</td>
-<td>7</td>
-<td>the number of error codes</td>
-</tr>
-</tbody>
-</table>
 </div>
 </div>
     </div>

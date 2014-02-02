@@ -55,17 +55,17 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id167">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#peer-info" id="id168">peer_info</a></li>
-<li><a class="reference internal" href="#peer-list-entry" id="id169">peer_list_entry</a></li>
-<li><a class="reference internal" href="#peer-request" id="id170">peer_request</a></li>
-<li><a class="reference internal" href="#piece-block-progress" id="id171">piece_block_progress</a></li>
-<li><a class="reference internal" href="#block-info" id="id172">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id173">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id174">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id175">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id176">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id177">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id169">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-info" id="id170">peer_info</a></li>
+<li><a class="reference internal" href="#peer-list-entry" id="id171">peer_list_entry</a></li>
+<li><a class="reference internal" href="#peer-request" id="id172">peer_request</a></li>
+<li><a class="reference internal" href="#piece-block-progress" id="id173">piece_block_progress</a></li>
+<li><a class="reference internal" href="#block-info" id="id174">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id175">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id176">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id177">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id178">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id179">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -1072,7 +1072,6 @@ struct torrent_handle
    void <strong>add_piece</strong> (int piece, char const* data, int flags = 0) const;
    void <strong>read_piece</strong> (int piece) const;
    bool <strong>have_piece</strong> (int piece) const;
-   void <strong>get_full_peer_list</strong> (std::vector&lt;peer_list_entry&gt;&amp; v) const;
    void <strong>get_peer_info</strong> (std::vector&lt;peer_info&gt;&amp; v) const;
    torrent_status <strong>status</strong> (boost::uint32_t flags = 0xffffffff) const;
    void <strong>get_download_queue</strong> (std::vector&lt;partial_piece_info&gt;&amp; queue) const;
@@ -2182,9 +2181,9 @@ torrent are saved to.</td>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="49%" />
-<col width="18%" />
-<col width="33%" />
+<col width="20%" />
+<col width="7%" />
+<col width="73%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -2195,7 +2194,10 @@ torrent are saved to.</td>
 <tbody valign="top">
 <tr><td>piece_granularity</td>
 <td>1</td>
-<td>&nbsp;</td>
+<td>only calculate file progress at piece granularity. This makes
+the <a class="reference external" href="reference-Core.html#file_progress()">file_progress()</a> call cheaper and also only takes bytes that
+have passed the hash check into account, so progress cannot
+regress in this mode.</td>
 </tr>
 </tbody>
 </table>
@@ -2353,7 +2355,15 @@ struct torrent_status
    sha1_hash info_hash;
 };
 </pre>
-<a name="state_t"></a><div class="section" id="id106">
+<a name="operator==()"></a><div class="section" id="operator">
+<h2>operator==()</h2>
+<pre class="literal-block">
+bool <strong>operator==</strong> (torrent_status const&amp; st) const;
+</pre>
+<p>compres if the torrent status objects come from the same torrent. i.e.
+only the <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> field is compared.</p>
+<a name="state_t"></a></div>
+<div class="section" id="id108">
 <h2>enum state_t</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -2903,7 +2913,7 @@ allowed to force another tracker update with this tracker.</p>
 <p>If the last time this tracker was contacted failed, <tt class="docutils literal">last_error</tt> is the error
 code describing what error occurred.</p>
 <a name="reset()"></a></div>
-<div class="section" id="id126">
+<div class="section" id="id128">
 <h2>reset()</h2>
 <pre class="literal-block">
 void <strong>reset</strong> ();
@@ -3119,7 +3129,7 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
    bool <strong>is_merkle_torrent</strong> () const;
 };
 </pre>
-<a name="torrent_info()"></a><div class="section" id="id130">
+<a name="torrent_info()"></a><div class="section" id="id132">
 <h2>torrent_info()</h2>
 <pre class="literal-block">
 <strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
@@ -3151,7 +3161,7 @@ always throw if an error occurs. These overloads are not available when building
 exception support.</p>
 <p>The <tt class="docutils literal">flags</tt> argument is currently unused.</p>
 <a name="~torrent_info()"></a></div>
-<div class="section" id="id138">
+<div class="section" id="id140">
 <h2>~torrent_info()</h2>
 <pre class="literal-block">
 <strong>~torrent_info</strong> ();
@@ -3176,7 +3186,7 @@ names. Filename may be chaged using <tt class="docutils literal"><span class="pr
 <p>For more information on the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object, see the separate document on how
 to create torrents.</p>
 <a name="rename_file()"></a></div>
-<div class="section" id="id144">
+<div class="section" id="id146">
 <h2>rename_file()</h2>
 <pre class="literal-block">
 void <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
@@ -3261,7 +3271,7 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as <tt class="docutils literal">piece_length()</tt> except in the case of the last piece, which may
 be smaller.</p>
 <a name="info_hash()"></a></div>
-<div class="section" id="id151">
+<div class="section" id="id153">
 <h2>info_hash()</h2>
 <pre class="literal-block">
 const sha1_hash&amp; <strong>info_hash</strong> () const;
@@ -3308,7 +3318,7 @@ std::string <strong>ssl_cert</strong> () const;
 torrent. Otherwise returns an empty string. The certificate is
 the the public certificate in x509 format.</p>
 <a name="is_valid()"></a></div>
-<div class="section" id="id154">
+<div class="section" id="id156">
 <h2>is_valid()</h2>
 <pre class="literal-block">
 bool <strong>is_valid</strong> () const;
@@ -3421,7 +3431,7 @@ lazy_entry const* <strong>info</strong> (char const* key) const;
 It can be used to access extension values put in the .torrent file. If the specified
 key cannot be found, it returns NULL.</p>
 <a name="swap()"></a></div>
-<div class="section" id="id159">
+<div class="section" id="id161">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (torrent_info&amp; ti);

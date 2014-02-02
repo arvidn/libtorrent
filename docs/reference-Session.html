@@ -617,7 +617,6 @@ class session: public boost::noncopyable
    void <strong>set_pe_settings</strong> (pe_settings const&amp; settings);
    void <strong>set_proxy</strong> (proxy_settings const&amp; s);
    proxy_settings <strong>proxy</strong> () const;
-   void <strong>enable_stats_logging</strong> (bool s);
    proxy_settings <strong>i2p_proxy</strong> () const;
    void <strong>set_i2p_proxy</strong> (proxy_settings const&amp; s);
    void <strong>pop_alerts</strong> (std::deque&lt;alert*&gt;* alerts);
@@ -625,7 +624,6 @@ class session: public boost::noncopyable
    alert const* <strong>wait_for_alert</strong> (time_duration max_wait);
    void <strong>set_alert_mask</strong> (boost::uint32_t m);
    void <strong>set_alert_dispatch</strong> (boost::function&lt;void(std::auto_ptr&lt;alert&gt;)&gt; const&amp; fun);
-   connection_queue&amp; <strong>get_connection_queue</strong> ();
    void <strong>stop_lsd</strong> ();
    void <strong>start_lsd</strong> ();
    void <strong>stop_upnp</strong> ();
@@ -643,7 +641,6 @@ class session: public boost::noncopyable
       save_proxy,
       save_i2p_proxy,
       save_encryption_settings,
-      save_as_map,
       save_feeds,
    };
 
@@ -1308,9 +1305,9 @@ arbitrary port mappings. Mapping status is returned through the
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="57%" />
-<col width="15%" />
-<col width="28%" />
+<col width="26%" />
+<col width="7%" />
+<col width="67%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -1321,35 +1318,32 @@ arbitrary port mappings. Mapping status is returned through the
 <tbody valign="top">
 <tr><td>save_settings</td>
 <td>1</td>
-<td>&nbsp;</td>
+<td>saves settings (i.e. the <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>)</td>
 </tr>
 <tr><td>save_dht_settings</td>
 <td>2</td>
-<td>&nbsp;</td>
+<td>saves dht_settings</td>
 </tr>
 <tr><td>save_dht_state</td>
 <td>4</td>
-<td>&nbsp;</td>
+<td>saves dht state such as nodes and node-id, possibly accelerating
+joining the DHT if provided at next <a class="reference external" href="reference-Session.html#session">session</a> startup.</td>
 </tr>
 <tr><td>save_proxy</td>
 <td>8</td>
-<td>&nbsp;</td>
+<td>save <a class="reference external" href="reference-Settings.html#proxy_settings">proxy_settings</a></td>
 </tr>
 <tr><td>save_i2p_proxy</td>
 <td>16</td>
-<td>&nbsp;</td>
+<td>save i2p_proxy settings</td>
 </tr>
 <tr><td>save_encryption_settings</td>
 <td>32</td>
-<td>&nbsp;</td>
-</tr>
-<tr><td>save_as_map</td>
-<td>64</td>
-<td>&nbsp;</td>
+<td>save pe_settings</td>
 </tr>
 <tr><td>save_feeds</td>
 <td>128</td>
-<td>&nbsp;</td>
+<td>saves RSS feeds</td>
 </tr>
 </tbody>
 </table>
@@ -1382,9 +1376,9 @@ arbitrary port mappings. Mapping status is returned through the
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="41%" />
-<col width="21%" />
-<col width="38%" />
+<col width="19%" />
+<col width="9%" />
+<col width="72%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -1395,7 +1389,7 @@ arbitrary port mappings. Mapping status is returned through the
 <tbody valign="top">
 <tr><td>delete_files</td>
 <td>1</td>
-<td>&nbsp;</td>
+<td>delete the files belonging to the torrent from disk.</td>
 </tr>
 </tbody>
 </table>
@@ -1405,9 +1399,9 @@ arbitrary port mappings. Mapping status is returned through the
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="55%" />
-<col width="16%" />
-<col width="30%" />
+<col width="25%" />
+<col width="7%" />
+<col width="68%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -1418,11 +1412,13 @@ arbitrary port mappings. Mapping status is returned through the
 <tbody valign="top">
 <tr><td>add_default_plugins</td>
 <td>1</td>
-<td>&nbsp;</td>
+<td>this will add common extensions like ut_pex, ut_metadata, lt_tex
+smart_ban and possibly others.</td>
 </tr>
 <tr><td>start_default_features</td>
 <td>2</td>
-<td>&nbsp;</td>
+<td>this will start features like DHT, local service discovery, UPnP
+and NAT-PMP.</td>
 </tr>
 </tbody>
 </table>
@@ -1803,31 +1799,6 @@ by the DHT.</dd>
 <dd>the number of known peers across all torrents. These are not necessarily
 connected peers, just peers we know of.</dd>
 </dl>
-<a name="min_memory_usage()"></a>
-<a name="high_performance_seed()"></a><div class="section" id="min-memory-usage-high-performance-seed">
-<h2>min_memory_usage() high_performance_seed()</h2>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
-<pre class="literal-block">
-session_settings <strong>min_memory_usage</strong> ();
-session_settings <strong>high_performance_seed</strong> ();
-</pre>
-<p>The default values of the <a class="reference external" href="reference-Session.html#session">session</a> settings are set for a regular bittorrent client running
-on a desktop system. There are functions that can set the <a class="reference external" href="reference-Session.html#session">session</a> settings to pre set
-settings for other environments. These can be used for the basis, and should be tweaked to
-fit your needs better.</p>
-<p><tt class="docutils literal">min_memory_usage</tt> returns settings that will use the minimal amount of RAM, at the
-potential expense of upload and download performance. It adjusts the socket buffer sizes,
-disables the disk cache, lowers the send buffer watermarks so that each connection only has
-at most one block in use at any one time. It lowers the outstanding blocks send to the disk
-I/O thread so that connections only have one block waiting to be flushed to disk at any given
-time. It lowers the max number of peers in the peer list for torrents. It performs multiple
-smaller reads when it hashes pieces, instead of reading it all into memory before hashing.</p>
-<p>This configuration is inteded to be the starting point for embedded devices. It will
-significantly reduce memory usage.</p>
-<p><tt class="docutils literal">high_performance_seed</tt> returns settings optimized for a seed box, serving many peers
-and that doesn't do any downloading. It has a 128 MB disk cache and has a limit of 400 files
-in its file pool. It support fast upload rates by allowing large send buffers.</p>
-</div>
 </div>
     </div>
     <div id="footer">

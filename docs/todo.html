@@ -1355,7 +1355,7 @@ remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.c
 		if (arguments_start != std::string::npos)
 			url += "&amp;";
 		else
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(26)">../src/i2p_stream.cpp:204</a></td><td>move this to proxy_base and use it in all proxies</td></tr><tr id="26" style="display: none;" colspan="3"><td colspan="3"><h2>move this to proxy_base and use it in all proxies</h2><h4>../src/i2p_stream.cpp:204</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(26)">../src/i2p_stream.cpp:210</a></td><td>move this to proxy_base and use it in all proxies</td></tr><tr id="26" style="display: none;" colspan="3"><td colspan="3"><h2>move this to proxy_base and use it in all proxies</h2><h4>../src/i2p_stream.cpp:210</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 	i2p_stream::i2p_stream(io_service&amp; io_service)
 		: proxy_base(io_service)
 		, m_id(0)
@@ -3003,15 +3003,15 @@ m_sock.bind(endpoint, ec);</h2><h4>../include/libtorrent/proxy_base.hpp:166</h4>
 		// flags for the source bitmask, each indicating where
 		// we heard about this tracker
 		enum tracker_source
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../include/libtorrent/upnp.hpp:112</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>../include/libtorrent/upnp.hpp:112</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			external_port_must_be_wildcard = 727
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../include/libtorrent/upnp.hpp:108</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>../include/libtorrent/upnp.hpp:108</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			// specific IP addres or DNS name
+			remote_host_must_be_wildcard = 726,
+			// ExternalPort must be a wildcard and cannot be a
+			// specific port
+			external_port_must_be_wildcard = 727
 		};
 	}
 
-#if BOOST_VERSION &lt; 103500
-	extern asio::error::error_category upnp_category;
-#else
 	boost::system::error_category&amp; get_upnp_category();
-#endif
 
 // int: port-mapping index
 // address: external address as queried from router

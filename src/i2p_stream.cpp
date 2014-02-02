@@ -46,37 +46,43 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	i2p_error_category i2p_category;
-
-	const char* i2p_error_category::name() const BOOST_SYSTEM_NOEXCEPT
+	struct i2p_error_category : boost::system::error_category
 	{
-		return "i2p error";
-	}
-
-	std::string i2p_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{
-		static char const* messages[] =
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+		{ return "i2p error"; }
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
 		{
-			"no error",
-			"parse failed",
-			"cannot reach peer",
-			"i2p error",
-			"invalid key",
-			"invalid id",
-			"timeout",
-			"key not found",
-			"duplicated id"
-		};
+			static char const* messages[] =
+			{
+				"no error",
+				"parse failed",
+				"cannot reach peer",
+				"i2p error",
+				"invalid key",
+				"invalid id",
+				"timeout",
+				"key not found",
+				"duplicated id"
+			};
 
-		if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
-		return messages[ev];
+			if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
+			return messages[ev];
+		}
+		virtual boost::system::error_condition default_error_condition(
+			int ev) const BOOST_SYSTEM_NOEXCEPT
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+
+	TORRENT_EXPORT boost::system::error_category& get_i2p_category()
+	{
+		static i2p_error_category i2p_category;
+		return i2p_category;
 	}
-
 	i2p_connection::i2p_connection(io_service& ios)
 		: m_state(sam_idle)
 		, m_io_service(ios)
-	{
-	}
+	{}
 
 	i2p_connection::~i2p_connection()
 	{}
@@ -322,7 +328,7 @@ namespace libtorrent
 		}
 
 		error_code invalid_response(i2p_error::parse_failed
-			, i2p_category);
+			, get_i2p_category());
 
 		// null-terminate the string and parse it
 		m_buffer.push_back(0);
@@ -413,7 +419,7 @@ namespace libtorrent
 
 		if (result != i2p_error::no_error)
 		{
-			error_code ec(result, i2p_category);
+			error_code ec(result, get_i2p_category());
 			handle_error(ec, h);
 			return;
 		}
