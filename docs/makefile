@@ -43,9 +43,6 @@ TARGETS = index \
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
 
-troubleshooting_thumb.png: troubleshooting.png
-	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
-
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
@@ -53,6 +50,12 @@ pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
 all: html
+
+troubleshooting_thumb.png: troubleshooting.png
+	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
+
+troubleshooting.png: troubleshooting.dot
+	dot troubleshooting.dot -Tpng >troubleshooting.png
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
