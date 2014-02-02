@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <cstdlib>
 
-using namespace libtorrent;
+namespace libtorrent {
 
 static error_code ec;
 
@@ -795,7 +795,7 @@ struct parse_state
 	}
 };
 
-TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state)
+TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
@@ -1098,36 +1098,48 @@ namespace
 
 #if BOOST_VERSION >= 103500
 
-
-const char* upnp_error_category::name() const BOOST_SYSTEM_NOEXCEPT
+struct upnp_error_category : boost::system::error_category
 {
-	return "UPnP error";
-}
-
-std::string upnp_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
-{
-	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
-	error_code_t* end = error_codes + num_errors;
-	error_code_t tmp = {ev, 0};
-	error_code_t* e = std::lower_bound(error_codes, end, tmp
-		, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
-	if (e != end && e->code == ev)
+	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
 	{
-		return e->msg;
+		return "UPnP error";
 	}
-	return "unknown UPnP error";
-}
 
-namespace libtorrent
+	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+	{
+		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
+		error_code_t* end = error_codes + num_errors;
+		error_code_t tmp = {ev, 0};
+		error_code_t* e = std::lower_bound(error_codes, end, tmp
+			, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
+		if (e != end && e->code == ev)
+		{
+			return e->msg;
+		}
+		char msg[200];
+		snprintf(msg, sizeof(msg), "unknown UPnP error (%d)", ev);
+		return msg;
+	}
+
+	virtual boost::system::error_condition default_error_condition(
+		int ev) const BOOST_SYSTEM_NOEXCEPT
+	{
+		return boost::system::error_condition(ev, *this);
+	}
+};
+
+boost::system::error_category& get_upnp_category()
 {
-	TORRENT_EXPORT upnp_error_category upnp_category;
+	static upnp_error_category cat;
+	return cat;
 }
 
 #else
 
-namespace libtorrent
+boost::system::error_category& get_upnp_category()
 {
-	TORRENT_EXPORT ::asio::error::error_category upnp_category(21);
+	static ::asio::error::error_category cat(21);
+	return cat;
 }
 
 #endif
@@ -1386,7 +1398,7 @@ void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
 		error_string += e->msg;
 	}
 	l.unlock();
-	m_callback(mapping, address(), 0, error_code(code, upnp_category));
+	m_callback(mapping, address(), 0, error_code(code, get_upnp_category()));
 	l.lock();
 }
 
@@ -1441,7 +1453,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	l.unlock();
 	m_callback(mapping, address(), 0, p.status_code() != 200
 		? error_code(p.status_code(), get_http_category())
-		: error_code(s.error_code, upnp_category));
+		: error_code(s.error_code, get_upnp_category()));
 	l.lock();
 
 	d.mapping[mapping].protocol = none;
@@ -1523,5 +1535,7 @@ void upnp::close()
 		}
 		if (num_mappings() > 0) update_map(d, 0, l);
 	}
+}
+
 }
 

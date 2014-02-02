@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Error Codes</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,10 +55,9 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#http-error-category" id="id34">http_error_category</a></li>
-<li><a class="reference internal" href="#libtorrent-exception" id="id35">libtorrent_exception</a></li>
-<li><a class="reference internal" href="#i2p-error-category" id="id36">i2p_error_category</a></li>
-<li><a class="reference internal" href="#upnp-error-category" id="id37">upnp_error_category</a></li>
+<li><a class="reference internal" href="#http-error-category" id="id33">http_error_category</a></li>
+<li><a class="reference internal" href="#libtorrent-exception" id="id34">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#i2p-error-category" id="id35">i2p_error_category</a></li>
 </ul>
 </div>
 <a name="http_error_category"></a><div class="section" id="http-error-category">
@@ -91,18 +90,6 @@ struct libtorrent_exception: std::exception
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/i2p_stream.hpp">libtorrent/i2p_stream.hpp</a>&quot;</p>
 <pre class="literal-block">
 struct i2p_error_category : boost::system::error_category
-{
-   virtual boost::system::error_condition <strong>default_error_condition</strong> (int ev) const BOOST_SYSTEM_NOEXCEPT;
-   virtual const char* <strong>name</strong> () const BOOST_SYSTEM_NOEXCEPT;
-   virtual std::string <strong>message</strong> (int ev) const BOOST_SYSTEM_NOEXCEPT;
-};
-</pre>
-<a name="upnp_error_category"></a></div>
-<div class="section" id="upnp-error-category">
-<h1>upnp_error_category</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
-<pre class="literal-block">
-struct upnp_error_category : boost::system::error_category
 {
    virtual boost::system::error_condition <strong>default_error_condition</strong> (int ev) const BOOST_SYSTEM_NOEXCEPT;
    virtual const char* <strong>name</strong> () const BOOST_SYSTEM_NOEXCEPT;
@@ -989,7 +976,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id31">
+<div class="section" id="id30">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
 <table border="1" class="docutils">

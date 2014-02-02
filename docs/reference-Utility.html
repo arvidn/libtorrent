@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Utility</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,8 +55,8 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#bitfield" id="id35">bitfield</a></li>
-<li><a class="reference internal" href="#sha1-hash" id="id36">sha1_hash</a></li>
+<li><a class="reference internal" href="#bitfield" id="id39">bitfield</a></li>
+<li><a class="reference internal" href="#sha1-hash" id="id40">sha1_hash</a></li>
 </ul>
 </div>
 <a name="bitfield"></a><div class="section" id="bitfield">
@@ -67,12 +67,12 @@ in a heap allocated or borrowed array.</p>
 <pre class="literal-block">
 struct bitfield
 {
-   <strong>bitfield</strong> (int bits, bool val);
-   <strong>bitfield</strong> ();
    <strong>bitfield</strong> (int bits);
    <strong>bitfield</strong> (bitfield const&amp; rhs);
-   <strong>bitfield</strong> (char const* b, int bits);
    <strong>bitfield</strong> (bitfield&amp;&amp; rhs);
+   <strong>bitfield</strong> (int bits, bool val);
+   <strong>bitfield</strong> ();
+   <strong>bitfield</strong> (char const* b, int bits);
    void <strong>borrow_bytes</strong> (char* b, int bits);
    void <strong>assign</strong> (char const* b, int bits);
    bool <strong>get_bit</strong> (int index) const;
@@ -90,10 +90,11 @@ struct bitfield
 <a name="bitfield()"></a><div class="section" id="id3">
 <h2>bitfield()</h2>
 <pre class="literal-block">
-<strong>bitfield</strong> (int bits, bool val);
-<strong>bitfield</strong> ();
 <strong>bitfield</strong> (int bits);
 <strong>bitfield</strong> (bitfield const&amp; rhs);
+<strong>bitfield</strong> (bitfield&amp;&amp; rhs);
+<strong>bitfield</strong> (int bits, bool val);
+<strong>bitfield</strong> ();
 <strong>bitfield</strong> (char const* b, int bits);
 </pre>
 <p>constructs a new <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. The default constructor creates an empty
@@ -206,9 +207,9 @@ class sha1_hash
    bool <strong>is_all_zeros</strong> () const;
    sha1_hash&amp; <strong>operator&lt;&lt;=</strong> (int n);
    sha1_hash&amp; <strong>operator&gt;&gt;=</strong> (int n);
-   bool <strong>operator==</strong> (sha1_hash const&amp; n) const;
    bool <strong>operator!=</strong> (sha1_hash const&amp; n) const;
    bool <strong>operator&lt;</strong> (sha1_hash const&amp; n) const;
+   bool <strong>operator==</strong> (sha1_hash const&amp; n) const;
    sha1_hash <strong>operator~</strong> ();
    sha1_hash <strong>operator^</strong> (sha1_hash const&amp; n) const;
    sha1_hash&amp; <strong>operator^=</strong> (sha1_hash const&amp; n);
@@ -291,47 +292,61 @@ sha1_hash&amp; <strong>operator&lt;&lt;=</strong> (int n);
 sha1_hash&amp; <strong>operator&gt;&gt;=</strong> (int n);
 </pre>
 <p>shift r <tt class="docutils literal">n</tt> bits.</p>
+<a name="operator!=()"></a>
+<a name="operator<()"></a>
 <a name="operator==()"></a></div>
-<div class="section" id="id21">
-<h2>operator==()</h2>
+<div class="section" id="operator-operator-operator">
+<h2>operator!=() operator&lt;() operator==()</h2>
 <pre class="literal-block">
+bool <strong>operator!=</strong> (sha1_hash const&amp; n) const;
+bool <strong>operator&lt;</strong> (sha1_hash const&amp; n) const;
 bool <strong>operator==</strong> (sha1_hash const&amp; n) const;
 </pre>
 <p>standard comparison operators</p>
 <a name="operator~()"></a></div>
-<div class="section" id="id22">
+<div class="section" id="id21">
 <h2>operator~()</h2>
 <pre class="literal-block">
 sha1_hash <strong>operator~</strong> ();
 </pre>
-<p>negate every bit in the sha1-hash</p>
-<a name="operator^=()"></a>
+<p>returns a bit-wise negated copy of the sha1-hash</p>
 <a name="operator^()"></a></div>
-<div class="section" id="operator-operator">
-<h2>operator^=() operator^()</h2>
+<div class="section" id="id22">
+<h2>operator^()</h2>
 <pre class="literal-block">
 sha1_hash <strong>operator^</strong> (sha1_hash const&amp; n) const;
+</pre>
+<p>returns the bit-wise XOR of the two sha1-hashes.</p>
+<a name="operator^=()"></a></div>
+<div class="section" id="id23">
+<h2>operator^=()</h2>
+<pre class="literal-block">
 sha1_hash&amp; <strong>operator^=</strong> (sha1_hash const&amp; n);
 </pre>
-<p>bit-wise XOR of the two sha1-hash.</p>
-<a name="operator&=()"></a>
+<p>in-place bit-wise XOR with the passed in <a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a>.</p>
 <a name="operator&()"></a></div>
-<div class="section" id="id23">
-<h2>operator&amp;=() operator&amp;()</h2>
+<div class="section" id="id25">
+<h2>operator&amp;()</h2>
 <pre class="literal-block">
 sha1_hash <strong>operator&amp;</strong> (sha1_hash const&amp; n) const;
+</pre>
+<p>returns the bit-wise AND of the two sha1-hashes.</p>
+<a name="operator&=()"></a></div>
+<div class="section" id="id26">
+<h2>operator&amp;=()</h2>
+<pre class="literal-block">
 sha1_hash&amp; <strong>operator&amp;=</strong> (sha1_hash const&amp; n);
 </pre>
-<p>bit-wise AND of the two sha1-hash.</p>
+<p>in-place bit-wise AND of the passed in <a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a></p>
 <a name="operator|=()"></a></div>
-<div class="section" id="id24">
+<div class="section" id="id28">
 <h2>operator|=()</h2>
 <pre class="literal-block">
 sha1_hash&amp; <strong>operator|=</strong> (sha1_hash const&amp; n);
 </pre>
-<p>bit-wise OR of the two sha1-hash.</p>
+<p>in-place bit-wise OR of the two sha1-hash.</p>
 <a name="operator[]()"></a></div>
-<div class="section" id="id25">
+<div class="section" id="id29">
 <h2>operator[]()</h2>
 <pre class="literal-block">
 unsigned char&amp; <strong>operator[]</strong> (int i);
@@ -384,7 +399,7 @@ to automate the identification of clients. It will not be able to identify peers
 standard encodings. Only Azureus style, Shadow's style and Mainline style. This function is
 declared in the header <tt class="docutils literal">&lt;libtorrent/identify_client.hpp&gt;</tt>.</p>
 <a name="operator<<()"></a></div>
-<div class="section" id="id28">
+<div class="section" id="id32">
 <h2>operator&lt;&lt;()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/sha1_hash.hpp">libtorrent/sha1_hash.hpp</a>&quot;</p>
 <pre class="literal-block">
@@ -392,7 +407,7 @@ inline std::ostream&amp; <strong>operator&lt;&lt;</strong> (std::ostream&amp; os
 </pre>
 <p>print a <a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a> object to an ostream as 40 hexadecimal digits</p>
 <a name="operator>>()"></a></div>
-<div class="section" id="id31">
+<div class="section" id="id35">
 <h2>operator&gt;&gt;()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/sha1_hash.hpp">libtorrent/sha1_hash.hpp</a>&quot;</p>
 <pre class="literal-block">
