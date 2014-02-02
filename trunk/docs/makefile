@@ -28,6 +28,7 @@ TARGETS = index \
 	client_test \
 	building \
 	features \
+	troubleshooting \
 	contributing\
 	examples \
 	extension_protocol \
@@ -41,6 +42,9 @@ TARGETS = index \
 	$(REFERENCE_TARGETS)
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
+
+troubleshooting_thumb.png: troubleshooting.png
+	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
 
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
 

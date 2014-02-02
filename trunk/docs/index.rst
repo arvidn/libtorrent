@@ -10,6 +10,7 @@
 * examples_
 * `library overview`_
 * `reference documentation`_
+* `troubleshooting issues`_
 * `tuning`_
 * screenshot_
 * `mailing list`_ (archive_)
@@ -61,6 +62,7 @@ libtorrent
 .. _examples: examples.html
 .. _`library overview`: manual-ref.html
 .. _`reference documentation`: reference.html
+.. _`troubleshooting issues`: troubleshooting.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
 .. _`uTP`: utp.html
