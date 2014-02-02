@@ -481,9 +481,11 @@ namespace libtorrent
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
 	// hidden
-	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
+	inline asio::error::error_category get_posix_category()
+	{ return asio::error::system_category; }
 	// hidden
-	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
+	inline asio::error::error_category get_system_category()
+	{ return asio::error::system_category; }
 
 	// hidden
 	boost::system::error_category const& get_libtorrent_category()
