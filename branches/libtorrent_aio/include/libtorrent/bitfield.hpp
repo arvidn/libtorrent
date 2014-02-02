@@ -70,7 +70,6 @@ namespace libtorrent
 		{ assign(b, bits); }
 		bitfield(bitfield const& rhs): m_buf(NULL)
 		{ assign(rhs.bytes(), rhs.size()); }
-
 #if __cplusplus > 199711L
 		bitfield(bitfield&& rhs): m_buf(rhs.m_buf)
 		{ rhs.m_buf = NULL; }

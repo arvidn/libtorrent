@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id179">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id180">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id181">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id182">session_proxy</a></li>
-<li><a class="reference internal" href="#id39" id="id183">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id184">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id185">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id186">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id187">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id175">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id176">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id177">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id178">session_proxy</a></li>
+<li><a class="reference internal" href="#id39" id="id179">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id180">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id181">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id182">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id183">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -576,8 +576,8 @@ not fences that are themself blocked</dd>
 <div class="section" id="stats-metric">
 <h1>stats_metric</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
-<p>describes one statistics metric from the <a class="reference external" href="reference-Session.html#session">session</a>.
-For more information, see the <a class="reference external" href="manual-ref.html#session-statistics">session statistics</a> section.</p>
+<p>describes one statistics metric from the <a class="reference external" href="reference-Session.html#session">session</a>. For more information,
+see the <a class="reference external" href="manual-ref.html#session-statistics">session statistics</a> section.</p>
 <pre class="literal-block">
 struct stats_metric
 {
@@ -590,13 +590,12 @@ struct stats_metric
 <div class="section" id="session-proxy">
 <h1>session_proxy</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
-<p>this is a holder for the internal <a class="reference external" href="reference-Session.html#session">session</a> implementation
-object. Once the <a class="reference external" href="reference-Session.html#session">session</a> destruction is explicitly initiated,
-this holder is used to synchronize the completion of the
-shutdown. The lifetime of this object may outlive <a class="reference external" href="reference-Session.html#session">session</a>,
-causing the <a class="reference external" href="reference-Session.html#session">session</a> destructor to not block.
-The <a class="reference external" href="reference-Session.html#session_proxy">session_proxy</a> destructor will block however, until the
-underlying <a class="reference external" href="reference-Session.html#session">session</a> is done shutting down.</p>
+<p>this is a holder for the internal <a class="reference external" href="reference-Session.html#session">session</a> implementation object. Once the
+<a class="reference external" href="reference-Session.html#session">session</a> destruction is explicitly initiated, this holder is used to
+synchronize the completion of the shutdown. The lifetime of this object
+may outlive <a class="reference external" href="reference-Session.html#session">session</a>, causing the <a class="reference external" href="reference-Session.html#session">session</a> destructor to not block. The
+<a class="reference external" href="reference-Session.html#session_proxy">session_proxy</a> destructor will block however, until the underlying <a class="reference external" href="reference-Session.html#session">session</a>
+is done shutting down.</p>
 <pre class="literal-block">
 class session_proxy
 {
@@ -615,13 +614,15 @@ implementation object.</p>
 <div class="section" id="id39">
 <h1>session</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
-<p>The <a class="reference external" href="reference-Session.html#session">session</a> holds all state that spans multiple torrents. Among other things it runs the network
-loop and manages all torrents.
-Once it's created, the <a class="reference external" href="reference-Session.html#session">session</a> object will spawn the main thread that will do all the work.
-The main thread will be idle as long it doesn't have any torrents to participate in.</p>
-<p>You have some control over <a class="reference external" href="reference-Session.html#session">session</a> configuration through the <tt class="docutils literal"><span class="pre">session::apply_settings()</span></tt>
-member function. To change one or more configuration options, create a <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a>.
-object and fill it with the settings to be set and pass it in to <tt class="docutils literal"><span class="pre">session::apply_settings()</span></tt>.</p>
+<p>The <a class="reference external" href="reference-Session.html#session">session</a> holds all state that spans multiple torrents. Among other
+things it runs the network loop and manages all torrents. Once it's
+created, the <a class="reference external" href="reference-Session.html#session">session</a> object will spawn the main thread that will do all
+the work. The main thread will be idle as long it doesn't have any
+torrents to participate in.</p>
+<p>You have some control over <a class="reference external" href="reference-Session.html#session">session</a> configuration through the
+<tt class="docutils literal"><span class="pre">session::apply_settings()</span></tt> member function. To change one or more
+configuration options, create a <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a>. object and fill it with
+the settings to be set and pass it in to <tt class="docutils literal"><span class="pre">session::apply_settings()</span></tt>.</p>
 <p>see <a class="reference external" href="reference-Session.html#apply_settings()">apply_settings()</a>.</p>
 <pre class="literal-block">
 class session: public boost::noncopyable
@@ -632,8 +633,9 @@ class session: public boost::noncopyable
       , boost::uint32_t alert_mask = alert::error_notification
       TORRENT_LOGPATH_ARG_DEFAULT);
    <strong>session</strong> (settings_pack const&amp; pack
-      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = start_default_features | add_default_plugins);
+      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
+      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+      , int flags = add_default_plugins);
    <strong>session</strong> (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
@@ -666,8 +668,6 @@ class session: public boost::noncopyable
    void <strong>remove_feed</strong> (feed_handle h);
    void <strong>get_feeds</strong> (std::vector&lt;feed_handle&gt;&amp; f) const;
    bool <strong>is_dht_running</strong> () const;
-   void <strong>start_dht</strong> ();
-   void <strong>stop_dht</strong> ();
    void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
    void <strong>add_dht_router</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
    void <strong>add_dht_node</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
@@ -698,22 +698,14 @@ class session: public boost::noncopyable
    void <strong>apply_settings</strong> (settings_pack const&amp; s);
    void <strong>set_proxy</strong> (proxy_settings const&amp; s);
    proxy_settings <strong>proxy</strong> () const;
-   void <strong>enable_stats_logging</strong> (bool s);
    proxy_settings <strong>i2p_proxy</strong> () const;
    void <strong>set_i2p_proxy</strong> (proxy_settings const&amp; s);
    void <strong>pop_alerts</strong> (std::deque&lt;alert*&gt;* alerts);
    std::auto_ptr&lt;alert&gt; <strong>pop_alert</strong> ();
    alert const* <strong>wait_for_alert</strong> (time_duration max_wait);
    void <strong>set_alert_dispatch</strong> (boost::function&lt;void(std::auto_ptr&lt;alert&gt;)&gt; const&amp; fun);
-   connection_queue&amp; <strong>get_connection_queue</strong> ();
-   void <strong>stop_lsd</strong> ();
-   void <strong>start_lsd</strong> ();
-   void <strong>stop_upnp</strong> ();
-   void <strong>start_upnp</strong> ();
    void <strong>delete_port_mapping</strong> (int handle);
    int <strong>add_port_mapping</strong> (protocol_type t, int external_port, int local_port);
-   void <strong>stop_natpmp</strong> ();
-   void <strong>start_natpmp</strong> ();
 
    enum save_state_flags_t
    {
@@ -723,7 +715,6 @@ class session: public boost::noncopyable
       save_proxy,
       save_i2p_proxy,
       save_encryption_settings,
-      save_as_map,
       save_feeds,
    };
 
@@ -754,8 +745,9 @@ class session: public boost::noncopyable
       , boost::uint32_t alert_mask = alert::error_notification
       TORRENT_LOGPATH_ARG_DEFAULT);
 <strong>session</strong> (settings_pack const&amp; pack
-      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = start_default_features | add_default_plugins);
+      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
+      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+      , int flags = add_default_plugins);
 <strong>session</strong> (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
@@ -763,18 +755,20 @@ class session: public boost::noncopyable
       , int alert_mask = alert::error_notification
       TORRENT_LOGPATH_ARG_DEFAULT);
 </pre>
-<p>TODO: 3 could the fingerprint be a setting as well? And should the <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a> be optional?</p>
+<p>TODO: 3 could the fingerprint be a setting as well? And should the
+<a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a> be optional?</p>
 <a name="~session()"></a></div>
 <div class="section" id="id48">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
 </pre>
-<p>The destructor of <a class="reference external" href="reference-Session.html#session">session</a> will notify all trackers that our torrents have been shut down.
-If some trackers are down, they will time out. All this before the destructor of <a class="reference external" href="reference-Session.html#session">session</a>
-returns. So, it's advised that any kind of interface (such as windows) are closed before
-destructing the <a class="reference external" href="reference-Session.html#session">session</a> object. Because it can take a few second for it to finish. The
-timeout can be set with <a class="reference external" href="reference-Session.html#apply_settings()">apply_settings()</a>.</p>
+<p>The destructor of <a class="reference external" href="reference-Session.html#session">session</a> will notify all trackers that our torrents
+have been shut down. If some trackers are down, they will time out.
+All this before the destructor of <a class="reference external" href="reference-Session.html#session">session</a> returns. So, it's advised
+that any kind of interface (such as windows) are closed before
+destructing the <a class="reference external" href="reference-Session.html#session">session</a> object. Because it can take a few second for
+it to finish. The timeout can be set with <a class="reference external" href="reference-Session.html#apply_settings()">apply_settings()</a>.</p>
 <a name="load_state()"></a>
 <a name="save_state()"></a></div>
 <div class="section" id="load-state-save-state">
@@ -783,14 +777,15 @@ timeout can be set with <a class="reference external" href="reference-Session.ht
 void <strong>load_state</strong> (lazy_entry const&amp; e);
 void <strong>save_state</strong> (entry&amp; e, boost::uint32_t flags = 0xffffffff) const;
 </pre>
-<p>loads and saves all <a class="reference external" href="reference-Session.html#session">session</a> settings, including dht_settings, encryption settings and proxy
-settings. <tt class="docutils literal">save_state</tt> writes all keys to the <tt class="docutils literal">entry</tt> that's passed in, which needs to
-either not be initialized, or initialized as a dictionary.</p>
-<p><tt class="docutils literal">load_state</tt> expects a <a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a> which can be built from a bencoded buffer with
-lazy_bdecode().</p>
-<p>The <tt class="docutils literal">flags</tt> arguments passed in to <tt class="docutils literal">save_state</tt> can be used to filter which parts
-of the <a class="reference external" href="reference-Session.html#session">session</a> state to save. By default, all state is saved (except for the individual
-torrents). see <a class="reference external" href="reference-Session.html#save_state_flags_t">save_state_flags_t</a></p>
+<p>loads and saves all <a class="reference external" href="reference-Session.html#session">session</a> settings, including dht_settings,
+encryption settings and proxy settings. <tt class="docutils literal">save_state</tt> writes all keys
+to the <tt class="docutils literal">entry</tt> that's passed in, which needs to either not be
+initialized, or initialized as a dictionary.</p>
+<p><tt class="docutils literal">load_state</tt> expects a <a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a> which can be built from a bencoded
+buffer with <a class="reference external" href="reference-Bencoding.html#lazy_bdecode()">lazy_bdecode()</a>.</p>
+<p>The <tt class="docutils literal">flags</tt> arguments passed in to <tt class="docutils literal">save_state</tt> can be used to
+filter which parts of the <a class="reference external" href="reference-Session.html#session">session</a> state to save. By default, all state
+is saved (except for the individual torrents). see <a class="reference external" href="reference-Session.html#save_state_flags_t">save_state_flags_t</a></p>
 <a name="get_torrent_status()"></a>
 <a name="refresh_torrent_status()"></a></div>
 <div class="section" id="get-torrent-status-refresh-torrent-status">
@@ -804,37 +799,39 @@ void <strong>get_torrent_status</strong> (std::vector&lt;torrent_status&gt;* ret
 </pre>
 <div class="note">
 <p class="first admonition-title">Note</p>
-<p class="last">these calls are potentially expensive and won't scale well
-with lots of torrents. If you're concerned about performance, consider
+<p class="last">these calls are potentially expensive and won't scale well with
+lots of torrents. If you're concerned about performance, consider
 using <tt class="docutils literal">post_torrent_updates()</tt> instead.</p>
 </div>
-<p><tt class="docutils literal">get_torrent_status</tt> returns a vector of the <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> for every
-torrent which satisfies <tt class="docutils literal">pred</tt>, which is a predicate function which determines
-if a torrent should be included in the returned set or not. Returning true means
-it should be included and false means excluded. The <tt class="docutils literal">flags</tt> argument is the same
-as to <tt class="docutils literal"><span class="pre">torrent_handle::status()</span></tt>. Since <tt class="docutils literal">pred</tt> is guaranteed to be called for
-every torrent, it may be used to count the number of torrents of different categories
-as well.</p>
-<p><tt class="docutils literal">refresh_torrent_status</tt> takes a vector of <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> structs (for instance
-the same vector that was returned by <a class="reference external" href="reference-Session.html#get_torrent_status()">get_torrent_status()</a> ) and refreshes the
-status based on the <tt class="docutils literal">handle</tt> member. It is possible to use this function by
-first setting up a vector of default constructed <tt class="docutils literal">torrent_status</tt> objects, only
-initializing the <tt class="docutils literal">handle</tt> member, in order to request the torrent status for
-multiple torrents in a single call. This can save a significant amount of time
-if you have a lot of torrents.</p>
-<p>Any <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> object whose <tt class="docutils literal">handle</tt> member is not referring to a
-valid torrent are ignored.</p>
+<p><tt class="docutils literal">get_torrent_status</tt> returns a vector of the <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> for
+every torrent which satisfies <tt class="docutils literal">pred</tt>, which is a predicate function
+which determines if a torrent should be included in the returned set
+or not. Returning true means it should be included and false means
+excluded. The <tt class="docutils literal">flags</tt> argument is the same as to
+<tt class="docutils literal"><span class="pre">torrent_handle::status()</span></tt>. Since <tt class="docutils literal">pred</tt> is guaranteed to be
+called for every torrent, it may be used to count the number of
+torrents of different categories as well.</p>
+<p><tt class="docutils literal">refresh_torrent_status</tt> takes a vector of <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> structs
+(for instance the same vector that was returned by
+<a class="reference external" href="reference-Session.html#get_torrent_status()">get_torrent_status()</a> ) and refreshes the status based on the
+<tt class="docutils literal">handle</tt> member. It is possible to use this function by first
+setting up a vector of default constructed <tt class="docutils literal">torrent_status</tt> objects,
+only initializing the <tt class="docutils literal">handle</tt> member, in order to request the
+torrent status for multiple torrents in a single call. This can save a
+significant amount of time if you have a lot of torrents.</p>
+<p>Any <a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a> object whose <tt class="docutils literal">handle</tt> member is not referring to
+a valid torrent are ignored.</p>
 <a name="post_torrent_updates()"></a></div>
 <div class="section" id="post-torrent-updates">
 <h2>post_torrent_updates()</h2>
 <pre class="literal-block">
 void <strong>post_torrent_updates</strong> ();
 </pre>
-<p>This functions instructs the <a class="reference external" href="reference-Session.html#session">session</a> to post the <a class="reference external" href="reference-Alerts.html#state_update_alert">state_update_alert</a>, containing
-the status of all torrents whose state changed since the last time this function
-was called.</p>
-<p>Only torrents who has the state subscription flag set will be included. This flag
-is on by default. See <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>.</p>
+<p>This functions instructs the <a class="reference external" href="reference-Session.html#session">session</a> to post the <a class="reference external" href="reference-Alerts.html#state_update_alert">state_update_alert</a>,
+containing the status of all torrents whose state changed since the
+last time this function was called.</p>
+<p>Only torrents who has the state subscription flag set will be
+included. This flag is on by default. See <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>.</p>
 <a name="post_session_stats()"></a></div>
 <div class="section" id="post-session-stats">
 <h2>post_session_stats()</h2>
@@ -843,7 +840,7 @@ void <strong>post_session_stats</strong> ();
 </pre>
 <p>This function will post a <a class="reference external" href="reference-Alerts.html#session_stats_alert">session_stats_alert</a> object, containing a snapshot of
 the performance counters from the internals of libtorrent. To interpret these counters,
-query the <a class="reference external" href="reference-Session.html#session">session</a> via session_stats_metrics().</p>
+query the <a class="reference external" href="reference-Session.html#session">session</a> via <a class="reference external" href="reference-Session.html#session_stats_metrics()">session_stats_metrics()</a>.</p>
 <p>For more information, see the <a class="reference external" href="manual-ref.html#session-statistics">session statistics</a> section.</p>
 <a name="find_torrent()"></a>
 <a name="get_torrents()"></a></div>
@@ -853,12 +850,14 @@ query the <a class="reference external" href="reference-Session.html#session">se
 torrent_handle <strong>find_torrent</strong> (sha1_hash const&amp; info_hash) const;
 std::vector&lt;torrent_handle&gt; <strong>get_torrents</strong> () const;
 </pre>
-<p><tt class="docutils literal">find_torrent()</tt> looks for a torrent with the given info-hash. In case there
-is such a torrent in the <a class="reference external" href="reference-Session.html#session">session</a>, a <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> to that torrent is returned.
-In case the torrent cannot be found, an invalid <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> is returned.</p>
-<p>See <tt class="docutils literal"><span class="pre">torrent_handle::is_valid()</span></tt> to know if the torrent was found or not.</p>
-<p><tt class="docutils literal">get_torrents()</tt> returns a vector of torrent_handles to all the torrents
-currently in the <a class="reference external" href="reference-Session.html#session">session</a>.</p>
+<p><tt class="docutils literal">find_torrent()</tt> looks for a torrent with the given info-hash. In
+case there is such a torrent in the <a class="reference external" href="reference-Session.html#session">session</a>, a <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> to that
+torrent is returned. In case the torrent cannot be found, an invalid
+<a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> is returned.</p>
+<p>See <tt class="docutils literal"><span class="pre">torrent_handle::is_valid()</span></tt> to know if the torrent was found or
+not.</p>
+<p><tt class="docutils literal">get_torrents()</tt> returns a vector of torrent_handles to all the
+torrents currently in the <a class="reference external" href="reference-Session.html#session">session</a>.</p>
 <a name="add_torrent()"></a>
 <a name="async_add_torrent()"></a></div>
 <div class="section" id="add-torrent-async-add-torrent">
@@ -870,20 +869,21 @@ torrent_handle <strong>add_torrent</strong> (add_torrent_params const&amp; param
 </pre>
 <p>You add torrents through the <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> function where you give an
 object with all the parameters. The <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> overloads will block
-until the torrent has been added (or failed to be added) and returns an
-error code and a <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a>. In order to add torrents more efficiently,
-consider using <a class="reference external" href="reference-Session.html#async_add_torrent()">async_add_torrent()</a> which returns immediately, without
-waiting for the torrent to add. Notification of the torrent being added is sent
-as <a class="reference external" href="reference-Alerts.html#add_torrent_alert">add_torrent_alert</a>.</p>
+until the torrent has been added (or failed to be added) and returns
+an error code and a <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a>. In order to add torrents more
+efficiently, consider using <a class="reference external" href="reference-Session.html#async_add_torrent()">async_add_torrent()</a> which returns
+immediately, without waiting for the torrent to add. Notification of
+the torrent being added is sent as <a class="reference external" href="reference-Alerts.html#add_torrent_alert">add_torrent_alert</a>.</p>
 <p>The overload that does not take an error_code throws an exception on
 error and is not available when building without exception support.
-The <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> returned by <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> can be used to retrieve information
-about the torrent's progress, its peers etc. It is also used to abort a torrent.</p>
-<p>If the torrent you are trying to add already exists in the <a class="reference external" href="reference-Session.html#session">session</a> (is either queued
-for checking, being checked or downloading) <tt class="docutils literal">add_torrent()</tt> will throw
-<a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a> which derives from <tt class="docutils literal"><span class="pre">std::exception</span></tt> unless duplicate_is_error
-is set to false. In that case, <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> will return the handle to the existing
-torrent.</p>
+The <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> returned by <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> can be used to retrieve
+information about the torrent's progress, its peers etc. It is also
+used to abort a torrent.</p>
+<p>If the torrent you are trying to add already exists in the <a class="reference external" href="reference-Session.html#session">session</a> (is
+either queued for checking, being checked or downloading)
+<tt class="docutils literal">add_torrent()</tt> will throw <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a> which derives from
+<tt class="docutils literal"><span class="pre">std::exception</span></tt> unless duplicate_is_error is set to false. In that
+case, <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> will return the handle to the existing torrent.</p>
 <p>all torrent_handles must be destructed before the <a class="reference external" href="reference-Session.html#session">session</a> is destructed!</p>
 <a name="abort()"></a></div>
 <div class="section" id="abort">
@@ -891,15 +891,17 @@ torrent.</p>
 <pre class="literal-block">
 session_proxy <strong>abort</strong> ();
 </pre>
-<p>In case you want to destruct the <a class="reference external" href="reference-Session.html#session">session</a> asynchrounously, you can request a <a class="reference external" href="reference-Session.html#session">session</a>
-destruction proxy. If you don't do this, the destructor of the <a class="reference external" href="reference-Session.html#session">session</a> object will
-block while the trackers are contacted. If you keep one <tt class="docutils literal">session_proxy</tt> to the
-<a class="reference external" href="reference-Session.html#session">session</a> when destructing it, the destructor will not block, but start to close down
-the <a class="reference external" href="reference-Session.html#session">session</a>, the destructor of the proxy will then synchronize the threads. So, the
-destruction of the <a class="reference external" href="reference-Session.html#session">session</a> is performed from the <tt class="docutils literal">session</tt> destructor call until the
-<tt class="docutils literal">session_proxy</tt> destructor call. The <tt class="docutils literal">session_proxy</tt> does not have any operations
-on it (since the <a class="reference external" href="reference-Session.html#session">session</a> is being closed down, no operations are allowed on it). The
-only valid operation is calling the destructor:</p>
+<p>In case you want to destruct the <a class="reference external" href="reference-Session.html#session">session</a> asynchrounously, you can
+request a <a class="reference external" href="reference-Session.html#session">session</a> destruction proxy. If you don't do this, the
+destructor of the <a class="reference external" href="reference-Session.html#session">session</a> object will block while the trackers are
+contacted. If you keep one <tt class="docutils literal">session_proxy</tt> to the <a class="reference external" href="reference-Session.html#session">session</a> when
+destructing it, the destructor will not block, but start to close down
+the <a class="reference external" href="reference-Session.html#session">session</a>, the destructor of the proxy will then synchronize the
+threads. So, the destruction of the <a class="reference external" href="reference-Session.html#session">session</a> is performed from the
+<tt class="docutils literal">session</tt> destructor call until the <tt class="docutils literal">session_proxy</tt> destructor
+call. The <tt class="docutils literal">session_proxy</tt> does not have any operations on it (since
+the <a class="reference external" href="reference-Session.html#session">session</a> is being closed down, no operations are allowed on it).
+The only valid operation is calling the destructor:</p>
 <pre class="literal-block">
 class session_proxy
 {
@@ -918,10 +920,11 @@ void <strong>resume</strong> ();
 void <strong>pause</strong> ();
 bool <strong>is_paused</strong> () const;
 </pre>
-<p>Pausing the <a class="reference external" href="reference-Session.html#session">session</a> has the same effect as pausing every torrent in it, except that
-torrents will not be resumed by the auto-manage mechanism. Resuming will restore the
-torrents to their previous paused state. i.e. the <a class="reference external" href="reference-Session.html#session">session</a> pause state is separate from
-the torrent pause state. A torrent is inactive if it is paused or if the <a class="reference external" href="reference-Session.html#session">session</a> is
+<p>Pausing the <a class="reference external" href="reference-Session.html#session">session</a> has the same effect as pausing every torrent in
+it, except that torrents will not be resumed by the auto-manage
+mechanism. Resuming will restore the torrents to their previous paused
+state. i.e. the <a class="reference external" href="reference-Session.html#session">session</a> pause state is separate from the torrent pause
+state. A torrent is inactive if it is paused or if the <a class="reference external" href="reference-Session.html#session">session</a> is
 paused.</p>
 <a name="set_load_function()"></a></div>
 <div class="section" id="set-load-function">
@@ -929,18 +932,20 @@ paused.</p>
 <pre class="literal-block">
 void <strong>set_load_function</strong> (user_load_function_t fun);
 </pre>
-<p>This function enables <a class="reference external" href="manual-ref.html#dynamic-loading-of-torrent-files">dynamic loading of torrent files</a>. When a torrent is unloaded
-but needs to be availabe in memory, this function is called <strong>from within the libtorrent
-network thread</strong>. From within this thread, you can <strong>not</strong> use any of the public APIs of
-libtorrent itself. The the info-hash of the torrent is passed in to the function and it
-is expected to fill in the passed in <tt class="docutils literal">vector&lt;char&gt;</tt> with the .torrent file corresponding
-to it.</p>
-<p>If there is an error loading the torrent file, the <tt class="docutils literal">error_code</tt> (<tt class="docutils literal">ec</tt>) should be
-set to reflect the error. In such case, the torrent itself is stopped and set to an
-error state with the corresponding error code.</p>
-<p>Given that the function is called from the internal network thread of libtorrent, it's
-important to not stall. libtorrent will not be able to send nor receive any data until
-the function call returns.</p>
+<p>This function enables <a class="reference external" href="manual-ref.html#dynamic-loading-of-torrent-files">dynamic loading of torrent files</a>. When a
+torrent is unloaded but needs to be availabe in memory, this function
+is called <strong>from within the libtorrent network thread</strong>. From within
+this thread, you can <strong>not</strong> use any of the public APIs of libtorrent
+itself. The the info-hash of the torrent is passed in to the function
+and it is expected to fill in the passed in <tt class="docutils literal">vector&lt;char&gt;</tt> with the
+.torrent file corresponding to it.</p>
+<p>If there is an error loading the torrent file, the <tt class="docutils literal">error_code</tt>
+(<tt class="docutils literal">ec</tt>) should be set to reflect the error. In such case, the torrent
+itself is stopped and set to an error state with the corresponding
+error code.</p>
+<p>Given that the function is called from the internal network thread of
+libtorrent, it's important to not stall. libtorrent will not be able
+to send nor receive any data until the function call returns.</p>
 <p>The signature of the function to pass in is:</p>
 <pre class="literal-block">
 void fun(sha1_hash const&amp; info_hash, std::vector&lt;char&gt;&amp; buf, error_code&amp; ec);
@@ -951,7 +956,8 @@ void fun(sha1_hash const&amp; info_hash, std::vector&lt;char&gt;&amp; buf, error
 <pre class="literal-block">
 session_status <strong>status</strong> () const;
 </pre>
-<p>returns <a class="reference external" href="reference-Session.html#session">session</a> wide-statistics and status. For more information, see the <tt class="docutils literal">session_status</tt> struct.</p>
+<p>returns <a class="reference external" href="reference-Session.html#session">session</a> wide-statistics and status. For more information, see
+the <tt class="docutils literal">session_status</tt> struct.</p>
 <a name="get_cache_info()"></a></div>
 <div class="section" id="get-cache-info">
 <h2>get_cache_info()</h2>
@@ -970,12 +976,11 @@ feed_handle <strong>add_feed</strong> (feed_settings const&amp; feed);
 <p>This adds an RSS feed to the <a class="reference external" href="reference-Session.html#session">session</a>. The feed will be refreshed
 regularly and optionally add all torrents from the feed, as they
 appear.</p>
-<p>Before adding the feed, you must set the <tt class="docutils literal">url</tt> field to the
-feed's url. It may point to an RSS or an atom feed.
-The returned <a class="reference external" href="reference-RSS.html#feed_handle">feed_handle</a> is a handle which is used to interact
-with the feed, things like forcing a refresh or querying for
-information about the items in the feed. For more information,
-see <a class="reference external" href="reference-RSS.html#feed_handle">feed_handle</a>.</p>
+<p>Before adding the feed, you must set the <tt class="docutils literal">url</tt> field to the feed's
+url. It may point to an RSS or an atom feed. The returned <a class="reference external" href="reference-RSS.html#feed_handle">feed_handle</a>
+is a handle which is used to interact with the feed, things like
+forcing a refresh or querying for information about the items in the
+feed. For more information, see <a class="reference external" href="reference-RSS.html#feed_handle">feed_handle</a>.</p>
 <a name="remove_feed()"></a></div>
 <div class="section" id="remove-feed">
 <h2>remove_feed()</h2>
@@ -993,46 +998,17 @@ void <strong>get_feeds</strong> (std::vector&lt;feed_handle&gt;&amp; f) const;
 </pre>
 <p>Returns a list of all RSS feeds that are being watched by the <a class="reference external" href="reference-Session.html#session">session</a>.</p>
 <a name="is_dht_running()"></a>
-<a name="start_dht()"></a>
-<a name="set_dht_settings()"></a>
-<a name="stop_dht()"></a></div>
-<div class="section" id="is-dht-running-start-dht-set-dht-settings-stop-dht">
-<h2>is_dht_running() start_dht() set_dht_settings() stop_dht()</h2>
+<a name="set_dht_settings()"></a></div>
+<div class="section" id="is-dht-running-set-dht-settings">
+<h2>is_dht_running() set_dht_settings()</h2>
 <pre class="literal-block">
 bool <strong>is_dht_running</strong> () const;
-void <strong>start_dht</strong> ();
-void <strong>stop_dht</strong> ();
 void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
 </pre>
-<p>starts/stops UPnP, NATPMP or LSD port mappers
-they are stopped by default
-These functions are not available in case <tt class="docutils literal">TORRENT_DISABLE_DHT</tt> is
-defined. <tt class="docutils literal">start_dht</tt> starts the dht node and makes the trackerless service
-available to torrents. The startup state is optional and can contain nodes
-and the node id from the previous <a class="reference external" href="reference-Session.html#session">session</a>. The dht node state is a bencoded
-dictionary with the following entries:</p>
-<dl class="docutils">
-<dt>nodes</dt>
-<dd>A list of strings, where each string is a node endpoint encoded in binary. If
-the string is 6 bytes long, it is an IPv4 address of 4 bytes, encoded in
-network byte order (big endian), followed by a 2 byte port number (also
-network byte order). If the string is 18 bytes long, it is 16 bytes of IPv6
-address followed by a 2 bytes port number (also network byte order).</dd>
-<dt>node-id</dt>
-<dd>The node id written as a readable string as a hexadecimal number.</dd>
-</dl>
-<p><tt class="docutils literal">dht_state</tt> will return the current state of the dht node, this can be used
-to start up the node again, passing this <a class="reference external" href="reference-Bencoding.html#entry">entry</a> to <tt class="docutils literal">start_dht</tt>. It is a good
-idea to save this to disk when the <a class="reference external" href="reference-Session.html#session">session</a> is closed, and read it up again
-when starting.</p>
-<p>If the port the DHT is supposed to listen on is already in use, and exception
-is thrown, <tt class="docutils literal"><span class="pre">asio::error</span></tt>.</p>
-<p><tt class="docutils literal">stop_dht</tt> stops the dht node.</p>
-<p><tt class="docutils literal">add_dht_node</tt> adds a node to the routing table. This can be used if your
-client has its own source of bootstrapping nodes.</p>
-<p><tt class="docutils literal">set_dht_settings</tt> sets some parameters availavle to the dht node. See
-dht_settings for more information.</p>
-<p><tt class="docutils literal">is_dht_running()</tt> returns true if the DHT support has been started and false
+<p><tt class="docutils literal">set_dht_settings</tt> sets some parameters availavle to the dht node.
+See dht_settings for more information.</p>
+<p><tt class="docutils literal">is_dht_running()</tt> returns true if the DHT support has been started
+and false
 otherwise.</p>
 <a name="add_dht_router()"></a>
 <a name="add_dht_node()"></a></div>
@@ -1045,11 +1021,12 @@ void <strong>add_dht_node</strong> (std::pair&lt;std::string, int&gt; const&amp;
 <p><tt class="docutils literal">add_dht_node</tt> takes a host name and port pair. That endpoint will be
 pinged, and if a valid DHT reply is received, the node will be added to
 the routing table.</p>
-<p><tt class="docutils literal">add_dht_router</tt> adds the given endpoint to a list of DHT router nodes.
-If a search is ever made while the routing table is empty, those nodes will
-be used as backups. Nodes in the router node list will also never be added
-to the regular routing table, which effectively means they are only used
-for bootstrapping, to keep the load off them.</p>
+<p><tt class="docutils literal">add_dht_router</tt> adds the given endpoint to a list of DHT router
+nodes. If a search is ever made while the routing table is empty,
+those nodes will be used as backups. Nodes in the router node list
+will also never be added to the regular routing table, which
+effectively means they are only used for bootstrapping, to keep the
+load off them.</p>
 <p>An example routing node that you could typically add is
 <tt class="docutils literal">router.bittorrent.com</tt>.</p>
 <a name="add_extension()"></a></div>
@@ -1123,24 +1100,23 @@ in the database or the ASN database is not loaded, 0 is returned.</p>
 ip_filter <strong>get_ip_filter</strong> () const;
 void <strong>set_ip_filter</strong> (ip_filter const&amp; f);
 </pre>
-<p>Sets a filter that will be used to reject and accept incoming as well as outgoing
-connections based on their originating ip address. The default filter will allow
-connections to any ip address. To build a set of rules for which addresses are
-accepted and not, see <a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a>.</p>
-<p>Each time a peer is blocked because of the IP filter, a <a class="reference external" href="reference-Alerts.html#peer_blocked_alert">peer_blocked_alert</a> is
-generated.
-<tt class="docutils literal">get_ip_filter()</tt> Returns the <a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a> currently in the <a class="reference external" href="reference-Session.html#session">session</a>. See <a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a>.</p>
+<p>Sets a filter that will be used to reject and accept incoming as well
+as outgoing connections based on their originating ip address. The
+default filter will allow connections to any ip address. To build a
+set of rules for which addresses are accepted and not, see <a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a>.</p>
+<p>Each time a peer is blocked because of the IP filter, a
+<a class="reference external" href="reference-Alerts.html#peer_blocked_alert">peer_blocked_alert</a> is generated. <tt class="docutils literal">get_ip_filter()</tt> Returns the
+<a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a> currently in the <a class="reference external" href="reference-Session.html#session">session</a>. See <a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a>.</p>
 <a name="set_port_filter()"></a></div>
 <div class="section" id="set-port-filter">
 <h2>set_port_filter()</h2>
 <pre class="literal-block">
 void <strong>set_port_filter</strong> (port_filter const&amp; f);
 </pre>
-<p>apply <a class="reference external" href="reference-Filter.html#port_filter">port_filter</a> <tt class="docutils literal">f</tt> to incoming and outgoing peers.
-a port filter will reject making outgoing peer connections
-to certain remote ports. The main intention is to be able
-to avoid triggering certain anti-virus software by connecting
-to SMTP, FTP ports.</p>
+<p>apply <a class="reference external" href="reference-Filter.html#port_filter">port_filter</a> <tt class="docutils literal">f</tt> to incoming and outgoing peers. a port filter
+will reject making outgoing peer connections to certain remote ports.
+The main intention is to be able to avoid triggering certain
+anti-virus software by connecting to SMTP, FTP ports.</p>
 <a name="set_peer_id()"></a>
 <a name="id()"></a></div>
 <div class="section" id="set-peer-id-id">
@@ -1170,44 +1146,50 @@ bool <strong>is_listening</strong> () const;
 unsigned short <strong>listen_port</strong> () const;
 unsigned short <strong>ssl_listen_port</strong> () const;
 </pre>
-<p><tt class="docutils literal">is_listening()</tt> will tell you whether or not the <a class="reference external" href="reference-Session.html#session">session</a> has successfully
-opened a listening port. If it hasn't, this function will return false, and
-then you can set a new <a class="reference external" href="reference-Settings.html#listen_interfaces">settings_pack::listen_interfaces</a> to try another
-interface and port to bind to.</p>
-<p><tt class="docutils literal">listen_port()</tt> returns the port we ended up listening on. If the port specified
-in <a class="reference external" href="reference-Settings.html#listen_interfaces">settings_pack::listen_interfaces</a> failed, libtorrent will try to bind to the
-next port, and so on. If it fails <a class="reference external" href="reference-Settings.html#max_retry_port_bind">settings_pack::max_retry_port_bind</a> times, it
-will bind to port 0 (meaning the OS picks the port). The only way to know which
-port it ended up binding to is to ask for it by calling <tt class="docutils literal">listen_port()</tt>.</p>
-<p>If all ports in the specified range fails to be opened for listening, libtorrent will
-try to use port 0 (which tells the operating system to pick a port that's free). If
-that still fails you may see a <a class="reference external" href="reference-Alerts.html#listen_failed_alert">listen_failed_alert</a> with port 0 even if you didn't
-ask to listen on it.</p>
-<p>It is possible to prevent libtorrent from binding to port 0 by passing in the flag
-<tt class="docutils literal"><span class="pre">session::no_system_port</span></tt> in the <tt class="docutils literal">flags</tt> argument.</p>
-<p>The interface parameter can also be a hostname that will resolve to the device you
-want to listen on. If you don't specify an interface, libtorrent may attempt to
-listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
-IPv6 interface doesn't work, you may still see a <a class="reference external" href="reference-Alerts.html#listen_failed_alert">listen_failed_alert</a>, even though
-the IPv4 port succeeded.</p>
-<p>The <tt class="docutils literal">flags</tt> parameter can either be 0 or <tt class="docutils literal"><span class="pre">session::listen_reuse_address</span></tt>, which
-will set the reuse address socket option on the listen socket(s). By default, the
-listen socket does not use reuse address. If you're running a service that needs
-to run on a specific port no matter if it's in use, set this flag.</p>
+<p><tt class="docutils literal">is_listening()</tt> will tell you whether or not the <a class="reference external" href="reference-Session.html#session">session</a> has
+successfully opened a listening port. If it hasn't, this function will
+return false, and then you can set a new
+<a class="reference external" href="reference-Settings.html#listen_interfaces">settings_pack::listen_interfaces</a> to try another interface and port to
+bind to.</p>
+<p><tt class="docutils literal">listen_port()</tt> returns the port we ended up listening on. If the
+port specified in <a class="reference external" href="reference-Settings.html#listen_interfaces">settings_pack::listen_interfaces</a> failed, libtorrent
+will try to bind to the next port, and so on. If it fails
+<a class="reference external" href="reference-Settings.html#max_retry_port_bind">settings_pack::max_retry_port_bind</a> times, it will bind to port 0
+(meaning the OS picks the port). The only way to know which port it
+ended up binding to is to ask for it by calling <tt class="docutils literal">listen_port()</tt>.</p>
+<p>If all ports in the specified range fails to be opened for listening,
+libtorrent will try to use port 0 (which tells the operating system to
+pick a port that's free). If that still fails you may see a
+<a class="reference external" href="reference-Alerts.html#listen_failed_alert">listen_failed_alert</a> with port 0 even if you didn't ask to listen on
+it.</p>
+<p>It is possible to prevent libtorrent from binding to port 0 by passing
+in the flag <tt class="docutils literal"><span class="pre">session::no_system_port</span></tt> in the <tt class="docutils literal">flags</tt> argument.</p>
+<p>The interface parameter can also be a hostname that will resolve to
+the device you want to listen on. If you don't specify an interface,
+libtorrent may attempt to listen on multiple interfaces (typically
+0.0.0.0 and ::). This means that if your IPv6 interface doesn't work,
+you may still see a <a class="reference external" href="reference-Alerts.html#listen_failed_alert">listen_failed_alert</a>, even though the IPv4 port
+succeeded.</p>
+<p>The <tt class="docutils literal">flags</tt> parameter can either be 0 or
+<tt class="docutils literal"><span class="pre">session::listen_reuse_address</span></tt>, which will set the reuse address
+socket option on the listen socket(s). By default, the listen socket
+does not use reuse address. If you're running a service that needs to
+run on a specific port no matter if it's in use, set this flag.</p>
 <a name="set_peer_class_filter()"></a></div>
 <div class="section" id="set-peer-class-filter">
 <h2>set_peer_class_filter()</h2>
 <pre class="literal-block">
 void <strong>set_peer_class_filter</strong> (ip_filter const&amp; f);
 </pre>
-<p>Sets the peer class filter for this <a class="reference external" href="reference-Session.html#session">session</a>. All new peer connections will take this
-into account and be added to the peer classes specified by this filter, based on
-the peer's IP address.</p>
-<p>The ip-filter essentially maps an IP -&gt; uint32. Each bit in that 32 bit integer represents
-a peer class. The least significant bit represents class 0, the next bit class 1 and so on.</p>
+<p>Sets the peer class filter for this <a class="reference external" href="reference-Session.html#session">session</a>. All new peer connections
+will take this into account and be added to the peer classes specified
+by this filter, based on the peer's IP address.</p>
+<p>The ip-filter essentially maps an IP -&gt; uint32. Each bit in that 32
+bit integer represents a peer class. The least significant bit
+represents class 0, the next bit class 1 and so on.</p>
 <p>For more info, see <a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a>.</p>
-<p>For example, to make all peers in the range 200.1.1.0 - 200.1.255.255 belong to their own
-peer class, apply the following filter:</p>
+<p>For example, to make all peers in the range 200.1.1.0 - 200.1.255.255
+belong to their own peer class, apply the following filter:</p>
 <pre class="literal-block">
 ip_filter f;
 int my_class = ses.create_peer_class(&quot;200.1.x.x IP range&quot;);
@@ -1216,12 +1198,14 @@ f.add_rule(address_v4::from_string(&quot;200.1.1.0&quot;)
         , 1 &lt;&lt; my_class);
 ses.set_peer_class_filter(f);
 </pre>
-<p>This setting only applies to new connections, it won't affect existing peer connections.</p>
-<p>This function is limited to only peer class 0-31, since there are only 32 bits in the IP range
-mapping. Only the set bits matter; no peer class will be removed from a peer as a result of
-this call, peer classes are only added.</p>
-<p>The <tt class="docutils literal">peer_class</tt> argument cannot be greater than 31. The bitmasks representing
-peer classes in the <tt class="docutils literal">peer_class_filter</tt> are 32 bits.</p>
+<p>This setting only applies to new connections, it won't affect existing
+peer connections.</p>
+<p>This function is limited to only peer class 0-31, since there are only
+32 bits in the IP range mapping. Only the set bits matter; no peer
+class will be removed from a peer as a result of this call, peer
+classes are only added.</p>
+<p>The <tt class="docutils literal">peer_class</tt> argument cannot be greater than 31. The bitmasks
+representing peer classes in the <tt class="docutils literal">peer_class_filter</tt> are 32 bits.</p>
 <p>For more information, see <a class="reference external" href="manual-ref.html#peer-classes">peer classes</a>.</p>
 <a name="set_peer_class_type_filter()"></a></div>
 <div class="section" id="set-peer-class-type-filter">
@@ -1229,10 +1213,10 @@ peer classes in the <tt class="docutils literal">peer_class_filter</tt> are 32 b
 <pre class="literal-block">
 void <strong>set_peer_class_type_filter</strong> (peer_class_type_filter const&amp; f);
 </pre>
-<p>Sets and gets the <em>peer class type filter</em>. This is controls automatic peer class
-assignments to peers based on what kind of socket it is.</p>
-<p>It does not only support assigning peer classes, it also supports removing peer
-classes based on socket type.</p>
+<p>Sets and gets the <em>peer class type filter</em>. This is controls automatic
+peer class assignments to peers based on what kind of socket it is.</p>
+<p>It does not only support assigning peer classes, it also supports
+removing peer classes based on socket type.</p>
 <p>The order of these rules being applied are:</p>
 <ol class="arabic simple">
 <li>peer-class IP filter</li>
@@ -1247,12 +1231,13 @@ TODO: add get_peer_class_type_filter() as well</p>
 <pre class="literal-block">
 int <strong>create_peer_class</strong> (char const* name);
 </pre>
-<p>Creates a new peer class (see <a class="reference external" href="manual-ref.html#peer-classes">peer classes</a>) with the given name. The returned integer
-is the new peer class' identifier. Peer classes may have the same name, so each invocation
-of this function creates a new class and returns a unique identifier.</p>
-<p>Identifiers are assigned from low numbers to higher. So if you plan on using certain peer
-classes in a call to <a class="reference internal" href="#set-peer-class-filter">set_peer_class_filter()</a>, make sure to create those early on, to get
-low identifiers.</p>
+<p>Creates a new peer class (see <a class="reference external" href="manual-ref.html#peer-classes">peer classes</a>) with the given name. The
+returned integer is the new peer class' identifier. Peer classes may
+have the same name, so each invocation of this function creates a new
+class and returns a unique identifier.</p>
+<p>Identifiers are assigned from low numbers to higher. So if you plan on
+using certain peer classes in a call to <a class="reference internal" href="#set-peer-class-filter">set_peer_class_filter()</a>,
+make sure to create those early on, to get low identifiers.</p>
 <p>For more information on peer classes, see <a class="reference external" href="manual-ref.html#peer-classes">peer classes</a>.</p>
 <a name="delete_peer_class()"></a></div>
 <div class="section" id="delete-peer-class">
@@ -1260,15 +1245,19 @@ low identifiers.</p>
 <pre class="literal-block">
 void <strong>delete_peer_class</strong> (int cid);
 </pre>
-<p>This call dereferences the reference count of the specified peer class. When creating a peer
-class it's automatically referenced by 1. If you want to recycle a peer class, you may call
-this function. You may only call this function <strong>once</strong> per peer class you create. Calling it
-more than once for the same class will lead to memory corruption.</p>
-<p>Since peer classes are reference counted, this function will not remove the peer class if it's
-still assigned to torrents or peers. It will however remove it once the last peer and torrent
-drops their references to it.</p>
-<p>There is no need to call this function for custom peer classes. All peer classes will be properly
-destructed when the <a class="reference external" href="reference-Session.html#session">session</a> object destructs.</p>
+<p>This call dereferences the reference count of the specified peer
+class. When creating a peer class it's automatically referenced by 1.
+If you want to recycle a peer class, you may call this function. You
+may only call this function <strong>once</strong> per peer class you create.
+Calling it more than once for the same class will lead to memory
+corruption.</p>
+<p>Since peer classes are reference counted, this function will not
+remove the peer class if it's still assigned to torrents or peers. It
+will however remove it once the last peer and torrent drops their
+references to it.</p>
+<p>There is no need to call this function for custom peer classes. All
+peer classes will be properly destructed when the <a class="reference external" href="reference-Session.html#session">session</a> object
+destructs.</p>
 <p>For more information on peer classes, see <a class="reference external" href="manual-ref.html#peer-classes">peer classes</a>.</p>
 <a name="get_peer_class()"></a>
 <a name="set_peer_class()"></a></div>
@@ -1278,14 +1267,16 @@ destructed when the <a class="reference external" href="reference-Session.html#s
 peer_class_info <strong>get_peer_class</strong> (int cid);
 void <strong>set_peer_class</strong> (int cid, peer_class_info const&amp; pci);
 </pre>
-<p>These functions queries information from a peer class and updates the configuration
-of a peer class, respectively.</p>
-<p><tt class="docutils literal">cid</tt> must refer to an existing peer class. If it does not, the return value of
-<tt class="docutils literal">get_peer_class()</tt> is undefined.</p>
-<p><tt class="docutils literal">set_peer_class()</tt> sets all the information in the <tt class="docutils literal">peer_class_info</tt> object in
-the specified peer class. There is no option to only update a single property.</p>
-<p>A peer or torrent balonging to more than one class, the highest priority among any
-of its classes is the one that is taken into account.</p>
+<p>These functions queries information from a peer class and updates the
+configuration of a peer class, respectively.</p>
+<p><tt class="docutils literal">cid</tt> must refer to an existing peer class. If it does not, the
+return value of <tt class="docutils literal">get_peer_class()</tt> is undefined.</p>
+<p><tt class="docutils literal">set_peer_class()</tt> sets all the information in the
+<tt class="docutils literal">peer_class_info</tt> object in the specified peer class. There is no
+option to only update a single property.</p>
+<p>A peer or torrent balonging to more than one class, the highest
+priority among any of its classes is the one that is taken into
+account.</p>
 <p>For more information, see <a class="reference external" href="manual-ref.html#peer-classes">peer classes</a>.</p>
 <a name="remove_torrent()"></a></div>
 <div class="section" id="remove-torrent">
@@ -1293,13 +1284,15 @@ of its classes is the one that is taken into account.</p>
 <pre class="literal-block">
 void <strong>remove_torrent</strong> (const torrent_handle&amp; h, int options = 0);
 </pre>
-<p><tt class="docutils literal">remove_torrent()</tt> will close all peer connections associated with the torrent and tell
-the tracker that we've stopped participating in the swarm. This operation cannot fail.
-When it completes, you will receive a <a class="reference external" href="reference-Alerts.html#torrent_removed_alert">torrent_removed_alert</a>.</p>
-<p>The optional second argument <tt class="docutils literal">options</tt> can be used to delete all the files downloaded
-by this torrent. To do so, pass in the value <tt class="docutils literal"><span class="pre">session::delete_files</span></tt>. The removal
-of the torrent is asyncronous, there is no guarantee that adding the same torrent
-immediately after it was removed will not throw a <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a> exception. Once
+<p><tt class="docutils literal">remove_torrent()</tt> will close all peer connections associated with
+the torrent and tell the tracker that we've stopped participating in
+the swarm. This operation cannot fail. When it completes, you will
+receive a <a class="reference external" href="reference-Alerts.html#torrent_removed_alert">torrent_removed_alert</a>.</p>
+<p>The optional second argument <tt class="docutils literal">options</tt> can be used to delete all the
+files downloaded by this torrent. To do so, pass in the value
+<tt class="docutils literal"><span class="pre">session::delete_files</span></tt>. The removal of the torrent is asyncronous,
+there is no guarantee that adding the same torrent immediately after
+it was removed will not throw a <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a> exception. Once
 the torrent is deleted, a <a class="reference external" href="reference-Alerts.html#torrent_deleted_alert">torrent_deleted_alert</a> is posted.</p>
 <a name="get_settings()"></a>
 <a name="apply_settings()"></a></div>
@@ -1320,12 +1313,14 @@ the settings to the main thread of libtorrent some time later.</p>
 void <strong>set_proxy</strong> (proxy_settings const&amp; s);
 proxy_settings <strong>proxy</strong> () const;
 </pre>
-<p>These functions sets and queries the proxy settings to be used for the <a class="reference external" href="reference-Session.html#session">session</a>.</p>
+<p>These functions sets and queries the proxy settings to be used for the
+session.</p>
 <p>For more information on what settings are available for proxies, see
 <a class="reference external" href="reference-Settings.html#proxy_settings">proxy_settings</a>. If the <a class="reference external" href="reference-Session.html#session">session</a> is not in anonymous mode, proxies that
-aren't working or fail, will automatically be disabled and packets will
-flow without using any proxy. If you want to enforce using a proxy, even when
-the proxy doesn't work, enable anonymous_mode in session_settings.</p>
+aren't working or fail, will automatically be disabled and packets
+will flow without using any proxy. If you want to enforce using a
+proxy, even when the proxy doesn't work, enable anonymous_mode in
+session_settings.</p>
 <a name="i2p_proxy()"></a>
 <a name="set_i2p_proxy()"></a></div>
 <div class="section" id="i2p-proxy-set-i2p-proxy">
@@ -1348,76 +1343,58 @@ void <strong>pop_alerts</strong> (std::deque&lt;alert*&gt;* alerts);
 std::auto_ptr&lt;alert&gt; <strong>pop_alert</strong> ();
 alert const* <strong>wait_for_alert</strong> (time_duration max_wait);
 </pre>
-<p><tt class="docutils literal">pop_alert()</tt> is used to ask the <a class="reference external" href="reference-Session.html#session">session</a> if any errors or events has occurred. With
-<a class="reference external" href="reference-Settings.html#alert_mask">settings_pack::alert_mask</a> you can filter which alerts to receive through <tt class="docutils literal">pop_alert()</tt>.
-For information about the <a class="reference external" href="reference-Alerts.html#alert">alert</a> categories, see <a class="reference external" href="manual-ref.html#alerts">alerts</a>.</p>
-<p><tt class="docutils literal">pop_alerts()</tt> pops all pending alerts in a single call. In high performance environments
-with a very high <a class="reference external" href="reference-Alerts.html#alert">alert</a> churn rate, this can save significant amount of time compared to
-popping alerts one at a time. Each call requires one round-trip to the network thread. If
-alerts are produced in a higher rate than they can be popped (when popped one at a time)
-it's easy to get stuck in an infinite loop, trying to drain the <a class="reference external" href="reference-Alerts.html#alert">alert</a> queue. Popping the entire
-queue at once avoids this problem.</p>
-<p>However, the <tt class="docutils literal">pop_alerts</tt> function comes with significantly more responsibility. You pass
-in an <em>empty</em> <tt class="docutils literal"><span class="pre">std::dequeue&lt;alert*&gt;</span></tt> to it. If it's not empty, all elements in it will
-be deleted and then cleared. All currently pending alerts are returned by being swapped
-into the passed in container. The responsibility of deleting the alerts is transferred
-to the caller. This means you need to call delete for each item in the returned dequeue.
-It's probably a good idea to delete the alerts as you handle them, to save one extra
-pass over the dequeue.</p>
-<p>Alternatively, you can pass in the same container the next time you call <tt class="docutils literal">pop_alerts</tt>.</p>
-<p><tt class="docutils literal">wait_for_alert</tt> blocks until an <a class="reference external" href="reference-Alerts.html#alert">alert</a> is available, or for no more than <tt class="docutils literal">max_wait</tt>
-time. If <tt class="docutils literal">wait_for_alert</tt> returns because of the time-out, and no alerts are available,
-it returns 0. If at least one <a class="reference external" href="reference-Alerts.html#alert">alert</a> was generated, a pointer to that <a class="reference external" href="reference-Alerts.html#alert">alert</a> is returned.
-The <a class="reference external" href="reference-Alerts.html#alert">alert</a> is not popped, any subsequent calls to <tt class="docutils literal">wait_for_alert</tt> will return the
-same pointer until the <a class="reference external" href="reference-Alerts.html#alert">alert</a> is popped by calling <tt class="docutils literal">pop_alert</tt>. This is useful for
-leaving any <a class="reference external" href="reference-Alerts.html#alert">alert</a> dispatching mechanism independent of this blocking call, the dispatcher
-can be called and it can pop the <a class="reference external" href="reference-Alerts.html#alert">alert</a> independently.</p>
-<p>In the python binding, <tt class="docutils literal">wait_for_alert</tt> takes the number of milliseconds to wait as an integer.</p>
+<p><tt class="docutils literal">pop_alert()</tt> is used to ask the <a class="reference external" href="reference-Session.html#session">session</a> if any errors or events has
+occurred. With <a class="reference external" href="reference-Settings.html#alert_mask">settings_pack::alert_mask</a> you can filter which alerts
+to receive through <tt class="docutils literal">pop_alert()</tt>. For information about the <a class="reference external" href="reference-Alerts.html#alert">alert</a>
+categories, see <a class="reference external" href="manual-ref.html#alerts">alerts</a>.</p>
+<p><tt class="docutils literal">pop_alerts()</tt> pops all pending alerts in a single call. In high
+performance environments with a very high <a class="reference external" href="reference-Alerts.html#alert">alert</a> churn rate, this can
+save significant amount of time compared to popping alerts one at a
+time. Each call requires one round-trip to the network thread. If
+alerts are produced in a higher rate than they can be popped (when
+popped one at a time) it's easy to get stuck in an infinite loop,
+trying to drain the <a class="reference external" href="reference-Alerts.html#alert">alert</a> queue. Popping the entire queue at once
+avoids this problem.</p>
+<p>However, the <tt class="docutils literal">pop_alerts</tt> function comes with significantly more
+responsibility. You pass in an <em>empty</em> <tt class="docutils literal"><span class="pre">std::dequeue&lt;alert*&gt;</span></tt> to it.
+If it's not empty, all elements in it will be deleted and then
+cleared. All currently pending alerts are returned by being swapped
+into the passed in container. The responsibility of deleting the
+alerts is transferred to the caller. This means you need to call
+delete for each item in the returned dequeue. It's probably a good
+idea to delete the alerts as you handle them, to save one extra pass
+over the dequeue.</p>
+<p>Alternatively, you can pass in the same container the next time you
+call <tt class="docutils literal">pop_alerts</tt>.</p>
+<p><tt class="docutils literal">wait_for_alert</tt> blocks until an <a class="reference external" href="reference-Alerts.html#alert">alert</a> is available, or for no more
+than <tt class="docutils literal">max_wait</tt> time. If <tt class="docutils literal">wait_for_alert</tt> returns because of the
+time-out, and no alerts are available, it returns 0. If at least one
+<a class="reference external" href="reference-Alerts.html#alert">alert</a> was generated, a pointer to that <a class="reference external" href="reference-Alerts.html#alert">alert</a> is returned. The <a class="reference external" href="reference-Alerts.html#alert">alert</a> is
+not popped, any subsequent calls to <tt class="docutils literal">wait_for_alert</tt> will return the
+same pointer until the <a class="reference external" href="reference-Alerts.html#alert">alert</a> is popped by calling <tt class="docutils literal">pop_alert</tt>. This
+is useful for leaving any <a class="reference external" href="reference-Alerts.html#alert">alert</a> dispatching mechanism independent of
+this blocking call, the dispatcher can be called and it can pop the
+<a class="reference external" href="reference-Alerts.html#alert">alert</a> independently.</p>
+<p>In the python binding, <tt class="docutils literal">wait_for_alert</tt> takes the number of
+milliseconds to wait as an integer.</p>
 <p>To control the max number of alerts that's queued by the <a class="reference external" href="reference-Session.html#session">session</a>, see
 <tt class="docutils literal"><span class="pre">session_settings::alert_queue_size</span></tt>.</p>
-<p><a class="reference external" href="reference-Alerts.html#save_resume_data_alert">save_resume_data_alert</a> and <a class="reference external" href="reference-Alerts.html#save_resume_data_failed_alert">save_resume_data_failed_alert</a> are always posted, regardelss
-of the <a class="reference external" href="reference-Alerts.html#alert">alert</a> mask.</p>
+<p><a class="reference external" href="reference-Alerts.html#save_resume_data_alert">save_resume_data_alert</a> and <a class="reference external" href="reference-Alerts.html#save_resume_data_failed_alert">save_resume_data_failed_alert</a> are always
+posted, regardelss of the <a class="reference external" href="reference-Alerts.html#alert">alert</a> mask.</p>
 <a name="set_alert_dispatch()"></a></div>
 <div class="section" id="set-alert-dispatch">
 <h2>set_alert_dispatch()</h2>
 <pre class="literal-block">
 void <strong>set_alert_dispatch</strong> (boost::function&lt;void(std::auto_ptr&lt;alert&gt;)&gt; const&amp; fun);
 </pre>
-<p>This sets a function to be called (from within libtorrent's netowrk thread) every time an <a class="reference external" href="reference-Alerts.html#alert">alert</a>
-is posted. Since the function (<tt class="docutils literal">fun</tt>) is run in libtorrent's internal thread, it may not call
-any of libtorrent's external API functions. Doing so results in a dead lock.</p>
-<p>The main intention with this function is to support integration with platform-dependent message
-queues or signalling systems. For instance, on windows, one could post a message to an HNWD or
-on linux, write to a pipe or an eventfd.</p>
-<a name="start_lsd()"></a>
-<a name="stop_lsd()"></a></div>
-<div class="section" id="start-lsd-stop-lsd">
-<h2>start_lsd() stop_lsd()</h2>
-<pre class="literal-block">
-void <strong>stop_lsd</strong> ();
-void <strong>start_lsd</strong> ();
-</pre>
-<p>Starts and stops Local Service Discovery. This service will broadcast
-the infohashes of all the non-private torrents on the local network to
-look for peers on the same swarm within multicast reach.</p>
-<p>It is turned off by default.
-TODO: move this into <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a></p>
-<a name="stop_upnp()"></a>
-<a name="start_upnp()"></a></div>
-<div class="section" id="stop-upnp-start-upnp">
-<h2>stop_upnp() start_upnp()</h2>
-<pre class="literal-block">
-void <strong>stop_upnp</strong> ();
-void <strong>start_upnp</strong> ();
-</pre>
-<p>Starts and stops the UPnP service. When started, the listen port and the DHT
-port are attempted to be forwarded on local UPnP router devices.</p>
-<p>The upnp object returned by <tt class="docutils literal">start_upnp()</tt> can be used to add and remove
-arbitrary port mappings. Mapping status is returned through the
-<a class="reference external" href="reference-Alerts.html#portmap_alert">portmap_alert</a> and the <a class="reference external" href="reference-Alerts.html#portmap_error_alert">portmap_error_alert</a>. The object will be valid until
-<tt class="docutils literal">stop_upnp()</tt> is called. See <a class="reference external" href="manual-ref.html#upnp-and-nat-pmp">upnp and nat pmp</a>.</p>
-<p>It is off by default.
-TODO: move this into <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a></p>
+<p>This sets a function to be called (from within libtorrent's netowrk
+thread) every time an <a class="reference external" href="reference-Alerts.html#alert">alert</a> is posted. Since the function (<tt class="docutils literal">fun</tt>) is
+run in libtorrent's internal thread, it may not call any of
+libtorrent's external API functions. Doing so results in a dead lock.</p>
+<p>The main intention with this function is to support integration with
+platform-dependent message queues or signalling systems. For instance,
+on windows, one could post a message to an HNWD or on linux, write to
+a pipe or an eventfd.</p>
 <a name="add_port_mapping()"></a>
 <a name="delete_port_mapping()"></a></div>
 <div class="section" id="add-port-mapping-delete-port-mapping">
@@ -1427,34 +1404,18 @@ void <strong>delete_port_mapping</strong> (int handle);
 int <strong>add_port_mapping</strong> (protocol_type t, int external_port, int local_port);
 </pre>
 <p>add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
-whichever is enabled. The return value is a handle referring to
-the port mapping that was just created. Pass it to <a class="reference external" href="reference-Session.html#delete_port_mapping()">delete_port_mapping()</a>
+whichever is enabled. The return value is a handle referring to the
+port mapping that was just created. Pass it to <a class="reference external" href="reference-Session.html#delete_port_mapping()">delete_port_mapping()</a>
 to remove it.</p>
-<a name="start_natpmp()"></a>
-<a name="stop_natpmp()"></a></div>
-<div class="section" id="start-natpmp-stop-natpmp">
-<h2>start_natpmp() stop_natpmp()</h2>
-<pre class="literal-block">
-void <strong>stop_natpmp</strong> ();
-void <strong>start_natpmp</strong> ();
-</pre>
-<p>Starts and stops the NAT-PMP service. When started, the listen port and the DHT
-port are attempted to be forwarded on the router through NAT-PMP.</p>
-<p>The natpmp object returned by <tt class="docutils literal">start_natpmp()</tt> can be used to add and remove
-arbitrary port mappings. Mapping status is returned through the
-<a class="reference external" href="reference-Alerts.html#portmap_alert">portmap_alert</a> and the <a class="reference external" href="reference-Alerts.html#portmap_error_alert">portmap_error_alert</a>. The object will be valid until
-<tt class="docutils literal">stop_natpmp()</tt> is called. See <a class="reference external" href="manual-ref.html#upnp-and-nat-pmp">upnp and nat pmp</a>.</p>
-<p>It is off by default.
-TODO: move this into <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a></p>
 <a name="save_state_flags_t"></a></div>
 <div class="section" id="enum-save-state-flags-t">
 <h2>enum save_state_flags_t</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="57%" />
-<col width="15%" />
-<col width="28%" />
+<col width="26%" />
+<col width="7%" />
+<col width="67%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -1465,35 +1426,32 @@ TODO: move this into <a class="reference external" href="reference-Settings.html
 <tbody valign="top">
 <tr><td>save_settings</td>
 <td>1</td>
-<td>&nbsp;</td>
+<td>saves settings (i.e. the session_settings)</td>
 </tr>
 <tr><td>save_dht_settings</td>
 <td>2</td>
-<td>&nbsp;</td>
+<td>saves dht_settings</td>
 </tr>
 <tr><td>save_dht_state</td>
 <td>4</td>
-<td>&nbsp;</td>
+<td>saves dht state such as nodes and node-id, possibly accelerating
+joining the DHT if provided at next <a class="reference external" href="reference-Session.html#session">session</a> startup.</td>
 </tr>
 <tr><td>save_proxy</td>
 <td>8</td>
-<td>&nbsp;</td>
+<td>save <a class="reference external" href="reference-Settings.html#proxy_settings">proxy_settings</a></td>
 </tr>
 <tr><td>save_i2p_proxy</td>
 <td>16</td>
-<td>&nbsp;</td>
+<td>save i2p_proxy settings</td>
 </tr>
 <tr><td>save_encryption_settings</td>
 <td>32</td>
-<td>&nbsp;</td>
-</tr>
-<tr><td>save_as_map</td>
-<td>64</td>
-<td>&nbsp;</td>
+<td>save pe_settings</td>
 </tr>
 <tr><td>save_feeds</td>
 <td>128</td>
-<td>&nbsp;</td>
+<td>saves RSS feeds</td>
 </tr>
 </tbody>
 </table>
@@ -1503,9 +1461,9 @@ TODO: move this into <a class="reference external" href="reference-Settings.html
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="41%" />
-<col width="21%" />
-<col width="38%" />
+<col width="19%" />
+<col width="9%" />
+<col width="72%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -1516,7 +1474,7 @@ TODO: move this into <a class="reference external" href="reference-Settings.html
 <tbody valign="top">
 <tr><td>delete_files</td>
 <td>1</td>
-<td>&nbsp;</td>
+<td>delete the files belonging to the torrent from disk.</td>
 </tr>
 </tbody>
 </table>
@@ -1526,9 +1484,9 @@ TODO: move this into <a class="reference external" href="reference-Settings.html
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="55%" />
-<col width="16%" />
-<col width="30%" />
+<col width="25%" />
+<col width="7%" />
+<col width="68%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -1539,11 +1497,13 @@ TODO: move this into <a class="reference external" href="reference-Settings.html
 <tbody valign="top">
 <tr><td>add_default_plugins</td>
 <td>1</td>
-<td>&nbsp;</td>
+<td>this will add common extensions like ut_pex, ut_metadata, lt_tex
+smart_ban and possibly others.</td>
 </tr>
 <tr><td>start_default_features</td>
 <td>2</td>
-<td>&nbsp;</td>
+<td>this will start features like DHT, local service discovery, UPnP
+and NAT-PMP.</td>
 </tr>
 </tbody>
 </table>
@@ -1905,30 +1865,29 @@ connected peers, just peers we know of.</dd>
 <dd>the number of torrents in the
 <a class="reference external" href="reference-Session.html#session">session</a> and the number of them that are currently paused, respectively.</dd>
 </dl>
-<a name="min_memory_usage()"></a>
-<a name="high_performance_seed()"></a><div class="section" id="min-memory-usage-high-performance-seed">
-<h2>min_memory_usage() high_performance_seed()</h2>
+<a name="find_metric_idx()"></a><div class="section" id="find-metric-idx">
+<h2>find_metric_idx()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <pre class="literal-block">
-void <strong>min_memory_usage</strong> (settings_pack&amp; set);
-void <strong>high_performance_seed</strong> (settings_pack&amp; set);
+int <strong>find_metric_idx</strong> (std::vector&lt;stats_metric&gt; const&amp; metrics
+   , char const* name);
 </pre>
-<p>The default values of the <a class="reference external" href="reference-Session.html#session">session</a> settings are set for a regular bittorrent client running
-on a desktop system. There are functions that can set the <a class="reference external" href="reference-Session.html#session">session</a> settings to pre set
-settings for other environments. These can be used for the basis, and should be tweaked to
-fit your needs better.</p>
-<p><tt class="docutils literal">min_memory_usage</tt> returns settings that will use the minimal amount of RAM, at the
-potential expense of upload and download performance. It adjusts the socket buffer sizes,
-disables the disk cache, lowers the send buffer watermarks so that each connection only has
-at most one block in use at any one time. It lowers the outstanding blocks send to the disk
-I/O thread so that connections only have one block waiting to be flushed to disk at any given
-time. It lowers the max number of peers in the peer list for torrents. It performs multiple
-smaller reads when it hashes pieces, instead of reading it all into memory before hashing.</p>
-<p>This configuration is inteded to be the starting point for embedded devices. It will
-significantly reduce memory usage.</p>
-<p><tt class="docutils literal">high_performance_seed</tt> returns settings optimized for a seed box, serving many peers
-and that doesn't do any downloading. It has a 128 MB disk cache and has a limit of 400 files
-in its file pool. It support fast upload rates by allowing large send buffers.</p>
+<p>given a vector if <a class="reference external" href="reference-Session.html#stats_metric">stats_metric</a> objects (as returned by
+<a class="reference external" href="reference-Session.html#session_stats_metrics()">session_stats_metrics()</a>) and a name of a metric, this function returns
+the counter index of it, or -1 if it could not be found. The counter
+index is the index into the values array returned by <a class="reference external" href="reference-Alerts.html#session_stats_alert">session_stats_alert</a>.</p>
+<a name="session_stats_metrics()"></a></div>
+<div class="section" id="session-stats-metrics">
+<h2>session_stats_metrics()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
+<pre class="literal-block">
+std::vector&lt;stats_metric&gt; <strong>session_stats_metrics</strong> ();
+</pre>
+<p>This free function returns the list of available metrics exposed by
+libtorrent's statistics API. Each metric has a name and a <em>value index</em>.
+The value index is the index into the array in <a class="reference external" href="reference-Alerts.html#session_stats_alert">session_stats_alert</a> where
+this metric's value can be found when the <a class="reference external" href="reference-Session.html#session">session</a> stats is sampled (by
+calling <a class="reference external" href="reference-Session.html#post_session_stats()">post_session_stats()</a>).</p>
 </div>
 </div>
     </div>

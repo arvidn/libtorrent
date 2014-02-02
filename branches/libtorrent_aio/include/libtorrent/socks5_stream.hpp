@@ -45,6 +45,9 @@ namespace libtorrent {
 
 	namespace socks_error {
 
+		// SOCKS5 error values. If an error_code has the
+		// socks error category (get_socks_category()), these
+		// are the error values.
 		enum socks_error_code
 		{
 			no_error = 0,
@@ -62,21 +65,8 @@ namespace libtorrent {
 		};
 	}
 
-#if BOOST_VERSION < 103500
-typedef asio::error::error_category socks_error_category;
-#else
-
-struct TORRENT_EXTRA_EXPORT socks_error_category : boost::system::error_category
-{
-	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-	virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{ return boost::system::error_condition(ev, *this); }
-};
-
-#endif
-
-extern socks_error_category socks_category;
+	// returns the error_category for SOCKS5 errors
+	TORRENT_EXPORT boost::system::error_category& get_socks_category();
 
 class socks5_stream : public proxy_base
 {

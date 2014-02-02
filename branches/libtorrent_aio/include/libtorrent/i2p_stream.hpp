@@ -66,15 +66,8 @@ namespace libtorrent {
 		};
 	}
 
-struct TORRENT_EXPORT i2p_error_category : boost::system::error_category
-{
-	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-	virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{ return boost::system::error_condition(ev, *this); }
-};
-
-extern i2p_error_category i2p_category;
+	// returns the error category for I2P errors
+	TORRENT_EXPORT boost::system::error_category& get_i2p_category();
 
 class i2p_stream : public proxy_base
 {

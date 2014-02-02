@@ -484,9 +484,11 @@ namespace libtorrent
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
 	// hidden
-	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
+	inline asio::error::error_category get_posix_category()
+	{ return asio::error::system_category; }
 	// hidden
-	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
+	inline asio::error::error_category get_system_category()
+	{ return asio::error::system_category; }
 
 	// hidden
 	boost::system::error_category const& get_libtorrent_category()
@@ -503,14 +505,6 @@ namespace libtorrent
 	}
 
 #else
-
-	struct TORRENT_EXPORT http_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
 
 	// return the instance of the libtorrent_error_category which
 	// maps libtorrent error codes to human readable error messages.

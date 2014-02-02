@@ -229,6 +229,8 @@ namespace libtorrent
 		entry* find_key(std::string const& key);
 		entry const* find_key(std::string const& key) const;
 
+		// returns a pretty-printed string representation
+		// of the bencoded structure, with JSON-style syntax
 		std::string to_string() const;
 
 	protected:
@@ -280,6 +282,7 @@ namespace libtorrent
 	};
 
 #if TORRENT_USE_IOSTREAM
+	// prints the bencoded structure to the ostream as a JSON-style structure.
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
 	{
 		os << e.to_string();

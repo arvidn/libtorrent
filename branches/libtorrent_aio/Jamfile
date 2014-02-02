@@ -337,6 +337,11 @@ feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
+feature sanitize : off address undefined thread : composite propagated link-incompatible ;
+feature.compose <sanitize>address : <cflags>-fsanitize=address <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=address ;
+feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <linkflags>-fsanitize=undefined ;
+feature.compose <sanitize>thread : <cflags>-fsanitize=thread <linkflags>-fsanitize=thread ;
+
 feature need-librt : no yes : composite propagated link-incompatible ;
 
 feature fiemap : off on : composite propagated ;

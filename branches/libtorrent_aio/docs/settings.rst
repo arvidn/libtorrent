@@ -874,6 +874,61 @@ once allocated.
 when this is true, and incoming encrypted connections are enabled, &supportcrypt=1
 is included in http tracker announces
 
+.. _enable_upnp:
+
++-------------+------+---------+
+| name        | type | default |
++=============+======+=========+
+| enable_upnp | bool | true    |
++-------------+------+---------+
+
+Starts and stops the UPnP service. When started, the listen port and the DHT
+port are attempted to be forwarded on local UPnP router devices.
+
+The upnp object returned by ``start_upnp()`` can be used to add and remove
+arbitrary port mappings. Mapping status is returned through the
+portmap_alert and the portmap_error_alert. The object will be valid until
+``stop_upnp()`` is called. See upnp-and-nat-pmp_.
+
+.. _enable_natpmp:
+
++---------------+------+---------+
+| name          | type | default |
++===============+======+=========+
+| enable_natpmp | bool | true    |
++---------------+------+---------+
+
+Starts and stops the NAT-PMP service. When started, the listen port and the DHT
+port are attempted to be forwarded on the router through NAT-PMP.
+
+The natpmp object returned by ``start_natpmp()`` can be used to add and remove
+arbitrary port mappings. Mapping status is returned through the
+portmap_alert and the portmap_error_alert. The object will be valid until
+``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
+
+.. _enable_lsd:
+
++------------+------+---------+
+| name       | type | default |
++============+======+=========+
+| enable_lsd | bool | true    |
++------------+------+---------+
+
+Starts and stops Local Service Discovery. This service will broadcast
+the infohashes of all the non-private torrents on the local network to
+look for peers on the same swarm within multicast reach.
+
+.. _enable_dht:
+
++------------+------+---------+
+| name       | type | default |
++============+======+=========+
+| enable_dht | bool | true    |
++------------+------+---------+
+
+starts the dht node and makes the trackerless service
+available to torrents.
+
 .. _tracker_completion_timeout:
 
 +----------------------------+------+---------+
@@ -2189,7 +2244,7 @@ io-threads to use,  and ``aio_max`` the max number of outstanding jobs.
 +-----------------+------+---------+
 | name            | type | default |
 +=================+======+=========+
-| network_threads | int  | 0       |
+| network_threads | int  | 1       |
 +-----------------+------+---------+
 
 ``network_threads`` is the number of threads to use to call ``async_write_some``

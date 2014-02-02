@@ -85,8 +85,8 @@ namespace libtorrent
 	class connection_queue;
 	class alert;
 
-	// describes one statistics metric from the session.
-	// For more information, see the session-statistics_ section.
+	// describes one statistics metric from the session. For more information,
+	// see the session-statistics_ section.
 	struct TORRENT_EXPORT stats_metric
 	{
 		char const* name;
@@ -98,25 +98,29 @@ namespace libtorrent
 	typedef boost::function<void(sha1_hash const&, std::vector<char>&
 		, error_code&)> user_load_function_t;
 
-	// The default values of the session settings are set for a regular bittorrent client running
-	// on a desktop system. There are functions that can set the session settings to pre set
-	// settings for other environments. These can be used for the basis, and should be tweaked to
-	// fit your needs better.
+	// The default values of the session settings are set for a regular
+	// bittorrent client running on a desktop system. There are functions that
+	// can set the session settings to pre set settings for other environments.
+	// These can be used for the basis, and should be tweaked to fit your needs
+	// better.
 	// 
-	// ``min_memory_usage`` returns settings that will use the minimal amount of RAM, at the
-	// potential expense of upload and download performance. It adjusts the socket buffer sizes,
-	// disables the disk cache, lowers the send buffer watermarks so that each connection only has
-	// at most one block in use at any one time. It lowers the outstanding blocks send to the disk
-	// I/O thread so that connections only have one block waiting to be flushed to disk at any given
-	// time. It lowers the max number of peers in the peer list for torrents. It performs multiple
-	// smaller reads when it hashes pieces, instead of reading it all into memory before hashing.
+	// ``min_memory_usage`` returns settings that will use the minimal amount of
+	// RAM, at the potential expense of upload and download performance. It
+	// adjusts the socket buffer sizes, disables the disk cache, lowers the send
+	// buffer watermarks so that each connection only has at most one block in
+	// use at any one time. It lowers the outstanding blocks send to the disk
+	// I/O thread so that connections only have one block waiting to be flushed
+	// to disk at any given time. It lowers the max number of peers in the peer
+	// list for torrents. It performs multiple smaller reads when it hashes
+	// pieces, instead of reading it all into memory before hashing.
 	// 
-	// This configuration is inteded to be the starting point for embedded devices. It will
-	// significantly reduce memory usage.
+	// This configuration is inteded to be the starting point for embedded
+	// devices. It will significantly reduce memory usage.
 	// 
-	// ``high_performance_seed`` returns settings optimized for a seed box, serving many peers
-	// and that doesn't do any downloading. It has a 128 MB disk cache and has a limit of 400 files
-	// in its file pool. It support fast upload rates by allowing large send buffers.
+	// ``high_performance_seed`` returns settings optimized for a seed box,
+	// serving many peers and that doesn't do any downloading. It has a 128 MB
+	// disk cache and has a limit of 400 files in its file pool. It support fast
+	// upload rates by allowing large send buffers.
 	TORRENT_EXPORT void min_memory_usage(settings_pack& set);
 	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
 
@@ -143,13 +147,12 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	// this is a holder for the internal session implementation
-	// object. Once the session destruction is explicitly initiated,
-	// this holder is used to synchronize the completion of the
-	// shutdown. The lifetime of this object may outlive session,
-	// causing the session destructor to not block.
-	// The session_proxy destructor will block however, until the
-	// underlying session is done shutting down.
+	// this is a holder for the internal session implementation object. Once the
+	// session destruction is explicitly initiated, this holder is used to
+	// synchronize the completion of the shutdown. The lifetime of this object
+	// may outlive session, causing the session destructor to not block. The
+	// session_proxy destructor will block however, until the underlying session
+	// is done shutting down.
 	class TORRENT_EXPORT session_proxy
 	{
 		friend class session;
@@ -272,22 +275,41 @@ namespace libtorrent
 			start(flags, pack);
 		}
 			
-		// The destructor of session will notify all trackers that our torrents have been shut down.
-		// If some trackers are down, they will time out. All this before the destructor of session
-		// returns. So, it's advised that any kind of interface (such as windows) are closed before
-		// destructing the session object. Because it can take a few second for it to finish. The
-		// timeout can be set with apply_settings().
+		// The destructor of session will notify all trackers that our torrents
+		// have been shut down. If some trackers are down, they will time out.
+		// All this before the destructor of session returns. So, it's advised
+		// that any kind of interface (such as windows) are closed before
+		// destructing the session object. Because it can take a few second for
+		// it to finish. The timeout can be set with apply_settings().
 		~session();
 
+		// flags that determines which aspects of the session should be
+		// saved when calling save_state().
 		enum save_state_flags_t
 		{
+			// saves settings (i.e. the session_settings)
 			save_settings =     0x001,
+
+			// saves dht_settings
 			save_dht_settings = 0x002,
+
+			// saves dht state such as nodes and node-id, possibly accelerating
+			// joining the DHT if provided at next session startup.
 			save_dht_state =    0x004,
+
+			// save proxy_settings
 			save_proxy =        0x008,
+
+			// save i2p_proxy settings
 			save_i2p_proxy =    0x010,
+
+			// save pe_settings
 			save_encryption_settings = 0x020,
+
+			// internal
 			save_as_map =       0x040,
+
+			// saves RSS feeds
 			save_feeds =        0x080
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -299,54 +321,57 @@ namespace libtorrent
 #endif
 		};
 
-		// loads and saves all session settings, including dht_settings, encryption settings and proxy
-		// settings. ``save_state`` writes all keys to the ``entry`` that's passed in, which needs to
-		// either not be initialized, or initialized as a dictionary.
+		// loads and saves all session settings, including dht_settings,
+		// encryption settings and proxy settings. ``save_state`` writes all keys
+		// to the ``entry`` that's passed in, which needs to either not be
+		// initialized, or initialized as a dictionary.
 		// 
-		// ``load_state`` expects a lazy_entry which can be built from a bencoded buffer with
-		// lazy_bdecode().
+		// ``load_state`` expects a lazy_entry which can be built from a bencoded
+		// buffer with lazy_bdecode().
 		// 
-		// The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
-		// of the session state to save. By default, all state is saved (except for the individual
-		// torrents). see save_state_flags_t
+		// The ``flags`` arguments passed in to ``save_state`` can be used to
+		// filter which parts of the session state to save. By default, all state
+		// is saved (except for the individual torrents). see save_state_flags_t
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
 
 		// .. note::
-		// 	these calls are potentially expensive and won't scale well
-		// 	with lots of torrents. If you're concerned about performance, consider
+		// 	these calls are potentially expensive and won't scale well with
+		// 	lots of torrents. If you're concerned about performance, consider
 		// 	using ``post_torrent_updates()`` instead.
 		// 
-		// ``get_torrent_status`` returns a vector of the torrent_status for every
-		// torrent which satisfies ``pred``, which is a predicate function which determines
-		// if a torrent should be included in the returned set or not. Returning true means
-		// it should be included and false means excluded. The ``flags`` argument is the same
-		// as to ``torrent_handle::status()``. Since ``pred`` is guaranteed to be called for
-		// every torrent, it may be used to count the number of torrents of different categories
-		// as well.
+		// ``get_torrent_status`` returns a vector of the torrent_status for
+		// every torrent which satisfies ``pred``, which is a predicate function
+		// which determines if a torrent should be included in the returned set
+		// or not. Returning true means it should be included and false means
+		// excluded. The ``flags`` argument is the same as to
+		// ``torrent_handle::status()``. Since ``pred`` is guaranteed to be
+		// called for every torrent, it may be used to count the number of
+		// torrents of different categories as well.
 		// 
-		// ``refresh_torrent_status`` takes a vector of torrent_status structs (for instance
-		// the same vector that was returned by get_torrent_status() ) and refreshes the
-		// status based on the ``handle`` member. It is possible to use this function by
-		// first setting up a vector of default constructed ``torrent_status`` objects, only
-		// initializing the ``handle`` member, in order to request the torrent status for
-		// multiple torrents in a single call. This can save a significant amount of time
-		// if you have a lot of torrents.
+		// ``refresh_torrent_status`` takes a vector of torrent_status structs
+		// (for instance the same vector that was returned by
+		// get_torrent_status() ) and refreshes the status based on the
+		// ``handle`` member. It is possible to use this function by first
+		// setting up a vector of default constructed ``torrent_status`` objects,
+		// only initializing the ``handle`` member, in order to request the
+		// torrent status for multiple torrents in a single call. This can save a
+		// significant amount of time if you have a lot of torrents.
 		// 
-		// Any torrent_status object whose ``handle`` member is not referring to a
-		// valid torrent are ignored.
+		// Any torrent_status object whose ``handle`` member is not referring to
+		// a valid torrent are ignored.
 		void get_torrent_status(std::vector<torrent_status>* ret
 			, boost::function<bool(torrent_status const&)> const& pred
 			, boost::uint32_t flags = 0) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, boost::uint32_t flags = 0) const;
 
-		// This functions instructs the session to post the state_update_alert, containing
-		// the status of all torrents whose state changed since the last time this function
-		// was called.
+		// This functions instructs the session to post the state_update_alert,
+		// containing the status of all torrents whose state changed since the
+		// last time this function was called.
 		// 
-		// Only torrents who has the state subscription flag set will be included. This flag
-		// is on by default. See add_torrent_params.
+		// Only torrents who has the state subscription flag set will be
+		// included. This flag is on by default. See add_torrent_params.
 		void post_torrent_updates();
 
 		// This function will post a session_stats_alert object, containing a snapshot of
@@ -359,35 +384,38 @@ namespace libtorrent
 		// internal
 		io_service& get_io_service();
 
-		// ``find_torrent()`` looks for a torrent with the given info-hash. In case there
-		// is such a torrent in the session, a torrent_handle to that torrent is returned.
-		// In case the torrent cannot be found, an invalid torrent_handle is returned.
+		// ``find_torrent()`` looks for a torrent with the given info-hash. In
+		// case there is such a torrent in the session, a torrent_handle to that
+		// torrent is returned. In case the torrent cannot be found, an invalid
+		// torrent_handle is returned.
 		// 
-		// See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
+		// See ``torrent_handle::is_valid()`` to know if the torrent was found or
+		// not.
 		// 
-		// ``get_torrents()`` returns a vector of torrent_handles to all the torrents
-		// currently in the session.
+		// ``get_torrents()`` returns a vector of torrent_handles to all the
+		// torrents currently in the session.
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
 		std::vector<torrent_handle> get_torrents() const;
 
 		// You add torrents through the add_torrent() function where you give an
 		// object with all the parameters. The add_torrent() overloads will block
-		// until the torrent has been added (or failed to be added) and returns an
-		// error code and a torrent_handle. In order to add torrents more efficiently,
-		// consider using async_add_torrent() which returns immediately, without
-		// waiting for the torrent to add. Notification of the torrent being added is sent
-		// as add_torrent_alert.
+		// until the torrent has been added (or failed to be added) and returns
+		// an error code and a torrent_handle. In order to add torrents more
+		// efficiently, consider using async_add_torrent() which returns
+		// immediately, without waiting for the torrent to add. Notification of
+		// the torrent being added is sent as add_torrent_alert.
 		// 
 		// The overload that does not take an error_code throws an exception on
 		// error and is not available when building without exception support.
-		// The torrent_handle returned by add_torrent() can be used to retrieve information
-		// about the torrent's progress, its peers etc. It is also used to abort a torrent.
+		// The torrent_handle returned by add_torrent() can be used to retrieve
+		// information about the torrent's progress, its peers etc. It is also
+		// used to abort a torrent.
 		// 
-		// If the torrent you are trying to add already exists in the session (is either queued
-		// for checking, being checked or downloading) ``add_torrent()`` will throw
-		// libtorrent_exception which derives from ``std::exception`` unless duplicate_is_error
-		// is set to false. In that case, add_torrent() will return the handle to the existing
-		// torrent.
+		// If the torrent you are trying to add already exists in the session (is
+		// either queued for checking, being checked or downloading)
+		// ``add_torrent()`` will throw libtorrent_exception which derives from
+		// ``std::exception`` unless duplicate_is_error is set to false. In that
+		// case, add_torrent() will return the handle to the existing torrent.
 		//
 		// all torrent_handles must be destructed before the session is destructed!
 #ifndef BOOST_NO_EXCEPTIONS
@@ -423,15 +451,17 @@ namespace libtorrent
 #endif
 #endif
 
-		// In case you want to destruct the session asynchrounously, you can request a session
-		// destruction proxy. If you don't do this, the destructor of the session object will
-		// block while the trackers are contacted. If you keep one ``session_proxy`` to the
-		// session when destructing it, the destructor will not block, but start to close down
-		// the session, the destructor of the proxy will then synchronize the threads. So, the
-		// destruction of the session is performed from the ``session`` destructor call until the
-		// ``session_proxy`` destructor call. The ``session_proxy`` does not have any operations
-		// on it (since the session is being closed down, no operations are allowed on it). The
-		// only valid operation is calling the destructor::
+		// In case you want to destruct the session asynchrounously, you can
+		// request a session destruction proxy. If you don't do this, the
+		// destructor of the session object will block while the trackers are
+		// contacted. If you keep one ``session_proxy`` to the session when
+		// destructing it, the destructor will not block, but start to close down
+		// the session, the destructor of the proxy will then synchronize the
+		// threads. So, the destruction of the session is performed from the
+		// ``session`` destructor call until the ``session_proxy`` destructor
+		// call. The ``session_proxy`` does not have any operations on it (since
+		// the session is being closed down, no operations are allowed on it).
+		// The only valid operation is calling the destructor::
 		// 
 		// 	class session_proxy
 		// 	{
@@ -441,44 +471,48 @@ namespace libtorrent
 		// 	};
 		session_proxy abort() { return session_proxy(m_impl); }
 
-		// Pausing the session has the same effect as pausing every torrent in it, except that
-		// torrents will not be resumed by the auto-manage mechanism. Resuming will restore the
-		// torrents to their previous paused state. i.e. the session pause state is separate from
-		// the torrent pause state. A torrent is inactive if it is paused or if the session is
+		// Pausing the session has the same effect as pausing every torrent in
+		// it, except that torrents will not be resumed by the auto-manage
+		// mechanism. Resuming will restore the torrents to their previous paused
+		// state. i.e. the session pause state is separate from the torrent pause
+		// state. A torrent is inactive if it is paused or if the session is
 		// paused.
 		void pause();
 		void resume();
 		bool is_paused() const;
 
-		// This function enables dynamic-loading-of-torrent-files_. When a torrent is unloaded
-		// but needs to be availabe in memory, this function is called **from within the libtorrent
-		// network thread**. From within this thread, you can **not** use any of the public APIs of
-		// libtorrent itself. The the info-hash of the torrent is passed in to the function and it
-		// is expected to fill in the passed in ``vector<char>`` with the .torrent file corresponding
-		// to it.
+		// This function enables dynamic-loading-of-torrent-files_. When a
+		// torrent is unloaded but needs to be availabe in memory, this function
+		// is called **from within the libtorrent network thread**. From within
+		// this thread, you can **not** use any of the public APIs of libtorrent
+		// itself. The the info-hash of the torrent is passed in to the function
+		// and it is expected to fill in the passed in ``vector<char>`` with the
+		// .torrent file corresponding to it.
 		// 
-		// If there is an error loading the torrent file, the ``error_code`` (``ec``) should be
-		// set to reflect the error. In such case, the torrent itself is stopped and set to an
-		// error state with the corresponding error code.
+		// If there is an error loading the torrent file, the ``error_code``
+		// (``ec``) should be set to reflect the error. In such case, the torrent
+		// itself is stopped and set to an error state with the corresponding
+		// error code.
 		// 
-		// Given that the function is called from the internal network thread of libtorrent, it's
-		// important to not stall. libtorrent will not be able to send nor receive any data until
-		// the function call returns.
+		// Given that the function is called from the internal network thread of
+		// libtorrent, it's important to not stall. libtorrent will not be able
+		// to send nor receive any data until the function call returns.
 		// 
 		// The signature of the function to pass in is::
 		// 
 		// 	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
 		void set_load_function(user_load_function_t fun);
 
-		// returns session wide-statistics and status. For more information, see the ``session_status`` struct.
+		// returns session wide-statistics and status. For more information, see
+		// the ``session_status`` struct.
 		session_status status() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in aio branch
 		TORRENT_DEPRECATED_PREFIX
-		// fills out the supplied vector with information for
-		// each piece that is currently in the disk cache for the torrent with the
-		// specified info-hash (``ih``).
+		// fills out the supplied vector with information for each piece that is
+		// currently in the disk cache for the torrent with the specified
+		// info-hash (``ih``).
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const TORRENT_DEPRECATED;
 
@@ -499,12 +533,11 @@ namespace libtorrent
 		// regularly and optionally add all torrents from the feed, as they
 		// appear.
 		//
-		// Before adding the feed, you must set the ``url`` field to the
-		// feed's url. It may point to an RSS or an atom feed.
-		// The returned feed_handle is a handle which is used to interact
-		// with the feed, things like forcing a refresh or querying for
-		// information about the items in the feed. For more information,
-		// see feed_handle.
+		// Before adding the feed, you must set the ``url`` field to the feed's
+		// url. It may point to an RSS or an atom feed. The returned feed_handle
+		// is a handle which is used to interact with the feed, things like
+		// forcing a refresh or querying for information about the items in the
+		// feed. For more information, see feed_handle.
 		feed_handle add_feed(feed_settings const& feed);
 
 		// Removes a feed from being watched by the session. When this
@@ -527,10 +560,11 @@ namespace libtorrent
 		void stop_dht() TORRENT_DEPRECATED;
 #endif
 
-		// ``set_dht_settings`` sets some parameters availavle to the dht node. See
-		// dht_settings for more information.
+		// ``set_dht_settings`` sets some parameters availavle to the dht node.
+		// See dht_settings for more information.
 		//
-		// ``is_dht_running()`` returns true if the DHT support has been started and false
+		// ``is_dht_running()`` returns true if the DHT support has been started
+		// and false
 		// otherwise.
 		void set_dht_settings(dht_settings const& settings);
 		bool is_dht_running() const;
@@ -539,11 +573,12 @@ namespace libtorrent
 		// pinged, and if a valid DHT reply is received, the node will be added to
 		// the routing table.
 		// 
-		// ``add_dht_router`` adds the given endpoint to a list of DHT router nodes.
-		// If a search is ever made while the routing table is empty, those nodes will
-		// be used as backups. Nodes in the router node list will also never be added
-		// to the regular routing table, which effectively means they are only used
-		// for bootstrapping, to keep the load off them.
+		// ``add_dht_router`` adds the given endpoint to a list of DHT router
+		// nodes. If a search is ever made while the routing table is empty,
+		// those nodes will be used as backups. Nodes in the router node list
+		// will also never be added to the regular routing table, which
+		// effectively means they are only used for bootstrapping, to keep the
+		// load off them.
 		// 
 		// An example routing node that you could typically add is
 		// ``router.bittorrent.com``.
@@ -637,22 +672,21 @@ namespace libtorrent
 		entry state() const TORRENT_DEPRECATED;
 #endif
 
-		// Sets a filter that will be used to reject and accept incoming as well as outgoing
-		// connections based on their originating ip address. The default filter will allow
-		// connections to any ip address. To build a set of rules for which addresses are
-		// accepted and not, see ip_filter.
+		// Sets a filter that will be used to reject and accept incoming as well
+		// as outgoing connections based on their originating ip address. The
+		// default filter will allow connections to any ip address. To build a
+		// set of rules for which addresses are accepted and not, see ip_filter.
 		// 
-		// Each time a peer is blocked because of the IP filter, a peer_blocked_alert is
-		// generated.
-		// ``get_ip_filter()`` Returns the ip_filter currently in the session. See ip_filter.
+		// Each time a peer is blocked because of the IP filter, a
+		// peer_blocked_alert is generated. ``get_ip_filter()`` Returns the
+		// ip_filter currently in the session. See ip_filter.
 		void set_ip_filter(ip_filter const& f);
 		ip_filter get_ip_filter() const;
 		
-		// apply port_filter ``f`` to incoming and outgoing peers.
-		// a port filter will reject making outgoing peer connections
-		// to certain remote ports. The main intention is to be able
-		// to avoid triggering certain anti-virus software by connecting
-		// to SMTP, FTP ports.
+		// apply port_filter ``f`` to incoming and outgoing peers. a port filter
+		// will reject making outgoing peer connections to certain remote ports.
+		// The main intention is to be able to avoid triggering certain
+		// anti-virus software by connecting to SMTP, FTP ports.
 		void set_port_filter(port_filter const& f);
 
 		// sets and gets the raw peer ID used by libtorrent. When anonymous
@@ -672,50 +706,56 @@ namespace libtorrent
 			local_peer_class_id
 		};
 
-		// ``is_listening()`` will tell you whether or not the session has successfully
-		// opened a listening port. If it hasn't, this function will return false, and
-		// then you can set a new settings_pack::listen_interfaces to try another
-		// interface and port to bind to.
+		// ``is_listening()`` will tell you whether or not the session has
+		// successfully opened a listening port. If it hasn't, this function will
+		// return false, and then you can set a new
+		// settings_pack::listen_interfaces to try another interface and port to
+		// bind to.
 		// 
-		// ``listen_port()`` returns the port we ended up listening on. If the port specified
-		// in settings_pack::listen_interfaces failed, libtorrent will try to bind to the
-		// next port, and so on. If it fails settings_pack::max_retry_port_bind times, it
-		// will bind to port 0 (meaning the OS picks the port). The only way to know which
-		// port it ended up binding to is to ask for it by calling ``listen_port()``.
+		// ``listen_port()`` returns the port we ended up listening on. If the
+		// port specified in settings_pack::listen_interfaces failed, libtorrent
+		// will try to bind to the next port, and so on. If it fails
+		// settings_pack::max_retry_port_bind times, it will bind to port 0
+		// (meaning the OS picks the port). The only way to know which port it
+		// ended up binding to is to ask for it by calling ``listen_port()``.
 		// 
-		// If all ports in the specified range fails to be opened for listening, libtorrent will
-		// try to use port 0 (which tells the operating system to pick a port that's free). If
-		// that still fails you may see a listen_failed_alert with port 0 even if you didn't
-		// ask to listen on it.
+		// If all ports in the specified range fails to be opened for listening,
+		// libtorrent will try to use port 0 (which tells the operating system to
+		// pick a port that's free). If that still fails you may see a
+		// listen_failed_alert with port 0 even if you didn't ask to listen on
+		// it.
 		// 
-		// It is possible to prevent libtorrent from binding to port 0 by passing in the flag
-		// ``session::no_system_port`` in the ``flags`` argument.
+		// It is possible to prevent libtorrent from binding to port 0 by passing
+		// in the flag ``session::no_system_port`` in the ``flags`` argument.
 		// 
-		// The interface parameter can also be a hostname that will resolve to the device you
-		// want to listen on. If you don't specify an interface, libtorrent may attempt to
-		// listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
-		// IPv6 interface doesn't work, you may still see a listen_failed_alert, even though
-		// the IPv4 port succeeded.
+		// The interface parameter can also be a hostname that will resolve to
+		// the device you want to listen on. If you don't specify an interface,
+		// libtorrent may attempt to listen on multiple interfaces (typically
+		// 0.0.0.0 and ::). This means that if your IPv6 interface doesn't work,
+		// you may still see a listen_failed_alert, even though the IPv4 port
+		// succeeded.
 		// 
-		// The ``flags`` parameter can either be 0 or ``session::listen_reuse_address``, which
-		// will set the reuse address socket option on the listen socket(s). By default, the
-		// listen socket does not use reuse address. If you're running a service that needs
-		// to run on a specific port no matter if it's in use, set this flag.
+		// The ``flags`` parameter can either be 0 or
+		// ``session::listen_reuse_address``, which will set the reuse address
+		// socket option on the listen socket(s). By default, the listen socket
+		// does not use reuse address. If you're running a service that needs to
+		// run on a specific port no matter if it's in use, set this flag.
 		unsigned short listen_port() const;
 		unsigned short ssl_listen_port() const;
 		bool is_listening() const;
 
-		// Sets the peer class filter for this session. All new peer connections will take this
-		// into account and be added to the peer classes specified by this filter, based on
-		// the peer's IP address.
+		// Sets the peer class filter for this session. All new peer connections
+		// will take this into account and be added to the peer classes specified
+		// by this filter, based on the peer's IP address.
 		// 
-		// The ip-filter essentially maps an IP -> uint32. Each bit in that 32 bit integer represents
-		// a peer class. The least significant bit represents class 0, the next bit class 1 and so on.
+		// The ip-filter essentially maps an IP -> uint32. Each bit in that 32
+		// bit integer represents a peer class. The least significant bit
+		// represents class 0, the next bit class 1 and so on.
 		// 
 		// For more info, see ip_filter.
 		// 
-		// For example, to make all peers in the range 200.1.1.0 - 200.1.255.255 belong to their own
-		// peer class, apply the following filter::
+		// For example, to make all peers in the range 200.1.1.0 - 200.1.255.255
+		// belong to their own peer class, apply the following filter::
 		// 
 		// 	ip_filter f;
 		// 	int my_class = ses.create_peer_class("200.1.x.x IP range");
@@ -724,23 +764,25 @@ namespace libtorrent
 		// 		, 1 << my_class);
 		// 	ses.set_peer_class_filter(f);
 		// 
-		// This setting only applies to new connections, it won't affect existing peer connections.
+		// This setting only applies to new connections, it won't affect existing
+		// peer connections.
 		// 
-		// This function is limited to only peer class 0-31, since there are only 32 bits in the IP range
-		// mapping. Only the set bits matter; no peer class will be removed from a peer as a result of
-		// this call, peer classes are only added.
+		// This function is limited to only peer class 0-31, since there are only
+		// 32 bits in the IP range mapping. Only the set bits matter; no peer
+		// class will be removed from a peer as a result of this call, peer
+		// classes are only added.
 		// 
-		// The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
-		// peer classes in the ``peer_class_filter`` are 32 bits.
+		// The ``peer_class`` argument cannot be greater than 31. The bitmasks
+		// representing peer classes in the ``peer_class_filter`` are 32 bits.
 		// 
 		// For more information, see peer-classes_.
 		void set_peer_class_filter(ip_filter const& f);
 
-		// Sets and gets the *peer class type filter*. This is controls automatic peer class
-		// assignments to peers based on what kind of socket it is.
+		// Sets and gets the *peer class type filter*. This is controls automatic
+		// peer class assignments to peers based on what kind of socket it is.
 		// 
-		// It does not only support assigning peer classes, it also supports removing peer
-		// classes based on socket type.
+		// It does not only support assigning peer classes, it also supports
+		// removing peer classes based on socket type.
 		//
 		// The order of these rules being applied are:
 		// 
@@ -752,60 +794,63 @@ namespace libtorrent
 		// TODO: add get_peer_class_type_filter() as well
 		void set_peer_class_type_filter(peer_class_type_filter const& f);
 
-		// Creates a new peer class (see peer-classes_) with the given name. The returned integer
-		// is the new peer class' identifier. Peer classes may have the same name, so each invocation
-		// of this function creates a new class and returns a unique identifier.
+		// Creates a new peer class (see peer-classes_) with the given name. The
+		// returned integer is the new peer class' identifier. Peer classes may
+		// have the same name, so each invocation of this function creates a new
+		// class and returns a unique identifier.
 		// 
-		// Identifiers are assigned from low numbers to higher. So if you plan on using certain peer
-		// classes in a call to `set_peer_class_filter()`_, make sure to create those early on, to get
-		// low identifiers.
+		// Identifiers are assigned from low numbers to higher. So if you plan on
+		// using certain peer classes in a call to `set_peer_class_filter()`_,
+		// make sure to create those early on, to get low identifiers.
 		// 
 		// For more information on peer classes, see peer-classes_.
 		int create_peer_class(char const* name);
 
-		// This call dereferences the reference count of the specified peer class. When creating a peer
-		// class it's automatically referenced by 1. If you want to recycle a peer class, you may call
-		// this function. You may only call this function **once** per peer class you create. Calling it
-		// more than once for the same class will lead to memory corruption.
+		// This call dereferences the reference count of the specified peer
+		// class. When creating a peer class it's automatically referenced by 1.
+		// If you want to recycle a peer class, you may call this function. You
+		// may only call this function **once** per peer class you create.
+		// Calling it more than once for the same class will lead to memory
+		// corruption.
 		// 
-		// Since peer classes are reference counted, this function will not remove the peer class if it's
-		// still assigned to torrents or peers. It will however remove it once the last peer and torrent
-		// drops their references to it.
+		// Since peer classes are reference counted, this function will not
+		// remove the peer class if it's still assigned to torrents or peers. It
+		// will however remove it once the last peer and torrent drops their
+		// references to it.
 		// 
-		// There is no need to call this function for custom peer classes. All peer classes will be properly
-		// destructed when the session object destructs.
+		// There is no need to call this function for custom peer classes. All
+		// peer classes will be properly destructed when the session object
+		// destructs.
 		// 
 		// For more information on peer classes, see peer-classes_.
 		void delete_peer_class(int cid);
 
-		// These functions queries information from a peer class and updates the configuration
-		// of a peer class, respectively.
+		// These functions queries information from a peer class and updates the
+		// configuration of a peer class, respectively.
 		// 
-		// ``cid`` must refer to an existing peer class. If it does not, the return value of
-		// ``get_peer_class()`` is undefined.
+		// ``cid`` must refer to an existing peer class. If it does not, the
+		// return value of ``get_peer_class()`` is undefined.
 		// 
-		// ``set_peer_class()`` sets all the information in the ``peer_class_info`` object in
-		// the specified peer class. There is no option to only update a single property.
+		// ``set_peer_class()`` sets all the information in the
+		// ``peer_class_info`` object in the specified peer class. There is no
+		// option to only update a single property.
 		// 
-		// A peer or torrent balonging to more than one class, the highest priority among any
-		// of its classes is the one that is taken into account.
+		// A peer or torrent balonging to more than one class, the highest
+		// priority among any of its classes is the one that is taken into
+		// account.
 		// 
 		// For more information, see peer-classes_.
  		peer_class_info get_peer_class(int cid);
 		void set_peer_class(int cid, peer_class_info const& pci);
 
 #ifndef TORRENT_NO_DEPRECATE
-		// if the listen port failed in some way
-		// you can retry to listen on another port-
-		// range with this function. If the listener
-		// succeeded and is currently listening,
-		// a call to this function will shut down the
-		// listen port and reopen it using these new
-		// properties (the given interface and port range).
-		// As usual, if the interface is left as 0
-		// this function will return false on failure.
-		// If it fails, it will also generate alerts describing
-		// the error. It will return true on success.
+		// if the listen port failed in some way you can retry to listen on
+		// another port- range with this function. If the listener succeeded and
+		// is currently listening, a call to this function will shut down the
+		// listen port and reopen it using these new properties (the given
+		// interface and port range). As usual, if the interface is left as 0
+		// this function will return false on failure. If it fails, it will also
+		// generate alerts describing the error. It will return true on success.
 		enum listen_on_flags_t
 		{
 			// this is always on starting with 0.16.2
@@ -831,25 +876,35 @@ namespace libtorrent
 
 #endif
 
+		// flags to be passed in to remove_torrent().
 		enum options_t
 		{
+			// delete the files belonging to the torrent from disk.
 			delete_files = 1
 		};
 
+		// flags to be passed in to the session constructor
 		enum session_flags_t
 		{
+			// this will add common extensions like ut_pex, ut_metadata, lt_tex
+			// smart_ban and possibly others.
 			add_default_plugins = 1,
+
+			// this will start features like DHT, local service discovery, UPnP
+			// and NAT-PMP.
 			start_default_features = 2
 		};
 
-		// ``remove_torrent()`` will close all peer connections associated with the torrent and tell
-		// the tracker that we've stopped participating in the swarm. This operation cannot fail.
-		// When it completes, you will receive a torrent_removed_alert.
+		// ``remove_torrent()`` will close all peer connections associated with
+		// the torrent and tell the tracker that we've stopped participating in
+		// the swarm. This operation cannot fail. When it completes, you will
+		// receive a torrent_removed_alert.
 		//
-		// The optional second argument ``options`` can be used to delete all the files downloaded
-		// by this torrent. To do so, pass in the value ``session::delete_files``. The removal
-		// of the torrent is asyncronous, there is no guarantee that adding the same torrent
-		// immediately after it was removed will not throw a libtorrent_exception exception. Once
+		// The optional second argument ``options`` can be used to delete all the
+		// files downloaded by this torrent. To do so, pass in the value
+		// ``session::delete_files``. The removal of the torrent is asyncronous,
+		// there is no guarantee that adding the same torrent immediately after
+		// it was removed will not throw a libtorrent_exception exception. Once
 		// the torrent is deleted, a torrent_deleted_alert is posted.
 		void remove_torrent(const torrent_handle& h, int options = 0);
 
@@ -873,17 +928,20 @@ namespace libtorrent
 		void apply_settings(settings_pack const& s);
 		aux::session_settings get_settings() const;
 
-		// These functions sets and queries the proxy settings to be used for the session.
+		// These functions sets and queries the proxy settings to be used for the
+		// session.
 		//
 		// For more information on what settings are available for proxies, see
 		// proxy_settings. If the session is not in anonymous mode, proxies that
-		// aren't working or fail, will automatically be disabled and packets will
-		// flow without using any proxy. If you want to enforce using a proxy, even when
-		// the proxy doesn't work, enable anonymous_mode in session_settings.
+		// aren't working or fail, will automatically be disabled and packets
+		// will flow without using any proxy. If you want to enforce using a
+		// proxy, even when the proxy doesn't work, enable anonymous_mode in
+		// session_settings.
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
 
 #ifdef TORRENT_STATS
+		// internal
 		void enable_stats_logging(bool s);
 #endif
 
@@ -961,42 +1019,51 @@ namespace libtorrent
 		int max_uploads() const TORRENT_DEPRECATED;
 #endif
 
-		// ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
-		// settings_pack::alert_mask you can filter which alerts to receive through ``pop_alert()``.
-		// For information about the alert categories, see alerts_.
+		// ``pop_alert()`` is used to ask the session if any errors or events has
+		// occurred. With settings_pack::alert_mask you can filter which alerts
+		// to receive through ``pop_alert()``. For information about the alert
+		// categories, see alerts_.
 		// 
-		// ``pop_alerts()`` pops all pending alerts in a single call. In high performance environments
-		// with a very high alert churn rate, this can save significant amount of time compared to
-		// popping alerts one at a time. Each call requires one round-trip to the network thread. If
-		// alerts are produced in a higher rate than they can be popped (when popped one at a time)
-		// it's easy to get stuck in an infinite loop, trying to drain the alert queue. Popping the entire
-		// queue at once avoids this problem.
+		// ``pop_alerts()`` pops all pending alerts in a single call. In high
+		// performance environments with a very high alert churn rate, this can
+		// save significant amount of time compared to popping alerts one at a
+		// time. Each call requires one round-trip to the network thread. If
+		// alerts are produced in a higher rate than they can be popped (when
+		// popped one at a time) it's easy to get stuck in an infinite loop,
+		// trying to drain the alert queue. Popping the entire queue at once
+		// avoids this problem.
 		// 
-		// However, the ``pop_alerts`` function comes with significantly more responsibility. You pass
-		// in an *empty* ``std::dequeue<alert*>`` to it. If it's not empty, all elements in it will
-		// be deleted and then cleared. All currently pending alerts are returned by being swapped
-		// into the passed in container. The responsibility of deleting the alerts is transferred
-		// to the caller. This means you need to call delete for each item in the returned dequeue.
-		// It's probably a good idea to delete the alerts as you handle them, to save one extra
-		// pass over the dequeue.
+		// However, the ``pop_alerts`` function comes with significantly more
+		// responsibility. You pass in an *empty* ``std::dequeue<alert*>`` to it.
+		// If it's not empty, all elements in it will be deleted and then
+		// cleared. All currently pending alerts are returned by being swapped
+		// into the passed in container. The responsibility of deleting the
+		// alerts is transferred to the caller. This means you need to call
+		// delete for each item in the returned dequeue. It's probably a good
+		// idea to delete the alerts as you handle them, to save one extra pass
+		// over the dequeue.
 		// 
-		// Alternatively, you can pass in the same container the next time you call ``pop_alerts``.
+		// Alternatively, you can pass in the same container the next time you
+		// call ``pop_alerts``.
 		// 
-		// ``wait_for_alert`` blocks until an alert is available, or for no more than ``max_wait``
-		// time. If ``wait_for_alert`` returns because of the time-out, and no alerts are available,
-		// it returns 0. If at least one alert was generated, a pointer to that alert is returned.
-		// The alert is not popped, any subsequent calls to ``wait_for_alert`` will return the
-		// same pointer until the alert is popped by calling ``pop_alert``. This is useful for
-		// leaving any alert dispatching mechanism independent of this blocking call, the dispatcher
-		// can be called and it can pop the alert independently.
+		// ``wait_for_alert`` blocks until an alert is available, or for no more
+		// than ``max_wait`` time. If ``wait_for_alert`` returns because of the
+		// time-out, and no alerts are available, it returns 0. If at least one
+		// alert was generated, a pointer to that alert is returned. The alert is
+		// not popped, any subsequent calls to ``wait_for_alert`` will return the
+		// same pointer until the alert is popped by calling ``pop_alert``. This
+		// is useful for leaving any alert dispatching mechanism independent of
+		// this blocking call, the dispatcher can be called and it can pop the
+		// alert independently.
 		// 
-		// In the python binding, ``wait_for_alert`` takes the number of milliseconds to wait as an integer.
+		// In the python binding, ``wait_for_alert`` takes the number of
+		// milliseconds to wait as an integer.
 		// 
 		// To control the max number of alerts that's queued by the session, see
 		// ``session_settings::alert_queue_size``.
 		// 
-		// save_resume_data_alert and save_resume_data_failed_alert are always posted, regardelss
-		// of the alert mask.
+		// save_resume_data_alert and save_resume_data_failed_alert are always
+		// posted, regardelss of the alert mask.
 		std::auto_ptr<alert> pop_alert();
 		void pop_alerts(std::deque<alert*>* alerts);
 		alert const* wait_for_alert(time_duration max_wait);
@@ -1009,8 +1076,9 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_) TORRENT_DEPRECATED;
 
-		// Changes the mask of which alerts to receive. By default only errors are reported.
-		// ``m`` is a bitmask where each bit represents a category of alerts.
+		// Changes the mask of which alerts to receive. By default only errors
+		// are reported. ``m`` is a bitmask where each bit represents a category
+		// of alerts.
 		//
 		// ``get_alert_mask()`` returns the current mask;
 		//
@@ -1021,15 +1089,18 @@ namespace libtorrent
 		boost::uint32_t get_alert_mask() const TORRENT_DEPRECATED;
 #endif
 
-		// This sets a function to be called (from within libtorrent's netowrk thread) every time an alert
-		// is posted. Since the function (``fun``) is run in libtorrent's internal thread, it may not call
-		// any of libtorrent's external API functions. Doing so results in a dead lock.
+		// This sets a function to be called (from within libtorrent's netowrk
+		// thread) every time an alert is posted. Since the function (``fun``) is
+		// run in libtorrent's internal thread, it may not call any of
+		// libtorrent's external API functions. Doing so results in a dead lock.
 		// 
-		// The main intention with this function is to support integration with platform-dependent message
-		// queues or signalling systems. For instance, on windows, one could post a message to an HNWD or
-		// on linux, write to a pipe or an eventfd.
+		// The main intention with this function is to support integration with
+		// platform-dependent message queues or signalling systems. For instance,
+		// on windows, one could post a message to an HNWD or on linux, write to
+		// a pipe or an eventfd.
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
+		// internal
 		connection_queue& get_connection_queue();
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1043,13 +1114,14 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void stop_lsd() TORRENT_DEPRECATED;
 
-		// Starts and stops the UPnP service. When started, the listen port and the DHT
-		// port are attempted to be forwarded on local UPnP router devices.
+		// Starts and stops the UPnP service. When started, the listen port and
+		// the DHT port are attempted to be forwarded on local UPnP router
+		// devices.
 		// 
-		// The upnp object returned by ``start_upnp()`` can be used to add and remove
-		// arbitrary port mappings. Mapping status is returned through the
-		// portmap_alert and the portmap_error_alert. The object will be valid until
-		// ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
+		// The upnp object returned by ``start_upnp()`` can be used to add and
+		// remove arbitrary port mappings. Mapping status is returned through the
+		// portmap_alert and the portmap_error_alert. The object will be valid
+		// until ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// deprecated. use settings_pack::enable_upnp instead
 		TORRENT_DEPRECATED_PREFIX
@@ -1057,13 +1129,14 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void stop_upnp() TORRENT_DEPRECATED;
 
-		// Starts and stops the NAT-PMP service. When started, the listen port and the DHT
-		// port are attempted to be forwarded on the router through NAT-PMP.
+		// Starts and stops the NAT-PMP service. When started, the listen port
+		// and the DHT port are attempted to be forwarded on the router through
+		// NAT-PMP.
 		// 
-		// The natpmp object returned by ``start_natpmp()`` can be used to add and remove
-		// arbitrary port mappings. Mapping status is returned through the
-		// portmap_alert and the portmap_error_alert. The object will be valid until
-		// ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
+		// The natpmp object returned by ``start_natpmp()`` can be used to add
+		// and remove arbitrary port mappings. Mapping status is returned through
+		// the portmap_alert and the portmap_error_alert. The object will be
+		// valid until ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// deprecated. use settings_pack::enable_natpmp instead
 		TORRENT_DEPRECATED_PREFIX
@@ -1072,11 +1145,12 @@ namespace libtorrent
 		void stop_natpmp() TORRENT_DEPRECATED;
 #endif
 
+		// protocols used by add_port_mapping()
 		enum protocol_type { udp = 1, tcp = 2 };
 
 		// add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
-		// whichever is enabled. The return value is a handle referring to
-		// the port mapping that was just created. Pass it to delete_port_mapping()
+		// whichever is enabled. The return value is a handle referring to the
+		// port mapping that was just created. Pass it to delete_port_mapping()
 		// to remove it.
 		int add_port_mapping(protocol_type t, int external_port, int local_port);
 		void delete_port_mapping(int handle);

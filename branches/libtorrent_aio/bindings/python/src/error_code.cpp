@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/lazy_entry.hpp>
+#include <libtorrent/upnp.hpp>
+#include <libtorrent/socks5_stream.hpp>
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -61,8 +63,19 @@ void bind_error_code()
     def("get_libtorrent_category", &get_libtorrent_category
        , return_internal_reference<>());
 
+    def("get_upnp_category", &get_upnp_category
+       , return_internal_reference<>());
+
     def("get_http_category", &get_http_category
        , return_internal_reference<>());
+
+    def("get_socks_category", &get_socks_category
+       , return_internal_reference<>());
+
+#if TORRENT_USE_I2P
+    def("get_i2p_category", &get_i2p_category
+       , return_internal_reference<>());
+#endif
 
     def("get_bdecode_category", &get_bdecode_category
        , return_internal_reference<>());
