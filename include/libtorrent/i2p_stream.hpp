@@ -51,6 +51,7 @@ namespace libtorrent {
 
 	namespace i2p_error {
 
+		// error values for the i2p_category error_category.
 		enum i2p_error_code
 		{
 			no_error = 0,

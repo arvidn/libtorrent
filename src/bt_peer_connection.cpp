@@ -380,6 +380,7 @@ namespace libtorrent
 		if (is_i2p(*get_socket())) p.flags |= peer_info::i2p_socket;
 #endif
 		if (is_utp(*get_socket())) p.flags |= peer_info::utp_socket;
+		if (is_ssl(*get_socket())) p.flags |= peer_info::ssl_socket;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted)
@@ -396,9 +397,7 @@ namespace libtorrent
 		if (is_queued()) p.flags |= peer_info::queued;
 
 		p.client = m_client_version;
-		p.connection_type = is_utp(*get_socket())
-			? peer_info::bittorrent_utp
-			: peer_info::standard_bittorrent;
+		p.connection_type = peer_info::standard_bittorrent;
 	}
 	
 	bool bt_peer_connection::in_handshake() const
