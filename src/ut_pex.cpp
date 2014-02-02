@@ -445,7 +445,7 @@ namespace libtorrent { namespace
 			static ptime global_last = min_time();
 
 			int num_peers = m_torrent.num_peers();
-			if (num_peers == 1) return;
+			if (num_peers <= 1) return;
 
 			// don't send pex messages more often than 1 every 100 ms, and
 			// allow pex messages to be sent 5 seconds apart if there isn't
