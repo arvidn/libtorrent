@@ -60,13 +60,18 @@ namespace libtorrent
 		// hidden
 		time_duration() {}
 
+		// all operators have the same semantics as a 64 bit signed integer
 		time_duration operator/(int rhs) const { return time_duration(diff / rhs); }
 		explicit time_duration(boost::int64_t d) : diff(d) {}
-		time_duration& operator-=(time_duration const& c) { diff -= c.diff; return *this; }
-		time_duration& operator+=(time_duration const& c) { diff += c.diff; return *this; }
+		time_duration& operator-=(time_duration const& c)
+		{ diff -= c.diff; return *this; }
+		time_duration& operator+=(time_duration const& c)
+		{ diff += c.diff; return *this; }
 		time_duration& operator*=(int v) { diff *= v; return *this; }
-		time_duration operator+(time_duration const& c) { return time_duration(diff + c.diff); }
-		time_duration operator-(time_duration const& c) { return time_duration(diff - c.diff); }
+		time_duration operator+(time_duration const& c)
+		{ return time_duration(diff + c.diff); }
+		time_duration operator-(time_duration const& c)
+		{ return time_duration(diff - c.diff); }
 
 		// internal
 		boost::int64_t diff;
@@ -79,6 +84,7 @@ namespace libtorrent
 		ptime() {}
 		explicit ptime(boost::uint64_t t): time(t) {}
 
+		// these operators have the same semantics as signed 64 bit integers
 		ptime& operator+=(time_duration rhs) { time += rhs.diff; return *this; }
 		ptime& operator-=(time_duration rhs) { time -= rhs.diff; return *this; }
 
@@ -86,9 +92,10 @@ namespace libtorrent
 		boost::uint64_t time;
 	};
 
+	// returns true of the time duration is less than 0
 	inline bool is_negative(time_duration dt) { return dt.diff < 0; }
 
-	// hidden
+	// all operators have the same semantics as signed 64 bit integers
 	inline bool operator>(ptime lhs, ptime rhs)
 	{ return lhs.time > rhs.time; }
 	inline bool operator>=(ptime lhs, ptime rhs)
@@ -115,7 +122,6 @@ namespace libtorrent
 	{ return time_duration(boost::int64_t(lhs.diff * rhs)); }
 	inline time_duration operator*(int lhs, time_duration rhs)
 	{ return time_duration(boost::int64_t(lhs * rhs.diff)); }
-
 	inline time_duration operator-(ptime lhs, ptime rhs)
 	{ return time_duration(lhs.time - rhs.time); }
 	inline ptime operator+(ptime lhs, time_duration rhs)
