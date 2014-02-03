@@ -64,7 +64,8 @@ namespace libtorrent
 #endif
 	};
 
-	struct storage_params
+	// see default_storage::default_storage()
+	struct TORRENT_EXPORT storage_params
 	{
 		storage_params(): files(NULL), mapped_files(NULL), pool(NULL)
 			, mode(storage_mode_sparse), priorities(NULL), info(NULL) {}

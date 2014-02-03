@@ -621,6 +621,9 @@ namespace libtorrent
 		// message queue that will reclaim all blocks in
 		// m_blocks_to_reclaim, there's no need to send another one
 		bool m_outstanding_reclaim_message;
+#if TORRENT_USE_ASSERTS
+		int m_magic;
+#endif
 	};
 }
 

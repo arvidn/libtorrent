@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/extensions/ut_metadata.hpp"
+#include "libtorrent/extensions/lt_trackers.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/escape_string.hpp"

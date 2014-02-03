@@ -180,6 +180,9 @@ namespace libtorrent
 		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(alert_disp)
 		, m_outstanding_reclaim_message(false)
+#if TORRENT_USE_ASSERTS
+		, m_magic(0x1337)
+#endif
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("disk_io_thread::work");
@@ -228,11 +231,17 @@ namespace libtorrent
 			fclose(f);
 		}
 #endif
+
+		TORRENT_ASSERT(m_magic == 0x1337);
+#if TORRENT_USE_ASSERTS
+		m_magic = 0xdead;
+#endif
 	}
 
 	// TODO: 3 it would be nice to have the number of threads be set dynamically
 	void disk_io_thread::set_num_threads(int i, bool wait)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		if (i == m_num_threads) return;
 
 		if (i > m_num_threads)
@@ -268,6 +277,7 @@ namespace libtorrent
 
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(ref.storage);
 		m_blocks_to_reclaim.push_back(ref);
 		if (m_outstanding_reclaim_message) return;
@@ -278,6 +288,7 @@ namespace libtorrent
 
 	void disk_io_thread::commit_reclaimed_blocks()
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(m_outstanding_reclaim_message);
 		m_outstanding_reclaim_message = false;
 		mutex::scoped_lock l(m_cache_mutex);
@@ -288,6 +299,7 @@ namespace libtorrent
 
 	void disk_io_thread::set_settings(settings_pack* pack)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		mutex::scoped_lock l(m_cache_mutex);
 		apply_pack(pack, m_settings);
 		m_disk_cache.set_settings(m_settings);
@@ -298,6 +310,7 @@ namespace libtorrent
 	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block, tailqueue& completed_jobs
 		, mutex::scoped_lock& l)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(l.locked());
 		TORRENT_ASSERT(cont_block > 0);
 		if (p->hash == 0 && !p->hashing_done)
@@ -2176,6 +2189,7 @@ namespace libtorrent
 	{
 		// we're not using a cache. This is the simple path
 		// just read straight from the file
+		TORRENT_ASSERT(m_magic == 0x1337);
 
 		int piece_size = j->storage->files()->piece_size(j->piece);
 		int block_size = m_disk_cache.block_size();
@@ -2989,6 +3003,8 @@ namespace libtorrent
 
 	void disk_io_thread::add_job(disk_io_job* j)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		TORRENT_ASSERT(!j->storage || j->storage->files()->is_valid());
 		TORRENT_ASSERT(j->next == NULL);
 		// if this happens, it means we started to shut down
@@ -3123,6 +3139,7 @@ namespace libtorrent
 		if (--m_num_running_threads > 0)
 		{
 			DLOG("exiting disk thread %d. num_threads: %d\n", thread_id, int(m_num_threads));
+			TORRENT_ASSERT(m_magic == 0x1337);
 			return;
 		}
 
@@ -3167,6 +3184,7 @@ namespace libtorrent
 		complete_async("disk_io_thread::work");
 #endif
 		m_work.reset();
+		TORRENT_ASSERT(m_magic == 0x1337);
 	}
 
 	// this is a callback called by the block_cache when

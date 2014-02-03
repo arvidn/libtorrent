@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id175">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id176">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id177">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id178">session_proxy</a></li>
-<li><a class="reference internal" href="#id39" id="id179">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id180">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id181">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id182">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id183">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id179">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id180">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id181">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id182">session_proxy</a></li>
+<li><a class="reference internal" href="#id39" id="id183">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id184">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id185">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id186">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id187">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -777,7 +777,7 @@ it to finish. The timeout can be set with <a class="reference external" href="re
 void <strong>load_state</strong> (lazy_entry const&amp; e);
 void <strong>save_state</strong> (entry&amp; e, boost::uint32_t flags = 0xffffffff) const;
 </pre>
-<p>loads and saves all <a class="reference external" href="reference-Session.html#session">session</a> settings, including dht_settings,
+<p>loads and saves all <a class="reference external" href="reference-Session.html#session">session</a> settings, including <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a>,
 encryption settings and proxy settings. <tt class="docutils literal">save_state</tt> writes all keys
 to the <tt class="docutils literal">entry</tt> that's passed in, which needs to either not be
 initialized, or initialized as a dictionary.</p>
@@ -1006,7 +1006,7 @@ bool <strong>is_dht_running</strong> () const;
 void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
 </pre>
 <p><tt class="docutils literal">set_dht_settings</tt> sets some parameters availavle to the dht node.
-See dht_settings for more information.</p>
+See <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a> for more information.</p>
 <p><tt class="docutils literal">is_dht_running()</tt> returns true if the DHT support has been started
 and false
 otherwise.</p>
@@ -1430,7 +1430,7 @@ to remove it.</p>
 </tr>
 <tr><td>save_dht_settings</td>
 <td>2</td>
-<td>saves dht_settings</td>
+<td>saves <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a></td>
 </tr>
 <tr><td>save_dht_state</td>
 <td>4</td>
@@ -1447,7 +1447,7 @@ joining the DHT if provided at next <a class="reference external" href="referenc
 </tr>
 <tr><td>save_encryption_settings</td>
 <td>32</td>
-<td>save pe_settings</td>
+<td>save <a class="reference external" href="reference-Settings.html#pe_settings">pe_settings</a></td>
 </tr>
 <tr><td>save_feeds</td>
 <td>128</td>

@@ -28,6 +28,7 @@ TARGETS = index \
 	client_test \
 	building \
 	features \
+	troubleshooting \
 	contributing\
 	examples \
 	extension_protocol \
@@ -58,6 +59,12 @@ settings.rst: ../include/libtorrent/settings_pack.hpp
 
 manual.rst: settings.rst stats_counters.rst
 	touch manual.rst
+
+troubleshooting_thumb.png: troubleshooting.png
+	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
+
+troubleshooting.png: troubleshooting.dot
+	dot troubleshooting.dot -Tpng >troubleshooting.png
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py

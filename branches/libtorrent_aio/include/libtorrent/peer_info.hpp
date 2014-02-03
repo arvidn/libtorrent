@@ -76,6 +76,9 @@ namespace libtorrent
 		// the time until all blocks in the request queue will be downloaded
 		time_duration download_queue_time;
 
+		// flags for the peer_info::flags field. Indicates various states
+		// the peer may be in. These flags are not mutually exclusive, but
+		// not every combination of them makes sense either.
 		enum peer_flags_t
 		{
 			// **we** are interested in pieces from this peer.
@@ -164,6 +167,10 @@ namespace libtorrent
 
 			// indicates that this socket is a uTP socket
 			utp_socket = 0x20000,
+
+			// indicates that this socket is running on top of an SSL
+			// (TLS) channel
+			ssl_socket = 0x40000,
 
 			// this connection is obfuscated with RC4
 			rc4_encrypted = 0x100000,
@@ -290,19 +297,17 @@ namespace libtorrent
 		int downloading_progress;
 		int downloading_total;
 	
+		// the kind of connection this is. Used for the connection_type field.
 		enum connection_type_t
 		{
 			// Regular bittorrent connection over TCP
 			standard_bittorrent = 0,
 
-			// Bittorrent connection over uTP
+			// HTTP connection using the `BEP 19`_ protocol
 			web_seed = 1,
 
-			// HTTP connection using the `BEP 19`_ protocol
-			http_seed = 2,
-
 			// HTTP connection using the `BEP 17`_ protocol
-			bittorrent_utp = 3
+			http_seed = 2,
 		};
 
 		// the kind of connection this peer uses. See connection_type_t.
@@ -348,6 +353,10 @@ namespace libtorrent
 		// (parts per million).
 		int progress_ppm;
 
+		// this is an estimation of the upload rate, to this peer, where it will
+		// unchoke us. This is a coarse estimation based on the rate at which
+		// we sent right before we were choked. This is primarily used for the
+		// bittyrant choking algorithm.
 		int estimated_reciprocation_rate;
 
 		// the IP-address to this peer. The type is an asio endpoint. For
@@ -422,14 +431,19 @@ namespace libtorrent
 	// internal
 	struct TORRENT_EXPORT peer_list_entry
 	{
+		// internal
 		enum flags_t
 		{
 			banned = 1
 		};
 		
+		// internal
 		tcp::endpoint ip;
+		// internal
 		int flags;
+		// internal
 		boost::uint8_t failcount;
+		// internal
 		boost::uint8_t source;
 	};
 

@@ -46,6 +46,9 @@ namespace libtorrent
 		int start;
 		// the size of the range, in bytes.
 		int length;
+
+		// returns true if the right hand side peer_request refers to the same
+		// range as this does.
 		bool operator==(peer_request const& r) const
 		{ return piece == r.piece && start == r.start && length == r.length; }
 	};
