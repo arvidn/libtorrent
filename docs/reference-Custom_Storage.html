@@ -55,9 +55,9 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#file-pool" id="id12">file_pool</a></li>
-<li><a class="reference internal" href="#storage-interface" id="id13">storage_interface</a></li>
-<li><a class="reference internal" href="#default-storage" id="id14">default_storage</a></li>
+<li><a class="reference internal" href="#file-pool" id="id18">file_pool</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id19">storage_interface</a></li>
+<li><a class="reference internal" href="#default-storage" id="id20">default_storage</a></li>
 </ul>
 </div>
 <p>This is an example storage implementation that stores all pieces in a <tt class="docutils literal"><span class="pre">std::map</span></tt>,
@@ -497,8 +497,9 @@ implementing a custom storage.</p>
 <pre class="literal-block">
 class default_storage : public storage_interface, boost::noncopyable
 {
-   <strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped, std::string const&amp; path
-      , file_pool&amp; fp, std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
+   <strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
+      , std::string const&amp; path, file_pool&amp; fp
+      , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
    bool <strong>move_slot</strong> (int src_slot, int dst_slot);
    bool <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
    int <strong>read</strong> (char* buf, int slot, int offset, int size);
@@ -520,7 +521,34 @@ class default_storage : public storage_interface, boost::noncopyable
    file_storage const&amp; <strong>files</strong> () const;
 };
 </pre>
-<a name="move_flags_t"></a><div class="section" id="enum-move-flags-t">
+<a name="default_storage()"></a><div class="section" id="id11">
+<h2>default_storage()</h2>
+<pre class="literal-block">
+<strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
+      , std::string const&amp; path, file_pool&amp; fp
+      , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
+</pre>
+<p>constructs the <a class="reference external" href="reference-Custom_Storage.html#default_storage">default_storage</a> based on the give <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> (fs).
+<tt class="docutils literal">mapped</tt> is an optional argument (it may be NULL). If non-NULL it
+represents the file mappsing that have been made to the torrent before
+adding it. That's where files are supposed to be saved and looked for
+on disk. <tt class="docutils literal">save_path</tt> is the root save folder for this torrent.
+<tt class="docutils literal">file_pool</tt> is the cache of file handles that the storage will use.
+All files it opens will ask the <a class="reference external" href="reference-Custom_Storage.html#file_pool">file_pool</a> to open them. <tt class="docutils literal">file_prio</tt>
+is a vector indicating the priority of files on startup. It may be
+an empty vector. Any file whose index is not represented by the vector
+(because the vector is too short) are assumed to have priority 1.
+this is used to treat files with priority 0 slightly differently.</p>
+<a name="files()"></a></div>
+<div class="section" id="files">
+<h2>files()</h2>
+<pre class="literal-block">
+file_storage const&amp; <strong>files</strong> () const;
+</pre>
+<p>if the files in this storage are mapped, returns the mapped
+<a class="reference external" href="reference-Storage.html#file_storage">file_storage</a>, otherwise returns the original <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object.</p>
+<a name="move_flags_t"></a></div>
+<div class="section" id="enum-move-flags-t">
 <h2>enum move_flags_t</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/storage.hpp">libtorrent/storage.hpp</a>&quot;</p>
 <table border="1" class="docutils">

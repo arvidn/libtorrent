@@ -90,7 +90,26 @@ struct time_duration
    time_duration&amp; <strong>operator*=</strong> (int v);
 };
 </pre>
+<a name="operator+=()"></a>
+<a name="time_duration()"></a>
+<a name="operator*=()"></a>
+<a name="operator-=()"></a>
+<a name="operator+()"></a>
+<a name="operator/()"></a>
+<a name="operator-()"></a><div class="section" id="operator-time-duration-operator-operator-operator-operator-operator">
+<h2>operator+=() time_duration() operator*=() operator-=() operator+() operator/() operator-()</h2>
+<pre class="literal-block">
+time_duration&amp; <strong>operator-=</strong> (time_duration const&amp; c);
+time_duration <strong>operator+</strong> (time_duration const&amp; c);
+time_duration&amp; <strong>operator+=</strong> (time_duration const&amp; c);
+time_duration <strong>operator/</strong> (int rhs) const;
+explicit <strong>time_duration</strong> (boost::int64_t d);
+time_duration <strong>operator-</strong> (time_duration const&amp; c);
+time_duration&amp; <strong>operator*=</strong> (int v);
+</pre>
+<p>all operators have the same semantics as a 64 bit signed integer</p>
 <a name="ptime"></a></div>
+</div>
 <div class="section" id="ptime">
 <h1>ptime</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ptime.hpp">libtorrent/ptime.hpp</a>&quot;</p>
@@ -102,23 +121,54 @@ struct ptime
    ptime&amp; <strong>operator+=</strong> (time_duration rhs);
 };
 </pre>
-<a name="is_negative()"></a><div class="section" id="is-negative">
+<a name="operator+=()"></a>
+<a name="operator-=()"></a><div class="section" id="operator-operator">
+<h2>operator+=() operator-=()</h2>
+<pre class="literal-block">
+ptime&amp; <strong>operator-=</strong> (time_duration rhs);
+ptime&amp; <strong>operator+=</strong> (time_duration rhs);
+</pre>
+<p>these operators have the same semantics as signed 64 bit integers</p>
+<a name="is_negative()"></a></div>
+<div class="section" id="is-negative">
 <h2>is_negative()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ptime.hpp">libtorrent/ptime.hpp</a>&quot;</p>
 <pre class="literal-block">
 inline bool <strong>is_negative</strong> (time_duration dt);
 </pre>
+<p>returns true of the time duration is less than 0</p>
+<a name="operator*()"></a>
+<a name="operator>=()"></a>
+<a name="operator!=()"></a>
+<a name="operator>()"></a>
+<a name="operator<()"></a>
+<a name="operator==()"></a>
 <a name="operator+()"></a>
+<a name="operator<=()"></a>
 <a name="operator-()"></a></div>
-<div class="section" id="operator-operator">
-<h2>operator+() operator-()</h2>
+<div class="section" id="operator-operator-operator-operator-operator-operator-operator-operator-operator">
+<h2>operator*() operator&gt;=() operator!=() operator&gt;() operator&lt;() operator==() operator+() operator&lt;=() operator-()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ptime.hpp">libtorrent/ptime.hpp</a>&quot;</p>
 <pre class="literal-block">
+inline time_duration <strong>operator*</strong> (int lhs, time_duration rhs);
+inline bool <strong>operator==</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&lt;=</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator==</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&gt;=</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&lt;</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&gt;</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&gt;</strong> (ptime lhs, ptime rhs);
 inline ptime <strong>operator+</strong> (time_duration lhs, ptime rhs);
 inline ptime <strong>operator+</strong> (ptime lhs, time_duration rhs);
+inline time_duration <strong>operator*</strong> (time_duration lhs, int rhs);
 inline time_duration <strong>operator-</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&lt;=</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator!=</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&lt;</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&gt;=</strong> (ptime lhs, ptime rhs);
 inline ptime <strong>operator-</strong> (ptime lhs, time_duration rhs);
 </pre>
+<p>all operators have the same semantics as signed 64 bit integers</p>
 <a name="time_now()"></a></div>
 <div class="section" id="time-now">
 <h2>time_now()</h2>
