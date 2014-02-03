@@ -55,14 +55,14 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id159">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id160">cache_status</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id161">session_proxy</a></li>
-<li><a class="reference internal" href="#id36" id="id162">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id163">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id164">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id165">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id166">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id164">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id165">cache_status</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id166">session_proxy</a></li>
+<li><a class="reference internal" href="#id36" id="id167">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id168">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id169">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id170">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id171">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -718,7 +718,7 @@ it to finish. The timeout can be set with <tt class="docutils literal">set_setti
 void <strong>load_state</strong> (lazy_entry const&amp; e);
 void <strong>save_state</strong> (entry&amp; e, boost::uint32_t flags = 0xffffffff) const;
 </pre>
-<p>loads and saves all <a class="reference external" href="reference-Session.html#session">session</a> settings, including dht_settings,
+<p>loads and saves all <a class="reference external" href="reference-Session.html#session">session</a> settings, including <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a>,
 encryption settings and proxy settings. <tt class="docutils literal">save_state</tt> writes all keys
 to the <tt class="docutils literal">entry</tt> that's passed in, which needs to either not be
 initialized, or initialized as a dictionary.</p>
@@ -953,7 +953,7 @@ exception is thrown, <tt class="docutils literal"><span class="pre">asio::error<
 <p><tt class="docutils literal">add_dht_node</tt> adds a node to the routing table. This can be used if
 your client has its own source of bootstrapping nodes.</p>
 <p><tt class="docutils literal">set_dht_settings</tt> sets some parameters availavle to the dht node.
-See dht_settings for more information.</p>
+See <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a> for more information.</p>
 <p><tt class="docutils literal">is_dht_running()</tt> returns true if the DHT support has been started
 and false
 otherwise.</p>
@@ -1184,7 +1184,7 @@ pe_settings <strong>get_pe_settings</strong> () const;
 void <strong>set_pe_settings</strong> (pe_settings const&amp; settings);
 </pre>
 <p>Sets the <a class="reference external" href="reference-Session.html#session">session</a> settings and the packet encryption settings respectively.
-See <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a> and pe_settings for more information on available
+See <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a> and <a class="reference external" href="reference-Settings.html#pe_settings">pe_settings</a> for more information on available
 options.</p>
 <a name="set_proxy()"></a>
 <a name="proxy()"></a></div>
@@ -1365,7 +1365,7 @@ valid until <tt class="docutils literal">stop_natpmp()</tt> is called. See <a cl
 </tr>
 <tr><td>save_dht_settings</td>
 <td>2</td>
-<td>saves dht_settings</td>
+<td>saves <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a></td>
 </tr>
 <tr><td>save_dht_state</td>
 <td>4</td>
@@ -1382,7 +1382,7 @@ joining the DHT if provided at next <a class="reference external" href="referenc
 </tr>
 <tr><td>save_encryption_settings</td>
 <td>32</td>
-<td>save pe_settings</td>
+<td>save <a class="reference external" href="reference-Settings.html#pe_settings">pe_settings</a></td>
 </tr>
 <tr><td>save_feeds</td>
 <td>128</td>

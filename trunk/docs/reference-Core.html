@@ -55,10 +55,9 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id165">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#peer-info" id="id166">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id167">peer_request</a></li>
-<li><a class="reference internal" href="#piece-block-progress" id="id168">piece_block_progress</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id166">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-info" id="id167">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id168">peer_request</a></li>
 <li><a class="reference internal" href="#block-info" id="id169">block_info</a></li>
 <li><a class="reference internal" href="#partial-piece-info" id="id170">partial_piece_info</a></li>
 <li><a class="reference internal" href="#torrent-handle" id="id171">torrent_handle</a></li>
@@ -759,6 +758,13 @@ struct peer_request
    int length;
 };
 </pre>
+<a name="operator==()"></a><div class="section" id="operator">
+<h2>operator==()</h2>
+<pre class="literal-block">
+bool <strong>operator==</strong> (peer_request const&amp; r) const;
+</pre>
+<p>returns true if the right hand side <a class="reference external" href="reference-Core.html#peer_request">peer_request</a> refers to the same
+range as this does.</p>
 <a name="piece"></a><dl class="docutils">
 <dt>piece</dt>
 <dd>the index of the piece in which the range starts.</dd>
@@ -771,37 +777,8 @@ struct peer_request
 <dt>length</dt>
 <dd>the size of the range, in bytes.</dd>
 </dl>
-<a name="piece_block_progress"></a></div>
-<div class="section" id="piece-block-progress">
-<h1>piece_block_progress</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/piece_block_progress.hpp">libtorrent/piece_block_progress.hpp</a>&quot;</p>
-<pre class="literal-block">
-struct piece_block_progress
-{
-   int piece_index;
-   int block_index;
-   int bytes_downloaded;
-   int full_block_bytes;
-};
-</pre>
-<a name="piece_index"></a>
-<a name="block_index"></a><dl class="docutils">
-<dt>piece_index  block_index</dt>
-<dd>the piece and block index
-determines exactly which
-part of the torrent that
-is currently being downloaded</dd>
-</dl>
-<a name="bytes_downloaded"></a><dl class="docutils">
-<dt>bytes_downloaded</dt>
-<dd>the number of bytes we have received
-of this block</dd>
-</dl>
-<a name="full_block_bytes"></a><dl class="docutils">
-<dt>full_block_bytes</dt>
-<dd>the number of bytes in the block</dd>
-</dl>
 <a name="block_info"></a></div>
+</div>
 <div class="section" id="block-info">
 <h1>block_info</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
@@ -2347,7 +2324,7 @@ struct torrent_status
    sha1_hash info_hash;
 };
 </pre>
-<a name="operator==()"></a><div class="section" id="operator">
+<a name="operator==()"></a><div class="section" id="id102">
 <h2>operator==()</h2>
 <pre class="literal-block">
 bool <strong>operator==</strong> (torrent_status const&amp; st) const;
@@ -2355,7 +2332,7 @@ bool <strong>operator==</strong> (torrent_status const&amp; st) const;
 <p>compres if the torrent status objects come from the same torrent. i.e.
 only the <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> field is compared.</p>
 <a name="state_t"></a></div>
-<div class="section" id="id103">
+<div class="section" id="id104">
 <h2>enum state_t</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -2905,7 +2882,7 @@ allowed to force another tracker update with this tracker.</p>
 <p>If the last time this tracker was contacted failed, <tt class="docutils literal">last_error</tt> is the error
 code describing what error occurred.</p>
 <a name="reset()"></a></div>
-<div class="section" id="id124">
+<div class="section" id="id125">
 <h2>reset()</h2>
 <pre class="literal-block">
 void <strong>reset</strong> ();
@@ -3121,7 +3098,7 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
    bool <strong>is_merkle_torrent</strong> () const;
 };
 </pre>
-<a name="torrent_info()"></a><div class="section" id="id128">
+<a name="torrent_info()"></a><div class="section" id="id129">
 <h2>torrent_info()</h2>
 <pre class="literal-block">
 <strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
@@ -3153,7 +3130,7 @@ always throw if an error occurs. These overloads are not available when building
 exception support.</p>
 <p>The <tt class="docutils literal">flags</tt> argument is currently unused.</p>
 <a name="~torrent_info()"></a></div>
-<div class="section" id="id136">
+<div class="section" id="id137">
 <h2>~torrent_info()</h2>
 <pre class="literal-block">
 <strong>~torrent_info</strong> ();
@@ -3178,7 +3155,7 @@ names. Filename may be chaged using <tt class="docutils literal"><span class="pr
 <p>For more information on the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object, see the separate document on how
 to create torrents.</p>
 <a name="rename_file()"></a></div>
-<div class="section" id="id142">
+<div class="section" id="id143">
 <h2>rename_file()</h2>
 <pre class="literal-block">
 void <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
@@ -3263,7 +3240,7 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as <tt class="docutils literal">piece_length()</tt> except in the case of the last piece, which may
 be smaller.</p>
 <a name="info_hash()"></a></div>
-<div class="section" id="id149">
+<div class="section" id="id150">
 <h2>info_hash()</h2>
 <pre class="literal-block">
 const sha1_hash&amp; <strong>info_hash</strong> () const;
@@ -3310,7 +3287,7 @@ std::string <strong>ssl_cert</strong> () const;
 torrent. Otherwise returns an empty string. The certificate is
 the the public certificate in x509 format.</p>
 <a name="is_valid()"></a></div>
-<div class="section" id="id152">
+<div class="section" id="id153">
 <h2>is_valid()</h2>
 <pre class="literal-block">
 bool <strong>is_valid</strong> () const;
@@ -3423,7 +3400,7 @@ lazy_entry const* <strong>info</strong> (char const* key) const;
 It can be used to access extension values put in the .torrent file. If the specified
 key cannot be found, it returns NULL.</p>
 <a name="swap()"></a></div>
-<div class="section" id="id157">
+<div class="section" id="id158">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (torrent_info&amp; ti);
