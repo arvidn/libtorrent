@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct TORRENT_EXPORT piece_block_progress
+	struct piece_block_progress
 	{
 		// the piece and block index
 		// determines exactly which

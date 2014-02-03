@@ -87,6 +87,9 @@ namespace libtorrent
 		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
 		, m_file_pool(fp)
+#if TORRENT_USE_ASSERTS
+		, m_magic(0x1337)
+#endif
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
 		// don't do anything in here. Essentially all members
@@ -96,11 +99,17 @@ namespace libtorrent
 
 	disk_io_thread::~disk_io_thread()
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+#if TORRENT_USE_ASSERTS
+		m_magic = 0xdead;
+#endif
 		TORRENT_ASSERT(m_abort == true);
 	}
 
 	void disk_io_thread::abort()
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		mutex::scoped_lock l(m_queue_mutex);
 		disk_io_job j;
 		m_waiting_to_shutdown = true;
@@ -114,6 +123,8 @@ namespace libtorrent
 
 	void disk_io_thread::join()
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		m_disk_io_thread.join();
 		mutex::scoped_lock l(m_queue_mutex);
 		TORRENT_ASSERT(m_abort == true);
@@ -122,12 +133,15 @@ namespace libtorrent
 
 	bool disk_io_thread::can_write() const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		mutex::scoped_lock l(m_queue_mutex);
 		return !m_exceeded_write_queue;
 	}
 
 	void disk_io_thread::flip_stats(ptime now)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		// calling mean() will actually reset the accumulators
 		m_cache_stats.average_queue_time = m_queue_time.mean();
 		m_cache_stats.average_read_time = m_read_time.mean();
@@ -141,6 +155,8 @@ namespace libtorrent
 
 	void disk_io_thread::get_cache_info(sha1_hash const& ih, std::vector<cached_piece_info>& ret) const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		mutex::scoped_lock l(m_piece_mutex);
 		ret.clear();
 		ret.reserve(m_pieces.size());
@@ -1242,6 +1258,8 @@ namespace libtorrent
 
 	int disk_io_thread::try_read_from_cache(disk_io_job const& j, bool& hit, int flags)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		TORRENT_ASSERT(j.buffer);
 		TORRENT_ASSERT(j.cache_min_time >= 0);
 
@@ -1297,6 +1315,8 @@ namespace libtorrent
 
 	size_type disk_io_thread::queue_buffer_size() const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		mutex::scoped_lock l(m_queue_mutex);
 		return m_queue_buffer_size;
 	}
@@ -1322,6 +1342,8 @@ namespace libtorrent
 		, mutex::scoped_lock& l
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		const_cast<disk_io_job&>(j).start_time = time_now_hires();
 
 		if (j.action == disk_io_job::write)
@@ -1370,17 +1392,21 @@ namespace libtorrent
 	int disk_io_thread::add_job(disk_io_job const& j
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(!m_abort);
 		TORRENT_ASSERT(j.storage
 			|| j.action == disk_io_job::abort_thread
 			|| j.action == disk_io_job::update_settings);
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
 		mutex::scoped_lock l(m_queue_mutex);
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return add_job(j, l, f);
 	}
 
 	bool disk_io_thread::test_error(disk_io_job& j)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		TORRENT_ASSERT(j.storage);
 		error_code const& ec = j.storage->error();
 		if (ec)
@@ -1510,6 +1536,7 @@ namespace libtorrent
 			m_log << log_time() << " idle" << std::endl;
 #endif
 
+			TORRENT_ASSERT(m_magic == 0x1337);
 
 			mutex::scoped_lock jl(m_queue_mutex);
 
@@ -1563,6 +1590,9 @@ namespace libtorrent
 				// release the io_service to allow the run() call to return
 				// we do this once we stop posting new callbacks to it.
 				m_work.reset();
+
+				TORRENT_ASSERT(m_magic == 0x1337);
+
 				return;
 			}
 

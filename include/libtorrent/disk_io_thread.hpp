@@ -519,6 +519,10 @@ namespace libtorrent
 		// in this list
 		std::list<std::pair<disk_io_job, int> > m_queued_completions;
 
+#if TORRENT_USE_ASSERTS
+		int m_magic;
+#endif
+
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;
 	};
