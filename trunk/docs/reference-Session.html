@@ -591,8 +591,9 @@ class session: public boost::noncopyable
    void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
    void <strong>add_dht_router</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
    void <strong>add_dht_node</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
+   void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(
+      torrent*, void*)&gt; ext);
    void <strong>add_extension</strong> (boost::shared_ptr&lt;plugin&gt; ext);
-   void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; ext);
    void <strong>load_country_db</strong> (char const* file);
    void <strong>load_asnum_db</strong> (char const* file);
    int <strong>as_for_ip</strong> (address const&amp; addr);
@@ -979,14 +980,16 @@ for bootstrapping, to keep the load off them.</p>
 <div class="section" id="add-extension">
 <h2>add_extension()</h2>
 <pre class="literal-block">
+void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(
+      torrent*, void*)&gt; ext);
 void <strong>add_extension</strong> (boost::shared_ptr&lt;plugin&gt; ext);
-void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; ext);
 </pre>
-<p>This function adds an extension to this <a class="reference external" href="reference-Session.html#session">session</a>. The argument is a function
-object that is called with a <tt class="docutils literal">torrent*</tt> and which should return a
-<tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;torrent_plugin&gt;</span></tt>. To write custom plugins, see
-<a class="reference external" href="libtorrent_plugins.html">libtorrent plugins</a>. For the typical bittorrent client all of these
-extensions should be added. The main plugins implemented in libtorrent are:</p>
+<p>This function adds an extension to this <a class="reference external" href="reference-Session.html#session">session</a>. The argument is a
+function object that is called with a <tt class="docutils literal">torrent*</tt> and which should
+return a <tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;torrent_plugin&gt;</span></tt>. To write custom
+plugins, see <a class="reference external" href="libtorrent_plugins.html">libtorrent plugins</a>. For the typical bittorrent client
+all of these extensions should be added. The main plugins implemented
+in libtorrent are:</p>
 <dl class="docutils">
 <dt>metadata extension</dt>
 <dd>Allows peers to download the metadata (.torren files) from the swarm
@@ -1033,11 +1036,13 @@ void <strong>load_country_db</strong> (char const* file);
 void <strong>load_asnum_db</strong> (char const* file);
 int <strong>as_for_ip</strong> (address const&amp; addr);
 </pre>
-<p>These functions are not available if <tt class="docutils literal">TORRENT_DISABLE_GEO_IP</tt> is defined. They
-expects a path to the <a class="reference external" href="http://www.maxmind.com/app/asnum">MaxMind ASN database</a> and <a class="reference external" href="http://www.maxmind.com/app/geolitecountry">MaxMind GeoIP database</a>
-respectively. This will be used to look up which AS and country peers belong to.</p>
-<p><tt class="docutils literal">as_for_ip</tt> returns the AS number for the IP address specified. If the IP is not
-in the database or the ASN database is not loaded, 0 is returned.</p>
+<p>These functions are not available if <tt class="docutils literal">TORRENT_DISABLE_GEO_IP</tt> is
+defined. They expects a path to the <a class="reference external" href="http://www.maxmind.com/app/asnum">MaxMind ASN database</a> and
+<a class="reference external" href="http://www.maxmind.com/app/geolitecountry">MaxMind GeoIP database</a> respectively. This will be used to look up
+which AS and country peers belong to.</p>
+<p><tt class="docutils literal">as_for_ip</tt> returns the AS number for the IP address specified. If
+the IP is not in the database or the ASN database is not loaded, 0 is
+returned.</p>
 <a name="get_ip_filter()"></a>
 <a name="set_ip_filter()"></a></div>
 <div class="section" id="get-ip-filter-set-ip-filter">
@@ -1183,9 +1188,9 @@ void <strong>set_settings</strong> (session_settings const&amp; s);
 pe_settings <strong>get_pe_settings</strong> () const;
 void <strong>set_pe_settings</strong> (pe_settings const&amp; settings);
 </pre>
-<p>Sets the <a class="reference external" href="reference-Session.html#session">session</a> settings and the packet encryption settings respectively.
-See <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a> and <a class="reference external" href="reference-Settings.html#pe_settings">pe_settings</a> for more information on available
-options.</p>
+<p>Sets the <a class="reference external" href="reference-Session.html#session">session</a> settings and the packet encryption settings
+respectively. See <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a> and <a class="reference external" href="reference-Settings.html#pe_settings">pe_settings</a> for more
+information on available options.</p>
 <a name="set_proxy()"></a>
 <a name="proxy()"></a></div>
 <div class="section" id="set-proxy-proxy">
