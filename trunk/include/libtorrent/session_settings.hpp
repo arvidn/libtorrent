@@ -452,6 +452,8 @@ namespace libtorrent
 		bool auto_upload_slots_rate_based;
 #endif
 
+		// the different choking algorithms available. Set
+		// session_settings::choking_algorithm to one of these
 		enum choking_algorithm_t
 		{
 			// the traditional choker with a fixed number of unchoke
@@ -485,6 +487,8 @@ namespace libtorrent
 		// and ``auto_upload_slots_rate_based``. For options, see choking_algorithm_t.
 		int choking_algorithm;
 
+		// the different choking algorithms available when seeding. Set
+		// session_settings::seed_choking_algorithm to one of these
 		enum seed_choking_algorithm_t
 		{
 			// round-robins the peers that are unchoked when seeding. This
@@ -558,6 +562,9 @@ namespace libtorrent
 		// the cache at the time.
 		int explicit_cache_interval;
 
+		// the buffer modes to use for reading and writing. Set
+		// session_settings::disk_io_read_mode and disk_io_write_mode to one of
+		// these.
 		enum io_buffer_mode_t
 		{
 			// This is the default and files are opened normally, with the OS caching
@@ -584,6 +591,12 @@ namespace libtorrent
 		int disk_io_write_mode;
 		int disk_io_read_mode;
 
+		// when set to true, instead of issuing multiple adjacent reads or writes
+		// to the disk, allocate a larger buffer, copy all writes into it and
+		// issue a single write. For reads, read into a larger buffer and copy
+		// the buffer into the smaller individual read buffers afterwards. This
+		// may save system calls, but will cost in additional memory allocation
+		// and copying.
 		bool coalesce_reads;
 		bool coalesce_writes;
 
@@ -848,6 +861,8 @@ namespace libtorrent
 		// as they leave disk I/O time for other processes.
 		int file_checks_delay_per_block;
 
+		// the disk cache algorithms available. Set
+		// session_settings::disk_cache_algorithm to one of these.
 		enum disk_cache_algo_t
 		{
 			// This
@@ -1228,6 +1243,7 @@ namespace libtorrent
 		// you're doing. Never set it higher than 100.
 		int utp_loss_multiplier;
 
+		// the options for session_settings::mixed_mode_algorithm.
 		enum bandwidth_mixed_algo_t
 		{
 			// disables the mixed mode bandwidth balancing

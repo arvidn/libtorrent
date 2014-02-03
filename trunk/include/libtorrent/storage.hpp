@@ -389,8 +389,20 @@ namespace libtorrent
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
 	public:
-		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
-			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio);
+		// constructs the default_storage based on the give file_storage (fs).
+		// ``mapped`` is an optional argument (it may be NULL). If non-NULL it
+		// represents the file mappsing that have been made to the torrent before
+		// adding it. That's where files are supposed to be saved and looked for
+		// on disk. ``save_path`` is the root save folder for this torrent.
+		// ``file_pool`` is the cache of file handles that the storage will use.
+		// All files it opens will ask the file_pool to open them. ``file_prio``
+		// is a vector indicating the priority of files on startup. It may be
+		// an empty vector. Any file whose index is not represented by the vector
+		// (because the vector is too short) are assumed to have priority 1.
+		// this is used to treat files with priority 0 slightly differently.
+		default_storage(file_storage const& fs, file_storage const* mapped
+			, std::string const& path, file_pool& fp
+			, std::vector<boost::uint8_t> const& file_prio);
 
 		// hidden
 		~default_storage();
@@ -417,6 +429,8 @@ namespace libtorrent
 		bool verify_resume_data(lazy_entry const& rd, error_code& error);
 		bool write_resume_data(entry& rd) const;
 
+		// if the files in this storage are mapped, returns the mapped
+		// file_storage, otherwise returns the original file_storage object.
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
 	private:
