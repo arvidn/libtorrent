@@ -73,7 +73,7 @@ address rand_v4()
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
-	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
+	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand() & 0xff;
 	return address_v6(bytes);
 }
 #endif

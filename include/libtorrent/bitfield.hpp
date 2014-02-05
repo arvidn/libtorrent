@@ -128,7 +128,7 @@ namespace libtorrent
 				if (m_bytes[i] != 0xff) return false;
 			}
 			int rest = m_size - num_bytes * 8;
-			boost::uint8_t mask = 0xff << (8-rest);
+			boost::uint8_t mask = (0xff << (8-rest)) & 0xff;
 			if (rest > 0 && (m_bytes[num_bytes] & mask) != mask)
 				return false;
 			return true;

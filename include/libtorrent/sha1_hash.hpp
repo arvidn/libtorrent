@@ -177,7 +177,7 @@ namespace libtorrent
 				for (int i = number_size - 1; i > 0; --i)
 				{
 					m_number[i] >>= n;
-					m_number[i] |= m_number[i-1] << (8 - n);
+					m_number[i] |= (m_number[i-1] << (8 - n)) & 0xff;
 				}
 				m_number[0] >>= n;
 			}

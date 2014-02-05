@@ -18,7 +18,7 @@ except:
 
 class http_server_with_timeout(BaseHTTPServer.HTTPServer):
 	allow_reuse_address = True
-	timeout = 120
+	timeout = 190
 
 	def handle_timeout(self):
 		raise Exception('timeout')

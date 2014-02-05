@@ -112,14 +112,14 @@ udp::endpoint rand_ep()
 sha1_hash generate_next()
 {
 	sha1_hash ret;
-	for (int i = 0; i < 20; ++i) ret[i] = rand();
+	for (int i = 0; i < 20; ++i) ret[i] = rand() & 0xff;
 	return ret;
 }
 
 boost::array<char, 64> generate_key()
 {
 	boost::array<char, 64> ret;
-	for (int i = 0; i < 64; ++i) ret[i] = rand();
+	for (int i = 0; i < 64; ++i) ret[i] = rand() & 0xff;
 	return ret;
 }
 
@@ -1287,7 +1287,7 @@ int test_main()
 
 		std::vector<node_entry> temp;
 
-		std::generate(tmp.begin(), tmp.end(), &std::rand);
+		std::generate(tmp.begin(), tmp.end(), random_byte);
 		table.find_node(tmp, temp, 0, nodes.size() * 2);
 		printf("returned-all: %d\n", int(temp.size()));
 		TEST_EQUAL(temp.size(), nodes.size());
@@ -1304,7 +1304,7 @@ int test_main()
 
 		for (int r = 0; r < reps; ++r)
 		{
-			std::generate(tmp.begin(), tmp.end(), &std::rand);
+			std::generate(tmp.begin(), tmp.end(), random_byte);
 			table.find_node(tmp, temp, 0, bucket_size * 2);
 			printf("returned: %d\n", int(temp.size()));
 			TEST_EQUAL(int(temp.size()), (std::min)(bucket_size * 2, int(nodes.size())));

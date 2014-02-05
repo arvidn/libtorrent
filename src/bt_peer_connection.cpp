@@ -366,6 +366,9 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 	}
 
+	char random_byte()
+	{ return random() & 0xff; }
+
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
 	{
 		TORRENT_ASSERT(!associated_torrent().expired());
@@ -441,7 +444,7 @@ namespace libtorrent
 		memcpy(ptr, m_dh_key_exchange->get_local_key(), dh_key_len);
 		ptr += dh_key_len;
 
-		std::generate(ptr, ptr + pad_size, random);
+		std::generate(ptr, ptr + pad_size, random_byte);
 		send_buffer(msg, buf_size);
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -571,7 +574,7 @@ namespace libtorrent
 		detail::write_uint16(pad_size, write_buf); // len (pad)
 
 		// fill pad with zeroes
-		std::generate(write_buf, write_buf + pad_size, &random);
+		std::generate(write_buf, write_buf + pad_size, random_byte);
 		write_buf += pad_size;
 
 		// append len(ia) if we are initiating
@@ -788,7 +791,7 @@ namespace libtorrent
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
 			for (int i = 0; i < 20; ++i)
-				ptr[i] = random();
+				ptr[i] = random() & 0xff;
 		}
 		else
 		{
