@@ -771,8 +771,8 @@ void test_check_files(std::string const& test_path
 	char piece0[piece_size];
 	char piece2[piece_size];
 
-	std::generate(piece0, piece0 + piece_size, std::rand);
-	std::generate(piece2, piece2 + piece_size, std::rand);
+	std::generate(piece0, piece0 + piece_size, random_byte);
+	std::generate(piece2, piece2 + piece_size, random_byte);
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(0, hasher(piece0, piece_size).final());
@@ -1144,13 +1144,13 @@ int test_main()
 
 	// initialize test pieces
 	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 	for (char* p = piece1, *end(piece1 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 	for (char* p = piece2, *end(piece2 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 	for (char* p = piece3, *end(piece3 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 
 	std::vector<std::string> test_paths;
 	char* env = std::getenv("TORRENT_TEST_PATHS");

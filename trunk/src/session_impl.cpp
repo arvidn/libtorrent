@@ -270,13 +270,14 @@ namespace aux {
 		tu->system_time = min_time() + microsec(stime / 10);
 #endif
 	}
-#endif //TORRENT_STATS
+#endif //TORRENT_STATS	
 
 	struct seed_random_generator
 	{
 		seed_random_generator()
 		{
-			random_seed((unsigned int)total_microseconds(time_now_hires() - min_time()));
+			random_seed((unsigned int)((total_microseconds(
+				time_now_hires() - min_time())) & 0xffffffff));
 		}
 	};
 

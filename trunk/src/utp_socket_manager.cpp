@@ -468,7 +468,7 @@ namespace libtorrent
 		}
 		else
 		{
-			send_id = random();
+			send_id = random() & 0xffff;
 			recv_id = send_id - 1;
 		}
 		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);

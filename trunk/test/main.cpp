@@ -91,7 +91,7 @@ int main()
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 #endif
 
-	srand(total_microseconds(time_now_hires() - min_time()));
+	srand((total_microseconds(time_now_hires() - min_time())) & 0x7fffffff);
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
 	// which sometimes causes tests to fail with EAGAIN just

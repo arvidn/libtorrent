@@ -252,7 +252,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 	{
 		piece_size = 64 * 1024;
 		char* random_data = (char*)malloc(64 * 1024 * num_pieces);
-		std::generate(random_data, random_data + 64 * 1024 * num_pieces, &std::rand);
+		std::generate(random_data, random_data + 64 * 1024 * num_pieces, random_byte);
 		std::string seed_filename = combine_path(save_path, "seed");
 		save_file(seed_filename.c_str(), random_data, 64 * 1024 * num_pieces);
 		fs.add_file("seed", 64 * 1024 * num_pieces);
@@ -307,7 +307,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 		{
 			piece_size = 64 * 1024;
 			char* random_data = (char*)malloc(64 * 1024 * num_pieces);
-			std::generate(random_data, random_data + 64 * 1024 * num_pieces, &std::rand);
+			std::generate(random_data, random_data + 64 * 1024 * num_pieces, random_byte);
 			save_file(combine_path(save_path, "seed").c_str(), random_data, 64 * 1024 * num_pieces);
 			free(random_data);
 		}

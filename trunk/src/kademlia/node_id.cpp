@@ -146,8 +146,8 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	id[1] = (c >> 16) & 0xff;
 	id[2] = ((c >> 8) & 0xf8) | (random() & 0x7);
 
-	for (int i = 3; i < 19; ++i) id[i] = random();
-	id[19] = r;
+	for (int i = 3; i < 19; ++i) id[i] = random() & 0xff;
+	id[19] = r & 0xff;
 
 	return id;
 }
@@ -155,7 +155,7 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 node_id generate_random_id()
 {
 	char r[20];
-	for (int i = 0; i < 20; ++i) r[i] = random();
+	for (int i = 0; i < 20; ++i) r[i] = random() & 0xff;
 	return hasher(r, 20).final();
 }
 
@@ -188,7 +188,7 @@ node_id generate_prefix_mask(int bits)
 	node_id mask(0);
 	int b = 0;
 	for (; b < bits - 7; b += 8) mask[b/8] |= 0xff;
-	mask[b/8] |= 0xff << (8 - (bits&7));
+	mask[b/8] |= (0xff << (8 - (bits&7))) & 0xff;
 	return mask;
 }
 
