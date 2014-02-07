@@ -40,6 +40,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix crash when using full allocation storage mode
 	* improve error_code and error_category support in python bindings
 	* fix python binding for external_ip_alert
 
