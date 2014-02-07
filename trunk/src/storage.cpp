@@ -1223,7 +1223,7 @@ ret:
 
 			// if the file has priority 0, don't allocate it
 			if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only
-				&& (m_file_priority.size() < file_index || m_file_priority[file_index] > 0))
+				&& (m_file_priority.size() <= file_index || m_file_priority[file_index] > 0))
 			{
 				TORRENT_ASSERT(m_file_created.size() == files().num_files());
 				if (m_file_created[file_index] == false)
@@ -2953,6 +2953,8 @@ ret:
 	int piece_manager::slot_for(int piece) const
 	{
 		if (m_storage_mode != internal_storage_mode_compact_deprecated) return piece;
+		// this happens in seed mode, where we skip checking fastresume
+		if (m_piece_to_slot.empty()) return piece;
 		TORRENT_ASSERT(piece < int(m_piece_to_slot.size()));
 		TORRENT_ASSERT(piece >= 0);
 		return m_piece_to_slot[piece];

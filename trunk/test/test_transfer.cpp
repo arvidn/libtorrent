@@ -170,7 +170,9 @@ storage_interface* test_storage_constructor(file_storage const& fs
 	return new test_storage(fs, path, fp);
 }
 
-void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowed_fast = false)
+void test_transfer(int proxy_type, bool test_disk_full = false
+	, bool test_allowed_fast = false
+	, storage_mode_t storage_mode = storage_mode_sparse)
 {
 	static int listen_port = 0;
 
@@ -269,6 +271,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
+	add_torrent_params params;
+	params.storage_mode = storage_mode;
+
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses1");
 
@@ -276,7 +281,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
+		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:&params);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(num_pieces, 1);
@@ -380,6 +385,15 @@ int test_main()
 	
 	// test allowed fast
 	test_transfer(0, false, true);
+
+	// test storage_mode_allocate
+	fprintf(stderr, "full allocation mode\n");
+	test_transfer(0, false, false, storage_mode_allocate);
+
+#ifndef TORRENT_NO_DEPRECATE
+	fprintf(stderr, "compact mode\n");
+	test_transfer(0, false, false, storage_mode_compact);
+#endif
 	
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
