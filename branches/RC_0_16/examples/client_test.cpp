@@ -1173,7 +1173,7 @@ int main(int argc, char* argv[])
 #endif
 			"  -l <limit>            sets the listen socket queue size\n"
 			"\n DISK OPTIONS\n"
-			"  -a <mode>             sets the allocation mode. [sparse|full]\n"
+			"  -a <mode>             sets the allocation mode. [sparse|allocate]\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -O                    Disallow disk job reordering\n"
@@ -1299,7 +1299,8 @@ int main(int argc, char* argv[])
 			case 'S': settings.unchoke_slots_limit = atoi(arg); break;
 			case 'a':
 				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
-				if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
+				else if (strcmp(arg, "full") == 0) allocation_mode = storage_mode_allocate;
+				else if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
 				break;
 			case 's': save_path = arg; break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
