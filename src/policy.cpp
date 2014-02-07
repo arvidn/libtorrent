@@ -477,7 +477,8 @@ namespace libtorrent
 			}
 		
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle()
+					, (*i)->address(), peer_blocked_alert::ip_filter));
 
 			int current = i - m_peers.begin();
 			TORRENT_ASSERT(current >= 0);
@@ -1458,7 +1459,8 @@ namespace libtorrent
 		if (!ses.m_settings.allow_i2p_mixed && m_torrent->torrent_file().is_i2p())
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle()
+					, remote.address(), peer_blocked_alert::ip_filter));
 			return 0;
 		}
 
@@ -1466,7 +1468,8 @@ namespace libtorrent
 		if (pf.access(remote.port()) & port_filter::blocked)
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle()
+					, remote.address(), peer_blocked_alert::port_filter));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
@@ -1476,7 +1479,8 @@ namespace libtorrent
 		if (ses.m_settings.no_connect_privileged_ports && remote.port() < 1024)
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle()
+					, remote.address(), peer_blocked_alert::privileged_ports));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
@@ -1488,7 +1492,8 @@ namespace libtorrent
 			&& (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked))
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle()
+					, remote.address(), peer_blocked_alert::ip_filter));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif

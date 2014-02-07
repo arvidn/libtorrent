@@ -1492,22 +1492,32 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_blocked_alert: torrent_alert
 	{
 		// internal
-		peer_blocked_alert(torrent_handle const& h, address const& i)
+		peer_blocked_alert(torrent_handle const& h, address const& i
+			, int r)
 			: torrent_alert(h)
 			, ip(i)
+			, reason(r)
 		{}
 		
 		TORRENT_DEFINE_ALERT(peer_blocked_alert);
 
 		const static int static_category = alert::ip_block_notification;
-		virtual std::string message() const
-		{
-			error_code ec;
-			return torrent_alert::message() + ": blocked peer: " + ip.to_string(ec);
-		}
+		virtual std::string message() const;
 
 		// the address that was blocked.
 		address ip;
+
+		enum reason_t
+		{
+			ip_filter,
+			port_filter,
+			i2p_mixed,
+			privileged_ports,
+			utp_disabled,
+			tcp_disabled
+		};
+
+		int reason;
 	};
 
 	// This alert is generated when a DHT node announces to an info-hash on our DHT node. It belongs

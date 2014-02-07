@@ -344,6 +344,26 @@ namespace libtorrent {
 		return ret;
 	}
 
+	std::string peer_blocked_alert::message() const
+	{
+		error_code ec;
+		char ret[600];
+		char const* reason_str[] =
+		{
+			"ip_filter",
+			"port_filter",
+			"i2p_mixed",
+			"privileged_ports",
+			"utp_disabled",
+			"tcp_disabled"
+		};
+
+		snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
+			, torrent_alert::message().c_str(), ip.to_string(ec).c_str()
+			, reason_str[reason]);
+		return ret;
+	}
+
 	std::string dht_announce_alert::message() const
 	{
 		error_code ec;
