@@ -2759,7 +2759,8 @@ namespace libtorrent
 			debug_log("blocked ip from tracker: %s", host->endpoint().address().to_string(ec).c_str());
 #endif
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
-				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle(), host->endpoint().address()));
+				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle()
+					, host->endpoint().address(), peer_blocked_alert::ip_filter));
 			return;
 		}
 			
@@ -4698,7 +4699,8 @@ namespace libtorrent
 			&& m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
-				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle(), a.address()));
+				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle()
+					, a.address(), peer_blocked_alert::ip_filter));
 			return;
 		}
 
@@ -4760,7 +4762,8 @@ namespace libtorrent
 			&& m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
-				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle(), a.address()));
+				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle()
+					, a.address(), peer_blocked_alert::ip_filter));
 			return;
 		}
 		
@@ -5977,7 +5980,8 @@ namespace libtorrent
 			&& m_ses.m_ip_filter.access(p->remote().address()) & ip_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
-				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle(), p->remote().address()));
+				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle()
+					, p->remote().address(), peer_blocked_alert::ip_filter));
 			p->disconnect(errors::banned_by_ip_filter);
 			return false;
 		}

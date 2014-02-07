@@ -1,3 +1,4 @@
+	* include reason in peer_blocked_alert
 	* support magnet links wrapped in .torrent files
 	* rate limiter optimization
 	* rate limiter overflow fix (for very high limits)
