@@ -1765,7 +1765,7 @@ namespace libtorrent
 #endif
 					TORRENT_ASSERT(j.buffer);
 					session_settings const* s = ((session_settings*)j.buffer);
-					TORRENT_ASSERT(s->cache_size >= 0);
+					TORRENT_ASSERT(s->cache_size >= -1);
 					TORRENT_ASSERT(s->cache_expiry > 0);
 
 #if defined TORRENT_WINDOWS
