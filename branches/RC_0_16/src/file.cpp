@@ -1909,6 +1909,108 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return 0;
 	}
 
+#ifdef TORRENT_WINDOWS
+	bool get_manage_volume_privs()
+	{
+		typedef BOOL (WINAPI *OpenProcessToken_t)(
+			HANDLE ProcessHandle,
+			DWORD DesiredAccess,
+			PHANDLE TokenHandle);
+
+		typedef BOOL (WINAPI *LookupPrivilegeValue_t)(
+			LPCSTR lpSystemName,
+			LPCSTR lpName,
+			PLUID lpLuid);
+
+		typedef BOOL (WINAPI *AdjustTokenPrivileges_t)(
+			HANDLE TokenHandle,
+			BOOL DisableAllPrivileges,
+			PTOKEN_PRIVILEGES NewState,
+			DWORD BufferLength,
+			PTOKEN_PRIVILEGES PreviousState,
+			PDWORD ReturnLength);
+
+		static OpenProcessToken_t pOpenProcessToken = NULL;
+		static LookupPrivilegeValue_t pLookupPrivilegeValue = NULL;
+		static AdjustTokenPrivileges_t pAdjustTokenPrivileges = NULL;
+		static bool failed_advapi = false;
+
+		if (pOpenProcessToken == NULL && !failed_advapi)
+		{
+			HMODULE advapi = LoadLibraryA("advapi32");
+			if (advapi == NULL)
+			{
+				failed_advapi = true;
+				return false;
+			}
+			pOpenProcessToken = (OpenProcessToken_t)GetProcAddress(advapi, "OpenProcessToken");
+			pLookupPrivilegeValue = (LookupPrivilegeValue_t)GetProcAddress(advapi, "LookupPrivilegeValueA");
+			pAdjustTokenPrivileges = (AdjustTokenPrivileges_t)GetProcAddress(advapi, "AdjustTokenPrivileges");
+			if (pOpenProcessToken == NULL
+				|| pLookupPrivilegeValue == NULL
+				|| pAdjustTokenPrivileges == NULL)
+			{
+				failed_advapi = true;
+				return false;
+			}
+		}
+
+		HANDLE token;
+		if (!pOpenProcessToken(GetCurrentProcess()
+			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
+			return false;
+
+		TOKEN_PRIVILEGES privs;
+		if (!pLookupPrivilegeValue(NULL, "SeManageVolumePrivilege"
+			, &privs.Privileges[0].Luid))
+		{
+			CloseHandle(token);
+			return false;
+		}
+
+		privs.PrivilegeCount = 1;
+		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+		bool ret = pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL)
+			&& GetLastError() == ERROR_SUCCESS;
+
+		CloseHandle(token);
+
+		return ret;
+	}
+
+	void set_file_valid_data(HANDLE f, boost::int64_t size)
+	{
+		static bool has_privs = get_manage_volume_privs();
+
+		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
+		static SetFileValidData_t pSetFileValidData = NULL;
+		static bool failed_kernel32 = false;
+
+		if (pSetFileValidData == NULL && !failed_kernel32)
+		{
+			HMODULE k32 = LoadLibraryA("kernel32");
+			if (k32 == NULL)
+			{
+				failed_kernel32 = true;
+				return;
+			}
+			pSetFileValidData = (SetFileValidData_t)GetProcAddress(k32, "SetFileValidData");
+			if (pSetFileValidData == NULL)
+			{
+				failed_kernel32 = true;
+				return;
+			}
+		}
+
+		TORRENT_ASSERT(pSetFileValidData);
+
+		// we don't necessarily expect to have enough
+		// privilege to do this, so ignore errors.
+		pSetFileValidData(f, size);
+	}
+#endif
+
   	bool file::set_size(size_type s, error_code& ec)
   	{
   		TORRENT_ASSERT(is_open());
@@ -1958,6 +2060,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 					ec.assign(INVALID_SET_FILE_POINTER, get_system_category());
 					return false;
 				}
+
+				if ((m_open_mode & sparse) == 0)
+					set_file_valid_data(m_file_handle, s);
+
 				return true;
 			}
 
@@ -1992,11 +2098,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				return false;
 			}
 		}
-#if _WIN32_WINNT >= 0x501		
 		if ((m_open_mode & sparse) == 0)
 		{
 			// only allocate the space if the file
 			// is not fully allocated
+#if _WIN32_WINNT >= 0x501		
+			// TODO: it would be nice to load
+			// GetCompressedSize dynamically out of
+			// kernel32.dll
 			DWORD high_dword = 0;
 #if TORRENT_USE_WSTRING
 #define GetCompressedFileSize_ GetCompressedFileSizeW
@@ -2011,14 +2120,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				if (ec) return false;
 			}
 			if (offs.QuadPart != s)
+#endif // _WIN32_WINNT >= 0x501
 			{
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
 				// garbage instead
-				SetFileValidData(m_file_handle, offs.QuadPart);
+				set_file_valid_data(m_file_handle, offs.QuadPart);
 			}
 		}
-#endif // _WIN32_WINNT >= 0x501
 #else // NON-WINDOWS
 		struct stat st;
 		if (fstat(m_fd, &st) != 0)
