@@ -2125,7 +2125,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
 				// garbage instead
-				set_file_valid_data(m_file_handle, offs.QuadPart);
+				set_file_valid_data(m_file_handle, s);
 			}
 		}
 #else // NON-WINDOWS
