@@ -933,7 +933,7 @@ std::string utorrent_peer_flags(peer_info const& pi)
 	if ((pi.flags & peer_info::on_parole))
 		ret += 'F';
 
-	if (pi.connection_type == peer_info::bittorrent_utp)
+	if (pi.flags & peer_info::utp_socket)
 		ret += 'P';
 	return ret;
 }
@@ -966,7 +966,7 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 				, isprint(p->country[1]) ? p->country[1] : ' '
 				, print_endpoint(p->ip).c_str()
 				, ""
-				, p->connection_type == peer_info::bittorrent_utp
+				, (p->flags & peer_info::utp_socket) != 0
 				, p->ip.port()
 				, escape_json(p->client).c_str()
 				, utorrent_peer_flags(*p).c_str()

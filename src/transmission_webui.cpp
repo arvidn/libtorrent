@@ -206,11 +206,13 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
+	torrent_status st = h.status(torrent_handle::query_name);
+
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": { \"torrent-added\": { \"hashString\": \"%s\", "
 		"\"id\": %u, \"name\": \"%s\"}}}"
-		, tag, h.has_metadata() ? to_hex(h.get_torrent_info().info_hash().to_string()).c_str() : ""
-		, h.id(), escape_json(h.name()).c_str());
+		, tag, to_hex(st.info_hash.to_string()).c_str()
+		, h.id(), escape_json(st.name).c_str());
 }
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
@@ -281,6 +283,8 @@ int torrent_tr_status(torrent_status const& ts)
 		case libtorrent::torrent_status::finished:
 			if (ts.paused) return TR_STATUS_SEED_WAIT;
 			else return TR_STATUS_SEED;
+		default:
+			TORRENT_ASSERT(false);
 	}
 	return TR_STATUS_STOPPED;
 }
@@ -539,7 +543,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					, to_bool(p.flags & (peer_info::rc4_encrypted | peer_info::plaintext_encrypted))
 					, to_bool(p.source & peer_info::incoming)
 					, to_bool(p.used_send_buffer)
-					, to_bool(p.connection_type == peer_info::bittorrent_utp)
+					, to_bool(p.flags & peer_info::utp_socket)
 					, to_bool(p.flags & peer_info::remote_choked)
 					, to_bool(p.flags & peer_info::remote_interested)
 					, p.ip.port()
