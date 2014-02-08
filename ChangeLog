@@ -41,6 +41,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+0.16.15 release
+
 	* fix use of SetFileValidData on windows
 	* fix crash when using full allocation storage mode
 	* improve error_code and error_category support in python bindings
