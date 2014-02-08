@@ -93,7 +93,7 @@ namespace libtorrent
 		};
 	}
 
-	boost::system::error_category& get_upnp_category();
+	TORRENT_EXPORT boost::system::error_category& get_upnp_category();
 
 // int: port-mapping index
 // address: external address as queried from router
