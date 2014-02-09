@@ -493,7 +493,8 @@ namespace libtorrent
 		bool resolving_countries() const;
 
 		void resolve_peer_country(boost::shared_ptr<peer_connection> const& p) const;
-		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
+		void on_country_lookup(error_code const& error
+			, std::vector<address> const& host_list
 			, boost::shared_ptr<peer_connection> p) const;
 #endif
 
@@ -763,7 +764,9 @@ namespace libtorrent
 
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
-		void on_peer_name_lookup(error_code const& e, tcp::resolver::iterator i);
+		void on_peer_name_lookup(error_code const& e
+			, std::vector<address> const& host_list
+			, int port);
 
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.
@@ -1138,12 +1141,13 @@ namespace libtorrent
 		// -----------------------------
 
 		// used to resolve hostnames for web seeds
+		// TODO: 2 replace all usage of this with m_ses.get_resolver()
 		mutable tcp::resolver m_host_resolver;
 
 		// this vector is allocated lazily. If no file priorities are
 		// ever changed, this remains empty. Any unallocated slot
 		// implicitly means the file has priority 1.
-		// TODO: this wastes 5 bits per piece
+		// TODO: this wastes 5 bits per file
 		std::vector<boost::uint8_t> m_file_priority;
 
 		// this vector contains the number of bytes completely

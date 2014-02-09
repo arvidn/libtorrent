@@ -85,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/request_blocks.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
+#include "libtorrent/resolver_interface.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -3137,8 +3138,9 @@ namespace libtorrent
 					tcp::resolver::query q(i->ip, to_string(i->port).elems);
 					// TODO: instead, borrow host resolvers from a pool in session_impl. That
 					// would make the torrent object smaller
-					m_host_resolver.async_resolve(q,
-						boost::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2));
+					m_ses.get_resolver().async_resolve(i->ip, 0
+						, boost::bind(&torrent::on_peer_name_lookup
+							, shared_from_this(), _1, _2, i->port));
 				}
 			}
 			else
@@ -3318,7 +3320,8 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::on_peer_name_lookup(error_code const& e, tcp::resolver::iterator host)
+	void torrent::on_peer_name_lookup(error_code const& e
+		, std::vector<address> const& host_list, int port)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
@@ -3332,22 +3335,24 @@ namespace libtorrent
 		if (e)
 			debug_log("peer name lookup error: %s", e.message().c_str());
 #endif
-		if (e || host == tcp::resolver::iterator() ||
-			m_ses.is_aborted()) return;
+
+		if (e || host_list.empty() || m_ses.is_aborted()) return;
+
+		tcp::endpoint host(host_list.front(), port);
 
 		if (m_apply_ip_filter
-			&& m_ses.get_ip_filter().access(host->endpoint().address()) & ip_filter::blocked)
+			&& m_ses.get_ip_filter().access(host.address()) & ip_filter::blocked)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			error_code ec;
-			debug_log("blocked ip from tracker: %s", host->endpoint().address().to_string(ec).c_str());
+			debug_log("blocked ip from tracker: %s", host.address().to_string(ec).c_str());
 #endif
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
-				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), host->endpoint().address()));
+				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), host.address()));
 			return;
 		}
-			
-		if (add_peer(*host, peer_info::tracker))
+
+		if (add_peer(host, peer_info::tracker))
 			state_updated();
 		update_want_peers();
 	}
@@ -4535,6 +4540,8 @@ namespace libtorrent
 		
 		m_storage.reset();
 		m_host_resolver.cancel();
+		// TODO: 2 abort lookups this torrent has made via the
+		// session host resolver interface
 
 		if (!m_apply_ip_filter)
 		{
@@ -6043,15 +6050,15 @@ namespace libtorrent
 
 		asio::ip::address_v4 reversed(swap_bytes(p->remote().address().to_v4().to_ulong()));
 		error_code ec;
-		tcp::resolver::query q(reversed.to_string(ec) + ".zz.countries.nerd.dk", "0");
+		std::string hostname = reversed.to_string(ec) + ".zz.countries.nerd.dk";
 		if (ec)
 		{
 			p->set_country("!!");
 			return;
 		}
 		m_resolving_country = true;
-		m_host_resolver.async_resolve(q,
-			boost::bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
+		m_ses.get_resolver().async_resolve(hostname, 0
+			, boost::bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
 	}
 
 	namespace
@@ -6063,7 +6070,8 @@ namespace libtorrent
 		};
 	}
 
-	void torrent::on_country_lookup(error_code const& error, tcp::resolver::iterator i
+	void torrent::on_country_lookup(error_code const& error
+		, std::vector<address> const& host_list
 		, boost::shared_ptr<peer_connection> p) const
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
@@ -6127,7 +6135,7 @@ namespace libtorrent
 			, {876,  "WF"}, {882,  "WS"}, {887,  "YE"}, {891,  "CS"}, {894,  "ZM"}
 		};
 
-		if (error || i == tcp::resolver::iterator())
+		if (error || host_list.empty())
 		{
 			// this is used to indicate that we shouldn't
 			// try to resolve it again
@@ -6135,33 +6143,38 @@ namespace libtorrent
 			return;
 		}
 
-		while (i != tcp::resolver::iterator()
-			&& !i->endpoint().address().is_v4()) ++i;
-		if (i != tcp::resolver::iterator())
+		int idx = 0;
+		while (idx < host_list.size() && !host_list[idx].is_v4())
+			++idx;
+			
+		if (idx >= host_list.size())
 		{
-			// country is an ISO 3166 country code
-			int country = i->endpoint().address().to_v4().to_ulong() & 0xffff;
-			
-			// look up the country code in the map
-			const int size = sizeof(country_map)/sizeof(country_map[0]);
-			country_entry tmp = {country, ""};
-			country_entry const* j =
-				std::lower_bound(country_map, country_map + size, tmp
-					, boost::bind(&country_entry::code, _1) < boost::bind(&country_entry::code, _2));
-			if (j == country_map + size
-				|| j->code != country)
-			{
-				// unknown country!
-				p->set_country("!!");
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				debug_log("IP \"%s\" was mapped to unknown country: %d"
-					, print_address(p->remote().address()).c_str(), country);
-#endif
-				return;
-			}
-			
-			p->set_country(j->name);
+			p->set_country("--");
+			return;
 		}
+
+		// country is an ISO 3166 country code
+		int country = host_list[idx].to_v4().to_ulong() & 0xffff;
+			
+		// look up the country code in the map
+		const int size = sizeof(country_map)/sizeof(country_map[0]);
+		country_entry tmp = {country, ""};
+		country_entry const* j =
+			std::lower_bound(country_map, country_map + size, tmp
+				, boost::bind(&country_entry::code, _1) < boost::bind(&country_entry::code, _2));
+		if (j == country_map + size
+			|| j->code != country)
+		{
+			// unknown country!
+			p->set_country("!!");
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			debug_log("IP \"%s\" was mapped to unknown country: %d"
+				, print_address(p->remote().address()).c_str(), country);
+#endif
+			return;
+		}
+			
+		p->set_country(j->name);
 	}
 #endif
 
