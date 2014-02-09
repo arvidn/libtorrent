@@ -4522,6 +4522,7 @@ namespace libtorrent
 		// the torrent object from there
 		if (m_storage.get())
 		{
+			inc_refcount("release_files");
 			m_ses.disk_thread().async_stop_torrent(m_storage.get()
 				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
 		}
@@ -5079,7 +5080,11 @@ namespace libtorrent
 
 		// stoage may be NULL during shutdown
 		if (m_storage)
-			m_ses.disk_thread().async_set_file_priority(m_storage.get(), m_file_priority, boost::bind(&nop));
+		{
+			inc_refcount("file_priority");
+			m_ses.disk_thread().async_set_file_priority(m_storage.get()
+				, m_file_priority, boost::bind(&torrent::on_file_priority, this));
+		}
 		update_piece_priorities();
 	}
 	
@@ -7547,6 +7552,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_storage);
 
 		// we need to keep the object alive during this operation
+		inc_refcount("release_files");
 		m_ses.disk_thread().async_release_files(m_storage.get()
 			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
 		
@@ -7803,6 +7809,7 @@ namespace libtorrent
 		// stoage may be NULL during shutdown
 		if (!m_storage.get()) return false;
 
+		inc_refcount("rename_file");
 		m_ses.disk_thread().async_rename_file(m_storage.get(), index, name
 			, boost::bind(&torrent::on_file_renamed, shared_from_this(), _1));
 		return true;
@@ -8517,12 +8524,14 @@ namespace libtorrent
 			TORRENT_ASSERT(m_abort);
 			return;
 		}
+		inc_refcount("release_files");
 		m_ses.disk_thread().async_release_files(m_storage.get()
 			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
 	}
 
 	void torrent::on_cache_flushed(disk_io_job const* j)
 	{
+		dec_refcount("release_files");
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		if (m_ses.is_aborted()) return;
