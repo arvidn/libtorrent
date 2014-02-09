@@ -4661,7 +4661,8 @@ namespace libtorrent
 	void torrent::on_file_renamed(disk_io_job const* j)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		
+		dec_refcount("rename_file");
+
 		if (j->ret == 0)
 		{
 			if (alerts().should_post<file_renamed_alert>())
