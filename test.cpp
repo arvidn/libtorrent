@@ -55,7 +55,7 @@ int main(int argc, char *const argv[])
 	ec.clear();
 //	pam_auth authorizer("bittorrent");
 
-	save_resume resume(ses, ".resume", &alerts);
+	save_resume resume(ses, "resume.dat", &alerts);
 	add_torrent_params p;
 	p.save_path = sett.get_str("save_path", ".");
 	resume.load(ec, p);
@@ -96,14 +96,22 @@ int main(int argc, char *const argv[])
 		{
 			resume.save_all();
 			shutting_down = true;
+			fprintf(stderr, "saving resume data\n");
 			signal(SIGTERM, &sighandler_forcequit);
 			signal(SIGINT, &sighandler_forcequit);
 		}
-		if (force_quit) break;
+		if (force_quit)
+		{
+			fprintf(stderr, "foce quitting\n");
+			break;
+		}
 	}
 
+	fprintf(stderr, "closing web server\n");
 	dlg.stop();
 	webport.stop();
+
+	fprintf(stderr, "saving settings\n");
 	sett.save(ec);
 
 	return 0;

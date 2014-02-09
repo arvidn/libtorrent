@@ -6,6 +6,7 @@ BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 feature pam : off on : composite ;
 
 use-project /torrent : ../libtorrent_aio ;
+lib sqlite : : <name>sqlite3 <search>/opt/local/lib : <include>/opt/local/include ;
 
 if $(BOOST_ROOT)
 {
@@ -46,6 +47,7 @@ lib torrent-webui
 	: # requirements
 	<library>/torrent//torrent
 	<library>zlib
+	<library>sqlite
 	<pam>on:<library>pam
 	<pam>on:<source>src/pam_auth.cpp
 	<define>USE_WEBSOCKET=1

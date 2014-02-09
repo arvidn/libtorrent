@@ -43,13 +43,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <map>
 
+#include <sqlite3.h>
+
 namespace libtorrent
 {
 	struct alert_handler;
 
 	struct save_resume : alert_observer
 	{
-		save_resume(session& s, std::string const& resume_dir, alert_handler* alerts);
+		save_resume(session& s, std::string const& resume_file, alert_handler* alerts);
 		~save_resume();
 
 		void load(error_code& ec, add_torrent_params model);
@@ -64,7 +66,7 @@ namespace libtorrent
 
 		session& m_ses;
 		alert_handler* m_alerts;
-		std::string m_resume_dir;
+		sqlite3* m_db;
 
 		// all torrents currently loaded
 		boost::unordered_set<torrent_handle> m_torrents;

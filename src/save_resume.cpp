@@ -49,10 +49,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-save_resume::save_resume(session& s, std::string const& resume_dir, alert_handler* alerts)
+save_resume::save_resume(session& s, std::string const& resume_file, alert_handler* alerts)
 	: m_ses(s)
 	, m_alerts(alerts)
-	, m_resume_dir(resume_dir)
 	, m_cursor(m_torrents.begin())
 	, m_last_save(time_now())
 	, m_interval(minutes(15))
@@ -63,11 +62,28 @@ save_resume::save_resume(session& s, std::string const& resume_dir, alert_handle
 		, stats_alert::alert_type // just to get woken up regularly
 		, save_resume_data_alert::alert_type
 		, metadata_received_alert::alert_type, 0);
+
+	int ret = sqlite3_open(resume_file.c_str(), &m_db);
+	if (ret != SQLITE_OK)
+	{
+		fprintf(stderr, "Can't open resume file: %s\n", sqlite3_errmsg(m_db));
+		return;
+	}
+
+	sqlite3_exec(m_db, "CREATE TABLE TORRENTS("
+		"INFOHASH STRING PRIMARY KEY NOT NULL,"
+		"RESUME BLOB NOT NULL);", NULL, 0, NULL);
+
+	// ignore errors, since the table is likely to already
+	// exist (and sqlite doesn't give a reasonable way to
+	// know what failed programatically).
 }
 
 save_resume::~save_resume()
 {
 	m_alerts->unsubscribe(this);
+	sqlite3_close(m_db);
+	m_db = NULL;
 }
 
 void save_resume::handle_alert(alert const* a)
@@ -79,7 +95,7 @@ void save_resume::handle_alert(alert const* a)
 	metadata_received_alert const* mr = alert_cast<metadata_received_alert>(a);
 	if (ta)
 	{
-		torrent_status st = ta->handle.status();
+		torrent_status st = ta->handle.status(torrent_handle::query_name);
 		printf("added torrent: %s\n", st.name.c_str());
 		m_torrents.insert(ta->handle);
 		if (st.has_metadata)
@@ -118,15 +134,41 @@ void save_resume::handle_alert(alert const* a)
 			if (m_cursor == m_torrents.end())
 				wrapped = true;
 		}
-		// we need to delete the resume file from the resume directory
-		// as well, to prevent it from being reloaded on next startup
-		error_code ec;
-		std::string resume_file = combine_path(m_resume_dir, to_hex(td->info_hash.to_string()) + ".resume");
-		printf("removing: %s (%s)\n", resume_file.c_str(), ec.message().c_str());
-		remove(resume_file, ec);
+
 		m_torrents.erase(i);
 		if (wrapped)
 			m_cursor = m_torrents.begin();
+
+		// we need to delete the resume file from the resume directory
+		// as well, to prevent it from being reloaded on next startup
+		sqlite3_stmt* stmt = NULL;
+		int ret = sqlite3_prepare_v2(m_db, "DELETE FROM TORRENTS WHERE INFOHASH = :ih;", -1, &stmt, NULL);
+		if (ret != SQLITE_OK)
+		{
+			printf("failed to prepare remove statement: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+		std::string ih = to_hex(td->info_hash.to_string());
+		ret = sqlite3_bind_text(stmt, 1, ih.c_str(), 40, SQLITE_STATIC);
+		if (ret != SQLITE_OK)
+		{
+			printf("failed to bind remove statement: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+		ret = sqlite3_step(stmt);
+		if (ret != SQLITE_DONE)
+		{
+			printf("failed to step remove statement: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+
+		ret = sqlite3_finalize(stmt);
+		if (ret != SQLITE_OK)
+		{
+			printf("failed to remove: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+		printf("removing %s\n", ih.c_str());
 	}
 	else if (sr)
 	{
@@ -135,10 +177,43 @@ void save_resume::handle_alert(alert const* a)
 		error_code ec;
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), *sr->resume_data);
-		create_directory(m_resume_dir, ec);
-		ec.clear();
-		save_file(combine_path(m_resume_dir
-			, to_hex((*sr->resume_data)["info-hash"].string()) + ".resume"), buf, ec);
+
+		sqlite3_stmt* stmt = NULL;
+		int ret = sqlite3_prepare_v2(m_db, "INSERT OR REPLACE INTO TORRENTS(INFOHASH,RESUME) "
+			"VALUES(?, ?);", -1, &stmt, NULL);
+		if (ret != SQLITE_OK)
+		{
+			fprintf(stderr, "failed to prepare insert statement: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+
+		std::string ih = to_hex((*sr->resume_data)["info-hash"].string());
+		ret = sqlite3_bind_text(stmt, 1, ih.c_str(), 40, SQLITE_STATIC);
+		if (ret != SQLITE_OK)
+		{
+			printf("failed to bind insert statement: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+		ret = sqlite3_bind_blob(stmt, 2, &buf[0], buf.size(), SQLITE_STATIC);
+		if (ret != SQLITE_OK)
+		{
+			printf("failed to bind insert statement: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+
+		ret = sqlite3_step(stmt);
+		if (ret != SQLITE_DONE)
+		{
+			printf("failed to step insert statement: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+		ret = sqlite3_finalize(stmt);
+		if (ret != SQLITE_OK)
+		{
+			printf("failed to insert: %s\n", sqlite3_errmsg(m_db));
+			return;
+		}
+		printf("adding %s\n", ih.c_str());
 	}
 	else if (sf)
 	{
@@ -188,28 +263,38 @@ void save_resume::save_all()
 
 void save_resume::load(error_code& ec, add_torrent_params model)
 {
-	std::vector<std::pair<boost::uint64_t, std::string> > ents;
-	// TODO: don't use internal directory type
-	for (directory i(m_resume_dir, ec); !i.done(); i.next(ec))
+	sqlite3_stmt* stmt = NULL;
+	int ret = sqlite3_prepare_v2(m_db, "SELECT RESUME FROM TORRENTS;", -1, &stmt, NULL);
+	if (ret != SQLITE_OK)
 	{
-		if (extension(i.file()) != ".resume") continue;
-		ents.push_back(std::make_pair(i.inode(), i.file()));
+		fprintf(stderr, "failed to prepare select statement: %s\n", sqlite3_errmsg(m_db));
+		return;
 	}
 
-	std::sort(ents.begin(), ents.end());
-
-	for (std::vector<std::pair<boost::uint64_t, std::string> >::iterator i = ents.begin()
-		, end(ents.end()); i != end; ++i)
+	add_torrent_params p = model;
+	ret = sqlite3_step(stmt);
+	while (ret == SQLITE_ROW)
 	{
-		error_code tec;
-		std::string file_path = combine_path(m_resume_dir, i->second);
-		printf("loading %s\n", file_path.c_str());
-		add_torrent_params p = model;
-		if (load_file(file_path, p.resume_data, tec) < 0 || tec)
-			continue;
+		int bytes = sqlite3_column_bytes(stmt, 0);
+		if (bytes > 0)
+		{
+			void const* buffer = sqlite3_column_blob(stmt, 0);
+			p.resume_data.assign((char*)buffer, ((char*)buffer) + bytes);
+			m_ses.async_add_torrent(p);
+		}
 
-		printf("async add\n");
-		m_ses.async_add_torrent(p);
+		ret = sqlite3_step(stmt);
+	}
+	if (ret != SQLITE_DONE)
+	{
+		printf("failed to step select statement: %s\n", sqlite3_errmsg(m_db));
+		return;
+	}
+	ret = sqlite3_finalize(stmt);
+	if (ret != SQLITE_OK)
+	{
+		printf("failed to select: %s\n", sqlite3_errmsg(m_db));
+		return;
 	}
 }
 
