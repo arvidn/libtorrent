@@ -48,13 +48,13 @@ namespace libtorrent
 
 	void alert_handler::subscribe(alert_observer* o, int flags, ...)
 	{
-		int types[20];
+		int types[64];
 		memset(types, 0, sizeof(types));
 		va_list l;
 		va_start(l, flags);
 		int t = va_arg(l, int);
 		int i = 0;
-		while (t != 0 && i < 20)
+		while (t != 0 && i < 64)
 		{
 			types[i] = t;
 			++i;
@@ -128,7 +128,7 @@ namespace libtorrent
 
 			o->types[o->num_types++] = type;
 			m_observers[type].push_back(o);
-			TORRENT_ASSERT(o->num_types < 20);
+			TORRENT_ASSERT(o->num_types < 64);
 		}
 	}
 
