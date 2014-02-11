@@ -23,6 +23,7 @@ on_stats = function(updates)
 	table.push(document.getElementById('stats2'));
 	table.push(document.getElementById('stats3'));
 	table.push(document.getElementById('stats4'));
+	table.push(document.getElementById('stats5'));
 	for (j in table)
 	{
 		var rows = table[j].rows;
@@ -62,10 +63,11 @@ window.onload = function() {
 			table.push(document.getElementById('stats2'));
 			table.push(document.getElementById('stats3'));
 			table.push(document.getElementById('stats4'));
+			table.push(document.getElementById('stats5'));
 			var i = 0;
 			for (s in stats)
 			{
-				var row = table[Math.floor(i/43)].insertRow(-1);
+				var row = table[Math.floor(i/55)].insertRow(-1);
 				row.id = s;
 				row.insertCell(0).textContent = s;
 				row.insertCell(1).textContent = stats[s].type == 0 ? 'counter' : 'gauge';
@@ -96,6 +98,9 @@ window.onload = function() {
 <tr><th>Name</th><th>Type</th><th>Value</th></tr>
 </table>
 <table id="stats4" border="1" style="border-collapse: collapse; border-color: black; display: inline-block;">
+<tr><th>Name</th><th>Type</th><th>Value</th></tr>
+</table>
+<table id="stats5" border="1" style="border-collapse: collapse; border-color: black; display: inline-block;">
 <tr><th>Name</th><th>Type</th><th>Value</th></tr>
 </table>
 <canvas id="graph" width="800" height="500"/>

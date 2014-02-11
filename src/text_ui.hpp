@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,62 +30,77 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SAVE_RESUME_HPP
-#define TORRENT_SAVE_RESUME_HPP
-
-#include "libtorrent/session.hpp"
-#include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/alert_observer.hpp"
+#ifndef TORRENT_TEXT_UI_HPP
+#define TORRENT_TEXT_UI_HPP
 
 #include <string>
-#include <map>
+#include "libtorrent/alert_observer.hpp"
 
-#include <sqlite3.h>
+extern "C" {
+#include <ncurses.h>
+#include <cdk/cdk.h>
+}
 
 namespace libtorrent
 {
 	struct alert_handler;
 
-	struct save_resume : alert_observer
+	struct screen
 	{
-		save_resume(session& s, std::string const& resume_file, alert_handler* alerts);
-		~save_resume();
+		screen();
+		~screen();
 
-		void load(error_code& ec, add_torrent_params model);
+		CDKSCREEN* native_handle() { return m_screen; }
 
-		// implements alert_observer
-		virtual void handle_alert(alert const* a);
+		int width() const;
+		int height() const;
 
-		void save_all();
-		bool ok_to_quit() const { return m_num_in_flight == 0; }
+		void refresh();
+	private:
+		CDKSCREEN* m_screen;
+	};
 
-		void load_torrent(libtorrent::sha1_hash const& ih
-			, std::vector<char>& buf, libtorrent::error_code& ec);
+	struct window
+	{
+		virtual int width() const = 0;
+		virtual int height() const = 0;
+		virtual void set_pos(int x, int y, int width, int height) = 0;
+		virtual ~window() {}
+	};
+
+	struct log_window : window
+	{
+		log_window(screen& scr, int x, int y, int width, int height);
+		~log_window();
+
+		void log_line(std::string l);
+
+		CDKSWINDOW* native_handle() { return m_win; }
+
+		virtual int width() const;
+		virtual int height() const;
+		virtual void set_pos(int x, int y, int width, int height);
+	private:
+		CDKSWINDOW* m_win;
+	};
+
+	struct error_log : log_window, alert_observer
+	{
+		error_log(screen& scr, int x, int y, int width, int height
+			, alert_handler* alerts);
+		~error_log();
 
 	private:
-
-		session& m_ses;
+		virtual void handle_alert(alert const* a);
 		alert_handler* m_alerts;
-		sqlite3* m_db;
+	};
 
-		// all torrents currently loaded
-		boost::unordered_set<torrent_handle> m_torrents;
-
-		// the next torrent to save (may point to end)
-		boost::unordered_set<torrent_handle>::iterator m_cursor;
-
-		// the last time we visited a torrent to potentially
-		// save its fast-resume
-		ptime m_last_save;
-
-		// save resum data for all torrents every X seconds
-		// must be at least 1
-		time_duration m_interval;
-
-		int m_num_in_flight;
+	struct torrent_list : window, alert_observer
+	{
+	
+	private:
+		virtual void handle_alert(alert const* a);
+		alert_handler* m_alerts;
 	};
 }
 

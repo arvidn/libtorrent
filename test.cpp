@@ -9,6 +9,7 @@
 #include "torrent_history.hpp"
 #include "auth.hpp"
 #include "pam_auth.hpp"
+#include "text_ui.hpp"
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_handler.hpp"
@@ -35,9 +36,10 @@ int main(int argc, char *const argv[])
 {
 	session ses(fingerprint("LT", 0, 1, 0, 0)
 		, std::make_pair(6881, 6882));
-	ses.set_alert_mask(~0);
+
 	settings_pack s;
 	high_performance_seed(s);
+	s.set_int(settings_pack::alert_mask, 0xffffffff);
 	ses.apply_settings(s);
 
 	alert_handler alerts(ses);
@@ -59,6 +61,9 @@ int main(int argc, char *const argv[])
 	add_torrent_params p;
 	p.save_path = sett.get_str("save_path", ".");
 	resume.load(ec, p);
+
+	ses.set_load_function(boost::bind(
+		&save_resume::load_torrent, &resume, _1, _2, _3));
 
 	auto_load al(ses, &sett);
 	rss_filter_handler rss_filter(alerts, ses);
@@ -86,32 +91,38 @@ int main(int argc, char *const argv[])
 	signal(SIGTERM, &sighandler);
 	signal(SIGINT, &sighandler);
 
+	libtorrent::screen text_ui_screen;
+	libtorrent::error_log log(text_ui_screen
+		, 0, 0, 120, 120
+		, &alerts);
+
 	bool shutting_down = false;
 	while (!quit || !resume.ok_to_quit())
 	{
 		usleep(500000);
 		alerts.dispatch_alerts();
+		text_ui_screen.refresh();
 		if (!shutting_down) ses.post_torrent_updates();
 		if (quit && !shutting_down)
 		{
 			resume.save_all();
 			shutting_down = true;
-			fprintf(stderr, "saving resume data\n");
+			log.log_line("saving resume data");
 			signal(SIGTERM, &sighandler_forcequit);
 			signal(SIGINT, &sighandler_forcequit);
 		}
 		if (force_quit)
 		{
-			fprintf(stderr, "foce quitting\n");
+			log.log_line("force quitting");
 			break;
 		}
 	}
 
-	fprintf(stderr, "closing web server\n");
+	log.log_line("closing web server");
 	dlg.stop();
 	webport.stop();
 
-	fprintf(stderr, "saving settings\n");
+	log.log_line("saving settings");
 	sett.save(ec);
 
 	return 0;

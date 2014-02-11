@@ -142,7 +142,7 @@ void auto_load::thread_fun()
 	mutex::scoped_lock l(m_mutex);
 
 	error_code ec;
-	m_timer.expires_from_now(seconds(0), ec);
+	m_timer.expires_from_now(seconds(1), ec);
 	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
 
 	while (!m_abort)

@@ -7,6 +7,8 @@ feature pam : off on : composite ;
 
 use-project /torrent : ../libtorrent_aio ;
 lib sqlite : : <name>sqlite3 <search>/opt/local/lib : <include>/opt/local/include ;
+lib cdk : : <name>cdk <search>/opt/local/lib : <include>/opt/local/include ;
+lib curses : : <name>curses <search>/opt/local/lib : <include>/opt/local/include ;
 
 if $(BOOST_ROOT)
 {
@@ -38,6 +40,7 @@ SOURCES =
 	error_logger
 	websocket_handler
 	rss_filter
+	text_ui
 	;
 
 lib torrent-webui
@@ -48,6 +51,8 @@ lib torrent-webui
 	<library>/torrent//torrent
 	<library>zlib
 	<library>sqlite
+	<library>cdk
+	<library>curses
 	<pam>on:<library>pam
 	<pam>on:<source>src/pam_auth.cpp
 	<define>USE_WEBSOCKET=1

@@ -162,23 +162,11 @@ void save_settings::load_impl(std::string filename, error_code& ec)
 
 void save_settings::set_int(char const* key, int val)
 {
-	if (val == 0)
-	{
-		std::map<std::string, int>::iterator i = m_ints.find(key);
-		if (i != m_ints.end()) m_ints.erase(i);
-		return;
-	}
 	m_ints[key] = val;
 }
 
 void save_settings::set_str(char const* key, std::string val)
 {
-	if (val.empty())
-	{
-		std::map<std::string, std::string>::iterator i = m_strings.find(key);
-		if (i != m_strings.end()) m_strings.erase(i);
-		return;
-	}
 	m_strings[key] = val;
 }
 

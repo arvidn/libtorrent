@@ -86,6 +86,55 @@ save_resume::~save_resume()
 	m_db = NULL;
 }
 
+void save_resume::load_torrent(libtorrent::sha1_hash const& ih
+	, std::vector<char>& buf, libtorrent::error_code& ec)
+{
+	ec.clear();
+
+	sqlite3_stmt* stmt = NULL;
+	int ret = sqlite3_prepare_v2(m_db
+		, "SELECT RESUME FROM TORRENTS WHERE INFOHASH = :ih;", -1, &stmt, NULL);
+
+	if (ret != SQLITE_OK)
+	{
+		printf("failed to prepare select statement: %s\n", sqlite3_errmsg(m_db));
+		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
+		return;
+	}
+	std::string ih_string = to_hex(ih.to_string());
+	ret = sqlite3_bind_text(stmt, 1, ih_string.c_str(), 40, SQLITE_STATIC);
+	if (ret != SQLITE_OK)
+	{
+		printf("failed to bind select statement: %s\n", sqlite3_errmsg(m_db));
+		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
+		sqlite3_finalize(stmt);
+		return;
+	}
+	ret = sqlite3_step(stmt);
+	if (ret != SQLITE_ROW)
+	{
+		printf("failed to step remove statement: %s\n", sqlite3_errmsg(m_db));
+		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
+		sqlite3_finalize(stmt);
+		return;
+	}
+
+	int bytes = sqlite3_column_bytes(stmt, 0);
+	if (bytes == 0)
+	{
+		printf("empty resume data buffer");
+		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
+		sqlite3_finalize(stmt);
+		return;
+	}
+
+	void const* buffer = sqlite3_column_blob(stmt, 0);
+	buf.assign((char*)buffer, ((char*)buffer) + bytes);
+
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+}
+
 void save_resume::handle_alert(alert const* a)
 {
 	add_torrent_alert const* ta = alert_cast<add_torrent_alert>(a);
@@ -153,12 +202,14 @@ void save_resume::handle_alert(alert const* a)
 		if (ret != SQLITE_OK)
 		{
 			printf("failed to bind remove statement: %s\n", sqlite3_errmsg(m_db));
+			sqlite3_finalize(stmt);
 			return;
 		}
 		ret = sqlite3_step(stmt);
 		if (ret != SQLITE_DONE)
 		{
 			printf("failed to step remove statement: %s\n", sqlite3_errmsg(m_db));
+			sqlite3_finalize(stmt);
 			return;
 		}
 
@@ -166,9 +217,11 @@ void save_resume::handle_alert(alert const* a)
 		if (ret != SQLITE_OK)
 		{
 			printf("failed to remove: %s\n", sqlite3_errmsg(m_db));
+			sqlite3_finalize(stmt);
 			return;
 		}
 		printf("removing %s\n", ih.c_str());
+		sqlite3_finalize(stmt);
 	}
 	else if (sr)
 	{
@@ -192,12 +245,14 @@ void save_resume::handle_alert(alert const* a)
 		if (ret != SQLITE_OK)
 		{
 			printf("failed to bind insert statement: %s\n", sqlite3_errmsg(m_db));
+			sqlite3_finalize(stmt);
 			return;
 		}
 		ret = sqlite3_bind_blob(stmt, 2, &buf[0], buf.size(), SQLITE_STATIC);
 		if (ret != SQLITE_OK)
 		{
 			printf("failed to bind insert statement: %s\n", sqlite3_errmsg(m_db));
+			sqlite3_finalize(stmt);
 			return;
 		}
 
@@ -205,15 +260,18 @@ void save_resume::handle_alert(alert const* a)
 		if (ret != SQLITE_DONE)
 		{
 			printf("failed to step insert statement: %s\n", sqlite3_errmsg(m_db));
+			sqlite3_finalize(stmt);
 			return;
 		}
 		ret = sqlite3_finalize(stmt);
 		if (ret != SQLITE_OK)
 		{
 			printf("failed to insert: %s\n", sqlite3_errmsg(m_db));
+			sqlite3_finalize(stmt);
 			return;
 		}
 		printf("adding %s\n", ih.c_str());
+		sqlite3_finalize(stmt);
 	}
 	else if (sf)
 	{
@@ -288,14 +346,17 @@ void save_resume::load(error_code& ec, add_torrent_params model)
 	if (ret != SQLITE_DONE)
 	{
 		printf("failed to step select statement: %s\n", sqlite3_errmsg(m_db));
+		sqlite3_finalize(stmt);
 		return;
 	}
 	ret = sqlite3_finalize(stmt);
 	if (ret != SQLITE_OK)
 	{
 		printf("failed to select: %s\n", sqlite3_errmsg(m_db));
+		sqlite3_finalize(stmt);
 		return;
 	}
+	sqlite3_finalize(stmt);
 }
 
 }
