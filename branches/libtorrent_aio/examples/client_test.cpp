@@ -1542,7 +1542,7 @@ int main(int argc, char* argv[])
 	memset(counters, 0, sizeof(counters));
 
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-		, session::add_default_plugins
+		, session::add_default_plugins | session::start_default_features
 		, alert::all_categories
 			& ~(alert::dht_notification
 			+ alert::progress_notification
