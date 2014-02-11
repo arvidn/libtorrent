@@ -1214,7 +1214,7 @@ namespace libtorrent
 			m_read_time.add_sample(read_time);
 			m_cache_stats.cumulative_read_time += read_time;
 			m_cache_stats.cumulative_job_time += read_time;
-			m_cache_stats.total_read_back += b.iov_len;
+			++m_cache_stats.total_read_back;
 			++m_cache_stats.blocks_read;
 			++m_cache_stats.reads;
 		}
@@ -2419,7 +2419,7 @@ namespace libtorrent
 					m_read_time.add_sample(read_time);
 					m_cache_stats.cumulative_read_time += read_time;
 					m_cache_stats.cumulative_job_time += read_time;
-					m_cache_stats.total_read_back += iov.iov_len;
+					++m_cache_stats.total_read_back;
 					++m_cache_stats.blocks_read;
 				}
 
