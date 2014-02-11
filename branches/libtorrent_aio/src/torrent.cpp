@@ -9780,6 +9780,7 @@ namespace libtorrent
 			return NULL;
 		}
 
+#if TORRENT_USE_I2P
 		// if this is an i2p torrent, and we don't allow mixed mode
 		// no regular peers should ever be added!
 		if (!settings().get_bool(settings_pack::allow_i2p_mixed) && is_i2p())
@@ -9788,6 +9789,7 @@ namespace libtorrent
 				alerts().post_alert(peer_blocked_alert(get_handle(), adr.address()));
 			return NULL;
 		}
+#endif
 
 		if (settings().get_bool(settings_pack::no_connect_privileged_ports) && adr.port() < 1024)
 		{
