@@ -1026,7 +1026,6 @@ namespace libtorrent
 						// is m_abort true? if so, we should probably just
 						// exit this function early, no need to keep the picker
 						// state up-to-date, right?
-						TORRENT_ASSERT(false);
 						disk_io_job sj;
 						sj.piece = j->piece;
 						on_piece_fail_sync(&sj, block_finished);
