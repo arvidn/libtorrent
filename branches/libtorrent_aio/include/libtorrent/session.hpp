@@ -214,7 +214,7 @@ namespace libtorrent
 		session(settings_pack const& pack
 			, fingerprint const& print = fingerprint("LT"
 				, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-			, int flags = add_default_plugins)
+			, int flags = start_default_features | add_default_plugins)
 		{
 			TORRENT_CFG();
 			init(print);

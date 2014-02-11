@@ -4435,6 +4435,12 @@ retry:
 			return;
 		}
 
+		if (!m_dht)
+		{
+			m_dht_torrents.clear();
+			return;
+		}
+
 		TORRENT_ASSERT(m_dht);
 
 		// announce to DHT every 15 minutes
