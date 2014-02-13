@@ -670,8 +670,8 @@ namespace libtorrent
 			TORRENT_PIECE_ASSERT(!error, pe);
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - start_time);
 			m_write_time.add_sample(write_time / num_blocks);
-			m_cache_stats.cumulative_write_time += write_time;
-			m_cache_stats.cumulative_job_time += write_time;
+			m_cache_stats.cumulative_write_time += write_time / 1000;
+			m_cache_stats.cumulative_job_time += write_time / 1000;
 			m_cache_stats.blocks_written += num_blocks;
 			++m_cache_stats.writes;
 
@@ -1212,8 +1212,8 @@ namespace libtorrent
 		{
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 			m_read_time.add_sample(read_time);
-			m_cache_stats.cumulative_read_time += read_time;
-			m_cache_stats.cumulative_job_time += read_time;
+			m_cache_stats.cumulative_read_time += read_time / 1000;
+			m_cache_stats.cumulative_job_time += read_time / 1000;
 			++m_cache_stats.total_read_back;
 			++m_cache_stats.blocks_read;
 			++m_cache_stats.reads;
@@ -1286,8 +1286,8 @@ namespace libtorrent
 		{
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 			m_read_time.add_sample(read_time / iov_len);
-			m_cache_stats.cumulative_read_time += read_time;
-			m_cache_stats.cumulative_job_time += read_time;
+			m_cache_stats.cumulative_read_time += read_time / 1000;
+			m_cache_stats.cumulative_job_time += read_time / 1000;
 			m_cache_stats.blocks_read += iov_len;
 			++m_cache_stats.reads;
 		}
@@ -1430,8 +1430,8 @@ namespace libtorrent
 		{
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - start_time);
 			m_write_time.add_sample(write_time);
-			m_cache_stats.cumulative_write_time += write_time;
-			m_cache_stats.cumulative_job_time += write_time;
+			m_cache_stats.cumulative_write_time += write_time / 1000;
+			m_cache_stats.cumulative_job_time += write_time / 1000;
 			++m_cache_stats.blocks_written;
 			++m_cache_stats.writes;
 		}
@@ -2137,8 +2137,8 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(pe->hash, pe);
 
 		m_hash_time.add_sample(hash_time / (end - cursor));
-		m_cache_stats.cumulative_hash_time += hash_time;
-		m_cache_stats.cumulative_job_time += hash_time;
+		m_cache_stats.cumulative_hash_time += hash_time / 1000;
+		m_cache_stats.cumulative_job_time += hash_time / 1000;
 
 		pe->hashing = 0;
 
@@ -2217,8 +2217,8 @@ namespace libtorrent
 			{
 				boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 				m_read_time.add_sample(read_time);
-				m_cache_stats.cumulative_read_time += read_time;
-				m_cache_stats.cumulative_job_time += read_time;
+				m_cache_stats.cumulative_read_time += read_time / 1000;
+				m_cache_stats.cumulative_job_time += read_time / 1000;
 				++m_cache_stats.blocks_read;
 				++m_cache_stats.reads;
 			}
@@ -2417,8 +2417,8 @@ namespace libtorrent
 				{
 					boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 					m_read_time.add_sample(read_time);
-					m_cache_stats.cumulative_read_time += read_time;
-					m_cache_stats.cumulative_job_time += read_time;
+					m_cache_stats.cumulative_read_time += read_time / 1000;
+					m_cache_stats.cumulative_job_time += read_time / 1000;
 					++m_cache_stats.total_read_back;
 					++m_cache_stats.blocks_read;
 				}
@@ -2643,8 +2643,8 @@ namespace libtorrent
 			{
 				boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 				m_read_time.add_sample(read_time);
-				m_cache_stats.cumulative_read_time += read_time;
-				m_cache_stats.cumulative_job_time += read_time;
+				m_cache_stats.cumulative_read_time += read_time / 1000;
+				m_cache_stats.cumulative_job_time += read_time / 1000;
 				++m_cache_stats.blocks_read;
 			}
 
