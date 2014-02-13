@@ -1223,8 +1223,10 @@ namespace aux {
 	void session_impl::queue_async_resume_data(boost::shared_ptr<torrent> const& t)
 	{
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+
 		if (m_num_save_resume + m_num_queued_resume >= loaded_limit
-			&& m_user_load_torrent)
+			&& m_user_load_torrent
+			&& loaded_limit > 0)
 		{
 			TORRENT_ASSERT(t);
 			// do loaded torrents first, otherwise they'll just be
@@ -1265,7 +1267,8 @@ namespace aux {
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 		while (!m_save_resume_queue.empty()
-			&& m_num_save_resume + m_num_queued_resume < loaded_limit)
+			&& (m_num_save_resume + m_num_queued_resume < loaded_limit
+			|| loaded_limit == 0))
 		{
 			boost::shared_ptr<torrent> t = m_save_resume_queue.front();
 			m_save_resume_queue.erase(m_save_resume_queue.begin());
@@ -2094,6 +2097,9 @@ namespace aux {
 		
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 
+		// 0 means unlimited, never evict enything
+		if (loaded_limit == 0) return;
+
 		if (m_torrent_lru.size() > loaded_limit)
 		{
 			// just evict the torrent
@@ -2114,6 +2120,9 @@ namespace aux {
 		if (!m_user_load_torrent) return;
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+
+		// 0 means unlimited, never evict enything
+		if (loaded_limit == 0) return;
 
 		// if the torrent we're ignoring (i.e. making room for), allow
 		// one more torrent in the list.
