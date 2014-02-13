@@ -250,8 +250,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#define TORRENT_USE_LOCALE 1
+# define TORRENT_USE_ICONV 0
+# define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_USE_NETLINK 0
@@ -259,7 +259,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
 #ifndef TORRENT_USE_UNC_PATHS
-#define TORRENT_USE_UNC_PATHS 1
+# define TORRENT_USE_UNC_PATHS 1
+#endif
+
+// this is necessary to enable 64-bit
+// time_t, specifically used for the stat
+// struct. Without this, modification times
+// returned by stat may be incorrect and
+// consistently fail resume data
+#ifndef __MINGW_USE_VC2005_COMPAT
+# define __MINGW_USE_VC2005_COMPAT
 #endif
 
 // ==== WINDOWS ===
