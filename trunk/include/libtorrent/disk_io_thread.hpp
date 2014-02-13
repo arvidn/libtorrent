@@ -277,7 +277,7 @@ namespace libtorrent
 		boost::uint32_t cumulative_hash_time;
 		boost::uint32_t cumulative_sort_time;
 
-		// the number of bytes that had to be read back from disk because
+		// the number of blocks that had to be read back from disk because
 		// they were flushed before the SHA-1 hash got to hash them. If this
 		// is large, a larger cache could significantly improve performance
 		int total_read_back;
