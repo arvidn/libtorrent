@@ -2421,6 +2421,7 @@ namespace libtorrent
 					m_cache_stats.cumulative_job_time += read_time / 1000;
 					++m_cache_stats.total_read_back;
 					++m_cache_stats.blocks_read;
+					++m_cache_stats.reads;
 				}
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
@@ -2646,6 +2647,7 @@ namespace libtorrent
 				m_cache_stats.cumulative_read_time += read_time / 1000;
 				m_cache_stats.cumulative_job_time += read_time / 1000;
 				++m_cache_stats.blocks_read;
+				++m_cache_stats.reads;
 			}
 
 			offset += block_size;
