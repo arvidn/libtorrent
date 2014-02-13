@@ -213,15 +213,8 @@ void save_resume::handle_alert(alert const* a)
 			return;
 		}
 
-		ret = sqlite3_finalize(stmt);
-		if (ret != SQLITE_OK)
-		{
-			printf("failed to remove: %s\n", sqlite3_errmsg(m_db));
-			sqlite3_finalize(stmt);
-			return;
-		}
-		printf("removing %s\n", ih.c_str());
 		sqlite3_finalize(stmt);
+		printf("removing %s\n", ih.c_str());
 	}
 	else if (sr)
 	{
@@ -263,15 +256,8 @@ void save_resume::handle_alert(alert const* a)
 			sqlite3_finalize(stmt);
 			return;
 		}
-		ret = sqlite3_finalize(stmt);
-		if (ret != SQLITE_OK)
-		{
-			printf("failed to insert: %s\n", sqlite3_errmsg(m_db));
-			sqlite3_finalize(stmt);
-			return;
-		}
-		printf("adding %s\n", ih.c_str());
 		sqlite3_finalize(stmt);
+		printf("adding %s\n", ih.c_str());
 	}
 	else if (sf)
 	{
@@ -346,13 +332,6 @@ void save_resume::load(error_code& ec, add_torrent_params model)
 	if (ret != SQLITE_DONE)
 	{
 		printf("failed to step select statement: %s\n", sqlite3_errmsg(m_db));
-		sqlite3_finalize(stmt);
-		return;
-	}
-	ret = sqlite3_finalize(stmt);
-	if (ret != SQLITE_OK)
-	{
-		printf("failed to select: %s\n", sqlite3_errmsg(m_db));
 		sqlite3_finalize(stmt);
 		return;
 	}

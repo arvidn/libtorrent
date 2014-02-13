@@ -62,6 +62,8 @@ int main(int argc, char *const argv[])
 	p.save_path = sett.get_str("save_path", ".");
 	resume.load(ec, p);
 
+	// we can use the save_resume object to reload
+	// torrents
 	ses.set_load_function(boost::bind(
 		&save_resume::load_torrent, &resume, _1, _2, _3));
 
