@@ -137,7 +137,6 @@ namespace libtorrent
 			{
 				if (m_buf[i] != 0) return false;
 			}
-
 			return true;
 		}
 

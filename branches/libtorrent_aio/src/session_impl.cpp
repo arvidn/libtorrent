@@ -315,14 +315,14 @@ namespace aux {
 		tu->system_time = min_time() + microsec(stime / 10);
 #endif
 	}
-		
 #endif // TORRENT_STATS
 
 	struct seed_random_generator
 	{
 		seed_random_generator()
 		{
-			random_seed((unsigned int)total_microseconds(time_now_hires() - min_time()));
+			random_seed((unsigned int)((total_microseconds(
+				time_now_hires() - min_time())) & 0xffffffff));
 		}
 	};
 
@@ -2981,7 +2981,8 @@ retry:
 			session_log("    rejected uTP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
-				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle()
+					, endp.address(), peer_blocked_alert::utp_disabled));
 			return;
 		}
 
@@ -2992,7 +2993,8 @@ retry:
 			session_log("    rejected TCP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
-				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle()
+					, endp.address(), peer_blocked_alert::tcp_disabled));
 			return;
 		}
 
@@ -3013,7 +3015,8 @@ retry:
 			session_log("filtered blocked ip");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
-				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle()
+					, endp.address(), peer_blocked_alert::ip_filter));
 			return;
 		}
 

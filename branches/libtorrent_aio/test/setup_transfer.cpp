@@ -385,6 +385,7 @@ static std::map<int, proxy_t> running_proxies;
 
 void stop_proxy(int port)
 {
+	fprintf(stderr, "stopping proxy on port %d\n", port);
 	// don't shut down proxies until the test is
 	// completely done. This saves a lot of time.
 	// they're closed at the end of main() by
@@ -477,7 +478,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) return i->first;
 	}
 
-	unsigned int seed = total_microseconds(time_now_hires() - min_time());
+	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
 	printf("random seed: %u\n", seed);
 	std::srand(seed);
 	int port = 5000 + (rand() % 55000);
@@ -535,13 +536,16 @@ boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 	return boost::make_shared<T>(*ptr);
 }
 
+unsigned char random_byte()
+{ return std::rand() & 0xff; }
+
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
 {
 	error_code ec;
 	char* random_data = (char*)malloc(300000);
 	for (int i = 0; i != num_files; ++i)
 	{
-		std::generate(random_data, random_data + 300000, &std::rand);
+		std::generate(random_data, random_data + 300000, random_byte);
 		char filename[200];
 		snprintf(filename, sizeof(filename), "test%d", i);
 		std::string full_path = combine_path(path, filename);
@@ -669,14 +673,14 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (ses3) ses3->apply_settings(pack);
 
 	peer_id pid;
-	std::generate(&pid[0], &pid[0] + 20, std::rand);
+	std::generate(&pid[0], &pid[0] + 20, random_byte);
 	ses1->set_peer_id(pid);
-	std::generate(&pid[0], &pid[0] + 20, std::rand);
+	std::generate(&pid[0], &pid[0] + 20, random_byte);
 	ses2->set_peer_id(pid);
 	assert(ses1->id() != ses2->id());
 	if (ses3)
 	{
-		std::generate(&pid[0], &pid[0] + 20, std::rand);
+		std::generate(&pid[0], &pid[0] + 20, random_byte);
 		ses3->set_peer_id(pid);
 		assert(ses3->id() != ses2->id());
 	}
@@ -989,7 +993,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding)
 {
-	unsigned int seed = total_microseconds(time_now_hires() - min_time());
+	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
 	fprintf(stderr, "random seed: %u\n", seed);
 	std::srand(seed);
 	int port = 5000 + (rand() % 55000);
@@ -1012,6 +1016,7 @@ int start_web_server(bool ssl, bool chunked_encoding)
 void stop_web_server()
 {
 	if (web_server_pid == 0) return;
+	fprintf(stderr, "stopping web server\n");
 	stop_process(web_server_pid);
 	web_server_pid = 0;
 }

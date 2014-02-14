@@ -50,7 +50,7 @@ struct node_entry
 	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff, bool pinged = false)
 		: id(id_)
 		, endpoint(ep)
-		, rtt(roundtriptime)
+		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING

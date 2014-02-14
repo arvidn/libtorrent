@@ -111,7 +111,7 @@ get_out:
 #elif defined TORRENT_USE_OPENSSL
 		// create local key
 		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
-			m_dh_local_secret[i] = random();
+			m_dh_local_secret[i] = random() & 0xff;
 
 		BIGNUM* prime = 0;
 		BIGNUM* secret = 0;
@@ -146,7 +146,7 @@ get_out:
 #elif defined TORRENT_USE_TOMMATH
 		// create local key
 		for (int i = 0; i < int(sizeof(m_dh_local_secret)); ++i)
-			m_dh_local_secret[i] = random();
+			m_dh_local_secret[i] = random() & 0xff;
 
 		mp_int prime;
 		mp_int secret;

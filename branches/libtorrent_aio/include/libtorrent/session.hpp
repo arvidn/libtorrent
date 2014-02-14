@@ -594,11 +594,12 @@ namespace libtorrent
 		void start_dht(entry const& startup_state) TORRENT_DEPRECATED;
 #endif
 
-		// This function adds an extension to this session. The argument is a function
-		// object that is called with a ``torrent*`` and which should return a
-		// ``boost::shared_ptr<torrent_plugin>``. To write custom plugins, see
-		// plugin. For the typical bittorrent client all of these
-		// extensions should be added. The main plugins implemented in libtorrent are:
+		// This function adds an extension to this session. The argument is a
+		// function object that is called with a ``torrent*`` and which should
+		// return a ``boost::shared_ptr<torrent_plugin>``. To write custom
+		// plugins, see `libtorrent plugins`_. For the typical bittorrent client
+		// all of these extensions should be added. The main plugins implemented
+		// in libtorrent are:
 		// 
 		// metadata extension
 		// 	Allows peers to download the metadata (.torren files) from the swarm
@@ -636,15 +637,18 @@ namespace libtorrent
 		// 	#include <libtorrent/extensions/smart_ban.hpp>
 		// 	ses.add_extension(&libtorrent::create_smart_ban_plugin);
 		// 
-		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
+		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
+			torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 
-		// These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is defined. They
-		// expects a path to the `MaxMind ASN database`_ and `MaxMind GeoIP database`_
-		// respectively. This will be used to look up which AS and country peers belong to.
+		// These functions are not available if ``TORRENT_DISABLE_GEO_IP`` is
+		// defined. They expects a path to the `MaxMind ASN database`_ and
+		// `MaxMind GeoIP database`_ respectively. This will be used to look up
+		// which AS and country peers belong to.
 		// 
-		// ``as_for_ip`` returns the AS number for the IP address specified. If the IP is not
-		// in the database or the ASN database is not loaded, 0 is returned.
+		// ``as_for_ip`` returns the AS number for the IP address specified. If
+		// the IP is not in the database or the ASN database is not loaded, 0 is
+		// returned.
 		// 
 		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
 		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
@@ -910,9 +914,9 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in aio-branch
-		// Sets the session settings and the packet encryption settings respectively.
-		// See session_settings and pe_settings for more information on available
-		// options.
+		// Sets the session settings and the packet encryption settings
+		// respectively. See session_settings and pe_settings for more
+		// information on available options.
 		TORRENT_DEPRECATED_PREFIX
 		void set_settings(session_settings const& s) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX

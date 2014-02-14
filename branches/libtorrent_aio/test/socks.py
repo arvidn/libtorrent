@@ -207,7 +207,10 @@ class SocksHandler(StreamRequestHandler):
             self.send_reply(outbound_sock.getsockname())
 
         spawn_forwarder(outbound_sock, self.request, 'destination')
-        forward(self.request, outbound_sock, 'client')
+        try:
+            forward(self.request, outbound_sock, 'client')
+        except Exception,e:
+            print e
 
     def send_reply_v4(self, (bind_addr, bind_port)):
         self.wfile.write('\0\x5a\0\0\0\0\0\0')
@@ -267,6 +270,7 @@ if __name__ == '__main__':
 
     debug('Listening on port %d...' % listen_port)
     server = MyTCPServer(('localhost', listen_port), SocksHandler)
-    server.timeout = 120
+    server.timeout = 190
     while True:
         server.handle_request()
+

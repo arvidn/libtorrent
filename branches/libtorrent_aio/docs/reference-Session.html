@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id179">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id180">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id181">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id182">session_proxy</a></li>
-<li><a class="reference internal" href="#id39" id="id183">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id184">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id185">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id186">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id187">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id178">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id179">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id180">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id181">session_proxy</a></li>
+<li><a class="reference internal" href="#id39" id="id182">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id183">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id184">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id185">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id186">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -512,7 +512,7 @@ since the start of the <a class="reference external" href="reference-Session.htm
 </dl>
 <a name="total_read_back"></a><dl class="docutils">
 <dt>total_read_back</dt>
-<dd>the number of bytes that had to be read back from disk because
+<dd>the number of blocks that had to be read back from disk because
 they were flushed before the SHA-1 hash got to hash them. If this
 is large, a larger cache could significantly improve performance</dd>
 </dl>
@@ -635,7 +635,7 @@ class session: public boost::noncopyable
    <strong>session</strong> (settings_pack const&amp; pack
       , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
       , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = add_default_plugins);
+      , int flags = start_default_features | add_default_plugins);
    <strong>session</strong> (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
@@ -671,8 +671,9 @@ class session: public boost::noncopyable
    void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
    void <strong>add_dht_router</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
    void <strong>add_dht_node</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
+   void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(
+      torrent*, void*)&gt; ext);
    void <strong>add_extension</strong> (boost::shared_ptr&lt;plugin&gt; ext);
-   void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; ext);
    void <strong>load_country_db</strong> (char const* file);
    void <strong>load_asnum_db</strong> (char const* file);
    int <strong>as_for_ip</strong> (address const&amp; addr);
@@ -747,7 +748,7 @@ class session: public boost::noncopyable
 <strong>session</strong> (settings_pack const&amp; pack
       , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
       , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = add_default_plugins);
+      , int flags = start_default_features | add_default_plugins);
 <strong>session</strong> (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
@@ -1033,14 +1034,16 @@ load off them.</p>
 <div class="section" id="add-extension">
 <h2>add_extension()</h2>
 <pre class="literal-block">
+void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(
+      torrent*, void*)&gt; ext);
 void <strong>add_extension</strong> (boost::shared_ptr&lt;plugin&gt; ext);
-void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(torrent*, void*)&gt; ext);
 </pre>
-<p>This function adds an extension to this <a class="reference external" href="reference-Session.html#session">session</a>. The argument is a function
-object that is called with a <tt class="docutils literal">torrent*</tt> and which should return a
-<tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;torrent_plugin&gt;</span></tt>. To write custom plugins, see
-<a class="reference external" href="reference-Plugins.html#plugin">plugin</a>. For the typical bittorrent client all of these
-extensions should be added. The main plugins implemented in libtorrent are:</p>
+<p>This function adds an extension to this <a class="reference external" href="reference-Session.html#session">session</a>. The argument is a
+function object that is called with a <tt class="docutils literal">torrent*</tt> and which should
+return a <tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;torrent_plugin&gt;</span></tt>. To write custom
+plugins, see <a href="#id187"><span class="problematic" id="id188">`libtorrent plugins`_</span></a>. For the typical bittorrent client
+all of these extensions should be added. The main plugins implemented
+in libtorrent are:</p>
 <dl class="docutils">
 <dt>metadata extension</dt>
 <dd>Allows peers to download the metadata (.torren files) from the swarm
@@ -1087,11 +1090,13 @@ void <strong>load_country_db</strong> (char const* file);
 void <strong>load_asnum_db</strong> (char const* file);
 int <strong>as_for_ip</strong> (address const&amp; addr);
 </pre>
-<p>These functions are not available if <tt class="docutils literal">TORRENT_DISABLE_GEO_IP</tt> is defined. They
-expects a path to the <a class="reference external" href="http://www.maxmind.com/app/asnum">MaxMind ASN database</a> and <a class="reference external" href="http://www.maxmind.com/app/geolitecountry">MaxMind GeoIP database</a>
-respectively. This will be used to look up which AS and country peers belong to.</p>
-<p><tt class="docutils literal">as_for_ip</tt> returns the AS number for the IP address specified. If the IP is not
-in the database or the ASN database is not loaded, 0 is returned.</p>
+<p>These functions are not available if <tt class="docutils literal">TORRENT_DISABLE_GEO_IP</tt> is
+defined. They expects a path to the <a class="reference external" href="http://www.maxmind.com/app/asnum">MaxMind ASN database</a> and
+<a class="reference external" href="http://www.maxmind.com/app/geolitecountry">MaxMind GeoIP database</a> respectively. This will be used to look up
+which AS and country peers belong to.</p>
+<p><tt class="docutils literal">as_for_ip</tt> returns the AS number for the IP address specified. If
+the IP is not in the database or the ASN database is not loaded, 0 is
+returned.</p>
 <a name="get_ip_filter()"></a>
 <a name="set_ip_filter()"></a></div>
 <div class="section" id="get-ip-filter-set-ip-filter">
@@ -1889,6 +1894,12 @@ The value index is the index into the array in <a class="reference external" hre
 this metric's value can be found when the <a class="reference external" href="reference-Session.html#session">session</a> stats is sampled (by
 calling <a class="reference external" href="reference-Session.html#post_session_stats()">post_session_stats()</a>).</p>
 </div>
+</div>
+<div class="system-messages section">
+<h1>Docutils System Messages</h1>
+<div class="system-message" id="id187">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">reference-Session.rst</tt>, line 1584); <em><a href="#id188">backlink</a></em></p>
+Unknown target name: &quot;libtorrent plugins&quot;.</div>
 </div>
     </div>
     <div id="footer">

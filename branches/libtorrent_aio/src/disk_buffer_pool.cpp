@@ -49,6 +49,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #endif
 
+#ifdef TORRENT_BSD
+#include <sys/sysctl.h>
+#endif
+
+#if TORRENT_USE_RLIMIT
+#include <sys/resource.h>
+#endif
+
+#ifdef TORRENT_LINUX
+#include <linux/unistd.h>
+#endif
+
 #if TORRENT_USE_PURGABLE_CONTROL
 #include <mach/mach.h>
 // see comments at:
@@ -439,6 +451,53 @@ namespace libtorrent
 		check_buffer_level(l);
 	}
 
+	boost::uint64_t physical_ram()
+	{
+		boost::uint64_t ret = 0;
+		// figure out how much physical RAM there is in
+		// this machine. This is used for automatically
+		// sizing the disk cache size when it's set to
+		// automatic.
+#ifdef TORRENT_BSD
+#ifdef HW_MEMSIZE
+		int mib[2] = { CTL_HW, HW_MEMSIZE };
+#else
+		// not entirely sure this sysctl supports 64
+		// bit return values, but it's probably better
+		// than not building
+		int mib[2] = { CTL_HW, HW_PHYSMEM };
+#endif
+		size_t len = sizeof(ret);
+		if (sysctl(mib, 2, &ret, &len, NULL, 0) != 0)
+			ret = 0;
+#elif defined TORRENT_WINDOWS
+		MEMORYSTATUSEX ms;
+		ms.dwLength = sizeof(MEMORYSTATUSEX);
+		if (GlobalMemoryStatusEx(&ms))
+			ret = ms.ullTotalPhys;
+		else
+			ret = 0;
+#elif defined TORRENT_LINUX
+		ret = sysconf(_SC_PHYS_PAGES);
+		ret *= sysconf(_SC_PAGESIZE);
+#elif defined TORRENT_AMIGA
+		ret = AvailMem(MEMF_PUBLIC);
+#endif
+
+#if TORRENT_USE_RLIMIT
+		if (ret > 0)
+		{
+			struct rlimit r;
+			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
+			{
+				if (ret > r.rlim_cur)
+					ret = r.rlim_cur;
+			}
+		}
+#endif
+		return ret;
+	}
+
 	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
@@ -468,7 +527,17 @@ namespace libtorrent
 #endif
 			sett.get_str(settings_pack::mmap_cache).empty())
 		{
-			m_max_use = sett.get_int(settings_pack::cache_size);
+			int cache_size = sett.get_int(settings_pack::cache_size);
+			if (cache_size < 0)
+			{
+				boost::uint64_t phys_ram = physical_ram();
+				if (phys_ram == 0) m_max_use = 1024;
+				else m_max_use = phys_ram / 8 / m_block_size;
+			}
+			else
+			{
+				m_max_use = cache_size;
+			}
 			m_low_watermark = m_max_use - (std::max)(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
 			if (m_low_watermark < 0) m_low_watermark = 0;
 			if (m_in_use >= m_max_use && !m_exceeded_max_size)

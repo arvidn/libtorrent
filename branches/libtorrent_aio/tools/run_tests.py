@@ -157,7 +157,7 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 	return (toolset, results)
 
 def print_usage():
-		print '''usage: run_tests.py [options] bjam-toolset [bjam-toolset...]
+		print '''usage: run_tests.py [options] bjam-toolset [bjam-toolset...] [bjam-option...]
 options:
 -j<n>     use n parallel processes
 -h        prints this message and exits
@@ -192,6 +192,8 @@ def main(argv):
 				print 'unknown option: %s' % arg
 				print_usage()
 				sys.exit(1)
+		elif '=' in arg:
+			options.append(arg)
 		else:
 			toolsets.append(arg)
 

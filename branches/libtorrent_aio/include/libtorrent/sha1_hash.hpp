@@ -196,7 +196,7 @@ namespace libtorrent
 				{
 					m_number[i] >>= n;
 					m_number[i-1] = ntohl(m_number[i-1]);
-					m_number[i] |= m_number[i-1] << (32 - n);
+					m_number[i] |= (m_number[i-1] << (32 - n)) & 0xffffffff;
 					m_number[i] = htonl(m_number[i]);
 				}
 				m_number[0] >>= n;

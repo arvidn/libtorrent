@@ -3347,7 +3347,8 @@ namespace libtorrent
 			debug_log("blocked ip from tracker: %s", host.address().to_string(ec).c_str());
 #endif
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
-				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), host.address()));
+				m_ses.alerts().post_alert(peer_blocked_alert(get_handle()
+					, host.address(), peer_blocked_alert::ip_filter));
 			return;
 		}
 
@@ -5800,7 +5801,8 @@ namespace libtorrent
 			&& m_ses.get_ip_filter().access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
-				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), a.address()));
+				m_ses.alerts().post_alert(peer_blocked_alert(get_handle()
+					, a.address(), peer_blocked_alert::ip_filter));
 			return;
 		}
 
@@ -5864,7 +5866,8 @@ namespace libtorrent
 			&& m_ses.get_ip_filter().access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
-				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), a.address()));
+				m_ses.alerts().post_alert(peer_blocked_alert(get_handle()
+					, a.address(), peer_blocked_alert::ip_filter));
 			return;
 		}
 		
@@ -7169,7 +7172,8 @@ namespace libtorrent
 			&& m_ses.get_ip_filter().access(p->remote().address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
-				m_ses.alerts().post_alert(peer_blocked_alert(get_handle(), p->remote().address()));
+				m_ses.alerts().post_alert(peer_blocked_alert(get_handle()
+					, p->remote().address(), peer_blocked_alert::ip_filter));
 			p->disconnect(errors::banned_by_ip_filter, peer_connection_interface::op_bittorrent);
 			return false;
 		}
@@ -9762,7 +9766,8 @@ namespace libtorrent
 			&& m_ses.get_ip_filter().access(adr.address()) & ip_filter::blocked)
 		{
 			if (alerts().should_post<peer_blocked_alert>())
-				alerts().post_alert(peer_blocked_alert(get_handle(), adr.address()));
+				alerts().post_alert(peer_blocked_alert(get_handle()
+					, adr.address(), peer_blocked_alert::ip_filter));
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
@@ -9773,7 +9778,8 @@ namespace libtorrent
 		if (m_ses.get_port_filter().access(adr.port()) & port_filter::blocked)
 		{
 			if (alerts().should_post<peer_blocked_alert>())
-				alerts().post_alert(peer_blocked_alert(get_handle(), adr.address()));
+				alerts().post_alert(peer_blocked_alert(get_handle()
+					, adr.address(), peer_blocked_alert::port_filter));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
@@ -9786,7 +9792,8 @@ namespace libtorrent
 		if (!settings().get_bool(settings_pack::allow_i2p_mixed) && is_i2p())
 		{
 			if (alerts().should_post<peer_blocked_alert>())
-				alerts().post_alert(peer_blocked_alert(get_handle(), adr.address()));
+				alerts().post_alert(peer_blocked_alert(get_handle()
+					, adr.address(), peer_blocked_alert::i2p_mixed));
 			return NULL;
 		}
 #endif
@@ -9794,7 +9801,8 @@ namespace libtorrent
 		if (settings().get_bool(settings_pack::no_connect_privileged_ports) && adr.port() < 1024)
 		{
 			if (alerts().should_post<peer_blocked_alert>())
-				alerts().post_alert(peer_blocked_alert(get_handle(), adr.address()));
+				alerts().post_alert(peer_blocked_alert(get_handle()
+					, adr.address(), peer_blocked_alert::privileged_ports));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
@@ -9898,7 +9906,8 @@ namespace libtorrent
 		{
 			for (std::vector<address>::iterator i = banned.begin()
 				, end(banned.end()); i != end; ++i)
-				alerts().post_alert(peer_blocked_alert(get_handle(), *i));
+				alerts().post_alert(peer_blocked_alert(get_handle(), *i
+					, peer_blocked_alert::ip_filter));
 		}
 
 		peers_erased(st.erased);
@@ -9917,7 +9926,8 @@ namespace libtorrent
 		{
 			for (std::vector<address>::iterator i = banned.begin()
 				, end(banned.end()); i != end; ++i)
-				alerts().post_alert(peer_blocked_alert(get_handle(), *i));
+				alerts().post_alert(peer_blocked_alert(get_handle(), *i
+					, peer_blocked_alert::port_filter));
 		}
 
 		peers_erased(st.erased);
