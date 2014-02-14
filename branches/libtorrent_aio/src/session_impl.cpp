@@ -2169,7 +2169,7 @@ namespace aux {
 		m_user_load_torrent(t->info_hash(), buffer, ec);
 		if (ec)
 		{
-			t->set_error(ec, torrent::error_file_none);
+			t->set_error(ec, torrent::error_file_metadata);
 			t->pause(false);
 			return false;
 		}
@@ -4701,6 +4701,9 @@ retry:
 
 		if (!handled_by_extension)
 		{
+			std::sort(checking.begin(), checking.end()
+				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
+
 			std::sort(downloaders.begin(), downloaders.end()
 				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
