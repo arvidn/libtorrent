@@ -1888,31 +1888,29 @@ namespace libtorrent
 		m_torrent_file->load(&buffer[0], buffer.size(), ec);
 		if (ec)
 		{
-			set_error(ec, error_file_none);
+			set_error(ec, error_file_metadata);
 			return false;
 		}
-		else
-		{
-			state_updated();
+
+		state_updated();
 /*
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			// create the extensions again
+		// create the extensions again
 
-			// TOOD: should we store add_torrent_params::userdata
-			// in torrent just to have it available here?
-			m_ses.add_extensions_to_torrent(shared_from_this(), NULL);
+		// TOOD: should we store add_torrent_params::userdata
+		// in torrent just to have it available here?
+		m_ses.add_extensions_to_torrent(shared_from_this(), NULL);
 
-			// and call on_load() on them
-			for (extension_list_t::iterator i = m_extensions.begin()
-				, end(m_extensions.end()); i != end; ++i)
-			{
-				TORRENT_TRY {
-					(*i)->on_load();
-				} TORRENT_CATCH (std::exception&) {}
-			}
+		// and call on_load() on them
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_load();
+			} TORRENT_CATCH (std::exception&) {}
+		}
 #endif
 */
-		}
 
 		m_ses.inc_stats_counter(counters::num_loaded_torrents);
 
@@ -8296,6 +8294,7 @@ namespace libtorrent
 		if (file == error_file_none) return "";
 		if (file == error_file_url) return m_url;
 		if (file == error_file_ssl_ctx) return "SSL Context";
+		if (file == error_file_metadata) return "metadata (from user load function)";
 
 		if (m_storage && file >= 0)
 		{
@@ -10286,7 +10285,8 @@ namespace libtorrent
 			st->torrent_file = m_torrent_file;
 
 		st->has_incoming = m_has_incoming;
-		if (m_error) st->error = convert_from_native(m_error.message()) + ": " + resolve_filename(m_error_file);
+		if (m_error) st->error = convert_from_native(m_error.message())
+			+ ": " + resolve_filename(m_error_file);
 		st->seed_mode = m_seed_mode;
 		st->moving_storage = m_moving_storage;
 
