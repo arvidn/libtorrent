@@ -301,7 +301,7 @@ namespace libtorrent
 		SET(predictive_piece_announce, 0, 0),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, 0),
-		SET(network_threads, 1, &session_impl::update_network_threads),
+		SET(network_threads, 0, &session_impl::update_network_threads),
 		SET(ssl_listen, 4433, 0),
 		SET(tracker_backoff, 250, 0),
 		SET_NOPREV(share_ratio_limit, 200, 0),

@@ -297,7 +297,7 @@ namespace libtorrent
 		// the number of threads to use to call async_write_some
 		// and read_some on peer sockets
 		// this doesn't work. See comment in settings_pack.cpp
-		set.set_int(settings_pack::network_threads, 5);
+		set.set_int(settings_pack::network_threads, 0);
 
 		// number of disk threads for low level file operations
 		set.set_int(settings_pack::aio_threads, 8);
