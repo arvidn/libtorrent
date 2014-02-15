@@ -37,6 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _FILE_OFFSET_BITS 64
 #define _LARGE_FILES 1
 
+// on mingw this is necessary to enable 64-bit time_t, specifically used for
+// the stat struct. Without this, modification times returned by stat may be
+// incorrect and consistently fail resume data
+#ifndef __MINGW_USE_VC2005_COMPAT
+# define __MINGW_USE_VC2005_COMPAT
+#endif
+
 #include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
