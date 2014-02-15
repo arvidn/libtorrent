@@ -514,11 +514,6 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			sname = "upnp";
 			value = sett.get_bool(s);
 		}
-		else if (s == settings_pack::connections_limit)
-		{
-			sname = "conns_globally";
-			value = sett.get_bool(s);
-		}
 		else
 		{
 			sname = settings_name(s);
@@ -551,6 +546,11 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		{
 			sname = "max_dl_rate";
 			value = boost::int64_t(sett.get_int(s)) / 1024;
+		}
+		else if (s == settings_pack::connections_limit)
+		{
+			sname = "conns_globally";
+			value = sett.get_int(s);
 		}
 		else
 		{
