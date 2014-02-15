@@ -6661,16 +6661,25 @@ namespace libtorrent
 		ret["auto_managed"] = m_auto_managed;
 
 		// write piece priorities
-		entry::string_type& piece_priority = ret["piece_priority"].string();
-		piece_priority.resize(m_torrent_file->num_pieces());
-		if (!has_picker())
+		// but only if they are not set to the default
+		if (has_picker())
 		{
-			std::memset(&piece_priority[0], m_have_all, pieces.size());
-		}
-		else
-		{
-			for (int i = 0, end(piece_priority.size()); i < end; ++i)
-				piece_priority[i] = m_picker->piece_priority(i);
+			bool default_prio = true;
+			for (int i = 0, end(m_torrent_file->num_pieces()); i < end; ++i)
+			{
+				if (m_picker->piece_priority(i) == 1) continue;
+				default_prio = false;
+				break;
+			}
+
+			if (!default_prio)
+			{
+				entry::string_type& piece_priority = ret["piece_priority"].string();
+				piece_priority.resize(m_torrent_file->num_pieces());
+
+				for (int i = 0, end(piece_priority.size()); i < end; ++i)
+					piece_priority[i] = m_picker->piece_priority(i);
+			}
 		}
 
 		// write file priorities
