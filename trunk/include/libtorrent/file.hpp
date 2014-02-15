@@ -86,9 +86,9 @@ namespace libtorrent
 	struct file_status
 	{
 		size_type file_size;
-		time_t atime;
-		time_t mtime;
-		time_t ctime;
+		boost::uint64_t atime;
+		boost::uint64_t mtime;
+		boost::uint64_t ctime;
 		enum {
 #if defined TORRENT_WINDOWS
 			fifo = 0x1000, // named pipe (fifo)

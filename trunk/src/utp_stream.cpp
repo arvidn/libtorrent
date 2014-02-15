@@ -1591,6 +1591,8 @@ private:
 // if ack is true, we need to send a packet regardless of if there's
 // any data. Returns true if we could send more data (i.e. call
 // send_pkt() again)
+// returns true if there is more space for payload in our
+// congestion window, false if there is no more space.
 bool utp_socket_impl::send_pkt(int flags)
 {
 	INVARIANT_CHECK;
@@ -1726,7 +1728,8 @@ bool utp_socket_impl::send_pkt(int flags)
 			// this alloca() statement won't necessarily produce
 			// correctly aligned memory. That's why we ask for 7 more bytes
 			// and adjust our pointer to be aligned later
-			p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size + 7);
+			p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size
+				+ sizeof(packet*) - 1);
 			p = (packet*)align_pointer(p);
 			UTP_LOGV("%8p: allocating %d bytes on the stack\n", this, packet_size);
 			p->allocated = packet_size;
