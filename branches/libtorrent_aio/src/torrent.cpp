@@ -2250,19 +2250,9 @@ namespace libtorrent
 			// either the fastresume data was rejected or there are
 			// some files
 			set_state(torrent_status::checking_files);
-			if (should_check_files())
-			{
-				start_checking();
-			}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-			else
-			{
-				debug_log("not starting check: state: %d allow_peers: %d has_error: %d "
-					"abort: %d graceful_pause: %d ses.is_paused: %d"
-					, m_state, m_allow_peers, has_error(), m_abort
-					, m_graceful_pause_mode, m_ses.is_paused());
-			}
-#endif
+
+			// start the checking right away (potentially)
+			m_ses.trigger_auto_manage();
 		}
 
 		maybe_done_flushing();
@@ -2414,10 +2404,11 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		dec_refcount("start_checking");
-		++m_num_checked_pieces;
 
 		if (j->ret == piece_manager::disk_check_aborted)
 		{
+			m_checking_piece = 0;
+			m_num_checked_pieces = 0;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			debug_log("on_piece_hashed, disk_check_aborted");
 #endif
@@ -2426,6 +2417,8 @@ namespace libtorrent
 		}
 
 		state_updated();
+
+		++m_num_checked_pieces;
 
 		if (j->ret == piece_manager::fatal_disk_error)
 		{
@@ -2444,6 +2437,8 @@ namespace libtorrent
 			}
 			else
 			{
+				m_checking_piece = 0;
+				m_num_checked_pieces = 0;
 				if (m_ses.alerts().should_post<file_error_alert>())
 					m_ses.alerts().post_alert(file_error_alert(j->error.ec,
 						resolve_filename(j->error.file), j->error.operation_str(), get_handle()));
