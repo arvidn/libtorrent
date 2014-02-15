@@ -262,15 +262,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_USE_UNC_PATHS 1
 #endif
 
-// this is necessary to enable 64-bit
-// time_t, specifically used for the stat
-// struct. Without this, modification times
-// returned by stat may be incorrect and
-// consistently fail resume data
-#ifndef __MINGW_USE_VC2005_COMPAT
-# define __MINGW_USE_VC2005_COMPAT
-#endif
-
 // ==== WINDOWS ===
 #elif defined WIN32
 #define TORRENT_WINDOWS
