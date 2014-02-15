@@ -38,7 +38,6 @@ int main(int argc, char *const argv[])
 		, std::make_pair(6881, 6882));
 
 	settings_pack s;
-	high_performance_seed(s);
 	s.set_int(settings_pack::alert_mask, 0xffffffff);
 	ses.apply_settings(s);
 
@@ -63,9 +62,13 @@ int main(int argc, char *const argv[])
 	resume.load(ec, p);
 
 	// we can use the save_resume object to reload
-	// torrents
-	ses.set_load_function(boost::bind(
-		&save_resume::load_torrent, &resume, _1, _2, _3));
+	// torrents. This can't be used yet because of a
+	// race condition when adding torrents. We may add a
+	// torrent asynchronously, libtorrent will know about
+	// the torrent before we receive the torrent_added_alert
+	// and the resume data won't have saved it yet.
+//	ses.set_load_function(boost::bind(
+//		&save_resume::load_torrent, &resume, _1, _2, _3));
 
 	auto_load al(ses, &sett);
 	rss_filter_handler rss_filter(alerts, ses);
@@ -93,38 +96,32 @@ int main(int argc, char *const argv[])
 	signal(SIGTERM, &sighandler);
 	signal(SIGINT, &sighandler);
 
-	libtorrent::screen text_ui_screen;
-	libtorrent::error_log log(text_ui_screen
-		, 0, 0, 120, 120
-		, &alerts);
-
 	bool shutting_down = false;
 	while (!quit || !resume.ok_to_quit())
 	{
 		usleep(500000);
 		alerts.dispatch_alerts();
-		text_ui_screen.refresh();
 		if (!shutting_down) ses.post_torrent_updates();
 		if (quit && !shutting_down)
 		{
 			resume.save_all();
 			shutting_down = true;
-			log.log_line("saving resume data");
+			fprintf(stderr, "saving resume data\n");
 			signal(SIGTERM, &sighandler_forcequit);
 			signal(SIGINT, &sighandler_forcequit);
 		}
 		if (force_quit)
 		{
-			log.log_line("force quitting");
+			fprintf(stderr, "force quitting\n");
 			break;
 		}
 	}
 
-	log.log_line("closing web server");
+	fprintf(stderr, "closing web server\n");
 	dlg.stop();
 	webport.stop();
 
-	log.log_line("saving settings");
+	fprintf(stderr, "saving settings\n");
 	sett.save(ec);
 
 	return 0;

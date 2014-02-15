@@ -257,7 +257,7 @@ void save_resume::handle_alert(alert const* a)
 			return;
 		}
 		sqlite3_finalize(stmt);
-		printf("adding %s\n", ih.c_str());
+		printf("saving %s\n", ih.c_str());
 	}
 	else if (sf)
 	{
@@ -288,10 +288,10 @@ void save_resume::handle_alert(alert const* a)
 			printf("saving resume data for: %s\n", m_cursor->status().name.c_str());
 			++m_num_in_flight;
 		}
-		m_last_save = time_now();
 		--num_to_save;
 		++m_cursor;
 	}
+	m_last_save = time_now();
 }
 
 void save_resume::save_all()

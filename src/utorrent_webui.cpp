@@ -494,6 +494,31 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			sname = "cache.read";
 			value = sett.get_bool(s);
 		}
+		else if (s == settings_pack::enable_dht)
+		{
+			sname = "dht";
+			value = sett.get_bool(s);
+		}
+		else if (s == settings_pack::enable_lsd)
+		{
+			sname = "lsd";
+			value = sett.get_bool(s);
+		}
+		else if (s == settings_pack::enable_natpmp)
+		{
+			sname = "natpmp";
+			value = sett.get_bool(s);
+		}
+		else if (s == settings_pack::enable_upnp)
+		{
+			sname = "upnp";
+			value = sett.get_bool(s);
+		}
+		else if (s == settings_pack::connections_limit)
+		{
+			sname = "conns_globally";
+			value = sett.get_bool(s);
+		}
 		else
 		{
 			sname = settings_name(s);
@@ -574,7 +599,6 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		first = 0;
 	}
 
-
 	if (p->allow_get_settings(-1))
 	{
 		appendf(response,
@@ -584,6 +608,14 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			, escape_json(m_params_model.save_path).c_str()
 			, p->allow_set_settings(-1) ? 'Y' : 'R'
 			, m_ses.listen_port()
+			, p->allow_set_settings(-1) ? 'Y' : 'R');
+	}
+
+	if (m_settings)
+	{
+		appendf(response,
+			",[\"gui.default_del_action\",0,\"%d\",{\"access\":\"%c\"}]\n"
+			, m_settings->get_int("default_del_action", 0)
 			, p->allow_set_settings(-1) ? 'Y' : 'R');
 	}
 
@@ -664,6 +696,11 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 			pack.set_bool(settings_pack::enable_incoming_tcp, mask & 4);
 			pack.set_bool(settings_pack::enable_incoming_utp, mask & 8);
 		}
+		else if (key == "conns_globally")
+		{
+			if (p->allow_set_settings(settings_pack::connections_limit)) continue;
+			pack.set_int(settings_pack::connections_limit, atoi(value.c_str()));
+		}
 		else if (key == "torrents_start_stopped")
 		{
 			if (!p->allow_stop()) continue;
@@ -718,6 +755,30 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		{
 			if (!p->allow_set_settings(settings_pack::download_rate_limit)) continue;
 			pack.set_int(settings_pack::download_rate_limit, atoi(value.c_str()) * 1024);
+		}
+		else if (key == "dht")
+		{
+			if (!p->allow_set_settings(settings_pack::enable_dht)) continue;
+			pack.set_bool(settings_pack::enable_dht, to_bool(value));
+		}
+		else if (key == "natpmp")
+		{
+			if (!p->allow_set_settings(settings_pack::enable_natpmp)) continue;
+			pack.set_bool(settings_pack::enable_natpmp, to_bool(value));
+		}
+		else if (key == "upnp")
+		{
+			if (!p->allow_set_settings(settings_pack::enable_upnp)) continue;
+			pack.set_bool(settings_pack::enable_upnp, to_bool(value));
+		}
+		else if (key == "lsd")
+		{
+			if (!p->allow_set_settings(settings_pack::enable_lsd)) continue;
+			pack.set_bool(settings_pack::enable_lsd, to_bool(value));
+		}
+		else if (key == "gui.default_del_action" && m_settings)
+		{
+			m_settings->set_int("default_del_action", atoi(value.c_str()));
 		}
 		else
 		{
