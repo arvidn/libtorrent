@@ -2009,6 +2009,14 @@ namespace libtorrent
 		// hold a reference until this function returns
 		torrent_ref_holder h(this, "check_fastresume");
 
+		// when applying some of the resume data to the torrent, we will
+		// trigger calls that set m_need_save_resume_data, even though we're
+		// just applying the state of the resume data we loaded with. We don't
+		// want anything in this function to affect the state of
+		// m_need_save_resume_data, so we save it in a local variable and reset
+		// it at the end of the function.
+		bool need_save_resume_data = m_need_save_resume_data;
+
 		dec_refcount("check_fastresume");
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
@@ -2257,6 +2265,10 @@ namespace libtorrent
 
 		maybe_done_flushing();
 		m_resume_data.reset();
+
+		// restore m_need_save_resume_data to its state when we entered this
+		// function.
+		m_need_save_resume_data = need_save_resume_data;
 	}
 
 	void torrent::force_recheck()
@@ -6376,6 +6388,11 @@ namespace libtorrent
 				TORRENT_ASSERT(false);
 			}
 		}
+
+		// updating some of the torrent state may have set need_save_resume_data.
+		// clear it here since we've just restored the resume data we already
+		// have. Nothing has changed from that state yet.
+		m_need_save_resume_data = false;
 	}
 
 	boost::shared_ptr<const torrent_info> torrent::get_torrent_copy()
@@ -8168,7 +8185,8 @@ namespace libtorrent
 		if (m_max_uploads != limit && state_update) state_updated();
 		m_max_uploads = limit;
 
-		m_need_save_resume_data = true;
+		if (state_update)
+			m_need_save_resume_data = true;
 	}
 
 	void torrent::set_max_connections(int limit, bool state_update)
@@ -8186,7 +8204,8 @@ namespace libtorrent
 				, error_code(errors::too_many_connections, get_libtorrent_category()));
 		}
 
-		m_need_save_resume_data = true;
+		if (state_update)
+			m_need_save_resume_data = true;
 	}
 
 	void torrent::set_upload_limit(int limit)
@@ -8470,6 +8489,13 @@ namespace libtorrent
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle()
 				, errors::destructing_torrent));
+			return;
+		}
+
+		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
+		{
+			alerts().post_alert(save_resume_data_failed_alert(get_handle()
+				, errors::resume_data_not_modified));
 			return;
 		}
 

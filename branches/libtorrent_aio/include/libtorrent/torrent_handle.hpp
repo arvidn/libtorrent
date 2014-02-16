@@ -602,7 +602,15 @@ namespace libtorrent
 			// the resume data will contain the metadata from the torrent file as
 			// well. This is default for any torrent that's added without a
 			// torrent file (such as a magnet link or a URL).
-			save_info_dict = 2
+			save_info_dict = 2,
+
+			// if nothing significant has changed in the torrent since the last
+			// time resume data was saved, fail this attempt. Significant changes
+			// primarily include more data having been downloaded, file or piece
+			// priorities having changed etc. If the resume data doesn't need
+			// saving, a save_resume_data_failed_alert is posted with the error
+			// resume_data_not_modified.
+			only_if_modified = 4,
 		};
 
 		// ``save_resume_data()`` generates fast-resume data and returns it as an

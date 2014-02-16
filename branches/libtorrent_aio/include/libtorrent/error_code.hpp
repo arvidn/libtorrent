@@ -380,6 +380,10 @@ namespace libtorrent
 			// and the files on disk are using compact storage. The pieces needs
 			// to be moved to their right position
 			pieces_need_reorder,
+			// this error is returned when asking to save resume data and
+			// specifying the flag to only save when there's anything new to save
+			// (torrent_handle::only_if_modified) and there wasn't anything changed.
+			resume_data_not_modified,
 
 
 

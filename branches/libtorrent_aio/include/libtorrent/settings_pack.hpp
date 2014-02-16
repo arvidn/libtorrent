@@ -937,9 +937,8 @@ namespace libtorrent
 			// ``active_downloads`` is 4 and ``active_seeds`` is 4, there will be 4 seeds
 			// active and 4 downloading torrents. If the settings are ``active_downloads`` = 2
 			// and ``active_seeds`` = 4, then there will be 2 downloading torrents and 4 seeding
-			// torrents active. Torrents that are not auto managed are also counted against these
-			// limits. If there are non-auto managed torrents that use up all the slots, no
-			// auto managed torrent will be activated.
+			// torrents active. Torrents that are not auto managed are not counted against these
+			// limits.
 			// 
 			// ``active_limit`` is a hard limit on the number of active torrents. This applies even to
 			// slow torrents.
