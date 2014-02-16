@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>libtorrent Examples</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="libtorrent-examples">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
+    <div id="main">
+<h1 class="title">libtorrent Examples</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#examples" id="id2">examples</a><ul>
+<li><a class="reference internal" href="#dump-torrent" id="id3">dump_torrent</a></li>
+<li><a class="reference internal" href="#simple-client" id="id4">simple client</a></li>
+<li><a class="reference internal" href="#make-torrent" id="id5">make_torrent</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="examples">
+<h1>examples</h1>
+<p>Except for the example programs in this manual, there's also a bigger example
+of a (little bit) more complete client, <tt class="docutils literal">client_test</tt>. There are separate
+instructions for how to use it <a class="reference external" href="client_test.html">here</a> if you'd like to try it. Note that building
+<tt class="docutils literal">client_test</tt> also requires boost.regex and boost.program_options library.</p>
+<div class="section" id="dump-torrent">
+<h2>dump_torrent</h2>
+<p>This is an example of a program that will take a torrent-file as a parameter and
+print information about it to std out:</p>
+<pre class="literal-block">
+#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;iomanip&gt;
+
+#include &quot;libtorrent/entry.hpp&quot;
+#include &quot;libtorrent/bencode.hpp&quot;
+#include &quot;libtorrent/torrent_info.hpp&quot;
+#include &quot;libtorrent/lazy_entry.hpp&quot;
+#include &lt;boost/filesystem/operations.hpp&gt;
+
+
+int main(int argc, char* argv[])
+{
+        using namespace libtorrent;
+        using namespace boost::filesystem;
+
+        if (argc != 2)
+        {
+                std::cerr &lt;&lt; &quot;usage: dump_torrent torrent-file\n&quot;;
+                return 1;
+        }
+#if BOOST_VERSION &lt; 103400
+        boost::filesystem::path::default_name_check(boost::filesystem::no_check);
+#endif
+
+#ifndef BOOST_NO_EXCEPTIONS
+        try
+        {
+#endif
+
+                int size = file_size(argv[1]);
+                if (size &gt; 10 * 1000000)
+                {
+                        std::cerr &lt;&lt; &quot;file too big (&quot; &lt;&lt; size &lt;&lt; &quot;), aborting\n&quot;;
+                        return 1;
+                }
+                std::vector&lt;char&gt; buf(size);
+                std::ifstream(argv[1], std::ios_base::binary).read(&amp;buf[0], size);
+                lazy_entry e;
+                int ret = lazy_bdecode(&amp;buf[0], &amp;buf[0] + buf.size(), e);
+
+                if (ret != 0)
+                {
+                        std::cerr &lt;&lt; &quot;invalid bencoding: &quot; &lt;&lt; ret &lt;&lt; std::endl;
+                        return 1;
+                }
+
+                std::cout &lt;&lt; &quot;\n\n----- raw info -----\n\n&quot;;
+                std::cout &lt;&lt; e &lt;&lt; std::endl;
+
+                torrent_info t(e);
+
+                // print info about torrent
+                std::cout &lt;&lt; &quot;\n\n----- torrent file info -----\n\n&quot;;
+                std::cout &lt;&lt; &quot;nodes:\n&quot;;
+                typedef std::vector&lt;std::pair&lt;std::string, int&gt; &gt; node_vec;
+                node_vec const&amp; nodes = t.nodes();
+                for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
+                        i != end; ++i)
+                {
+                        std::cout &lt;&lt; i-&gt;first &lt;&lt; &quot;:&quot; &lt;&lt; i-&gt;second &lt;&lt; &quot;\n&quot;;
+                }
+                std::cout &lt;&lt; &quot;trackers:\n&quot;;
+                for (std::vector&lt;announce_entry&gt;::const_iterator i = t.trackers().begin();
+                        i != t.trackers().end(); ++i)
+                {
+                        std::cout &lt;&lt; i-&gt;tier &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;url &lt;&lt; &quot;\n&quot;;
+                }
+
+                std::cout &lt;&lt; &quot;number of pieces: &quot; &lt;&lt; t.num_pieces() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;piece length: &quot; &lt;&lt; t.piece_length() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;info hash: &quot; &lt;&lt; t.info_hash() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;comment: &quot; &lt;&lt; t.comment() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;created by: &quot; &lt;&lt; t.creator() &lt;&lt; &quot;\n&quot;;
+                std::cout &lt;&lt; &quot;files:\n&quot;;
+                int index = 0;
+                for (torrent_info::file_iterator i = t.begin_files();
+                        i != t.end_files(); ++i, ++index)
+                {
+                        int first = t.map_file(index, 0, 1).piece;
+                        int last = t.map_file(index, i-&gt;size - 1, 1).piece;
+                        std::cout &lt;&lt; &quot;  &quot; &lt;&lt; std::setw(11) &lt;&lt; i-&gt;size
+                                &lt;&lt; &quot; &quot; &lt;&lt; i-&gt;path.string() &lt;&lt; &quot;[ &quot; &lt;&lt; first &lt;&lt; &quot;, &quot;
+                                &lt;&lt; last &lt;&lt; &quot; ]\n&quot;;
+                }
+
+#ifndef BOOST_NO_EXCEPTIONS
+        }
+        catch (std::exception&amp; e)
+        {
+                std::cout &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
+        }
+#endif
+
+        return 0;
+}
+</pre>
+</div>
+<div class="section" id="simple-client">
+<h2>simple client</h2>
+<p>This is a simple client. It doesn't have much output to keep it simple:</p>
+<pre class="literal-block">
+int main(int argc, char* argv[])
+{
+        using namespace libtorrent;
+#if BOOST_VERSION &lt; 103400
+        namespace fs = boost::filesystem;
+        fs::path::default_name_check(fs::no_check);
+#endif
+
+if (argc != 2)
+{
+        std::cerr &lt;&lt; &quot;usage: ./simple_client torrent-file\n&quot;
+                &quot;to stop the client, press return.\n&quot;;
+        return 1;
+}
+
+#ifndef BOOST_NO_EXCEPTIONS
+        try
+#endif
+        {
+                session s;
+                s.listen_on(std::make_pair(6881, 6889));
+                add_torrent_params p;
+                p.save_path = &quot;./&quot;;
+                p.ti = new torrent_info(argv[1]);
+                s.add_torrent(p);
+
+                // wait for the user to end
+                char a;
+                std::cin.unsetf(std::ios_base::skipws);
+                std::cin &gt;&gt; a;
+        }
+#ifndef BOOST_NO_EXCEPTIONS
+        catch (std::exception&amp; e)
+        {
+                std::cout &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
+        }
+#endif
+        return 0;
+}
+</pre>
+</div>
+<div class="section" id="make-torrent">
+<h2>make_torrent</h2>
+<p>Shows how to create a torrent from a directory tree:</p>
+<pre class="literal-block">
+#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;iomanip&gt;
+
+#include &quot;libtorrent/entry.hpp&quot;
+#include &quot;libtorrent/bencode.hpp&quot;
+#include &quot;libtorrent/torrent_info.hpp&quot;
+#include &quot;libtorrent/file.hpp&quot;
+#include &quot;libtorrent/storage.hpp&quot;
+#include &quot;libtorrent/hasher.hpp&quot;
+#include &quot;libtorrent/create_torrent.hpp&quot;
+
+#include &lt;boost/filesystem/operations.hpp&gt;
+#include &lt;boost/filesystem/path.hpp&gt;
+#include &lt;boost/filesystem/fstream.hpp&gt;
+#include &lt;boost/bind.hpp&gt;
+
+using namespace boost::filesystem;
+using namespace libtorrent;
+
+// do not include files and folders whose
+// name starts with a .
+bool file_filter(boost::filesystem::path const&amp; filename)
+{
+        if (filename.leaf()[0] == '.') return false;
+        std::cerr &lt;&lt; filename &lt;&lt; std::endl;
+        return true;
+}
+
+void print_progress(int i, int num)
+{
+        std::cerr &lt;&lt; &quot;\r&quot; &lt;&lt; (i+1) &lt;&lt; &quot;/&quot; &lt;&lt; num;
+}
+
+int main(int argc, char* argv[])
+{
+        using namespace libtorrent;
+        using namespace boost::filesystem;
+
+        int piece_size = 256 * 1024;
+        char const* creator_str = &quot;libtorrent&quot;;
+
+        path::default_name_check(no_check);
+
+        if (argc != 4 &amp;&amp; argc != 5)
+        {
+                std::cerr &lt;&lt; &quot;usage: make_torrent &lt;output torrent-file&gt; &quot;
+                &quot;&lt;announce url&gt; &lt;file or directory to create torrent from&gt; &quot;
+                &quot;[url-seed]\n&quot;;
+        return 1;
+}
+
+#ifndef BOOST_NO_EXCEPTIONS
+        try
+        {
+#endif
+                file_storage fs;
+                file_pool fp;
+                path full_path = complete(path(argv[3]));
+
+                add_files(fs, full_path, file_filter);
+
+                create_torrent t(fs, piece_size);
+                t.add_tracker(argv[2]);
+                set_piece_hashes(t, full_path.branch_path()
+                        , boost::bind(&amp;print_progress, _1, t.num_pieces()));
+                std::cerr &lt;&lt; std::endl;
+                t.set_creator(creator_str);
+
+                if (argc == 5) t.add_url_seed(argv[4]);
+
+                // create the torrent and print it to out
+                ofstream out(complete(path(argv[1])), std::ios_base::binary);
+                bencode(std::ostream_iterator&lt;char&gt;(out), t.generate());
+#ifndef BOOST_NO_EXCEPTIONS
+        }
+        catch (std::exception&amp; e)
+        {
+                std::cerr &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
+        }
+#endif
+
+        return 0;
+}
+</pre>
+</div>
+</div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
+</div>
+</body>
+</html>
