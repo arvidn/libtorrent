@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -37,8 +37,8 @@
     </ul>
     </div>
     <div id="header">
-    <div id="orange"></div>
-    <div id="logo"></div>
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
     </div>
     <div id="main">
 <h1 class="title">libtorrent manual</h1>
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>0.16.14</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -170,9 +170,7 @@ large number of paused torrents (that are popular) it will be even more
 significant.</p>
 <p>If you're short of memory, you should consider lowering the limit. 500 is probably
 enough. You can do this by setting <tt class="docutils literal"><span class="pre">session_settings::max_peerlist_size</span></tt> to
-the max number of peers you want in a torrent's peer list. This limit applies per
-torrent. For 5 torrents, the total number of peers in peerlists will be 5 times
-the setting.</p>
+the max number of peers you want in the torrent's peer list.</p>
 <p>You should also lower the same limit but for paused torrents. It might even make sense
 to set that even lower, since you only need a few peers to start up while waiting
 for the tracker and DHT to give you fresh ones. The max peer list size for paused
@@ -339,7 +337,8 @@ enough to not draining the socket's send buffer before the disk operation comple
 <p>The watermark is bound to a max value, to avoid buffer sizes growing out of control.
 The default max send buffer size might not be enough to sustain very high upload rates,
 and you might have to increase it. It's specified in bytes in
-<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>.</p>
+<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>. The <tt class="docutils literal">high_performance_seed()</tt> preset
+sets this value to 5 MB.</p>
 </div>
 <div class="section" id="peers">
 <h2>peers</h2>
@@ -615,7 +614,7 @@ please let us know and we'll update this document.</p>
 </div>
     </div>
     <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
     </div>
     </div>
     <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">

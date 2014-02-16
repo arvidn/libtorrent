@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -131,20 +131,6 @@ public:
 	error_code set_option(SettableSocketOption const& opt, error_code& ec)
 	{
 		return m_sock.set_option(opt, ec);
-	}
-
-#ifndef BOOST_NO_EXCEPTIONS
-	template <class GettableSocketOption>
-	void get_option(GettableSocketOption& opt)
-	{
-		m_sock.get_option(opt);
-	}
-#endif
-
-	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption& opt, error_code& ec)
-	{
-		return m_sock.get_option(opt, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS

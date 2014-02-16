@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,14 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 #if BOOST_VERSION >= 103500
-
-	struct libtorrent_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
 
 	const char* libtorrent_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
@@ -170,7 +162,7 @@ namespace libtorrent
 			"invalid dont-have message",
 			"SSL connection required",
 			"invalid SSL certificate",
-			"not an SSL torrent",
+			"",
 			"",
 			"",
 			"",
@@ -247,7 +239,6 @@ namespace libtorrent
 			"udp tracker response packet has invalid size",
 			"invalid transaction id in udp tracker response",
 			"invalid action field in udp tracker response",
-#ifndef TORRENT_NO_DEPRECATE
 			"",
 			"",
 			"",
@@ -266,60 +257,44 @@ namespace libtorrent
 			"expected value (list, dict, int or string) in bencoded string",
 			"bencoded nesting depth exceeded",
 			"bencoded item count limit exceeded",
-#endif
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";
 		return msgs[ev];
 	}
 
-	boost::system::error_category& get_libtorrent_category()
+	const char* http_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
-		static libtorrent_error_category libtorrent_category;
-		return libtorrent_category;
+		return "http error";
 	}
 
-	struct TORRENT_EXPORT http_error_category : boost::system::error_category
+	std::string http_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
 	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
-		{ return "http error"; }
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+		std::string ret;
+		ret += to_string(ev).elems;
+		ret += " ";
+		switch (ev)
 		{
-			std::string ret;
-			ret += to_string(ev).elems;
-			ret += " ";
-			switch (ev)
-			{
-				case errors::cont: ret += "Continue"; break;
-				case errors::ok: ret += "OK"; break;
-				case errors::created: ret += "Created"; break;
-				case errors::accepted: ret += "Accepted"; break;
-				case errors::no_content: ret += "No Content"; break;
-				case errors::multiple_choices: ret += "Multiple Choices"; break;
-				case errors::moved_permanently: ret += "Moved Permanently"; break;
-				case errors::moved_temporarily: ret += "Moved Temporarily"; break;
-				case errors::not_modified: ret += "Not Modified"; break;
-				case errors::bad_request: ret += "Bad Request"; break;
-				case errors::unauthorized: ret += "Unauthorized"; break;
-				case errors::forbidden: ret += "Forbidden"; break;
-				case errors::not_found: ret += "Not Found"; break;
-				case errors::internal_server_error: ret += "Internal Server Error"; break;
-				case errors::not_implemented: ret += "Not Implemented"; break;
-				case errors::bad_gateway: ret += "Bad Gateway"; break;
-				case errors::service_unavailable: ret += "Service Unavailable"; break;
-				default: ret += "(unknown HTTP error)"; break;
-			}
-			return ret;
+			case errors::cont: ret += "Continue"; break;
+			case errors::ok: ret += "OK"; break;
+			case errors::created: ret += "Created"; break;
+			case errors::accepted: ret += "Accepted"; break;
+			case errors::no_content: ret += "No Content"; break;
+			case errors::multiple_choices: ret += "Multiple Choices"; break;
+			case errors::moved_permanently: ret += "Moved Permanently"; break;
+			case errors::moved_temporarily: ret += "Moved Temporarily"; break;
+			case errors::not_modified: ret += "Not Modified"; break;
+			case errors::bad_request: ret += "Bad Request"; break;
+			case errors::unauthorized: ret += "Unauthorized"; break;
+			case errors::forbidden: ret += "Forbidden"; break;
+			case errors::not_found: ret += "Not Found"; break;
+			case errors::internal_server_error: ret += "Internal Server Error"; break;
+			case errors::not_implemented: ret += "Not Implemented"; break;
+			case errors::bad_gateway: ret += "Bad Gateway"; break;
+			case errors::service_unavailable: ret += "Service Unavailable"; break;
+			default: ret += "(unknown HTTP error)"; break;
 		}
-		virtual boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
-
-	boost::system::error_category& get_http_category()
-	{
-		static http_error_category http_category;
-		return http_category;
+		return ret;
 	}
 #endif
 

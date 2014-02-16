@@ -34,64 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h> // for exit()
-#include "setup_transfer.hpp" // for tests_failure
-#include "dht_server.hpp" // for stop_dht
-#include "peer_server.hpp" // for stop_peer
 
 int test_main();
 
-#include "libtorrent/assert.hpp"
-#include "libtorrent/file.hpp"
-#include <signal.h>
-
-#ifdef WIN32
-#include <windows.h> // fot SetErrorMode
-#endif
-
-void sig_handler(int sig)
-{
-	char stack_text[10000];
-
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || TORRENT_RELEASE_ASSERTS
-	print_backtrace(stack_text, sizeof(stack_text), 30);
-#elif defined __FUNCTION__
-	strcat(stack_text, __FUNCTION__);
-#else
-	stack_text[0] = 0;
-#endif
-	char const* sig_name = 0;
-	switch (sig)
-	{
-#define SIG(x) case x: sig_name = #x; break
-		SIG(SIGSEGV);
-#ifdef SIGBUS
-		SIG(SIGBUS);
-#endif
-		SIG(SIGILL);
-		SIG(SIGABRT);
-		SIG(SIGFPE);
-#ifdef SIGSYS
-		SIG(SIGSYS);
-#endif
-#undef SIG
-	};
-	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
-	exit(138);
-}
-
-using namespace libtorrent;
+extern bool tests_failure;
 
 int main()
 {
-#ifdef WIN32
-	// try to suppress hanging the process by windows displaying
-	// modal dialogs.
-	SetErrorMode(SEM_NOALIGNMENTFAULTEXCEPT | SEM_NOALIGNMENTFAULTEXCEPT
-		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
-#endif
-
-	srand((total_microseconds(time_now_hires() - min_time())) & 0x7fffffff);
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
 	// which sometimes causes tests to fail with EAGAIN just
@@ -102,34 +51,6 @@ int main()
 	fcntl(fileno(stderr), F_SETFL, flags & ~O_NONBLOCK);
 #endif
 
-	signal(SIGSEGV, &sig_handler);
-#ifdef SIGBUS
-	signal(SIGBUS, &sig_handler);
-#endif
-	signal(SIGILL, &sig_handler);
-	signal(SIGABRT, &sig_handler);
-	signal(SIGFPE, &sig_handler);
-#ifdef SIGSYS
-	signal(SIGSYS, &sig_handler);
-#endif
-
-	char dir[40];
-	snprintf(dir, sizeof(dir), "test_tmp_%u", rand());
-	std::string test_dir = complete(dir);
-	error_code ec;
-	create_directory(test_dir, ec);
-	if (ec)
-	{
-		fprintf(stderr, "Failed to create test directory: %s\n", ec.message().c_str());
-		return 1;
-	}
-#ifdef TORRENT_WINDOWS
-	SetCurrentDirectoryA(dir);
-#else
-	chdir(dir);
-#endif
-	fprintf(stderr, "cwd = \"%s\"\n", test_dir.c_str());
-
 #ifndef BOOST_NO_EXCEPTIONS
 	try
 	{
@@ -139,37 +60,17 @@ int main()
 	}
 	catch (std::exception const& e)
 	{
-		char buf[200];
-		snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
-		report_failure(buf, __FILE__, __LINE__);
+		std::cerr << "Terminated with exception: \"" << e.what() << "\"\n";
+		tests_failure = true;
 	}
 	catch (...)
 	{
-		report_failure("Terminated with unknown exception", __FILE__, __LINE__);
+		std::cerr << "Terminated with unknown exception\n";
+		tests_failure = true;
 	}
 #endif
-
-	// just in case of premature exits
-	// make sure we try to clean up some
-	stop_tracker();
-	stop_all_proxies();
-	stop_web_server();
-	stop_peer();
-	stop_dht();
-
 	fflush(stdout);
 	fflush(stderr);
-
-	int ret = print_failures();
-#if !defined TORRENT_LOGGING && !defined TORRENT_VERBOSE_LOGGING
-	if (ret == 0)
-	{
-		remove_all(test_dir, ec);
-		if (ec)
-			fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
-	}
-#endif
-
-	return ret;
+	return tests_failure ? 1 : 0;
 }
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2011, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,16 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/allocator.hpp"
 
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-#include <boost/pool/pool.hpp>
-#endif
-
 #ifdef TORRENT_DISK_STATS
 #include <fstream>
 #endif
 
-#if TORRENT_USE_ASSERTS || TORRENT_DISK_STATS
-#include <boost/unordered_map.hpp>
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || TORRENT_DISK_STATS
+#include <map>
 #endif
 
 namespace libtorrent
@@ -57,11 +53,11 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size);
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		~disk_buffer_pool();
 #endif
 
-#if TORRENT_USE_ASSERTS || TORRENT_DISK_STATS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
 		bool is_disk_buffer(char* buffer
 			, mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
@@ -103,25 +99,6 @@ namespace libtorrent
 
 		mutable mutex m_pool_mutex;
 
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// if this is true, all buffers are allocated
-		// from m_pool. If this is false, all buffers
-		// are allocated using page_aligned_allocator.
-		// if the settings change to prefer the other
-		// allocator, this bool will not switch over
-		// to match the settings until all buffers have
-		// been freed. That way, we never have a mixture
-		// of buffers allocated from different sources.
-		// in essence, this make the setting only take
-		// effect after a restart (which seems fine).
-		// or once the client goes idle for a while.
-		bool m_using_pool_allocator;
-
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
-
 #if defined TORRENT_DISK_STATS || defined TORRENT_STATS
 		int m_allocations;
 #endif
@@ -129,12 +106,12 @@ namespace libtorrent
 	public:
 		void rename_buffer(char* buf, char const* category);
 	protected:
-		boost::unordered_map<std::string, int> m_categories;
-		boost::unordered_map<char*, std::string> m_buf_to_category;
+		std::map<std::string, int> m_categories;
+		std::map<char*, std::string> m_buf_to_category;
 		std::ofstream m_log;
 	private:
 #endif
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		int m_magic;
 #endif
 	};

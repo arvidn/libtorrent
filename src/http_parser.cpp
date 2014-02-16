@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,6 @@ namespace libtorrent
 		, m_state(read_status)
 		, m_recv_buffer(0, 0)
 		, m_body_start_pos(0)
-		, m_connection_close(false)
 		, m_chunked_encoding(false)
 		, m_finished(false)
 		, m_cur_chunk_end(-1)
@@ -134,10 +133,6 @@ restart_response:
 			{
 				m_status_code = atoi(read_until(line, ' ', line_end).c_str());
 				m_server_message = read_until(line, '\r', line_end);
-
-				// HTTP 1.0 always closes the connection after
-				// each request
-				if (m_protocol == "HTTP/1.0") m_connection_close = true;
 			}
 			else
 			{
@@ -207,10 +202,6 @@ restart_response:
 				if (name == "content-length")
 				{
 					m_content_length = strtoll(value.c_str(), 0, 10);
-				}
-				else if (name == "connection")
-				{
-					m_connection_close = string_begins_no_case("close", value.c_str());
 				}
 				else if (name == "content-range")
 				{

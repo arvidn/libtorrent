@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,24 +87,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_LINUX
 // linux specifics
 
-#ifdef TORRENT_ANDROID
-#include <sys/vfs.h>
-#define statvfs statfs
-#define fstatvfs fstatfs
-#else
 #include <sys/statvfs.h>
-#endif
-
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #ifdef HAVE_LINUX_FIEMAP_H
 #include <linux/fiemap.h> // FIEMAP_*
 #include <linux/fs.h>  // FS_IOC_FIEMAP
-#endif
-
-#ifdef TORRENT_ANDROID
-#include <sys/syscall.h>
-#define lseek lseek64
 #endif
 
 #include <asm/unistd.h> // For __NR_fallocate
@@ -201,7 +189,7 @@ namespace libtorrent
 		if (_stati64(f.c_str(), &ret) < 0)
 #endif
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			return;
 		}
 #else
@@ -213,7 +201,7 @@ namespace libtorrent
 			retval = ::stat(f.c_str(), &ret);
 		if (retval < 0)
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			return;
 		}
 #endif // TORRENT_WINDOWS
@@ -252,7 +240,7 @@ namespace libtorrent
 		if (::rename(f1.c_str(), f2.c_str()) < 0)
 #endif
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			return;
 		}
 	}
@@ -292,7 +280,7 @@ namespace libtorrent
 #else
 		int ret = mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 #endif
 	}
 
@@ -348,18 +336,19 @@ namespace libtorrent
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
 		if (copyfile(f1.c_str(), f2.c_str(), state, COPYFILE_ALL) < 0)
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 		copyfile_state_free(state);
 #else
 		int infd = ::open(inf.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			return;
 		}
 
 		// rely on default umask to filter x and w permissions
 		// for group and others
+		// TODO: copy the mode from the source file
 		int permissions = S_IRUSR | S_IWUSR
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
@@ -368,7 +357,7 @@ namespace libtorrent
 		if (outfd < 0)
 		{
 			close(infd);
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			return;
 		}
 		char buffer[4096];
@@ -378,13 +367,13 @@ namespace libtorrent
 			if (num_read == 0) break;
 			if (num_read < 0)
 			{
-				ec.assign(errno, generic_category());
+				ec.assign(errno, boost::system::get_generic_category());
 				break;
 			}
 			int num_written = write(outfd, buffer, num_read);
 			if (num_written < num_read)
 			{
-				ec.assign(errno, generic_category());
+				ec.assign(errno, boost::system::get_generic_category());
 				break;
 			}
 			if (num_read < int(sizeof(buffer))) break;
@@ -405,7 +394,7 @@ namespace libtorrent
 		{
 			while (*p != '/'
 				&& *p != '\0'
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 				&& *p != '\\'
 #endif
 				) ++p;
@@ -442,18 +431,6 @@ namespace libtorrent
 		return "";
 	}
 
-	std::string remove_extension(std::string const& f)
-	{
-		char const* slash = strrchr(f.c_str(), '/');
-#ifdef TORRENT_WINDOWS
-		slash = (std::max)((char const*)strrchr(f.c_str(), '\\'), slash);
-#endif
-		char const* ext = strrchr(f.c_str(), '.');
-		// if we don't have an extension, just return f
-		if (ext == 0 || ext == &f[0] || (slash != NULL && ext < slash)) return f;
-		return f.substr(0, ext - &f[0]);
-	}
-
 	void replace_extension(std::string& f, std::string const& ext)
 	{
 		for (int i = f.size() - 1; i >= 0; --i)
@@ -476,7 +453,7 @@ namespace libtorrent
 	{
 		if (f.empty()) return false;
 
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 		// match \\ form
 		if (f == "\\\\") return true;
 		int i = 0;
@@ -553,7 +530,7 @@ namespace libtorrent
 		if (f.empty()) return "";
 		char const* first = f.c_str();
 		char const* sep = strrchr(first, '/');
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 		char const* altsep = strrchr(first, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
@@ -568,7 +545,7 @@ namespace libtorrent
 			{
 				--sep;
 				if (*sep == '/'
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 					|| *sep == '\\'
 #endif
 					)
@@ -587,7 +564,7 @@ namespace libtorrent
 		if (lhs.empty() || lhs == ".") return rhs;
 		if (rhs.empty() || rhs == ".") return lhs;
 
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR "\\"
 		bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
 #else
@@ -741,7 +718,7 @@ namespace libtorrent
 		std::string f = convert_to_native(inf);
 		if (::remove(f.c_str()) < 0)
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			return;
 		}
 #endif // TORRENT_WINDOWS
@@ -778,7 +755,7 @@ namespace libtorrent
 	bool is_complete(std::string const& f)
 	{
 		if (f.empty()) return false;
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#ifdef TORRENT_WINDOWS
 		int i = 0;
 		// match the xx:\ or xx:/ form
 		while (f[i] && is_alpha(f[i])) ++i;
@@ -800,7 +777,6 @@ namespace libtorrent
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
-		m_inode = 0;
 		// the path passed to FindFirstFile() must be
 		// a pattern
 		std::string f = convert_separators(path);
@@ -835,7 +811,7 @@ namespace libtorrent
 		m_handle = opendir(p.c_str());
 		if (m_handle == 0)
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			m_done = true;
 			return;
 		}
@@ -851,15 +827,6 @@ namespace libtorrent
 			FindClose(m_handle);
 #else
 		if (m_handle) closedir(m_handle);
-#endif
-	}
-
-	boost::uint64_t directory::inode() const
-	{
-#ifdef TORRENT_WINDOWS
-		return m_inode;
-#else
-		return m_dirent.d_ino;
 #endif
 	}
 
@@ -892,12 +859,11 @@ namespace libtorrent
 			if (err != ERROR_NO_MORE_FILES)
 				ec.assign(err, boost::system::get_system_category());
 		}
-		++m_inode;
 #else
 		dirent* dummy;
 		if (readdir_r(m_handle, &m_dirent, &dummy) != 0)
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(errno, boost::system::get_generic_category());
 			m_done = true;
 		}
 		if (dummy == 0) m_done = true;
@@ -1078,11 +1044,8 @@ namespace libtorrent
 
 		if (mode & attribute_executable)
 			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
-#ifdef O_BINARY
-		static const int mode_array[] = {O_RDONLY | O_BINARY, O_WRONLY | O_CREAT | O_BINARY, O_RDWR | O_CREAT | O_BINARY};
-#else
+
 		static const int mode_array[] = {O_RDONLY, O_WRONLY | O_CREAT, O_RDWR | O_CREAT};
-#endif
 #ifdef O_DIRECT
 		static const int no_buffer_flag[] = {0, O_DIRECT};
 #else
@@ -2142,52 +2105,29 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				return false;
 			}
 		}
-
 		if ((m_open_mode & sparse) == 0)
 		{
+			// only allocate the space if the file
+			// is not fully allocated
+#if _WIN32_WINNT >= 0x501		
+			// TODO: it would be nice to load
+			// GetCompressedSize dynamically out of
+			// kernel32.dll
+			DWORD high_dword = 0;
 #if TORRENT_USE_WSTRING
-			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCWSTR lpFileName, LPDWORD lpFileSizeHigh);
+#define GetCompressedFileSize_ GetCompressedFileSizeW
 #else
-			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCSTR lpFileName, LPDWORD lpFileSizeHigh);
+#define GetCompressedFileSize_ GetCompressedFileSizeA
 #endif
-
-			static GetCompressedFileSize_t GetCompressedFileSize_ = NULL;
-
-			static bool failed_kernel32 = false;
-
-			if ((GetCompressedFileSize_ == NULL) && !failed_kernel32)
+			offs.LowPart = GetCompressedFileSize_(m_path.c_str(), &high_dword);
+			offs.HighPart = high_dword;
+			if (offs.LowPart == INVALID_FILE_SIZE)
 			{
-				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-				if (kernel32)
-				{
-#if TORRENT_USE_WSTRING
-					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeW");
-#else
-					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeA");
-#endif
-				}
-				else
-				{
-					failed_kernel32 = true;
-				}
+				ec.assign(GetLastError(), get_system_category());
+				if (ec) return false;
 			}
-
-			offs.QuadPart = 0;
-			if (GetCompressedFileSize_)
-			{
-				// only allocate the space if the file
-				// is not fully allocated
-				DWORD high_dword = 0;
-				offs.LowPart = GetCompressedFileSize_(m_path.c_str(), &high_dword);
-				offs.HighPart = high_dword;
-				if (offs.LowPart == INVALID_FILE_SIZE)
-				{
-					ec.assign(GetLastError(), get_system_category());
-					if (ec) return false;
-				}
-			}
-
 			if (offs.QuadPart != s)
+#endif // _WIN32_WINNT >= 0x501
 			{
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
@@ -2269,7 +2209,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// way. If fallocate failed with some other error, it
 			// probably means the user should know about it, error out
 			// and report it.
-			if (errno != ENOSYS && errno != EOPNOTSUPP && errno != EINVAL)
+			if (errno != ENOSYS && errno != EOPNOTSUPP)
 			{
 				ec.assign(errno, get_posix_category());
 				return false;

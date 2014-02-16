@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,6 +72,7 @@ namespace libtorrent
 		, aux::session_impl& ses
 		, proxy_settings const& proxy)
 		: tracker_connection(man, req, ios, c)
+//		, m_man(man)
 		, m_abort(false)
 		, m_transaction_id(0)
 		, m_ses(ses)
@@ -84,14 +85,12 @@ namespace libtorrent
 	void udp_tracker_connection::start()
 	{
 		std::string hostname;
-		std::string protocol;
 		int port;
 		error_code ec;
 
 		using boost::tuples::ignore;
-		boost::tie(protocol, ignore, hostname, port, ignore)
+		boost::tie(ignore, ignore, hostname, port, ignore)
 			= parse_url_components(tracker_req().url, ec);
-		if (port == -1) port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
@@ -547,9 +546,9 @@ namespace libtorrent
 		std::vector<peer_entry> peer_list;
 		for (int i = 0; i < num_peers; ++i)
 		{
-			// TODO: it would be more efficient to not use a string here.
-			// however, the problem is that some trackers will respond
-			// with actual strings. For example i2p trackers
+			// TODO: don't use a string here. The problem is that
+			// some trackers will respond with actual strings.
+			// Especially i2p trackers
 			peer_entry e;
 			char ip_string[100];
 			unsigned int a = detail::read_uint8(buf);
@@ -571,7 +570,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list
-			, peer_list, interval, min_interval, complete, incomplete, 0, address(), "" /*trackerid*/);
+			, peer_list, interval, min_interval, complete, incomplete, address(), "" /*trackerid*/);
 
 		close();
 		return true;

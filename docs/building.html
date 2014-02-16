@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -37,8 +37,8 @@
     </ul>
     </div>
     <div id="header">
-    <div id="orange"></div>
-    <div id="logo"></div>
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
     </div>
     <div id="main">
 <h1 class="title">libtorrent manual</h1>
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>0.16.14</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -291,7 +291,7 @@ libraries.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal">dht</tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">dht-support</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">on</tt> - build with support for tracker less
 torrents and DHT support.</li>
@@ -359,15 +359,13 @@ implementation is used.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal">allocator</tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">pool-allocators</span></tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">pool</tt> - default, uses pool allocators for
-send buffers.</li>
-<li><tt class="docutils literal">system</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
+<li><tt class="docutils literal">on</tt> - default, uses pool allocators for send
+buffers.</li>
+<li><tt class="docutils literal">off</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
 instead. Might be useful to debug buffer issues
 with tools like electric fence or libgmalloc.</li>
-<li><tt class="docutils literal">debug</tt> - instruments buffer usage to catch
-bugs in libtorrent.</li>
 </ul>
 </td>
 </tr>
@@ -743,11 +741,6 @@ If this is not defined, either
 <tt class="docutils literal">TORRENT_USE_OPENSSL</tt> or
 <tt class="docutils literal">TORRENT_USE_GCRYPT</tt> must be defined.</td>
 </tr>
-<tr><td><tt class="docutils literal">TORRENT_DISABLE_EXTENSIONS</tt></td>
-<td>When defined, libtorrent plugin support is
-disabled along with support for the extension
-handskake (BEP 10).</td>
-</tr>
 <tr><td><tt class="docutils literal">_UNICODE</tt></td>
 <td>On windows, this will cause the file IO
 use wide character API, to properly support
@@ -778,8 +771,8 @@ the header files and cpp files.</td>
 <td>Define to either 0 or 1. Enables assert logging
 in release builds.</td>
 </tr>
-<tr><td><tt class="docutils literal">TORRENT_USE_ASSERTS</tt></td>
-<td>Define as 0 to disable asserts unconditionally.</td>
+<tr><td><tt class="docutils literal">TORRENT_NO_ASSERTS</tt></td>
+<td>Disables all asserts.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_USE_SYSTEM_ASSERTS</tt></td>
 <td>Uses the libc assert macro rather then the
@@ -810,7 +803,7 @@ be picked up by libtorrent.</p>
 </div>
     </div>
     <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
     </div>
     </div>
     <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">

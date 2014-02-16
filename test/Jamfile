@@ -1,111 +1,47 @@
 import testing ;
-import feature : feature ;
 
 use-project /torrent : .. ;
 
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
 	: <threading>multi <debug-iterators>on <invariant-checks>full ;
 
-exe enum_if : enum_if.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
-
 explicit test_natpmp ;
-explicit enum_if ;
 
-ED25519_SOURCES =
-	add_scalar
-	fe
-	ge
-	key_exchange
-	keypair
-	sc
-	seed
-	sha512
-	sign
-	verify
-	;
-
-rule link_test ( properties * )
+rule libtorrent_dependency ( properties * )
 {
 	local result ;
-	if <link>shared in $(properties)
+
+	if <toolset>msvc in $(properties)
 	{
-		result +=
-			<library>libtorrent_test/<link>shared ;
+		# for some reason, the visual studio debugger seems
+		# to get very confused with the dynamic linking.
+		# since debugging unit tests is common, just link
+		# statically with msvc
+		result += <library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
 	}
 	else
 	{
-		result +=
-			<library>libtorrent_test/<link>static ;
+		result += <library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
 	}
+
 	return $(result) ;
 }
-
-rule link_libtorrent ( properties * )
-{
-	local result ;
-	if <link>shared in $(properties)
-	{
-		result +=
-			<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
-	}
-	else
-	{
-		result +=
-			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
-	}
-	return $(result) ;
-}
-
-lib libtorrent_test
-	: # sources
-	setup_transfer.cpp
-	dht_server.cpp
-	peer_server.cpp
-	../ed25519/src/$(ED25519_SOURCES).c
-	web_seed_suite.cpp
-
-	: # requirements
-	# this is used to determine whether
-	# symbols are exported or imported
-	<link>shared:<define>TORRENT_BUILDING_TEST_SHARED
-	<link>shared:<define>ED25519_BUILD_DLL
-	<include>../ed25519/src
-	<target-os>windows:<library>advapi32
-	<conditional>@link_libtorrent
-
-	: # default build
-	<link>shared
-
-	: # user-requirements
-	<link>shared:<define>TORRENT_LINK_TEST_SHARED
-;
-
-lib advapi32 : : <name>Advapi32 ;
 
 project
    : requirements
+	<conditional>@libtorrent_dependency
 	<source>main.cpp
-	<conditional>@link_test
-	<conditional>@link_libtorrent
+	<source>setup_transfer.cpp
+	<source>dht_server.cpp
+	<source>peer_server.cpp
    : default-build
 	<threading>multi
 	<invariant-checks>full
 	<debug-iterators>on
-	<link>shared
    ;
 
-feature launcher : none valgrind : composite ;
-feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <valgrind>on ;
-
 test-suite libtorrent : 	
-	[ run test_bitfield.cpp ]
-	[ run test_torrent_info.cpp ]
-	[ run test_time.cpp ]
 	[ run test_file_storage.cpp ]
-	[ run test_priority.cpp ]
-	[ run test_peer_priority.cpp ]
-	[ run test_file.cpp ]
 	[ run test_privacy.cpp ]
 	[ run test_threads.cpp ]
 	[ run test_rss.cpp ]
@@ -115,11 +51,6 @@ test-suite libtorrent :
 	[ run test_bencoding.cpp ]
 	[ run test_fast_extension.cpp ]
 	[ run test_primitives.cpp ]
-	[ run test_http_parser.cpp ]
-	[ run test_packet_buffer.cpp ]
-	[ run test_string.cpp ]
-	[ run test_magnet.cpp ]
-	[ run test_xml.cpp ]
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
 	[ run test_dht.cpp ]
@@ -133,13 +64,6 @@ test-suite libtorrent :
 	[ run test_tracker.cpp ]
 	[ run test_checking.cpp ]
 	[ run test_web_seed.cpp ]
-	[ run test_web_seed_socks4.cpp ]
-	[ run test_web_seed_socks5.cpp ]
-	[ run test_web_seed_socks5_pw.cpp ]
-	[ run test_web_seed_http.cpp ]
-	[ run test_web_seed_http_pw.cpp ]
-	[ run test_web_seed_chunked.cpp ]
-	[ run test_web_seed_ban.cpp ]
 	[ run test_bdecode_performance.cpp ]
 	[ run test_pe_crypto.cpp ]
 

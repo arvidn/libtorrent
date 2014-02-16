@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -113,11 +113,6 @@ public:
 		resize(b.size());
 		std::memcpy(m_begin, b.begin(), b.size());
 	}
-
-#if __cplusplus > 199711L
-	buffer(buffer&& b): m_begin(b.m_begin), m_end(b.m_end), m_last(b.m_last)
-	{ b.m_begin = b.m_end = b.m_last = NULL; }
-#endif
 
 	buffer& operator=(buffer const& b)
 	{

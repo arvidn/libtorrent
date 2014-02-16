@@ -33,35 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEST_HPP
 #define TEST_HPP
 
+void report_failure(char const* str, char const* file, int line);
+
 #include <boost/config.hpp>
 #include <exception>
 #include <sstream>
-
-#include "libtorrent/config.hpp"
-
-#if defined TORRENT_BUILDING_TEST_SHARED
-#define EXPORT BOOST_SYMBOL_EXPORT
-#elif defined TORRENT_LINK_TEST_SHARED
-#define EXPORT BOOST_SYMBOL_IMPORT
-#else
-#define EXPORT
-#endif
-
-// the unit tests need access to these.
-// they are built into the unit test library as well.
-// not exported from libtorrent itself
-extern "C"
-{
-	int EXPORT ed25519_create_seed(unsigned char *seed);
-	void EXPORT ed25519_create_keypair(unsigned char *public_key, unsigned char *private_key, const unsigned char *seed);
-	void EXPORT ed25519_sign(unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key, const unsigned char *private_key);
-	int EXPORT ed25519_verify(const unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key);
-	void EXPORT ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar);
-	void EXPORT ed25519_key_exchange(unsigned char *shared_secret, const unsigned char *public_key, const unsigned char *private_key);
-}
-
-void EXPORT report_failure(char const* err, char const* file, int line);
-int EXPORT print_failures();
 
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
@@ -86,7 +62,7 @@ int EXPORT print_failures();
 #define TEST_EQUAL(x, y) \
 	if (x != y) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << x << "\nexpected: " << y; \
+		s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else
@@ -109,7 +85,7 @@ int EXPORT print_failures();
 	try { \
 		if (x != y) { \
 			std::stringstream s__; \
-			s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y; \
+			s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \

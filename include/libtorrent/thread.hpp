@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_THREAD_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
 
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
@@ -57,17 +56,14 @@ namespace libtorrent
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
 
-	// pauses the calling thread at least for the specified
-	// number of milliseconds
 	TORRENT_EXPORT void sleep(int milliseconds);
 
-	struct TORRENT_EXTRA_EXPORT condition_variable
+	struct TORRENT_EXTRA_EXPORT condition
 	{
-		condition_variable();
-		~condition_variable();
+		condition();
+		~condition();
 		void wait(mutex::scoped_lock& l);
-		void wait_for(mutex::scoped_lock& l, time_duration rel_time);
-		void notify_all();
+		void signal_all(mutex::scoped_lock& l);
 	private:
 #ifdef BOOST_HAS_PTHREADS
 		pthread_cond_t m_cond;

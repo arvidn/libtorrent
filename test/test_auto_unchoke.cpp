@@ -1,35 +1,3 @@
-/*
-
-Copyright (c) 2011, Arvid Norberg
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in
-      the documentation and/or other materials provided with the distribution.
-    * Neither the name of the author nor the names of its
-      contributors may be used to endorse or promote products derived
-      from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-
-*/
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
@@ -44,13 +12,6 @@ POSSIBILITY OF SUCH DAMAGE.
 void test_swarm()
 {
 	using namespace libtorrent;
-
-	// these are declared before the session objects
-	// so that they are destructed last. This enables
-	// the sessions to destruct in parallel
-	session_proxy p1;
-	session_proxy p2;
-	session_proxy p3;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
@@ -95,24 +56,35 @@ void test_swarm()
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
 
 	session_status st = ses1.status();
-	TEST_EQUAL(st.allowed_upload_slots, 1);
-	for (int i = 0; i < 100; ++i)
+	TEST_CHECK(st.allowed_upload_slots == 1);
+	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 		print_alerts(ses3, "ses3");
 
 		st = ses1.status();
-		fprintf(stderr, "allowed unchoked: %d\n", st.allowed_upload_slots);
+		std::cerr << st.allowed_upload_slots << " ";
 		if (st.allowed_upload_slots >= 2) break;
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
-		print_ses_rate(i, &st1, &st2, &st3);
+		std::cerr
+			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+			<< st1.num_peers << " " << st.allowed_upload_slots << ": "
+			<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st2.progress * 100) << "% "
+			<< st2.num_peers << " - "
+			<< "\033[32m" << int(st3.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st3.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st3.progress * 100) << "% "
+			<< st3.num_peers
+			<< std::endl;
 
-		test_sleep(100);
+		test_sleep(1000);
 	}
 
 	TEST_CHECK(st.allowed_upload_slots >= 2);
@@ -121,11 +93,6 @@ void test_swarm()
 	ses1.remove_torrent(tor1, session::delete_files);
 	ses2.remove_torrent(tor2, session::delete_files);
 	ses3.remove_torrent(tor3, session::delete_files);
-
-	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-	p3 = ses3.abort();
 }
 
 int test_main()

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <cstdlib>
 
-namespace libtorrent {
+using namespace libtorrent;
 
 static error_code ec;
 
@@ -475,7 +475,6 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		// we don't have this device in our list. Add it
 		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
-		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
@@ -701,7 +700,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_cc, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
-			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
+			, boost::ref(d), i, _5), true
 			, boost::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
 		d.upnp_connection->start(d.hostname, to_string(d.port).elems
@@ -712,7 +711,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_cc, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
-			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
+			, boost::ref(d), i, _5), true
 			, boost::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
 		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
@@ -795,7 +794,7 @@ struct parse_state
 	}
 };
 
-TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_state& state)
+TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
@@ -934,7 +933,6 @@ void upnp::on_upnp_xml(error_code const& e
 	{
 		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
-		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 		d.control_url = protocol + "://" + d.hostname + ":"
 			+ to_string(d.port).elems + s.control_url;
 	}
@@ -948,7 +946,6 @@ void upnp::on_upnp_xml(error_code const& e
 
 	boost::tie(protocol, auth, d.hostname, d.port, d.path)
 		= parse_url_components(d.control_url, ec);
-	if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 
 	if (ec)
 	{
@@ -962,7 +959,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	d.upnp_connection.reset(new http_connection(m_io_service
 		, m_cc, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
-		, boost::ref(d), _5), true, default_max_bottled_buffer_size 
+		, boost::ref(d), _5), true
 		, boost::bind(&upnp::get_ip_address, self(), boost::ref(d))));
 	d.upnp_connection->start(d.hostname, to_string(d.port).elems
 		, seconds(10), 1);
@@ -1098,48 +1095,36 @@ namespace
 
 #if BOOST_VERSION >= 103500
 
-struct upnp_error_category : boost::system::error_category
+
+const char* upnp_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 {
-	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
-	{
-		return "UPnP error";
-	}
+	return "UPnP error";
+}
 
-	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{
-		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
-		error_code_t* end = error_codes + num_errors;
-		error_code_t tmp = {ev, 0};
-		error_code_t* e = std::lower_bound(error_codes, end, tmp
-			, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
-		if (e != end && e->code == ev)
-		{
-			return e->msg;
-		}
-		char msg[200];
-		snprintf(msg, sizeof(msg), "unknown UPnP error (%d)", ev);
-		return msg;
-	}
-
-	virtual boost::system::error_condition default_error_condition(
-		int ev) const BOOST_SYSTEM_NOEXCEPT
-	{
-		return boost::system::error_condition(ev, *this);
-	}
-};
-
-boost::system::error_category& get_upnp_category()
+std::string upnp_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
 {
-	static upnp_error_category cat;
-	return cat;
+	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
+	error_code_t* end = error_codes + num_errors;
+	error_code_t tmp = {ev, 0};
+	error_code_t* e = std::lower_bound(error_codes, end, tmp
+		, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
+	if (e != end && e->code == ev)
+	{
+		return e->msg;
+	}
+	return "unknown UPnP error";
+}
+
+namespace libtorrent
+{
+	TORRENT_EXPORT upnp_error_category upnp_category;
 }
 
 #else
 
-boost::system::error_category& get_upnp_category()
+namespace libtorrent
 {
-	static ::asio::error::error_category cat(21);
-	return cat;
+	TORRENT_EXPORT ::asio::error::error_category upnp_category(21);
 }
 
 #endif
@@ -1398,7 +1383,7 @@ void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
 		error_string += e->msg;
 	}
 	l.unlock();
-	m_callback(mapping, address(), 0, error_code(code, get_upnp_category()));
+	m_callback(mapping, address(), 0, error_code(code, upnp_category));
 	l.lock();
 }
 
@@ -1442,19 +1427,6 @@ void upnp::on_upnp_unmap_response(error_code const& e
 			, std::string(p.get_body().begin, p.get_body().end).c_str());
 		log(msg, l);
 	}
-
-	error_code_parse_state s;
-	if (p.header_finished())
-	{
-		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-			, boost::bind(&find_error_code, _1, _2, boost::ref(s)));
-	}
-
-	l.unlock();
-	m_callback(mapping, address(), 0, p.status_code() != 200
-		? error_code(p.status_code(), get_http_category())
-		: error_code(s.error_code, get_upnp_category()));
-	l.lock();
 
 	d.mapping[mapping].protocol = none;
 
@@ -1535,7 +1507,5 @@ void upnp::close()
 		}
 		if (num_mappings() > 0) update_map(d, 0, l);
 	}
-}
-
 }
 

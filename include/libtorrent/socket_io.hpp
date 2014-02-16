@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,11 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	TORRENT_EXTRA_EXPORT std::string print_address(address const& addr);
-	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT std::string print_endpoint(udp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT std::string address_to_bytes(address const& a);
-	// internal 
+	TORRENT_EXPORT std::string print_address(address const& addr);
+	TORRENT_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
+	TORRENT_EXPORT std::string print_endpoint(udp::endpoint const& ep);
+	TORRENT_EXPORT std::string address_to_bytes(address const& a);
 	TORRENT_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT void hash_address(address const& ip, sha1_hash& h);
 
