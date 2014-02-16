@@ -149,7 +149,7 @@ void save_resume::handle_alert(alert const* a)
 		m_torrents.insert(ta->handle);
 		if (st.has_metadata)
 		{
-			ta->handle.save_resume_data(torrent_handle::save_info_dict);
+			ta->handle.save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
 			++m_num_in_flight;
 		}
 
@@ -158,7 +158,7 @@ void save_resume::handle_alert(alert const* a)
 	}
 	else if (mr)
 	{
-		mr->handle.save_resume_data(torrent_handle::save_info_dict);
+		mr->handle.save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
 		++m_num_in_flight;
 	}
 	else if (td)
@@ -272,22 +272,28 @@ void save_resume::handle_alert(alert const* a)
 	// how long since we last tried to save one. Every m_interval seconds,
 	// we should have saved all torrents
 	int num_torrents = m_torrents.size();
-	int num_to_save = num_torrents * total_seconds(time_now() - m_last_save)
-		/ total_seconds(m_interval);
+	int seconds_since_last = total_seconds(time_now() - m_last_save);
+	int num_to_save = num_torrents * seconds_since_last /
+		total_seconds(m_interval);
+
 	// never save more than all torrents
 	num_to_save = (std::min)(num_to_save, num_torrents);
+
+	if (num_to_save > 0)
+	{
+		printf("saving resume data. [ time: %ds num-torrents: %d interval: %ds ]\n"
+			, seconds_since_last, num_to_save, int(total_seconds(m_interval)));
+	}
 
 	while (num_to_save > 0)
 	{
 		if (m_cursor == m_torrents.end())
 			m_cursor = m_torrents.begin();
 
-		if (m_cursor->need_save_resume_data())
-		{
-			m_cursor->save_resume_data(torrent_handle::save_info_dict);
-			printf("saving resume data for: %s\n", m_cursor->status().name.c_str());
-			++m_num_in_flight;
-		}
+		m_cursor->save_resume_data(torrent_handle::save_info_dict
+			| torrent_handle::only_if_modified);
+		printf("saving resume data for: %s\n", m_cursor->status().name.c_str());
+		++m_num_in_flight;
 		--num_to_save;
 		++m_cursor;
 	}
@@ -299,8 +305,7 @@ void save_resume::save_all()
 	for (boost::unordered_set<torrent_handle>::iterator i = m_torrents.begin()
 		, end(m_torrents.end()); i != end; ++i)
 	{
-		if (!i->need_save_resume_data()) continue;
-		i->save_resume_data(torrent_handle::save_info_dict);
+		i->save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
 		++m_num_in_flight;
 	}
 }

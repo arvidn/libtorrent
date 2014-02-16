@@ -463,7 +463,8 @@ char const* settings_name(int s)
 	return name_for_setting(s);
 }
 
-void utorrent_webui::get_settings(std::vector<char>& response, char const* args, permissions_interface const* p)
+void utorrent_webui::get_settings(std::vector<char>& response, char const* args
+	, permissions_interface const* p)
 {
 	appendf(response, ", \"settings\": [");
 
@@ -514,6 +515,21 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 			sname = "upnp";
 			value = sett.get_bool(s);
 		}
+		else if (s == settings_pack::auto_manage_prefer_seeds)
+		{
+			sname = "seeds_prioritized";
+			value = sett.get_bool(s);
+		}
+		else if (s == settings_pack::use_write_cache)
+		{
+			sname = "cache.write";
+			value = sett.get_bool(s);
+		}
+		else if (s == settings_pack::use_read_cache)
+		{
+			sname = "cache.read";
+			value = sett.get_bool(s);
+		}
 		else
 		{
 			sname = settings_name(s);
@@ -551,6 +567,16 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args,
 		{
 			sname = "conns_globally";
 			value = sett.get_int(s);
+		}
+		else if (s == settings_pack::active_downloads)
+		{
+			sname = "max_active_downloads";
+			value = sett.get_int(s);
+		}
+		else if (s == settings_pack::active_limit)
+		{
+			sname = "max_active_torrent";
+			value = (std::min)(sett.get_int(s), sett.get_int(settings_pack::active_seeds));
 		}
 		else
 		{
@@ -698,8 +724,25 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		}
 		else if (key == "conns_globally")
 		{
-			if (p->allow_set_settings(settings_pack::connections_limit)) continue;
+			if (!p->allow_set_settings(settings_pack::connections_limit)) continue;
 			pack.set_int(settings_pack::connections_limit, atoi(value.c_str()));
+		}
+		else if (key == "max_active_downloads")
+		{
+			if (!p->allow_set_settings(settings_pack::active_downloads)) continue;
+			pack.set_int(settings_pack::active_downloads, atoi(value.c_str()));
+		}
+		else if (key == "max_active_torrent")
+		{
+			if (!p->allow_set_settings(settings_pack::active_limit)) continue;
+			if (!p->allow_set_settings(settings_pack::active_seeds)) continue;
+			pack.set_int(settings_pack::active_limit, atoi(value.c_str()));
+			pack.set_int(settings_pack::active_seeds, atoi(value.c_str()));
+		}
+		else if (key == "seeds_prioritized")
+		{
+			if (!p->allow_set_settings(settings_pack::auto_manage_prefer_seeds)) continue;
+			pack.set_bool(settings_pack::auto_manage_prefer_seeds, to_bool(value));
 		}
 		else if (key == "torrents_start_stopped")
 		{
@@ -745,6 +788,16 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 
 			int size = atoi(value.c_str()) * 1024 / 16;
 			pack.set_int(settings_pack::cache_size, size);
+		}
+		else if (key == "cache.write")
+		{
+			if (!p->allow_set_settings(settings_pack::use_write_cache)) continue;
+			pack.set_bool(settings_pack::use_write_cache, to_bool(value));
+		}
+		else if (key == "cache.read")
+		{
+			if (!p->allow_set_settings(settings_pack::use_read_cache)) continue;
+			pack.set_bool(settings_pack::use_read_cache, to_bool(value));
 		}
 		else if (key == "max_ul_rate")
 		{
