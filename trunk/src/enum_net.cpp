@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/host_name.hpp>
 #endif
 
-#if TORREN_USE_IFCONF
+#if TORRENT_USE_IFCONF
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
