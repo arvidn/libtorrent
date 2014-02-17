@@ -938,7 +938,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		std::pair<char const*, int> salt(NULL, 0);
+		std::pair<char const*, int> salt(static_cast<char const*>(NULL), 0);
 		if (msg_keys[6])
 			salt = std::pair<char const*, int>(
 				msg_keys[6]->string_ptr(), msg_keys[6]->string_length());
