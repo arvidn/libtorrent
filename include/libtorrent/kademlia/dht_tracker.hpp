@@ -106,6 +106,10 @@ namespace libtorrent { namespace dht
 		void put_item(char const* key
 			, boost::function<void(item&)> cb, std::string salt = std::string());
 
+		// send an arbitrary DHT request directly to a node
+		void direct_request(boost::asio::ip::udp::endpoint ep, entry& e
+			, boost::function<void(msg const&)> f);
+
 #ifndef TORRENT_NO_DEPRECATE
 		void dht_status(session_status& s);
 #endif

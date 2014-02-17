@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2015, Arvid Norberg
+Copyright (c) 2014, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,56 +30,72 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef DHT_OBSERVER_HPP
-#define DHT_OBSERVER_HPP
+#ifndef LIBTORRENT_DIRECT_REQUEST_HPP
+#define LIBTORRENT_DIRECT_REQUEST_HPP
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/kademlia/msg.hpp"
+#include <boost/function/function1.hpp>
+#include <libtorrent/kademlia/msg.hpp>
+#include <libtorrent/kademlia/traversal_algorithm.hpp>
 
 namespace libtorrent { namespace dht
 {
-	struct dht_logger
+
+struct direct_trasversal : traversal_algorithm
+{
+	direct_trasversal(node& node
+		, node_id target
+		, boost::function<void(msg const&)> cb)
+		: traversal_algorithm(node, target)
+		, m_cb(cb)
+	{}
+
+	virtual char const* name() const { return "direct_trasversal"; }
+
+	void invoke_cb(msg const& m)
 	{
-		enum module_t
+		if (!m_cb.empty())
 		{
-			tracker,
-			node,
-			routing_table,
-			rpc_manager,
-			traversal
-		};
+			m_cb(m);
+			m_cb.clear();
+			done();
+		}
+	}
 
-		enum message_direction_t
-		{
-			incoming_message,
-			outgoing_message
-		};
+protected:
+	boost::function<void(msg const&)> m_cb;
+};
 
-		virtual void log(module_t m, char const* fmt, ...) TORRENT_FORMAT(3,4) = 0;
-		virtual void log_packet(message_direction_t dir, char const* pkt, int len
-			, udp::endpoint node) = 0;
+struct direct_observer : observer
+{
+	direct_observer(boost::intrusive_ptr<traversal_algorithm> const& algo
+		, udp::endpoint const& ep, node_id const& id)
+		: observer(algo, ep, id)
+	{}
 
-	protected:
-		~dht_logger() {}
-	};
-
-	struct dht_observer : dht_logger
+	virtual void reply(msg const& m)
 	{
-		virtual void set_external_address(address const& addr
-			, address const& source) = 0;
-		virtual address external_address() = 0;
-		virtual void get_peers(sha1_hash const& ih) = 0;
-		virtual void outgoing_get_peers(sha1_hash const& target
-			, sha1_hash const& sent_target, udp::endpoint const& ep) = 0;
-		virtual void announce(sha1_hash const& ih, address const& addr, int port) = 0;
-		virtual bool on_dht_request(char const* query, int query_len
-			, dht::msg const& request, entry& response) = 0;
+		flags |= flag_done;
+		static_cast<direct_trasversal*>(algorithm())->invoke_cb(m);
+	}
 
-	protected:
-		~dht_observer() {}
-	};
-}}
+	virtual void timeout()
+	{
+		if (flags & flag_done) return;
+		flags |= flag_done;
+		bdecode_node e;
+		if (flags & flag_ipv6_address)
+		{
+			msg m(e, target_ep());
+			static_cast<direct_trasversal*>(algorithm())->invoke_cb(m);
+		}
+		else
+		{
+			msg m(e, target_ep());
+			static_cast<direct_trasversal*>(algorithm())->invoke_cb(m);
+		}
+	}
+};
+
+} } // namespace libtorrent::dht
 
 #endif
-

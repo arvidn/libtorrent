@@ -431,6 +431,8 @@ namespace libtorrent
 		void dht_get_peers(sha1_hash const& info_hash);
 		void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
+		void dht_direct_request(boost::asio::ip::udp::endpoint ep, entry const& e, void* userdata);
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use save_state and load_state instead

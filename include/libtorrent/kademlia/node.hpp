@@ -245,6 +245,9 @@ public:
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
+	void direct_request(boost::asio::ip::udp::endpoint ep, entry& e
+		, boost::function<void(msg const&)> f);
+
 	void get_item(sha1_hash const& target, boost::function<bool(item&, bool)> f);
 	void get_item(char const* pk, std::string const& salt, boost::function<bool(item&, bool)> f);
 

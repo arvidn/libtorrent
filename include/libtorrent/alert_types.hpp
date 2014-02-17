@@ -2382,12 +2382,27 @@ namespace libtorrent
 		int m_peers_idx;
 	};
 
+	struct TORRENT_EXPORT dht_direct_response_alert: alert
+	{
+		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+			, udp::endpoint const& addr, entry const& response);
+
+		TORRENT_DEFINE_ALERT(dht_direct_response_alert, 88)
+
+		static const int static_category = alert::dht_notification;
+		virtual std::string message() const;
+
+		void* userdata;
+		udp::endpoint addr;
+		entry response;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 88 };
+	enum { num_alert_types = 89 };
 }
 
 

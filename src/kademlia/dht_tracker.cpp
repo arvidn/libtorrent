@@ -311,6 +311,12 @@ namespace libtorrent { namespace dht
 			, _1, _2, cb));
 	}
 
+	void dht_tracker::direct_request(boost::asio::ip::udp::endpoint ep, entry& e
+		, boost::function<void(msg const&)> f)
+	{
+		m_dht.direct_request(ep, e, f);
+	}
+
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library
 	bool dht_tracker::incoming_packet(error_code const& ec

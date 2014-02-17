@@ -1831,5 +1831,20 @@ namespace libtorrent {
 		}
 	}
 
+	dht_direct_response_alert::dht_direct_response_alert(
+		aux::stack_allocator&, void* userdata
+		, udp::endpoint const& addr, entry const& response)
+		: userdata(userdata), addr(addr), response(response)
+	{}
+
+	std::string dht_direct_response_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT direct response (address=%s) [ %s ]"
+			, addr.address().to_string().c_str()
+			, response.to_string().c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 

@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/kademlia/direct_request.hpp"
 
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/get_peers.hpp"
@@ -409,6 +410,22 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	get_peers(info_hash, f
 		, boost::bind(&announce_fun, _1, boost::ref(*this)
 		, listen_port, info_hash, flags), flags & node::flag_seed);
+}
+
+void node::direct_request(boost::asio::ip::udp::endpoint ep, entry& e
+	, boost::function<void(msg const&)> f)
+{
+	// not really a traversal
+	boost::intrusive_ptr<direct_trasversal> algo(
+		new direct_trasversal(*this, (node_id::min)(), f));
+
+	void* ptr = m_rpc.allocate_observer();
+	if (ptr == 0) return;
+	observer_ptr o(new (ptr) direct_observer(algo, ep, (node_id::min)()));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	m_rpc.invoke(e, ep, o);
 }
 
 void node::get_item(sha1_hash const& target
@@ -868,9 +885,6 @@ void node::incoming_request(msg const& m, entry& e)
 
 	e["ip"] = endpoint_to_bytes(m.addr);
 
-	char const* query = top_level[0].string_ptr();
-	int query_len = top_level[0].string_length();
-
 	bdecode_node arg_ent = top_level[2];
 	bool read_only = top_level[1] && top_level[1].int_value() != 0;
 	node_id id(top_level[3].string_ptr());
@@ -892,6 +906,12 @@ void node::incoming_request(msg const& m, entry& e)
 
 	// mirror back the other node's external port
 	reply["p"] = m.addr.port();
+
+	char const* query = top_level[0].string_ptr();
+	int query_len = top_level[0].string_length();
+
+	if (m_observer && m_observer->on_dht_request(query, query_len, m, e))
+		return;
 
 	if (query_len == 4 && memcmp(query, "ping", 4) == 0)
 	{
