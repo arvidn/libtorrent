@@ -93,14 +93,14 @@ public:
 
 	void assign(entry const& v)
 	{
-		assign(v, std::pair<char const*, int>(NULL, 0), 0, NULL, NULL);
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL), 0), 0, NULL, NULL);
 	}
 	void assign(entry const& v
 		, std::pair<char const*, int> salt
 		, boost::uint64_t seq, char const* pk, char const* sk);
 	void assign(lazy_entry const* v)
 	{
-		assign(v, std::pair<char const*, int>(NULL, 0), 0, NULL, NULL);
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL), 0), 0, NULL, NULL);
 	}
 	bool assign(lazy_entry const* v
 		, std::pair<char const*, int> salt
