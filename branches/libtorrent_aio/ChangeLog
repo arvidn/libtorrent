@@ -1,3 +1,5 @@
+	* support specifying listen interfaces and outgoing interfaces as device
+	  names (eth0, en2, tun0 etc.)
 	* support for using purgrable memory as disk cache on Mac OS.
 	* be more aggressive in corking sockets, to coalesce messages into larger packets.
 	* pre-emptively unchoke peers to save one round-trip at connection start-up.

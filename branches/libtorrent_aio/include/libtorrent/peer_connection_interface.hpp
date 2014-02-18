@@ -68,6 +68,7 @@ namespace libtorrent
 			op_encryption,
 			op_connect,
 			op_ssl_handshake,
+			op_get_interface,
 		};
 
 		virtual tcp::endpoint const& remote() const = 0;

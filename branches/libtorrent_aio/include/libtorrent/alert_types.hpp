@@ -1329,11 +1329,11 @@ namespace libtorrent
 
 		// internal
 		listen_failed_alert(
-			tcp::endpoint const& ep
+			std::string iface
 			, int op
 			, error_code const& ec
 			, socket_type_t t)
-			: endpoint(ep)
+			: interface(iface)
 			, error(ec)
 			, operation(op)
 			, sock_type(t)
@@ -1345,8 +1345,8 @@ namespace libtorrent
 		virtual std::string message() const;
 		virtual bool discardable() const { return false; }
 
-		// the endpoint libtorrent attempted to listen on
-		tcp::endpoint endpoint;
+		// the interface libtorrent attempted to listen on
+		std::string interface;
 
 		// the error the system returned
 		error_code error;
@@ -1552,7 +1552,8 @@ namespace libtorrent
 			i2p_mixed,
 			privileged_ports,
 			utp_disabled,
-			tcp_disabled
+			tcp_disabled,
+			invalid_local_interface
 		};
 
 		int reason;

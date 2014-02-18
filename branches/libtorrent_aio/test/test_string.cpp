@@ -221,6 +221,36 @@ int test_main()
 	TEST_EQUAL(resolve_file_url("file:///c/blah/foo/bar"), "/c/blah/foo/bar");
 	TEST_EQUAL(resolve_file_url("file:///c/b%3fah/foo/bar"), "/c/b?ah/foo/bar");
 #endif
+
+	std::vector<std::string> list;
+	parse_comma_separated_string("  a,b, c, d ,e \t,foobar\n\r.[::1]", list);
+	TEST_EQUAL(list.size(), 7);
+	TEST_EQUAL(list[0], "a");
+	TEST_EQUAL(list[1], "b");
+	TEST_EQUAL(list[2], "c");
+	TEST_EQUAL(list[3], "d");
+	TEST_EQUAL(list[4], "e");
+	TEST_EQUAL(list[5], "foobar");
+	TEST_EQUAL(list[6], "::1");
+
+	std::vector<std::pair<std::string, int> > list2;
+	parse_comma_separated_string_port("  a:4,b:35, c : 1000, d: 351 ,e \t:42,foobar:1337\n\r[2001::1]:6881", list2);
+	TEST_EQUAL(list2.size(), 7);
+	TEST_EQUAL(list2[0].first, "a");
+	TEST_EQUAL(list2[1].first, "b");
+	TEST_EQUAL(list2[2].first, "c");
+	TEST_EQUAL(list2[3].first, "d");
+	TEST_EQUAL(list2[4].first, "e");
+	TEST_EQUAL(list2[5].first, "foobar");
+	TEST_EQUAL(list2[6].first, "::1");
+
+	TEST_EQUAL(list2[0].second, 4);
+	TEST_EQUAL(list2[1].second, 35);
+	TEST_EQUAL(list2[2].second, 1000);
+	TEST_EQUAL(list2[3].second, 351);
+	TEST_EQUAL(list2[4].second, 42);
+	TEST_EQUAL(list2[5].second, 1337);
+	TEST_EQUAL(list2[6].second, 6881);
 	return 0;
 }
 

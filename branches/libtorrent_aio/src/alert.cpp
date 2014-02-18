@@ -305,9 +305,9 @@ namespace libtorrent {
 		{
 			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5"
 		};
-		char ret[250];
+		char ret[300];
 		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
-			, print_endpoint(endpoint).c_str()
+			, interface.c_str()
 			, op_str[operation]
 			, type_str[sock_type]
 			, convert_from_native(error.message()).c_str());
@@ -361,7 +361,8 @@ namespace libtorrent {
 			"i2p_mixed",
 			"privileged_ports",
 			"utp_disabled",
-			"tcp_disabled"
+			"tcp_disabled",
+			"invalid_local_interface"
 		};
 
 		snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
@@ -589,6 +590,7 @@ namespace libtorrent {
 			"encryption",
 			"connect",
 			"ssl_handshake",
+			"get_interface",
 		};
 
 		if (op < 0 || op >= sizeof(names)/sizeof(names[0]))

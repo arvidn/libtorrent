@@ -144,32 +144,39 @@ namespace libtorrent
 			// message. If this is an empty string, the user_agent is used instead
 			handshake_client_version,
 
-
-			// sets the network interface this session will use when it opens outgoing
-			// connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
-			// OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
-			// (either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
-			// in round-robin order. This may be useful for clients that are multi-homed.
-			// Binding an outgoing connection to a local IP does not necessarily make the connection via the associated
-			// NIC/Adapter. Setting this to an empty string will disable binding of outgoing connections.
+			// sets the network interface this session will use when it opens
+			// outgoing connections. By default, it binds outgoing connections to
+			// INADDR_ANY and port 0 (i.e. let the OS decide). Ths parameter must
+			// be a string containing one or more, comma separated, adapter names.
+			// Adapter names on unix systems are of the form "eth0", "eth1", "tun0",
+			// etc. When specifying multiple
+			// interfaces, they will be assigned in round-robin order. This may be
+			// useful for clients that are multi-homed. Binding an outgoing
+			// connection to a local IP does not necessarily make the connection
+			// via the associated NIC/Adapter. Setting this to an empty string
+			// will disable binding of outgoing connections.
 			outgoing_interfaces,
 
-			// a comma-separated list of (IP, port) pairs. These are the listen ports that will be opened
-			// for accepting incoming uTP and TCP connections. It is possible to listen on multiple interfaces
-			// and multiple ports. Binding to port 0 will make the operating system pick the port.
-			// The default is "0.0.0.0:0", which binds to all interfaces on a port the OS picks.
+			// a comma-separated list of (IP or device name, port) pairs. These
+			// are the listen ports that will be opened for accepting incoming uTP
+			// and TCP connections. It is possible to listen on multiple
+			// interfaces and multiple ports. Binding to port 0 will make the
+			// operating system pick the port. The default is "0.0.0.0:0", which
+			// binds to all interfaces on a port the OS picks.
 			//
-			// if binding fails, the listen_failed_alert is posted, otherwise the listen_succeeded_alert.
+			// if binding fails, the listen_failed_alert is posted, otherwise the
+			// listen_succeeded_alert.
 			//
-			// If the DHT is running, it will also have its socket rebound to the same port as the main
-			// listen port.
+			// If the DHT is running, it will also have its socket rebound to the
+			// same port as the main listen port.
 			// 
-			// The reason why it's a good idea to run the DHT and the bittorrent socket on the same
-			// port is because that is an assumption that may be used to increase performance. One
-			// way to accelerate the connecting of peers on windows may be to first ping all peers
-			// with a DHT ping packet, and connect to those that responds first. On windows one
-			// can only connect to a few peers at a time because of a built in limitation (in XP
-			// Service pack 2).
+			// The reason why it's a good idea to run the DHT and the bittorrent
+			// socket on the same port is because that is an assumption that may
+			// be used to increase performance. One way to accelerate the
+			// connecting of peers on windows may be to first ping all peers with
+			// a DHT ping packet, and connect to those that responds first. On
+			// windows one can only connect to a few peers at a time because of a
+			// built in limitation (in XP Service pack 2).
 			listen_interfaces,
 
 			max_string_setting_internal,

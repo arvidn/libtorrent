@@ -184,10 +184,6 @@ namespace libtorrent { namespace aux
 		// used to (potentially) issue socket write calls onto multiple threads
 		virtual void post_socket_job(socket_job& j) = 0;
 
-		// when binding outgoing connections, this provides a round-robin
-		// port selection
-		virtual int next_port() = 0;
-
 		// load the specified torrent. also evict one torrent, except
 		// for the one specified, if we are at the limit of loaded torrents
 		virtual bool load_torrent(torrent* t) = 0;
@@ -197,7 +193,10 @@ namespace libtorrent { namespace aux
 		virtual void bump_torrent(torrent* t, bool back = true) = 0;
 
 		// ask for which interface and port to bind outgoing peer connections on
-		virtual tcp::endpoint get_interface() const = 0;
+		virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address const&
+			remote_address, error_code& ec) const = 0;
+		virtual bool verify_bound_address(address const& addr, bool utp
+			, error_code& ec) = 0;
 
 		// TODO: it would be nice to not have this be part of session_interface
 		virtual void set_proxy(proxy_settings const& s) = 0;

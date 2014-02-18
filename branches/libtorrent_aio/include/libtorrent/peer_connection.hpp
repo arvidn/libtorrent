@@ -484,7 +484,9 @@ namespace libtorrent
 		ptime last_received() const { return m_last_receive; }
 
 		// this will cause this peer_connection to be disconnected.
-		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
+		virtual void disconnect(error_code const& ec
+			, peer_connection_interface::operation_t op, int error = 0);
+
 		// called when a connect attempt fails (not when an
 		// established connection fails)
 		void connect_failed(error_code const& e);
@@ -1107,7 +1109,11 @@ namespace libtorrent
 		piece_block m_receiving_block;
 
 		// the local endpoint for this peer, i.e. our address
-		// and our port
+		// and our port. If this is set for outgoing connections
+		// before the connection completes, it means we want to
+		// force the connection to be bound to the specified interface.
+		// if it ends up being bound to a different local IP, the connection
+		// is closed.
 		tcp::endpoint m_local;
 		
 		// remote peer's id

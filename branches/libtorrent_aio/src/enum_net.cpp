@@ -38,13 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/socket_type.hpp"
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #else
 #include <boost/asio/ip/host_name.hpp>
 #endif
 
-#if TORREN_USE_IFCONF
+#if TORRENT_USE_IFCONF
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1056,6 +1057,28 @@ namespace libtorrent
 		return ret;
 	}
 
+	// returns true if the given device exists
+	bool has_interface(char const* name, io_service& ios, error_code& ec)
+	{
+		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
+		if (ec) return false;
+
+		for (int i = 0; i < int(ifs.size()); ++i)
+			if (ifs[i].name == name) return true;
+		return false;
+	}
+
+	// returns the device name whose local address is ``addr``. If
+	// no such device is found, an empty string is returned.
+	std::string device_for_address(address addr, io_service& ios, error_code& ec)
+	{
+		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
+		if (ec) return false;
+
+		for (int i = 0; i < int(ifs.size()); ++i)
+			if (ifs[i].interface_address == addr) return ifs[i].name;
+		return std::string();
+	}
 }
 
 

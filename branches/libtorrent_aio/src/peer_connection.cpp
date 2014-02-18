@@ -6227,46 +6227,18 @@ namespace libtorrent
 			return;
 		}
 
-		tcp::endpoint bind_interface = m_ses.get_interface();
-	
-		if (m_settings.get_int(settings_pack::outgoing_port) > 0)
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log(">>> SET_REUSE_ADDRESS");
+		tcp::endpoint bound_ip = m_ses.bind_outgoing_socket(*m_socket
+			, m_remote.address(), ec);
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log(">>> BIND [ dst: %s ec: %s ]", print_endpoint(bound_ip).c_str()
+			, ec.message().c_str());
 #endif
-			m_socket->set_option(socket_acceptor::reuse_address(true), ec);
-			// ignore errors because the underlying socket may not
-			// be opened yet. This happens when we're routing through
-			// a proxy. In that case, we don't yet know the address of
-			// the proxy server, and more importantly, we don't know
-			// the address family of its address. This means we can't
-			// open the socket yet. The socks abstraction layer defers
-			// opening it.
-			ec.clear();
-			bind_interface.port(m_ses.next_port());
-		}
-
-		// if we're not binding to a specific interface, bind
-		// to the same protocol family as the target endpoint
-		if (is_any(bind_interface.address()))
-		{
-#if TORRENT_USE_IPV6
-			if (m_remote.address().is_v6())
-				bind_interface.address(address_v6::any());
-			else
-#endif
-				bind_interface.address(address_v4::any());
-		}
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		peer_log(">>> BIND [ ep: %s ]", print_endpoint(bind_interface).c_str());
-#endif
-		m_socket->bind(bind_interface, ec);
 		if (ec)
 		{
 			disconnect(ec, op_sock_bind);
 			return;
 		}
+	
 #if defined TORRENT_VERBOSE_LOGGING
 		peer_log(">>> ASYNC_CONNECT [ dst: %s ]", print_endpoint(m_remote).c_str());
 #endif
@@ -6359,6 +6331,25 @@ namespace libtorrent
 		{
 			disconnect(ec, op_getname);
 			return;
+		}
+
+		// if there are outgoing interfaces specified, verify this
+		// peer is correctly bound to on of them
+		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
+		{
+			if (!m_ses.verify_bound_address(m_local.address()
+				, is_utp(*m_socket), ec))
+			{
+				if (ec)
+				{
+					disconnect(ec, op_get_interface);
+					return;
+				}
+				disconnect(error_code(
+					boost::system::errc::no_such_device, generic_category())
+					, op_connect);
+				return;
+			}
 		}
 
 		if (is_utp(*m_socket) && m_peer_info)

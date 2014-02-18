@@ -620,8 +620,6 @@ namespace aux {
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
-		m_net_interfaces.push_back(tcp::endpoint(address_v4::any(), 0));
-
 		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
 
@@ -2294,21 +2292,22 @@ namespace aux {
 
 	enum { listen_no_system_port = 0x02 };
 
-	void session_impl::setup_listener(listen_socket_t* s, tcp::endpoint ep
-		, int& retries, bool v6_only, int flags, error_code& ec)
+	void session_impl::setup_listener(listen_socket_t* s, std::string const& device
+		, bool ipv4, int port, int& retries, int flags, error_code& ec)
 	{
 		int last_op = 0;
 		listen_failed_alert::socket_type_t sock_type = s->ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
 		s->sock.reset(new socket_acceptor(m_io_service));
-		s->sock->open(ep.protocol(), ec);
+		s->sock->open(ipv4 ? tcp::v4() : tcp::v6(), ec);
 		last_op = listen_failed_alert::open;
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(ep, last_op, ec, sock_type));
+				m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("failed to open socket: %s: %s"
-				, print_endpoint(ep).c_str(), ec.message().c_str());
+				, device.c_str(), ec.message().c_str());
 #endif
 			return;
 		}
@@ -2323,11 +2322,11 @@ namespace aux {
 #endif
 
 #if TORRENT_USE_IPV6
-		if (ep.protocol() == tcp::v6())
+		if (!ipv4)
 		{
 			error_code err; // ignore errors here
 #ifdef IPV6_V6ONLY
-			s->sock->set_option(v6only(v6_only), err);
+			s->sock->set_option(v6only(true), err);
 #endif
 #ifdef TORRENT_WINDOWS
 
@@ -2338,43 +2337,52 @@ namespace aux {
 			s->sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
 #endif
 		}
-#endif
-		s->sock->bind(ep, ec);
+#endif // TORRENT_USE_IPV6
+
+		address bind_ip = bind_to_device(m_io_service, *s->sock, ipv4
+			, device.c_str(), port, ec);
+
+		if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
+			return;	
+
 		while (ec && retries > 0)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			session_log("failed to bind to interface \"%s\": %s"
-				, print_endpoint(ep).c_str(), ec.message().c_str());
+			session_log("failed to bind to interface [%s] \"%s\": %s"
+				, device.c_str(), bind_ip.to_string(ec).c_str()
+				, ec.message().c_str());
 #endif
 			ec.clear();
 			TORRENT_ASSERT_VAL(!ec, ec);
 			--retries;
-			ep.port(ep.port() + 1);
-			s->sock->bind(ep, ec);
+			port += 1;
+			bind_ip = bind_to_device(m_io_service, *s->sock, ipv4
+				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
 		if (ec && !(flags & listen_no_system_port))
 		{
 			// instead of giving up, trying
 			// let the OS pick a port
-			ep.port(0);
-			ec = error_code();
-			s->sock->bind(ep, ec);
+			port = 0;
+			ec.clear();
+			bind_ip = bind_to_device(m_io_service, *s->sock, ipv4
+				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
 		if (ec)
 		{
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(ep, last_op, ec, sock_type));
+				m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("cannot bind to interface \"%s\": %s"
-				, print_endpoint(ep).c_str(), ec.message().c_str());
+				, device.c_str(), ec.message().c_str());
 #endif
 			return;
 		}
 		s->external_port = s->sock->local_endpoint(ec).port();
-		TORRENT_ASSERT(s->external_port == ep.port() || ep.port() == 0);
+		TORRENT_ASSERT(s->external_port == port || port == 0);
 		last_op = listen_failed_alert::get_peer_name;
 		if (!ec)
 		{
@@ -2384,39 +2392,40 @@ namespace aux {
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(ep, last_op, ec, sock_type));
+				m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("cannot listen on interface \"%s\": %s"
-				, print_endpoint(ep).c_str(), ec.message().c_str());
+				, device.c_str(), ec.message().c_str());
 #endif
 			return;
 		}
 
 		// if we asked the system to listen on port 0, which
 		// socket did it end up choosing?
-		if (ep.port() == 0)
+		if (port == 0)
 		{
-			ep.port(s->sock->local_endpoint(ec).port());
+			port = s->sock->local_endpoint(ec).port();
 			last_op = listen_failed_alert::get_peer_name;
 			if (ec)
 			{
 				if (m_alerts.should_post<listen_failed_alert>())
-					m_alerts.post_alert(listen_failed_alert(ep, last_op, ec, sock_type));
+					m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				char msg[200];
 				snprintf(msg, 200, "failed to get peer name \"%s\": %s"
-					, print_endpoint(ep).c_str(), ec.message().c_str());
+					, device.c_str(), ec.message().c_str());
 				(*m_logger) << time_now_string() << msg << "\n";
 #endif
 			}
 		}
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
-			m_alerts.post_alert(listen_succeeded_alert(ep, s->ssl ? listen_succeeded_alert::tcp_ssl : listen_succeeded_alert::tcp));
+			m_alerts.post_alert(listen_succeeded_alert(tcp::endpoint(bind_ip, port)
+				, s->ssl ? listen_succeeded_alert::tcp_ssl : listen_succeeded_alert::tcp));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		session_log(" listening on: %s external port: %d"
-			, print_endpoint(ep).c_str(), s->external_port);
+			, print_endpoint(tcp::endpoint(bind_ip, port)).c_str(), s->external_port);
 #endif
 	}
 	
@@ -2449,19 +2458,17 @@ retry:
 		m_ipv6_interface = tcp::endpoint();
 		m_ipv4_interface = tcp::endpoint();
 
-#ifdef TORRENT_USE_OPENSSL
-		tcp::endpoint ssl_interface = m_listen_interface;
-		ssl_interface.port(m_settings.get_int(settings_pack::ssl_listen));
-#endif
-	
-		if (is_any(m_listen_interface.address()))
+		// TODO: instead of having a special case for this, just make the
+		// default listen interfaces be "0.0.0.0:6881,[::1]:6881" and use
+		// the generic path. That would even allow for not listening at all.
+		if (m_listen_interfaces.empty())
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
 		
 			listen_socket_t s;
-			setup_listener(&s, tcp::endpoint(address_v4::any(), m_listen_interface.port())
-				, m_listen_port_retries, false, flags, ec);
+			setup_listener(&s, "0.0.0.0", true, m_listen_interface.port()
+				, m_listen_port_retries, flags, ec);
 
 			if (s.sock)
 			{
@@ -2480,7 +2487,8 @@ retry:
 				listen_socket_t s;
 				s.ssl = true;
 				int retries = 10;
-				setup_listener(&s, ssl_interface, retries, false, flags, ec);
+				setup_listener(&s, "0.0.0.0", true, m_settings.get_int(settings_pack::ssl_listen)
+					, retries, flags, ec);
 
 				if (s.sock)
 				{
@@ -2494,8 +2502,8 @@ retry:
 			// only try to open the IPv6 port if IPv6 is installed
 			if (supports_ipv6())
 			{
-				setup_listener(&s, tcp::endpoint(address_v6::any(), m_listen_interface.port())
-					, m_listen_port_retries, true, flags, ec);
+				setup_listener(&s, "::1", false, m_listen_interface.port()
+					, m_listen_port_retries, flags, ec);
 
 				if (s.sock)
 				{
@@ -2509,8 +2517,8 @@ retry:
 					listen_socket_t s;
 					s.ssl = true;
 					int retries = 10;
-					setup_listener(&s, tcp::endpoint(address_v6::any(), ssl_interface.port())
-						, retries, false, flags, ec);
+					setup_listener(&s, "::1", false, m_settings.get_int(settings_pack::ssl_listen)
+						, retries, flags, ec);
 
 					if (s.sock)
 					{
@@ -2540,37 +2548,83 @@ retry:
 			// we should only open a single listen socket, that
 			// binds to the given interface
 
-			listen_socket_t s;
-			setup_listener(&s, m_listen_interface, m_listen_port_retries, false, flags, ec);
 
-			if (s.sock)
+			for (int i = 0; i < m_listen_interfaces.size(); ++i)
 			{
-				TORRENT_ASSERT(!m_abort);
-				m_listen_sockets.push_back(s);
+				std::string const& device = m_listen_interfaces[i].first;
+				int port = m_listen_interfaces[i].second;
 
-				if (m_listen_interface.address().is_v6())
-					m_ipv6_interface = m_listen_interface;
-				else
-					m_ipv4_interface = m_listen_interface;
-			}
+				int num_device_fails = 0;
+				
+#if TORRENT_USE_IPV6
+				const int first_family = 0;
+#else
+				const int first_family = 1;
+#endif
+				for (int address_family = first_family; address_family < 2; ++address_family)
+				{
+					error_code err;
+					address test_family = address::from_string(device.c_str(), err);
+					if (!err && test_family.is_v4() != address_family)
+						continue;
+
+					listen_socket_t s;
+					setup_listener(&s, device, address_family, port
+						, m_listen_port_retries, flags, ec);
+
+					if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
+					{
+						++num_device_fails;
+						continue;
+					}
+
+					if (s.sock)
+					{
+						TORRENT_ASSERT(!m_abort);
+						m_listen_sockets.push_back(s);
+
+						tcp::endpoint bind_ep = s.sock->local_endpoint(ec);
+#if TORRENT_USE_IPV6
+						if (bind_ep.address().is_v6())
+							m_ipv6_interface = bind_ep;
+						else
+#endif
+							m_ipv4_interface = bind_ep;
+					}
 
 #ifdef TORRENT_USE_OPENSSL
-			if (m_settings.get_int(settings_pack::ssl_listen))
-			{
-				listen_socket_t s;
-				s.ssl = true;
-				int retries = 10;
-				setup_listener(&s, ssl_interface, retries, false, flags, ec);
+					if (m_settings.get_int(settings_pack::ssl_listen))
+					{
+						listen_socket_t s;
+						s.ssl = true;
+						int retries = 10;
 
-				if (s.sock)
+						setup_listener(&s, device, address_family
+							, m_settings.get_int(settings_pack::ssl_listen)
+							, m_listen_port_retries, flags, ec);
+
+						if (s.sock)
+						{
+							TORRENT_ASSERT(!m_abort);
+							m_listen_sockets.push_back(s);
+						}
+					}
+#endif
+				}
+
+				if (num_device_fails == 2)
 				{
-					TORRENT_ASSERT(!m_abort);
-					m_listen_sockets.push_back(s);
+					// only report this if both IPv4 and IPv6 fails for a device
+					if (m_alerts.should_post<listen_failed_alert>())
+						m_alerts.post_alert(listen_failed_alert(device
+							, listen_failed_alert::bind
+							, error_code(boost::system::errc::no_such_device, generic_category())
+							, listen_failed_alert::tcp));
 				}
 			}
-#endif
 		}
 
+		// TODO: 2 use bind_to_device in udp_socket
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
 		{
@@ -2585,8 +2639,11 @@ retry:
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(m_listen_interface
+			{
+				error_code err;
+				m_alerts.post_alert(listen_failed_alert(print_endpoint(m_listen_interface)
 					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
+			}
 		}
 		else
 		{
@@ -2739,8 +2796,7 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
-					address_v4::any(), m_listen_interface.port()), listen_failed_alert::accept
+				m_alerts.post_alert(listen_failed_alert("", listen_failed_alert::accept
 						, e, listen_failed_alert::i2p));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("cannot bind to port %d: %s"
@@ -2872,8 +2928,11 @@ retry:
 				async_accept(listener, ssl);
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(ep, listen_failed_alert::accept, e
+			{
+				error_code err;
+				m_alerts.post_alert(listen_failed_alert(print_endpoint(ep), listen_failed_alert::accept, e
 					, ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp));
+			}
 			return;
 		}
 		async_accept(listener, ssl);
@@ -2996,6 +3055,43 @@ retry:
 				m_alerts.post_alert(peer_blocked_alert(torrent_handle()
 					, endp.address(), peer_blocked_alert::tcp_disabled));
 			return;
+		}
+
+		// if there are outgoing interfaces specified, verify this
+		// peer is correctly bound to on of them
+		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
+		{
+			error_code ec;
+			tcp::endpoint local = s->local_endpoint(ec);
+			if (ec)
+			{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				session_log("    rejected connection: (%d) %s", ec.value()
+					, ec.message().c_str());
+#endif
+				return;
+			}
+			if (!verify_bound_address(local.address()
+				, is_utp(*s), ec))
+			{
+				if (ec)
+				{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+					session_log("    rejected connection, not allowed local interface: (%d) %s"
+						, ec.value(), ec.message().c_str());
+#endif
+					return;
+				}
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				session_log("    rejected connection, not allowed local interface: %s"
+					, local.address().to_string(ec).c_str());
+#endif
+				if (m_alerts.should_post<peer_blocked_alert>())
+					m_alerts.post_alert(peer_blocked_alert(torrent_handle()
+						, endp.address(), peer_blocked_alert::invalid_local_interface));
+				return;
+			}
 		}
 
 		// local addresses do not count, since it's likely
@@ -3141,8 +3237,7 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
-					address_v4::any(), m_listen_interface.port()), listen_failed_alert::accept, e
+				m_alerts.post_alert(listen_failed_alert("", listen_failed_alert::accept, e
 						, listen_failed_alert::socks5));
 			return;
 		}
@@ -3230,7 +3325,7 @@ retry:
 			--m_num_unchoked;
 	}
 
-	int session_impl::next_port()
+	int session_impl::next_port() const
 	{
 		int start = m_settings.get_int(settings_pack::outgoing_port);
 		int num = m_settings.get_int(settings_pack::num_outgoing_ports);
@@ -5960,32 +6055,95 @@ retry:
 	void session_impl::update_outgoing_interfaces()
 	{
 		INVARIANT_CHECK;
-		m_net_interfaces.clear();
 		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
-		char* str = allocate_string_copy(net_interfaces.c_str());
-		char* ptr = str;
-
-		while (ptr)
-		{
-			char* space = strchr(ptr, ',');
-			if (space) *space++ = 0;
-			error_code ec;
-			address a(address::from_string(ptr, ec));
-			ptr = space;
-			if (ec) continue;
-			m_net_interfaces.push_back(tcp::endpoint(a, 0));
-		}
-		if (m_net_interfaces.empty())
-			m_net_interfaces.push_back(tcp::endpoint(address_v4::any(), 0));
-		free(str);
+		// declared in string_util.hpp
+		parse_comma_separated_string(net_interfaces, m_net_interfaces);
 	}
 
-	tcp::endpoint session_impl::get_interface() const
+	tcp::endpoint session_impl::bind_outgoing_socket(socket_type& s, address
+		const& remote_address, error_code& ec) const
 	{
-		if (m_net_interfaces.empty()) return tcp::endpoint(address_v4(), 0);
-		if (m_interface_index >= m_net_interfaces.size()) m_interface_index = 0;
-		return m_net_interfaces[m_interface_index++];
+		tcp::endpoint bind_ep(address_v4(), 0);
+		if (m_settings.get_int(settings_pack::outgoing_port) > 0)
+		{
+			s.set_option(socket_acceptor::reuse_address(true), ec);
+			// ignore errors because the underlying socket may not
+			// be opened yet. This happens when we're routing through
+			// a proxy. In that case, we don't yet know the address of
+			// the proxy server, and more importantly, we don't know
+			// the address family of its address. This means we can't
+			// open the socket yet. The socks abstraction layer defers
+			// opening it.
+			ec.clear();
+			bind_ep.port(next_port());
+		}
+
+		if (!m_net_interfaces.empty())
+		{
+			if (m_interface_index >= m_net_interfaces.size()) m_interface_index = 0;
+			std::string const& ifname = m_net_interfaces[m_interface_index++];
+
+			if (ec) return bind_ep;
+
+			bind_ep.address(bind_to_device(m_io_service, s, remote_address.is_v4()
+				, ifname.c_str(), bind_ep.port(), ec));
+			return bind_ep;
+		}
+
+		// if we're not binding to a specific interface, bind
+		// to the same protocol family as the target endpoint
+		if (is_any(bind_ep.address()))
+		{
+#if TORRENT_USE_IPV6
+			if (remote_address.is_v6())
+				bind_ep.address(address_v6::any());
+			else
+#endif
+				bind_ep.address(address_v4::any());
+		}
+
+		s.bind(bind_ep, ec);
+		return bind_ep;
+	}
+
+	// verify that the given local address satisfies the requirements of
+	// the outgoing interfaces. i.e. that one of the allowed outgoing
+	// interfaces has this address. For uTP sockets, which are all backed
+	// by an unconnected udp socket, we won't be able to tell what local
+	// address is used for this peer's packets, in that case, just make
+	// sure one of the allowed interfaces exists and maybe that it's the
+	// default route. For systems that have SO_BINDTODEVICE, it should be
+	// enough to just know that one of the devices exist
+	bool session_impl::verify_bound_address(address const& addr, bool utp
+		, error_code& ec)
+	{
+		// we have specific outgoing interfaces specified. Make sure the
+		// local endpoint for this socket is bound to one of the allowed
+		// interfaces. the list can be a mixture of interfaces and IP
+		// addresses. first look for the address 
+		for (int i = 0; i < int(m_net_interfaces.size()); ++i)
+		{
+			error_code err;
+			address ip = address::from_string(m_net_interfaces[i].c_str(), err);
+			if (err) continue;
+			if (ip == addr) return true;
+		}
+
+		// we didn't find the address as an IP in the interface list. Now,
+		// resolve which device (if any) has this IP address.
+		std::string device = device_for_address(addr, m_io_service, ec);
+		if (ec) return false;
+
+		// if no device was found to have this address, we fail
+		if (device.empty()) return false;
+
+		for (int i = 0; i < int(m_net_interfaces.size()); ++i)
+		{
+			if (m_net_interfaces[i] == device) return true;
+		}
+
+		return false;
 	}
 
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
@@ -6083,41 +6241,81 @@ retry:
 	{
 		INVARIANT_CHECK;
 
-		std::string net_interface = m_settings.get_str(settings_pack::listen_interfaces);
+		std::string net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
+		std::vector<std::pair<std::string, int> > new_listen_interfaces;
+		
+		// declared in string_util.hpp
+		parse_comma_separated_string_port(net_interfaces, new_listen_interfaces);
 
-		// TODO 3: make m_listen_interface a list of interfaces we're listening on
-		tcp::endpoint new_interface;
-		if (!net_interface.empty())
-		{
-			error_code ec;
-			new_interface = parse_endpoint(net_interface, ec);
-			if (ec)
-			{
-				if (m_alerts.should_post<listen_failed_alert>())
-					m_alerts.post_alert(listen_failed_alert(new_interface, listen_failed_alert::parse_addr, ec
-						, listen_failed_alert::tcp));
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				session_log("listen_on: %s failed: %s"
-					, net_interface.c_str(), ec.message().c_str());
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		session_log("update listen interfaces: %s", net_interfaces.c_str());
 #endif
-				return;
-			}
-		}
-		else
-		{
-			new_interface = tcp::endpoint(address_v4::any(), 6881);
-		}
 
 		m_listen_port_retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
 		// if the interface is the same and the socket is open
 		// don't do anything
-		if (new_interface == m_listen_interface
+		if (new_listen_interfaces == m_listen_interfaces
 			&& !m_listen_sockets.empty())
 			return;
 
-		m_listen_interface = new_interface;
+		// for backwards compatibility. Some components still only supports
+		// a single listen interface
+		m_listen_interface.address(address_v4::any());
+		m_listen_interface.port(0);
+		if (m_listen_interfaces.size() > 0)
+		{
+			error_code ec;
+			m_listen_interface.port(m_listen_interfaces[0].second);
+			char const* device_name = m_listen_interfaces[0].first.c_str();
+
+			// if the first character is [, skip it since it may be an
+			// IPv6 address
+			m_listen_interface.address(address::from_string(
+				device_name[0] == '[' ? device_name + 1 : device_name, ec));
+			if (ec)
+			{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				session_log("failed to treat %s as an IP address [ %s ]"
+					, device_name, ec.message().c_str());
+#endif
+				// it may have been a device name.
+				std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
+				
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				if (ec)
+					session_log("failed to enumerate interfaces [ %s ]"
+						, ec.message().c_str());
+#endif
+
+				bool found = false;
+				for (int i = 0; i < int(ifs.size()); ++i)
+				{
+					// we're looking for a specific interface, and its address
+					// (which must be of the same family as the address we're
+					// connecting to)
+					if (strcmp(ifs[i].name, device_name) != 0) continue;
+					m_listen_interface.address(ifs[i].interface_address);
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+					session_log("binding to %s"
+						, m_listen_interface.address().to_string(ec).c_str());
+#endif
+					found = true;
+					break;
+				}
+
+				if (!found)
+				{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+					session_log("failed to find device %s", device_name);
+#endif
+					// effectively disable whatever socket decides to bind to this
+					m_listen_interface.address(address_v4::loopback());
+				}
+			}
+		}
+
+		m_listen_interfaces = new_listen_interfaces;
 	}
 
 	void session_impl::update_privileged_ports()

@@ -589,7 +589,7 @@ namespace libtorrent
 				, int local_port);
 			void delete_port_mapping(int handle);
 
-			int next_port();
+			int next_port() const;
 
 			void add_redundant_bytes(size_type b, int reason)
 			{
@@ -667,7 +667,10 @@ namespace libtorrent
 			void post_socket_job(socket_job& j);
 
 			// implements session_interface
-			virtual tcp::endpoint get_interface() const;
+			virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address
+				const& remote_address, error_code& ec) const;
+			virtual bool verify_bound_address(address const& addr, bool utp
+				, error_code& ec);
 
 			bool has_lsd() const { return m_lsd.get(); }
 
@@ -895,17 +898,24 @@ namespace libtorrent
 			// is incremented by one
 			int m_listen_port_retries;
 
-			// the ip-address of the interface
-			// we are supposed to listen on.
-			// if the ip is set to zero, it means
-			// that we should let the os decide which
-			// interface to listen on
+			// the addresses or device names of the interfaces we are supposed to
+			// listen on. if empty, it means that we should let the os decide
+			// which interface to listen on
+			std::vector<std::pair<std::string, int> > m_listen_interfaces;
+
+			// keep this around until everything uses the list of interfaces
+			// instead.
 			tcp::endpoint m_listen_interface;
 
-			// the network interfaces outgoing connections
-			// are opened through. If there is more then one,
-			// they are used in a round-robin fasion
-			std::vector<union_endpoint> m_net_interfaces;
+			// the network interfaces outgoing connections are opened through. If
+			// there is more then one, they are used in a round-robin fasion
+			// each element is a device name or IP address (in string form) and
+			// a port number. The port determins which port to bind the listen
+			// socket to, and the device or IP determines which network adapter
+			// to be used. If no adapter with the specified name exists, the listen
+			// socket fails.
+			// TODO: should this be renamed m_outgoing_interfaces?
+			std::vector<std::string> m_net_interfaces;
 
 			// if we're listening on an IPv6 interface
 			// this is one of the non local IPv6 interfaces
@@ -937,8 +947,8 @@ namespace libtorrent
 
 			void open_new_incoming_socks_connection();
 
-			void setup_listener(listen_socket_t* s, tcp::endpoint ep, int& retries
-				, bool v6_only, int flags, error_code& ec);
+			void setup_listener(listen_socket_t* s, std::string const& device
+				, bool ipv4, int port, int& retries, int flags, error_code& ec);
 
 			// the proxy used for bittorrent
 			proxy_settings m_proxy;
@@ -1044,7 +1054,7 @@ namespace libtorrent
 
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to
-			int m_next_port;
+			mutable int m_next_port;
 
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
