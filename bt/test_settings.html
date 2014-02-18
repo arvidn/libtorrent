@@ -46,10 +46,10 @@ update_settings_list = function(settings)
 			switch (type)
 			{
 				case 'string':
-					row.insertCell(3).innerHTML = '<input type="text" name="' + req[i] + '" value="' + values[i] + '" onchange="submit(\'' + req[i]+ '\');"/>';
+					row.insertCell(3).innerHTML = '<input type="text" name="' + req[i] + '" value="' + values[i] + '" onkeypress="submit_on_enter(event, \'' + req[i]+ '\');"/>';
 				break;
 				case 'int':
-					row.insertCell(3).innerHTML = '<input type="number" name="' + req[i] + '" value="' + values[i] + '" onchange="submit(\'' + req[i]+ '\');"/>';
+					row.insertCell(3).innerHTML = '<input type="number" name="' + req[i] + '" value="' + values[i] + '" onkeypress="submit_on_enter(event, \'' + req[i]+ '\');"/>';
 					break;
 				case 'bool':
 					row.insertCell(3).innerHTML = '<select id="dd-' + req[i] + '" onchange="submit(\'' + req[i]+ '\');"><option>false</option><option>true</option></select>';
@@ -60,6 +60,14 @@ update_settings_list = function(settings)
 	});
 };
 
+function submit_on_enter(e, settings_id)
+{
+	if (e.keyCode === 13) {
+		submit(settings_id);
+	}
+	return false;
+}
+
 function submit(settings_id)
 {
 	var id = parseInt(settings_id);
@@ -69,10 +77,10 @@ function submit(settings_id)
 	switch (type)
 	{
 		case 'string':
-			value = value.attributes.getNamedItem('value').value;
+			value = value.value;
 			break;
 		case 'int':
-			value = parseInt(value.attributes.getNamedItem('value').value);
+			value = parseInt(value.value);
 			break;
 		case 'bool':
 			value = value.selectedIndex == 1;
