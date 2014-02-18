@@ -88,9 +88,9 @@ namespace libtorrent
 		, error_code& ec);
 
 #ifdef SO_BINDTODEVICE
-	struct bind_to_device
+	struct bind_to_device_opt
 	{
-		bind_to_device(char const* device): m_value(device) {}
+		bind_to_device_opt(char const* device): m_value(device) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return SOL_SOCKET; }
 		template<class Protocol>
@@ -129,7 +129,7 @@ namespace libtorrent
 #ifdef SO_BINDTODEVICE
 		// try to use SO_BINDTODEVICE here, if that exists. If it fails,
 		// fall back to the mechanism we have below
-		sock.set_option(bind_to_device(ifname.c_str()), ec);
+		sock.set_option(bind_to_device_opt(device_name), ec);
 		if (ec)
 #endif
 		{
