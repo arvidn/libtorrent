@@ -40,7 +40,7 @@ SOURCES =
 	error_logger
 	websocket_handler
 	rss_filter
-	text_ui
+#	text_ui
 	;
 
 lib torrent-webui
@@ -51,8 +51,8 @@ lib torrent-webui
 	<library>/torrent//torrent
 	<library>zlib
 	<library>sqlite
-	<library>cdk
-	<library>curses
+#	<library>cdk
+#	<library>curses
 	<pam>on:<library>pam
 	<pam>on:<source>src/pam_auth.cpp
 	<define>USE_WEBSOCKET=1

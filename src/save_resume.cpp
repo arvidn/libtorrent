@@ -66,7 +66,8 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 	int ret = sqlite3_open(resume_file.c_str(), &m_db);
 	if (ret != SQLITE_OK)
 	{
-		fprintf(stderr, "Can't open resume file: %s\n", sqlite3_errmsg(m_db));
+		fprintf(stderr, "Can't open resume file [%s]: %s\n"
+			, resume_file.c_str(), sqlite3_errmsg(m_db));
 		return;
 	}
 
