@@ -41,6 +41,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix minor lock_files issue on unix
+
 0.16.15 release
 
 	* fix mingw time_t 64 bit issue
