@@ -5107,9 +5107,11 @@ background tasks that doesn't matter if they take a bit longer, as long
 as they leave disk I/O time for other processes.
 
 ``disk_cache_algorithm`` tells the disk I/O thread which cache flush
-algorithm to use. The default algorithm is largest_contiguous. This
-flushes the entire piece, in the write cache, that was least recently
-written to. This is specified by the ``session_settings::lru`` enum
+algorithm to use. The default algorithm is avoid_readback. This
+algorithm flushes pieces contiguously up to their first missing block.
+This way the piece hash cursor progress with the written blocks, not
+requiring blocks to be read back from disk to finish calculating the piece
+hash. This is specified by the ``session_settings::lru`` enum
 value. ``session_settings::largest_contiguous`` will flush the largest
 sequences of contiguous blocks from the write cache, regarless of the
 piece's last use time. ``session_settings::avoid_readback`` will prioritize

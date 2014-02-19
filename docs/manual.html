@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.14</td></tr>
+<td>0.16.15</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -4765,9 +4765,11 @@ data is read from the disk while checking. This may be useful for
 background tasks that doesn't matter if they take a bit longer, as long
 as they leave disk I/O time for other processes.</p>
 <p><tt class="docutils literal">disk_cache_algorithm</tt> tells the disk I/O thread which cache flush
-algorithm to use. The default algorithm is largest_contiguous. This
-flushes the entire piece, in the write cache, that was least recently
-written to. This is specified by the <tt class="docutils literal"><span class="pre">session_settings::lru</span></tt> enum
+algorithm to use. The default algorithm is avoid_readback. This
+algorithm flushes pieces contiguously up to their first missing block.
+This way the piece hash cursor progress with the written blocks, not
+requiring blocks to be read back from disk to finish calculating the piece
+hash. This is specified by the <tt class="docutils literal"><span class="pre">session_settings::lru</span></tt> enum
 value. <tt class="docutils literal"><span class="pre">session_settings::largest_contiguous</span></tt> will flush the largest
 sequences of contiguous blocks from the write cache, regarless of the
 piece's last use time. <tt class="docutils literal"><span class="pre">session_settings::avoid_readback</span></tt> will prioritize
