@@ -855,9 +855,8 @@ namespace libtorrent
 			avoid_readback
 		};
 
-		// tells the disk I/O thread which cache flush algorithm to use. The
-		// default algorithm is largest_contiguous. This is specified by the
-		// disk_cache_algo_t enum.
+		// tells the disk I/O thread which cache flush algorithm to use.
+		// This is specified by the disk_cache_algo_t enum.
 		disk_cache_algo_t disk_cache_algorithm;
 
 		// the number of blocks to read into the read cache when a read cache
