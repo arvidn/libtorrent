@@ -301,10 +301,9 @@ def main():
                 try:
                     out = '\n'
                     fp = h.file_progress()
-                    fp = 0
                     ti = h.get_torrent_info()
                     for f,p in zip(ti.files(), fp):
-                        out += progress_bar(p / f.size, 20)
+                        out += progress_bar(p / float(f.size), 20)
                         out += ' ' + f.path + '\n'
                     write_line(console, out)
                 except:
