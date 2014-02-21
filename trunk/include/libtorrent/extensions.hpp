@@ -217,7 +217,7 @@ namespace libtorrent
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
-		virtual void added(boost::weak_ptr<aux::session_impl>) {}
+		virtual void added(aux::session_impl*) {}
 
 		// called when an alert is posted
 		// alerts that are filtered are not
