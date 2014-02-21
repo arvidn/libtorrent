@@ -191,7 +191,6 @@ namespace libtorrent
 			, boost::noncopyable
 			, initialize_timer
 			, udp_socket_observer
-			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			// this needs to be destructed last, since other components may log

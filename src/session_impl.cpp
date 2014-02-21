@@ -1549,7 +1549,7 @@ namespace aux {
 
 		m_ses_extensions.push_back(ext);
 		m_alerts.add_extension(ext);
-		ext->added(shared_from_this());
+		ext->added(this);
 	}
 #endif
 
