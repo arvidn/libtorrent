@@ -165,9 +165,9 @@ namespace libtorrent
 			end = in.find_first_of(',', start);
 			if (end == std::string::npos) end = in.size();
 
-			std::string::size_type colon = in.find_first_of(':', start);
+			std::string::size_type colon = in.find_last_of(':', end);
 
-			if (colon != std::string::npos && colon < end)
+			if (colon != std::string::npos && colon > start)
 			{
 				int port = atoi(in.substr(colon + 1, end - colon - 1).c_str());
 
@@ -180,7 +180,7 @@ namespace libtorrent
 				// in case this is an IPv6 address, strip off the square brackets
 				// to make it more easily parseable into an ip::address
 				if (in[start] == '[') ++start;
-				if (in[soft_end] == ']') --soft_end;
+				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
 
 				out.push_back(std::make_pair(in.substr(start, soft_end - start), port));
 			}

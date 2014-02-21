@@ -211,7 +211,6 @@ namespace libtorrent
 			, initialize_timer
 			, udp_socket_observer
 			, uncork_interface
-			, boost::enable_shared_from_this<session_impl>
 			, single_threaded
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

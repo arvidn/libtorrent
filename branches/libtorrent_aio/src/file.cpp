@@ -37,6 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define _FILE_OFFSET_BITS 64
 #define _LARGE_FILES 1
 
+// on mingw this is necessary to enable 64-bit time_t, specifically used for
+// the stat struct. Without this, modification times returned by stat may be
+// incorrect and consistently fail resume data
+#ifndef __MINGW_USE_VC2005_COMPAT
+# define __MINGW_USE_VC2005_COMPAT
+#endif
+
 #include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
@@ -1297,7 +1304,7 @@ namespace libtorrent
 				0, // start offset
 				0, // length (0 = until EOF)
 				getpid(), // owner
-				short((mode & write_only) ? F_WRLCK : F_RDLCK), // lock type
+				short((mode != read_only) ? F_WRLCK : F_RDLCK), // lock type
 				SEEK_SET // whence
 			};
 			if (fcntl(native_handle(), F_SETLK, &l) != 0)
@@ -1422,7 +1429,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// flag set, but there are no sparse regions, unset
 		// the flag
 		int rw_mode = m_open_mode & rw_mask;
-		if ((rw_mode == read_write || rw_mode == write_only)
+		if ((rw_mode != read_only)
 			&& (m_open_mode & sparse)
 			&& !is_sparse(native_handle()))
 		{
