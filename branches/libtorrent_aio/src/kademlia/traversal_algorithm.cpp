@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/session_status.hpp>
-#include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 
 #include <boost/bind.hpp>
@@ -82,21 +81,6 @@ traversal_algorithm::traversal_algorithm(
 #endif
 }
 
-// returns true of lhs and rhs are too close to each other to appear
-// in the same DHT search under different node IDs
-bool compare_ip_cidr(observer_ptr const& lhs, observer_ptr const& rhs)
-{
-	if (lhs->target_addr().is_v4() != rhs->target_addr().is_v4())
-		return false;
-	// the number of bits in the IPs that may match. If
-	// more bits that this matches, something suspicious is
-	// going on and we shouldn't add the second one to our
-	// routing table
-	int cutoff = rhs->target_addr().is_v4() ? 4 : 64;
-	int dist = cidr_distance(lhs->target_addr(), rhs->target_addr());
-	return dist <= cutoff;
-}
-
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
@@ -135,11 +119,11 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		if (m_node.settings().restrict_search_ips
 			&& !(flags & observer::flag_initial))
 		{
-			// don't allow multiple entries from IPs very close to each other
-			std::vector<observer_ptr>::iterator j = std::find_if(
-				m_results.begin(), m_results.end(), boost::bind(&compare_ip_cidr, _1, o));
+			// mask the lower octet
+			boost::uint32_t prefix4 = o->target_addr().to_v4().to_ulong();
+			prefix4 &= 0xffffff00;
 
-			if (j != m_results.end())
+			if (m_peer4_prefixes.count(prefix4) > 0)
 			{
 				// we already have a node in this search with an IP very
 				// close to this one. We know that it's not the same, because
@@ -147,13 +131,12 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(traversal) << "[" << this << "] IGNORING result "
 				<< "id: " << o->id()
-				<< " address: " << o->target_addr()
-				<< " existing node: "
-				<< (*j)->id() << " " << (*j)->target_addr()
-				<< " distance: " << distance_exp(m_target, o->id());
+				<< " address: " << o->target_addr();
 #endif
 				return;
 			}
+
+			m_peer4_prefixes.insert(prefix4);
 		}
 
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()

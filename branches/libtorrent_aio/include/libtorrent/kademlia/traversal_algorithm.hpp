@@ -119,6 +119,11 @@ protected:
 	boost::uint16_t m_branch_factor;
 	boost::uint16_t m_responses;
 	boost::uint16_t m_timeouts;
+
+	// the IP addresses of the nodes in m_results
+	std::set<boost::uint32_t> m_peer4_prefixes;
+// no IPv6 support yet anyway
+//	std::set<boost::uint64_t> m_peer6_prefixes;
 };
 
 struct traversal_observer : observer

@@ -3244,9 +3244,8 @@ namespace libtorrent
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 			external_ip const& external = m_ses.external_address();
 			debug_log(" *** FOUND CONNECTION CANDIDATE ["
-				" ip: %s d: %d rank: %u external: %s t: %d ]"
+				" ip: %s rank: %u external: %s t: %d ]"
 				, print_endpoint(p->ip()).c_str()
-				, cidr_distance(external.external_address(p->address()), p->address())
 				, p->rank(external, m_ses.listen_port())
 				, print_address(external.external_address(p->address())).c_str()
 				, m_ses.session_time() - p->last_connected);

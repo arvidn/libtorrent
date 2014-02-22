@@ -1073,7 +1073,7 @@ namespace libtorrent
 	std::string device_for_address(address addr, io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
-		if (ec) return false;
+		if (ec) return std::string();
 
 		for (int i = 0; i < int(ifs.size()); ++i)
 			if (ifs[i].interface_address == addr) return ifs[i].name;
