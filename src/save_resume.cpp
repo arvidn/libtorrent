@@ -56,11 +56,13 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 	, m_last_save(time_now())
 	, m_interval(minutes(15))
 	, m_num_in_flight(0)
+	, m_shutting_down(false)
 {
 	m_alerts->subscribe(this, 0, add_torrent_alert::alert_type
 		, torrent_removed_alert::alert_type
 		, stats_alert::alert_type // just to get woken up regularly
 		, save_resume_data_alert::alert_type
+		, save_resume_data_failed_alert::alert_type
 		, metadata_received_alert::alert_type, 0);
 
 	int ret = sqlite3_open(resume_file.c_str(), &m_db);
@@ -269,6 +271,8 @@ void save_resume::handle_alert(alert const* a)
 	// is it time to save resume data for another torrent?
 	if (m_torrents.empty()) return;
 
+	if (m_shutting_down) return;
+
 	// calculate how many torrents we should save this tick. It depends on
 	// how long since we last tried to save one. Every m_interval seconds,
 	// we should have saved all torrents
@@ -309,6 +313,17 @@ void save_resume::save_all()
 		i->save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
 		++m_num_in_flight;
 	}
+	m_shutting_down = true;
+}
+
+bool save_resume::ok_to_quit() const
+{
+	static int spinner = 0;
+	static const char bar[] = "|/-\\";
+	printf("\r%d %c\x1b[K", m_num_in_flight, bar[spinner]);
+	fflush(stdout);
+	spinner = (spinner + 1) & 3;
+	return m_num_in_flight == 0;
 }
 
 void save_resume::load(error_code& ec, add_torrent_params model)
