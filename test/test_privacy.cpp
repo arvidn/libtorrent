@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "dht_server.hpp"
 #include "peer_server.hpp"
+#include "udp_tracker.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 
@@ -83,11 +84,11 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 #endif
 	fprintf(stderr, "\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & anonymous_mode) ? "yes" : "no");
 	int http_port = start_web_server();
-	int udp_port = start_tracker();
+	int udp_port = start_udp_tracker();
 	int dht_port = start_dht();
 	int peer_port = start_peer();
 
-	int prev_udp_announces = g_udp_tracker_requests;
+	int prev_udp_announces = num_udp_announces();
 
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
@@ -159,13 +160,13 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 		print_alerts(*s, "s", false, false, false, &alert_predicate);
 		test_sleep(100);
 
-		if (g_udp_tracker_requests >= prev_udp_announces + 1
+		if (num_udp_announces() >= prev_udp_announces + 1
 			&& num_peer_hits() > 0)
 			break;
 	}
 
 	// we should have announced to the tracker by now
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + bool(flags & expect_udp_connection));
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + bool(flags & expect_udp_connection));
 	if (flags & expect_dht_msg)
 	{
 		TEST_CHECK(num_dht_hits() > 0);
@@ -196,7 +197,7 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 
 	stop_peer();
 	stop_dht();
-	stop_tracker();
+	stop_udp_tracker();
 	stop_web_server();
 	return pr;
 }

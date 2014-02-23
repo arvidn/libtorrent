@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "udp_tracker.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -134,7 +135,7 @@ void test_transfer()
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
 
-	int udp_tracker_port = start_tracker();
+	int udp_tracker_port = start_udp_tracker();
 	int tracker_port = start_web_server();
 
 	char tracker_url[200];
@@ -395,7 +396,7 @@ void test_transfer()
 	p1 = ses1.abort();
 	p2 = ses2.abort();
 
-	stop_tracker();
+	stop_udp_tracker();
 	stop_web_server();
 }
 

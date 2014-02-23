@@ -102,11 +102,13 @@ EXTRA_DIST = Jamfile \
 
 EXTRA_PROGRAMS = $(test_programs)
 
-noinst_HEADERS = test.hpp setup_transfer.hpp
+noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
+	peer_server.hpp udp_tracker.hpp
 
 libtest_la_SOURCES = main.cpp \
   setup_transfer.cpp \
   dht_server.cpp \
+  udp_tracker.cpp \
   peer_server.cpp \
   web_seed_suite.cpp \
   ../ed25519/src/add_scalar.c   \
