@@ -322,6 +322,8 @@ namespace libtorrent
 #endif
 #if defined TORRENT_WINDOWS
 		mutable int m_cluster_size;
+
+		static bool has_manage_volume_privs;
 #endif
 	};
 
