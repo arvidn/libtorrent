@@ -192,6 +192,7 @@ namespace libtorrent {
 
 #if defined TORRENT_ASIO_DEBUGGING
 	std::map<std::string, async_t> _async_ops;
+	std::deque<wakeup_t> _wakeups;
 	int _async_ops_nthreads = 0;
 	mutex _async_ops_mutex;
 #endif
@@ -6814,6 +6815,33 @@ retry:
 
 #ifdef TORRENT_STATS
 		if (m_stats_logger) fclose(m_stats_logger);
+#endif
+
+#if defined TORRENT_ASIO_DEBUGGING
+		FILE* f = fopen("wakeups.log", "w+");
+		if (f != NULL)
+		{
+			ptime m = min_time();
+			if (_wakeups.size() > 0) m = _wakeups[0].timestamp;
+			ptime prev = m;
+			boost::uint64_t prev_csw = 0;
+			if (_wakeups.size() > 0) prev_csw = _wakeups[0].context_switches;
+			fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");
+			for (int i = 0; i < _wakeups.size(); ++i)
+			{
+				wakeup_t const& w = _wakeups[i];
+				bool idle_wakeup = w.context_switches > prev_csw;
+				fprintf(f, "%" PRId64 "\t%" PRId64 "\t%" PRId64 "\t%c\t%s\n"
+					, total_microseconds(w.timestamp - m)
+					, total_microseconds(w.timestamp - prev)
+					, w.context_switches
+					, idle_wakeup ? '*' : '.'
+					, w.operation);
+				prev = w.timestamp;
+				prev_csw = w.context_switches;
+			}
+			fclose(f);
+		}
 #endif
 	}
 

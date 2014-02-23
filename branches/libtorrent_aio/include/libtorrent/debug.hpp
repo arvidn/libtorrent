@@ -43,9 +43,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/time.hpp"
 
 #include <map>
 #include <cstring>
+#include <deque>
+
+#ifdef __MACH__
+#include <mach/task_info.h>
+#include <mach/task.h>
+#include <mach/mach_init.h>
+#endif
 
 std::string demangle(char const* name);
 
@@ -58,9 +66,19 @@ namespace libtorrent
 		int refs;
 	};
 
+	// defined in session_impl.cpp
 	extern std::map<std::string, async_t> _async_ops;
 	extern int _async_ops_nthreads;
 	extern mutex _async_ops_mutex;
+
+	// timestamp -> operation
+	struct wakeup_t
+	{
+		ptime timestamp;
+		boost::uint64_t context_switches;
+		char const* operation;
+	};
+	extern std::deque<wakeup_t> _wakeups;
 
 	inline bool has_outstanding_async(char const* name)
 	{
@@ -93,6 +111,19 @@ namespace libtorrent
 		async_t& a = _async_ops[name];
 		TORRENT_ASSERT(a.refs > 0);
 		--a.refs;
+		_wakeups.push_back(wakeup_t());
+		wakeup_t& w = _wakeups.back();
+		w.timestamp = time_now_hires();
+#ifdef __MACH__
+		task_events_info teinfo;
+		mach_msg_type_number_t t_info_count = TASK_EVENTS_INFO_COUNT;
+		task_info(mach_task_self(), TASK_EVENTS_INFO, (task_info_t)&teinfo
+			, &t_info_count);
+		w.context_switches = teinfo.csw;
+#else
+		w.context_switches = 0;
+#endif
+		w.operation = name;
 	}
 
 	inline void async_inc_threads()
