@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for tests_failure
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
+#include "udp_tracker.hpp" // for stop_udp_tracker
 
 int test_main();
 
@@ -151,7 +152,7 @@ int main()
 
 	// just in case of premature exits
 	// make sure we try to clean up some
-	stop_tracker();
+	stop_udp_tracker();
 	stop_all_proxies();
 	stop_web_server();
 	stop_peer();

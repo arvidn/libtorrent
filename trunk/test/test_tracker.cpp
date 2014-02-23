@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "udp_tracker.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
@@ -43,9 +44,9 @@ using namespace libtorrent;
 int test_main()
 {
 	int http_port = start_web_server();
-	int udp_port = start_tracker();
+	int udp_port = start_udp_tracker();
 
-	int prev_udp_announces = g_udp_tracker_requests;
+	int prev_udp_announces = num_udp_announces();
 
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
@@ -83,19 +84,19 @@ int test_main()
 	{
 		print_alerts(*s, "s");
 		test_sleep(100);
-		if (g_udp_tracker_requests == prev_udp_announces + 1)
+		if (num_udp_announces() == prev_udp_announces + 1)
 			break;
 	}
 
 	// we should have announced to the tracker by now
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
 	fprintf(stderr, "destructing session\n");
 	delete s;
 	fprintf(stderr, "done\n");
 
 	// we should have announced the stopped event now
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 2);
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
 
 	// ========================================
 	// test that we move on to try the next tier if the first one fails
@@ -133,7 +134,7 @@ int test_main()
 	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(tracker_url, 3);
 
-	prev_udp_announces = g_udp_tracker_requests;
+	prev_udp_announces = num_udp_announces();
 
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
@@ -145,18 +146,18 @@ int test_main()
 	{
 		print_alerts(*s, "s");
 		test_sleep(100);
-		if (g_udp_tracker_requests == prev_udp_announces + 1) break;
+		if (num_udp_announces() == prev_udp_announces + 1) break;
 	}
 
 	test_sleep(1000);
 
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
 	fprintf(stderr, "destructing session\n");
 	delete s;
 	fprintf(stderr, "done\n");
 
-	stop_tracker();
+	stop_udp_tracker();
 	stop_web_server();
 
 	return 0;
