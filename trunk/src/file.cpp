@@ -946,6 +946,14 @@ namespace libtorrent
 	};
 #endif // TORRENT_WINDOWS
 
+
+#ifdef TORRENT_WINDOWS
+	bool get_manage_volume_privs();
+
+	// this needs to be run before CreateFile
+	bool file::has_manage_volume_privs = get_manage_volume_privs();
+#endif
+
 	file::file()
 #ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
@@ -2025,8 +2033,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	void set_file_valid_data(HANDLE f, boost::int64_t size)
 	{
-		static bool has_privs = get_manage_volume_privs();
-
 		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
 		static SetFileValidData_t pSetFileValidData = NULL;
 		static bool failed_kernel32 = false;
