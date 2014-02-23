@@ -1,3 +1,4 @@
+	* SetFileValidData fix on windows (prevents zero-fill)
 	* fix minor lock_files issue on unix
 
 0.16.15 release
