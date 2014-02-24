@@ -38,10 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/entry.hpp>
 #include <vector>
 #include <exception>
+#include <boost/array.hpp>
 
 namespace libtorrent { namespace dht
 {
 
+// calculate the target hash for an item. Either v must be specified,
+// which is the content. That's for immutable items. For mutable items,
+// instead specify the salt and the public key (pk).
 sha1_hash TORRENT_EXTRA_EXPORT item_target_id(
 	std::pair<char const*, int> v
 	, std::pair<char const*, int> salt
@@ -54,7 +58,16 @@ bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 	char const* pk,
 	char const* sig);
 
-void TORRENT_EXTRA_EXPORT sign_mutable_item(
+// TODO: since this is a public function, it should probably be moved
+// out of this header and into one with other public functions.
+
+// given a byte range ``v`` and an optional byte range ``salt``, a
+// sequence number, public key ``pk`` (must be 32 bytes) and a secret key
+// ``sk`` (must be 64 bytes), this function produces a signature which
+// is written into a 64 byte buffer pointed to by ``sig``. The caller
+// is responsible for allocating the destination buffer that's passed in
+// as the ``sig`` argument. Typically it would be allocated on the stack.
+void TORRENT_EXPORT sign_mutable_item(
 	std::pair<char const*, int> v,
 	std::pair<char const*, int> salt,
 	boost::uint64_t seq,
@@ -93,18 +106,20 @@ public:
 
 	void assign(entry const& v)
 	{
-		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL), 0), 0, NULL, NULL);
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
+			, 0), 0, NULL, NULL);
 	}
-	void assign(entry const& v
-		, std::pair<char const*, int> salt
+	void assign(entry const& v, std::pair<char const*, int> salt
 		, boost::uint64_t seq, char const* pk, char const* sk);
 	void assign(lazy_entry const* v)
 	{
-		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL), 0), 0, NULL, NULL);
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
+			, 0), 0, NULL, NULL);
 	}
-	bool assign(lazy_entry const* v
-		, std::pair<char const*, int> salt
+	bool assign(lazy_entry const* v, std::pair<char const*, int> salt
 		, boost::uint64_t seq, char const* pk, char const* sig);
+	void assign(entry const& v, std::string salt, boost::uint64_t seq
+		, char const* pk, char const* sig);
 
 	void clear() { m_value = entry(); }
 	bool empty() const { return m_value.type() == entry::undefined_t; }
@@ -114,15 +129,18 @@ public:
 	sha1_hash cas();
 
 	entry const& value() const { return m_value; }
-	char const* pk() { TORRENT_ASSERT(m_mutable); return m_pk; }
-	char const* sig() { TORRENT_ASSERT(m_mutable); return m_sig; }
-	boost::uint64_t seq() { TORRENT_ASSERT(m_mutable); return m_seq; }
+	boost::array<char, item_pk_len> const& pk() const
+	{ TORRENT_ASSERT(m_mutable); return m_pk; }
+	boost::array<char, item_sig_len> const& sig() const
+	{ TORRENT_ASSERT(m_mutable); return m_sig; }
+	boost::uint64_t seq() const { TORRENT_ASSERT(m_mutable); return m_seq; }
+	std::string const& salt() const { return m_salt; }
 
 private:
 	entry m_value;
 	std::string m_salt;
-	char m_pk[item_pk_len];
-	char m_sig[item_sig_len];
+	boost::array<char, item_pk_len> m_pk;
+	boost::array<char, item_sig_len> m_sig;
 	boost::uint64_t m_seq;
 	bool m_mutable;
 };

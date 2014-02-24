@@ -93,6 +93,21 @@ namespace libtorrent { namespace dht
 		void announce(sha1_hash const& ih, int listen_port, int flags
 			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
+		void get_item(sha1_hash const& target
+			, boost::function<void(item const&)> cb);
+
+		// key is a 32-byte binary string, the public key to look up.
+		// the salt is optional
+		void get_item(char const* key
+			, boost::function<void(item const&)> cb
+			, std::string salt = std::string());
+
+		void put_item(entry data
+			, boost::function<void()> cb);
+
+		void put_item(char const* key
+			, boost::function<void(item&)> cb, std::string salt = std::string());
+
 		void dht_status(session_status& s);
 		void network_stats(int& sent, int& received);
 

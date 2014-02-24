@@ -422,6 +422,87 @@ namespace libtorrent { namespace dht
 		m_dht.announce(ih, listen_port, flags, f);
 	}
 
+	// these functions provide a slightly higher level
+	// interface to the get/put functionality in the DHT
+	bool get_immutable_item_callback(item& it, boost::function<void(item const&)> f)
+	{
+		// the reason to wrap here is to control the return value
+		// since it controls whether we re-put the content
+		TORRENT_ASSERT(!it.is_mutable());
+		f(it);
+		return false;
+	}
+
+	bool get_mutable_item_callback(item& it, boost::function<void(item const&)> f)
+	{
+		// the reason to wrap here is to control the return value
+		// since it controls whether we re-put the content
+		TORRENT_ASSERT(it.is_mutable());
+		f(it);
+		return false;
+	}
+
+	bool put_immutable_item_callback(item& it, boost::function<void()> f
+		, entry data)
+	{
+		TORRENT_ASSERT(!it.is_mutable());
+		it.assign(data);
+		// TODO: ideally this function would be called when the
+		// put completes
+		f();
+		return true;
+	}
+
+	bool put_mutable_item_callback(item& it, boost::function<void(item&)> cb)
+	{
+		cb(it);
+		return true;
+	}
+
+	void dht_tracker::get_item(sha1_hash const& target
+		, boost::function<void(item const&)> cb)
+	{
+		m_dht.get_item(target, boost::bind(&get_immutable_item_callback, _1, cb));
+	}
+
+	// key is a 32-byte binary string, the public key to look up.
+	// the salt is optional
+	void dht_tracker::get_item(char const* key
+		, boost::function<void(item const&)> cb
+		, std::string salt)
+	{
+		sha1_hash target = item_target_id(
+			std::pair<char const*, int>(NULL, 0)
+			, std::pair<char const*, int>(salt.c_str(), salt.size())
+			, key);
+
+		m_dht.get_item(target, boost::bind(&get_mutable_item_callback, _1, cb));
+	}
+
+	void dht_tracker::put_item(entry data
+		, boost::function<void()> cb)
+	{
+		std::string flat_data;
+		bencode(std::back_inserter(flat_data), data);
+		sha1_hash target = item_target_id(
+			std::pair<char const*, int>(flat_data.c_str(), flat_data.size())
+			, std::pair<char const*, int>(NULL, 0), NULL);
+
+		m_dht.get_item(target, boost::bind(&put_immutable_item_callback
+			, _1, cb, data));
+	}
+
+	void dht_tracker::put_item(char const* key
+		, boost::function<void(item&)> cb, std::string salt)
+	{
+		sha1_hash target = item_target_id(
+			std::pair<char const*, int>(NULL, 0)
+			, std::pair<char const*, int>(salt.c_str(), salt.size())
+			, key);
+
+		m_dht.get_item(target, boost::bind(&put_mutable_item_callback
+			, _1, cb));
+	}
 
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library

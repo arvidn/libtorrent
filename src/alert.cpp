@@ -579,5 +579,26 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string dht_immutable_item_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
+			, to_hex(target.to_string()).c_str()
+			, item.to_string().c_str());
+		return msg;
+	}
+
+	std::string dht_mutable_item_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 ") [ %s ]"
+			, to_hex(std::string(&key[0], 32)).c_str()
+			, salt.c_str()
+			, seq
+			, item.to_string().c_str());
+		return msg;
+	}
+
+
 } // namespace libtorrent
 

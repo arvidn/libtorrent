@@ -106,6 +106,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/kademlia/item.hpp>
 #endif // TORRENT_DISABLE_DHT
 
 #include "libtorrent/http_tracker_connection.hpp"
@@ -5771,6 +5772,70 @@ retry:
 			++host;
 		}
 	}
+
+	// callback for dht_immutable_get
+	void session_impl::get_immutable_callback(sha1_hash target
+		, dht::item const& i)
+	{
+		TORRENT_ASSERT(!i.is_mutable());
+		m_alerts.post_alert(dht_immutable_item_alert(target, i.value()));
+	}
+
+	void session_impl::dht_get_immutable_item(sha1_hash const& target)
+	{
+		if (!m_dht) return;
+		m_dht->get_item(target, boost::bind(&session_impl::get_immutable_callback
+			, this, target, _1));
+	}
+
+	// callback for dht_mutable_get
+	void session_impl::get_mutable_callback(dht::item const& i)
+	{
+		TORRENT_ASSERT(i.is_mutable());
+		m_alerts.post_alert(dht_mutable_item_alert(i.pk(), i.sig(), i.seq()
+			, i.salt(), i.value()));
+	}
+
+	// key is a 32-byte binary string, the public key to look up.
+	// the salt is optional
+	void session_impl::dht_get_mutable_item(boost::array<char, 32> key
+		, std::string salt)
+	{
+		if (!m_dht) return;
+		m_dht->get_item(key.data(), boost::bind(&session_impl::get_mutable_callback
+			, this, _1), salt);
+	}
+
+	void nop() {}
+
+	void session_impl::dht_put_item(entry data)
+	{
+		if (!m_dht) return;
+		m_dht->put_item(data, boost::bind(&nop));
+	}
+
+	void put_mutable_callback(dht::item& i
+		, boost::function<void(entry&, boost::array<char,64>&
+			, boost::uint64_t&, std::string const&)> cb)
+	{
+		entry value = i.value();
+		boost::array<char, 64> sig = i.sig();
+		boost::array<char, 32> pk = i.pk();
+		boost::uint64_t seq = i.seq();
+		std::string salt = i.salt();
+		cb(value, sig, seq, salt);
+		i.assign(value, salt, seq, pk.data(), sig.data());
+	}
+
+	void session_impl::dht_put_mutable_item(boost::array<char, 32> key
+		, boost::function<void(entry&, boost::array<char,64>&
+			, boost::uint64_t&, std::string const&)> cb
+		, std::string salt)
+	{
+		if (!m_dht) return;
+		m_dht->put_item(key.data(), boost::bind(&put_mutable_callback, _1, cb), salt);
+	}
+
 #endif
 
 	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)

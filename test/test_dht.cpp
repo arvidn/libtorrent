@@ -1635,8 +1635,8 @@ int test_main()
 		if (g_got_items.empty()) break;
 
 		TEST_EQUAL(g_got_items.front().value(), items[0].ent);
-		TEST_CHECK(memcmp(g_got_items.front().pk(), public_key, item_pk_len) == 0);
-		TEST_CHECK(memcmp(g_got_items.front().sig(), signature, item_sig_len) == 0);
+		TEST_CHECK(memcmp(g_got_items.front().pk().data(), public_key, item_pk_len) == 0);
+		TEST_CHECK(memcmp(g_got_items.front().sig().data(), signature, item_sig_len) == 0);
 		TEST_EQUAL(g_got_items.front().seq(), seq);
 		g_got_items.clear();
 
@@ -1761,7 +1761,7 @@ int test_main()
 
 		sha1_hash target = hasher(public_key, item_pk_len).final();
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
-		std::string sig(g_put_item.sig(), item_sig_len);
+		std::string sig(g_put_item.sig().data(), item_sig_len);
 		node.get_item(target, get_item_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);

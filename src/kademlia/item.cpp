@@ -120,6 +120,12 @@ bool verify_mutable_item(
 		(unsigned char const*)pk) == 1;
 }
 
+// given the bencoded buffer ``v``, the salt (which is optional and may have
+// a length of zero to be omitted), sequence number ``seq``, public key (32
+// bytes ed25519 key) ``pk`` and a secret/private key ``sk`` (64 bytes ed25519
+// key) a signature ``sig`` is produced. The ``sig`` pointer must point to
+// at least 64 bytes of available space. This space is where the signature is
+// written.
 void sign_mutable_item(
 	std::pair<char const*, int> v,
 	std::pair<char const*, int> salt,
@@ -178,8 +184,8 @@ void item::assign(entry const& v, std::pair<char const*, int> salt
 		int bsize = bencode(buffer, v);
 		TORRENT_ASSERT(bsize <= 1000);
 		sign_mutable_item(std::make_pair(buffer, bsize)
-			, salt, seq, pk, sk, m_sig);
-		memcpy(m_pk, pk, item_pk_len);
+			, salt, seq, pk, sk, m_sig.c_array());
+		memcpy(m_pk.c_array(), pk, item_pk_len);
 		m_seq = seq;
 		m_mutable = true;
 	}
@@ -196,10 +202,12 @@ bool item::assign(lazy_entry const* v
 	{
 		if (!verify_mutable_item(v->data_section(), salt, seq, pk, sig))
 			return false;
-		memcpy(m_pk, pk, item_pk_len);
-		memcpy(m_sig, sig, item_sig_len);
+		memcpy(m_pk.c_array(), pk, item_pk_len);
+		memcpy(m_sig.c_array(), sig, item_sig_len);
 		if (salt.second > 0)
 			m_salt.assign(salt.first, salt.second);
+		else
+			m_salt.clear();
 		m_seq = seq;
 		m_mutable = true;
 	}
@@ -208,6 +216,17 @@ bool item::assign(lazy_entry const* v
 
 	m_value = *v;
 	return true;
+}
+
+void item::assign(entry const& v, std::string salt, boost::uint64_t seq
+	, char const* pk, char const* sig)
+{
+	memcpy(m_pk.c_array(), pk, item_pk_len);
+	memcpy(m_sig.c_array(), sig, item_sig_len);
+	m_salt = salt;
+	m_seq = seq;
+	m_mutable = true;
+	m_value = v;
 }
 
 sha1_hash item::cas()
