@@ -47,6 +47,8 @@ void get_item::got_data(lazy_entry const* v,
 	boost::uint64_t seq,
 	char const* sig)
 {
+	// we received data!
+
 	std::pair<char const*, int> salt(m_salt.c_str(), m_salt.size());
 
 	sha1_hash incoming_target = item_target_id(v->data_section(), salt, pk);
@@ -54,6 +56,9 @@ void get_item::got_data(lazy_entry const* v,
 
 	if (pk && sig)
 	{
+		// this is mutable data. If it passes the signature
+		// check, remember it. Just keep the version with
+		// the highest sequence number.
 		if (m_data.empty() || m_data.seq() < seq)
 		{
 			if (!m_data.assign(v, salt, seq, pk, sig))
@@ -62,8 +67,15 @@ void get_item::got_data(lazy_entry const* v,
 	}
 	else if (m_data.empty())
 	{
+		// this is the first time we receive data,
+		// and it's immutable
+
 		m_data.assign(v);
 		bool put_requested = m_data_callback(m_data);
+
+		// if we intend to put, we need to keep going
+		// until we find the closest nodes, since those
+		// are the ones we're putting to
 		if (put_requested)
 		{
 #if TORRENT_USE_ASSERTS
@@ -71,6 +83,10 @@ void get_item::got_data(lazy_entry const* v,
 			bencode(std::back_inserter(buffer), m_data.value());
 			TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
 #endif
+
+			// this function is called when we're done, passing
+			// in all relevant nodes we received data from close
+			// to the target.
 			m_nodes_callback = boost::bind(&get_item::put, this, _1);
 		}
 		else
@@ -126,13 +142,17 @@ void get_item::done()
 {
 	if (m_data.is_mutable() || m_data.empty())
 	{
+		// for mutable data, we only call the callback at the end,
+		// when we've heard from everyone, to be sure we got the
+		// latest version of the data (i.e. highest sequence number)
 		bool put_requested = m_data_callback(m_data);
 		if (put_requested)
 		{
 #if TORRENT_USE_ASSERTS
 			if (m_data.is_mutable())
 			{
-				TORRENT_ASSERT(m_target == hasher(m_data.pk(), item_pk_len).final());
+				TORRENT_ASSERT(m_target == hasher(m_data.pk().data(),
+					item_pk_len).final());
 			}
 			else
 			{
@@ -141,12 +161,19 @@ void get_item::done()
 				TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
 			}
 #endif
+
+			// this function is called when we're done, passing
+			// in all relevant nodes we received data from close
+			// to the target.
 			m_nodes_callback = boost::bind(&get_item::put, this, _1);
 		}
 	}
 	find_data::done();
 }
 
+// this function sends a put message to the nodes
+// closest to the target. Those nodes are passed in
+// as the v argument
 void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -181,9 +208,9 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 		a["token"] = i->second;
 		if (m_data.is_mutable())
 		{
-			a["k"] = std::string(m_data.pk(), item_pk_len);
+			a["k"] = std::string(m_data.pk().data(), item_pk_len);
 			a["seq"] = m_data.seq();
-			a["sig"] = std::string(m_data.sig(), item_sig_len);
+			a["sig"] = std::string(m_data.sig().data(), item_sig_len);
 		}
 		m_node.m_rpc.invoke(e, i->first.ep(), o);
 	}

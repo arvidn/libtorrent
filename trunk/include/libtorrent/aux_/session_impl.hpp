@@ -119,6 +119,7 @@ namespace libtorrent
 	namespace dht
 	{
 		struct dht_tracker;
+		class item;
 	}
 
 	struct bencode_map_entry;
@@ -312,6 +313,22 @@ namespace libtorrent
 			// it will prioritize them for announcing to
 			// the DHT, to get the initial peers quickly
 			void prioritize_dht(boost::weak_ptr<torrent> t);
+
+			void get_immutable_callback(sha1_hash target
+				, dht::item const& i);
+			void get_mutable_callback(dht::item const& i);
+
+			void dht_get_immutable_item(sha1_hash const& target);
+
+			void dht_get_mutable_item(boost::array<char, 32> key
+				, std::string salt = std::string());
+
+			void dht_put_item(entry data);
+
+			void dht_put_mutable_item(boost::array<char, 32> key
+				, boost::function<void(entry&, boost::array<char,64>&
+					, boost::uint64_t&, std::string const&)> cb
+				, std::string salt = std::string());
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;

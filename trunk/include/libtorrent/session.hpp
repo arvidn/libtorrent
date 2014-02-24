@@ -502,6 +502,68 @@ namespace libtorrent
 		void add_dht_node(std::pair<std::string, int> const& node);
 		void add_dht_router(std::pair<std::string, int> const& node);
 
+		// query the DHT for an immutable item at the ``target`` hash.
+		// the result is posted as a dht_immutable_item_alert.
+		void dht_get_item(sha1_hash const& target);
+
+		// query the DHT for a mutable item under the public key ``key``.
+		// this is an ed25519 key. ``salt`` is optional and may be left
+		// as an empty string if no salt is to be used.
+		// if the item is found in the DHT, a dht_mutable_item_alert is
+		// posted.
+		void dht_get_item(boost::array<char, 32> key
+			, std::string salt = std::string());
+
+		// store the given bencoded data as an immutable item in the DHT.
+		// the returned hash is the key that is to be used to look the item
+		// up agan. It's just the sha-1 hash of the bencoded form of the
+		// structure.
+		sha1_hash dht_put_item(entry data);
+
+		// store an immutable item. The ``key`` is the public key the blob is
+		// to be stored under. The optional ``salt`` argument is a string that
+		// is to be mixed in with the key when determining where in the DHT
+		// the value is to be stored. The callback function is called from within
+		// the libtorrent network thread once we've found where to store the blob,
+		// possibly with the current value stored under the key.
+		// The values passed to the callback functions are:
+		//
+		// entry& value
+		// 	the current value stored under the key (may be empty). Also expected
+		// 	to be set to the value to be stored by the function.
+		// 
+		// boost::array<char,64>& signature
+		// 	the signature authenticating the current value. This may be zeroes
+		// 	if there is currently no value stored. The functon is expected to
+		// 	fill in this buffer with the signature of the new value to store.
+		// 	To generate the signature, you may want to use the
+		// 	``sign_mutable_item`` function.
+		// 
+		// boost::uint64_t& seq
+		// 	current sequence number. May be zero if there is no current value.
+		// 	The function is expected to set this to the new sequence number of
+		// 	the value that is to be stored. Sequence numbers must be monotonically
+		// 	increasing. Attempting to overwrite a value with a lower or equal
+		// 	sequence number will fail, even if the signature is correct.
+		// 
+		// std::string const& salt
+		// 	this is the salt that was used for this put call.
+		// 
+		// Since the callback function ``cb`` is called from within libtorrent,
+		// it is critical to not perform any blocking operations. Ideally not
+		// even locking a mutex. Pass any data required for this function along
+		// with the function object's context and make the function entirely
+		// self-contained. The only reason data blobs' values are computed
+		// via a function instead of just passing in the new value is to avoid
+		// race conditions. If you want to *update* the value in the DHT, you
+		// must first retrieve it, then modify it, then write it back. The way
+		// the DHT works, it is natural to always do a lookup before storing and
+		// calling the callback in between is convenient.
+		void dht_put_item(boost::array<char, 32> key
+			, boost::function<void(entry&, boost::array<char,64>&
+				, boost::uint64_t&, std::string const&)> cb
+			, std::string salt = std::string());
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use save_state and load_state instead

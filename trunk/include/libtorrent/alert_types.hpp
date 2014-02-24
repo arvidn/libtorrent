@@ -1943,7 +1943,66 @@ namespace libtorrent
 		op_t operation;
 	};
 
+	// this alert is posted as a response to a call to session::get_item(),
+	// specifically the overload for looking up immutable items in the DHT.
+	struct TORRENT_EXPORT dht_immutable_item_alert: alert
+	{
+		dht_immutable_item_alert(sha1_hash const& t, entry const& i)
+			: target(t), item(i) {}
+		
+		TORRENT_DEFINE_ALERT(dht_immutable_item_alert);
 
+		const static int static_category = alert::error_notification
+			| alert::dht_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		// the target hash of the immutable item. This must
+		// match the sha-1 hash of the bencoded form of ``item``.
+		sha1_hash target;
+
+		// the data for this item
+		entry item;
+	};
+
+	// this alert is posted as a response to a call to session::get_item(),
+	// specifically the overload for looking up mutable items in the DHT.
+	struct TORRENT_EXPORT dht_mutable_item_alert: alert
+	{
+		dht_mutable_item_alert(boost::array<char, 32> k
+			, boost::array<char, 64> sig
+			, boost::uint64_t sequence
+			, std::string const& s
+			, entry const& i)
+			: key(k), signature(sig), seq(sequence), salt(s), item(i) {}
+		
+		TORRENT_DEFINE_ALERT(dht_mutable_item_alert);
+
+		const static int static_category = alert::error_notification
+			| alert::dht_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		// the public key that was looked up
+		boost::array<char, 32> key;
+
+		// the signature of the data. This is not the signature of the
+		// plain encoded form of the item, but it includes the sequence number
+		// and possibly the hash as well. See the dht_store document for more
+		// information. This is primarily useful for echoing back in a store
+		// request.
+		boost::array<char, 64> signature;
+
+		// the sequence number of this item
+		boost::uint64_t seq;
+
+		// the salf, if any, used to lookup and store this item. If no
+		// salt was used, this is an empty string
+		std::string salt;
+
+		// the data for this item
+		entry item;
+	};
 #undef TORRENT_DEFINE_ALERT
 
 }
