@@ -1376,7 +1376,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 			appendf(response, ",\"%s\",\"%s\",\"%s\",\"%s\",%"PRId64",%"PRId64",\"%s\",\"%s\",%d,\"%s\"]"
 			, "" // url this torrent came from
 			, "" // feed URL this torrent belongs to
-			, utorrent_message(*i).c_str()
+			, escape_json(utorrent_message(*i)).c_str()
 			, to_hex(i->info_hash.to_string()).c_str()
 			, i->added_time
 			, i->completed_time
