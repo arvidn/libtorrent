@@ -94,7 +94,7 @@ char const* bootstrap::name() const { return "bootstrap"; }
 void bootstrap::done()
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << " [" << this << "]"
+	TORRENT_LOG(traversal) << "[" << this << "]"
 		<< " bootstrap done, pinging remaining nodes";
 #endif
 

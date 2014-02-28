@@ -902,7 +902,7 @@ namespace libtorrent
 		sha1_hash ret = hasher(&buf[0], buf.size()).final();
 	
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(dht_put_item, data);
+		TORRENT_ASYNC_CALL2(dht_put_item, data, ret);
 #endif
 		return ret;
 	}

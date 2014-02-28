@@ -5693,6 +5693,12 @@ retry:
 	void session_impl::start_dht()
 	{ start_dht(m_dht_state); }
 
+	void on_bootstrap(alert_manager& alerts)
+	{
+		if (alerts.should_post<dht_bootstrap_alert>())
+			alerts.post_alert(dht_bootstrap_alert());
+	}
+
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
@@ -5706,7 +5712,7 @@ retry:
 			m_dht->add_router_node(*i);
 		}
 
-		m_dht->start(startup_state);
+		m_dht->start(startup_state, boost::bind(&on_bootstrap, boost::ref(m_alerts)));
 
 		m_udp_socket.subscribe(m_dht.get());
 	}
@@ -5806,15 +5812,20 @@ retry:
 			, this, _1), salt);
 	}
 
-	void nop() {}
-
-	void session_impl::dht_put_item(entry data)
+	void on_dht_put(alert_manager& alerts, sha1_hash target)
 	{
-		if (!m_dht) return;
-		m_dht->put_item(data, boost::bind(&nop));
+		if (alerts.should_post<dht_put_alert>())
+			alerts.post_alert(dht_put_alert(target));
 	}
 
-	void put_mutable_callback(dht::item& i
+	void session_impl::dht_put_item(entry data, sha1_hash target)
+	{
+		if (!m_dht) return;
+		m_dht->put_item(data, boost::bind(&on_dht_put, boost::ref(m_alerts)
+			, target));
+	}
+
+	void put_mutable_callback(alert_manager& alerts, dht::item& i
 		, boost::function<void(entry&, boost::array<char,64>&
 			, boost::uint64_t&, std::string const&)> cb)
 	{
@@ -5825,6 +5836,9 @@ retry:
 		std::string salt = i.salt();
 		cb(value, sig, seq, salt);
 		i.assign(value, salt, seq, pk.data(), sig.data());
+
+		if (alerts.should_post<dht_put_alert>())
+			alerts.post_alert(dht_put_alert(pk, sig, salt, seq));
 	}
 
 	void session_impl::dht_put_mutable_item(boost::array<char, 32> key
@@ -5833,7 +5847,8 @@ retry:
 		, std::string salt)
 	{
 		if (!m_dht) return;
-		m_dht->put_item(key.data(), boost::bind(&put_mutable_callback, _1, cb), salt);
+		m_dht->put_item(key.data(), boost::bind(&put_mutable_callback
+			, boost::ref(m_alerts), _1, cb), salt);
 	}
 
 #endif

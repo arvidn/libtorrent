@@ -323,7 +323,7 @@ namespace libtorrent
 			void dht_get_mutable_item(boost::array<char, 32> key
 				, std::string salt = std::string());
 
-			void dht_put_item(entry data);
+			void dht_put_item(entry data, sha1_hash target);
 
 			void dht_put_mutable_item(boost::array<char, 32> key
 				, boost::function<void(entry&, boost::array<char,64>&

@@ -61,11 +61,10 @@ struct find_data : traversal_algorithm
 {
 	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
 
-	void got_write_token(node_id const& n, std::string const& write_token)
-	{ m_write_tokens[n] = write_token; }
-
 	find_data(node_impl& node, node_id target
 		, nodes_callback const& ncallback);
+
+	void got_write_token(node_id const& n, std::string const& write_token);
 
 	virtual void start();
 

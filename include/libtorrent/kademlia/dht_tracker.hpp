@@ -80,7 +80,8 @@ namespace libtorrent { namespace dht
 			, dht_settings const& settings, entry const* state = 0);
 		virtual ~dht_tracker();
 
-		void start(entry const& bootstrap);
+		void start(entry const& bootstrap
+			, find_data::nodes_callback const& f);
 		void stop();
 
 		void add_node(udp::endpoint node);
