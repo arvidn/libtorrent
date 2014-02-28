@@ -1,3 +1,4 @@
+	* improve support for de-selected files in full allocation mode
 	* fix dht_bootstrap_alert being posted
 	* SetFileValidData fix on windows (prevents zero-fill)
 	* fix minor lock_files issue on unix
