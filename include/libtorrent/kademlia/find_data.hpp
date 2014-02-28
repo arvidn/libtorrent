@@ -65,8 +65,7 @@ public:
 	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&, bool)> nodes_callback;
 
 	void got_peers(std::vector<tcp::endpoint> const& peers);
-	void got_write_token(node_id const& n, std::string const& write_token)
-	{ m_write_tokens[n] = write_token; }
+	void got_write_token(node_id const& n, std::string const& write_token);
 
 	find_data(node_impl& node, node_id target
 		, data_callback const& dcallback

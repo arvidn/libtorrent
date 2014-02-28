@@ -90,6 +90,10 @@ void find_data_observer::reply(msg const& m)
 #endif
 	}
 
+	// in case we didn't know the id of this peer when we sent the message to
+	// it. For instance if it's a bootstrap node.
+	set_id(node_id(id->string_ptr()));
+
 	// look for peers
 	lazy_entry const* n = r->dict_find_list("values");
 	if (n)
@@ -192,6 +196,15 @@ find_data::find_data(
 	node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
 }
 
+void find_data::got_write_token(node_id const& n, std::string const& write_token)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << "[" << this << "] adding write "
+		"token '" << to_hex(write_token) << "' under id '" << to_hex(n.to_string()) << "'";
+#endif
+	m_write_tokens[n] = write_token;
+}
+
 observer_ptr find_data::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
@@ -232,7 +245,7 @@ void find_data::done()
 	m_done = true;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] get_peers DONE";
+	TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] " << name() << " DONE";
 #endif
 
 	std::vector<std::pair<node_entry, std::string> > results;
@@ -241,11 +254,28 @@ void find_data::done()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
 		observer_ptr const& o = *i;
-		if (o->flags & observer::flag_no_id) continue;
-		if ((o->flags & observer::flag_queried) == 0) continue;
+		if ((o->flags & observer::flag_alive) == 0)
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(traversal) << "[" << this << "]     not alive: "
+				<< o->target_ep();
+#endif
+			continue;
+		}
 		std::map<node_id, std::string>::iterator j = m_write_tokens.find(o->id());
-		if (j == m_write_tokens.end()) continue;
+		if (j == m_write_tokens.end())
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(traversal) << "[" << this << "]     no write token: "
+				<< o->target_ep();
+#endif
+			continue;
+		}
 		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(traversal) << "[" << this << "]     "
+				<< o->target_ep();
+#endif
 		--num_results;
 	}
 	m_nodes_callback(results, m_got_peers);
