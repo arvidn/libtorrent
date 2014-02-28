@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //	struct temp_storage : storage_interface
 //	{
 //		temp_storage(file_storage const& fs) : m_files(fs) {}
+//		void set_file_priority(std::vector<boost::uint8_t> const& prio) {}
 //		virtual bool initialize(bool allocate_files) { return false; }
 //		virtual bool has_any_file() { return false; }
 //		virtual int read(char* buf, int slot, int offset, int size)
@@ -193,6 +194,7 @@ namespace libtorrent
 		// hidden
 		storage_interface(): m_disk_pool(0), m_settings(0) {}
 
+
 		// This function is called when the storage is to be initialized. The default storage
 		// will create directories and empty files at this point. If ``allocate_files`` is true,
 		// it will also ``ftruncate`` all files to their target size.
@@ -204,6 +206,10 @@ namespace libtorrent
 		// It should return true if any of the files that is used in this storage exists on disk.
 		// If so, the storage will be checked for existing pieces before starting the download.
 		virtual bool has_any_file() = 0;
+
+
+		// change the priorities of files.
+		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio) = 0;
 
 		// These functions should read or write the data in or to the given ``slot`` at the given ``offset``.
 		// It should read or write ``num_bufs`` buffers sequentially, where the size of each buffer
@@ -407,6 +413,7 @@ namespace libtorrent
 		// hidden
 		~default_storage();
 
+		void set_file_priority(std::vector<boost::uint8_t> const& prio);
 #ifndef TORRENT_NO_DEPRECATE
 		void finalize_file(int file);
 #endif
@@ -495,6 +502,7 @@ namespace libtorrent
 	{
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
+		void set_file_priority(std::vector<boost::uint8_t> const& prio) {}
 		bool has_any_file() { return false; }
 		bool rename_file(int, std::string const&) { return false; }
 		bool release_files() { return false; }
@@ -609,6 +617,10 @@ namespace libtorrent
 		void async_move_storage(std::string const& p, int flags
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
+		void async_set_file_priority(
+			std::vector<boost::uint8_t> const& prios
+			, boost::function<void(int, disk_io_job const&)> const& handler);
+
 		void async_save_resume_data(
 			boost::function<void(int, disk_io_job const&)> const& handler);
 
@@ -707,6 +719,8 @@ namespace libtorrent
 		int delete_files_impl() { return m_storage->delete_files(); }
 		int rename_file_impl(int index, std::string const& new_filename)
 		{ return m_storage->rename_file(index, new_filename); }
+		void set_file_priority_impl(std::vector<boost::uint8_t> const& p)
+		{ m_storage->set_file_priority(p); }
 
 		int move_storage_impl(std::string const& save_path, int flags);
 

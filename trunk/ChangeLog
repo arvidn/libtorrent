@@ -41,6 +41,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* improve support for de-selected files in full allocation mode
 	* fix dht_bootstrap_alert being posted
 	* SetFileValidData fix on windows (prevents zero-fill)
 	* fix minor lock_files issue on unix

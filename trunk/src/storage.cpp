@@ -397,6 +397,11 @@ namespace libtorrent
 
 	default_storage::~default_storage() { m_pool.release(this); }
 
+	void default_storage::set_file_priority(std::vector<boost::uint8_t> const& prio)
+	{
+		m_file_priority = prio;
+	}
+
 	bool default_storage::initialize(bool allocate_files)
 	{
 		m_allocate_files = allocate_files;
@@ -457,7 +462,6 @@ namespace libtorrent
 			ec.clear();
 		}
 
-		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
 
@@ -1523,6 +1527,19 @@ ret:
 
 	piece_manager::~piece_manager()
 	{
+	}
+
+	void piece_manager::async_set_file_priority(
+		std::vector<boost::uint8_t> const& prios
+		, boost::function<void(int, disk_io_job const&)> const& handler)
+	{
+		std::vector<boost::uint8_t>* p = new std::vector<boost::uint8_t>(prios);
+
+		disk_io_job j;
+		j.storage = this;
+		j.buffer = (char*)p;
+		j.action = disk_io_job::file_priority;
+		m_io_thread.add_job(j, handler);
 	}
 
 	void piece_manager::async_save_resume_data(
