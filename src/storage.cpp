@@ -482,7 +482,6 @@ namespace libtorrent
 			ec.clear();
 		}
 
-		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
 
