@@ -177,8 +177,8 @@ void get_item::done()
 void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "sending put [ v: " << m_data.value()
-		<< " seq: " << (m_data.is_mutable() ? m_data.seq() : -1)
+	TORRENT_LOG(node) << "sending put [ v: \"" << m_data.value()
+		<< "\" seq: " << (m_data.is_mutable() ? m_data.seq() : -1)
 		<< " nodes: " << v.size() << " ]" ;
 #endif
 

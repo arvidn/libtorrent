@@ -246,7 +246,8 @@ namespace libtorrent { namespace dht
 	// defined in node.cpp
 	extern void nop();
 
-	void dht_tracker::start(entry const& bootstrap)
+	void dht_tracker::start(entry const& bootstrap
+		, find_data::nodes_callback const& f)
 	{
 		std::vector<udp::endpoint> initial_nodes;
 
@@ -268,7 +269,7 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(boost::bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(initial_nodes, boost::bind(&libtorrent::dht::nop));
+		m_dht.bootstrap(initial_nodes, f);
 	}
 
 	void dht_tracker::stop()
