@@ -116,6 +116,7 @@ namespace libtorrent
 			, update_settings
 			, read_and_hash
 			, cache_piece
+			, file_priority 
 #ifndef TORRENT_NO_DEPRECATE
 			, finalize_file
 #endif

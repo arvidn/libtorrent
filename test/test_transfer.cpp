@@ -77,6 +77,7 @@ struct test_storage : storage_interface
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
+	virtual void set_file_priority(std::vector<boost::uint8_t> const& p) {}
 
 	virtual bool initialize(bool allocate_files)
 	{ return m_lower_layer->initialize(allocate_files); }

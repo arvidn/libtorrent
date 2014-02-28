@@ -2486,8 +2486,17 @@ namespace libtorrent
 					if (ret != 0)
 					{
 						test_error(j);
-						break;
 					}
+					break;
+				}
+				case disk_io_job::file_priority:
+				{
+					std::vector<boost::uint8_t>* p
+						= reinterpret_cast<std::vector<boost::uint8_t>*>(j.buffer);
+					j.storage->set_file_priority_impl(*p);
+					delete p;
+					ret = 0;
+					break;
 				}
 				}
 			}

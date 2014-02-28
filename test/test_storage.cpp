@@ -167,7 +167,7 @@ struct test_storage : storage_interface
 
 	virtual bool initialize(bool allocate_files) { return true; }
 	virtual bool has_any_file() { return true; }
-
+	virtual void set_file_priority(std::vector<boost::uint8_t> const& p) {}
 
 	int write(
 		const char* buf
