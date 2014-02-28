@@ -491,8 +491,60 @@ namespace libtorrent
 
 	void entry::swap(entry& e)
 	{
-		// not implemented
-		TORRENT_ASSERT(false);
+		bool clear_this = false;
+		bool clear_that = false;
+
+		if (m_type == undefined_t && e.m_type == undefined_t)
+			return;
+
+		if (m_type == undefined_t)
+		{
+			construct((data_type)e.m_type);
+			clear_that = true;
+		}
+
+		if (e.m_type == undefined_t)
+		{
+			e.construct((data_type)m_type);
+			clear_this = true;
+		}
+
+		if (m_type == e.m_type)
+		{
+			switch (m_type)
+			{
+			case int_t:
+				std::swap(*reinterpret_cast<integer_type*>(data)
+					, *reinterpret_cast<integer_type*>(e.data));
+				break;
+			case string_t:
+				std::swap(*reinterpret_cast<string_type*>(data)
+					, *reinterpret_cast<string_type*>(e.data));
+				break;
+			case list_t:
+				std::swap(*reinterpret_cast<list_type*>(data)
+					, *reinterpret_cast<list_type*>(e.data));
+				break;
+			case dictionary_t:
+				std::swap(*reinterpret_cast<dictionary_type*>(data)
+					, *reinterpret_cast<dictionary_type*>(e.data));
+				break;
+			default:
+				break;
+			}
+
+			if (clear_this)
+				destruct();
+
+			if (clear_that)
+				e.destruct();
+		}
+		else
+		{
+			// currently, only swapping entries of the same type or where one
+			// of the entries is uninitialized is supported.
+			TORRENT_ASSERT(false && "not implemented");
+		}
 	}
 
 #if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM

@@ -114,7 +114,7 @@ int test_main()
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor1.trackers().size() == 1);
+	TEST_EQUAL(tor1.trackers().size(), 1);
 
 	return 0;
 }

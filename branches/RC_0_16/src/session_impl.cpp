@@ -5499,6 +5499,12 @@ retry:
 	void session_impl::start_dht()
 	{ start_dht(m_dht_state); }
 
+	void on_bootstrap(alert_manager& alerts)
+	{
+		if (alerts.should_post<dht_bootstrap_alert>())
+			alerts.post_alert(dht_bootstrap_alert());
+	}
+
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
@@ -5516,7 +5522,7 @@ retry:
 			m_dht->add_router_node(*i);
 		}
 
-		m_dht->start(startup_state);
+		m_dht->start(startup_state, boost::bind(&on_bootstrap, boost::ref(m_alerts)));
 
 		// announce all torrents we have to the DHT
 		for (torrent_map::const_iterator i = m_torrents.begin()

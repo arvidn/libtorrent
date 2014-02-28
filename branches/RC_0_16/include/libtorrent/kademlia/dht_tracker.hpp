@@ -79,7 +79,8 @@ namespace libtorrent { namespace dht
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 			, dht_settings const& settings, entry const* state = 0);
 
-		void start(entry const& bootstrap);
+		void start(entry const& bootstrap
+			, find_data::nodes_callback const& f);
 		void stop();
 
 		void add_node(udp::endpoint node);

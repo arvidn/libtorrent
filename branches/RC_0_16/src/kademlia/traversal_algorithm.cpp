@@ -262,7 +262,9 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		TORRENT_LOG(traversal) << " [" << this << ":" << name()
 			<< "] failed: " << o->id() << " " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
-			<< " invoke-count: " << m_invoke_count;
+			<< " invoke-count: " << m_invoke_count
+			<< " type: " << name()
+			;
 #endif
 		// don't tell the routing table about
 		// node ids that we just generated ourself
