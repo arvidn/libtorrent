@@ -1452,6 +1452,7 @@ namespace libtorrent
 		, cancel_on_abort // update_settings
 		, read_operation + cancel_on_abort // read_and_hash
 		, read_operation + cancel_on_abort // cache_piece
+		, 0 // file_priority
 #ifndef TORRENT_NO_DEPRECATE
 		, 0 // finalize_file
 #endif
