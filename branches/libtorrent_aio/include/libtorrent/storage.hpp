@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -206,6 +206,7 @@ namespace libtorrent
 		// hidden
 		storage_interface(): m_settings(0) {}
 
+
 		// This function is called when the storage is to be initialized. The default storage
 		// will create directories and empty files at this point.
 		//
@@ -383,6 +384,7 @@ namespace libtorrent
 		// hidden
 		~default_storage();
 
+		void set_file_priority(std::vector<boost::uint8_t> const& prio);
 #ifndef TORRENT_NO_DEPRECATE
 		void finalize_file(int file, storage_error& ec);
 #endif

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -352,6 +352,8 @@ typedef boost::intrusive_ptr<file> file_handle;
 #endif
 #if defined TORRENT_WINDOWS
 		mutable int m_cluster_size;
+
+		static bool has_manage_volume_privs;
 #endif
 
 #if TORRENT_DEBUG_FILE_LEAKS

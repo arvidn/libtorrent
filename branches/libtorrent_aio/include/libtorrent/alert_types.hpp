@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1559,8 +1559,8 @@ namespace libtorrent
 		int reason;
 	};
 
-	// This alert is generated when a DHT node announces to an info-hash on our DHT node. It belongs
-	// to the ``dht_notification`` category.
+	// This alert is generated when a DHT node announces to an info-hash on our
+	// DHT node. It belongs to the ``dht_notification`` category.
 	struct TORRENT_EXPORT dht_announce_alert: alert
 	{
 		// internal
@@ -1581,8 +1581,8 @@ namespace libtorrent
 		sha1_hash info_hash;
 	};
 
-	// This alert is generated when a DHT node sends a ``get_peers`` message to our DHT node.
-	// It belongs to the ``dht_notification`` category.
+	// This alert is generated when a DHT node sends a ``get_peers`` message to
+	// our DHT node. It belongs to the ``dht_notification`` category.
 	struct TORRENT_EXPORT dht_get_peers_alert: alert
 	{
 		// internal
@@ -1627,21 +1627,22 @@ namespace libtorrent
 			num_channels
 		};
 
-		// an array of samples. The enum describes what each
-		// sample is a measurement of. All of these are raw, and not smoothing is performed.
+		// an array of samples. The enum describes what each sample is a
+		// measurement of. All of these are raw, and not smoothing is performed.
 		int transferred[num_channels];
 
-		// the number of milliseconds during which these stats
-		// were collected. This is typically just above 1000, but if CPU is
-		// limited, it may be higher than that.
+		// the number of milliseconds during which these stats were collected.
+		// This is typically just above 1000, but if CPU is limited, it may be
+		// higher than that.
 		int interval;
 	};
 
-	// This alert is posted when the disk cache has been flushed for a specific torrent
-	// as a result of a call to torrent_handle::flush_cache(). This alert belongs to the
-	// ``storage_notification`` category, which must be enabled to let this alert through.
-	// The alert is also posted when removing a torrent from the session, once the outstanding
-	// cache flush is complete and the torrent does no longer have any files open.
+	// This alert is posted when the disk cache has been flushed for a specific
+	// torrent as a result of a call to torrent_handle::flush_cache(). This
+	// alert belongs to the ``storage_notification`` category, which must be
+	// enabled to let this alert through. The alert is also posted when removing
+	// a torrent from the session, once the outstanding cache flush is complete
+	// and the torrent does no longer have any files open.
 	struct TORRENT_EXPORT cache_flushed_alert: torrent_alert
 	{
 		// internal
@@ -1684,8 +1685,8 @@ namespace libtorrent
 		std::string str;
 	};
 
-	// This alert is generated when we receive a local service discovery message from a peer
-	// for a torrent we're currently participating in.
+	// This alert is generated when we receive a local service discovery message
+	// from a peer for a torrent we're currently participating in.
 	struct TORRENT_EXPORT lsd_peer_alert: peer_alert
 	{
 		// internal
@@ -1700,9 +1701,9 @@ namespace libtorrent
 		virtual std::string message() const;
 	};
 
-	// This alert is posted whenever a tracker responds with a ``trackerid``. The tracker ID
-	// is like a cookie. The libtorrent will store the tracker ID for this tracker and
-	// repeat it in subsequent announces.
+	// This alert is posted whenever a tracker responds with a ``trackerid``.
+	// The tracker ID is like a cookie. The libtorrent will store the tracker ID
+	// for this tracker and repeat it in subsequent announces.
 	struct TORRENT_EXPORT trackerid_alert: tracker_alert
 	{
 		// internal
@@ -2027,7 +2028,103 @@ namespace libtorrent
 		op_t operation;
 	};
 
+	// this alert is posted as a response to a call to session::get_item(),
+	// specifically the overload for looking up immutable items in the DHT.
+	struct TORRENT_EXPORT dht_immutable_item_alert: alert
+	{
+		dht_immutable_item_alert(sha1_hash const& t, entry const& i)
+			: target(t), item(i) {}
+		
+		TORRENT_DEFINE_ALERT(dht_immutable_item_alert, 74);
 
+		const static int static_category = alert::error_notification
+			| alert::dht_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		// the target hash of the immutable item. This must
+		// match the sha-1 hash of the bencoded form of ``item``.
+		sha1_hash target;
+
+		// the data for this item
+		entry item;
+	};
+
+	// this alert is posted as a response to a call to session::get_item(),
+	// specifically the overload for looking up mutable items in the DHT.
+	struct TORRENT_EXPORT dht_mutable_item_alert: alert
+	{
+		dht_mutable_item_alert(boost::array<char, 32> k
+			, boost::array<char, 64> sig
+			, boost::uint64_t sequence
+			, std::string const& s
+			, entry const& i)
+			: key(k), signature(sig), seq(sequence), salt(s), item(i) {}
+		
+		TORRENT_DEFINE_ALERT(dht_mutable_item_alert, 75);
+
+		const static int static_category = alert::error_notification
+			| alert::dht_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		// the public key that was looked up
+		boost::array<char, 32> key;
+
+		// the signature of the data. This is not the signature of the
+		// plain encoded form of the item, but it includes the sequence number
+		// and possibly the hash as well. See the dht_store document for more
+		// information. This is primarily useful for echoing back in a store
+		// request.
+		boost::array<char, 64> signature;
+
+		// the sequence number of this item
+		boost::uint64_t seq;
+
+		// the salf, if any, used to lookup and store this item. If no
+		// salt was used, this is an empty string
+		std::string salt;
+
+		// the data for this item
+		entry item;
+	};
+
+	// this is posted when a DHT put operation completes. This is useful if the
+	// client is waiting for a put to complete before shutting down for instance.
+	struct TORRENT_EXPORT dht_put_alert: alert
+	{
+		// internal
+		dht_put_alert(sha1_hash const& t)
+			: target(t)
+			, seq(0)
+		{}
+		dht_put_alert(boost::array<char, 32> key
+			, boost::array<char, 64> sig
+			, std::string s
+			, uint64_t sequence_number)
+			: target(0)
+			, public_key(key)
+			, signature(sig)
+			, salt(s)
+			, seq(sequence_number)
+		{}
+
+		TORRENT_DEFINE_ALERT(dht_put_alert, 76);
+
+		const static int static_category = alert::dht_notification;
+		virtual std::string message() const;
+
+		// the target hash the item was stored under if this was an *immutable*
+		// item.
+		sha1_hash target;
+
+		// if a mutable item was stored, these are the public key, signature,
+		// salt and sequence number the item was stored under.
+		boost::array<char, 32> public_key;
+		boost::array<char, 64> signature;
+		std::string salt;
+		boost::uint64_t seq;
+	};
 #undef TORRENT_DEFINE_ALERT
 
 	enum { num_alert_types = 74 };
@@ -2035,3 +2132,4 @@ namespace libtorrent
 
 
 #endif
+

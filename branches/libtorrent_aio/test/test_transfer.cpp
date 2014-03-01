@@ -75,6 +75,7 @@ struct test_storage : default_storage
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
+	virtual void set_file_priority(std::vector<boost::uint8_t> const& p) {}
 
 	void set_limit(int lim)
 	{

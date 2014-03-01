@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2006-2014, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -116,6 +116,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/kademlia/item.hpp>
 #endif // TORRENT_DISABLE_DHT
 
 #include "libtorrent/http_tracker_connection.hpp"
@@ -6640,6 +6641,12 @@ retry:
 	void session_impl::start_dht()
 	{ start_dht(m_dht_state); }
 
+	void on_bootstrap(alert_manager& alerts)
+	{
+		if (alerts.should_post<dht_bootstrap_alert>())
+			alerts.post_alert(dht_bootstrap_alert());
+	}
+
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
@@ -6653,7 +6660,7 @@ retry:
 			m_dht->add_router_node(*i);
 		}
 
-		m_dht->start(startup_state);
+		m_dht->start(startup_state, boost::bind(&on_bootstrap, boost::ref(m_alerts)));
 
 		m_udp_socket.subscribe(m_dht.get());
 	}
@@ -6718,6 +6725,79 @@ retry:
 			m_dht_router_nodes.push_back(ep);
 		}
 	}
+
+	// callback for dht_immutable_get
+	void session_impl::get_immutable_callback(sha1_hash target
+		, dht::item const& i)
+	{
+		TORRENT_ASSERT(!i.is_mutable());
+		m_alerts.post_alert(dht_immutable_item_alert(target, i.value()));
+	}
+
+	void session_impl::dht_get_immutable_item(sha1_hash const& target)
+	{
+		if (!m_dht) return;
+		m_dht->get_item(target, boost::bind(&session_impl::get_immutable_callback
+			, this, target, _1));
+	}
+
+	// callback for dht_mutable_get
+	void session_impl::get_mutable_callback(dht::item const& i)
+	{
+		TORRENT_ASSERT(i.is_mutable());
+		m_alerts.post_alert(dht_mutable_item_alert(i.pk(), i.sig(), i.seq()
+			, i.salt(), i.value()));
+	}
+
+	// key is a 32-byte binary string, the public key to look up.
+	// the salt is optional
+	void session_impl::dht_get_mutable_item(boost::array<char, 32> key
+		, std::string salt)
+	{
+		if (!m_dht) return;
+		m_dht->get_item(key.data(), boost::bind(&session_impl::get_mutable_callback
+			, this, _1), salt);
+	}
+
+	void on_dht_put(alert_manager& alerts, sha1_hash target)
+	{
+		if (alerts.should_post<dht_put_alert>())
+			alerts.post_alert(dht_put_alert(target));
+	}
+
+	void session_impl::dht_put_item(entry data, sha1_hash target)
+	{
+		if (!m_dht) return;
+		m_dht->put_item(data, boost::bind(&on_dht_put, boost::ref(m_alerts)
+			, target));
+	}
+
+	void put_mutable_callback(alert_manager& alerts, dht::item& i
+		, boost::function<void(entry&, boost::array<char,64>&
+			, boost::uint64_t&, std::string const&)> cb)
+	{
+		entry value = i.value();
+		boost::array<char, 64> sig = i.sig();
+		boost::array<char, 32> pk = i.pk();
+		boost::uint64_t seq = i.seq();
+		std::string salt = i.salt();
+		cb(value, sig, seq, salt);
+		i.assign(value, salt, seq, pk.data(), sig.data());
+
+		if (alerts.should_post<dht_put_alert>())
+			alerts.post_alert(dht_put_alert(pk, sig, salt, seq));
+	}
+
+	void session_impl::dht_put_mutable_item(boost::array<char, 32> key
+		, boost::function<void(entry&, boost::array<char,64>&
+			, boost::uint64_t&, std::string const&)> cb
+		, std::string salt)
+	{
+		if (!m_dht) return;
+		m_dht->put_item(key.data(), boost::bind(&put_mutable_callback
+			, boost::ref(m_alerts), _1, cb), salt);
+	}
+
 #endif
 
 	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)

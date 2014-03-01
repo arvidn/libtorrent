@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -100,7 +100,7 @@ void bootstrap::done()
 	// when the bootstrap is done
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << " [" << this << "]"
+	TORRENT_LOG(traversal) << "[" << this << "]"
 		<< " bootstrap done, pinging remaining nodes";
 #endif
 

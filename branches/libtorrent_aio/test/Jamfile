@@ -61,6 +61,7 @@ lib libtorrent_test
 	: # sources
 	setup_transfer.cpp
 	dht_server.cpp
+	udp_tracker.cpp
 	peer_server.cpp
 	../ed25519/src/$(ED25519_SOURCES).c
 	web_seed_suite.cpp

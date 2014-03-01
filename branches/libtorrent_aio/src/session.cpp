@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2006-2014, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -404,6 +404,9 @@ namespace libtorrent
 
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
 	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
+
+#define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
+	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3))
 
 #define TORRENT_WAIT \
 	TORRENT_RECORD_BLOCKING_CALL \
@@ -970,6 +973,43 @@ namespace libtorrent
 		return r;
 #else
 		return false;
+#endif
+	}
+
+	void session::dht_get_item(sha1_hash const& target)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL1(dht_get_immutable_item, target);
+#endif
+	}
+
+	void session::dht_get_item(boost::array<char, 32> key
+		, std::string salt)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL2(dht_get_mutable_item, key, salt);
+#endif
+	}
+
+	sha1_hash session::dht_put_item(entry data)
+	{
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), data);
+		sha1_hash ret = hasher(&buf[0], buf.size()).final();
+	
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL2(dht_put_item, data, ret);
+#endif
+		return ret;
+	}
+
+	void session::dht_put_item(boost::array<char, 32> key
+		, boost::function<void(entry&, boost::array<char,64>&
+			, boost::uint64_t&, std::string const&)> cb
+		, std::string salt)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL3(dht_put_mutable_item, key, cb, salt);
 #endif
 	}
 

@@ -1531,13 +1531,23 @@ int test_main()
 		g_sent_packets.clear();
 		send_dht_response(node, response, next_node, nodes_t(), "11", 1234, peers[1]);
 
-		TEST_CHECK(g_sent_packets.empty());
+		for (std::list<std::pair<udp::endpoint, entry> >::iterator i = g_sent_packets.begin()
+			, end(g_sent_packets.end()); i != end; ++i)
+		{
+//			fprintf(stderr, " %s:%d: %s\n", i->first.address().to_string(ec).c_str()
+//				, i->first.port(), i->second.to_string().c_str());
+			TEST_EQUAL(i->second["q"].string(), "announce_peer");
+		}
+
+		g_sent_packets.clear();
 
 		for (int i = 0; i < 2; ++i)
+		{
 			for (std::set<tcp::endpoint>::iterator peer = peers[i].begin(); peer != peers[i].end(); ++peer)
 			{
 				TEST_CHECK(std::find(g_got_peers.begin(), g_got_peers.end(), *peer) != g_got_peers.end());
 			}
+		}
 		g_got_peers.clear();
 	} while (false);
 
@@ -1629,8 +1639,8 @@ int test_main()
 		if (g_got_items.empty()) break;
 
 		TEST_EQUAL(g_got_items.front().value(), items[0].ent);
-		TEST_CHECK(memcmp(g_got_items.front().pk(), public_key, item_pk_len) == 0);
-		TEST_CHECK(memcmp(g_got_items.front().sig(), signature, item_sig_len) == 0);
+		TEST_CHECK(memcmp(g_got_items.front().pk().data(), public_key, item_pk_len) == 0);
+		TEST_CHECK(memcmp(g_got_items.front().sig().data(), signature, item_sig_len) == 0);
 		TEST_EQUAL(g_got_items.front().seq(), seq);
 		g_got_items.clear();
 
@@ -1755,7 +1765,7 @@ int test_main()
 
 		sha1_hash target = hasher(public_key, item_pk_len).final();
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
-		std::string sig(g_put_item.sig(), item_sig_len);
+		std::string sig(g_put_item.sig().data(), item_sig_len);
 		node.get_item(target, get_item_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);

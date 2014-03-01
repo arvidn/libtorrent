@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -5059,7 +5059,7 @@ namespace libtorrent
 		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
 			m_file_priority.resize(m_torrent_file->num_files(), 1);
 
-		// stoage may be NULL during shutdown
+		// storage may be NULL during shutdown
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
 			inc_refcount("file_priority");

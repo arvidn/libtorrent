@@ -79,8 +79,6 @@ void EXPORT wait_for_listen(libtorrent::session& ses, char const* name);
 void EXPORT wait_for_downloading(libtorrent::session& ses, char const* name);
 void EXPORT test_sleep(int millisec);
 
-extern EXPORT libtorrent::atomic_count g_udp_tracker_requests;
-
 void EXPORT create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
 boost::shared_ptr<libtorrent::torrent_info> EXPORT create_torrent(std::ostream* file = 0
@@ -101,9 +99,6 @@ void EXPORT stop_web_server();
 int EXPORT start_proxy(int type);
 void EXPORT stop_proxy(int port);
 void EXPORT stop_all_proxies();
-
-void EXPORT stop_tracker();
-int EXPORT start_tracker();
 
 #endif
 

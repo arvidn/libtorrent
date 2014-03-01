@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
+Copyright (c) 20114 Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,26 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/kademlia/logging.hpp"
-#include "libtorrent/time.hpp"
+#include "test.hpp" // for EXPORT
 
-namespace libtorrent { namespace dht
-{
-	log_event::log_event(log& log) 
-		: log_(log) 
-	{
-		if (log_.enabled())
-			log_ << time_now_string() << " [" << log.id() << "] ";
-	}
+// returns the port the udp tracker is running on
+int EXPORT start_udp_tracker();
 
-	log_event::~log_event()
-	{
-		if (log_.enabled())
-		{
-			log_ << "\n";
-			log_.flush();
-		}
-	}
+// the number of udp tracker announces received
+int EXPORT num_udp_announces();
 
-}}
+void EXPORT stop_udp_tracker();
 

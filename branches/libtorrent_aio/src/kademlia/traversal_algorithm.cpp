@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,9 @@ traversal_algorithm::traversal_algorithm(
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(traversal) << "[" << this << "] NEW"
-		" target: " << target << " k: " << m_node.m_table.bucket_size();
+		" target: " << target
+		<< " k: " << m_node.m_table.bucket_size()
+		;
 #endif
 }
 
@@ -131,7 +133,9 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(traversal) << "[" << this << "] IGNORING result "
 				<< "id: " << o->id()
-				<< " address: " << o->target_addr();
+				<< " address: " << o->target_addr()
+				<< " type: " << name()
+				;
 #endif
 				return;
 			}
@@ -145,7 +149,9 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		TORRENT_LOG(traversal) << "[" << this << "] ADD id: " << id
 			<< " address: " << addr
 			<< " distance: " << distance_exp(m_target, id)
-			<< " invoke-count: " << m_invoke_count;
+			<< " invoke-count: " << m_invoke_count
+			<< " type: " << name()
+			;
 #endif
 		i = m_results.insert(i, o);
 	}
@@ -250,7 +256,9 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
-			<< " invoke-count: " << m_invoke_count;
+			<< " invoke-count: " << m_invoke_count
+			<< " type: " << name()
+			;
 #endif
 	}
 	else
@@ -267,7 +275,9 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
-			<< " invoke-count: " << m_invoke_count;
+			<< " invoke-count: " << m_invoke_count
+			<< " type: " << name()
+			;
 #endif
 		// don't tell the routing table about
 		// node ids that we just generated ourself
@@ -304,7 +314,8 @@ void traversal_algorithm::done()
 				<< results_target
 				<< " id: " << o->id()
 				<< " distance: " << distance_exp(m_target, o->id())
-				<< " address: " << o->target_ep();
+				<< " address: " << o->target_ep()
+				;
 			--results_target;
 			int dist = distance_exp(m_target, o->id());
 			if (dist < closest_target) closest_target = dist;
@@ -312,7 +323,9 @@ void traversal_algorithm::done()
 	}
 
 	TORRENT_LOG(traversal) << "[" << this << "] COMPLETED "
-		<< "distance: " << closest_target;
+		<< "distance: " << closest_target
+		<< " type: " << name()
+		;
 
 #endif
 	// delete all our references to the observer objects so
@@ -375,6 +388,7 @@ bool traversal_algorithm::add_requests()
 			<< " invoke-count: " << m_invoke_count
 			<< " branch-factor: " << m_branch_factor
 			<< " distance: " << distance_exp(m_target, (*i)->id())
+			<< " type: " << name()
 			;
 #endif
 

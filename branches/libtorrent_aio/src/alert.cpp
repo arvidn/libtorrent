@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003-2014, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -644,6 +644,38 @@ namespace libtorrent {
 			, convert_from_native(error.message()).c_str());
 		return msg;
 	}
+
+	std::string dht_immutable_item_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
+			, to_hex(target.to_string()).c_str()
+			, item.to_string().c_str());
+		return msg;
+	}
+
+	std::string dht_mutable_item_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 ") [ %s ]"
+			, to_hex(std::string(&key[0], 32)).c_str()
+			, salt.c_str()
+			, seq
+			, item.to_string().c_str());
+		return msg;
+	}
+
+	std::string dht_put_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT put complete (key=%s sig=%s salt=%s seq=%" PRId64 ")"
+			, to_hex(std::string(&public_key[0], 32)).c_str()
+			, to_hex(std::string(&signature[0], 64)).c_str()
+			, salt.c_str()
+			, seq);
+		return msg;
+	}
+
 
 } // namespace libtorrent
 
