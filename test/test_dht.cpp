@@ -939,7 +939,7 @@ int test_main()
 		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
 #endif
 
-		TEST_CHECK(item_target_id(itemv, salt, public_key) == target_id);
+		TEST_CHECK(item_target_id(salt, public_key) == target_id);
 
 		fprintf(stderr, "PUT CAS 1\n");
 
@@ -1859,7 +1859,7 @@ int test_main()
 		, "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff"
 		"1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01");
 
-	sha1_hash target_id = item_target_id(test_content, empty_salt, public_key);
+	sha1_hash target_id = item_target_id(empty_salt, public_key);
 	TEST_EQUAL(to_hex(target_id.to_string()), "4a533d47ec9c7d95b1ad75f576cffc641853b750");
 
 	// test vector 2 (the keypair is the same as test 1)
@@ -1871,12 +1871,12 @@ int test_main()
 		, "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d"
 		"df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08");
 
-	target_id = item_target_id(test_content, test_salt, public_key);
+	target_id = item_target_id(test_salt, public_key);
 	TEST_EQUAL(to_hex(target_id.to_string()), "411eba73b6f087ca51a3795d9c8c938d365e32c1");
 
 	// test vector 3
 
-	target_id = item_target_id(test_content, empty_salt, NULL);
+	target_id = item_target_id(test_content);
 	TEST_EQUAL(to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
 
 	return 0;
