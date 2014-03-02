@@ -237,6 +237,7 @@ public:
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	void get_item(sha1_hash const& target, boost::function<bool(item&)> f);
+	void get_item(char const* pk, std::string const& salt, boost::function<bool(item&)> f);
 
 	bool verify_token(std::string const& token, char const* info_hash
 		, udp::endpoint const& addr);

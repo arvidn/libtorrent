@@ -390,16 +390,31 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, int flags
 	ta->start();
 }
 
-void node_impl::get_item(sha1_hash const& target, boost::function<bool(item&)> f)
+void node_impl::get_item(sha1_hash const& target
+	, boost::function<bool(item&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "starting get for [ " << target << " ]" ;
+	TORRENT_LOG(node) << "starting get for [ hash: " << target << " ]" ;
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
 	ta.reset(new dht::get_item(*this, target, f));
 	ta->start();
 }
+
+void node_impl::get_item(char const* pk, std::string const& salt
+	, boost::function<bool(item&)> f)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "starting get for [ key: "
+		<< to_hex(std::string(pk, 32)) << " ]" ;
+#endif
+
+	boost::intrusive_ptr<dht::get_item> ta;
+	ta.reset(new dht::get_item(*this, pk, salt, f));
+	ta->start();
+}
+
 
 void node_impl::tick()
 {
@@ -948,7 +963,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash target = item_target_id(buf, salt, pk);
+		sha1_hash target;
+		if (pk)
+			target = item_target_id(salt, pk);
+		else
+			target = item_target_id(buf);
 
 //		fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
 //			, mutable_put ? "mutable":"immutable"
