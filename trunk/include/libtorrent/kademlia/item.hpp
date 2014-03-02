@@ -43,20 +43,20 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-// calculate the target hash for an item. Either v must be specified,
-// which is the content. That's for immutable items. For mutable items,
-// instead specify the salt and the public key (pk).
+// calculate the target hash for an immutable item.
 sha1_hash TORRENT_EXTRA_EXPORT item_target_id(
-	std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
+	std::pair<char const*, int> v);
+
+// calculate the target hash for a mutable item.
+sha1_hash TORRENT_EXTRA_EXPORT item_target_id(std::pair<char const*, int> salt
 	, char const* pk);
 
 bool TORRENT_EXTRA_EXPORT verify_mutable_item(
-	std::pair<char const*, int> v,
-	std::pair<char const*, int> salt,
-	boost::uint64_t seq,
-	char const* pk,
-	char const* sig);
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq
+	, char const* pk
+	, char const* sig);
 
 // TODO: since this is a public function, it should probably be moved
 // out of this header and into one with other public functions.
@@ -68,12 +68,12 @@ bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 // is responsible for allocating the destination buffer that's passed in
 // as the ``sig`` argument. Typically it would be allocated on the stack.
 void TORRENT_EXPORT sign_mutable_item(
-	std::pair<char const*, int> v,
-	std::pair<char const*, int> salt,
-	boost::uint64_t seq,
-	char const* pk,
-	char const* sk,
-	char* sig);
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq
+	, char const* pk
+	, char const* sk
+	, char* sig);
 
 sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(
 	std::pair<char const*, int> v
@@ -96,6 +96,7 @@ class TORRENT_EXTRA_EXPORT item
 {
 public:
 	item() : m_mutable(false) {}
+	item(char const* pk, std::string const& salt);
 	item(entry const& v) { assign(v); }
 	item(entry const& v
 		, std::pair<char const*, int> salt
@@ -130,10 +131,10 @@ public:
 
 	entry const& value() const { return m_value; }
 	boost::array<char, item_pk_len> const& pk() const
-	{ TORRENT_ASSERT(m_mutable); return m_pk; }
+	{ return m_pk; }
 	boost::array<char, item_sig_len> const& sig() const
-	{ TORRENT_ASSERT(m_mutable); return m_sig; }
-	boost::uint64_t seq() const { TORRENT_ASSERT(m_mutable); return m_seq; }
+	{ return m_sig; }
+	boost::uint64_t seq() const { return m_seq; }
 	std::string const& salt() const { return m_salt; }
 
 private:

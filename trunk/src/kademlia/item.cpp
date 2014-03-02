@@ -80,21 +80,21 @@ namespace
 	}
 }
 
-sha1_hash item_target_id(
-	std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
+// calculate the target hash for an immutable item.
+sha1_hash item_target_id(std::pair<char const*, int> v)
+{
+	hasher h;
+	h.update(v.first, v.second);
+	return h.final();
+}
+
+// calculate the target hash for a mutable item.
+sha1_hash item_target_id(std::pair<char const*, int> salt
 	, char const* pk)
 {
 	hasher h;
-	if (pk)
-	{
-		h.update(pk, item_pk_len);
-		if (salt.second > 0) h.update(salt.first, salt.second);
-	}
-	else
-	{
-		h.update(v.first, v.second);
-	}
+	h.update(pk, item_pk_len);
+	if (salt.second > 0) h.update(salt.first, salt.second);
 	return h.final();
 }
 
@@ -158,6 +158,14 @@ sha1_hash mutable_item_cas(std::pair<char const*, int> v
 	char str[canonical_length];
 	int len = canonical_string(v, seq, salt, str);
 	return hasher(str, len).final();
+}
+
+item::item(char const* pk, std::string const& salt)
+	: m_mutable(true)
+	, m_salt(salt)
+	, m_seq(0)
+{
+	memcpy(m_pk.data(), pk, item_pk_len);
 }
 
 item::item(entry const& v
@@ -231,7 +239,6 @@ void item::assign(entry const& v, std::string salt, boost::uint64_t seq
 
 sha1_hash item::cas()
 {
-	TORRENT_ASSERT(m_mutable);
 	char buffer[1000];
 	int bsize = bencode(buffer, m_value);
 	return mutable_item_cas(std::make_pair(buffer, bsize)

@@ -51,7 +51,12 @@ void get_item::got_data(lazy_entry const* v,
 
 	std::pair<char const*, int> salt(m_salt.c_str(), m_salt.size());
 
-	sha1_hash incoming_target = item_target_id(v->data_section(), salt, pk);
+	sha1_hash incoming_target;
+	if (pk)
+		incoming_target = item_target_id(salt, pk);
+	else
+		incoming_target = item_target_id(v->data_section());
+
 	if (incoming_target != m_target) return;
 
 	if (pk && sig)
@@ -108,6 +113,19 @@ get_item::get_item(
 {
 }
 
+get_item::get_item(
+	node_impl& node
+	, char const* pk
+	, std::string const& salt
+	, data_callback const& dcallback)
+	: find_data(node, item_target_id(
+		std::make_pair(salt.c_str(), int(salt.size())), pk)
+		, nodes_callback())
+	, m_data_callback(dcallback)
+	, m_data(pk, salt)
+{
+}
+
 char const* get_item::name() const { return "get"; }
 
 observer_ptr get_item::new_observer(void* ptr
@@ -151,8 +169,10 @@ void get_item::done()
 #if TORRENT_USE_ASSERTS
 			if (m_data.is_mutable())
 			{
-				TORRENT_ASSERT(m_target == hasher(m_data.pk().data(),
-					item_pk_len).final());
+				TORRENT_ASSERT(m_target
+					== item_target_id(std::pair<char const*, int>(m_data.salt().c_str()
+						, m_data.salt().size())
+					, m_data.pk().data()));
 			}
 			else
 			{
