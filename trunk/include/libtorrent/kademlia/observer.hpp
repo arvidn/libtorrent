@@ -115,7 +115,7 @@ struct observer : boost::noncopyable
 	address target_addr() const;
 	udp::endpoint target_ep() const;
 
-	void set_id(node_id const& id) { m_id = id; }
+	void set_id(node_id const& id);
 	node_id const& id() const { return m_id; }
 
 	void set_transaction_id(boost::uint16_t tid)

@@ -80,10 +80,6 @@ void find_data_observer::reply(msg const& m)
 			node_id(id->string_ptr()), token->string_value());
 	}
 
-	// in case we didn't know the id of this peer when we sent the message to
-	// it. For instance if it's a bootstrap node.
-	set_id(node_id(id->string_ptr()));
-
 	traversal_observer::reply(m);
 	done();
 }
