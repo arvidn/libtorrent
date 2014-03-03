@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-enum { max_bottled_buffer = 2 * 1024 * 1024 };
+enum { max_bottled_buffer = 5 * 1024 * 1024 };
 
 http_connection::http_connection(io_service& ios, connection_queue& cc
 	, http_handler const& handler, bool bottled
@@ -149,7 +149,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
 	
-	char request[2048];
+	char request[4096];
 	char* end = request + sizeof(request);
 	char* ptr = request;
 
@@ -849,11 +849,15 @@ void http_connection::on_read(error_code const& e
 		m_last_receive = time_now_hires();
 	}
 
+	// if we've hit the limit, double the buffer size
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize((std::min)(m_read_pos + 2048, int(max_bottled_buffer)));
+		m_recvbuffer.resize((std::min)(m_read_pos * 2, int(max_bottled_buffer)));
+
 	if (m_read_pos == max_bottled_buffer)
 	{
-		callback(asio::error::eof);
+		// if we've reached the size limit, terminate the connection and
+		// report the error
+		callback(boost::system::errc::file_too_big);
 		close();
 		return;
 	}
