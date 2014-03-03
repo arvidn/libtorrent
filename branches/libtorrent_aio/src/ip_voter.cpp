@@ -34,11 +34,53 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for is_any() etc.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random()
+#include "libtorrent/time.hpp" // for time_now()
 
 #include <boost/bind.hpp>
 
 namespace libtorrent
 {
+	ip_voter::ip_voter()
+		: m_total_votes(0)
+		, m_valid_external(false)
+		, m_last_rotate(time_now())
+	{
+	}
+
+	// returns true if our external IP changed
+	bool ip_voter::maybe_rotate()
+	{
+		ptime now = time_now();
+
+		// if we have more than or equal to 50 votes,
+		// we rotate. Also, if it's been more than 5 minutes
+		// and we have at least one vote, we also rotate.
+		// this is the inverse condition, since this is the case
+		// were we exit, without rotating
+		if (m_total_votes < 50
+			&& (now - m_last_rotate < minutes(5) || m_total_votes == 0))
+			return false;
+
+		// this shouldn't really happen if we have at least one
+		// vote.
+		if (m_external_addresses.empty()) return false;
+
+		// rotate
+		std::vector<external_ip_t>::iterator i = std::max_element(
+			m_external_addresses.begin(), m_external_addresses.end());
+		TORRENT_ASSERT(i != m_external_addresses.end());
+
+		bool ret = m_external_address != i->addr;
+		m_external_address = i->addr;
+
+		m_external_address_voters.clear();
+		m_total_votes = 0;
+		m_external_addresses.clear();
+		m_last_rotate = now;
+		m_valid_external = true;
+		return ret;
+	}
+
 	bool ip_voter::cast_vote(address const& ip
 		, int source_type, address const& source)
 	{
@@ -63,12 +105,12 @@ namespace libtorrent
 		if (i == m_external_addresses.end())
 		{
 			// each IP only gets to add a new IP once
-			if (m_external_address_voters.find(k)) return false;
+			if (m_external_address_voters.find(k)) return maybe_rotate();
 		
 			if (m_external_addresses.size() > 40)
 			{
 				if (random() % 100 < 50)
-					return false;
+					return maybe_rotate();
 
 				// use stable sort here to maintain the fifo-order
 				// of the entries with the same number of votes
@@ -89,15 +131,17 @@ namespace libtorrent
 			i->addr = ip;
 		}
 		// add one more vote to this external IP
-		if (!i->add_vote(k, source_type)) return false;
+		if (!i->add_vote(k, source_type)) return maybe_rotate();
+		++m_total_votes;
 		
+		if (m_valid_external) return maybe_rotate();
+
 		i = std::max_element(m_external_addresses.begin(), m_external_addresses.end());
 		TORRENT_ASSERT(i != m_external_addresses.end());
 
-		if (i->addr == m_external_address) return false;
+		if (i->addr == m_external_address) return maybe_rotate();
 
 		m_external_address = i->addr;
-		m_external_address_voters.clear();
 
 		return true;
 	}
