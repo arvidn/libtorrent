@@ -1410,7 +1410,7 @@ namespace libtorrent
 		, ssl_listen(4433)
 		, tracker_backoff(250)
 		, ban_web_seeds(true)
-		, max_http_recv_buffer_size(2*1024*1024)
+		, max_http_recv_buffer_size(4*1024*1024)
 		, support_share_mode(true)
 		, support_merkle_torrents(false)
 		, report_redundant_bytes(true)

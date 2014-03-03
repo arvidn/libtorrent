@@ -151,7 +151,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
 	
-	char request[2048];
+	char request[4096];
 	char* end = request + sizeof(request);
 	char* ptr = request;
 
@@ -851,11 +851,15 @@ void http_connection::on_read(error_code const& e
 		m_last_receive = time_now_hires();
 	}
 
+	// if we've hit the limit, double the buffer size
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize((std::min)(m_read_pos + 2048, m_max_bottled_buffer_size));
+		m_recvbuffer.resize((std::min)(m_read_pos * 2, m_max_bottled_buffer_size));
+
 	if (m_read_pos == m_max_bottled_buffer_size)
 	{
-		callback(asio::error::eof);
+		// if we've reached the size limit, terminate the connection and
+		// report the error
+		callback(error_code(boost::system::errc::file_too_large, generic_category()));
 		close();
 		return;
 	}
