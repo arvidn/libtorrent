@@ -90,10 +90,6 @@ void find_data_observer::reply(msg const& m)
 #endif
 	}
 
-	// in case we didn't know the id of this peer when we sent the message to
-	// it. For instance if it's a bootstrap node.
-	set_id(node_id(id->string_ptr()));
-
 	// look for peers
 	lazy_entry const* n = r->dict_find_list("values");
 	if (n)
@@ -254,6 +250,7 @@ void find_data::done()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
 		observer_ptr const& o = *i;
+ 		if (o->flags & observer::flag_no_id) continue;
 		if ((o->flags & observer::flag_alive) == 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
