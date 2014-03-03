@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/address.hpp"
 #include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/time.hpp" // for ptime
 
 namespace libtorrent
 {
@@ -43,6 +44,8 @@ namespace libtorrent
 	// based on peoples votes
 	struct TORRENT_EXTRA_EXPORT ip_voter
 	{
+		ip_voter();
+
 		// returns true if a different IP is the top vote now
 		// i.e. we changed our idea of what our external IP is
 		bool cast_vote(address const& ip, int source_type, address const& sorce);
@@ -50,6 +53,8 @@ namespace libtorrent
 		address external_address() const { return m_external_address; }
 
 	private:
+
+		bool maybe_rotate();
 
 		struct external_ip_t
 		{
@@ -78,8 +83,25 @@ namespace libtorrent
 		// been the first to report an external address. Each
 		// IP only gets to add a new item once.
 		bloom_filter<32> m_external_address_voters;
+
 		std::vector<external_ip_t> m_external_addresses;
 		address m_external_address;
+
+		// the total number of unique IPs that have voted
+		int m_total_votes;
+
+		// this is true from the first time we rotate. Before
+		// we rotate for the first time, we keep updating the
+		// external address as we go, since we don't have any
+		// stable setting to fall back on. Once this is true,
+		// we stop updating it on the fly, and just use the
+		// address from when we rotated.
+		bool m_valid_external;
+
+		// the last time we rotated this ip_voter. i.e. threw
+		// away all the votes and started from scratch, in case
+		// our IP has changed
+		ptime m_last_rotate;
 	};
 
 	// this keeps track of multiple external IPs (for now, just IPv6 and IPv4, but
