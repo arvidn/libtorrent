@@ -857,7 +857,7 @@ void http_connection::on_read(error_code const& e
 	{
 		// if we've reached the size limit, terminate the connection and
 		// report the error
-		callback(boost::system::errc::file_too_big);
+		callback(error_code(boost::system::errc::file_too_large, get_posix_category()));
 		close();
 		return;
 	}
