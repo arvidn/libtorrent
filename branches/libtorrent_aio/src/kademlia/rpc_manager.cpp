@@ -151,6 +151,13 @@ void observer::timeout()
 	m_algorithm->failed(observer_ptr(this));
 }
 
+void observer::set_id(node_id const& id)
+{
+	if (m_id == id) return;
+	m_id = id;
+	if (m_algorithm) m_algorithm->resort_results();
+}
+
 enum { observer_size = max3<
 	sizeof(find_data_observer)
 	, sizeof(announce_observer)

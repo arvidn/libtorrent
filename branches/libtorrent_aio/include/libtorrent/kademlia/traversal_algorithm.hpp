@@ -77,6 +77,7 @@ struct traversal_algorithm : boost::noncopyable
 
 	node_id const& target() const { return m_target; }
 
+	void resort_results();
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 
 	traversal_algorithm(node_impl& node, node_id target);

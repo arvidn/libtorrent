@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 
+#if TORRENT_USE_ASSERTS
+#include <boost/algorithm/cxx11/is_sorted.hpp> // for is_sorted
+#endif
+
 #include <boost/bind.hpp>
 
 namespace libtorrent { namespace dht
@@ -83,6 +87,20 @@ traversal_algorithm::traversal_algorithm(
 #endif
 }
 
+void traversal_algorithm::resort_results()
+{
+	std::sort(
+		m_results.begin()
+		, m_results.end()
+		, boost::bind(
+			compare_ref
+			, boost::bind(&observer::id, _1)
+			, boost::bind(&observer::id, _2)
+			, m_target
+		)
+	);
+}
+
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
@@ -103,6 +121,14 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	}
 
 	o->flags |= flags;
+
+	TORRENT_ASSERT(boost::algorithm::is_sorted(m_results.begin(), m_results.end()
+		, boost::bind(
+			compare_ref
+			, boost::bind(&observer::id, _1)
+			, boost::bind(&observer::id, _2)
+			, m_target)
+		));
 
 	std::vector<observer_ptr>::iterator i = std::lower_bound(
 		m_results.begin()
@@ -154,6 +180,14 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			;
 #endif
 		i = m_results.insert(i, o);
+
+		TORRENT_ASSERT(boost::algorithm::is_sorted(m_results.begin(), m_results.end()
+			, boost::bind(
+				compare_ref
+				, boost::bind(&observer::id, _1)
+				, boost::bind(&observer::id, _2)
+				, m_target)
+			));
 	}
 
 	if (m_results.size() > 100)
@@ -170,7 +204,7 @@ void traversal_algorithm::start()
 {
 	// in case the routing table is empty, use the
 	// router nodes in the table
-	if (m_results.empty()) add_router_entries();
+	if (m_results.size() < 8) add_router_entries();
 	init();
 	bool is_done = add_requests();
 	if (is_done) done();
@@ -494,6 +528,19 @@ void traversal_observer::reply(msg const& m)
 			m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
 		}
 	}
+
+	lazy_entry const* id = r->dict_find_string("id");
+	if (!id || id->string_length() != 20)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] invalid id in response";
+#endif
+		return;
+	}
+
+	// in case we didn't know the id of this peer when we sent the message to
+	// it. For instance if it's a bootstrap node.
+	set_id(node_id(id->string_ptr()));
 }
 
 void traversal_algorithm::abort()

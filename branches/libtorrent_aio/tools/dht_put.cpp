@@ -35,6 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp" // for from_hex
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
+#include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
+#include "ed25519.h"
+#include <boost/bind.hpp>
 
 #include <stdlib.h>
 
@@ -44,10 +47,16 @@ void usage()
 {
 	fprintf(stderr,
 		"USAGE:\ndht <command> <arg>\n\nCOMMANDS:\n"
-		"get <hash>             - retrieves and prints out the immutable\n"
-		"                         item stored under hash.\n"
-		"put <string>           - puts the specified string as an immutable\n"
-		"                         item onto the DHT. The resulting target hash\n"
+		"get <hash>                - retrieves and prints out the immutable\n"
+		"                            item stored under hash.\n"
+		"put <string>              - puts the specified string as an immutable\n"
+		"                            item onto the DHT. The resulting target hash\n"
+		"gen-key <key-file>        - generate ed25519 keypair and save it in\n"
+		"                            the specified file\n"
+		"mput <key-file> <string>  - puts the specified string as a mutable\n"
+		"                            object under the public key in key-file\n"
+		"mget <public-key>         - get a mutable object under the specified\n"
+		"                            public key\n"
 		);
 	exit(1);
 }
@@ -84,8 +93,60 @@ std::auto_ptr<alert> wait_for_alert(session& s, int alert_type)
 	return ret;
 }
 
+void put_string(entry& e, boost::array<char, 64>& sig, boost::uint64_t& seq
+	, std::string const& salt, char const* public_key, char const* private_key
+	, char const* str)
+{
+	using libtorrent::dht::sign_mutable_item;
+
+	e = std::string(str);
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), e);
+	++seq;
+	sign_mutable_item(std::pair<char const*, int>(&buf[0], buf.size())
+		, std::pair<char const*, int>(&salt[0], salt.size())
+		, seq
+		, public_key
+		, private_key
+		, sig.data());
+}
+
+void bootstrap(session& s)
+{
+	printf("bootstrapping\n");
+	wait_for_alert(s, dht_bootstrap_alert::alert_type);
+}
+
 int main(int argc, char* argv[])
 {
+	// skip pointer to self
+	++argv;
+	--argc;
+
+	if (argc < 1) usage();
+
+	if (strcmp(argv[0], "gen-key") == 0)
+	{
+		++argv;
+		--argc;
+		if (argc < 1) usage();
+	
+		unsigned char seed[32];
+		ed25519_create_seed(seed);
+
+		FILE* f = fopen(argv[0], "wb+");
+		if (f == NULL)
+		{
+			fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
+				, argv[0], errno, strerror(errno));
+			return 1;
+		}
+
+		fwrite(seed, 1, 32, f);
+		fclose(f);
+		return 0;
+	}
+
 	session s;
 	s.set_alert_mask(0xffffffff);
 
@@ -115,15 +176,6 @@ int main(int argc, char* argv[])
 		fclose(f);
 	}
 
-	printf("bootstrapping\n");
-	wait_for_alert(s, dht_bootstrap_alert::alert_type);
-
-	// skip pointer to self
-	++argv;
-	--argc;
-
-	if (argc < 1) usage();
-
 	if (strcmp(argv[0], "get") == 0)
 	{
 		++argv;
@@ -137,8 +189,14 @@ int main(int argc, char* argv[])
 			usage();
 		}
 		sha1_hash target;
-		from_hex(argv[0], 40, (char*)&target[0]);
+		bool ret = from_hex(argv[0], 40, (char*)&target[0]);
+		if (!ret)
+		{
+			fprintf(stderr, "invalid hex encoding of target hash\n");
+			return 1;
+		}
 
+		bootstrap(s);
 		s.dht_get_item(target);
 
 		printf("GET %s\n", to_hex(target.to_string()).c_str());
@@ -156,17 +214,86 @@ int main(int argc, char* argv[])
 	{
 		++argv;
 		--argc;
-	
 		if (argc < 1) usage();
 
 		entry data;
 		data = std::string(argv[0]);
 
+		bootstrap(s);
 		sha1_hash target = s.dht_put_item(data);
 		
 		printf("PUT %s\n", to_hex(target.to_string()).c_str());
 
 		wait_for_alert(s, dht_put_alert::alert_type);
+	}
+	else if (strcmp(argv[0], "mput") == 0)
+	{
+		++argv;
+		--argc;
+		if (argc < 1) usage();
+
+		FILE* f = fopen(argv[0], "rb+");
+		if (f == NULL)
+		{
+			fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
+				, argv[0], errno, strerror(errno));
+			return 1;
+		}
+
+		unsigned char seed[32];
+		fread(seed, 1, 32, f);
+		fclose(f);
+
+		++argv;
+		--argc;
+		if (argc < 1) usage();
+
+		boost::array<char, 32> public_key;
+		boost::array<char, 64> private_key;
+		ed25519_create_keypair((unsigned char*)public_key.data()
+			, (unsigned char*)private_key.data(), seed);
+		
+		bootstrap(s);
+		s.dht_put_item(public_key, boost::bind(&put_string, _1, _2, _3, _4
+			, public_key.data(), private_key.data(), argv[0]));
+
+		printf("public key: %s\n", to_hex(std::string(public_key.data()
+			, public_key.size())).c_str());
+
+		wait_for_alert(s, dht_put_alert::alert_type);
+		usleep(10000000);
+	}
+	else if (strcmp(argv[0], "mget") == 0)
+	{
+		++argv;
+		--argc;
+		if (argc < 1) usage();
+
+		int len = strlen(argv[0]);
+		if (len != 64)
+		{
+			fprintf(stderr, "public key is expected to be 64 hex digits\n");
+			return 1;
+		}
+		boost::array<char, 32> public_key;
+		bool ret = from_hex(argv[0], len, &public_key[0]);
+		if (!ret)
+		{
+			fprintf(stderr, "invalid hex encoding of public key\n");
+			return 1;
+		}
+
+		bootstrap(s);
+		s.dht_get_item(public_key);
+
+		std::auto_ptr<alert> a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
+
+		dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a.get());
+		entry data;
+		if (item)
+			data.swap(item->item);
+
+		printf("%s", data.to_string().c_str());
 	}
 	else
 	{
