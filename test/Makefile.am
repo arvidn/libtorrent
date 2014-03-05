@@ -33,6 +33,7 @@ test_programs = \
   test_utp                   \
   test_session               \
   test_web_seed
+  test_remap_files
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -122,6 +123,7 @@ test_upnp_SOURCES = test_upnp.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
+test_remap_files_SOURCES = test_remap_files.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
 
