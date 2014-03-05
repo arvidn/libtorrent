@@ -2101,7 +2101,7 @@ namespace libtorrent
 		dht_put_alert(boost::array<char, 32> key
 			, boost::array<char, 64> sig
 			, std::string s
-			, uint64_t sequence_number)
+			, boost::uint64_t sequence_number)
 			: target(0)
 			, public_key(key)
 			, signature(sig)

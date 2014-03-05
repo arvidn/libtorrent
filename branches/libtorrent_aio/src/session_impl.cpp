@@ -4279,11 +4279,11 @@ retry:
 
 			for (int i = counters::socket_send_size3; i <= counters::socket_send_size20; ++i)
 			{
-				STAT_LOGL(d, int(m_stats_counters[i]));
+				STAT_LOG(d, int(m_stats_counters[i]));
 			}
 			for (int i = counters::socket_recv_size3; i <= counters::socket_recv_size20; ++i)
 			{
-				STAT_LOGL(d, int(m_stats_counters[i]));
+				STAT_LOG(d, int(m_stats_counters[i]));
 			}
 
 			STAT_LOG(f, total_microseconds(cur_cpu_usage.user_time
