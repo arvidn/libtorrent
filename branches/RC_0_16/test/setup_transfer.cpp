@@ -364,7 +364,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports)
+	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
+	, boost::intrusive_ptr<torrent_info>* torrent2)
 {
 	assert(ses1);
 	assert(ses2);
@@ -464,6 +465,10 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		param.ti = 0;
 		param.info_hash = t->info_hash();
+	}
+	else if (torrent2)
+	{
+		param.ti = clone_ptr(*torrent2);
 	}
 	else
 	{
