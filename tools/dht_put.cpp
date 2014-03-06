@@ -261,7 +261,6 @@ int main(int argc, char* argv[])
 			, public_key.size())).c_str());
 
 		wait_for_alert(s, dht_put_alert::alert_type);
-		usleep(10000000);
 	}
 	else if (strcmp(argv[0], "mget") == 0)
 	{
