@@ -42,7 +42,7 @@ test_programs = \
   test_utp                   \
   test_session               \
   test_ssl                   \
-  test_web_seed
+  test_web_seed              \
   test_remap_files
 
 if ENABLE_TESTS
