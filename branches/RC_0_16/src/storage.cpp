@@ -623,7 +623,7 @@ namespace libtorrent
 	int default_storage::sparse_end(int slot) const
 	{
 		TORRENT_ASSERT(slot >= 0);
-		TORRENT_ASSERT(slot < m_files.num_pieces());
+		TORRENT_ASSERT(slot < files().num_pieces());
 
 		size_type file_offset = (size_type)slot * m_files.piece_length();
 		file_storage::iterator file_iter;
@@ -643,7 +643,7 @@ namespace libtorrent
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
-		return int((data_start + m_files.piece_length() - 1) / m_files.piece_length());
+		return int((data_start + files().piece_length() - 1) / files().piece_length());
 	}
 
 	bool default_storage::verify_resume_data(lazy_entry const& rd, error_code& error)
