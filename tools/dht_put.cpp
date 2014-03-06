@@ -43,6 +43,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+#ifdef TORRENT_DISABLE_DHT
+
+int main(int argc, char* argv[])
+{
+	fprintf(stderr, "not built with DHT support\n");
+	return 1;
+}
+
+#else
+
 void usage()
 {
 	fprintf(stderr,
@@ -312,4 +322,6 @@ int main(int argc, char* argv[])
 	fwrite(&state[0], 1, state.size(), f);
 	fclose(f);
 }
+
+#endif
 
