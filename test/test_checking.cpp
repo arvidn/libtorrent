@@ -114,8 +114,12 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		{
 			char name[1024];
 			snprintf(name, sizeof(name), "test%d", i);
-			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+			char dirname[200];
+			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+
+			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
+
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_READONLY);
 #else
@@ -173,7 +177,10 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		{
 			char name[1024];
 			snprintf(name, sizeof(name), "test%d", i);
-			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+			char dirname[200];
+			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+
+			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);
