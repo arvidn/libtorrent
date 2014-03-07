@@ -336,13 +336,16 @@ void print_ses_rate(float time
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3)
 {
-	fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
-		, int(st1->download_payload_rate / 1000)
-		, int(st1->upload_payload_rate / 1000)
-		, int(st1->progress * 100)
-		, st1->num_peers
-		, st1->connect_candidates
-		, st1->error.empty() ? "" : (" [" + st1->error + "]").c_str());
+	if (st1)
+	{
+		fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+			, int(st1->download_payload_rate / 1000)
+			, int(st1->upload_payload_rate / 1000)
+			, int(st1->progress * 100)
+			, st1->num_peers
+			, st1->connect_candidates
+			, st1->error.empty() ? "" : (" [" + st1->error + "]").c_str());
+	}
 	if (st2)
 		fprintf(stderr, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
 			, int(st2->download_payload_rate / 1000)
@@ -639,7 +642,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::shared_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports)
+	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
+	, boost::shared_ptr<torrent_info>* torrent2)
 {
 	assert(ses1);
 	assert(ses2);
@@ -746,6 +750,10 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		param.ti.reset();
 		param.info_hash = t->info_hash();
+	}
+	else if (torrent2)
+	{
+		param.ti = clone_ptr(*torrent2);
 	}
 	else
 	{

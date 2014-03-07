@@ -155,6 +155,7 @@ test-suite libtorrent :
 	[ run test_pe_crypto.cpp ]
 	[ run test_dos_blocker.cpp ]
 
+	[ run test_remap_files.cpp ]
 	[ run test_utp.cpp ]
 	[ run test_auto_unchoke.cpp ]
 	[ run test_http_connection.cpp ]
