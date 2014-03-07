@@ -4610,6 +4610,10 @@ namespace libtorrent
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("resolving proxy for web seed: %s", web->url.c_str());
+#endif
+
 			// use proxy
 			web->resolving = true;
 			tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
@@ -4624,6 +4628,10 @@ namespace libtorrent
 		}
 		else
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("resolving web seed: %s", web->url.c_str());
+#endif
+
 			web->resolving = true;
 			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_host_resolver.async_resolve(q,
@@ -4762,11 +4770,15 @@ namespace libtorrent
 			return;
 		}
 
+		tcp::endpoint a(host->endpoint());
+
+		// fill in the peer struct's address field
+		web->endpoint = a;
+
 		if (int(m_connections.size()) >= m_max_connections
 			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
 			return;
 
-		tcp::endpoint a(host->endpoint());
 		connect_web_seed(web, a);
 	}
 
