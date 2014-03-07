@@ -7,29 +7,25 @@ exe test_natpmp : test_natpmp.cpp /torrent//torrent
 
 explicit test_natpmp ;
 
-rule libtorrent_dependency ( properties * )
+rule link_libtorrent ( properties * )
 {
 	local result ;
-
-	if <toolset>msvc in $(properties)
+	if <link>shared in $(properties)
 	{
-		# for some reason, the visual studio debugger seems
-		# to get very confused with the dynamic linking.
-		# since debugging unit tests is common, just link
-		# statically with msvc
-		result += <library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+		result +=
+			<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
 	}
 	else
 	{
-		result += <library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+		result +=
+			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
 	}
-
 	return $(result) ;
 }
 
 project
    : requirements
-	<conditional>@libtorrent_dependency
+	<conditional>@link_libtorrent
 	<source>main.cpp
 	<source>setup_transfer.cpp
 	<source>dht_server.cpp
