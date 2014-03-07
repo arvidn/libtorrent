@@ -4500,10 +4500,6 @@ namespace libtorrent
 			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
 			return;
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		debug_log("resolving web seed: %s", web->url.c_str());
-#endif
-
 		std::string protocol;
 		std::string auth;
 		std::string hostname;
@@ -4605,6 +4601,10 @@ namespace libtorrent
 			connect_web_seed(web, web->endpoint);
 			return;
 		}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("resolving web seed: %s", web->url.c_str());
+#endif
 
 		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == proxy_settings::http
