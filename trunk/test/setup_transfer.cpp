@@ -493,7 +493,14 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		std::generate(random_data, random_data + 300000, random_byte);
 		char filename[200];
 		snprintf(filename, sizeof(filename), "test%d", i);
-		std::string full_path = combine_path(path, filename);
+		char dirname[200];
+		snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+
+		std::string full_path = combine_path(path, dirname);
+		error_code ec;
+		create_directory(full_path, ec);
+		full_path = combine_path(full_path, filename);
+
 		int to_write = file_sizes[i];
 		file f(full_path, file::write_only, ec);
 		if (ec) fprintf(stderr, "failed to create file \"%s\": (%d) %s\n"
