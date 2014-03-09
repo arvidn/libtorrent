@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include "libtorrent/config.hpp"
+#include "libtorrent/config.hpp" // for TORRENT_EXPORT
 
 #ifdef __cplusplus
 extern "C" {
