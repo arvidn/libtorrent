@@ -12,19 +12,6 @@ exe enum_if : enum_if.cpp /torrent//torrent
 explicit test_natpmp ;
 explicit enum_if ;
 
-ED25519_SOURCES =
-	add_scalar
-	fe
-	ge
-	key_exchange
-	keypair
-	sc
-	seed
-	sha512
-	sign
-	verify
-	;
-
 rule link_test ( properties * )
 {
 	local result ;
@@ -63,7 +50,6 @@ lib libtorrent_test
 	dht_server.cpp
 	udp_tracker.cpp
 	peer_server.cpp
-	../ed25519/src/$(ED25519_SOURCES).c
 	web_seed_suite.cpp
 
 	: # requirements

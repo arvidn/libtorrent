@@ -9,9 +9,26 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
+rule link_libtorrent ( properties * )
+{
+	local result ;
+	if <link>shared in $(properties)
+	{
+		result +=
+			<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+	}
+	else
+	{
+		result +=
+			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+	}
+	return $(result) ;
+}
+
 project tools
    : requirements
-	<threading>multi <library>/torrent//torrent
+	<threading>multi
+	<conditional>@link_libtorrent
 	: default-build
 	<link>static
    ;  
