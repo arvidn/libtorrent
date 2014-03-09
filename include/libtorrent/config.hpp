@@ -355,11 +355,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdarg.h>
 
 // internal
-inline int snprintf(char* buf, int len, char const* fmt, ...)
+#ifdef __cplusplus
+inline
+#else
+static
+#endif
+int snprintf(char* buf, int len, char const* fmt, ...)
 {
 	va_list lp;
+	int ret;
 	va_start(lp, fmt);
-	int ret = _vsnprintf(buf, len, fmt, lp);
+	ret = _vsnprintf(buf, len, fmt, lp);
 	va_end(lp);
 	if (ret < 0) { buf[len-1] = 0; ret = len-1; }
 	return ret;
