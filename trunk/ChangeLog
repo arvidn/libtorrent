@@ -1,3 +1,5 @@
+	* make ignore_non_routers more forgiving in the case there are no UPnP
+	  devices at a known router. Should improve UPnP compatibility.
 	* include reason in peer_blocked_alert
 	* support magnet links wrapped in .torrent files
 	* rate limiter optimization
