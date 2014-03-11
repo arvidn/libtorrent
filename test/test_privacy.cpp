@@ -123,6 +123,7 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	s->start_dht();
 
 	error_code ec;
+	remove_all("tmp1_privacy", ec);
 	create_directory("tmp1_privacy", ec);
 	std::ofstream file(combine_path("tmp1_privacy", "temporary").c_str());
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
@@ -139,6 +140,11 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	add_torrent_params addp;
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
+
+	// we don't want to waste time checking the torrent, just go straight into
+	// seeding it, announcing to trackers and connecting to peers
+	addp.flags |= add_torrent_params::flag_seed_mode;
+
 	addp.ti = t;
 	addp.save_path = "tmp1_privacy";
 	addp.dht_nodes.push_back(std::pair<std::string, int>("127.0.0.1", dht_port));
