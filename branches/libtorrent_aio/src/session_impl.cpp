@@ -2801,7 +2801,7 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert("", listen_failed_alert::accept
+				m_alerts.post_alert(listen_failed_alert("i2p", listen_failed_alert::accept
 						, e, listen_failed_alert::i2p));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			session_log("cannot bind to port %d: %s"
@@ -3242,7 +3242,7 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert("", listen_failed_alert::accept, e
+				m_alerts.post_alert(listen_failed_alert("socks5", listen_failed_alert::accept, e
 						, listen_failed_alert::socks5));
 			return;
 		}
