@@ -221,7 +221,7 @@ namespace libtorrent
 
 		peers_t m_peers;
 
-		// this shouldbe NULL for the most part. It's set
+		// this should be NULL for the most part. It's set
 		// to point to a valid torrent_peer object if that
 		// object needs to be kept alive. If we ever feel
 		// like removing a torrent_peer from m_peers, we

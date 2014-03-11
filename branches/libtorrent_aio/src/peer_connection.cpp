@@ -4002,6 +4002,11 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 
+		// while being disconnected, it's possible that our torrent_peer
+		// pointer gets cleared. Make sure we save it to be able to keep
+		// proper books in the piece_picker (when debugging is enabled)
+		torrent_peer* self_peer = peer_info_struct();
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		switch (error)
 		{
@@ -4186,7 +4191,7 @@ namespace libtorrent
 				{
 					pending_block& qe = m_download_queue.back();
 					if (!qe.timed_out && !qe.not_wanted)
-						picker.abort_download(qe.block, peer_info_struct());
+						picker.abort_download(qe.block, self_peer);
 					m_outstanding_bytes -= t->to_req(qe.block).length;
 					if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 					m_download_queue.pop_back();
@@ -4195,7 +4200,7 @@ namespace libtorrent
 				{
 					pending_block& qe = m_request_queue.back();
 					if (!qe.timed_out && !qe.not_wanted)
-						picker.abort_download(qe.block, peer_info_struct());
+						picker.abort_download(qe.block, self_peer);
 					m_request_queue.pop_back();
 				}
 			}
@@ -6542,7 +6547,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS \
 	&& !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
-		if (t && t->has_picker())
+		if (t && t->has_picker() && !m_disconnecting)
 			t->picker().check_peer_invariant(m_have_piece, this);
 #endif
 

@@ -80,6 +80,7 @@ project
 	<invariant-checks>full
 	<debug-iterators>on
 	<link>shared
+	<picker-debugging>on
    ;
 
 feature launcher : none valgrind : composite ;

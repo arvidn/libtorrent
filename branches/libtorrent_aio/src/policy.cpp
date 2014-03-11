@@ -802,9 +802,7 @@ namespace libtorrent
 					// as well, if it's considered useless (which this specific)
 					// case will, since it was an incoming peer that just disconnected
 					// and we allow multiple connections per IP. Because of that,
-					// we need to make sure we don't let it do that, by unlinking
-					// the peer_connection from the torrent_peer first.
-					p->connection->set_peer_info(0);
+					// we need to make sure we don't let it do that, locking i
 					TORRENT_ASSERT(m_locked_peer == NULL);
 					m_locked_peer = p;
 					p->connection->disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);

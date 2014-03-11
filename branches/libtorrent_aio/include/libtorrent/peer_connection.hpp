@@ -307,6 +307,7 @@ namespace libtorrent
 		void set_peer_info(torrent_peer* pi)
 		{
 			TORRENT_ASSERT(m_peer_info == 0 || pi == 0 );
+			TORRENT_ASSERT(pi != NULL || m_disconnect_started);
 			m_peer_info = pi;
 		}
 
