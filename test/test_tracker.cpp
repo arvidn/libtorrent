@@ -61,6 +61,7 @@ int test_main()
 	s->set_settings(sett);
 
 	error_code ec;
+	remove_all("tmp1_tracker", ec);
 	create_directory("tmp1_tracker", ec);
 	std::ofstream file(combine_path("tmp1_tracker", "temporary").c_str());
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
@@ -76,6 +77,7 @@ int test_main()
 	add_torrent_params addp;
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags |= add_torrent_params::flag_seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
@@ -111,6 +113,7 @@ int test_main()
 	sett.tracker_receive_timeout = 1;
 	s->set_settings(sett);
 
+	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
 	file.open(combine_path("tmp2_tracker", "temporary").c_str());
 	t = ::create_torrent(&file, 16 * 1024, 13, false);
@@ -138,6 +141,7 @@ int test_main()
 
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags |= add_torrent_params::flag_seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp2_tracker";
 	h = s->add_torrent(addp);
