@@ -2092,6 +2092,9 @@ namespace libtorrent
 
 		if (t->super_seeding())
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log(" *** NOT SENDING BITFIELD, super seeding");
+#endif
 			if (m_supports_fast) write_have_none();
 
 			// if we are super seeding, pretend to not have any piece

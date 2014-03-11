@@ -329,7 +329,10 @@ namespace libtorrent
 			b2 = a2.to_v6().to_bytes();
 			m = mask.to_v6().to_bytes();
 			for (int i = 0; i < int(b1.size()); ++i)
+			{
 				b1[i] &= m[i];
+				b2[i] &= m[i];
+			}
 			return memcmp(&b1[0], &b2[0], b1.size()) == 0;
 		}
 #endif
@@ -349,7 +352,8 @@ namespace libtorrent
 		for (std::vector<ip_interface>::const_iterator i = net.begin()
 			, end(net.end()); i != end; ++i)
 		{
-			if (match_addr_mask(addr, i->interface_address, i->netmask)) return true;
+			if (match_addr_mask(addr, i->interface_address, i->netmask))
+				return true;
 		}
 		return false;
 	}
