@@ -2787,6 +2787,10 @@ namespace libtorrent
 
 		if (is_seed()) return m_torrent_file->total_size();
 
+		// if any piece hash fails, we'll be taken out of seed mode
+		// and m_seed_mode will be false
+		if (m_seed_mode) return m_torrent_file->total_size();
+
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
 		size_type total_done
