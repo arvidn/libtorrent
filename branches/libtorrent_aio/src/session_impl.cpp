@@ -881,7 +881,6 @@ namespace aux {
 		update_natpmp();
 		update_lsd();
 		update_dht();
-		update_listen_interfaces();
 
 		settings_pack* copy = new settings_pack(pack);
 		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
@@ -896,7 +895,10 @@ namespace aux {
 	void session_impl::maybe_open_listen_port()
 	{
 		if (m_listen_sockets.empty())
+		{
+			update_listen_interfaces();
 			open_listen_port();
+		}
 	}
 
 #ifdef TORRENT_STATS
@@ -2444,6 +2446,9 @@ namespace aux {
 		int flags = m_settings.get_bool(settings_pack::listen_system_port_fallback) ? 0 : listen_no_system_port;
 		error_code ec;
 
+		// reset the retry counter
+		m_listen_port_retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+
 retry:
 
 		// close the open listen sockets
@@ -2547,10 +2552,8 @@ retry:
 		}
 		else
 		{
-			// we should only open a single listen socket, that
-			// binds to the given interface
-
-
+			// we should open a one listen socket for each entry in the
+			// listen_interfaces list
 			for (int i = 0; i < m_listen_interfaces.size(); ++i)
 			{
 				std::string const& device = m_listen_interfaces[i].first;
@@ -6253,13 +6256,13 @@ retry:
 		session_log("update listen interfaces: %s", net_interfaces.c_str());
 #endif
 
-		m_listen_port_retries = m_settings.get_int(settings_pack::max_retry_port_bind);
-
 		// if the interface is the same and the socket is open
 		// don't do anything
 		if (new_listen_interfaces == m_listen_interfaces
 			&& !m_listen_sockets.empty())
 			return;
+
+		m_listen_interfaces = new_listen_interfaces;
 
 		// for backwards compatibility. Some components still only supports
 		// a single listen interface
@@ -6316,8 +6319,6 @@ retry:
 				}
 			}
 		}
-
-		m_listen_interfaces = new_listen_interfaces;
 	}
 
 	void session_impl::update_privileged_ports()
