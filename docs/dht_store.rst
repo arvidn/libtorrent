@@ -132,7 +132,7 @@ Response:
 .. parsed-literal::
 
 	{
-	   "r":
+		"r":
 		{
 			"id": *<20 byte id of sending node (string)>*,
 			"token": *<write token (string)>*,
