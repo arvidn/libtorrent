@@ -724,6 +724,11 @@ namespace libtorrent
 
 		int num_have() const
 		{
+			// pretend we have every piece when in seed mode
+			if (m_seed_mode) {
+				return m_torrent_file->num_pieces();
+			}
+
 			return has_picker()
 				? m_picker->num_have()
 				: m_have_all ? m_torrent_file->num_pieces() : 0;
@@ -958,17 +963,8 @@ namespace libtorrent
 		int sequence_number() const { return m_sequence_number; }
 
 		bool seed_mode() const { return m_seed_mode; }
-		void leave_seed_mode(bool seed)
-		{
-			if (!m_seed_mode) return;
-			m_seed_mode = false;
-			// seed is false if we turned out not
-			// to be a seed after all
-			if (!seed) force_recheck();
-			m_num_verified = 0;
-			m_verified.clear();
-			m_verifying.clear();
-		}
+		void leave_seed_mode(bool seed);
+
 		bool all_verified() const
 		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
 		bool verifying_piece(int piece) const
@@ -990,14 +986,7 @@ namespace libtorrent
 			TORRENT_ASSERT(piece >= 0);
 			return m_verified.get_bit(piece);
 		}
-		void verified(int piece)
-		{
-			TORRENT_ASSERT(piece < int(m_verified.size()));
-			TORRENT_ASSERT(piece >= 0);
-			TORRENT_ASSERT(m_verified.get_bit(piece) == false);
-			++m_num_verified;
-			m_verified.set_bit(piece);
-		}
+		void verified(int piece);
 
 		bool add_merkle_nodes(std::map<int, sha1_hash> const& n, int piece);
 

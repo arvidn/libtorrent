@@ -520,7 +520,7 @@ namespace libtorrent
 		m_override_resume_data = true;
 		init();
 	}
-#else
+#else // if 0
 
 	int torrent::current_stats_state() const
 	{
@@ -667,7 +667,50 @@ namespace libtorrent
 		init();
 	}
 
+#endif // if 0
+
+	void torrent::leave_seed_mode(bool seed)
+	{
+		if (!m_seed_mode) return;
+
+		if (!seed)
+		{
+			// this means the user promised we had all the
+			// files, but it turned out we didn't. This is
+			// an error.
+
+			// TODO: 2 post alert
+		
+#if defined TORRENT_ERROR_LOGGING
+			debug_log("*** FAILED SEED MODE, rechecking");
 #endif
+		}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("*** LEAVING SEED MODE (%s)", seed ? "as seed" : "as non-seed");
+#endif
+		m_seed_mode = false;
+		// seed is false if we turned out not
+		// to be a seed after all
+		if (!seed)
+		{
+			m_have_all = false;
+			set_state(torrent_status::downloading);
+			force_recheck();
+		}
+		m_num_verified = 0;
+		m_verified.clear();
+		m_verifying.clear();
+	}
+
+	void torrent::verified(int piece)
+	{
+		TORRENT_ASSERT(piece < int(m_verified.size()));
+		TORRENT_ASSERT(piece >= 0);
+		TORRENT_ASSERT(m_verified.get_bit(piece) == false);
+		++m_num_verified;
+		m_verified.set_bit(piece);
+	}
 
 	void torrent::start()
 	{
@@ -3381,6 +3424,10 @@ namespace libtorrent
 
 		if (!has_picker()) return m_have_all ? m_torrent_file->total_size() : 0;
 
+		// if any piece hash fails, we'll be taken out of seed mode
+		// and m_seed_mode will be false
+		if (m_seed_mode) return m_torrent_file->total_size();
+
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
 		size_type total_done
@@ -3444,7 +3491,9 @@ namespace libtorrent
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 		const int piece_size = m_torrent_file->piece_length();
 
-		if (m_have_all)
+		// if any piece hash fails, we'll be taken out of seed mode
+		// and m_seed_mode will be false
+		if (m_seed_mode || is_seed())
 		{
 			st.total_done = m_torrent_file->total_size() - m_padding;
 			st.total_wanted_done = st.total_done;

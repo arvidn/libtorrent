@@ -2256,7 +2256,7 @@ namespace libtorrent
 			// we shouldn't get a request
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ we don't have metadata yet ]");
-			peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
+			peer_log("==> REJECT_PIECE [ piece: %d | s: %x | l: %x ] no metadata"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
@@ -2273,7 +2273,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ incoming request queue full %d ]"
 				, int(m_requests.size()));
-			peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
+			peer_log("==> REJECT_PIECE [ piece: %d | s: %x | l: %x ] too many requests"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
@@ -2290,7 +2290,9 @@ namespace libtorrent
 		// is not choked
 		if (r.piece < 0
 			|| r.piece >= t->torrent_file().num_pieces()
-			|| (!t->has_piece_passed(r.piece) && !t->is_predictive_piece(r.piece))
+			|| (!t->has_piece_passed(r.piece)
+				&& !t->is_predictive_piece(r.piece)
+				&& !t->seed_mode())
 			|| r.start < 0
 			|| r.start >= t->torrent_file().piece_size(r.piece)
 			|| r.length <= 0
@@ -2309,7 +2311,7 @@ namespace libtorrent
 				, t->has_piece_passed(r.piece)
 				, t->block_size());
 
-			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+			peer_log("==> REJECT_PIECE [ piece: %d | s: %d | l: %d ] invalid request"
 				, r.piece , r.start , r.length);
 #endif
 
@@ -2358,7 +2360,7 @@ namespace libtorrent
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]");
-			peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
+			peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ] peer choked"
 				, r.piece, r.start, r.length);
 #endif
 			m_ses.inc_stats_counter(counters::choked_piece_requests);
@@ -2443,21 +2445,6 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-
-		// piece_block can't necessarily hold large piece numbers
-		// so check that first
-		if (r.piece < 0
-			|| r.piece >= t->torrent_file().num_pieces()
-			|| r.start < 0
-			|| r.start > t->torrent_file().piece_length())
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log("*** INVALID_PIECE [ piece: %d s: %d l: %d ]"
-				, r.piece, r.start, r.length);
-#endif
-			disconnect(errors::invalid_piece, op_bittorrent, 2);
-			return;
-		}
 
 		piece_block b(r.piece, r.start / t->block_size());
 		m_receiving_block = b;
@@ -3064,7 +3051,7 @@ namespace libtorrent
 				m_ses.inc_stats_counter(counters::num_peers_up_requests, -1);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
+			peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ] cancelled"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
@@ -3615,7 +3602,7 @@ namespace libtorrent
 			peer_request const& r = *i;
 			m_ses.inc_stats_counter(counters::choked_piece_requests);
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ] choking"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
@@ -4998,7 +4985,7 @@ namespace libtorrent
 			if (t->is_deleted())
 			{
 #if defined TORRENT_VERBOSE_LOGGING
-				peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
+				peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ] torrent deleted"
 					, r.piece , r.start , r.length);
 #endif
 				write_reject_request(r);
@@ -5017,7 +5004,7 @@ namespace libtorrent
 				++m_outstanding_piece_verification;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("*** FILE ASYNC HASH [ piece: %d ]", r.piece);
+				peer_log("*** SEED-MODE FILE ASYNC HASH [ piece: %d ]", r.piece);
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
@@ -5041,7 +5028,7 @@ namespace libtorrent
 				// we will reject this request
 				if (t->is_predictive_piece(r.piece)) continue;
 #if defined TORRENT_VERBOSE_LOGGING
-				peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ]"
+				peer_log("==> REJECT_PIECE [ piece: %d s: %x l: %x ] piece not passed hash check"
 					, r.piece , r.start , r.length);
 #endif
 				write_reject_request(r);
@@ -5103,6 +5090,10 @@ namespace libtorrent
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
 			&& sha1_hash(j->d.piece_hash) != t->torrent_file().hash_for_piece(j->piece))
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** SEED-MODE FILE HASH [ piece: %d failed ]", j->piece);
+#endif
+
 			t->leave_seed_mode(false);
 		}
 		else
@@ -5110,6 +5101,9 @@ namespace libtorrent
 			TORRENT_ASSERT(t->verifying_piece(j->piece));
 			if (t->seed_mode()) t->verified(j->piece);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** SEED-MODE FILE HASH [ piece: %d passed ]", j->piece);
+#endif
 			if (t)
 			{
 				if (t->seed_mode() && t->all_verified())
