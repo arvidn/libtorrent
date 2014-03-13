@@ -196,7 +196,8 @@ namespace libtorrent
 		return m_file.writev(slot_offset + offset, bufs, num_bufs, ec);
 	}
 
-	int part_file::readv(file::iovec_t const* bufs, int num_bufs, int piece, int offset, error_code& ec)
+	int part_file::readv(file::iovec_t const* bufs, int num_bufs
+		, int piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
 		mutex::scoped_lock l(m_mutex);
@@ -204,13 +205,9 @@ namespace libtorrent
 		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
 		{
-			int ret = 0;
-			for (int i = 0; i < num_bufs; ++i)
-			{
-				memset(bufs[i].iov_base, 0, bufs[i].iov_len);
-				ret += bufs[i].iov_len;
-			}
-			return ret;
+			ec = error_code(boost::system::errc::no_such_file_or_directory
+				, boost::system::generic_category());
+			return -1;
 		}
 
 		int slot = i->second;

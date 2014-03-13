@@ -1130,12 +1130,22 @@ namespace libtorrent
 				if ((op.mode & file::rw_mask) == file::read_write)
 				{
 					// write
-					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs, slot, offset, e);
+					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs
+						, slot, offset, e);
 				}
 				else
 				{
 					// read
-					bytes_transferred = m_part_file->readv(tmp_bufs, num_tmp_bufs, slot, offset, e);
+					bytes_transferred = m_part_file->readv(tmp_bufs, num_tmp_bufs
+						, slot, offset, e);
+				}
+				if (e)
+				{
+					ec.ec = e;
+					ec.file = file_index;
+					ec.operation = (op.mode & file::rw_mask) == file::read_only
+						? storage_error::read : storage_error::write;
+					return -1;
 				}
 			}
 			else

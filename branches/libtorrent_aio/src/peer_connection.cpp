@@ -5090,6 +5090,13 @@ namespace libtorrent
 
 		if (!t || t->is_aborted()) return;
 
+		if (j->error)
+		{
+			t->handle_disk_error(j, this);
+			t->leave_seed_mode(false);
+			return;
+		}
+
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!t->need_loaded()) return;
 
