@@ -2119,7 +2119,7 @@ namespace libtorrent
 				, t->have_piece(r.piece)
 				, t->block_size());
 
-			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+			peer_log("==> REJECT_PIECE [ piece: %d | s: %d | l: %d ] invalid request"
 				, r.piece , r.start , r.length);
 #endif
 
@@ -2167,21 +2167,6 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-
-		// piece_block can't necessarily hold large piece numbers
-		// so check that first
-		if (r.piece < 0
-			|| r.piece >= t->torrent_file().num_pieces()
-			|| r.start < 0
-			|| r.start > t->torrent_file().piece_length())
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log("*** INVALID_PIECE [ piece: %d s: %d l: %d ]"
-				, r.piece, r.start, r.length);
-#endif
-			disconnect(errors::invalid_piece, 2);
-			return;
-		}
 
 		piece_block b(r.piece, r.start / t->block_size());
 		m_receiving_block = b;
@@ -3163,7 +3148,7 @@ namespace libtorrent
 			++m_ses.m_choked_piece_requests;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ] choking"
 				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
