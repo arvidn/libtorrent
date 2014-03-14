@@ -272,7 +272,7 @@ namespace libtorrent
 				if (ec)
 				{
 					ec.file = i;
-					ec.operation = storage_error::write;
+					ec.operation = storage_error::partfile_write;
 					return;
 				}
 			}
@@ -301,7 +301,7 @@ namespace libtorrent
 					if (ec)
 					{
 						ec.file = i;
-						ec.operation = storage_error::read;
+						ec.operation = storage_error::partfile_read;
 						return;
 					}
 					// remove the file
@@ -322,7 +322,7 @@ namespace libtorrent
 		if (ec)
 		{
 			ec.file = -1;
-			ec.operation = storage_error::partfile;
+			ec.operation = storage_error::partfile_write;
 		}
 	}
 
@@ -999,7 +999,7 @@ namespace libtorrent
 				if (ec)
 				{
 					ec.file = -1;
-					ec.operation = storage_error::partfile;
+					ec.operation = storage_error::partfile_move;
 					return piece_manager::fatal_disk_error; 
 				}
 			}
@@ -1144,7 +1144,7 @@ namespace libtorrent
 					ec.ec = e;
 					ec.file = file_index;
 					ec.operation = (op.mode & file::rw_mask) == file::read_only
-						? storage_error::read : storage_error::write;
+						? storage_error::partfile_read : storage_error::partfile_write;
 					return -1;
 				}
 			}

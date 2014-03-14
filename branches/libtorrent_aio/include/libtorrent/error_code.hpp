@@ -595,7 +595,9 @@ namespace libtorrent
 			write,
 			fallocate,
 			alloc_cache_piece,
-			partfile
+			partfile_move,
+			partfile_read,
+			partfile_write,
 		};
 
 		// Returns a string literal representing the file operation
@@ -607,7 +609,7 @@ namespace libtorrent
 			{
 				"", "stat", "mkdir", "open", "rename", "remove", "copy"
 				, "read", "write", "fallocate", "allocate cache piece"
-				, "partfile"
+				, "partfile move", "partfile read", "partfile write"
 			};
 			return ops[operation];
 		}

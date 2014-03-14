@@ -810,7 +810,7 @@ namespace libtorrent
 				else bitmask += '0';
 			}
 		}
-		peer_log("==> EXTENSION [ %s ]", bitmask.c_str());
+		peer_log("==> EXTENSIONS [ %s ]", bitmask.c_str());
 #endif
 		ptr += 8;
 
