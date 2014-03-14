@@ -229,6 +229,17 @@ namespace libtorrent
 
 		std::string fn = combine_path(m_path, m_name);
 		m_file.open(fn, mode, ec);
+		if (((mode & file::rw_mask) != file::read_only)
+			&& ec == boost::system::errc::no_such_file_or_directory)
+		{
+			// this means the directory the file is in doesn't exist.
+			// so create it
+			ec.clear();
+			create_directories(m_path, ec);
+
+			if (ec) return;
+			m_file.open(fn, mode, ec);
+		}
 	}
 
 	void part_file::free_piece(int piece, error_code& ec)
