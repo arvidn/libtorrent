@@ -133,8 +133,7 @@ namespace libtorrent
 	void i2p_connection::async_name_lookup(char const* name
 		, i2p_connection::name_lookup_handler handler)
 	{
-//		TORRENT_ASSERT(is_open());
-		if (m_state == sam_idle && m_name_lookup.empty())
+		if (m_state == sam_idle && m_name_lookup.empty() && is_open())
 			do_name_lookup(name, handler);
 		else
 			m_name_lookup.push_back(std::make_pair(std::string(name), handler));

@@ -638,5 +638,14 @@ namespace libtorrent {
 			, error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
+
+	std::string i2p_alert::message() const
+	{
+		char msg[600];
+		snprintf(msg, sizeof(msg), "i2p_error: [%s] %s"
+			, error.category().name(), convert_from_native(error.message()).c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 
