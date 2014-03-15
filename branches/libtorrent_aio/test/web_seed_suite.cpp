@@ -208,10 +208,23 @@ static void test_transfer(session& ses, boost::shared_ptr<torrent_info> torrent_
 	// end up using all the cache anyway
 	if (!test_ban)
 	{
-		ses.get_cache_info(&cs);
-		TEST_EQUAL(cs.read_cache_size, (torrent_file->total_size() + 0x3fff) / 0x4000);
-		TEST_EQUAL(cs.total_used_buffers, (torrent_file->total_size() + 0x3fff) / 0x4000);
-		TEST_EQUAL(th.status().is_seeding, true);
+		torrent_status st = th.status();
+		TEST_EQUAL(st.is_seeding, true);
+
+		if (st.is_seeding)
+		{
+			for (int i = 0; i < 50; ++i)
+			{
+				ses.get_cache_info(&cs);
+				if (cs.read_cache_size == (torrent_file->total_size() + 0x3fff) / 0x4000
+					&& cs.total_used_buffers == (torrent_file->total_size() + 0x3fff) / 0x4000)
+					break;
+				fprintf(stderr, "cache_size: %d/%d\n", int(cs.read_cache_size), int(cs.total_used_buffers));
+				test_sleep(100);
+			}
+			TEST_EQUAL(cs.read_cache_size, (torrent_file->total_size() + 0x3fff) / 0x4000);
+			TEST_EQUAL(cs.total_used_buffers, (torrent_file->total_size() + 0x3fff) / 0x4000);
+		}
 	}
 
 	std::cerr << "total_size: " << total_size
