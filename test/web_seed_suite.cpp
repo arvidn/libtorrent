@@ -182,9 +182,22 @@ static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torre
 
 	if (!test_ban)
 	{
-		TEST_EQUAL(cs.cache_size, 0);
-		TEST_EQUAL(cs.total_used_buffers, 0);
-		TEST_EQUAL(th.status().is_seeding, true);
+		torrent_status st = th.status();
+		TEST_EQUAL(st.is_seeding, true);
+
+		if (st.is_seeding)
+		{
+			for (int i = 0; i < 50; ++i)
+			{
+				cs = ses.get_cache_status();
+				if (cs.read_cache_size == 0 && cs.total_used_buffers == 0)
+					break;
+				fprintf(stderr, "cache_size: %d/%d\n", int(cs.read_cache_size), int(cs.total_used_buffers));
+				test_sleep(100);
+			}
+			TEST_EQUAL(cs.read_cache_size, 0);
+			TEST_EQUAL(cs.total_used_buffers, 0);
+		}
 	}
 
 	std::cerr << "total_size: " << total_size
