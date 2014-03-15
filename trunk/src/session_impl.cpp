@@ -2455,6 +2455,9 @@ retry:
 	{
 		if (ec)
 		{
+			if (m_alerts.should_post<i2p_alert>())
+				m_alerts.post_alert(i2p_alert(ec));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			char msg[200];
 			snprintf(msg, sizeof(msg), "i2p open failed (%d) %s", ec.value(), ec.message().c_str());

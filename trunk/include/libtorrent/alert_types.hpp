@@ -2041,6 +2041,21 @@ namespace libtorrent
 		std::string salt;
 		boost::uint64_t seq;
 	};
+
+	// this alert is used to report errors in the i2p SAM connection
+	struct TORRENT_EXPORT i2p_alert : alert
+	{
+		i2p_alert(error_code const& ec) : error(ec) {}
+
+		TORRENT_DEFINE_ALERT(i2p_alert);
+
+		const static int static_category = alert::error_notification;
+		virtual std::string message() const;
+
+		// the error that occurred in the i2p SAM connection
+		error_code error;
+	};
+
 #undef TORRENT_DEFINE_ALERT
 
 }
