@@ -171,6 +171,6 @@ int main()
 	}
 #endif
 
-	return ret;
+	return ret ? 333 : 0;
 }
 
