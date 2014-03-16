@@ -85,9 +85,12 @@ int test_main()
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(*s, "s");
-		test_sleep(100);
 		if (num_udp_announces() == prev_udp_announces + 1)
 			break;
+
+		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+			, int(prev_udp_announces) + 1);
+		test_sleep(100);
 	}
 
 	// we should have announced to the tracker by now
@@ -149,8 +152,11 @@ int test_main()
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(*s, "s");
-		test_sleep(100);
 		if (num_udp_announces() == prev_udp_announces + 1) break;
+
+		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+			, int(prev_udp_announces) + 1);
+		test_sleep(100);
 	}
 
 	test_sleep(1000);
