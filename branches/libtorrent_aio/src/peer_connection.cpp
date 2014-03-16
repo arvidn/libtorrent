@@ -2446,9 +2446,6 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		piece_block b(r.piece, r.start / t->block_size());
-		m_receiving_block = b;
-
 		if (!verify_piece(r))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -2458,6 +2455,9 @@ namespace libtorrent
 			disconnect(errors::invalid_piece, op_bittorrent, 2);
 			return;
 		}
+
+		piece_block b(r.piece, r.start / t->block_size());
+		m_receiving_block = b;
 
 		bool in_req_queue = false;
 		for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
