@@ -1,8 +1,28 @@
+# all features are built in these directories
 test_dirs:
- - examples
- - tools
  - test
+
+features:
+ - variant=release asserts=production debug-symbols=on
+ - encryption=openssl statistics=on logging=verbose disk-stats=on dht=logging request-log=on allocator=debug debug-iterators=on
+
+# all build_features are built in these directories
+build_dirs:
+ - tools
+ - examples
  - bindings/python
+
+build_features:
+ - ipv6=off
+ - deprecated-functions=off 
+ - logging=verbose
+ - statistics=on
+ - asserts=off
+ - asserts=production debug
+ - asserts=on release
+ - asserts=off invariant-checks=off
+ - invariant-checks=on release
+ - ipv6=off dht=off extensions=off logging=none deprecated-functions=off invariant-checks=off 
 
 project: libtorrent
 
@@ -12,9 +32,4 @@ clean:
  - test_tmp_*
 
 time_limit: 180
-
-features:
- - variant=release asserts=production invariant-checks=off debug-iterators=off debug-symbols=on
- - encryption=openssl statistics=on logging=verbose disk-stats=on dht=logging request-log=on allocator=debug
- - ipv6=off dht=off extensions=off logging=none deprecated-functions=off 
 
