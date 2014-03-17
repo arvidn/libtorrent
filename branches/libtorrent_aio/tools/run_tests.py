@@ -104,7 +104,8 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 				# works for actual unit tests
 				if 'launcher=valgrind' in options_copy:
 					options_copy.remove('launcher=valgrind')
-			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, '-q', '--abbreviate-paths', toolset] + options_copy + feature_list
+			cmdline = ['bjam', '--out-xml=%s' % xml_file, '-l%d' % time_limit, \
+				'-q', '--abbreviate-paths', toolset] + options_copy + feature_list
 #			print 'calling ', cmdline
 
 			p = subprocess.Popen(cmdline, stdout=subprocess.PIPE, cwd=test_dir)
@@ -169,10 +170,11 @@ def main(argv):
 
 	toolsets = []
 
-	num_processes = 4
+	num_processes = 2
 	incremental = False
 
 	test_dirs = []
+	build_dirs = []
 	configs = []
 	options = ['boost=source', 'preserve-test-targets=on']
 	time_limit = 1200
@@ -216,8 +218,14 @@ def main(argv):
 	if 'test_dirs' in cfg:
 		for d in cfg['test_dirs']:
 			test_dirs.append(os.path.abspath(d))
-	else:
-		print 'no test directory specified by .regression.yml'
+
+	if 'build_dirs' in cfg:
+		for d in cfg['build_dirs']:
+			build_dirs.append(os.path.abspath(d))
+			test_dirs.append(os.path.abspath(d))
+
+	if len(build_dirs) == 0 and len(test_dirs) == 0:
+		print 'no test or build directory specified by .regression.yml'
 		sys.exit(1)
 
 	configs = []
@@ -226,6 +234,11 @@ def main(argv):
 			configs.append(d)
 	else:
 		configs = ['']
+
+	build_configs = []
+	if 'build_features' in cfg:
+		for d in cfg['build_features']:
+			build_configs.append(d)
 
 	clean_files = []
 	if 'clean' in cfg:
@@ -240,7 +253,7 @@ def main(argv):
 
 	# it takes a bit longer to run in valgrind
 	if 'launcher=valgrind' in options:
-		time_limit *= 6
+		time_limit *= 7
 
 	architecture = platform.machine()
 	build_platform = platform.system() + '-' + platform.release()
@@ -249,7 +262,7 @@ def main(argv):
 
 	timestamp = datetime.now()
 
-#	tester_pool = Pool(processes=num_processes)
+	tester_pool = Pool(processes=num_processes)
 
 	print '%s-%d - %s - %s' % (branch_name, revision, author, timestamp)
 
@@ -291,17 +304,21 @@ def main(argv):
 				if not toolset in results: results[toolset] = {}
 				toolset_found = False
 
-#				futures = []
-#				for features in configs:
-#					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit]))
+				additional_configs = []
+				if test_dir in build_dirs:
+					additional_configs = build_configs
 
-#				for future in futures:
-#					(compiler, r) = future.get()
-#					results[toolset].update(r)
+				futures = []
+				for features in configs + additional_configs:
+					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit]))
 
-				for features in configs:
-					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
+				for future in futures:
+					(compiler, r) = future.get()
 					results[toolset].update(r)
+
+#				for features in configs + additional_configs:
+#					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
+#					results[toolset].update(r)
 
 				print ''
 

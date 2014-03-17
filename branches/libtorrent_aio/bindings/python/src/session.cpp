@@ -80,7 +80,8 @@ namespace
 #ifndef TORRENT_NO_DEPRECATE
        else if (name == "metadata_transfer")
             s.add_extension(create_metadata_plugin);
-#endif
+#endif // TORRENT_NO_DEPRECATE
+
 #endif // TORRENT_DISABLE_EXTENSIONS
     }
 
