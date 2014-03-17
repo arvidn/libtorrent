@@ -68,7 +68,9 @@ def style_output(logfile, outfile):
 			' : error LNK' in l or \
 			': undefined reference to ' in l:
 			print >>outfile, '<span class="compile-error">%s</span>' % l
-		elif ': warning: ' in l or ') : warning C' in l or \
+		elif ': warning: ' in l or \
+			') : warning C' in l or \
+			'0;1;35mwarning: ' in l or \
 			'Uninitialised value was created by a' in l or \
 			'bytes after a block of size' in l or \
 			'bytes inside a block of size' in l:
@@ -286,11 +288,23 @@ for branch_name in revs:
 					</head><body>''' % (p, toolset, branch_name)
 				print >>html, '<th class="left-head"><a href="%s">%s</a></th>' % (details_name, toolset)
 
+				deferred_end_table = False
 				for f in features:
 					title = f
 					if len(tests[f]) < 10: title = '#'
 
-					print >>details_file, '<table><tr><th>%s</th></tr>' % title
+					if title != '#':
+						if deferred_end_table:
+							print >>details_file, '</table><table>'
+							print >>details_file, '<tr><th>%s</th></tr>' % title
+							deferred_end_table = False
+						else:
+							print >>details_file, '<table>'
+							print >>details_file, '<tr><th>%s</th></tr>' % title
+					elif not deferred_end_table:
+						print >>details_file, '<table>'
+						print >>details_file, '<tr><th>%s</th></tr>' % title
+
 					for t in platforms[p][toolset][f]:
 						details = platforms[p][toolset][f][t]
 						exitcode = details['status']
@@ -308,7 +322,8 @@ for branch_name in revs:
 						elif exitcode == -1073740777:
 							error_state = 'timeout'
 							c = 'timeout'
-						elif exitcode == 333:
+						elif exitcode == 333 or \
+							exitcode == 77:
 							error_code = 'test-failed'
 							c = 'failed'
 						else:
@@ -319,6 +334,13 @@ for branch_name in revs:
 						print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
 						print >>details_file, '<tr><td class="%s"><a href="%s">%s [%s]</a></td></tr>' % (c, os.path.split(log_name)[1], t, error_state)
 						save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
+					if title != '#':
+						print >>details_file, '</table>'
+						deferred_end_table = False
+					else:
+						deferred_end_table = True
+
+				if deferred_end_table:
 					print >>details_file, '</table>'
 
 				print >>html, '</tr>'
