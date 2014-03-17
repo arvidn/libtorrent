@@ -129,6 +129,7 @@ namespace libtorrent
 		return total_size - size;
 	}
 
+	// TODO: 2 it would be nice to use proper error handling here
 	bool inflate_gzip(
 		char const* in
 		, int size
@@ -145,18 +146,44 @@ namespace libtorrent
 			return true;
 		}
 
-		// start off with one kilobyte and grow
+		// start off with 4 kilobytes and grow
 		// if needed
-		buffer.resize(maximum_size);
-
-		boost::uint32_t destlen = buffer.size();
-		boost::uint32_t srclen = size - header_len;
-		in += header_len;
-		int ret = puff((unsigned char*)&buffer[0], &destlen, (unsigned char*)in, &srclen);
-
-		if (ret == -1)
+		boost::uint32_t destlen = 4096;
+		int ret = 0;
+		do
 		{
-			error = "inflated data too big";
+			TORRENT_TRY {
+				buffer.resize(destlen);
+			} TORRENT_CATCH(std::exception& e) {
+				error = "out of memory";
+				return true;
+			}
+   
+			boost::uint32_t srclen = size - header_len;
+			in += header_len;
+			ret = puff((unsigned char*)&buffer[0], &destlen, (unsigned char*)in, &srclen);
+   
+			// if the destination buffer wasn't large enough, double its
+			// size and try again. Unless it's already at its max, in which
+			// case we fail
+			if (ret == -1)
+			{
+				if (destlen == maximum_size)
+				{
+					error = "inflated data too big";
+					return true;
+				}
+
+				destlen *= 2;
+				if (destlen > maximum_size)
+					destlen = maximum_size;
+				continue;
+			}
+		} while (false);
+
+		if (destlen > buffer.size())
+		{
+			error = "internal gzip error";
 			return true;
 		}
 
