@@ -1733,7 +1733,7 @@ namespace libtorrent
 				, num_blocks, prefer_whole_pieces, peer, speed, options);
 		}
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		verify_pick(interesting_blocks, pieces);
 		verify_pick(backup_blocks, pieces);
 		verify_pick(backup_blocks2, pieces);
@@ -1985,7 +1985,7 @@ namespace libtorrent
 				}
 			}
 		}
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		verify_pick(interesting_blocks, pieces);
 #endif
 		if (num_blocks <= 0) return 0;
@@ -2092,7 +2092,7 @@ namespace libtorrent
 
 		if (int(backup_blocks.size()) >= num_blocks) return num_blocks;
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		verify_pick(backup_blocks, pieces);
 #endif
 		return num_blocks;

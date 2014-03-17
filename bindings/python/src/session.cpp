@@ -73,8 +73,11 @@ namespace
             s.add_extension(create_smart_ban_plugin);
        else if (name == "lt_trackers")
             s.add_extension(create_lt_trackers_plugin);
+#ifndef TORRENT_NO_DEPRECATE
        else if (name == "metadata_transfer")
             s.add_extension(create_metadata_plugin);
+#endif // TORRENT_NO_DEPRECATE
+
 #endif // TORRENT_DISABLE_EXTENSIONS
     }
 
