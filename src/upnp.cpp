@@ -546,6 +546,9 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 	if (m_ignore_non_routers)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("upnp::map_timer");
+#endif
 		// check back in in a little bit to see if we have seen any
 		// devices at one of our default routes. If not, we want to override
 		// ignoring them and use them instead (better than not working).
@@ -557,7 +560,11 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 void upnp::map_timer(error_code const& ec)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("upnp::map_timer");
+#endif
 	if (ec) return;
+	if (m_closing) return;
 
 	mutex::scoped_lock l(m_mutex);
 	try_map_upnp(l, true);
