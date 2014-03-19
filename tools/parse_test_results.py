@@ -277,6 +277,7 @@ for branch_name in revs:
 				print >>details_file, '''<html><head><title>%s %s [%s]</title><style type="text/css">
 					.passed { background-color: #6f8 }
 					.failed { background-color: #f68 }
+					.missing { background-color: #fff }
 					.crash { background-color: #f08 }
 					.compile-failed { background-color: #000 }
 					.timeout { background-color: #86f }
@@ -304,6 +305,12 @@ for branch_name in revs:
 					elif not deferred_end_table:
 						print >>details_file, '<table>'
 						print >>details_file, '<tr><th>%s</th></tr>' % title
+
+					if not f in platforms[p][toolset]:
+						print f
+						for i in range(len(tests[f])):
+							print >>html, '<td title="%s"><a class="missing"></a></td>' % (f)
+						continue
 
 					for t in platforms[p][toolset][f]:
 						details = platforms[p][toolset][f][t]
