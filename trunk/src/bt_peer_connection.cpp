@@ -1995,8 +1995,10 @@ namespace libtorrent
 #endif
 
 			// bootstrap superseeding by sending two have message
-			superseed_piece(-1, t->get_piece_to_super_seed(get_bitfield()));
-			superseed_piece(-1, t->get_piece_to_super_seed(get_bitfield()));
+			int piece = t->get_piece_to_super_seed(get_bitfield());
+			if (piece >= 0) superseed_piece(-1, piece);
+			piece = t->get_piece_to_super_seed(get_bitfield());
+			if (piece >= 0) superseed_piece(-1, piece);
 			return;
 		}
 		else if (m_supports_fast && t->is_seed())
