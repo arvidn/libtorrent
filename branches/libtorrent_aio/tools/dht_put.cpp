@@ -157,8 +157,9 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	session s;
-	s.set_alert_mask(0xffffffff);
+	settings_pack sett;
+	sett.set_int(settings_pack::alert_mask, 0xffffffff);
+	session s(sett);
 
 	s.add_dht_router(std::pair<std::string, int>("router.utorrent.com", 6881));
 
