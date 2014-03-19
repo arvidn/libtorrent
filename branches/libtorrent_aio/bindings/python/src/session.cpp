@@ -363,6 +363,7 @@ namespace
         return ret;
     }
 
+#ifndef TORRENT_NO_DEPRECATE
     void start_natpmp(session& s)
     {
         allow_threading_guard guard;
@@ -374,6 +375,7 @@ namespace
         allow_threading_guard guard;
         s.start_upnp();
     }
+#endif
 
     alert const* wait_for_alert(session& s, int ms)
     {
@@ -517,9 +519,9 @@ namespace
 
 void bind_session()
 {
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_DHT
     void (session::*start_dht0)() = &session::start_dht;
-#ifndef TORRENT_NO_DEPRECATE
     void (session::*start_dht1)(entry const&) = &session::start_dht;
 #endif
 #endif
@@ -624,8 +626,8 @@ void bind_session()
         .def_readonly("blocks_read", &cache_status::blocks_read)
         .def_readonly("blocks_read_hit", &cache_status::blocks_read_hit)
         .def_readonly("reads", &cache_status::reads)
-        .def_readonly("queued_bytes", &cache_status::queued_bytes)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("queued_bytes", &cache_status::queued_bytes)
         .def_readonly("cache_size", &cache_status::cache_size)
 #endif
         .def_readonly("write_cache_size", &cache_status::write_cache_size)
@@ -687,9 +689,9 @@ void bind_session()
         )
         .def("is_dht_running", allow_threads(&session::is_dht_running))
         .def("set_dht_settings", allow_threads(&session::set_dht_settings))
+#ifndef TORRENT_NO_DEPRECATE
         .def("start_dht", allow_threads(start_dht0))
         .def("stop_dht", allow_threads(&session::stop_dht))
-#ifndef TORRENT_NO_DEPRECATE
         .def("start_dht", allow_threads(start_dht1))
         .def("dht_state", allow_threads(&session::dht_state))
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
@@ -771,12 +773,6 @@ void bind_session()
 #endif
         .def("set_proxy", allow_threads(&session::set_proxy))
         .def("proxy", allow_threads(&session::proxy))
-        .def("start_upnp", &start_upnp)
-        .def("stop_upnp", allow_threads(&session::stop_upnp))
-        .def("start_lsd", allow_threads(&session::start_lsd))
-        .def("stop_lsd", allow_threads(&session::stop_lsd))
-        .def("start_natpmp", &start_natpmp)
-        .def("stop_natpmp", allow_threads(&session::stop_natpmp))
         .def("set_ip_filter", allow_threads(&session::set_ip_filter))
         .def("get_ip_filter", allow_threads(&session::get_ip_filter))
         .def("find_torrent", allow_threads(&session::find_torrent))
@@ -787,6 +783,12 @@ void bind_session()
         .def("id", allow_threads(&session::id))
         .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("start_upnp", &start_upnp)
+        .def("stop_upnp", allow_threads(&session::stop_upnp))
+        .def("start_lsd", allow_threads(&session::start_lsd))
+        .def("stop_lsd", allow_threads(&session::stop_lsd))
+        .def("start_natpmp", &start_natpmp)
+        .def("stop_natpmp", allow_threads(&session::stop_natpmp))
         .def("get_cache_status", &get_cache_status)
         .def("get_cache_info", &get_cache_info2)
 #endif
