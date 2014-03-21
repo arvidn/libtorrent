@@ -4705,17 +4705,16 @@ namespace libtorrent
 		if (!j->buffer)
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j->error.ec));
+			return;
 		}
-		else
-		{
-			m_need_save_resume_data = false;
-			m_last_saved_resume = m_ses.session_time();
-			write_resume_data(*((entry*)j->buffer));
-			alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>((entry*)j->buffer)
-				, get_handle()));
-			const_cast<disk_io_job*>(j)->buffer = 0;
-			state_updated();
-		}
+
+		m_need_save_resume_data = false;
+		m_last_saved_resume = m_ses.session_time();
+		write_resume_data(*((entry*)j->buffer));
+		alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>((entry*)j->buffer)
+			, get_handle()));
+		const_cast<disk_io_job*>(j)->buffer = 0;
+		state_updated();
 	}
 
 	void torrent::on_file_renamed(disk_io_job const* j)
