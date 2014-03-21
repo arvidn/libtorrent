@@ -224,6 +224,10 @@ namespace libtorrent
 			?settings.get_int(settings_pack::stop_tracker_timeout)
 			:settings.get_int(settings_pack::tracker_completion_timeout);
 
+		// when sending stopped requests, prefer the cached DNS entry
+		// to avoid being blocked for slow or failing responses. Chances
+		// are that we're shutting down, and this should be a best-effort
+		// attempt. It's not worth stalling shutdown.
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
 			, &m_ps, 5, settings.get_bool(settings_pack::anonymous_mode)

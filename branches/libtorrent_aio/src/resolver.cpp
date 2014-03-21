@@ -41,6 +41,8 @@ namespace libtorrent
 	resolver::resolver(io_service& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
+		, m_max_size(700)
+		, m_timeout(1200)
 	{}
 
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
@@ -70,28 +72,20 @@ namespace libtorrent
 
 		// if m_cache grows too big, weed out the
 		// oldest entries
-		if (m_cache.size() > 700)
+		if (m_cache.size() > m_max_size)
 		{
-			cache_t::iterator oldest = m_cache.end();
+			cache_t::iterator oldest = m_cache.begin();
 			for (cache_t::iterator i = m_cache.begin();
 				i != m_cache.end(); ++i)
 			{
 				cache_t::iterator e = i;
 				++i;
-				// the typical tracker announce interval is 1800
-				// and it's especially useful to have cached lookups
-				// around when shutting down, so keep them around
-				// for 1900 seconds
-				if (e->second.last_seen < now - 1900)
-					m_cache.erase(e);
-				else if (oldest == m_cache.end()
-					|| i->second.last_seen < oldest->second.last_seen)
+				if (i->second.last_seen < oldest->second.last_seen)
 					oldest = i;
 			}
 
-			// always remove the oldest entry, no matter what
-			if (m_cache.size() > 700)
-				m_cache.erase(oldest);
+			// remove the oldest entry
+			m_cache.erase(oldest);
 		}
 	}
 	
@@ -102,10 +96,9 @@ namespace libtorrent
 		cache_t::iterator i = m_cache.find(host);
 		if (i != m_cache.end())
 		{
-			// keep cache entries valid for at least 20 minutes
-			// (1200 seconds)
+			// keep cache entries valid for m_timeout seconds
 			if ((flags & resolver_interface::prefer_cache)
-				|| i->second.last_seen + 1200 <= time(NULL))
+				|| i->second.last_seen + m_timeout >= time(NULL))
 			{
 				error_code ec;
 				m_ios.post(boost::bind(h, ec, i->second.addresses));
