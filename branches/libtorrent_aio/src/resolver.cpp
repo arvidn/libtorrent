@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/resolver.hpp"
 #include <boost/bind.hpp>
+#include "libtorrent/debug.hpp"
 
 namespace libtorrent
 {
@@ -45,6 +46,9 @@ namespace libtorrent
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
 		, resolver_interface::callback_t h, std::string hostname)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("resolver::on_lookup");
+#endif
 		if (ec)
 		{
 			std::vector<address> empty;
@@ -111,6 +115,10 @@ namespace libtorrent
 	
 		// the port is ignored
 		tcp::resolver::query q(host, "80");
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("resolver::on_lookup");
+#endif
 		m_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
 			, h, host));
 	}

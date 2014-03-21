@@ -4506,6 +4506,9 @@ retry:
 
 	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)
 	{
+		TORRENT_ASSERT(!m_abort);
+		if (m_abort) return;
+
 		TORRENT_ASSERT(m_dht);
 		m_dht_torrents.push_back(t);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -6881,6 +6884,10 @@ retry:
 				, m_half_open.max_timeout());
 		}
 		async_dec_threads();
+
+		fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
+
+//		m_io_service.post(boost::bind(&io_service::stop, &m_io_service));
 #endif
 
 		if (m_thread) m_thread->join();
