@@ -307,7 +307,6 @@ for branch_name in revs:
 						print >>details_file, '<tr><th>%s</th></tr>' % title
 
 					if not f in platforms[p][toolset]:
-						print f
 						for i in range(len(tests[f])):
 							print >>html, '<td title="%s"><a class="missing"></a></td>' % (f)
 						continue
