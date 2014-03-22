@@ -88,9 +88,9 @@ int test_main()
 		if (num_udp_announces() == prev_udp_announces + 1)
 			break;
 
-		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
-			, int(prev_udp_announces) + 1);
 		test_sleep(100);
+		fprintf(stderr, "UDP: %d / %d\n", int(g_udp_tracker_requests)
+			, int(prev_udp_announces) + 1);
 	}
 
 	// we should have announced to the tracker by now
@@ -167,8 +167,11 @@ int test_main()
 	delete s;
 	fprintf(stderr, "done\n");
 
+	fprintf(stderr, "stop_tracker\n");
 	stop_udp_tracker();
+	fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
+	fprintf(stderr, "done\n");
 
 	return 0;
 }
