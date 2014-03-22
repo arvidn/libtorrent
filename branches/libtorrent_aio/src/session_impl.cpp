@@ -1224,6 +1224,8 @@ namespace aux {
 
 	void session_impl::queue_async_resume_data(boost::shared_ptr<torrent> const& t)
 	{
+		INVARIANT_CHECK;
+
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 
 		if (m_num_save_resume + m_num_queued_resume >= loaded_limit
@@ -1257,6 +1259,8 @@ namespace aux {
 	// popped off the alert queue
 	void session_impl::async_resume_dispatched(bool all)
 	{
+		INVARIANT_CHECK;
+
 		if (all)
 		{
 			m_num_queued_resume = 0;
@@ -7762,6 +7766,11 @@ retry:
 	void session_impl::check_invariant() const
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+		TORRENT_ASSERT(m_num_save_resume <= loaded_limit);
+		if (m_num_save_resume < loaded_limit)
+			TORRENT_ASSERT(m_save_resume_queue.empty());
 
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
