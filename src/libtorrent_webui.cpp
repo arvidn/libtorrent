@@ -616,6 +616,7 @@ namespace libtorrent
 				if (st->len < len) return error(st, invalid_number_of_args);
 				std::copy(ptr, ptr + len, str.begin());
 				ptr += len;
+				pack.set_str(sett, str);
 			}
 			else if (sett >= settings_pack::int_type_base && sett < settings_pack::max_int_setting_internal)
 			{

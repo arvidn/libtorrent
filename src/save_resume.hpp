@@ -60,7 +60,7 @@ namespace libtorrent
 		virtual void handle_alert(alert const* a);
 
 		void save_all();
-		bool ok_to_quit() const { return m_num_in_flight == 0; }
+		bool ok_to_quit() const;
 
 		void load_torrent(libtorrent::sha1_hash const& ih
 			, std::vector<char>& buf, libtorrent::error_code& ec);
@@ -86,6 +86,10 @@ namespace libtorrent
 		time_duration m_interval;
 
 		int m_num_in_flight;
+
+		// when set, we stop saving periodically, and just wait
+		// for all outstanding saves to return.
+		bool m_shutting_down;
 	};
 }
 
