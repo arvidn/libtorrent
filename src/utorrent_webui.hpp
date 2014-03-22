@@ -114,6 +114,10 @@ namespace libtorrent
 
 		rss_filter_handler* m_rss_filter;
 
+		// a list of the most recent rss filter rules that were
+		// removed. first = cid, second rss_ident.
+		std::deque<std::pair<int, int> > m_removed_rss_filters;
+
 		// used to detect which torrents have been updated
 		// since last time
 		torrent_history* m_hist;

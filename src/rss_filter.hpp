@@ -103,6 +103,9 @@ namespace libtorrent
 		/// by the rss_filter_handler when adding the rule
 		int id;
 
+		/// human readable name of filter rule
+		std::string name;
+
 		/// only if this string is found in the name does
 		/// this rule match
 		std::string search;
