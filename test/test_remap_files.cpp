@@ -408,8 +408,11 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	file_prio[0] = 0;
 	tor2.prioritize_files(file_prio);
 
-	tor1.resume();
+	// torrent1 will attempt to connect to torrent2
+	// make sure torrent2 is up and running by then
 	tor2.resume();
+	test_sleep(500);
+	tor1.resume();
 
 	fprintf(stderr, "\ntesting remap scatter prio\n\n");
 
