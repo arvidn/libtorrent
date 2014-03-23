@@ -337,6 +337,7 @@ namespace libtorrent
 	void file_storage::add_file(std::string const& file, size_type size, int flags
 		, std::time_t mtime, std::string const& symlink_path)
 	{
+		TORRENT_ASSERT(!is_complete(file));
 		TORRENT_ASSERT(size >= 0);
 		if (size < 0) size = 0;
 		if (!has_parent_path(file))
