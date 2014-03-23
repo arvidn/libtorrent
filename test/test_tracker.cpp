@@ -89,7 +89,7 @@ int test_main()
 			break;
 
 		test_sleep(100);
-		fprintf(stderr, "UDP: %d / %d\n", int(g_udp_tracker_requests)
+		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
 			, int(prev_udp_announces) + 1);
 	}
 
