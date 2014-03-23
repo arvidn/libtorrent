@@ -95,7 +95,7 @@ enum
 class TORRENT_EXTRA_EXPORT item
 {
 public:
-	item() : m_mutable(false) {}
+	item() : m_seq(0), m_mutable(false)  {}
 	item(char const* pk, std::string const& salt);
 	item(entry const& v) { assign(v); }
 	item(entry const& v

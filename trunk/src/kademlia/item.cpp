@@ -161,9 +161,9 @@ sha1_hash mutable_item_cas(std::pair<char const*, int> v
 }
 
 item::item(char const* pk, std::string const& salt)
-	: m_mutable(true)
-	, m_salt(salt)
+	: m_salt(salt)
 	, m_seq(0)
+	, m_mutable(true)
 {
 	memcpy(m_pk.data(), pk, item_pk_len);
 }
