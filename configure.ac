@@ -173,7 +173,7 @@ AC_CHECK_FUNCS([clock_gettime], [],
 )
 
 
-dnl Pass some build options to setup.py and .pc file
+dnl Pass some build options to .pc file
 COMPILETIME_OPTIONS=""
 
 
@@ -687,7 +687,6 @@ AC_CONFIG_FILES(
   [tools/Makefile]
   [bindings/Makefile]
   [bindings/python/Makefile]
-  [bindings/python/setup.py]
   [libtorrent-rasterbar.pc]
   [libtorrent-rasterbar-cmake.pc]
 )
