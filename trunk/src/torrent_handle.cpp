@@ -282,7 +282,7 @@ namespace libtorrent
 
 	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
-		TORRENT_ASSERT(max_uploads >= 2 || max_uploads == -1);
+		TORRENT_ASSERT_PRECOND(max_uploads >= 2 || max_uploads == -1);
 		TORRENT_ASYNC_CALL2(set_max_uploads, max_uploads, true);
 	}
 
@@ -294,13 +294,13 @@ namespace libtorrent
 
 	void torrent_handle::set_max_connections(int max_connections) const
 	{
-		TORRENT_ASSERT(max_connections >= 2 || max_connections == -1);
+		TORRENT_ASSERT_PRECOND(max_connections >= 2 || max_connections == -1);
 		TORRENT_ASYNC_CALL2(set_max_connections, max_connections, true);
 	}
 
 	void torrent_handle::set_upload_limit(int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL2(set_upload_limit, limit, true);
 	}
 
@@ -312,7 +312,7 @@ namespace libtorrent
 
 	void torrent_handle::set_download_limit(int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL2(set_download_limit, limit, true);
 	}
 
@@ -568,20 +568,20 @@ namespace libtorrent
 
 	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL2(set_peer_upload_limit, ip, limit);
 	}
 
 	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL2(set_peer_download_limit, ip, limit);
 	}
 
 	void torrent_handle::set_ratio(float ratio) const
 	{
 		
-		TORRENT_ASSERT(ratio >= 0.f);
+		TORRENT_ASSERT_PRECOND(ratio >= 0.f);
 		if (ratio < 1.f && ratio > 0.f)
 			ratio = 1.f;
 		TORRENT_ASYNC_CALL1(set_ratio, ratio);

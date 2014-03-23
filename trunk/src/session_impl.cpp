@@ -1896,7 +1896,7 @@ namespace aux {
 			// If you hit this assert, you're trying to set your cache to be
 			// volatile and to suggest pieces out of it (or to make the cache
 			// explicit) at the same time this is a bad configuration, don't do it
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_PRECOND(false);
 			m_settings.volatile_read_cache = false;
 		}
 

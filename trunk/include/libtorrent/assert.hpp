@@ -53,23 +53,32 @@ extern char const* libtorrent_assert_log;
 #endif
 
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
-	, char const* function, char const* val);
+	, char const* function, char const* val, int kind = 0);
 
-#define TORRENT_ASSERT(x) do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, 0); } while (false)
+#define TORRENT_ASSERT_PRECOND(x) \
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, "", 1); } while (false)
+
+#define TORRENT_ASSERT(x) \
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, "", 0); } while (false)
+
 #if TORRENT_USE_IOSTREAM
-#define TORRENT_ASSERT_VAL(x, y) do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, __s__.str().c_str()); } } while (false)
+#define TORRENT_ASSERT_VAL(x, y) \
+	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
+	assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, __s__.str().c_str(), 0); } } while (false)
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)
 #endif
 
 #else
 #include <cassert>
+#define TORRENT_ASSERT_PRECOND(x) assert(x)
 #define TORRENT_ASSERT(x) assert(x)
 #define TORRENT_ASSERT_VAL(x, y) assert(x)
 #endif
 
 #else // TORRENT_USE_ASSERTS
 
+#define TORRENT_ASSERT_PRECOND(a) do {} while(false)
 #define TORRENT_ASSERT(a) do {} while(false)
 #define TORRENT_ASSERT_VAL(a, b) do {} while(false)
 
