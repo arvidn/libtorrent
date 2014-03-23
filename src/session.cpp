@@ -476,7 +476,7 @@ namespace libtorrent
 	feed_handle session::add_feed(feed_settings const& feed)
 	{
 		// if you have auto-download enabled, you must specify a download directory!
-		TORRENT_ASSERT(!feed.auto_download || !feed.add_args.save_path.empty());
+		TORRENT_ASSERT_PRECOND(!feed.auto_download || !feed.add_args.save_path.empty());
 		TORRENT_SYNC_CALL_RET1(feed_handle, add_feed, feed);
 		return r;
 	}
