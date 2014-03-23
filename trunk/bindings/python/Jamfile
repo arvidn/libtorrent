@@ -1,9 +1,13 @@
 import python ;
+import feature : feature ;
 
 use-project /torrent : ../.. ;
 
 lib boost_python : : <target-os>darwin <name>boost_python-mt $(boost-library-search-path) ;
 lib boost_python : : <name>boost_python ;
+
+feature visibility : default hidden : composite propagated link-incompatible ;
+feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
 rule libtorrent_linking ( properties * )
 {
@@ -19,7 +23,12 @@ rule libtorrent_linking ( properties * )
       || <toolset>clang in $(properties)
       || <toolset>clang-darwin in $(properties)
     {
-        result += <cxxflags>-fvisibility=hidden ;
+        result += <visibility>hidden ;
+
+        if ( <toolset>gcc in $(properties) )
+        {
+           result += <linkflags>-Wl,-Bsymbolic ;
+        }
     }
 
     if <boost>source in $(properties)
@@ -35,7 +44,7 @@ rule libtorrent_linking ( properties * )
 
         if <link>static in $(properties)
         {
-            result += <library>/torrent//torrent/<link>static ;
+            result += <library>/torrent//torrent/<link>static/<boost-link>static ;
         }
         else
         {
@@ -45,14 +54,23 @@ rule libtorrent_linking ( properties * )
     else
     {
         result += <library>boost_python ;
-        result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
+
+        if <link>static in $(properties)
+        {
+            result += <library>/torrent//torrent/<link>static/<boost-link>static ;
+        }
+        else
+        {
+            result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
+        }
     }
 
     return $(result) ;
 }
 
 python-extension libtorrent 
-  : src/module.cpp
+  : # sources
+    src/module.cpp
     src/big_number.cpp
     src/converters.cpp
     src/create_torrent.cpp
@@ -73,9 +91,10 @@ python-extension libtorrent
     src/ip_filter.cpp
     src/magnet_uri.cpp
     src/error_code.cpp
-  : <include>src
+  : # requirements
+    <include>src
     <conditional>@libtorrent_linking
-  : 
+  : # default build
     <boost-link>static
   ;
 
