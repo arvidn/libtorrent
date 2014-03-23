@@ -43,6 +43,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+0.16.16 release
+
 	* add missing add_files overload to the python bindings
 	* improve error handling in http gunzip
 	* fix debug logging for banning web seeds
