@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 
 	void close();
 
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool is_queued(bandwidth_socket const* peer) const;
 #endif
 
@@ -84,19 +84,17 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 		, bandwidth_channel* chan4 = 0
 		, bandwidth_channel* chan5 = 0);
 
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void check_invariant() const;
 #endif
 
 	void update_quotas(time_duration const& dt);
 
-private:
-
 	// these are the consumers that want bandwidth
 	typedef std::vector<bw_request> queue_t;
 	queue_t m_queue;
 	// the number of bytes all the requests in queue are for
-	boost::int64_t m_queued_bytes;
+	int m_queued_bytes;
 
 	// this is the channel within the consumers
 	// that bandwidth is assigned to (upload or download)

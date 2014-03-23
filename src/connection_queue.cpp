@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -98,16 +98,13 @@ namespace libtorrent
 		e->timeout = timeout;
 		++m_next_ticket;
 
-		if (m_next_ticket >= (1 << 29))
-			m_next_ticket = 0;
-
 		if (m_num_connecting < m_half_open_limit
 			|| m_half_open_limit == 0)
 			m_timer.get_io_service().post(boost::bind(
 				&connection_queue::on_try_connect, this));
 	}
 
-	bool connection_queue::done(int ticket)
+	void connection_queue::done(int ticket)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
@@ -118,7 +115,7 @@ namespace libtorrent
 		if (i == m_queue.end())
 		{
 			// this might not be here in case on_timeout calls remove
-			return false;
+			return;
 		}
 		if (i->connecting) --m_num_connecting;
 		m_queue.erase(i);
@@ -127,7 +124,6 @@ namespace libtorrent
 			|| m_half_open_limit == 0)
 			m_timer.get_io_service().post(boost::bind(
 				&connection_queue::on_try_connect, this));
-		return true;
 	}
 
 	void connection_queue::close()
@@ -173,7 +169,8 @@ namespace libtorrent
 	int connection_queue::limit() const
 	{ return m_half_open_limit; }
 
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
+
 	void connection_queue::check_invariant() const
 	{
 		int num_connecting = 0;

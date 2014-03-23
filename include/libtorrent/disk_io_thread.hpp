@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,39 +63,24 @@ namespace libtorrent
 
 	struct cached_piece_info
 	{
-		// the piece index for this cache entry.
 		int piece;
-
-		// holds one entry for each block in this piece. ``true`` represents
-		// the data for that block being in the disk cache and ``false`` means it's not.
 		std::vector<bool> blocks;
-
-		// the time when a block was last written to this piece. The older
-		// a piece is, the more likely it is to be flushed to disk.
 		ptime last_use;
-
-		// The index of the next block that needs to be hashed.
-		// Blocks are hashed as they are downloaded in order to not
-		// have to re-read them from disk once the piece is complete, to
-		// compare its hash against the hashes in the .torrent file.
 		int next_to_hash;
-
 		enum kind_t { read_cache = 0, write_cache = 1 };
-
-		// specifies if this piece is part of the read cache or the write cache.
 		kind_t kind;
 	};
 	
 	struct disk_io_job
 	{
 		disk_io_job()
-			: buffer(0)
+			: action(read)
+			, buffer(0)
 			, buffer_size(0)
 			, piece(0)
 			, offset(0)
 			, max_cache_line(0)
 			, cache_min_time(0)
-			, action(read)
 		{}
 
 		enum action_t
@@ -116,29 +101,18 @@ namespace libtorrent
 			, update_settings
 			, read_and_hash
 			, cache_piece
-			, file_priority 
 #ifndef TORRENT_NO_DEPRECATE
 			, finalize_file
 #endif
 		};
 
+		action_t action;
 
 		char* buffer;
-
-		// this is called when operation completes
-		boost::function<void(int, disk_io_job const&)> callback;
-
+		int buffer_size;
 		boost::intrusive_ptr<piece_manager> storage;
-
-		boost::shared_ptr<entry> resume_data;
-
-		// the error code from the file operation
-		error_code error;
-
-		// the time when this job was issued. This is used to
-		// keep track of disk I/O congestion
-		ptime start_time;
-
+		// arguments used for read and write
+		int piece, offset;
 		// used for move_storage and rename_file. On errors, this is set
 		// to the error message
 		std::string str;
@@ -146,12 +120,6 @@ namespace libtorrent
 		// on error, this is set to the path of the
 		// file the disk operation failed on
 		std::string error_file;
-
-		int buffer_size;
-
-		// arguments used for read and write
-		// piece is used as flags for move_storage
-		int piece, offset;
 
 		// if this is > 0, it specifies the max number of blocks to read
 		// ahead in the read cache for this access. This is only valid
@@ -162,7 +130,17 @@ namespace libtorrent
 		// line caused by this operation stays in the cache
 		int cache_min_time;
 
-		boost::uint8_t action;
+		boost::shared_ptr<entry> resume_data;
+
+		// the error code from the file operation
+		error_code error;
+
+		// this is called when operation completes
+		boost::function<void(int, disk_io_job const&)> callback;
+
+		// the time when this job was issued. This is used to
+		// keep track of disk I/O congestion
+		ptime start_time;
 	};
 
 	// returns true if the fundamental operation
@@ -173,11 +151,8 @@ namespace libtorrent
 	// points to a disk buffer
 	bool operation_has_buffer(disk_io_job const& j);
 
-	// this struct holds a number of statistics counters
-	// relevant for the disk io thread and disk cache.
-	struct TORRENT_EXPORT cache_status
+	struct cache_status
 	{
-		// initializes all counters to 0
 		cache_status()
 			: blocks_written(0)
 			, writes(0)
@@ -204,86 +179,48 @@ namespace libtorrent
 			, read_queue_size(0)
 		{}
 
-		// the total number of 16 KiB blocks written to disk
-		// since this session was started.
+		// the number of 16kB blocks written
 		size_type blocks_written;
-
-		// the total number of write operations performed since this
-		// session was started.
-		// 
-		// The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
-		// the number of saved write operations per total write operations. i.e. a kind
-		// of cache hit ratio for the write cahe.
+		// the number of write operations used
 		size_type writes;
+		// (blocks_written - writes) / blocks_written represents the
+		// "cache hit" ratio in the write cache
+		// the number of blocks read
 
-		// the number of blocks that were requested from the
-		// bittorrent engine (from peers), that were served from disk or cache.
+		// the number of blocks passed back to the bittorrent engine
 		size_type blocks_read;
-
 		// the number of blocks that was just copied from the read cache
-		//
-		// The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
-		// for the read cache.
 		size_type blocks_read_hit;
-
 		// the number of read operations used
 		size_type reads;
 
-		// the number of bytes waiting, in the disk job queue, to be written
-		// or inserted into the disk cache
 		mutable size_type queued_bytes;
 
-		// the number of 16 KiB blocks currently in the disk cache (both read and write).
-		// This includes both read and write cache.
+		// the number of blocks in the cache (both read and write)
 		int cache_size;
 
-		// the number of 16KiB blocks in the read cache.
+		// the number of blocks in the cache used for read cache
 		int read_cache_size;
 
-		// the total number of buffers currently in use.
-		// This includes the read/write disk cache as well as send and receive buffers
-		// used in peer connections.
+		// the total number of blocks that are currently in use
+		// this includes send and receive buffers
 		mutable int total_used_buffers;
 
-		// the number of microseconds an average disk I/O job
-		// has to wait in the job queue before it get processed.
+		// times in microseconds
 		int average_queue_time;
-
-		// the time read jobs takes on average to complete
-		// (not including the time in the queue), in microseconds. This only measures
-		// read cache misses.
 		int average_read_time;
-
-		// the time write jobs takes to complete, on average,
-		// in microseconds. This does not include the time the job sits in the disk job
-		// queue or in the write cache, only blocks that are flushed to disk.
 		int average_write_time;
-
-		// the time hash jobs takes to complete on average, in
-		// microseconds. Hash jobs include running SHA-1 on the data (which for the most
-		// part is done incrementally) and sometimes reading back parts of the piece. It
-		// also includes checking files without valid resume data.
 		int average_hash_time;
 		int average_job_time;
 		int average_sort_time;
-
-		// the number of jobs in the job queue.
 		int job_queue_length;
 
-		// the number of milliseconds spent in all disk jobs, and specific ones
-		// since the start of the session. Times are specified in milliseconds
 		boost::uint32_t cumulative_job_time;
 		boost::uint32_t cumulative_read_time;
 		boost::uint32_t cumulative_write_time;
 		boost::uint32_t cumulative_hash_time;
 		boost::uint32_t cumulative_sort_time;
-
-		// the number of blocks that had to be read back from disk because
-		// they were flushed before the SHA-1 hash got to hash them. If this
-		// is large, a larger cache could significantly improve performance
 		int total_read_back;
-
-		// number of read jobs in the disk job queue
 		int read_queue_size;
 	};
 	
@@ -322,7 +259,7 @@ namespace libtorrent
 
 		void thread_fun();
 
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		
@@ -519,10 +456,6 @@ namespace libtorrent
 		// when completion notifications are queued, they're stuck
 		// in this list
 		std::list<std::pair<disk_io_job, int> > m_queued_completions;
-
-#if TORRENT_USE_ASSERTS
-		int m_magic;
-#endif
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,6 @@ namespace libtorrent
 
 	class torrent;
 	class peer_connection;
-	struct external_ip;
 
 	// this is compressed as an unsigned floating point value
 	// the top 13 bits are the mantissa and the low
@@ -102,12 +101,6 @@ namespace libtorrent
 		free_upload_amount = 4 * 16 * 1024
 	};
 
-	// calculate the priority of a peer based on its address. One of the
-	// endpoint should be our own. The priority is symmetric, so it doesn't
-	// matter which is which
-	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(
-		tcp::endpoint e1, tcp::endpoint e2);
-
 	void request_a_block(torrent& t, peer_connection& c);
 
 	class TORRENT_EXTRA_EXPORT policy
@@ -148,25 +141,37 @@ namespace libtorrent
 
 		void set_seed(policy::peer* p, bool s);
 
-		// this clears all cached peer priorities. It's called when
-		// our external IP changes
-		void clear_peer_prio();
-
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool has_connection(const peer_connection* p);
 #endif
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 
+// intended struct layout (on 32 bit architectures)
+// offset size  alignment field
+// 0      8     4         prev_amount_upload, prev_amount_download
+// 8      4     4         connection
+// 12     2     2         last_optimistically_unchoked
+// 14     2     2         last_connected
+// 16     16    1         addr
+// 32     2     2         port
+// 34     2     2         upload_rate_limit
+// 36     2     2         download_rate_limit
+// 38     1     1         hashfails
+// 39     1     1         failcount, connectable, optimistically_unchoked, seed
+// 40     1     1         fast_reconnects, trust_points
+// 41     1     1         source, pe_support, is_v6_addr
+// 42     1     1         on_parole, banned, added_to_dht, supports_utp,
+//                        supports_holepunch, web_seed
+// 43     1     1         <padding>
+// 44
 		struct TORRENT_EXTRA_EXPORT peer
 		{
 			peer(boost::uint16_t port, bool connectable, int src);
 
 			size_type total_download() const;
 			size_type total_upload() const;
-			
-			boost::uint32_t rank(external_ip const& external, int external_port) const;
 
 			libtorrent::address address() const;
 			char const* dest() const;
@@ -202,11 +207,6 @@ namespace libtorrent
 			// The AS this peer belongs to
 			std::pair<const int, int>* inet_as;
 #endif
-
-			// as computed by hashing our IP with the remote
-			// IP of this peer
-			// calculated lazily
-			mutable boost::uint32_t peer_rank;
 
 			// the time when this peer was optimistically unchoked
 			// the last time. in seconds since session was created
@@ -318,7 +318,7 @@ namespace libtorrent
 			// so, any peer with the web_seed bit set, is
 			// never considered a connect candidate
 			bool web_seed:1;
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_use:1;
 #endif
 		};
@@ -327,7 +327,7 @@ namespace libtorrent
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 
-			address_v4 addr;
+			const address_v4 addr;
 		};
 
 #if TORRENT_USE_I2P
@@ -430,7 +430,7 @@ namespace libtorrent
 
 		bool compare_peer_erase(policy::peer const& lhs, policy::peer const& rhs) const;
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
-			, external_ip const& external, int source_port) const;
+			, address const& external_ip) const;
 
 		iterator find_connect_candidate(int session_time);
 

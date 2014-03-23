@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cassert>
+#include <boost/timer.hpp>
 #include <iostream>
 #include <vector>
 #include <utility>
@@ -245,8 +246,7 @@ void test_chained_buffer()
 		TEST_CHECK(!b.empty());
 		TEST_CHECK(b.space_in_last_buffer() == 512 - 12);
 
-		char data2[1024];
-		ret = b.append(data2, 1024);
+		ret = b.append(data, 1024);
 
 		TEST_CHECK(ret == false);
 

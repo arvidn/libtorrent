@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/escape_string.hpp"
 #include <cstring>
+
+#if TORRENT_USE_IOSTREAM
+#include <iostream>
+#endif
 
 namespace
 {
@@ -46,7 +51,7 @@ namespace libtorrent
 
 #define TORRENT_FAIL_BDECODE(code) \
 	{ \
-		ec = make_error_code(code); \
+		ec = code; \
 		while (!stack.empty()) { \
 			top = stack.back(); \
 			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) top->pop(); \
@@ -55,20 +60,18 @@ namespace libtorrent
 		if (error_pos) *error_pos = start - orig_start; \
 		return -1; \
 	}
-	namespace { bool numeric(char c) { return c >= '0' && c <= '9'; } }
-
 	// fills in 'val' with what the string between start and the
 	// first occurance of the delimiter is interpreted as an int.
 	// return the pointer to the delimiter, or 0 if there is a
 	// parse error. val should be initialized to zero
 	char const* parse_int(char const* start, char const* end, char delimiter
-		, boost::int64_t& val, bdecode_errors::error_code_enum& ec)
+		, boost::int64_t& val, error_code& ec)
 	{
 		while (start < end && *start != delimiter)
 		{
-			if (!numeric(*start))
+			if (!is_digit(*start))
 			{
-				ec = bdecode_errors::expected_string;
+				ec = errors::expected_string;
 				return start;
 			}
 			val *= 10;
@@ -76,7 +79,7 @@ namespace libtorrent
 			++start;
 		}
 		if (*start != delimiter)
-			ec = bdecode_errors::expected_colon;
+			ec = errors::expected_colon;
 		return start;
 	}
 
@@ -113,11 +116,11 @@ namespace libtorrent
 
 			lazy_entry* top = stack.back();
 
-			if (int(stack.size()) > depth_limit) TORRENT_FAIL_BDECODE(bdecode_errors::depth_exceeded);
-			if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+			if (int(stack.size()) > depth_limit) TORRENT_FAIL_BDECODE(errors::depth_exceeded);
+			if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 			char t = *start;
 			++start;
-			if (start >= end && t != 'e') TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+			if (start >= end && t != 'e') TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 
 			switch (top->type())
 			{
@@ -129,22 +132,22 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!numeric(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_string);
+					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_string);
 					boost::int64_t len = t - '0';
-					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
+					error_code e;
 					start = parse_int(start, end, ':', len, e);
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
 
 					if (start + len + 1 > end)
-						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 
 					++start;
-					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
-					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
+					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
 					start += len;
-					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+					if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					stack.push_back(ent);
 					t = *start;
 					++start;
@@ -159,7 +162,7 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
-					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
+					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
 					stack.push_back(ent);
 					break;
 				}
@@ -167,7 +170,7 @@ namespace libtorrent
 			}
 
 			--item_limit;
-			if (item_limit <= 0) TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
+			if (item_limit <= 0) TORRENT_FAIL_BDECODE(errors::limit_exceeded);
 
 			top = stack.back();
 			switch (t)
@@ -183,7 +186,7 @@ namespace libtorrent
 					char const* int_start = start;
 					start = find_char(start, end, 'e');
 					top->construct_int(int_start, start - int_start);
-					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					TORRENT_ASSERT(*start == 'e');
 					++start;
 					stack.pop_back();
@@ -191,16 +194,16 @@ namespace libtorrent
 				}
 				default:
 				{
-					if (!numeric(t))
-						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
+					if (!is_digit(t))
+						TORRENT_FAIL_BDECODE(errors::expected_value);
 
 					boost::int64_t len = t - '0';
-					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
+					error_code e;
 					start = parse_int(start, end, ':', len, e);
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
 					if (start + len + 1 > end)
-						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
@@ -213,13 +216,13 @@ namespace libtorrent
 		return 0;
 	}
 
-	boost::int64_t lazy_entry::int_value() const
+	size_type lazy_entry::int_value() const
 	{
 		TORRENT_ASSERT(m_type == int_t);
 		boost::int64_t val = 0;
 		bool negative = false;
 		if (*m_data.start == '-') negative = true;
-		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
+		error_code ec;
 		parse_int(negative?m_data.start+1:m_data.start
 			, m_data.start + m_size, 'e', val, ec);
 		TORRENT_ASSERT(!ec);
@@ -341,7 +344,7 @@ namespace libtorrent
 		return e;
 	}
 
-	boost::int64_t lazy_entry::dict_find_int_value(char const* name, boost::int64_t default_val) const
+	size_type lazy_entry::dict_find_int_value(char const* name, size_type default_val) const
 	{
 		lazy_entry const* e = dict_find(name);
 		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
@@ -415,7 +418,7 @@ namespace libtorrent
 		return e->string_pstr();
 	}
 
-	boost::int64_t lazy_entry::list_int_value_at(int i, boost::int64_t default_val) const
+	size_type lazy_entry::list_int_value_at(int i, size_type default_val) const
 	{
 		lazy_entry const* e = list_at(i);
 		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
@@ -441,6 +444,13 @@ namespace libtorrent
 		typedef std::pair<char const*, int> return_t;
 		return return_t(m_begin, m_len);
 	}
+
+#if TORRENT_USE_IOSTREAM
+	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
+	{
+		return os << print_entry(e);
+	}
+#endif // TORRENT_USE_IOSTREAM
 
 	int line_longer_than(lazy_entry const& e, int limit)
 	{
@@ -474,7 +484,7 @@ namespace libtorrent
 			break;
 		case lazy_entry::int_t:
 		{
-			boost::int64_t val = e.int_value();
+			size_type val = e.int_value();
 			while (val > 0)
 			{
 				++line_len;
@@ -516,50 +526,23 @@ namespace libtorrent
 				char const* str = e.string_ptr();
 				for (int i = 0; i < e.string_length(); ++i)
 				{
-					char c = str[i];
-					if (c >= 32 && c < 127) continue;
+					using namespace std;
+					if (is_print((unsigned char)str[i])) continue;
 					printable = false;
 					break;
 				}
 				ret += "'";
 				if (printable)
 				{
-					if (single_line && e.string_length() > 30)
-					{
-						ret.append(e.string_ptr(), 14);
-						ret += "...";
-						ret.append(e.string_ptr() + e.string_length()-14, 14);
-					}
-					else
-						ret.append(e.string_ptr(), e.string_length());
+					ret += e.string_value();
 					ret += "'";
 					return ret;
 				}
-				if (single_line && e.string_length() > 20)
+				for (int i = 0; i < e.string_length(); ++i)
 				{
-					for (int i = 0; i < 9; ++i)
-					{
-						char tmp[5];
-						snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
-						ret += tmp;
-					}
-					ret += "...";
-					for (int i = e.string_length() - 9
-						, len(e.string_length()); i < len; ++i)
-					{
-						char tmp[5];
-						snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
-						ret += tmp;
-					}
-				}
-				else
-				{
-					for (int i = 0; i < e.string_length(); ++i)
-					{
-						char tmp[5];
-						snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
-						ret += tmp;
-					}
+					char tmp[5];
+					snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
+					ret += tmp;
 				}
 				ret += "'";
 				return ret;
@@ -603,42 +586,5 @@ namespace libtorrent
 		}
 		return ret;
 	}
-
-	struct bdecode_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
-
-	const char* bdecode_error_category::name() const BOOST_SYSTEM_NOEXCEPT
-	{
-		return "bdecode error";
-	}
-
-	std::string bdecode_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{
-		static char const* msgs[] =
-		{
-			"no error",
-			"expected string in bencoded string",
-			"expected colon in bencoded string",
-			"unexpected end of file in bencoded string",
-			"expected value (list, dict, int or string) in bencoded string",
-			"bencoded nesting depth exceeded",
-			"bencoded item count limit exceeded",
-		};
-		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
-			return "Unknown error";
-		return msgs[ev];
-	}
-
-	boost::system::error_category& get_bdecode_category()
-	{
-		static bdecode_error_category bdecode_category;
-		return bdecode_category;
-	}
-
 };
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,9 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef TORRENT_DEBUG_BUFFERS
-#ifndef TORRENT_WINDOWS
 #include <sys/mman.h>
-#endif
 #include "libtorrent/size_type.hpp"
 
 struct alloc_header
@@ -70,6 +68,10 @@ struct alloc_header
 	char stack[3072];
 };
 
+#endif
+
+#if defined TORRENT_DEBUG_BUFFERS && (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
+	void print_backtrace(char* out, int len);
 #endif
 
 namespace libtorrent
@@ -97,73 +99,48 @@ namespace libtorrent
 
 	char* page_aligned_allocator::malloc(size_type bytes)
 	{
-		TORRENT_ASSERT(bytes > 0);
-		// just sanity check (this needs to be pretty high
-		// for cases where the cache size is several gigabytes)
-		TORRENT_ASSERT(bytes < 0x30000000);
-
 		TORRENT_ASSERT(bytes >= page_size());
 #ifdef TORRENT_DEBUG_BUFFERS
 		int page = page_size();
 		int num_pages = (bytes + (page-1)) / page + 2;
-		int orig_bytes = bytes;
-		bytes = num_pages * page;
-#endif
-
-		char* ret;
-#if TORRENT_USE_POSIX_MEMALIGN
-		if (posix_memalign((void**)&ret, page_size(), bytes) != 0) ret = NULL;
-#elif TORRENT_USE_MEMALIGN
-		ret = (char*)memalign(page_size(), bytes);
-#elif defined TORRENT_WINDOWS
-		ret = (char*)_aligned_malloc(bytes, page_size());
-#elif defined TORRENT_BEOS
-		area_id id = create_area("", &ret, B_ANY_ADDRESS
-			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
-		if (id < B_OK) return NULL;
-		ret = (char*)ret;
-#else
-		ret = (char*)valloc(bytes);
-#endif
-		if (ret == NULL) return NULL;
-
-#ifdef TORRENT_DEBUG_BUFFERS
+		char* ret = (char*)valloc(num_pages * page);
 		// make the two surrounding pages non-readable and -writable
 		alloc_header* h = (alloc_header*)ret;
-		h->size = orig_bytes;
+		h->size = bytes;
 		h->magic = 0x1337;
+#if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
 		print_backtrace(h->stack, sizeof(h->stack));
-
-#ifdef TORRENT_WINDOWS
-#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULL)
-#define PROT_READ PAGE_READONLY
 #endif
 		mprotect(ret, page, PROT_READ);
 		mprotect(ret + (num_pages-1) * page, page, PROT_READ);
-
-#ifdef TORRENT_WINDOWS
-#undef mprotect
-#undef PROT_READ
-#endif
 //		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
 
 		return ret + page;
-#endif // TORRENT_DEBUG_BUFFERS
+#endif
 
-		return ret;
+#if TORRENT_USE_POSIX_MEMALIGN
+		void* ret;
+		if (posix_memalign(&ret, page_size(), bytes) != 0) ret = 0;
+		return (char*)ret;
+#elif TORRENT_USE_MEMALIGN
+		return (char*)memalign(page_size(), bytes);
+#elif defined TORRENT_WINDOWS
+		return (char*)_aligned_malloc(bytes, page_size());
+#elif defined TORRENT_BEOS
+		void* ret = 0;
+		area_id id = create_area("", &ret, B_ANY_ADDRESS
+			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
+		if (id < B_OK) return 0;
+		return (char*)ret;
+#else
+		return (char*)valloc(bytes);
+#endif
 	}
 
-	void page_aligned_allocator::free(char* block)
+	void page_aligned_allocator::free(char* const block)
 	{
-		if (block == 0) return;
 
 #ifdef TORRENT_DEBUG_BUFFERS
-
-#ifdef TORRENT_WINDOWS
-#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULL)
-#define PROT_READ PAGE_READONLY
-#define PROT_WRITE PAGE_READWRITE
-#endif
 		int page = page_size();
 		// make the two surrounding pages non-readable and -writable
 		mprotect(block - page, page, PROT_READ | PROT_WRITE);
@@ -173,18 +150,13 @@ namespace libtorrent
 		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
 		h->magic = 0;
-		block -= page;
-
-#ifdef TORRENT_WINDOWS
-#undef mprotect
-#undef PROT_READ
-#undef PROT_WRITE
-#endif
 
 #if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
 		print_backtrace(h->stack, sizeof(h->stack));
 #endif
-#endif // TORRENT_DEBUG_BUFFERS
+		::free(block - page);
+		return;
+#endif
 
 #ifdef TORRENT_WINDOWS
 		_aligned_free(block);
@@ -194,7 +166,7 @@ namespace libtorrent
 		delete_area(id);
 #else
 		::free(block);
-#endif // TORRENT_WINDOWS
+#endif
 	}
 
 

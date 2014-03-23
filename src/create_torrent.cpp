@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -264,7 +264,7 @@ namespace libtorrent
 
 	create_torrent::~create_torrent() {}
 
-	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags, int alignment)
+	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags)
 		: m_files(fs)
 		, m_creation_date(time(0))
 		, m_multifile(fs.num_files() > 1)
@@ -279,7 +279,7 @@ namespace libtorrent
 		// return instead of crash in release mode
 		if (fs.num_files() == 0) return;
 
-		if (!m_multifile && has_parent_path(m_files.file_path(0))) m_multifile = true;
+		if (!m_multifile && has_parent_path(m_files.file_path(*m_files.begin()))) m_multifile = true;
 
 		// a piece_size of 0 means automatic
 		if (piece_size == 0 && !m_merkle_torrent)
@@ -313,7 +313,7 @@ namespace libtorrent
 #endif
 		m_files.set_piece_length(piece_size);
 		if (flags & optimize)
-			m_files.optimize(pad_file_limit, alignment);
+			m_files.optimize(pad_file_limit);
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
@@ -499,45 +499,49 @@ namespace libtorrent
 			{
 				entry& files = info["files"];
 
-				for (int i = 0; i < m_files.num_files(); ++i)
+				for (file_storage::iterator i = m_files.begin();
+					i != m_files.end(); ++i)
 				{
 					files.list().push_back(entry());
 					entry& file_e = files.list().back();
-					if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i); 
-					file_e["length"] = m_files.file_size(i);
+					if (m_include_mtime && m_files.mtime(*i)) file_e["mtime"] = m_files.mtime(*i); 
+					file_e["length"] = i->size;
 					entry& path_e = file_e["path"];
 
-					TORRENT_ASSERT(has_parent_path(m_files.file_path(i)));
+					TORRENT_ASSERT(has_parent_path(m_files.file_path(*i)));
 
-					std::string split = split_path(m_files.file_path(i));
+					std::string split = split_path(m_files.file_path(*i));
 					TORRENT_ASSERT(split.c_str() == m_files.name());
 
 					for (char const* e = next_path_element(split.c_str());
 						e != 0; e = next_path_element(e))
 						path_e.list().push_back(entry(e));
 
-					int flags = m_files.file_flags(i);
-					if (flags != 0)
+					if (i->pad_file
+						|| i->hidden_attribute
+						|| i->executable_attribute
+						|| i->symlink_attribute)
 					{
 						std::string& attr = file_e["attr"].string();
-						if (flags & file_storage::flag_pad_file) attr += 'p';
-						if (flags & file_storage::flag_hidden) attr += 'h';
-						if (flags & file_storage::flag_executable) attr += 'x';
-						if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
+						if (i->pad_file) attr += 'p';
+						if (i->hidden_attribute) attr += 'h';
+						if (i->executable_attribute) attr += 'x';
+						if (m_include_symlinks && i->symlink_attribute) attr += 'l';
 					}
-
 					if (m_include_symlinks
-						&& (flags & file_storage::flag_symlink))
+						&& i->symlink_attribute
+						&& i->symlink_index != -1)
 					{
 						entry& sympath_e = file_e["symlink path"];
 
-						std::string split = split_path(m_files.symlink(i));
+						std::string split = split_path(m_files.symlink(*i));
 						for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 							sympath_e.list().push_back(entry(e));
 					}
-					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
+					int file_index = i - m_files.begin();
+					if (!m_filehashes.empty() && m_filehashes[file_index] != sha1_hash())
 					{
-						file_e["sha1"] = m_filehashes[i].to_string();
+						file_e["sha1"] = m_filehashes[file_index].to_string();
 					}
 				}
 			}

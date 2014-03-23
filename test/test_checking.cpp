@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include <sys/stat.h> // for chmod
+
 static const int file_sizes[] =
 { 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
 	,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
@@ -114,12 +114,8 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		{
 			char name[1024];
 			snprintf(name, sizeof(name), "test%d", i);
-			char dirname[200];
-			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
-
-			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
+			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
 			path = combine_path(path, name);
-
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_READONLY);
 #else
@@ -177,10 +173,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		{
 			char name[1024];
 			snprintf(name, sizeof(name), "test%d", i);
-			char dirname[200];
-			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
-
-			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
+			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
 			path = combine_path(path, name);
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);

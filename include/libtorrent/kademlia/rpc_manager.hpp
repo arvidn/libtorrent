@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define RPC_MANAGER_HPP
 
 #include <vector>
-#include <deque>
 #include <map>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
@@ -50,16 +49,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux { struct session_impl; } }
 
-namespace libtorrent { struct dht_settings; }
-
 namespace libtorrent { namespace dht
 {
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(rpc);
 #endif
-
-struct udp_socket_interface;
 
 struct null_observer : public observer
 {
@@ -73,16 +68,18 @@ class routing_table;
 class TORRENT_EXTRA_EXPORT rpc_manager
 {
 public:
+	typedef bool (*send_fun)(void* userdata, entry&, udp::endpoint const&, int);
 
 	rpc_manager(node_id const& our_id
-		, routing_table& table, udp_socket_interface* sock);
+		, routing_table& table, send_fun const& sf
+		, void* userdata);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
 
 	// returns true if the node needs a refresh
 	// if so, id is assigned the node id to refresh
-	bool incoming(msg const&, node_id* id, libtorrent::dht_settings const& settings);
+	bool incoming(msg const&, node_id* id);
 	time_duration tick();
 
 	bool invoke(entry& e, udp::endpoint target
@@ -90,10 +87,10 @@ public:
 
 	void add_our_id(entry& e);
 
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	size_t allocation_size() const;
 #endif
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void check_invariant() const;
 #endif
 
@@ -108,13 +105,15 @@ private:
 
 	mutable boost::pool<> m_pool_allocator;
 
-	typedef std::deque<observer_ptr> transactions_t;
+	typedef std::list<observer_ptr> transactions_t;
 	transactions_t m_transactions;
 	
-	udp_socket_interface* m_sock;
+	send_fun m_send;
+	void* m_userdata;
+	node_id m_our_id;
 	routing_table& m_table;
 	ptime m_timer;
-	node_id m_our_id;
+	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
 };

@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 #define TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -50,20 +48,8 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-
-#ifndef TORRENT_NO_DEPRECATE
-	// constructor function for the metadata transfer extension. This
-	// extension has been superceded by the ut_metadata extension and
-	// is deprecated. It can be either be passed in the
-	// add_torrent_params::extensions field, or
-	// via torrent_handle::add_extension().
-	TORRENT_DEPRECATED_PREFIX
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
-	create_metadata_plugin(torrent*, void*) TORRENT_DEPRECATED;
-#endif
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*, void*);
 }
-
-#endif // TORRENT_DISABLE_EXTENSIONS
 
 #endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 

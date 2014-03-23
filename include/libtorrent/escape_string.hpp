@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,7 @@ namespace libtorrent
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXTRA_EXPORT std::string base64encode(std::string const& s);
+	TORRENT_EXTRA_EXPORT std::string base64decode(std::string const& s);
 	// encodes a string using the base32 scheme
 	TORRENT_EXTRA_EXPORT std::string base32encode(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string base32decode(std::string const& s);
@@ -70,25 +71,9 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void convert_path_to_posix(std::string& path);
 
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim, char const* end);
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
-
-	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
-
-	// converts (binary) the string ``s`` to hexadecimal representation and
-	// returns it.
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
-
-	// converts the binary buffer [``in``, ``in`` + len) to hexadecimal
-	// and prints it to the buffer ``out``. The caller is responsible for
-	// making sure the buffer pointed to by ``out`` is large enough,
-	// i.e. has at least len * 2 bytes of space.
+	TORRENT_EXPORT bool is_hex(char const *in, int len);
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
-
-	// converts the buffer [``in``, ``in`` + len) from hexadecimal to
-	// binary. The binary output is written to the buffer pointed to
-	// by ``out``. The caller is responsible for making sure the buffer
-	// at ``out`` has enough space for the result to be written to, i.e.
-	// (len + 1) / 2 bytes.
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
@@ -100,9 +85,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string convert_to_native(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_native(std::string const& s);
 #else
-	// internal
 	inline std::string const& convert_to_native(std::string const& s) { return s; }
-	// internal
 	inline std::string const& convert_from_native(std::string const& s) { return s; }
 #endif		
 }

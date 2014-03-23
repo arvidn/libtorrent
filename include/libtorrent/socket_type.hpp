@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,10 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
-
-#if defined TORRENT_OS2 && defined ioc
-#undef ioc
 #endif
 
 #if TORRENT_USE_I2P
@@ -252,17 +248,6 @@ namespace libtorrent
 		template <class SettableSocketOption>
 		error_code set_option(SettableSocketOption const& opt, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD_RET(set_option(opt, ec), ec) }
-
-#ifndef BOOST_NO_EXCEPTIONS
-		template <class GettableSocketOption>
-		void get_option(GettableSocketOption& opt)
-		{ TORRENT_SOCKTYPE_FORWARD(get_option(opt)) }
-#endif
-
-		template <class GettableSocketOption>
-		error_code get_option(GettableSocketOption& opt, error_code& ec)
-		{ TORRENT_SOCKTYPE_FORWARD_RET(get_option(opt, ec), ec) }
-
 
 		template <class S>
 		void instantiate(io_service& ios, void* userdata = 0)

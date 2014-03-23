@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.16
 
 .. contents:: Table of contents
   :depth: 2
@@ -53,8 +53,8 @@ extensions
   ratio rather than downloading the torrent.
 
 .. _article: utp.html
-.. _extensions: manual-ref.html#extensions
-.. _`http seeding`: manual-ref.html#http-seeding
+.. _extensions: manual.html#extensions
+.. _`http seeding`: manual.html#http-seeding
 
 disk management
 ---------------
@@ -72,7 +72,7 @@ disk management
 * seed mode, where the files on disk are assumed to be complete, and each
   piece's hash is verified the first time it is requested.
 
-.. _threads: manualref.html#threads
+.. _threads: manual.html#threads
 
 network
 -------

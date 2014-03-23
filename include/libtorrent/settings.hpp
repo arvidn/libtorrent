@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2014, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,12 +41,9 @@ namespace libtorrent
 	struct lazy_entry;
 	class entry;
 
-	// internal
-	enum struct_field_type_t
-	{
-		std_string, character, integer, floating_point,
-		boolean, size_integer, time_integer, integer16
-	};
+	enum { std_string, character, integer
+		, floating_point, boolean, size_integer
+		, time_integer };
 
 	// this is used to map struct entries
 	// to names in a bencoded dictionary to

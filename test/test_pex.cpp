@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
@@ -46,13 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 void test_pex()
 {
 	using namespace libtorrent;
-
-	// these are declared before the session objects
-	// so that they are destructed last. This enables
-	// the sessions to destruct in parallel
-	session_proxy p1;
-	session_proxy p2;
-	session_proxy p3;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48200, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49200, 50000), "0.0.0.0", 0);
@@ -79,13 +70,15 @@ void test_pex()
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	session_settings set = ses1.settings();
-	set.download_rate_limit = 2000;
-	set.upload_rate_limit = 2000;
+	set.download_rate_limit = 0;
+	set.upload_rate_limit = 0;
 	ses1.set_settings(set);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
 	set = ses2.settings();
+	set.download_rate_limit = 2000;
+	set.upload_rate_limit = 2000;
 	set.ignore_limits_on_local_network = false;
 	set.rate_limit_utp = true;
 	ses2.set_settings(set);
@@ -115,7 +108,7 @@ void test_pex()
 	torrent_status st1;
 	torrent_status st2;
 	torrent_status st3;
-	for (int i = 0; i < 80; ++i)
+	for (int i = 0; i < 15; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -125,7 +118,18 @@ void test_pex()
 		st2 = tor2.status();
 		st3 = tor3.status();
 
-		print_ses_rate(i / 10.f, &st1, &st2, &st3);
+		std::cerr
+			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+			<< st1.num_peers << ": "
+			<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st2.progress * 100) << "% "
+			<< st2.num_peers << " - "
+			<< "\033[32m" << int(st3.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st3.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st3.progress * 100) << "% "
+			<< st3.num_peers
+			<< std::endl;
 
 		// this is the success condition
 		if (st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
@@ -136,17 +140,12 @@ void test_pex()
 		// through session 2
 		if (st3.state == torrent_status::seeding) break;
 
-		test_sleep(100);
+		test_sleep(1000);
 	}
 
 	TEST_CHECK(st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
 
 	if (!tor2.status().is_seeding && tor3.status().is_seeding) std::cerr << "done\n";
-
-	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-	p3 = ses3.abort();
 }
 
 int test_main()
@@ -167,8 +166,4 @@ int test_main()
 
 	return 0;
 }
-
-#else
-int test_main() { return 0; }
-#endif // TORRENT_DISABLE_EXTENSIONS
 

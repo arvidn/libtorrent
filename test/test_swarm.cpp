@@ -52,13 +52,6 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	remove_all("tmp2_swarm", ec);
 	remove_all("tmp3_swarm", ec);
 
-	// these are declared before the session objects
-	// so that they are destructed last. This enables
-	// the sessions to destruct in parallel
-	session_proxy p1;
-	session_proxy p2;
-	session_proxy p3;
-
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000), "0.0.0.0", 0);
@@ -98,7 +91,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, 0, super_seeding, &p);
+		, false, true, "_swarm", 32 * 1024, 0, super_seeding, &p);
 
 	int mask = alert::all_categories & ~(alert::progress_notification | alert::performance_warning | alert::stats_notification);
 	ses1.set_alert_mask(mask);
@@ -138,7 +131,18 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 			++count_dl_rates3;
 		}
 
-		print_ses_rate(i, &st1, &st2, &st3);
+		std::cerr
+			<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+			<< st1.num_peers << ": "
+			<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st2.progress * 100) << "% "
+			<< st2.num_peers << " - "
+			<< "\033[32m" << int(st3.download_payload_rate / 1000.f) << "kB/s "
+			<< "\033[31m" << int(st3.upload_payload_rate / 1000.f) << "kB/s "
+			<< "\033[0m" << int(st3.progress * 100) << "% "
+			<< st3.num_peers
+			<< std::endl;
 
 		if (st2.is_seeding && st3.is_seeding) break;
 		test_sleep(1000);
@@ -189,12 +193,6 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 		std::cerr << ret->message() << std::endl;
 		start = time_now();
 	}
-
-	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-	p3 = ses3.abort();
-
 	TEST_CHECK(time_now_hires() - start < seconds(3));
 	TEST_CHECK(time_now_hires() - start >= seconds(2));
 

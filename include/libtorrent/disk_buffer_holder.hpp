@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,41 +43,14 @@ namespace libtorrent
 	namespace aux { struct session_impl; }
 	struct disk_buffer_pool;
 
-	// The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer
-	// when it's destructed, unless it's released. ``release`` returns the disk
-	// buffer and transferres ownership and responsibility to free it to the caller.
-	// 
-	// A disk buffer is freed by passing it to ``session_impl::free_disk_buffer()``.
-	// 
-	// ``buffer()`` returns the pointer without transferring responsibility. If
-	// this buffer has been released, ``buffer()`` will return 0.
-	struct TORRENT_EXPORT disk_buffer_holder
+	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
 	{
-		// internal
 		disk_buffer_holder(aux::session_impl& ses, char* buf);
-
-		// construct a buffer holder that will free the held buffer
-		// using a disk buffer pool directly (there's only one
-		// disk_buffer_pool per session)
 		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf);
-
-		// frees any unreleased disk buffer held by this object
 		~disk_buffer_holder();
-		
-		// return the held disk buffer and clear it from the
-		// holder. The responsibility to free it is passed on
-		// to the caller
 		char* release();
-
-		// return a pointer to the held buffer
 		char* get() const { return m_buf; }
-
-		// set the holder object to hold the specified buffer
-		// (or NULL by default). If it's already holding a
-		// disk buffer, it will first be freed.
 		void reset(char* buf = 0);
-
-		// swap pointers of two disk buffer holders.
 		void swap(disk_buffer_holder& h)
 		{
 			TORRENT_ASSERT(&h.m_disk_pool == &m_disk_pool);
@@ -85,8 +58,6 @@ namespace libtorrent
 		}
 
 		typedef char* (disk_buffer_holder::*unspecified_bool_type)();
-
-		// internal
 		operator unspecified_bool_type() const
 		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
 
