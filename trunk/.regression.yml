@@ -31,5 +31,5 @@ branch: trunk
 clean:
  - test_tmp_*
 
-time_limit: 180
+time_limit: 240
 
