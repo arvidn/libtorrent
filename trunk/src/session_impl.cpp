@@ -209,6 +209,7 @@ namespace aux {
 		mach_msg_type_number_t host_count = HOST_VM_INFO_COUNT;
 		kern_return_t error = host_statistics(host_port, HOST_VM_INFO,
 			(host_info_t)vm_stat, &host_count);
+		TORRENT_ASSERT_VAL(error == KERN_SUCCESS, error);
 #elif defined TORRENT_LINUX
 		char buffer[4096];
 		char string[1024];
@@ -4006,18 +4007,18 @@ retry:
 
 			STAT_LOGL(d, peers_up_send_buffer);
 
-			STAT_LOGL(d, sst.utp_stats.packet_loss);
-			STAT_LOGL(d, sst.utp_stats.timeout);
-			STAT_LOGL(d, sst.utp_stats.packets_in);
-			STAT_LOGL(d, sst.utp_stats.packets_out);
-			STAT_LOGL(d, sst.utp_stats.fast_retransmit);
-			STAT_LOGL(d, sst.utp_stats.packet_resend);
-			STAT_LOGL(d, sst.utp_stats.samples_above_target);
-			STAT_LOGL(d, sst.utp_stats.samples_below_target);
-			STAT_LOGL(d, sst.utp_stats.payload_pkts_in);
-			STAT_LOGL(d, sst.utp_stats.payload_pkts_out);
-			STAT_LOGL(d, sst.utp_stats.invalid_pkts_in);
-			STAT_LOGL(d, sst.utp_stats.redundant_pkts_in);
+			STAT_LOGL(d, int(sst.utp_stats.packet_loss));
+			STAT_LOGL(d, int(sst.utp_stats.timeout));
+			STAT_LOGL(d, int(sst.utp_stats.packets_in));
+			STAT_LOGL(d, int(sst.utp_stats.packets_out));
+			STAT_LOGL(d, int(sst.utp_stats.fast_retransmit));
+			STAT_LOGL(d, int(sst.utp_stats.packet_resend));
+			STAT_LOGL(d, int(sst.utp_stats.samples_above_target));
+			STAT_LOGL(d, int(sst.utp_stats.samples_below_target));
+			STAT_LOGL(d, int(sst.utp_stats.payload_pkts_in));
+			STAT_LOGL(d, int(sst.utp_stats.payload_pkts_out));
+			STAT_LOGL(d, int(sst.utp_stats.invalid_pkts_in));
+			STAT_LOGL(d, int(sst.utp_stats.redundant_pkts_in));
 
 			fprintf(m_stats_logger, "\n");
 
