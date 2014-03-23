@@ -60,6 +60,17 @@ namespace
 
     char const* filestorage_name(file_storage const& fs)
     { return fs.name().c_str(); }
+
+    bool call_python_object2(boost::python::object const& obj, std::string& i)
+    {
+       return obj(i);
+    }
+
+    void add_files_callback(file_storage& fs, std::string const& file
+       , boost::python::object cb, boost::uint32_t flags)
+    {
+        add_files(fs, file, boost::bind(&call_python_object2, cb, _1), flags);
+    }
 }
 
 void bind_create_torrent()
@@ -147,6 +158,8 @@ void bind_create_torrent()
     ;
 
     def("add_files", add_files0, (arg("fs"), arg("path"), arg("flags") = 0));
+    def("add_files", add_files_callback, (arg("fs"), arg("path")
+        , arg("predicate"), arg("flags") = 0));
     def("set_piece_hashes", set_piece_hashes0);
     def("set_piece_hashes", set_piece_hashes_callback);
 
