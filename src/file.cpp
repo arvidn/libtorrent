@@ -932,7 +932,7 @@ namespace libtorrent
 				DWORD last_error = GetLastError();
 				if (last_error != ERROR_HANDLE_EOF)
 				{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
 					ec.assign(last_error, get_system_category());
@@ -1527,7 +1527,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		{
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				&& last_error != ERROR_CANT_WAIT
 #endif
 )
@@ -1548,7 +1548,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				DWORD last_error = GetLastError();
 				if (last_error != ERROR_HANDLE_EOF)
 				{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
 					ec.assign(last_error, get_system_category());
@@ -1772,7 +1772,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		{
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				&& last_error != ERROR_CANT_WAIT
 #endif
 				)
@@ -1792,7 +1792,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (GetOverlappedResult(m_file_handle, &ol, &num_written, false) == 0)
 			{
 				DWORD last_error = GetLastError();
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
 				ec.assign(last_error, get_system_category());
