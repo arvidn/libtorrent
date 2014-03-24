@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
 #include <boost/cstdint.hpp> // uint32_t
+#include <algorithm> // for min()
 
 namespace libtorrent
 {
