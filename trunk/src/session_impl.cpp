@@ -3589,7 +3589,7 @@ retry:
 		// number of peers among torrents with a peer limit
 		int num_limited_peers = 0;
 		// sum of limits of all torrents with a peer limit
-		int total_peers_limit = 0;
+		boost::uint64_t total_peers_limit = 0;
 
 		std::vector<partial_piece_info> dq;
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -3605,7 +3605,7 @@ retry:
 			if (t->max_connections() > 0)
 			{
 				num_limited_peers += t->num_peers();
-				num_limited_peers += t->max_connections();
+				total_peers_limit += t->max_connections();
 			}
 
 			if (t->has_error())
