@@ -7,13 +7,13 @@
 #include <string>
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings.hpp> // for bencode_map_entry
-#include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/lazy_entry.hpp>
 #include <libtorrent/bencode.hpp>
+#include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 
 #include <libtorrent/extensions/lt_trackers.hpp>
 #include <libtorrent/extensions/metadata_transfer.hpp>
@@ -80,14 +80,6 @@ namespace
 
 #endif // TORRENT_DISABLE_EXTENSIONS
     }
-
-#ifndef TORRENT_NO_DEPRECATE
-
-    boost::shared_ptr<torrent_plugin> dummy_plugin_wrapper(torrent* t) {
-        return boost::shared_ptr<torrent_plugin>();
-    }
-
-#endif
 
 	void session_set_settings(session& ses, dict const& sett_dict)
 	{
@@ -186,7 +178,7 @@ namespace
     {
         // torrent_info objects are always held by an intrusive_ptr in the python binding
         if (params.has_key("ti") && params.get("ti") != boost::python::object())
-            p.ti = extract<intrusive_ptr<torrent_info> >(params["ti"]);
+            p.ti = extract<boost::intrusive_ptr<torrent_info> >(params["ti"]);
 
         if (params.has_key("info_hash"))
             p.info_hash = extract<sha1_hash>(params["info_hash"]);
@@ -794,13 +786,6 @@ void bind_session()
         .def("set_settings", &set_feed_settings)
         .def("settings", &get_feed_settings)
     ;
-
-#ifndef TORRENT_NO_DEPRECATE
-    def("create_ut_pex_plugin", dummy_plugin_wrapper);
-    def("create_metadata_plugin", dummy_plugin_wrapper);
-    def("create_ut_metadata_plugin", dummy_plugin_wrapper);
-    def("create_smart_ban_plugin", dummy_plugin_wrapper);
-#endif
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 
