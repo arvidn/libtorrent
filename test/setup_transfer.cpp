@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 #include <deque>
+#include <map>
 
 #include "setup_transfer.hpp"
 
@@ -417,17 +418,17 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	for (std::map<int, proxy_t>::iterator i = running_proxies.begin()
-		, end(running_proxies.end()); i != end; ++i)
+	std::map<int, proxy_t> :: iterator i = running_proxies.begin();
+	for (; i != running_proxies.end(); ++i)
 	{
-		if (i->second.type == proxy_type) return i->first;
+		if (i->second.type == proxy_type) { return i->first; }
 	}
 
 	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
 	printf("random seed: %u\n", seed);
 	std::srand(seed);
-	int port = 5000 + (rand() % 55000);
 
+	int port = 5000 + (rand() % 55000);
 	char const* type = "";
 	char const* auth = "";
 	char const* cmd = "";
@@ -458,7 +459,6 @@ int start_proxy(int proxy_type)
 			cmd = "python ../http.py";
 			break;
 	}
-
 	char buf[512];
 	snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
 
