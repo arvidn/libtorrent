@@ -22,7 +22,6 @@ void bind_session_settings();
 void bind_version();
 void bind_alert();
 void bind_datetime();
-void bind_torrent();
 void bind_peer_info();
 void bind_ip_filter();
 void bind_magnet_uri();
@@ -51,7 +50,6 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_version();
     bind_alert();
     bind_datetime();
-    bind_torrent();
     bind_peer_info();
     bind_ip_filter();
     bind_magnet_uri();

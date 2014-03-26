@@ -237,7 +237,7 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 }
 
 TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
-	, char const* function, char const* value)
+	, char const* function, char const* value, int kind)
 {
 #if TORRENT_PRODUCTION_ASSERTS
 	// no need to flood the assert log with infinite number of asserts
@@ -248,14 +248,23 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 	stack[0] = '\0';
 	print_backtrace(stack, sizeof(stack), 0);
 
-	assert_print("assertion failed. Please file a bugreport at "
+	char const* message = "assertion failed. Please file a bugreport at "
 		"http://code.google.com/p/libtorrent/issues\n"
 		"Please include the following information:\n\n"
+		"version: " LIBTORRENT_VERSION "\n"
+		LIBTORRENT_REVISION "\n";
+
+	switch (kind)
+	{
+		case 1:
+			message = "A precondition of a libtorrent function has been violated.\n"
+				"This indicates a bug in the client application using libtorrent\n";
+	}
+	  
+	assert_print("%s\n"
 #if TORRENT_PRODUCTION_ASSERTS
 		"#: %d\n"
 #endif
-		"version: " LIBTORRENT_VERSION "\n"
-		"%s\n"
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
@@ -263,10 +272,11 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 		"%s%s\n"
 		"stack:\n"
 		"%s\n"
+		, message
 #if TORRENT_PRODUCTION_ASSERTS
 		, int(assert_counter)
 #endif
-		, LIBTORRENT_REVISION, file, line, function, expr
+		, file, line, function, expr
 		, value ? value : "", value ? "\n" : ""
 		, stack);
 
@@ -282,7 +292,8 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 #else
 
 TORRENT_EXPORT void assert_print(char const* fmt, ...) {}
-TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file, char const* function) {}
+TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
+	, char const* function, char const* value, int kind) {}
 
 #endif
 

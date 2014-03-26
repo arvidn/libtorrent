@@ -298,7 +298,7 @@ namespace libtorrent
 
 	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
-		TORRENT_ASSERT(max_uploads >= 2 || max_uploads == -1);
+		TORRENT_ASSERT_PRECOND(max_uploads >= 2 || max_uploads == -1);
 		TORRENT_ASYNC_CALL2(set_max_uploads, max_uploads, true);
 	}
 
@@ -310,13 +310,13 @@ namespace libtorrent
 
 	void torrent_handle::set_max_connections(int max_connections) const
 	{
-		TORRENT_ASSERT(max_connections >= 2 || max_connections == -1);
+		TORRENT_ASSERT_PRECOND(max_connections >= 2 || max_connections == -1);
 		TORRENT_ASYNC_CALL2(set_max_connections, max_connections, true);
 	}
 
 	void torrent_handle::set_upload_limit(int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL1(set_upload_limit, limit);
 	}
 
@@ -328,7 +328,7 @@ namespace libtorrent
 
 	void torrent_handle::set_download_limit(int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL1(set_download_limit, limit);
 	}
 

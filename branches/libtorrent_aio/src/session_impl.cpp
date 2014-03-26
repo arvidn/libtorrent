@@ -248,6 +248,7 @@ namespace aux {
 		mach_msg_type_number_t host_count = HOST_VM_INFO_COUNT;
 		kern_return_t error = host_statistics(host_port, HOST_VM_INFO,
 			(host_info_t)vm_stat, &host_count);
+		TORRENT_ASSERT_VAL(error == KERN_SUCCESS, error);
 #elif defined TORRENT_LINUX
 		ec.clear();
 		char string[4096];
@@ -2011,7 +2012,7 @@ namespace aux {
 
 			// if you hit this assert, your peer class filter contains
 			// a bitmask referencing a non-existent peer class
-			TORRENT_ASSERT(m_classes.at(i));
+			TORRENT_ASSERT_PRECOND(m_classes.at(i));
 
 			if (m_classes.at(i) == 0) continue;
 			s->add_class(m_classes, i);

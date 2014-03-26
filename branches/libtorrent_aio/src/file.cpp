@@ -186,7 +186,7 @@ namespace
 			DWORD num_read;
 			if (ReadFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_read, &ol[i]) == FALSE
 				&& GetLastError() != ERROR_IO_PENDING
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				&& GetLastError() != ERROR_CANT_WAIT
 #endif
 				)
@@ -204,7 +204,7 @@ namespace
 			DWORD num_read;
 			if (GetOverlappedResult(fd, &ol[i], &num_read, FALSE) == FALSE)
 			{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
 #endif
 				ret = -1;
@@ -248,7 +248,7 @@ done:
 			DWORD num_written;
 			if (WriteFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_written, &ol[i]) == FALSE
 				&& GetLastError() != ERROR_IO_PENDING
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				&& GetLastError() != ERROR_CANT_WAIT
 #endif
 				)
@@ -266,7 +266,7 @@ done:
 			DWORD num_written;
 			if (GetOverlappedResult(fd, &ol[i], &num_written, FALSE) == FALSE)
 			{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
 #endif
 				ret = -1;
@@ -1085,7 +1085,7 @@ namespace libtorrent
 				DWORD last_error = GetLastError();
 				if (last_error != ERROR_HANDLE_EOF)
 				{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
 					ec.assign(last_error, get_system_category());

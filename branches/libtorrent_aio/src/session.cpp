@@ -441,25 +441,25 @@ namespace libtorrent
 #define TORRENT_SYNC_CALL_RET(type, x) \
 	bool done = false; \
 	type r; \
-	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
+	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
 	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET1(type, x, a1) \
 	bool done = false; \
 	type r; \
-	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
+	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
 	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET2(type, x, a1, a2) \
 	bool done = false; \
 	type r; \
-	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
+	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
 	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET3(type, x, a1, a2, a3) \
 	bool done = false; \
 	type r; \
-	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
+	m_impl->m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
 	TORRENT_WAIT
 
 #ifndef TORRENT_CFG
@@ -544,7 +544,7 @@ namespace libtorrent
 	feed_handle session::add_feed(feed_settings const& feed)
 	{
 		// if you have auto-download enabled, you must specify a download directory!
-		TORRENT_ASSERT(!feed.auto_download || !feed.add_args.save_path.empty());
+		TORRENT_ASSERT_PRECOND(!feed.auto_download || !feed.add_args.save_path.empty());
 		TORRENT_SYNC_CALL_RET1(feed_handle, add_feed, feed);
 		return r;
 	}
