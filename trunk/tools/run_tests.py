@@ -144,8 +144,10 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 			r = { 'status': p.returncode, 'output': output, 'command': command }
 			results[t + '|' + features] = r
    
-			if p.returncode == 0: sys.stdout.write('.')
-			else: sys.stdout.write('X')
+			if p.returncode == 0:
+				sys.stdout.write('.')
+			else:
+				sys.stdout.write(output)
 			sys.stdout.flush()
 
 	except Exception, e:
