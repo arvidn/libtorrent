@@ -1258,6 +1258,7 @@ namespace libtorrent
 		{
 			ret = do_uncached_read(j);
 
+			mutex::scoped_lock l(m_cache_mutex);
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
 			if (pe) maybe_issue_queued_read_jobs(pe, completed_jobs);
 			return ret;
@@ -1305,6 +1306,7 @@ namespace libtorrent
 				fail_jobs_impl(j->error, pe->jobs, completed_jobs);
 				m_disk_cache.maybe_free_piece(pe);
 			}
+			if (pe) pe->outstanding_read = 0;
 			return ret;
 		}
 
@@ -1348,10 +1350,13 @@ namespace libtorrent
 
 	void disk_io_thread::maybe_issue_queued_read_jobs(cached_piece_entry* pe, tailqueue& completed_jobs)
 	{
+		TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
+
 		// if we're shutting down, just cancel the jobs
 		if (m_num_threads == 0)
 		{
 			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->read_jobs, completed_jobs);
+			pe->outstanding_read = 0;
 			return;
 		}
 
