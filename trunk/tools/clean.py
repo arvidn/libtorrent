@@ -13,13 +13,17 @@ def clean():
 		'bin',
 		'test_tmp_*',
 		'bjam_build.*.xml'
+		'*.exe',
+		'*.pdb',
+		'*.pyd'
 	]
 	
 	directories = [
 		'examples',
 		'test',
 		'.',
-		'tools'
+		'tools',
+		os.path.join('bindings', 'python')
 	]
 	
 	for d in directories:
