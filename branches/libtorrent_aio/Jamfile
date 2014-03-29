@@ -534,7 +534,6 @@ lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
-	alert_handler
 	alert_manager
 	allocator
 	asio

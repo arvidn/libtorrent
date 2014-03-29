@@ -8,7 +8,6 @@ nobase_include_HEADERS = \
   address.hpp                  \
   add_torrent_params.hpp       \
   alert.hpp                    \
-  alert_handler.hpp            \
   alert_manager.hpp            \
   alert_observer.hpp           \
   alert_dispatcher.hpp         \
