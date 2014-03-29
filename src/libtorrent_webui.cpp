@@ -35,11 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/alert_handler.hpp"
 #include "local_mongoose.h"
 #include "auth.hpp"
 #include "torrent_history.hpp"
 #include <string.h>
+
+#include "alert_handler.hpp"
 
 namespace libtorrent
 {
@@ -730,11 +731,13 @@ namespace libtorrent
 		io::write_uint16(st->transaction_id, ptr);
 		io::write_uint8(no_error, ptr);
 
+		boost::unique_future<alert*> f
+			= m_alert->subscribe<session_stats_alert>();
 		m_ses.post_session_stats();
-		std::auto_ptr<alert> a = wait_for_alert(*m_alert, session_stats_alert::alert_type);
-		session_stats_alert* ss = alert_cast<session_stats_alert>(a.get());
+		// wait for the alert to arrive
+		std::auto_ptr<session_stats_alert> ss((session_stats_alert*)f.get());
 
-		TORRENT_ASSERT(ss);
+		TORRENT_ASSERT(ss.get());
 
 		mutex::scoped_lock l(m_stats_mutex);
 		++m_stats_frame;

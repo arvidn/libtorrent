@@ -37,8 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session.hpp>
 #include <libtorrent/thread.hpp>
 #include <libtorrent/alert_types.hpp>
-#include <libtorrent/alert_handler.hpp>
 #include <libtorrent/alert_observer.hpp>
+
+#include "alert_handler.hpp"
 
 using libtorrent::mutex;
 using libtorrent::alert;

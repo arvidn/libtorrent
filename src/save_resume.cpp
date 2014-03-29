@@ -43,8 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/file.hpp"
-#include "libtorrent/alert_handler.hpp"
 #include "libtorrent/alert_types.hpp"
+
+#include "alert_handler.hpp"
 
 namespace libtorrent
 {

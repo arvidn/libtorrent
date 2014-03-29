@@ -32,9 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "rss_filter.hpp"
 #include "libtorrent/string_util.hpp"
-#include "libtorrent/alert_handler.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
+
+#include "alert_handler.hpp"
 
 namespace libtorrent
 {

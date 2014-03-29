@@ -31,8 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "text_ui.hpp"
-#include "libtorrent/alert_handler.hpp"
 #include "libtorrent/alert_types.hpp"
+
+#include "alert_handler.hpp"
 
 extern "C" {
 #include <ncurses.h>
