@@ -1223,9 +1223,12 @@ void utorrent_webui::rss_filter_update(std::vector<char>& response, char const* 
 	if (ret > 0) r.episode_filter = atoi(buf);
 	ret = mg_get_var(args, strlen(args), "save-in", buf, sizeof(buf));
 	if (ret > 0) r.params.save_path = buf;
+	ret = mg_get_var(args, strlen(args), "name", buf, sizeof(buf));
+	if (ret > 0) r.name = buf;
 
 	if (filter_id == -1)
 	{
+		if (r.name.empty()) r.name = "New Filter";
 		int filter_id = m_rss_filter->add_rule(r);
 		appendf(response, ",\"filter_ident\": %d", filter_id);
 	}
@@ -1243,6 +1246,13 @@ void utorrent_webui::rss_filter_remove(std::vector<char>& response, char const* 
 	if (ret < 0) return;
 	int filter_id = atoi(buf);
 	m_rss_filter->remove_rule(filter_id);
+	if (m_hist)
+	{
+		int cid = m_hist->frame();
+		m_removed_rss_filters.push_back(std::make_pair(cid, filter_id));
+	}
+	while (m_removed_rss_filters.size() > 40)
+		m_removed_rss_filters.pop_front();
 }
 
 enum ut_state_t
@@ -1512,14 +1522,26 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 				, (i->episode_filter ? 8 : 0)
 					| (i->exact_match ? 2 : 0)
 					| ((i->params.flags & add_torrent_params::flag_paused) ? 16 : 0)
-				, i->search.c_str() // name
+				, i->name.c_str() // name
 				, i->search.c_str() // filter string
 				, i->search_not.c_str() // not-filter string
 				, i->params.save_path.c_str()); // directory
 			first = 0;
 		}
 	}
-	appendf(response, "],\"rssfilterm\":[]");
+	appendf(response, "],\"rssfilterm\":[");
+	if (cid > 0)
+	{
+		first =1;
+		for (std::deque<std::pair<int, int> >::iterator i = m_removed_rss_filters.begin()
+			, end(m_removed_rss_filters.end()); i != end; ++i)
+		{
+			if (i->first <= cid) continue;
+			appendf(response, ",%d" + first, i->second);
+			first = 0;
+		}
+	}
+	appendf(response, "]");
 }
 
 std::vector<torrent_status> utorrent_webui::parse_torrents(char const* args) const
