@@ -20,7 +20,6 @@ build_features:
  - asserts=off
  - asserts=production debug
  - asserts=on release
- - asserts=off invariant-checks=off
  - invariant-checks=on release
  - ipv6=off dht=off extensions=off logging=none deprecated-functions=off invariant-checks=off 
 
