@@ -331,7 +331,8 @@ def main(argv):
 			# each file contains a full set of tests for one speific toolset and platform
 			try:
 				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
-			except IOError:
+			except IOError, e:
+				print e
 				rev_dir = os.path.join(current_dir, 'regression_tests')
 				try: os.mkdir(rev_dir)
 				except: pass

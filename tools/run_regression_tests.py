@@ -137,13 +137,16 @@ def loop():
 		print '\n\nREVISION %d ===\n' % r
 		svn_up(r)
 	
-		run_tests.main(sys.argv[1:])
-		last_rev = r;
+		try:
+			run_tests.main(sys.argv[1:])
+			last_rev = r;
 
-		# pop the revision we just completed
-		revs = revs[1:]
+			# pop the revision we just completed
+			revs = revs[1:]
 
-		open(rev_file, 'w+').write('%d' % last_rev)
+			open(rev_file, 'w+').write('%d' % last_rev)
+		except Exception, e:
+			print e
 
 if __name__ == "__main__":
 	loop()
