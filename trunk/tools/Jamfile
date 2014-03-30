@@ -15,12 +15,12 @@ rule link_libtorrent ( properties * )
 	if <link>shared in $(properties)
 	{
 		result +=
-			<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+			<library>/torrent//torrent/<link>shared/<boost-link>shared ;
 	}
 	else
 	{
 		result +=
-			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+			<library>/torrent//torrent/<link>static/<boost-link>static ;
 	}
 	return $(result) ;
 }
