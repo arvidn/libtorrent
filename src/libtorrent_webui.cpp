@@ -737,6 +737,7 @@ namespace libtorrent
 		// wait for the alert to arrive
 		std::auto_ptr<session_stats_alert> ss((session_stats_alert*)f.get());
 
+		if (ss.get() == NULL) return error(st, no_such_function);
 		TORRENT_ASSERT(ss.get());
 
 		mutex::scoped_lock l(m_stats_mutex);

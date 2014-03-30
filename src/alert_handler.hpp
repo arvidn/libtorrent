@@ -64,11 +64,14 @@ struct TORRENT_EXPORT alert_handler
 	void dispatch_alerts() const;
 	void unsubscribe(alert_observer* o);
 
+	// the future may return NULL if the alert_handler is aborted.
 	template <class T>
 	boost::unique_future<alert*> subscribe()
 	{
 		return subscribe_impl(T::alert_type);
 	}
+
+	void abort();
 
 private:
 
@@ -80,6 +83,11 @@ private:
 	mutable mutex m_mutex;
 	typedef boost::shared_ptr<boost::promise<alert*> > promise_t;
 	mutable std::deque<promise_t> m_promises[num_alert_types];
+
+	// when set to true, all outstanding (boost::future-based) subscriptions
+	// are cancelled, and new such subscriptions are disabled, by failing
+	// immediately
+	bool m_abort;
 
 	session& m_ses;
 };

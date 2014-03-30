@@ -45,7 +45,8 @@ namespace libtorrent
 {
 
 	alert_handler::alert_handler(session& ses)
-		: m_ses(ses)
+		: m_abort(false)
+		, m_ses(ses)
 	{}
 
 	void alert_handler::subscribe(alert_observer* o, int flags, ...)
@@ -151,9 +152,36 @@ namespace libtorrent
 	boost::unique_future<alert*> alert_handler::subscribe_impl(int cat)
 	{
 		mutex::scoped_lock l(m_mutex);
+		if (m_abort)
+		{
+			boost::promise<alert*> promise;
+			promise.set_value(NULL);
+			return promise.get_future();
+		}
+
 		m_promises[cat].push_back(boost::make_shared<boost::promise<alert*> >());
 		// TODO: enable this alert in the alert mask in m_ses
 		return m_promises[cat].back()->get_future();
+	}
+
+	void alert_handler::abort()
+	{
+		mutex::scoped_lock l(m_mutex);
+
+		m_abort = true;
+
+		std::deque<promise_t> promises;
+		for (int i = 0; i < num_alert_types; ++i)
+		{
+			promises.clear();
+			promises.swap(m_promises[i]);
+
+			for (std::deque<promise_t>::iterator i = promises.begin()
+				, end(promises.end()); i != end; ++i)
+			{
+				(*i)->set_value(NULL);
+			}
+		}
 	}
 
 	namespace

@@ -165,6 +165,13 @@ int main(int argc, char *const argv[])
 		}
 	}
 
+	fprintf(stderr, "abort alerts\n");
+	// it's important to disable any more alert subscriptions
+	// and cancel the ones in flught now, otherwise the webport
+	// may dead-lock. Some of its threads may be blocked waiting
+	// for alerts. Those alerts aren't likely to ever arrive at
+	// this point.
+	alerts.abort();
 	fprintf(stderr, "closing web server\n");
 	dlg.stop();
 	webport.stop();
