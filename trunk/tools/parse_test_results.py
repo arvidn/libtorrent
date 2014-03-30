@@ -194,9 +194,9 @@ project_name = 'libtorrent'
 # maps branch name to latest rev
 revs = {}
 
-os.chdir('regression_tests')
+input_dir = os.path.abspath('regression_tests')
 
-for rev in os.listdir('.'):
+for rev in os.listdir(input_dir):
 	try:
 		branch = rev.split('-')[0]
 		if branch == 'logs': continue
@@ -216,6 +216,11 @@ if revs == {}:
 print 'latest versions'
 for b in revs:
 	print '%s\t%d' % (b, revs[b])
+
+try: os.mkdir('regression_test_report')
+except: pass
+
+os.chdir('regression_test_report')
 
 for branch_name in revs:
 
@@ -247,7 +252,7 @@ for branch_name in revs:
 		sys.stdout.write('.')
 		sys.stdout.flush()
 
-		rev_dir = '%s-%d' % (branch_name, r)
+		rev_dir = os.path.join(input_dir, '%s-%d' % (branch_name, r))
 		(platforms, tests) = parse_tests(rev_dir)
 
 		if len(tests) + len(platforms) == 0: continue
