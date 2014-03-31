@@ -36,7 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 #include <boost/cstdint.hpp>
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 #include <stdarg.h> // for va_start, va_end
+#include <stdio.h> // for vsnprintf
+#endif
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/identify_client.hpp"

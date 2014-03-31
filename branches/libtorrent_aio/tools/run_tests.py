@@ -43,7 +43,6 @@ from datetime import datetime
 import json
 import sys
 import yaml
-from multiprocessing import Pool
 import glob
 import shutil
 import traceback
@@ -90,12 +89,14 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 	try:
 
 		results = {}
-		toolset_found = False
    
 		feature_list = features.split(' ')
 		os.chdir(test_dir)
    
+   		c = 0
 		for t in tests:
+			c = c + 1
+
 			options_copy = options[:]
 			if t != '': options_copy.append(t)
 			if t == '':
@@ -112,6 +113,8 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 			output = ''
 			for l in p.stdout:
 				output += l.decode('latin-1')
+				sys.stdout.write('.')
+				sys.stdout.flush()
 			p.wait()
    
 			# parse out the toolset version from the xml file
@@ -143,11 +146,33 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 			r = { 'status': p.returncode, 'output': output, 'command': command }
 			results[t + '|' + features] = r
    
-			if p.returncode == 0:
-				sys.stdout.write('.')
-			else:
-				sys.stdout.write(output)
-			sys.stdout.flush()
+			if p.returncode != 0:
+				# if the build or test failed, print out the
+				# important parts
+				sys.stdout.write('\n')
+				print command
+				for l in output:
+					if 'error: ' in l or \
+						': fatal error: ' in l or \
+						'failed to write output file' in l or \
+						': error C' in l or \
+						'undefined reference to ' in l or \
+						' error LNK' in l or \
+						'TEST_CHECK' in l or \
+						'TEST_EQUAL_ERROR' in l or \
+						'"ERROR: "' in l or \
+						l.startswith('EXIT STATUS: ') or \
+						' second time limit exceeded' in l or \
+						l.startswith('signal: SIG') or \
+						'jump or move depends on uninitialised value(s)' in l or \
+						'Invalid read of size' in l or \
+						'Invalid write of size' in l or \
+						'Use of uninitialised value of size' in l or \
+						'Uninitialised byte(s) found during' in l or \
+						'points to uninitialised byte(s)' in l:
+						print l
+
+			print '\n%s - %d / %d' % (toolset, c, len(tests))
 
 	except Exception, e:
 		# need this to make child processes exit
@@ -172,7 +197,6 @@ def main(argv):
 
 	toolsets = []
 
-	num_processes = 2
 	incremental = False
 
 	test_dirs = []
@@ -185,6 +209,7 @@ def main(argv):
 		if arg[0] == '-':
 			if arg[1] == 'j':
 				num_processes = int(arg[2:])
+				options.append('-j%d' % num_processes)
 			elif arg[1] == 'h':
 				print_usage()
 				sys.exit(1)
@@ -264,8 +289,6 @@ def main(argv):
 
 	timestamp = datetime.now()
 
-	tester_pool = Pool(processes=num_processes)
-
 	print '%s-%d - %s - %s' % (branch_name, revision, author, timestamp)
 
 	print 'toolsets: %s' % ' '.join(toolsets)
@@ -281,30 +304,27 @@ def main(argv):
 		try: os.mkdir(rev_dir)
 		except: pass
 
-		results = {}
-		for test_dir in test_dirs:
-			print 'running tests from "%s" in %s' % (test_dir, branch_name)
-			os.chdir(test_dir)
-			test_dir = os.getcwd()
+		for toolset in toolsets:
+			results = {}
+			for test_dir in test_dirs:
+				print 'running tests from "%s" in %s' % (test_dir, branch_name)
+				os.chdir(test_dir)
+				test_dir = os.getcwd()
 
-			# figure out which tests are exported by this Jamfile
-			p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE, cwd=test_dir)
+				# figure out which tests are exported by this Jamfile
+				p = subprocess.Popen(['bjam', '--dump-tests', 'non-existing-target'], stdout=subprocess.PIPE, cwd=test_dir)
 
-			tests = []
+				tests = []
 
-			output = ''
-			for l in p.stdout:
-				output += l
-				if not 'boost-test(RUN)' in l: continue
-				test_name = os.path.split(l.split(' ')[1][1:-1])[1]
-				tests.append(test_name)
-			print 'found %d tests' % len(tests)
-			if len(tests) == 0:
-				tests = ['']
-
-			for toolset in toolsets:
-				if not toolset in results: results[toolset] = {}
-				toolset_found = False
+				output = ''
+				for l in p.stdout:
+					output += l
+					if not 'boost-test(RUN)' in l: continue
+					test_name = os.path.split(l.split(' ')[1][1:-1])[1]
+					tests.append(test_name)
+				print 'found %d tests' % len(tests)
+				if len(tests) == 0:
+					tests = ['']
 
 				additional_configs = []
 				if test_dir in build_dirs:
@@ -312,22 +332,15 @@ def main(argv):
 
 				futures = []
 				for features in configs + additional_configs:
-					futures.append(tester_pool.apply_async(run_tests, [toolset, tests, features, options, test_dir, time_limit]))
-
-				for future in futures:
-					(compiler, r) = future.get()
-					results[toolset].update(r)
-
-#				for features in configs + additional_configs:
-#					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
-#					results[toolset].update(r)
+					(compiler, r) = run_tests(toolset, tests, features, options, test_dir, time_limit)
+					results.update(r)
 
 				print ''
 
 				if len(clean_files) > 0:
 					print 'deleting ',
 					for filt in clean_files:
-						for f in glob.glob(filt):
+						for f in glob.glob(os.path.join(test_dir, filt)):
 							# a precaution to make sure a malicious repo
 							# won't clean things outside of the test directory
 							if not os.path.abspath(f).startswith(test_dir): continue
@@ -336,11 +349,11 @@ def main(argv):
 							except: pass
 					print ''
 
-		for toolset in toolsets:
 			# each file contains a full set of tests for one speific toolset and platform
 			try:
 				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
-			except IOError:
+			except IOError, e:
+				print e
 				rev_dir = os.path.join(current_dir, 'regression_tests')
 				try: os.mkdir(rev_dir)
 				except: pass
@@ -349,7 +362,7 @@ def main(argv):
 				except: pass
 				f = open(os.path.join(rev_dir, build_platform + '#' + toolset + '.json'), 'w+')
 
-			print >>f, json.dumps(results[toolset])
+			print >>f, json.dumps(results)
 			f.close()
 
 			
