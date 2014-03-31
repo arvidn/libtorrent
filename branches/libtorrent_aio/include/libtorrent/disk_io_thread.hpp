@@ -381,6 +381,8 @@ namespace libtorrent
 
 		io_service& get_io_service() { return m_ios; }
 
+		int prep_read_job_impl(disk_io_job* j, bool check_fence = true);
+
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
@@ -433,7 +435,8 @@ namespace libtorrent
 
 		void add_completed_job(disk_io_job* j);
 		void add_completed_jobs(tailqueue& jobs);
-		void add_completed_job_impl(disk_io_job* j);
+		void add_completed_jobs_impl(tailqueue& jobs
+			, tailqueue& completed_jobs);
 
 		void fail_jobs(storage_error const& e, tailqueue& jobs_);
 		void fail_jobs_impl(storage_error const& e, tailqueue& src, tailqueue& dst);

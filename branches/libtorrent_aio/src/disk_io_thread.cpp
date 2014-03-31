@@ -86,16 +86,17 @@ namespace libtorrent
 		}
 		else
 		{
-			assert_print("piece:\nrefcount: %d\npiece_refcount: %d\n"
+			assert_print("piece: %d\nrefcount: %d\npiece_refcount: %d\n"
 				"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n"
 				"cache_state: (%d) %s\noutstanding_flush: %d\npiece: %d\n"
 				"num_dirty: %d\nnum_blocks: %d\nblocks_in_piece: %d\n"
 				"hashing_done: %d\nmarked_for_deletion: %d\nneed_readback: %d\n"
 				"hash_passed: %d\nread_jobs: %d\njobs: %d\n"
 				"piece_log:\n"
-				, pe->refcount, pe->piece_refcount, pe->num_blocks, int(pe->hashing)
-				, pe->hash, pe->hash ? pe->hash->offset : -1, int(pe->cache_state)
-				, pe->cache_state >= 0 && pe->cache_state < cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
+				, int(pe->piece), pe->refcount, pe->piece_refcount, pe->num_blocks
+				, int(pe->hashing), pe->hash, pe->hash ? pe->hash->offset : -1
+				, int(pe->cache_state), pe->cache_state >= 0 && pe->cache_state
+					< cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
 				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
 				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
 				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes
@@ -307,8 +308,8 @@ namespace libtorrent
 
 	// flush all blocks that are below p->hash.offset, since we've
 	// already hashed those blocks, they won't cause any read-back
-	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block, tailqueue& completed_jobs
-		, mutex::scoped_lock& l)
+	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block
+		, tailqueue& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(l.locked());
@@ -1249,6 +1250,32 @@ namespace libtorrent
 		int evict = m_disk_cache.num_to_evict(iov_len);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
 
+		cached_piece_entry* pe = m_disk_cache.find_piece(j);
+		if (pe == NULL)
+		{
+			// this isn't supposed to happen. The piece is supposed
+			// to be allocated when the read job is posted to the
+			// queue, and have 'outstanding_read' set to 1
+			TORRENT_ASSERT(false);
+
+			int cache_state = (j->flags & disk_io_job::volatile_read)
+				? cached_piece_entry::volatile_read_lru
+				: cached_piece_entry::read_lru1;
+			pe = m_disk_cache.allocate_piece(j, cache_state);
+#if TORRENT_USE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::set_outstanding_jobs));
+#endif
+			pe->outstanding_read = 1;
+			if (pe == NULL)
+			{
+				j->error.ec = error::no_memory;
+				j->error.operation = storage_error::alloc_cache_piece;
+				m_disk_cache.free_iovec(iov, iov_len);
+				return -1;
+			}
+		}
+		TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
+
 		l.unlock();
 
 		// then we'll actually allocate the buffers
@@ -1301,29 +1328,24 @@ namespace libtorrent
 			m_disk_cache.free_iovec(iov, iov_len);
 
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
-			if (pe && pe->read_jobs.size() > 0)
+			if (pe == NULL)
 			{
-				fail_jobs_impl(j->error, pe->jobs, completed_jobs);
-				m_disk_cache.maybe_free_piece(pe);
+				// the piece is supposed to be allocated when the
+				// disk job is allocated
+				TORRENT_ASSERT(false);
+				return ret;
 			}
-			if (pe) pe->outstanding_read = 0;
-			return ret;
-		}
+			TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
 
-		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe == NULL)
-		{
-			int cache_state = (j->flags & disk_io_job::volatile_read)
-				? cached_piece_entry::volatile_read_lru
-				: cached_piece_entry::read_lru1;
-			pe = m_disk_cache.allocate_piece(j, cache_state);
-		}
-		if (pe == NULL)
-		{
-			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::alloc_cache_piece;
-			m_disk_cache.free_iovec(iov, iov_len);
-			return -1;
+			if (pe->read_jobs.size() > 0)
+				fail_jobs_impl(j->error, pe->jobs, completed_jobs);
+			TORRENT_PIECE_ASSERT(pe->read_jobs.size() == 0, pe);
+			pe->outstanding_read = 0;
+#if TORRENT_USE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::clear_outstanding_jobs));
+#endif
+			m_disk_cache.maybe_free_piece(pe);
+			return ret;
 		}
 
 		int block = j->d.io.offset / block_size;
@@ -1356,7 +1378,12 @@ namespace libtorrent
 		if (m_num_threads == 0)
 		{
 			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->read_jobs, completed_jobs);
+			TORRENT_PIECE_ASSERT(pe->read_jobs.size() == 0, pe);
 			pe->outstanding_read = 0;
+#if TORRENT_USE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::clear_outstanding_jobs));
+#endif
+			m_disk_cache.maybe_free_piece(pe);
 			return;
 		}
 
@@ -1412,9 +1439,14 @@ namespace libtorrent
 			add_job(next_job);
 		}
 		else
+		{
+			TORRENT_PIECE_ASSERT(pe->read_jobs.size() == 0, pe);
 			pe->outstanding_read = 0;
-
-		m_disk_cache.maybe_free_piece(pe);
+#if TORRENT_USE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::clear_outstanding_jobs));
+#endif
+			m_disk_cache.maybe_free_piece(pe);
+		}
 	}
 
 	int disk_io_thread::do_uncached_write(disk_io_job* j)
@@ -1541,66 +1573,87 @@ namespace libtorrent
 		j->requester = requester;
 		j->callback = handler;
 
+		mutex::scoped_lock l(m_cache_mutex);
+		int ret = prep_read_job_impl(j);
+		l.unlock();
+
+		switch (ret)
+		{
+			case 0:
+				if (handler) handler(j);
+				free_job(j);
+				break;
+			case 1:
+				add_job(j);
+				break;
+		}
+	}
+
+	// this function checks to see if a read job is a cache hit,
+	// and if it doesn't have a picece allocated, it allocates
+	// one and it sets outstanding_read flag and possibly queues
+	// up the job in the piece read job list
+	// the cache mutex must be held when calling this
+	// 
+	// returns 0 if the job succeeded immediately
+	// 1 if it needs to be added to the job queue
+	// 2 if it was deferred and will be performed later (no need to
+	//   add it to the queue)
+	int disk_io_thread::prep_read_job_impl(disk_io_job* j, bool check_fence)
+	{
+		TORRENT_ASSERT(j->action == disk_io_job::read);
+
 		if (m_settings.get_bool(settings_pack::use_read_cache)
 			&& m_settings.get_int(settings_pack::cache_size) > 0)
 		{
-			mutex::scoped_lock l(m_cache_mutex);
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
 			{
-				l.unlock();
 				DLOG("do_read: cache hit\n");
 				j->flags |= disk_io_job::cache_hit;
 				j->ret = ret;
-				if (handler) handler(j);
-				free_job(j);
-				return;
+				return 0;
 			}
 			else if (ret == -2)
 			{
-				l.unlock();
 				j->error.ec = error::no_memory;
 				j->error.operation = storage_error::alloc_cache_piece;
 				j->ret = disk_io_job::operation_failed;
-				if (handler) handler(j);
-				free_job(j);
-				return;
+				return 0;
 			}
 
-			if (storage->is_blocked(j))
+			if (check_fence && j->storage->is_blocked(j))
 			{
-				l.unlock();
 				// this means the job was queued up inside storage
 				++m_num_blocked_jobs;
 				DLOG("blocked job: %s (torrent: %d total: %d)\n"
 					, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
 					, int(m_num_blocked_jobs));
-				return;
+				return 2;
 			}
 
 			cached_piece_entry* pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
 			if (pe == NULL)
 			{
-				l.unlock();
 				j->ret = -1;
 				j->error.ec = error::no_memory;
 				j->error.operation = storage_error::read;
-				if (handler) handler(j);
-				free_job(j);
-				return;
+				return 0;
 			}
 
 			if (pe->outstanding_read)
 			{
 				TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 				pe->read_jobs.push_back(j);
-				return;
+				return 2;
 			}
 
+#if TORRENT_USE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::set_outstanding_jobs));
+#endif
 			pe->outstanding_read = 1;
 		}
-
-		add_job(j);
+		return 1;
 	}
 
 	void disk_io_thread::async_write(piece_manager* storage, peer_request const& r
@@ -3212,18 +3265,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	void disk_io_thread::add_completed_job_impl(disk_io_job* j)
-	{
-		mutex::scoped_lock l(m_completed_jobs_mutex);
-
-		bool need_post = m_completed_jobs.size() == 0;
-		m_completed_jobs.push_back(j);
-		l.unlock();
-
-		if (need_post)
-			m_ios.post(boost::bind(&disk_io_thread::call_job_handlers, this, m_userdata));
-	}
-
 	void disk_io_thread::add_completed_job(disk_io_job* j)
 	{
 		tailqueue tmp;
@@ -3232,6 +3273,24 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::add_completed_jobs(tailqueue& jobs)
+	{
+		tailqueue new_completed_jobs;
+		do
+		{
+			// when a job completes, it's possible for it to cause
+			// a fence to be lowered, issuing the jobs queued up
+			// behind the fence. It's also possible for some of these
+			// jobs to be cache-hits, completing immediately. Those
+			// jobs are added to the new_completed_jobs queue and
+			// we need to re-issue those
+			add_completed_jobs_impl(jobs, new_completed_jobs);
+			TORRENT_ASSERT(jobs.size() == 0);
+			jobs.swap(new_completed_jobs);
+		} while (jobs.size() > 0);
+	}
+
+	void disk_io_thread::add_completed_jobs_impl(tailqueue& jobs
+		, tailqueue& completed_jobs)
 	{
 		tailqueue new_jobs;
 		int ret = 0;
@@ -3286,13 +3345,31 @@ namespace libtorrent
 				}
 			}
 #endif
-			// write jobs should be put straight into the cache
 			tailqueue other_jobs;
 			tailqueue flush_jobs;
 			mutex::scoped_lock l_(m_cache_mutex);
 			while (new_jobs.size() > 0)
 			{
 				disk_io_job* j = (disk_io_job*)new_jobs.pop_front();
+
+				if (j->action == disk_io_job::read
+					&& m_settings.get_bool(settings_pack::use_read_cache)
+					&& m_settings.get_int(settings_pack::cache_size) > 0)
+				{
+					int ret = prep_read_job_impl(j, false);
+					switch (ret)
+					{
+						case 0:
+							completed_jobs.push_back(j);
+							break;
+						case 1:
+							other_jobs.push_back(j);
+							break;
+					}
+					continue;
+				}
+
+				// write jobs should be put straight into the cache
 				if (j->action != disk_io_job::write)
 				{
 					other_jobs.push_back(j);

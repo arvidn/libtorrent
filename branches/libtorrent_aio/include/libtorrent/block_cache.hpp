@@ -85,6 +85,8 @@ namespace libtorrent
 			try_flush_write_blocks,
 			try_flush_write_blocks2,
 			flush_range,
+			clear_outstanding_jobs,
+			set_outstanding_jobs,
 
 			last_job
 		};

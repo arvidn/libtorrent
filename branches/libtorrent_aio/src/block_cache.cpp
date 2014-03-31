@@ -183,6 +183,8 @@ void log_refcounts(cached_piece_entry const* pe)
 		"try_flush_write_blocks",
 		"try_flush_write_blocks2",
 		"flush_range",
+		"clear_outstanding_jobs",
+		"set_outstanding_jobs",
 	};
 
 	void print_piece_log(std::vector<piece_log_t> const& piece_log)
