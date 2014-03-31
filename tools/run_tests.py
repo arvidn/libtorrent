@@ -148,8 +148,30 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 			results[t + '|' + features] = r
    
 			if p.returncode != 0:
+				# if the build or test failed, print out the
+				# important parts
 				sys.stdout.write('\n')
-				sys.stdout.write(output)
+				print command
+				for l in output:
+					if 'error: ' in l or \
+						': fatal error: ' in l or \
+						'failed to write output file' in l or \
+						': error C' in l or \
+						'undefined reference to ' in l or \
+						' error LNK' in l or \
+						'TEST_CHECK' in l or \
+						'TEST_EQUAL_ERROR' in l or \
+						'"ERROR: "' in l or \
+						l.startswith('EXIT STATUS: ') or \
+						' second time limit exceeded' in l or \
+						l.startswith('signal: SIG') or \
+						'jump or move depends on uninitialised value(s)' in l or \
+						'Invalid read of size' in l or \
+						'Invalid write of size' in l or \
+						'Use of uninitialised value of size' in l or \
+						'Uninitialised byte(s) found during' in l or \
+						'points to uninitialised byte(s)' in l:
+						print l
 
 			print '\n%s - %d / %d' % (toolset, c, len(tests))
 
