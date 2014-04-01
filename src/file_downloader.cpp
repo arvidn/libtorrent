@@ -299,13 +299,13 @@ namespace libtorrent
 
 			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
 			int ret = mg_write(conn, &pe.buffer[offset], amount_to_send);
-			if (ret != amount_to_send)
+			if (ret <= 0)
 			{
-				printf("interrupted\n");
+				printf("interrupted (%d) errno: %d\n", ret, errno);
 				break;
 			}
 
-			left_to_send -= amount_to_send;
+			left_to_send -= ret;
 			printf("sent: %d bytes\n", amount_to_send);
 			offset = 0;
 		}
