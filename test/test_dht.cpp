@@ -762,8 +762,11 @@ int test_main()
 
 	// ==== get / put mutable items ===
 
-	std::pair<const char*, int> itemv;
-	std::pair<char const*, int> empty_salt(NULL, 0);
+	std::pair<char const*, int> itemv;
+	std::pair<char const*, int> empty_salt;
+	empty_salt.first = NULL;
+	empty_salt.second = 0;
+
 	char signature[item_sig_len];
 	char buffer[1200];
 	int seq = 4;
