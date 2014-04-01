@@ -10,14 +10,16 @@ feature visibility : default hidden : composite propagated link-incompatible ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
 feature libtorrent-link : static shared : ;
+feature libtorrent-python-pic : on off : composite propagated link-incompatible ;
+feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
 rule libtorrent_linking ( properties * )
 {
     local result ;
 
-    if <toolset>gcc in $(properties)
+    if <target-os>linux && <toolset>gcc in $(properties)
     {
-        result += <fpic>on ;
+        result += <libtorrent-python-pic>on ;
     }
 
     if <toolset>gcc in $(properties)
