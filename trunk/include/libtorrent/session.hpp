@@ -953,6 +953,12 @@ namespace libtorrent
 		// this blocking call, the dispatcher can be called and it can pop the
 		// alert independently.
 		// 
+		// .. note::
+		// 	Although these functions are all thread-safe, popping alerts from
+		// 	multiple separate threads may introduce race conditions in that
+		// 	the thread issuing an asynchronous operation may not be the one
+		// 	receiving the alert with the result.
+		// 
 		// In the python binding, ``wait_for_alert`` takes the number of
 		// milliseconds to wait as an integer.
 		// 
