@@ -61,21 +61,20 @@ POSSIBILITY OF SUCH DAMAGE.
 	of pieces.
 
 	read_lru1
-		This is a plain LRU for items that have been requested once.
-		If a piece in this list gets accessed again, by someone other
-		than the first accessor, the piece is promoted into LRU2.
-		which holds pieces that are more frequently used, and more
-		important to keep around as this LRU list takes churn.
+		This is a plain LRU for items that have been requested once. If a piece
+		in this list gets accessed again, by someone other than the first
+		accessor, the piece is promoted into LRU2. which holds pieces that are
+		more frequently used, and more important to keep around as this LRU list
+		takes churn.
 	
 	read_lru1_ghost
-		This is a list of pieces that were least recently evicted from
-		read_lru1. These pieces don't hold any actual blocks in the cache,
-		they are just here to extend the reach and probability for pieces
-		to be promoted into read_lru2. Any piece in this list that
-		get one more access is promoted to read_lru2. This is technically
-		a cache-miss, since there's no cached blocks here, but for the
-		purposes of promoting the piece from infrequently used to frequently
-		used), it's considered a cache-hit.
+		This is a list of pieces that were least recently evicted from read_lru1.
+		These pieces don't hold any actual blocks in the cache, they are just
+		here to extend the reach and probability for pieces to be promoted into
+		read_lru2. Any piece in this list that get one more access is promoted to
+		read_lru2. This is technically a cache-miss, since there's no cached
+		blocks here, but for the purposes of promoting the piece from
+		infrequently used to frequently used), it's considered a cache-hit.
 
 	read_lru2
 		TODO
@@ -96,60 +95,63 @@ POSSIBILITY OF SUCH DAMAGE.
 	lru2 or into lru2. Since this ARC implementation operates on pieces instead
 	of blocks, any one peer requesting blocks from one piece would essentially
 	always produce a "cache hit" the second block it requests. In order to make
-	the promotions make more sense, and be more in the spirit of the ARC algorithm,
-	each access contains a token, unique to each peer. If any access has a different
-	token than the last one, it's considered a cache hit. This is because at least
-	two peers requested blocks from the same piece.
+	the promotions make more sense, and be more in the spirit of the ARC
+	algorithm, each access contains a token, unique to each peer. If any access
+	has a different token than the last one, it's considered a cache hit. This
+	is because at least two peers requested blocks from the same piece.
 
 	Deferred evictions
 	..................
 
-	Since pieces and blocks can be pinned in the cache, and it's not always practical,
-	or possible, to evict a piece at the point where a new block is allocated (because
-	it's not known what the block will be used for), evictions are not done at the time
-	of allocating blocks. Instead, whenever an operation requires to add a new piece to
-	the cache, it also records the cache event leading to it, in m_last_cache_op. This
-	is one of cache_miss (piece did not exist in cache), lru1_ghost_hit (the piece was found
-	in lru1_ghost and it was promoted) or lru2_ghost_hit (the piece was found in lru2_ghost
-	and it was promoted). This cache operation then guides the cache eviction algorithm
-	to know which list to evict from. The volatile list is always the first one to be
-	evicted however.
+	Since pieces and blocks can be pinned in the cache, and it's not always
+	practical, or possible, to evict a piece at the point where a new block is
+	allocated (because it's not known what the block will be used for),
+	evictions are not done at the time of allocating blocks. Instead, whenever
+	an operation requires to add a new piece to the cache, it also records the
+	cache event leading to it, in m_last_cache_op. This is one of cache_miss
+	(piece did not exist in cache), lru1_ghost_hit (the piece was found in
+	lru1_ghost and it was promoted) or lru2_ghost_hit (the piece was found in
+	lru2_ghost and it was promoted). This cache operation then guides the cache
+	eviction algorithm to know which list to evict from. The volatile list is
+	always the first one to be evicted however.
 
 	Write jobs
 	..........
 
-	When the write cache is enabled, write jobs are not issued via the normal job queue.
-	They are just hung on its corresponding cached piece entry, and a flush_hashed job
-	is issued. This job will inspect the current state of the cached piece and determine
-	if any of the blocks should be flushed. It also kicks the hasher, i.e. progresses
-	the SHA1 context, which calculates the SHA-1 hash of the piece. This job flushed
-	blocks that have been hashed and also form a contiguous block run of at least the
-	write cache line size.
+	When the write cache is enabled, write jobs are not issued via the normal
+	job queue. They are just hung on its corresponding cached piece entry, and a
+	flush_hashed job is issued. This job will inspect the current state of the
+	cached piece and determine if any of the blocks should be flushed. It also
+	kicks the hasher, i.e. progresses the SHA1 context, which calculates the
+	SHA-1 hash of the piece. This job flushed blocks that have been hashed and
+	also form a contiguous block run of at least the write cache line size.
 
 	Read jobs
 	.........
 
-	The data blocks pulled in from disk by read jobs, are hung on the corresponding
-	cache piece (cached_piece_entry) once the operation completes. Read operations
-	typically pulls in an entire read cache stripe, and not just the one block that
-	was requested. When adjacent blocks are requested to be read in quick succession,
-	there is a risk that each block would pull in more blocks (read ahead) and potentially
-	read the same blocks several times, if the original requests were serviced by
-	different disk thread. This is because all the read operation may start before
-	any of them has completed, hanging the resulting blocks in the cache. i.e. they would
-	all be cache misses, even though all but the first should be cache hits in the first's
+	The data blocks pulled in from disk by read jobs, are hung on the
+	corresponding cache piece (cached_piece_entry) once the operation completes.
+	Read operations typically pulls in an entire read cache stripe, and not just
+	the one block that was requested. When adjacent blocks are requested to be
+	read in quick succession, there is a risk that each block would pull in more
+	blocks (read ahead) and potentially read the same blocks several times, if
+	the original requests were serviced by different disk thread. This is
+	because all the read operation may start before any of them has completed,
+	hanging the resulting blocks in the cache. i.e. they would all be cache
+	misses, even though all but the first should be cache hits in the first's
 	read ahead.
 
-	In order to solve this problem, there is only a single outstanding read job at
-	any given time per piece. When there is an outstanding read job on a piece, the
-	*outstanding_read* member is set to 1. This indicates that the job should be hung
-	on the piece for later processing, instead of being issued into the main job queue.
-	There is a tailqueue on each piece entry called read_jobs where these jobs are added.
+	In order to solve this problem, there is only a single outstanding read job
+	at any given time per piece. When there is an outstanding read job on a
+	piece, the *outstanding_read* member is set to 1. This indicates that the
+	job should be hung on the piece for later processing, instead of being
+	issued into the main job queue. There is a tailqueue on each piece entry
+	called read_jobs where these jobs are added.
 
-	At the end of every read job, this job list is inspected, any job in it is tried
-	against the cache to see if it's a cache hit now. If it is, complete it right away.
-	If it isn't, put it back in the read_jobs list except for one, which is issued into
-	the regular job queue.
+	At the end of every read job, this job list is inspected, any job in it is
+	tried against the cache to see if it's a cache hit now. If it is, complete
+	it right away. If it isn't, put it back in the read_jobs list except for
+	one, which is issued into the regular job queue.
 */
 
 #define DEBUG_CACHE 0
@@ -651,12 +653,12 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	return pe;
 }
 
-// flushed is an array of num_flushed integers. Each integer is the block
-// index that was flushed. This function marks those blocks as not pending and
-// not dirty. It also adjusts its understanding of the read vs. write cache size
-// (since these blocks now are part of the read cache)
-// the refcounts of the blocks are also decremented by this function. They are
-// expected to have been incremented by the caller.
+// flushed is an array of num_flushed integers. Each integer is the block index
+// that was flushed. This function marks those blocks as not pending and not
+// dirty. It also adjusts its understanding of the read vs. write cache size
+// (since these blocks now are part of the read cache) the refcounts of the
+// blocks are also decremented by this function. They are expected to have been
+// incremented by the caller.
 void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int num_flushed)
 {
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
@@ -669,10 +671,9 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 		TORRENT_PIECE_ASSERT(pe->blocks[block].dirty, pe);
 		TORRENT_PIECE_ASSERT(pe->blocks[block].pending, pe);
 		pe->blocks[block].pending = false;
-		// it's important to mark it as non-dirty
-		// before decrementing the refcount because
-		// the buffer may be marked as discardable/volatile
-		// it this is the last reference to it
+		// it's important to mark it as non-dirty before decrementing the
+		// refcount because the buffer may be marked as discardable/volatile it
+		// this is the last reference to it
 		pe->blocks[block].dirty = false;
 		dec_block_refcount(pe, block, block_cache::ref_flushing);
 #ifdef TORRENT_BUFFER_STATS
@@ -831,26 +832,26 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	char** to_delete = TORRENT_ALLOCA(char*, num);
 	int num_to_delete = 0;
 
-	// There are two ends of the ARC cache we can evict from. There's L1
-	// and L2. The last cache operation determines which end we'll evict
-	// from. If we go through the entire list from the preferred end, and
-	// still need to evict more blocks, we'll go to the other end and start
-	// evicting from there. The lru_list is an array of two lists, these
-	// are the two ends to evict from, ordered by preference.
+	// There are two ends of the ARC cache we can evict from. There's L1 and L2.
+	// The last cache operation determines which end we'll evict from. If we go
+	// through the entire list from the preferred end, and still need to evict
+	// more blocks, we'll go to the other end and start evicting from there. The
+	// lru_list is an array of two lists, these are the two ends to evict from,
+	// ordered by preference.
 
 	linked_list* lru_list[3];
 
-	// however, before we consider any of the proper LRU lists, we evict
-	// pieces from the volatile list. These are low priority pieces that
-	// were specifically marked as to not survive long in the cache. These
-	// are the first pieces to go when evicting
+	// however, before we consider any of the proper LRU lists, we evict pieces
+	// from the volatile list. These are low priority pieces that were
+	// specifically marked as to not survive long in the cache. These are the
+	// first pieces to go when evicting
 	lru_list[0] = &m_lru[cached_piece_entry::volatile_read_lru];
 
 	if (m_last_cache_op == cache_miss)
 	{
-		// when there was a cache miss, evict from the largest
-		// list, to tend to keep the lists of equal size when
-		// we don't know which one is performing better
+		// when there was a cache miss, evict from the largest list, to tend to
+		// keep the lists of equal size when we don't know which one is
+		// performing better
 		if (m_lru[cached_piece_entry::read_lru2].size()
 			> m_lru[cached_piece_entry::read_lru1].size())
 		{
@@ -881,12 +882,11 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	// from. The LFU or the LRU end
 	for (int end = 0; num > 0 && end < 3; ++end)
 	{
-		// iterate over all blocks in order of last being used (oldest first) and as
-		// long as we still have blocks to evict
-		// TODO: it's somewhat expensive to iterate over
-		// this linked list. Presumably because of the random access
-		// of memory. It would be nice if pieces with no evictable
-		// blocks weren't in this list
+		// iterate over all blocks in order of last being used (oldest first) and
+		// as long as we still have blocks to evict TODO: it's somewhat expensive
+		// to iterate over this linked list. Presumably because of the random
+		// access of memory. It would be nice if pieces with no evictable blocks
+		// weren't in this list
 		for (list_iterator i = lru_list[end]->iterate(); i.get() && num > 0;)
 		{
 			cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
@@ -912,8 +912,8 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 			// all blocks are pinned in this piece, skip it
 			if (pe->num_blocks <= pe->pinned) continue;
 
-			// go through the blocks and evict the ones
-			// that are not dirty and not referenced
+			// go through the blocks and evict the ones that are not dirty and not
+			// referenced
 			for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
 			{
 				cached_block_entry& b = pe->blocks[j];
@@ -940,14 +940,13 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		}
 	}
 
-	// if we can't evict enough blocks from the read cache, also
-	// look at write cache pieces for blocks that have already
-	// been written to disk and can be evicted
-	// the first pass, we only evict blocks that have
-	// been hashed, the second pass we flush anything
-	// this is potentially a very expensive operation, since
-	// we're likely to have iterate every single block in the
+	// if we can't evict enough blocks from the read cache, also look at write
+	// cache pieces for blocks that have already been written to disk and can be
+	// evicted the first pass, we only evict blocks that have been hashed, the
+	// second pass we flush anything this is potentially a very expensive
+	// operation, since we're likely to have iterate every single block in the
 	// cache, and we might not get to evict anything.
+
 	// TODO: this should probably only be done every n:th time
 	if (num > 0 && m_read_cache_size > m_pinned_blocks)
 	{
