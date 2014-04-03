@@ -1020,7 +1020,9 @@ namespace libtorrent
 
 		// ``set_sequential_download()`` enables or disables *sequential
 		// download*. When enabled, the piece picker will pick pieces in sequence
-		// instead of rarest first.
+		// instead of rarest first. In this mode, piece priorities are ignored,
+		// with the exception of priority 7, which are still preferred over the
+		// sequential piece order.
 		// 
 		// Enabling sequential download will affect the piece distribution
 		// negatively in the swarm. It should be used sparingly.

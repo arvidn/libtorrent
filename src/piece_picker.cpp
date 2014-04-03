@@ -1585,11 +1585,28 @@ namespace libtorrent
 
 		if (options & sequential)
 		{
+			if (m_dirty) update_pieces();
+			TORRENT_ASSERT(!m_dirty);
+
+			for (std::vector<int>::const_iterator i = m_pieces.begin();
+				i != m_pieces.end() && piece_priority(*i) == 7; ++i)
+			{
+				if (!is_piece_free(*i, pieces)) continue;
+				num_blocks = add_blocks(*i, pieces
+					, interesting_blocks, backup_blocks
+					, backup_blocks2, num_blocks
+					, prefer_whole_pieces, peer, suggested_pieces
+					, speed, options);
+				if (num_blocks <= 0) return;
+			}
+
 			if (options & reverse)
 			{
 				for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
 				{	
 					if (!is_piece_free(i, pieces)) continue;
+					// we've already added prio 7 pieces
+					if (piece_priority(i) == 7) continue;
 					num_blocks = add_blocks(i, pieces
 						, interesting_blocks, backup_blocks
 						, backup_blocks2, num_blocks
@@ -1603,6 +1620,8 @@ namespace libtorrent
 				for (int i = m_cursor; i < m_reverse_cursor; ++i)
 				{	
 					if (!is_piece_free(i, pieces)) continue;
+					// we've already added prio 7 pieces
+					if (piece_priority(i) == 7) continue;
 					num_blocks = add_blocks(i, pieces
 						, interesting_blocks, backup_blocks
 						, backup_blocks2, num_blocks

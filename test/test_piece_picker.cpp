@@ -552,6 +552,25 @@ int test_main()
 
 // ========================================================
 
+	// test priority sequential download
+	print_title("test priority sequential download");
+	p = setup_picker("7654321", "       ", "1117071", "");
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, 0, piece_picker::fast
+		, piece_picker::sequential, empty_vector);
+
+	// the piece with priority 0 was not picked
+	TEST_CHECK(int(picked.size()) == 6 * blocks_per_piece);
+
+	// the first two pieces picked should be 3 and 5 since those have priority 7
+	for (int i = 0; i < 2 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[i].piece_index == 3 || picked[i].piece_index == 5);
+
+	int expected[] = {-1, -1, 0, 1, 2, 6};
+	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
+		TEST_CHECK(picked[i].piece_index == expected[i / blocks_per_piece]);
+
+// ========================================================
+
 	// test cursors
 	print_title("test cursors");
 	p = setup_picker("7654321", "       ", "", "");
