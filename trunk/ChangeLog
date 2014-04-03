@@ -1,3 +1,4 @@
+	* honor pieces with priority 7 in sequential download mode
 	* simplified building python bindings
 	* make ignore_non_routers more forgiving in the case there are no UPnP
 	  devices at a known router. Should improve UPnP compatibility.
