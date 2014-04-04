@@ -109,13 +109,13 @@ int test_main()
 		lazy_entry e;
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
-		TORRENT_ASSERT(ret == 0);
+		TEST_CHECK(ret == 0);
 		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
-		TORRENT_ASSERT(section.second == sizeof(b) - 1);
-		TORRENT_ASSERT(e.type() == lazy_entry::int_t);
-		TORRENT_ASSERT(e.int_value() == 12453);
+		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(section.second == sizeof(b) - 1);
+		TEST_CHECK(e.type() == lazy_entry::int_t);
+		TEST_CHECK(e.int_value() == 12453);
 	}
 	
 	{
@@ -123,14 +123,14 @@ int test_main()
 		lazy_entry e;
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
-		TORRENT_ASSERT(ret == 0);
+		TEST_CHECK(ret == 0);
 		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
-		TORRENT_ASSERT(section.second == sizeof(b) - 1);
-		TORRENT_ASSERT(e.type() == lazy_entry::string_t);
-		TORRENT_ASSERT(e.string_value() == std::string("abcdefghijklmnopqrstuvwxyz"));
-		TORRENT_ASSERT(e.string_length() == 26);
+		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(section.second == sizeof(b) - 1);
+		TEST_CHECK(e.type() == lazy_entry::string_t);
+		TEST_CHECK(e.string_value() == std::string("abcdefghijklmnopqrstuvwxyz"));
+		TEST_CHECK(e.string_length() == 26);
 	}
 
 	{
@@ -138,21 +138,21 @@ int test_main()
 		lazy_entry e;
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
-		TORRENT_ASSERT(ret == 0);
+		TEST_CHECK(ret == 0);
 		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
-		TORRENT_ASSERT(section.second == sizeof(b) - 1);
-		TORRENT_ASSERT(e.type() == lazy_entry::list_t);
-		TORRENT_ASSERT(e.list_size() == 2);
-		TORRENT_ASSERT(e.list_at(0)->type() == lazy_entry::int_t);
-		TORRENT_ASSERT(e.list_at(1)->type() == lazy_entry::string_t);
-		TORRENT_ASSERT(e.list_at(0)->int_value() == 12453);
-		TORRENT_ASSERT(e.list_at(1)->string_value() == std::string("aaa"));
-		TORRENT_ASSERT(e.list_at(1)->string_length() == 3);
+		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(section.second == sizeof(b) - 1);
+		TEST_CHECK(e.type() == lazy_entry::list_t);
+		TEST_CHECK(e.list_size() == 2);
+		TEST_CHECK(e.list_at(0)->type() == lazy_entry::int_t);
+		TEST_CHECK(e.list_at(1)->type() == lazy_entry::string_t);
+		TEST_CHECK(e.list_at(0)->int_value() == 12453);
+		TEST_CHECK(e.list_at(1)->string_value() == std::string("aaa"));
+		TEST_CHECK(e.list_at(1)->string_length() == 3);
 		section = e.list_at(1)->data_section();
-		TORRENT_ASSERT(std::memcmp("3:aaa", section.first, section.second) == 0);
-		TORRENT_ASSERT(section.second == 5);
+		TEST_CHECK(std::memcmp("3:aaa", section.first, section.second) == 0);
+		TEST_CHECK(section.second == 5);
 	}
 
 	{
@@ -160,22 +160,82 @@ int test_main()
 		lazy_entry e;
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
-		TORRENT_ASSERT(ret == 0);
+		TEST_CHECK(ret == 0);
 		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
-		TORRENT_ASSERT(std::memcmp(b, section.first, section.second) == 0);
-		TORRENT_ASSERT(section.second == sizeof(b) - 1);
-		TORRENT_ASSERT(e.type() == lazy_entry::dict_t);
-		TORRENT_ASSERT(e.dict_size() == 4);
-		TORRENT_ASSERT(e.dict_find("a")->type() == lazy_entry::int_t);
-		TORRENT_ASSERT(e.dict_find("a")->int_value() == 12453);
-		TORRENT_ASSERT(e.dict_find("b")->type() == lazy_entry::string_t);
-		TORRENT_ASSERT(e.dict_find("b")->string_value() == std::string("aaa"));
-		TORRENT_ASSERT(e.dict_find("b")->string_length() == 3);
-		TORRENT_ASSERT(e.dict_find("c")->type() == lazy_entry::string_t);
-		TORRENT_ASSERT(e.dict_find("c")->string_value() == std::string("bbb"));
-		TORRENT_ASSERT(e.dict_find("c")->string_length() == 3);
-		TORRENT_ASSERT(e.dict_find_string_value("X") == "0123456789");
+		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
+		TEST_CHECK(section.second == sizeof(b) - 1);
+		TEST_CHECK(e.type() == lazy_entry::dict_t);
+		TEST_CHECK(e.dict_size() == 4);
+		TEST_CHECK(e.dict_find("a")->type() == lazy_entry::int_t);
+		TEST_CHECK(e.dict_find("a")->int_value() == 12453);
+		TEST_CHECK(e.dict_find("b")->type() == lazy_entry::string_t);
+		TEST_CHECK(e.dict_find("b")->string_value() == std::string("aaa"));
+		TEST_CHECK(e.dict_find("b")->string_length() == 3);
+		TEST_CHECK(e.dict_find("c")->type() == lazy_entry::string_t);
+		TEST_CHECK(e.dict_find("c")->string_value() == std::string("bbb"));
+		TEST_CHECK(e.dict_find("c")->string_length() == 3);
+		TEST_CHECK(e.dict_find_string_value("X") == "0123456789");
+	}
+
+	// test strings with negative length-prefix
+	{
+		char b[] = "-10:foobar";
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_CHECK(ec == error_code(bdecode_errors::expected_value
+			, get_bdecode_category()));
+	}
+
+	// test strings with overflow length-prefix
+	{
+		char b[] = "18446744073709551615:foobar";
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_CHECK(ec == error_code(bdecode_errors::overflow
+			, get_bdecode_category()));
+	}
+
+
+	// test integers that don't fit in 64 bits
+	{
+		char b[] = "i18446744073709551615e";
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_CHECK(ret == 0);
+		printf("%s\n", print_entry(e).c_str());
+		// the lazy aspect makes this overflow when asking for
+		// the value. turning it to zero.
+		TEST_CHECK(e.int_value() == 0);
+	}
+
+	// test integers that just exactly fit in 64 bits
+	{
+		char b[] = "i9223372036854775807e";
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_CHECK(ret == 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_CHECK(e.int_value() == 9223372036854775807LL);
+	}
+
+	// test integers that just exactly fit in 64 bits
+	{
+		char b[] = "i-9223372036854775807e";
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_CHECK(ret == 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_CHECK(e.int_value() == -9223372036854775807LL);
 	}
 
 	// test invalid encoding
