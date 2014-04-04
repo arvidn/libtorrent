@@ -1,3 +1,5 @@
+	* improve error checking in lazy_bdecode
+
 0.16.16 release
 
 	* add missing add_files overload to the python bindings

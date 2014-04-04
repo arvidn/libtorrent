@@ -257,6 +257,7 @@ namespace libtorrent
 			"expected value (list, dict, int or string) in bencoded string",
 			"bencoded nesting depth exceeded",
 			"bencoded item count limit exceeded",
+			"integer overflow",
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";

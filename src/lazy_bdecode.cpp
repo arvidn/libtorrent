@@ -74,8 +74,19 @@ namespace libtorrent
 				ec = errors::expected_string;
 				return start;
 			}
+			if (val > INT64_MAX / 10)
+			{
+				ec = errors::overflow;
+				return start;
+			}
 			val *= 10;
-			val += *start - '0';
+			int digit = *start - '0';
+			if (val > INT64_MAX - digit)
+			{
+				ec = errors::overflow;
+				return start;
+			}
+			val += digit;
 			++start;
 		}
 		if (*start != delimiter)
@@ -142,6 +153,9 @@ namespace libtorrent
 					if (start + len + 1 > end)
 						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 
+					if (len < 0)
+						TORRENT_FAIL_BDECODE(errors::overflow);
+
 					++start;
 					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
@@ -204,6 +218,9 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(e);
 					if (start + len + 1 > end)
 						TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+					if (len < 0)
+						TORRENT_FAIL_BDECODE(errors::overflow);
+
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
@@ -223,9 +240,9 @@ namespace libtorrent
 		bool negative = false;
 		if (*m_data.start == '-') negative = true;
 		error_code ec;
-		parse_int(negative?m_data.start+1:m_data.start
+		parse_int(m_data.start + negative
 			, m_data.start + m_size, 'e', val, ec);
-		TORRENT_ASSERT(!ec);
+		if (ec) return 0;
 		if (negative) val = -val;
 		return val;
 	}
