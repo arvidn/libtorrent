@@ -173,6 +173,17 @@ namespace libtorrent
 			if (p[i] == '/') p[i] = '\\';
 		return p;
 	}
+
+	time_t file_time_to_posix(FILETIME f)
+	{
+		const boost::uint64_t posix_time_offset = 11644473600LL;
+		boost::uint64_t ft = (boost::uint64_t(f.dwHighDateTime) << 32)
+			| f.dwLowDateTime;
+
+		// windows filetime is specified in 100 nanoseconds resolution.
+		// convert to seconds
+		return time_t(ft / 10000000 - posix_time_offset);
+	}
 #endif
 
 	void stat_file(std::string inf, file_status* s
@@ -185,26 +196,39 @@ namespace libtorrent
 		if (!inf.empty() && (inf[inf.size() - 1] == '\\'
 			|| inf[inf.size() - 1] == '/'))
 			inf.resize(inf.size() - 1);
-#endif
 
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
+#define GetFileAttributesEx_ GetFileAttributesExW
 		std::wstring f = convert_to_wstring(inf);
 #else
+#define GetFileAttributesEx_ GetFileAttributesExA
 		std::string f = convert_to_native(inf);
 #endif
-
-#if defined TORRENT_WINDOWS
-		struct _stati64 ret;
-#if TORRENT_USE_WSTRING
-		if (_wstati64(f.c_str(), &ret) < 0)
-#else
-		if (_stati64(f.c_str(), &ret) < 0)
-#endif
+		WIN32_FILE_ATTRIBUTE_DATA data;
+		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(GetLastError(), boost::system::get_system_category());
 			return;
 		}
+
+		s->file_size = (boost::uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
+		s->ctime = file_time_to_posix(data.ftCreationTime);
+		s->atime = file_time_to_posix(data.ftLastAccessTime);
+		s->mtime = file_time_to_posix(data.ftLastWriteTime);
+
+		s->mode = ((data.dwFileAttributes & FILE_ATTRIBUTE_NORMAL)
+			? file_status::regular_file : 0)
+			| ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			? file_status::directory : 0)
+			| ((data.dwFileAttributes & FILE_ATTRIBUTE_DEVICE)
+			? file_status::character_special : 0);
+
 #else
+		
+		// posix version
+
+		std::string f = convert_to_native(inf);
+
 		struct stat ret;
 		int retval;
 		if (flags & dont_follow_links)
@@ -216,26 +240,21 @@ namespace libtorrent
 			ec.assign(errno, generic_category());
 			return;
 		}
-#endif // TORRENT_WINDOWS
 
 		s->file_size = ret.st_size;
 		s->atime = ret.st_atime;
 		s->mtime = ret.st_mtime;
 		s->ctime = ret.st_ctime;
-#if defined TORRENT_WINDOWS
-    s->mode = ((ret.st_mode & _S_IFREG) ? file_status::regular_file : 0)
-      | ((ret.st_mode & _S_IFDIR) ? file_status::directory : 0)
-      | ((ret.st_mode & _S_IFCHR) ? file_status::character_special : 0)
-      | ((ret.st_mode & _S_IFIFO) ? file_status::fifo : 0);
-#else
-    s->mode = (S_ISREG(ret.st_mode) ? file_status::regular_file : 0)
-      | (S_ISDIR(ret.st_mode) ? file_status::directory : 0)
-      | (S_ISLNK(ret.st_mode) ? file_status::link : 0)
-      | (S_ISFIFO(ret.st_mode) ? file_status::fifo : 0)
-      | (S_ISCHR(ret.st_mode) ? file_status::character_special : 0)
-      | (S_ISBLK(ret.st_mode) ? file_status::block_special : 0)
-      | (S_ISSOCK(ret.st_mode) ? file_status::socket : 0);
-#endif
+
+		s->mode = (S_ISREG(ret.st_mode) ? file_status::regular_file : 0)
+			| (S_ISDIR(ret.st_mode) ? file_status::directory : 0)
+			| (S_ISLNK(ret.st_mode) ? file_status::link : 0)
+			| (S_ISFIFO(ret.st_mode) ? file_status::fifo : 0)
+			| (S_ISCHR(ret.st_mode) ? file_status::character_special : 0)
+			| (S_ISBLK(ret.st_mode) ? file_status::block_special : 0)
+			| (S_ISSOCK(ret.st_mode) ? file_status::socket : 0);
+
+#endif // TORRENT_WINDOWS
 	}
 
 	void rename(std::string const& inf, std::string const& newf, error_code& ec)
