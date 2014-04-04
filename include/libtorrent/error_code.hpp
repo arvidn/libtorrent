@@ -431,6 +431,8 @@ namespace libtorrent
 			depth_exceeded,
 			// bencoded item count limit exceeded
 			limit_exceeded,
+			// integer overflow
+			overflow,
 #endif
 
 			// the number of error codes
