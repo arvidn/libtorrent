@@ -231,7 +231,9 @@ namespace libtorrent
 			flag_pinned = 0x1000,
 
 			// internal
-			default_flags = flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
+			default_flags = flag_pinned | flag_update_subscribe
+				| flag_auto_managed | flag_paused | flag_apply_ip_filter
+
 #ifndef TORRENT_NO_DEPRECATE
 			, flag_ignore_flags = 0x80000000
 #endif
