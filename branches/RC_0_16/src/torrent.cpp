@@ -907,8 +907,17 @@ namespace libtorrent
 		boost::shared_ptr<http_connection> conn(
 			new http_connection(m_ses.m_io_service, m_ses.m_half_open
 				, boost::bind(&torrent::on_torrent_download, shared_from_this()
-					, _1, _2, _3, _4)));
-		conn->get(m_url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
+					, _1, _2, _3, _4)
+				, true
+				, http_connect_handler()
+				, http_filter_handler()
+#ifdef TORRENT_USE_OPENSSL
+				, m_ssl_ctx.get()
+#endif
+				));
+
+		conn->get(m_url, seconds(30), 0, &m_ses.proxy()
+			, 5, m_ses.m_settings.user_agent);
 		set_state(torrent_status::downloading_metadata);
 	}
 
