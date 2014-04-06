@@ -44,6 +44,7 @@ SOURCES =
 	websocket_handler
 	rss_filter
 	alert_handler
+	file_requests
 #	text_ui
 	;
 
