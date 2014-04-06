@@ -771,8 +771,14 @@ namespace libtorrent
 				, true // bottled
 				//bottled buffer size
 				, m_ses.settings().get_int(settings_pack::max_http_recv_buffer_size)
+				, http_connect_handler()
+				, http_filter_handler()
+#ifdef TORRENT_USE_OPENSSL
+				, m_ssl_ctx.get()
+#endif
 				));
-		conn->get(m_url, seconds(30), 0, 0, 5, m_ses.settings().get_str(settings_pack::user_agent));
+		conn->get(m_url, seconds(30), 0, &m_ses.proxy()
+			, 5, m_ses.settings().get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);
 	}
 
