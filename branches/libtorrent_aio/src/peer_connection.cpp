@@ -6285,8 +6285,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
-		if (m_disconnecting) return;
-
 		INVARIANT_CHECK;
 
 		m_rtt = total_milliseconds(completed - m_connect);
@@ -6305,6 +6303,8 @@ namespace libtorrent
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #endif
+
+		if (m_disconnecting) return;
 		
 		if (e)
 		{

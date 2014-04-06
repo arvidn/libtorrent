@@ -55,8 +55,17 @@ namespace libtorrent
 	void bandwidth_manager::close()
 	{
 		m_abort = true;
-		m_queue.clear();
+
+		queue_t tm;
+		tm.swap(m_queue);
 		m_queued_bytes = 0;
+
+		while (!tm.empty())
+		{
+			bw_request& bwr = tm.back();
+			bwr.peer->assign_bandwidth(m_channel, bwr.assigned);
+			tm.pop_back();
+		}
 	}
 
 #if TORRENT_USE_ASSERTS
