@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Custom Storage</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -67,6 +67,7 @@ basics of implementing a custom storage.</p>
 struct temp_storage : storage_interface
 {
         temp_storage(file_storage const&amp; fs) : m_files(fs) {}
+        void set_file_priority(std::vector&lt;boost::uint8_t&gt; const&amp; prio) {}
         virtual bool initialize(bool allocate_files) { return false; }
         virtual bool has_any_file() { return false; }
         virtual int read(char* buf, int slot, int offset, int size)
@@ -223,6 +224,7 @@ struct storage_interface
 {
    virtual bool <strong>initialize</strong> (bool allocate_files) = 0;
    virtual bool <strong>has_any_file</strong> () = 0;
+   virtual void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&gt; const&amp; prio) = 0;
    virtual int <strong>writev</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
    virtual int <strong>readv</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
    virtual void <strong>hint_read</strong> (int, int, int);
@@ -265,6 +267,13 @@ virtual bool <strong>has_any_file</strong> () = 0;
 <p>This function is called when first checking (or re-checking) the storage for a torrent.
 It should return true if any of the files that is used in this storage exists on disk.
 If so, the storage will be checked for existing pieces before starting the download.</p>
+<a name="set_file_priority()"></a></div>
+<div class="section" id="set-file-priority">
+<h2>set_file_priority()</h2>
+<pre class="literal-block">
+virtual void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&gt; const&amp; prio) = 0;
+</pre>
+<p>change the priorities of files.</p>
 <a name="writev()"></a>
 <a name="readv()"></a></div>
 <div class="section" id="writev-readv">
@@ -501,8 +510,9 @@ class default_storage : public storage_interface, boost::noncopyable
       , std::string const&amp; path, file_pool&amp; fp
       , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
    bool <strong>move_slot</strong> (int src_slot, int dst_slot);
+   void <strong>hint_read</strong> (int slot, int offset, int len);
    bool <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
-   int <strong>read</strong> (char* buf, int slot, int offset, int size);
+   void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&gt; const&amp; prio);
    bool <strong>has_any_file</strong> ();
    int <strong>move_storage</strong> (std::string const&amp; save_path, int flags);
    bool <strong>write_resume_data</strong> (entry&amp; rd) const;
@@ -515,7 +525,7 @@ class default_storage : public storage_interface, boost::noncopyable
    int <strong>readv</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
    bool <strong>swap_slots3</strong> (int slot1, int slot2, int slot3);
    bool <strong>initialize</strong> (bool allocate_files);
-   void <strong>hint_read</strong> (int slot, int offset, int len);
+   int <strong>read</strong> (char* buf, int slot, int offset, int size);
    bool <strong>swap_slots</strong> (int slot1, int slot2);
    int <strong>sparse_end</strong> (int start) const;
    file_storage const&amp; <strong>files</strong> () const;

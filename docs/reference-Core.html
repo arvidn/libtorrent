@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Core</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id166">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#peer-info" id="id167">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id168">peer_request</a></li>
-<li><a class="reference internal" href="#block-info" id="id169">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id170">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id171">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id172">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id173">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id174">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id167">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-info" id="id168">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id169">peer_request</a></li>
+<li><a class="reference internal" href="#block-info" id="id170">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id171">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id172">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id173">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id174">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id175">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -1884,7 +1884,9 @@ void <strong>set_sequential_download</strong> (bool sd) const;
 </pre>
 <p><tt class="docutils literal">set_sequential_download()</tt> enables or disables <em>sequential
 download</em>. When enabled, the piece picker will pick pieces in sequence
-instead of rarest first.</p>
+instead of rarest first. In this mode, piece priorities are ignored,
+with the exception of priority 7, which are still preferred over the
+sequential piece order.</p>
 <p>Enabling sequential download will affect the piece distribution
 negatively in the swarm. It should be used sparingly.</p>
 <a name="connect_peer()"></a></div>
@@ -3452,6 +3454,25 @@ void <strong>parse_magnet_uri</strong> (std::string const&amp; uri, add_torrent_
 std::size_t <strong>hash_value</strong> (torrent_status const&amp; ts);
 </pre>
 <p>allows <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> to be used in unordered_map and unordered_set.</p>
+<a name="sign_mutable_item()"></a></div>
+<div class="section" id="sign-mutable-item">
+<h2>sign_mutable_item()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/kademlia/item.hpp">libtorrent/kademlia/item.hpp</a>&quot;</p>
+<pre class="literal-block">
+void <strong>sign_mutable_item</strong> (
+   std::pair&lt;char const*, int&gt; v
+   , std::pair&lt;char const*, int&gt; salt
+   , boost::uint64_t seq
+   , char const* pk
+   , char const* sk
+   , char* sig);
+</pre>
+<p>given a byte range <tt class="docutils literal">v</tt> and an optional byte range <tt class="docutils literal">salt</tt>, a
+sequence number, public key <tt class="docutils literal">pk</tt> (must be 32 bytes) and a secret key
+<tt class="docutils literal">sk</tt> (must be 64 bytes), this function produces a signature which
+is written into a 64 byte buffer pointed to by <tt class="docutils literal">sig</tt>. The caller
+is responsible for allocating the destination buffer that's passed in
+as the <tt class="docutils literal">sig</tt> argument. Typically it would be allocated on the stack.</p>
 </div>
 </div>
     </div>
