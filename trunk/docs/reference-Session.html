@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,14 +55,14 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id164">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id165">cache_status</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id166">session_proxy</a></li>
-<li><a class="reference internal" href="#id36" id="id167">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id168">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id169">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id170">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id171">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id168">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id169">cache_status</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id170">session_proxy</a></li>
+<li><a class="reference internal" href="#id36" id="id171">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id172">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id173">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id174">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id175">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -504,7 +504,7 @@ since the start of the <a class="reference external" href="reference-Session.htm
 </dl>
 <a name="total_read_back"></a><dl class="docutils">
 <dt>total_read_back</dt>
-<dd>the number of bytes that had to be read back from disk because
+<dd>the number of blocks that had to be read back from disk because
 they were flushed before the SHA-1 hash got to hash them. If this
 is large, a larger cache could significantly improve performance</dd>
 </dl>
@@ -591,6 +591,14 @@ class session: public boost::noncopyable
    void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
    void <strong>add_dht_router</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
    void <strong>add_dht_node</strong> (std::pair&lt;std::string, int&gt; const&amp; node);
+   void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
+   void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
+      , std::string salt = std::string());
+   sha1_hash <strong>dht_put_item</strong> (entry data);
+   void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
+      , boost::function&lt;void(entry&amp;, boost::array&lt;char,64&gt;&amp;
+      , boost::uint64_t&amp;, std::string const&amp;)&gt; cb
+      , std::string salt = std::string());
    void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(
       torrent*, void*)&gt; ext);
    void <strong>add_extension</strong> (boost::shared_ptr&lt;plugin&gt; ext);
@@ -976,6 +984,81 @@ to the regular routing table, which effectively means they are only used
 for bootstrapping, to keep the load off them.</p>
 <p>An example routing node that you could typically add is
 <tt class="docutils literal">router.bittorrent.com</tt>.</p>
+<a name="dht_get_item()"></a></div>
+<div class="section" id="dht-get-item">
+<h2>dht_get_item()</h2>
+<pre class="literal-block">
+void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
+</pre>
+<p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
+the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
+<a name="dht_get_item()"></a></div>
+<div class="section" id="id97">
+<h2>dht_get_item()</h2>
+<pre class="literal-block">
+void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
+      , std::string salt = std::string());
+</pre>
+<p>query the DHT for a mutable item under the public key <tt class="docutils literal">key</tt>.
+this is an ed25519 key. <tt class="docutils literal">salt</tt> is optional and may be left
+as an empty string if no salt is to be used.
+if the item is found in the DHT, a <a class="reference external" href="reference-Alerts.html#dht_mutable_item_alert">dht_mutable_item_alert</a> is
+posted.</p>
+<a name="dht_put_item()"></a></div>
+<div class="section" id="dht-put-item">
+<h2>dht_put_item()</h2>
+<pre class="literal-block">
+sha1_hash <strong>dht_put_item</strong> (entry data);
+</pre>
+<p>store the given bencoded data as an immutable item in the DHT.
+the returned hash is the key that is to be used to look the item
+up agan. It's just the sha-1 hash of the bencoded form of the
+structure.</p>
+<a name="dht_put_item()"></a></div>
+<div class="section" id="id99">
+<h2>dht_put_item()</h2>
+<pre class="literal-block">
+void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
+      , boost::function&lt;void(entry&amp;, boost::array&lt;char,64&gt;&amp;
+      , boost::uint64_t&amp;, std::string const&amp;)&gt; cb
+      , std::string salt = std::string());
+</pre>
+<p>store an immutable item. The <tt class="docutils literal">key</tt> is the public key the blob is
+to be stored under. The optional <tt class="docutils literal">salt</tt> argument is a string that
+is to be mixed in with the key when determining where in the DHT
+the value is to be stored. The callback function is called from within
+the libtorrent network thread once we've found where to store the blob,
+possibly with the current value stored under the key.
+The values passed to the callback functions are:</p>
+<dl class="docutils">
+<dt>entry&amp; value</dt>
+<dd>the current value stored under the key (may be empty). Also expected
+to be set to the value to be stored by the function.</dd>
+<dt>boost::array&lt;char,64&gt;&amp; signature</dt>
+<dd>the signature authenticating the current value. This may be zeroes
+if there is currently no value stored. The functon is expected to
+fill in this buffer with the signature of the new value to store.
+To generate the signature, you may want to use the
+<tt class="docutils literal">sign_mutable_item</tt> function.</dd>
+<dt>boost::uint64_t&amp; seq</dt>
+<dd>current sequence number. May be zero if there is no current value.
+The function is expected to set this to the new sequence number of
+the value that is to be stored. Sequence numbers must be monotonically
+increasing. Attempting to overwrite a value with a lower or equal
+sequence number will fail, even if the signature is correct.</dd>
+<dt>std::string const&amp; salt</dt>
+<dd>this is the salt that was used for this put call.</dd>
+</dl>
+<p>Since the callback function <tt class="docutils literal">cb</tt> is called from within libtorrent,
+it is critical to not perform any blocking operations. Ideally not
+even locking a mutex. Pass any data required for this function along
+with the function object's context and make the function entirely
+self-contained. The only reason data blobs' values are computed
+via a function instead of just passing in the new value is to avoid
+race conditions. If you want to <em>update</em> the value in the DHT, you
+must first retrieve it, then modify it, then write it back. The way
+the DHT works, it is natural to always do a lookup before storing and
+calling the callback in between is convenient.</p>
 <a name="add_extension()"></a></div>
 <div class="section" id="add-extension">
 <h2>add_extension()</h2>
@@ -1261,6 +1344,13 @@ same pointer until the <a class="reference external" href="reference-Alerts.html
 is useful for leaving any <a class="reference external" href="reference-Alerts.html#alert">alert</a> dispatching mechanism independent of
 this blocking call, the dispatcher can be called and it can pop the
 <a class="reference external" href="reference-Alerts.html#alert">alert</a> independently.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Although these functions are all thread-safe, popping alerts from
+multiple separate threads may introduce race conditions in that
+the thread issuing an asynchronous operation may not be the one
+receiving the alert with the result.</p>
+</div>
 <p>In the python binding, <tt class="docutils literal">wait_for_alert</tt> takes the number of
 milliseconds to wait as an integer.</p>
 <p>To control the max number of alerts that's queued by the <a class="reference external" href="reference-Session.html#session">session</a>, see

@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -107,7 +107,7 @@ structure of the DHT network.</p>
 <p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message
 <tt class="docutils literal">get_peers</tt> and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an
 item respectively.</p>
-<p>The <tt class="docutils literal">k</tt> field is the 32 byte curve25519 public key, which the signature can be
+<p>The <tt class="docutils literal">k</tt> field is the 32 byte ed25519 public key, which the signature can be
 authenticated with. When looking up a mutable item, the <tt class="docutils literal">target</tt> field MUST be
 the SHA-1 hash of this key concatenated with the <tt class="docutils literal">salt</tt>, if present.</p>
 <p>The distinction between storing mutable and immutable items is the inclusion of
@@ -174,7 +174,7 @@ verify that its hash matches the target that was looked up.</p>
 <p>Response:</p>
 <pre class="literal-block">
 {
-   &quot;r&quot;:
+        &quot;r&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write token (string)&gt;</em>,
@@ -202,7 +202,7 @@ higher sequence number to a lower one, only upgrade. The sequence number SHOULD
 not exceed <tt class="docutils literal">MAX_INT64</tt>, (i.e. <tt class="docutils literal">0x7fffffffffffffff</tt>. A client MAY reject any
 message with a sequence number exceeding this. A client MAY also reject any
 message with a negative sequence number.</p>
-<p>The signature is a 64 byte curve25519 signature of the bencoded sequence number
+<p>The signature is a 64 byte ed25519 signature of the bencoded sequence number
 concatenated with the <tt class="docutils literal">v</tt> key. e.g. something like this:</p>
 <pre class="literal-block">
 3:seqi4e1:v12:Hello world!
@@ -226,10 +226,10 @@ the buffer to be signed is:</p>
         {
                 &quot;cas&quot;: <em>&lt;optional 20 byte hash (string)&gt;</em>,
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
-                &quot;k&quot;: <em>&lt;curve25519 public key (32 bytes string)&gt;</em>,
+                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
                 &quot;salt&quot;: <em>&lt;optional salt to be appended to &quot;k&quot; when hashing (string)&gt;</em>
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
-                &quot;sig&quot;: <em>&lt;curve25519 signature (64 bytes string)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 1000&gt;</em>
         },
@@ -358,11 +358,11 @@ item.</p>
         &quot;r&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
-                &quot;k&quot;: <em>&lt;curve25519 public key (32 bytes string)&gt;</em>,
+                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
                 &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
                 &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
-                &quot;sig&quot;: <em>&lt;curve25519 signature (64 bytes string)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt;= 1000&gt;</em>
         },
@@ -482,7 +482,7 @@ e5f96f6f38320f0f33959cb4d3d656452117aadb
 </div>
 <div class="section" id="resources">
 <h1>resources</h1>
-<p>Libraries that implement curve25519 DSA:</p>
+<p>Libraries that implement ed25519 DSA:</p>
 <ul class="simple">
 <li><a class="reference external" href="http://nacl.cr.yp.to/">NaCl</a></li>
 <li><a class="reference external" href="https://github.com/jedisct1/libsodium">libsodium</a></li>

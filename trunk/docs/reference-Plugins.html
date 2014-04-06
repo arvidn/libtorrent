@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title></title>
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
@@ -172,7 +172,7 @@ and can add its own torrent_plugins.</p>
 struct plugin
 {
    virtual boost::shared_ptr&lt;torrent_plugin&gt; <strong>new_torrent</strong> (torrent*, void*);
-   virtual void <strong>added</strong> (boost::weak_ptr&lt;aux::session_impl&gt;);
+   virtual void <strong>added</strong> (aux::session_impl*);
    virtual void <strong>on_alert</strong> (alert const*);
    virtual void <strong>on_tick</strong> ();
    virtual void <strong>save_state</strong> (entry&amp;) const;
@@ -195,7 +195,7 @@ to the new torrent. Otherwise, return an empty shared_ptr to a
 <div class="section" id="added">
 <h3>added()</h3>
 <pre class="literal-block">
-virtual void <strong>added</strong> (boost::weak_ptr&lt;aux::session_impl&gt;);
+virtual void <strong>added</strong> (aux::session_impl*);
 </pre>
 <p>called when <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> is added to a <a class="reference external" href="reference-Session.html#session">session</a></p>
 <a name="on_alert()"></a></div>

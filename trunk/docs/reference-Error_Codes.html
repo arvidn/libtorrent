@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Error Codes</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,7 +55,7 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#libtorrent-exception" id="id36">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#libtorrent-exception" id="id37">libtorrent_exception</a></li>
 </ul>
 </div>
 <a name="libtorrent_exception"></a><div class="section" id="libtorrent-exception">
@@ -110,6 +110,13 @@ boost::system::error_category&amp; <strong>get_bdecode_category</strong> ();
 boost::system::error_category&amp; <strong>get_socks_category</strong> ();
 </pre>
 <p>returns the error_category for SOCKS5 errors</p>
+<a name="get_upnp_category()"></a></div>
+<div class="section" id="get-upnp-category">
+<h2>get_upnp_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_upnp_category</strong> ();
+</pre>
 <a name="error_code_enum"></a></div>
 <div class="section" id="enum-error-code-enum">
 <h2>enum error_code_enum</h2>
@@ -911,7 +918,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id30">
+<div class="section" id="id31">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -955,8 +962,12 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 <td>6</td>
 <td>bencoded item count limit exceeded</td>
 </tr>
-<tr><td>error_code_max</td>
+<tr><td>overflow</td>
 <td>7</td>
+<td>integer overflow</td>
+</tr>
+<tr><td>error_code_max</td>
+<td>8</td>
 <td>the number of error codes</td>
 </tr>
 </tbody>
@@ -1025,7 +1036,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id33">
+<div class="section" id="id34">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
 <table border="1" class="docutils">

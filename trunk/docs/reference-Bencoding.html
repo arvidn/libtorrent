@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Bencoding</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -227,14 +227,16 @@ integer_type&amp; <strong>integer</strong> ();
 const list_type&amp; <strong>list</strong> () const;
 </pre>
 <p>The <tt class="docutils literal">integer()</tt>, <tt class="docutils literal">string()</tt>, <tt class="docutils literal">list()</tt> and <tt class="docutils literal">dict()</tt> functions
-are accessors that return the respective type. If the <tt class="docutils literal">entry</tt> object isn't of the
-type you request, the accessor will throw <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a> (which derives from
-<tt class="docutils literal"><span class="pre">std::runtime_error</span></tt>). You can ask an <tt class="docutils literal">entry</tt> for its type through the
-<tt class="docutils literal">type()</tt> function.</p>
-<p>If you want to create an <tt class="docutils literal">entry</tt> you give it the type you want it to have in its
-constructor, and then use one of the non-const accessors to get a reference which you then
-can assign the value you want it to have.</p>
-<p>The typical code to get info from a torrent file will then look like this:</p>
+are accessors that return the respective type. If the <tt class="docutils literal">entry</tt> object
+isn't of the type you request, the accessor will throw
+<a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a> (which derives from <tt class="docutils literal"><span class="pre">std::runtime_error</span></tt>). You
+can ask an <tt class="docutils literal">entry</tt> for its type through the <tt class="docutils literal">type()</tt> function.</p>
+<p>If you want to create an <tt class="docutils literal">entry</tt> you give it the type you want it to
+have in its constructor, and then use one of the non-const accessors
+to get a reference which you then can assign the value you want it to
+have.</p>
+<p>The typical code to get info from a torrent file will then look like
+this:</p>
 <pre class="literal-block">
 entry torrent_file;
 // ...
@@ -261,8 +263,8 @@ if (entry* i = torrent_file.find_key(&quot;announce&quot;))
         std::cout &lt;&lt; tracker_url &lt;&lt; &quot;\n&quot;;
 }
 </pre>
-<p>To make it easier to extract information from a torrent file, the class <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a>
-exists.</p>
+<p>To make it easier to extract information from a torrent file, the
+class <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> exists.</p>
 <a name="swap()"></a></div>
 <div class="section" id="swap">
 <h2>swap()</h2>
@@ -279,14 +281,15 @@ const entry&amp; <strong>operator[]</strong> (std::string const&amp; key) const;
 entry&amp; <strong>operator[]</strong> (char const* key);
 const entry&amp; <strong>operator[]</strong> (char const* key) const;
 </pre>
-<p>All of these functions requires the <a class="reference external" href="reference-Bencoding.html#entry">entry</a> to be a dictionary, if it isn't they
-will throw <tt class="docutils literal"><span class="pre">libtorrent::type_error</span></tt>.</p>
-<p>The non-const versions of the <tt class="docutils literal">operator[]</tt> will return a reference to either
-the existing element at the given key or, if there is no element with the
-given key, a reference to a newly inserted element at that key.</p>
+<p>All of these functions requires the <a class="reference external" href="reference-Bencoding.html#entry">entry</a> to be a dictionary, if it
+isn't they will throw <tt class="docutils literal"><span class="pre">libtorrent::type_error</span></tt>.</p>
+<p>The non-const versions of the <tt class="docutils literal">operator[]</tt> will return a reference
+to either the existing element at the given key or, if there is no
+element with the given key, a reference to a newly inserted element at
+that key.</p>
 <p>The const version of <tt class="docutils literal">operator[]</tt> will only return a reference to an
-existing element at the given key. If the key is not found, it will throw
-<tt class="docutils literal"><span class="pre">libtorrent::type_error</span></tt>.</p>
+existing element at the given key. If the key is not found, it will
+throw <tt class="docutils literal"><span class="pre">libtorrent::type_error</span></tt>.</p>
 <a name="find_key()"></a></div>
 <div class="section" id="find-key">
 <h2>find_key()</h2>
@@ -296,11 +299,11 @@ entry* <strong>find_key</strong> (char const* key);
 entry* <strong>find_key</strong> (std::string const&amp; key);
 entry const* <strong>find_key</strong> (std::string const&amp; key) const;
 </pre>
-<p>These functions requires the <a class="reference external" href="reference-Bencoding.html#entry">entry</a> to be a dictionary, if it isn't they
-will throw <tt class="docutils literal"><span class="pre">libtorrent::type_error</span></tt>.</p>
-<p>They will look for an element at the given key in the dictionary, if the
-element cannot be found, they will return 0. If an element with the given
-key is found, the return a pointer to it.</p>
+<p>These functions requires the <a class="reference external" href="reference-Bencoding.html#entry">entry</a> to be a dictionary, if it isn't
+they will throw <tt class="docutils literal"><span class="pre">libtorrent::type_error</span></tt>.</p>
+<p>They will look for an element at the given key in the dictionary, if
+the element cannot be found, they will return 0. If an element with
+the given key is found, the return a pointer to it.</p>
 <a name="to_string()"></a></div>
 <div class="section" id="to-string">
 <h2>to_string()</h2>
@@ -350,12 +353,10 @@ of the bencoded structure, with JSON-style syntax</p>
 </table>
 <a name="m_type_queried"></a><dl class="docutils">
 <dt>m_type_queried</dt>
-<dd>in debug mode this is set to false by bdecode
-to indicate that the program has not yet queried
-the type of this <a class="reference external" href="reference-Bencoding.html#entry">entry</a>, and sould not assume
-that it has a certain type. This is asserted in
-the accessor functions. This does not apply if
-exceptions are used.</dd>
+<dd>in debug mode this is set to false by bdecode to indicate that the
+program has not yet queried the type of this <a class="reference external" href="reference-Bencoding.html#entry">entry</a>, and sould not
+assume that it has a certain type. This is asserted in the accessor
+functions. This does not apply if exceptions are used.</dd>
 </dl>
 <a name="pascal_string"></a></div>
 </div>
