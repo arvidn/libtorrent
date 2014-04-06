@@ -45,6 +45,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix to use proxy settings when adding .torrent file from URL
 	* fix resume file issue related to daylight savings time on windows
 	* improve error checking in lazy_bdecode
 
