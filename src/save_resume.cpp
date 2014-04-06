@@ -66,6 +66,16 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 		, save_resume_data_failed_alert::alert_type
 		, metadata_received_alert::alert_type, 0);
 
+	// we can use the save_resume object to reload torrents. There is a
+	// potential race condition when adding torrents. We may add a torrent
+	// asynchronously, libtorrent will know about the torrent before we receive
+	// the torrent_added_alert and the resume data won't have saved it yet. for
+	// this reason all torrents must be pinned until we receive the
+	// torrent_added_alert. Once we've saved the resume data into our resume
+	// file, we can unpin it
+	m_ses.set_load_function(boost::bind(
+		&save_resume::load_torrent, this, _1, _2, _3));
+
 	int ret = sqlite3_open(resume_file.c_str(), &m_db);
 	if (ret != SQLITE_OK)
 	{
@@ -262,6 +272,8 @@ void save_resume::handle_alert(alert const* a)
 		}
 		sqlite3_finalize(stmt);
 		printf("saving %s\n", ih.c_str());
+
+		sr->handle.set_pinned(false);
 	}
 	else if (sf)
 	{

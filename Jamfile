@@ -55,8 +55,7 @@ lib torrent-webui
 	<library>/torrent//torrent/<asio-debugging>on
 	<library>zlib
 	<library>sqlite
-	<boost>source:<library>/boost/thread//boost_thread
-	<boost>system:<library>boost_thread
+	<library>/boost/thread//boost_thread
 #	<library>cdk
 #	<library>curses
 	<pam>on:<library>pam

@@ -109,15 +109,6 @@ int main(int argc, char *const argv[])
 
 //	external_ip_observer eip(ses, &alerts);
 
-	// we can use the save_resume object to reload
-	// torrents. This can't be used yet because of a
-	// race condition when adding torrents. We may add a
-	// torrent asynchronously, libtorrent will know about
-	// the torrent before we receive the torrent_added_alert
-	// and the resume data won't have saved it yet.
-//	ses.set_load_function(boost::bind(
-//		&save_resume::load_torrent, &resume, _1, _2, _3));
-
 	auto_load al(ses, &sett);
 	rss_filter_handler rss_filter(alerts, ses);
 
@@ -179,6 +170,7 @@ int main(int argc, char *const argv[])
 	fprintf(stderr, "saving settings\n");
 	sett.save(ec);
 
+	fprintf(stderr, "destructing session\n");
 	return 0;
 }
 
