@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/escape_string.hpp" // for escape_string
 
 #include <boost/shared_array.hpp>
 #include <map>
@@ -74,6 +75,7 @@ namespace libtorrent
 		mutex queue_mutex;
 	};
 
+	// TODO: replace this with file_requests class
 	struct piece_alert_dispatch : plugin
 	{
 		void on_alert(alert const* a)
@@ -137,6 +139,7 @@ namespace libtorrent
 		, m_auth(auth)
 		, m_dispatch(new piece_alert_dispatch())
 		, m_queue_size(4 * 1024 * 1024)
+		, m_attachment(true)
 	{
 		if (m_auth == NULL)
 		{
@@ -217,7 +220,14 @@ namespace libtorrent
 				if (divider)
 				{
 					range_first_byte = strtoll(range, NULL, 10);
-					range_last_byte = strtoll(divider+1, NULL, 10);
+
+					// if the end of a range is not specified, the end of file
+					// is implied
+					if (divider[1] != '\0')
+						range_last_byte = strtoll(divider+1, NULL, 10);
+					else
+						range_last_byte = file_size - 1;
+
 					range_request = true;
 					printf("range: %"PRId64" - %"PRId64"\n", range_first_byte, range_last_byte);
 				}
@@ -248,20 +258,22 @@ namespace libtorrent
 			return true;
 		}
 
+		std::string fname = ti.files().file_name(file);
 		mg_printf(conn, "HTTP/1.1 %s\r\n"
 			"Content-Length: %" PRId64 "\r\n"
 			"Content-Type: %s\r\n"
-			"Content-Disposition: attachment; filename=%s\r\n"
+			"%s%s%s"
 			"Accept-Ranges: bytes\r\n"
 			, range_request ? "206 Partial Content" : "200 OK"
 			, range_last_byte - range_first_byte + 1
 			, mg_get_builtin_mime_type(ti.files().file_name(file).c_str())
-			// TODO: make sure to escape any new-line characters in the filename
-			, ti.files().file_name(file).c_str());
+			, m_attachment ? "Content-Disposition: attachment; filename=" : ""
+			, m_attachment ? escape_string(fname.c_str(), fname.size()).c_str() : ""
+			, m_attachment ? "\r\n" : "");
 
 		if (range_request)
 		{
-			mg_printf(conn, "Content-Range: bytes %"PRId64"-%"PRId64"/%"PRId64"\r\n\r\n"
+			mg_printf(conn, "Content-Range: bytes %" PRId64 "-%" PRId64 "/%" PRId64 "\r\n\r\n"
 				, range_first_byte, range_last_byte, file_size);
 		}
 		else
@@ -277,7 +289,7 @@ namespace libtorrent
 		{
 			while (priority_cursor < pq.end)
 			{
-//				printf("set_piece_deadline: %d\n", priority_cursor);
+				printf("set_piece_deadline: %d\n", priority_cursor);
 				h.set_piece_deadline(priority_cursor
 					, 100 * (priority_cursor - pq.begin)
 					, torrent_handle::alert_when_available);
@@ -301,7 +313,8 @@ namespace libtorrent
 			int ret = mg_write(conn, &pe.buffer[offset], amount_to_send);
 			if (ret <= 0)
 			{
-				printf("interrupted (%d) errno: %d\n", ret, errno);
+				printf("interrupted (%d) errno: (%d) %s\n", ret, errno
+					, strerror(errno));
 				break;
 			}
 

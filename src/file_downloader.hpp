@@ -49,6 +49,8 @@ namespace libtorrent
 		virtual bool handle_http(mg_connection* conn,
 			mg_request_info const* request_info);
 
+		void set_disposition(bool attachment) { m_attachment = attachment; }
+
 	private:
 
 		session& m_ses;
@@ -57,6 +59,10 @@ namespace libtorrent
 		boost::shared_ptr<piece_alert_dispatch> m_dispatch;
 
 		int m_queue_size;
+
+		// controls the content disposition of files. Defaults to true
+		// which asks the browser to save the file rather than to render it.
+		bool m_attachment;
 	};
 }
 

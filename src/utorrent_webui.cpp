@@ -164,7 +164,7 @@ static method_handler handlers[] =
 void return_error(mg_connection* conn)
 {
 	mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
-		"Content: close\r\n\r\n");
+		"Content-Length: 0\r\n\r\n");
 }
 
 bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
@@ -175,7 +175,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 			&& request_info->query_string == NULL))
 	{
 		mg_printf(conn, "HTTP/1.1 301 Moved Permanently\r\n"
-			"Content: close\r\n"
+			"Content-Length: 0\r\n"
 			"Location: /gui/index.html\r\n\r\n");
 		return true;
 	}
