@@ -1338,7 +1338,7 @@ namespace libtorrent
 			TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
 
 			if (pe->read_jobs.size() > 0)
-				fail_jobs_impl(j->error, pe->jobs, completed_jobs);
+				fail_jobs_impl(j->error, pe->read_jobs, completed_jobs);
 			TORRENT_PIECE_ASSERT(pe->read_jobs.size() == 0, pe);
 			pe->outstanding_read = 0;
 #if TORRENT_USE_ASSERTS
