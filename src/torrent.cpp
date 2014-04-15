@@ -344,6 +344,13 @@ namespace libtorrent
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : new torrent_info(info_hash));
 
+		// add web seeds from add_torrent_params
+		for (std::vector<std::string>::const_iterator i = p.url_seeds.begin()
+			, end(p.url_seeds.end()); i != end; ++i)
+		{
+			m_web_seeds.push_back(web_seed_entry(*i, web_seed_entry::url_seed));
+		}
+
 		m_trackers = m_torrent_file->trackers();
 		if (m_torrent_file->is_valid())
 		{
