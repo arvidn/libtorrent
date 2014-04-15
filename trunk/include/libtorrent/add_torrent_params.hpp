@@ -247,6 +247,9 @@ namespace libtorrent
 		// ``trackers`` can specify tracker URLs for the torrent.
 		std::vector<std::string> trackers;
 
+		// url seeds to be added to the torrent (`BEP 17`_).
+		std::vector<std::string> url_seeds;
+
 		// a list of hostname and port pairs, representing DHT nodes to be
 		// added to the session (if DHT is enabled). The hostname may be an IP address.
 		std::vector<std::pair<std::string, int> > dht_nodes;

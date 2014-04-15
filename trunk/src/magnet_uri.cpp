@@ -50,7 +50,6 @@ namespace libtorrent
 		ret += to_hex(ih.to_string());
 
 		torrent_status st = handle.status(torrent_handle::query_name);
-
 		if (!st.name.empty())
 		{
 			ret += "&dn=";
@@ -58,11 +57,18 @@ namespace libtorrent
 		}
 
 		std::vector<announce_entry> const& tr = handle.trackers();
-
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
 			ret += "&tr=";
 			ret += escape_string(i->url.c_str(), i->url.length());
+		}
+
+		std::set<std::string> seeds = handle.url_seeds();
+		for (std::set<std::string>::iterator i = seeds.begin()
+			, end(seeds.end()); i != end; ++i)
+		{
+			ret += "&ws=";
+			ret += escape_string(i->c_str(), i->length());
 		}
 
 		return ret;
@@ -88,6 +94,16 @@ namespace libtorrent
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
 			ret += "&tr=";
+			ret += escape_string(i->url.c_str(), i->url.length());
+		}
+
+		std::vector<web_seed_entry> const& seeds = info.web_seeds();
+		for (std::vector<web_seed_entry>::const_iterator i = seeds.begin()
+			, end(seeds.end()); i != end; ++i)
+		{
+			if (i->type != web_seed_entry::url_seed) continue;
+
+			ret += "&ws=";
 			ret += escape_string(i->url.c_str(), i->url.length());
 		}
 
@@ -170,7 +186,22 @@ namespace libtorrent
 			pos += 4;
 			url = uri.substr(pos, uri.find('&', pos) - pos);
 		}
-	
+
+		// parse web seeds out of the magnet link
+		pos = std::string::npos;
+		url = url_has_argument(uri, "ws", &pos);
+		while (pos != std::string::npos)
+		{
+			error_code e;
+			url = unescape_string(url, e);
+			if (e) continue;
+			p.url_seeds.push_back(url);
+			pos = uri.find("&ws=", pos);
+			if (pos == std::string::npos) break;
+			pos += 4;
+			url = uri.substr(pos, uri.find('&', pos) - pos);
+		}
+
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty())
 		{
