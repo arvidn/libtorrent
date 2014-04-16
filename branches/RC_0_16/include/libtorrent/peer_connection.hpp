@@ -1018,10 +1018,10 @@ namespace libtorrent
 		// another peer sends us a have message for this piece
 		int m_superseed_piece;
 
-		// bytes downloaded since last second
+		// pieces downloaded since last second
 		// timer timeout; used for determining 
 		// approx download rate
-		int m_remote_bytes_dled;
+		int m_remote_pieces_dled;
 
 		// approximate peer download rate
 		int m_remote_dl_rate;

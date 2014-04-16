@@ -160,7 +160,7 @@ namespace libtorrent
 		, m_speed(slow)
 		, m_connection_ticket(-1)
 		, m_superseed_piece(-1)
-		, m_remote_bytes_dled(0)
+		, m_remote_pieces_dled(0)
 		, m_remote_dl_rate(0)
 		, m_outstanding_writing_bytes(0)
 		, m_download_rate_peak(0)
@@ -319,7 +319,7 @@ namespace libtorrent
 		, m_speed(slow)
 		, m_connection_ticket(-1)
 		, m_superseed_piece(-1)
-		, m_remote_bytes_dled(0)
+		, m_remote_pieces_dled(0)
 		, m_remote_dl_rate(0)
 		, m_outstanding_writing_bytes(0)
 		, m_download_rate_peak(0)
@@ -1811,7 +1811,7 @@ namespace libtorrent
 			|| m_ses.session_time() - peer_info_struct()->last_connected > 2)
 		{
 			// update bytes downloaded since last timer
-			m_remote_bytes_dled += t->torrent_file().piece_size(index);
+			++m_remote_pieces_dled;
 		}
 
 		// it's important to not disconnect before we have
@@ -4487,13 +4487,16 @@ namespace libtorrent
 		// update once every minute
 		if (now - m_remote_dl_update >= seconds(60))
 		{
+			boost::int64_t piece_size = t->torrent_file().piece_length();
+
 			if (m_remote_dl_rate > 0)
 				m_remote_dl_rate = (m_remote_dl_rate * 2 / 3) + 
-					((m_remote_bytes_dled / 3) / 60);
+					((boost::int64_t(m_remote_pieces_dled) * piece_size / 3) / 60);
 			else
-				m_remote_dl_rate = m_remote_bytes_dled / 60;
+				m_remote_dl_rate = boost::int64_t(m_remote_pieces_dled)
+					* piece_size / 60;
 			
-			m_remote_bytes_dled = 0;
+			m_remote_pieces_dled = 0;
 			m_remote_dl_update = now;
 		}
 
