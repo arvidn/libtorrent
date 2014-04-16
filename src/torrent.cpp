@@ -8567,30 +8567,30 @@ namespace libtorrent
 	
 		fp.resize(m_torrent_file->num_files(), 0);
 
+		if (is_seed())
+		{
+			for (int i = 0; i < m_torrent_file->num_files(); ++i)
+				fp[i] = m_torrent_file->files().file_size(i);
+			return;
+		}
+		
 		if (flags & torrent_handle::piece_granularity)
 		{
 			std::copy(m_file_progress.begin(), m_file_progress.end(), fp.begin());
 			return;
 		}
 
-		if (is_seed())
-		{
-			for (int i = 0; i < m_torrent_file->num_files(); ++i)
-				fp[i] = m_torrent_file->files().at(i).size;
-			return;
-		}
-		
 		TORRENT_ASSERT(has_picker());
 
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
 		{
 			peer_request ret = m_torrent_file->files().map_file(i, 0, 0);
 			size_type size = m_torrent_file->files().file_size(i);
-
-// zero sized files are considered
-// 100% done all the time
-			if (size == 0)
+			TORRENT_ASSERT(ret.piece >= 0);
+			TORRENT_ASSERT(ret.piece < m_picker->num_pieces());
+			if (ret.piece < 0 || ret.piece >= m_picker->num_pieces())
 			{
+				// this is not supposed to happen.
 				fp[i] = 0;
 				continue;
 			}
@@ -8598,8 +8598,12 @@ namespace libtorrent
 			size_type done = 0;
 			while (size > 0)
 			{
+				TORRENT_ASSERT(ret.piece < m_picker->num_pieces());
+				TORRENT_ASSERT(ret.piece >= 0);
+
 				size_type bytes_step = (std::min)(size_type(m_torrent_file->piece_size(ret.piece)
 					- ret.start), size);
+
 				if (m_picker->have_piece(ret.piece)) done += bytes_step;
 				++ret.piece;
 				ret.start = 0;
