@@ -1241,8 +1241,6 @@ namespace libtorrent
 		if (lock_files) mode |= file::lock_file;
 		if (!m_allocate_files) mode |= file::sparse;
 
-		if (!m_allocate_files) mode |= file::sparse;
-
 		// files with priority 0 should always be sparse
 		if (m_file_priority.size() > file && m_file_priority[file] == 0)
 			mode |= file::sparse;
