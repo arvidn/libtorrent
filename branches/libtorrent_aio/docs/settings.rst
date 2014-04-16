@@ -71,13 +71,17 @@ message. If this is an empty string, the user_agent is used instead
 | outgoing_interfaces | string | ""      |
 +---------------------+--------+---------+
 
-sets the network interface this session will use when it opens outgoing
-connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
-OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
-(either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
-in round-robin order. This may be useful for clients that are multi-homed.
-Binding an outgoing connection to a local IP does not necessarily make the connection via the associated
-NIC/Adapter. Setting this to an empty string will disable binding of outgoing connections.
+sets the network interface this session will use when it opens
+outgoing connections. By default, it binds outgoing connections to
+INADDR_ANY and port 0 (i.e. let the OS decide). Ths parameter must
+be a string containing one or more, comma separated, adapter names.
+Adapter names on unix systems are of the form "eth0", "eth1", "tun0",
+etc. When specifying multiple
+interfaces, they will be assigned in round-robin order. This may be
+useful for clients that are multi-homed. Binding an outgoing
+connection to a local IP does not necessarily make the connection
+via the associated NIC/Adapter. Setting this to an empty string
+will disable binding of outgoing connections.
 
 .. _listen_interfaces:
 
@@ -87,20 +91,24 @@ NIC/Adapter. Setting this to an empty string will disable binding of outgoing co
 | listen_interfaces | string | "0.0.0.0:6881" |
 +-------------------+--------+----------------+
 
-a comma-separated list of (IP, port) pairs. These are the listen ports that will be opened
-for accepting incoming uTP and TCP connections. It is possible to listen on multiple interfaces
-and multiple ports. Binding to port 0 will make the operating system pick the port.
-The default is "0.0.0.0:0", which binds to all interfaces on a port the OS picks.
-if binding fails, the listen_failed_alert is posted, otherwise the listen_succeeded_alert.
-If the DHT is running, it will also have its socket rebound to the same port as the main
-listen port.
+a comma-separated list of (IP or device name, port) pairs. These
+are the listen ports that will be opened for accepting incoming uTP
+and TCP connections. It is possible to listen on multiple
+interfaces and multiple ports. Binding to port 0 will make the
+operating system pick the port. The default is "0.0.0.0:0", which
+binds to all interfaces on a port the OS picks.
+if binding fails, the listen_failed_alert is posted, otherwise the
+listen_succeeded_alert.
+If the DHT is running, it will also have its socket rebound to the
+same port as the main listen port.
 
-The reason why it's a good idea to run the DHT and the bittorrent socket on the same
-port is because that is an assumption that may be used to increase performance. One
-way to accelerate the connecting of peers on windows may be to first ping all peers
-with a DHT ping packet, and connect to those that responds first. On windows one
-can only connect to a few peers at a time because of a built in limitation (in XP
-Service pack 2).
+The reason why it's a good idea to run the DHT and the bittorrent
+socket on the same port is because that is an assumption that may
+be used to increase performance. One way to accelerate the
+connecting of peers on windows may be to first ping all peers with
+a DHT ping packet, and connect to those that responds first. On
+windows one can only connect to a few peers at a time because of a
+built in limitation (in XP Service pack 2).
 
 .. _allow_multiple_connections_per_ip:
 
@@ -1546,7 +1554,7 @@ the *QBone scavenger service*. For more details, see QBSS_.
 +----------------------+------+---------+
 | active_limit         | int  | 15      |
 +----------------------+------+---------+
-| active_loaded_limit  | int  | 0       |
+| active_loaded_limit  | int  | 100     |
 +----------------------+------+---------+
 
 for auto managed torrents, these are the limits
@@ -1564,9 +1572,8 @@ For example if there are 10 seeding torrents and 10 downloading torrents, and
 ``active_downloads`` is 4 and ``active_seeds`` is 4, there will be 4 seeds
 active and 4 downloading torrents. If the settings are ``active_downloads`` = 2
 and ``active_seeds`` = 4, then there will be 2 downloading torrents and 4 seeding
-torrents active. Torrents that are not auto managed are also counted against these
-limits. If there are non-auto managed torrents that use up all the slots, no
-auto managed torrent will be activated.
+torrents active. Torrents that are not auto managed are not counted against these
+limits.
 
 ``active_limit`` is a hard limit on the number of active torrents. This applies even to
 slow torrents.
@@ -2244,7 +2251,7 @@ io-threads to use,  and ``aio_max`` the max number of outstanding jobs.
 +-----------------+------+---------+
 | name            | type | default |
 +=================+======+=========+
-| network_threads | int  | 1       |
+| network_threads | int  | 0       |
 +-----------------+------+---------+
 
 ``network_threads`` is the number of threads to use to call ``async_write_some``
@@ -2357,7 +2364,7 @@ to a peer. This setting controls n.
 +---------------------------+------+------------+
 | name                      | type | default    |
 +===========================+======+============+
-| max_http_recv_buffer_size | int  | 2*1024*204 |
+| max_http_recv_buffer_size | int  | 4*1024*204 |
 +---------------------------+------+------------+
 
 the max number of bytes to allow an HTTP response to be when
