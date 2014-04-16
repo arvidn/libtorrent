@@ -37,10 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+int num_ready_threads = 0;
+
 void fun(condition* s, libtorrent::mutex* m, int i)
 {
 	fprintf(stderr, "thread %d waiting\n", i);
 	libtorrent::mutex::scoped_lock l(*m);
+	++num_ready_threads;
 	s->wait(l);
 	fprintf(stderr, "thread %d done\n", i);
 }
@@ -55,10 +58,15 @@ int test_main()
 		threads.push_back(new thread(boost::bind(&fun, &cond, &m, i)));
 	}
 
-	// make sure all threads are waiting on the condition
-	sleep(10);
-
 	libtorrent::mutex::scoped_lock l(m);
+	while (num_ready_threads < 20)
+	{
+		l.unlock();
+		// make sure all threads are waiting on the condition
+		sleep(10);
+		l.lock();
+	}
+
 	cond.signal_all(l);
 	l.unlock();
 
