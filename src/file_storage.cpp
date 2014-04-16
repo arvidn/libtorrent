@@ -305,6 +305,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(file_index < num_files());
 		TORRENT_ASSERT(file_index >= 0);
+		TORRENT_ASSERT(m_num_pieces >= 0);
 
 		peer_request ret;
 		if (file_index < 0 || file_index >= num_files())
