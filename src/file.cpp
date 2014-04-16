@@ -1164,24 +1164,11 @@ namespace libtorrent
 			return false;
 		}
 
-#ifdef F_SETLK
-		if (mode & lock_file)
-		{
-			struct flock l =
-			{
-				0, // start offset
-				0, // length (0 = until EOF)
-				getpid(), // owner
-				short((mode != read_only) ? F_WRLCK : F_RDLCK), // lock type
-				SEEK_SET // whence
-			};
-			if (fcntl(m_fd, F_SETLK, &l) != 0)
-			{
-				ec.assign(errno, get_posix_category());
-				return false;
-			}
-		}
-#endif
+		// The purpose of the lock_file flag is primarily to prevent other
+		// processes from corrupting files that are being used by libtorrent.
+		// the posix file locking mechanism does not prevent others from
+		// accessing files, unless they also attempt to lock the file. That's
+		// why the SETLK mechanism is not used here.
 
 #ifdef DIRECTIO_ON
 		// for solaris
