@@ -216,12 +216,10 @@ namespace libtorrent
 		s->atime = file_time_to_posix(data.ftLastAccessTime);
 		s->mtime = file_time_to_posix(data.ftLastWriteTime);
 
-		s->mode = ((data.dwFileAttributes & FILE_ATTRIBUTE_NORMAL)
-			? file_status::regular_file : 0)
-			| ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-			? file_status::directory : 0)
-			| ((data.dwFileAttributes & FILE_ATTRIBUTE_DEVICE)
-			? file_status::character_special : 0);
+		s->mode = (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			? file_status::directory
+			: (data.dwFileAttributes & FILE_ATTRIBUTE_DEVICE)
+			? file_status::character_special : file_status::regular_file;
 
 #else
 		
