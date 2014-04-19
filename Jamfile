@@ -370,8 +370,7 @@ feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 <defi
 feature.compose <asserts>off : <define>TORRENT_USE_ASSERTS=0 ;
 feature.compose <asserts>system : <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 
-feature windows-version : 2k xp vista win7 : composite propagated link-incompatible ;
-feature.compose <windows-version>2k : <define>_WIN32_WINNT=0x0500 ;
+feature windows-version : xp vista win7 : composite propagated link-incompatible ;
 feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
 feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
