@@ -153,7 +153,6 @@ namespace libtorrent
 			std::vector<downloading_piece>::const_iterator piece = find_dl_piece(index);
 			TORRENT_ASSERT(piece != m_downloads.end());
 			st = *piece;
-			st.info = 0;
 			return;
 		}
 		st.info = 0;
@@ -1547,6 +1546,10 @@ namespace libtorrent
 			for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
 				, end(m_downloads.end()); i != end; ++i)
 			{
+				// in time critical mode, only pick prio 7 pieces
+				if ((options & time_critical_mode) && piece_priority(i->index) != 7)
+					continue;
+
 				if (!is_piece_free(i->index, pieces)) continue;
 				if (m_piece_map[i->index].full
 					&& backup_blocks.size() >= num_blocks
@@ -1573,6 +1576,10 @@ namespace libtorrent
 			for (std::vector<int>::const_iterator i = suggested_pieces.begin();
 				i != suggested_pieces.end(); ++i)
 			{
+				// in time critical mode, only pick prio 7 pieces
+				if ((options & time_critical_mode) && piece_priority(*i) != 7)
+					continue;
+
 				if (!is_piece_free(*i, pieces)) continue;
 				num_blocks = add_blocks(*i, pieces
 					, interesting_blocks, backup_blocks
@@ -1600,34 +1607,38 @@ namespace libtorrent
 				if (num_blocks <= 0) return;
 			}
 
-			if (options & reverse)
+			// in time critical mode, only pick prio 7 pieces
+			if ((options & time_critical_mode) == 0)
 			{
-				for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
-				{	
-					if (!is_piece_free(i, pieces)) continue;
-					// we've already added prio 7 pieces
-					if (piece_priority(i) == 7) continue;
-					num_blocks = add_blocks(i, pieces
-						, interesting_blocks, backup_blocks
-						, backup_blocks2, num_blocks
-						, prefer_whole_pieces, peer, suggested_pieces
-						, speed, options);
-					if (num_blocks <= 0) return;
+				if (options & reverse)
+				{
+					for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
+					{	
+						if (!is_piece_free(i, pieces)) continue;
+						// we've already added prio 7 pieces
+						if (piece_priority(i) == 7) continue;
+						num_blocks = add_blocks(i, pieces
+							, interesting_blocks, backup_blocks
+							, backup_blocks2, num_blocks
+							, prefer_whole_pieces, peer, suggested_pieces
+							, speed, options);
+						if (num_blocks <= 0) return;
+					}
 				}
-			}
-			else
-			{
-				for (int i = m_cursor; i < m_reverse_cursor; ++i)
-				{	
-					if (!is_piece_free(i, pieces)) continue;
-					// we've already added prio 7 pieces
-					if (piece_priority(i) == 7) continue;
-					num_blocks = add_blocks(i, pieces
-						, interesting_blocks, backup_blocks
-						, backup_blocks2, num_blocks
-						, prefer_whole_pieces, peer, suggested_pieces
-						, speed, options);
-					if (num_blocks <= 0) return;
+				else
+				{
+					for (int i = m_cursor; i < m_reverse_cursor; ++i)
+					{	
+						if (!is_piece_free(i, pieces)) continue;
+						// we've already added prio 7 pieces
+						if (piece_priority(i) == 7) continue;
+						num_blocks = add_blocks(i, pieces
+							, interesting_blocks, backup_blocks
+							, backup_blocks2, num_blocks
+							, prefer_whole_pieces, peer, suggested_pieces
+							, speed, options);
+						if (num_blocks <= 0) return;
+					}
 				}
 			}
 		}
@@ -1636,7 +1647,11 @@ namespace libtorrent
 			if (m_dirty) update_pieces();
 			TORRENT_ASSERT(!m_dirty);
 
-			if (options & reverse)
+			// in time critical mode, we're only allowed to pick prio 7
+			// pieces. This is why reverse mode is disabled when we're in
+			// time-critical mode, because all prio 7 pieces are at the front
+			// of the list
+			if ((options & reverse) && (options & time_critical_mode) == 0)
 			{
 				// it's a bit complicated in order to always prioritize
 				// partial pieces, and respect priorities. Every chunk
@@ -1673,6 +1688,13 @@ namespace libtorrent
 				for (std::vector<int>::const_iterator i = m_pieces.begin();
 					i != m_pieces.end(); ++i)
 				{
+					// in time critical mode, only pick prio 7 pieces
+					// it's safe to break here because in this mode we
+					// pick pieces in priority order. Once we hit a lower priority
+					// piece, we won't encounter any more prio 7 ones
+					if ((options & time_critical_mode) && piece_priority(*i) != 7)
+						break;
+
 					if (!is_piece_free(*i, pieces)) continue;
 					num_blocks = add_blocks(*i, pieces
 						, interesting_blocks, backup_blocks
@@ -1683,8 +1705,25 @@ namespace libtorrent
 				}
 			}
 		}
+		else if (options & time_critical_mode)
+		{
+			// if we're in time-critical mode, we are only allowed to pick
+			// prio 7 pieces.
+			for (std::vector<int>::const_iterator i = m_pieces.begin();
+				i != m_pieces.end() && piece_priority(*i) == 7; ++i)
+			{
+				if (!is_piece_free(*i, pieces)) continue;
+				num_blocks = add_blocks(*i, pieces
+					, interesting_blocks, backup_blocks
+					, backup_blocks2, num_blocks
+					, prefer_whole_pieces, peer, suggested_pieces
+					, speed, options);
+				if (num_blocks <= 0) return;
+			}
+		}
 		else
 		{
+
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
@@ -1808,6 +1847,9 @@ namespace libtorrent
 			if (!pieces[i->index]) continue;
 			if (piece_priority(i->index) == 0) continue;
 				
+			if ((options & time_critical_mode) && piece_priority(i->index) != 7)
+				continue;
+
 			int num_blocks_in_piece = blocks_in_piece(i->index);
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
@@ -1818,7 +1860,7 @@ namespace libtorrent
 					interesting_blocks.begin(), interesting_blocks.end()
 					, piece_block(i->index, j));
 				if (k != interesting_blocks.end()) continue;
-				
+
 				fprintf(stderr, "interesting blocks:\n");
 				for (k = interesting_blocks.begin(); k != interesting_blocks.end(); ++k)
 					fprintf(stderr, "(%d, %d)", k->piece_index, k->block_index);
@@ -1838,7 +1880,7 @@ namespace libtorrent
 			}
 		}
 
-		if (interesting_blocks.empty())
+		if (interesting_blocks.empty() && !(options & time_critical_mode))
 		{
 //			print_pieces();
 			for (int i = 0; i < num_pieces(); ++i)
