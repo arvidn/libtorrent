@@ -510,7 +510,9 @@ namespace libtorrent
 
 		bool can_request_time_critical() const;
 
-		void make_time_critical(piece_block const& block);
+		// returns true if the specified block was actually made time-critical.
+		// if the block was already time-critical, it returns false.
+		bool make_time_critical(piece_block const& block);
 
 		// adds a block to the request queue
 		// returns true if successful, false otherwise

@@ -838,6 +838,11 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 		if (!t) return 0;
 
+		if (t->num_time_critical_pieces() > 0)
+		{
+			ret |= piece_picker::time_critical_mode;
+		}
+
 		if (t->is_sequential_download())
 		{
 			ret |= piece_picker::sequential;
@@ -963,12 +968,44 @@ namespace libtorrent
 
 	time_duration peer_connection::download_queue_time(int extra_bytes) const
 	{
-		int rate = m_statistics.transfer_rate(stat::download_payload)
-			+ m_statistics.transfer_rate(stat::download_protocol);
-		// avoid division by zero
-		if (rate < 50) rate = 50;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+
+		int rate = 0;
+
+		// if we haven't received any data recently, the current download rate
+		// is not representative
+		if (time_now() - m_last_piece > seconds(30) && m_download_rate_peak > 0)
+		{
+			rate = m_download_rate_peak;
+		}
+		else if (time_now() - m_last_unchoked < seconds(5)
+			&& m_statistics.total_payload_upload() < 2 * 0x4000)
+		{
+			// if we're have only been unchoked for a short period of time,
+			// we don't know what rate we can get from this peer. Instead of assuming
+			// the lowest possible rate, assume the average.
+
+			// TODO: this should only be peers we're trying to download from
+			int peers_with_requests = m_ses.num_connections();
+			// avoid division by 0
+			if (peers_with_requests == 0) peers_with_requests = 1;
+
+			rate = m_ses.m_stat.transfer_rate(stat::download_payload) / peers_with_requests;
+		}
+		else
+		{
+			// current download rate in bytes per seconds
+			rate = m_statistics.transfer_rate(stat::download_payload)
+				+ m_statistics.transfer_rate(stat::download_protocol);
+		}
+
+		// avoid division by zero
+		if (rate < 50) rate = 50;
+
+		// average of current rate and peak
+//		rate = (rate + m_download_rate_peak) / 2;
+
 		return seconds((m_outstanding_bytes + m_queued_time_critical * t->block_size()) / rate);
 	}
 
@@ -2891,17 +2928,17 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 		if (t->upload_mode()) return false;
 
-		// ignore snubbed peers, since they're not likely to return pieces in a timely
-		// manner anyway
+		// ignore snubbed peers, since they're not likely to return pieces in a
+		// timely manner anyway
 		if (m_snubbed) return false;
 		return true;
 	}
 
-	void peer_connection::make_time_critical(piece_block const& block)
+	bool peer_connection::make_time_critical(piece_block const& block)
 	{
 		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
 			, m_request_queue.end(), has_block(block));
-		if (rit == m_request_queue.end()) return;
+		if (rit == m_request_queue.end()) return false;
 #if TORRENT_USE_ASSERTS
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -2909,11 +2946,12 @@ namespace libtorrent
 		TORRENT_ASSERT(t->picker().is_requested(block));
 #endif
 		// ignore it if it's already time critical
-		if (rit - m_request_queue.begin() < m_queued_time_critical) return;
+		if (rit - m_request_queue.begin() < m_queued_time_critical) return false;
 		pending_block b = *rit;
 		m_request_queue.erase(rit);
 		m_request_queue.insert(m_request_queue.begin() + m_queued_time_critical, b);
 		++m_queued_time_critical;
+		return true;
 	}
 
 	bool peer_connection::add_request(piece_block const& block, int flags)
@@ -2959,11 +2997,14 @@ namespace libtorrent
 			state = piece_picker::slow;
 		}
 
-		if (flags & req_busy)
+		if ((flags & req_busy) && !(flags & req_time_critical))
 		{
 			// this block is busy (i.e. it has been requested
 			// from another peer already). Only allow one busy
 			// request in the pipeline at the time
+			// this rule does not apply to time critical pieces,
+			// in which case we are allowed to pick more than one
+			// busy blocks
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{
@@ -4045,7 +4086,7 @@ namespace libtorrent
 			return;
 		}
 	
-		int download_rate = statistics().download_rate();
+		int download_rate = statistics().download_payload_rate();
 
 		// calculate the desired download queue size
 		const int queue_time = m_ses.settings().request_queue_time;

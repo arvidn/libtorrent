@@ -1,3 +1,4 @@
+	* improve piece_deadline/streaming
 	* honor pieces with priority 7 in sequential download mode
 	* simplified building python bindings
 	* make ignore_non_routers more forgiving in the case there are no UPnP

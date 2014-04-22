@@ -80,6 +80,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
+//#define TORRENT_DEBUG_STREAMING 1
+
 namespace libtorrent
 {
 	class http_parser;
@@ -103,6 +105,29 @@ namespace libtorrent
 		struct session_impl;
 		struct piece_checker_data;
 	}
+
+	struct time_critical_piece
+	{
+		// when this piece was first requested
+		ptime first_requested;
+		// when this piece was last requested
+		ptime last_requested;
+		// by what time we want this piece
+		ptime deadline;
+		// 1 = send alert with piece data when available
+		int flags;
+		// how many peers it's been requested from
+		int peers;
+		// the piece index
+		int piece;
+#ifdef TORRENT_DEBUG_STREAMING
+		// the number of multiple requests are allowed
+		// to blocks still not downloaded (debugging only)
+		int timed_out;
+#endif
+		bool operator<(time_critical_piece const& rhs) const
+		{ return deadline < rhs.deadline; }
+	};
 
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
@@ -874,6 +899,9 @@ namespace libtorrent
 		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
 #endif
 
+		int num_time_critical_pieces() const
+		{ return m_time_critical_pieces.size(); }
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -1012,24 +1040,6 @@ namespace libtorrent
 
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
-
-		struct time_critical_piece
-		{
-			// when this piece was first requested
-			ptime first_requested;
-			// when this piece was last requested
-			ptime last_requested;
-			// by what time we want this piece
-			ptime deadline;
-			// 1 = send alert with piece data when available
-			int flags;
-			// how many peers it's been requested from
-			int peers;
-			// the piece index
-			int piece;
-			bool operator<(time_critical_piece const& rhs) const
-			{ return deadline < rhs.deadline; }
-		};
 
 		// this list is sorted by time_critical_piece::deadline
 		std::deque<time_critical_piece> m_time_critical_pieces;

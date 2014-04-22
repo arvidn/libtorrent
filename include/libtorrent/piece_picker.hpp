@@ -151,7 +151,11 @@ namespace libtorrent
 			// have affinity to pieces with the same speed category
 			speed_affinity = 32,
 			// ignore the prefer_whole_pieces parameter
-			ignore_whole_pieces = 64
+			ignore_whole_pieces = 64,
+			// treat pieces with priority 6 and below as filtered
+			// to trigger end-game mode until all prio 7 pieces are
+			// completed
+			time_critical_mode = 128
 		};
 
 		struct downloading_piece
