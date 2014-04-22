@@ -76,13 +76,24 @@ namespace libtorrent
 		if (!t.are_files_checked()) return false;
 
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || c.type() != peer_connection::bittorrent_connection);
-		int num_requests = c.desired_queue_size()
+
+		bool time_critical_mode = t.num_time_critical_pieces() > 0;
+
+		int desired_queue_size = c.desired_queue_size();
+
+		// in time critical mode, only have 1 outstanding request at a time
+		// via normal requests
+		if (time_critical_mode)
+			desired_queue_size = (std::min)(1, desired_queue_size);
+
+		int num_requests = desired_queue_size
 			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		c.peer_log("*** PIECE_PICKER [ dlq: %d rqq: %d target: %d req: %d engame: %d ]"
-			, int(c.download_queue().size()), int(c.request_queue().size()), c.desired_queue_size(), num_requests, c.endgame());
+			, int(c.download_queue().size()), int(c.request_queue().size())
+			, c.desired_queue_size(), num_requests, c.endgame());
 #endif
 		TORRENT_ASSERT(c.desired_queue_size() > 0);
 		// if our request queue is already full, we
@@ -97,13 +108,13 @@ namespace libtorrent
 
 		int prefer_whole_pieces = c.prefer_whole_pieces();
 
-		if (prefer_whole_pieces == 0)
+		if (prefer_whole_pieces == 0 && !time_critical_mode)
 		{
 			prefer_whole_pieces = c.statistics().download_payload_rate()
 				* t.settings().get_int(settings_pack::whole_pieces_threshold)
 				> t.torrent_file().piece_length() ? 1 : 0;
 		}
-	
+
 		// if we prefer whole pieces, the piece picker will pick at least
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
@@ -167,9 +178,12 @@ namespace libtorrent
 		// and we're not strictly speaking in end-game mode yet
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
-		bool dont_pick_busy_blocks = (ses.settings().get_bool(settings_pack::strict_end_game_mode)
-			&& p.get_download_queue_size() < p.num_want_left())
-			|| dq.size() + rq.size() > 0;
+		// in time critical mode, it's OK to request busy blocks
+		bool dont_pick_busy_blocks
+			= ((ses.settings().get_bool(settings_pack::strict_end_game_mode)
+				&& p.get_download_queue_size() < p.num_want_left())
+				|| dq.size() + rq.size() > 0)
+				&& !time_critical_mode;
 
 		// this is filled with an interesting piece
 		// that some other peer is currently downloading
@@ -179,6 +193,13 @@ namespace libtorrent
 			i != interesting_pieces.end(); ++i)
 		{
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
+
+			if (time_critical_mode && p.piece_priority(i->piece_index) != 7)
+			{
+				// assume the subsequent pieces are not prio 7 and
+				// be done
+				break;
+			}
 
 			int num_block_requests = p.num_peers(*i);
 			if (num_block_requests > 0)

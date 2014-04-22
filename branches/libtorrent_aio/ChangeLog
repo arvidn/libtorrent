@@ -25,6 +25,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* improve piece_deadline/streaming
 	* honor pieces with priority 7 in sequential download mode
 	* simplified building python bindings
 	* make ignore_non_routers more forgiving in the case there are no UPnP

@@ -160,10 +160,14 @@ namespace libtorrent
 			speed_affinity = 32,
 			// ignore the prefer_whole_pieces parameter
 			ignore_whole_pieces = 64,
+			// treat pieces with priority 6 and below as filtered
+			// to trigger end-game mode until all prio 7 pieces are
+			// completed
+			time_critical_mode = 128,
 			// only expands pieces (when prefer whole pieces is set)
 			// within properly aligned ranges, not the largest possible
 			// range of pieces.
-			align_expanded_pieces = 128
+			align_expanded_pieces = 256
 		};
 
 		struct downloading_piece
