@@ -5855,7 +5855,7 @@ namespace libtorrent
 		m_ses.setup_socket_buffers(*s);
 
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
-			m_ses, s, a, peerinfo, shared_from_this(), true));
+			m_ses, s, a, peerinfo, m_ses.get_peer_id(), shared_from_this(), true));
 
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;

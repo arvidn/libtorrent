@@ -2857,7 +2857,7 @@ retry:
 		setup_socket_buffers(*s);
 
 		boost::intrusive_ptr<peer_connection> c(
-			new bt_peer_connection(*this, s, endp, 0));
+			new bt_peer_connection(*this, s, endp, 0, get_peer_id()));
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif

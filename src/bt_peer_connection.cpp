@@ -101,6 +101,7 @@ namespace libtorrent
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, policy::peer* peerinfo
+		, peer_id const& pid
 		, boost::weak_ptr<torrent> tor
 		, bool outgoing)
 		: peer_connection(ses, tor, s, remote
@@ -118,6 +119,7 @@ namespace libtorrent
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
 #endif
+		, m_our_peer_id(pid)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
@@ -791,13 +793,11 @@ namespace libtorrent
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
 			for (int i = 0; i < 20; ++i)
-				ptr[i] = random() & 0xff;
+				m_our_peer_id[i] = random() & 0xff;
 		}
-		else
-		{
-			memcpy(ptr, &m_ses.get_peer_id()[0], 20);
-		}
-//		ptr += 20;
+
+		memcpy(ptr, &m_our_peer_id[0], 20);
+		ptr += 20;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
