@@ -93,6 +93,7 @@ namespace libtorrent
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, torrent_peer* peerinfo
+			, peer_id const& pid
 			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
 			, bool outgoing = false);
 
@@ -379,6 +380,9 @@ private:
 #endif
 
 		std::string m_client_version;
+
+		// the peer ID we advertise for ourself
+		peer_id m_our_peer_id;
 
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload

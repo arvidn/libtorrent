@@ -3212,7 +3212,8 @@ retry:
 
 		boost::shared_ptr<peer_connection> c
 			= boost::make_shared<bt_peer_connection>(boost::ref(*this), m_settings
-				, boost::ref(*this), boost::ref(m_disk_thread), s, endp, (torrent_peer*)0);
+				, boost::ref(*this), boost::ref(m_disk_thread), s, endp, (torrent_peer*)0
+				, get_peer_id());
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif
@@ -7096,7 +7097,7 @@ retry:
 
 	bool session_impl::preemptive_unchoke() const
 	{
-		return m_num_unchoked < m_allowed_upload_slots * 2 / 3;
+		return m_num_unchoked < m_allowed_upload_slots;
 	}
 
 	void session_impl::upate_dht_upload_rate_limit()
