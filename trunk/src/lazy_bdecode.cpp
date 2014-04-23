@@ -49,7 +49,10 @@ namespace libtorrent
 		ec = make_error_code(code); \
 		while (!stack.empty()) { \
 			top = stack.back(); \
-			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) top->pop(); \
+			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) { \
+				top->pop(); \
+				break; \
+			} \
 			stack.pop_back(); \
 		} \
 		if (error_pos) *error_pos = start - orig_start; \
