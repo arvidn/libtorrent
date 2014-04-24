@@ -630,6 +630,101 @@ libtorrent_connection.prototype['get_stats'] = function(stats, callback)
 	this._socket.send(call);
 }
 
+libtorrent_connection.prototype['get_file_updates'] = function(ih, callback)
+{
+	if (this._socket.readyState != WebSocket.OPEN)
+	{
+		window.setTimeout( function() { callback("socket closed"); }, 0);
+		return;
+	}
+	
+	var tid = this._tid++;
+	if (this._tid > 65535) this._tid = 0;
+
+	// this is the handler of the response for this call. It first
+	// parses out the return value, the passes it on to the user
+	// supplied callback.
+	var self = this;
+	this._transactions[tid] = function(view, fun, e)
+	{
+		if (_check_error(e, callback)) return;
+
+		var frame = view.getUint32(4);
+		var num_files = view.getUint32(8);
+		console.log('frame: ' + frame + ' num-files: ' + num_files);
+		ret = [];
+		var offset = 12;
+		var mask = 0;
+		for (var i = 0; i < num_files; ++i)
+		{
+			var file = {}
+
+			if ((i % 8) == 0)
+			{
+				mask = view.getUint8(offset)
+				offset += 1;
+			}
+			if  ((mask & (0x80 >> (i & 7))) == 0)
+			{
+				ret.push(file);
+				continue
+			}
+
+			var field_mask = view.getUint16(offset)
+			offset += 2;
+
+			for (var field = 0; field < 16; ++field)
+			{
+				var bit = 1 << field;
+				if ((field_mask & bit) == 0) continue;
+				switch (field)
+				{
+					case 0: // flags
+						file['flags'] = view.getUint8(offset);
+						offset += 1;
+						break;
+					case 1: // name
+						var name = read_string16(view, offset);
+						offset += 2 + name.length;
+						file['name'] = name;
+						break;
+					case 2: // total-size
+						file['size'] = read_uint64(view, offset);
+						offset += 8;
+						break;
+					case 3: // total-downloaded
+						file['downloaded'] = read_uint64(view, offset);
+						offset += 8;
+						break;
+				}
+			}
+			ret.push(file);
+		}
+
+		if (typeof(callback) !== 'undefined') callback(ret);
+	};
+
+	var call = new ArrayBuffer(27);
+	var view = new DataView(call);
+	// function 19
+	view.setUint8(0, 19);
+	// transaction-id
+	view.setUint16(1, tid);
+
+	var offset = 3;
+	for (var i = 0; i < 40; i += 2)
+	{
+		var b = parseInt(ih.substring(i, i + 2), 16);
+		view.setUint8(offset, b);
+		offset += 1;
+	}
+
+	// frame-number
+	view.setUint32(offset, 0);
+
+	console.log('CALL get_file_updates() tid = ' + tid);
+	this._socket.send(call);
+}
 libtorrent_connection.prototype['start'] = function(info_hashes, callback)
 { this._send_simple_call(1, info_hashes, callback); };
 

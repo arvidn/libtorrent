@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>libtorrent websocket test</title>
+<script language="javascript" type="text/javascript" src="libtorrent-webui.js"></script>
+<script language="javascript" type="text/javascript">
+
+var conn = null;
+
+update_file_list = function(files)
+{
+	if (typeof(files) === 'string')
+	{
+		console.log("ERROR: " + files);
+		return;
+	}
+
+	var table = document.getElementById("files");
+
+	var req = [];
+	for (var i = 0; i < files.length; i++)
+	{
+		var f = files[i];
+		var row = null;
+		if (table.rows.length <= i + 1) {
+			row = table.insertRow(-1);
+			row.insertCell(0);
+			row.insertCell(1);
+			row.insertCell(2);
+			row.insertCell(3);
+		} else {
+			row = table.rows[i + 1];
+		}
+
+		if ('name' in f) row.cells[0].textContent = f['name'];
+		if ('size' in f) row.cells[1].textContent = f['size'];
+		if ('downloaded' in f)
+		{
+			row.cells[2].innerHTML
+				= '<hr style="color:#c00;background-color:#c00;height:15px; '
+					+ 'border:none; margin:0;" align="left" width='
+					+ (f['downloaded']*100/f['size']) + '% />';
+			row.cells[3].textContent = f['downloaded'];
+		}
+	}
+};
+
+window.onload = function() {
+	var url = 'ws://' + window.location.host + '/bt/control';
+	conn = new libtorrent_connection(url, function(state)
+	{
+		if (state != "OK") {
+			console.log(state);
+			return;
+		}
+
+		window.setInterval(function() {
+				conn.get_file_updates(window.location.hash.substring(1), update_file_list);
+			}, 1000);
+	});
+};
+</script>
+<style>.updated { background-color: #faa; }</style>
+<table id="files" border="1" style="border-collapse: collapse;">
+<form>
+<tr><th>Name</th><th>Size</th><th>Progress</th><th>Downloaded</th></tr>
+</table>
+</form>
+</html>
+

@@ -49,7 +49,8 @@ namespace libtorrent
 
 	struct libtorrent_webui : websocket_handler
 	{
-		libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth, alert_handler* alerts);
+		libtorrent_webui(session& ses, torrent_history const* hist
+			, auth_interface const* auth, alert_handler* alerts);
 		~libtorrent_webui();
 
 		virtual bool handle_websocket_connect(mg_connection* conn,
@@ -88,6 +89,8 @@ namespace libtorrent
 
 		bool list_stats(conn_state* st);
 		bool get_stats(conn_state* st);
+
+		bool get_file_updates(conn_state* st);
 
 		// parse the arguments to the simple torrent commands
 		int parse_torrent_args(std::vector<torrent_status>& torrents, conn_state* st);

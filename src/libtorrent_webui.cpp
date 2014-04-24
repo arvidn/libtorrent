@@ -46,7 +46,8 @@ namespace libtorrent
 {
 	namespace io = libtorrent::detail;
 
-	libtorrent_webui::libtorrent_webui(session& ses, torrent_history const* hist, auth_interface const* auth, alert_handler* alert)
+	libtorrent_webui::libtorrent_webui(session& ses, torrent_history const* hist
+		, auth_interface const* auth, alert_handler* alert)
 		: m_ses(ses)
 		, m_hist(hist)
 		, m_auth(auth)
@@ -102,6 +103,7 @@ namespace libtorrent
 		{ "set-settings", &libtorrent_webui::set_settings },
 		{ "list-stats", &libtorrent_webui::list_stats },
 		{ "get-stats", &libtorrent_webui::get_stats },
+		{ "get-file-updates", &libtorrent_webui::get_file_updates },
 	};
 
 	// maps torrent field to RPC field. These fields are the ones defined in
@@ -779,6 +781,74 @@ namespace libtorrent
 		// now that we know what the number of updates is, fill it in
 		char* counter_ptr = &response[counter_pos];
 		io::write_uint16(num_updates, counter_ptr);
+
+		return send_packet(st->conn, 0x2, &response[0], response.size());
+	}
+
+	bool libtorrent_webui::get_file_updates(conn_state* st)
+	{
+		char* iptr = st->data;
+		if (st->len != 24) return error(st, invalid_number_of_args);
+		sha1_hash ih;
+		std::copy(iptr, iptr+20, &ih[0]);
+		iptr += 20;
+		boost::uint32_t frame = io::read_uint32(iptr);
+
+		torrent_handle h = m_ses.find_torrent(ih);
+		if (!h.is_valid()) return error(st, invalid_argument);
+
+		std::vector<char> response;
+		std::back_insert_iterator<std::vector<char> > ptr(response);
+
+		io::write_uint8(st->function_id | 0x80, ptr);
+		io::write_uint16(st->transaction_id, ptr);
+		io::write_uint8(no_error, ptr);
+
+		std::vector<boost::int64_t> fp;
+		h.file_progress(fp, torrent_handle::piece_granularity);
+
+		boost::shared_ptr<const torrent_info> t = h.torrent_file();
+		file_storage const& fs = t->files();
+
+		// just in case
+		fp.resize(fs.num_files(), 0);
+
+		// frame number
+		io::write_uint32(0, ptr);
+		
+		// number of files
+		io::write_uint32(fs.num_files(), ptr);
+
+		// TODO: we should really just send differences since last time
+		// for now, just send full updates
+		for (int i = 0; i < fs.num_files(); ++i)
+		{
+			if ((i % 8) == 0)
+			{
+				boost::uint8_t mask = 0xff;
+				if (fs.num_files() - i < 8)
+					mask <<= 8 - fs.num_files() + i;
+				io::write_uint8(mask, ptr);
+			}
+
+			// file update bitmask (all 4 fields)
+			io::write_uint16(0xf, ptr);
+
+			// flags
+			io::write_uint8(fs.file_flags(i), ptr);
+
+			// name
+			std::string name = fs.file_path(i);
+			if (name.size() > 65535) name.resize(65535);
+			io::write_uint16(name.size(), ptr);
+			std::copy(name.begin(), name.end(), ptr);
+
+			// total-size
+			io::write_uint64(fs.file_size(i), ptr);
+
+			// total downloaded
+			io::write_uint64(fp[i], ptr);
+		}
 
 		return send_packet(st->conn, 0x2, &response[0], response.size());
 	}

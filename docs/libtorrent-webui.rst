@@ -454,6 +454,77 @@ The response is:
 
 The last two fields are repeated the ``num-stats``  times.
 
+get-file-updates
+................
+
+function id 19.
+
+This function returns the status of the files of a torrent.
+
++----------+--------------------+-------------------------------------------+
+| offset   | type               | name                                      |
++==========+====================+===========================================+
+| 3        | uint8_t[20]        | ``info-hash`` of the torrent.             |
++----------+--------------------+-------------------------------------------+
+| 23       | uint32_t           | ``frame-number`` (timestamp)              |
+|          |                    | of last update for thist torrent.         |
++----------+--------------------+-------------------------------------------+
+
+The response is:
+
++----------+--------------------+-------------------------------------------+
+| offset   | type               | name                                      |
++==========+====================+===========================================+
+| 4        | uint32_t           | ``frame-number`` (timestamp)              |
+|          |                    | of last update for thist torrent.         |
++----------+--------------------+-------------------------------------------+
+| 8        | uint32_t           | ``num-files`` the total number of files   |
+|          |                    | in the torrent.                           |
++----------+--------------------+-------------------------------------------+
+| 12       | uint8_t            | ``file-update-bitmask`` bitmask           |
+|          |                    | indicating which ones of the next 8 files |
+|          |                    | contain an update.                        |
++----------+--------------------+-------------------------------------------+
+| 13       | ...                | file-update (see below). There is one     |
+|          |                    | update for each set bit in the update     |
+|          |                    | bitmask above.                            |
+|          |                    |                                           |
+|          |                    | the first and mandatory field in the      |
+|          |                    | file-update is a 16 bit field-update-     |
+|          |                    | bitmask. Each bit representing a field    |
+|          |                    | for the update. See below.                |
++----------+--------------------+-------------------------------------------+
+
+The ``file-update-bitmask`` along with the associated file-updates, are
+repeated num-files / 8 times. Each representing 8 more files.
+
+Each file-update has a similar format to the torrent updates. There is a
+16 bit bitmask indicating which fields of the file has updates. Followed by
+those fields.
+
+The fields on files, in bitmask bit-order (LSB is bit 0), are:
+
++----------+---------------------+------------------------------------------+
+| field-id | type                | name                                     |
++==========+=====================+==========================================+
+| 0        | uint8_t             | ``flags`` bitmask with the following     |
+|          |                     | bits:                                    |
+|          |                     |                                          |
+|          |                     |  | 0x001. pad-file                       |
+|          |                     |  | 0x002. hidden-attribute               |
+|          |                     |  | 0x004. executable-attribute           |
+|          |                     |                                          |
++----------+---------------------+------------------------------------------+
+| 1        | uint16_t, uint8_t[] | ``name``. This is a variable length      |
+|          |                     | string with a 16 bit length prefix.      |
+|          |                     | it is encoded as UTF-8.                  |
++----------+---------------------+------------------------------------------+
+| 2        | uint64_t            | ``size`` (number of bytes)               |
++----------+---------------------+------------------------------------------+
+| 3        | uint64_t            | ``downloaded`` (number of bytes)         |
++----------+---------------------+------------------------------------------+
+
+
 Appendix A
 ==========
 
@@ -497,6 +568,12 @@ Function IDs
 |  15 | set-settings              | setting-id, type, value, ...            |
 +-----+---------------------------+-----------------------------------------+
 |  16 | get-settings              | setting-id, ...                         |
++-----+---------------------------+-----------------------------------------+
+|  17 | list-stats                |                                         |
++-----+---------------------------+-----------------------------------------+
+|  18 | get-stats                 | frame, num-stats, stats-id, ...         |
++-----+---------------------------+-----------------------------------------+
+|  19 | get-file-updates          | info-hash, frame-number                 |
 +-----+---------------------------+-----------------------------------------+
 
 Appendix B
