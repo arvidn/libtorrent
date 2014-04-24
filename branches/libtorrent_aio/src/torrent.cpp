@@ -7021,7 +7021,7 @@ namespace libtorrent
 		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
 			boost::ref(m_ses), m_ses.settings(), boost::ref(m_ses)
 			, boost::ref(m_ses.disk_thread())
-			, s, a, peerinfo, m_ses.get_peer_id(), shared_from_this(), true);
+			, s, a, peerinfo, m_ses.get_peer_id(), shared_from_this());
 
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;

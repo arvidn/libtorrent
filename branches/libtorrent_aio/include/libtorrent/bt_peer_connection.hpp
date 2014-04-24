@@ -94,8 +94,7 @@ namespace libtorrent
 			, tcp::endpoint const& remote
 			, torrent_peer* peerinfo
 			, peer_id const& pid
-			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
-			, bool outgoing = false);
+			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>());
 
 		void start();
 

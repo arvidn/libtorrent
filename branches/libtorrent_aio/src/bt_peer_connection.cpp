@@ -106,11 +106,11 @@ namespace libtorrent
 		, tcp::endpoint const& remote
 		, torrent_peer* peerinfo
 		, peer_id const& pid
-		, boost::weak_ptr<torrent> tor
-		, bool outgoing)
+		, boost::weak_ptr<torrent> tor)
+		// if tor is set, this is an outgoing connection
 		: peer_connection(ses, sett, allocator, disk_thread
 			, ses.get_io_service()
-			, tor, s, remote, peerinfo, outgoing)
+			, tor, s, remote, peerinfo, tor.lock())
 		, m_state(read_protocol_identifier)
 		, m_supports_extensions(false)
 		, m_supports_dht_port(false)
