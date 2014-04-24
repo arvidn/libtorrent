@@ -59,7 +59,7 @@ namespace libtorrent
 		int size;
 		int piece;
 		// we want ascending order!
-		bool operator<(piece_entry const& rhs) const { return piece > rhs.piece; }
+		bool operator<(piece_entry const& rhs) const { return piece >= rhs.piece; }
 	};
 
 	struct torrent_piece_queue
@@ -99,6 +99,10 @@ namespace libtorrent
 				pe.buffer = p->buffer;
 				pe.piece = p->piece;
 				pe.size = p->size;
+
+// TODO: this does not guard against duplicate pieces and somehow the order
+// is not correctly enforced either
+
 				i->second->queue.push(pe);
 				if (pe.piece == i->second->begin)
 					i->second->cond.notify_all();
@@ -138,7 +142,9 @@ namespace libtorrent
 		: m_ses(s)
 		, m_auth(auth)
 		, m_dispatch(new piece_alert_dispatch())
-		, m_queue_size(4 * 1024 * 1024)
+// TODO: this number needs to be proportional to the rate at which a file
+// is downloaded
+		, m_queue_size(20 * 1024 * 1024)
 		, m_attachment(true)
 	{
 		if (m_auth == NULL)
@@ -284,6 +290,16 @@ namespace libtorrent
 		offset += range_first_byte;
 		boost::int64_t left_to_send = range_last_byte - range_first_byte + 1;
 
+		// increase the priority of this range to 5
+		std::vector<std::pair<int, int> > pieces_in_req;
+		pieces_in_req.resize(pq.finish - pq.begin);
+		int p = pq.begin;
+		for (int i = 0; i < pieces_in_req.size(); ++i)
+		{
+			pieces_in_req[i] = std::make_pair(p, 5);
+			++p;
+		}
+		h.prioritize_pieces(pieces_in_req);
 
 		for (int i = pq.begin; i < pq.finish; ++i)
 		{
@@ -291,7 +307,7 @@ namespace libtorrent
 			{
 				printf("set_piece_deadline: %d\n", priority_cursor);
 				h.set_piece_deadline(priority_cursor
-					, 100 * (priority_cursor - pq.begin)
+					, 100 * (priority_cursor - i)
 					, torrent_handle::alert_when_available);
 				++priority_cursor;
 			}
@@ -299,7 +315,7 @@ namespace libtorrent
 			mutex::scoped_lock l(pq.queue_mutex);
 
 			// TODO: come up with some way to abort
-			while (pq.queue.empty() || pq.queue.top().piece != i)
+			while (pq.queue.empty() || pq.queue.top().piece > i)
 				pq.cond.wait(l);
 
 			piece_entry pe = pq.queue.top();
@@ -309,22 +325,51 @@ namespace libtorrent
 
 			l.unlock();
 
-			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
-			int ret = mg_write(conn, &pe.buffer[offset], amount_to_send);
-			if (ret <= 0)
+			if (pe.piece < i) continue;
+
+			if (pe.size == 0)
 			{
-				printf("interrupted (%d) errno: (%d) %s\n", ret, errno
-					, strerror(errno));
+				printf("interrupted (zero bytes read)\n");
+
+				for (int k = i; k < priority_cursor; ++k)
+				{
+					printf("reset_piece_deadline: %d\n", k);
+					h.reset_piece_deadline(k);
+				}
 				break;
 			}
 
-			left_to_send -= ret;
-			printf("sent: %d bytes\n", amount_to_send);
+			int ret = -1;
+			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
+			while (amount_to_send > 0)
+			{
+				ret = mg_write(conn, &pe.buffer[offset], amount_to_send);
+				if (ret <= 0)
+				{
+					printf("interrupted (%d) errno: (%d) %s\n", ret, errno
+						, strerror(errno));
+					break;
+				}
+
+				left_to_send -= ret;
+				printf("sent: %d bytes [%d]\n", amount_to_send, i);
+				offset += ret;
+				amount_to_send -= ret;
+			}
+			if (ret <= 0) break;
 			offset = 0;
 		}
 
 		m_dispatch->unsubscribe(info_hash, &pq);
 		printf("done\n");
+
+		// TODO: this doesn't work right if there are overlapping requests
+
+		// restore piece priorities
+		for (int i = 0; i < pieces_in_req.size(); ++i)
+			pieces_in_req[i].second = 1;
+		h.prioritize_pieces(pieces_in_req);
+
 		return true;
 	}
 }
