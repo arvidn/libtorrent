@@ -524,6 +524,9 @@ The fields on files, in bitmask bit-order (LSB is bit 0), are:
 | 3        | uint64_t            | ``downloaded`` (number of bytes)         |
 +----------+---------------------+------------------------------------------+
 
+.. raw:: pdf
+
+   PageBreak oneColumn
 
 Appendix A
 ==========
@@ -575,6 +578,10 @@ Function IDs
 +-----+---------------------------+-----------------------------------------+
 |  19 | get-file-updates          | info-hash, frame-number                 |
 +-----+---------------------------+-----------------------------------------+
+
+.. raw:: pdf
+
+   PageBreak oneColumn
 
 Appendix B
 ==========
