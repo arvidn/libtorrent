@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Settings</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -69,7 +69,7 @@ direct certain traffic to a proxy.</p>
 <pre class="literal-block">
 struct proxy_settings
 {
-   <strong>proxy_settings</strong> ();
+   **proxy_settings** ();
 
    std::string hostname;
    std::string username;
@@ -83,7 +83,7 @@ struct proxy_settings
 <a name="proxy_settings()"></a><div class="section" id="id2">
 <h2>proxy_settings()</h2>
 <pre class="literal-block">
-<strong>proxy_settings</strong> ();
+**proxy_settings** ();
 </pre>
 <p>defaults constructs proxy settings, initializing it to the default
 settings.</p>
@@ -131,9 +131,9 @@ session::get_settings() to get the current settings.</p>
 <pre class="literal-block">
 struct session_settings
 {
-   <strong>session_settings</strong> (std::string const&amp; user_agent = &quot;libtorrent/&quot;
+   **session_settings** (std::string const&amp; user_agent = &quot;libtorrent/&quot;
       LIBTORRENT_VERSION);
-   <strong>~session_settings</strong> ();
+   **~session_settings** ();
 
    enum io_buffer_mode_t
    {
@@ -336,9 +336,9 @@ struct session_settings
 <a name="session_settings()"></a><div class="section" id="session-settings-session-settings">
 <h2>~session_settings() session_settings()</h2>
 <pre class="literal-block">
-<strong>session_settings</strong> (std::string const&amp; user_agent = &quot;libtorrent/&quot;
+**session_settings** (std::string const&amp; user_agent = &quot;libtorrent/&quot;
       LIBTORRENT_VERSION);
-<strong>~session_settings</strong> ();
+**~session_settings** ();
 </pre>
 <p>initializes the <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a> to the default settings.</p>
 <a name="io_buffer_mode_t"></a></div>
@@ -1744,7 +1744,7 @@ socket on the same port as the TCP socket.</p>
 <pre class="literal-block">
 struct dht_settings
 {
-   <strong>dht_settings</strong> ();
+   **dht_settings** ();
 
    int max_peers_reply;
    int search_branching;
@@ -1764,7 +1764,7 @@ struct dht_settings
 <a name="dht_settings()"></a><div class="section" id="id25">
 <h2>dht_settings()</h2>
 <pre class="literal-block">
-<strong>dht_settings</strong> ();
+**dht_settings** ();
 </pre>
 <p>initialized <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a> to the default values</p>
 <a name="max_peers_reply"></a><dl class="docutils">
@@ -1859,7 +1859,7 @@ to peer protocol encryption.</p>
 <pre class="literal-block">
 struct pe_settings
 {
-   <strong>pe_settings</strong> ();
+   **pe_settings** ();
 
    enum enc_policy
    {
@@ -1884,7 +1884,7 @@ struct pe_settings
 <a name="pe_settings()"></a><div class="section" id="id29">
 <h2>pe_settings()</h2>
 <pre class="literal-block">
-<strong>pe_settings</strong> ();
+**pe_settings** ();
 </pre>
 <p>initializes the encryption settings with the default vaues</p>
 <a name="enc_policy"></a></div>
@@ -2005,17 +2005,6 @@ disk cache and has a limit of 400 files in its file pool. It support fast
 upload rates by allowing large send buffers.</p>
 </div>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

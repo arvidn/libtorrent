@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Custom Storage</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -139,8 +139,8 @@ may be windows where more file handles are open.</p>
 <pre class="literal-block">
 struct file_pool : boost::noncopyable
 {
-   <strong>~file_pool</strong> ();
-   <strong>file_pool</strong> (int size = 40);
+   **~file_pool** ();
+   **file_pool** (int size = 40);
    boost::intrusive_ptr&lt;file&gt; <strong>open_file</strong> (void* st, std::string const&amp; p
       , int file_index, file_storage const&amp; fs, int m, error_code&amp; ec);
    void <strong>release</strong> (void* st);
@@ -153,8 +153,8 @@ struct file_pool : boost::noncopyable
 <a name="file_pool()"></a><div class="section" id="file-pool-file-pool">
 <h2>~file_pool() file_pool()</h2>
 <pre class="literal-block">
-<strong>~file_pool</strong> ();
-<strong>file_pool</strong> (int size = 40);
+**~file_pool** ();
+**file_pool** (int size = 40);
 </pre>
 <p><tt class="docutils literal">size</tt> specifies the number of allowed files handles
 to hold open at any given time.</p>
@@ -506,7 +506,7 @@ implementing a custom storage.</p>
 <pre class="literal-block">
 class default_storage : public storage_interface, boost::noncopyable
 {
-   <strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
+   **default_storage** (file_storage const&amp; fs, file_storage const* mapped
       , std::string const&amp; path, file_pool&amp; fp
       , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
    bool <strong>move_slot</strong> (int src_slot, int dst_slot);
@@ -534,7 +534,7 @@ class default_storage : public storage_interface, boost::noncopyable
 <a name="default_storage()"></a><div class="section" id="id11">
 <h2>default_storage()</h2>
 <pre class="literal-block">
-<strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
+**default_storage** (file_storage const&amp; fs, file_storage const* mapped
       , std::string const&amp; path, file_pool&amp; fp
       , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
 </pre>
@@ -598,17 +598,6 @@ of the ones we may have in the source.</td>
 </table>
 </div>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Alerts</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -793,7 +793,7 @@ code indicating an error.</p>
 <pre class="literal-block">
 struct scrape_failed_alert: tracker_alert
 {
-   <strong>scrape_failed_alert</strong> (torrent_handle const&amp; h
+   **scrape_failed_alert** (torrent_handle const&amp; h
       , std::string const&amp; u
       , std::string const&amp; m);
    virtual std::string <strong>message</strong> () const;
@@ -2364,7 +2364,7 @@ specifically the overload for looking up immutable items in the DHT.</p>
 struct dht_immutable_item_alert: alert
 {
    virtual bool <strong>discardable</strong> () const;
-   <strong>dht_immutable_item_alert</strong> (sha1_hash const&amp; t, entry const&amp; i);
+   **dht_immutable_item_alert** (sha1_hash const&amp; t, entry const&amp; i);
    virtual std::string <strong>message</strong> () const;
 
    | alert::dht_notification;
@@ -2390,7 +2390,7 @@ specifically the overload for looking up mutable items in the DHT.</p>
 <pre class="literal-block">
 struct dht_mutable_item_alert: alert
 {
-   <strong>dht_mutable_item_alert</strong> (boost::array&lt;char, 32&gt; k
+   **dht_mutable_item_alert** (boost::array&lt;char, 32&gt; k
       , boost::array&lt;char, 64&gt; sig
       , boost::uint64_t sequence
       , std::string const&amp; s
@@ -2471,7 +2471,7 @@ salt and sequence number the item was stored under.</dd>
 <pre class="literal-block">
 struct i2p_alert : alert
 {
-   <strong>i2p_alert</strong> (error_code const&amp; ec);
+   **i2p_alert** (error_code const&amp; ec);
    virtual std::string <strong>message</strong> () const;
 
    const static int static_category = alert::error_notification;
@@ -2483,17 +2483,6 @@ struct i2p_alert : alert
 <dd>the error that occurred in the i2p SAM connection</dd>
 </dl>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

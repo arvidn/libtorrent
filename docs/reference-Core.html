@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Core</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -78,8 +78,8 @@ this buffer has been released, <tt class="docutils literal">buffer()</tt> will r
 <pre class="literal-block">
 struct disk_buffer_holder
 {
-   <strong>disk_buffer_holder</strong> (disk_buffer_pool&amp; disk_pool, char* buf);
-   <strong>~disk_buffer_holder</strong> ();
+   **disk_buffer_holder** (disk_buffer_pool&amp; disk_pool, char* buf);
+   **~disk_buffer_holder** ();
    char* <strong>release</strong> ();
    char* <strong>get</strong> () const;
    void <strong>reset</strong> (char* buf = 0);
@@ -89,7 +89,7 @@ struct disk_buffer_holder
 <a name="disk_buffer_holder()"></a><div class="section" id="id2">
 <h2>disk_buffer_holder()</h2>
 <pre class="literal-block">
-<strong>disk_buffer_holder</strong> (disk_buffer_pool&amp; disk_pool, char* buf);
+**disk_buffer_holder** (disk_buffer_pool&amp; disk_pool, char* buf);
 </pre>
 <p>construct a buffer holder that will free the held buffer
 using a disk buffer pool directly (there's only one
@@ -98,7 +98,7 @@ disk_buffer_pool per <a class="reference external" href="reference-Session.html#
 <div class="section" id="id4">
 <h2>~disk_buffer_holder()</h2>
 <pre class="literal-block">
-<strong>~disk_buffer_holder</strong> ();
+**~disk_buffer_holder** ();
 </pre>
 <p>frees any unreleased disk buffer held by this object</p>
 <a name="release()"></a></div>
@@ -1011,7 +1011,7 @@ handle will remain valid between two calls.</p>
 <pre class="literal-block">
 struct torrent_handle
 {
-   <strong>torrent_handle</strong> ();
+   **torrent_handle** ();
    void <strong>add_piece</strong> (int piece, char const* data, int flags = 0) const;
    void <strong>read_piece</strong> (int piece) const;
    bool <strong>have_piece</strong> (int piece) const;
@@ -1136,7 +1136,7 @@ struct torrent_handle
 <a name="torrent_handle()"></a><div class="section" id="id26">
 <h2>torrent_handle()</h2>
 <pre class="literal-block">
-<strong>torrent_handle</strong> ();
+**torrent_handle** ();
 </pre>
 <p>constructs a torrent handle that does not refer to a torrent.
 i.e. <a class="reference external" href="reference-Core.html#is_valid()">is_valid()</a> will return false.</p>
@@ -2822,9 +2822,9 @@ relates to a specific torrent.</p>
 <pre class="literal-block">
 struct announce_entry
 {
-   <strong>announce_entry</strong> (std::string const&amp; u);
-   <strong>~announce_entry</strong> ();
-   <strong>announce_entry</strong> ();
+   **announce_entry** (std::string const&amp; u);
+   **~announce_entry** ();
+   **announce_entry** ();
    int <strong>next_announce_in</strong> () const;
    int <strong>min_announce_in</strong> () const;
    void <strong>reset</strong> ();
@@ -2865,9 +2865,9 @@ struct announce_entry
 <a name="~announce_entry()"></a><div class="section" id="announce-entry-announce-entry">
 <h2>announce_entry() ~announce_entry()</h2>
 <pre class="literal-block">
-<strong>announce_entry</strong> (std::string const&amp; u);
-<strong>~announce_entry</strong> ();
-<strong>announce_entry</strong> ();
+**announce_entry** (std::string const&amp; u);
+**~announce_entry** ();
+**announce_entry** ();
 </pre>
 <p>constructs a tracker announce <a class="reference external" href="reference-Bencoding.html#entry">entry</a> with <tt class="docutils literal">u</tt> as the URL.</p>
 <a name="min_announce_in()"></a>
@@ -3047,15 +3047,15 @@ announces.</dd>
 <pre class="literal-block">
 class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
 {
-   <strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
-   <strong>torrent_info</strong> (char const* buffer, int size, error_code&amp; ec, int flags = 0);
-   <strong>torrent_info</strong> (sha1_hash const&amp; info_hash, int flags = 0);
-   <strong>torrent_info</strong> (lazy_entry const&amp; torrent_file, int flags = 0);
-   <strong>torrent_info</strong> (char const* buffer, int size, int flags = 0);
-   <strong>torrent_info</strong> (lazy_entry const&amp; torrent_file, error_code&amp; ec, int flags = 0);
-   <strong>torrent_info</strong> (torrent_info const&amp; t, int flags = 0);
-   <strong>torrent_info</strong> (std::string const&amp; filename, error_code&amp; ec, int flags = 0);
-   <strong>~torrent_info</strong> ();
+   **torrent_info** (std::string const&amp; filename, int flags = 0);
+   **torrent_info** (char const* buffer, int size, error_code&amp; ec, int flags = 0);
+   **torrent_info** (sha1_hash const&amp; info_hash, int flags = 0);
+   **torrent_info** (lazy_entry const&amp; torrent_file, int flags = 0);
+   **torrent_info** (char const* buffer, int size, int flags = 0);
+   **torrent_info** (lazy_entry const&amp; torrent_file, error_code&amp; ec, int flags = 0);
+   **torrent_info** (torrent_info const&amp; t, int flags = 0);
+   **torrent_info** (std::string const&amp; filename, error_code&amp; ec, int flags = 0);
+   **~torrent_info** ();
    file_storage const&amp; <strong>files</strong> () const;
    file_storage const&amp; <strong>orig_files</strong> () const;
    void <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
@@ -3103,14 +3103,14 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
 <a name="torrent_info()"></a><div class="section" id="id129">
 <h2>torrent_info()</h2>
 <pre class="literal-block">
-<strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
-<strong>torrent_info</strong> (char const* buffer, int size, error_code&amp; ec, int flags = 0);
-<strong>torrent_info</strong> (sha1_hash const&amp; info_hash, int flags = 0);
-<strong>torrent_info</strong> (lazy_entry const&amp; torrent_file, int flags = 0);
-<strong>torrent_info</strong> (char const* buffer, int size, int flags = 0);
-<strong>torrent_info</strong> (lazy_entry const&amp; torrent_file, error_code&amp; ec, int flags = 0);
-<strong>torrent_info</strong> (torrent_info const&amp; t, int flags = 0);
-<strong>torrent_info</strong> (std::string const&amp; filename, error_code&amp; ec, int flags = 0);
+**torrent_info** (std::string const&amp; filename, int flags = 0);
+**torrent_info** (char const* buffer, int size, error_code&amp; ec, int flags = 0);
+**torrent_info** (sha1_hash const&amp; info_hash, int flags = 0);
+**torrent_info** (lazy_entry const&amp; torrent_file, int flags = 0);
+**torrent_info** (char const* buffer, int size, int flags = 0);
+**torrent_info** (lazy_entry const&amp; torrent_file, error_code&amp; ec, int flags = 0);
+**torrent_info** (torrent_info const&amp; t, int flags = 0);
+**torrent_info** (std::string const&amp; filename, error_code&amp; ec, int flags = 0);
 </pre>
 <p>The constructor that takes an info-hash  will initialize the info-hash to the given value,
 but leave all other fields empty. This is used internally when downloading torrents without
@@ -3135,7 +3135,7 @@ exception support.</p>
 <div class="section" id="id137">
 <h2>~torrent_info()</h2>
 <pre class="literal-block">
-<strong>~torrent_info</strong> ();
+**~torrent_info** ();
 </pre>
 <p>frees all storage associated with this <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object</p>
 <a name="orig_files()"></a>
@@ -3475,17 +3475,6 @@ is responsible for allocating the destination buffer that's passed in
 as the <tt class="docutils literal">sig</tt> argument. Typically it would be allocated on the stack.</p>
 </div>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

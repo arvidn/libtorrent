@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Utility</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -67,12 +67,12 @@ in a heap allocated or borrowed array.</p>
 <pre class="literal-block">
 struct bitfield
 {
-   <strong>bitfield</strong> (int bits);
-   <strong>bitfield</strong> (bitfield const&amp; rhs);
-   <strong>bitfield</strong> (bitfield&amp;&amp; rhs);
-   <strong>bitfield</strong> (int bits, bool val);
-   <strong>bitfield</strong> ();
-   <strong>bitfield</strong> (char const* b, int bits);
+   **bitfield** (int bits);
+   **bitfield** (bitfield const&amp; rhs);
+   **bitfield** (bitfield&amp;&amp; rhs);
+   **bitfield** (int bits, bool val);
+   **bitfield** ();
+   **bitfield** (char const* b, int bits);
    void <strong>borrow_bytes</strong> (char* b, int bits);
    void <strong>assign</strong> (char const* b, int bits);
    bool <strong>get_bit</strong> (int index) const;
@@ -90,12 +90,12 @@ struct bitfield
 <a name="bitfield()"></a><div class="section" id="id3">
 <h2>bitfield()</h2>
 <pre class="literal-block">
-<strong>bitfield</strong> (int bits);
-<strong>bitfield</strong> (bitfield const&amp; rhs);
-<strong>bitfield</strong> (bitfield&amp;&amp; rhs);
-<strong>bitfield</strong> (int bits, bool val);
-<strong>bitfield</strong> ();
-<strong>bitfield</strong> (char const* b, int bits);
+**bitfield** (int bits);
+**bitfield** (bitfield const&amp; rhs);
+**bitfield** (bitfield&amp;&amp; rhs);
+**bitfield** (int bits, bool val);
+**bitfield** ();
+**bitfield** (char const* b, int bits);
 </pre>
 <p>constructs a new <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. The default constructor creates an empty
 <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. <tt class="docutils literal">bits</tt> is the size of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> (specified in bits).
@@ -196,7 +196,7 @@ peer IDs, node IDs etc.</p>
 <pre class="literal-block">
 class sha1_hash
 {
-   <strong>sha1_hash</strong> ();
+   **sha1_hash** ();
    static sha1_hash <strong>max</strong> ();
    static sha1_hash <strong>min</strong> ();
    explicit <strong>sha1_hash</strong> (char const* s);
@@ -230,7 +230,7 @@ class sha1_hash
 <a name="sha1_hash()"></a><div class="section" id="id18">
 <h2>sha1_hash()</h2>
 <pre class="literal-block">
-<strong>sha1_hash</strong> ();
+**sha1_hash** ();
 </pre>
 <p>constructs an all-sero sha1-hash</p>
 <a name="max()"></a></div>
@@ -425,17 +425,6 @@ void <strong>sleep</strong> (int milliseconds);
 number of milliseconds</p>
 </div>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>
