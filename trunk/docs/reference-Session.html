@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -87,7 +87,7 @@ the torrent as long as it doesn't have metadata. See <tt class="docutils literal
 <pre class="literal-block">
 struct add_torrent_params
 {
-   <strong>add_torrent_params</strong> (storage_constructor_type sc = default_storage_constructor);
+   **add_torrent_params** (storage_constructor_type sc = default_storage_constructor);
 
    enum flags_t
    {
@@ -108,6 +108,7 @@ struct add_torrent_params
    int version;
    boost::intrusive_ptr&lt;torrent_info&gt; ti;
    std::vector&lt;std::string&gt; trackers;
+   std::vector&lt;std::string&gt; url_seeds;
    std::vector&lt;std::pair&lt;std::string, int&gt; &gt; dht_nodes;
    std::string name;
    std::string save_path;
@@ -131,7 +132,7 @@ struct add_torrent_params
 <a name="add_torrent_params()"></a><div class="section" id="id5">
 <h2>add_torrent_params()</h2>
 <pre class="literal-block">
-<strong>add_torrent_params</strong> (storage_constructor_type sc = default_storage_constructor);
+**add_torrent_params** (storage_constructor_type sc = default_storage_constructor);
 </pre>
 <p>The constructor can be used to initialize the storage constructor, which determines
 the storage mechanism for the downloaded or seeding data for the torrent. For more
@@ -279,6 +280,10 @@ is set, this is required to be initiazlied.</dd>
 <dd>If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
 <tt class="docutils literal">trackers</tt> can specify tracker URLs for the torrent.</dd>
 </dl>
+<a name="url_seeds"></a><dl class="docutils">
+<dt>url_seeds</dt>
+<dd>url seeds to be added to the torrent (<a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a>).</dd>
+</dl>
 <a name="dht_nodes"></a>
 <a name="name"></a>
 <a name="save_path"></a><dl class="docutils">
@@ -380,7 +385,7 @@ relevant for the disk io thread and disk cache.</p>
 <pre class="literal-block">
 struct cache_status
 {
-   <strong>cache_status</strong> ();
+   **cache_status** ();
 
    size_type blocks_written;
    size_type writes;
@@ -410,7 +415,7 @@ struct cache_status
 <a name="cache_status()"></a><div class="section" id="id23">
 <h2>cache_status()</h2>
 <pre class="literal-block">
-<strong>cache_status</strong> ();
+**cache_status** ();
 </pre>
 <p>initializes all counters to 0</p>
 <a name="blocks_written"></a><dl class="docutils">
@@ -526,13 +531,13 @@ is done shutting down.</p>
 <pre class="literal-block">
 class session_proxy
 {
-   <strong>session_proxy</strong> ();
+   **session_proxy** ();
 };
 </pre>
 <a name="session_proxy()"></a><div class="section" id="id34">
 <h2>session_proxy()</h2>
 <pre class="literal-block">
-<strong>session_proxy</strong> ();
+**session_proxy** ();
 </pre>
 <p>default constructor, does not refer to any <a class="reference external" href="reference-Session.html#session">session</a>
 implementation object.</p>
@@ -549,18 +554,18 @@ torrents to participate in.</p>
 <pre class="literal-block">
 class session: public boost::noncopyable
 {
-   <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
+   **session** (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
       , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
       , int flags = start_default_features | add_default_plugins
       , boost::uint32_t alert_mask = alert::error_notification
       TORRENT_LOGPATH_ARG_DEFAULT);
-   <strong>session</strong> (fingerprint const&amp; print
+   **session** (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
       , int flags = start_default_features | add_default_plugins
       , int alert_mask = alert::error_notification
       TORRENT_LOGPATH_ARG_DEFAULT);
-   <strong>~session</strong> ();
+   **~session** ();
    void <strong>load_state</strong> (lazy_entry const&amp; e);
    void <strong>save_state</strong> (entry&amp; e, boost::uint32_t flags = 0xffffffff) const;
    void <strong>refresh_torrent_status</strong> (std::vector&lt;torrent_status&gt;* ret
@@ -679,12 +684,12 @@ class session: public boost::noncopyable
 <a name="session()"></a><div class="section" id="id40">
 <h2>session()</h2>
 <pre class="literal-block">
-<strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
+**session** (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
       , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
       , int flags = start_default_features | add_default_plugins
       , boost::uint32_t alert_mask = alert::error_notification
       TORRENT_LOGPATH_ARG_DEFAULT);
-<strong>session</strong> (fingerprint const&amp; print
+**session** (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
       , int flags = start_default_features | add_default_plugins
@@ -711,7 +716,7 @@ set_alert_mask().</p>
 <div class="section" id="id42">
 <h2>~session()</h2>
 <pre class="literal-block">
-<strong>~session</strong> ();
+**~session** ();
 </pre>
 <p>The destructor of <a class="reference external" href="reference-Session.html#session">session</a> will notify all trackers that our torrents
 have been shut down. If some trackers are down, they will time out.
@@ -1938,17 +1943,6 @@ by the DHT.</dd>
 connected peers, just peers we know of.</dd>
 </dl>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

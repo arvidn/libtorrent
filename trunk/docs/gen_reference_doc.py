@@ -143,8 +143,15 @@ def highlight_signature(s):
 	name = s.split('(')
 	name2 = name[0].split(' ')
 	if len(name2[-1]) == 0: return s
+
+	# make the name of the function bold
 	name2[-1] = '**' + name2[-1] + '** '
+	name2[0] = name2[0].replace('*', '\\*')
 	name[0] = ' '.join(name2)
+
+	# we have to escape asterisks, since this is rendered into
+	# a parsed literal in rst
+	name[1] = name[1].replace('*', '\\*')
 	return '('.join(name)
 
 def html_sanitize(s):

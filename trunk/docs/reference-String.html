@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>String</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -76,7 +76,7 @@ returns it.</p>
 <h1>to_hex()</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/escape_string.hpp">libtorrent/escape_string.hpp</a>&quot;</p>
 <pre class="literal-block">
-void <strong>to_hex</strong> (char const <em>in, int len, char</em> out);
+void <strong>to_hex</strong> (char const *in, int len, char* out);
 </pre>
 <p>converts the binary buffer [<tt class="docutils literal">in</tt>, <tt class="docutils literal">in</tt> + len) to hexadecimal
 and prints it to the buffer <tt class="docutils literal">out</tt>. The caller is responsible for
@@ -87,7 +87,7 @@ i.e. has at least len * 2 bytes of space.</p>
 <h1>from_hex()</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/escape_string.hpp">libtorrent/escape_string.hpp</a>&quot;</p>
 <pre class="literal-block">
-bool <strong>from_hex</strong> (char const <em>in, int len, char</em> out);
+bool <strong>from_hex</strong> (char const *in, int len, char* out);
 </pre>
 <p>converts the buffer [<tt class="docutils literal">in</tt>, <tt class="docutils literal">in</tt> + len) from hexadecimal to
 binary. The binary output is written to the buffer pointed to
@@ -153,17 +153,6 @@ the enumeration values from <a class="reference external" href="reference-String
 </tbody>
 </table>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

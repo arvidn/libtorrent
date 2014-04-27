@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Create Torrents</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -103,8 +103,8 @@ the torrent. The <a class="reference external" href="reference-Bencoding.html#en
 <pre class="literal-block">
 struct create_torrent
 {
-   <strong>create_torrent</strong> (torrent_info const&amp; ti);
-   <strong>create_torrent</strong> (file_storage&amp; fs, int piece_size = 0
+   **create_torrent** (torrent_info const&amp; ti);
+   **create_torrent** (file_storage&amp; fs, int piece_size = 0
       , int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
    entry <strong>generate</strong> () const;
    file_storage const&amp; <strong>files</strong> () const;
@@ -137,8 +137,8 @@ struct create_torrent
 <a name="create_torrent()"></a><div class="section" id="id5">
 <h2>create_torrent()</h2>
 <pre class="literal-block">
-<strong>create_torrent</strong> (torrent_info const&amp; ti);
-<strong>create_torrent</strong> (file_storage&amp; fs, int piece_size = 0
+**create_torrent** (torrent_info const&amp; ti);
+**create_torrent** (file_storage&amp; fs, int piece_size = 0
       , int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
 </pre>
 <p>The <tt class="docutils literal">piece_size</tt> is the size of each piece in bytes. It must
@@ -421,17 +421,6 @@ void Fun(int);
 file error, the other overloads sets the error code to reflect the error, if any.</p>
 </div>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>
