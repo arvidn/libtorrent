@@ -68,6 +68,8 @@ lib libtorrent_test
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
 ;
 
+explicit libtorrent_test ;
+
 lib advapi32 : : <name>Advapi32 ;
 
 project
