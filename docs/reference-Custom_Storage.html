@@ -55,14 +55,24 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#file-pool" id="id18">file_pool</a></li>
-<li><a class="reference internal" href="#storage-interface" id="id19">storage_interface</a></li>
-<li><a class="reference internal" href="#default-storage" id="id20">default_storage</a></li>
+<li><a class="reference internal" href="#file-pool" id="id22">file_pool</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id23">storage_interface</a></li>
+<li><a class="reference internal" href="#default-storage" id="id24">default_storage</a></li>
 </ul>
 </div>
-<p>This is an example storage implementation that stores all pieces in a <tt class="docutils literal"><span class="pre">std::map</span></tt>,
-i.e. in RAM. It's not necessarily very useful in practice, but illustrates the
-basics of implementing a custom storage.</p>
+<p>libtorrent provides a customization point for storage of data. By default,
+(<tt class="docutils literal">default_storage</tt>) downloaded files are saved to disk according with the
+general conventions of bittorrent clients, mimicing the original file layout
+when the torrent was created. The libtorrent user may define a custom
+storage to store piece data in a different way.</p>
+<p>A custom storage implementation must derive from and implement the
+<a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a>. You must also provide a function that constructs the
+custom storage object and provide this function to the <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> call
+via <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>. Either passed in to the constructor or by setting
+the <a class="reference external" href="reference-Session.html#storage">add_torrent_params::storage</a> field.</p>
+<p>This is an example storage implementation that stores all pieces in a
+<tt class="docutils literal"><span class="pre">std::map</span></tt>, i.e. in RAM. It's not necessarily very useful in practice, but
+illustrates the basics of implementing a custom storage.</p>
 <pre class="literal-block">
 struct temp_storage : storage_interface
 {
@@ -139,8 +149,8 @@ may be windows where more file handles are open.</p>
 <pre class="literal-block">
 struct file_pool : boost::noncopyable
 {
-   **~file_pool** ();
-   **file_pool** (int size = 40);
+   <strong>~file_pool</strong> ();
+   <strong>file_pool</strong> (int size = 40);
    boost::intrusive_ptr&lt;file&gt; <strong>open_file</strong> (void* st, std::string const&amp; p
       , int file_index, file_storage const&amp; fs, int m, error_code&amp; ec);
    void <strong>release</strong> (void* st);
@@ -153,8 +163,8 @@ struct file_pool : boost::noncopyable
 <a name="file_pool()"></a><div class="section" id="file-pool-file-pool">
 <h2>~file_pool() file_pool()</h2>
 <pre class="literal-block">
-**~file_pool** ();
-**file_pool** (int size = 40);
+<strong>~file_pool</strong> ();
+<strong>file_pool</strong> (int size = 40);
 </pre>
 <p><tt class="docutils literal">size</tt> specifies the number of allowed files handles
 to hold open at any given time.</p>
@@ -200,23 +210,24 @@ by the <a class="reference external" href="reference-Custom_Storage.html#file_po
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/storage.hpp">libtorrent/storage.hpp</a>&quot;</p>
 <p>The storage interface is a pure virtual class that can be implemented to
 customize how and where data for a torrent is stored. The default storage
-implementation uses regular files in the filesystem, mapping the files in the
-torrent in the way one would assume a torrent is saved to disk. Implementing
-your own storage interface makes it possible to store all data in RAM, or in
-some optimized order on disk (the order the pieces are received for instance),
-or saving multifile torrents in a single file in order to be able to take
-advantage of optimized disk-I/O.</p>
-<p>It is also possible to write a thin class that uses the default storage but
-modifies some particular behavior, for instance encrypting the data before
-it's written to disk, and decrypting it when it's read again.</p>
+implementation uses regular files in the filesystem, mapping the files in
+the torrent in the way one would assume a torrent is saved to disk.
+Implementing your own storage interface makes it possible to store all
+data in RAM, or in some optimized order on disk (the order the pieces are
+received for instance), or saving multifile torrents in a single file in
+order to be able to take advantage of optimized disk-I/O.</p>
+<p>It is also possible to write a thin class that uses the default storage
+but modifies some particular behavior, for instance encrypting the data
+before it's written to disk, and decrypting it when it's read again.</p>
 <p>The storage interface is based on slots, each slot is 'piece_size' number
 of bytes. All access is done by writing and reading whole or partial
 slots. One slot is one piece in the torrent, but the data in the slot
 does not necessarily correspond to the piece with the same index (in
 compact allocation mode it won't).</p>
-<p>libtorrent comes with two built-in storage implementations; <tt class="docutils literal">default_storage</tt>
-and <tt class="docutils literal">disabled_storage</tt>. Their constructor functions are called <a class="reference external" href="reference-Storage.html#default_storage_constructor()">default_storage_constructor()</a>
-and <tt class="docutils literal">disabled_storage_constructor</tt> respectively. The disabled storage does
+<p>libtorrent comes with two built-in storage implementations;
+<tt class="docutils literal">default_storage</tt> and <tt class="docutils literal">disabled_storage</tt>. Their constructor functions
+are called <a class="reference external" href="reference-Storage.html#default_storage_constructor()">default_storage_constructor()</a> and
+<tt class="docutils literal">disabled_storage_constructor</tt> respectively. The disabled storage does
 just what it sounds like. It throws away data that's written, and it
 reads garbage. It's useful mostly for benchmarking and profiling purpose.</p>
 <pre class="literal-block">
@@ -254,9 +265,10 @@ struct storage_interface
 <pre class="literal-block">
 virtual bool <strong>initialize</strong> (bool allocate_files) = 0;
 </pre>
-<p>This function is called when the storage is to be initialized. The default storage
-will create directories and empty files at this point. If <tt class="docutils literal">allocate_files</tt> is true,
-it will also <tt class="docutils literal">ftruncate</tt> all files to their target size.</p>
+<p>This function is called when the storage is to be initialized. The
+default storage will create directories and empty files at this point.
+If <tt class="docutils literal">allocate_files</tt> is true, it will also <tt class="docutils literal">ftruncate</tt> all files to
+their target size.</p>
 <p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
 <a name="has_any_file()"></a></div>
 <div class="section" id="has-any-file">
@@ -264,9 +276,10 @@ it will also <tt class="docutils literal">ftruncate</tt> all files to their targ
 <pre class="literal-block">
 virtual bool <strong>has_any_file</strong> () = 0;
 </pre>
-<p>This function is called when first checking (or re-checking) the storage for a torrent.
-It should return true if any of the files that is used in this storage exists on disk.
-If so, the storage will be checked for existing pieces before starting the download.</p>
+<p>This function is called when first checking (or re-checking) the
+storage for a torrent. It should return true if any of the files that
+is used in this storage exists on disk. If so, the storage will be
+checked for existing pieces before starting the download.</p>
 <a name="set_file_priority()"></a></div>
 <div class="section" id="set-file-priority">
 <h2>set_file_priority()</h2>
@@ -282,35 +295,37 @@ virtual void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&g
 virtual int <strong>writev</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
 virtual int <strong>readv</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
 </pre>
-<p>These functions should read or write the data in or to the given <tt class="docutils literal">slot</tt> at the given <tt class="docutils literal">offset</tt>.
-It should read or write <tt class="docutils literal">num_bufs</tt> buffers sequentially, where the size of each buffer
-is specified in the buffer array <tt class="docutils literal">bufs</tt>. The <a class="reference external" href="file::iovec_t">file::iovec_t</a> type has the following members:</p>
+<p>These functions should read or write the data in or to the given
+<tt class="docutils literal">slot</tt> at the given <tt class="docutils literal">offset</tt>. It should read or write <tt class="docutils literal">num_bufs</tt>
+buffers sequentially, where the size of each buffer is specified in
+the buffer array <tt class="docutils literal">bufs</tt>. The <a class="reference external" href="file::iovec_t">file::iovec_t</a> type has the following
+members:</p>
 <pre class="literal-block">
-struct iovec_t
-{
-        void* iov_base;
-        size_t iov_len;
-};
+struct iovec_t { void* iov_base; size_t iov_len; };
 </pre>
-<p>The return value is the number of bytes actually read or written, or -1 on failure. If
-it returns -1, the error code is expected to be set to</p>
-<p>Every buffer in <tt class="docutils literal">bufs</tt> can be assumed to be page aligned and be of a page aligned size,
-except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
-fully page aligned number of bytes though. This is useful when reading and writing the
-last piece of a file in unbuffered mode.</p>
-<p>The <tt class="docutils literal">offset</tt> is aligned to 16 kiB boundries  <em>most of the time</em>, but there are rare
-exceptions when it's not. Specifically if the read cache is disabled/or full and a
-client requests unaligned data, or the file itself is not aligned in the torrent.
-Most clients request aligned data.</p>
+<p>The return value is the number of bytes actually read or written, or
+-1 on failure. If it returns -1, the error code is expected to be set
+to</p>
+<p>Every buffer in <tt class="docutils literal">bufs</tt> can be assumed to be page aligned and be of a
+page aligned size, except for the last buffer of the torrent. The
+allocated buffer can be assumed to fit a fully page aligned number of
+bytes though. This is useful when reading and writing the last piece
+of a file in unbuffered mode.</p>
+<p>The <tt class="docutils literal">offset</tt> is aligned to 16 kiB boundries  <em>most of the time</em>, but
+there are rare exceptions when it's not. Specifically if the read
+cache is disabled/or full and a client requests unaligned data, or the
+file itself is not aligned in the torrent. Most clients request
+aligned data.</p>
 <a name="hint_read()"></a></div>
 <div class="section" id="hint-read">
 <h2>hint_read()</h2>
 <pre class="literal-block">
 virtual void <strong>hint_read</strong> (int, int, int);
 </pre>
-<p>This function is called when a read job is queued. It gives the storage wrapper an
-opportunity to hint the operating system about this coming read. For instance, the
-storage may call <tt class="docutils literal">posix_fadvise(POSIX_FADV_WILLNEED)</tt> or <tt class="docutils literal">fcntl(F_RDADVISE)</tt>.</p>
+<p>This function is called when a read job is queued. It gives the
+storage wrapper an opportunity to hint the operating system about this
+coming read. For instance, the storage may call
+<tt class="docutils literal">posix_fadvise(POSIX_FADV_WILLNEED)</tt> or <tt class="docutils literal">fcntl(F_RDADVISE)</tt>.</p>
 <a name="read()"></a></div>
 <div class="section" id="read">
 <h2>read()</h2>
@@ -339,20 +354,21 @@ byte at offset <tt class="docutils literal">offset</tt> in slot <tt class="docut
 <pre class="literal-block">
 virtual int <strong>sparse_end</strong> (int start) const;
 </pre>
-<p>This function is optional. It is supposed to return the first piece, starting at
-<tt class="docutils literal">start</tt> that is fully contained within a data-region on disk (i.e. non-sparse
-region). The purpose of this is to skip parts of files that can be known to contain
-zeros when checking files.</p>
+<p>This function is optional. It is supposed to return the first piece,
+starting at <tt class="docutils literal">start</tt> that is fully contained within a data-region on
+disk (i.e. non-sparse region). The purpose of this is to skip parts of
+files that can be known to contain zeros when checking files.</p>
 <a name="move_storage()"></a></div>
 <div class="section" id="move-storage">
 <h2>move_storage()</h2>
 <pre class="literal-block">
 virtual int <strong>move_storage</strong> (std::string const&amp; save_path, int flags) = 0;
 </pre>
-<p>This function should move all the files belonging to the storage to the new save_path.
-The default storage moves the single file or the directory of the torrent.</p>
-<p>Before moving the files, any open file handles may have to be closed, like
-<tt class="docutils literal">release_files()</tt>.</p>
+<p>This function should move all the files belonging to the storage to
+the new save_path. The default storage moves the single file or the
+directory of the torrent.</p>
+<p>Before moving the files, any open file handles may have to be closed,
+like <tt class="docutils literal">release_files()</tt>.</p>
 <p>returns one of:
 | no_error = 0
 | need_full_check = -1
@@ -396,9 +412,10 @@ efficient than reading and writing the data.</p>
 <pre class="literal-block">
 virtual bool <strong>swap_slots</strong> (int slot1, int slot2) = 0;
 </pre>
-<p>This function should swap the data in <tt class="docutils literal">slot1</tt> and <tt class="docutils literal">slot2</tt>. The default
-storage uses a scratch buffer to read the data into, then moving the other
-slot and finally writing back the temporary slot's data</p>
+<p>This function should swap the data in <tt class="docutils literal">slot1</tt> and <tt class="docutils literal">slot2</tt>. The
+default storage uses a scratch buffer to read the data into, then
+moving the other slot and finally writing back the temporary slot's
+data</p>
 <p>This is only used in compact mode.</p>
 <p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
 <a name="swap_slots3()"></a></div>
@@ -408,8 +425,8 @@ slot and finally writing back the temporary slot's data</p>
 virtual bool <strong>swap_slots3</strong> (int slot1, int slot2, int slot3) = 0;
 </pre>
 <p>This function should do a 3-way swap, or shift of the slots. <tt class="docutils literal">slot1</tt>
-should move to <tt class="docutils literal">slot2</tt>, which should be moved to <tt class="docutils literal">slot3</tt> which in turn
-should be moved to <tt class="docutils literal">slot1</tt>.</p>
+should move to <tt class="docutils literal">slot2</tt>, which should be moved to <tt class="docutils literal">slot3</tt> which in
+turn should be moved to <tt class="docutils literal">slot1</tt>.</p>
 <p>This is only used in compact mode.</p>
 <p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
 <a name="release_files()"></a></div>
@@ -436,10 +453,11 @@ virtual bool <strong>rename_file</strong> (int index, std::string const&amp; new
 <pre class="literal-block">
 virtual bool <strong>delete_files</strong> () = 0;
 </pre>
-<p>This function should delete all files and directories belonging to this storage.</p>
+<p>This function should delete all files and directories belonging to
+this storage.</p>
 <p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
-<p>The <tt class="docutils literal">disk_buffer_pool</tt> is used to allocate and free disk buffers. It has the
-following members:</p>
+<p>The <tt class="docutils literal">disk_buffer_pool</tt> is used to allocate and free disk buffers. It
+has the following members:</p>
 <pre class="literal-block">
 struct disk_buffer_pool : boost::noncopyable
 {
@@ -500,13 +518,13 @@ to the storage</p>
 <div class="section" id="default-storage">
 <h1>default_storage</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/storage.hpp">libtorrent/storage.hpp</a>&quot;</p>
-<p>The default implementation of <a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a>. Behaves as a normal bittorrent client.
-It is possible to derive from this class in order to override some of its behavior, when
-implementing a custom storage.</p>
+<p>The default implementation of <a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a>. Behaves as a normal
+bittorrent client. It is possible to derive from this class in order to
+override some of its behavior, when implementing a custom storage.</p>
 <pre class="literal-block">
 class default_storage : public storage_interface, boost::noncopyable
 {
-   **default_storage** (file_storage const&amp; fs, file_storage const* mapped
+   <strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
       , std::string const&amp; path, file_pool&amp; fp
       , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
    bool <strong>move_slot</strong> (int src_slot, int dst_slot);
@@ -531,10 +549,10 @@ class default_storage : public storage_interface, boost::noncopyable
    file_storage const&amp; <strong>files</strong> () const;
 };
 </pre>
-<a name="default_storage()"></a><div class="section" id="id11">
+<a name="default_storage()"></a><div class="section" id="id15">
 <h2>default_storage()</h2>
 <pre class="literal-block">
-**default_storage** (file_storage const&amp; fs, file_storage const* mapped
+<strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
       , std::string const&amp; path, file_pool&amp; fp
       , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
 </pre>

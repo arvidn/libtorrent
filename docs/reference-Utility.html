@@ -67,12 +67,12 @@ in a heap allocated or borrowed array.</p>
 <pre class="literal-block">
 struct bitfield
 {
-   **bitfield** (int bits);
-   **bitfield** (bitfield const&amp; rhs);
-   **bitfield** (bitfield&amp;&amp; rhs);
-   **bitfield** (int bits, bool val);
-   **bitfield** ();
-   **bitfield** (char const* b, int bits);
+   <strong>bitfield</strong> (int bits);
+   <strong>bitfield</strong> (bitfield const&amp; rhs);
+   <strong>bitfield</strong> (bitfield&amp;&amp; rhs);
+   <strong>bitfield</strong> (int bits, bool val);
+   <strong>bitfield</strong> ();
+   <strong>bitfield</strong> (char const* b, int bits);
    void <strong>borrow_bytes</strong> (char* b, int bits);
    void <strong>assign</strong> (char const* b, int bits);
    bool <strong>get_bit</strong> (int index) const;
@@ -90,12 +90,12 @@ struct bitfield
 <a name="bitfield()"></a><div class="section" id="id3">
 <h2>bitfield()</h2>
 <pre class="literal-block">
-**bitfield** (int bits);
-**bitfield** (bitfield const&amp; rhs);
-**bitfield** (bitfield&amp;&amp; rhs);
-**bitfield** (int bits, bool val);
-**bitfield** ();
-**bitfield** (char const* b, int bits);
+<strong>bitfield</strong> (int bits);
+<strong>bitfield</strong> (bitfield const&amp; rhs);
+<strong>bitfield</strong> (bitfield&amp;&amp; rhs);
+<strong>bitfield</strong> (int bits, bool val);
+<strong>bitfield</strong> ();
+<strong>bitfield</strong> (char const* b, int bits);
 </pre>
 <p>constructs a new <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. The default constructor creates an empty
 <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. <tt class="docutils literal">bits</tt> is the size of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> (specified in bits).
@@ -196,7 +196,7 @@ peer IDs, node IDs etc.</p>
 <pre class="literal-block">
 class sha1_hash
 {
-   **sha1_hash** ();
+   <strong>sha1_hash</strong> ();
    static sha1_hash <strong>max</strong> ();
    static sha1_hash <strong>min</strong> ();
    explicit <strong>sha1_hash</strong> (char const* s);
@@ -230,7 +230,7 @@ class sha1_hash
 <a name="sha1_hash()"></a><div class="section" id="id18">
 <h2>sha1_hash()</h2>
 <pre class="literal-block">
-**sha1_hash** ();
+<strong>sha1_hash</strong> ();
 </pre>
 <p>constructs an all-sero sha1-hash</p>
 <a name="max()"></a></div>

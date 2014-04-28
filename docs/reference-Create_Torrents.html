@@ -103,8 +103,8 @@ the torrent. The <a class="reference external" href="reference-Bencoding.html#en
 <pre class="literal-block">
 struct create_torrent
 {
-   **create_torrent** (torrent_info const&amp; ti);
-   **create_torrent** (file_storage&amp; fs, int piece_size = 0
+   <strong>create_torrent</strong> (torrent_info const&amp; ti);
+   <strong>create_torrent</strong> (file_storage&amp; fs, int piece_size = 0
       , int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
    entry <strong>generate</strong> () const;
    file_storage const&amp; <strong>files</strong> () const;
@@ -137,8 +137,8 @@ struct create_torrent
 <a name="create_torrent()"></a><div class="section" id="id5">
 <h2>create_torrent()</h2>
 <pre class="literal-block">
-**create_torrent** (torrent_info const&amp; ti);
-**create_torrent** (file_storage&amp; fs, int piece_size = 0
+<strong>create_torrent</strong> (torrent_info const&amp; ti);
+<strong>create_torrent</strong> (file_storage&amp; fs, int piece_size = 0
       , int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
 </pre>
 <p>The <tt class="docutils literal">piece_size</tt> is the size of each piece in bytes. It must

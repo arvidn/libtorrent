@@ -240,15 +240,15 @@ ability to change or override the default libtorrent behavior.</p>
 struct torrent_plugin
 {
    virtual boost::shared_ptr&lt;peer_plugin&gt; <strong>new_connection</strong> (peer_connection*);
-   virtual void <strong>on_piece_pass</strong> (int /*index*/);
-   virtual void <strong>on_piece_failed</strong> (int /*index*/);
+   virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+   virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
    virtual void <strong>tick</strong> ();
    virtual bool <strong>on_resume</strong> ();
    virtual bool <strong>on_pause</strong> ();
    virtual void <strong>on_files_checked</strong> ();
-   virtual void <strong>on_state</strong> (int /*s*/);
+   virtual void <strong>on_state</strong> (int <em>/*s*/</em>);
    virtual void <strong>on_add_peer</strong> (<a class="reference external" href="tcp::endpoint">tcp::endpoint</a> const&amp;,
-      int /*src*/, int /*flags*/);
+      int <em>/*src*/</em>, int <em>/*flags*/</em>);
 };
 </pre>
 <a name="new_connection()"></a><div class="section" id="new-connection">
@@ -273,8 +273,8 @@ use <tt class="docutils literal">weak_ptr</tt>.</p>
 <div class="section" id="on-piece-failed-on-piece-pass">
 <h3>on_piece_failed() on_piece_pass()</h3>
 <pre class="literal-block">
-virtual void <strong>on_piece_pass</strong> (int /*index*/);
-virtual void <strong>on_piece_failed</strong> (int /*index*/);
+virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
 </pre>
 <p>These hooks are called when a piece passes the hash check or fails the hash
 check, respectively. The <tt class="docutils literal">index</tt> is the piece index that was downloaded.
@@ -320,7 +320,7 @@ can start downloading.</p>
 <div class="section" id="on-state">
 <h3>on_state()</h3>
 <pre class="literal-block">
-virtual void <strong>on_state</strong> (int /*s*/);
+virtual void <strong>on_state</strong> (int <em>/*s*/</em>);
 </pre>
 <p>called when the torrent changes state
 the state is one of <a class="reference external" href="reference-Core.html#state_t">torrent_status::state_t</a>
@@ -330,7 +330,7 @@ enum members</p>
 <h3>on_add_peer()</h3>
 <pre class="literal-block">
 virtual void <strong>on_add_peer</strong> (<a class="reference external" href="tcp::endpoint">tcp::endpoint</a> const&amp;,
-      int /*src*/, int /*flags*/);
+      int <em>/*src*/</em>, int <em>/*flags*/</em>);
 </pre>
 <p>called every time a new peer is added to the peer list.
 This is before the peer is connected to. For <tt class="docutils literal">flags</tt>, see
@@ -354,33 +354,33 @@ struct peer_plugin
 {
    virtual char const* <strong>type</strong> () const;
    virtual void <strong>add_handshake</strong> (entry&amp;);
-   virtual void <strong>on_disconnect</strong> (error_code const&amp; /*ec*/);
+   virtual void <strong>on_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
    virtual void <strong>on_connected</strong> ();
-   virtual bool <strong>on_handshake</strong> (char const* /*reserved_bits*/);
+   virtual bool <strong>on_handshake</strong> (char const* <em>/*reserved_bits*/</em>);
    virtual bool <strong>on_extension_handshake</strong> (lazy_entry const&amp;);
-   virtual bool <strong>on_have</strong> (int /*index*/);
-   virtual bool <strong>on_bitfield</strong> (bitfield const&amp; /*bitfield*/);
+   virtual bool <strong>on_have</strong> (int <em>/*index*/</em>);
+   virtual bool <strong>on_bitfield</strong> (bitfield const&amp; <em>/*bitfield*/</em>);
    virtual bool <strong>on_have_all</strong> ();
    virtual bool <strong>on_reject</strong> (peer_request const&amp;);
    virtual bool <strong>on_request</strong> (peer_request const&amp;);
    virtual bool <strong>on_unchoke</strong> ();
    virtual bool <strong>on_interested</strong> ();
-   virtual bool <strong>on_allowed_fast</strong> (int /*index*/);
+   virtual bool <strong>on_allowed_fast</strong> (int <em>/*index*/</em>);
    virtual bool <strong>on_have_none</strong> ();
    virtual bool <strong>on_choke</strong> ();
    virtual bool <strong>on_not_interested</strong> ();
-   virtual bool <strong>on_piece</strong> (peer_request const&amp; /*piece*/
-      , disk_buffer_holder&amp; /*data*/);
-   virtual bool <strong>on_suggest</strong> (int /*index*/);
+   virtual bool <strong>on_piece</strong> (peer_request const&amp; <em>/*piece*/</em>
+      , disk_buffer_holder&amp; <em>/*data*/</em>);
+   virtual bool <strong>on_suggest</strong> (int <em>/*index*/</em>);
    virtual bool <strong>on_cancel</strong> (peer_request const&amp;);
-   virtual bool <strong>on_dont_have</strong> (int /*index*/);
-   virtual bool <strong>can_disconnect</strong> (error_code const&amp; /*ec*/);
-   virtual bool <strong>on_extended</strong> (int /*length*/, int /*msg*/,
-      buffer::const_interval /*body*/);
-   virtual bool <strong>on_unknown_message</strong> (int /*length*/, int /*msg*/,
-      buffer::const_interval /*body*/);
-   virtual void <strong>on_piece_pass</strong> (int /*index*/);
-   virtual void <strong>on_piece_failed</strong> (int /*index*/);
+   virtual bool <strong>on_dont_have</strong> (int <em>/*index*/</em>);
+   virtual bool <strong>can_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
+   virtual bool <strong>on_extended</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
+   virtual bool <strong>on_unknown_message</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
+   virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+   virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
    virtual void <strong>tick</strong> ();
    virtual bool <strong>write_request</strong> (peer_request const&amp;);
 };
@@ -404,7 +404,7 @@ this is not called for web seeds</p>
 <div class="section" id="on-disconnect">
 <h3>on_disconnect()</h3>
 <pre class="literal-block">
-virtual void <strong>on_disconnect</strong> (error_code const&amp; /*ec*/);
+virtual void <strong>on_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
 </pre>
 <p>called when the peer is being disconnected.</p>
 <a name="on_connected()"></a></div>
@@ -421,7 +421,7 @@ called.</p>
 <div class="section" id="on-handshake">
 <h3>on_handshake()</h3>
 <pre class="literal-block">
-virtual bool <strong>on_handshake</strong> (char const* /*reserved_bits*/);
+virtual bool <strong>on_handshake</strong> (char const* <em>/*reserved_bits*/</em>);
 </pre>
 <p>this is called when the initial BT handshake is received. Returning false
 means that the other end doesn't support this extension and will remove
@@ -456,22 +456,22 @@ this is not called for web seeds</p>
 <div class="section" id="on-bitfield-on-have-none-on-suggest-on-unchoke-on-cancel-on-have-on-choke-on-piece-on-request-on-reject-on-not-interested-on-interested-on-allowed-fast-on-have-all-on-dont-have">
 <h3>on_bitfield() on_have_none() on_suggest() on_unchoke() on_cancel() on_have() on_choke() on_piece() on_request() on_reject() on_not_interested() on_interested() on_allowed_fast() on_have_all() on_dont_have()</h3>
 <pre class="literal-block">
-virtual bool <strong>on_have</strong> (int /*index*/);
-virtual bool <strong>on_bitfield</strong> (bitfield const&amp; /*bitfield*/);
+virtual bool <strong>on_have</strong> (int <em>/*index*/</em>);
+virtual bool <strong>on_bitfield</strong> (bitfield const&amp; <em>/*bitfield*/</em>);
 virtual bool <strong>on_have_all</strong> ();
 virtual bool <strong>on_reject</strong> (peer_request const&amp;);
 virtual bool <strong>on_request</strong> (peer_request const&amp;);
 virtual bool <strong>on_unchoke</strong> ();
 virtual bool <strong>on_interested</strong> ();
-virtual bool <strong>on_allowed_fast</strong> (int /*index*/);
+virtual bool <strong>on_allowed_fast</strong> (int <em>/*index*/</em>);
 virtual bool <strong>on_have_none</strong> ();
 virtual bool <strong>on_choke</strong> ();
 virtual bool <strong>on_not_interested</strong> ();
-virtual bool <strong>on_piece</strong> (peer_request const&amp; /*piece*/
-      , disk_buffer_holder&amp; /*data*/);
-virtual bool <strong>on_suggest</strong> (int /*index*/);
+virtual bool <strong>on_piece</strong> (peer_request const&amp; <em>/*piece*/</em>
+      , disk_buffer_holder&amp; <em>/*data*/</em>);
+virtual bool <strong>on_suggest</strong> (int <em>/*index*/</em>);
 virtual bool <strong>on_cancel</strong> (peer_request const&amp;);
-virtual bool <strong>on_dont_have</strong> (int /*index*/);
+virtual bool <strong>on_dont_have</strong> (int <em>/*index*/</em>);
 </pre>
 <p>returning true from any of the message handlers
 indicates that the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> has handeled the message.
@@ -482,7 +482,7 @@ handler.</p>
 <div class="section" id="can-disconnect">
 <h3>can_disconnect()</h3>
 <pre class="literal-block">
-virtual bool <strong>can_disconnect</strong> (error_code const&amp; /*ec*/);
+virtual bool <strong>can_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
 </pre>
 <p>called when libtorrent think this peer should be disconnected.
 if the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> returns false, the peer will not be disconnected.</p>
@@ -490,8 +490,8 @@ if the <a class="reference external" href="reference-Plugins.html#plugin">plugin
 <div class="section" id="on-extended">
 <h3>on_extended()</h3>
 <pre class="literal-block">
-virtual bool <strong>on_extended</strong> (int /*length*/, int /*msg*/,
-      buffer::const_interval /*body*/);
+virtual bool <strong>on_extended</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
 </pre>
 <p>called when an extended message is received. If returning true,
 the message is not processed by any other <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> and if false
@@ -502,8 +502,8 @@ this is not called for web seeds</p>
 <div class="section" id="on-unknown-message">
 <h3>on_unknown_message()</h3>
 <pre class="literal-block">
-virtual bool <strong>on_unknown_message</strong> (int /*length*/, int /*msg*/,
-      buffer::const_interval /*body*/);
+virtual bool <strong>on_unknown_message</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
 </pre>
 <p>this is not called for web seeds</p>
 <a name="on_piece_failed()"></a>
@@ -511,8 +511,8 @@ virtual bool <strong>on_unknown_message</strong> (int /*length*/, int /*msg*/,
 <div class="section" id="id53">
 <h3>on_piece_failed() on_piece_pass()</h3>
 <pre class="literal-block">
-virtual void <strong>on_piece_pass</strong> (int /*index*/);
-virtual void <strong>on_piece_failed</strong> (int /*index*/);
+virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
 </pre>
 <p>called when a piece that this peer participated in either
 fails or passes the hash_check</p>

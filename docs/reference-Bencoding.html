@@ -55,11 +55,11 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#invalid-encoding" id="id53">invalid_encoding</a></li>
-<li><a class="reference internal" href="#type-error" id="id54">type_error</a></li>
-<li><a class="reference internal" href="#entry" id="id55">entry</a></li>
-<li><a class="reference internal" href="#pascal-string" id="id56">pascal_string</a></li>
-<li><a class="reference internal" href="#lazy-entry" id="id57">lazy_entry</a></li>
+<li><a class="reference internal" href="#invalid-encoding" id="id54">invalid_encoding</a></li>
+<li><a class="reference internal" href="#type-error" id="id55">type_error</a></li>
+<li><a class="reference internal" href="#entry" id="id56">entry</a></li>
+<li><a class="reference internal" href="#pascal-string" id="id57">pascal_string</a></li>
+<li><a class="reference internal" href="#lazy-entry" id="id58">lazy_entry</a></li>
 </ul>
 </div>
 <p>Bencoding is a common representation in bittorrent used for
@@ -115,7 +115,7 @@ of the <a class="reference external" href="reference-Bencoding.html#entry">entry
 <pre class="literal-block">
 struct type_error: std::runtime_error
 {
-   **type_error** (const char* error);
+   <strong>type_error</strong> (const char* error);
 };
 </pre>
 <a name="entry"></a></div>
@@ -129,11 +129,11 @@ or a string.</p>
 class entry
 {
    data_type <strong>type</strong> () const;
-   **entry** (list_type const&amp;);
-   **entry** (integer_type const&amp;);
-   **entry** (dictionary_type const&amp;);
-   **entry** (string_type const&amp;);
-   **entry** (data_type t);
+   <strong>entry</strong> (list_type const&amp;);
+   <strong>entry</strong> (integer_type const&amp;);
+   <strong>entry</strong> (dictionary_type const&amp;);
+   <strong>entry</strong> (string_type const&amp;);
+   <strong>entry</strong> (data_type t);
    void <strong>operator=</strong> (string_type const&amp;);
    void <strong>operator=</strong> (entry const&amp;);
    void <strong>operator=</strong> (integer_type const&amp;);
@@ -181,10 +181,10 @@ data_type <strong>type</strong> () const;
 <div class="section" id="id16">
 <h2>entry()</h2>
 <pre class="literal-block">
-**entry** (list_type const&amp;);
-**entry** (integer_type const&amp;);
-**entry** (dictionary_type const&amp;);
-**entry** (string_type const&amp;);
+<strong>entry</strong> (list_type const&amp;);
+<strong>entry</strong> (integer_type const&amp;);
+<strong>entry</strong> (dictionary_type const&amp;);
+<strong>entry</strong> (string_type const&amp;);
 </pre>
 <p>constructors directly from a specific type.
 The content of the argument is copied into the
@@ -193,7 +193,7 @@ newly constructed <a class="reference external" href="reference-Bencoding.html#e
 <div class="section" id="id18">
 <h2>entry()</h2>
 <pre class="literal-block">
-**entry** (data_type t);
+<strong>entry</strong> (data_type t);
 </pre>
 <p>construct an empty <a class="reference external" href="reference-Bencoding.html#entry">entry</a> of the specified type.
 see <a class="reference external" href="reference-Bencoding.html#data_type">data_type</a> enum.</p>
@@ -209,7 +209,7 @@ void <strong>operator=</strong> (dictionary_type const&amp;);
 void <strong>operator=</strong> (list_type const&amp;);
 </pre>
 <p>copies the structure of the right hand side into this
-entry.</p>
+<a class="reference external" href="reference-Bencoding.html#entry">entry</a>.</p>
 <a name="string()"></a>
 <a name="dict()"></a>
 <a name="integer()"></a>
@@ -273,7 +273,7 @@ void <strong>swap</strong> (entry&amp; e);
 </pre>
 <p>swaps the content of <em>this</em> with <tt class="docutils literal">e</tt>.</p>
 <a name="operator[]()"></a></div>
-<div class="section" id="id23">
+<div class="section" id="id24">
 <h2>operator[]()</h2>
 <pre class="literal-block">
 entry&amp; <strong>operator[]</strong> (std::string const&amp; key);
@@ -372,22 +372,22 @@ would require copying the string.</p>
 <pre class="literal-block">
 struct pascal_string
 {
-   **pascal_string** (char const* p, int l);
+   <strong>pascal_string</strong> (char const* p, int l);
    bool <strong>operator&lt;</strong> (pascal_string const&amp; rhs) const;
 
    int len;
    char const* ptr;
 };
 </pre>
-<a name="pascal_string()"></a><div class="section" id="id30">
+<a name="pascal_string()"></a><div class="section" id="id31">
 <h2>pascal_string()</h2>
 <pre class="literal-block">
-**pascal_string** (char const* p, int l);
+<strong>pascal_string</strong> (char const* p, int l);
 </pre>
 <p>construct a string pointing to the characters at <tt class="docutils literal">p</tt>
 of length <tt class="docutils literal">l</tt> characters. No NULL termination is required.</p>
 <a name="operator<()"></a></div>
-<div class="section" id="id31">
+<div class="section" id="id32">
 <h2>operator&lt;()</h2>
 <pre class="literal-block">
 bool <strong>operator&lt;</strong> (pascal_string const&amp; rhs) const;
@@ -460,7 +460,7 @@ struct lazy_entry
    };
 };
 </pre>
-<a name="type()"></a><div class="section" id="id35">
+<a name="type()"></a><div class="section" id="id36">
 <h2>type()</h2>
 <pre class="literal-block">
 entry_type_t <strong>type</strong> () const;
@@ -636,7 +636,7 @@ std::pair&lt;char const*, int&gt; <strong>data_section</strong> () const;
 <p>returns pointers into the source buffer where
 this <a class="reference external" href="reference-Bencoding.html#entry">entry</a> has its bencoded data</p>
 <a name="swap()"></a></div>
-<div class="section" id="id43">
+<div class="section" id="id44">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (lazy_entry&amp; e);
@@ -724,7 +724,7 @@ entry e = bdecode(buf, buf + data_size);
 <p>If <tt class="docutils literal">bdecode()</tt> encounters invalid encoded data in the range given to it
 it will throw <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a>.</p>
 <a name="operator<<()"></a></div>
-<div class="section" id="id50">
+<div class="section" id="id51">
 <h2>operator&lt;&lt;()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/entry.hpp">libtorrent/entry.hpp</a>&quot;</p>
 <pre class="literal-block">

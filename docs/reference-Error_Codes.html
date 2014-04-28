@@ -55,7 +55,7 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#libtorrent-exception" id="id37">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#libtorrent-exception" id="id38">libtorrent_exception</a></li>
 </ul>
 </div>
 <a name="libtorrent_exception"></a><div class="section" id="libtorrent-exception">
@@ -66,7 +66,7 @@ struct libtorrent_exception: std::exception
 {
    error_code <strong>error</strong> () const;
    virtual <strong>~libtorrent_exception</strong> () throw();
-   **libtorrent_exception** (error_code const&amp; s);
+   <strong>libtorrent_exception</strong> (error_code const&amp; s);
    virtual const char* <strong>what</strong> () const throw();
 };
 </pre>
@@ -216,7 +216,7 @@ matched the info-hash, but failed to be parsed</td>
 <tr><td>duplicate_torrent</td>
 <td>19</td>
 <td>There's already a torrent with that info-hash added to the
-session</td>
+<a class="reference external" href="reference-Session.html#session">session</a></td>
 </tr>
 <tr><td>invalid_torrent_handle</td>
 <td>20</td>
@@ -918,7 +918,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id31">
+<div class="section" id="id32">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -1036,7 +1036,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id34">
+<div class="section" id="id35">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
 <table border="1" class="docutils">

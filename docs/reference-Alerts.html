@@ -793,7 +793,7 @@ code indicating an error.</p>
 <pre class="literal-block">
 struct scrape_failed_alert: tracker_alert
 {
-   **scrape_failed_alert** (torrent_handle const&amp; h
+   <strong>scrape_failed_alert</strong> (torrent_handle const&amp; h
       , std::string const&amp; u
       , std::string const&amp; m);
    virtual std::string <strong>message</strong> () const;
@@ -2364,7 +2364,7 @@ specifically the overload for looking up immutable items in the DHT.</p>
 struct dht_immutable_item_alert: alert
 {
    virtual bool <strong>discardable</strong> () const;
-   **dht_immutable_item_alert** (sha1_hash const&amp; t, entry const&amp; i);
+   <strong>dht_immutable_item_alert</strong> (sha1_hash const&amp; t, entry const&amp; i);
    virtual std::string <strong>message</strong> () const;
 
    | alert::dht_notification;
@@ -2390,7 +2390,7 @@ specifically the overload for looking up mutable items in the DHT.</p>
 <pre class="literal-block">
 struct dht_mutable_item_alert: alert
 {
-   **dht_mutable_item_alert** (boost::array&lt;char, 32&gt; k
+   <strong>dht_mutable_item_alert</strong> (boost::array&lt;char, 32&gt; k
       , boost::array&lt;char, 64&gt; sig
       , boost::uint64_t sequence
       , std::string const&amp; s
@@ -2471,7 +2471,7 @@ salt and sequence number the item was stored under.</dd>
 <pre class="literal-block">
 struct i2p_alert : alert
 {
-   **i2p_alert** (error_code const&amp; ec);
+   <strong>i2p_alert</strong> (error_code const&amp; ec);
    virtual std::string <strong>message</strong> () const;
 
    const static int static_category = alert::error_notification;
