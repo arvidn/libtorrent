@@ -69,8 +69,8 @@ a feed of torrents.</p>
 <pre class="literal-block">
 struct feed_item
 {
-   **feed_item** ();
-   **~feed_item** ();
+   <strong>feed_item</strong> ();
+   <strong>~feed_item</strong> ();
 
    std::string url;
    std::string uuid;
@@ -119,7 +119,7 @@ after adding the feed</p>
 <pre class="literal-block">
 struct feed_settings
 {
-   **feed_settings** ();
+   <strong>feed_settings</strong> ();
 
    std::string url;
    bool auto_download;
@@ -173,7 +173,7 @@ calling <a class="reference external" href="reference-RSS.html#get_feed_status()
 <pre class="literal-block">
 struct feed_status
 {
-   **feed_status** ();
+   <strong>feed_status</strong> ();
 
    std::string url;
    std::string title;
@@ -240,7 +240,7 @@ default ttl, or the ttl specified by the feed.</dd>
 <pre class="literal-block">
 struct feed_handle
 {
-   **feed_handle** ();
+   <strong>feed_handle</strong> ();
    void <strong>update_feed</strong> ();
    feed_status <strong>get_feed_status</strong> () const;
    void <strong>set_settings</strong> (feed_settings const&amp; s);

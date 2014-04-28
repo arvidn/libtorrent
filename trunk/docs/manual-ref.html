@@ -55,17 +55,17 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#overview" id="id52">overview</a></li>
-<li><a class="reference internal" href="#things-to-keep-in-mind" id="id53">things to keep in mind</a></li>
-<li><a class="reference internal" href="#network-primitives" id="id54">network primitives</a></li>
-<li><a class="reference internal" href="#exceptions" id="id55">exceptions</a></li>
-<li><a class="reference internal" href="#magnet-links" id="id56">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id57">queuing</a></li>
-<li><a class="reference internal" href="#fast-resume" id="id58">fast resume</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id59">storage allocation</a></li>
-<li><a class="reference internal" href="#extensions" id="id60">extensions</a></li>
-<li><a class="reference internal" href="#piece-picker" id="id61">piece picker</a></li>
-<li><a class="reference internal" href="#ssl-torrents" id="id62">SSL torrents</a></li>
+<li><a class="reference internal" href="#overview" id="id55">overview</a></li>
+<li><a class="reference internal" href="#things-to-keep-in-mind" id="id56">things to keep in mind</a></li>
+<li><a class="reference internal" href="#network-primitives" id="id57">network primitives</a></li>
+<li><a class="reference internal" href="#exceptions" id="id58">exceptions</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id59">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id60">queuing</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id61">fast resume</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id62">storage allocation</a></li>
+<li><a class="reference internal" href="#extensions" id="id63">extensions</a></li>
+<li><a class="reference internal" href="#piece-picker" id="id64">piece picker</a></li>
+<li><a class="reference internal" href="#ssl-torrents" id="id65">SSL torrents</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -93,7 +93,7 @@ and <a class="reference external" href="reference-Session.html#start_natpmp()">s
 <li>handle updates to torrents, (see <a class="reference external" href="reference-Alerts.html#state_update_alert">state_update_alert</a>).</li>
 <li>handle other alerts, (see <a class="reference external" href="reference-Alerts.html#alert">alert</a>).</li>
 <li>query the <a class="reference external" href="reference-Session.html#session">session</a> for information (see <a class="reference external" href="reference-Session.html#status()">session::status()</a>).</li>
-<li>add and remove torrents from the <a class="reference external" href="reference-Session.html#session">session</a> (remove_torrent())</li>
+<li>add and remove torrents from the <a class="reference external" href="reference-Session.html#session">session</a> (<a class="reference external" href="reference-Session.html#remove_torrent()">remove_torrent()</a>)</li>
 </ul>
 </blockquote>
 </li>
@@ -815,7 +815,7 @@ into the normal tit-for-tat mode of bittorrent, and will result in a long
 ramp-up time. The heuristic to mitigate this problem is to, for the first few
 pieces, pick random pieces rather than rare pieces. The threshold for when to
 leave this initial picker mode is determined by
-session_settings::initial_picker_threshold.</p>
+<a class="reference external" href="reference-Settings.html#initial_picker_threshold">session_settings::initial_picker_threshold</a>.</p>
 </div>
 <div class="section" id="reverse-order">
 <h2>reverse order</h2>
@@ -841,7 +841,7 @@ number of partial pieces is minimized (and hence the turn-around time for
 downloading a block until it can be uploaded to others is minimized). It also
 puts less stress on the disk cache, since fewer partial pieces need to be kept
 in the cache. Whether or not to enable this is controlled by
-session_settings::prioritize_partial_pieces.</p>
+<a class="reference external" href="reference-Settings.html#prioritize_partial_pieces">session_settings::prioritize_partial_pieces</a>.</p>
 <p>The main benefit of not prioritizing partial pieces is that the rarest first
 algorithm gets to have more influence on which pieces are picked. The picker is
 more likely to truly pick the rarest piece, and hence improving the performance

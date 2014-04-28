@@ -66,9 +66,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // OVERVIEW
 //
-// This is an example storage implementation that stores all pieces in a ``std::map``,
-// i.e. in RAM. It's not necessarily very useful in practice, but illustrates the
-// basics of implementing a custom storage.
+// libtorrent provides a customization point for storage of data. By default,
+// (``default_storage``) downloaded files are saved to disk according with the
+// general conventions of bittorrent clients, mimicing the original file layout
+// when the torrent was created. The libtorrent user may define a custom
+// storage to store piece data in a different way.
+// 
+// A custom storage implementation must derive from and implement the
+// storage_interface. You must also provide a function that constructs the
+// custom storage object and provide this function to the add_torrent() call
+// via add_torrent_params. Either passed in to the constructor or by setting
+// the add_torrent_params::storage field.
+// 
+// This is an example storage implementation that stores all pieces in a
+// ``std::map``, i.e. in RAM. It's not necessarily very useful in practice, but
+// illustrates the basics of implementing a custom storage.
 //
 //::
 //
@@ -166,16 +178,16 @@ namespace libtorrent
 
 	// The storage interface is a pure virtual class that can be implemented to
 	// customize how and where data for a torrent is stored. The default storage
-	// implementation uses regular files in the filesystem, mapping the files in the
-	// torrent in the way one would assume a torrent is saved to disk. Implementing
-	// your own storage interface makes it possible to store all data in RAM, or in
-	// some optimized order on disk (the order the pieces are received for instance),
-	// or saving multifile torrents in a single file in order to be able to take
-	// advantage of optimized disk-I/O.
+	// implementation uses regular files in the filesystem, mapping the files in
+	// the torrent in the way one would assume a torrent is saved to disk.
+	// Implementing your own storage interface makes it possible to store all
+	// data in RAM, or in some optimized order on disk (the order the pieces are
+	// received for instance), or saving multifile torrents in a single file in
+	// order to be able to take advantage of optimized disk-I/O.
 	// 
-	// It is also possible to write a thin class that uses the default storage but
-	// modifies some particular behavior, for instance encrypting the data before
-	// it's written to disk, and decrypting it when it's read again.
+	// It is also possible to write a thin class that uses the default storage
+	// but modifies some particular behavior, for instance encrypting the data
+	// before it's written to disk, and decrypting it when it's read again.
 	// 
 	// The storage interface is based on slots, each slot is 'piece_size' number
 	// of bytes. All access is done by writing and reading whole or partial
@@ -183,9 +195,10 @@ namespace libtorrent
 	// does not necessarily correspond to the piece with the same index (in
 	// compact allocation mode it won't).
 	// 
-	// libtorrent comes with two built-in storage implementations; ``default_storage``
-	// and ``disabled_storage``. Their constructor functions are called default_storage_constructor()
-	// and ``disabled_storage_constructor`` respectively. The disabled storage does
+	// libtorrent comes with two built-in storage implementations;
+	// ``default_storage`` and ``disabled_storage``. Their constructor functions
+	// are called default_storage_constructor() and
+	// ``disabled_storage_constructor`` respectively. The disabled storage does
 	// just what it sounds like. It throws away data that's written, and it
 	// reads garbage. It's useful mostly for benchmarking and profiling purpose.
 	//
@@ -195,50 +208,54 @@ namespace libtorrent
 		storage_interface(): m_disk_pool(0), m_settings(0) {}
 
 
-		// This function is called when the storage is to be initialized. The default storage
-		// will create directories and empty files at this point. If ``allocate_files`` is true,
-		// it will also ``ftruncate`` all files to their target size.
+		// This function is called when the storage is to be initialized. The
+		// default storage will create directories and empty files at this point.
+		// If ``allocate_files`` is true, it will also ``ftruncate`` all files to
+		// their target size.
 		//
 		// Returning ``true`` indicates an error occurred.
 		virtual bool initialize(bool allocate_files) = 0;
 
-		// This function is called when first checking (or re-checking) the storage for a torrent.
-		// It should return true if any of the files that is used in this storage exists on disk.
-		// If so, the storage will be checked for existing pieces before starting the download.
+		// This function is called when first checking (or re-checking) the
+		// storage for a torrent. It should return true if any of the files that
+		// is used in this storage exists on disk. If so, the storage will be
+		// checked for existing pieces before starting the download.
 		virtual bool has_any_file() = 0;
 
 
 		// change the priorities of files.
 		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio) = 0;
 
-		// These functions should read or write the data in or to the given ``slot`` at the given ``offset``.
-		// It should read or write ``num_bufs`` buffers sequentially, where the size of each buffer
-		// is specified in the buffer array ``bufs``. The file::iovec_t type has the following members::
+		// These functions should read or write the data in or to the given
+		// ``slot`` at the given ``offset``. It should read or write ``num_bufs``
+		// buffers sequentially, where the size of each buffer is specified in
+		// the buffer array ``bufs``. The file::iovec_t type has the following
+		// members::
 		// 
-		//	struct iovec_t
-		//	{
-		//		void* iov_base;
-		//		size_t iov_len;
-		//	};
+		//	struct iovec_t { void* iov_base; size_t iov_len; };
 		// 
-		// The return value is the number of bytes actually read or written, or -1 on failure. If
-		// it returns -1, the error code is expected to be set to
+		// The return value is the number of bytes actually read or written, or
+		// -1 on failure. If it returns -1, the error code is expected to be set
+		// to
 		// 
-		// Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
-		// except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
-		// fully page aligned number of bytes though. This is useful when reading and writing the
-		// last piece of a file in unbuffered mode.
+		// Every buffer in ``bufs`` can be assumed to be page aligned and be of a
+		// page aligned size, except for the last buffer of the torrent. The
+		// allocated buffer can be assumed to fit a fully page aligned number of
+		// bytes though. This is useful when reading and writing the last piece
+		// of a file in unbuffered mode.
 		// 
-		// The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but there are rare
-		// exceptions when it's not. Specifically if the read cache is disabled/or full and a
-		// client requests unaligned data, or the file itself is not aligned in the torrent.
-		// Most clients request aligned data.
+		// The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but
+		// there are rare exceptions when it's not. Specifically if the read
+		// cache is disabled/or full and a client requests unaligned data, or the
+		// file itself is not aligned in the torrent. Most clients request
+		// aligned data.
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 
-		// This function is called when a read job is queued. It gives the storage wrapper an
-		// opportunity to hint the operating system about this coming read. For instance, the
-		// storage may call ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
+		// This function is called when a read job is queued. It gives the
+		// storage wrapper an opportunity to hint the operating system about this
+		// coming read. For instance, the storage may call
+		// ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
 		virtual void hint_read(int, int, int) {}
 
 		// negative return value indicates an error
@@ -251,17 +268,18 @@ namespace libtorrent
 		// byte at offset ``offset`` in slot ``slot``.
 		virtual size_type physical_offset(int slot, int offset) = 0;
 
-		// This function is optional. It is supposed to return the first piece, starting at
-		// ``start`` that is fully contained within a data-region on disk (i.e. non-sparse
-		// region). The purpose of this is to skip parts of files that can be known to contain
-		// zeros when checking files.
+		// This function is optional. It is supposed to return the first piece,
+		// starting at ``start`` that is fully contained within a data-region on
+		// disk (i.e. non-sparse region). The purpose of this is to skip parts of
+		// files that can be known to contain zeros when checking files.
 		virtual int sparse_end(int start) const { return start; }
 
-		// This function should move all the files belonging to the storage to the new save_path.
-		// The default storage moves the single file or the directory of the torrent.
+		// This function should move all the files belonging to the storage to
+		// the new save_path. The default storage moves the single file or the
+		// directory of the torrent.
 		// 
-		// Before moving the files, any open file handles may have to be closed, like
-		// ``release_files()``.
+		// Before moving the files, any open file handles may have to be closed,
+		// like ``release_files()``.
 		// 
 		// returns one of:
 		// | no_error = 0
@@ -295,9 +313,10 @@ namespace libtorrent
 		// Returning ``true`` indicates an error occurred.
 		virtual bool move_slot(int src_slot, int dst_slot) = 0;
 
-		// This function should swap the data in ``slot1`` and ``slot2``. The default
-		// storage uses a scratch buffer to read the data into, then moving the other
-		// slot and finally writing back the temporary slot's data
+		// This function should swap the data in ``slot1`` and ``slot2``. The
+		// default storage uses a scratch buffer to read the data into, then
+		// moving the other slot and finally writing back the temporary slot's
+		// data
 		// 
 		// This is only used in compact mode.
 		// 
@@ -305,8 +324,8 @@ namespace libtorrent
 		virtual bool swap_slots(int slot1, int slot2) = 0;
 
 		// This function should do a 3-way swap, or shift of the slots. ``slot1``
-		// should move to ``slot2``, which should be moved to ``slot3`` which in turn
-		// should be moved to ``slot1``.
+		// should move to ``slot2``, which should be moved to ``slot3`` which in
+		// turn should be moved to ``slot1``.
 		// 
 		// This is only used in compact mode.
 		// 
@@ -324,12 +343,13 @@ namespace libtorrent
 		// ``true`` should be returned.
 		virtual bool rename_file(int index, std::string const& new_filename) = 0;
 
-		// This function should delete all files and directories belonging to this storage.
+		// This function should delete all files and directories belonging to
+		// this storage.
 		// 
 		// Returning ``true`` indicates an error occurred.
 		// 
-		// The ``disk_buffer_pool`` is used to allocate and free disk buffers. It has the
-		// following members::
+		// The ``disk_buffer_pool`` is used to allocate and free disk buffers. It
+		// has the following members::
 		//
 		//	struct disk_buffer_pool : boost::noncopyable
 		//	{
@@ -347,13 +367,13 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// This function is called each time a file is completely downloaded. The
-		//	storage implementation can perform last operations on a file. The file will
-		//	not be opened for writing after this.
+		// storage implementation can perform last operations on a file. The file
+		// will not be opened for writing after this.
 		//
 		//	``index`` is the index of the file that completed.
 		//	
-		// On windows the default storage implementation clears the sparse file flag
-		//	on the specified file.
+		// On windows the default storage implementation clears the sparse file
+		// flag on the specified file.
 		virtual void finalize_file(int) {}
 #endif
 
@@ -389,9 +409,9 @@ namespace libtorrent
 		session_settings* m_settings;
 	};
 
-	// The default implementation of storage_interface. Behaves as a normal bittorrent client.
-	// It is possible to derive from this class in order to override some of its behavior, when
-	// implementing a custom storage.
+	// The default implementation of storage_interface. Behaves as a normal
+	// bittorrent client. It is possible to derive from this class in order to
+	// override some of its behavior, when implementing a custom storage.
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
 	public:

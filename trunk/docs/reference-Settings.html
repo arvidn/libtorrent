@@ -55,10 +55,10 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#proxy-settings" id="id37">proxy_settings</a></li>
-<li><a class="reference internal" href="#session-settings" id="id38">session_settings</a></li>
-<li><a class="reference internal" href="#dht-settings" id="id39">dht_settings</a></li>
-<li><a class="reference internal" href="#pe-settings" id="id40">pe_settings</a></li>
+<li><a class="reference internal" href="#proxy-settings" id="id38">proxy_settings</a></li>
+<li><a class="reference internal" href="#session-settings" id="id39">session_settings</a></li>
+<li><a class="reference internal" href="#dht-settings" id="id40">dht_settings</a></li>
+<li><a class="reference internal" href="#pe-settings" id="id41">pe_settings</a></li>
 </ul>
 </div>
 <a name="proxy_settings"></a><div class="section" id="proxy-settings">
@@ -69,7 +69,7 @@ direct certain traffic to a proxy.</p>
 <pre class="literal-block">
 struct proxy_settings
 {
-   **proxy_settings** ();
+   <strong>proxy_settings</strong> ();
 
    std::string hostname;
    std::string username;
@@ -83,7 +83,7 @@ struct proxy_settings
 <a name="proxy_settings()"></a><div class="section" id="id2">
 <h2>proxy_settings()</h2>
 <pre class="literal-block">
-**proxy_settings** ();
+<strong>proxy_settings</strong> ();
 </pre>
 <p>defaults constructs proxy settings, initializing it to the default
 settings.</p>
@@ -131,9 +131,9 @@ session::get_settings() to get the current settings.</p>
 <pre class="literal-block">
 struct session_settings
 {
-   **session_settings** (std::string const&amp; user_agent = &quot;libtorrent/&quot;
+   <strong>session_settings</strong> (std::string const&amp; user_agent = &quot;libtorrent/&quot;
       LIBTORRENT_VERSION);
-   **~session_settings** ();
+   <strong>~session_settings</strong> ();
 
    enum io_buffer_mode_t
    {
@@ -336,9 +336,9 @@ struct session_settings
 <a name="session_settings()"></a><div class="section" id="session-settings-session-settings">
 <h2>~session_settings() session_settings()</h2>
 <pre class="literal-block">
-**session_settings** (std::string const&amp; user_agent = &quot;libtorrent/&quot;
+<strong>session_settings</strong> (std::string const&amp; user_agent = &quot;libtorrent/&quot;
       LIBTORRENT_VERSION);
-**~session_settings** ();
+<strong>~session_settings</strong> ();
 </pre>
 <p>initializes the <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a> to the default settings.</p>
 <a name="io_buffer_mode_t"></a></div>
@@ -1179,7 +1179,7 @@ until libtorrent will take it out of the upload mode, to test if the
 error condition has been fixed.</p>
 <p>libtorrent will only do this automatically for auto managed torrents.</p>
 <p class="last">You can explicitly take a torrent out of upload only mode using
-set_upload_mode().</p>
+<a class="reference external" href="reference-Core.html#set_upload_mode()">set_upload_mode()</a>.</p>
 </dd>
 </dl>
 <a name="disable_hash_checks"></a><dl class="docutils">
@@ -1744,7 +1744,7 @@ socket on the same port as the TCP socket.</p>
 <pre class="literal-block">
 struct dht_settings
 {
-   **dht_settings** ();
+   <strong>dht_settings</strong> ();
 
    int max_peers_reply;
    int search_branching;
@@ -1761,10 +1761,10 @@ struct dht_settings
    bool ignore_dark_internet;
 };
 </pre>
-<a name="dht_settings()"></a><div class="section" id="id25">
+<a name="dht_settings()"></a><div class="section" id="id26">
 <h2>dht_settings()</h2>
 <pre class="literal-block">
-**dht_settings** ();
+<strong>dht_settings</strong> ();
 </pre>
 <p>initialized <a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a> to the default values</p>
 <a name="max_peers_reply"></a><dl class="docutils">
@@ -1859,7 +1859,7 @@ to peer protocol encryption.</p>
 <pre class="literal-block">
 struct pe_settings
 {
-   **pe_settings** ();
+   <strong>pe_settings</strong> ();
 
    enum enc_policy
    {
@@ -1881,10 +1881,10 @@ struct pe_settings
    bool prefer_rc4;
 };
 </pre>
-<a name="pe_settings()"></a><div class="section" id="id29">
+<a name="pe_settings()"></a><div class="section" id="id30">
 <h2>pe_settings()</h2>
 <pre class="literal-block">
-**pe_settings** ();
+<strong>pe_settings</strong> ();
 </pre>
 <p>initializes the encryption settings with the default vaues</p>
 <a name="enc_policy"></a></div>
