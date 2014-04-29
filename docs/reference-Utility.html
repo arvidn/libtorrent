@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Utility</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -99,7 +99,7 @@ struct bitfield
 </pre>
 <p>constructs a new <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. The default constructor creates an empty
 <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. <tt class="docutils literal">bits</tt> is the size of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> (specified in bits).
-`` val`` is the value to initialize the bits to. If not specified
+<tt class="docutils literal">val</tt> is the value to initialize the bits to. If not specified
 all bits are initialized to 0.</p>
 <p>The constructor taking a pointer <tt class="docutils literal">b</tt> and <tt class="docutils literal">bits</tt> copies a <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>
 from the specified buffer, and <tt class="docutils literal">bits</tt> number of bits (rounded up to
@@ -384,9 +384,9 @@ It's still a binary string with 20 binary characters.</p>
 <pre class="literal-block">
 std::string <strong>identify_client</strong> (const peer_id&amp; p);
 </pre>
-<p>This function is declared in the header <tt class="docutils literal">&lt;libtorrent/identify_client.hpp&gt;</tt>. It can can be used
-to extract a string describing a client version from its peer-id. It will recognize most clients
-that have this kind of identification in the peer-id.</p>
+<p>This function can can be used to extract a string describing a client
+version from its peer-id. It will recognize most clients that have this
+kind of identification in the peer-id.</p>
 <a name="client_fingerprint()"></a></div>
 <div class="section" id="client-fingerprint">
 <h2>client_fingerprint()</h2>
@@ -394,10 +394,10 @@ that have this kind of identification in the peer-id.</p>
 <pre class="literal-block">
 boost::optional&lt;fingerprint&gt; <strong>client_fingerprint</strong> (peer_id const&amp; p);
 </pre>
-<p>Returns an optional fingerprint if any can be identified from the peer id. This can be used
-to automate the identification of clients. It will not be able to identify peers with non-
-standard encodings. Only Azureus style, Shadow's style and Mainline style. This function is
-declared in the header <tt class="docutils literal">&lt;libtorrent/identify_client.hpp&gt;</tt>.</p>
+<p>Returns an optional fingerprint if any can be identified from the peer
+id. This can be used to automate the identification of clients. It will
+not be able to identify peers with non- standard encodings. Only Azureus
+style, Shadow's style and Mainline style.</p>
 <a name="operator<<()"></a></div>
 <div class="section" id="id32">
 <h2>operator&lt;&lt;()</h2>
