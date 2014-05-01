@@ -425,6 +425,11 @@ namespace libtorrent
 			return boost::system::error_code(e, get_bdecode_category());
 		}
 	}
+
+	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
+		, char const* end, char delimiter, boost::int64_t& val
+		, bdecode_errors::error_code_enum& ec);
+
 }
 
 #endif

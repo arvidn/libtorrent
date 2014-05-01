@@ -121,7 +121,7 @@ namespace libtorrent
 		std::vector<lazy_entry*> stack;
 
 		stack.push_back(&ret);
-		while (start < end)
+		while (start <= end)
 		{
 			if (stack.empty()) break; // done!
 

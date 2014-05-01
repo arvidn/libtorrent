@@ -202,7 +202,6 @@ int test_main()
 			, get_bdecode_category()));
 	}
 
-
 	// test integers that don't fit in 64 bits
 	{
 		char b[] = "i18446744073709551615e";
@@ -262,10 +261,191 @@ int test_main()
 		TEST_CHECK(ret == -1);	
 	}
 
+	// test the depth limit
+	{
+		char b[2048];
+		for (int i = 0; i < 1024; ++i)
+			b[i]= 'l';
+
+		for (int i = 1024; i < 2048; ++i)
+			b[i]= 'e';
+
+		// 1024 levels nested lists
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b), e, ec);
+		TEST_CHECK(ret != 0);
+		TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded
+			, get_bdecode_category()));
+	}
+
+	// test the item limit
+	{
+		char b[10240];
+		b[0] = 'l';
+		int i = 1;
+		for (i = 1; i < 10239; i += 2)
+			memcpy(&b[i], "0:", 2);
+		b[i] = 'e';
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + i + 1, e, ec, NULL, 1000, 1000);
+		TEST_CHECK(ret != 0);
+		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded
+			, get_bdecode_category()));
+	}
+
+	// test unexpected EOF
+	{
+		char b[] = "l2:.."; // expected terminating 'e'
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+	// test unexpected EOF (really expected terminator)
+	{
+		char b[] = "l2:..0"; // expected terminating 'e' instead of '0'
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+	// test expected string
+	{
+		char b[] = "di2ei0ee";
+		// expected string (dict keys must be strings)
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_string
+			, get_bdecode_category()));
+	}
+
+	// test unexpected EOF while parsing dict key
+	{
+		char b[] = "d1000:..e";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+	// test unexpected EOF while parsing dict key
+	{
+		char b[] = "d1000:";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+	// test unexpected EOF while parsing dict key
+	{
+		char b[] = "d1000:";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+	// test unexpected EOF while parsing int
+	{
+		char b[] = "i";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+	// test unexpected EOF while parsing int
+	{
+		char b[] = "i10";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+
+	// test expected colon
+	{
+		char b[] = "d1000";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon
+			, get_bdecode_category()));
+	}
+
 	{
 		unsigned char buf[] = { 0x44	, 0x91	, 0x3a };
 		entry ent = bdecode(buf, buf + sizeof(buf));
 		TEST_CHECK(ent == entry());
+	}
+
+	// test parse_int
+	{
+		char b[] = "1234567890e";
+		boost::int64_t val = 0;
+		bdecode_errors::error_code_enum ec;
+		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
+		TEST_EQUAL(val, 1234567890);
+		TEST_EQUAL(e, b + sizeof(b) - 2);
+	}
+
+	{
+		char b[] = "9223372036854775808:";
+		boost::int64_t val = 0;
+		bdecode_errors::error_code_enum ec;
+		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
+		TEST_CHECK(ec == bdecode_errors::overflow);
+	}
+
+	{
+		char b[] = "928";
+		boost::int64_t val = 0;
+		bdecode_errors::error_code_enum ec;
+		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
+		TEST_CHECK(ec == bdecode_errors::expected_colon);
 	}
 
 	return 0;
