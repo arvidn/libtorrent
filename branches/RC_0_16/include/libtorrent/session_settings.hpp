@@ -855,7 +855,7 @@ namespace libtorrent
 		int mixed_mode_algorithm;
 
 		// set to true if uTP connections should be rate limited
-		// defaults to false
+		// defaults to true.
 		bool rate_limit_utp;
 
 		// this is the number passed in to listen(). i.e.
