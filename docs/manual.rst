@@ -5395,10 +5395,11 @@ connections would often be starved out for bandwidth by the TCP connections. Thi
 is ``prefer_tcp``. The ``peer_proportional`` mode simply looks at the current throughput
 and rate limits all TCP connections to their proportional share based on how many of
 the connections are TCP. This works best if uTP connections are not rate limited by
-the global rate limiter (which they aren't by default).
+the global rate limiter, which they are by default.
 
 ``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
-limiter or not. By default they are.
+limiter or not. By default uTP is rate limited, this setting defaults to
+true.
 
 ``listen_queue_size`` is the value passed in to listen() for the listen socket.
 It is the number of outstanding incoming connections to queue up while we're not
