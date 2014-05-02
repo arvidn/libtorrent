@@ -363,16 +363,16 @@ int test_main()
 			, get_bdecode_category()));
 	}
 
-	// test unexpected EOF while parsing dict key
+	// test expected string while parsing dict key
 	{
-		char b[] = "d1000:";
+		char b[] = "df00:";
 
 		lazy_entry e;
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
 		TEST_CHECK(ret != 0);
 		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_string
 			, get_bdecode_category()));
 	}
 
@@ -416,6 +416,69 @@ int test_main()
 			, get_bdecode_category()));
 	}
 
+	// test empty string
+	{
+		char b[] = "";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_EQUAL(ret, 0);
+		printf("%s\n", print_entry(e).c_str());
+	}
+
+	// test partial string
+	{
+		char b[] = "100:..";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_CHECK(ret != 0);
+		printf("%s\n", print_entry(e).c_str());
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
+	}
+
+	// test pascal string dict
+	{
+		char b[] = "d6:foobar6:barfooe";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_EQUAL(ret, 0);
+		printf("%s\n", print_entry(e).c_str());
+
+		pascal_string ps = e.dict_find_pstr("foobar");
+		TEST_EQUAL(memcmp(ps.ptr, "barfoo", ps.len), 0);
+		TEST_EQUAL(ps.len, 6);
+
+		ps = e.dict_find_pstr("foobar2");
+		TEST_EQUAL(ps.ptr, NULL);
+		TEST_EQUAL(ps.len, 0);
+	}
+
+	// test pascal string in list
+	{
+		char b[] = "l6:foobari4ee";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		TEST_EQUAL(ret, 0);
+		printf("%s\n", print_entry(e).c_str());
+
+		TEST_EQUAL(e.list_size(), 2);
+		pascal_string ps = e.list_pstr_at(0);
+		TEST_EQUAL(memcmp(ps.ptr, "foobar", ps.len), 0);
+		TEST_EQUAL(ps.len, 6);
+
+		ps = e.list_pstr_at(1);
+		TEST_EQUAL(ps.ptr, NULL);
+		TEST_EQUAL(ps.len, 0);
+	}
+
 	{
 		unsigned char buf[] = { 0x44	, 0x91	, 0x3a };
 		entry ent = bdecode(buf, buf + sizeof(buf));
@@ -430,6 +493,16 @@ int test_main()
 		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
 		TEST_EQUAL(val, 1234567890);
 		TEST_EQUAL(e, b + sizeof(b) - 2);
+	}
+
+	// test invalid digit
+	{
+		char b[] = "0o";
+		boost::int64_t val = 0;
+		bdecode_errors::error_code_enum ec;
+		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
+		TEST_EQUAL(ec, bdecode_errors::expected_string);
+		TEST_EQUAL(e, b + 1);
 	}
 
 	{
