@@ -1231,7 +1231,7 @@ namespace libtorrent
 		// current throughput and rate limits all TCP connections to their
 		// proportional share based on how many of the connections are TCP. This
 		// works best if uTP connections are not rate limited by the global rate
-		// limiter (which they aren't by default).
+		// limiter, see rate_limit_utp.
 		//
 		// see bandwidth_mixed_algo_t for options.
 		int mixed_mode_algorithm;
