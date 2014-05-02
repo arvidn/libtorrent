@@ -150,6 +150,9 @@ namespace libtorrent
 		// if needed
 		boost::uint32_t destlen = 4096;
 		int ret = 0;
+		boost::uint32_t srclen = size - header_len;
+		in += header_len;
+
 		do
 		{
 			TORRENT_TRY {
@@ -158,15 +161,13 @@ namespace libtorrent
 				error = "out of memory";
 				return true;
 			}
-   
-			boost::uint32_t srclen = size - header_len;
-			in += header_len;
+
 			ret = puff((unsigned char*)&buffer[0], &destlen, (unsigned char*)in, &srclen);
-   
+
 			// if the destination buffer wasn't large enough, double its
 			// size and try again. Unless it's already at its max, in which
 			// case we fail
-			if (ret == -1)
+			if (ret == 1) // 1:  output space exhausted before completing inflate
 			{
 				if (destlen == maximum_size)
 				{
@@ -177,9 +178,14 @@ namespace libtorrent
 				destlen *= 2;
 				if (destlen > maximum_size)
 					destlen = maximum_size;
-				continue;
 			}
-		} while (false);
+		} while (ret == 1);
+
+		if (ret != 0)
+		{
+			error = "error while inflating data";
+			return true;
+		}
 
 		if (destlen > buffer.size())
 		{
@@ -189,11 +195,6 @@ namespace libtorrent
 
 		buffer.resize(destlen);
 
-		if (ret != 0)
-		{
-			error = "error while inflating data";
-			return true;
-		}
 		return false;
 	}
 
