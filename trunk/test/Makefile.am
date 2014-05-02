@@ -99,7 +99,8 @@ EXTRA_DIST = Jamfile \
   cb.xml \
   mn.xml \
   pb.xml \
-  upnp.xml
+  upnp.xml \
+  zeroes.gz
 
 EXTRA_PROGRAMS = $(test_programs)
 
