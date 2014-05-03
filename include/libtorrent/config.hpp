@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/config.hpp>
 #include <boost/version.hpp>
+#include <boost/detail/endian.hpp>
 #include <stdio.h> // for snprintf
 #include <limits.h> // for IOV_MAX
 
