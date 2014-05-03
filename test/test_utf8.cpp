@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/ConvertUTF.h"
 #include "setup_transfer.hpp" // for load_file
-#include "file.hpp" // for combine_path
+#include "libtorrent/file.hpp" // for combine_path
 
 #include <vector>
 
