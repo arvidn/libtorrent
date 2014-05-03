@@ -96,10 +96,6 @@ namespace libtorrent
 	{
 		// the limits of the download queue size
 		min_request_queue = 2,
-
-		// the amount of free upload allowed before
-		// the peer is choked
-		free_upload_amount = 4 * 16 * 1024
 	};
 
 	// calculate the priority of a peer based on its address. One of the

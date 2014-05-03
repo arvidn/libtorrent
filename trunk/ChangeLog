@@ -1,3 +1,4 @@
+	* remove set_ratio() feature
 	* improve piece_deadline/streaming
 	* honor pieces with priority 7 in sequential download mode
 	* simplified building python bindings
