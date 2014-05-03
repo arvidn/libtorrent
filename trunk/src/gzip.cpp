@@ -130,7 +130,7 @@ namespace libtorrent
 	}
 
 	// TODO: 2 it would be nice to use proper error handling here
-	bool inflate_gzip(
+	TORRENT_EXTRA_EXPORT bool inflate_gzip(
 		char const* in
 		, int size
 		, std::vector<char>& buffer
