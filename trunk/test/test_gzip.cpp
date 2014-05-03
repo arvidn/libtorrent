@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/gzip.hpp"
 #include "setup_transfer.hpp" // for load_file
-#include "file.hpp" // for combine_path
+#include "libtorrent/file.hpp" // for combine_path
 
 using namespace libtorrent;
 
