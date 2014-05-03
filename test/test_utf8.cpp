@@ -40,6 +40,133 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
+{
+	if (utf8_source_len == -1)
+		utf8_source_len = strlen(utf8_source);
+
+	// utf8 -> utf16 -> utf32 -> utf8
+	{
+		std::vector<UTF16> utf16(utf8_source_len);
+		UTF8 const* in8 = (UTF8 const*)utf8_source;
+		UTF16* out16 = &utf16[0];
+		ConversionResult ret = ConvertUTF8toUTF16(&in8, in8 + utf8_source_len
+			, &out16, out16 + utf16.size(), strictConversion);
+
+		TEST_EQUAL(ret, conversionOK);
+		if (ret != conversionOK && utf8_source_len < 10)
+		{
+			for (char const* i = utf8_source; *i != 0; ++i)
+				fprintf(stderr, "%x ", UTF8(*i));
+		}
+
+		std::vector<UTF32> utf32(utf8_source_len);
+		UTF16 const* in16 = &utf16[0];
+		UTF32* out32 = &utf32[0];
+		ret = ConvertUTF16toUTF32(&in16, out16
+			, &out32, out32 + utf32.size(), strictConversion);
+
+		TEST_EQUAL(ret, conversionOK);
+		if (ret != conversionOK && utf8_source_len < 10)
+		{
+			for (char const* i = utf8_source; *i != 0; ++i)
+				fprintf(stderr, "%x ", UTF8(*i));
+		}
+
+		std::vector<UTF8> utf8(utf8_source_len);
+		UTF32 const* in32 = &utf32[0];
+		UTF8* out8 = &utf8[0];
+		ret = ConvertUTF32toUTF8(&in32, out32
+			, &out8, out8 + utf8.size(), strictConversion);
+
+		TEST_EQUAL(ret, conversionOK);
+		if (ret != conversionOK && utf8_source_len < 10)
+		{
+			for (char const* i = utf8_source; *i != 0; ++i)
+				fprintf(stderr, "%x ", UTF8(*i));
+		}
+
+		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
+		TEST_CHECK(std::equal(&utf8[0], out8, (UTF8 const*)utf8_source));
+	}
+
+	// utf8 -> utf32 -> utf16 -> utf8
+	{
+		std::vector<UTF32> utf32(utf8_source_len);
+		UTF8 const* in8 = (UTF8 const*)utf8_source;
+		UTF32* out32 = &utf32[0];
+		ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + utf8_source_len
+			, &out32, out32 + utf32.size(), strictConversion);
+
+		TEST_EQUAL(ret, conversionOK);
+		if (ret != conversionOK && utf8_source_len < 10)
+		{
+			for (char const* i = utf8_source; *i != 0; ++i)
+				fprintf(stderr, "%x ", UTF8(*i));
+		}
+
+		std::vector<UTF16> utf16(utf8_source_len);
+		UTF32 const* in32 = &utf32[0];
+		UTF16* out16 = &utf16[0];
+		ret = ConvertUTF32toUTF16(&in32, out32
+			, &out16, out16 + utf16.size(), strictConversion);
+
+		TEST_EQUAL(ret, conversionOK);
+		if (ret != conversionOK && utf8_source_len < 10)
+		{
+			for (char const* i = utf8_source; *i != 0; ++i)
+				fprintf(stderr, "%x ", UTF8(*i));
+		}
+
+		std::vector<UTF8> utf8(utf8_source_len);
+		UTF16 const* in16 = &utf16[0];
+		UTF8* out8 = &utf8[0];
+		ret = ConvertUTF16toUTF8(&in16, out16
+			, &out8, out8 + utf8.size(), strictConversion);
+
+		TEST_EQUAL(ret, conversionOK);
+		if (ret != conversionOK && utf8_source_len < 10)
+		{
+			for (char const* i = utf8_source; *i != 0; ++i)
+				fprintf(stderr, "%x ", UTF8(*i));
+		}
+
+		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
+		TEST_CHECK(std::equal(&utf8[0], out8, (UTF8 const*)utf8_source));
+	}
+}
+
+void expect_error(char const* utf8, ConversionResult expect)
+{
+	UTF8 const* in8 = (UTF8 const*)utf8;
+	std::vector<UTF32> utf32(strlen(utf8));
+	UTF32* out32 = &utf32[0];
+	ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + strlen(utf8)
+		, &out32, out32 + utf32.size(), strictConversion);
+
+	TEST_EQUAL(ret, expect);
+	if (ret != expect)
+	{
+		fprintf(stderr, "%d expected %d\n", ret, expect);
+		for (char const* i = utf8; *i != 0; ++i)
+			fprintf(stderr, "%x ", UTF8(*i));
+	}
+
+	in8 = (UTF8 const*)utf8;
+	std::vector<UTF16> utf16(strlen(utf8));
+	UTF16* out16 = &utf16[0];
+	ret = ConvertUTF8toUTF16(&in8, in8 + strlen(utf8)
+		, &out16, out16 + utf16.size(), strictConversion);
+
+	TEST_EQUAL(ret, expect);
+	if (ret != expect)
+	{
+		fprintf(stderr, "%d expected %d\n", ret, expect);
+		for (char const* i = utf8; *i != 0; ++i)
+			fprintf(stderr, "%x ", UTF8(*i));
+	}
+}
+
 int test_main()
 {
 	std::vector<char> utf8_source;
@@ -51,63 +178,64 @@ int test_main()
 
 	// test lower level conversions
 
-	// utf8 -> utf16 -> utf32 -> utf8
-	{
-		std::vector<UTF16> utf16(utf8_source.size());
-		UTF8 const* in8 = (UTF8 const*)&utf8_source[0];
-		UTF16* out16 = &utf16[0];
-		ConversionResult ret = ConvertUTF8toUTF16(&in8, in8 + utf8_source.size()
-			, &out16, out16 + utf16.size(), strictConversion);
+	verify_transforms(&utf8_source[0], utf8_source.size());
 
-		TEST_EQUAL(ret, conversionOK);
+	verify_transforms("\xc3\xb0");
+	verify_transforms("\xed\x9f\xbf");
+	verify_transforms("\xee\x80\x80");
+	verify_transforms("\xef\xbf\xbd");
+	verify_transforms("\xf4\x8f\xbf\xbf");
+	verify_transforms("\xf0\x91\x80\x80\x30");
 
-		std::vector<UTF32> utf32(utf8_source.size());
-		UTF16 const* in16 = &utf16[0];
-		UTF32* out32 = &utf32[0];
-		ret = ConvertUTF16toUTF32(&in16, out16
-			, &out32, out32 + utf32.size(), strictConversion);
+	// Unexpected continuation bytes
+	expect_error("\x80", sourceIllegal);
+	expect_error("\xbf", sourceIllegal);
 
-		TEST_EQUAL(ret, conversionOK);
+	// Impossible bytes
+	// The following two bytes cannot appear in a correct UTF-8 string
+	expect_error("\xff", sourceExhausted);
+	expect_error("\xfe", sourceExhausted);
+	expect_error("\xff\xff\xfe\xfe", sourceExhausted);
 
-		std::vector<UTF8> utf8(utf8_source.size());
-		UTF32 const* in32 = &utf32[0];
-		UTF8* out8 = &utf8[0];
-		ret = ConvertUTF32toUTF8(&in32, out32
-			, &out8, out8 + utf8.size(), strictConversion);
+	// Examples of an overlong ASCII character
+	expect_error("\xc0\xaf", sourceIllegal);
+	expect_error("\xe0\x80\xaf", sourceIllegal);
+	expect_error("\xf0\x80\x80\xaf", sourceIllegal);
+	expect_error("\xf8\x80\x80\x80\xaf ", sourceIllegal);
+	expect_error("\xfc\x80\x80\x80\x80\xaf", sourceIllegal);
 
-		TEST_EQUAL(ret, conversionOK);
-		TEST_EQUAL(out8 - &utf8[0], utf8_source.size());
-		TEST_CHECK(std::equal(&utf8[0], out8, (UTF8 const*)&utf8_source[0]));
-	}
+	// Maximum overlong sequences
+	expect_error("\xc1\xbf", sourceIllegal);
+	expect_error("\xe0\x9f\xbf", sourceIllegal);
+	expect_error("\xf0\x8f\xbf\xbf", sourceIllegal);
+	expect_error("\xf8\x87\xbf\xbf\xbf", sourceIllegal);
+	expect_error("\xfc\x83\xbf\xbf\xbf\xbf", sourceIllegal);
 
-	// utf8 -> utf32 -> utf16 -> utf8
-	{
-		std::vector<UTF32> utf32(utf8_source.size());
-		UTF8 const* in8 = (UTF8 const*)&utf8_source[0];
-		UTF32* out32 = &utf32[0];
-		ConversionResult ret = ConvertUTF8toUTF32(&in8, in8 + utf8_source.size()
-			, &out32, out32 + utf32.size(), strictConversion);
+	// Overlong representation of the NUL character
+	expect_error("\xc0\x80", sourceIllegal);
+	expect_error("\xe0\x80\x80", sourceIllegal);
+	expect_error("\xf0\x80\x80\x80", sourceIllegal);
+	expect_error("\xf8\x80\x80\x80\x80", sourceIllegal);
+	expect_error("\xfc\x80\x80\x80\x80\x80", sourceIllegal);
 
-		TEST_EQUAL(ret, conversionOK);
+	// Single UTF-16 surrogates
+	expect_error("\xed\xa0\x80", sourceIllegal);
+	expect_error("\xed\xad\xbf", sourceIllegal);
+	expect_error("\xed\xae\x80", sourceIllegal);
+	expect_error("\xed\xaf\xbf", sourceIllegal);
+	expect_error("\xed\xb0\x80", sourceIllegal);
+	expect_error("\xed\xbe\x80", sourceIllegal);
+	expect_error("\xed\xbf\xbf", sourceIllegal);
 
-		std::vector<UTF16> utf16(utf8_source.size());
-		UTF32 const* in32 = &utf32[0];
-		UTF16* out16 = &utf16[0];
-		ret = ConvertUTF32toUTF16(&in32, out32
-			, &out16, out16 + utf16.size(), strictConversion);
-
-		TEST_EQUAL(ret, conversionOK);
-
-		std::vector<UTF8> utf8(utf8_source.size());
-		UTF16 const* in16 = &utf16[0];
-		UTF8* out8 = &utf8[0];
-		ret = ConvertUTF16toUTF8(&in16, out16
-			, &out8, out8 + utf8.size(), strictConversion);
-
-		TEST_EQUAL(ret, conversionOK);
-		TEST_EQUAL(out8 - &utf8[0], utf8_source.size());
-		TEST_CHECK(std::equal(&utf8[0], out8, (UTF8 const*)&utf8_source[0]));
-	}
+	// Paired UTF-16 surrogates
+	expect_error("\xed\xa0\x80\xed\xb0\x80", sourceIllegal);
+	expect_error("\xed\xa0\x80\xed\xbf\xbf", sourceIllegal);
+	expect_error("\xed\xad\xbf\xed\xb0\x80", sourceIllegal);
+	expect_error("\xed\xad\xbf\xed\xbf\xbf", sourceIllegal);
+	expect_error("\xed\xae\x80\xed\xb0\x80", sourceIllegal);
+	expect_error("\xed\xae\x80\xed\xbf\xbf", sourceIllegal);
+	expect_error("\xed\xaf\xbf\xed\xb0\x80", sourceIllegal);
+	expect_error("\xed\xaf\xbf\xed\xbf\xbf", sourceIllegal);
 
 	// test higher level conversions
 
