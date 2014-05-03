@@ -215,15 +215,19 @@ void test_chained_buffer()
 		chained_buffer b;
 		
 		TEST_CHECK(b.empty());
-		TEST_CHECK(b.capacity() == 0);
-		TEST_CHECK(b.size() == 0);
-		TEST_CHECK(b.space_in_last_buffer() == 0);
+		TEST_EQUAL(b.capacity(), 0);
+		TEST_EQUAL(b.size(), 0);
+		TEST_EQUAL(b.space_in_last_buffer(), 0);
 		TEST_CHECK(buffer_list.empty());
+
+		// there are no buffers, we should not be able to allocate
+		// an appendix in an existing buffer
+		TEST_EQUAL(b.allocate_appendix(1), 0);
 
 		char* b1 = allocate_buffer(512);
 		std::memcpy(b1, data, 6);
 		b.append_buffer(b1, 512, 6, (void(*)(char*))&free_buffer);
-		TEST_CHECK(buffer_list.size() == 1);
+		TEST_EQUAL(buffer_list.size(), 1);
 
 		TEST_CHECK(b.capacity() == 512);
 		TEST_CHECK(b.size() == 6);
