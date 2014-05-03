@@ -42,7 +42,7 @@ int test_main()
 {
 	std::vector<char> zipped;
 	error_code ec;
-	int r = load_file(combine_path("..", "zeroes.gz"), zipped, ec, 1000000);
+	load_file(combine_path("..", "zeroes.gz"), zipped, ec, 1000000);
 	if (ec) fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
