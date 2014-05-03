@@ -4604,9 +4604,7 @@ retry:
 
 			if (!p->is_peer_interested()
 				|| p->is_disconnecting()
-				|| p->is_connecting()
-				|| (p->share_diff() < -free_upload_amount
-					&& !t->is_seed()))
+				|| p->is_connecting())
 			{
 				// this peer is not unchokable. So, if it's unchoked
 				// already, make sure to choke it.
@@ -4616,6 +4614,8 @@ retry:
 					pi->optimistically_unchoked = false;
 					// force a new optimistic unchoke
 					m_optimistic_unchoke_time_scaler = 0;
+					// TODO: post a message to have this happen
+					// immediately instead of waiting for the next tick
 				}
 				t->choke_peer(*p);
 				continue;

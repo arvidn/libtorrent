@@ -361,12 +361,6 @@ namespace libtorrent
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
 		bool connect_to_peer(policy::peer* peerinfo, bool ignore_limit = false);
 
-		void set_ratio(float r)
-		{ TORRENT_ASSERT(r >= 0.0f); m_ratio = r; }
-
-		float ratio() const
-		{ return m_ratio; }
-
 		int priority() const { return m_priority; }
 		void set_priority(int prio)
 		{
@@ -799,15 +793,6 @@ namespace libtorrent
 // --------------------------------------------
 		// RESOURCE MANAGEMENT
 
-		void add_free_upload(size_type diff)
-		{
-			TORRENT_ASSERT(diff >= 0);
-			if (UINT_MAX - m_available_free_upload > diff)
-				m_available_free_upload += boost::uint32_t(diff);
-			else
-				m_available_free_upload = UINT_MAX;
-		}
-
 		int get_peer_upload_limit(tcp::endpoint ip) const;
 		int get_peer_download_limit(tcp::endpoint ip) const;
 		void set_peer_upload_limit(tcp::endpoint ip, int limit);
@@ -1116,15 +1101,6 @@ namespace libtorrent
 		// encrypted hand shakes
 		sha1_hash m_obfuscated_hash;
 #endif
-
-		// the upload/download ratio that each peer
-		// tries to maintain.
-		// 0 is infinite
-		float m_ratio;
-
-		// free download we have got that hasn't
-		// been distributed yet.
-		boost::uint32_t m_available_free_upload;
 
 		// the average time it takes to download one time critical piece
 		boost::uint32_t m_average_piece_time;

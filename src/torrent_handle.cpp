@@ -580,11 +580,7 @@ namespace libtorrent
 
 	void torrent_handle::set_ratio(float ratio) const
 	{
-		
 		TORRENT_ASSERT_PRECOND(ratio >= 0.f);
-		if (ratio < 1.f && ratio > 0.f)
-			ratio = 1.f;
-		TORRENT_ASYNC_CALL1(set_ratio, ratio);
 	}
 
 	bool torrent_handle::is_seed() const

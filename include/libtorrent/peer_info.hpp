@@ -298,13 +298,6 @@ namespace libtorrent
 		// the AS number the peer is located in.
 		int inet_as;
 
-		// a measurement of the balancing of free download (that we get) and free
-		// upload that we give. Every peer gets a certain amount of free upload,
-		// but this member says how much *extra* free upload this peer has got.
-		// If it is a negative number it means that this was a peer from which we
-		// have got this amount of free download.
-		size_type load_balancing;
-
 		// this is the number of requests
 		// we have sent to this peer
 		// that we haven't got a response
