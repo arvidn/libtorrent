@@ -590,6 +590,7 @@ SOURCES =
 	parse_url
 	ConvertUTF
 	thread
+	xml_parse
 
 # -- extensions --
 	metadata_transfer

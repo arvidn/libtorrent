@@ -53,7 +53,6 @@ set(sources
 	socks5_stream
 	stat
 	storage
-	thread
 	time
 	timestamp_history
 	torrent
@@ -77,6 +76,8 @@ set(sources
 	magnet_uri
 	parse_url
 	ConvertUTF
+	thread
+	xml_parse
 
 # -- extensions --
 	metadata_transfer
