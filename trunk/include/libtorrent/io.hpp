@@ -149,18 +149,21 @@ namespace libtorrent
 		void write_int8(boost::int8_t val, OutIt& start)
 		{ write_impl(val, start); }
 
-		inline void write_string(std::string const& str, char*& start)
+		inline int write_string(std::string const& str, char*& start)
 		{
 			std::memcpy((void*)start, str.c_str(), str.size());
 			start += str.size();
+			return str.size();
 		}
 
 		template <class OutIt>
-		void write_string(std::string const& str, OutIt& start)
+		int write_string(std::string const& val, OutIt& out)
 		{
-			std::copy(str.begin(), str.end(), start);
+			for (std::string::const_iterator i = val.begin()
+				, end(val.end()); i != end; ++i)
+				*out++ = *i;
+			return int(val.length());
 		}
-
 	}
 }
 
