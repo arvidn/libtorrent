@@ -88,6 +88,7 @@ feature launcher : none valgrind : composite ;
 feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <valgrind>on ;
 
 test-suite libtorrent : 	
+	[ run test_socket_io.cpp ]
 	[ run test_utf8.cpp ]
 	[ run test_gzip.cpp ]
 	[ run test_bitfield.cpp ]

@@ -70,29 +70,6 @@ enum
 namespace
 {
 	const int tick_period = 1; // minutes
-
-	template <class EndpointType>
-	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)
-	{
-		using namespace libtorrent;
-		if (n->type() != entry::list_t) return;
-		entry::list_type const& contacts = n->list();
-		for (entry::list_type::const_iterator i = contacts.begin()
-			, end(contacts.end()); i != end; ++i)
-		{
-			if (i->type() != entry::string_t) return;
-			std::string const& p = i->string();
-			if (p.size() < 6) continue;
-			std::string::const_iterator in = p.begin();
-			if (p.size() == 6)
-				epl.push_back(read_v4_endpoint<EndpointType>(in));
-#if TORRENT_USE_IPV6
-			else if (p.size() == 18)
-				epl.push_back(read_v6_endpoint<EndpointType>(in));
-#endif
-		}
-	}
-
 }
 
 namespace libtorrent { namespace dht
