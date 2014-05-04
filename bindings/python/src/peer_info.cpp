@@ -89,7 +89,6 @@ void bind_peer_info()
         .def_readonly("inet_as_name", &peer_info::inet_as_name)
         .def_readonly("inet_as", &peer_info::inet_as)
 #endif
-        .def_readonly("load_balancing", &peer_info::load_balancing)
         .def_readonly("download_queue_length", &peer_info::download_queue_length)
         .def_readonly("upload_queue_length", &peer_info::upload_queue_length)
         .def_readonly("failcount", &peer_info::failcount)

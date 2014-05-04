@@ -155,10 +155,10 @@ namespace libtorrent
 			if (p.size() < 6) continue;
 			std::string::const_iterator in = p.begin();
 			if (p.size() == 6)
-				epl.push_back(read_v4_endpoint<EndpointType>(in));
+				epl.push_back(detail::read_v4_endpoint<EndpointType>(in));
 #if TORRENT_USE_IPV6
 			else if (p.size() == 18)
-				epl.push_back(read_v6_endpoint<EndpointType>(in));
+				epl.push_back(detail::read_v6_endpoint<EndpointType>(in));
 #endif
 		}
 	}
