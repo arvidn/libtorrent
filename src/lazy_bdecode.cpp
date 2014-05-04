@@ -44,20 +44,29 @@ namespace
 namespace libtorrent
 {
 
-#define TORRENT_FAIL_BDECODE(code) \
-	{ \
-		ec = make_error_code(code); \
-		while (!stack.empty()) { \
-			top = stack.back(); \
-			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) { \
-				top->pop(); \
-				break; \
-			} \
-			stack.pop_back(); \
-		} \
-		if (error_pos) *error_pos = start - orig_start; \
-		return -1; \
+	namespace
+	{
+		int fail(int* error_pos
+			, std::vector<lazy_entry*>& stack
+			, char const* start
+			, char const* orig_start)
+		{
+			while (!stack.empty()) {
+				lazy_entry* top = stack.back();
+				if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t)
+				{
+					top->pop();
+					break;
+				}
+				stack.pop_back();
+			}
+			if (error_pos) *error_pos = start - orig_start;
+			return -1;
+		}
 	}
+
+#define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } while (false)
+
 	namespace { bool numeric(char c) { return c >= '0' && c <= '9'; } }
 
 	// fills in 'val' with what the string between start and the
