@@ -208,6 +208,31 @@ int test_main()
 	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "a") == "e");
 	TEST_CHECK(url_has_argument("http://127.0.0.1/test?foo=24&bar=23&a=e", "b") == "");
 
+	// test string_tokenize
+
+	char test_tokenize[] = "a b c \"foo bar\" d\ne f";
+	char* next = test_tokenize;
+	char* ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("a"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("b"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("c"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("\"foo bar\""));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("d\ne"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("f"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, NULL);
+
 	return 0;
 }
 

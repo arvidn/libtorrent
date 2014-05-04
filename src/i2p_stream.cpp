@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_util.hpp"
 
 #if TORRENT_USE_I2P
 
@@ -269,27 +270,6 @@ namespace libtorrent
 		m_buffer.resize(1);
 		async_read(m_sock, asio::buffer(m_buffer)
 			, boost::bind(&i2p_stream::read_line, this, _1, h));
-	}
-
-	char* string_tokenize(char* last, char sep, char** next)
-	{
-		if (last == 0) return 0;
-		if (last[0] == '"')
-		{
-			*next = strchr(last + 1, '"');
-			// consume the actual separator as well.
-			if (*next != NULL)
-				*next = strchr(*next, sep);
-		}
-		else
-		{
-			*next = strchr(last, sep);
-		}
-		if (*next == 0) return last;
-		**next = 0;
-		++(*next);
-		while (**next == sep && **next) ++(*next);
-		return last;
 	}
 
 	void i2p_stream::read_line(error_code const& e, boost::shared_ptr<handler_type> h)

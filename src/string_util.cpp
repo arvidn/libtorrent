@@ -143,5 +143,27 @@ namespace libtorrent
 		// 8 - offset.
 		return static_cast<char*>(p) + (8 - offset);
 	}
+
+	char* string_tokenize(char* last, char sep, char** next)
+	{
+		if (last == 0) return 0;
+		if (last[0] == '"')
+		{
+			*next = strchr(last + 1, '"');
+			// consume the actual separator as well.
+			if (*next != NULL)
+				*next = strchr(*next, sep);
+		}
+		else
+		{
+			*next = strchr(last, sep);
+		}
+		if (*next == 0) return last;
+		**next = 0;
+		++(*next);
+		while (**next == sep && **next) ++(*next);
+		return last;
+	}
+
 }
 

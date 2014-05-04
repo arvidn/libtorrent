@@ -59,6 +59,15 @@ namespace libtorrent
 	// x cannot be greater than 7
 	void* align_pointer(void* p);
 
+	// searches for separator in the string 'last'. the pointer last points to
+	// is set to point to the first character following the separator.
+	// returns a pointer to a null terminated string starting at last, ending
+	// at the separator (the string is mutated to replace the separator with
+	// a '\0' character). If there is no separator, but the end of the string,
+	// the pointer next points to is set to the last null terminator, which will
+	// make the following invocation return NULL, to indicate the end of the
+	// string.
+	TORRENT_EXTRA_EXPORT char* string_tokenize(char* last, char sep, char** next);
 }
 
 #endif
