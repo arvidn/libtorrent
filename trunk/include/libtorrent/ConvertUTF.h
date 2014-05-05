@@ -97,6 +97,7 @@ typedef boost::uint16_t UTF16;
 typedef boost::uint8_t  UTF8;
 extern "C" {
 #else
+#define TORRENT_EXTRA_EXPORT
 #ifdef _MSC_VER
 // msvc doesn't seem to have stdint.h
 typedef unsigned __int32 UTF32;
