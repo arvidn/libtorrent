@@ -318,38 +318,102 @@ int test_main()
 	TEST_CHECK(xml_s.control_url == "/upnp/control/WANPPPConn1");
 	TEST_CHECK(xml_s.model == "Wireless-G ADSL Home Gateway");
 
-	// test xml parser
-	char xml1[] = "<a>foo<b/>bar</a>";
-	std::string out1;
+	{
+		// test xml parser
+		char xml[] = "<a>foo<b/>bar</a>";
+		std::string out;
 
-	xml_parse(xml1, xml1 + sizeof(xml1) - 1, boost::bind(&parser_callback
-		, boost::ref(out1), _1, _2, _3));
-	std::cerr << out1 << std::endl;
-	TEST_CHECK(out1 == "BaSfooEbSbarFa");
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "BaSfooEbSbarFa");
+	}
 
-	char xml2[] = "<?xml version = \"1.0\"?><c x=\"1\" \t y=\"3\"/><d foo='bar'></d boo='foo'><!--comment-->";
-	std::string out2;
+	{
+		char xml[] = "<?xml version = \"1.0\"?><c x=\"1\" \t y=\"3\"/><d foo='bar'></d boo='foo'><!--comment-->";
+		std::string out;
 
-	xml_parse(xml2, xml2 + sizeof(xml2) - 1, boost::bind(&parser_callback
-		, boost::ref(out2), _1, _2, _3));
-	std::cerr << out2 << std::endl;
-	TEST_CHECK(out2 == "DxmlAversionV1.0EcAxV1AyV3BdAfooVbarFdAbooVfooCcomment");
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "DxmlAversionV1.0EcAxV1AyV3BdAfooVbarFdAbooVfooCcomment");
+	}
 
-	char xml3[] = "<a f=1>foo</a f='b>";
-	std::string out3;
+	{
+		char xml[] = "<a f=1>foo</a f='b>";
+		std::string out;
 
-	xml_parse(xml3, xml3 + sizeof(xml3) - 1, boost::bind(&parser_callback
-		, boost::ref(out3), _1, _2, _3));
-	std::cerr << out3 << std::endl;
-	TEST_CHECK(out3 == "BaPunquoted attribute valueSfooFaPmissing end quote on attribute");
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "BaPunquoted attribute valueSfooFaPmissing end quote on attribute");
+	}
 
-	char xml4[] = "<a  f>foo</a  v  >";
-	std::string out4;
+	{
+		char xml[] = "<a  f>foo</a  v  >";
+		std::string out;
 
-	xml_parse(xml4, xml4 + sizeof(xml4) - 1, boost::bind(&parser_callback
-		, boost::ref(out4), _1, _2, _3));
-	std::cerr << out4 << std::endl;
-	TEST_CHECK(out4 == "BaTfSfooFaTv  ");
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "BaTfSfooFaTv  ");
+	}
+
+	{
+		// test unterminated CDATA tags
+		char xml[] = "<![CDATA[foo";
+		std::string out;
+
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "Punexpected end of file");
+	}
+
+	{
+		// test unterminated tags
+		char xml[] = "<foo";
+		std::string out;
+
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "Punexpected end of file");
+	}
+
+	{
+		// test unquoted attribute values
+		char xml[] = "<foo a=bar>";
+		std::string out;
+
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "BfooPunquoted attribute value");
+	}
+
+	{
+		// test unterminated attribute value
+		char xml[] = "<foo a=\"bar>";
+		std::string out;
+
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "BfooPmissing end quote on attribute");
+	}
+
+	{
+		// test unterminated tag
+		char xml[] = "<foo a=\"bar";
+		std::string out;
+
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "Punexpected end of file");
+	}
+
 	return 0;
 }
 

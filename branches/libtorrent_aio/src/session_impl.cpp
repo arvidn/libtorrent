@@ -5139,6 +5139,8 @@ retry:
 					pi->optimistically_unchoked = false;
 					// force a new optimistic unchoke
 					m_optimistic_unchoke_time_scaler = 0;
+					// TODO: post a message to have this happen
+					// immediately instead of waiting for the next tick
 				}
 				t->choke_peer(*p);
 				continue;

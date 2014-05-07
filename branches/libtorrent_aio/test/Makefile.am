@@ -53,7 +53,10 @@ test_programs = \
   test_session               \
   test_ssl                   \
   test_web_seed              \
-  test_remap_files
+  test_remap_files           \
+  test_gzip                  \
+  test_utf8                  \
+  test_socket_io
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -109,7 +112,9 @@ EXTRA_DIST = Jamfile \
   cb.xml \
   mn.xml \
   pb.xml \
-  upnp.xml
+  upnp.xml \
+  zeroes.gz \
+  utf8_test.txt
 
 EXTRA_PROGRAMS = $(test_programs)
 
@@ -188,6 +193,9 @@ test_session_SOURCES = test_session.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
+test_gzip_SOURCES = test_gzip.cpp
+test_utf8_SOURCES = test_utf8.cpp
+test_socket_io_SOURCES = test_socket_io.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
 

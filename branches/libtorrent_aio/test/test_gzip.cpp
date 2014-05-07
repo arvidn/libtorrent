@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,42 +30,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_XML_PARSE_HPP
-#define TORRENT_XML_PARSE_HPP
+#include "libtorrent/file.hpp"
+#include "test.hpp"
+#include "libtorrent/gzip.hpp"
+#include "setup_transfer.hpp" // for load_file
+#include "libtorrent/file.hpp" // for combine_path
 
-#include <cctype>
-#include <cstring>
+using namespace libtorrent;
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/escape_string.hpp"
-
-#include <boost/function.hpp>
-
-namespace libtorrent
+int test_main()
 {
-	enum
-	{
-		xml_start_tag,
-		xml_end_tag,
-		xml_empty_tag,
-		xml_declaration_tag,
-		xml_string,
-		xml_attribute,
-		xml_comment,
-		xml_parse_error,
-		// used for tags that don't follow the convention of
-		// key-value pairs inside the tag brackets. Like !DOCTYPE
-		xml_tag_content
-	};
+	std::vector<char> zipped;
+	error_code ec;
+	load_file(combine_path("..", "zeroes.gz"), zipped, ec, 1000000);
+	if (ec) fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
+		, ec.message().c_str());
+	TEST_CHECK(!ec);
 
-	// callback(int type, char const* name, char const* val)
-	// str2 is only used for attributes. name is element or attribute
-	// name and val is attribute value
-	TORRENT_EXTRA_EXPORT void xml_parse(char* p, char* end
-		, boost::function<void(int,char const*,char const*)> callback);
+	std::vector<char> inflated;
+	std::string error;
+	bool ret = inflate_gzip(&zipped[0], zipped.size(), inflated, 1000000, error);
+
+	if (ret != 0) {
+		fprintf(stderr, "failed to unzip\n");
+	}
+	TEST_CHECK(ret == 0);
+	TEST_CHECK(inflated.size() > 0);
+	for (int i = 0; i < inflated.size(); ++i)
+		TEST_EQUAL(inflated[i], 0);
+
+	return 0;
 }
-
-
-#endif
 

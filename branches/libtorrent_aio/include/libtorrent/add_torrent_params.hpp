@@ -51,12 +51,13 @@ namespace libtorrent
 	class torrent;
 	struct torrent_plugin;
 
-	// The add_torrent_params is a parameter pack for adding torrents to a session.
-	// The key fields when adding a torrent are:
+	// The add_torrent_params is a parameter pack for adding torrents to a
+	// session. The key fields when adding a torrent are:
 	//
 	// * ti - when you have a .torrent file
 	// * url - when you have a magnet link or http URL to the .torrent file
-	// * info_hash - when all you have is an info-hash (this is similar to a magnet link)
+	// * info_hash - when all you have is an info-hash (this is similar to a
+	//   magnet link)
 	//
 	// one of those fields need to be set. Another mandatory field is
 	// ``save_path``. The add_torrent_params object is passed into one of the

@@ -618,6 +618,7 @@ SOURCES =
 	parse_url
 	ConvertUTF
 	thread
+	xml_parse
 	peer_class
 	peer_class_set
 	part_file

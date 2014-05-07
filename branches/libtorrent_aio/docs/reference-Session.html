@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,26 +55,27 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id181">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id182">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id183">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id184">session_proxy</a></li>
-<li><a class="reference internal" href="#id38" id="id185">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id186">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id187">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id188">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id189">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id183">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id184">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id185">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id186">session_proxy</a></li>
+<li><a class="reference internal" href="#id39" id="id187">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id188">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id189">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id190">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id191">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
 <h1>add_torrent_params</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/add_torrent_params.hpp">libtorrent/add_torrent_params.hpp</a>&quot;</p>
-<p>The <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> is a parameter pack for adding torrents to a <a class="reference external" href="reference-Session.html#session">session</a>.
-The key fields when adding a torrent are:</p>
+<p>The <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> is a parameter pack for adding torrents to a
+<a class="reference external" href="reference-Session.html#session">session</a>. The key fields when adding a torrent are:</p>
 <ul class="simple">
 <li>ti - when you have a .torrent file</li>
 <li>url - when you have a magnet link or http URL to the .torrent file</li>
-<li>info_hash - when all you have is an info-hash (this is similar to a magnet link)</li>
+<li>info_hash - when all you have is an info-hash (this is similar to a
+magnet link)</li>
 </ul>
 <p>one of those fields need to be set. Another mandatory field is
 <tt class="docutils literal">save_path</tt>. The <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> object is passed into one of the
@@ -337,7 +338,7 @@ will be swapped into the running torrent instance with
 <a name="storage_mode"></a><dl class="docutils">
 <dt>storage_mode</dt>
 <dd>One of the values from <a class="reference external" href="reference-Storage.html#storage_mode_t">storage_mode_t</a>. For more information, see
-<a href="#id190"><span class="problematic" id="id191">storage-allocation_</span></a>.</dd>
+<a class="reference external" href="manual-ref.html#storage-allocation">storage allocation</a>.</dd>
 </dl>
 <a name="storage"></a><dl class="docutils">
 <dt>storage</dt>
@@ -468,7 +469,7 @@ struct cache_status
    int num_fence_jobs[disk_io_job::num_job_ids];
 };
 </pre>
-<a name="cache_status()"></a><div class="section" id="id22">
+<a name="cache_status()"></a><div class="section" id="id23">
 <h2>cache_status()</h2>
 <pre class="literal-block">
 <strong>cache_status</strong> ();
@@ -643,7 +644,7 @@ class session_proxy
    <strong>session_proxy</strong> ();
 };
 </pre>
-<a name="session_proxy()"></a><div class="section" id="id36">
+<a name="session_proxy()"></a><div class="section" id="id37">
 <h2>session_proxy()</h2>
 <pre class="literal-block">
 <strong>session_proxy</strong> ();
@@ -652,7 +653,7 @@ class session_proxy
 implementation object.</p>
 <a name="session"></a></div>
 </div>
-<div class="section" id="id38">
+<div class="section" id="id39">
 <h1>session</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <p>The <a class="reference external" href="reference-Session.html#session">session</a> holds all state that spans multiple torrents. Among other
@@ -786,7 +787,7 @@ class session: public boost::noncopyable
    };
 };
 </pre>
-<a name="session()"></a><div class="section" id="id45">
+<a name="session()"></a><div class="section" id="id46">
 <h2>session()</h2>
 <pre class="literal-block">
 <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
@@ -808,7 +809,7 @@ class session: public boost::noncopyable
 <p>TODO: 3 could the fingerprint be a setting as well? And should the
 <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a> be optional?</p>
 <a name="~session()"></a></div>
-<div class="section" id="id47">
+<div class="section" id="id48">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
@@ -1088,7 +1089,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id104">
+<div class="section" id="id105">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1110,7 +1111,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id106">
+<div class="section" id="id107">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1443,7 +1444,7 @@ void <strong>set_proxy</strong> (proxy_settings const&amp; s);
 proxy_settings <strong>proxy</strong> () const;
 </pre>
 <p>These functions sets and queries the proxy settings to be used for the
-session.</p>
+<a class="reference external" href="reference-Session.html#session">session</a>.</p>
 <p>For more information on what settings are available for proxies, see
 <a class="reference external" href="reference-Settings.html#proxy_settings">proxy_settings</a>. If the <a class="reference external" href="reference-Session.html#session">session</a> is not in anonymous mode, proxies that
 aren't working or fail, will automatically be disabled and packets
@@ -2028,24 +2029,10 @@ calling <a class="reference external" href="reference-Session.html#post_session_
 </div>
 <div class="system-messages section">
 <h1>Docutils System Messages</h1>
-<div class="system-message" id="id190">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">reference-Session.rst</tt>, line 339); <em><a href="#id191">backlink</a></em></p>
-Unknown target name: &quot;storage-allocation&quot;.</div>
 <div class="system-message" id="id192">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">reference-Session.rst</tt>, line 1752); <em><a href="#id193">backlink</a></em></p>
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">reference-Session.rst</tt>, line 1754); <em><a href="#id193">backlink</a></em></p>
 Unknown target name: &quot;libtorrent plugins&quot;.</div>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

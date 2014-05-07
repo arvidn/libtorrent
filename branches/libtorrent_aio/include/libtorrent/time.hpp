@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // OVERVIEW
 // 
-// This section contains fundamental time types used internall by
+// This section contains fundamental time types used internally by
 // libtorrent and exposed through various places in the API. The two
 // basic types are ``ptime`` and ``time_duration``. The first represents
 // a point in time and the second the difference between two points

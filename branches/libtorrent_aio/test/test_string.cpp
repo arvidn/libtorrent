@@ -251,6 +251,32 @@ int test_main()
 	TEST_EQUAL(list2[4].second, 42);
 	TEST_EQUAL(list2[5].second, 1337);
 	TEST_EQUAL(list2[6].second, 6881);
+
+	// test string_tokenize
+
+	char test_tokenize[] = "a b c \"foo bar\" d\ne f";
+	char* next = test_tokenize;
+	char* ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("a"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("b"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("c"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("\"foo bar\""));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("d\ne"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, std::string("f"));
+
+	ptr = string_tokenize(next, ' ', &next);
+	TEST_EQUAL(ptr, NULL);
+
 	return 0;
 }
 

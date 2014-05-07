@@ -65,7 +65,6 @@ set(sources
 	stat_cache
 	storage
 	tailqueue
-	thread
 	time
 	timestamp_history
 	torrent
@@ -93,6 +92,8 @@ set(sources
 	magnet_uri
 	parse_url
 	ConvertUTF
+	thread
+	xml_parse
 
 # -- extensions --
 	metadata_transfer
@@ -356,6 +357,9 @@ if(build_tests)
 		test_session
 		test_torrent_parse
 		test_threads
+		test_gzip
+		test_utf8
+		test_socket_io
 		)
 
 	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)

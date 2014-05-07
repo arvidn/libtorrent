@@ -58,22 +58,28 @@ namespace libtorrent
 
 	// this object is used to communicate torrent state and
 	// some configuration to the policy object. This make
-	// the polict type not depend on the torrent type directly.
+	// the policy type not depend on the torrent type directly.
 	struct torrent_state
 	{
 		torrent_state()
 			: is_paused(false), is_finished(false)
 			, allow_multiple_connections_per_ip(false)
+			, first_time_seen(false)
 			, max_peerlist_size(1000)
 			, min_reconnect_time(60)
 			, loop_counter(0)
 			, ip(NULL), port(0)
-			, first_time_seen(false)
 			, peer_allocator(NULL)
 		{}
 		bool is_paused;
 		bool is_finished;
 		bool allow_multiple_connections_per_ip;
+
+		// this is set by policy::add_peer to either true or false
+		// true means the peer we just added was new, false means
+		// we already knew about the peer
+		bool first_time_seen;
+
 		int max_peerlist_size;
 		int min_reconnect_time;
 
@@ -85,11 +91,6 @@ namespace libtorrent
 		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
 		external_ip const* ip;
 		int port;
-
-		// this is set by policy::add_peer to either true or false
-		// true means the peer we just added was new, false means
-		// we already knew about the peer
-		bool first_time_seen;
 
 		// this must be set to a torrent_peer allocator
 		torrent_peer_allocator_interface* peer_allocator;

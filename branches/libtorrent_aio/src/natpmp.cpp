@@ -240,7 +240,7 @@ int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 	for (std::vector<mapping_t>::iterator m = m_mappings.begin()
 		, end(m_mappings.end()); m != end; ++m)
 	{
-	std::cout << " ADD MAPPING: " << mapping_index << " [ "
+		std::cout << " ADD MAPPING: " << mapping_index << " [ "
 			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
 			<< " port: " << i->external_port
 			<< " local-port: " << i->local_port
@@ -261,7 +261,7 @@ void natpmp::try_next_mapping(int i, mutex::scoped_lock& l)
 	for (std::vector<mapping_t>::iterator m = m_mappings.begin()
 		, end(m_mappings.end()); m != end; ++m)
 	{
-	std::cout << "     " << (m - m_mappings.begin()) << " [ "
+		std::cout << "     " << (m - m_mappings.begin()) << " [ "
 			"proto: " << (m->protocol == none ? "none" : m->protocol == tcp ? "tcp" : "udp")
 			<< " port: " << m->external_port
 			<< " local-port: " << m->local_port
