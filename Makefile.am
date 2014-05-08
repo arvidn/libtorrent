@@ -68,7 +68,10 @@ DOCS_IMAGES = \
   docs/disk_access_no_elevator.png\
   docs/ip_id_v4.png               \
   docs/ip_id_v6.png               \
-  docs/hash_distribution.png
+  docs/hash_distribution.png      \
+  docs/complete_bit_prefixes.png  \
+  docs/troubleshooting.png        \
+  docs/troubleshooting_thumb.png
 
 DOCS_PAGES = \
   docs/building.html              \
@@ -102,7 +105,6 @@ DOCS_PAGES = \
   docs/tuning.html                \
   docs/tuning.rst                 \
   docs/troubleshooting.html       \
-  docs/troubleshooting.png        \
   docs/udp_tracker_protocol.html  \
   docs/udp_tracker_protocol.rst   \
   docs/utp.html                   \
