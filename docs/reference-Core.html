@@ -221,7 +221,6 @@ struct peer_info
    char country[2];
    std::string inet_as_name;
    int inet_as;
-   size_type load_balancing;
    int download_queue_length;
    int timed_out_requests;
    int busy_requests;
@@ -611,14 +610,6 @@ an empty string if there is no name in the geo ip database.</dd>
 <a name="inet_as"></a><dl class="docutils">
 <dt>inet_as</dt>
 <dd>the AS number the peer is located in.</dd>
-</dl>
-<a name="load_balancing"></a><dl class="docutils">
-<dt>load_balancing</dt>
-<dd>a measurement of the balancing of free download (that we get) and free
-upload that we give. Every peer gets a certain amount of free upload,
-but this member says how much <em>extra</em> free upload this peer has got.
-If it is a negative number it means that this was a peer from which we
-have got this amount of free download.</dd>
 </dl>
 <a name="download_queue_length"></a><dl class="docutils">
 <dt>download_queue_length</dt>

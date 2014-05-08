@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for DHT RSS feeds</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -75,6 +75,8 @@
 <li><a class="reference internal" href="#rationale" id="id14">rationale</a></li>
 </ul>
 </div>
+<p>This proposal has been superseded by the <a class="reference external" href="dht_store.html">dht_put</a> feature. This may
+still be implemented on top of that.</p>
 <p>This is a proposal for an extension to the BitTorrent DHT to allow
 for decentralized RSS feed like functionality.</p>
 <p>The intention is to allow the creation of repositories of torrents
@@ -92,8 +94,6 @@ key against the target ID it is stored under, as well as the validity of
 the signatures of each individual item.</p>
 <p>As with normal DHT announces, the write-token mechanism is used to
 prevent IP spoof attacks.</p>
-<p>There are two new proposed messages, <tt class="docutils literal">announce_item</tt> and <tt class="docutils literal">get_item</tt>.
-Every valid item that is announced, should be stored.</p>
 <div class="section" id="terminology">
 <h1>terminology</h1>
 <p>In this document, a <em>storage node</em> refers to the node in the DHT to which

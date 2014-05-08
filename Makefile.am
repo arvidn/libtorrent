@@ -61,7 +61,14 @@ DOCS_IMAGES = \
   docs/write_disk_buffers.graffle \
   docs/write_disk_buffers.png     \
   docs/ziptorrent_thumb.gif       \
-  docs/zyxel.png
+  docs/zyxel.png                  \
+  docs/folx.png                   \
+  docs/tonidoplug.png             \
+  docs/disk_access_elevator.png   \
+  docs/disk_access_no_elevator.png\
+  docs/ip_id_v4.png               \
+  docs/ip_id_v6.png               \
+  docs/hash_distribution.png
 
 DOCS_PAGES = \
   docs/building.html              \
@@ -76,6 +83,8 @@ DOCS_PAGES = \
   docs/dht_rss.rst                \
   docs/dht_sec.html               \
   docs/dht_sec.rst                \
+  docs/dht_store.html             \
+  docs/dht_store.rst              \
   docs/examples.html              \
   docs/examples.rst               \
   docs/extension_protocol.html    \
@@ -92,6 +101,8 @@ DOCS_PAGES = \
   docs/python_binding.rst         \
   docs/tuning.html                \
   docs/tuning.rst                 \
+  docs/troubleshooting.html       \
+  docs/troubleshooting.png        \
   docs/udp_tracker_protocol.html  \
   docs/udp_tracker_protocol.rst   \
   docs/utp.html                   \

@@ -9,6 +9,11 @@ BitTorrent extension for DHT RSS feeds
   :depth: 2
   :backlinks: none
 
+This proposal has been superseded by the dht_put_ feature. This may
+still be implemented on top of that.
+
+.. _dht_put: dht_store.html
+
 This is a proposal for an extension to the BitTorrent DHT to allow
 for decentralized RSS feed like functionality.
 
@@ -29,9 +34,6 @@ the signatures of each individual item.
 
 As with normal DHT announces, the write-token mechanism is used to
 prevent IP spoof attacks.
-
-There are two new proposed messages, ``announce_item`` and ``get_item``.
-Every valid item that is announced, should be stored.
 
 terminology
 -----------
