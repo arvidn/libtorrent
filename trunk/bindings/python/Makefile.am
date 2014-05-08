@@ -23,7 +23,6 @@ EXTRA_DIST = \
   src/session.cpp           \
   src/session_settings.cpp  \
   src/string.cpp            \
-  src/torrent.cpp           \
   src/torrent_handle.cpp    \
   src/torrent_info.cpp      \
   src/torrent_status.cpp    \
