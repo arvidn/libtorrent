@@ -1942,8 +1942,10 @@ int main(int argc, char* argv[])
 #endif
 			if (active_torrent == torrent_index)
 			{
+#ifdef ANSI_TERMINAL_COLORS
 				term = "\x1b[0m\x1b[7m";
 				out += esc("7");
+#endif
 				out += "*";
 			}
 			else
