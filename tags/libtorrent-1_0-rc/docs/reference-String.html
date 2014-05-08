@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>String</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="string">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">String</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#to-hex" id="id9">to_hex()</a></li>
+<li><a class="reference internal" href="#id2" id="id10">to_hex()</a></li>
+<li><a class="reference internal" href="#from-hex" id="id11">from_hex()</a></li>
+<li><a class="reference internal" href="#is-digit" id="id12">is_digit()</a></li>
+<li><a class="reference internal" href="#utf8-wchar-wchar-utf8" id="id13">utf8_wchar() wchar_utf8()</a></li>
+<li><a class="reference internal" href="#enum-utf8-conv-result-t" id="id14">enum utf8_conv_result_t</a></li>
+</ul>
+</div>
+<a name="to_hex()"></a><div class="section" id="to-hex">
+<h1>to_hex()</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/escape_string.hpp">libtorrent/escape_string.hpp</a>&quot;</p>
+<pre class="literal-block">
+std::string <strong>to_hex</strong> (std::string const&amp; s);
+</pre>
+<p>converts (binary) the string <tt class="docutils literal">s</tt> to hexadecimal representation and
+returns it.</p>
+<a name="to_hex()"></a></div>
+<div class="section" id="id2">
+<h1>to_hex()</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/escape_string.hpp">libtorrent/escape_string.hpp</a>&quot;</p>
+<pre class="literal-block">
+void <strong>to_hex</strong> (char const *in, int len, char* out);
+</pre>
+<p>converts the binary buffer [<tt class="docutils literal">in</tt>, <tt class="docutils literal">in</tt> + len) to hexadecimal
+and prints it to the buffer <tt class="docutils literal">out</tt>. The caller is responsible for
+making sure the buffer pointed to by <tt class="docutils literal">out</tt> is large enough,
+i.e. has at least len * 2 bytes of space.</p>
+<a name="from_hex()"></a></div>
+<div class="section" id="from-hex">
+<h1>from_hex()</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/escape_string.hpp">libtorrent/escape_string.hpp</a>&quot;</p>
+<pre class="literal-block">
+bool <strong>from_hex</strong> (char const *in, int len, char* out);
+</pre>
+<p>converts the buffer [<tt class="docutils literal">in</tt>, <tt class="docutils literal">in</tt> + len) from hexadecimal to
+binary. The binary output is written to the buffer pointed to
+by <tt class="docutils literal">out</tt>. The caller is responsible for making sure the buffer
+at <tt class="docutils literal">out</tt> has enough space for the result to be written to, i.e.
+(len + 1) / 2 bytes.</p>
+<a name="is_digit()"></a></div>
+<div class="section" id="is-digit">
+<h1>is_digit()</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/string_util.hpp">libtorrent/string_util.hpp</a>&quot;</p>
+<pre class="literal-block">
+bool <strong>is_digit</strong> (char c);
+</pre>
+<p>this is used by bdecode_recursive's header file</p>
+<a name="utf8_wchar()"></a>
+<a name="wchar_utf8()"></a></div>
+<div class="section" id="utf8-wchar-wchar-utf8">
+<h1>utf8_wchar() wchar_utf8()</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/utf8.hpp">libtorrent/utf8.hpp</a>&quot;</p>
+<pre class="literal-block">
+utf8_conv_result_t <strong>wchar_utf8</strong> (
+   const std::wstring &amp;wide, std::string &amp;utf8);
+utf8_conv_result_t <strong>utf8_wchar</strong> (
+   const std::string &amp;utf8, std::wstring &amp;wide);
+</pre>
+<p><tt class="docutils literal">utf8_wchar</tt> converts a UTF-8 string (<tt class="docutils literal">utf8</tt>) to a wide character
+string (<tt class="docutils literal">wide</tt>). <tt class="docutils literal">wchar_utf8</tt> converts a wide character string
+(<tt class="docutils literal">wide</tt>) to a UTF-8 string (<tt class="docutils literal">utf8</tt>). The return value is one of
+the enumeration values from <a class="reference external" href="reference-String.html#utf8_conv_result_t">utf8_conv_result_t</a>.</p>
+<a name="utf8_conv_result_t"></a></div>
+<div class="section" id="enum-utf8-conv-result-t">
+<h1>enum utf8_conv_result_t</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/utf8.hpp">libtorrent/utf8.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="10%" />
+<col width="63%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>conversion_ok</td>
+<td>0</td>
+<td>conversion successful</td>
+</tr>
+<tr><td>source_exhausted</td>
+<td>1</td>
+<td>partial character in source, but hit end</td>
+</tr>
+<tr><td>target_exhausted</td>
+<td>2</td>
+<td>insuff. room in target for conversion</td>
+</tr>
+<tr><td>source_illegal</td>
+<td>3</td>
+<td>source sequence is illegal/malformed</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>
