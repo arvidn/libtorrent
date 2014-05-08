@@ -1540,6 +1540,7 @@ namespace libtorrent
 	};
 
 
+#ifndef TORRENT_NO_DEPRECATE
 	// The ``pe_settings`` structure is used to control the settings related
 	// to peer protocol encryption.
 	struct TORRENT_EXPORT pe_settings
@@ -1599,6 +1600,7 @@ namespace libtorrent
 		// otherwise
 		bool prefer_rc4;
 	};
+#endif // TORRENT_NO_DEPRECATE
 
 }
 

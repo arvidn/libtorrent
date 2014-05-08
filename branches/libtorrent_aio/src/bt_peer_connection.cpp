@@ -186,19 +186,19 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		
-		boost::uint8_t out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
+		boost::uint8_t out_enc_policy = m_ses.settings().get_int(settings_pack::out_enc_policy);
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
 		if (is_ssl(*get_socket()))
-			out_enc_policy = pe_settings::disabled;
+			out_enc_policy = settings_pack::pe_disabled;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
 		char const* policy_name[] = {"forced", "enabled", "disabled"};
 		peer_log("*** outgoing encryption policy: %s", policy_name[out_enc_policy]);
 #endif
 
-		if (out_enc_policy == pe_settings::forced)
+		if (out_enc_policy == settings_pack::pe_forced)
 		{
 			write_pe1_2_dhkey();
 			if (is_disconnecting()) return;
@@ -207,7 +207,7 @@ namespace libtorrent
 			reset_recv_buffer(dh_key_len);
 			setup_receive();
 		}
-		else if (out_enc_policy == pe_settings::enabled)
+		else if (out_enc_policy == settings_pack::pe_enabled)
 		{
 			TORRENT_ASSERT(peer_info_struct());
 
@@ -240,7 +240,7 @@ namespace libtorrent
 				setup_receive();
 			}
 		}
-		else if (out_enc_policy == pe_settings::disabled)
+		else if (out_enc_policy == settings_pack::pe_disabled)
 #endif
 		{
 			write_handshake();
@@ -523,10 +523,11 @@ namespace libtorrent
 		// write the verification constant and crypto field
 		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
-		boost::uint8_t crypto_provide = m_ses.get_pe_settings().allowed_enc_level;
+		boost::uint8_t crypto_provide = m_ses.settings().get_int(settings_pack::allowed_enc_level);
 
 		// this is an invalid setting, but let's just make the best of the situation
-		if ((crypto_provide & pe_settings::both) == 0) crypto_provide = pe_settings::both;
+		if ((crypto_provide & settings_pack::pe_both) == 0)
+			crypto_provide = settings_pack::pe_both;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
@@ -2870,12 +2871,12 @@ namespace libtorrent
 			if (!is_outgoing())
 			{
 				// select a crypto method
-				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
+				int allowed_encryption = m_ses.settings().get_int(settings_pack::allowed_enc_level);
 				int crypto_select = crypto_field & allowed_encryption;
 	
 				// when prefer_rc4 is set, keep the most significant bit
 				// otherwise keep the least significant one
-				if (m_ses.get_pe_settings().prefer_rc4)
+				if (m_ses.settings().get_bool(settings_pack::prefer_rc4))
 				{
 					int mask = INT_MAX;
 					while (crypto_select & (mask << 1))
@@ -2906,7 +2907,7 @@ namespace libtorrent
 			else // is_outgoing()
 			{
 				// check if crypto select is valid
-				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
+				int allowed_encryption = m_ses.settings().get_int(settings_pack::allowed_enc_level);
 
 				crypto_field &= allowed_encryption; 
 				if (crypto_field == 0)
@@ -2916,9 +2917,9 @@ namespace libtorrent
 					return;
 				}
 
-				if (crypto_field == pe_settings::plaintext)
+				if (crypto_field == settings_pack::pe_plaintext)
 					m_rc4_encrypted = false;
-				else if (crypto_field == pe_settings::rc4)
+				else if (crypto_field == settings_pack::pe_rc4)
 					m_rc4_encrypted = true;
 			}
 
@@ -3077,7 +3078,8 @@ namespace libtorrent
 			// encrypted portion of handshake completed, toggle
 			// peer_info pe_support flag back to true
 			if (is_outgoing() &&
-				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
+				m_ses.settings().get_int(settings_pack::out_enc_policy)
+					== settings_pack::pe_enabled)
 			{
 				torrent_peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);
@@ -3121,7 +3123,8 @@ namespace libtorrent
 #endif // TORRENT_USE_OPENSSL
 
 				if (!is_outgoing()
-					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
+					&& m_ses.settings().get_int(settings_pack::in_enc_policy)
+						== settings_pack::pe_disabled)
 				{
 					disconnect(errors::no_incoming_encrypted, op_bittorrent);
 					return;
@@ -3155,7 +3158,8 @@ namespace libtorrent
 				TORRENT_ASSERT(m_state != read_pe_dhkey);
 
 				if (!is_outgoing()
-					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::forced
+					&& m_ses.settings().get_int(settings_pack::in_enc_policy)
+						== settings_pack::pe_forced
 					&& !m_encrypted
 					&& !is_ssl(*get_socket()))
 				{
@@ -3376,7 +3380,8 @@ namespace libtorrent
 			// Toggle pe_support back to false if this is a
 			// standard successful connection
 			if (is_outgoing() && !m_encrypted &&
-				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
+				m_ses.settings().get_int(settings_pack::out_enc_policy)
+					== settings_pack::pe_enabled)
 			{
 				torrent_peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);

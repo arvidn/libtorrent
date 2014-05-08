@@ -67,6 +67,9 @@ void test_swarm()
 	pack.set_int(settings_pack::max_retry_port_bind, 900);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48010");
 
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+
 	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit / 10);
@@ -79,15 +82,6 @@ void test_swarm()
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
 
 	session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-	ses3.set_pe_settings(pes);
-#endif
 
 	torrent_handle tor1;
 	torrent_handle tor2;

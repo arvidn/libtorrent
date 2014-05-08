@@ -103,6 +103,9 @@ void test_transfer(settings_pack const& sett)
 	pack.set_bool(settings_pack::enable_incoming_utp, false);
 	pack.set_int(settings_pack::alert_mask, mask);
 
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
 
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
@@ -118,14 +121,6 @@ void test_transfer(settings_pack const& sett)
 	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
 
 	ses2.apply_settings(pack);
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::disabled;
-	pes.in_enc_policy = pe_settings::disabled;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-#endif
 
 	torrent_handle tor1;
 	torrent_handle tor2;

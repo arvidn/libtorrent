@@ -601,6 +601,11 @@ namespace libtorrent
 			// available to torrents.
 			enable_dht,
 
+			// if the allowed encryption level is both, setting this to
+			// true will prefer rc4 if both methods are offered, plaintext
+			// otherwise
+			prefer_rc4,
+
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
 		};
@@ -1396,6 +1401,18 @@ namespace libtorrent
 			// which kinds of alerts to receive
 			alert_mask,
 
+			// control the settings for incoming
+			// and outgoing connections respectively.
+			// see enc_policy enum for the available options.
+			out_enc_policy,
+			in_enc_policy,
+
+			// determines the encryption level of the
+			// connections.  This setting will adjust which encryption scheme is
+			// offered to the other peer, as well as which encryption scheme is
+			// selected by the client. See enc_level enum for options.
+			allowed_enc_level,
+
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
@@ -1436,6 +1453,36 @@ namespace libtorrent
 			// does not throttle uTP, throttles TCP to the same proportion
 			// of throughput as there are TCP connections
 			peer_proportional = 1
+		};
+
+		// the encoding policy options for use with settings_pack::pe_out_enc_policy
+		// and settings_pack::pe_in_enc_policy.
+		enum enc_policy
+		{
+			// Only encrypted connections are allowed. Incoming connections that
+			// are not encrypted are closed and if the encrypted outgoing
+			// connection fails, a non-encrypted retry will not be made.
+			pe_forced,
+
+			// encrypted connections are enabled, but non-encrypted connections
+			// are allowed. An incoming non-encrypted connection will be accepted,
+			// and if an outgoing encrypted connection fails, a non- encrypted
+			// connection will be tried.
+			pe_enabled,
+			
+			// only non-encrypted connections are allowed.
+			pe_disabled
+		};
+
+		// the encryption levels, to be used with settings_pack::pe_allowed_enc_level.
+		enum enc_level
+		{
+			// use only plaintext encryption
+			pe_plaintext = 1,
+			// use only rc4 encryption 
+			pe_rc4 = 2,
+			// allow both
+			pe_both = 3
 		};
 
 	private:

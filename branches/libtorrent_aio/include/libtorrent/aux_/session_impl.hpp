@@ -382,8 +382,14 @@ namespace libtorrent
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
+
+#ifndef TORRENT_NO_DEPRECATE
+			// deprecated in libtorrent 1.1
+			// use settings_pack instead
 			void set_pe_settings(pe_settings const& settings);
-			pe_settings const& get_pe_settings() const { return m_pe_settings; }
+			pe_settings const& get_pe_settings() const;
+#endif // TORRENT_NO_DEPRECATE
+
 			torrent const* find_encrypted_torrent(
 				sha1_hash const& info_hash, sha1_hash const& xor_mask);
 
@@ -1109,8 +1115,10 @@ namespace libtorrent
 			// this is deducted from the connect speed
 			int m_boost_connections;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			pe_settings m_pe_settings;
+#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
+			// this is only here because get_pe_settings() returns a reference,
+			// and we need something to back it
+			mutable pe_settings m_pe_settings;
 #endif
 
 			boost::intrusive_ptr<natpmp> m_natpmp;

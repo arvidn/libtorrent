@@ -77,14 +77,13 @@ void test_transfer(int flags
 	ses2.add_extension(constructor);
 	torrent_handle tor1;
 	torrent_handle tor2;
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.prefer_rc4 = (flags & full_encryption);
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-#endif
+
+	settings_pack pack;
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+	pack.set_bool(settings_pack::prefer_rc4, flags & full_encryption);
+	ses1.apply_settings(pack);
+	ses2.apply_settings(pack);
 
 	session* downloader = &ses2;
 	session* seed = &ses1;

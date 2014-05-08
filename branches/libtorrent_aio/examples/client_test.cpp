@@ -1646,13 +1646,10 @@ int main(int argc, char* argv[])
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			case 'e':
 				{
-					pe_settings s;
-	
-					s.out_enc_policy = libtorrent::pe_settings::forced;
-					s.in_enc_policy = libtorrent::pe_settings::forced;
-					s.allowed_enc_level = pe_settings::rc4;
-					s.prefer_rc4 = true;
-					ses.set_pe_settings(s);
+					settings.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+					settings.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+					settings.set_int(settings_pack::allowed_enc_level, settings_pack::pe_rc4);
+					settings.set_bool(settings_pack::prefer_rc4, true);
 					--i;
 					break;
 				}

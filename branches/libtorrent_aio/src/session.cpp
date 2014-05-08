@@ -1013,6 +1013,7 @@ namespace libtorrent
 #endif
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_pe_settings(pe_settings const& settings)
 	{
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -1029,6 +1030,7 @@ namespace libtorrent
 #endif
 		return r;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	void session::set_peer_class_filter(ip_filter const& f)
 	{

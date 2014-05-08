@@ -70,6 +70,9 @@ void test_pex()
 	pack.set_int(settings_pack::max_retry_port_bind, 800);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48200");
 
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+
 	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	// treat all IPs the same, i.e. enable rate limiting for local peers
@@ -101,15 +104,6 @@ void test_pex()
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
 
 	ses2.apply_settings(pack);
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-	ses3.set_pe_settings(pes);
-#endif
 
 	test_sleep(100);
 

@@ -983,10 +983,13 @@ namespace libtorrent
 		void set_settings(session_settings const& s) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		session_settings settings() const TORRENT_DEPRECATED;
-#endif
 
-		void set_pe_settings(pe_settings const& settings);
-		pe_settings get_pe_settings() const;
+		// deprecated in libtorrent 1.1. use settings_pack instead
+		TORRENT_DEPRECATED_PREFIX
+		void set_pe_settings(pe_settings const& settings) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		pe_settings get_pe_settings() const TORRENT_DEPRECATED;
+#endif
 
 		// Applies the settings specified by the settings_pack ``s``. This is an
 		// asynchronous operation that will return immediately and actually apply

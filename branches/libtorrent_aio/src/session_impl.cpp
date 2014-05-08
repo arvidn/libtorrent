@@ -363,7 +363,7 @@ namespace aux {
 #undef TORRENT_SETTING
 #endif
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
 #define TORRENT_SETTING(t, x) {#x, offsetof(pe_settings,x), t},
 	bencode_map_entry pe_settings_map[] = 
 	{
@@ -390,7 +390,7 @@ namespace aux {
 	struct all_default_values
 	{
 		proxy_settings m_proxy;
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
 		pe_settings m_pe_settings;
 #endif
 #ifndef TORRENT_DISABLE_DHT
@@ -412,7 +412,7 @@ namespace aux {
 #if TORRENT_USE_I2P
 //		TORRENT_CATEGORY("i2p", save_i2p_proxy, m_i2p_proxy, proxy_settings_map)
 #endif
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
 		TORRENT_CATEGORY("encryption", save_encryption_settings, m_pe_settings, pe_settings_map)
 #endif
 	};
@@ -1328,6 +1328,11 @@ namespace aux {
 
 		all_default_values def;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// copy settings from m_settings to m_pe_settings
+		get_pe_settings();
+#endif
+
 		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
 		{
 			session_category const& c = all_settings[i];
@@ -1417,6 +1422,14 @@ namespace aux {
 			if (!settings) continue;
 			load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
 		}
+
+#ifndef TORRENT_NO_DEPRECATE
+		// load from the old settings names
+		m_settings.set_bool(settings_pack::prefer_rc4, m_pe_settings.prefer_rc4);
+		m_settings.set_int(settings_pack::out_enc_policy, m_pe_settings.out_enc_policy);
+		m_settings.set_int(settings_pack::in_enc_policy, m_pe_settings.in_enc_policy);
+		m_settings.set_int(settings_pack::allowed_enc_level, m_pe_settings.allowed_enc_level);
+#endif
 		
 		settings = e->dict_find_dict("settings");
 		if (settings)
@@ -6852,11 +6865,23 @@ retry:
 		}
 	}
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined TORRENT_DISABLE_ENCRYPTION
+	
+#if !defined TORRENT_NO_DEPRECATE
 	void session_impl::set_pe_settings(pe_settings const& settings)
 	{
 		m_pe_settings = settings;
 	}
+
+	pe_settings const& session_impl::get_pe_settings() const
+	{
+		m_pe_settings.prefer_rc4 = m_settings.get_bool(settings_pack::prefer_rc4);
+		m_pe_settings.out_enc_policy = m_settings.get_int(settings_pack::out_enc_policy);
+		m_pe_settings.in_enc_policy = m_settings.get_int(settings_pack::in_enc_policy);
+		m_pe_settings.allowed_enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
+		return m_pe_settings;
+	}
+#endif // TORRENT_NO_DEPRECATE
 
 	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
 		, boost::weak_ptr<torrent> const& t)
@@ -6864,7 +6889,7 @@ retry:
 		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t.lock()));
 	}
 
-#endif
+#endif // TORRENT_DISABLE_ENCRYPTION
 
 	bool session_impl::is_listening() const
 	{
