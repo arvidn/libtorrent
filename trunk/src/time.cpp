@@ -58,12 +58,6 @@ namespace libtorrent
 
 	char const* time_now_string()
 	{
-//		time_t t = std::time(0);
-//		tm* timeinfo = std::localtime(&t);
-//		static char str[200];
-//		std::strftime(str, 200, "%b %d %X", timeinfo);
-//		return str;
-
 		static const ptime start = time_now_hires();
 		static char ret[200];
 		int t = total_milliseconds(time_now_hires() - start);
