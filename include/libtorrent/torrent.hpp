@@ -881,6 +881,9 @@ namespace libtorrent
 			, std::string const& private_key
 			, std::string const& dh_params
 			, std::string const& passphrase);
+		void set_ssl_cert_buffer(std::string const& certificate
+			, std::string const& private_key
+			, std::string const& dh_params);
 		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
 #endif
 
