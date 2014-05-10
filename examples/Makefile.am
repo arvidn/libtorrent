@@ -1,7 +1,6 @@
 example_programs =  \
   client_test       \
   dump_torrent      \
-  fragmentation_test\
   make_torrent      \
   simple_client     \
   rss_reader        \
@@ -32,9 +31,6 @@ connection_tester_SOURCES = connection_tester.cpp
 
 rss_reader_SOURCES = rss_reader.cpp
 #rss_reader_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
-fragmentation_test_SOURCES = fragmentation_test.cpp
-#fragmentation_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 upnp_test_SOURCES = upnp_test.cpp
 #upnp_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la

@@ -74,7 +74,8 @@ namespace libtorrent
 
 namespace libtorrent
 {
-
+	// this is a SHA-1 hash class.
+	// 
 	// You use it by first instantiating it, then call ``update()`` to feed it
 	// with data. i.e. you don't have to keep the entire buffer of which you want to
 	// create the hash in memory. You can feed the hasher parts of it at a time. When
@@ -89,11 +90,14 @@ namespace libtorrent
 	// 
 	// The sha1-algorithm used was implemented by Steve Reid and released as public domain.
 	// For more info, see ``src/sha1.cpp``.
-	class TORRENT_EXTRA_EXPORT hasher
+	class TORRENT_EXPORT hasher
 	{
 	public:
 
 		hasher();
+
+		// this is the same as default constructing followed by a call to
+		// ``update(data, len)``.
 		hasher(const char* data, int len);
 
 #ifdef TORRENT_USE_GCRYPT
@@ -101,10 +105,16 @@ namespace libtorrent
 		hasher& operator=(hasher const& h);
 #endif
 
+		// append the following bytes to what is being hashed
 		hasher& update(std::string const& data) { update(data.c_str(), data.size()); return *this; }
 		hasher& update(const char* data, int len);
+		
+		// returns the SHA-1 digest of the buffers previously passed to
+		// update() and the hasher constructor.
 		sha1_hash final();
 
+		// restore the hasher state to be as if the hasher has just been
+		// default constructed.
 		void reset();
 
 #ifdef TORRENT_USE_GCRYPT

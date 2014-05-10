@@ -896,6 +896,15 @@ torrent_status const& get_active_torrent(std::vector<torrent_status const*> cons
 	return *filtered_handles[active_torrent];
 }
 
+char const* timestamp()
+{
+	time_t t = std::time(0);
+	tm* timeinfo = std::localtime(&t);
+	static char str[200];
+	std::strftime(str, 200, "%b %d %X", timeinfo);
+	return str;
+}
+
 void print_alert(libtorrent::alert const* a, std::string& str)
 {
 	using namespace libtorrent;
@@ -911,7 +920,7 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 	}
 #endif
 	str += "[";
-	str += time_now_string();
+	str += timestamp();
 	str += "] ";
 	str += a->message();
 #ifdef ANSI_TERMINAL_COLORS
@@ -919,7 +928,7 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 #endif
 
 	if (g_log_file)
-		fprintf(g_log_file, "[%s] %s\n", time_now_string(),  a->message().c_str());
+		fprintf(g_log_file, "[%s] %s\n", timestamp(),  a->message().c_str());
 }
 
 int save_file(std::string const& filename, std::vector<char>& v)
@@ -961,7 +970,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			char msg[256];
 			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), ec.message().c_str());
-			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
 		stat_file(priv, &st, ec);
@@ -969,13 +978,13 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			char msg[256];
 			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), ec.message().c_str());
-			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
 
 		char msg[256];
 		snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
-		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 
 		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "1234");
 		h.resume();
@@ -1961,7 +1970,7 @@ int main(int argc, char* argv[])
 		// loop through the alert queue to see if anything has happened.
 		std::deque<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		std::string now = time_now_string();
+		std::string now = timestamp();
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
@@ -2471,7 +2480,7 @@ int main(int argc, char* argv[])
 
 		std::deque<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		std::string now = time_now_string();
+		std::string now = timestamp();
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{

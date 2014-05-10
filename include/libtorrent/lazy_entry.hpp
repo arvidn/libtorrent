@@ -386,7 +386,9 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
-	TORRENT_EXTRA_EXPORT std::string print_entry(lazy_entry const& e
+	// print the bencoded structure in a human-readable format to a stting
+	// that's returned.
+	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
 
 	// get the ``error_category`` for bdecode errors
