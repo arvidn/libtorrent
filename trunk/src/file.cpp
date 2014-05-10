@@ -1317,8 +1317,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			return true;
 		}
 
-		// if we only have a single range in the file, we're not sparse
-		return returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+		// if we have more than one range in the file, we're sparse
+		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+			return true;
+		}
+
+		return (in.Length.QuadPart != out[0].Length.QuadPart);
 	}
 #endif
 
