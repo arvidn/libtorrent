@@ -50,6 +50,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fixed sparse file detection on windows
 	* fixed bug in gunzip
 	* fix to use proxy settings when adding .torrent file from URL
 	* fix resume file issue related to daylight savings time on windows
