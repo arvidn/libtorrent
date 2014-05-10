@@ -203,7 +203,9 @@ else (shared)
 endif()
 
 # Boost
-FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono)
+if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
+	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono)
+endif()
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 
@@ -222,7 +224,9 @@ if (WIN32)
 endif()
 
 if (encryption)
-	FIND_PACKAGE(OpenSSL REQUIRED)
+	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
+		FIND_PACKAGE(OpenSSL REQUIRED)
+	endif()
 	add_definitions(-DTORRENT_USE_OPENSSL)
 	include_directories(${OPENSSL_INCLUDE_DIR})
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
@@ -275,6 +279,8 @@ if (MSVC)
 
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:REF
+else()
+	add_definitions(-Wno-c++11-extensions)
 endif()
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
@@ -321,7 +327,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION ${
 
 # === build examples ===
 if(build_examples)
-	FILE(GLOB examples RELATIVE "${CMAKE_SOURCE_DIR}" "examples/*.cpp")
+	FILE(GLOB examples RELATIVE "${PROJECT_SOURCE_DIR}" "examples/*.cpp")
 	foreach(s ${examples})
 		get_filename_component (sn ${s} NAME_WE)
 		add_executable(${sn} ${s})
@@ -333,7 +339,7 @@ endif()
 
 # === build tests ===
 if(build_tests)
-	FILE(GLOB tests RELATIVE "${CMAKE_SOURCE_DIR}" "tests/*.cpp")
+	FILE(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "tests/*.cpp")
 	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)
 	enable_testing()
 
