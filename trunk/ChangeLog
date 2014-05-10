@@ -1,5 +1,6 @@
 1.0 release
 
+	* if issue with large UDP packets on windows
 	* remove set_ratio() feature
 	* improve piece_deadline/streaming
 	* honor pieces with priority 7 in sequential download mode

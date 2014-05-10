@@ -98,7 +98,7 @@ udp_socket::udp_socket(asio::io_service& ios
 #endif
 #endif
 
-	m_buf_size = 2000;
+	m_buf_size = 2048;
 	m_new_buf_size = m_buf_size;
 	m_buf = (char*)malloc(m_buf_size);
 }
@@ -277,6 +277,20 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		TORRENT_ASSERT(m_v4_outstanding > 0);
 		--m_v4_outstanding;
 	}
+
+	// TODO: it would be nice to detect this on posix systems also
+#ifdef TORRENT_WINDOWS
+	if ((ec == error_code(ERROR_MORE_DATA, get_system_category())
+		|| ec == error_code(WSAEMSGSIZE, get_system_category()))
+		&& m_buf_size < 65536)
+	{
+		// if this function fails to allocate memory, m_buf_size
+		// is set to 0. In that case, don't issue the async_read().
+		set_buf_size(m_buf_size * 2);
+		if (m_buf_size != 0) setup_read(s);
+		return;
+	}
+#endif
 
 	if (ec == asio::error::operation_aborted) return;
 	if (m_abort) return;
