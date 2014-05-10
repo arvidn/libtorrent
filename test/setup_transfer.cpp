@@ -613,17 +613,17 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	}
 
 	session_settings sess_set = ses1->settings();
-	update_settings(sess_set, ses3);
+	update_settings(sess_set, ses3 != NULL);
 	ses1->set_settings(sess_set);
 
 	sess_set = ses2->settings();
-	update_settings(sess_set, ses3);
+	update_settings(sess_set, ses3 != NULL);
 	ses2->set_settings(sess_set);
 
 	if (ses3)
 	{
 		sess_set = ses3->settings();
-		update_settings(sess_set, ses3);
+		update_settings(sess_set, ses3 != NULL);
 		ses3->set_settings(sess_set);
 	}
 

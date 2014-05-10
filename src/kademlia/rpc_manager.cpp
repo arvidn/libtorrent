@@ -175,7 +175,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_allocated_observers(0)
 	, m_destructing(false)
 {
-	std::srand(time(0));
+	std::srand((unsigned int)time(0));
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Constructing";
@@ -377,7 +377,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 	o->reply(m);
 	*id = nid;
 
-	int rtt = total_milliseconds(now - o->sent());
+	int rtt = int(total_milliseconds(now - o->sent()));
 
 	// we found an observer for this reply, hence the node is not spoofing
 	// add it to the routing table

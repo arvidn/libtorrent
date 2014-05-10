@@ -1095,13 +1095,13 @@ void node_impl::incoming_request(msg const& m, entry& e)
 					}
 				}
 
-				if (item->seq > msg_keys[2]->int_value())
+				if (item->seq > boost::uint64_t(msg_keys[2]->int_value()))
 				{
 					incoming_error(e, "old sequence number", 302);
 					return;
 				}
 
-				if (item->seq < msg_keys[2]->int_value())
+				if (item->seq < boost::uint64_t(msg_keys[2]->int_value()))
 				{
 					if (item->size != buf.second)
 					{

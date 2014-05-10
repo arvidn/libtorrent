@@ -74,7 +74,7 @@ namespace libtorrent
 		char *p = &ret.back();
 		*p = '\0';
 		unsigned_size_type un = n;
-		if (n < 0)  un = -un;
+		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
 		do {
 			*--p = '0' + un % 10;
 			un /= 10;

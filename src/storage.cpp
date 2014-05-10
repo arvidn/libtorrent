@@ -1428,7 +1428,7 @@ ret:
 		if (!m_allocate_files) mode |= file::sparse;
 
 		// files with priority 0 should always be sparse
-		if (m_file_priority.size() > file_index && m_file_priority[file_index] == 0)
+		if (int(m_file_priority.size()) > file_index && m_file_priority[file_index] == 0)
 			mode |= file::sparse;
 
 		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;

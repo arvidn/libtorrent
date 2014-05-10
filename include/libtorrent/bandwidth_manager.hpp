@@ -69,7 +69,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 #endif
 
 	int queue_size() const;
-	int queued_bytes() const;
+	boost::int64_t queued_bytes() const;
 	
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.

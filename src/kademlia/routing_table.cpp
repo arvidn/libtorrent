@@ -93,7 +93,7 @@ void routing_table::status(session_status& s) const
 		dht_routing_bucket b;
 		b.num_nodes = i->live_nodes.size();
 		b.num_replacements = i->replacements.size();
-		b.last_active = total_seconds(now - i->last_active);
+		b.last_active = int(total_seconds(now - i->last_active));
 		s.dht_routing_table.push_back(b);
 	}
 }
@@ -132,21 +132,21 @@ size_type routing_table::num_global_nodes() const
 
 int routing_table::depth() const
 {
-	if (m_depth >= m_buckets.size())
+	if (m_depth >= int(m_buckets.size()))
 		m_depth = m_buckets.size() - 1;
 
 	if (m_depth < 0) return m_depth;
 
 	// maybe the table is deeper now?
 	while (m_depth < int(m_buckets.size())-1
-		&& m_buckets[m_depth+1].live_nodes.size() >= m_bucket_size / 2)
+		&& int(m_buckets[m_depth+1].live_nodes.size()) >= m_bucket_size / 2)
 	{
 		++m_depth;
 	}
 
 	// maybe the table is more shallow now?
 	while (m_depth > 0
-		&& m_buckets[m_depth-1].live_nodes.size() < m_bucket_size / 2)
+		&& int(m_buckets[m_depth-1].live_nodes.size()) < m_bucket_size / 2)
 	{
 		--m_depth;
 	}
@@ -801,7 +801,7 @@ bool routing_table::add_node(node_entry e)
 
 	m_ips.insert(e.addr().to_v4().to_bytes());
 
-	while (m_buckets.back().live_nodes.size() > bucket_limit(m_buckets.size()-1))
+	while (int(m_buckets.back().live_nodes.size()) > bucket_limit(m_buckets.size() - 1))
 		split_bucket();
 	return ret;
 }
