@@ -403,6 +403,16 @@ namespace libtorrent
 #endif
 	}
 
+	void torrent_handle::set_ssl_certificate_buffer(
+		std::string const& certificate
+		, std::string const& private_key
+		, std::string const& dh_params)
+	{
+#ifdef TORRENT_USE_OPENSSL
+		TORRENT_ASYNC_CALL3(set_ssl_cert_buffer, certificate, private_key, dh_params);
+#endif
+	}
+
 	void torrent_handle::save_resume_data(int f) const
 	{
 		TORRENT_ASYNC_CALL1(save_resume_data, f);

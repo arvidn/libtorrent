@@ -4394,6 +4394,41 @@ namespace libtorrent
 				alerts().post_alert(torrent_error_alert(get_handle(), ec));
 		}
 	}
+
+	void torrent::set_ssl_cert_buffer(std::string const& certificate
+		, std::string const& private_key
+		, std::string const& dh_params)
+	{
+		if (!m_ssl_ctx) return;
+
+		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
+
+		using boost::asio::ssl::context;
+		error_code ec;
+		m_ssl_ctx->use_certificate(certificate_buf, context::pem, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+
+		boost::asio::const_buffer private_key_buf(private_key.c_str(), private_key.size());
+		m_ssl_ctx->use_private_key(private_key_buf, context::pem, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+
+		boost::asio::const_buffer dh_params_buf(dh_params.c_str(), dh_params.size());
+		m_ssl_ctx->use_tmp_dh(dh_params_buf, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+	}
+
 #endif
 
 	void torrent::remove_peer(peer_connection* p)
