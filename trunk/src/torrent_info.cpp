@@ -492,7 +492,7 @@ namespace libtorrent
 			ec = error_code(errors::metadata_too_large, get_libtorrent_category());
 			return -2;
 		}
-		v.resize(s);
+		v.resize((unsigned int)s);
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], size_t(s) };
 		size_type read = f.readv(0, &b, 1, ec);

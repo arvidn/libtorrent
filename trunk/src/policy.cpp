@@ -513,7 +513,7 @@ namespace libtorrent
 				
 				p->disconnect(errors::banned_by_ip_filter);
 				// what *i refers to has changed, i.e. cur was deleted
-				if (m_peers.size() < count)
+				if (int(m_peers.size()) < count)
 				{
 					i = m_peers.begin() + current;
 					continue;

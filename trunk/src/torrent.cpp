@@ -1454,7 +1454,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
-		if (m_file_priority.size() > m_torrent_file->num_files())
+		if (int(m_file_priority.size()) > m_torrent_file->num_files())
 			m_file_priority.resize(m_torrent_file->num_files());
 
 		std::string cert = m_torrent_file->ssl_cert();
@@ -1589,7 +1589,7 @@ namespace libtorrent
 			if (fs.pad_file_at(i)) ++num_pad_files;
 
 			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
-			m_padding += fs.file_size(i);
+			m_padding += boost::uint32_t(fs.file_size(i));
 			
 			peer_request pr = m_torrent_file->map_file(i, 0, fs.file_size(i));
 			int off = pr.start & (block_size()-1);

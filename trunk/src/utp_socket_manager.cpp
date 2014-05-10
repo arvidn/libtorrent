@@ -330,7 +330,7 @@ namespace libtorrent
 		if (ph->get_type() == ST_SYN)
 		{
 			// possible SYN flood. Just ignore
-			if (m_utp_sockets.size() > m_sett.connections_limit * 2)
+			if (int(m_utp_sockets.size()) > m_sett.connections_limit * 2)
 				return false;
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);

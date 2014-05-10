@@ -1,6 +1,11 @@
 #include "fixedint.h"
 #include "fe.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4146 ) /* warning C4146: unary minus operator applied to unsigned type, result still unsigned */
+#pragma warning(disable : 4244 ) /* warning C4244: '=' : conversion from 'int64_t' to 'int32_t', possible loss of data */
+#endif // _MSC_VER
 
 /*
     helper functions
@@ -225,7 +230,7 @@ void fe_cswap(fe f,fe g,unsigned int b) {
     int32_t x7 = f7 ^ g7;
     int32_t x8 = f8 ^ g8;
     int32_t x9 = f9 ^ g9;
-    b = -b;
+    b = -b; // warning C4146: unary minus operator applied to unsigned type, result still unsigned
     x0 &= b;
     x1 &= b;
     x2 &= b;
@@ -1489,3 +1494,7 @@ void fe_tobytes(unsigned char *s, const fe h) {
     s[30] = (unsigned char) ((h9 >> 10) & 0xff);
     s[31] = (unsigned char) ((h9 >> 18) & 0xff);
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif // _MSC_VER

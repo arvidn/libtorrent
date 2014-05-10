@@ -70,7 +70,7 @@ namespace libtorrent {
 
 		bool should_post(alert const* a) const
 		{
-			return m_alert_mask & a->category();
+			return (m_alert_mask & a->category()) != 0;
 		}
 
 		alert const* wait_for_alert(time_duration max_wait);

@@ -324,7 +324,7 @@ namespace libtorrent
 		for (; size > 0; file_offset -= file_iter->size, ++file_iter)
 		{
 			TORRENT_ASSERT(file_iter != m_files.end());
-			if (file_offset < file_iter->size)
+			if (file_offset < size_type(file_iter->size))
 			{
 				file_slice f;
 				f.file_index = file_iter - m_files.begin();
@@ -391,7 +391,7 @@ namespace libtorrent
 			ret.start = int(offset % piece_length());
 			ret.length = size;
 			if (offset + size > total_size())
-				ret.length = total_size() - offset;
+				ret.length = int(total_size() - offset);
 		}
 		return ret;
 	}
