@@ -152,6 +152,8 @@ EXTRA_DIST = \
   Jamroot.jam \
   CMakeLists.txt \
   LICENSE \
+  bindings/python/compile_flags  \
+  bindings/python/link_flags  \
   libtorrent-rasterbar.pc  \
   libtorrent-rasterbar-cmake.pc  \
   $(DOCS_PAGES) \

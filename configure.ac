@@ -687,6 +687,8 @@ AC_CONFIG_FILES(
   [tools/Makefile]
   [bindings/Makefile]
   [bindings/python/Makefile]
+  [bindings/python/link_flags]
+  [bindings/python/compile_flags]
   [libtorrent-rasterbar.pc]
   [libtorrent-rasterbar-cmake.pc]
 )
