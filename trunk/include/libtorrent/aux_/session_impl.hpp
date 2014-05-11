@@ -901,7 +901,7 @@ namespace libtorrent
 			void recalculate_optimistic_unchoke_slots();
 
 			ptime m_created;
-			int64_t session_time() const { return total_seconds(time_now() - m_created); }
+			boost::int64_t session_time() const { return total_seconds(time_now() - m_created); }
 
 			ptime m_last_tick;
 			ptime m_last_second_tick;

@@ -18,4 +18,5 @@ chmod a-x docs/*.rst docs/*.htm* src/*.cpp include/libtorrent/*.hpp
 
 ./autotool.sh
 ./configure --enable-python-binding --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt --enable-tests
-make V=1 -j8 dist check
+make V=1 -j8 distcheck
+

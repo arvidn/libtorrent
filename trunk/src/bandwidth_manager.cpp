@@ -156,7 +156,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		int64_t dt_milliseconds = total_milliseconds(dt);
+		boost::int64_t dt_milliseconds = total_milliseconds(dt);
 		if (dt_milliseconds > 3000) dt_milliseconds = 3000;
 
 		// for each bandwidth channel, call update_quota(dt)
