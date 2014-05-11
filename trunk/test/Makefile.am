@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
+
 test_programs = \
   test_bitfield              \
   test_file                  \
@@ -41,7 +43,6 @@ test_programs = \
   enum_if                    \
   test_utp                   \
   test_session               \
-  test_ssl                   \
   test_web_seed              \
   test_remap_files           \
   test_gzip                  \
@@ -170,7 +171,6 @@ test_upnp_SOURCES = test_upnp.cpp
 enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
-test_ssl_SOURCES = test_ssl.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_gzip_SOURCES = test_gzip.cpp

@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
+
 lib_LTLIBRARIES = libtorrent-rasterbar.la
 
 if ENABLE_DHT

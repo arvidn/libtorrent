@@ -126,6 +126,27 @@ DOCS_PAGES = \
   docs/reference-Utility.html     \
   docs/reference.html
 
+ED25519_SOURCE = \
+	ed25519/readme.md \
+	ed25519/test.c \
+	ed25519/src/ed25519.h \
+	ed25519/src/fe.h \
+	ed25519/src/fixedint.h \
+	ed25519/src/ge.h \
+	ed25519/src/precomp_data.h \
+	ed25519/src/sc.h \
+	ed25519/src/sha512.h \
+	ed25519/src/add_scalar.c \
+	ed25519/src/fe.c \
+	ed25519/src/ge.c \
+	ed25519/src/key_exchange.c \
+	ed25519/src/keypair.c \
+	ed25519/src/sc.c \
+	ed25519/src/seed.c \
+	ed25519/src/sha512.c \
+	ed25519/src/sign.c \
+	ed25519/src/verify.c
+
 EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
@@ -134,7 +155,9 @@ EXTRA_DIST = \
   libtorrent-rasterbar.pc  \
   libtorrent-rasterbar-cmake.pc  \
   $(DOCS_PAGES) \
-  $(DOCS_IMAGES)
+  $(DOCS_IMAGES) \
+  $(ED25519_SOURCE)
 
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent-rasterbar.pc
+
