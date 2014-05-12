@@ -1,5 +1,6 @@
 1.0 release
 
+	* expose optimistic unchoke logic to plugins
 	* fix issue with large UDP packets on windows
 	* remove set_ratio() feature
 	* improve piece_deadline/streaming
