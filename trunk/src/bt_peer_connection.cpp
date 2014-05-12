@@ -119,11 +119,11 @@ namespace libtorrent
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
 #endif
-		, m_our_peer_id(pid)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
 #endif
+		, m_our_peer_id(pid)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_sync_bytes_read(0)
 #endif
