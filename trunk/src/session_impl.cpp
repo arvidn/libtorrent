@@ -4391,6 +4391,15 @@ retry:
 			, boost::bind(&policy::peer::last_optimistically_unchoked, _1)
 			< boost::bind(&policy::peer::last_optimistically_unchoked, _2));
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_optimistic_unchoke(opt_unchoke))
+				break;
+		}
+#endif
+
 		int num_opt_unchoke = m_settings.num_optimistic_unchoke_slots;
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
 

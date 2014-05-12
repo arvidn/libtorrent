@@ -2254,6 +2254,14 @@ namespace libtorrent
 
 		char msg[] = {0,0,0,1,msg_unchoke};
 		send_buffer(msg, sizeof(msg));
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			(*i)->sent_unchoke();
+		}
+#endif
 	}
 
 	void bt_peer_connection::write_interested()

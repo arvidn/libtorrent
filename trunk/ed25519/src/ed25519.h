@@ -5,6 +5,16 @@
 
 #include "libtorrent/config.hpp" // for TORRENT_EXPORT
 
+enum
+{
+	ed25519_seed_size = 32,
+	ed25519_private_key_size = 64,
+	ed25519_public_key_size = 32,
+	ed25519_signature_size = 64,
+	ed25519_scalar_size = 32,
+	ed25519_shared_secret_size = 32,
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
