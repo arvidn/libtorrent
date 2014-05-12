@@ -4401,6 +4401,10 @@ namespace libtorrent
 	{
 		if (!m_ssl_ctx) return;
 
+#if BOOST_VERSION < 105400
+		if (alerts().should_post<torrent_error_alert>())
+			alerts().post_alert(torrent_error_alert(get_handle(), boost::system::errc::not_supported));
+#else
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 
 		using boost::asio::ssl::context;
@@ -4427,6 +4431,7 @@ namespace libtorrent
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().post_alert(torrent_error_alert(get_handle(), ec));
 		}
+#endif // BOOST_VERSION
 	}
 
 #endif
