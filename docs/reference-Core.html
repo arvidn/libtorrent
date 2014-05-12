@@ -55,15 +55,16 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id175">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#peer-info" id="id176">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id177">peer_request</a></li>
-<li><a class="reference internal" href="#block-info" id="id178">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id179">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id180">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id181">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id182">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id183">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id186">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#hasher" id="id187">hasher</a></li>
+<li><a class="reference internal" href="#peer-info" id="id188">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id189">peer_request</a></li>
+<li><a class="reference internal" href="#block-info" id="id190">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id191">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id192">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id193">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id194">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id195">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -133,6 +134,68 @@ disk buffer, it will first be freed.</p>
 void <strong>swap</strong> (disk_buffer_holder&amp; h);
 </pre>
 <p>swap pointers of two disk buffer holders.</p>
+<a name="hasher"></a></div>
+</div>
+<div class="section" id="hasher">
+<h1>hasher</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/hasher.hpp">libtorrent/hasher.hpp</a>&quot;</p>
+<p>this is a SHA-1 hash class.</p>
+<p>You use it by first instantiating it, then call <tt class="docutils literal">update()</tt> to feed it
+with data. i.e. you don't have to keep the entire buffer of which you want to
+create the hash in memory. You can feed the <a class="reference external" href="reference-Core.html#hasher">hasher</a> parts of it at a time. When
+You have fed the <a class="reference external" href="reference-Core.html#hasher">hasher</a> with all the data, you call <tt class="docutils literal">final()</tt> and it
+will return the sha1-hash of the data.</p>
+<p>The constructor that takes a <tt class="docutils literal">char const*</tt> and an integer will construct the
+sha1 context and feed it the data passed in.</p>
+<p>If you want to reuse the <a class="reference external" href="reference-Core.html#hasher">hasher</a> object once you have created a hash, you have to
+call <tt class="docutils literal">reset()</tt> to reinitialize it.</p>
+<p>The sha1-algorithm used was implemented by Steve Reid and released as public domain.
+For more info, see <tt class="docutils literal">src/sha1.cpp</tt>.</p>
+<pre class="literal-block">
+class hasher
+{
+   <strong>hasher</strong> ();
+   <strong>hasher</strong> (const char* data, int len);
+   hasher&amp; <strong>operator=</strong> (hasher const&amp; h);
+   <strong>hasher</strong> (hasher const&amp; h);
+   hasher&amp; <strong>update</strong> (std::string const&amp; data);
+   hasher&amp; <strong>update</strong> (const char* data, int len);
+   sha1_hash <strong>final</strong> ();
+   void <strong>reset</strong> ();
+   <strong>~hasher</strong> ();
+};
+</pre>
+<a name="hasher()"></a><div class="section" id="id9">
+<h2>hasher()</h2>
+<pre class="literal-block">
+<strong>hasher</strong> (const char* data, int len);
+</pre>
+<p>this is the same as default constructing followed by a call to
+<tt class="docutils literal">update(data, len)</tt>.</p>
+<a name="update()"></a></div>
+<div class="section" id="update">
+<h2>update()</h2>
+<pre class="literal-block">
+hasher&amp; <strong>update</strong> (std::string const&amp; data);
+hasher&amp; <strong>update</strong> (const char* data, int len);
+</pre>
+<p>append the following bytes to what is being hashed</p>
+<a name="final()"></a></div>
+<div class="section" id="final">
+<h2>final()</h2>
+<pre class="literal-block">
+sha1_hash <strong>final</strong> ();
+</pre>
+<p>returns the SHA-1 digest of the buffers previously passed to
+<a class="reference external" href="reference-Core.html#update()">update()</a> and the <a class="reference external" href="reference-Core.html#hasher">hasher</a> constructor.</p>
+<a name="reset()"></a></div>
+<div class="section" id="id12">
+<h2>reset()</h2>
+<pre class="literal-block">
+void <strong>reset</strong> ();
+</pre>
+<p>restore the <a class="reference external" href="reference-Core.html#hasher">hasher</a> state to be as if the <a class="reference external" href="reference-Core.html#hasher">hasher</a> has just been
+default constructed.</p>
 <a name="peer_info"></a></div>
 </div>
 <div class="section" id="peer-info">
@@ -1049,6 +1112,9 @@ struct torrent_handle
       , std::string const&amp; private_key
       , std::string const&amp; dh_params
       , std::string const&amp; passphrase = &quot;&quot;);
+   void <strong>set_ssl_certificate_buffer</strong> (std::string const&amp; certificate
+      , std::string const&amp; private_key
+      , std::string const&amp; dh_params);
    storage_interface* <strong>get_storage_impl</strong> () const;
    boost::intrusive_ptr&lt;torrent_info const&gt; <strong>torrent_file</strong> () const;
    void <strong>use_interface</strong> (const char* net_interface) const;
@@ -1124,7 +1190,7 @@ struct torrent_handle
    };
 };
 </pre>
-<a name="torrent_handle()"></a><div class="section" id="id26">
+<a name="torrent_handle()"></a><div class="section" id="id36">
 <h2>torrent_handle()</h2>
 <pre class="literal-block">
 <strong>torrent_handle</strong> ();
@@ -1668,18 +1734,26 @@ for the peers of this torrent. It defaults to false. If it is set to
 true, the <a class="reference external" href="reference-Core.html#peer_info">peer_info</a> structure for the peers in this torrent will have
 their <tt class="docutils literal">country</tt> member set. See <a class="reference external" href="reference-Core.html#peer_info">peer_info</a> for more information on
 how to interpret this field.</p>
+<a name="set_ssl_certificate_buffer()"></a>
 <a name="set_ssl_certificate()"></a></div>
-<div class="section" id="set-ssl-certificate">
-<h2>set_ssl_certificate()</h2>
+<div class="section" id="set-ssl-certificate-buffer-set-ssl-certificate">
+<h2>set_ssl_certificate_buffer() set_ssl_certificate()</h2>
 <pre class="literal-block">
 void <strong>set_ssl_certificate</strong> (std::string const&amp; certificate
       , std::string const&amp; private_key
       , std::string const&amp; dh_params
       , std::string const&amp; passphrase = &quot;&quot;);
+void <strong>set_ssl_certificate_buffer</strong> (std::string const&amp; certificate
+      , std::string const&amp; private_key
+      , std::string const&amp; dh_params);
 </pre>
 <p>For SSL torrents, use this to specify a path to a .pem file to use as
 this client's certificate. The certificate must be signed by the
 certificate in the .torrent file to be valid.</p>
+<p>The <a class="reference external" href="reference-Core.html#set_ssl_certificate_buffer()">set_ssl_certificate_buffer()</a> overload takes the actual certificate,
+private key and DH params as strings, rather than paths to files. This
+overload is only available when libtorrent is built against boost
+1.54 or later.</p>
 <p><tt class="docutils literal">cert</tt> is a path to the (signed) certificate in .pem format
 corresponding to this torrent.</p>
 <p><tt class="docutils literal">private_key</tt> is a path to the private key for the specified
@@ -2317,7 +2391,7 @@ struct torrent_status
    sha1_hash info_hash;
 };
 </pre>
-<a name="operator==()"></a><div class="section" id="id110">
+<a name="operator==()"></a><div class="section" id="id121">
 <h2>operator==()</h2>
 <pre class="literal-block">
 bool <strong>operator==</strong> (torrent_status const&amp; st) const;
@@ -2325,7 +2399,7 @@ bool <strong>operator==</strong> (torrent_status const&amp; st) const;
 <p>compres if the torrent status objects come from the same torrent. i.e.
 only the <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> field is compared.</p>
 <a name="state_t"></a></div>
-<div class="section" id="id112">
+<div class="section" id="id123">
 <h2>enum state_t</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -2875,7 +2949,7 @@ allowed to force another tracker update with this tracker.</p>
 <p>If the last time this tracker was contacted failed, <tt class="docutils literal">last_error</tt> is the error
 code describing what error occurred.</p>
 <a name="reset()"></a></div>
-<div class="section" id="id133">
+<div class="section" id="id144">
 <h2>reset()</h2>
 <pre class="literal-block">
 void <strong>reset</strong> ();
@@ -3091,7 +3165,7 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
    bool <strong>is_merkle_torrent</strong> () const;
 };
 </pre>
-<a name="torrent_info()"></a><div class="section" id="id137">
+<a name="torrent_info()"></a><div class="section" id="id148">
 <h2>torrent_info()</h2>
 <pre class="literal-block">
 <strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
@@ -3123,7 +3197,7 @@ always throw if an error occurs. These overloads are not available when building
 exception support.</p>
 <p>The <tt class="docutils literal">flags</tt> argument is currently unused.</p>
 <a name="~torrent_info()"></a></div>
-<div class="section" id="id145">
+<div class="section" id="id156">
 <h2>~torrent_info()</h2>
 <pre class="literal-block">
 <strong>~torrent_info</strong> ();
@@ -3148,7 +3222,7 @@ names. Filename may be chaged using <tt class="docutils literal"><span class="pr
 <p>For more information on the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object, see the separate document on how
 to create torrents.</p>
 <a name="rename_file()"></a></div>
-<div class="section" id="id151">
+<div class="section" id="id162">
 <h2>rename_file()</h2>
 <pre class="literal-block">
 void <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
@@ -3233,7 +3307,7 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as <tt class="docutils literal">piece_length()</tt> except in the case of the last piece, which may
 be smaller.</p>
 <a name="info_hash()"></a></div>
-<div class="section" id="id158">
+<div class="section" id="id169">
 <h2>info_hash()</h2>
 <pre class="literal-block">
 const sha1_hash&amp; <strong>info_hash</strong> () const;
@@ -3280,7 +3354,7 @@ std::string <strong>ssl_cert</strong> () const;
 torrent. Otherwise returns an empty string. The certificate is
 the the public certificate in x509 format.</p>
 <a name="is_valid()"></a></div>
-<div class="section" id="id161">
+<div class="section" id="id172">
 <h2>is_valid()</h2>
 <pre class="literal-block">
 bool <strong>is_valid</strong> () const;
@@ -3393,7 +3467,7 @@ lazy_entry const* <strong>info</strong> (char const* key) const;
 It can be used to access extension values put in the .torrent file. If the specified
 key cannot be found, it returns NULL.</p>
 <a name="swap()"></a></div>
-<div class="section" id="id166">
+<div class="section" id="id177">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (torrent_info&amp; ti);
