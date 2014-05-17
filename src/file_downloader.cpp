@@ -235,7 +235,7 @@ namespace libtorrent
 						range_last_byte = file_size - 1;
 
 					range_request = true;
-					printf("range: %"PRId64" - %"PRId64"\n", range_first_byte, range_last_byte);
+					printf("range: %" PRId64 " - %" PRId64 "\n", range_first_byte, range_last_byte);
 				}
 			}
 		}

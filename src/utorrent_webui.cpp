@@ -451,7 +451,7 @@ void utorrent_webui::remove_torrent_and_data(std::vector<char>&, char const* arg
 
 void utorrent_webui::list_dirs(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
-	appendf(response, ", \"download-dirs\": [{\"path\":\"%s\",\"available\":%"PRId64"}]"
+	appendf(response, ", \"download-dirs\": [{\"path\":\"%s\",\"available\":%" PRId64 "}]"
 		, escape_json(m_params_model.save_path).c_str()
 		, free_disk_space(m_params_model.save_path) / 1024 / 1024);
 }
@@ -584,7 +584,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args
 			value = sett.get_int(s);
 		}
 
-		appendf(response, ",[\"%s\",0,\"%"PRId64"\",{\"access\":\"%c\"}]\n" + first
+		appendf(response, ",[\"%s\",0,\"%" PRId64 "\",{\"access\":\"%c\"}]\n" + first
 			, sname, value, p->allow_set_settings(s) ? 'Y' : 'R');
 		first = 0;
 	}
@@ -890,7 +890,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 			int last_piece = (files.file_offset(i) + files.file_size(i)) / files.piece_length();
 			// don't round 1 down to 0. 0 is special (do-not-download)
 			if (file_prio[i] == 1) file_prio[i] = 2;
-			appendf(response, ",[\"%s\", %"PRId64", %"PRId64", %d" + first_file
+			appendf(response, ",[\"%s\", %" PRId64 ", %" PRId64 ", %d" + first_file
 				, escape_json(files.file_name(i)).c_str()
 				, files.file_size(i)
 				, progress[i]
@@ -1075,7 +1075,7 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 			, pend(peers.end()); p != pend; ++p)
 		{
 			appendf(response, ",[\"%c%c\",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,%d,%d,%d"
-				",%d,%"PRId64",%"PRId64",%d,%d,%d,%d,%d,%d,%d]" + first_peer
+				",%d,%" PRId64 ",%" PRId64 ",%d,%d,%d,%d,%d,%d,%d]" + first_peer
 				, isprint(p->country[0]) ? p->country[0] : ' '
 				, isprint(p->country[1]) ? p->country[1] : ' '
 				, print_endpoint(p->ip).c_str()
@@ -1358,7 +1358,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 		, end(torrents.end()); i != end; ++i)
 	{
 		boost::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
-		appendf(response, ",[\"%s\",%d,\"%s\",%"PRId64",%d,%"PRId64",%"PRId64",%f,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,%"PRId64"" + first
+		appendf(response, ",[\"%s\",%d,\"%s\",%" PRId64 ",%d,%" PRId64 ",%" PRId64 ",%f,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,%" PRId64 "" + first
 			, to_hex(i->info_hash.to_string()).c_str()
 			, utorrent_status(*i)
 			, escape_json(i->name).c_str()
@@ -1383,7 +1383,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 
 		if (m_version > 0)
 		{
-			appendf(response, ",\"%s\",\"%s\",\"%s\",\"%s\",%"PRId64",%"PRId64",\"%s\",\"%s\",%d,\"%s\"]"
+			appendf(response, ",\"%s\",\"%s\",\"%s\",\"%s\",%" PRId64 ",%" PRId64 ",\"%s\",\"%s\",%d,\"%s\"]"
 			, "" // url this torrent came from
 			, "" // feed URL this torrent belongs to
 			, escape_json(utorrent_message(*i)).c_str()
@@ -1466,7 +1466,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 			IN HISTORY (boolean)
 		]
 */
-		appendf(response, ",[%u,true,true,false,true,%u,\"%s\",%"PRId64",[" + first
+		appendf(response, ",[%u,true,true,false,true,%u,\"%s\",%" PRId64 ",[" + first
 			, id, 0, st.url.c_str(), 0);
 
 		int first2 = 1;
@@ -1475,7 +1475,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 		{
 			item_properties p;
 			parse_name(k->title, p);
-			appendf(response, ",[\"%s\",\"%s\",\"%s\",%u,0,%"PRId64",%u,%u,0,0,%u,false,false]" + first2
+			appendf(response, ",[\"%s\",\"%s\",\"%s\",%u,0,%" PRId64 ",%u,%u,0,0,%u,false,false]" + first2
 				, k->title.c_str(), k->title.c_str(), k->url.c_str(), 0, 0, p.season, p.episode, id);
 			first2 = 0;
 		}

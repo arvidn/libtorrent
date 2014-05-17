@@ -916,7 +916,7 @@ namespace libtorrent
 			// TOOD: parse this out of the request_info
 			st.perms = NULL;
 
-			fprintf(stderr, "CALL: %s (%d bytes arguments)\n", fun_name(st.function_id), st.len);
+//			fprintf(stderr, "CALL: %s (%d bytes arguments)\n", fun_name(st.function_id), st.len);
 			if (st.function_id >= 0 && st.function_id < sizeof(functions)/sizeof(functions[0]))
 			{
 				return (this->*functions[st.function_id].handler)(&st);
