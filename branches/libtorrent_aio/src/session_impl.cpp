@@ -3536,11 +3536,11 @@ retry:
 			, boost::bind(&boost::shared_ptr<peer_connection>::unique, _1));
 		m_undead_peers.erase(i, m_undead_peers.end());
 
-		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
+		int tick_interval_ms = int(total_milliseconds(now - m_last_second_tick));
 		m_last_second_tick = now;
 		m_tick_residual += tick_interval_ms - 1000;
 
-		int session_time = total_seconds(now - m_created);
+		boost::int64_t session_time = total_seconds(now - m_created);
 		if (session_time > 65000)
 		{
 			// we're getting close to the point where our timestamps
@@ -4905,6 +4905,15 @@ retry:
 			, boost::bind(&torrent_peer::last_optimistically_unchoked, _1)
 			< boost::bind(&torrent_peer::last_optimistically_unchoked, _2));
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_optimistic_unchoke(opt_unchoke))
+				break;
+		}
+#endif
+
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
 
@@ -4926,7 +4935,7 @@ retry:
 					{
 						pi->optimistically_unchoked = true;
 						++m_num_unchoked;
-						pi->last_optimistically_unchoked = session_time();
+						pi->last_optimistically_unchoked = boost::uint16_t(session_time());
 					}
 					else
 					{
@@ -6568,8 +6577,8 @@ retry:
 		s.up_bandwidth_queue = m_upload_rate.queue_size();
 		s.down_bandwidth_queue = m_download_rate.queue_size();
 
-		s.up_bandwidth_bytes_queue = m_upload_rate.queued_bytes();
-		s.down_bandwidth_bytes_queue = m_download_rate.queued_bytes();
+		s.up_bandwidth_bytes_queue = int(m_upload_rate.queued_bytes());
+		s.down_bandwidth_bytes_queue = int(m_download_rate.queued_bytes());
 
 		s.disk_write_queue = m_stats_counters[counters::num_peers_down_disk];
 		s.disk_read_queue = m_stats_counters[counters::num_peers_up_disk];

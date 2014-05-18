@@ -362,7 +362,7 @@ bool web_peer_connection::received_invalid_data(int index, bool single_peer)
 		int fi = files[0].file_index;
 		int first_piece = fs.file_offset(fi) / fs.piece_length();
 		// one past last piece
-		int end_piece = (fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length();
+		int end_piece = int((fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length());
 		for (int i = first_piece; i < end_piece; ++i)
 			incoming_dont_have(i);
 	}
@@ -825,7 +825,7 @@ void web_peer_connection::on_receive(error_code const& error
 						m_chunk_pos -= copy_size;
 					}
 					TORRENT_ASSERT(m_received_body <= range_end - range_start);
-					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+					TORRENT_ASSERT(m_piece.size() <= front_request.length);
 					incoming_piece_fragment(copy_size);
 					TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
 				}
@@ -931,10 +931,10 @@ void web_peer_connection::on_receive(error_code const& error
 					m_file_requests.pop_front();
 					size_type file_size = info.orig_files().file_size(file_index);
 					TORRENT_ASSERT(m_block_pos < front_request.length);
-					int pad_size = (std::min)(file_size, size_type(front_request.length - m_block_pos));
+					int pad_size = int((std::min)(file_size, size_type(front_request.length - m_block_pos)));
 
 					// insert zeroes to represent the pad file
-					m_piece.resize(m_piece.size() + pad_size, 0);
+					m_piece.resize(m_piece.size() + size_t(pad_size), 0);
 					m_block_pos += pad_size;
 					incoming_piece_fragment(pad_size);
 

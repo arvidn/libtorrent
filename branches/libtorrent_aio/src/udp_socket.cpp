@@ -95,7 +95,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_outstanding_socks = 0;
 #endif
 
-	m_buf_size = 2000;
+	m_buf_size = 2048;
 	m_new_buf_size = m_buf_size;
 	m_buf = (char*)malloc(m_buf_size);
 }
@@ -285,6 +285,21 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		error_code ec;
 		udp::endpoint ep;
 		size_t bytes_transferred = s->receive_from(asio::buffer(m_buf, m_buf_size), ep, 0, ec);
+
+		// TODO: it would be nice to detect this on posix systems also
+#ifdef TORRENT_WINDOWS
+		if ((ec == error_code(ERROR_MORE_DATA, get_system_category())
+			|| ec == error_code(WSAEMSGSIZE, get_system_category()))
+			&& m_buf_size < 65536)
+		{
+			// if this function fails to allocate memory, m_buf_size
+			// is set to 0. In that case, don't issue the async_read().
+			set_buf_size(m_buf_size * 2);
+			if (m_buf_size == 0) return;
+			continue;
+		}
+#endif
+
 		if (ec == asio::error::would_block || ec == asio::error::try_again) break;
 		on_read_impl(s, ep, ec, bytes_transferred);
 	}
@@ -472,6 +487,7 @@ void udp_socket::setup_read(udp::socket* s)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_read");
 #endif
+
 	udp::endpoint ep;
 	TORRENT_TRY
 	{
@@ -684,6 +700,12 @@ void udp_socket::set_buf_size(int s)
 		call_handler(error::no_memory, ep, 0, 0);
 		close();
 	}
+
+	// set the internal buffer sizes as well
+	m_ipv4_sock.set_option(boost::asio::socket_base::receive_buffer_size(m_buf_size));
+#if TORRENT_USE_IPV6
+	m_ipv6_sock.set_option(boost::asio::socket_base::receive_buffer_size(m_buf_size));
+#endif
 }
 
 void udp_socket::bind(udp::endpoint const& ep, error_code& ec)

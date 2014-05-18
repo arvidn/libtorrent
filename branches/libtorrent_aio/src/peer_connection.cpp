@@ -1005,7 +1005,7 @@ namespace libtorrent
 		if (!peer_info_struct() || peer_info_struct()->fast_reconnects > 1)
 			return;
 		m_fast_reconnect = r;
-		peer_info_struct()->last_connected = m_ses.session_time();
+		peer_info_struct()->last_connected = (boost::uint16_t)m_ses.session_time();
 		int rewind = m_settings.get_int(settings_pack::min_reconnect_time)
 			* m_settings.get_int(settings_pack::max_failcount);
 		if (peer_info_struct()->last_connected < rewind) peer_info_struct()->last_connected = 0;
@@ -4311,9 +4311,9 @@ namespace libtorrent
 		p.receive_quota = m_quota[download_channel];
 		p.num_pieces = m_num_pieces;
 		if (m_download_queue.empty()) p.request_timeout = -1;
-		else p.request_timeout = total_seconds(m_requested - now)
+		else p.request_timeout = int(total_seconds(m_requested - now)
 			+ m_settings.get_int(settings_pack::request_timeout)
-			+ m_timeout_extend;
+			+ m_timeout_extend);
 #ifndef TORRENT_DISABLE_GEO_IP
 		p.inet_as_name = m_inet_as_name;
 #endif
@@ -4713,7 +4713,7 @@ namespace libtorrent
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
 		// the peer and disconnect it
-		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network);
+		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network) != 0;
 
 		if (may_timeout && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
 			&& can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category())))
@@ -4857,11 +4857,11 @@ namespace libtorrent
 			boost::int64_t piece_size = t->torrent_file().piece_length();
 
 			if (m_remote_dl_rate > 0)
-				m_remote_dl_rate = (m_remote_dl_rate * 2 / 3) + 
-					((boost::int64_t(m_remote_pieces_dled) * piece_size / 3) / 60);
+				m_remote_dl_rate = int((m_remote_dl_rate * 2 / 3) + 
+					((boost::int64_t(m_remote_pieces_dled) * piece_size / 3) / 60));
 			else
-				m_remote_dl_rate = boost::int64_t(m_remote_pieces_dled)
-					* piece_size / 60;
+				m_remote_dl_rate = int(boost::int64_t(m_remote_pieces_dled)
+					* piece_size / 60);
 			
 			m_remote_pieces_dled = 0;
 			m_remote_dl_update = now;
@@ -5002,8 +5002,8 @@ namespace libtorrent
 		
 		boost::uint64_t upload_rate = int(m_statistics.upload_rate());
 
-		int buffer_size_watermark = upload_rate
-			* m_settings.get_int(settings_pack::send_buffer_watermark_factor) / 100;
+		int buffer_size_watermark = int(upload_rate
+			* m_settings.get_int(settings_pack::send_buffer_watermark_factor) / 100);
 
 		if (buffer_size_watermark < m_settings.get_int(settings_pack::send_buffer_low_watermark))
 		{
@@ -6331,7 +6331,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		m_rtt = total_milliseconds(completed - m_connect);
+		m_rtt = boost::uint16_t(total_milliseconds(completed - m_connect));
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		{

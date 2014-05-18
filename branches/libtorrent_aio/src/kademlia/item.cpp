@@ -193,6 +193,7 @@ void item::assign(entry const& v, std::pair<char const*, int> salt
 		TORRENT_ASSERT(bsize <= 1000);
 		sign_mutable_item(std::make_pair(buffer, bsize)
 			, salt, seq, pk, sk, m_sig.c_array());
+		m_salt.assign(salt.first, salt.second);
 		memcpy(m_pk.c_array(), pk, item_pk_len);
 		m_seq = seq;
 		m_mutable = true;

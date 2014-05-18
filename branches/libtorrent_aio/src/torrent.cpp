@@ -1684,7 +1684,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
-		if (m_file_priority.size() > m_torrent_file->num_files())
+		if (int(m_file_priority.size()) > m_torrent_file->num_files())
 			m_file_priority.resize(m_torrent_file->num_files());
 
 		std::string cert = m_torrent_file->ssl_cert();
@@ -1804,7 +1804,7 @@ namespace libtorrent
 			if (fs.pad_file_at(i)) ++num_pad_files;
 
 			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
-			m_padding += fs.file_size(i);
+			m_padding += boost::uint32_t(fs.file_size(i));
 			
 			// TODO: instead of creating the picker up front here,
 			// maybe this whole section should move to need_picker()
@@ -5554,6 +5554,46 @@ namespace libtorrent
 				alerts().post_alert(torrent_error_alert(get_handle(), ec, dh_params));
 		}
 	}
+
+	void torrent::set_ssl_cert_buffer(std::string const& certificate
+		, std::string const& private_key
+		, std::string const& dh_params)
+	{
+		if (!m_ssl_ctx) return;
+
+#if BOOST_VERSION < 105400
+		if (alerts().should_post<torrent_error_alert>())
+			alerts().post_alert(torrent_error_alert(get_handle(), boost::system::errc::not_supported));
+#else
+		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
+
+		using boost::asio::ssl::context;
+		error_code ec;
+		m_ssl_ctx->use_certificate(certificate_buf, context::pem, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+
+		boost::asio::const_buffer private_key_buf(private_key.c_str(), private_key.size());
+		m_ssl_ctx->use_private_key(private_key_buf, context::pem, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+
+		boost::asio::const_buffer dh_params_buf(dh_params.c_str(), dh_params.size());
+		m_ssl_ctx->use_tmp_dh(dh_params_buf, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+#endif // BOOST_VERSION
+	}
+
 #endif
 
 	void torrent::remove_peer(peer_connection* p)

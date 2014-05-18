@@ -937,6 +937,18 @@ look for peers on the same swarm within multicast reach.
 starts the dht node and makes the trackerless service
 available to torrents.
 
+.. _prefer_rc4:
+
++------------+------+---------+
+| name       | type | default |
++============+======+=========+
+| prefer_rc4 | bool | false   |
++------------+------+---------+
+
+if the allowed encryption level is both, setting this to
+true will prefer rc4 if both methods are offered, plaintext
+otherwise
+
 .. _tracker_completion_timeout:
 
 +----------------------------+------+---------+
@@ -2393,4 +2405,33 @@ retry a failed port bind
 
 a bitmask combining flags from alert::category_t defining
 which kinds of alerts to receive
+
+.. _out_enc_policy:
+
+.. _in_enc_policy:
+
++----------------+------+---------------------------+
+| name           | type | default                   |
++================+======+===========================+
+| out_enc_policy | int  | settings_pack::pe_enabled |
++----------------+------+---------------------------+
+| in_enc_policy  | int  | settings_pack::pe_enabled |
++----------------+------+---------------------------+
+
+control the settings for incoming
+and outgoing connections respectively.
+see enc_policy enum for the available options.
+
+.. _allowed_enc_level:
+
++-------------------+------+------------------------+
+| name              | type | default                |
++===================+======+========================+
+| allowed_enc_level | int  | settings_pack::pe_both |
++-------------------+------+------------------------+
+
+determines the encryption level of the
+connections.  This setting will adjust which encryption scheme is
+offered to the other peer, as well as which encryption scheme is
+selected by the client. See enc_level enum for options.
 

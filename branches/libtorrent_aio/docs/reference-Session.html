@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id183">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id184">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id185">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id186">session_proxy</a></li>
-<li><a class="reference internal" href="#id39" id="id187">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id188">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id189">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id190">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id191">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id182">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id183">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id184">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id185">session_proxy</a></li>
+<li><a class="reference internal" href="#id39" id="id186">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id187">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id188">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id189">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id190">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -743,8 +743,6 @@ class session: public boost::noncopyable
    peer_class_info <strong>get_peer_class</strong> (int cid);
    void <strong>set_peer_class</strong> (int cid, peer_class_info const&amp; pci);
    void <strong>remove_torrent</strong> (const torrent_handle&amp; h, int options = 0);
-   pe_settings <strong>get_pe_settings</strong> () const;
-   void <strong>set_pe_settings</strong> (pe_settings const&amp; settings);
    aux::session_settings <strong>get_settings</strong> () const;
    void <strong>apply_settings</strong> (settings_pack const&amp; s);
    void <strong>set_proxy</strong> (proxy_settings const&amp; s);
@@ -1166,7 +1164,7 @@ void <strong>add_extension</strong> (boost::shared_ptr&lt;plugin&gt; ext);
 <p>This function adds an extension to this <a class="reference external" href="reference-Session.html#session">session</a>. The argument is a
 function object that is called with a <tt class="docutils literal">torrent*</tt> and which should
 return a <tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;torrent_plugin&gt;</span></tt>. To write custom
-plugins, see <a href="#id192"><span class="problematic" id="id193">`libtorrent plugins`_</span></a>. For the typical bittorrent client
+plugins, see <a href="#id191"><span class="problematic" id="id192">`libtorrent plugins`_</span></a>. For the typical bittorrent client
 all of these extensions should be added. The main plugins implemented
 in libtorrent are:</p>
 <dl class="docutils">
@@ -1584,7 +1582,7 @@ joining the DHT if provided at next <a class="reference external" href="referenc
 </tr>
 <tr><td>save_encryption_settings</td>
 <td>32</td>
-<td>save <a class="reference external" href="reference-Settings.html#pe_settings">pe_settings</a></td>
+<td>save pe_settings</td>
 </tr>
 <tr><td>save_feeds</td>
 <td>128</td>
@@ -2029,8 +2027,8 @@ calling <a class="reference external" href="reference-Session.html#post_session_
 </div>
 <div class="system-messages section">
 <h1>Docutils System Messages</h1>
-<div class="system-message" id="id192">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">reference-Session.rst</tt>, line 1754); <em><a href="#id193">backlink</a></em></p>
+<div class="system-message" id="id191">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">reference-Session.rst</tt>, line 1752); <em><a href="#id192">backlink</a></em></p>
 Unknown target name: &quot;libtorrent plugins&quot;.</div>
 </div>
 </div>

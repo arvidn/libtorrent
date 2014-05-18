@@ -181,6 +181,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/torrent_peer.hpp" // for torrent_peer
 
 namespace libtorrent
 {
@@ -198,6 +199,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	class torrent;
 	struct add_torrent_params;
+	struct torrent_peer;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -233,6 +235,15 @@ namespace libtorrent
 
 		// called once per second
 		virtual void on_tick() {}
+
+		// called when choosing peers to optimisticly unchoke
+		// peer's will be unchoked in the order they appear in the given
+		// vector which is initiallity sorted by when they were last
+		// optimistically unchoked.
+		// if the plugin returns true then the ordering provided will be
+		// used and no other plugin will be allowed to change it.
+		virtual bool on_optimistic_unchoke(std::vector<torrent_peer*>& /* peers */)
+		{ return false; }
 
 		// called when saving settings state
 		virtual void save_state(entry&) const {}
@@ -400,6 +411,9 @@ namespace libtorrent
 		virtual bool on_cancel(peer_request const&) { return false; }
 		virtual bool on_reject(peer_request const&) { return false; }
 		virtual bool on_suggest(int /*index*/) { return false; }
+
+		// called after a choke message has been sent to the peer
+		virtual void sent_unchoke() {}
 
 		// called when libtorrent think this peer should be disconnected.
 		// if the plugin returns false, the peer will not be disconnected.

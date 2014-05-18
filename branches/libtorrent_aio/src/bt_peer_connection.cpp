@@ -2375,6 +2375,14 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 
 		m_ses.inc_stats_counter(counters::num_outgoing_unchoke);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			(*i)->sent_unchoke();
+		}
+#endif
 	}
 
 	void bt_peer_connection::write_interested()

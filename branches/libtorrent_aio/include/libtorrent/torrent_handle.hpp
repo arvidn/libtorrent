@@ -791,6 +791,11 @@ namespace libtorrent
 		// For SSL torrents, use this to specify a path to a .pem file to use as
 		// this client's certificate. The certificate must be signed by the
 		// certificate in the .torrent file to be valid.
+		//
+		// The set_ssl_certificate_buffer() overload takes the actual certificate,
+		// private key and DH params as strings, rather than paths to files. This
+		// overload is only available when libtorrent is built against boost
+		// 1.54 or later.
 		// 
 		// ``cert`` is a path to the (signed) certificate in .pem format
 		// corresponding to this torrent.
@@ -818,6 +823,9 @@ namespace libtorrent
 			, std::string const& private_key
 			, std::string const& dh_params
 			, std::string const& passphrase = "");
+		void set_ssl_certificate_buffer(std::string const& certificate
+			, std::string const& private_key
+			, std::string const& dh_params);
 
 		// Returns the storage implementation for this torrent. This depends on the
 		// storage contructor function that was passed to add_torrent.

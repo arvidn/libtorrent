@@ -158,7 +158,8 @@ namespace libtorrent
 			TORRENT_TRY {
 				buffer.resize(destlen);
 			} TORRENT_CATCH(std::exception& e) {
-				error = "out of memory";
+				error = "out of memory: ";
+				error += e.what();
 				return true;
 			}
 
@@ -176,7 +177,7 @@ namespace libtorrent
 				}
 
 				destlen *= 2;
-				if (destlen > maximum_size)
+				if (destlen > (unsigned int)maximum_size)
 					destlen = maximum_size;
 			}
 		} while (ret == 1);

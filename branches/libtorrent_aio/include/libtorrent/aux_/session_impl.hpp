@@ -565,7 +565,7 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_DISABLE_DHT
-			bool is_dht_running() const { return m_dht.get(); }
+			bool is_dht_running() const { return (m_dht.get() != NULL); }
 			int external_udp_port() const { return m_external_udp_port; }
 #endif
 
@@ -1055,7 +1055,7 @@ namespace libtorrent
 			void recalculate_optimistic_unchoke_slots();
 
 			ptime m_created;
-			int session_time() const { return total_seconds(time_now() - m_created); }
+			boost::int64_t session_time() const { return total_seconds(time_now() - m_created); }
 
 			ptime m_last_tick;
 			ptime m_last_second_tick;

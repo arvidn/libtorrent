@@ -232,7 +232,7 @@ namespace libtorrent
 
 				p->disconnect(errors::banned_by_port_filter, peer_connection_interface::op_bittorrent);
 				// what *i refers to has changed, i.e. cur was deleted
-				if (m_peers.size() < count)
+				if (int(m_peers.size()) < count)
 				{
 					i = m_peers.begin() + current;
 					continue;

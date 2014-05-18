@@ -305,7 +305,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 	std::string convert_separators(std::string p)
 	{
-		for (int i = 0; i < p.size(); ++i)
+		for (int i = 0; i < int(p.size()); ++i)
 			if (p[i] == '/') p[i] = '\\';
 		return p;
 	}
@@ -643,7 +643,7 @@ namespace libtorrent
 			// we don't care about the last character, since it's OK for it
 			// to be a slash or a back slash
 			bool found = false;
-			for (int i = 2; i < f.size() - 1; ++i)
+			for (int i = 2; i < int(f.size()) - 1; ++i)
 			{
 				if (f[i] != '\\' && f[i] != '/') continue;
 				// there is a directory separator in here,
@@ -1385,10 +1385,10 @@ namespace libtorrent
 	{
 		LARGE_INTEGER file_size;
 		if (!GetFileSizeEx(file, &file_size))
-			return -1;
+			return false;
 
 		overlapped_t ol;
-		if (ol.ol.hEvent == NULL) return -1;
+		if (ol.ol.hEvent == NULL) return false;
 
 #ifdef TORRENT_MINGW
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
@@ -1419,8 +1419,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			return true;
 		}
 
-		// if we only have a single range in the file, we're not sparse
-		return returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+		// if we have more than one range in the file, we're sparse
+		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+			return true;
+		}
+
+		return (in.Length.QuadPart != out[0].Length.QuadPart);
 	}
 #endif
 

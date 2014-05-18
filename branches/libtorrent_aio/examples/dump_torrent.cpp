@@ -149,93 +149,6 @@ int line_longer_than(libtorrent::lazy_entry const& e, int limit)
 	return line_len;
 }
 
-std::string print_entry(libtorrent::lazy_entry const& e, bool single_line = false, int indent = 0)
-{
-	using namespace libtorrent;
-
-	char indent_str[200];
-	memset(indent_str, ' ', 200);
-	indent_str[0] = ',';
-	indent_str[1] = '\n';
-	indent_str[199] = 0;
-	if (indent < 197 && indent >= 0) indent_str[indent+2] = 0;
-	std::string ret;
-	switch (e.type())
-	{
-		case lazy_entry::none_t: return "none";
-		case lazy_entry::int_t:
-		{
-			char str[100];
-			snprintf(str, sizeof(str), "%" PRId64, e.int_value());
-			return str;
-		}
-		case lazy_entry::string_t:
-		{
-			bool printable = true;
-			char const* str = e.string_ptr();
-			for (int i = 0; i < e.string_length(); ++i)
-			{
-				using namespace std;
-				if (is_print((unsigned char)str[i])) continue;
-				printable = false;
-				break;
-			}
-			ret += "'";
-			if (printable)
-			{
-				ret += e.string_value();
-				ret += "'";
-				return ret;
-			}
-			for (int i = 0; i < e.string_length(); ++i)
-			{
-				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "%02x", (unsigned char)str[i]);
-				ret += tmp;
-			}
-			ret += "'";
-			return ret;
-		}
-		case lazy_entry::list_t:
-		{
-			ret += '[';
-			bool one_liner = line_longer_than(e, 200) != -1 || single_line;
-
-			if (!one_liner) ret += indent_str + 1;
-			for (int i = 0; i < e.list_size(); ++i)
-			{
-				if (i == 0 && one_liner) ret += " ";
-				ret += ::print_entry(*e.list_at(i), single_line, indent + 2);
-				if (i < e.list_size() - 1) ret += (one_liner?", ":indent_str);
-				else ret += (one_liner?" ":indent_str+1);
-			}
-			ret += "]";
-			return ret;
-		}
-		case lazy_entry::dict_t:
-		{
-			ret += "{";
-			bool one_liner = line_longer_than(e, 200) != -1 || single_line;
-
-			if (!one_liner) ret += indent_str+1;
-			for (int i = 0; i < e.dict_size(); ++i)
-			{
-				if (i == 0 && one_liner) ret += " ";
-				std::pair<std::string, lazy_entry const*> ent = e.dict_at(i);
-				ret += "'";
-				ret += ent.first;
-				ret += "': ";
-				ret += ::print_entry(*ent.second, single_line, indent + 2);
-				if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);
-				else ret += (one_liner?" ":indent_str+1);
-			}
-			ret += "}";
-			return ret;
-		}
-	}
-	return ret;
-}
-
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
@@ -252,15 +165,15 @@ int main(int argc, char* argv[])
 	if (argc > 2) item_limit = atoi(argv[2]);
 	if (argc > 3) depth_limit = atoi(argv[3]);
 
-	int size = file_size(argv[1]);
-	if (size > 40 * 1000000)
-	{
-		fprintf(stderr, "file too big (%d), aborting\n", size);
-		return 1;
-	}
-	std::vector<char> buf(size);
+	std::vector<char> buf;
 	error_code ec;
 	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
+	if (ret == -1)
+	{
+		fprintf(stderr, "file too big, aborting\n");
+		return 1;
+	}
+
 	if (ret != 0)
 	{
 		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
@@ -273,7 +186,7 @@ int main(int argc, char* argv[])
 	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
 		, depth_limit, item_limit);
 
-	printf("\n\n----- raw info -----\n\n%s\n", ::print_entry(e).c_str());
+	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
 	if (ret != 0)
 	{

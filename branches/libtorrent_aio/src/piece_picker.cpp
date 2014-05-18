@@ -1896,8 +1896,7 @@ namespace libtorrent
 		// make this scale by the number of peers we have. For large
 		// scale clients, we would have more peers, and allow a higher
 		// threshold for the number of partials
-
-		if (m_downloads[0].size() > m_num_pad_files + num_peers * 3 / 2)
+		if (int(m_downloads[0].size()) > m_num_pad_files + num_peers * 3 / 2)
 		{
 			// if we have too many partial pieces, prioritize completing
 			// them. In order for this to have an affect, also disable
@@ -1947,8 +1946,8 @@ namespace libtorrent
 				pc.inc_stats_counter(counters::piece_picker_partial_loops);
 				if (!is_piece_free(i->index, pieces)) continue;
 				TORRENT_ASSERT(m_piece_map[i->index].state == piece_pos::piece_downloading);
-				if (backup_blocks.size() >= num_blocks
-					&& backup_blocks2.size() >= num_blocks)
+				if (int(backup_blocks.size()) >= num_blocks
+					&& int(backup_blocks2.size()) >= num_blocks)
 					continue;
 
 				num_blocks = add_blocks_downloading(*i, pieces

@@ -1242,7 +1242,7 @@ namespace libtorrent
 		if (!m_allocate_files) mode |= file::sparse;
 
 		// files with priority 0 should always be sparse
-		if (m_file_priority.size() > file && m_file_priority[file] == 0)
+		if (int(m_file_priority.size()) > file && m_file_priority[file] == 0)
 			mode |= file::sparse;
 
 		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
