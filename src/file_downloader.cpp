@@ -96,7 +96,36 @@ namespace libtorrent
 		~request_t()
 		{
 			mutex::scoped_lock l(m_mutex);
+			debug_print(time_now());
 			m_requests.erase(this);
+		}
+
+		void debug_print(ptime now) const
+		{
+			const int progress_width = 150;
+			char prefix[progress_width+1];
+			char suffix[progress_width+1];
+			char progress[progress_width+1];
+			char invprogress[progress_width+1];
+
+			memset(prefix, ' ', sizeof(prefix));
+			memset(suffix, ' ', sizeof(suffix));
+			memset(progress, '#', sizeof(progress));
+			memset(invprogress, '.', sizeof(invprogress));
+
+			int start = (std::min)(start_offset * progress_width / file_size, boost::uint64_t(progress_width) - 1);
+			int progress_range = (std::max)(boost::uint64_t(1), request_size * progress_width / file_size);
+			int e = (start_offset + request_size) * progress_width / file_size;
+			int pos = request_size == 0 ? 0 : bytes_sent * progress_range / request_size;
+			int pos_end = progress_range - pos;
+			prefix[start] = 0;
+			progress[pos] = 0;
+			invprogress[pos_end] = 0;
+			suffix[progress_width-start-pos-pos_end] = 0;
+
+			printf("%4.1f [%s%s%s%s] [p: %4d] [s: %d] %s\n"
+				, total_milliseconds(now - start_time) / 1000.f
+				, prefix, progress, invprogress, suffix, piece, state, file.c_str());
 		}
 
 		enum state_t
@@ -112,6 +141,7 @@ namespace libtorrent
 		boost::uint64_t bytes_sent;
 		int piece;
 		int state;
+
 	private:
 		std::set<request_t*>& m_requests;
 		mutex& m_mutex;
@@ -143,9 +173,6 @@ namespace libtorrent
 				pe.buffer = p->buffer;
 				pe.piece = p->piece;
 				pe.size = p->size;
-
-// TODO: this does not guard against duplicate pieces and somehow the order
-// is not correctly enforced either
 
 				i->second->queue.push(pe);
 				if (pe.piece == i->second->begin)
@@ -355,17 +382,17 @@ namespace libtorrent
 		}
 		h.prioritize_pieces(pieces_in_req);
 
+		while (priority_cursor < pq.end)
+		{
+//			printf("set_piece_deadline: %d\n", priority_cursor);
+			h.set_piece_deadline(priority_cursor
+				, 100 * (priority_cursor - pq.begin)
+				, torrent_handle::alert_when_available);
+			++priority_cursor;
+		}
+
 		for (int i = pq.begin; i < pq.finish; ++i)
 		{
-			while (priority_cursor < pq.end)
-			{
-//				printf("set_piece_deadline: %d\n", priority_cursor);
-				h.set_piece_deadline(priority_cursor
-					, 100 * (priority_cursor - i)
-					, torrent_handle::alert_when_available);
-				++priority_cursor;
-			}
-
 			mutex::scoped_lock l(pq.queue_mutex);
 
 			// TODO: come up with some way to abort
@@ -374,12 +401,27 @@ namespace libtorrent
 
 			piece_entry pe = pq.queue.top();
 			pq.queue.pop();
+
+			if (pe.piece < i)
+			{
+				--i; // we don't want to increment i in this case. Just ignore
+				// the piece we got in from the queue
+				continue;
+			}
+
 			pq.end = (std::min)(pq.end + 1, pq.finish);
 			pq.begin = (std::min)(pq.begin + 1, pq.end);
 
 			l.unlock();
 
-			if (pe.piece < i) continue;
+			while (priority_cursor < pq.end)
+			{
+//				printf("set_piece_deadline: %d\n", priority_cursor);
+				h.set_piece_deadline(priority_cursor
+					, 100 * (priority_cursor - i)
+					, torrent_handle::alert_when_available);
+				++priority_cursor;
+			}
 
 			r.piece = pe.piece;
 
@@ -397,16 +439,18 @@ namespace libtorrent
 
 			int ret = -1;
 			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
-//			printf("amount_to_send: %d bytes\n", amount_to_send);
+//			fprintf(stderr, "[%p] amount_to_send: 0x%x bytes [p: %d] [l: %" PRId64 "]\n"
+//				, &r, amount_to_send, pq.finish - i, left_to_send);
+
 			while (amount_to_send > 0)
 			{
 				r.state = request_t::writing_to_socket;
 				TORRENT_ASSERT(offset >= 0);
-				TORRENT_ASSERT(offset < pe.size);
+				TORRENT_ASSERT(offset + amount_to_send <= pe.size);
 				ret = mg_write(conn, &pe.buffer[offset], amount_to_send);
 				if (ret <= 0)
 				{
-					printf("interrupted (%d) errno: (%d) %s\n", ret, errno
+					fprintf(stderr, "interrupted (%d) errno: (%d) %s\n", ret, errno
 						, strerror(errno));
 					if (ret < 0 && errno == EAGAIN) {
 						usleep(100000);
@@ -428,7 +472,7 @@ namespace libtorrent
 		}
 
 		m_dispatch->unsubscribe(info_hash, &pq);
-		printf("done, sent %" PRId64 " bytes\n", r.bytes_sent);
+//		printf("done, sent %" PRId64 " bytes\n", r.bytes_sent);
 
 		// TODO: this doesn't work right if there are overlapping requests
 
@@ -448,31 +492,7 @@ namespace libtorrent
 			, end(m_requests.end()); i != end; ++i)
 		{
 			request_t const& r = **i;
-
-			const int progress_width = 150;
-			char prefix[progress_width+1];
-			char suffix[progress_width+1];
-			char progress[progress_width+1];
-			char invprogress[progress_width+1];
-
-			memset(prefix, ' ', sizeof(prefix));
-			memset(suffix, ' ', sizeof(suffix));
-			memset(progress, '#', sizeof(progress));
-			memset(invprogress, '.', sizeof(invprogress));
-
-			int start = r.start_offset * progress_width / r.file_size;
-			int progress_range = r.request_size * progress_width / r.file_size;
-			int e = (r.start_offset + r.request_size) * progress_width / r.file_size;
-			int pos = r.request_size == 0 ? 0 : r.bytes_sent * progress_range / r.request_size;
-			int pos_end = progress_range - pos;
-			prefix[start] = 0;
-			progress[pos] = 0;
-			invprogress[pos_end] = 0;
-			suffix[progress_width-start-pos-pos_end] = 0;
-
-			printf("%4.1f [%s%s%s%s] [p: %02d] [s: %02d] %s\n"
-				, total_milliseconds(now - r.start_time) / 1000.f
-				, prefix, progress, invprogress, suffix, r.piece, r.state, r.file.c_str());
+			r.debug_print(now);
 		}
 	}
 }
