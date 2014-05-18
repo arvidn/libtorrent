@@ -7855,8 +7855,13 @@ namespace libtorrent
 		// changes state, it may also trigger the auto-manage logic to reconsider
 		// which torrents should be queued and started. There is a low pass
 		// filter in order to avoid flapping (auto_manage_startup).
-		if (m_stat.download_payload_rate() < m_ses.m_settings.inactive_down_rate
-			&& m_stat.upload_payload_rate() < m_ses.m_settings.inactive_up_rate)
+		bool is_inactive = false;
+		if (is_finished())
+			is_inactive = m_stat.upload_payload_rate() < m_ses.m_settings.inactive_up_rate;
+		else
+			is_inactive = m_stat.download_payload_rate() < m_ses.m_settings.inactive_down_rate;
+
+		if (is_inactive)
 		{
 			if (m_inactive_counter < 0) m_inactive_counter = 0;
 			if (m_inactive_counter < INT16_MAX)
