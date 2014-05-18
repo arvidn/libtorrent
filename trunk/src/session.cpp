@@ -1316,7 +1316,7 @@ namespace libtorrent
 		, max_paused_peerlist_size(4000)
 		, min_announce_interval(5 * 60)
 		, prioritize_partial_pieces(false)
-		, auto_manage_startup(120)
+		, auto_manage_startup(60)
 		, rate_limit_ip_overhead(true)
 		, announce_to_all_trackers(false)
 		, announce_to_all_tiers(false)
@@ -1415,6 +1415,8 @@ namespace libtorrent
 		, support_merkle_torrents(false)
 		, report_redundant_bytes(true)
 		, use_disk_cache_pool(false)
+		, inactive_down_rate(2048)
+		, inactive_up_rate(2048)
 	{}
 
 	session_settings::~session_settings() {}

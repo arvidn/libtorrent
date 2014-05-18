@@ -1,5 +1,6 @@
 1.0 release
 
+	* improve queuing logic of inactive torrents (dont_count_slow_torrents)
 	* expose optimistic unchoke logic to plugins
 	* fix issue with large UDP packets on windows
 	* remove set_ratio() feature
