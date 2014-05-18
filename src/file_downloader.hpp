@@ -34,12 +34,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_DOWNLOADER_HPP
 
 #include <boost/shared_ptr.hpp>
+#include <set>
 #include "webui.hpp"
+#include "libtorrent/thread.hpp" // for mutex
 
 namespace libtorrent
 {
 	struct piece_alert_dispatch;
 	struct auth_interface;
+	struct request_t;
 	class session;
 
 	struct file_downloader : http_handler
@@ -50,6 +53,7 @@ namespace libtorrent
 			mg_request_info const* request_info);
 
 		void set_disposition(bool attachment) { m_attachment = attachment; }
+		void debug_print_requests() const;
 
 	private:
 
@@ -63,6 +67,9 @@ namespace libtorrent
 		// controls the content disposition of files. Defaults to true
 		// which asks the browser to save the file rather than to render it.
 		bool m_attachment;
+
+		mutable mutex m_mutex;
+		std::set<request_t*> m_requests;
 	};
 }
 
