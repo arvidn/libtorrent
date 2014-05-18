@@ -1383,6 +1383,8 @@ void block_cache::free_piece(cached_piece_entry* pe)
 
 	TORRENT_PIECE_ASSERT(pe->refcount == 0, pe);
 	TORRENT_PIECE_ASSERT(pe->piece_refcount == 0, pe);
+	TORRENT_PIECE_ASSERT(pe->outstanding_read == 0, pe);
+
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
 	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);

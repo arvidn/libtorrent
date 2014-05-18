@@ -1262,10 +1262,6 @@ namespace libtorrent
 				? cached_piece_entry::volatile_read_lru
 				: cached_piece_entry::read_lru1;
 			pe = m_disk_cache.allocate_piece(j, cache_state);
-#if TORRENT_USE_ASSERTS
-			pe->piece_log.push_back(piece_log_t(piece_log_t::set_outstanding_jobs));
-#endif
-			pe->outstanding_read = 1;
 			if (pe == NULL)
 			{
 				j->error.ec = error::no_memory;
@@ -1273,6 +1269,10 @@ namespace libtorrent
 				m_disk_cache.free_iovec(iov, iov_len);
 				return -1;
 			}
+#if TORRENT_USE_ASSERTS
+			pe->piece_log.push_back(piece_log_t(piece_log_t::set_outstanding_jobs));
+#endif
+			pe->outstanding_read = 1;
 		}
 		TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
 
