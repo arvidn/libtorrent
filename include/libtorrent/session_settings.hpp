@@ -1383,6 +1383,15 @@ namespace libtorrent
 		// side effect that the disk cache is less likely and slower at returning
 		// memory to the kernel when cache pressure is low.
 		bool use_disk_cache_pool;
+
+		// the download and upload rate limits for a torrent to be considered
+		// active by the queuing mechanism. A torrent whose download rate is less
+		// than ``inactive_down_rate`` and whose upload rate is less than
+		// ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is
+		// considered inactive, and another queued torrent may be startert.
+		// This logic is disabled if ``dont_count_slow_torrents`` is false.
+		int inactive_down_rate;
+		int inactive_up_rate;
 	};
 
 	// structure used to hold configuration options for the DHT

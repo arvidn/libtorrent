@@ -232,6 +232,7 @@ namespace libtorrent
 		, m_ssl_torrent(false)
 		, m_deleted(false)
 		, m_moving_storage(false)
+		, m_inactive(false)
 		, m_incomplete(0xffffff)
 		, m_abort(false)
 		, m_announce_to_dht((p.flags & add_torrent_params::flag_paused) == 0)
@@ -247,6 +248,7 @@ namespace libtorrent
 		, m_downloaded(0xffffff)
 		, m_interface_index(0)
 		, m_progress_ppm(0)
+		, m_inactive_counter(0)
 	{
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
@@ -7351,6 +7353,8 @@ namespace libtorrent
 		}
 #endif
 
+		m_inactive = false;
+
 		state_updated();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
@@ -7846,6 +7850,48 @@ namespace libtorrent
 		// if the rate is 0, there's no update because of network transfers
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 			state_updated();
+
+		// this section determines whether the torrent is active or not. When it
+		// changes state, it may also trigger the auto-manage logic to reconsider
+		// which torrents should be queued and started. There is a low pass
+		// filter in order to avoid flapping (auto_manage_startup).
+		if (m_stat.download_payload_rate() < m_ses.m_settings.inactive_down_rate
+			&& m_stat.upload_payload_rate() < m_ses.m_settings.inactive_up_rate)
+		{
+			if (m_inactive_counter < 0) m_inactive_counter = 0;
+			if (m_inactive_counter < INT16_MAX)
+			{
+				++m_inactive_counter;
+
+				// if this torrent was just considered inactive, we may want 
+				// to dequeue some other torrent
+				if (m_inactive == false
+					&& m_inactive_counter >= m_ses.m_settings.auto_manage_startup)
+				{
+					m_inactive = true;
+					if (m_ses.m_settings.dont_count_slow_torrents)
+						m_ses.trigger_auto_manage();
+				}
+			}
+		}
+		else
+		{
+			if (m_inactive_counter > 0) m_inactive_counter = 0;
+			if (m_inactive_counter > INT16_MIN)
+			{
+				--m_inactive_counter;
+
+				// if this torrent was just considered active, we may want 
+				// to queue some other torrent
+				if (m_inactive == true
+					&& m_inactive_counter <= -m_ses.m_settings.auto_manage_startup)
+				{
+					m_inactive = false;
+					if (m_ses.m_settings.dont_count_slow_torrents)
+						m_ses.trigger_auto_manage();
+				}
+			}
+		}
 	}
 
 	void torrent::maybe_connect_web_seeds()
