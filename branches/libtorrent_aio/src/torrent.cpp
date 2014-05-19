@@ -5573,7 +5573,7 @@ namespace libtorrent
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
-				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+				alerts().post_alert(torrent_error_alert(get_handle(), ec, "[certificate]"));
 		}
 
 		boost::asio::const_buffer private_key_buf(private_key.c_str(), private_key.size());
@@ -5581,7 +5581,7 @@ namespace libtorrent
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
-				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+				alerts().post_alert(torrent_error_alert(get_handle(), ec, "[private key]"));
 		}
 
 		boost::asio::const_buffer dh_params_buf(dh_params.c_str(), dh_params.size());
@@ -5589,7 +5589,7 @@ namespace libtorrent
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
-				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+				alerts().post_alert(torrent_error_alert(get_handle(), ec, "[dh params]"));
 		}
 #endif // BOOST_VERSION
 	}
