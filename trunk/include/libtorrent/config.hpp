@@ -44,6 +44,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #if !defined INT64_MAX
 #define INT64_MAX 0x7fffffffffffffffLL
 #endif
+#if !defined INT16_MAX
+#define INT16_MAX 32767
+#endif
+#if !defined INT16_MIN
+#define INT16_MIN -32768
+#endif
 #endif
 
 #include <boost/config.hpp>
