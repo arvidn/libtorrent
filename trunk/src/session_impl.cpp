@@ -4194,6 +4194,21 @@ retry:
 				|| t->state() == torrent_status::queued_for_checking))
 				continue;
 
+			--dht_limit;
+			--lsd_limit;
+			--tracker_limit;
+			t->set_announce_to_dht(dht_limit >= 0);
+			t->set_announce_to_trackers(tracker_limit >= 0);
+			t->set_announce_to_lsd(lsd_limit >= 0);
+   
+			if (!t->is_paused() && t->is_inactive()
+				&& hard_limit > 0)
+			{
+				// the hard limit takes inactive torrents into account, but the
+				// download and seed limits don't.
+				continue;
+			}
+
 			if (type_limit > 0 && hard_limit > 0)
 			{
 				--hard_limit;
@@ -4202,21 +4217,6 @@ retry:
 				t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
 #endif
 				t->set_allow_peers(true);
-
-				--dht_limit;
-				--lsd_limit;
-				--tracker_limit;
-				t->set_announce_to_dht(dht_limit >= 0);
-				t->set_announce_to_trackers(tracker_limit >= 0);
-				t->set_announce_to_lsd(lsd_limit >= 0);
-   
-				if (!t->is_paused() && t->is_inactive()
-					&& hard_limit > 0)
-				{
-					// the hard limit takes inactive torrents into account, but the
-					// download and seed limits don't.
-					continue;
-				}
 			}
 			else
 			{
