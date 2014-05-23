@@ -1503,6 +1503,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int num_pages = (size + m_page_size - 1) / m_page_size;
 		// allocate array of FILE_SEGMENT_ELEMENT for ReadFileScatter
 		FILE_SEGMENT_ELEMENT* segment_array = TORRENT_ALLOCA(FILE_SEGMENT_ELEMENT, num_pages + 1);
+#ifdef __GNUC__
+		// MingW seems to have issues with 64 bit wide pointers
+		// (PVOID64) and only assign the low 32 bits. Therefore, make
+		// sure the other 32 bits are cleared out
+		memset(segment_array, 0, (num_pages + 1) * sizeof(FILE_SEGMENT_ELEMENT));
+#endif
 		FILE_SEGMENT_ELEMENT* cur_seg = segment_array;
 
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -1738,6 +1744,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int num_pages = (size + m_page_size - 1) / m_page_size;
 		// allocate array of FILE_SEGMENT_ELEMENT for WriteFileGather
 		FILE_SEGMENT_ELEMENT* segment_array = TORRENT_ALLOCA(FILE_SEGMENT_ELEMENT, num_pages + 1);
+#ifdef __GNUC__
+		// MingW seems to have issues with 64 bit wide pointers
+		// (PVOID64) and only assign the low 32 bits. Therefore, make
+		// sure the other 32 bits are cleared out
+		memset(segment_array, 0, (num_pages + 1) * sizeof(FILE_SEGMENT_ELEMENT));
+#endif
 		FILE_SEGMENT_ELEMENT* cur_seg = segment_array;
 
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)

@@ -1640,7 +1640,7 @@ ret:
 		j.cache_min_time = cache_expiry;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
-#ifdef TORRENT_DEBUG
+#ifdef TORRENT_USE_ASSERTS
 		mutex::scoped_lock l(m_mutex);
 		// if this assert is hit, it suggests
 		// that check_files was not successful
@@ -1683,7 +1683,7 @@ ret:
 		// since that is the size of the pool allocator's buffers
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		m_io_thread.add_job(j, handler);
-#ifdef TORRENT_DEBUG
+#ifdef TORRENT_USE_ASSERTS
 		mutex::scoped_lock l(m_mutex);
 		// if this assert is hit, it suggests
 		// that check_files was not successful
@@ -1745,6 +1745,7 @@ ret:
 
 		int slot = slot_for(piece);
 		TORRENT_ASSERT(slot != has_no_slot);
+		if (slot < 0) return sha1_hash(0);
 		int read = hash_for_slot(slot, ph, m_files.piece_size(piece));
 		if (readback) *readback = read;
 		if (m_storage->error()) return sha1_hash(0);
@@ -1829,6 +1830,8 @@ ret:
 		TORRENT_ASSERT(num_bufs > 0);
 		m_last_piece = piece_index;
 		int slot = slot_for(piece_index);
+		TORRENT_ASSERT(slot >= 0);
+		if (slot < 0) return 0;
 		return m_storage->readv(bufs, slot, offset, num_bufs);
 	}
 
@@ -1870,7 +1873,7 @@ ret:
 			std::map<int, partial_hash>::iterator i = m_piece_hasher.find(piece_index);
 			if (i != m_piece_hasher.end())
 			{
-#ifdef TORRENT_DEBUG
+#ifdef TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(i->second.offset > 0);
 				int hash_offset = i->second.offset;
 				TORRENT_ASSERT(offset >= hash_offset);
