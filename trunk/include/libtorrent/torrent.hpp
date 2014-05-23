@@ -345,6 +345,7 @@ namespace libtorrent
 
 		void set_piece_deadline(int piece, int t, int flags);
 		void reset_piece_deadline(int piece);
+		void clear_time_critical();
 		void update_piece_priorities();
 
 		void status(torrent_status* st, boost::uint32_t flags);

@@ -362,8 +362,12 @@ namespace libtorrent
 		// ``reset_piece_deadline`` removes the deadline from the piece. If it
 		// hasn't already been downloaded, it will no longer be considered a
 		// priority.
+		// 
+		// ``clear_piece_deadlines()`` removes deadlines on all pieces in
+		// the torrent. As if reset_piece_deadline() was called on all pieces.
 		void set_piece_deadline(int index, int deadline, int flags = 0) const;
 		void reset_piece_deadline(int index) const;
+		void clear_piece_deadlines() const;
 
 		// This sets the bandwidth priority of this torrent. The priority of a
 		// torrent determines how much bandwidth its peers are assigned when
