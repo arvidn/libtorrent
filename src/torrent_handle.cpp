@@ -889,6 +889,11 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(reset_piece_deadline, index);
 	}
 
+	void torrent_handle::clear_piece_deadlines() const
+	{
+		TORRENT_ASYNC_CALL(clear_time_critical);
+	}
+
 	boost::shared_ptr<torrent> torrent_handle::native_handle() const
 	{
 		return m_torrent.lock();

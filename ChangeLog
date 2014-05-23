@@ -1,5 +1,6 @@
 1.0 release
 
+	* added clear_piece_deadlines() to remove all piece deadlines
 	* improve queuing logic of inactive torrents (dont_count_slow_torrents)
 	* expose optimistic unchoke logic to plugins
 	* fix issue with large UDP packets on windows
@@ -52,6 +53,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* added work-around for MingW issue in file I/O
 	* fixed sparse file detection on windows
 	* fixed bug in gunzip
 	* fix to use proxy settings when adding .torrent file from URL

@@ -3827,6 +3827,22 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::clear_time_critical()
+	{
+		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin();
+			i != m_time_critical_pieces.end();)
+		{
+			if (i->flags & torrent_handle::alert_when_available)
+			{
+				// post an empty read_piece_alert to indicate it failed
+				m_ses.m_alerts.post_alert(read_piece_alert(
+					get_handle(), i->piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
+			}
+			if (has_picker()) m_picker->set_piece_priority(i->piece, 1);
+			i = m_time_critical_pieces.erase(i);
+		}
+	}
+
 	// remove time critical pieces where priority is 0
 	void torrent::remove_time_critical_pieces(std::vector<int> const& priority)
 	{
