@@ -1,3 +1,4 @@
+	* added work-around for MingW issue in file I/O
 	* fixed sparse file detection on windows
 	* fixed bug in gunzip
 	* fix to use proxy settings when adding .torrent file from URL
