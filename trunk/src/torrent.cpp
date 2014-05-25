@@ -4421,7 +4421,8 @@ namespace libtorrent
 
 #if BOOST_VERSION < 105400
 		if (alerts().should_post<torrent_error_alert>())
-			alerts().post_alert(torrent_error_alert(get_handle(), boost::system::errc::not_supported));
+			alerts().post_alert(torrent_error_alert(get_handle()
+				, error_code(boost::system::errc::not_supported, get_system_category())));
 #else
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 
