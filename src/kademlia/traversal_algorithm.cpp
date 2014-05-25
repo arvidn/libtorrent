@@ -213,7 +213,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 #endif
 		i = m_results.insert(i, o);
 
-		TORRENT_ASSERT(is_sorted(m_results.begin(), m_results.end()
+		TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), m_results.end()
 			, boost::bind(
 				compare_ref
 				, boost::bind(&observer::id, _1)
