@@ -43,7 +43,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 
 #if TORRENT_USE_ASSERTS
-#include <boost/algorithm/cxx11/is_sorted.hpp> // for is_sorted
+template <class It, class Cmp>
+bool is_sorted(It b, It e, Cmp cmp)
+{
+	if (b == e) return true;
+
+	typename std::iterator_traits<It>::value_type v = *b;
+	++b;
+	while (b != e)
+	{
+		if (cmp(*b, v)) return false;
+		v = *b;
+		++b;
+	}
+	return true;
+}
 #endif
 
 #include <boost/bind.hpp>
@@ -139,7 +153,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	o->flags |= flags;
 
-	TORRENT_ASSERT(boost::algorithm::is_sorted(m_results.begin(), m_results.end()
+	TORRENT_ASSERT(is_sorted(m_results.begin(), m_results.end()
 		, boost::bind(
 			compare_ref
 			, boost::bind(&observer::id, _1)
@@ -199,7 +213,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 #endif
 		i = m_results.insert(i, o);
 
-		TORRENT_ASSERT(boost::algorithm::is_sorted(m_results.begin(), m_results.end()
+		TORRENT_ASSERT(is_sorted(m_results.begin(), m_results.end()
 			, boost::bind(
 				compare_ref
 				, boost::bind(&observer::id, _1)
