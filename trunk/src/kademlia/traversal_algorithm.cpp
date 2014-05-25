@@ -42,6 +42,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 
+#include <boost/bind.hpp>
+
+namespace libtorrent { namespace dht
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+TORRENT_DEFINE_LOG(traversal)
+#endif
+
+using detail::read_v4_endpoint;
+#if TORRENT_USE_IPV6
+using detail::read_v6_endpoint;
+#endif
+
 #if TORRENT_USE_ASSERTS
 template <class It, class Cmp>
 bool is_sorted(It b, It e, Cmp cmp)
@@ -58,19 +71,6 @@ bool is_sorted(It b, It e, Cmp cmp)
 	}
 	return true;
 }
-#endif
-
-#include <boost/bind.hpp>
-
-namespace libtorrent { namespace dht
-{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DEFINE_LOG(traversal)
-#endif
-
-using detail::read_v4_endpoint;
-#if TORRENT_USE_IPV6
-using detail::read_v6_endpoint;
 #endif
 
 observer_ptr traversal_algorithm::new_observer(void* ptr
@@ -153,7 +153,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	o->flags |= flags;
 
-	TORRENT_ASSERT(is_sorted(m_results.begin(), m_results.end()
+	TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), m_results.end()
 		, boost::bind(
 			compare_ref
 			, boost::bind(&observer::id, _1)
