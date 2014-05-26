@@ -139,7 +139,6 @@ namespace libtorrent
 		
 		file_set m_files;
 #if TORRENT_USE_ASSERTS
-		int m_in_use;
 		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
 #endif
 		mutable mutex m_mutex;

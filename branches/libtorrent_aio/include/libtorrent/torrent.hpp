@@ -495,6 +495,7 @@ namespace libtorrent
 
 		void set_piece_deadline(int piece, int t, int flags);
 		void reset_piece_deadline(int piece);
+		void clear_time_critical();
 		void update_piece_priorities();
 
 		void status(torrent_status* st, boost::uint32_t flags);
@@ -888,6 +889,9 @@ namespace libtorrent
 			return valid_metadata() && has_picker()
 				&& m_torrent_file->num_pieces() - m_picker->num_filtered() - m_picker->num_passed() == 0;
 		}
+
+		bool is_inactive() const
+		{ return m_inactive; }
 
 		std::string save_path() const;
 		alert_manager& alerts() const;
@@ -1569,7 +1573,12 @@ namespace libtorrent
 		// set to true while moving the storage
 		bool m_moving_storage:1;
 
-		// TODO: there's space for 2 bits here
+		// this is true if this torrent is considered inactive from the
+		// queuing mechanism's point of view. If a torrent doesn't transfer
+		// at high enough rates, it's inactive.
+		bool m_inactive:1;
+
+		// TODO: there's space for 1 bits here
 
 // ----
 
@@ -1586,6 +1595,13 @@ namespace libtorrent
 		// progress parts per million (the number of
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
+
+		// the number of seconds this torrent has been under the inactive
+		// threshold in terms of sending and receiving data. When this counter
+		// reaches the settings.inactive_torrent_timeout it will be considered
+		// inactive and possibly open up another queue slot, to start another,
+		// queued, torrent. Every second it's above the threshold
+		boost::int16_t m_inactive_counter;
 
 #if TORRENT_USE_ASSERTS
 	public:

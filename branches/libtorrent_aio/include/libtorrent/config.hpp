@@ -44,6 +44,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#if !defined INT16_MAX
+#define INT16_MAX 32767
+#endif
+
+#if !defined INT16_MIN
+#define INT16_MIN -32768
+#endif
+
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <boost/detail/endian.hpp>

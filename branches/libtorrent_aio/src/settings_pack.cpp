@@ -248,7 +248,7 @@ namespace libtorrent
 		SET(max_peerlist_size, 3000, 0),
 		SET(max_paused_peerlist_size, 1000, 0),
 		SET(min_announce_interval, 5 * 60, 0),
-		SET(auto_manage_startup, 120, 0),
+		SET(auto_manage_startup, 60, 0),
 		SET(seeding_piece_quota, 20, 0),
 #ifdef TORRENT_WINDOWS
 		SET(max_sparse_regions, 30000, 0),
@@ -316,7 +316,9 @@ namespace libtorrent
 		SET_NOPREV(alert_mask, alert::error_notification, &session_impl::update_alert_mask),
 		SET_NOPREV(out_enc_policy, settings_pack::pe_enabled, 0),
 		SET_NOPREV(in_enc_policy, settings_pack::pe_enabled, 0),
-		SET_NOPREV(allowed_enc_level, settings_pack::pe_both, 0)
+		SET_NOPREV(allowed_enc_level, settings_pack::pe_both, 0),
+		SET(inactive_down_rate, 2048, 0),
+		SET(inactive_up_rate, 2048, 0)
 	};
 
 #undef SET

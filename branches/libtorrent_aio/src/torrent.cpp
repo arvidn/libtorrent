@@ -228,9 +228,11 @@ namespace libtorrent
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
+		, m_inactive(false)
 		, m_downloaded(0xffffff)
 		, m_last_scrape(0)
 		, m_progress_ppm(0)
+		, m_inactive_counter(0)
 	{
 		if (m_pinned)
 			m_ses.inc_stats_counter(counters::num_pinned_torrents);
@@ -4916,6 +4918,22 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::clear_time_critical()
+	{
+		for (std::vector<time_critical_piece>::iterator i = m_time_critical_pieces.begin();
+			i != m_time_critical_pieces.end();)
+		{
+			if (i->flags & torrent_handle::alert_when_available)
+			{
+				// post an empty read_piece_alert to indicate it failed
+				m_ses.alerts().post_alert(read_piece_alert(
+					get_handle(), i->piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
+			}
+			if (has_picker()) m_picker->set_piece_priority(i->piece, 1);
+			i = m_time_critical_pieces.erase(i);
+		}
+	}
+
 	// remove time critical pieces where priority is 0
 	void torrent::remove_time_critical_pieces(std::vector<int> const& priority)
 	{
@@ -5563,7 +5581,8 @@ namespace libtorrent
 
 #if BOOST_VERSION < 105400
 		if (alerts().should_post<torrent_error_alert>())
-			alerts().post_alert(torrent_error_alert(get_handle(), boost::system::errc::not_supported));
+			alerts().post_alert(torrent_error_alert(get_handle()
+				, error_code(boost::system::errc::not_supported, get_system_category())));
 #else
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 
@@ -8752,6 +8771,8 @@ namespace libtorrent
 		}
 #endif
 
+		m_inactive = false;
+
 		state_updated();
 		update_want_peers();
 		update_want_scrape();
@@ -9287,6 +9308,53 @@ namespace libtorrent
 		// if the rate is 0, there's no update because of network transfers
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 			state_updated();
+
+		// this section determines whether the torrent is active or not. When it
+		// changes state, it may also trigger the auto-manage logic to reconsider
+		// which torrents should be queued and started. There is a low pass
+		// filter in order to avoid flapping (auto_manage_startup).
+		bool is_inactive = false;
+		if (is_finished())
+			is_inactive = m_stat.upload_payload_rate() < m_ses.settings().get_int(settings_pack::inactive_up_rate);
+		else
+			is_inactive = m_stat.download_payload_rate() < m_ses.settings().get_int(settings_pack::inactive_down_rate);
+
+		if (is_inactive)
+		{
+			if (m_inactive_counter < 0) m_inactive_counter = 0;
+			if (m_inactive_counter < INT16_MAX)
+			{
+				++m_inactive_counter;
+
+				// if this torrent was just considered inactive, we may want 
+				// to dequeue some other torrent
+				if (m_inactive == false
+					&& m_inactive_counter >= m_ses.settings().get_int(settings_pack::auto_manage_startup))
+				{
+					m_inactive = true;
+					if (m_ses.settings().get_bool(settings_pack::dont_count_slow_torrents))
+						m_ses.trigger_auto_manage();
+				}
+			}
+		}
+		else
+		{
+			if (m_inactive_counter > 0) m_inactive_counter = 0;
+			if (m_inactive_counter > INT16_MIN)
+			{
+				--m_inactive_counter;
+
+				// if this torrent was just considered active, we may want 
+				// to queue some other torrent
+				if (m_inactive == true
+					&& m_inactive_counter <= -m_ses.settings().get_int(settings_pack::auto_manage_startup))
+				{
+					m_inactive = false;
+					if (m_ses.settings().get_bool(settings_pack::dont_count_slow_torrents))
+						m_ses.trigger_auto_manage();
+				}
+			}
+		}
 
 		update_want_tick();
 	}

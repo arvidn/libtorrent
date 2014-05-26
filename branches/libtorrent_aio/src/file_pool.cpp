@@ -44,16 +44,10 @@ namespace libtorrent
 		: m_size(size)
 		, m_low_prio_io(true)
 	{
-#if TORRENT_USE_ASSERTS
-		m_in_use = 1337;
-#endif
 	}
 
 	file_pool::~file_pool()
 	{
-#if TORRENT_USE_ASSERTS
-		m_in_use = 0;
-#endif
 	}
 
 #ifdef TORRENT_WINDOWS
@@ -139,7 +133,6 @@ namespace libtorrent
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		TORRENT_ASSERT(m_in_use == 1337);
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
@@ -328,7 +321,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(size > 0);
 
-		TORRENT_ASSERT(m_in_use == 1337);
 		if (size == m_size) return;
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;

@@ -4660,25 +4660,6 @@ retry:
 			m_next_lsd_torrent = m_torrents.begin();
 	}
 
-	namespace
-	{
-		bool is_active(torrent* t, aux::session_settings const& s)
-		{
-			// if we count slow torrents, every torrent
-			// is considered active
-			if (!s.get_bool(settings_pack::dont_count_slow_torrents)) return true;
-			
-			// if the torrent started less than 2 minutes
-			// ago (default), let it count as active since
-			// the rates are probably not accurate yet
-			if (t->session().session_time() - t->started()
-				< s.get_int(settings_pack::auto_manage_startup)) return true;
-
-			return t->statistics().upload_payload_rate() != 0.f
-				|| t->statistics().download_payload_rate() != 0.f;
-		}
-	}
-	
 	void session_impl::auto_manage_torrents(std::vector<torrent*>& list
 		, int& checking_limit, int& dht_limit, int& tracker_limit
 		, int& lsd_limit, int& hard_limit, int type_limit)
@@ -4706,11 +4687,12 @@ retry:
 			t->set_announce_to_dht(dht_limit >= 0);
 			t->set_announce_to_trackers(tracker_limit >= 0);
 			t->set_announce_to_lsd(lsd_limit >= 0);
-
-			if (!t->is_paused() && !is_active(t, settings())
+   
+			if (!t->is_paused() && t->is_inactive()
 				&& hard_limit > 0)
 			{
-				--hard_limit;
+				// the hard limit takes inactive torrents into account, but the
+				// download and seed limits don't.
 				continue;
 			}
 
