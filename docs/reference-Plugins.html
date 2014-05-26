@@ -57,9 +57,9 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#plugins" id="id66">Plugins</a></li>
-<li><a class="reference internal" href="#plugin-interface" id="id67">plugin-interface</a></li>
-<li><a class="reference internal" href="#custom-alerts" id="id68">custom alerts</a></li>
+<li><a class="reference internal" href="#plugins" id="id68">Plugins</a></li>
+<li><a class="reference internal" href="#plugin-interface" id="id69">plugin-interface</a></li>
+<li><a class="reference internal" href="#custom-alerts" id="id70">custom alerts</a></li>
 </ul>
 </div>
 <p>libtorrent has a <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> interface for implementing extensions to the protocol.
@@ -175,6 +175,7 @@ struct plugin
    virtual void <strong>added</strong> (aux::session_impl*);
    virtual void <strong>on_alert</strong> (alert const*);
    virtual void <strong>on_tick</strong> ();
+   virtual bool <strong>on_optimistic_unchoke</strong> (std::vector&lt;policy::peer*&gt;&amp; <em>/* peers */</em>);
    virtual void <strong>save_state</strong> (entry&amp;) const;
    virtual void <strong>load_state</strong> (lazy_entry const&amp;);
 };
@@ -214,6 +215,18 @@ posted</p>
 virtual void <strong>on_tick</strong> ();
 </pre>
 <p>called once per second</p>
+<a name="on_optimistic_unchoke()"></a></div>
+<div class="section" id="on-optimistic-unchoke">
+<h3>on_optimistic_unchoke()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_optimistic_unchoke</strong> (std::vector&lt;policy::peer*&gt;&amp; <em>/* peers */</em>);
+</pre>
+<p>called when choosing peers to optimisticly unchoke
+peer's will be unchoked in the order they appear in the given
+vector which is initiallity sorted by when they were last
+optimistically unchoked.
+if the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> returns true then the ordering provided will be
+used and no other <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> will be allowed to change it.</p>
 <a name="save_state()"></a></div>
 <div class="section" id="save-state">
 <h3>save_state()</h3>
@@ -374,6 +387,7 @@ struct peer_plugin
    virtual bool <strong>on_suggest</strong> (int <em>/*index*/</em>);
    virtual bool <strong>on_cancel</strong> (peer_request const&amp;);
    virtual bool <strong>on_dont_have</strong> (int <em>/*index*/</em>);
+   virtual void <strong>sent_unchoke</strong> ();
    virtual bool <strong>can_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
    virtual bool <strong>on_extended</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
       buffer::const_interval <em>/*body*/</em>);
@@ -478,6 +492,13 @@ indicates that the <a class="reference external" href="reference-Plugins.html#pl
 it will break the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> chain traversing and not let
 anyone else handle the message, including the default
 handler.</p>
+<a name="sent_unchoke()"></a></div>
+<div class="section" id="sent-unchoke">
+<h3>sent_unchoke()</h3>
+<pre class="literal-block">
+virtual void <strong>sent_unchoke</strong> ();
+</pre>
+<p>called after a choke message has been sent to the peer</p>
 <a name="can_disconnect()"></a></div>
 <div class="section" id="can-disconnect">
 <h3>can_disconnect()</h3>
@@ -508,7 +529,7 @@ virtual bool <strong>on_unknown_message</strong> (int <em>/*length*/</em>, int <
 <p>this is not called for web seeds</p>
 <a name="on_piece_failed()"></a>
 <a name="on_piece_pass()"></a></div>
-<div class="section" id="id53">
+<div class="section" id="id55">
 <h3>on_piece_failed() on_piece_pass()</h3>
 <pre class="literal-block">
 virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
@@ -517,7 +538,7 @@ virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
 <p>called when a piece that this peer participated in either
 fails or passes the hash_check</p>
 <a name="tick()"></a></div>
-<div class="section" id="id54">
+<div class="section" id="id56">
 <h3>tick()</h3>
 <pre class="literal-block">
 virtual void <strong>tick</strong> ();

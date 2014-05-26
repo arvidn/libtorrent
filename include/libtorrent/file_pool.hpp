@@ -107,9 +107,6 @@ namespace libtorrent
 		
 		file_set m_files;
 		mutex m_mutex;
-#if TORRENT_USE_ASSERTS
-		int m_in_use;
-#endif
 
 #if TORRENT_CLOSE_MAY_BLOCK
 		void closer_thread_fun();

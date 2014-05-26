@@ -49,16 +49,10 @@ namespace libtorrent
 		, m_closer_thread(boost::bind(&file_pool::closer_thread_fun, this))
 #endif
 	{
-#if TORRENT_USE_ASSERTS
-		m_in_use = 1337;
-#endif
 	}
 
 	file_pool::~file_pool()
 	{
-#if TORRENT_USE_ASSERTS
-		m_in_use = 0;
-#endif
 #if TORRENT_CLOSE_MAY_BLOCK
 		mutex::scoped_lock l(m_closer_mutex);
 		m_stop_thread = true;
@@ -183,7 +177,6 @@ namespace libtorrent
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
 		mutex::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(m_in_use == 1337);
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
@@ -268,8 +261,6 @@ namespace libtorrent
 
 	void file_pool::remove_oldest()
 	{
-		TORRENT_ASSERT(m_in_use == 1337);
-
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
 			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
 				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
@@ -286,7 +277,6 @@ namespace libtorrent
 	void file_pool::release(void* st, int file_index)
 	{
 		mutex::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(m_in_use == 1337);
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
 		
@@ -303,7 +293,6 @@ namespace libtorrent
 	void file_pool::release(void* st)
 	{
 		mutex::scoped_lock l(m_mutex);
-		TORRENT_ASSERT(m_in_use == 1337);
 		if (st == 0)
 		{
 			m_files.clear();
@@ -324,7 +313,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(size > 0);
 
-		TORRENT_ASSERT(m_in_use == 1337);
 		if (size == m_size) return;
 		mutex::scoped_lock l(m_mutex);
 		m_size = size;
