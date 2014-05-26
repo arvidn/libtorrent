@@ -144,7 +144,7 @@ list or posted to the `bug tracker`_.
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright |copy| 2003-2009
+Written by Arvid Norberg. Copyright |copy| 2003-2014
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 
