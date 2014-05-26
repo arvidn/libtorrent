@@ -14,6 +14,12 @@ def render_section(names, description, type, default_values):
 	for n in names:
 		print >>out, '.. _%s:\n' % n
 
+	if len(names) > 0:
+		print >>out, '.. raw:: html\n'
+		for n in names:
+			print >>out, '\t<a name="%s"></a>' % n
+		print >>out, ''
+
 	separator = '+-' + ('-' * max_name_len) + '-+-' + ('-' * max_type_len) + '-+-' + ('-' * max_val_len) + '-+'
 
 	# build a table for the settings, their type and default value

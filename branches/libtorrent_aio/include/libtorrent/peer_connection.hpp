@@ -148,6 +148,7 @@ namespace libtorrent
 		{ return pb.block == block; }
 	};
 
+	// internal
 	inline void nop(char*, void*, block_cache_reference) {}
 
 	struct peer_connection_hot_members

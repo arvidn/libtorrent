@@ -1,5 +1,9 @@
 .. _user_agent:
 
+.. raw:: html
+
+	<a name="user_agent"></a>
+
 +------------+--------+----------------------------------+
 | name       | type   | default                          |
 +============+========+==================================+
@@ -15,6 +19,10 @@ It may not contain \r or \n
 
 .. _announce_ip:
 
+.. raw:: html
+
+	<a name="announce_ip"></a>
+
 +-------------+--------+---------+
 | name        | type   | default |
 +=============+========+=========+
@@ -25,6 +33,10 @@ It may not contain \r or \n
 If left as the default, that parameter is omitted.
 
 .. _mmap_cache:
+
+.. raw:: html
+
+	<a name="mmap_cache"></a>
 
 +------------+--------+---------+
 | name       | type   | default |
@@ -54,6 +66,10 @@ this setting is ignored.
 
 .. _handshake_client_version:
 
+.. raw:: html
+
+	<a name="handshake_client_version"></a>
+
 +--------------------------+--------+---------+
 | name                     | type   | default |
 +==========================+========+=========+
@@ -64,6 +80,10 @@ this is the client name and version identifier sent to peers in the handshake
 message. If this is an empty string, the user_agent is used instead
 
 .. _outgoing_interfaces:
+
+.. raw:: html
+
+	<a name="outgoing_interfaces"></a>
 
 +---------------------+--------+---------+
 | name                | type   | default |
@@ -84,6 +104,10 @@ via the associated NIC/Adapter. Setting this to an empty string
 will disable binding of outgoing connections.
 
 .. _listen_interfaces:
+
+.. raw:: html
+
+	<a name="listen_interfaces"></a>
 
 +-------------------+--------+----------------+
 | name              | type   | default        |
@@ -112,6 +136,10 @@ built in limitation (in XP Service pack 2).
 
 .. _allow_multiple_connections_per_ip:
 
+.. raw:: html
+
+	<a name="allow_multiple_connections_per_ip"></a>
+
 +-----------------------------------+------+---------+
 | name                              | type | default |
 +===================================+======+=========+
@@ -127,6 +155,10 @@ simulations are run on the same machie, and all peers
 in a swarm has the same IP address.
 
 .. _send_redundant_have:
+
+.. raw:: html
+
+	<a name="send_redundant_have"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -144,6 +176,10 @@ Default is false.
 
 .. _lazy_bitfields:
 
+.. raw:: html
+
+	<a name="lazy_bitfields"></a>
+
 +----------------+------+---------+
 | name           | type | default |
 +================+======+=========+
@@ -156,6 +192,10 @@ in with have messages. This is to prevent certain ISPs
 from stopping people from seeding.
 
 .. _use_dht_as_fallback:
+
+.. raw:: html
+
+	<a name="use_dht_as_fallback"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -170,6 +210,10 @@ is false by default, which means the DHT is used by default regardless of
 
 .. _upnp_ignore_nonrouters:
 
+.. raw:: html
+
+	<a name="upnp_ignore_nonrouters"></a>
+
 +------------------------+------+---------+
 | name                   | type | default |
 +========================+======+=========+
@@ -182,6 +226,10 @@ configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.
 
 .. _use_parole_mode:
+
+.. raw:: html
+
+	<a name="use_parole_mode"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -198,6 +246,11 @@ piece that passes the hash check, it is taken out of parole mode.
 .. _use_read_cache:
 
 .. _use_write_cache:
+
+.. raw:: html
+
+	<a name="use_read_cache"></a>
+	<a name="use_write_cache"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -217,6 +270,10 @@ they have been hashed, to avoid having to read them back in again.
 
 .. _dont_flush_write_cache:
 
+.. raw:: html
+
+	<a name="dont_flush_write_cache"></a>
+
 +------------------------+------+---------+
 | name                   | type | default |
 +========================+======+=========+
@@ -228,6 +285,10 @@ piece if it would cause is to have to re-read it
 once we want to calculate the piece hash
 
 .. _explicit_read_cache:
+
+.. raw:: html
+
+	<a name="explicit_read_cache"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -246,6 +307,11 @@ cache. If the actual read cache can't fit as many, it will essentially be clampe
 
 .. _coalesce_writes:
 
+.. raw:: html
+
+	<a name="coalesce_reads"></a>
+	<a name="coalesce_writes"></a>
+
 +-----------------+------+---------+
 | name            | type | default |
 +=================+======+=========+
@@ -260,6 +326,10 @@ will use more RAM but may improve performance
 
 .. _auto_manage_prefer_seeds:
 
+.. raw:: html
+
+	<a name="auto_manage_prefer_seeds"></a>
+
 +--------------------------+------+---------+
 | name                     | type | default |
 +==========================+======+=========+
@@ -271,6 +341,10 @@ active slots to, the default is false which gives preference to
 downloading torrents
 
 .. _dont_count_slow_torrents:
+
+.. raw:: html
+
+	<a name="dont_count_slow_torrents"></a>
 
 +--------------------------+------+---------+
 | name                     | type | default |
@@ -285,6 +359,10 @@ that don't transfer anything block the active slots.
 
 .. _close_redundant_connections:
 
+.. raw:: html
+
+	<a name="close_redundant_connections"></a>
+
 +-----------------------------+------+---------+
 | name                        | type | default |
 +=============================+======+=========+
@@ -297,6 +375,10 @@ For instance if both ends have completed their downloads, there's no point
 in keeping it open.
 
 .. _prioritize_partial_pieces:
+
+.. raw:: html
+
+	<a name="prioritize_partial_pieces"></a>
 
 +---------------------------+------+---------+
 | name                      | type | default |
@@ -311,6 +393,10 @@ proportion.
 
 .. _rate_limit_ip_overhead:
 
+.. raw:: html
+
+	<a name="rate_limit_ip_overhead"></a>
+
 +------------------------+------+---------+
 | name                   | type | default |
 +========================+======+=========+
@@ -324,6 +410,11 @@ the limits with the total traffic
 .. _announce_to_all_tiers:
 
 .. _announce_to_all_trackers:
+
+.. raw:: html
+
+	<a name="announce_to_all_tiers"></a>
+	<a name="announce_to_all_trackers"></a>
 
 +--------------------------+------+---------+
 | name                     | type | default |
@@ -347,6 +438,10 @@ to comply with the multi-tracker specification.
 
 .. _prefer_udp_trackers:
 
+.. raw:: html
+
+	<a name="prefer_udp_trackers"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -361,6 +456,10 @@ over another.
 
 .. _strict_super_seeding:
 
+.. raw:: html
+
+	<a name="strict_super_seeding"></a>
+
 +----------------------+------+---------+
 | name                 | type | default |
 +======================+======+=========+
@@ -372,6 +471,10 @@ have been forwarded to a third peer before another one is handed out.
 This is the traditional definition of super seeding.
 
 .. _lock_disk_cache:
+
+.. raw:: html
+
+	<a name="lock_disk_cache"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -385,6 +488,10 @@ be swapped out. Every time a disk buffer is allocated
 and freed, there will be the extra overhead of a system call.
 
 .. _disable_hash_checks:
+
+.. raw:: html
+
+	<a name="disable_hash_checks"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -401,6 +508,10 @@ disabled_storage)
 
 .. _allow_i2p_mixed:
 
+.. raw:: html
+
+	<a name="allow_i2p_mixed"></a>
+
 +-----------------+------+---------+
 | name            | type | default |
 +=================+======+=========+
@@ -416,6 +527,10 @@ the anonymization of i2p, but still wants to
 be able to connect to i2p peers.
 
 .. _drop_skipped_requests:
+
+.. raw:: html
+
+	<a name="drop_skipped_requests"></a>
 
 +-----------------------+------+---------+
 | name                  | type | default |
@@ -434,6 +549,10 @@ why it's disabled by default.
 
 .. _low_prio_disk:
 
+.. raw:: html
+
+	<a name="low_prio_disk"></a>
+
 +---------------+------+---------+
 | name          | type | default |
 +===============+======+=========+
@@ -450,6 +569,10 @@ be desirable.
 
 .. _volatile_read_cache:
 
+.. raw:: html
+
+	<a name="volatile_read_cache"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -463,6 +586,10 @@ cache to create any cache hits from other peers than the one who
 triggered the cache line to be read into the cache in the first place.
 
 .. _guided_read_cache:
+
+.. raw:: html
+
+	<a name="guided_read_cache"></a>
 
 +-------------------+------+---------+
 | name              | type | default |
@@ -478,6 +605,10 @@ sending faster to.
 
 .. _no_atime_storage:
 
+.. raw:: html
+
+	<a name="no_atime_storage"></a>
+
 +------------------+------+---------+
 | name             | type | default |
 +==================+======+=========+
@@ -489,6 +620,10 @@ sending faster to.
 some disk performance improvements.
 
 .. _incoming_starts_queued_torrents:
+
+.. raw:: html
+
+	<a name="incoming_starts_queued_torrents"></a>
 
 +---------------------------------+------+---------+
 | name                            | type | default |
@@ -508,6 +643,10 @@ can make us start the torrent and serve it.
 
 .. _report_true_downloaded:
 
+.. raw:: html
+
+	<a name="report_true_downloaded"></a>
+
 +------------------------+------+---------+
 | name                   | type | default |
 +========================+======+=========+
@@ -520,6 +659,10 @@ including redundant bytes. If set to false, it will not include
 any redundany bytes
 
 .. _strict_end_game_mode:
+
+.. raw:: html
+
+	<a name="strict_end_game_mode"></a>
 
 +----------------------+------+---------+
 | name                 | type | default |
@@ -537,6 +680,10 @@ to its max, by always requesting something, even if it means requesting
 something that has been requested from another peer already.
 
 .. _broadcast_lsd:
+
+.. raw:: html
+
+	<a name="broadcast_lsd"></a>
 
 +---------------+------+---------+
 | name          | type | default |
@@ -559,6 +706,13 @@ broadcast.
 
 .. _enable_incoming_tcp:
 
+.. raw:: html
+
+	<a name="enable_outgoing_utp"></a>
+	<a name="enable_incoming_utp"></a>
+	<a name="enable_outgoing_tcp"></a>
+	<a name="enable_incoming_tcp"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -577,6 +731,10 @@ outgoing connections of specific type.
 
 .. _ignore_resume_timestamps:
 
+.. raw:: html
+
+	<a name="ignore_resume_timestamps"></a>
+
 +--------------------------+------+---------+
 | name                     | type | default |
 +==========================+======+=========+
@@ -594,6 +752,10 @@ to go through the whole storage to look for them.
 
 .. _no_recheck_incomplete_resume:
 
+.. raw:: html
+
+	<a name="no_recheck_incomplete_resume"></a>
+
 +------------------------------+------+---------+
 | name                         | type | default |
 +==============================+======+=========+
@@ -608,6 +770,10 @@ to true, the files won't be checked, but will go straight to download
 mode.
 
 .. _anonymous_mode:
+
+.. raw:: html
+
+	<a name="anonymous_mode"></a>
 
 +----------------+------+---------+
 | name           | type | default |
@@ -629,6 +795,10 @@ If you're using I2P, it might make sense to enable anonymous mode as well.
 
 .. _report_web_seed_downloads:
 
+.. raw:: html
+
+	<a name="report_web_seed_downloads"></a>
+
 +---------------------------+------+---------+
 | name                      | type | default |
 +===========================+======+=========+
@@ -639,6 +809,10 @@ specifies whether downloads from web seeds is reported to the
 tracker or not. Defaults to on
 
 .. _utp_dynamic_sock_buf:
+
+.. raw:: html
+
+	<a name="utp_dynamic_sock_buf"></a>
 
 +----------------------+------+---------+
 | name                 | type | default |
@@ -655,6 +829,10 @@ buffer size on the kernel socket, both for IPv4 and IPv6).
 
 .. _announce_double_nat:
 
+.. raw:: html
+
+	<a name="announce_double_nat"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -669,6 +847,10 @@ IP address if the user is double NATed. If ther user is not
 double NATed, this option does not have an affect
 
 .. _seeding_outgoing_connections:
+
+.. raw:: html
+
+	<a name="seeding_outgoing_connections"></a>
 
 +------------------------------+------+---------+
 | name                         | type | default |
@@ -685,6 +867,10 @@ make outgoing connections.
 
 .. _no_connect_privileged_ports:
 
+.. raw:: html
+
+	<a name="no_connect_privileged_ports"></a>
+
 +-----------------------------+------+---------+
 | name                        | type | default |
 +=============================+======+=========+
@@ -696,6 +882,10 @@ connections to peers whose port is < 1024. This is a safety
 precaution to avoid being part of a DDoS attack
 
 .. _smooth_connects:
+
+.. raw:: html
+
+	<a name="smooth_connects"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -711,6 +901,10 @@ instead of attempting to connectin in batches, and timing them out in batches.
 
 .. _always_send_user_agent:
 
+.. raw:: html
+
+	<a name="always_send_user_agent"></a>
+
 +------------------------+------+---------+
 | name                   | type | default |
 +========================+======+=========+
@@ -721,6 +915,10 @@ always send user-agent in every web seed request. If false, only
 the first request per http connection will include the user agent
 
 .. _apply_ip_filter_to_trackers:
+
+.. raw:: html
+
+	<a name="apply_ip_filter_to_trackers"></a>
 
 +-----------------------------+------+---------+
 | name                        | type | default |
@@ -735,6 +933,10 @@ is set, this setting is irrelevant.
 
 .. _use_disk_read_ahead:
 
+.. raw:: html
+
+	<a name="use_disk_read_ahead"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -746,6 +948,10 @@ by giving the operating system heads up of disk read requests as they are queued
 in the disk job queue.
 
 .. _lock_files:
+
+.. raw:: html
+
+	<a name="lock_files"></a>
 
 +------------+------+---------+
 | name       | type | default |
@@ -759,6 +965,10 @@ by not passing in ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prev
 3rd party processes from corrupting the files under libtorrent's feet.
 
 .. _contiguous_recv_buffer:
+
+.. raw:: html
+
+	<a name="contiguous_recv_buffer"></a>
 
 +------------------------+------+---------+
 | name                   | type | default |
@@ -777,6 +987,10 @@ seeding to peers, since that's when it provides performance improvements.
 
 .. _ban_web_seeds:
 
+.. raw:: html
+
+	<a name="ban_web_seeds"></a>
+
 +---------------+------+---------+
 | name          | type | default |
 +===============+======+=========+
@@ -786,6 +1000,10 @@ seeding to peers, since that's when it provides performance improvements.
 when true, web seeds sending bad data will be banned
 
 .. _allow_partial_disk_writes:
+
+.. raw:: html
+
+	<a name="allow_partial_disk_writes"></a>
 
 +---------------------------+------+---------+
 | name                      | type | default |
@@ -799,6 +1017,10 @@ to pick pieces belonging to the same write cache line as is configured in the
 disk cache.
 
 .. _force_proxy:
+
+.. raw:: html
+
+	<a name="force_proxy"></a>
 
 +-------------+------+---------+
 | name        | type | default |
@@ -816,6 +1038,10 @@ aren't supported by proxies.
 
 .. _support_share_mode:
 
+.. raw:: html
+
+	<a name="support_share_mode"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -825,6 +1051,10 @@ aren't supported by proxies.
 if false, prevents libtorrent to advertise share-mode support
 
 .. _support_merkle_torrents:
+
+.. raw:: html
+
+	<a name="support_merkle_torrents"></a>
 
 +-------------------------+------+---------+
 | name                    | type | default |
@@ -837,6 +1067,10 @@ the Tribler merkle tree piece message
 
 .. _report_redundant_bytes:
 
+.. raw:: html
+
+	<a name="report_redundant_bytes"></a>
+
 +------------------------+------+---------+
 | name                   | type | default |
 +========================+======+=========+
@@ -847,6 +1081,10 @@ if this is true, the number of redundant bytes
 is sent to the tracker
 
 .. _listen_system_port_fallback:
+
+.. raw:: html
+
+	<a name="listen_system_port_fallback"></a>
 
 +-----------------------------+------+---------+
 | name                        | type | default |
@@ -859,6 +1097,10 @@ by the operating system (i.e. binding to port 0). If a failure is preferred,
 set this to false.
 
 .. _use_disk_cache_pool:
+
+.. raw:: html
+
+	<a name="use_disk_cache_pool"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -873,6 +1115,10 @@ once allocated.
 
 .. _announce_crypto_support:
 
+.. raw:: html
+
+	<a name="announce_crypto_support"></a>
+
 +-------------------------+------+---------+
 | name                    | type | default |
 +=========================+======+=========+
@@ -883,6 +1129,10 @@ when this is true, and incoming encrypted connections are enabled, &supportcrypt
 is included in http tracker announces
 
 .. _enable_upnp:
+
+.. raw:: html
+
+	<a name="enable_upnp"></a>
 
 +-------------+------+---------+
 | name        | type | default |
@@ -900,6 +1150,10 @@ portmap_alert and the portmap_error_alert. The object will be valid until
 
 .. _enable_natpmp:
 
+.. raw:: html
+
+	<a name="enable_natpmp"></a>
+
 +---------------+------+---------+
 | name          | type | default |
 +===============+======+=========+
@@ -916,6 +1170,10 @@ portmap_alert and the portmap_error_alert. The object will be valid until
 
 .. _enable_lsd:
 
+.. raw:: html
+
+	<a name="enable_lsd"></a>
+
 +------------+------+---------+
 | name       | type | default |
 +============+======+=========+
@@ -928,6 +1186,10 @@ look for peers on the same swarm within multicast reach.
 
 .. _enable_dht:
 
+.. raw:: html
+
+	<a name="enable_dht"></a>
+
 +------------+------+---------+
 | name       | type | default |
 +============+======+=========+
@@ -938,6 +1200,10 @@ starts the dht node and makes the trackerless service
 available to torrents.
 
 .. _prefer_rc4:
+
+.. raw:: html
+
+	<a name="prefer_rc4"></a>
 
 +------------+------+---------+
 | name       | type | default |
@@ -951,6 +1217,10 @@ otherwise
 
 .. _tracker_completion_timeout:
 
+.. raw:: html
+
+	<a name="tracker_completion_timeout"></a>
+
 +----------------------------+------+---------+
 | name                       | type | default |
 +============================+======+=========+
@@ -962,6 +1232,10 @@ connection will wait from when it sent the request until it considers the
 tracker to have timed-out. Default value is 60 seconds.
 
 .. _tracker_receive_timeout:
+
+.. raw:: html
+
+	<a name="tracker_receive_timeout"></a>
 
 +-------------------------+------+---------+
 | name                    | type | default |
@@ -976,6 +1250,10 @@ is down, this is the kind of timeout that will occur.
 
 .. _stop_tracker_timeout:
 
+.. raw:: html
+
+	<a name="stop_tracker_timeout"></a>
+
 +----------------------+------+---------+
 | name                 | type | default |
 +======================+======+=========+
@@ -988,6 +1266,10 @@ this is usually shorter, to make the client quit
 faster
 
 .. _tracker_maximum_response_length:
+
+.. raw:: html
+
+	<a name="tracker_maximum_response_length"></a>
 
 +---------------------------------+------+-----------+
 | name                            | type | default   |
@@ -1007,6 +1289,10 @@ than 2 megs).
 
 .. _piece_timeout:
 
+.. raw:: html
+
+	<a name="piece_timeout"></a>
+
 +---------------+------+---------+
 | name          | type | default |
 +===============+======+=========+
@@ -1017,6 +1303,10 @@ the number of seconds from a request is sent until
 it times out if no piece response is returned.
 
 .. _request_timeout:
+
+.. raw:: html
+
+	<a name="request_timeout"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -1030,6 +1320,10 @@ requested from a different peer
 
 .. _request_queue_time:
 
+.. raw:: html
+
+	<a name="request_queue_time"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -1042,6 +1336,10 @@ all the pieces. i.e. the actual number of requests
 depends on the download rate and this number.
 
 .. _max_allowed_in_request_queue:
+
+.. raw:: html
+
+	<a name="max_allowed_in_request_queue"></a>
 
 +------------------------------+------+---------+
 | name                         | type | default |
@@ -1058,6 +1356,10 @@ client can get to a single peer.
 
 .. _max_out_request_queue:
 
+.. raw:: html
+
+	<a name="max_out_request_queue"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -1070,6 +1372,10 @@ no matter the download speed, the number of outstanding requests will never
 exceed this limit.
 
 .. _whole_pieces_threshold:
+
+.. raw:: html
+
+	<a name="whole_pieces_threshold"></a>
 
 +------------------------+------+---------+
 | name                   | type | default |
@@ -1086,6 +1392,10 @@ to identify bad peers if a piece fails the hash check.
 
 .. _peer_timeout:
 
+.. raw:: html
+
+	<a name="peer_timeout"></a>
+
 +--------------+------+---------+
 | name         | type | default |
 +==============+======+=========+
@@ -1100,6 +1410,10 @@ is sent.
 
 .. _urlseed_timeout:
 
+.. raw:: html
+
+	<a name="urlseed_timeout"></a>
+
 +-----------------+------+---------+
 | name            | type | default |
 +=================+======+=========+
@@ -1111,6 +1425,10 @@ this is usually set lower, because web servers are
 expected to be more reliable.
 
 .. _urlseed_pipeline_size:
+
+.. raw:: html
+
+	<a name="urlseed_pipeline_size"></a>
 
 +-----------------------+------+---------+
 | name                  | type | default |
@@ -1125,6 +1443,10 @@ to limit this to a relatively low number, like 5
 
 .. _urlseed_wait_retry:
 
+.. raw:: html
+
+	<a name="urlseed_wait_retry"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -1134,6 +1456,10 @@ to limit this to a relatively low number, like 5
 time to wait until a new retry of a web seed takes place
 
 .. _file_pool_size:
+
+.. raw:: html
+
+	<a name="file_pool_size"></a>
 
 +----------------+------+---------+
 | name           | type | default |
@@ -1156,6 +1482,10 @@ limits so their sum is slightly below it.
 
 .. _max_failcount:
 
+.. raw:: html
+
+	<a name="max_failcount"></a>
+
 +---------------+------+---------+
 | name          | type | default |
 +===============+======+=========+
@@ -1169,6 +1499,10 @@ decremented by one, allowing another try.
 
 .. _min_reconnect_time:
 
+.. raw:: html
+
+	<a name="min_reconnect_time"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -1179,6 +1513,10 @@ the number of seconds to wait to reconnect to a peer.
 this time is multiplied with the failcount.
 
 .. _peer_connect_timeout:
+
+.. raw:: html
+
+	<a name="peer_connect_timeout"></a>
 
 +----------------------+------+---------+
 | name                 | type | default |
@@ -1194,6 +1532,10 @@ connection may delay the connection of other peers considerably.
 
 .. _connection_speed:
 
+.. raw:: html
+
+	<a name="connection_speed"></a>
+
 +------------------+------+---------+
 | name             | type | default |
 +==================+======+=========+
@@ -1207,6 +1549,10 @@ outgoing connections at all.
 
 .. _inactivity_timeout:
 
+.. raw:: html
+
+	<a name="inactivity_timeout"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -1218,6 +1564,10 @@ than this number of seconds, it will be disconnected.
 default is 10 minutes
 
 .. _unchoke_interval:
+
+.. raw:: html
+
+	<a name="unchoke_interval"></a>
 
 +------------------+------+---------+
 | name             | type | default |
@@ -1232,6 +1582,10 @@ longer than what it takes for TCP to ramp up to it's max rate.
 
 .. _optimistic_unchoke_interval:
 
+.. raw:: html
+
+	<a name="optimistic_unchoke_interval"></a>
+
 +-----------------------------+------+---------+
 | name                        | type | default |
 +=============================+======+=========+
@@ -1244,6 +1598,10 @@ unchoked peer will change.
 
 .. _num_want:
 
+.. raw:: html
+
+	<a name="num_want"></a>
+
 +----------+------+---------+
 | name     | type | default |
 +==========+======+=========+
@@ -1254,6 +1612,10 @@ unchoked peer will change.
 what is sent as the ``&num_want=`` parameter to the tracker.
 
 .. _initial_picker_threshold:
+
+.. raw:: html
+
+	<a name="initial_picker_threshold"></a>
 
 +--------------------------+------+---------+
 | name                     | type | default |
@@ -1268,6 +1630,10 @@ in rarest first order.
 
 .. _allowed_fast_set_size:
 
+.. raw:: html
+
+	<a name="allowed_fast_set_size"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -1278,6 +1644,10 @@ the number of allowed pieces to send to peers
 that supports the fast extensions
 
 .. _suggest_mode:
+
+.. raw:: html
+
+	<a name="suggest_mode"></a>
 
 +--------------+------+-------------------------------------+
 | name         | type | default                             |
@@ -1296,6 +1666,10 @@ are:
 
 .. _max_queued_disk_bytes:
 
+.. raw:: html
+
+	<a name="max_queued_disk_bytes"></a>
+
 +-----------------------+------+-------------+
 | name                  | type | default     |
 +=======================+======+=============+
@@ -1310,6 +1684,10 @@ the peer connections will stop reading data from their sockets, until the disk
 thread catches up. Setting this too low will severly limit your download rate.
 
 .. _handshake_timeout:
+
+.. raw:: html
+
+	<a name="handshake_timeout"></a>
 
 +-------------------+------+---------+
 | name              | type | default |
@@ -1326,6 +1704,12 @@ within this time, the peer is disconnected.
 .. _send_buffer_watermark:
 
 .. _send_buffer_watermark_factor:
+
+.. raw:: html
+
+	<a name="send_buffer_low_watermark"></a>
+	<a name="send_buffer_watermark"></a>
+	<a name="send_buffer_watermark_factor"></a>
 
 +------------------------------+------+------------+
 | name                         | type | default    |
@@ -1364,6 +1748,11 @@ high may waste RAM and create a bias towards read jobs over write jobs.
 .. _choking_algorithm:
 
 .. _seed_choking_algorithm:
+
+.. raw:: html
+
+	<a name="choking_algorithm"></a>
+	<a name="seed_choking_algorithm"></a>
 
 +------------------------+------+-----------------------------------+
 | name                   | type | default                           |
@@ -1420,6 +1809,12 @@ options are:
 
 .. _cache_expiry:
 
+.. raw:: html
+
+	<a name="cache_size"></a>
+	<a name="cache_buffer_chunk_size"></a>
+	<a name="cache_expiry"></a>
+
 +-------------------------+------+---------+
 | name                    | type | default |
 +=========================+======+=========+
@@ -1449,6 +1844,10 @@ in the write cache, to when it's forcefully flushed to disk. Default is 60 secon
 
 .. _explicit_cache_interval:
 
+.. raw:: html
+
+	<a name="explicit_cache_interval"></a>
+
 +-------------------------+------+---------+
 | name                    | type | default |
 +=========================+======+=========+
@@ -1466,6 +1865,11 @@ the cache at the time.
 .. _disk_io_write_mode:
 
 .. _disk_io_read_mode:
+
+.. raw:: html
+
+	<a name="disk_io_write_mode"></a>
+	<a name="disk_io_read_mode"></a>
 
 +--------------------+------+--------------------------------+
 | name               | type | default                        |
@@ -1497,6 +1901,11 @@ file (with offset 0) or use pad files to align all files to piece boundries.
 
 .. _num_outgoing_ports:
 
+.. raw:: html
+
+	<a name="outgoing_port"></a>
+	<a name="num_outgoing_ports"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -1524,6 +1933,10 @@ to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
 
 .. _peer_tos:
 
+.. raw:: html
+
+	<a name="peer_tos"></a>
+
 +----------+------+---------+
 | name     | type | default |
 +==========+======+=========+
@@ -1550,6 +1963,16 @@ the *QBone scavenger service*. For more details, see QBSS_.
 .. _active_limit:
 
 .. _active_loaded_limit:
+
+.. raw:: html
+
+	<a name="active_downloads"></a>
+	<a name="active_seeds"></a>
+	<a name="active_dht_limit"></a>
+	<a name="active_tracker_limit"></a>
+	<a name="active_lsd_limit"></a>
+	<a name="active_limit"></a>
+	<a name="active_loaded_limit"></a>
 
 +----------------------+------+---------+
 | name                 | type | default |
@@ -1614,6 +2037,10 @@ means unlimited. For more information, see dynamic-loading-of-torrent-files_.
 
 .. _auto_manage_interval:
 
+.. raw:: html
+
+	<a name="auto_manage_interval"></a>
+
 +----------------------+------+---------+
 | name                 | type | default |
 +======================+======+=========+
@@ -1624,6 +2051,10 @@ means unlimited. For more information, see dynamic-loading-of-torrent-files_.
 is updated, and rotated.
 
 .. _seed_time_limit:
+
+.. raw:: html
+
+	<a name="seed_time_limit"></a>
 
 +-----------------+------+--------------+
 | name            | type | default      |
@@ -1638,6 +2069,11 @@ See queuing_.
 .. _auto_scrape_interval:
 
 .. _auto_scrape_min_interval:
+
+.. raw:: html
+
+	<a name="auto_scrape_interval"></a>
+	<a name="auto_scrape_min_interval"></a>
 
 +--------------------------+------+---------+
 | name                     | type | default |
@@ -1662,6 +2098,11 @@ request is sent.
 
 .. _max_paused_peerlist_size:
 
+.. raw:: html
+
+	<a name="max_peerlist_size"></a>
+	<a name="max_paused_peerlist_size"></a>
+
 +--------------------------+------+---------+
 | name                     | type | default |
 +==========================+======+=========+
@@ -1685,6 +2126,10 @@ important for them to keep a large peer list.
 
 .. _min_announce_interval:
 
+.. raw:: html
+
+	<a name="min_announce_interval"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -1696,6 +2141,10 @@ is specified in seconds and is used as a sanity check on what is
 returned from a tracker. It mitigates hammering misconfigured trackers.
 
 .. _auto_manage_startup:
+
+.. raw:: html
+
+	<a name="auto_manage_startup"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -1710,6 +2159,10 @@ have a fair chance to start downloading.
 
 .. _seeding_piece_quota:
 
+.. raw:: html
+
+	<a name="seeding_piece_quota"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -1723,6 +2176,10 @@ sent more than this number of pieces to will be unchoked in favour of
 a choked peer.
 
 .. _max_sparse_regions:
+
+.. raw:: html
+
+	<a name="max_sparse_regions"></a>
 
 +--------------------+------+---------+
 | name               | type | default |
@@ -1742,6 +2199,10 @@ to 0 on all platforms except windows.
 
 .. _max_rejects:
 
+.. raw:: html
+
+	<a name="max_rejects"></a>
+
 +-------------+------+---------+
 | name        | type | default |
 +=============+======+=========+
@@ -1756,6 +2217,11 @@ disconnected.
 .. _recv_socket_buffer_size:
 
 .. _send_socket_buffer_size:
+
+.. raw:: html
+
+	<a name="recv_socket_buffer_size"></a>
+	<a name="send_socket_buffer_size"></a>
 
 +-------------------------+------+---------+
 | name                    | type | default |
@@ -1773,6 +2239,10 @@ SO_SNDBUFFER.
 
 .. _file_checks_delay_per_block:
 
+.. raw:: html
+
+	<a name="file_checks_delay_per_block"></a>
+
 +-----------------------------+------+---------+
 | name                        | type | default |
 +=============================+======+=========+
@@ -1789,6 +2259,11 @@ as they leave disk I/O time for other processes.
 .. _read_cache_line_size:
 
 .. _write_cache_line_size:
+
+.. raw:: html
+
+	<a name="read_cache_line_size"></a>
+	<a name="write_cache_line_size"></a>
 
 +-----------------------+------+---------+
 | name                  | type | default |
@@ -1809,6 +2284,10 @@ disables the write cache.
 
 .. _optimistic_disk_retry:
 
+.. raw:: html
+
+	<a name="optimistic_disk_retry"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -1826,6 +2305,10 @@ set_upload_mode().
 
 .. _max_suggest_pieces:
 
+.. raw:: html
+
+	<a name="max_suggest_pieces"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -1837,6 +2320,10 @@ from a peer that's remembered. If a peer floods suggest messages, this limit
 prevents libtorrent from using too much RAM. It defaults to 10.
 
 .. _local_service_announce_interval:
+
+.. raw:: html
+
+	<a name="local_service_announce_interval"></a>
 
 +---------------------------------+------+---------+
 | name                            | type | default |
@@ -1851,6 +2338,10 @@ This interval is specified in seconds.
 
 .. _dht_announce_interval:
 
+.. raw:: html
+
+	<a name="dht_announce_interval"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -1861,6 +2352,10 @@ This interval is specified in seconds.
 torrents to the distributed hash table (DHT).
 
 .. _udp_tracker_token_expiry:
+
+.. raw:: html
+
+	<a name="udp_tracker_token_expiry"></a>
 
 +--------------------------+------+---------+
 | name                     | type | default |
@@ -1877,6 +2372,10 @@ expiration time for tokens.
 
 .. _default_cache_min_age:
 
+.. raw:: html
+
+	<a name="default_cache_min_age"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -1891,6 +2390,10 @@ to avoid swapping the same pieces in and out of the cache in case
 there is a shortage of spare cache space.
 
 .. _num_optimistic_unchoke_slots:
+
+.. raw:: html
+
+	<a name="num_optimistic_unchoke_slots"></a>
 
 +------------------------------+------+---------+
 | name                         | type | default |
@@ -1910,6 +2413,12 @@ optimistic unchoke slots.
 .. _increase_est_reciprocation_rate:
 
 .. _decrease_est_reciprocation_rate:
+
+.. raw:: html
+
+	<a name="default_est_reciprocation_rate"></a>
+	<a name="increase_est_reciprocation_rate"></a>
+	<a name="decrease_est_reciprocation_rate"></a>
 
 +---------------------------------+------+---------+
 | name                            | type | default |
@@ -1939,6 +2448,10 @@ This only applies to the BitTyrant choker.
 
 .. _max_pex_peers:
 
+.. raw:: html
+
+	<a name="max_pex_peers"></a>
+
 +---------------+------+---------+
 | name          | type | default |
 +===============+======+=========+
@@ -1951,6 +2464,10 @@ be connected to. If they clain to be connected to more than this, we'll
 ignore any peer that exceeds this limit
 
 .. _tick_interval:
+
+.. raw:: html
+
+	<a name="tick_interval"></a>
 
 +---------------+------+---------+
 | name          | type | default |
@@ -1965,6 +2482,10 @@ to a low value (around 100) means higher resolution bandwidth quota distribution
 setting it to a higher value saves CPU cycles.
 
 .. _share_mode_target:
+
+.. raw:: html
+
+	<a name="share_mode_target"></a>
 
 +-------------------+------+---------+
 | name              | type | default |
@@ -1984,6 +2505,11 @@ nothing is downloaded.
 .. _upload_rate_limit:
 
 .. _download_rate_limit:
+
+.. raw:: html
+
+	<a name="upload_rate_limit"></a>
+	<a name="download_rate_limit"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -2008,6 +2534,10 @@ A value of 0 means unlimited.
 
 .. _dht_upload_rate_limit:
 
+.. raw:: html
+
+	<a name="dht_upload_rate_limit"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -2020,6 +2550,10 @@ that requires more DHT traffic, this should be raised.
 
 .. _unchoke_slots_limit:
 
+.. raw:: html
+
+	<a name="unchoke_slots_limit"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -2031,6 +2565,10 @@ The number of unchoke slots may be ignored depending on what
 ``choking_algorithm`` is set to.
 
 .. _half_open_limit:
+
+.. raw:: html
+
+	<a name="half_open_limit"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -2050,6 +2588,10 @@ a queue waiting for their turn to get connected.
 
 .. _connections_limit:
 
+.. raw:: html
+
+	<a name="connections_limit"></a>
+
 +-------------------+------+---------+
 | name              | type | default |
 +===================+======+=========+
@@ -2062,6 +2604,10 @@ torrent, so if you set a too low connections limit, and open too many torrents,
 the limit will not be met.
 
 .. _connections_slack:
+
+.. raw:: html
+
+	<a name="connections_slack"></a>
 
 +-------------------+------+---------+
 | name              | type | default |
@@ -2087,6 +2633,17 @@ connection limit to accept in order to potentially replace existing ones.
 .. _utp_connect_timeout:
 
 .. _utp_loss_multiplier:
+
+.. raw:: html
+
+	<a name="utp_target_delay"></a>
+	<a name="utp_gain_factor"></a>
+	<a name="utp_min_timeout"></a>
+	<a name="utp_syn_resends"></a>
+	<a name="utp_fin_resends"></a>
+	<a name="utp_num_resends"></a>
+	<a name="utp_connect_timeout"></a>
+	<a name="utp_loss_multiplier"></a>
 
 +---------------------+------+---------+
 | name                | type | default |
@@ -2136,6 +2693,10 @@ you're doing. Never set it higher than 100.
 
 .. _mixed_mode_algorithm:
 
+.. raw:: html
+
+	<a name="mixed_mode_algorithm"></a>
+
 +----------------------+------+----------------------------------+
 | name                 | type | default                          |
 +======================+======+==================================+
@@ -2153,6 +2714,10 @@ the global rate limiter (which they aren't by default).
 
 .. _listen_queue_size:
 
+.. raw:: html
+
+	<a name="listen_queue_size"></a>
+
 +-------------------+------+---------+
 | name              | type | default |
 +===================+======+=========+
@@ -2169,6 +2734,10 @@ is called again (or for the first time).
 
 .. _torrent_connect_boost:
 
+.. raw:: html
+
+	<a name="torrent_connect_boost"></a>
+
 +-----------------------+------+---------+
 | name                  | type | default |
 +=======================+======+=========+
@@ -2183,6 +2752,10 @@ of waiting for the session tick to trigger connections.
 
 .. _alert_queue_size:
 
+.. raw:: html
+
+	<a name="alert_queue_size"></a>
+
 +------------------+------+---------+
 | name             | type | default |
 +==================+======+=========+
@@ -2194,6 +2767,10 @@ alerts are not popped, the queue will eventually fill up to this level.
 
 .. _max_metadata_size:
 
+.. raw:: html
+
+	<a name="max_metadata_size"></a>
+
 +-------------------+------+------------------+
 | name              | type | default          |
 +===================+======+==================+
@@ -2204,6 +2781,10 @@ alerts are not popped, the queue will eventually fill up to this level.
 by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
 
 .. _hashing_threads:
+
+.. raw:: html
+
+	<a name="hashing_threads"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -2219,6 +2800,10 @@ hashing is done in the disk thread.
 
 .. _checking_mem_usage:
 
+.. raw:: html
+
+	<a name="checking_mem_usage"></a>
+
 +--------------------+------+---------+
 | name               | type | default |
 +====================+======+=========+
@@ -2230,6 +2815,10 @@ checking torrents. Higher numbers give faster re-checks but uses
 more memory. Specified in number of 16 kiB blocks
 
 .. _predictive_piece_announce:
+
+.. raw:: html
+
+	<a name="predictive_piece_announce"></a>
 
 +---------------------------+------+---------+
 | name                      | type | default |
@@ -2247,6 +2836,11 @@ should be announced, before they are expected to be completed.
 
 .. _aio_max:
 
+.. raw:: html
+
+	<a name="aio_threads"></a>
+	<a name="aio_max"></a>
+
 +-------------+------+---------+
 | name        | type | default |
 +=============+======+=========+
@@ -2259,6 +2853,10 @@ for some aio back-ends, ``aio_threads`` specifies the number of
 io-threads to use,  and ``aio_max`` the max number of outstanding jobs.
 
 .. _network_threads:
+
+.. raw:: html
+
+	<a name="network_threads"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -2275,6 +2873,10 @@ cost of SSL encryption as well.
 
 .. _ssl_listen:
 
+.. raw:: html
+
+	<a name="ssl_listen"></a>
+
 +------------+------+---------+
 | name       | type | default |
 +============+======+=========+
@@ -2287,6 +2889,10 @@ setting is only taken into account when opening the regular listen port, and
 won't re-open the listen socket simply by changing this setting.
 
 .. _tracker_backoff:
+
+.. raw:: html
+
+	<a name="tracker_backoff"></a>
 
 +-----------------+------+---------+
 | name            | type | default |
@@ -2306,6 +2912,11 @@ trackers.
 .. _share_ratio_limit:
 
 .. _seed_time_ratio_limit:
+
+.. raw:: html
+
+	<a name="share_ratio_limit"></a>
+	<a name="seed_time_ratio_limit"></a>
 
 +-----------------------+------+---------+
 | name                  | type | default |
@@ -2327,6 +2938,12 @@ these are specified as percentages
 .. _peer_turnover_cutoff:
 
 .. _peer_turnover_interval:
+
+.. raw:: html
+
+	<a name="peer_turnover"></a>
+	<a name="peer_turnover_cutoff"></a>
+	<a name="peer_turnover_interval"></a>
 
 +------------------------+------+---------+
 | name                   | type | default |
@@ -2352,6 +2969,10 @@ is controlled by peer_turnover and peer_turnover_cutoff
 
 .. _connect_seed_every_n_download:
 
+.. raw:: html
+
+	<a name="connect_seed_every_n_download"></a>
+
 +-------------------------------+------+---------+
 | name                          | type | default |
 +===============================+======+=========+
@@ -2373,6 +2994,10 @@ to a peer. This setting controls n.
 
 .. _max_http_recv_buffer_size:
 
+.. raw:: html
+
+	<a name="max_http_recv_buffer_size"></a>
+
 +---------------------------+------+------------+
 | name                      | type | default    |
 +===========================+======+============+
@@ -2385,6 +3010,10 @@ the ``url`` provided in ``add_torrent_params``.
 
 .. _max_retry_port_bind:
 
+.. raw:: html
+
+	<a name="max_retry_port_bind"></a>
+
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
@@ -2396,6 +3025,10 @@ by one and tried again? This setting specifies how many times to
 retry a failed port bind
 
 .. _alert_mask:
+
+.. raw:: html
+
+	<a name="alert_mask"></a>
 
 +------------+------+---------------------------+
 | name       | type | default                   |
@@ -2410,6 +3043,11 @@ which kinds of alerts to receive
 
 .. _in_enc_policy:
 
+.. raw:: html
+
+	<a name="out_enc_policy"></a>
+	<a name="in_enc_policy"></a>
+
 +----------------+------+---------------------------+
 | name           | type | default                   |
 +================+======+===========================+
@@ -2423,6 +3061,10 @@ and outgoing connections respectively.
 see enc_policy enum for the available options.
 
 .. _allowed_enc_level:
+
+.. raw:: html
+
+	<a name="allowed_enc_level"></a>
 
 +-------------------+------+------------------------+
 | name              | type | default                |

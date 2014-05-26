@@ -699,6 +699,8 @@ namespace libtorrent
 		// 	#include <libtorrent/extensions/smart_ban.hpp>
 		// 	ses.add_extension(&libtorrent::create_smart_ban_plugin);
 		// 
+		// 
+		// .. _`libtorrent plugins`: libtorrent_plugins.html
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 			torrent*, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);

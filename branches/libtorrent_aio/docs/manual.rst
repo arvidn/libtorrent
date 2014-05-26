@@ -177,21 +177,19 @@ torrents are being downloaded at any given time, and once a torrent is completel
 downloaded, the next in line is started.
 
 Torrents that are *auto managed* are subject to the queuing and the active
-torrents limits. To make a torrent auto managed, set ``auto_managed`` to true
+torrents limits. To make a torrent auto managed, set add_torrent_params::flag_auto_managed
 when adding the torrent (see async_add_torrent() and add_torrent()).
 
 The limits of the number of downloading and seeding torrents are controlled via
-active_downloads_, active_seeds_ and active_limit_ settings.
-These limits takes non auto managed torrents into account as well. If there are 
-more non-auto managed torrents being downloaded than the active_downloads_
-setting, any auto managed torrents will be queued until torrents are removed so 
-that the number drops below the limit.
+settings_pack::active_downloads, settings_pack::active_seeds and settings_pack::active_limit in
+settings_pack. These limits takes non auto managed torrents into account as
+well. If there are more non-auto managed torrents being downloaded than the
+settings_pack::active_downloads setting, any auto managed torrents will be queued until
+torrents are removed so that the number drops below the limit.
 
-The default values are 8 active downloads and 5 active seeds.
-
-At a regular interval, torrents are checked if there needs to be any re-ordering of
-which torrents are active and which are queued. This interval can be controlled via
-auto_manage_interval_ setting.
+At a regular interval, torrents are checked if there needs to be any
+re-ordering of which torrents are active and which are queued. This interval
+can be controlled via settings_pack::auto_manage_interval.
 
 For queuing to work, resume data needs to be saved and restored for all
 torrents. See save_resume_data().
@@ -225,8 +223,9 @@ prioritized for seeding. A seed cycle is completed when a torrent meets either
 the share ratio limit (uploaded bytes / downloaded bytes), the share time ratio
 (time seeding / time downloaing) or seed time limit (time seeded).
 
-The relevant settings to control these limits are share_ratio_limit_,
-seed_time_ratio_limit_ and seed_time_limit_.
+The relevant settings to control these limits are
+settings_pack::share_ratio_limit, settings_pack::seed_time_ratio_limit and
+settings_pack::seed_time_limit.
 
 fast resume
 ===========
@@ -678,7 +677,7 @@ is paused or queued, it is demoted to the least recently used torrent in
 the LRU, since it's a good candidate for eviction.
 
 To configure how many torrents are allowed to be loaded at the same time,
-set ``settings_pack::active_loaded_limit`` on the session.
+set settings_pack::active_loaded_limit on the session.
 
 Torrents can be exempt from being unloaded by being *pinned*. Pinned torrents
 still count against the limit, but are never considered for eviction.
@@ -739,7 +738,8 @@ peers. This lack of pieces to trade, delays the client from getting started
 into the normal tit-for-tat mode of bittorrent, and will result in a long
 ramp-up time. The heuristic to mitigate this problem is to, for the first few
 pieces, pick random pieces rather than rare pieces. The threshold for when to
-leave this initial picker mode is determined by initial_picker_threshold_.
+leave this initial picker mode is determined by
+settings_pack::initial_picker_threshold.
 
 reverse order
 -------------
@@ -752,18 +752,20 @@ few pieces as possible. The reverse order means that the most common pieces are
 picked, instead of the rarest pieces (or in the case of sequential download,
 the last pieces, intead of the first).
 
-parole mode -----------
+parole mode
+-----------
 
 Peers that have participated in a piece that failed the hash check, may be put
 in *parole mode*. This means we prefer downloading a full piece  from this
 peer, in order to distinguish which peer is sending corrupt data. Whether to do
-this is or not is controlled by use_parole_mode_.
+this is or not is controlled by settings_pack::use_parole_mode.
 
 In parole mode, the piece picker prefers picking one whole piece at a time for
 a given peer, avoiding picking any blocks from a piece any other peer has
 contributed to (since that would defeat the purpose of parole mode).
 
-prioritize partial pieces -------------------------
+prioritize partial pieces
+-------------------------
 
 This setting determines if partially downloaded or requested pieces should
 always be preferred over other pieces. The benefit of doing this is that the
@@ -771,7 +773,7 @@ number of partial pieces is minimized (and hence the turn-around time for
 downloading a block until it can be uploaded to others is minimized). It also
 puts less stress on the disk cache, since fewer partial pieces need to be kept
 in the cache. Whether or not to enable this is controlled by
-prioritize_partial_pieces_.
+setting_pack::prioritize_partial_pieces.
 
 The main benefit of not prioritizing partial pieces is that the rarest first
 algorithm gets to have more influence on which pieces are picked. The picker is
@@ -783,7 +785,8 @@ in the piece picker exceeds the number of peers we're connected to times 1.5.
 This is in order to keep the waste of partial pieces to a minimum, but still
 prefer rarest pieces.
 
-prefer whole pieces -------------------
+prefer whole pieces
+-------------------
 
 The *prefer whole pieces* setting makes the piece picker prefer picking entire
 pieces at a time. This is used by web connections (both http seeding
@@ -795,7 +798,8 @@ It is also used by peers that are downloading faster than a certain threshold.
 The main advantage is that these peers will better utilize the other peer's
 disk cache, by requesting all blocks in a single piece, from the same peer.
 
-This threshold is controlled by the whole_pieces_threshold_ setting.
+This threshold is controlled by the settings_pack::whole_pieces_threshold
+setting.
 
 *TODO: piece affinity by speed category*
 *TODO: piece priorities*
@@ -806,19 +810,20 @@ predictive piece announce
 In order to improve performance, libtorrent supports a feature called
 ``predictive piece announce``. When enabled, it will make libtorrent announce
 that we have pieces to peers, before we truly have them. The most important
-case is to announce a piece as soon as it has been downloaded and passed
-the hash check, but not yet been written to disk. In this case, there is
-a risk the piece will fail to be written to disk, in which case we won't have
-the piece anymore, even though we announced it to peers.
+case is to announce a piece as soon as it has been downloaded and passed the
+hash check, but not yet been written to disk. In this case, there is a risk the
+piece will fail to be written to disk, in which case we won't have the piece
+anymore, even though we announced it to peers.
 
 The other case is when we're very close to completing the download of a piece
-and assume it will pass the hash check, we can announce it to peers to make
-it available one round-trip sooner than otherwise. This lets libtorrent start
-uploading the piece to interested peers immediately when the piece complete, instead
-of waiting one round-trip for the peers to request it.
+and assume it will pass the hash check, we can announce it to peers to make it
+available one round-trip sooner than otherwise. This lets libtorrent start
+uploading the piece to interested peers immediately when the piece complete,
+instead of waiting one round-trip for the peers to request it.
 
-This makes for the implementation slightly more complicated, since piece will have
-more states and more complicated transitions. For instance, a piece could be:
+This makes for the implementation slightly more complicated, since piece will
+have more states and more complicated transitions. For instance, a piece could
+be:
 
 1. hashed but not fully written to disk
 2. fully written to disk but not hashed
@@ -826,24 +831,26 @@ more states and more complicated transitions. For instance, a piece could be:
 4. downloaded and hash checked
 
 Once a piece is fully downloaded, the hash check could complete before any of
-the write operations or it could complete after all write operations are complete.
+the write operations or it could complete after all write operations are
+complete.
 
 peer classes
 ============
 
-The peer classes feature in libtorrent allows a client to define custom groups of peers
-and rate limit them individually. Each such group is called a *peer class*. There are a few
-default peer classes that are always created:
+The peer classes feature in libtorrent allows a client to define custom groups
+of peers and rate limit them individually. Each such group is called a *peer
+class*. There are a few default peer classes that are always created:
 
 * global - all peers belong to this class, except peers on the local network
-* local peers - all peers on the local network belongs to this class
-* TCP peers - all peers connected over TCP belong to this class
+* local peers - all peers on the local network belongs to this class TCP peers
+* - all peers connected over TCP belong to this class
 
-The TCP peers class is used by the uTP/TCP balancing logic, if it's enabled, to throttle TCP
-peers. The global and local classes are used to adjust the global rate limits.
+The TCP peers class is used by the uTP/TCP balancing logic, if it's enabled, to
+throttle TCP peers. The global and local classes are used to adjust the global
+rate limits.
 
-When the rate limits are adjusted for a specific torrent, a class is created implicitly for
-that torrent.
+When the rate limits are adjusted for a specific torrent, a class is created
+implicitly for that torrent.
 
 The default peer class IDs are defined as enums in the ``session`` class::
 
@@ -853,17 +860,18 @@ The default peer class IDs are defined as enums in the ``session`` class::
 		local_peer_class_id
 	};
 
-A peer class can be considered a more general form of *lables* that some clients have. Peer
-classes however are not just applied to torrents, but ultimately the peers.
+A peer class can be considered a more general form of *lables* that some
+clients have. Peer classes however are not just applied to torrents, but
+ultimately the peers.
 
-Peer classes can be created with the create_peer_class() call (on the session object), and
-deleted with the delete_peer_class() call.
+Peer classes can be created with the create_peer_class() call (on the session
+object), and deleted with the delete_peer_class() call.
 
 Peer classes are configured with the set_peer_class() get_peer_class() calls.
 
-Custom peer classes can be assigned to torrents, with the ??? call, in which case all its
-peers will belong to the class. They can also be assigned based on the peer's IP address.
-See set_peer_class_filter() for more information.
+Custom peer classes can be assigned to torrents, with the ??? call, in which
+case all its peers will belong to the class. They can also be assigned based on
+the peer's IP address. See set_peer_class_filter() for more information.
 
 SSL torrents
 ============
@@ -900,11 +908,11 @@ torrent to connect to. This is required for the client accepting the connection
 to know which certificate to present.
 
 SSL connections are accepted on a separate socket from normal bittorrent
-connections. To pick which port the SSL socket should bind to, set ssl_listen_
-to a different port. It defaults to port 4433. This setting is only taken into
-account when the normal listen socket is opened (i.e. just changing this
-setting won't necessarily close and re-open the SSL socket). To not listen on
-an SSL socket at all, set ``ssl_listen`` to 0.
+connections. To pick which port the SSL socket should bind to, set
+settings_pack::ssl_listen to a different port. It defaults to port 4433.
+This setting is only taken into account when the normal listen socket is opened
+(i.e. just changing this setting won't necessarily close and re-open the SSL
+socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
 
 This feature is only available if libtorrent is build with openssl support
 (``TORRENT_USE_OPENSSL``) and requires at least openSSL version 1.0, since it
@@ -961,45 +969,48 @@ private key in ``./newkey.pem``.
 session statistics
 ==================
 
-libtorrent provides a mechanism to query performance and statistics counters from its
-internals. This is primarily useful for troubleshooting of production systems and performance
-tuning.
+libtorrent provides a mechanism to query performance and statistics counters
+from its internals. This is primarily useful for troubleshooting of production
+systems and performance tuning.
 
-The statistics consists of two fundamental types. *counters* and *gauges*. A counter is a
-monotonically increasing value, incremented every time some event occurs. For example,
-every time the network thread wakes up because a socket became readable will increment a
-counter. Another example is every time a socket receives *n* bytes, a counter is incremented
-by *n*.
+The statistics consists of two fundamental types. *counters* and *gauges*. A
+counter is a monotonically increasing value, incremented every time some event
+occurs. For example, every time the network thread wakes up because a socket
+became readable will increment a counter. Another example is every time a
+socket receives *n* bytes, a counter is incremented by *n*.
 
-*Counters* are the most flexible of metrics. It allows the program to sample the counter at
-any interval, and calculate average rates of increments to the counter. Some events may be
-rare and need to be sampled over a longer period in order to get userful rates, where other
-events may be more frequent and evenly distributed that sampling it frequently yields useful
-values. Counters also provides accurate overall counts. For example, converting samples of
-a download rate into a total transfer count is not accurate and takes more samples. Converting
-an increasing counter into a rate is easy and flexible.
+*Counters* are the most flexible of metrics. It allows the program to sample
+the counter at any interval, and calculate average rates of increments to the
+counter. Some events may be rare and need to be sampled over a longer period in
+order to get userful rates, where other events may be more frequent and evenly
+distributed that sampling it frequently yields useful values. Counters also
+provides accurate overall counts. For example, converting samples of a download
+rate into a total transfer count is not accurate and takes more samples.
+Converting an increasing counter into a rate is easy and flexible.
 
-*Gauges* measure the instantaneous state of some kind. This is used for metrics that are not
-counting events or flows, but states that can fluctuate. For example, the number of torrents
-that are currenly being downloaded.
+*Gauges* measure the instantaneous state of some kind. This is used for metrics
+that are not counting events or flows, but states that can fluctuate. For
+example, the number of torrents that are currenly being downloaded.
 
-It's important to know whether a value is a counter or a gauge in order to interpret it correctly.
-In order to query libtorrent for which counters and gauges are available, call
-session_stats_metrics(). This will return metadata about the values available for inspection
-in libtorrent. It will include whether a value is a counter or a gauge. The key information
-it includes is the index used to extract the actual measurements for a specific counter or
-gauge.
+It's important to know whether a value is a counter or a gauge in order to
+interpret it correctly. In order to query libtorrent for which counters and
+gauges are available, call session_stats_metrics(). This will return metadata
+about the values available for inspection in libtorrent. It will include
+whether a value is a counter or a gauge. The key information it includes is the
+index used to extract the actual measurements for a specific counter or gauge.
 
-In order to take a sample, call post_session_stats() in the session object. This will result
-in a session_stats_alert being posted. In this alert object, there is an array of values,
-these values make up the sample. The value index in the stats metric indicates which index the
-metric's value is stored in.
+In order to take a sample, call post_session_stats() in the session object.
+This will result in a session_stats_alert being posted. In this alert object,
+there is an array of values, these values make up the sample. The value index
+in the stats metric indicates which index the metric's value is stored in.
 
-The mapping between metric and value is not stable across versions of libtorrent. Always query
-the metrics first, to find out the index at which the value is stored, before interpreting the
-values array in the session_stats_alert. The mapping will *not* change during the runtime of
-your process though, it's tied to a specific libtorrent version. You only have to query the
-mapping once on startup (or every time ``libtorrent.so`` is loaded, if it's done dynamically).
+The mapping between metric and value is not stable across versions of
+libtorrent. Always query the metrics first, to find out the index at which the
+value is stored, before interpreting the values array in the
+session_stats_alert. The mapping will *not* change during the runtime of your
+process though, it's tied to a specific libtorrent version. You only have to
+query the mapping once on startup (or every time ``libtorrent.so`` is loaded,
+if it's done dynamically).
 
 The available stats metrics are:
 

@@ -129,10 +129,6 @@ namespace libtorrent
 #else
 		sha_ctx m_context;
 #endif
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool m_finalized;
-#endif
 	};
 
 }
