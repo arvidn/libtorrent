@@ -55,16 +55,16 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id186">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#hasher" id="id187">hasher</a></li>
-<li><a class="reference internal" href="#peer-info" id="id188">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id189">peer_request</a></li>
-<li><a class="reference internal" href="#block-info" id="id190">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id191">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id192">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id193">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id194">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id195">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id187">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#hasher" id="id188">hasher</a></li>
+<li><a class="reference internal" href="#peer-info" id="id189">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id190">peer_request</a></li>
+<li><a class="reference internal" href="#block-info" id="id191">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id192">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id193">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id194">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id195">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id196">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -1073,6 +1073,7 @@ struct torrent_handle
    torrent_status <strong>status</strong> (boost::uint32_t flags = 0xffffffff) const;
    void <strong>get_download_queue</strong> (std::vector&lt;partial_piece_info&gt;&amp; queue) const;
    void <strong>reset_piece_deadline</strong> (int index) const;
+   void <strong>clear_piece_deadlines</strong> () const;
    void <strong>set_piece_deadline</strong> (int index, int deadline, int flags = 0) const;
    void <strong>set_priority</strong> (int prio) const;
    void <strong>file_progress</strong> (std::vector&lt;size_type&gt;&amp; progress, int flags = 0) const;
@@ -1274,12 +1275,14 @@ void <strong>get_download_queue</strong> (std::vector&lt;partial_piece_info&gt;&
 it will fill with information about pieces that are partially
 downloaded or not downloaded at all but partially requested. See
 <a class="reference external" href="reference-Core.html#partial_piece_info">partial_piece_info</a> for the fields in the returned vector.</p>
+<a name="clear_piece_deadlines()"></a>
 <a name="reset_piece_deadline()"></a>
 <a name="set_piece_deadline()"></a></div>
-<div class="section" id="reset-piece-deadline-set-piece-deadline">
-<h2>reset_piece_deadline() set_piece_deadline()</h2>
+<div class="section" id="clear-piece-deadlines-reset-piece-deadline-set-piece-deadline">
+<h2>clear_piece_deadlines() reset_piece_deadline() set_piece_deadline()</h2>
 <pre class="literal-block">
 void <strong>reset_piece_deadline</strong> (int index) const;
+void <strong>clear_piece_deadlines</strong> () const;
 void <strong>set_piece_deadline</strong> (int index, int deadline, int flags = 0) const;
 </pre>
 <p>This function sets or resets the deadline associated with a specific
@@ -1301,6 +1304,8 @@ completed.</p>
 <p><tt class="docutils literal">reset_piece_deadline</tt> removes the deadline from the piece. If it
 hasn't already been downloaded, it will no longer be considered a
 priority.</p>
+<p><tt class="docutils literal">clear_piece_deadlines()</tt> removes deadlines on all pieces in
+the torrent. As if <a class="reference external" href="reference-Core.html#reset_piece_deadline()">reset_piece_deadline()</a> was called on all pieces.</p>
 <a name="set_priority()"></a></div>
 <div class="section" id="set-priority">
 <h2>set_priority()</h2>
@@ -2391,7 +2396,7 @@ struct torrent_status
    sha1_hash info_hash;
 };
 </pre>
-<a name="operator==()"></a><div class="section" id="id121">
+<a name="operator==()"></a><div class="section" id="id122">
 <h2>operator==()</h2>
 <pre class="literal-block">
 bool <strong>operator==</strong> (torrent_status const&amp; st) const;
@@ -2399,7 +2404,7 @@ bool <strong>operator==</strong> (torrent_status const&amp; st) const;
 <p>compres if the torrent status objects come from the same torrent. i.e.
 only the <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> field is compared.</p>
 <a name="state_t"></a></div>
-<div class="section" id="id123">
+<div class="section" id="id124">
 <h2>enum state_t</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/torrent_handle.hpp">libtorrent/torrent_handle.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -2949,7 +2954,7 @@ allowed to force another tracker update with this tracker.</p>
 <p>If the last time this tracker was contacted failed, <tt class="docutils literal">last_error</tt> is the error
 code describing what error occurred.</p>
 <a name="reset()"></a></div>
-<div class="section" id="id144">
+<div class="section" id="id145">
 <h2>reset()</h2>
 <pre class="literal-block">
 void <strong>reset</strong> ();
@@ -3165,7 +3170,7 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
    bool <strong>is_merkle_torrent</strong> () const;
 };
 </pre>
-<a name="torrent_info()"></a><div class="section" id="id148">
+<a name="torrent_info()"></a><div class="section" id="id149">
 <h2>torrent_info()</h2>
 <pre class="literal-block">
 <strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
@@ -3197,7 +3202,7 @@ always throw if an error occurs. These overloads are not available when building
 exception support.</p>
 <p>The <tt class="docutils literal">flags</tt> argument is currently unused.</p>
 <a name="~torrent_info()"></a></div>
-<div class="section" id="id156">
+<div class="section" id="id157">
 <h2>~torrent_info()</h2>
 <pre class="literal-block">
 <strong>~torrent_info</strong> ();
@@ -3222,7 +3227,7 @@ names. Filename may be chaged using <tt class="docutils literal"><span class="pr
 <p>For more information on the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object, see the separate document on how
 to create torrents.</p>
 <a name="rename_file()"></a></div>
-<div class="section" id="id162">
+<div class="section" id="id163">
 <h2>rename_file()</h2>
 <pre class="literal-block">
 void <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
@@ -3307,7 +3312,7 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as <tt class="docutils literal">piece_length()</tt> except in the case of the last piece, which may
 be smaller.</p>
 <a name="info_hash()"></a></div>
-<div class="section" id="id169">
+<div class="section" id="id170">
 <h2>info_hash()</h2>
 <pre class="literal-block">
 const sha1_hash&amp; <strong>info_hash</strong> () const;
@@ -3354,7 +3359,7 @@ std::string <strong>ssl_cert</strong> () const;
 torrent. Otherwise returns an empty string. The certificate is
 the the public certificate in x509 format.</p>
 <a name="is_valid()"></a></div>
-<div class="section" id="id172">
+<div class="section" id="id173">
 <h2>is_valid()</h2>
 <pre class="literal-block">
 bool <strong>is_valid</strong> () const;
@@ -3467,7 +3472,7 @@ lazy_entry const* <strong>info</strong> (char const* key) const;
 It can be used to access extension values put in the .torrent file. If the specified
 key cannot be found, it returns NULL.</p>
 <a name="swap()"></a></div>
-<div class="section" id="id177">
+<div class="section" id="id178">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (torrent_info&amp; ti);

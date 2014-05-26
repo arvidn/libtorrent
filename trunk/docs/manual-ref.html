@@ -826,7 +826,9 @@ able to do download blocks from the same piece, concentrating slow peers on as
 few pieces as possible. The reverse order means that the most common pieces are
 picked, instead of the rarest pieces (or in the case of sequential download,
 the last pieces, intead of the first).</p>
-<p>parole mode -----------</p>
+</div>
+<div class="section" id="parole-mode">
+<h2>parole mode</h2>
 <p>Peers that have participated in a piece that failed the hash check, may be put
 in <em>parole mode</em>. This means we prefer downloading a full piece  from this
 peer, in order to distinguish which peer is sending corrupt data. Whether to do
@@ -834,7 +836,9 @@ this is or not is controlled by <a class="reference external" href="reference-Se
 <p>In parole mode, the piece picker prefers picking one whole piece at a time for
 a given peer, avoiding picking any blocks from a piece any other peer has
 contributed to (since that would defeat the purpose of parole mode).</p>
-<p>prioritize partial pieces -------------------------</p>
+</div>
+<div class="section" id="prioritize-partial-pieces">
+<h2>prioritize partial pieces</h2>
 <p>This setting determines if partially downloaded or requested pieces should
 always be preferred over other pieces. The benefit of doing this is that the
 number of partial pieces is minimized (and hence the turn-around time for
@@ -850,7 +854,9 @@ of the swarm.</p>
 in the piece picker exceeds the number of peers we're connected to times 1.5.
 This is in order to keep the waste of partial pieces to a minimum, but still
 prefer rarest pieces.</p>
-<p>prefer whole pieces -------------------</p>
+</div>
+<div class="section" id="prefer-whole-pieces">
+<h2>prefer whole pieces</h2>
 <p>The <em>prefer whole pieces</em> setting makes the piece picker prefer picking entire
 pieces at a time. This is used by web connections (both http seeding
 standards), in order to be able to coalesce the small bittorrent requests to

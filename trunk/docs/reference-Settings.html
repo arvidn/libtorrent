@@ -330,6 +330,8 @@ struct session_settings
    bool report_redundant_bytes;
    std::string handshake_client_version;
    bool use_disk_cache_pool;
+   int inactive_down_rate;
+   int inactive_up_rate;
 };
 </pre>
 <a name="~session_settings()"></a>
@@ -1730,6 +1732,16 @@ handshake. If this is empty the user_agent is used</dd>
 blocks. Enabling this improves performance of the disk cache with the
 side effect that the disk cache is less likely and slower at returning
 memory to the kernel when cache pressure is low.</dd>
+</dl>
+<a name="inactive_down_rate"></a>
+<a name="inactive_up_rate"></a><dl class="docutils">
+<dt>inactive_down_rate  inactive_up_rate</dt>
+<dd>the download and upload rate limits for a torrent to be considered
+active by the queuing mechanism. A torrent whose download rate is less
+than <tt class="docutils literal">inactive_down_rate</tt> and whose upload rate is less than
+<tt class="docutils literal">inactive_up_rate</tt> for <tt class="docutils literal">auto_manage_startup</tt> seconds, is
+considered inactive, and another queued torrent may be startert.
+This logic is disabled if <tt class="docutils literal">dont_count_slow_torrents</tt> is false.</dd>
 </dl>
 <a name="dht_settings"></a></div>
 </div>

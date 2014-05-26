@@ -717,7 +717,8 @@ few pieces as possible. The reverse order means that the most common pieces are
 picked, instead of the rarest pieces (or in the case of sequential download,
 the last pieces, intead of the first).
 
-parole mode -----------
+parole mode
+-----------
 
 Peers that have participated in a piece that failed the hash check, may be put
 in *parole mode*. This means we prefer downloading a full piece  from this
@@ -728,7 +729,8 @@ In parole mode, the piece picker prefers picking one whole piece at a time for
 a given peer, avoiding picking any blocks from a piece any other peer has
 contributed to (since that would defeat the purpose of parole mode).
 
-prioritize partial pieces -------------------------
+prioritize partial pieces
+-------------------------
 
 This setting determines if partially downloaded or requested pieces should
 always be preferred over other pieces. The benefit of doing this is that the
@@ -748,7 +750,8 @@ in the piece picker exceeds the number of peers we're connected to times 1.5.
 This is in order to keep the waste of partial pieces to a minimum, but still
 prefer rarest pieces.
 
-prefer whole pieces -------------------
+prefer whole pieces
+-------------------
 
 The *prefer whole pieces* setting makes the piece picker prefer picking entire
 pieces at a time. This is used by web connections (both http seeding
