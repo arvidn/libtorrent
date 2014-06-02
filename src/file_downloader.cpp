@@ -186,7 +186,11 @@ namespace libtorrent
 			m_torrents.insert(std::make_pair(ih, pq));
 		}
 
-		void unsubscribe(sha1_hash const& ih, torrent_piece_queue* pq)
+		// if the pieces pointer is specified, it's filled in with pieces
+		// that were part of the 'pq' request, and are also still parts of
+		// other requests, that are still outstanding
+		void unsubscribe(sha1_hash const& ih, torrent_piece_queue* pq
+			, std::set<int>* pieces = NULL)
 		{
 			mutex::scoped_lock l(m_mutex);
 			typedef std::multimap<sha1_hash, torrent_piece_queue*>::iterator iter;
@@ -194,14 +198,34 @@ namespace libtorrent
 			std::pair<iter, iter> range = m_torrents.equal_range(ih);
 			if (range.first == m_torrents.end()) return;
 
+			iter to_delete = m_torrents.end();
+
 			for (iter i = range.first; i != range.second; ++i)
 			{
-				if (i->second != pq) continue;
-				m_torrents.erase(i);
-				break;
+				if (i->second != pq)
+				{
+					if (pieces)
+					{
+						for (int k = (std::max)(pq->begin, i->second->begin)
+							, end((std::min)(pq->end, i->second->end)); k < end; ++k)
+						{
+							pieces->insert(k);
+						}
+					}
+					continue;
+				}
+
+				to_delete = i;
+
+				// if we want to know the pieces that are still in use, we need to
+				// continue and iterate over all other torrents
+				if (!pieces) break;
 			}
+
+			if (to_delete != m_torrents.end())
+				m_torrents.erase(to_delete);
 		}
-	
+
 	private:
 
 		mutex m_mutex;
@@ -397,7 +421,12 @@ namespace libtorrent
 
 			// TODO: come up with some way to abort
 			while (pq.queue.empty() || pq.queue.top().piece > i)
+			{
 				pq.cond.wait(l);
+				// TODO: we may have woken up because of a SIGPIPE and this
+				// connection may have been broken. Test to see if our connection
+				// to the client is still open, and if it isn't, abort
+			}
 
 			piece_entry pe = pq.queue.top();
 			pq.queue.pop();
@@ -428,12 +457,6 @@ namespace libtorrent
 			if (pe.size == 0)
 			{
 				printf("interrupted (zero bytes read)\n");
-
-				for (int k = i; k < priority_cursor; ++k)
-				{
-					printf("reset_piece_deadline: %d\n", k);
-					h.reset_piece_deadline(k);
-				}
 				break;
 			}
 
@@ -471,7 +494,15 @@ namespace libtorrent
 			offset = 0;
 		}
 
-		m_dispatch->unsubscribe(info_hash, &pq);
+		std::set<int> still_in_use;
+		m_dispatch->unsubscribe(info_hash, &pq, &still_in_use);
+
+		for (int k = pq.begin; k < priority_cursor; ++k)
+		{
+			if (still_in_use.count(k)) continue;
+			printf("reset_piece_deadline: %d\n", k);
+			h.reset_piece_deadline(k);
+		}
 //		printf("done, sent %" PRId64 " bytes\n", r.bytes_sent);
 
 		// TODO: this doesn't work right if there are overlapping requests
