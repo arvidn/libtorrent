@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "rencode.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/io.hpp"
+#include <stdlib.h>
 
 namespace libtorrent {
 
