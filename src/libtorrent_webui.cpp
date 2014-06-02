@@ -808,6 +808,8 @@ namespace libtorrent
 		h.file_progress(fp, torrent_handle::piece_granularity);
 
 		boost::shared_ptr<const torrent_info> t = h.torrent_file();
+		if (!t) return error(st, resource_not_found);
+
 		file_storage const& fs = t->files();
 
 		// just in case

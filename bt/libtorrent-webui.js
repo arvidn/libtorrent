@@ -59,6 +59,7 @@ function _check_error(e, callback)
 		case 3: error = 'invalid argument type'; break;
 		case 4: error = 'invalid argument'; break;
 		case 5: error = 'truncated message'; break;
+		case 6: error = 'resource not found'; break;
 	}
 	
 	console.log("ERROR: " + error);

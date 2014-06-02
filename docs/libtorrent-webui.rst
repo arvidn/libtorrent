@@ -602,4 +602,10 @@ Error codes used in RPC response messages.
 |    4 | invalid argument (correct type, but outside    |
 |      | of valid domain)                               |
 +------+------------------------------------------------+
+|    5 | truncated request. The request message was     |
+|      | truncated.                                     |
++------+------------------------------------------------+
+|    6 | resource not found. e.g. torrent may have been |
+|      | removed.                                       |
++------+------------------------------------------------+
 

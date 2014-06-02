@@ -110,6 +110,7 @@ namespace libtorrent
 			invalid_argument_type,
 			invalid_argument,
 			truncated_message,
+			resource_not_found
 		};
 
 	private:
