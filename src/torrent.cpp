@@ -3714,7 +3714,7 @@ namespace libtorrent
 				, end(dq.end()); k != end; ++k)
 			{
 				if (time_critical.count(k->block.piece_index)) continue;
-				if (k->not_wanted) continue;
+				if (k->not_wanted || k->timed_out) continue;
 				p->cancel_request(k->block, true);
 			}
 
@@ -7891,7 +7891,7 @@ namespace libtorrent
 		}
 #endif // TORRENT_DEBUG_STREAMING
 
-		if (!m_time_critical_pieces.empty())
+		if (!m_time_critical_pieces.empty() && !upload_mode())
 		{
 			request_time_critical_pieces();
 		}
