@@ -80,7 +80,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
-//#define TORRENT_DEBUG_STREAMING 1
+// define as 0 to disable. 1 enables debug output of the pieces and requested
+// blocks. 2 also enables trace output of the time critical piece picking
+// logic
+#define TORRENT_DEBUG_STREAMING 0
 
 namespace libtorrent
 {
@@ -120,7 +123,7 @@ namespace libtorrent
 		int peers;
 		// the piece index
 		int piece;
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 0
 		// the number of multiple requests are allowed
 		// to blocks still not downloaded (debugging only)
 		int timed_out;
@@ -343,6 +346,7 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files);
 		void file_priorities(std::vector<int>*) const;
 
+		void cancel_non_critical();
 		void set_piece_deadline(int piece, int t, int flags);
 		void reset_piece_deadline(int piece);
 		void clear_time_critical();
