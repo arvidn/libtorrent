@@ -3662,6 +3662,10 @@ retry:
 		// second_tick every torrent (that wants it)
 		// --------------------------------------------------------------
 
+#if TORRENT_DEBUG_STREAMING > 0
+		printf("\033[2J\033[0;0H");
+#endif
+
 		std::vector<torrent*>& want_tick = m_torrent_lists[torrent_want_tick];
 		for (int i = 0; i < int(want_tick.size()); ++i)
 		{

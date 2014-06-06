@@ -3599,6 +3599,8 @@ namespace libtorrent
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= t->block_size());
 
+		it->not_wanted = true;
+
 		if (force) t->picker().abort_download(block, peer_info_struct());
 
 		if (m_outstanding_bytes < block_size) return;
