@@ -312,7 +312,7 @@ namespace libtorrent
 		SET(peer_turnover_interval, 300, 0),
 		SET_NOPREV(connect_seed_every_n_download, 10, 0),
 		SET(max_http_recv_buffer_size, 4*1024*204, 0),
-		SET_NOPREV(max_retry_port_bind, 0, 0),
+		SET_NOPREV(max_retry_port_bind, 10, 0),
 		SET_NOPREV(alert_mask, alert::error_notification, &session_impl::update_alert_mask),
 		SET_NOPREV(out_enc_policy, settings_pack::pe_enabled, 0),
 		SET_NOPREV(in_enc_policy, settings_pack::pe_enabled, 0),
