@@ -93,7 +93,6 @@ namespace libtorrent
 
 		bool operator!=(piece_block const& b) const
 		{ return piece_index != b.piece_index || block_index != b.block_index; }
-
 	};
 
 	class TORRENT_EXTRA_EXPORT piece_picker

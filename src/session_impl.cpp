@@ -3258,6 +3258,11 @@ retry:
 
 		int num_checking = 0;
 		int num_queued = 0;
+
+#if TORRENT_DEBUG_STREAMING > 0
+		printf("\033[2J\033[0;0H");
+#endif
+
 		for (torrent_map::iterator i = m_torrents.begin();
 			i != m_torrents.end();)
 		{

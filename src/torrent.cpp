@@ -3693,6 +3693,41 @@ namespace libtorrent
 		return detail::read_uint32(ptr);
 	}
 
+	void torrent::cancel_non_critical()
+	{
+		std::set<int> time_critical;
+		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
+			, end(m_time_critical_pieces.end()); i != end; ++i)
+		{
+			time_critical.insert(i->piece);
+		}
+
+		for (std::set<peer_connection*>::iterator i
+			= m_connections.begin(), end(m_connections.end()); i != end; ++i)
+		{
+			// for each peer, go through its download and request queue
+			// and cancel everything, except pieces that are time critical
+			peer_connection* p = *i;
+
+			std::vector<pending_block> dq = p->download_queue();
+			for (std::vector<pending_block>::iterator k = dq.begin()
+				, end(dq.end()); k != end; ++k)
+			{
+				if (time_critical.count(k->block.piece_index)) continue;
+				if (k->not_wanted) continue;
+				p->cancel_request(k->block, true);
+			}
+
+			std::vector<pending_block> rq = p->request_queue();
+			for (std::vector<pending_block>::const_iterator k = rq.begin()
+				, end(rq.end()); k != end; ++k)
+			{
+				if (time_critical.count(k->block.piece_index)) continue;
+				p->cancel_request(k->block, true);
+			}
+		}
+	}
+
 	void torrent::set_piece_deadline(int piece, int t, int flags)
 	{
 		INVARIANT_CHECK;
@@ -3710,11 +3745,24 @@ namespace libtorrent
 
 		ptime deadline = time_now() + milliseconds(t);
 
+		// if we already have the piece, no need to set the deadline.
+		// however, if the user asked to get the piece data back, we still
+		// need to read it and post it back to the user
 		if (is_seed() || m_picker->have_piece(piece))
 		{
 			if (flags & torrent_handle::alert_when_available)
 				read_piece(piece);
 			return;
+		}
+
+		// if this is the first time critical piece we add. in order to make it
+		// react quickly, cancel all the currently outstanding requests
+		if (m_time_critical_pieces.empty())
+		{
+			// defer this by posting it to the end of the message queue.
+			// this gives the client a chance to specify multiple time critical
+			// pieces before libtorrent cancels requests
+			m_ses.m_io_service.post(boost::bind(&torrent::cancel_non_critical, this));
 		}
 
 		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
@@ -7819,6 +7867,30 @@ namespace libtorrent
 
 		// ---- TIME CRITICAL PIECES ----
 
+#if TORRENT_DEBUG_STREAMING > 0
+		std::vector<partial_piece_info> queue;
+		get_download_queue(&queue);
+
+		std::vector<peer_info> peer_list;
+		get_peer_info(peer_list);
+
+		std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
+			< boost::bind(&partial_piece_info::piece_index, _2));
+
+		printf("average piece download time: %.2f s (+/- %.2f s)\n"
+			, m_average_piece_time / 1000.f
+			, m_piece_time_deviation / 1000.f);
+		for (std::vector<partial_piece_info>::iterator i = queue.begin()
+			, end(queue.end()); i != end; ++i)
+		{
+			extern void print_piece(libtorrent::partial_piece_info* pp
+				, std::vector<libtorrent::peer_info> const& peers
+				, std::vector<time_critical_piece> const& time_critical);
+
+			print_piece(&*i, peer_list, m_time_critical_pieces);
+		}
+#endif // TORRENT_DEBUG_STREAMING
+
 		if (!m_time_critical_pieces.empty())
 		{
 			request_time_critical_pieces();
@@ -8219,7 +8291,7 @@ namespace libtorrent
 		m_stat += s;
 	}
 
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 0
 	char const* esc(char const* code)
 	{
 		// this is a silly optimization
@@ -8308,7 +8380,7 @@ namespace libtorrent
 			printf(" deadline: %f last-req: %f timed_out: %d\n"
 				, deadline, last_request, timed_out);
 		else
-			puts("\n");
+			printf("\n");
 	}
 #endif // TORRENT_DEBUG_STREAMING
 
@@ -8353,11 +8425,11 @@ namespace libtorrent
 			busy_blocks[busy_count].index = k;
 			++busy_count;
 
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 			printf(" [%d (%d)]", b.block_index, pi.info[k].num_peers);
 #endif
 		}
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 		printf("\n");
 #endif
 
@@ -8406,7 +8478,7 @@ namespace libtorrent
 			// this piece
 			if (p == peers.end())
 			{
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 				printf("out of peers, done\n");
 #endif
 				break;
@@ -8435,7 +8507,7 @@ namespace libtorrent
 			{
 				busy_mode = true;
 
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 				printf("interesting_blocks.empty()\n");
 #endif
 
@@ -8444,13 +8516,13 @@ namespace libtorrent
 				// the next piece.
 				if (timed_out == 0)
 				{
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 					printf("not timed out, moving on to next piece\n");
 #endif
 					break;
 				}
 
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 				printf("pick busy blocks\n");
 #endif
 
@@ -8464,88 +8536,87 @@ namespace libtorrent
 
 			piece_block b = interesting_blocks.front();
 
-			if (busy_mode)
+			// in busy mode we need to make sure we don't do silly
+			// things like requesting the same block twice from the
+			// same peer
+			std::vector<pending_block> const& dq = c.download_queue();
+
+			bool already_requested = std::find_if(dq.begin(), dq.end()
+				, has_block(b)) != dq.end();
+
+			if (busy_mode && already_requested)
 			{
-				// in busy mode we need to make sure we don't do silly
-				// things like requesting the same block twice from the
-				// same peer
-				std::vector<pending_block> const& dq = c.download_queue();
-
-				bool already_requested = std::find_if(dq.begin(), dq.end()
-					, has_block(b)) != dq.end();
-				if (already_requested)
-				{
-					// if the piece is stalled, we may end up picking a block
-					// that we've already requested from this peer. If so, we should
-					// simply disregard this peer from this piece, since this peer
-					// is likely to be causing the stall. We should request it
-					// from the next peer in the list
-					// the peer will be put back in the set for the next piece
-					ignore_peers.push_back(*p);
-					peers.erase(p);
-#ifdef TORRENT_DEBUG_STREAMING
-					printf("piece already requested by peer, try next peer\n");
-#endif
-					// try next peer
-					continue;
-				}
-
-				std::vector<pending_block> const& rq = c.request_queue();
-
-				bool already_in_queue = std::find_if(rq.begin(), rq.end()
-					, has_block(b)) != rq.end();
-
-				if (already_in_queue)
-				{
-					if (!c.make_time_critical(b))
-					{
-#ifdef TORRENT_DEBUG_STREAMING
-						printf("piece already time-critical and in queue for peer, trying next peer\n");
-#endif
-						ignore_peers.push_back(*p);
-						peers.erase(p);
-						continue;
-					}
-					i->last_requested = now;
-
-#ifdef TORRENT_DEBUG_STREAMING
-					printf("piece already in queue for peer, making time-critical\n");
-#endif
-
-					// we inserted a new block in the request queue, this
-					// makes us actually send it later
-					peers_with_requests.insert(peers_with_requests.begin(), &c);
-
-					// try next peer
-					continue;
-				}
-			}
-
-			if (!c.add_request(b, peer_connection::req_time_critical
-					| (busy_mode ? peer_connection::req_busy : 0)))
-			{
-#ifdef TORRENT_DEBUG_STREAMING
-				printf("failed to request block [%d, %d]\n"
-					, b.piece_index, b.block_index);
-#endif
+				// if the piece is stalled, we may end up picking a block
+				// that we've already requested from this peer. If so, we should
+				// simply disregard this peer from this piece, since this peer
+				// is likely to be causing the stall. We should request it
+				// from the next peer in the list
+				// the peer will be put back in the set for the next piece
 				ignore_peers.push_back(*p);
 				peers.erase(p);
+#if TORRENT_DEBUG_STREAMING > 1
+				printf("piece already requested by peer, try next peer\n");
+#endif
+				// try next peer
 				continue;
 			}
 
-#ifdef TORRENT_DEBUG_STREAMING
-			printf("requested block [%d, %d]\n"
-				, b.piece_index, b.block_index);
+			std::vector<pending_block> const& rq = c.request_queue();
+
+			bool already_in_queue = std::find_if(rq.begin(), rq.end()
+				, has_block(b)) != rq.end();
+
+			if (already_in_queue)
+			{
+				if (!c.make_time_critical(b))
+				{
+#if TORRENT_DEBUG_STREAMING > 1
+					printf("piece already time-critical and in queue for peer, trying next peer\n");
 #endif
+					ignore_peers.push_back(*p);
+					peers.erase(p);
+					continue;
+				}
+				i->last_requested = now;
+
+#if TORRENT_DEBUG_STREAMING > 1
+				printf("piece already in queue for peer, making time-critical\n");
+#endif
+
+				// we inserted a new block in the request queue, this
+				// makes us actually send it later
+				peers_with_requests.insert(peers_with_requests.begin(), &c);
+			}
+
+			if (!already_in_queue
+				&& !already_requested)
+			{
+				if (!c.add_request(b, peer_connection::req_time_critical
+					| (busy_mode ? peer_connection::req_busy : 0)))
+				{
+#if TORRENT_DEBUG_STREAMING > 1
+					printf("failed to request block [%d, %d]\n"
+						, b.piece_index, b.block_index);
+#endif
+					ignore_peers.push_back(*p);
+					peers.erase(p);
+					continue;
+				}
+
+#if TORRENT_DEBUG_STREAMING > 1
+				printf("requested block [%d, %d]\n"
+					, b.piece_index, b.block_index);
+#endif
+				peers_with_requests.insert(peers_with_requests.begin(), &c);
+			}
 
 			if (!busy_mode) i->last_requested = now;
 
-			peers_with_requests.insert(peers_with_requests.begin(), &c);
 			if (i->first_requested == min_time()) i->first_requested = now;
 
 			if (!c.can_request_time_critical())
 			{
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 				printf("peer cannot pick time critical pieces\n");
 #endif
 				peers.erase(p);
@@ -8561,7 +8632,6 @@ namespace libtorrent
 				++p;
 			}
 		} while (!interesting_blocks.empty());
-
 	}
 
 	void torrent::request_time_critical_pieces()
@@ -8571,21 +8641,36 @@ namespace libtorrent
 
 		// build a list of peers and sort it by download_queue_time
 		// we use this sorted list to determine which peer we should
-		// request a block from. The higher up a peer is in the list,
+		// request a block from. The earlier a peer is in the list,
 		// the sooner we will fully download the block we request.
 		std::vector<peer_connection*> peers;
 		peers.reserve(m_connections.size());
+
+		// some peers are marked as not being able to request time critical
+		// blocks from. For instance, peers that have choked us, peers that are
+		// on parole (i.e. they are believed to have sent us bad data), peers
+		// that are being disconnected, in upload mode etc.
 		std::remove_copy_if(m_connections.begin(), m_connections.end()
 			, std::back_inserter(peers), !boost::bind(&peer_connection::can_request_time_critical, _1));
+
+		// sort by the time we believe it will take this peer to send us all
+		// blocks we've requested from it. The shorter time, the better candidate
+		// it is to request a time critical block from.
 		std::sort(peers.begin(), peers.end()
 			, boost::bind(&peer_connection::download_queue_time, _1, 16*1024)
 			< boost::bind(&peer_connection::download_queue_time, _2, 16*1024));
 
-		// remove the bottom 10% of peers from the candidate set
+		// remove the bottom 10% of peers from the candidate set.
+		// this is just to remove outliers that might stall downloads
 		int new_size = (peers.size() * 9 + 9) / 10;
 		TORRENT_ASSERT(new_size <= peers.size());
 		peers.resize(new_size);
 
+		// remember all the peers we issued requests to, so we can commit them
+		// at the end of this function. Instead of sending the requests right
+		// away, we batch them up and send them in a single write to the TCP
+		// socket, increasing the chance that they will all be sent in the same
+		// packet.
 		std::set<peer_connection*> peers_with_requests;
 
 		// peers that should be temporarily ignored for a specific piece
@@ -8602,13 +8687,13 @@ namespace libtorrent
 		for (std::deque<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 			printf("considering %d\n", i->piece);
 #endif
 
 			if (peers.empty())
 			{
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 				printf("out of peers, done\n");
 #endif
 				break;
@@ -8623,7 +8708,7 @@ namespace libtorrent
 				// don't request pieces whose deadline is too far in the future
 				// this is one of the termination conditions. We don't want to
 				// send requests for all pieces in the torrent right away
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 0
 				printf("reached deadline horizon [%f + %f * 4 + 1]\n"
 					, m_average_piece_time / 1000.f
 					, m_piece_time_deviation / 1000.f);
@@ -8639,7 +8724,7 @@ namespace libtorrent
 
 			int blocks_in_piece = m_picker->blocks_in_piece(i->piece);
 
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 0
 			i->timed_out = timed_out;
 #endif
 			int free_to_request = blocks_in_piece
@@ -8657,7 +8742,7 @@ namespace libtorrent
 					timed_out = total_milliseconds(now - i->last_requested)
 						/ (std::max)(int(m_average_piece_time + m_piece_time_deviation / 2), 1);
 
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 0
 				i->timed_out = timed_out;
 #endif
 				// every block in this piece is already requested
@@ -8665,7 +8750,7 @@ namespace libtorrent
 				// appears to be stalled.
 				if (pi.requested == 0 || timed_out == 0)
 				{
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 					printf("skipping %d (full) [req: %d timed_out: %d ]\n"
 						, i->piece, pi.requested
 						, timed_out);
@@ -8681,20 +8766,33 @@ namespace libtorrent
 
 				// it's been too long since we requested the last block from
 				// this piece. Allow re-requesting blocks from this piece
-#ifdef TORRENT_DEBUG_STREAMING
+#if TORRENT_DEBUG_STREAMING > 1
 				printf("timed out [average-piece-time: %d ms ]\n"
 					, m_average_piece_time);
 #endif
 			}
 
-			// pick all blocks 
+			// pick all blocks for this piece. the peers list is kept up to date
+			// and sorted. when we issue a request to a peer, its download queue
+			// time will increase and it may need to be bumped in the peers list,
+			// since it's ordered by download queue time
 			pick_time_critical_block(peers, ignore_peers
 				, peers_with_requests
 				, pi, &*i, m_picker.get()
 				, blocks_in_piece, timed_out);
 
-			peers.insert(peers.begin(), ignore_peers.begin(), ignore_peers.end());
-			ignore_peers.clear();
+			// put back the peers we ignored into the peer list for the next piece
+			if (!ignore_peers.empty())
+			{
+				peers.insert(peers.begin(), ignore_peers.begin(), ignore_peers.end());
+				ignore_peers.clear();
+
+				// TODO: instead of resorting the whole list, insert the peers
+				// directly into the right place
+				std::sort(peers.begin(), peers.end()
+					, boost::bind(&peer_connection::download_queue_time, _1, 16*1024)
+					< boost::bind(&peer_connection::download_queue_time, _2, 16*1024));
+			}
 		}
 
 		// commit all the time critical requests
@@ -8703,27 +8801,6 @@ namespace libtorrent
 		{
 			(*i)->send_block_requests();
 		}
-
-#ifdef TORRENT_DEBUG_STREAMING
-		std::vector<partial_piece_info> queue;
-		get_download_queue(&queue);
-
-		std::vector<peer_info> peer_list;
-		get_peer_info(peer_list);
-
-		std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
-			< boost::bind(&partial_piece_info::piece_index, _2));
-
-		puts("\033[2J\033[0;0H");
-		printf("average piece download time: %.2f s (+/- %.2f s)\n"
-			, m_average_piece_time / 1000.f
-			, m_piece_time_deviation / 1000.f);
-		for (std::vector<partial_piece_info>::iterator i = queue.begin()
-			, end(queue.end()); i != end; ++i)
-		{
-			print_piece(&*i, peer_list, m_time_critical_pieces);
-		}
-#endif // TORRENT_DEBUG_STREAMING
 	}
 
 	std::set<std::string> torrent::web_seeds(web_seed_entry::type_t type) const
