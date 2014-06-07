@@ -27,6 +27,7 @@ Extensions
 * `uTP`_
 * `extensions protocol`_
 * `plugin interface`_
+* `streaming`_
 * `DHT extensions`_
 * `DHT security extension`_
 * `DHT store extension`_
@@ -68,6 +69,7 @@ libtorrent
 .. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: reference-Plugins.html
+.. _`streaming`: streaming.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`DHT security extension`: dht_sec.html
 .. _`DHT store extension`: dht_store.html
