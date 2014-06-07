@@ -405,6 +405,14 @@ namespace libtorrent
 	bool default_storage::initialize(bool allocate_files)
 	{
 		m_allocate_files = allocate_files;
+
+#ifdef TORRENT_WINDOWS
+		// don't do full file allocations on network drives
+		int drive_type = GetDriveType(m_save_path.c_str());
+		if (drive_type == DRIVE_REMOTE)
+			m_allocate_files = false;
+#endif
+
 		error_code ec;
 		m_file_created.resize(files().num_files(), false);
 
