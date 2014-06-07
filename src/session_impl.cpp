@@ -1829,16 +1829,6 @@ namespace aux {
 		m_tracker_manager.abort_all_requests();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " sending event=stopped to trackers\n";
-#endif
-		for (torrent_map::iterator i = m_torrents.begin();
-			i != m_torrents.end(); ++i)
-		{
-			torrent& t = *i->second;
-			t.abort();
-		}
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all connections (" << m_connections.size() << ")\n";
 #endif
 		m_half_open.close();
