@@ -39,6 +39,7 @@ TARGETS = index \
 	utp \
 	tuning \
 	hacking \
+	streaming \
 	$(REFERENCE_TARGETS)
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting

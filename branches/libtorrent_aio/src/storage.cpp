@@ -330,6 +330,13 @@ namespace libtorrent
 	{
 		m_stat_cache.init(files().num_files());
 
+#ifdef TORRENT_WINDOWS
+		// don't do full file allocations on network drives
+		int drive_type = GetDriveType(m_save_path.c_str());
+		if (drive_type == DRIVE_REMOTE)
+			m_allocate_files = false;
+#endif
+
 		m_file_created.resize(files().num_files(), false);
 
 		// first, create all missing directories
