@@ -995,8 +995,7 @@ namespace libtorrent
 		else
 		{
 			// current download rate in bytes per seconds
-			rate = m_statistics.transfer_rate(stat::download_payload)
-				+ m_statistics.transfer_rate(stat::download_protocol);
+			rate = m_statistics.transfer_rate(stat::download_payload);
 		}
 
 		// avoid division by zero
