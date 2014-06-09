@@ -408,7 +408,13 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		// don't do full file allocations on network drives
-		int drive_type = GetDriveType(m_save_path.c_str());
+#if TORRENT_USE_WSTRING
+		std::wstring f = convert_to_wstring(m_save_path);
+		int drive_type = GetDriveTypeW(f.c_str());
+#else
+		int drive_type = GetDriveTypeA(m_save_path.c_str());
+#endif
+
 		if (drive_type == DRIVE_REMOTE)
 			m_allocate_files = false;
 #endif
