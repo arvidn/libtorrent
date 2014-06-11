@@ -119,6 +119,7 @@ namespace libtorrent
 		// for torrent_info::invariant_check
 		friend class torrent_info;
 #endif
+
 		internal_file_entry()
 			: offset(0)
 			, symlink_index(not_a_symlink)

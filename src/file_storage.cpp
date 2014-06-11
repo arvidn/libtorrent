@@ -329,7 +329,7 @@ namespace libtorrent
 				file_slice f;
 				f.file_index = file_iter - m_files.begin();
 				f.offset = file_offset + file_base(f.file_index);
-				f.size = (std::min)(size_type(file_iter->size) - file_offset, (size_type)size);
+				f.size = (std::min)(boost::uint64_t(file_iter->size) - file_offset, boost::uint64_t(size));
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
 				file_offset += f.size;
@@ -426,7 +426,7 @@ namespace libtorrent
 		e.hidden_attribute = (flags & attribute_hidden) != 0;
 		e.executable_attribute = (flags & attribute_executable) != 0;
 		e.symlink_attribute = (flags & attribute_symlink) != 0;
-		if (e.symlink_attribute)
+		if (e.symlink_attribute && m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
 		{
 			e.symlink_index = m_symlinks.size();
 			m_symlinks.push_back(symlink_path);
@@ -469,7 +469,7 @@ namespace libtorrent
 			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
 			m_file_hashes[m_files.size() - 1] = filehash;
 		}
-		if (!ent.symlink_path.empty())
+		if (!ent.symlink_path.empty() && m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
 		{
 			e.symlink_index = m_symlinks.size();
 			m_symlinks.push_back(ent.symlink_path);
