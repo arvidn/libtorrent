@@ -2085,8 +2085,9 @@ namespace libtorrent
 		if (m_abort) return;
 
 		// if the files haven't been checked yet, we're
-		// not ready for peers
-		if (!m_files_checked) return;
+		// not ready for peers. Except, if we don't have metadata,
+		// we need peers to download from
+		if (!m_files_checked && valid_metadata()) return;
 
 		if (!m_announce_to_lsd) return;
 

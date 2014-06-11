@@ -54,6 +54,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix local service discovery for magnet links
 	* fix bitfield issue in file_storage
 	* added work-around for MingW issue in file I/O
 	* fixed sparse file detection on windows
