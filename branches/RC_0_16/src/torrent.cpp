@@ -3200,7 +3200,7 @@ namespace libtorrent
 			size_type file_offset = off - f->offset;
 			TORRENT_ASSERT(f != m_torrent_file->files().end());
 			TORRENT_ASSERT(file_offset <= f->size);
-			int add = (std::min)(f->size - file_offset, (size_type)size);
+			int add = (std::min)(f->size - file_offset, boost::uint64_t(size));
 			m_file_progress[file_index] += add;
 
 			TORRENT_ASSERT(m_file_progress[file_index]
@@ -8485,7 +8485,7 @@ namespace libtorrent
 					{
 						TORRENT_ASSERT(offset <= file->offset + file->size);
 						size_type slice = (std::min)(file->offset + file->size - offset
-							, block);
+							, boost::uint64_t(block));
 						fp[file_index] += slice;
 						offset += slice;
 						block -= slice;
