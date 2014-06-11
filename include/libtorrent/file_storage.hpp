@@ -78,10 +78,12 @@ namespace libtorrent
 		// for torrent_info::invariant_check
 		friend class torrent_info;
 #endif
+		enum { no_symlink_idx = 0xffff };
+
 		internal_file_entry()
 			: name(0)
 			, offset(0)
-			, symlink_index(-1)
+			, symlink_index(no_symlink_idx)
 			, size(0)
 			, name_len(0)
 			, pad_file(false)
@@ -95,7 +97,7 @@ namespace libtorrent
 		internal_file_entry(file_entry const& e)
 			: name(0)
 			, offset(e.offset)
-			, symlink_index(-1)
+			, symlink_index(no_symlink_idx)
 			, size(e.size)
 			, name_len(0)
 			, pad_file(e.pad_file)
@@ -128,14 +130,14 @@ namespace libtorrent
 	public:
 
 		// the offset of this file inside the torrent
-		size_type offset:48;
+		boost::uint64_t offset:48;
 
 		// index into file_storage::m_symlinks or -1
 		// if this is not a symlink
-		size_type symlink_index:16;
+		boost::uint64_t symlink_index:16;
 
 		// the size of this file
-		size_type size:48;
+		boost::uint64_t size:48;
 
 		// the number of characters in the name. If this is
 		// 0, name is null terminated and owned by this object

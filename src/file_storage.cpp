@@ -266,7 +266,7 @@ namespace libtorrent
 				file_slice f;
 				f.file_index = file_iter - begin();
 				f.offset = file_offset + file_base(*file_iter);
-				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
+				f.size = (std::min)(file_iter->size - file_offset, boost::uint64_t(size));
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
 				file_offset += f.size;
@@ -295,7 +295,8 @@ namespace libtorrent
 		ret.hidden_attribute = ife.hidden_attribute;
 		ret.executable_attribute = ife.executable_attribute;
 		ret.symlink_attribute = ife.symlink_attribute;
-		if (ife.symlink_index >= 0) ret.symlink_path = symlink(ife);
+		if (ife.symlink_index != internal_file_entry::no_symlink_idx)
+			ret.symlink_path = symlink(ife);
 		ret.filehash = hash(ife);
 		return ret;
 	}
@@ -365,7 +366,7 @@ namespace libtorrent
 		e.hidden_attribute = (flags & attribute_hidden) != 0;
 		e.executable_attribute = (flags & attribute_executable) != 0;
 		e.symlink_attribute = (flags & attribute_symlink) != 0;
-		if (e.symlink_attribute)
+		if (e.symlink_attribute && m_symlinks.size() < internal_file_entry::no_symlink_idx - 1)
 		{
 			e.symlink_index = m_symlinks.size();
 			m_symlinks.push_back(symlink_path);
@@ -400,7 +401,6 @@ namespace libtorrent
 		internal_file_entry ife(ent);
 		m_files.push_back(ife);
 		internal_file_entry& e = m_files.back();
-		if (e.size < 0) e.size = 0;
 		e.offset = m_total_size;
 		m_total_size += e.size;
 		if (filehash)
@@ -408,7 +408,7 @@ namespace libtorrent
 			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
 			m_file_hashes[m_files.size() - 1] = filehash;
 		}
-		if (!ent.symlink_path.empty())
+		if (!ent.symlink_path.empty() && m_symlinks.size() < internal_file_entry::no_symlink_idx - 1)
 		{
 			e.symlink_index = m_symlinks.size();
 			m_symlinks.push_back(ent.symlink_path);

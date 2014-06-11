@@ -1,3 +1,4 @@
+	* fix bitfield issue in file_storage
 	* added work-around for MingW issue in file I/O
 	* fixed sparse file detection on windows
 	* fixed bug in gunzip
