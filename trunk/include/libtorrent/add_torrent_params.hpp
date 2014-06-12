@@ -147,9 +147,9 @@ namespace libtorrent
 			// in there will override the seed mode you set here.
 			flag_seed_mode = 0x001,
 
-			// If ``flag_override_resume_data`` is set, the ``paused`` and
-			// ``auto_managed`` state of the torrent are not loaded from the
-			// resume data, but the states requested by the flags in
+			// If ``flag_override_resume_data`` is set, the ``paused``,
+			// ``auto_managed`` and ``save_path`` of the torrent are not loaded
+			// from the resume data, but the states requested by the flags in
 			// ``add_torrent_params`` will override them.
 			//
 			// If you pass in resume data, the paused state of the torrent when
@@ -244,6 +244,11 @@ namespace libtorrent
 			// the torrent handle immediately after adding it.
 			flag_sequential_download = 0x800,
 
+			// if this flag is set, the save path from the resume data file, if
+			// present, is honored. This defaults to not being set, in which
+			// case the save_path specified in add_torrent_params is always used.
+			flag_use_resume_save_path = 0x1000,
+
 			// internal
 			default_flags = flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
 #ifndef TORRENT_NO_DEPRECATE
@@ -273,6 +278,11 @@ namespace libtorrent
 		// to the session (if DHT is enabled). The hostname may be an IP address.
 		std::vector<std::pair<std::string, int> > dht_nodes;
 		std::string name;
+
+		// the path where the torrent is or will be stored. Note that this may
+		// alos be stored in resume data. If you which the save path saved in
+		// the resume data to be used, you need to set the
+		// flag_use_resume_save_path flag.
 		std::string save_path;
 
 		// The optional parameter, ``resume_data`` can be given if up to date

@@ -354,6 +354,10 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | necessarily complete, but complete enough to be able to send |
 |                          | any piece that we have, indicated by the have bitmask.       |
 +--------------------------+--------------------------------------------------------------+
+| ``save_path``            | string. The save path where this torrent was saved. This is  |
+|                          | especially useful when moving torrents with move_storage()   |
+|                          | since this will be updated.                                  |
++--------------------------+--------------------------------------------------------------+
 | ``peers``                | list of dictionaries. Each dictionary has the following      |
 |                          | layout:                                                      |
 |                          |                                                              |

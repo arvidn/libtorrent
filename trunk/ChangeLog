@@ -1,5 +1,6 @@
 1.0 release
 
+	* support storing save_path in resume data
 	* don't use full allocation on network drives (on windows)
 	* added clear_piece_deadlines() to remove all piece deadlines
 	* improve queuing logic of inactive torrents (dont_count_slow_torrents)
