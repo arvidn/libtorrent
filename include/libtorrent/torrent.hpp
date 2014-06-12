@@ -1420,6 +1420,10 @@ namespace libtorrent
 		// queued, torrent. Every second it's above the threshold
 		boost::int16_t m_inactive_counter;
 
+		// if this is set, accept the save path saved in the resume data, if
+		// present
+		bool m_use_resume_save_path:1;
+
 #if TORRENT_USE_ASSERTS
 	public:
 		// set to false until we've loaded resume data
