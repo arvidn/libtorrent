@@ -2653,8 +2653,9 @@ namespace libtorrent
 		if (m_abort) return;
 
 		// if the files haven't been checked yet, we're
-		// not ready for peers
-		if (!m_files_checked) return;
+		// not ready for peers. Except, if we don't have metadata,
+		// we need peers to download from
+		if (!m_files_checked && valid_metadata()) return;
 
 		if (!m_announce_to_lsd) return;
 
@@ -10230,6 +10231,11 @@ namespace libtorrent
 					, boost::bind(&peer_connection::download_queue_time, _1, 16*1024)
 					< boost::bind(&peer_connection::download_queue_time, _2, 16*1024));
 			}
+
+			// if this peer's download time exceeds 2 seconds, we're done.
+			// We don't want to build unreasonably long request queues
+			if (!peers.empty() && peers[0]->download_queue_time() > milliseconds(2000))
+				break;
 		}
 
 		// commit all the time critical requests
