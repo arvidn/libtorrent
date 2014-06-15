@@ -1961,7 +1961,7 @@ namespace aux {
 		if (m_settings.dht_upload_rate_limit != s.dht_upload_rate_limit)
 			m_udp_socket.set_rate_limit(s.dht_upload_rate_limit);
 
-		if (m_settings.peer_tos != s.peer_tos)
+		if (m_settings.peer_tos != s.peer_tos && s.peer_tos != 0)
 		{
 			error_code ec;
 			m_udp_socket.set_option(type_of_service(s.peer_tos), ec);
@@ -2360,10 +2360,12 @@ retry:
 				m_alerts.post_alert(listen_succeeded_alert(m_listen_interface, listen_succeeded_alert::udp));
 		}
 
-		m_udp_socket.set_option(type_of_service(m_settings.peer_tos), ec);
+		if (m_settings.peer_tos != 0) {
+			m_udp_socket.set_option(type_of_service(m_settings.peer_tos), ec);
 #if defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.peer_tos << " e: " << ec.message() << " ]\n";
+			(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.peer_tos << " e: " << ec.message() << " ]\n";
 #endif
+		}
 		ec.clear();
 
 		set_socket_buffer_size(m_udp_socket, m_settings, ec);
