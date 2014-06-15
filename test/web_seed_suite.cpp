@@ -77,7 +77,8 @@ static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_htt
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torrent_file
-	, int proxy, int port, char const* protocol, bool url_seed, bool chunked_encoding, bool test_ban)
+	, int proxy, int port, char const* protocol, bool url_seed
+	, bool chunked_encoding, bool test_ban, bool keepalive)
 {
 	using namespace libtorrent;
 
@@ -89,8 +90,12 @@ static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torre
 
 	static char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	fprintf(stderr, "\n\n  ==== TESTING === proxy: %s ==== protocol: %s ==== seed: %s === transfer-encoding: %s === corruption: %s\n\n\n"
-		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed", chunked_encoding ? "chunked": "none", test_ban ? "yes" : "no");
+	fprintf(stderr, "\n\n  ==== TESTING === proxy: %s ==== protocol: %s "
+		"==== seed: %s === transfer-encoding: %s === corruption: %s "
+		"==== keepalive: %s\n\n\n"
+		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed"
+		, chunked_encoding ? "chunked": "none", test_ban ? "yes" : "no"
+		, keepalive ? "yes" : "no");
 
 	proxy_settings ps;
 	
@@ -166,7 +171,7 @@ static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torre
 
 		// if the web seed connection is disconnected, we're going to fail
 		// the test. make sure to do so quickly
-		if (peer_disconnects >= 1) break;
+		if (keepalive && peer_disconnects >= 1) break;
 
 		if (s.is_seeding /* && ss.download_rate == 0.f*/)
 		{
@@ -232,7 +237,8 @@ static void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torre
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 // protocol: "http" or "https"
 // test_url_seed determines whether to use url-seed or http-seed
-int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, bool chunked_encoding, bool test_ban)
+int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
+	, bool chunked_encoding, bool test_ban, bool keepalive, bool test_rename)
 {
 	using namespace libtorrent;
 
@@ -272,7 +278,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 		free(random_data);
 	}
 
-	int port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding);
+	int port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding, keepalive);
 
 	// generate a torrent with pad files to make sure they
 	// are not requested web seeds
@@ -356,12 +362,14 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed, b
 		ses.listen_on(std::make_pair(51000, 52000), ec);
 		if (ec) fprintf(stderr, "listen_on failed: %s\n", ec.message().c_str());
    
-		test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed, chunked_encoding, test_ban);
+		test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed
+			, chunked_encoding, test_ban, keepalive);
 		
-		if (test_url_seed)
+		if (test_url_seed && test_rename)
 		{
 			torrent_file->rename_file(0, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
-			test_transfer(ses, torrent_file, 0, port, protocol, test_url_seed, chunked_encoding, test_ban);
+			test_transfer(ses, torrent_file, 0, port, protocol, test_url_seed
+				, chunked_encoding, test_ban, keepalive);
 		}
 	}
 

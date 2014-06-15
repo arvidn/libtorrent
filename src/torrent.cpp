@@ -8014,6 +8014,8 @@ namespace libtorrent
 
 	void torrent::maybe_connect_web_seeds()
 	{
+		if (m_abort) return;
+
 		// if we have everything we want we don't need to connect to any web-seed
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
 			&& int(m_connections.size()) < m_max_connections

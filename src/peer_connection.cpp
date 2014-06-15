@@ -1405,7 +1405,7 @@ namespace libtorrent
 			if (index >= int(m_have_piece.size()))
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				peer_log("<== INVALID_ALLOWED_FAST [ %d | s: %d ]"
+				peer_log("<== INVALID_SUGGEST [ %d | s: %d ]"
 					, index, int(m_have_piece.size()));
 #endif
 				return;

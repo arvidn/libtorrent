@@ -86,6 +86,8 @@ namespace libtorrent
 			, tcp::endpoint const& remote
 			, web_seed_entry& web);
 
+		virtual void on_connected();
+
 		virtual int type() const { return peer_connection::url_seed_connection; }
 
 		// called from the main loop when this connection has any
@@ -98,7 +100,7 @@ namespace libtorrent
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual void disconnect(error_code const& ec, int error = 0);
 
-		void write_request(peer_request const& r);
+		virtual void write_request(peer_request const& r);
 
 		virtual bool received_invalid_data(int index, bool single_peer);
 
@@ -112,6 +114,8 @@ namespace libtorrent
 		// a piece for the moment, the boost::optional
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const;
+
+		void handle_padfile(buffer::const_interval& recv_buffer);
 
 		// this has one entry per http-request
 		// (might be more than the bt requests)

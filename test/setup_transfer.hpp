@@ -86,7 +86,9 @@ EXPORT setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool use_ssl_ports = false
 	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent2 = 0);
 
-int EXPORT start_web_server(bool ssl = false, bool chunked = false);
+int EXPORT start_web_server(bool ssl = false, bool chunked = false
+	, bool keepalive = true);
+
 void EXPORT stop_web_server();
 int EXPORT start_proxy(int type);
 void EXPORT stop_proxy(int port);

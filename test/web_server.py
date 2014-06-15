@@ -6,6 +6,7 @@ import ssl
 import gzip
 
 chunked_encoding = False
+keepalive = True
 
 try:
 	fin = open('test_file', 'rb')
@@ -29,6 +30,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 		#print s.requestline
 		global chunked_encoding
+		global keepalive
 
 		# if the request contains the hostname and port. strip it
 		if s.path.startswith('http://') or s.path.startswith('https://'):
@@ -117,6 +119,9 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.send_header('Content-Length', end_range - start_range)
 				if filename.endswith('.gz'):
 					s.send_header('Content-Encoding', 'gzip')
+				if not keepalive:
+					s.send_header("Connection", "close")
+
 				s.end_headers()
    
 				f.seek(start_range)
@@ -143,6 +148,7 @@ if __name__ == '__main__':
 	port = int(sys.argv[1])
 	chunked_encoding = sys.argv[2] != '0'
 	use_ssl = sys.argv[3] != '0'
+	keepalive = sys.argv[4] != '0'
 
 	http_handler.protocol_version = 'HTTP/1.1'
 	httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)

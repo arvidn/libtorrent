@@ -777,7 +777,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 
 pid_type web_server_pid = 0;
 
-int start_web_server(bool ssl, bool chunked_encoding)
+int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
 	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
 	fprintf(stderr, "random seed: %u\n", seed);
@@ -785,8 +785,8 @@ int start_web_server(bool ssl, bool chunked_encoding)
 	int port = 5000 + (rand() % 55000);
 
 	char buf[200];
-	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d"
-		, port, chunked_encoding , ssl);
+	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
+		, port, chunked_encoding , ssl, keepalive);
 
 	fprintf(stderr, "%s starting web_server on port %d...\n", time_now_string(), port);
 
