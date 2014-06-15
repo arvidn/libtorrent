@@ -1,3 +1,4 @@
+	* don't fall back on wildcard port in UPnP
 	* fix local service discovery for magnet links
 	* fix bitfield issue in file_storage
 	* added work-around for MingW issue in file I/O
