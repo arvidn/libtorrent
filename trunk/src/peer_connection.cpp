@@ -481,7 +481,7 @@ namespace libtorrent
 				disconnect(ec);
 				return;
 			}
-			if (m_remote.address().is_v4())
+			if (m_remote.address().is_v4() && m_ses.settings().peer_tos != 0)
 			{
 				m_socket->set_option(type_of_service(m_ses.settings().peer_tos), ec);
 #if defined TORRENT_VERBOSE_LOGGING
@@ -5577,7 +5577,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_remote.address().is_v4())
+		if (m_remote.address().is_v4() && m_ses.settings().peer_tos != 0)
 		{
 			error_code ec;
 			m_socket->set_option(type_of_service(m_ses.settings().peer_tos), ec);
