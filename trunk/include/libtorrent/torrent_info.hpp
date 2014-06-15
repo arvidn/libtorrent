@@ -291,6 +291,12 @@ namespace libtorrent
 		// it's also used to hold the peer_connection
 		// pointer, when the web seed is connected
 		policy::ipv4_peer peer_info;
+
+		// if the web server doesn't support keepalive or a block request was
+		// interrupted, the block received so far is kept here for the next
+		// connection to pick up
+		peer_request restart_request;
+		std::vector<char> restart_piece;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS

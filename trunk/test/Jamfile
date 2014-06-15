@@ -124,6 +124,7 @@ test-suite libtorrent :
 	[ run test_ssl.cpp ]
 	[ run test_tracker.cpp ]
 	[ run test_checking.cpp ]
+	[ run test_url_seed.cpp ]
 	[ run test_web_seed.cpp ]
 	[ run test_web_seed_socks4.cpp ]
 	[ run test_web_seed_socks5.cpp ]

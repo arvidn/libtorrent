@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,14 +40,10 @@ const int proxy = libtorrent::proxy_settings::none;
 
 int test_main()
 {
-	int ret = 0;
-	for (int url_seed = 0; url_seed < 2; ++url_seed)
-	{
 #ifdef TORRENT_USE_OPENSSL
-		run_http_suite(proxy, "https", url_seed);
+	run_http_suite(proxy, "https", false);
 #endif
-		run_http_suite(proxy, "http", url_seed);
-	}
-	return ret;
+	run_http_suite(proxy, "http", false);
+	return 0;
 }
 

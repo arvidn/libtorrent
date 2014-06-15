@@ -587,6 +587,7 @@ namespace libtorrent
 		, peer_info(tcp::endpoint(), true, 0)
 	{
 		peer_info.web_seed = true;
+		restart_request.piece = -1;
 	}
 
 	torrent_info::torrent_info(torrent_info const& t, int flags)
