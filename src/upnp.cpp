@@ -171,6 +171,9 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 // returns a reference to a mapping or -1 on failure
 int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 {
+	// external port 0 means _every_ port
+	TORRENT_ASSERT(external_port != 0);
+
 	mutex::scoped_lock l(m_mutex);
 
 	char msg[500];
@@ -1378,24 +1381,14 @@ void upnp::on_upnp_map_response(error_code const& e
 		update_map(d, mapping, l);
 		return;
 	}
-	else if (s.error_code == 718 || s.error_code == 727)
+	else if (s.error_code == 727)
 	{
-		if (m.external_port != 0)
-		{
-			// conflict in mapping, set port to wildcard
-			// and let the router decide
-			m.external_port = 0;
-			m.action = mapping_t::action_add;
-			++m.failcount;
-			update_map(d, mapping, l);
-			return;
-		}
 		return_error(mapping, s.error_code, l);
 	}
-	else if (s.error_code == 716 || (s.error_code == 501 && m.failcount < 4 && m.external_port == 0))
+	else if ((s.error_code == 718 || s.error_code == 501) && m.failcount < 4)
 	{
 		// some routers return 501 action failed, instead of 716
-		// The external port cannot be wildcarder
+		// The external port conflicts with another mapping
 		// pick a random port
 		m.external_port = 40000 + (random() % 10000);
 		m.action = mapping_t::action_add;
