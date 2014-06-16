@@ -56,6 +56,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+0.16.17 release
+
 	* don't fall back on wildcard port in UPnP
 	* fix local service discovery for magnet links
 	* fix bitfield issue in file_storage
