@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.10: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.15</td></tr>
+<td>0.16.17</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -5003,9 +5003,10 @@ connections would often be starved out for bandwidth by the TCP connections. Thi
 is <tt class="docutils literal">prefer_tcp</tt>. The <tt class="docutils literal">peer_proportional</tt> mode simply looks at the current throughput
 and rate limits all TCP connections to their proportional share based on how many of
 the connections are TCP. This works best if uTP connections are not rate limited by
-the global rate limiter (which they aren't by default).</p>
+the global rate limiter, which they are by default.</p>
 <p><tt class="docutils literal">rate_limit_utp</tt> determines if uTP connections should be throttled by the global rate
-limiter or not. By default they are.</p>
+limiter or not. By default uTP is rate limited, this setting defaults to
+true.</p>
 <p><tt class="docutils literal">listen_queue_size</tt> is the value passed in to listen() for the listen socket.
 It is the number of outstanding incoming connections to queue up while we're not
 actively waiting for a connection to be accepted. The default is 5 which should
