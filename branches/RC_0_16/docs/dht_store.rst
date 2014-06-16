@@ -3,7 +3,7 @@ BitTorrent extension for arbitrary DHT store
 ============================================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.16
+:Version: 0.16.17
 
 .. contents:: Table of contents
   :depth: 2
