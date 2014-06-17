@@ -2387,6 +2387,16 @@ namespace libtorrent
 			m_received_in_piece = 0;
 #endif
 			t->add_redundant_bytes(p.length, torrent::piece_unknown);
+
+			// the bytes of the piece we just completed have been deducted from
+			// m_outstanding_bytes as we received it, in incoming_piece_fragment.
+			// however, it now turns out the piece we received wasn't in the
+			// download queue, so we still have the same number of pieces in the
+			// download queue, which is why we need to add the bytes back.
+			m_outstanding_bytes += p.length;
+#if TORRENT_USE_INVARIANT_CHECKS
+			check_invariant();
+#endif
 			return;
 		}
 
