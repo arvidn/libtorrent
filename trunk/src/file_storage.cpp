@@ -425,12 +425,15 @@ namespace libtorrent
 		e.pad_file = (flags & pad_file) != 0;
 		e.hidden_attribute = (flags & attribute_hidden) != 0;
 		e.executable_attribute = (flags & attribute_executable) != 0;
-		e.symlink_attribute = (flags & attribute_symlink) != 0;
-		if (e.symlink_attribute && m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
+		if ((flags & attribute_symlink) && m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
 		{
+			e.symlink_attribute = 1;
 			e.symlink_index = m_symlinks.size();
 			m_symlinks.push_back(symlink_path);
 		}
+		else
+			e.symlink_attribute = 0;
+
 		if (mtime)
 		{
 			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());

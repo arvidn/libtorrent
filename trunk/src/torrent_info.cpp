@@ -369,6 +369,10 @@ namespace libtorrent
 				target.symlink_path = combine_path(target.symlink_path, path_element);
 			}
 		}
+		else
+		{
+			target.symlink_attribute = false;
+		}
 
 		return true;
 	}
@@ -1032,6 +1036,11 @@ namespace libtorrent
 					e.symlink_path = combine_path(e.symlink_path, path_element);
 				}
 			}
+			else
+			{
+				e.symlink_attribute = false;
+			}
+
 			lazy_entry const* fh = info.dict_find_string("sha1");
 			if (fh && fh->string_length() != 20) fh = 0;
 
