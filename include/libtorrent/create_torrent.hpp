@@ -166,11 +166,11 @@ namespace libtorrent
 		// The ``flags`` arguments specifies options for the torrent creation. It can
 		// be any combination of the flags defined by create_torrent::flags_t.
 		// 
-		// ``alignment`` is used when pad files are enabled. This is the size eligible
-		// files are aligned to. The default is the default bittorrent block size of
-		// 16 kiB. It is common to align to the piece size of the torrent.
+		// ``alignment`` is used when pad files are enabled. This is the size
+		// eligible files are aligned to. The default is -1, which means the
+		// piece size of the torrent.
 		create_torrent(file_storage& fs, int piece_size = 0
-			, int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
+			, int pad_file_limit = -1, int flags = optimize, int alignment = -1);
 		create_torrent(torrent_info const& ti);
 
 		// internal
