@@ -156,6 +156,7 @@ void save_resume::handle_alert(alert const* a)
 	save_resume_data_alert const* sr = alert_cast<save_resume_data_alert>(a);
 	save_resume_data_failed_alert const* sf = alert_cast<save_resume_data_failed_alert>(a);
 	metadata_received_alert const* mr = alert_cast<metadata_received_alert>(a);
+	torrent_finished_alert const* tf = alert_cast<torrent_finished_alert>(a);
 	if (ta)
 	{
 		torrent_status st = ta->handle.status(torrent_handle::query_name);
@@ -173,6 +174,11 @@ void save_resume::handle_alert(alert const* a)
 	else if (mr)
 	{
 		mr->handle.save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
+		++m_num_in_flight;
+	}
+	else if (tf)
+	{
+		tf->handle.save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
 		++m_num_in_flight;
 	}
 	else if (td)
