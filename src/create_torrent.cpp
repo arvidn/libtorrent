@@ -530,7 +530,7 @@ namespace libtorrent
 					}
 					if (m_include_symlinks
 						&& i->symlink_attribute
-						&& i->symlink_index != -1)
+						&& i->symlink_index != internal_file_entry::no_symlink_idx)
 					{
 						entry& sympath_e = file_e["symlink path"];
 
