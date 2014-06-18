@@ -681,23 +681,15 @@ namespace libtorrent
 
 	void file_storage::optimize(int pad_file_limit, int alignment)
 	{
-		// it doesn't make any sense to pad files that
-		// are smaller than one block
-		if (pad_file_limit >= 0 && pad_file_limit < 0x4000)
-			pad_file_limit = 0x4000;
-
-		// also, it doesn't make any sense to pad files
-		// that are smaller than the alignment, since they
-		// won't get aligned anyway; they are used as padding
-		if (pad_file_limit >= 0 && pad_file_limit < alignment)
-			pad_file_limit = alignment;
+		if (alignment == -1)
+			alignment = m_piece_length;
 
 		size_type off = 0;
 		int padding_file = 0;
 		for (std::vector<internal_file_entry>::iterator i = m_files.begin();
 			i != m_files.end(); ++i)
 		{
-			if ((off & (alignment-1)) == 0)
+			if ((off % alignment) == 0)
 			{
 				// this file position is aligned, pick the largest
 				// available file to put here
@@ -721,32 +713,38 @@ namespace libtorrent
 				// not piece-aligned and the file size exceeds the
 				// limit, and it's not a padding file itself.
 				// so add a padding file in front of it
-				int pad_size = alignment - (off & (alignment-1));
+				int pad_size = alignment - (off % alignment);
 				
 				// find the largest file that fits in pad_size
 				std::vector<internal_file_entry>::iterator best_match = m_files.end();
-				for (std::vector<internal_file_entry>::iterator j = i+1; j < m_files.end(); ++j)
-				{
-					if (j->size > pad_size) continue;
-					if (best_match == m_files.end() || j->size > best_match->size)
-						best_match = j;
-				}
 
-				if (best_match != m_files.end())
+				// if pad_file_limit is 0, it means all files are padded, there's
+				// no point in trying to find smaller files to use as filling
+				if (pad_file_limit > 0)
 				{
-					// we found one
-					// We cannot have found i, because i->size > pad_file_limit
-					// which is forced to be no less than alignment. We only
-					// look for files <= pad_size, which never is greater than
-					// alignment
-					TORRENT_ASSERT(best_match != i);
-					int index = best_match - m_files.begin();
-					int cur_index = i - m_files.begin();
-					reorder_file(index, cur_index);
-					i = m_files.begin() + cur_index;
-					i->offset = off;
-					off += i->size;
-					continue;
+					for (std::vector<internal_file_entry>::iterator j = i+1; j < m_files.end(); ++j)
+					{
+						if (j->size > pad_size) continue;
+						if (best_match == m_files.end() || j->size > best_match->size)
+							best_match = j;
+					}
+
+					if (best_match != m_files.end())
+					{
+						// we found one
+						// We cannot have found i, because i->size > pad_file_limit
+						// which is forced to be no less than alignment. We only
+						// look for files <= pad_size, which never is greater than
+						// alignment
+						TORRENT_ASSERT(best_match != i);
+						int index = best_match - m_files.begin();
+						int cur_index = i - m_files.begin();
+						reorder_file(index, cur_index);
+						i = m_files.begin() + cur_index;
+						i->offset = off;
+						off += i->size;
+						continue;
+					}
 				}
 
 				// we could not find a file that fits in pad_size
@@ -780,7 +778,7 @@ namespace libtorrent
 
 				reorder_file(index, cur_index);
 
-				TORRENT_ASSERT((off & (alignment-1)) == 0);
+				TORRENT_ASSERT((off % alignment) == 0);
 				continue;
 			}
 			i->offset = off;
