@@ -64,7 +64,9 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 		, stats_alert::alert_type // just to get woken up regularly
 		, save_resume_data_alert::alert_type
 		, save_resume_data_failed_alert::alert_type
-		, metadata_received_alert::alert_type, 0);
+		, metadata_received_alert::alert_type
+		, torrent_finished_alert::alert_type
+		, 0);
 
 	// we can use the save_resume object to reload torrents. There is a
 	// potential race condition when adding torrents. We may add a torrent
