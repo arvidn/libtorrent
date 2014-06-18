@@ -322,8 +322,9 @@ void save_resume::handle_alert(alert const* a)
 		++m_num_in_flight;
 		--num_to_save;
 		++m_cursor;
+
+		m_last_save = time_now();
 	}
-	m_last_save = time_now();
 }
 
 void save_resume::save_all()
