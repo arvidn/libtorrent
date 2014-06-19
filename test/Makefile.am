@@ -179,10 +179,10 @@ test_gzip_SOURCES = test_gzip.cpp
 test_utf8_SOURCES = test_utf8.cpp
 test_socket_io_SOURCES = test_socket_io.cpp
 
-LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
+LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
 #AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
-#AM_LDFLAGS= @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
+AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
 
