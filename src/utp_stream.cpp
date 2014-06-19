@@ -1636,7 +1636,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	h->connection_id = m_send_id;
 	h->timestamp_difference_microseconds = m_reply_micro;
 	h->wnd_size = (std::max)(m_in_buf_size - m_buffered_incoming_bytes
-		- m_receive_buffer_size, 0);
+		- m_receive_buffer_size, boost::int32_t(0));
 	// seq_nr is ignored for ST_STATE packets, so it doesn't
 	// matter that we say this is a sequence number we haven't
 	// actually sent yet
