@@ -1855,7 +1855,7 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	h->timestamp_difference_microseconds = m_reply_micro;
 	h->wnd_size = (std::max)(m_in_buf_size - m_buffered_incoming_bytes
-		- m_receive_buffer_size, 0);
+		- m_receive_buffer_size, boost::int32_t(0));
 	h->ack_nr = m_ack_nr;
 
 	// if this is a FIN packet, override the type
