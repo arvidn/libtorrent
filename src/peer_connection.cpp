@@ -2422,7 +2422,7 @@ namespace libtorrent
 			// blocks exceeds the size of the outstanding queue, assume that
 			// the other end dropped the request.
 			if (m_ses.m_settings.drop_skipped_requests
-				&& qe.skipped > m_desired_queue_size)
+				&& qe.skipped > m_desired_queue_size * 2)
 			{
 				if (m_ses.m_alerts.should_post<request_dropped_alert>())
 					m_ses.m_alerts.post_alert(request_dropped_alert(t->get_handle()
