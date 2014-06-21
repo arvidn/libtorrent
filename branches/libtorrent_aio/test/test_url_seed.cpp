@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,26 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "test.hpp"
 
-int EXPORT run_http_suite(int proxy, char const* protocol
-	, bool test_url_seed, bool chunked_encoding = false, bool test_ban = false
-	, bool keepalive = true, bool test_rename = false);
+#include "test.hpp"
+#include "setup_transfer.hpp"
+#include "web_seed_suite.hpp"
+
+using namespace libtorrent;
+
+const int proxy = libtorrent::proxy_settings::none;
+
+int test_main()
+{
+	for (int keepalive = 0; keepalive < 2; ++keepalive)
+	{
+#ifdef TORRENT_USE_OPENSSL
+		run_http_suite(proxy, "https", 1, 0, 0, keepalive);
+#endif
+		run_http_suite(proxy, "http", 1, 0, 0, keepalive);
+	}
+	run_http_suite(proxy, "http", 1, 0, 0, 1, 1);
+	return 0;
+}
+
 

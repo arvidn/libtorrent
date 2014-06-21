@@ -157,12 +157,15 @@ namespace
 		, {"A~", "Ares"}
 		, {"BB", "BitBuddy"}
 		, {"BC", "BitComet"}
+		, {"BE", "baretorrent"}
 		, {"BF", "Bitflu"}
 		, {"BG", "BTG"}
 		, {"BL", "BitBlinder"}
 		, {"BP", "BitTorrent Pro"}
 		, {"BR", "BitRocket"}
 		, {"BS", "BTSlave"}
+		, {"BT", "BitTorrent"}
+		, {"BU", "BigUp"}
 		, {"BW", "BitWombat"}
 		, {"BX", "BittorrentX"}
 		, {"CD", "Enhanced CTorrent"}
@@ -173,10 +176,12 @@ namespace
 		, {"ES", "electric sheep"}
 		, {"FC", "FileCroc"}
 		, {"FT", "FoxTorrent"}
+		, {"FX", "Freebox BitTorrent"}
 		, {"GS", "GSTorrent"}
 		, {"HK", "Hekate"}
 		, {"HL", "Halite"}
 		, {"HN", "Hydranode"}
+		, {"IL", "iLivid"}
 		, {"KG", "KGet"}
 		, {"KT", "KTorrent"}
 		, {"LC", "LeechCraft"}
@@ -205,12 +210,14 @@ namespace
 		, {"S",  "Shadow"}
 		, {"SB", "Swiftbit"}
 		, {"SD", "Xunlei"}
+		, {"SK", "spark"}
 		, {"SN", "ShareNet"}
 		, {"SS", "SwarmScope"}
 		, {"ST", "SymTorrent"}
 		, {"SZ", "Shareaza"}
 		, {"S~", "Shareaza (beta)"}
 		, {"T",  "BitTornado"}
+		, {"TB", "Torch"}
 		, {"TL", "Tribler"}
 		, {"TN", "Torrent.NET"}
 		, {"TR", "Transmission"}
@@ -223,6 +230,7 @@ namespace
 		, {"VG", "Vagaa"}
 		, {"WT", "BitLet"}
 		, {"WY", "FireTorrent"}
+		, {"XF", "Xfplay"}
 		, {"XL", "Xunlei"}
 		, {"XS", "XSwifter"}
 		, {"XT", "XanTorrent"}

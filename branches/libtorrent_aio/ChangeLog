@@ -28,6 +28,8 @@
 
 1.0 release
 
+	* fix support for web servers not supporting keepalive
+	* support storing save_path in resume data
 	* don't use full allocation on network drives (on windows)
 	* added clear_piece_deadlines() to remove all piece deadlines
 	* improve queuing logic of inactive torrents (dont_count_slow_torrents)
@@ -82,6 +84,9 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+0.16.17 release
+
+	* don't fall back on wildcard port in UPnP
 	* fix local service discovery for magnet links
 	* fix bitfield issue in file_storage
 	* added work-around for MingW issue in file I/O

@@ -536,7 +536,7 @@ namespace libtorrent
 				disconnect(ec, op_getname);
 				return;
 			}
-			if (m_remote.address().is_v4())
+			if (m_remote.address().is_v4() && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
 				m_socket->set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
 #if defined TORRENT_VERBOSE_LOGGING
@@ -1616,7 +1616,7 @@ namespace libtorrent
 			if (index >= int(m_have_piece.size()))
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				peer_log("<== INVALID_ALLOWED_FAST [ %d | s: %d ]"
+				peer_log("<== INVALID_SUGGEST [ %d | s: %d ]"
 					, index, int(m_have_piece.size()));
 #endif
 				return;
@@ -2728,6 +2728,16 @@ namespace libtorrent
 			m_received_in_piece = 0;
 #endif
 			t->add_redundant_bytes(p.length, torrent::piece_unknown);
+
+			// the bytes of the piece we just completed have been deducted from
+			// m_outstanding_bytes as we received it, in incoming_piece_fragment.
+			// however, it now turns out the piece we received wasn't in the
+			// download queue, so we still have the same number of pieces in the
+			// download queue, which is why we need to add the bytes back.
+			m_outstanding_bytes += p.length;
+#if TORRENT_USE_INVARIANT_CHECKS
+			check_invariant();
+#endif
 			return;
 		}
 
@@ -2753,7 +2763,7 @@ namespace libtorrent
 			// blocks exceeds the size of the outstanding queue, assume that
 			// the other end dropped the request.
 			if (m_settings.get_bool(settings_pack::drop_skipped_requests)
-				&& qe.skipped > m_desired_queue_size)
+				&& qe.skipped > m_desired_queue_size * 2)
 			{
 				if (t->alerts().should_post<request_dropped_alert>())
 					t->alerts().post_alert(request_dropped_alert(t->get_handle()
@@ -6444,7 +6454,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_remote.address().is_v4())
+		if (m_remote.address().is_v4() && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code ec;
 			m_socket->set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);

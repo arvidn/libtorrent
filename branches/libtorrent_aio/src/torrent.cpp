@@ -233,6 +233,7 @@ namespace libtorrent
 		, m_last_scrape(0)
 		, m_progress_ppm(0)
 		, m_inactive_counter(0)
+		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
 		if (m_pinned)
 			m_ses.inc_stats_counter(counters::num_pinned_torrents);
@@ -1712,6 +1713,19 @@ namespace libtorrent
 			set_error(errors::torrent_invalid_length, error_file_none);
 			pause();
 			return;
+		}
+
+		// Chicken-and-egg: need to load resume data to get last save_path
+		// before constructing m_owning_storage, but need storage before
+		// loading resume data. So peek ahead in this case.
+		// only do this if the user is willing to have the resume data
+		// settings override the settings set in add_torrent_params
+		if (!m_use_resume_save_path
+			&& m_resume_data
+			&& m_resume_data->entry.type() == lazy_entry::dict_t)
+		{
+			std::string p = m_resume_data->entry.dict_find_string_value("save_path");
+			if (!p.empty()) m_save_path = p;
 		}
 
 		construct_storage();
@@ -6393,6 +6407,12 @@ namespace libtorrent
 		m_last_download = rd.dict_find_int_value("last_download", 0);
 		m_last_upload = rd.dict_find_int_value("last_upload", 0);
 
+		if (!m_use_resume_save_path)
+		{
+			std::string p = rd.dict_find_string_value("save_path");
+			if (!p.empty()) m_save_path = p;
+		}
+
 		m_url = rd.dict_find_string_value("url");
 		m_uuid = rd.dict_find_string_value("uuid");
 		m_source_feed_url = rd.dict_find_string_value("feed");
@@ -6614,6 +6634,8 @@ namespace libtorrent
 		ret["last_scrape"] = m_last_scrape;
 		ret["last_download"] = m_last_download;
 		ret["last_upload"] = m_last_upload;
+
+		ret["save_path"] = m_save_path;
 
 		if (!m_url.empty()) ret["url"] = m_url;
 		if (!m_uuid.empty()) ret["uuid"] = m_uuid;
@@ -8066,6 +8088,8 @@ namespace libtorrent
 
 			m_save_path = save_path;
 #endif
+			m_need_save_resume_data = true;
+
 			if (alerts().should_post<storage_moved_alert>())
 			{
 				alerts().post_alert(storage_moved_alert(get_handle(), m_save_path));
@@ -8084,6 +8108,7 @@ namespace libtorrent
 			if (alerts().should_post<storage_moved_alert>())
 				alerts().post_alert(storage_moved_alert(get_handle(), j->buffer));
 			m_save_path = j->buffer;
+			m_need_save_resume_data = true;
 			if (j->ret == piece_manager::need_full_check)
 				force_recheck();
 		}
@@ -9434,6 +9459,8 @@ namespace libtorrent
 
 	void torrent::maybe_connect_web_seeds()
 	{
+		if (m_abort) return;
+
 		// if we have everything we want we don't need to connect to any web-seed
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
 			&& int(m_connections.size()) < m_max_connections

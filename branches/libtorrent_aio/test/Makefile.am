@@ -54,6 +54,7 @@ test_programs = \
   test_utp                   \
   test_session               \
   test_web_seed              \
+  test_url_seed              \
   test_remap_files           \
   test_gzip                  \
   test_utf8                  \
@@ -192,15 +193,16 @@ enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
+test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_gzip_SOURCES = test_gzip.cpp
 test_utf8_SOURCES = test_utf8.cpp
 test_socket_io_SOURCES = test_socket_io.cpp
 
-LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
+LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
 #AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
-#AM_LDFLAGS= @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
+AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
 

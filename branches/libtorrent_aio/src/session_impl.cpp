@@ -2677,11 +2677,13 @@ retry:
 				m_alerts.post_alert(listen_succeeded_alert(m_listen_interface, listen_succeeded_alert::udp));
 		}
 
-		m_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
+		if (m_settings.get_int(settings_pack::peer_tos) != 0) {
+			m_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
 #if defined TORRENT_VERBOSE_LOGGING
-		session_log(">>> SET_TOS[ udp_socket tos: %x e: %s ]"
-			, m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
+			session_log(">>> SET_TOS[ udp_socket tos: %x e: %s ]"
+				, m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
 #endif
+		}
 		ec.clear();
 
 		set_socket_buffer_size(m_udp_socket, m_settings, ec);
@@ -2720,7 +2722,8 @@ retry:
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
 			if (m_ssl_mapping[0] != -1) m_natpmp->delete_mapping(m_ssl_mapping[0]);
-			m_ssl_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, ssl_port, ssl_port);
+			if (ssl_port > 0) m_ssl_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
+				, ssl_port, ssl_port);
 #endif
 		}
 		if ((mask & 2) && m_upnp.get())
@@ -2729,7 +2732,8 @@ retry:
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
 			if (m_ssl_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_mapping[1]);
-			m_ssl_mapping[1] = m_upnp->add_mapping(upnp::tcp, ssl_port, ssl_port);
+			if (ssl_port > 0) m_ssl_mapping[1] = m_upnp->add_mapping(upnp::tcp
+				, ssl_port, ssl_port);
 #endif
 		}
 	}
