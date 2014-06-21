@@ -1250,8 +1250,7 @@ ret:
 					m_file_created.set_bit(file_index);
 					if (ec)
 					{
-						set_error(combine_path(m_save_path
-							, files().file_path(file_index, m_save_path)), ec);
+						set_error(files().file_path(file_index, m_save_path), ec);
 						return -1;
 					}
 				}
