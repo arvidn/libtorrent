@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,10 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, web_seed_entry& web);
+			, std::string const& url
+			, policy::peer* peerinfo
+			, std::string const& ext_auth
+			, web_seed_entry::headers_t const& ext_headers);
 
 		virtual int type() const { return peer_connection::http_seed_connection; }
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,11 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <boost/version.hpp>
-
-#include "libtorrent/config.hpp"
-#if defined TORRENT_OS2
-#include <pthread.h>
-#endif
 
 #include <boost/bind.hpp>
 
@@ -80,7 +75,7 @@ namespace libtorrent
 				|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
 				|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
 				|| (ip & 0xff000000) == 0x7f000000); // 127.x.x.x
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
 	bool is_loopback(address const& addr)
@@ -91,7 +86,7 @@ namespace libtorrent
 				return addr.to_v4() == address_v4::loopback();
 			else
 				return addr.to_v6() == address_v6::loopback();
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return addr.to_v4() == address_v4::loopback();
 #endif
@@ -105,7 +100,7 @@ namespace libtorrent
 				return addr.to_v4().is_multicast();
 			else
 				return addr.to_v6().is_multicast();
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return addr.to_v4().is_multicast();
 #endif
@@ -124,10 +119,10 @@ namespace libtorrent
 #else
 		return addr.to_v4() == address_v4::any();
 #endif
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
-	bool is_teredo(address const& addr)
+	TORRENT_EXPORT bool is_teredo(address const& addr)
 	{
 #if TORRENT_USE_IPV6
 		TORRENT_TRY {
@@ -135,7 +130,7 @@ namespace libtorrent
 			boost::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
 			address_v6::bytes_type b = addr.to_v6().to_bytes();
 			return memcmp(&b[0], teredo_prefix, 4) == 0;
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return false;
 #endif
@@ -148,7 +143,7 @@ namespace libtorrent
 			error_code ec;
 			address::from_string("::1", ec);
 			return !ec;
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return false;
 #endif

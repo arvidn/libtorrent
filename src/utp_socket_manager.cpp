@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,9 +53,7 @@ namespace libtorrent
 		, m_last_route_update(min_time())
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
-	{
-		memset(m_counters, 0, sizeof(m_counters));
-	}
+	{}
 
 	utp_socket_manager::~utp_socket_manager()
 	{
@@ -73,19 +71,6 @@ namespace libtorrent
 		s.num_connected = 0;
 		s.num_fin_sent = 0;
 		s.num_close_wait = 0;
-
-		s.packet_loss = m_counters[packet_loss];
-		s.timeout = m_counters[timeout];
-		s.packets_in = m_counters[packets_in];
-		s.packets_out = m_counters[packets_out];
-		s.fast_retransmit = m_counters[fast_retransmit];
-		s.packet_resend = m_counters[packet_resend];
-		s.samples_above_target = m_counters[samples_above_target];
-		s.samples_below_target = m_counters[samples_below_target];
-		s.payload_pkts_in = m_counters[payload_pkts_in];
-		s.payload_pkts_out = m_counters[payload_pkts_out];
-		s.invalid_pkts_in = m_counters[invalid_pkts_in];
-		s.redundant_pkts_in = m_counters[redundant_pkts_in];
 
 		for (socket_map_t::const_iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end; ++i)
@@ -150,17 +135,6 @@ namespace libtorrent
 			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 			else mtu = TORRENT_ETHERNET_MTU;
 		}
-
-#if defined __APPLE__
-		// apple has a very strange loopback. It appears you can't
-		// send messages of the reported MTU size, and you don't get
-		// EWOULDBLOCK either.
-		if (is_loopback(addr))
-		{
-			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
-			else mtu = TORRENT_ETHERNET_MTU;
-		}
-#endif
 
 		// clamp the MTU within reasonable bounds
 		if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
@@ -282,8 +256,7 @@ namespace libtorrent
 		return socket_ep;
 	}
 
-	bool utp_socket_manager::incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size)
+	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
@@ -330,7 +303,7 @@ namespace libtorrent
 		if (ph->get_type() == ST_SYN)
 		{
 			// possible SYN flood. Just ignore
-			if (int(m_utp_sockets.size()) > m_sett.connections_limit * 2)
+			if (m_utp_sockets.size() > m_sett.connections_limit * 2)
 				return false;
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
@@ -363,62 +336,6 @@ namespace libtorrent
 		return false;
 	}
 
-	void utp_socket_manager::subscribe_writable(utp_socket_impl* s)
-	{
-		TORRENT_ASSERT(std::find(m_stalled_sockets.begin(), m_stalled_sockets.end()
-			, s) == m_stalled_sockets.end());
-		m_stalled_sockets.push_back(s);
-	}
-
-	void utp_socket_manager::writable()
-	{
-		std::vector<utp_socket_impl*> stalled_sockets;
-		m_stalled_sockets.swap(stalled_sockets);
-		for (std::vector<utp_socket_impl*>::iterator i = stalled_sockets.begin()
-			, end(stalled_sockets.end()); i != end; ++i)
-		{
-			utp_socket_impl* s = *i;
-			utp_writable(s);
-		}
-	}
-
-	void utp_socket_manager::socket_drained()
-	{
-		// flush all deferred acks
-		
-		std::vector<utp_socket_impl*> deferred_acks;
-		m_deferred_acks.swap(deferred_acks);
-		for (std::vector<utp_socket_impl*>::iterator i = deferred_acks.begin()
-			, end(deferred_acks.end()); i != end; ++i)
-		{
-			utp_socket_impl* s = *i;
-			utp_send_ack(s);
-		}
-
-		std::vector<utp_socket_impl*> drained_event;
-		m_drained_event.swap(drained_event);
-		for (std::vector<utp_socket_impl*>::iterator i = drained_event.begin()
-			, end(drained_event.end()); i != end; ++i)
-		{
-			utp_socket_impl* s = *i;
-			utp_socket_drained(s);
-		}
-	}
-
-	void utp_socket_manager::defer_ack(utp_socket_impl* s)
-	{
-		TORRENT_ASSERT(std::find(m_deferred_acks.begin(), m_deferred_acks.end(), s)
-			== m_deferred_acks.end());
-		m_deferred_acks.push_back(s);
-	}
-
-	void utp_socket_manager::subscribe_drained(utp_socket_impl* s)
-	{
-		TORRENT_ASSERT(std::find(m_drained_event.begin(), m_drained_event.end(), s)
-			== m_drained_event.end());
-		m_drained_event.push_back(s);
-	}
-
 	void utp_socket_manager::remove_socket(boost::uint16_t id)
 	{
 		socket_map_t::iterator i = m_utp_sockets.find(id);
@@ -449,13 +366,6 @@ namespace libtorrent
 		m_sock_buf_size = size;
 	}
 
-	void utp_socket_manager::inc_stats_counter(int counter)
-	{
-		TORRENT_ASSERT(counter >= 0);
-		TORRENT_ASSERT(counter < num_counters);
-		++m_counters[counter];
-	}
-
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)
 	{
 		boost::uint16_t send_id = 0;
@@ -468,7 +378,7 @@ namespace libtorrent
 		}
 		else
 		{
-			send_id = random() & 0xffff;
+			send_id = random();
 			recv_id = send_id - 1;
 		}
 		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);

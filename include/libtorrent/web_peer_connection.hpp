@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -84,9 +84,10 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, web_seed_entry& web);
-
-		virtual void on_connected();
+			, std::string const& url
+			, policy::peer* peerinfo
+			, std::string const& ext_auth
+			, web_seed_entry::headers_t const& ext_headers);
 
 		virtual int type() const { return peer_connection::url_seed_connection; }
 
@@ -100,9 +101,7 @@ namespace libtorrent
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual void disconnect(error_code const& ec, int error = 0);
 
-		virtual void write_request(peer_request const& r);
-
-		virtual bool received_invalid_data(int index, bool single_peer);
+		void write_request(peer_request const& r);
 
 	private:
 
@@ -115,19 +114,15 @@ namespace libtorrent
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const;
 
-		void handle_padfile(buffer::const_interval& recv_buffer);
-
 		// this has one entry per http-request
 		// (might be more than the bt requests)
 		std::deque<int> m_file_requests;
 
 		std::string m_url;
-	
-		web_seed_entry& m_web;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
-		// TODO: 1 if we make this be a disk_buffer_holder instead
+		// TODO: if we make this be a disk_buffer_holder instead
 		// we would save a copy sometimes
 		// use allocate_disk_receive_buffer and release_disk_receive_buffer
 		std::vector<char> m_piece;
@@ -154,10 +149,6 @@ namespace libtorrent
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for
 		int m_partial_chunk_header;
-
-		// the number of responses we've received so far on
-		// this connection
-		int m_num_responses;
 	};
 }
 

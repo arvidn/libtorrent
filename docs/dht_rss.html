@@ -37,8 +37,8 @@
     </ul>
     </div>
     <div id="header">
-    <div id="orange"></div>
-    <div id="logo"></div>
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
     </div>
     <div id="main">
 <h1 class="title">BitTorrent extension for DHT RSS feeds</h1>
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>0.16.17</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -75,8 +75,6 @@
 <li><a class="reference internal" href="#rationale" id="id14">rationale</a></li>
 </ul>
 </div>
-<p>This proposal has been superseded by the <a class="reference external" href="dht_store.html">dht_put</a> feature. This may
-still be implemented on top of that.</p>
 <p>This is a proposal for an extension to the BitTorrent DHT to allow
 for decentralized RSS feed like functionality.</p>
 <p>The intention is to allow the creation of repositories of torrents
@@ -94,6 +92,8 @@ key against the target ID it is stored under, as well as the validity of
 the signatures of each individual item.</p>
 <p>As with normal DHT announces, the write-token mechanism is used to
 prevent IP spoof attacks.</p>
+<p>There are two new proposed messages, <tt class="docutils literal">announce_item</tt> and <tt class="docutils literal">get_item</tt>.
+Every valid item that is announced, should be stored.</p>
 <div class="section" id="terminology">
 <h1>terminology</h1>
 <p>In this document, a <em>storage node</em> refers to the node in the DHT to which
@@ -402,6 +402,17 @@ calculating the target ID.</p>
 <a class="reference external" href="http://cr.yp.to/">http://cr.yp.to/</a>, curve25519 is free from patent claims and there are open implementations
 in both C and Java.</p>
 </div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
 </div>
 </body>
 </html>

@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SMART_BAN_HPP_INCLUDED
 #define TORRENT_SMART_BAN_HPP_INCLUDED
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -50,17 +48,8 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-
-	// constructor function for the smart ban extension. The extension keeps
-	// track of the data peers have sent us for failing pieces and once the
-	// piece completes and passes the hash check bans the peers that turned
-	// out to have sent corrupt data.
-	// This function can either be passed in the add_torrent_params::extensions
-	// field, or via torrent_handle::add_extension().
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent*, void*);
 }
-
-#endif // TORRENT_DISABLE_EXTENSIONS
 
 #endif // TORRENT_SMART_BAN_HPP_INCLUDED
 

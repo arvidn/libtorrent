@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-class natpmp : public intrusive_ptr_base<natpmp>
+class TORRENT_EXPORT natpmp : public intrusive_ptr_base<natpmp>
 {
 public:
 	natpmp(io_service& ios, address const& listen_interface

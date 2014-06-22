@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,31 +44,24 @@ namespace libtorrent
 	{
 		if (!handle.is_valid()) return "";
 
-		std::string ret;
+		char ret[2048];
 		sha1_hash const& ih = handle.info_hash();
-		ret += "magnet:?xt=urn:btih:";
-		ret += to_hex(ih.to_string());
+		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
+			, base32encode(std::string((char const*)&ih[0], 20)).c_str());
 
-		torrent_status st = handle.status(torrent_handle::query_name);
-		if (!st.name.empty())
-		{
-			ret += "&dn=";
-			ret += escape_string(st.name.c_str(), st.name.length());
-		}
+		std::string name = handle.name();
+
+		if (!name.empty() && sizeof(ret) - 5 > num_chars)
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
+				, escape_string(name.c_str(), name.length()).c_str());
 
 		std::vector<announce_entry> const& tr = handle.trackers();
+
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
-			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), i->url.length());
-		}
-
-		std::set<std::string> seeds = handle.url_seeds();
-		for (std::set<std::string>::iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
-		{
-			ret += "&ws=";
-			ret += escape_string(i->c_str(), i->length());
+			if (num_chars >= sizeof(ret)) break;
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
+				, escape_string(i->url.c_str(), i->url.length()).c_str());
 		}
 
 		return ret;
@@ -76,35 +69,23 @@ namespace libtorrent
 
 	std::string make_magnet_uri(torrent_info const& info)
 	{
-		std::string ret;
+		char ret[2048];
 		sha1_hash const& ih = info.info_hash();
-		ret += "magnet:?xt=urn:btih:";
-		ret += to_hex(ih.to_string());
+		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
+			, base32encode(std::string((char*)&ih[0], 20)).c_str());
 
 		std::string const& name = info.name();
 
-		if (!name.empty())
-		{
-			ret += "&dn=";
-			ret += escape_string(name.c_str(), name.length());
-		}
+		if (!name.empty() && sizeof(ret) - 5 > num_chars)
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
+				, escape_string(name.c_str(), name.length()).c_str());
 
 		std::vector<announce_entry> const& tr = info.trackers();
-
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
-			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), i->url.length());
-		}
-
-		std::vector<web_seed_entry> const& seeds = info.web_seeds();
-		for (std::vector<web_seed_entry>::const_iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
-		{
-			if (i->type != web_seed_entry::url_seed) continue;
-
-			ret += "&ws=";
-			ret += escape_string(i->url.c_str(), i->url.length());
+			if (num_chars >= sizeof(ret)) break;
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
+				, escape_string(i->url.c_str(), i->url.length()).c_str());
 		}
 
 		return ret;
@@ -186,22 +167,7 @@ namespace libtorrent
 			pos += 4;
 			url = uri.substr(pos, uri.find('&', pos) - pos);
 		}
-
-		// parse web seeds out of the magnet link
-		pos = std::string::npos;
-		url = url_has_argument(uri, "ws", &pos);
-		while (pos != std::string::npos)
-		{
-			error_code e;
-			url = unescape_string(url, e);
-			if (e) continue;
-			p.url_seeds.push_back(url);
-			pos = uri.find("&ws=", pos);
-			if (pos == std::string::npos) break;
-			pos += 4;
-			url = uri.substr(pos, uri.find('&', pos) - pos);
-		}
-
+	
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty())
 		{

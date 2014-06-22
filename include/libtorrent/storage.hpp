@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,90 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/bitfield.hpp"
 
-// OVERVIEW
-//
-// libtorrent provides a customization point for storage of data. By default,
-// (``default_storage``) downloaded files are saved to disk according with the
-// general conventions of bittorrent clients, mimicing the original file layout
-// when the torrent was created. The libtorrent user may define a custom
-// storage to store piece data in a different way.
-// 
-// A custom storage implementation must derive from and implement the
-// storage_interface. You must also provide a function that constructs the
-// custom storage object and provide this function to the add_torrent() call
-// via add_torrent_params. Either passed in to the constructor or by setting
-// the add_torrent_params::storage field.
-// 
-// This is an example storage implementation that stores all pieces in a
-// ``std::map``, i.e. in RAM. It's not necessarily very useful in practice, but
-// illustrates the basics of implementing a custom storage.
-//
-//::
-//
-//	struct temp_storage : storage_interface
-//	{
-//		temp_storage(file_storage const& fs) : m_files(fs) {}
-//		void set_file_priority(std::vector<boost::uint8_t> const& prio) {}
-//		virtual bool initialize(bool allocate_files) { return false; }
-//		virtual bool has_any_file() { return false; }
-//		virtual int read(char* buf, int slot, int offset, int size)
-//		{
-//			std::map<int, std::vector<char> >::const_iterator i = m_file_data.find(slot);
-//			if (i == m_file_data.end()) return 0;
-//			int available = i->second.size() - offset;
-//			if (available <= 0) return 0;
-//			if (available > size) available = size;
-//			memcpy(buf, &i->second[offset], available);
-//			return available;
-//		}
-//		virtual int write(const char* buf, int slot, int offset, int size)
-//		{
-//			std::vector<char>& data = m_file_data[slot];
-//			if (data.size() < offset + size) data.resize(offset + size);
-//			std::memcpy(&data[offset], buf, size);
-//			return size;
-//		}
-//		virtual bool rename_file(int file, std::string const& new_name)
-//		{ assert(false); return false; }
-//		virtual bool move_storage(std::string const& save_path) { return false; }
-//		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
-//		virtual bool write_resume_data(entry& rd) const { return false; }
-//		virtual bool move_slot(int src_slot, int dst_slot) { assert(false); return false; }
-//		virtual bool swap_slots(int slot1, int slot2) { assert(false); return false; }
-//		virtual bool swap_slots3(int slot1, int slot2, int slot3) { assert(false); return false; }
-//		virtual size_type physical_offset(int slot, int offset)
-//		{ return slot * m_files.piece_length() + offset; };
-//		virtual sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size)
-//		{
-//			int left = piece_size - ph.offset;
-//			assert(left >= 0);
-//			if (left > 0)
-//			{
-//				std::vector<char>& data = m_file_data[slot];
-//				// if there are padding files, those blocks will be considered
-//				// completed even though they haven't been written to the storage.
-//				// in this case, just extend the piece buffer to its full size
-//				// and fill it with zeroes.
-//				if (data.size() < piece_size) data.resize(piece_size, 0);
-//				ph.h.update(&data[ph.offset], left);
-//			}
-//			return ph.h.final();
-//		}
-//		virtual bool release_files() { return false; }
-//		virtual bool delete_files() { return false; }
-//	
-//		std::map<int, std::vector<char> > m_file_data;
-//		file_storage m_files;
-//	};
-//
-//	storage_interface* temp_storage_constructor(
-//		file_storage const& fs, file_storage const* mapped
-//		, std::string const& path, file_pool& fp
-//		, std::vector<boost::uint8_t> const& prio)
-//	{
-//		return new temp_storage(fs);
-//	}
-
 namespace libtorrent
 {
 	class session;
@@ -166,7 +82,15 @@ namespace libtorrent
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
 		, std::string* error = 0);
-
+/*
+	struct TORRENT_EXTRA_EXPORT file_allocation_failed: std::exception
+	{
+		file_allocation_failed(const char* error_msg): m_msg(error_msg) {}
+		virtual const char* what() const throw() { return m_msg.c_str(); }
+		virtual ~file_allocation_failed() throw() {}
+		std::string m_msg;
+	};
+*/
 	struct TORRENT_EXTRA_EXPORT partial_hash
 	{
 		partial_hash(): offset(0) {}
@@ -176,264 +100,96 @@ namespace libtorrent
 		hasher h;
 	};
 
-	// The storage interface is a pure virtual class that can be implemented to
-	// customize how and where data for a torrent is stored. The default storage
-	// implementation uses regular files in the filesystem, mapping the files in
-	// the torrent in the way one would assume a torrent is saved to disk.
-	// Implementing your own storage interface makes it possible to store all
-	// data in RAM, or in some optimized order on disk (the order the pieces are
-	// received for instance), or saving multifile torrents in a single file in
-	// order to be able to take advantage of optimized disk-I/O.
-	// 
-	// It is also possible to write a thin class that uses the default storage
-	// but modifies some particular behavior, for instance encrypting the data
-	// before it's written to disk, and decrypting it when it's read again.
-	// 
-	// The storage interface is based on slots, each slot is 'piece_size' number
-	// of bytes. All access is done by writing and reading whole or partial
-	// slots. One slot is one piece in the torrent, but the data in the slot
-	// does not necessarily correspond to the piece with the same index (in
-	// compact allocation mode it won't).
-	// 
-	// libtorrent comes with two built-in storage implementations;
-	// ``default_storage`` and ``disabled_storage``. Their constructor functions
-	// are called default_storage_constructor() and
-	// ``disabled_storage_constructor`` respectively. The disabled storage does
-	// just what it sounds like. It throws away data that's written, and it
-	// reads garbage. It's useful mostly for benchmarking and profiling purpose.
-	//
 	struct TORRENT_EXPORT storage_interface
 	{
-		// hidden
 		storage_interface(): m_disk_pool(0), m_settings(0) {}
-
-
-		// This function is called when the storage is to be initialized. The
-		// default storage will create directories and empty files at this point.
-		// If ``allocate_files`` is true, it will also ``ftruncate`` all files to
-		// their target size.
-		//
-		// Returning ``true`` indicates an error occurred.
+		// create directories and set file sizes
+		// if allocate_files is true. 
+		// allocate_files is true if allocation mode
+		// is set to full and sparse files are supported
+		// false return value indicates an error
 		virtual bool initialize(bool allocate_files) = 0;
 
-		// This function is called when first checking (or re-checking) the
-		// storage for a torrent. It should return true if any of the files that
-		// is used in this storage exists on disk. If so, the storage will be
-		// checked for existing pieces before starting the download.
 		virtual bool has_any_file() = 0;
 
-
-		// change the priorities of files.
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio) = 0;
-
-		// These functions should read or write the data in or to the given
-		// ``slot`` at the given ``offset``. It should read or write ``num_bufs``
-		// buffers sequentially, where the size of each buffer is specified in
-		// the buffer array ``bufs``. The file::iovec_t type has the following
-		// members::
-		// 
-		//	struct iovec_t { void* iov_base; size_t iov_len; };
-		// 
-		// The return value is the number of bytes actually read or written, or
-		// -1 on failure. If it returns -1, the error code is expected to be set
-		// to
-		// 
-		// Every buffer in ``bufs`` can be assumed to be page aligned and be of a
-		// page aligned size, except for the last buffer of the torrent. The
-		// allocated buffer can be assumed to fit a fully page aligned number of
-		// bytes though. This is useful when reading and writing the last piece
-		// of a file in unbuffered mode.
-		// 
-		// The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but
-		// there are rare exceptions when it's not. Specifically if the read
-		// cache is disabled/or full and a client requests unaligned data, or the
-		// file itself is not aligned in the torrent. Most clients request
-		// aligned data.
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 
-		// This function is called when a read job is queued. It gives the
-		// storage wrapper an opportunity to hint the operating system about this
-		// coming read. For instance, the storage may call
-		// ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
-		virtual void hint_read(int, int, int) {}
-
+		virtual void hint_read(int slot, int offset, int len) {}
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 
 		// negative return value indicates an error
 		virtual int write(const char* buf, int slot, int offset, int size) = 0;
 
-		// returns the offset on the physical storage medium for the
-		// byte at offset ``offset`` in slot ``slot``.
 		virtual size_type physical_offset(int slot, int offset) = 0;
 
-		// This function is optional. It is supposed to return the first piece,
-		// starting at ``start`` that is fully contained within a data-region on
-		// disk (i.e. non-sparse region). The purpose of this is to skip parts of
-		// files that can be known to contain zeros when checking files.
+		// returns the end of the sparse region the slot 'start'
+		// resides in i.e. the next slot with content. If start
+		// is not in a sparse region, start itself is returned
 		virtual int sparse_end(int start) const { return start; }
 
-		// This function should move all the files belonging to the storage to
-		// the new save_path. The default storage moves the single file or the
-		// directory of the torrent.
-		// 
-		// Before moving the files, any open file handles may have to be closed,
-		// like ``release_files()``.
-		// 
-		// returns one of:
-		// | no_error = 0
-		// | need_full_check = -1
-		// | fatal_disk_error = -2
-		// | file_exist = -4
-		virtual int move_storage(std::string const& save_path, int flags) = 0;
+		// non-zero return value indicates an error
+		virtual bool move_storage(std::string const& save_path) = 0;
 
-		// This function should verify the resume data ``rd`` with the files
-		// on disk. If the resume data seems to be up-to-date, return true. If
-		// not, set ``error`` to a description of what mismatched and return false.
-		//
-		// The default storage may compare file sizes and time stamps of the files.
-		//
-		// Returning ``false`` indicates an error occurred.
+		// verify storage dependent fast resume entries
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
 
-		// This function should fill in resume data, the current state of the
-		// storage, in ``rd``. The default storage adds file timestamps and
-		// sizes.
-		// 
-		// Returning ``true`` indicates an error occurred.
+		// write storage dependent fast resume entries
 		virtual bool write_resume_data(entry& rd) const = 0;
 
-		// This function should copy or move the data in slot ``src_slot`` to
-		// the slot ``dst_slot``. This is only used in compact mode.
-		// 
-		// If the storage caches slots, this could be implemented more
-		// efficient than reading and writing the data.
-		// 
-		// Returning ``true`` indicates an error occurred.
+		// moves (or copies) the content in src_slot to dst_slot
 		virtual bool move_slot(int src_slot, int dst_slot) = 0;
 
-		// This function should swap the data in ``slot1`` and ``slot2``. The
-		// default storage uses a scratch buffer to read the data into, then
-		// moving the other slot and finally writing back the temporary slot's
-		// data
-		// 
-		// This is only used in compact mode.
-		// 
-		// Returning ``true`` indicates an error occurred.
+		// swaps the data in slot1 and slot2
 		virtual bool swap_slots(int slot1, int slot2) = 0;
 
-		// This function should do a 3-way swap, or shift of the slots. ``slot1``
-		// should move to ``slot2``, which should be moved to ``slot3`` which in
-		// turn should be moved to ``slot1``.
-		// 
-		// This is only used in compact mode.
-		// 
-		// Returning ``true`` indicates an error occurred.
+		// swaps the puts the data in slot1 in slot2, the data in slot2
+		// in slot3 and the data in slot3 in slot1
 		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
 
-		// This function should release all the file handles that it keeps open to files
-		// belonging to this storage. The default implementation just calls
-		// ``file_pool::release_files(this)``.
-		// 
-		// Returning ``true`` indicates an error occurred.
+		// this will close all open files that are opened for
+		// writing. This is called when a torrent has finished
+		// downloading.
+		// non-zero return value indicates an error
 		virtual bool release_files() = 0;
 
-		// Rename file with index ``file`` to the thame ``new_name``. If there is an error,
-		// ``true`` should be returned.
+		// this will rename the file specified by index.
 		virtual bool rename_file(int index, std::string const& new_filename) = 0;
 
-		// This function should delete all files and directories belonging to
-		// this storage.
-		// 
-		// Returning ``true`` indicates an error occurred.
-		// 
-		// The ``disk_buffer_pool`` is used to allocate and free disk buffers. It
-		// has the following members::
-		//
-		//	struct disk_buffer_pool : boost::noncopyable
-		//	{
-		//		char* allocate_buffer(char const* category);
-		//		void free_buffer(char* buf);
-		//
-		//		char* allocate_buffers(int blocks, char const* category);
-		//		void free_buffers(char* buf, int blocks);
-		//
-		//		int block_size() const { return m_block_size; }
-		//
-		//		void release_memory();
-		//	};
+		// this will close all open files and delete them
+		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// This function is called each time a file is completely downloaded. The
-		// storage implementation can perform last operations on a file. The file
-		// will not be opened for writing after this.
-		//
-		//	``index`` is the index of the file that completed.
-		//	
-		// On windows the default storage implementation clears the sparse file
-		// flag on the specified file.
-		virtual void finalize_file(int) {}
+		virtual void finalize_file(int file) {}
 #endif
 
-		// access global disk_buffer_pool, for allocating and freeing disk buffers
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
-
-		// access global session_settings
 		session_settings const& settings() const { return *m_settings; }
 
-		// called by the storage implementation to set it into an
-		// error state. Typically whenever a critical file operation
-		// fails.
 		void set_error(std::string const& file, error_code const& ec) const;
 
-		// returns the currently set error code and file path associated with it,
-		// if set.
 		error_code const& error() const { return m_error; }
 		std::string const& error_file() const { return m_error_file; }
-
-		// reset the error state to allow continuing reading and writing
-		// to the storage
 		virtual void clear_error() { m_error = error_code(); m_error_file.resize(0); }
 
-		// hidden
 		mutable error_code m_error;
 		mutable std::string m_error_file;
 
-		// hidden
 		virtual ~storage_interface() {}
 
-		// hidden
 		disk_buffer_pool* m_disk_pool;
 		session_settings* m_settings;
 	};
 
-	// The default implementation of storage_interface. Behaves as a normal
-	// bittorrent client. It is possible to derive from this class in order to
-	// override some of its behavior, when implementing a custom storage.
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
 	public:
-		// constructs the default_storage based on the give file_storage (fs).
-		// ``mapped`` is an optional argument (it may be NULL). If non-NULL it
-		// represents the file mappsing that have been made to the torrent before
-		// adding it. That's where files are supposed to be saved and looked for
-		// on disk. ``save_path`` is the root save folder for this torrent.
-		// ``file_pool`` is the cache of file handles that the storage will use.
-		// All files it opens will ask the file_pool to open them. ``file_prio``
-		// is a vector indicating the priority of files on startup. It may be
-		// an empty vector. Any file whose index is not represented by the vector
-		// (because the vector is too short) are assumed to have priority 1.
-		// this is used to treat files with priority 0 slightly differently.
-		default_storage(file_storage const& fs, file_storage const* mapped
-			, std::string const& path, file_pool& fp
-			, std::vector<boost::uint8_t> const& file_prio);
-
-		// hidden
+		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
+			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio);
 		~default_storage();
 
-		void set_file_priority(std::vector<boost::uint8_t> const& prio);
 #ifndef TORRENT_NO_DEPRECATE
 		void finalize_file(int file);
 #endif
@@ -442,7 +198,7 @@ namespace libtorrent
 		bool release_files();
 		bool delete_files();
 		bool initialize(bool allocate_files);
-		int move_storage(std::string const& save_path, int flags);
+		bool move_storage(std::string const& save_path);
 		int read(char* buf, int slot, int offset, int size);
 		int write(char const* buf, int slot, int offset, int size);
 		int sparse_end(int start) const;
@@ -455,12 +211,6 @@ namespace libtorrent
 		bool swap_slots3(int slot1, int slot2, int slot3);
 		bool verify_resume_data(lazy_entry const& rd, error_code& error);
 		bool write_resume_data(entry& rd) const;
-
-		// if the files in this storage are mapped, returns the mapped
-		// file_storage, otherwise returns the original file_storage object.
-		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
-
-	private:
 
 		// this identifies a read or write operation
 		// so that default_storage::readwritev() knows what to
@@ -485,11 +235,13 @@ namespace libtorrent
 		size_type write_unaligned(boost::intrusive_ptr<file> const& file_handle
 			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
 
+		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
+
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::intrusive_ptr<file> open_file(int file, int mode
+		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
 			, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
@@ -522,46 +274,24 @@ namespace libtorrent
 	{
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
-		void set_file_priority(std::vector<boost::uint8_t> const& prio) {}
 		bool has_any_file() { return false; }
-		bool rename_file(int, std::string const&) { return false; }
+		bool rename_file(int index, std::string const& new_filename) { return false; }
 		bool release_files() { return false; }
 		bool delete_files() { return false; }
-		bool initialize(bool) { return false; }
-		int move_storage(std::string const&, int) { return 0; }
-		int read(char*, int, int, int size) { return size; }
-		int write(char const*, int, int, int size) { return size; }
-		size_type physical_offset(int, int) { return 0; }
+		bool initialize(bool allocate_files) { return false; }
+		bool move_storage(std::string const& save_path) { return true; }
+		int read(char* buf, int slot, int offset, int size) { return size; }
+		int write(char const* buf, int slot, int offset, int size) { return size; }
+		size_type physical_offset(int slot, int offset) { return 0; }
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
 		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, int flags = file::random_access);
-		bool move_slot(int, int) { return false; }
-		bool swap_slots(int, int) { return false; }
-		bool swap_slots3(int, int, int) { return false; }
-		bool verify_resume_data(lazy_entry const&, error_code&) { return false; }
-		bool write_resume_data(entry&) const { return false; }
+		bool move_slot(int src_slot, int dst_slot) { return false; }
+		bool swap_slots(int slot1, int slot2) { return false; }
+		bool swap_slots3(int slot1, int slot2, int slot3) { return false; }
+		bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
+		bool write_resume_data(entry& rd) const { return false; }
 
 		int m_piece_size;
-	};
-
-	// flags for async_move_storage
-	enum move_flags_t
-	{
-		// replace any files in the destination when copying
-		// or moving the storage
-		always_replace_files,
-
-		// if any files that we want to copy exist in the destination
-		// exist, fail the whole operation and don't perform
-		// any copy or move. There is an inherent race condition
-		// in this mode. The files are checked for existence before
-		// the operation starts. In between the check and performing
-		// the copy, the destination files may be created, in which
-		// case they are replaced.
-		fail_if_exist,
-
-		// if any file exist in the target, take those files instead
-		// of the ones we may have in the source.
-		dont_replace,
 	};
 
 	struct disk_io_thread;
@@ -634,11 +364,7 @@ namespace libtorrent
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
 
-		void async_move_storage(std::string const& p, int flags
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void async_set_file_priority(
-			std::vector<boost::uint8_t> const& prios
+		void async_move_storage(std::string const& p
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_save_resume_data(
@@ -650,8 +376,7 @@ namespace libtorrent
 			no_error = 0,
 			need_full_check = -1,
 			fatal_disk_error = -2,
-			disk_check_aborted = -3,
-			file_exist = -4,
+			disk_check_aborted = -3
 		};
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }
@@ -739,17 +464,15 @@ namespace libtorrent
 		int delete_files_impl() { return m_storage->delete_files(); }
 		int rename_file_impl(int index, std::string const& new_filename)
 		{ return m_storage->rename_file(index, new_filename); }
-		void set_file_priority_impl(std::vector<boost::uint8_t> const& p)
-		{ m_storage->set_file_priority(p); }
 
-		int move_storage_impl(std::string const& save_path, int flags);
+		int move_storage_impl(std::string const& save_path);
 
 		int allocate_slot_for_piece(int piece_index);
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 		void check_invariant() const;
-#endif
 #ifdef TORRENT_STORAGE_DEBUG
 		void debug_log() const;
+#endif
 #endif
 		boost::intrusive_ptr<torrent_info const> m_info;
 		file_storage const& m_files;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,17 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/bencode.hpp"
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include <string>
 
 namespace libtorrent
 {
-	TORRENT_EXTRA_EXPORT std::string print_address(address const& addr);
-	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT std::string print_endpoint(udp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT std::string address_to_bytes(address const& a);
-	// internal 
+	TORRENT_EXPORT std::string print_address(address const& addr);
+	TORRENT_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
+	TORRENT_EXPORT std::string print_endpoint(udp::endpoint const& ep);
+	TORRENT_EXPORT std::string address_to_bytes(address const& a);
 	TORRENT_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT void hash_address(address const& ip, sha1_hash& h);
 
@@ -139,29 +137,9 @@ namespace libtorrent
 #endif
 			}
 		}
+
 	}
 
-	template <class EndpointType>
-	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)
-	{
-		using namespace libtorrent;
-		if (n->type() != entry::list_t) return;
-		entry::list_type const& contacts = n->list();
-		for (entry::list_type::const_iterator i = contacts.begin()
-			, end(contacts.end()); i != end; ++i)
-		{
-			if (i->type() != entry::string_t) return;
-			std::string const& p = i->string();
-			if (p.size() < 6) continue;
-			std::string::const_iterator in = p.begin();
-			if (p.size() == 6)
-				epl.push_back(detail::read_v4_endpoint<EndpointType>(in));
-#if TORRENT_USE_IPV6
-			else if (p.size() == 18)
-				epl.push_back(detail::read_v6_endpoint<EndpointType>(in));
-#endif
-		}
-	}
 
 }
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2005-2014, Arvid Norberg
+Copyright (c) 2005, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-// hidden
 inline bool operator<=(address const& lhs
 	, address const& rhs)
 {
@@ -260,42 +259,16 @@ namespace detail
 
 }
 
-// The ``ip_filter`` class is a set of rules that uniquely categorizes all
-// ip addresses as allowed or disallowed. The default constructor creates
-// a single rule that allows all addresses (0.0.0.0 - 255.255.255.255 for
-// the IPv4 range, and the equivalent range covering all addresses for the
-// IPv6 range).
-//
-// A default constructed ip_filter does not filter any address.
 struct TORRENT_EXPORT ip_filter
 {
-	// the flags defined for an IP range
 	enum access_flags
 	{
-		// indicates that IPs in this range should not be connected
-		// to nor accepted as incoming connections
 		blocked = 1
 	};
 
-	// Adds a rule to the filter. ``first`` and ``last`` defines a range of
-	// ip addresses that will be marked with the given flags. The ``flags``
-	// can currently be 0, which means allowed, or ``ip_filter::blocked``, which
-	// means disallowed.
-	// 
-	// precondition:
-	// ``first.is_v4() == last.is_v4() && first.is_v6() == last.is_v6()``
-	// 
-	// postcondition:
-	// ``access(x) == flags`` for every ``x`` in the range [``first``, ``last``]
-	// 
-	// This means that in a case of overlapping ranges, the last one applied takes
-	// precedence.
+	// both addresses MUST be of the same type (i.e. both must
+	// be either IPv4 or both must be IPv6)
 	void add_rule(address first, address last, int flags);
-
-	// Returns the access permissions for the given address (``addr``). The permission
-	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
-	// is O(``log`` n), where n is the minimum number of non-overlapping ranges to describe
-	// the current filter.
 	int access(address const& addr) const;
 
 #if TORRENT_USE_IPV6
@@ -305,13 +278,6 @@ struct TORRENT_EXPORT ip_filter
 	typedef std::vector<ip_range<address_v4> > filter_tuple_t;
 #endif
 	
-	// This function will return the current state of the filter in the minimum number of
-	// ranges possible. They are sorted from ranges in low addresses to high addresses. Each
-	// entry in the returned vector is a range with the access control specified in its
-	// ``flags`` field.
-	//
-	// The return value is a tuple containing two range-lists. One for IPv4 addresses
-	// and one for IPv6 addresses.
 	filter_tuple_t export_filter() const;
 
 //	void print() const;
@@ -324,30 +290,16 @@ private:
 #endif
 };
 
-// the port filter maps non-overlapping port ranges to flags. This
-// is primarily used to indicate whether a range of ports should
-// be connected to or not. The default is to have the full port
-// range (0-65535) set to flag 0.
 class TORRENT_EXPORT port_filter
 {
 public:
 
-	// the defined flags for a port range
 	enum access_flags
 	{
-		// this flag indicates that destination ports in the
-		// range should not be connected to
 		blocked = 1
 	};
 
-	// set the flags for the specified port range (``first``, ``last``) to
-	// ``flags`` overwriting any existing rule for those ports. The range
-	// is inclusive, i.e. the port ``last`` also has the flag set on it.
 	void add_rule(boost::uint16_t first, boost::uint16_t last, int flags);
-
-	// test the specified port (``port``) for whether it is blocked
-	// or not. The returned value is the flags set for this port.
-	// see acces_flags.
 	int access(boost::uint16_t port) const;
 
 private:

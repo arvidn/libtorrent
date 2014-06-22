@@ -30,13 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "test.hpp" // for EXPORT
-
 // returns the port the DHT is running on
-int EXPORT start_dht();
+int start_dht();
 
 // the number of DHT messages received
-int EXPORT num_dht_hits();
+int num_dht_hits();
 
-void EXPORT stop_dht();
+void stop_dht();
 

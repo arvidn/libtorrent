@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 
 #include <boost/function/function1.hpp>
-#include <boost/function/function4.hpp>
+#include <boost/function/function3.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <set>
@@ -58,42 +58,36 @@ namespace libtorrent
 
 	namespace upnp_errors
 	{
-		// error codes for the upnp_error_category. They hold error codes
-		// returned by UPnP routers when mapping ports
 		enum error_code_enum
 		{
-			// No error
 			no_error = 0,
-			// One of the arguments in the request is invalid
 			invalid_argument = 402,
-			// The request failed
 			action_failed = 501,
-			// The specified value does not exist in the array
 			value_not_in_array = 714,
-			// The source IP address cannot be wild-carded, but
-			// must be fully specified
 			source_ip_cannot_be_wildcarded = 715,
-			// The external port cannot be wildcarded, but must
-			// be specified
 			external_port_cannot_be_wildcarded = 716,
-			// The port mapping entry specified conflicts with a
-			// mapping assigned previously to another client
 			port_mapping_conflict = 718,
-			// Internal and external port value must be the same
 			internal_port_must_match_external = 724,
-			// The NAT implementation only supports permanent
-			// lease times on port mappings
 			only_permanent_leases_supported = 725,
-			// RemoteHost must be a wildcard and cannot be a
-			// specific IP addres or DNS name
 			remote_host_must_be_wildcard = 726,
-			// ExternalPort must be a wildcard and cannot be a
-			// specific port
 			external_port_must_be_wildcard = 727
 		};
 	}
 
-	TORRENT_EXPORT boost::system::error_category& get_upnp_category();
+#if BOOST_VERSION < 103500
+	extern asio::error::error_category upnp_category;
+#else
+
+	struct TORRENT_EXPORT upnp_error_category : boost::system::error_category
+	{
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
+		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+	extern TORRENT_EXPORT upnp_error_category upnp_category;
+#endif
 
 // int: port-mapping index
 // address: external address as queried from router
@@ -105,8 +99,7 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-// TODO: support using the windows API for UPnP operations as well
-class TORRENT_EXTRA_EXPORT upnp : public intrusive_ptr_base<upnp>
+class TORRENT_EXPORT upnp : public intrusive_ptr_base<upnp>
 {
 public:
 	upnp(io_service& ios, connection_queue& cc
@@ -118,37 +111,13 @@ public:
 	void* drain_state();
 
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
-
-	// Attempts to add a port mapping for the specified protocol. Valid protocols are
-	// ``upnp::tcp`` and ``upnp::udp`` for the UPnP class and ``natpmp::tcp`` and
-	// ``natpmp::udp`` for the NAT-PMP class.
-	// 
-	// ``external_port`` is the port on the external address that will be mapped. This
-	// is a hint, you are not guaranteed that this port will be available, and it may
-	// end up being something else. In the portmap_alert_ notification, the actual
-	// external port is reported.
-	// 
-	// ``local_port`` is the port in the local machine that the mapping should forward
-	// to.
-	// 
-	// The return value is an index that identifies this port mapping. This is used
-	// to refer to mappings that fails or succeeds in the portmap_error_alert_ and
-	// portmap_alert_ respectively. If The mapping fails immediately, the return value
-	// is -1, which means failure. There will not be any error alert notification for
-	// mappings that fail with a -1 return value.
 	int add_mapping(protocol_type p, int external_port, int local_port);
-
-	// This function removes a port mapping. ``mapping_index`` is the index that refers
-	// to the mapping you want to remove, which was returned from add_mapping().
 	void delete_mapping(int mapping_index);
-
 	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
 
 	void discover_device();
 	void close();
 
-	// This is only available for UPnP routers. If the model is advertized by
-	// the router, it can be queried through this function.
 	std::string router_model()
 	{
 		mutex::scoped_lock l(m_mutex);
@@ -157,8 +126,6 @@ public:
 
 private:
 
-	void map_timer(error_code const& ec);
-	void try_map_upnp(mutex::scoped_lock& l, bool timer = false);
 	void discover_device_impl(mutex::scoped_lock& l);
 	static address_v4 upnp_multicast_address;
 	static udp::endpoint upnp_multicast_endpoint;
@@ -255,14 +222,13 @@ private:
 			, lease_duration(default_lease_time)
 			, supports_specific_external(true)
 			, disabled(false)
-			, non_router(false)
 		{
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			magic = 1337;
 #endif
 		}
 
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		~rootdevice()
 		{
 			TORRENT_ASSERT(magic == 1337);
@@ -296,16 +262,9 @@ private:
 		
 		bool disabled;
 
-		// this is true if the IP of this device is not
-		// one of our default routes. i.e. it may be someone
-		// else's router, we just happen to have multicast
-		// enabled across networks
-		// this is only relevant if ignore_non_routers is set.
-		bool non_router;
-
 		mutable boost::shared_ptr<http_connection> upnp_connection;
 
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		int magic;
 #endif
 		void close() const
@@ -351,13 +310,6 @@ private:
 
 	// timer used to refresh mappings
 	deadline_timer m_refresh_timer;
-
-	// this timer fires one second after the last UPnP response. This is the
-	// point where we assume we have received most or all SSDP reponses. If we
-	// are ignoring non-routers and at this point we still haven't received a
-	// response from a router UPnP device, we override the ignoring behavior and
-	// map them anyway.
-	deadline_timer m_map_timer;
 	
 	bool m_disabled;
 	bool m_closing;

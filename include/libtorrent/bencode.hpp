@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,46 +36,32 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 
-// OVERVIEW
-// 
-// Bencoding is a common representation in bittorrent used for
-// for dictionary, list, int and string hierarchies. It's used
-// to encode .torrent files and some messages in the network
-// protocol. libtorrent also uses it to store settings, resume
-// data and other state between sessions.
-//
-// Strings in bencoded structures are not necessarily representing
-// text. Strings are raw byte buffers of a certain length. If a
-// string is meant to be interpreted as text, it is required to
-// be UTF-8 encoded. See `BEP 3`_.
-//
-// There are two mechanims to *decode* bencoded buffers in libtorrent.
-//
-// The most flexible one is bdecode(), which returns a structure
-// represented by entry. When a buffer is decoded with this function,
-// it can be discarded. The entry does not contain any references back
-// to it. This means that bdecode() actually copies all the data out
-// of the buffer and into its own hierarchy. This makes this
-// function potentially expensive, if you're parsing large amounts
-// of data.
-//
-// Another consideration is that bdecode() is a recursive parser.
-// For this reason, in order to avoid DoS attacks by triggering
-// a stack overflow, there is a recursion limit. This limit is
-// a sanity check to make sure it doesn't run the risk of
-// busting the stack.
-//
-// The second mechanism is lazy_bdecode(), which returns a
-// bencoded structure represented by lazy_entry. This function
-// builds a tree that points back into the original buffer.
-// The returned lazy_entry will not be valid once the buffer
-// it was parsed out of is discarded.
-//
-// Not only is this function more efficient because of less
-// memory allocation and data copy, the parser is also not
-// recursive, which means it probably performs a little bit
-// better and can have a higher recursion limit on the structures
-// it's parsing.
+/*
+ * This file declares the following functions:
+ *
+ *----------------------------------
+ * template<class OutIt>
+ * void libtorrent::bencode(OutIt out, const libtorrent::entry& e);
+ *
+ * Encodes a message entry with bencoding into the output
+ * iterator given. The bencoding is described in the BitTorrent
+ * protocol description document OutIt must be an OutputIterator
+ * of type char. This may throw libtorrent::invalid_encoding if
+ * the entry contains invalid nodes (undefined_t for example).
+ *
+ *----------------------------------
+ * template<class InIt>
+ * libtorrent::entry libtorrent::bdecode(InIt start, InIt end);
+ *
+ * Decodes the buffer given by the start and end iterators
+ * and returns the decoded entry. InIt must be an InputIterator
+ * of type char. May throw libtorrent::invalid_encoding if
+ * the string is not correctly bencoded.
+ *
+ */
+
+
+
 
 #include <stdlib.h>
 #include <string>
@@ -97,13 +83,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
-#include "libtorrent/io.hpp" // for write_string
 
 namespace libtorrent
 {
 
-	// thrown by bdecode() if the provided bencoded buffer does not contain
-	// valid encoding.
 	struct TORRENT_EXPORT invalid_encoding: std::exception
 	{
 		virtual const char* what() const throw() { return "invalid bencoding"; }
@@ -111,6 +94,15 @@ namespace libtorrent
 
 	namespace detail
 	{
+		template <class OutIt>
+		int write_string(OutIt& out, const std::string& val)
+		{
+			for (std::string::const_iterator i = val.begin()
+				, end(val.end()); i != end; ++i)
+				*out++ = *i;
+			return int(val.length());
+		}
+
 		// this is used in the template, so it must be available to the client
 		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
 			, entry::integer_type val);
@@ -179,6 +171,7 @@ namespace libtorrent
 			}
 		}
 
+		// returns the number of bytes written
 		template<class OutIt>
 		int bencode_recursive(OutIt& out, const entry& e)
 		{
@@ -194,7 +187,7 @@ namespace libtorrent
 			case entry::string_t:
 				ret += write_integer(out, e.string().length());
 				write_char(out, ':');
-				ret += write_string(e.string(), out);
+				ret += write_string(out, e.string());
 				ret += 1;
 				break;
 			case entry::list_t:
@@ -212,7 +205,7 @@ namespace libtorrent
 					// write key
 					ret += write_integer(out, i->first.length());
 					write_char(out, ':');
-					ret += write_string(i->first, out);
+					ret += write_string(out, i->first);
 					// write value
 					ret += bencode_recursive(out, i->second);
 					ret += 1;
@@ -387,54 +380,15 @@ namespace libtorrent
 			}
 		}
 	}
-	
-	// These functions will encode data to bencoded_ or decode bencoded_ data.
-	// 
-	// If possible, lazy_bdecode() should be preferred over ``bdecode()``.
-	// 
-	// The entry_ class is the internal representation of the bencoded data
-	// and it can be used to retrieve information, an entry_ can also be build by
-	// the program and given to ``bencode()`` to encode it into the ``OutIt``
-	// iterator.
-	// 
-	// The ``OutIt`` and ``InIt`` are iterators
-	// (InputIterator_ and OutputIterator_ respectively). They
-	// are templates and are usually instantiated as ostream_iterator_,
-	// back_insert_iterator_ or istream_iterator_. These
-	// functions will assume that the iterator refers to a character
-	// (``char``). So, if you want to encode entry ``e`` into a buffer
-	// in memory, you can do it like this::
-	// 
-	//	std::vector<char> buffer;
-	//	bencode(std::back_inserter(buf), e);
-	// 
-	// .. _InputIterator: http://www.sgi.com/tech/stl/InputIterator.html
-	// .. _OutputIterator: http://www.sgi.com/tech/stl/OutputIterator.html
-	// .. _ostream_iterator: http://www.sgi.com/tech/stl/ostream_iterator.html
-	// .. _back_insert_iterator: http://www.sgi.com/tech/stl/back_insert_iterator.html
-	// .. _istream_iterator: http://www.sgi.com/tech/stl/istream_iterator.html
-	// 
-	// If you want to decode a torrent file from a buffer in memory, you can do it like this::
-	// 
-	//	std::vector<char> buffer;
-	//	// ...
-	//	entry e = bdecode(buf.begin(), buf.end());
-	// 
-	// Or, if you have a raw char buffer::
-	// 
-	//	const char* buf;
-	//	// ...
-	//	entry e = bdecode(buf, buf + data_size);
-	// 
-	// Now we just need to know how to retrieve information from the entry.
-	// 
-	// If ``bdecode()`` encounters invalid encoded data in the range given to it
-	// it will throw libtorrent_exception.
-	template<class OutIt> int bencode(OutIt out, const entry& e)
+
+	template<class OutIt>
+	int bencode(OutIt out, const entry& e)
 	{
 		return detail::bencode_recursive(out, e);
 	}
-	template<class InIt> entry bdecode(InIt start, InIt end)
+
+	template<class InIt>
+	entry bdecode(InIt start, InIt end)
 	{
 		entry e;
 		bool err = false;
@@ -445,7 +399,9 @@ namespace libtorrent
 		if (err) return entry();
 		return e;
 	}
-	template<class InIt> entry bdecode(InIt start, InIt end, int& len)
+
+	template<class InIt>
+	entry bdecode(InIt start, InIt end, int& len)
 	{
 		entry e;
 		bool err = false;

@@ -4,7 +4,6 @@ project(libtorrent)
 set(sources
 	web_connection_base
 	alert
-	alert_manager
 	allocator
 	asio
 	asio_ssl
@@ -25,14 +24,12 @@ set(sources
 	string_util
 	file
 	gzip
-	hasher
 	http_connection
 	http_stream
 	http_parser
 	i2p_stream
 	identify_client
 	ip_filter
-	ip_voter
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
@@ -44,6 +41,7 @@ set(sources
 	policy
 	puff
 	random
+	rsa
 	rss
 	session
 	session_impl
@@ -53,6 +51,7 @@ set(sources
 	socks5_stream
 	stat
 	storage
+	thread
 	time
 	timestamp_history
 	torrent
@@ -76,8 +75,6 @@ set(sources
 	magnet_uri
 	parse_url
 	ConvertUTF
-	thread
-	xml_parse
 
 # -- extensions --
 	metadata_transfer
@@ -97,30 +94,11 @@ set(kademlia_sources
 	node_id
 	routing_table
 	traversal_algorithm
-	logging
-	item
-	get_peers
-	get_item
 )
 
-# -- ed25519 --
-set(ed25519_sources
-	add_scalar
-	fe
-	ge
-	key_exchange
-	keypair
-	sc
-	seed
-	sha512
-	sign
-	verify
-)
-
-set(includes include ed25519/src)
+set(includes include)
 
 option(shared "build libtorrent as a shared library" ON)
-option(static_runtime "build libtorrent with static runtime" OFF)
 option(tcmalloc "link against google performance tools tcmalloc" OFF)
 option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
 option(encryption "link against openssl and enable encryption" ON)
@@ -139,14 +117,13 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
 
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release FORCE)
-endif()
+endif (NOT CMAKE_BUILD_TYPE)
 
 # add_definitions() doesn't seem to let you say wich build type to apply it to
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DTORRENT_DEBUG")
-if(UNIX)
-	set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -g")
-	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-endif()
+
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Os -g")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 
 if (encryption)
 	list(APPEND sources pe_crypto)
@@ -154,10 +131,10 @@ endif (encryption)
 
 if (logging)
 	add_definitions(-DTORRENT_LOGGING)
-endif()
+endif (logging)
 if (verbose-logging)
 	add_definitions(-DTORRENT_VERBOSE_LOGGING)
-endif()
+endif (verbose-logging)
 
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
@@ -167,12 +144,9 @@ if (dht)
 	foreach(s ${kademlia_sources})
 		list(APPEND sources2 src/kademlia/${s})
 	endforeach(s)
-	foreach(s ${ed25519_sources})
-		list(APPEND sources2 ed25519/src/${s})
-	endforeach(s)
-else()
+else (dht)
 	add_definitions(-DTORRENT_DISABLE_DHT)
-endif()
+endif (dht)
 
 if(NOT MSVC)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
@@ -183,78 +157,57 @@ if (shared)
 	add_definitions(-DTORRENT_BUILDING_SHARED)
 	add_library(torrent-rasterbar SHARED ${sources2})
 else (shared)
-	if(static_runtime)
-		# fix /MT flag:
-		set(CompilerFlags
-				CMAKE_CXX_FLAGS
-				CMAKE_CXX_FLAGS_DEBUG
-				CMAKE_CXX_FLAGS_RELWITHDEBINFO
-				CMAKE_CXX_FLAGS_RELEASE
-				CMAKE_C_FLAGS
-				CMAKE_C_FLAGS_DEBUG
-				CMAKE_CXX_FLAGS_RELWITHDEBINFO
-				CMAKE_C_FLAGS_RELEASE
-				)
-		foreach(CompilerFlag ${CompilerFlags})
-			string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-		endforeach()
-	endif()
 	add_library(torrent-rasterbar STATIC ${sources2})
-endif()
+endif (shared)
 
-# Boost
-if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
-	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono)
-endif()
+if (NOT Boost_VERSION LESS 103500)
+	if(NOT MSVC)
+		FIND_PACKAGE( Boost 1.35 COMPONENTS system)
+	else(NOT MSVC)
+		FIND_PACKAGE( Boost 1.35 COMPONENTS system thread date_time)
+	endif(NOT MSVC)
+endif (NOT Boost_VERSION LESS 103500)
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 
 # this works around a bug in asio in boost-1.39
-#add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021  -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN )
+add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 -DBOOST_ASIO_DYN_LINK -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0500)
 
-if(NOT static_runtime)
-	add_definitions(-DBOOST_ASIO_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK)
-else()
-	add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
-endif()
+add_definitions(-DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK)
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
-	add_definitions(-D_WIN32_WINNT=0x0500)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # multicore compilation
-endif()
+endif (WIN32)
 
 if (encryption)
-	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
-		FIND_PACKAGE(OpenSSL REQUIRED)
-	endif()
+	FIND_PACKAGE(OpenSSL REQUIRED)
 	add_definitions(-DTORRENT_USE_OPENSSL)
 	include_directories(${OPENSSL_INCLUDE_DIR})
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
-else()
+else (encryption)
 	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
 	list(APPEND sources sha1)
-endif()
+endif (encryption)
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
-endif()
+endif (NOT pool-allocators)
 
 if (NOT geoip)
 	add_definitions(-DTORRENT_DISABLE_GEO_IP)
-endif()
+endif (NOT geoip)
 
 if (NOT resolve-countries)
 	add_definitions(-DTORRENT_DISABLE_RESOLVE_COUNTRIES)
-endif()
+endif (NOT resolve-countries)
 
 if (unicode)
 	add_definitions(-DUNICODE -D_UNICODE)
-endif()
+endif (unicode)
 
 if (NOT deprecated-functions)
 	add_definitions(-DTORRENT_NO_DEPRECATE)
-endif()
+endif (NOT deprecated-functions)
 
 if (exceptions)
 	if (MSVC)
@@ -262,13 +215,9 @@ if (exceptions)
 	else (MSVC)
 		add_definitions(-fexceptions)
 	endif (MSVC)
-else()
-	if (MSVC)
-		add_definitions(-D_HAS_EXCEPTIONS=0)
-	else (MSVC)
-		add_definitions(-fno-exceptions)
-	endif (MSVC)
-endif()
+else (exceptions)
+	add_definitions(-fno-exceptions)
+endif (exceptions)
 
 if (MSVC)
 # disable bogus deprecation warnings on msvc8
@@ -278,11 +227,9 @@ if (MSVC)
 # for multi-core compilation
 	add_definitions(/MP)
 
-#$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
-#$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:REF
-else()
-	add_definitions(-Wno-c++11-extensions)
-endif()
+#	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
+#	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
+endif(MSVC)
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
 add_definitions(-DBOOST_DISABLE_EXCEPTION)
@@ -290,7 +237,7 @@ add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
 
 if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
-endif()
+endif (tcmalloc)
 
 include_directories(${includes})
 
@@ -298,7 +245,7 @@ set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
-set (VERSION "1.0.0")
+set (VERSION "0.16.17")
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
@@ -310,15 +257,15 @@ endforeach (s)
 
 if (MSVC)
 	configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
-endif()
+endif (MSVC)
 
 string (COMPARE EQUAL "${CMAKE_SIZEOF_VOID_P}" "8" IS64BITS)
 
 if (IS64BITS AND RESPECTLIB64)
 	set (LIBDIR "lib64")
-else()
+else (IS64BITS AND RESPECTLIB64)
 	set (LIBDIR "lib")
-endif()
+endif (IS64BITS AND RESPECTLIB64)
 
 install(TARGETS torrent-rasterbar DESTINATION ${LIBDIR} CONFIGURATIONS release)
 install(DIRECTORY include/libtorrent
@@ -328,27 +275,53 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION ${
 
 # === build examples ===
 if(build_examples)
-	FILE(GLOB examples RELATIVE "${PROJECT_SOURCE_DIR}" "examples/*.cpp")
+	set(examples client_test dump_torrent simple_client enum_if make_torrent)
+
 	foreach(s ${examples})
-		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s})
-		target_link_libraries(${sn} torrent-rasterbar)
+		add_executable(${s} examples/${s}.cpp)
+		target_link_libraries(${s} torrent-rasterbar)
 	endforeach(s)
 
 	include_directories(${Boost_INCLUDE_DIR})
-endif()
-
+endif(build_examples)
 # === build tests ===
 if(build_tests)
-	FILE(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "tests/*.cpp")
+	set(tests
+		test_auto_unchoke
+		test_http_connection
+		test_buffer
+		test_utp
+		test_storage
+		test_torrent
+		test_dht
+		test_transfer
+		test_piece_picker
+		test_fast_extension
+		test_pe_crypto
+		test_bencoding
+		test_bdecode_performance
+		test_primitives
+		test_ip_filter
+		test_hasher
+		test_metadata_extension
+		test_trackers_extension
+		test_swarm
+		test_lsd
+		test_pex
+		test_web_seed
+		test_bandwidth_limiter
+		test_session
+		test_torrent_parse
+		test_threads
+		)
+
 	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)
 	enable_testing()
 
 	foreach(s ${tests})
-		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s})
-		target_link_libraries(${sn} torrent-rasterbar test_common)
-		add_test(${sn} ${s})
+		add_executable(${s} test/${s}.cpp)
+		target_link_libraries(${s} torrent-rasterbar test_common)
+		add_test(${s} ${s})
 	endforeach(s)
 
 	add_executable(test_upnp test/test_upnp.cpp)
@@ -356,4 +329,4 @@ if(build_tests)
 
 	add_executable(test_natpmp test/test_natpmp.cpp)
 	target_link_libraries(test_natpmp torrent-rasterbar)
-endif()
+endif(build_tests)

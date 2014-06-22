@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -123,14 +123,14 @@ namespace libtorrent
 			if (size < 2) return -1;
 
 			size -= 2;
-//			buffer += 2;
+			buffer += 2;
 		}
 
 		return total_size - size;
 	}
 
 	// TODO: 2 it would be nice to use proper error handling here
-	TORRENT_EXTRA_EXPORT bool inflate_gzip(
+	bool inflate_gzip(
 		char const* in
 		, int size
 		, std::vector<char>& buffer
@@ -158,8 +158,7 @@ namespace libtorrent
 			TORRENT_TRY {
 				buffer.resize(destlen);
 			} TORRENT_CATCH(std::exception& e) {
-				error = "out of memory: ";
-				error += e.what();
+				error = "out of memory";
 				return true;
 			}
 
@@ -177,7 +176,7 @@ namespace libtorrent
 				}
 
 				destlen *= 2;
-				if (destlen > (unsigned int)maximum_size)
+				if (destlen > maximum_size)
 					destlen = maximum_size;
 			}
 		} while (ret == 1);
