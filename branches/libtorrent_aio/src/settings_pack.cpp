@@ -146,7 +146,6 @@ namespace libtorrent
 		SET(lock_disk_cache, false, 0),
 		SET(disable_hash_checks, false, 0),
 		SET(allow_i2p_mixed, false, 0),
-		SET(drop_skipped_requests, false, 0),
 		SET(low_prio_disk, true, 0),
 		SET(volatile_read_cache, false, 0),
 		SET(guided_read_cache, false, 0),

@@ -2742,63 +2742,6 @@ namespace libtorrent
 		}
 
 #if TORRENT_USE_ASSERTS
-		pending_block pending_b = *b;
-#endif
-
-		int block_index = b - m_download_queue.begin();
-		TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
-		for (int i = 0; i < block_index; ++i)
-		{
-			pending_block& qe = m_download_queue[i];
-			TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
-			TORRENT_ASSERT(i < block_index);
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log("*** SKIPPED_PIECE [ piece: %d b: %d dqs: %d ]"
-				, qe.block.piece_index, qe.block.block_index, int(m_desired_queue_size));
-#endif
-
-			++qe.skipped;
-			// if the number of times a block is skipped by out of order
-			// blocks exceeds the size of the outstanding queue, assume that
-			// the other end dropped the request.
-			if (m_settings.get_bool(settings_pack::drop_skipped_requests)
-				&& qe.skipped > m_desired_queue_size * 2)
-			{
-				if (t->alerts().should_post<request_dropped_alert>())
-					t->alerts().post_alert(request_dropped_alert(t->get_handle()
-						, remote(), pid(), qe.block.block_index, qe.block.piece_index));
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				peer_log("*** DROPPED_PIECE [ piece: %d b: %d dqs: %d skip: %d ]"
-					, qe.block.piece_index, qe.block.block_index
-					, int(m_desired_queue_size), qe.skipped);
-#endif
-				if (!qe.timed_out && !qe.not_wanted)
-					picker.abort_download(qe.block, peer_info_struct());
-
-				TORRENT_ASSERT(m_outstanding_bytes >= t->to_req(qe.block).length);
-				m_outstanding_bytes -= t->to_req(qe.block).length;
-				if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
-				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
-				m_download_queue.erase(m_download_queue.begin() + i);
-
-				if (m_download_queue.empty())
-					m_ses.inc_stats_counter(counters::num_peers_down_requests, -1);
-
-				--i;
-				--block_index;
-				TORRENT_ASSERT(m_download_queue[block_index] == pending_b);
-#if TORRENT_USE_INVARIANT_CHECKS
-				check_invariant();
-#endif
-			}
-		}
-		TORRENT_ASSERT(int(m_download_queue.size()) > block_index);
-		b = m_download_queue.begin() + block_index;
-		TORRENT_ASSERT(*b == pending_b);
-		
-#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 		m_received_in_piece = 0;
 #endif

@@ -341,16 +341,6 @@ namespace libtorrent
 			// be able to connect to i2p peers.
 			allow_i2p_mixed,
 
-			// If ``drop_skipped_requests`` is set to true (it defaults to false), piece
-			// requests that have been skipped enough times when piece messages
-			// are received, will be considered lost. Requests are considered skipped
-			// when the returned piece messages are re-ordered compared to the order
-			// of the requests. This was an attempt to get out of dead-locks caused by
-			// BitComet peers silently ignoring some requests. It may cause problems
-			// at high rates, and high level of reordering in the uploading peer, that's
-			// why it's disabled by default.
-			drop_skipped_requests,
-
 			// ``low_prio_disk`` determines if the disk I/O should use a normal
 			// or low priority policy. This defaults to true, which means that
 			// it's low priority by default. Other processes doing disk I/O will

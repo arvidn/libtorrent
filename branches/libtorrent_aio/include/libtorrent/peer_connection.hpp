@@ -107,16 +107,11 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: block(b), skipped(0), not_wanted(false)
-			, timed_out(false), busy(false) {}
+			: block(b), not_wanted(false)
+			, timed_out(false), busy(false)
+		{}
 
 		piece_block block;
-
-		// the number of times the request
-		// has been skipped by out of order blocks
-		// TODO: the skipped field and its associated feature
-		// should probably be removed
-		boost::uint16_t skipped:13;
 
 		// if any of these are set to true, this block
 		// is not allocated
@@ -135,8 +130,9 @@ namespace libtorrent
 
 		bool operator==(pending_block const& b)
 		{
-			return b.skipped == skipped && b.block == block
-				&& b.not_wanted == not_wanted && b.timed_out == timed_out;
+			return b.block == block
+				&& b.not_wanted == not_wanted
+				&& b.timed_out == timed_out;
 		}
 	};
 
