@@ -1,0 +1,136 @@
+/* Page template */
+
+html>body { font-size: 13px; }
+body { text-align: center; }
+
+#container {
+    text-align: left;
+    width: 700px;
+    margin: 0 auto;
+    position: relative;
+}
+
+#headerNav {
+}
+
+#headerNav ul {
+    margin: 2px;
+    list-style: none;
+    font-family: Tahoma;
+    text-align: right;
+    text-transform: uppercase;
+    line-height: 1em;
+}
+
+#headerNav ul li {
+    display: inline;
+    border-left: solid 1px #ccc;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: 0;
+    font-size: 80%;
+}
+
+#headerNav ul li.first {
+    border: 0;
+}
+
+#headerNav ul li a {
+    border: none;
+    color: #666;
+}
+
+#headerNav ul li a:hover {
+    background: #eee;
+}
+
+#header {
+    height: 116px;
+    width: 695px;
+    background: url(../img/orange.png) #FDA72A no-repeat top left;
+}
+
+#header h1 {
+    margin: 0;
+    padding: 0;
+    float: right;
+    width: 536px;
+    height: 116px;
+    background: url(../img/logo.png);
+}
+
+#header h1 span, #header h2 { display: none; }
+
+#footer {
+    clear: both;
+    width: 695px;
+    height: 49px;
+    background: #D3D3D3 url(../img/footer.png) no-repeat left top;
+    text-align: center;
+    margin-bottom: 1em;
+}
+
+#footer span {
+    line-height: 49px;
+    font-size: 88%;
+    text-align: center;
+    color: #777;
+    display: block;
+}
+
+#main {
+    font-family: Verdana;
+    line-height: 1.25em;
+    text-align: left;
+    margin-top: 10px;
+}
+
+/* Base elements */
+
+* {margin: 0; padding: 0;}
+body { font: 0.8125em Verdana, sans-serif;}
+
+h1, h2, h3 {
+    font: 1.5em Georgia "Times New Roman", serif;
+    letter-spacing: 1px;
+    padding-bottom: 0.5em;
+}
+
+h1 { font-size: 180%; }
+h2 { font-size: 130%; }
+h3 { font-size: 100%; }
+
+p {
+    font-size: 92%;
+    line-height: 1.7em;
+}
+
+a {
+    text-decoration: none;
+    color: #8D370A;
+    border-bottom: dotted 1px #8D370A;
+}
+
+a:hover {
+    border-bottom: solid 1px #8D370A;
+    background: #eee;
+}
+
+#librarySidebar {
+    float: left;
+    width: 150px;
+}
+
+#libraryBody {
+    border-left: solid 1px #eee;
+    padding-left: 10px;
+    margin-left: 158px;
+    margin-right: 10px;
+}
+
+ul, ol { line-height: 1.8em; }
+ul { list-style: square; }
+li { margin-left: 2.8em; font-size: 92%; }
+
+p, ul, ol, img {margin-bottom: 1em;}
+

@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>Custom Storage</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="custom-storage">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">Custom Storage</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#file-pool" id="id22">file_pool</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id23">storage_interface</a></li>
+<li><a class="reference internal" href="#default-storage" id="id24">default_storage</a></li>
+</ul>
+</div>
+<p>libtorrent provides a customization point for storage of data. By default,
+(<tt class="docutils literal">default_storage</tt>) downloaded files are saved to disk according with the
+general conventions of bittorrent clients, mimicing the original file layout
+when the torrent was created. The libtorrent user may define a custom
+storage to store piece data in a different way.</p>
+<p>A custom storage implementation must derive from and implement the
+<a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a>. You must also provide a function that constructs the
+custom storage object and provide this function to the <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a> call
+via <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>. Either passed in to the constructor or by setting
+the <a class="reference external" href="reference-Session.html#storage">add_torrent_params::storage</a> field.</p>
+<p>This is an example storage implementation that stores all pieces in a
+<tt class="docutils literal"><span class="pre">std::map</span></tt>, i.e. in RAM. It's not necessarily very useful in practice, but
+illustrates the basics of implementing a custom storage.</p>
+<pre class="literal-block">
+struct temp_storage : storage_interface
+{
+        temp_storage(file_storage const&amp; fs) : m_files(fs) {}
+        void set_file_priority(std::vector&lt;boost::uint8_t&gt; const&amp; prio) {}
+        virtual bool initialize(bool allocate_files) { return false; }
+        virtual bool has_any_file() { return false; }
+        virtual int read(char* buf, int slot, int offset, int size)
+        {
+                std::map&lt;int, std::vector&lt;char&gt; &gt;::const_iterator i = m_file_data.find(slot);
+                if (i == m_file_data.end()) return 0;
+                int available = i-&gt;second.size() - offset;
+                if (available &lt;= 0) return 0;
+                if (available &gt; size) available = size;
+                memcpy(buf, &amp;i-&gt;second[offset], available);
+                return available;
+        }
+        virtual int write(const char* buf, int slot, int offset, int size)
+        {
+                std::vector&lt;char&gt;&amp; data = m_file_data[slot];
+                if (data.size() &lt; offset + size) data.resize(offset + size);
+                std::memcpy(&amp;data[offset], buf, size);
+                return size;
+        }
+        virtual bool rename_file(int file, std::string const&amp; new_name)
+        { assert(false); return false; }
+        virtual bool move_storage(std::string const&amp; save_path) { return false; }
+        virtual bool verify_resume_data(lazy_entry const&amp; rd, error_code&amp; error) { return false; }
+        virtual bool write_resume_data(entry&amp; rd) const { return false; }
+        virtual bool move_slot(int src_slot, int dst_slot) { assert(false); return false; }
+        virtual bool swap_slots(int slot1, int slot2) { assert(false); return false; }
+        virtual bool swap_slots3(int slot1, int slot2, int slot3) { assert(false); return false; }
+        virtual size_type physical_offset(int slot, int offset)
+        { return slot * m_files.piece_length() + offset; };
+        virtual sha1_hash hash_for_slot(int slot, partial_hash&amp; ph, int piece_size)
+        {
+                int left = piece_size - ph.offset;
+                assert(left &gt;= 0);
+                if (left &gt; 0)
+                {
+                        std::vector&lt;char&gt;&amp; data = m_file_data[slot];
+                        // if there are padding files, those blocks will be considered
+                        // completed even though they haven't been written to the storage.
+                        // in this case, just extend the piece buffer to its full size
+                        // and fill it with zeroes.
+                        if (data.size() &lt; piece_size) data.resize(piece_size, 0);
+                        ph.h.update(&amp;data[ph.offset], left);
+                }
+                return ph.h.final();
+        }
+        virtual bool release_files() { return false; }
+        virtual bool delete_files() { return false; }
+
+        std::map&lt;int, std::vector&lt;char&gt; &gt; m_file_data;
+        file_storage m_files;
+};
+
+storage_interface* temp_storage_constructor(
+        file_storage const&amp; fs, file_storage const* mapped
+        , std::string const&amp; path, file_pool&amp; fp
+        , std::vector&lt;boost::uint8_t&gt; const&amp; prio)
+{
+        return new temp_storage(fs);
+}
+</pre>
+<a name="file_pool"></a><div class="section" id="file-pool">
+<h1>file_pool</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/file_pool.hpp">libtorrent/file_pool.hpp</a>&quot;</p>
+<p>this is an internal cache of open file handles. It's primarily used by
+<a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a> implementations. It provides semi weak guarantees of
+not opening more file handles than specified. Given multiple threads,
+each with the ability to lock a file handle (via smart pointer), there
+may be windows where more file handles are open.</p>
+<pre class="literal-block">
+struct file_pool : boost::noncopyable
+{
+   <strong>~file_pool</strong> ();
+   <strong>file_pool</strong> (int size = 40);
+   boost::intrusive_ptr&lt;file&gt; <strong>open_file</strong> (void* st, std::string const&amp; p
+      , int file_index, file_storage const&amp; fs, int m, error_code&amp; ec);
+   void <strong>release</strong> (void* st);
+   void <strong>release</strong> (void* st, int file_index);
+   void <strong>resize</strong> (int size);
+   int <strong>size_limit</strong> () const;
+};
+</pre>
+<a name="~file_pool()"></a>
+<a name="file_pool()"></a><div class="section" id="file-pool-file-pool">
+<h2>~file_pool() file_pool()</h2>
+<pre class="literal-block">
+<strong>~file_pool</strong> ();
+<strong>file_pool</strong> (int size = 40);
+</pre>
+<p><tt class="docutils literal">size</tt> specifies the number of allowed files handles
+to hold open at any given time.</p>
+<a name="open_file()"></a></div>
+<div class="section" id="open-file">
+<h2>open_file()</h2>
+<pre class="literal-block">
+boost::intrusive_ptr&lt;file&gt; <strong>open_file</strong> (void* st, std::string const&amp; p
+      , int file_index, file_storage const&amp; fs, int m, error_code&amp; ec);
+</pre>
+<p>return an open file handle to file at <tt class="docutils literal">file_index</tt> in the
+<a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> <tt class="docutils literal">fs</tt> opened at save path <tt class="docutils literal">p</tt>. <tt class="docutils literal">m</tt> is the
+file open mode (see <a class="reference external" href="file::open_mode_t">file::open_mode_t</a>).</p>
+<a name="release()"></a></div>
+<div class="section" id="release">
+<h2>release()</h2>
+<pre class="literal-block">
+void <strong>release</strong> (void* st);
+void <strong>release</strong> (void* st, int file_index);
+</pre>
+<p>release all files belonging to the specified <a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a> (<tt class="docutils literal">st</tt>)
+the overload that takes <tt class="docutils literal">file_index</tt> releases only the file with
+that index in storage <tt class="docutils literal">st</tt>.</p>
+<a name="resize()"></a></div>
+<div class="section" id="resize">
+<h2>resize()</h2>
+<pre class="literal-block">
+void <strong>resize</strong> (int size);
+</pre>
+<p>update the allowed number of open file handles to <tt class="docutils literal">size</tt>.</p>
+<a name="size_limit()"></a></div>
+<div class="section" id="size-limit">
+<h2>size_limit()</h2>
+<pre class="literal-block">
+int <strong>size_limit</strong> () const;
+</pre>
+<p>returns the current limit of number of allowed open file handles held
+by the <a class="reference external" href="reference-Custom_Storage.html#file_pool">file_pool</a>.</p>
+<a name="storage_interface"></a></div>
+</div>
+<div class="section" id="storage-interface">
+<h1>storage_interface</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/storage.hpp">libtorrent/storage.hpp</a>&quot;</p>
+<p>The storage interface is a pure virtual class that can be implemented to
+customize how and where data for a torrent is stored. The default storage
+implementation uses regular files in the filesystem, mapping the files in
+the torrent in the way one would assume a torrent is saved to disk.
+Implementing your own storage interface makes it possible to store all
+data in RAM, or in some optimized order on disk (the order the pieces are
+received for instance), or saving multifile torrents in a single file in
+order to be able to take advantage of optimized disk-I/O.</p>
+<p>It is also possible to write a thin class that uses the default storage
+but modifies some particular behavior, for instance encrypting the data
+before it's written to disk, and decrypting it when it's read again.</p>
+<p>The storage interface is based on slots, each slot is 'piece_size' number
+of bytes. All access is done by writing and reading whole or partial
+slots. One slot is one piece in the torrent, but the data in the slot
+does not necessarily correspond to the piece with the same index (in
+compact allocation mode it won't).</p>
+<p>libtorrent comes with two built-in storage implementations;
+<tt class="docutils literal">default_storage</tt> and <tt class="docutils literal">disabled_storage</tt>. Their constructor functions
+are called <a class="reference external" href="reference-Storage.html#default_storage_constructor()">default_storage_constructor()</a> and
+<tt class="docutils literal">disabled_storage_constructor</tt> respectively. The disabled storage does
+just what it sounds like. It throws away data that's written, and it
+reads garbage. It's useful mostly for benchmarking and profiling purpose.</p>
+<pre class="literal-block">
+struct storage_interface
+{
+   virtual bool <strong>initialize</strong> (bool allocate_files) = 0;
+   virtual bool <strong>has_any_file</strong> () = 0;
+   virtual void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&gt; const&amp; prio) = 0;
+   virtual int <strong>writev</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
+   virtual int <strong>readv</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
+   virtual void <strong>hint_read</strong> (int, int, int);
+   virtual int <strong>read</strong> (char* buf, int slot, int offset, int size) = 0;
+   virtual int <strong>write</strong> (const char* buf, int slot, int offset, int size) = 0;
+   virtual size_type <strong>physical_offset</strong> (int slot, int offset) = 0;
+   virtual int <strong>sparse_end</strong> (int start) const;
+   virtual int <strong>move_storage</strong> (std::string const&amp; save_path, int flags) = 0;
+   virtual bool <strong>verify_resume_data</strong> (lazy_entry const&amp; rd, error_code&amp; error) = 0;
+   virtual bool <strong>write_resume_data</strong> (entry&amp; rd) const = 0;
+   virtual bool <strong>move_slot</strong> (int src_slot, int dst_slot) = 0;
+   virtual bool <strong>swap_slots</strong> (int slot1, int slot2) = 0;
+   virtual bool <strong>swap_slots3</strong> (int slot1, int slot2, int slot3) = 0;
+   virtual bool <strong>release_files</strong> () = 0;
+   virtual bool <strong>rename_file</strong> (int index, std::string const&amp; new_filename) = 0;
+   virtual bool <strong>delete_files</strong> () = 0;
+   disk_buffer_pool* <strong>disk_pool</strong> ();
+   session_settings const&amp; <strong>settings</strong> () const;
+   void <strong>set_error</strong> (std::string const&amp; file, error_code const&amp; ec) const;
+   error_code const&amp; <strong>error</strong> () const;
+   std::string const&amp; <strong>error_file</strong> () const;
+   virtual void <strong>clear_error</strong> ();
+};
+</pre>
+<a name="initialize()"></a><div class="section" id="initialize">
+<h2>initialize()</h2>
+<pre class="literal-block">
+virtual bool <strong>initialize</strong> (bool allocate_files) = 0;
+</pre>
+<p>This function is called when the storage is to be initialized. The
+default storage will create directories and empty files at this point.
+If <tt class="docutils literal">allocate_files</tt> is true, it will also <tt class="docutils literal">ftruncate</tt> all files to
+their target size.</p>
+<p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
+<a name="has_any_file()"></a></div>
+<div class="section" id="has-any-file">
+<h2>has_any_file()</h2>
+<pre class="literal-block">
+virtual bool <strong>has_any_file</strong> () = 0;
+</pre>
+<p>This function is called when first checking (or re-checking) the
+storage for a torrent. It should return true if any of the files that
+is used in this storage exists on disk. If so, the storage will be
+checked for existing pieces before starting the download.</p>
+<a name="set_file_priority()"></a></div>
+<div class="section" id="set-file-priority">
+<h2>set_file_priority()</h2>
+<pre class="literal-block">
+virtual void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&gt; const&amp; prio) = 0;
+</pre>
+<p>change the priorities of files.</p>
+<a name="writev()"></a>
+<a name="readv()"></a></div>
+<div class="section" id="writev-readv">
+<h2>writev() readv()</h2>
+<pre class="literal-block">
+virtual int <strong>writev</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
+virtual int <strong>readv</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
+</pre>
+<p>These functions should read or write the data in or to the given
+<tt class="docutils literal">slot</tt> at the given <tt class="docutils literal">offset</tt>. It should read or write <tt class="docutils literal">num_bufs</tt>
+buffers sequentially, where the size of each buffer is specified in
+the buffer array <tt class="docutils literal">bufs</tt>. The <a class="reference external" href="file::iovec_t">file::iovec_t</a> type has the following
+members:</p>
+<pre class="literal-block">
+struct iovec_t { void* iov_base; size_t iov_len; };
+</pre>
+<p>The return value is the number of bytes actually read or written, or
+-1 on failure. If it returns -1, the error code is expected to be set
+to</p>
+<p>Every buffer in <tt class="docutils literal">bufs</tt> can be assumed to be page aligned and be of a
+page aligned size, except for the last buffer of the torrent. The
+allocated buffer can be assumed to fit a fully page aligned number of
+bytes though. This is useful when reading and writing the last piece
+of a file in unbuffered mode.</p>
+<p>The <tt class="docutils literal">offset</tt> is aligned to 16 kiB boundries  <em>most of the time</em>, but
+there are rare exceptions when it's not. Specifically if the read
+cache is disabled/or full and a client requests unaligned data, or the
+file itself is not aligned in the torrent. Most clients request
+aligned data.</p>
+<a name="hint_read()"></a></div>
+<div class="section" id="hint-read">
+<h2>hint_read()</h2>
+<pre class="literal-block">
+virtual void <strong>hint_read</strong> (int, int, int);
+</pre>
+<p>This function is called when a read job is queued. It gives the
+storage wrapper an opportunity to hint the operating system about this
+coming read. For instance, the storage may call
+<tt class="docutils literal">posix_fadvise(POSIX_FADV_WILLNEED)</tt> or <tt class="docutils literal">fcntl(F_RDADVISE)</tt>.</p>
+<a name="read()"></a></div>
+<div class="section" id="read">
+<h2>read()</h2>
+<pre class="literal-block">
+virtual int <strong>read</strong> (char* buf, int slot, int offset, int size) = 0;
+</pre>
+<p>negative return value indicates an error</p>
+<a name="write()"></a></div>
+<div class="section" id="write">
+<h2>write()</h2>
+<pre class="literal-block">
+virtual int <strong>write</strong> (const char* buf, int slot, int offset, int size) = 0;
+</pre>
+<p>negative return value indicates an error</p>
+<a name="physical_offset()"></a></div>
+<div class="section" id="physical-offset">
+<h2>physical_offset()</h2>
+<pre class="literal-block">
+virtual size_type <strong>physical_offset</strong> (int slot, int offset) = 0;
+</pre>
+<p>returns the offset on the physical storage medium for the
+byte at offset <tt class="docutils literal">offset</tt> in slot <tt class="docutils literal">slot</tt>.</p>
+<a name="sparse_end()"></a></div>
+<div class="section" id="sparse-end">
+<h2>sparse_end()</h2>
+<pre class="literal-block">
+virtual int <strong>sparse_end</strong> (int start) const;
+</pre>
+<p>This function is optional. It is supposed to return the first piece,
+starting at <tt class="docutils literal">start</tt> that is fully contained within a data-region on
+disk (i.e. non-sparse region). The purpose of this is to skip parts of
+files that can be known to contain zeros when checking files.</p>
+<a name="move_storage()"></a></div>
+<div class="section" id="move-storage">
+<h2>move_storage()</h2>
+<pre class="literal-block">
+virtual int <strong>move_storage</strong> (std::string const&amp; save_path, int flags) = 0;
+</pre>
+<p>This function should move all the files belonging to the storage to
+the new save_path. The default storage moves the single file or the
+directory of the torrent.</p>
+<p>Before moving the files, any open file handles may have to be closed,
+like <tt class="docutils literal">release_files()</tt>.</p>
+<p>returns one of:
+| no_error = 0
+| need_full_check = -1
+| fatal_disk_error = -2
+| file_exist = -4</p>
+<a name="verify_resume_data()"></a></div>
+<div class="section" id="verify-resume-data">
+<h2>verify_resume_data()</h2>
+<pre class="literal-block">
+virtual bool <strong>verify_resume_data</strong> (lazy_entry const&amp; rd, error_code&amp; error) = 0;
+</pre>
+<p>This function should verify the resume data <tt class="docutils literal">rd</tt> with the files
+on disk. If the resume data seems to be up-to-date, return true. If
+not, set <tt class="docutils literal">error</tt> to a description of what mismatched and return false.</p>
+<p>The default storage may compare file sizes and time stamps of the files.</p>
+<p>Returning <tt class="docutils literal">false</tt> indicates an error occurred.</p>
+<a name="write_resume_data()"></a></div>
+<div class="section" id="write-resume-data">
+<h2>write_resume_data()</h2>
+<pre class="literal-block">
+virtual bool <strong>write_resume_data</strong> (entry&amp; rd) const = 0;
+</pre>
+<p>This function should fill in resume data, the current state of the
+storage, in <tt class="docutils literal">rd</tt>. The default storage adds file timestamps and
+sizes.</p>
+<p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
+<a name="move_slot()"></a></div>
+<div class="section" id="move-slot">
+<h2>move_slot()</h2>
+<pre class="literal-block">
+virtual bool <strong>move_slot</strong> (int src_slot, int dst_slot) = 0;
+</pre>
+<p>This function should copy or move the data in slot <tt class="docutils literal">src_slot</tt> to
+the slot <tt class="docutils literal">dst_slot</tt>. This is only used in compact mode.</p>
+<p>If the storage caches slots, this could be implemented more
+efficient than reading and writing the data.</p>
+<p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
+<a name="swap_slots()"></a></div>
+<div class="section" id="swap-slots">
+<h2>swap_slots()</h2>
+<pre class="literal-block">
+virtual bool <strong>swap_slots</strong> (int slot1, int slot2) = 0;
+</pre>
+<p>This function should swap the data in <tt class="docutils literal">slot1</tt> and <tt class="docutils literal">slot2</tt>. The
+default storage uses a scratch buffer to read the data into, then
+moving the other slot and finally writing back the temporary slot's
+data</p>
+<p>This is only used in compact mode.</p>
+<p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
+<a name="swap_slots3()"></a></div>
+<div class="section" id="swap-slots3">
+<h2>swap_slots3()</h2>
+<pre class="literal-block">
+virtual bool <strong>swap_slots3</strong> (int slot1, int slot2, int slot3) = 0;
+</pre>
+<p>This function should do a 3-way swap, or shift of the slots. <tt class="docutils literal">slot1</tt>
+should move to <tt class="docutils literal">slot2</tt>, which should be moved to <tt class="docutils literal">slot3</tt> which in
+turn should be moved to <tt class="docutils literal">slot1</tt>.</p>
+<p>This is only used in compact mode.</p>
+<p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
+<a name="release_files()"></a></div>
+<div class="section" id="release-files">
+<h2>release_files()</h2>
+<pre class="literal-block">
+virtual bool <strong>release_files</strong> () = 0;
+</pre>
+<p>This function should release all the file handles that it keeps open to files
+belonging to this storage. The default implementation just calls
+<tt class="docutils literal"><span class="pre">file_pool::release_files(this)</span></tt>.</p>
+<p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
+<a name="rename_file()"></a></div>
+<div class="section" id="rename-file">
+<h2>rename_file()</h2>
+<pre class="literal-block">
+virtual bool <strong>rename_file</strong> (int index, std::string const&amp; new_filename) = 0;
+</pre>
+<p>Rename file with index <tt class="docutils literal">file</tt> to the thame <tt class="docutils literal">new_name</tt>. If there is an error,
+<tt class="docutils literal">true</tt> should be returned.</p>
+<a name="delete_files()"></a></div>
+<div class="section" id="delete-files">
+<h2>delete_files()</h2>
+<pre class="literal-block">
+virtual bool <strong>delete_files</strong> () = 0;
+</pre>
+<p>This function should delete all files and directories belonging to
+this storage.</p>
+<p>Returning <tt class="docutils literal">true</tt> indicates an error occurred.</p>
+<p>The <tt class="docutils literal">disk_buffer_pool</tt> is used to allocate and free disk buffers. It
+has the following members:</p>
+<pre class="literal-block">
+struct disk_buffer_pool : boost::noncopyable
+{
+        char* allocate_buffer(char const* category);
+        void free_buffer(char* buf);
+
+        char* allocate_buffers(int blocks, char const* category);
+        void free_buffers(char* buf, int blocks);
+
+        int block_size() const { return m_block_size; }
+
+        void release_memory();
+};
+</pre>
+<a name="disk_pool()"></a></div>
+<div class="section" id="disk-pool">
+<h2>disk_pool()</h2>
+<pre class="literal-block">
+disk_buffer_pool* <strong>disk_pool</strong> ();
+</pre>
+<p>access global disk_buffer_pool, for allocating and freeing disk buffers</p>
+<a name="settings()"></a></div>
+<div class="section" id="settings">
+<h2>settings()</h2>
+<pre class="literal-block">
+session_settings const&amp; <strong>settings</strong> () const;
+</pre>
+<p>access global <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a></p>
+<a name="set_error()"></a></div>
+<div class="section" id="set-error">
+<h2>set_error()</h2>
+<pre class="literal-block">
+void <strong>set_error</strong> (std::string const&amp; file, error_code const&amp; ec) const;
+</pre>
+<p>called by the storage implementation to set it into an
+error state. Typically whenever a critical file operation
+fails.</p>
+<a name="error_file()"></a>
+<a name="error()"></a></div>
+<div class="section" id="error-file-error">
+<h2>error_file() error()</h2>
+<pre class="literal-block">
+error_code const&amp; <strong>error</strong> () const;
+std::string const&amp; <strong>error_file</strong> () const;
+</pre>
+<p>returns the currently set error code and file path associated with it,
+if set.</p>
+<a name="clear_error()"></a></div>
+<div class="section" id="clear-error">
+<h2>clear_error()</h2>
+<pre class="literal-block">
+virtual void <strong>clear_error</strong> ();
+</pre>
+<p>reset the error state to allow continuing reading and writing
+to the storage</p>
+<a name="default_storage"></a></div>
+</div>
+<div class="section" id="default-storage">
+<h1>default_storage</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/storage.hpp">libtorrent/storage.hpp</a>&quot;</p>
+<p>The default implementation of <a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a>. Behaves as a normal
+bittorrent client. It is possible to derive from this class in order to
+override some of its behavior, when implementing a custom storage.</p>
+<pre class="literal-block">
+class default_storage : public storage_interface, boost::noncopyable
+{
+   <strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
+      , std::string const&amp; path, file_pool&amp; fp
+      , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
+   bool <strong>move_slot</strong> (int src_slot, int dst_slot);
+   void <strong>hint_read</strong> (int slot, int offset, int len);
+   bool <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
+   void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&gt; const&amp; prio);
+   bool <strong>has_any_file</strong> ();
+   int <strong>move_storage</strong> (std::string const&amp; save_path, int flags);
+   bool <strong>write_resume_data</strong> (entry&amp; rd) const;
+   int <strong>write</strong> (char const* buf, int slot, int offset, int size);
+   int <strong>writev</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* buf, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
+   size_type <strong>physical_offset</strong> (int slot, int offset);
+   bool <strong>release_files</strong> ();
+   bool <strong>delete_files</strong> ();
+   bool <strong>verify_resume_data</strong> (lazy_entry const&amp; rd, error_code&amp; error);
+   int <strong>readv</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
+   bool <strong>swap_slots3</strong> (int slot1, int slot2, int slot3);
+   bool <strong>initialize</strong> (bool allocate_files);
+   int <strong>read</strong> (char* buf, int slot, int offset, int size);
+   bool <strong>swap_slots</strong> (int slot1, int slot2);
+   int <strong>sparse_end</strong> (int start) const;
+   file_storage const&amp; <strong>files</strong> () const;
+};
+</pre>
+<a name="default_storage()"></a><div class="section" id="id15">
+<h2>default_storage()</h2>
+<pre class="literal-block">
+<strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
+      , std::string const&amp; path, file_pool&amp; fp
+      , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
+</pre>
+<p>constructs the <a class="reference external" href="reference-Custom_Storage.html#default_storage">default_storage</a> based on the give <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> (fs).
+<tt class="docutils literal">mapped</tt> is an optional argument (it may be NULL). If non-NULL it
+represents the file mappsing that have been made to the torrent before
+adding it. That's where files are supposed to be saved and looked for
+on disk. <tt class="docutils literal">save_path</tt> is the root save folder for this torrent.
+<tt class="docutils literal">file_pool</tt> is the cache of file handles that the storage will use.
+All files it opens will ask the <a class="reference external" href="reference-Custom_Storage.html#file_pool">file_pool</a> to open them. <tt class="docutils literal">file_prio</tt>
+is a vector indicating the priority of files on startup. It may be
+an empty vector. Any file whose index is not represented by the vector
+(because the vector is too short) are assumed to have priority 1.
+this is used to treat files with priority 0 slightly differently.</p>
+<a name="files()"></a></div>
+<div class="section" id="files">
+<h2>files()</h2>
+<pre class="literal-block">
+file_storage const&amp; <strong>files</strong> () const;
+</pre>
+<p>if the files in this storage are mapped, returns the mapped
+<a class="reference external" href="reference-Storage.html#file_storage">file_storage</a>, otherwise returns the original <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object.</p>
+<a name="move_flags_t"></a></div>
+<div class="section" id="enum-move-flags-t">
+<h2>enum move_flags_t</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/storage.hpp">libtorrent/storage.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="8%" />
+<col width="67%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>always_replace_files</td>
+<td>0</td>
+<td>replace any files in the destination when copying
+or moving the storage</td>
+</tr>
+<tr><td>fail_if_exist</td>
+<td>1</td>
+<td>if any files that we want to copy exist in the destination
+exist, fail the whole operation and don't perform
+any copy or move. There is an inherent race condition
+in this mode. The files are checked for existence before
+the operation starts. In between the check and performing
+the copy, the destination files may be created, in which
+case they are replaced.</td>
+</tr>
+<tr><td>dont_replace</td>
+<td>2</td>
+<td>if any file exist in the target, take those files instead
+of the ones we may have in the source.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</body>
+</html>
