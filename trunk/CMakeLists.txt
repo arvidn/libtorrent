@@ -7,7 +7,6 @@ set(sources
 	alert_manager
 	allocator
 	asio
-	asio_ssl
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -229,6 +228,7 @@ if (encryption)
 		FIND_PACKAGE(OpenSSL REQUIRED)
 	endif()
 	add_definitions(-DTORRENT_USE_OPENSSL)
+	list(APPEND sources asio_ssl)
 	include_directories(${OPENSSL_INCLUDE_DIR})
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
 else()
