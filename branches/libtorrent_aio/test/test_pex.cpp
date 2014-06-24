@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 void test_pex()
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -73,26 +74,26 @@ void test_pex()
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 
-	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	// treat all IPs the same, i.e. enable rate limiting for local peers
 	ip_filter f;
-	f.add_rule(address_v4::from_string("0.0.0.0"), address_v4::from_string("255.255.255.255"), 1 << session::global_peer_class_id);
-	peer_class_info pc = ses1.get_peer_class(session::global_peer_class_id);
+	f.add_rule(address_v4::from_string("0.0.0.0"), address_v4::from_string("255.255.255.255"), 1 << lt::session::global_peer_class_id);
+	peer_class_info pc = ses1.get_peer_class(lt::session::global_peer_class_id);
 	TEST_EQUAL(pc.upload_limit, 2000);
 	TEST_EQUAL(pc.download_limit, 2000);
-	ses1.set_peer_class(session::local_peer_class_id, pc);
+	ses1.set_peer_class(lt::session::local_peer_class_id, pc);
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49200");
 
-	session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
-	ses3.set_peer_class(session::local_peer_class_id, pc);
+	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
+	ses3.set_peer_class(lt::session::local_peer_class_id, pc);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:50200");
-	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
-	ses2.set_peer_class(session::local_peer_class_id, pc);
+	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	ses2.set_peer_class(lt::session::local_peer_class_id, pc);
 
 	ses1.add_extension(create_ut_pex_plugin);
 	ses2.add_extension(create_ut_pex_plugin);

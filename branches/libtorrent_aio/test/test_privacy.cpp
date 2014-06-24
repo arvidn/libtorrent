@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 char const* proxy_name[] = {
 	"none",
@@ -117,7 +118,7 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	// will be delayed by several seconds, by first
 	// trying uTP
 	sett.set_bool(settings_pack::enable_outgoing_utp, false);
-	session* s = new libtorrent::session(sett, fingerprint("LT", 0, 1, 0, 0));
+	lt::session* s = new lt::session(sett, fingerprint("LT", 0, 1, 0, 0));
 
 	// in non-anonymous mode we circumvent/ignore the proxy if it fails
 	// wheras in anonymous mode, we just fail

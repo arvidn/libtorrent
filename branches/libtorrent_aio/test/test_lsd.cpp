@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 void test_lsd()
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -58,10 +59,10 @@ void test_lsd()
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:48100");
 
-	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:49100");
-	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	torrent_handle tor1;
 	torrent_handle tor2;

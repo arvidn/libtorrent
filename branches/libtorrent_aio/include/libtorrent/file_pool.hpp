@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <map>
 #include "libtorrent/file.hpp"
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/file_storage.hpp"
 

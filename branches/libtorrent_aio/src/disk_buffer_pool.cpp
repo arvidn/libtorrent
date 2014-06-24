@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <boost/bind.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/shared_ptr.hpp>
 
 #if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
@@ -577,7 +578,7 @@ namespace libtorrent
 			{
 				if (m_post_alert)
 				{
-					error_code ec(errno, boost::system::get_generic_category());
+					error_code ec(errno, boost::system::generic_category());
 					m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
 				}
 			}
@@ -593,7 +594,7 @@ namespace libtorrent
 				{
 					if (m_post_alert)
 					{
-						error_code ec(errno, boost::system::get_generic_category());
+						error_code ec(errno, boost::system::generic_category());
 						m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
 					}
 					m_cache_pool = 0;

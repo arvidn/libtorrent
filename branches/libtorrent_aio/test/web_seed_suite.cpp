@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int peer_disconnects = 0;
 
@@ -78,7 +79,7 @@ static sha1_hash file_hash(std::string const& name)
 static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_http", "_http_pw", "_i2p"};
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-static void test_transfer(session& ses, boost::shared_ptr<torrent_info> torrent_file
+static void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_file
 	, int proxy, int port, char const* protocol, bool url_seed
 	, bool chunked_encoding, bool test_ban, bool keepalive)
 {
@@ -386,7 +387,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	}
 */
 	{
-		session ses(fingerprint("  ", 0,0,0,0), 0);
+		libtorrent::session ses(fingerprint("  ", 0,0,0,0), 0);
 
 		settings_pack pack;
 		pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);

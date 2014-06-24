@@ -49,10 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
-void wait_for_complete(session& ses, torrent_handle h)
+void wait_for_complete(lt::session& ses, torrent_handle h)
 {
 	for (int i = 0; i < 50; ++i)
 	{
@@ -68,7 +69,7 @@ void wait_for_complete(session& ses, torrent_handle h)
 int test_main()
 {
 	error_code ec;
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48675, 49000), "0.0.0.0", 0, mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48675, 49000), "0.0.0.0", 0, mask);
 	create_directory("tmp1_recheck", ec);
 	if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");

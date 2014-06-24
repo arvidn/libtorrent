@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 const int piece_size = 16 * 1024 * 16;
 const int block_size = 16 * 1024;
@@ -550,7 +551,7 @@ void test_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		error_code ec;
 
@@ -587,7 +588,7 @@ void test_fastresume(std::string const& test_path)
 		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
 		TEST_CHECK(ra.get());
 		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
-		ses.remove_torrent(h, session::delete_files);
+		ses.remove_torrent(h, lt::session::delete_files);
 		std::auto_ptr<alert> da = wait_for_alert(ses, torrent_deleted_alert::alert_type);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("tmp1", "temporary"))));
@@ -601,7 +602,7 @@ void test_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -659,7 +660,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -699,7 +700,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));

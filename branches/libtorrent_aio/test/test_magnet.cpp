@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int test_main()
 {
@@ -44,7 +45,7 @@ int test_main()
 	session_proxy p2;
 	{
 	// test session state load/restore
-	session* s = new session(fingerprint("LT",0,0,0,0), 0);
+	lt::session* s = new lt::session(fingerprint("LT",0,0,0,0), 0);
 
 	settings_pack pack;
 	pack.set_str(settings_pack::user_agent, "test");
@@ -148,7 +149,7 @@ int test_main()
 
 	p1 = s->abort();
 	delete s;
-	s = new session(fingerprint("LT",0,0,0,0), 0);
+	s = new lt::session(fingerprint("LT",0,0,0,0), 0);
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);

@@ -74,7 +74,7 @@ namespace asio
 		static time_type now()
 		{ return time_type(libtorrent::time_now_hires()); }
 		static time_type add(time_type t, duration_type d)
-		{ return time_type(t.time + d.diff);}
+		{ return t + d; }
 		static duration_type subtract(time_type t1, time_type t2)
 		{ return duration_type(t1 - t2); }
 		static bool less_than(time_type t1, time_type t2)

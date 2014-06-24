@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int test_main()
 {
@@ -52,7 +53,7 @@ int test_main()
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
+	lt::session* s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
 	settings_pack pack;
 	pack.set_int(settings_pack::half_open_limit, 1);
@@ -107,7 +108,7 @@ int test_main()
 	// test that we move on to try the next tier if the first one fails
 	// ========================================
 
-	s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
+	s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
 
 	pack.clear();
 	pack.set_int(settings_pack::half_open_limit, 1);

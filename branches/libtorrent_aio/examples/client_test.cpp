@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 
 using boost::bind;
+using libtorrent::total_milliseconds;
 
 void terminal_size(int* terminal_width, int* terminal_height)
 {
@@ -332,21 +333,21 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	FILE* f = fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		return -1;
 	}
 
 	int r = fseek(f, 0, SEEK_END);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -360,7 +361,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fseek(f, 0, SEEK_SET);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -375,7 +376,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fread(&v[0], 1, v.size(), f);
 	if (r < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -834,10 +835,10 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		if (print_timers)
 		{
 			snprintf(str, sizeof(str), "%8d %4d %7d %6d "
-				, total_seconds(i->last_active)
-				, total_seconds(i->last_request)
+				, int(total_seconds(i->last_active))
+				, int(total_seconds(i->last_request))
 				, i->request_timeout
-				, total_seconds(i->download_queue_time));
+				, int(total_seconds(i->download_queue_time)));
 			out += str;
 		}
 		snprintf(str, sizeof(str), "%s|%s %4d "
@@ -1517,6 +1518,8 @@ int main(int argc, char* argv[])
 	}
 
 	using namespace libtorrent;
+	namespace lt = libtorrent;
+
 	settings_pack settings;
 	settings.set_int(settings_pack::active_loaded_limit, 20);
 
@@ -1550,8 +1553,8 @@ int main(int argc, char* argv[])
 	int counters[torrents_max];
 	memset(counters, 0, sizeof(counters));
 
-	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-		, session::add_default_plugins | session::start_default_features
+	libtorrent::session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+		, lt::session::add_default_plugins | lt::session::start_default_features
 		, alert::all_categories
 			& ~(alert::dht_notification
 			+ alert::progress_notification
@@ -2048,7 +2051,7 @@ int main(int argc, char* argv[])
 								files.erase(i);
 							}
 							if (st.handle.is_valid())
-								ses.remove_torrent(st.handle, session::delete_files);
+								ses.remove_torrent(st.handle, lt::session::delete_files);
 						}
 					}
 				}
@@ -2417,7 +2420,7 @@ int main(int argc, char* argv[])
 */
 		}
 
-		int cache_flags = print_downloads ? 0 : session::disk_cache_no_pieces;
+		int cache_flags = print_downloads ? 0 : lt::session::disk_cache_no_pieces;
 		torrent_handle h;
 		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
 
@@ -2589,7 +2592,7 @@ int main(int argc, char* argv[])
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
-						, i->min_announce > now ? total_seconds(i->min_announce - now) : 0
+						, int(i->min_announce > now ? total_seconds(i->min_announce - now) : 0)
 						, i->last_error ? i->last_error.message().c_str() : ""
 						, i->message.c_str());
 					out += str;

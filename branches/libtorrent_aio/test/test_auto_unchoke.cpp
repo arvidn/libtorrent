@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 void test_swarm()
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -70,18 +71,18 @@ void test_swarm()
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 
-	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit / 10);
 	pack.set_int(settings_pack::download_rate_limit, rate_limit / 5);
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
 
-	session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
 
-	session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -114,9 +115,9 @@ void test_swarm()
 	TEST_CHECK(st.allowed_upload_slots >= 2);
 
 	// make sure the files are deleted
-	ses1.remove_torrent(tor1, session::delete_files);
-	ses2.remove_torrent(tor2, session::delete_files);
-	ses3.remove_torrent(tor3, session::delete_files);
+	ses1.remove_torrent(tor1, lt::session::delete_files);
+	ses2.remove_torrent(tor2, lt::session::delete_files);
+	ses3.remove_torrent(tor3, lt::session::delete_files);
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();

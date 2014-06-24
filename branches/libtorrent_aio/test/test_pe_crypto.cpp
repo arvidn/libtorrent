@@ -73,6 +73,7 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	, bool pref_rc4 = false)
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -80,8 +81,8 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
 	settings_pack s;
 	
 	s.set_int(settings_pack::out_enc_policy, settings_pack::pe_enabled);

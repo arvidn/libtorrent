@@ -56,6 +56,7 @@ void test_transfer(int flags
 	, int timeout)
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	fprintf(stderr, "test transfer: timeout=%d %s%s%s\n"
 		, timeout
@@ -71,8 +72,8 @@ void test_transfer(int flags
 
 	// TODO: it would be nice to test reversing
 	// which session is making the connection as well
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
 	ses1.add_extension(constructor);
 	ses2.add_extension(constructor);
 	torrent_handle tor1;
@@ -85,8 +86,8 @@ void test_transfer(int flags
 	ses1.apply_settings(pack);
 	ses2.apply_settings(pack);
 
-	session* downloader = &ses2;
-	session* seed = &ses1;
+	lt::session* downloader = &ses2;
+	lt::session* seed = &ses1;
 
 	if (flags & reverse)
 	{

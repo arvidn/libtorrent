@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 static int tests_failure = 0;
 static std::vector<std::string> failure_strings;
@@ -121,7 +122,7 @@ int print_failures()
 	return tests_failure;
 }
 
-std::auto_ptr<alert> wait_for_alert(session& ses, int type, char const* name)
+std::auto_ptr<alert> wait_for_alert(lt::session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;
 	ptime end = time_now() + seconds(10);
@@ -155,21 +156,21 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	FILE* f = fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		return -1;
 	}
 
 	int r = fseek(f, 0, SEEK_END);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -183,7 +184,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fseek(f, 0, SEEK_SET);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -198,7 +199,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fread(&v[0], 1, v.size(), f);
 	if (r < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -231,7 +232,7 @@ void save_file(char const* filename, char const* data, int size)
 
 }
 
-bool print_alerts(libtorrent::session& ses, char const* name
+bool print_alerts(lt::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
 	, bool (*predicate)(libtorrent::alert*), bool no_output)
 {
@@ -297,7 +298,7 @@ bool listen_alert(libtorrent::alert* a)
 	return true;
 }
 
-void wait_for_listen(libtorrent::session& ses, char const* name)
+void wait_for_listen(lt::session& ses, char const* name)
 {
 	listen_done = false;
 	alert const* a = 0;
@@ -320,7 +321,7 @@ bool downloading_alert(libtorrent::alert* a)
 	return true;
 }
 
-void wait_for_downloading(libtorrent::session& ses, char const* name)
+void wait_for_downloading(lt::session& ses, char const* name)
 {
 	downloading_done = false;
 	alert const* a = 0;
@@ -645,7 +646,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 }
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
-setup_transfer(session* ses1, session* ses2, session* ses3
+setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::shared_ptr<torrent_info>* torrent, bool super_seeding
@@ -669,7 +670,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	ip_filter f;
 	f.add_rule(address_v4::from_string("0.0.0.0")
 		, address_v4::from_string("255.255.255.255")
-		, session::global_peer_class_id);
+		, lt::session::global_peer_class_id);
 	ses1->set_peer_class_filter(f);
 	ses2->set_peer_class_filter(f);
 	if (ses3) ses3->set_peer_class_filter(f);

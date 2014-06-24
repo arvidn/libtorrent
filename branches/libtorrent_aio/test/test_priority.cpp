@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 using boost::tuples::ignore;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
@@ -83,8 +84,8 @@ void test_transfer(settings_pack const& sett)
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
 
 	settings_pack pack = sett;
 	// we need a short reconnect time since we

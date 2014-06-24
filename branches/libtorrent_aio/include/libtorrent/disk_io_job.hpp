@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_IO_JOB_HPP
 
 #include <string>
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/peer_id.hpp"

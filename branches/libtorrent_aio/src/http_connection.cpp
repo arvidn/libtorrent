@@ -238,7 +238,8 @@ void http_connection::start(std::string const& hostname, int port
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
 	m_completion_timeout = timeout;
-	m_read_timeout = (std::max)(seconds(5), timeout / 5);
+	m_read_timeout = seconds(5);
+	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
 	error_code ec;
 	m_timer.expires_from_now(m_completion_timeout, ec);
 #if defined TORRENT_ASIO_DEBUGGING

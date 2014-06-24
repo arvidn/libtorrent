@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <vector>
 
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/hasher.hpp"

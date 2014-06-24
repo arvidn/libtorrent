@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent { namespace aux { struct session_impl; } }
 

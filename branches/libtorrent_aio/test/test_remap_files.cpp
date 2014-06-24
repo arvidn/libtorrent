@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 using boost::tuples::ignore;
 
 template <class T>
@@ -67,8 +68,10 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
+		, "0.0.0.0", 0, alert_mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
+		, "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -212,8 +215,10 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
+		, "0.0.0.0", 0, alert_mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
+		, "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -337,8 +342,10 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
+		, "0.0.0.0", 0, alert_mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
+		, "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;

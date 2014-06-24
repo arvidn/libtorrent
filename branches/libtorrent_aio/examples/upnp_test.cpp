@@ -63,6 +63,7 @@ void print_alert(libtorrent::alert const* a)
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	if (argc != 1)
 	{
@@ -72,7 +73,7 @@ int main(int argc, char* argv[])
 
 	settings_pack p;
 	p.set_int(settings_pack::alert_mask, alert::port_mapping_notification);
-	session s(p);
+	lt::session s(p);
 
 	for (;;)
 	{
