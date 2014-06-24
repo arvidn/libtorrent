@@ -4632,7 +4632,7 @@ namespace libtorrent
 			&& m_interesting
 			&& m_download_queue.empty()
 			&& m_request_queue.empty()
-			&& total_seconds(now - m_last_request) >= 5)
+			&& now - seconds(5) >= m_last_request)
 		{
 			// this happens when we're in strict end-game
 			// mode and the peer could not request any blocks

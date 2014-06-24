@@ -126,7 +126,7 @@ namespace libtorrent
 
 	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
-		if (time_now() - m_last_route_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_route_update)
 		{
 			m_last_route_update = time_now();
 			error_code ec;
@@ -235,7 +235,7 @@ namespace libtorrent
 		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
 
 		// first enumerate the routes in the routing table
-		if (time_now() - m_last_route_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_route_update)
 		{
 			m_last_route_update = time_now();
 			error_code ec;
@@ -266,7 +266,7 @@ namespace libtorrent
 		// for this target. Now figure out what the local address
 		// is for that interface
 
-		if (time_now() - m_last_if_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_if_update)
 		{
 			m_last_if_update = time_now();
 			error_code ec;

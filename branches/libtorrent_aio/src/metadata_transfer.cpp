@@ -506,7 +506,7 @@ namespace libtorrent { namespace
 
 		bool has_metadata() const
 		{
-			return time_now() - m_no_metadata > minutes(5);
+			return time_now() - minutes(5) > m_no_metadata;
 		}
 
 	private:

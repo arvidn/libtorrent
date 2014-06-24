@@ -1269,7 +1269,8 @@ void utp_socket_impl::send_syn()
 
 	ptime now = time_now_hires();
 	p->send_time = now;
-	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()) & 0xffffffff);
+	h->timestamp_microseconds = boost::uint32_t(
+		total_microseconds(now.time_since_epoch()) & 0xffffffff);
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: send_syn seq_nr:%d id:%d target:%s\n"
@@ -1361,7 +1362,8 @@ void utp_socket_impl::send_reset(utp_header* ph)
 	h.seq_nr = random() & 0xffff;
 	h.ack_nr = ph->seq_nr;
 	ptime now = time_now_hires();
-	h.timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
+	h.timestamp_microseconds = boost::uint32_t(
+		total_microseconds(now.time_since_epoch()) & 0xffffffff);
 
 	UTP_LOGV("%8p: send_reset seq_nr:%d id:%d ack_nr:%d\n"
 		, this, int(h.seq_nr), int(m_send_id), int(ph->seq_nr));
@@ -1879,7 +1881,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	ptime now = time_now_hires();
 	p->send_time = now;
 	h->timestamp_microseconds = boost::uint32_t(
-		total_microseconds(now - min_time()) & 0xffffffff);
+		total_microseconds(now.time_since_epoch()) & 0xffffffff);
 
 #if TORRENT_UTP_LOG
 	UTP_LOG("%8p: sending packet seq_nr:%d ack_nr:%d type:%s "
@@ -2071,7 +2073,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	h->timestamp_difference_microseconds = m_reply_micro;
 	p->send_time = time_now_hires();
 	h->timestamp_microseconds = boost::uint32_t(
-		total_microseconds(p->send_time - min_time()) & 0xffffffff);
+		total_microseconds(p->send_time.time_since_epoch()) & 0xffffffff);
 
 	// if the packet has a selective ack header, we'll need
 	// to update it
@@ -2566,7 +2568,8 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	boost::uint32_t their_delay = 0;
 	if (ph->timestamp_microseconds != 0)
 	{
-		boost::uint32_t timestamp = boost::uint32_t(total_microseconds(receive_time - min_time()) & 0xffffffff);
+		boost::uint32_t timestamp = boost::uint32_t(total_microseconds(
+			receive_time.time_since_epoch()) & 0xffffffff);
 		m_reply_micro = timestamp - ph->timestamp_microseconds;
 		boost::uint32_t prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
@@ -3078,7 +3081,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 					, m_adv_wnd
 					, packet_timeout()
 					, int(total_milliseconds(m_timeout - receive_time))
-					, int(total_microseconds(receive_time - min_time()))
+					, int(total_microseconds(receive_time.time_since_epoch()))
 					, (m_seq_nr - m_acked_seq_nr) & ACK_MASK
 					, m_mtu
 					, their_delay_base
