@@ -984,7 +984,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint ep, int rtt)
 bool routing_table::need_bootstrap() const
 {
 	ptime now = time_now();
-	if (now - m_last_bootstrap < seconds(30)) return false;
+	if (now - seconds(30) < m_last_bootstrap) return false;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)

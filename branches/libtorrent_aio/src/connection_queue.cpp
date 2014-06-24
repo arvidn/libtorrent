@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <boost/bind.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
@@ -38,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/connection_interface.hpp"
+
+#include <boost/bind.hpp>
+#include <algorithm>
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"

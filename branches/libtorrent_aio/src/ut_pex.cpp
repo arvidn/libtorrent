@@ -115,7 +115,7 @@ namespace libtorrent { namespace
 		virtual void tick()
 		{
 			ptime now = time_now();
-			if (now - m_last_msg < seconds(60)) return;
+			if (now - seconds(60) < m_last_msg) return;
 			m_last_msg = now;
 
 			int num_peers = m_torrent.num_peers();

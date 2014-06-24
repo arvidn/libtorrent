@@ -257,7 +257,7 @@ namespace aux {
 		int ret = 0;
 		if (f == 0)
 		{
-			ec.assign(errno, boost::system::get_system_category());
+			ec.assign(errno, boost::system::system_category());
 			return;
 		}
 		while ((ret = fscanf(f, "%s %u\n", string, &value)) != EOF)
@@ -298,10 +298,10 @@ namespace aux {
 		getrusage(RUSAGE_THREAD, &ru);
 		tu->user_time = min_time()
 			+ seconds(ru.ru_utime.tv_sec)
-			+ microsec(ru.ru_utime.tv_usec);
+			+ microseconds(ru.ru_utime.tv_usec);
 		tu->system_time = min_time()
 			+ seconds(ru.ru_stime.tv_sec)
-			+ microsec(ru.ru_stime.tv_usec);
+			+ microseconds(ru.ru_stime.tv_usec);
 #elif defined TORRENT_WINDOWS
 		FILETIME system_time;
 		FILETIME user_time;
@@ -314,8 +314,8 @@ namespace aux {
 		boost::uint64_t stime = (boost::uint64_t(system_time.dwHighDateTime) << 32)
 			+ system_time.dwLowDateTime;
 
-		tu->user_time = min_time() + microsec(utime / 10);
-		tu->system_time = min_time() + microsec(stime / 10);
+		tu->user_time = min_time() + microseconds(utime / 10);
+		tu->system_time = min_time() + microseconds(stime / 10);
 #endif
 	}
 #endif // TORRENT_STATS
@@ -324,8 +324,7 @@ namespace aux {
 	{
 		seed_random_generator()
 		{
-			random_seed((unsigned int)((total_microseconds(
-				time_now_hires() - min_time())) & 0xffffffff));
+			random_seed((unsigned int)((time_now().time_since_epoch().count()) & 0xffffffff));
 		}
 	};
 
