@@ -526,27 +526,6 @@ be useful if the user is not interested in
 the anonymization of i2p, but still wants to
 be able to connect to i2p peers.
 
-.. _drop_skipped_requests:
-
-.. raw:: html
-
-	<a name="drop_skipped_requests"></a>
-
-+-----------------------+------+---------+
-| name                  | type | default |
-+=======================+======+=========+
-| drop_skipped_requests | bool | false   |
-+-----------------------+------+---------+
-
-If ``drop_skipped_requests`` is set to true (it defaults to false), piece
-requests that have been skipped enough times when piece messages
-are received, will be considered lost. Requests are considered skipped
-when the returned piece messages are re-ordered compared to the order
-of the requests. This was an attempt to get out of dead-locks caused by
-BitComet peers silently ignoring some requests. It may cause problems
-at high rates, and high level of reordering in the uploading peer, that's
-why it's disabled by default.
-
 .. _low_prio_disk:
 
 .. raw:: html
@@ -2149,7 +2128,7 @@ returned from a tracker. It mitigates hammering misconfigured trackers.
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
-| auto_manage_startup | int  | 120     |
+| auto_manage_startup | int  | 60      |
 +---------------------+------+---------+
 
 this is the number of seconds a torrent is considered
@@ -3017,7 +2996,7 @@ the ``url`` provided in ``add_torrent_params``.
 +---------------------+------+---------+
 | name                | type | default |
 +=====================+======+=========+
-| max_retry_port_bind | int  | 0       |
+| max_retry_port_bind | int  | 10      |
 +---------------------+------+---------+
 
 if binding to a specific port fails, should the port be incremented
@@ -3076,4 +3055,28 @@ determines the encryption level of the
 connections.  This setting will adjust which encryption scheme is
 offered to the other peer, as well as which encryption scheme is
 selected by the client. See enc_level enum for options.
+
+.. _inactive_down_rate:
+
+.. _inactive_up_rate:
+
+.. raw:: html
+
+	<a name="inactive_down_rate"></a>
+	<a name="inactive_up_rate"></a>
+
++--------------------+------+---------+
+| name               | type | default |
++====================+======+=========+
+| inactive_down_rate | int  | 2048    |
++--------------------+------+---------+
+| inactive_up_rate   | int  | 2048    |
++--------------------+------+---------+
+
+the download and upload rate limits for a torrent to be considered
+active by the queuing mechanism. A torrent whose download rate is less
+than ``inactive_down_rate`` and whose upload rate is less than
+``inactive_up_rate`` for ``auto_manage_startup`` seconds, is
+considered inactive, and another queued torrent may be startert.
+This logic is disabled if ``dont_count_slow_torrents`` is false.
 
