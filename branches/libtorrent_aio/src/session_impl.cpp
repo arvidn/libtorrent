@@ -289,10 +289,10 @@ namespace aux {
 
 		tu->user_time = min_time()
 			+ seconds(t_info.user_time.seconds)
-			+ microsec(t_info.user_time.microseconds);
+			+ microseconds(t_info.user_time.microseconds);
 		tu->system_time = min_time()
 			+ seconds(t_info.system_time.seconds)
-			+ microsec(t_info.system_time.microseconds);
+			+ microseconds(t_info.system_time.microseconds);
 #elif defined TORRENT_LINUX
 		struct rusage ru;
 		getrusage(RUSAGE_THREAD, &ru);

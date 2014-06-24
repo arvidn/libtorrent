@@ -196,14 +196,6 @@ rule linking ( properties * )
 		{
 			result += <library>/boost/system//boost_system/<link>shared ;
 			result += <library>/boost/chrono//boost_chrono/<link>shared ;
-
-			# when building a shared library with openssl, for some reason we really need
-			# boost date time (at least on windows). Hopefully a future version of asio
-			# will allow disabling this dependency
-			if <encryption>openssl in $(properties)
-			{
-				result += <library>/boost/date_time//boost_date_time/<link>shared ;
-			}
 		}
 		result += <include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
@@ -215,11 +207,6 @@ rule linking ( properties * )
 	{
 		result += <library>boost_system ;
 		result += <library>boost_chrono ;
-
-		if <boost-link>shared in $(properties) && <encryption>openssl in $(properties)
-		{
-			result += <library>boost_date_time ;
-		}
 
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
@@ -499,10 +486,6 @@ lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-sea
 lib boost_system : : <target-os>solaris <name>boost_system $(boost-library-search-path) ;
 lib boost_system : : <name>boost_system ;
 
-lib boost_date_time : : <target-os>darwin <name>boost_date_time-mt $(boost-library-search-path) ;
-lib boost_date_time : : <target-os>solaris <name>boost_date_time $(boost-library-search-path) ;
-lib boost_date_time : : <name>boost_date_time ;
-
 lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-library-search-path) ;
 lib boost_chrono : : <target-os>solaris <name>boost_chrono $(boost-library-search-path) ;
 lib boost_chrono : : <name>boost_chrono ;
@@ -722,6 +705,7 @@ lib torrent
 	<include>./ed25519/src
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
+	<define>BOOST_NO_DEPRECATED
 
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs

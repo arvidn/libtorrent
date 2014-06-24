@@ -343,7 +343,7 @@ namespace libtorrent
 		WIN32_FILE_ATTRIBUTE_DATA data;
 		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
 		{
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 			return;
 		}
 
@@ -441,7 +441,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 #else
 		int ret = mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
@@ -496,7 +496,7 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
@@ -900,7 +900,7 @@ namespace libtorrent
 				if (RemoveDirectory_(f.c_str()) != 0)
 					return;
 			}
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 			return;
 		}
 #else // TORRENT_WINDOWS
@@ -982,7 +982,7 @@ namespace libtorrent
 		m_handle = FindFirstFile_(p.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 			m_done = true;
 			return;
 		}
@@ -1056,7 +1056,7 @@ namespace libtorrent
 			m_done = true;
 			int err = GetLastError();
 			if (err != ERROR_NO_MORE_FILES)
-				ec.assign(err, boost::system::get_system_category());
+				ec.assign(err, boost::system::system_category());
 		}
 		++m_inode;
 #else
@@ -1092,7 +1092,7 @@ namespace libtorrent
 			if (ol.hEvent != INVALID_HANDLE_VALUE
 				&& WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 				return -1;
 			}
 
@@ -1105,7 +1105,7 @@ namespace libtorrent
 #ifdef ERROR_CANT_WAIT
 					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
-					ec.assign(last_error, get_system_category());
+					ec.assign(last_error, system_category());
 					return -1;
 				}
 			}
@@ -1253,7 +1253,7 @@ namespace libtorrent
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			TORRENT_ASSERT(ec);
 			return false;
 		}
@@ -1561,7 +1561,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
@@ -1584,7 +1584,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(last_error, get_system_category());
+				ec.assign(last_error, system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
@@ -1604,7 +1604,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_WINDOWS
 		if (SetFilePointerEx(fd, offs, &offs, FILE_BEGIN) == FALSE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return -1;
 		}
 #else
@@ -1621,7 +1621,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
@@ -1645,9 +1645,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
 #ifdef TORRENT_WINDOWS
-			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
+			ec = error_code(ERROR_INVALID_HANDLE, system_category());
 #else
-			ec = error_code(EBADF, get_system_category());
+			ec = error_code(EBADF, system_category());
 #endif
 			return -1;
 		}
@@ -1690,9 +1690,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
 #ifdef TORRENT_WINDOWS
-			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
+			ec = error_code(ERROR_INVALID_HANDLE, system_category());
 #else
-			ec = error_code(EBADF, get_system_category());
+			ec = error_code(EBADF, system_category());
 #endif
 			return -1;
 		}
@@ -1852,7 +1852,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		LARGE_INTEGER cur_size;
 		if (GetFileSizeEx(native_handle(), &cur_size) == FALSE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return false;
 		}
 		offs.QuadPart = s;
@@ -1863,12 +1863,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		{
 			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 				return false;
 			}
 			if (::SetEndOfFile(native_handle()) == FALSE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 				return false;
 			}
 		}
@@ -1912,7 +1912,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				offs.HighPart = high_dword;
 				if (offs.LowPart == INVALID_FILE_SIZE)
 				{
-					ec.assign(GetLastError(), get_system_category());
+					ec.assign(GetLastError(), system_category());
 					if (ec) return false;
 				}
 			}
@@ -2031,7 +2031,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		LARGE_INTEGER file_size;
 		if (!GetFileSizeEx(native_handle(), &file_size))
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return -1;
 		}
 		return file_size.QuadPart;

@@ -887,7 +887,7 @@ namespace libtorrent
 		{
 			// failed
 			m_ses.alerts().post_alert(read_piece_alert(
-				get_handle(), piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
+				get_handle(), piece, error_code(boost::system::errc::operation_canceled, system_category())));
 			return;
 		}
 
@@ -4838,7 +4838,7 @@ namespace libtorrent
 			if (flags & torrent_handle::alert_when_available)
 			{
 				m_ses.alerts().post_alert(read_piece_alert(
-					get_handle(), piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
+					get_handle(), piece, error_code(boost::system::errc::operation_canceled, system_category())));
 			}
 			return;
 		}
@@ -4973,7 +4973,7 @@ namespace libtorrent
 			{
 				// post an empty read_piece_alert to indicate it failed
 				alerts().post_alert(read_piece_alert(
-					get_handle(), piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
+					get_handle(), piece, error_code(boost::system::errc::operation_canceled, system_category())));
 			}
 			if (has_picker()) m_picker->set_piece_priority(piece, 1);
 			m_time_critical_pieces.erase(i);
@@ -4990,7 +4990,7 @@ namespace libtorrent
 			{
 				// post an empty read_piece_alert to indicate it failed
 				m_ses.alerts().post_alert(read_piece_alert(
-					get_handle(), i->piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
+					get_handle(), i->piece, error_code(boost::system::errc::operation_canceled, system_category())));
 			}
 			if (has_picker()) m_picker->set_piece_priority(i->piece, 1);
 			i = m_time_critical_pieces.erase(i);
@@ -5009,7 +5009,7 @@ namespace libtorrent
 				{
 					// post an empty read_piece_alert to indicate it failed
 					alerts().post_alert(read_piece_alert(
-						get_handle(), i->piece, error_code(boost::system::errc::operation_canceled, get_system_category())));
+						get_handle(), i->piece, error_code(boost::system::errc::operation_canceled, system_category())));
 				}
 				i = m_time_critical_pieces.erase(i);
 				continue;
@@ -5645,7 +5645,7 @@ namespace libtorrent
 #if BOOST_VERSION < 105400
 		if (alerts().should_post<torrent_error_alert>())
 			alerts().post_alert(torrent_error_alert(get_handle()
-				, error_code(boost::system::errc::not_supported, get_system_category()), "[certificate]"));
+				, error_code(boost::system::errc::not_supported, system_category()), "[certificate]"));
 #else
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 

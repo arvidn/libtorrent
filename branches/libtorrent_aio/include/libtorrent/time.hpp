@@ -77,8 +77,8 @@ namespace libtorrent
 
 	// the earliest and latest possible time points
 	// representable by ptime.
-	inline ptime min_time() { return boost::chrono::high_resolution_clock::time_point::min(); }
-	inline ptime max_time() { return boost::chrono::high_resolution_clock::time_point::max(); }
+	inline ptime min_time() { return (boost::chrono::high_resolution_clock::time_point::min)(); }
+	inline ptime max_time() { return (boost::chrono::high_resolution_clock::time_point::max)(); }
 
 	using boost::chrono::seconds;
 	using boost::chrono::milliseconds;
