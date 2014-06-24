@@ -288,8 +288,8 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 
 		// TODO: it would be nice to detect this on posix systems also
 #ifdef TORRENT_WINDOWS
-		if ((ec == error_code(ERROR_MORE_DATA, get_system_category())
-			|| ec == error_code(WSAEMSGSIZE, get_system_category()))
+		if ((ec == error_code(ERROR_MORE_DATA, system_category())
+			|| ec == error_code(WSAEMSGSIZE, system_category()))
 			&& m_buf_size < 65536)
 		{
 			// if this function fails to allocate memory, m_buf_size
@@ -439,13 +439,13 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 			&& e != asio::error::network_unreachable
 #ifdef WIN32
 			// ERROR_MORE_DATA means the same thing as EMSGSIZE
-			&& e != error_code(ERROR_MORE_DATA, get_system_category())
-			&& e != error_code(ERROR_HOST_UNREACHABLE, get_system_category())
-			&& e != error_code(ERROR_PORT_UNREACHABLE, get_system_category())
-			&& e != error_code(ERROR_RETRY, get_system_category())
-			&& e != error_code(ERROR_NETWORK_UNREACHABLE, get_system_category())
-			&& e != error_code(ERROR_CONNECTION_REFUSED, get_system_category())
-			&& e != error_code(ERROR_CONNECTION_ABORTED, get_system_category())
+			&& e != error_code(ERROR_MORE_DATA, system_category())
+			&& e != error_code(ERROR_HOST_UNREACHABLE, system_category())
+			&& e != error_code(ERROR_PORT_UNREACHABLE, system_category())
+			&& e != error_code(ERROR_RETRY, system_category())
+			&& e != error_code(ERROR_NETWORK_UNREACHABLE, system_category())
+			&& e != error_code(ERROR_CONNECTION_REFUSED, system_category())
+			&& e != error_code(ERROR_CONNECTION_ABORTED, system_category())
 #endif
 			&& e != asio::error::message_size)
 		{
