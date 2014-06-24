@@ -36,7 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 #include <boost/cstdint.hpp>
+
+#if defined BOOST_ASIO_HAS_STD_CHRONO
+#include <chrono>
+#else
 #include <boost/chrono.hpp>
+#endif
+
 #include <string>
 
 // OVERVIEW
@@ -63,8 +69,14 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT char const* time_now_string();
 	std::string log_time();
 
-	typedef boost::chrono::high_resolution_clock::time_point ptime;
-	typedef boost::chrono::high_resolution_clock::duration time_duration;
+#if defined BOOST_ASIO_HAS_STD_CHRONO
+	typedef std::chrono::high_resolution_clock clock_type;
+#else
+	typedef boost::chrono::high_resolution_clock clock_type;
+#endif
+
+	typedef clock_type::time_point ptime;
+	typedef clock_type::duration time_duration;
 
 	// returns the current time, as represented by ptime. The
 	// resolution of this timer is about 100 ms.
@@ -73,30 +85,40 @@ namespace libtorrent
 	// returns the current time as represented by ptime. This is
 	// more expensive than time_now(), but provides as high resolution
 	// as the operating system can provide.
-	inline ptime time_now_hires() { return boost::chrono::high_resolution_clock::now(); }
+	inline ptime time_now_hires() { return clock_type::now(); }
 
 	// the earliest and latest possible time points
 	// representable by ptime.
-	inline ptime min_time() { return (boost::chrono::high_resolution_clock::time_point::min)(); }
-	inline ptime max_time() { return (boost::chrono::high_resolution_clock::time_point::max)(); }
+	inline ptime min_time() { return (clock_type::time_point::min)(); }
+	inline ptime max_time() { return (clock_type::time_point::max)(); }
 
+#if defined BOOST_ASIO_HAS_STD_CHRONO
+	using std::chrono::seconds;
+	using std::chrono::milliseconds;
+	using std::chrono::microseconds;
+	using std::chrono::minutes;
+	using std::chrono::hours;
+	using std::chrono::duration_cast;
+#else
 	using boost::chrono::seconds;
 	using boost::chrono::milliseconds;
 	using boost::chrono::microseconds;
 	using boost::chrono::minutes;
 	using boost::chrono::hours;
+	using boost::chrono::duration_cast;
+#endif
 
 	template<class T>
 	boost::int64_t total_seconds(T td)
-	{ return boost::chrono::duration_cast<boost::chrono::seconds>(td).count(); }
+	{ return duration_cast<seconds>(td).count(); }
 
 	template<class T>
 	boost::int64_t total_milliseconds(T td)
-	{ return boost::chrono::duration_cast<boost::chrono::milliseconds>(td).count(); }
+	{ return duration_cast<milliseconds>(td).count(); }
 
 	template<class T>
 	boost::int64_t total_microseconds(T td)
-	{ return boost::chrono::duration_cast<boost::chrono::microseconds>(td).count(); }
+	{ return duration_cast<microseconds>(td).count(); }
 
 }
 
