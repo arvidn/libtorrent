@@ -289,7 +289,7 @@ namespace libtorrent { namespace
 			if (body.left() < length) return true;
 
 			ptime now = time_now();
-			if (now - m_last_pex[0] < seconds(60))
+			if (now - seconds(60) <  m_last_pex[0])
 			{
 				// this client appears to be trying to flood us
 				// with pex messages. Don't allow that.
@@ -436,7 +436,7 @@ namespace libtorrent { namespace
 			if (!m_message_index) return;
 
 			ptime now = time_now();
-			if (now - m_last_msg < seconds(60))
+			if (now - seconds(60) < m_last_msg)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("*** PEX [ waiting: %d seconds to next msg ]"
