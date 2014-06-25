@@ -592,6 +592,7 @@ namespace libtorrent
 		ret.resize(ws.size() * 4 + 1);
 		std::size_t size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], ret.size(), NULL, NULL);
 		if (size == std::size_t(-1)) return s;
+		if (size != 0 && ret[size - 1] == '\0') --size;
 		ret.resize(size);
 		return ret;
 	}
@@ -602,6 +603,7 @@ namespace libtorrent
 		ws.resize(s.size() + 1);
 		std::size_t size = MultiByteToWideChar(CP_ACP, 0, s.c_str(), -1, &ws[0], ws.size());
 		if (size == std::size_t(-1)) return s;
+		if (size != 0 && ret[size - 1] == '\0') --size;
 		ws.resize(size);
 		std::string ret;
 		libtorrent::wchar_utf8(ws, ret);

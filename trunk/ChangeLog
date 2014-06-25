@@ -1,5 +1,6 @@
 1.0 release
 
+	* fix bugs in convert_to/from_native() on windows
 	* fix support for web servers not supporting keepalive
 	* support storing save_path in resume data
 	* don't use full allocation on network drives (on windows)
