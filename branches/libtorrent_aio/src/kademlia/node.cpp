@@ -432,7 +432,7 @@ time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
 	ptime now(time_now());
-	if (now - m_last_tracker_tick < minutes(2)) return d;
+	if (now - minutes(2) < m_last_tracker_tick) return d;
 	m_last_tracker_tick = now;
 
 	for (dht_immutable_table_t::iterator i = m_immutable_table.begin();

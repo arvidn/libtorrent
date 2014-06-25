@@ -308,7 +308,7 @@ bool routing_table::need_refresh(node_id& target) const
 	ptime now = time_now();
 
 	// refresh our own bucket once every 15 minutes
-	if (now - m_last_self_refresh > minutes(15))
+	if (now - minutes(15) > m_last_self_refresh)
 	{
 		m_last_self_refresh = now;
 		target = m_id;
@@ -323,8 +323,8 @@ bool routing_table::need_refresh(node_id& target) const
 	table_t::const_iterator i = std::min_element(m_buckets.begin(), m_buckets.end()
 		, &compare_bucket_refresh);
 
-	if (now - i->last_active < minutes(15)) return false;
-	if (now - m_last_refresh < seconds(45)) return false;
+	if (now - minutes(15) < i->last_active) return false;
+	if (now - seconds(45) < m_last_refresh) return false;
 
 	// generate a random node_id within the given bucket
 	target = generate_random_id();
