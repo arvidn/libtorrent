@@ -617,9 +617,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
 #if TORRENT_OPTIMIZE_MEMORY_USAGE
-		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
+		BOOST_STATIC_ASSERT(sizeof(piece_picker::piece_pos) == sizeof(char) * 4);
 #else
-		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
+		BOOST_STATIC_ASSERT(sizeof(piece_picker::piece_pos) == sizeof(char) * 8);
 #endif
 #endif
 
