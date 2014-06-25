@@ -416,7 +416,7 @@ pid_type async_run(char const* cmdline)
 	if (ret == 0)
 	{
 		int error = GetLastError();
-		fprintf(stderr, "failed (%d) %s\n", error, error_code(error, get_system_category()).message().c_str());
+		fprintf(stderr, "failed (%d) %s\n", error, error_code(error, system_category()).message().c_str());
 		return 0;
 	}
 	return pi.dwProcessId;
