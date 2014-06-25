@@ -184,7 +184,7 @@ namespace libtorrent { namespace dht
 		, m_dht(&ses, this, settings, extract_node_id(state)
 			, ses.external_address().external_address(address_v4()), &ses, cnt)
 		, m_sock(sock)
-		, m_last_new_key(time_now() - minutes(key_refresh))
+		, m_last_new_key(time_now() - minutes(int(key_refresh)))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -304,7 +304,7 @@ namespace libtorrent { namespace dht
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
 		ptime now = time_now();
-		if (now - m_last_new_key > minutes(key_refresh))
+		if (now - minutes(int(key_refresh)) > m_last_new_key)
 		{
 			m_last_new_key = now;
 			m_dht.new_write_key();
