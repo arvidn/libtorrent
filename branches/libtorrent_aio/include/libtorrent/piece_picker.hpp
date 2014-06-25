@@ -493,14 +493,6 @@ namespace libtorrent
 				TORRENT_ASSERT(index_ >= 0);
 			}
 
-			// the number of peers that has this piece
-			// (availability)
-#if TORRENT_OPTIMIZE_MEMORY_USAGE
-			boost::uint32_t peer_count : 9;
-#else
-			boost::uint32_t peer_count : 16;
-#endif
-
 			// state of this piece.
 			enum state_t
 			{
@@ -516,6 +508,14 @@ namespace libtorrent
 				// pieces whose priority is 0
 				piece_zero_prio
 			};
+
+			// the number of peers that has this piece
+			// (availability)
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
+			boost::uint32_t peer_count : 9;
+#else
+			boost::uint32_t peer_count : 16;
+#endif
 
 			boost::uint32_t state : 3;
 
@@ -617,9 +617,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
 #if TORRENT_OPTIMIZE_MEMORY_USAGE
-		BOOST_STATIC_ASSERT(sizeof(piece_picker::piece_pos) == sizeof(char) * 4);
+		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
 #else
-		BOOST_STATIC_ASSERT(sizeof(piece_picker::piece_pos) == sizeof(char) * 8);
+		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
 #endif
 #endif
 
