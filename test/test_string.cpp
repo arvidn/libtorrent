@@ -233,6 +233,14 @@ int test_main()
 	ptr = string_tokenize(next, ' ', &next);
 	TEST_EQUAL(ptr, NULL);
 
+	TEST_EQUAL(std::string("foobar"), convert_from_native(convert_to_native("foobar")));
+	TEST_EQUAL(std::string("foobar")
+		, convert_from_native(convert_to_native("foo"))
+		+ convert_from_native(convert_to_native("bar")));
+
+	TEST_EQUAL(convert_to_native("foobar")
+		, convert_to_native("foo") + convert_to_native("bar"));
+
 	return 0;
 }
 
