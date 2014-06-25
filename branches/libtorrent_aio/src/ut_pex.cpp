@@ -454,7 +454,7 @@ namespace libtorrent { namespace
 			// contention
 			int delay = (std::min)((std::max)(60000 / num_peers, 100), 3000);
 
-			if (now - global_last < milliseconds(delay))
+			if (now - milliseconds(delay) < global_last)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("*** PEX [ global-wait: %d ]", total_seconds(milliseconds(delay) - (now - global_last)));
