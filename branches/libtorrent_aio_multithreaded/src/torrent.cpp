@@ -6141,14 +6141,14 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = boost::make_shared<web_peer_connection>(
-				boost::ref(m_ses.stats_counters()), m_ses.settings(), boost::ref(m_ses)
+				boost::ref(m_ses.stats_counters()), m_ses, m_ses.settings(), boost::ref(m_ses)
 				, boost::ref(m_ses.disk_thread())
 				, shared_from_this(), s, boost::ref(*web));
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = boost::make_shared<http_seed_connection>(
-				boost::ref(m_ses.stats_counters()), m_ses.settings(), boost::ref(m_ses)
+				boost::ref(m_ses.stats_counters()), m_ses, m_ses.settings(), boost::ref(m_ses)
 				, boost::ref(m_ses.disk_thread())
 				, shared_from_this(), s, boost::ref(*web));
 		}
@@ -7143,7 +7143,7 @@ namespace libtorrent
 		m_ses.setup_socket_buffers(*s);
 
 		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
-			boost::ref(m_ses.stats_counters()), m_ses.settings(), boost::ref(m_ses)
+			boost::ref(m_ses.stats_counters()), m_ses, m_ses.settings(), boost::ref(m_ses)
 			, boost::ref(m_ses.disk_thread())
 			, s, a, peerinfo, m_ses.get_peer_id(), shared_from_this());
 

@@ -101,9 +101,30 @@ namespace libtorrent
 
 namespace libtorrent { namespace aux
 {
+	// this is the view of the session peers use
+	struct torrent_container
+	{
+		// peer-classes
+		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
+		virtual peer_class_pool const& peer_classes() const = 0;
+		virtual peer_class_pool& peer_classes() = 0;
+
+		virtual session_settings const& settings() const = 0;
+		// TODO: it would be nice to not have this be part of session_interface
+		virtual void set_proxy(proxy_settings const& s) = 0;
+		virtual proxy_settings const& proxy() const = 0;
+
+#if TORRENT_USE_I2P
+		virtual proxy_settings const& i2p_proxy() const = 0;
+		virtual char const* i2p_session() const = 0;
+#endif
+
+	};
+
 	// TOOD: make this interface a lot smaller
 	struct session_interface
 		: buffer_allocator_interface
+		, torrent_container
 	{
 		// TODO: 2 the IP voting mechanism should be factored out
 		// to its own class, not part of the session
@@ -200,15 +221,6 @@ namespace libtorrent { namespace aux
 		virtual bool verify_bound_address(address const& addr, bool utp
 			, error_code& ec) = 0;
 
-		// TODO: it would be nice to not have this be part of session_interface
-		virtual void set_proxy(proxy_settings const& s) = 0;
-		virtual proxy_settings const& proxy() const = 0;
-
-#if TORRENT_USE_I2P
-		virtual proxy_settings const& i2p_proxy() const = 0;
-		virtual char const* i2p_session() const = 0;
-#endif
-
 		virtual void prioritize_connections(boost::weak_ptr<torrent> t) = 0;
 
 		virtual tcp::endpoint get_ipv6_interface() const = 0;
@@ -217,16 +229,11 @@ namespace libtorrent { namespace aux
 		virtual void trigger_auto_manage() = 0;
 
 		virtual void apply_settings_pack(settings_pack* pack) = 0;
-		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request& req
 			, std::string login, boost::weak_ptr<request_callback> c
 			, boost::uint32_t key) = 0;
 
-		// peer-classes
-		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
-		virtual peer_class_pool const& peer_classes() const = 0;
-		virtual peer_class_pool& peer_classes() = 0;
 		virtual bool ignore_unchoke_slots_set(peer_class_set const& set) const = 0;
 		virtual int copy_pertinent_channels(peer_class_set const& set
 			, int channel, bandwidth_channel** dst, int max) = 0;

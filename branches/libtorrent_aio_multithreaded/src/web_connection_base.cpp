@@ -56,13 +56,14 @@ namespace libtorrent
 {
 	web_connection_base::web_connection_base(
 		struct counters& cnt
+		, aux::torrent_container &cont
 		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, web_seed_entry& web)
-		: peer_connection(cnt, sett, allocator, disk_thread, s->get_io_service()
+		: peer_connection(cnt, cont, sett, allocator, disk_thread, s->get_io_service()
 			, t, s, web.endpoint, &web.peer_info)
 		, m_first_request(true)
 		, m_ssl(false)
@@ -104,7 +105,7 @@ namespace libtorrent
 	{
 		// since this is a web seed, change the timeout
 		// according to the settings.
-		return m_settings.get_int(settings_pack::urlseed_timeout);
+		return settings().get_int(settings_pack::urlseed_timeout);
 	}
 
 	void web_connection_base::start()
@@ -136,9 +137,9 @@ namespace libtorrent
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent)) {
+		if (m_first_request || settings().get_bool(settings_pack::always_send_user_agent)) {
 			request += "\r\nUser-Agent: ";
-			request += m_settings.get_str(settings_pack::user_agent);
+			request += settings().get_str(settings_pack::user_agent);
 		}
 		if (!m_external_auth.empty()) {
 			request += "\r\nAuthorization: ";

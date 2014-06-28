@@ -102,6 +102,7 @@ namespace libtorrent
 	namespace aux
 	{
 		struct session_interface;
+		struct torrent_container;
 	}
 
 	struct pending_block
@@ -151,12 +152,14 @@ namespace libtorrent
 	{
 		peer_connection_hot_members(
 			boost::weak_ptr<torrent> t
-			, counters& cnt
+			, struct counters& cnt
+			, aux::torrent_container& cont
 			, aux::session_settings const& sett
 			, boost::shared_ptr<socket_type> const& sock
 			, bool outgoing)
 			: m_torrent(t)
 			, m_counters(cnt)
+			, m_container(cont)
 			, m_settings(sett)
 			, m_disconnecting(false)
 			, m_connecting(outgoing)
@@ -174,6 +177,8 @@ namespace libtorrent
 		{ return m_settings; }
 
 		counters& counters() const { return m_counters; }
+
+		aux::torrent_container& ses() const { return m_container; }
 
 	protected:
 
@@ -196,9 +201,11 @@ namespace libtorrent
 		// the peer belongs to.
 		struct counters& m_counters;
 
+		// interface of the class holding all the torrents
+		// managing their shared state
+		aux::torrent_container& m_container;
+
 		// settings that apply to this peer
-		// TODO: 2 these could probably be accessed via
-		// the torrent, to avoid having an extra pointer here
 		aux::session_settings const& m_settings;
 		
 		// this is true if this connection has been added
@@ -287,6 +294,7 @@ namespace libtorrent
 
 		peer_connection(
 			struct counters& cnt
+			, aux::torrent_container& cont
 			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread

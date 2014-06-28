@@ -3084,9 +3084,9 @@ retry:
 		setup_socket_buffers(*s);
 
 		boost::shared_ptr<peer_connection> c
-			= boost::make_shared<bt_peer_connection>(boost::ref(m_stats_counters), m_settings
-				, boost::ref(*this), boost::ref(m_disk_thread), s, endp, (torrent_peer*)0
-				, get_peer_id());
+			= boost::make_shared<bt_peer_connection>(boost::ref(m_stats_counters)
+				, *this, m_settings, boost::ref(*this), boost::ref(m_disk_thread)
+				, s, endp, (torrent_peer*)0, get_peer_id());
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif

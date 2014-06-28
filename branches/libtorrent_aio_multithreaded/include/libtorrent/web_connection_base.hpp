@@ -87,6 +87,7 @@ namespace libtorrent
 		// other end has the correct id
 		web_connection_base(
 			struct counters& cnt
+			, aux::torrent_container& cont
 			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread

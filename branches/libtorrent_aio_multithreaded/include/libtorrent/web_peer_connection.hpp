@@ -65,6 +65,11 @@ namespace libtorrent
 {
 	class torrent;
 
+	namespace aux
+	{
+		struct torrent_container;
+	};
+
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
@@ -76,6 +81,7 @@ namespace libtorrent
 		// other end has the correct id
 		web_peer_connection(
 			struct counters& cnt
+			, aux::torrent_container& cont
 			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread

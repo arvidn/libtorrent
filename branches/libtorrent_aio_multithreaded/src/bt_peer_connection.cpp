@@ -99,6 +99,7 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		struct counters& cnt
+		, aux::torrent_container& cont
 		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
@@ -108,7 +109,7 @@ namespace libtorrent
 		, peer_id const& pid
 		, boost::weak_ptr<torrent> tor)
 		// if tor is set, this is an outgoing connection
-		: peer_connection(cnt, sett, allocator, disk_thread
+		: peer_connection(cnt, cont, sett, allocator, disk_thread
 			, s->get_io_service()
 			, tor, s, remote, peerinfo, tor.lock().get())
 		, m_state(read_protocol_identifier)
@@ -269,8 +270,8 @@ namespace libtorrent
 		write_bitfield();
 		TORRENT_ASSERT(m_sent_bitfield);
 #ifndef TORRENT_DISABLE_DHT
-		if (m_supports_dht_port && m_ses.has_dht())
-			write_dht_port(m_ses.external_udp_port());
+		if (m_supports_dht_port && ses().has_dht())
+			write_dht_port(ses().external_udp_port());
 #endif
 	}
 
@@ -855,8 +856,8 @@ namespace libtorrent
 		{
 			write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.has_dht())
-				write_dht_port(m_ses.external_udp_port());
+			if (m_supports_dht_port && ses().has_dht())
+				write_dht_port(ses().external_udp_port());
 #endif
 
 			// if we don't have any pieces, don't do any preemptive
@@ -868,8 +869,8 @@ namespace libtorrent
 				// in case it's interested.
 				if (ignore_unchoke_slots())
 					send_unchoke();
-				else if (m_ses.preemptive_unchoke())
-					m_ses.unchoke_peer(*this);
+				else if (ses().preemptive_unchoke())
+					ses().unchoke_peer(*this);
 			}
 		}
 	}
@@ -1383,8 +1384,8 @@ namespace libtorrent
 		{
 			m_supports_dht_port = true;
 #ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.has_dht())
-				write_dht_port(m_ses.external_udp_port());
+			if (m_supports_dht_port && ses().has_dht())
+				write_dht_port(ses().external_udp_port());
 #endif
 		}
 	}
@@ -1870,7 +1871,7 @@ namespace libtorrent
 			{
 				address_v4::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
-				m_ses.set_external_address(address_v4(bytes)
+				ses().set_external_address(address_v4(bytes)
 					, aux::session_interface::source_peer, remote().address());
 			}
 #if TORRENT_USE_IPV6
@@ -1880,10 +1881,10 @@ namespace libtorrent
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
-					m_ses.set_external_address(ipv6_address.to_v4()
+					ses().set_external_address(ipv6_address.to_v4()
 						, aux::session_interface::source_peer, remote().address());
 				else
-					m_ses.set_external_address(ipv6_address
+					ses().set_external_address(ipv6_address
 						, aux::session_interface::source_peer, remote().address());
 			}
 #endif
@@ -2722,7 +2723,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!is_disconnecting());
 
 			sha1_hash ih(recv_buffer.begin);
-			torrent const* ti = m_ses.find_encrypted_torrent(ih, m_dh_key_exchange->get_hash_xor_mask());
+			torrent const* ti = ses().find_encrypted_torrent(ih, m_dh_key_exchange->get_hash_xor_mask());
 
 			if (ti)
 			{
@@ -3033,8 +3034,8 @@ namespace libtorrent
 			{
 				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
-				if (m_supports_dht_port && m_ses.has_dht())
-					write_dht_port(m_ses.external_udp_port());
+				if (m_supports_dht_port && ses().has_dht())
+					write_dht_port(ses().external_udp_port());
 #endif
 
 				// if we don't have any pieces, don't do any preemptive
@@ -3046,8 +3047,8 @@ namespace libtorrent
 					// in case it's interested.
 					if (ignore_unchoke_slots())
 						send_unchoke();
-					else if (m_ses.preemptive_unchoke())
-						m_ses.unchoke_peer(*this);
+					else if (ses().preemptive_unchoke())
+						ses().unchoke_peer(*this);
 				}
 			}
 
@@ -3318,7 +3319,7 @@ namespace libtorrent
 					// initiate connections. So, if our peer-id is greater than
 					// the others, we should close the incoming connection,
 					// if not, we should close the outgoing one.
-					if (pid < m_ses.get_peer_id() && is_outgoing())
+					if (pid < m_our_peer_id && is_outgoing())
 					{
 						p->disconnect(errors::duplicate_peer_id, op_bittorrent);
 					}
@@ -3334,7 +3335,7 @@ namespace libtorrent
 
 			// disconnect if the peer has the same peer-id as ourself
 			// since it most likely is ourself then
-			if (pid == m_ses.get_peer_id())
+			if (pid == m_our_peer_id)
 			{
 				if (peer_info_struct()) t->ban_peer(peer_info_struct());
 				disconnect(errors::self_connection, op_bittorrent, 1);
