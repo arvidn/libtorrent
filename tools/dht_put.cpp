@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
 	session s;
 	s.set_alert_mask(0xffffffff);
 
-	s.add_dht_router(std::pair<std::string, int>("router.utorrent.com", 6881));
+	s.add_dht_router(std::pair<std::string, int>("54.205.98.145", 10000));
 
 	FILE* f = fopen(".dht", "rb");
 	if (f != NULL)

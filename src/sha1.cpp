@@ -10,8 +10,6 @@ By Steve Reid <sreid@sea-to-sky.net>
 changelog at the end of the file.
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <cstdio>
 #include <cstring>
 

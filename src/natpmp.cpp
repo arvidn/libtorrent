@@ -34,8 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 #endif
 
-#include "libtorrent/pch.hpp"
-
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
 

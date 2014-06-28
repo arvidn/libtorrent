@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <algorithm>
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
