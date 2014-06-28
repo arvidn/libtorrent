@@ -105,7 +105,7 @@ namespace libtorrent
 
 		virtual file_pool& files() = 0;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
 		virtual bool is_disk_buffer(char* buffer) const = 0;
 #endif
 

@@ -53,11 +53,24 @@ bitfield string2vec(char const* have_str)
 	const int num_pieces = strlen(have_str);
 	bitfield have(num_pieces, false);
 	for (int i = 0; i < num_pieces; ++i)
-		if (have_str[i] != ' ')  have.set_bit(i);
+		if (have_str[i] != ' ') have.set_bit(i);
 	return have;
 }
 
 ipv4_peer* tmp_peer = 0;
+
+tcp::endpoint endp;
+ipv4_peer tmp0(endp, false, 0);
+ipv4_peer tmp1(endp, false, 0);
+ipv4_peer tmp2(endp, false, 0);
+ipv4_peer tmp3(endp, false, 0);
+ipv4_peer tmp4(endp, false, 0);
+ipv4_peer tmp5(endp, false, 0);
+ipv4_peer tmp6(endp, false, 0);
+ipv4_peer tmp7(endp, false, 0);
+ipv4_peer tmp8(endp, false, 0);
+ipv4_peer tmp9(endp, false, 0);
+ipv4_peer peer_struct(endp, true, 0);
 
 const std::vector<int> empty_vector;
 
@@ -83,7 +96,10 @@ boost::shared_ptr<piece_picker> setup_picker(
 		const int avail = availability[i] - '0';
 		assert(avail >= 0);
 		
-		for (int j = 0; j < avail; ++j) p->inc_refcount(i, 0);
+		const static torrent_peer* peers[10] = { &tmp0, &tmp1, &tmp2
+			, &tmp3, &tmp4, &tmp5, &tmp6, &tmp7, &tmp8, &tmp9 };
+		TORRENT_ASSERT(avail < 10);
+		for (int j = 0; j < avail; ++j) p->inc_refcount(i, peers[j]);
 	}
 
 	bitfield have = string2vec(have_str);
@@ -253,16 +269,18 @@ int test_pick(boost::shared_ptr<piece_picker> const& p, int options = piece_pick
 
 int test_main()
 {
-	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
-	ipv4_peer tmp1(endp, false, 0);
-	ipv4_peer tmp2(endp, false, 0);
-	ipv4_peer tmp3(endp, false, 0);
-	ipv4_peer peer_struct(endp, true, 0);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
+	tmp0.in_use = true;
 	tmp1.in_use = true;
 	tmp2.in_use = true;
 	tmp3.in_use = true;
+	tmp4.in_use = true;
+	tmp5.in_use = true;
+	tmp6.in_use = true;
+	tmp7.in_use = true;
+	tmp8.in_use = true;
+	tmp9.in_use = true;
 	peer_struct.in_use = true;
 #endif
 	tmp_peer = &tmp1;
@@ -577,6 +595,25 @@ int test_main()
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(6 - (i / blocks_per_piece), i % blocks_per_piece));
+
+// ========================================================
+
+	// test priority sequential download
+	print_title("test priority sequential download");
+	p = setup_picker("7654321", "       ", "1117071", "");
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, 0, piece_picker::fast
+		, piece_picker::sequential, empty_vector);
+
+	// the piece with priority 0 was not picked
+	TEST_CHECK(int(picked.size()) == 6 * blocks_per_piece);
+
+	// the first two pieces picked should be 3 and 5 since those have priority 7
+	for (int i = 0; i < 2 * blocks_per_piece; ++i)
+		TEST_CHECK(picked[i].piece_index == 3 || picked[i].piece_index == 5);
+
+	int expected[] = {-1, -1, 0, 1, 2, 6};
+	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
+		TEST_CHECK(picked[i].piece_index == expected[i / blocks_per_piece]);
 
 // ========================================================
 
@@ -896,15 +933,15 @@ int test_main()
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
-	p->inc_refcount_all(0);
+	p->inc_refcount_all(&tmp8);
 	dc = p->distributed_copies();
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
-	p->dec_refcount_all(0);
+	p->dec_refcount_all(&tmp8);
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
-	p->inc_refcount(0, 0);
-	p->dec_refcount_all(0);
+	p->inc_refcount(0, &tmp0);
+	p->dec_refcount_all(&tmp0);
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(0, 6000 / 7));
@@ -918,7 +955,7 @@ int test_main()
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
-	p->inc_refcount_all(0);
+	p->inc_refcount_all(&tmp8);
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
@@ -931,16 +968,16 @@ int test_main()
 	p = setup_picker("1233333", "     * ", "", "");
 	TEST_CHECK(test_pick(p) == 0);
 
-	p->dec_refcount(0, 0);
+	p->dec_refcount(0, &tmp0);
 	TEST_CHECK(test_pick(p) == 1);
 
-	p->dec_refcount(4, 0);
-	p->dec_refcount(4, 0);
+	p->dec_refcount(4, &tmp0);
+	p->dec_refcount(4, &tmp1);
 	TEST_CHECK(test_pick(p) == 4);
 
 	// decrease refcount on something that's not in the piece list
-	p->dec_refcount(5, 0);
-	p->inc_refcount(5, 0);
+	p->dec_refcount(5, &tmp0);
+	p->inc_refcount(5, &tmp0);
 	
 	bitfield bits = string2vec("*      ");
 	TEST_EQUAL(bits.get_bit(0), true);
@@ -950,7 +987,7 @@ int test_main()
 	TEST_EQUAL(bits.get_bit(4), false);
 	TEST_EQUAL(bits.get_bit(5), false);
 	TEST_EQUAL(bits.get_bit(6), false);
-	p->inc_refcount(bits, 0);
+	p->inc_refcount(bits, &tmp0);
 	bits = string2vec("    *  ");
 
 	TEST_EQUAL(bits.get_bit(0), false);
@@ -960,7 +997,7 @@ int test_main()
 	TEST_EQUAL(bits.get_bit(4), true);
 	TEST_EQUAL(bits.get_bit(5), false);
 	TEST_EQUAL(bits.get_bit(6), false);
-	p->dec_refcount(bits, 0);
+	p->dec_refcount(bits, &tmp2);
 	TEST_EQUAL(test_pick(p), 0);
 
 // ========================================================
@@ -1115,12 +1152,12 @@ int test_main()
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, 1, 0);
 	print_availability(p);
-	p->dec_refcount(string2vec("**  **  **  *   "), (void*)2);
+	p->dec_refcount(string2vec("**  **  **  *   "), &tmp0);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1022112200220222"));
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, 1, 0);
-	p->inc_refcount(string2vec(" **  **  *   *  "), (void*)3);
+	p->inc_refcount(string2vec(" **  **  *   *  "), &tmp8);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1132123201220322"));
 
@@ -1133,33 +1170,33 @@ int test_main()
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, 1, 0);
 
-	p->inc_refcount_all((void*)2);
+	p->inc_refcount_all(&tmp0);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, 1, 0);
-	p->dec_refcount(string2vec("  ****  **      "), (void*)4);
+	p->dec_refcount(string2vec("  ****  **      "), &tmp0);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1100001100111111"));
 
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, 1, 0);
-	p->inc_refcount(string2vec("  ****  **      "), (void*)5);
+	p->inc_refcount(string2vec("  ****  **      "), &tmp0);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, 1, 0);
-	p->dec_refcount_all((void*)2);
+	p->dec_refcount_all(&tmp0);
 	TEST_CHECK(verify_availability(p, "0000000000000000"));
 
-	p->inc_refcount_all((void*)2);
+	p->inc_refcount_all(&tmp1);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, 1, 0);
-	p->dec_refcount(3, (void*)4);
+	p->dec_refcount(3, &tmp1);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1110111111111111"));
 

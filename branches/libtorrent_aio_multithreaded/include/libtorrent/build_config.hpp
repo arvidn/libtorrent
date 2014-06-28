@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2013, Arvid Norberg
+Copyright (c) 2010-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -65,8 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_CFG \
 	BOOST_PP_CAT(TORRENT_CFG_TIME, \
-	BOOST_PP_CAT(TORRENT_CFG_LOG, \
-	TORRENT_CFG_DEPR))
+	TORRENT_CFG_DEPR)
 
 #define TORRENT_CFG_STRING BOOST_PP_STRINGIZE(TORRENT_CFG)
 

@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "udp_tracker.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
@@ -39,19 +40,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int test_main()
 {
 	int http_port = start_web_server();
-	int udp_port = start_tracker();
+	int udp_port = start_udp_tracker();
 
-	int prev_udp_announces = g_udp_tracker_requests;
+	int prev_udp_announces = num_udp_announces();
 
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
+	lt::session* s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
 	settings_pack pack;
 	pack.set_int(settings_pack::half_open_limit, 1);
@@ -60,6 +62,7 @@ int test_main()
 	s->apply_settings(pack);
 
 	error_code ec;
+	remove_all("tmp1_tracker", ec);
 	create_directory("tmp1_tracker", ec);
 	std::ofstream file(combine_path("tmp1_tracker", "temporary").c_str());
 	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
@@ -75,6 +78,7 @@ int test_main()
 	add_torrent_params addp;
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags |= add_torrent_params::flag_seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
@@ -82,26 +86,29 @@ int test_main()
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(*s, "s");
-		test_sleep(100);
-		if (g_udp_tracker_requests == prev_udp_announces + 1)
+		if (num_udp_announces() == prev_udp_announces + 1)
 			break;
+
+		test_sleep(100);
+		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+			, int(prev_udp_announces) + 1);
 	}
 
 	// we should have announced to the tracker by now
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
 	fprintf(stderr, "destructing session\n");
 	delete s;
 	fprintf(stderr, "done\n");
 
 	// we should have announced the stopped event now
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 2);
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
 
 	// ========================================
 	// test that we move on to try the next tier if the first one fails
 	// ========================================
 
-	s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
+	s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
 
 	pack.clear();
 	pack.set_int(settings_pack::half_open_limit, 1);
@@ -111,6 +118,7 @@ int test_main()
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
 	s->apply_settings(pack);
 
+	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
 	file.open(combine_path("tmp2_tracker", "temporary").c_str());
 	t = ::create_torrent(&file, 16 * 1024, 13, false);
@@ -134,10 +142,11 @@ int test_main()
 	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(tracker_url, 3);
 
-	prev_udp_announces = g_udp_tracker_requests;
+	prev_udp_announces = num_udp_announces();
 
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags |= add_torrent_params::flag_seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp2_tracker";
 	h = s->add_torrent(addp);
@@ -145,20 +154,26 @@ int test_main()
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(*s, "s");
+		if (num_udp_announces() == prev_udp_announces + 1) break;
+
+		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+			, int(prev_udp_announces) + 1);
 		test_sleep(100);
-		if (g_udp_tracker_requests == prev_udp_announces + 1) break;
 	}
 
 	test_sleep(1000);
 
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
 	fprintf(stderr, "destructing session\n");
 	delete s;
 	fprintf(stderr, "done\n");
 
-	stop_tracker();
+	fprintf(stderr, "stop_tracker\n");
+	stop_udp_tracker();
+	fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
+	fprintf(stderr, "done\n");
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <boost/bind.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
@@ -38,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/connection_interface.hpp"
+
+#include <boost/bind.hpp>
+#include <algorithm>
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -198,7 +200,7 @@ namespace libtorrent
 	int connection_queue::limit() const
 	{ return m_half_open_limit; }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void connection_queue::check_invariant() const
 	{
 	}

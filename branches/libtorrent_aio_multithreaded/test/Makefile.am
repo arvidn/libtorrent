@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
+
 test_programs = \
   test_bitfield              \
   test_connection_queue      \
@@ -51,8 +53,12 @@ test_programs = \
   enum_if                    \
   test_utp                   \
   test_session               \
-  test_ssl                   \
-  test_web_seed
+  test_web_seed              \
+  test_url_seed              \
+  test_remap_files           \
+  test_gzip                  \
+  test_utf8                  \
+  test_socket_io
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -108,15 +114,19 @@ EXTRA_DIST = Jamfile \
   cb.xml \
   mn.xml \
   pb.xml \
-  upnp.xml
+  upnp.xml \
+  zeroes.gz \
+  utf8_test.txt
 
 EXTRA_PROGRAMS = $(test_programs)
 
-noinst_HEADERS = test.hpp setup_transfer.hpp
+noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
+	peer_server.hpp udp_tracker.hpp
 
 libtest_la_SOURCES = main.cpp \
   setup_transfer.cpp \
   dht_server.cpp \
+  udp_tracker.cpp \
   peer_server.cpp \
   web_seed_suite.cpp \
   ../ed25519/src/add_scalar.c   \
@@ -146,6 +156,7 @@ test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
 test_dht_SOURCES = test_dht.cpp
 test_bencoding_SOURCES = test_bencoding.cpp
 test_buffer_SOURCES = test_buffer.cpp
+test_block_cache_SOURCES = test_block_cache.cpp
 test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_hasher_SOURCES = test_hasher.cpp
@@ -168,6 +179,7 @@ test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
 test_settings_pack_SOURCES = test_settings_pack.cpp
 test_swarm_SOURCES = test_swarm.cpp
+test_tailqueue_SOURCES = test_tailqueue.cpp
 test_rss_SOURCES = test_rss.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_threads_SOURCES = test_threads.cpp
@@ -180,13 +192,17 @@ test_upnp_SOURCES = test_upnp.cpp
 enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
-test_ssl_SOURCES = test_ssl.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
+test_url_seed_SOURCES = test_url_seed.cpp
+test_remap_files_SOURCES = test_remap_files.cpp
+test_gzip_SOURCES = test_gzip.cpp
+test_utf8_SOURCES = test_utf8.cpp
+test_socket_io_SOURCES = test_socket_io.cpp
 
-LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
+LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
 #AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
-#AM_LDFLAGS= @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
+AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
 

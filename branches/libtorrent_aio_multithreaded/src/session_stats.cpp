@@ -35,9 +35,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp" // for stats_metric
 #include "libtorrent/aux_/session_interface.hpp" // for stats counter names
 #include "libtorrent/performance_counters.hpp" // for counters
+#include <boost/bind.hpp>
 
 namespace libtorrent
 {
+
+	int find_metric_idx(std::vector<stats_metric> const& metrics
+		, char const* name)
+	{
+		std::vector<stats_metric>::const_iterator i = std::find_if(metrics.begin()
+			, metrics.end(), boost::bind(&strcmp
+				, boost::bind(&stats_metric::name, _1), name) == 0);
+		if (i == metrics.end()) return -1;
+		return i->value_index;
+	}
+
 #define METRIC(category, name, type) { #category "." #name, counters:: name, stats_metric:: type},
 	const static stats_metric metrics[] =
 	{
@@ -347,6 +359,52 @@ namespace libtorrent
 		METRIC(utp, utp_payload_pkts_out, type_counter)
 		METRIC(utp, utp_invalid_pkts_in, type_counter)
 		METRIC(utp, utp_redundant_pkts_in, type_counter)
+
+		// the buffer sizes accepted by
+		// socket send and receive calls respectively.
+		// The larger the buffers are, the more efficient,
+		// because it reqire fewer system calls per byte.
+		// The size is 1 << n, where n is the number
+		// at the end of the counter name. i.e.
+		// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+		// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
+		// bytes
+		METRIC(sock_bufs, socket_send_size3, type_counter)
+		METRIC(sock_bufs, socket_send_size4, type_counter)
+		METRIC(sock_bufs, socket_send_size5, type_counter)
+		METRIC(sock_bufs, socket_send_size6, type_counter)
+		METRIC(sock_bufs, socket_send_size7, type_counter)
+		METRIC(sock_bufs, socket_send_size8, type_counter)
+		METRIC(sock_bufs, socket_send_size9, type_counter)
+		METRIC(sock_bufs, socket_send_size10, type_counter)
+		METRIC(sock_bufs, socket_send_size11, type_counter)
+		METRIC(sock_bufs, socket_send_size12, type_counter)
+		METRIC(sock_bufs, socket_send_size13, type_counter)
+		METRIC(sock_bufs, socket_send_size14, type_counter)
+		METRIC(sock_bufs, socket_send_size15, type_counter)
+		METRIC(sock_bufs, socket_send_size16, type_counter)
+		METRIC(sock_bufs, socket_send_size17, type_counter)
+		METRIC(sock_bufs, socket_send_size18, type_counter)
+		METRIC(sock_bufs, socket_send_size19, type_counter)
+		METRIC(sock_bufs, socket_send_size20, type_counter)
+		METRIC(sock_bufs, socket_recv_size3, type_counter)
+		METRIC(sock_bufs, socket_recv_size4, type_counter)
+		METRIC(sock_bufs, socket_recv_size5, type_counter)
+		METRIC(sock_bufs, socket_recv_size6, type_counter)
+		METRIC(sock_bufs, socket_recv_size7, type_counter)
+		METRIC(sock_bufs, socket_recv_size8, type_counter)
+		METRIC(sock_bufs, socket_recv_size9, type_counter)
+		METRIC(sock_bufs, socket_recv_size10, type_counter)
+		METRIC(sock_bufs, socket_recv_size11, type_counter)
+		METRIC(sock_bufs, socket_recv_size12, type_counter)
+		METRIC(sock_bufs, socket_recv_size13, type_counter)
+		METRIC(sock_bufs, socket_recv_size14, type_counter)
+		METRIC(sock_bufs, socket_recv_size15, type_counter)
+		METRIC(sock_bufs, socket_recv_size16, type_counter)
+		METRIC(sock_bufs, socket_recv_size17, type_counter)
+		METRIC(sock_bufs, socket_recv_size18, type_counter)
+		METRIC(sock_bufs, socket_recv_size19, type_counter)
+		METRIC(sock_bufs, socket_recv_size20, type_counter)
 
 		// ... more
 	};

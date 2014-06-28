@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	if (argc != 2)
 	{
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
 
 	settings_pack sett;
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
-	session s(sett);
+	lt::session s(sett);
 	error_code ec;
 	if (ec)
 	{

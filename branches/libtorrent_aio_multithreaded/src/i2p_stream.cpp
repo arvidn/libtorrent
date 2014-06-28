@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_util.hpp"
 
 #if TORRENT_USE_I2P
 
@@ -46,37 +47,43 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	i2p_error_category i2p_category;
-
-	const char* i2p_error_category::name() const BOOST_SYSTEM_NOEXCEPT
+	struct i2p_error_category : boost::system::error_category
 	{
-		return "i2p error";
-	}
-
-	std::string i2p_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{
-		static char const* messages[] =
+		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+		{ return "i2p error"; }
+		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
 		{
-			"no error",
-			"parse failed",
-			"cannot reach peer",
-			"i2p error",
-			"invalid key",
-			"invalid id",
-			"timeout",
-			"key not found",
-			"duplicated id"
-		};
+			static char const* messages[] =
+			{
+				"no error",
+				"parse failed",
+				"cannot reach peer",
+				"i2p error",
+				"invalid key",
+				"invalid id",
+				"timeout",
+				"key not found",
+				"duplicated id"
+			};
 
-		if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
-		return messages[ev];
+			if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
+			return messages[ev];
+		}
+		virtual boost::system::error_condition default_error_condition(
+			int ev) const BOOST_SYSTEM_NOEXCEPT
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+
+	TORRENT_EXPORT boost::system::error_category& get_i2p_category()
+	{
+		static i2p_error_category i2p_category;
+		return i2p_category;
 	}
-
 	i2p_connection::i2p_connection(io_service& ios)
 		: m_state(sam_idle)
 		, m_io_service(ios)
-	{
-	}
+	{}
 
 	i2p_connection::~i2p_connection()
 	{}
@@ -142,8 +149,7 @@ namespace libtorrent
 	void i2p_connection::async_name_lookup(char const* name
 		, i2p_connection::name_lookup_handler handler)
 	{
-//		TORRENT_ASSERT(is_open());
-		if (m_state == sam_idle && m_name_lookup.empty())
+		if (m_state == sam_idle && m_name_lookup.empty() && is_open())
 			do_name_lookup(name, handler);
 		else
 			m_name_lookup.push_back(std::make_pair(std::string(name), handler));
@@ -188,14 +194,14 @@ namespace libtorrent
 		, m_command(cmd_create_session)
 		, m_state(0)
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
 #endif
 	}
 
 	i2p_stream::~i2p_stream()
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_magic = 0;
 #endif
@@ -256,27 +262,6 @@ namespace libtorrent
 			, boost::bind(&i2p_stream::read_line, this, _1, h));
 	}
 
-	char* string_tokenize(char* last, char sep, char** next)
-	{
-		if (last == 0) return 0;
-		if (last[0] == '"')
-		{
-			*next = strchr(last + 1, '"');
-			// consume the actual separator as well.
-			if (*next != NULL)
-				*next = strchr(*next, sep);
-		}
-		else
-		{
-			*next = strchr(last, sep);
-		}
-		if (*next == 0) return last;
-		**next = 0;
-		++(*next);
-		while (**next == sep && **next) ++(*next);
-		return last;
-	}
-
 	void i2p_stream::read_line(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
@@ -312,7 +297,7 @@ namespace libtorrent
 		}
 
 		error_code invalid_response(i2p_error::parse_failed
-			, i2p_category);
+			, get_i2p_category());
 
 		// null-terminate the string and parse it
 		m_buffer.push_back(0);
@@ -403,7 +388,7 @@ namespace libtorrent
 
 		if (result != i2p_error::no_error)
 		{
-			error_code ec(result, i2p_category);
+			error_code ec(result, get_i2p_category());
 			handle_error(ec, h);
 			return;
 		}

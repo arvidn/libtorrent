@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,10 +58,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <cstdlib>
 
-using namespace libtorrent;
+namespace libtorrent {
 
 static error_code ec;
 
+// TODO: listen_interface is not used. It's meant to bind the broadcast socket
 upnp::upnp(io_service& ios, connection_queue& cc
 	, address const& listen_interface, std::string const& user_agent
 	, portmap_callback_t const& cb, log_callback_t const& lcb
@@ -76,6 +77,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 		, boost::bind(&upnp::on_reply, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
+	, m_map_timer(ios)
 	, m_disabled(false)
 	, m_closing(false)
 	, m_ignore_non_routers(ignore_nonrouters)
@@ -149,7 +151,7 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 
 	if (ec)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "broadcast failed: %s. Aborting."
 			, convert_from_native(ec.message()).c_str());
 		log(msg, l);
@@ -171,9 +173,12 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 // returns a reference to a mapping or -1 on failure
 int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 {
+	// external port 0 means _every_ port
+	TORRENT_ASSERT(external_port != 0);
+
 	mutex::scoped_lock l(m_mutex);
 
-	char msg[200];
+	char msg[500];
 	snprintf(msg, sizeof(msg), "adding port map: [ protocol: %s ext_port: %u "
 		"local_port: %u ] %s", (p == tcp?"tcp":"udp"), external_port
 		, local_port, m_disabled ? "DISABLED": "");
@@ -225,7 +230,7 @@ void upnp::delete_mapping(int mapping)
 
 	global_mapping_t& m = m_mappings[mapping];
 
-	char msg[200];
+	char msg[500];
 	snprintf(msg, sizeof(msg), "deleting port map: [ protocol: %s ext_port: %u "
 		"local_port: %u ]", (m.protocol == tcp?"tcp":"udp"), m.external_port
 		, m.local_port);
@@ -295,7 +300,7 @@ void upnp::resend_request(error_code const& ec)
 			TORRENT_ASSERT(d.magic == 1337);
 			TORRENT_TRY
 			{
-				char msg[200];
+				char msg[500];
 				snprintf(msg, sizeof(msg), "connecting to: %s", d.url.c_str());
 				log(msg, l);
 				if (d.upnp_connection) d.upnp_connection->close();
@@ -308,7 +313,7 @@ void upnp::resend_request(error_code const& ec)
 			TORRENT_CATCH (std::exception& exc)
 			{
 				TORRENT_DECLARE_DUMMY(std::exception, exc);
-				char msg[200];
+				char msg[500];
 				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), exc.what());
 				log(msg, l);
 				d.disabled = true;
@@ -353,21 +358,20 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 */
 	error_code ec;
-	if (time_now_hires() - m_last_if_update > seconds(60))
+	if (time_now_hires() - seconds(60) > m_last_if_update)
 	{
 		m_interfaces = enum_net_interfaces(m_io_service, ec);
 		if (ec)
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "when receiving response from: %s: %s"
 				, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 			log(msg, l);
-			return;
 		}
 		m_last_if_update = time_now();
 	}
 
-	if (!in_local_network(m_interfaces, from.address()))
+	if (!ec && !in_local_network(m_interfaces, from.address()))
 	{
 		char msg[400];
 		int num_chars = snprintf(msg, sizeof(msg)
@@ -385,6 +389,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		return;
 	} 
 
+	bool non_router = false;
 	if (m_ignore_non_routers)
 	{
 		std::vector<ip_route> routes = enum_routes(m_io_service, ec);
@@ -395,15 +400,17 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			// list of configured routers
 			if (ec)
 			{
-				char msg[200];
-				snprintf(msg, sizeof(msg), "when receiving response from: %s: %s"
+				char msg[500];
+				snprintf(msg, sizeof(msg), "failed to enumerate routes when "
+					"receiving response from: %s: %s"
 					, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 				log(msg, l);
 			}
 			else
 			{
 				char msg[400];
-				int num_chars = snprintf(msg, sizeof(msg), "ignoring response from: %s: IP is not a router. "
+				int num_chars = snprintf(msg, sizeof(msg), "SSDP response from: "
+					"%s: IP is not a router. "
 					, print_endpoint(from).c_str());
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
 					, end(routes.end()); i != end && num_chars < sizeof(msg); ++i)
@@ -412,8 +419,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
 				log(msg, l);
+				non_router = true;
 			}
-			return;
 		}
 	}
 
@@ -423,7 +430,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		, buffer + bytes_transferred), error);
 	if (error)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "received malformed HTTP from: %s"
 			, print_endpoint(from).c_str());
 		log(msg, l);
@@ -434,14 +441,14 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	{
 		if (p.method().empty())
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "HTTP status %u from %s"
 				, p.status_code(), print_endpoint(from).c_str());
 			log(msg, l);
 		}
 		else
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "HTTP method %s from %s"
 				, p.method().c_str(), print_endpoint(from).c_str());
 			log(msg, l);
@@ -451,7 +458,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 	if (!p.header_finished())
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "incomplete HTTP packet from %s"
 			, print_endpoint(from).c_str());
 		log(msg, l);
@@ -461,7 +468,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	std::string url = p.header("location");
 	if (url.empty())
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "missing location header from %s"
 			, print_endpoint(from).c_str());
 		log(msg, l);
@@ -475,7 +482,6 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 	if (i == m_devices.end())
 	{
-
 		std::string protocol;
 		std::string auth;
 		error_code ec;
@@ -486,7 +492,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		if (ec)
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "invalid URL %s from %s: %s"
 				, d.url.c_str(), print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 			log(msg, l);
@@ -498,7 +504,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		if (protocol != "http")
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "unsupported protocol %s from %s"
 				, protocol.c_str(), print_endpoint(from).c_str());
 			log(msg, l);
@@ -507,26 +513,27 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		if (d.port == 0)
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "URL with port 0 from %s"
 				, print_endpoint(from).c_str());
 			log(msg, l);
 			return;
 		}
 
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "found rootdevice: %s (%d)"
 			, d.url.c_str(), int(m_devices.size()));
 		log(msg, l);
 
 		if (m_devices.size() >= 50)
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "too many rootdevices: (%d). Ignoring %s"
 				, int(m_devices.size()), d.url.c_str());
 			log(msg, l);
 			return;
 		}
+		d.non_router = non_router;
 
 		TORRENT_ASSERT(d.mapping.empty());
 		for (std::vector<global_mapping_t>::iterator j = m_mappings.begin()
@@ -543,40 +550,95 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	}
 
 
-	if (!m_devices.empty())
-	{
-		for (std::set<rootdevice>::iterator i = m_devices.begin()
-			, end(m_devices.end()); i != end; ++i)
-		{
-			if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
-			{
-				// we don't have a WANIP or WANPPP url for this device,
-				// ask for it
-				rootdevice& d = const_cast<rootdevice&>(*i);
-				TORRENT_ASSERT(d.magic == 1337);
-				TORRENT_TRY
-				{
-					char msg[200];
-					snprintf(msg, sizeof(msg), "connecting to: %s"
-						, d.url.c_str());
-					log(msg, l);
+	// iterate over the devices we know and connect and issue the mappings
+	try_map_upnp(l);
 
-					if (d.upnp_connection) d.upnp_connection->close();
-					d.upnp_connection.reset(new http_connection(m_io_service
-						, m_cc, m_resolver
-						, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
-						, boost::ref(d), _5)));
-					d.upnp_connection->get(d.url, seconds(30), 1);
-				}
-				TORRENT_CATCH (std::exception& exc)
-				{
-					TORRENT_DECLARE_DUMMY(std::exception, exc);
-					char msg[200];
-					snprintf(msg, sizeof(msg), "connection failed to: %s %s"
-						, d.url.c_str(), exc.what());
-					log(msg, l);
-					d.disabled = true;
-				}
+	if (m_ignore_non_routers)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("upnp::map_timer");
+#endif
+		// check back in in a little bit to see if we have seen any
+		// devices at one of our default routes. If not, we want to override
+		// ignoring them and use them instead (better than not working).
+		m_map_timer.expires_from_now(seconds(1), ec);
+		m_map_timer.async_wait(boost::bind(&upnp::map_timer
+			, self(), _1));
+	}
+}
+
+void upnp::map_timer(error_code const& ec)
+{
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("upnp::map_timer");
+#endif
+	if (ec) return;
+	if (m_closing) return;
+
+	mutex::scoped_lock l(m_mutex);
+	try_map_upnp(l, true);
+}
+
+void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
+{
+	if (m_devices.empty()) return;
+
+	bool override_ignore_non_routers = false;
+	if (m_ignore_non_routers && timer)
+	{
+		// if we don't ave any devices that match our default route, we
+		// should try to map with the ones we did hear from anyway,
+		// regardless of if they are not running at our gateway.
+		override_ignore_non_routers = std::find_if(m_devices.begin()
+			, m_devices.end(), boost::bind(&rootdevice::non_router, _1) == false)
+			== m_devices.end();
+		if (override_ignore_non_routers)
+		{
+			char msg[500];
+			snprintf(msg, sizeof(msg), "overriding ignore non-routers");
+			log(msg, l);
+		}
+	}
+
+	for (std::set<rootdevice>::iterator i = m_devices.begin()
+		, end(m_devices.end()); i != end; ++i)
+	{
+		// if we're ignoring non-routers, skip them. If on_timer is
+		// set, we expect to have received all responses and if we don't
+		// have any devices at our default route, then issue requests
+		// to any device we found.
+		if (m_ignore_non_routers && i->non_router
+			&& !override_ignore_non_routers)
+			continue;
+
+		if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
+		{
+			// we don't have a WANIP or WANPPP url for this device,
+			// ask for it
+			rootdevice& d = const_cast<rootdevice&>(*i);
+			TORRENT_ASSERT(d.magic == 1337);
+			TORRENT_TRY
+			{
+				char msg[500];
+				snprintf(msg, sizeof(msg), "connecting to: %s"
+					, d.url.c_str());
+				log(msg, l);
+
+				if (d.upnp_connection) d.upnp_connection->close();
+				d.upnp_connection.reset(new http_connection(m_io_service
+					, m_cc, m_resolver
+					, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
+					, boost::ref(d), _5)));
+				d.upnp_connection->get(d.url, seconds(30), 1);
+			}
+			TORRENT_CATCH (std::exception& exc)
+			{
+				TORRENT_DECLARE_DUMMY(std::exception, exc);
+				char msg[500];
+				snprintf(msg, sizeof(msg), "connection failed to: %s %s"
+					, d.url.c_str(), exc.what());
+				log(msg, l);
+				d.disabled = true;
 			}
 		}
 	}
@@ -615,7 +677,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	if (!d.upnp_connection)
 	{
 		TORRENT_ASSERT(d.disabled);
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "mapping %u aborted", i);
 		log(msg, l);
 		return;
@@ -682,7 +744,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 	if (m.action == mapping_t::action_none
 		|| m.protocol == none)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "mapping %u does not need updating, skipping", i);
 		log(msg, l);
 		m.action = mapping_t::action_none;
@@ -693,7 +755,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 	TORRENT_ASSERT(!d.upnp_connection);
 	TORRENT_ASSERT(d.service_namespace);
 
-	char msg[200];
+	char msg[500];
 	snprintf(msg, sizeof(msg), "connecting to %s", d.hostname.c_str());
 	log(msg, l);
 	if (m.action == mapping_t::action_add)
@@ -740,7 +802,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 	if (!d.upnp_connection)
 	{
 		TORRENT_ASSERT(d.disabled);
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "unmapping %u aborted", i);
 		log(msg, l);
 		return;
@@ -805,7 +867,7 @@ struct parse_state
 	}
 };
 
-TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state)
+TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
@@ -866,7 +928,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	if (e && e != asio::error::eof)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
 			, d.url.c_str(), convert_from_native(e.message()).c_str());
 		log(msg, l);
@@ -876,7 +938,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	if (!p.header_finished())
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: incomplete HTTP message"
 			, d.url.c_str());
 		log(msg, l);
@@ -886,7 +948,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	if (p.status_code() != 200)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
 			, d.url.c_str(), convert_from_native(p.message()).c_str());
 		log(msg, l);
@@ -917,7 +979,7 @@ void upnp::on_upnp_xml(error_code const& e
 		}
 		else
 		{
-			char msg[200];
+			char msg[500];
 			snprintf(msg, sizeof(msg), "could not find a port mapping interface in response from: %s"
 				, d.url.c_str());
 			log(msg, l);
@@ -949,7 +1011,7 @@ void upnp::on_upnp_xml(error_code const& e
 			+ to_string(d.port).elems + s.control_url;
 	}
 
-	char msg[200];
+	char msg[500];
 	snprintf(msg, sizeof(msg), "found control URL: %s namespace %s "
 		"urlbase: %s in response from %s"
 		, d.control_url.c_str(), d.service_namespace
@@ -962,7 +1024,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	if (ec)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "failed to parse URL '%s': %s"
 			, d.control_url.c_str(), convert_from_native(ec.message()).c_str());
 		log(msg, l);
@@ -988,7 +1050,7 @@ void upnp::get_ip_address(rootdevice& d)
 	if (!d.upnp_connection)
 	{
 		TORRENT_ASSERT(d.disabled);
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "getting external IP address");
 		log(msg, l);
 		return;
@@ -1031,6 +1093,7 @@ void upnp::disable(error_code const& ec, mutex::scoped_lock& l)
 	error_code e;
 	m_broadcast_timer.cancel(e);
 	m_refresh_timer.cancel(e);
+	m_map_timer.cancel(e);
 	m_socket.close();
 }
 
@@ -1109,36 +1172,48 @@ namespace
 
 #if BOOST_VERSION >= 103500
 
-
-const char* upnp_error_category::name() const BOOST_SYSTEM_NOEXCEPT
+struct upnp_error_category : boost::system::error_category
 {
-	return "UPnP error";
-}
-
-std::string upnp_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
-{
-	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
-	error_code_t* end = error_codes + num_errors;
-	error_code_t tmp = {ev, 0};
-	error_code_t* e = std::lower_bound(error_codes, end, tmp
-		, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
-	if (e != end && e->code == ev)
+	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
 	{
-		return e->msg;
+		return "UPnP error";
 	}
-	return "unknown UPnP error";
-}
 
-namespace libtorrent
+	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+	{
+		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
+		error_code_t* end = error_codes + num_errors;
+		error_code_t tmp = {ev, 0};
+		error_code_t* e = std::lower_bound(error_codes, end, tmp
+			, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
+		if (e != end && e->code == ev)
+		{
+			return e->msg;
+		}
+		char msg[500];
+		snprintf(msg, sizeof(msg), "unknown UPnP error (%d)", ev);
+		return msg;
+	}
+
+	virtual boost::system::error_condition default_error_condition(
+		int ev) const BOOST_SYSTEM_NOEXCEPT
+	{
+		return boost::system::error_condition(ev, *this);
+	}
+};
+
+boost::system::error_category& get_upnp_category()
 {
-	TORRENT_EXPORT upnp_error_category upnp_category;
+	static upnp_error_category cat;
+	return cat;
 }
 
 #else
 
-namespace libtorrent
+boost::system::error_category& get_upnp_category()
 {
-	TORRENT_EXPORT ::asio::error::error_category upnp_category(21);
+	static ::asio::error::error_category cat(21);
+	return cat;
 }
 
 #endif
@@ -1162,7 +1237,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 
 	if (e && e != asio::error::eof)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while getting external IP address: %s"
 			, convert_from_native(e.message()).c_str());
 		log(msg, l);
@@ -1179,7 +1254,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 
 	if (p.status_code() != 200)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while getting external IP address: %s"
 			, convert_from_native(p.message()).c_str());
 		log(msg, l);
@@ -1206,7 +1281,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 		, boost::bind(&find_ip_address, _1, _2, boost::ref(s)));
 	if (s.error_code != -1)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while getting external IP address, code: %u"
 			, s.error_code);
 		log(msg, l);
@@ -1240,7 +1315,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	if (e && e != asio::error::eof)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while adding port map: %s"
 			, convert_from_native(e.message()).c_str());
 		log(msg, l);
@@ -1299,7 +1374,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	if (s.error_code != -1)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while adding port map, code: %u"
 			, s.error_code);
 		log(msg, l);
@@ -1316,24 +1391,14 @@ void upnp::on_upnp_map_response(error_code const& e
 		update_map(d, mapping, l);
 		return;
 	}
-	else if (s.error_code == 718 || s.error_code == 727)
+	else if (s.error_code == 727)
 	{
-		if (m.external_port != 0)
-		{
-			// conflict in mapping, set port to wildcard
-			// and let the router decide
-			m.external_port = 0;
-			m.action = mapping_t::action_add;
-			++m.failcount;
-			update_map(d, mapping, l);
-			return;
-		}
 		return_error(mapping, s.error_code, l);
 	}
-	else if (s.error_code == 716 || (s.error_code == 501 && m.failcount < 4 && m.external_port == 0))
+	else if ((s.error_code == 718 || s.error_code == 501) && m.failcount < 4)
 	{
 		// some routers return 501 action failed, instead of 716
-		// The external port cannot be wildcarder
+		// The external port conflicts with another mapping
 		// pick a random port
 		m.external_port = 40000 + (random() % 10000);
 		m.action = mapping_t::action_add;
@@ -1397,7 +1462,7 @@ void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
 		error_string += e->msg;
 	}
 	l.unlock();
-	m_callback(mapping, address(), 0, error_code(code, upnp_category));
+	m_callback(mapping, address(), 0, error_code(code, get_upnp_category()));
 	l.lock();
 }
 
@@ -1418,7 +1483,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 
 	if (e && e != asio::error::eof)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while deleting portmap: %s"
 			, convert_from_native(e.message()).c_str());
 		log(msg, l);
@@ -1429,7 +1494,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	}
 	else if (p.status_code() != 200)
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "error while deleting portmap: %s"
 			, convert_from_native(p.message()).c_str());
 		log(msg, l);
@@ -1452,7 +1517,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	l.unlock();
 	m_callback(mapping, address(), 0, p.status_code() != 200
 		? error_code(p.status_code(), get_http_category())
-		: error_code(s.error_code, upnp_category));
+		: error_code(s.error_code, get_upnp_category()));
 	l.lock();
 
 	d.mapping[mapping].protocol = none;
@@ -1511,6 +1576,7 @@ void upnp::close()
 	error_code ec;
 	m_refresh_timer.cancel(ec);
 	m_broadcast_timer.cancel(ec);
+	m_map_timer.cancel(ec);
 	m_closing = true;
 	m_socket.close();
 
@@ -1534,5 +1600,7 @@ void upnp::close()
 		}
 		if (num_mappings() > 0) update_map(d, 0, l);
 	}
+}
+
 }
 

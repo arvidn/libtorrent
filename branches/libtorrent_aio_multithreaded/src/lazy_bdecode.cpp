@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,17 +44,29 @@ namespace
 namespace libtorrent
 {
 
-#define TORRENT_FAIL_BDECODE(code) \
-	{ \
-		ec = make_error_code(code); \
-		while (!stack.empty()) { \
-			top = stack.back(); \
-			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) top->pop(); \
-			stack.pop_back(); \
-		} \
-		if (error_pos) *error_pos = start - orig_start; \
-		return -1; \
+	namespace
+	{
+		int fail(int* error_pos
+			, std::vector<lazy_entry*>& stack
+			, char const* start
+			, char const* orig_start)
+		{
+			while (!stack.empty()) {
+				lazy_entry* top = stack.back();
+				if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t)
+				{
+					top->pop();
+					break;
+				}
+				stack.pop_back();
+			}
+			if (error_pos) *error_pos = start - orig_start;
+			return -1;
+		}
 	}
+
+#define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } while (false)
+
 	namespace { bool numeric(char c) { return c >= '0' && c <= '9'; } }
 
 	// fills in 'val' with what the string between start and the
@@ -71,8 +83,19 @@ namespace libtorrent
 				ec = bdecode_errors::expected_string;
 				return start;
 			}
+			if (val > INT64_MAX / 10)
+			{
+				ec = bdecode_errors::overflow;
+				return start;
+			}
 			val *= 10;
-			val += *start - '0';
+			int digit = *start - '0';
+			if (val > INT64_MAX - digit)
+			{
+				ec = bdecode_errors::overflow;
+				return start;
+			}
+			val += digit;
 			++start;
 		}
 		if (*start != delimiter)
@@ -107,7 +130,7 @@ namespace libtorrent
 		std::vector<lazy_entry*> stack;
 
 		stack.push_back(&ret);
-		while (start < end)
+		while (start <= end)
 		{
 			if (stack.empty()) break; // done!
 
@@ -138,6 +161,9 @@ namespace libtorrent
 
 					if (start + len + 1 > end)
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+
+					if (len < 0)
+						TORRENT_FAIL_BDECODE(bdecode_errors::overflow);
 
 					++start;
 					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
@@ -201,6 +227,9 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(e);
 					if (start + len + 1 > end)
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+					if (len < 0)
+						TORRENT_FAIL_BDECODE(bdecode_errors::overflow);
+
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
@@ -230,9 +259,9 @@ namespace libtorrent
 		bool negative = false;
 		if (*m_data.start == '-') negative = true;
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
-		parse_int(negative?m_data.start+1:m_data.start
+		parse_int(m_data.start + negative
 			, m_data.start + m_size, 'e', val, ec);
-		TORRENT_ASSERT(!ec);
+		if (ec) return 0;
 		if (negative) val = -val;
 		return val;
 	}
@@ -643,6 +672,7 @@ namespace libtorrent
 			"expected value (list, dict, int or string) in bencoded string",
 			"bencoded nesting depth exceeded",
 			"bencoded item count limit exceeded",
+			"integer overflow",
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";

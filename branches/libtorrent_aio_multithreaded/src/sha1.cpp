@@ -176,7 +176,7 @@ namespace
 #endif
 	}
 
-#if !defined __BIG_ENDIAN__ && !defined __LITTLE_ENDIAN__
+#if !defined BOOST_BIG_ENDIAN && !defined BOOST_LITTLE_ENDIAN
 	bool is_big_endian()
 	{
 		u32 test = 1;
@@ -205,9 +205,9 @@ void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
 {
 	// GCC standard defines for endianness
 	// test with: cpp -dM /dev/null
-#if defined __BIG_ENDIAN__
+#if defined BOOST_BIG_ENDIAN
 	internal_update<big_endian_blk0>(context, data, len);
-#elif defined __LITTLE_ENDIAN__
+#elif defined BOOST_LITTLE_ENDIAN
 	internal_update<little_endian_blk0>(context, data, len);
 #else
 	// select different functions depending on endianess
@@ -309,7 +309,7 @@ By Arvid Norberg <arvidn@sourceforge.net>
    previous SHA1HANDSOFF implicit
 2- uses C99 types with size guarantees
    from boost
-3- if none of __BIG_ENDIAN__ or LITTLE_ENDIAN
+3- if none of BOOST_BIG_ENDIAN or BOOST_LITTLE_ENDIAN
    are defined, endianess is determined
    at runtime. templates are used to duplicate
    the transform function for each endianess

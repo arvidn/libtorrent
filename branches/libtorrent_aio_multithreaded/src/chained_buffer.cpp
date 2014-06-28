@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ namespace libtorrent
 				break;
 			}
 
-			b.free(b.buf);
+			b.free_fun(b.buf, b.userdata, b.ref);
 			m_bytes -= b.used_size;
 			m_capacity -= b.size;
 			bytes_to_pop -= b.used_size;
@@ -65,7 +65,8 @@ namespace libtorrent
 	}
 
 	void chained_buffer::append_buffer(char* buffer, int s, int used_size
-		, boost::function<void(char*)> const& destructor)
+		, free_buffer_fun destructor, void* userdata
+		, block_cache_reference ref)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(s >= used_size);
@@ -74,7 +75,9 @@ namespace libtorrent
 		b.size = s;
 		b.start = buffer;
 		b.used_size = used_size;
-		b.free = destructor;
+		b.free_fun = destructor;
+		b.userdata = userdata;
+		b.ref = ref;
 		m_vec.push_back(b);
 
 		m_bytes += used_size;
@@ -146,7 +149,7 @@ namespace libtorrent
 		for (std::deque<buffer_t>::iterator i = m_vec.begin()
 			, end(m_vec.end()); i != end; ++i)
 		{
-			i->free(i->buf);
+			i->free_fun(i->buf, i->userdata, i->ref);
 		}
 		m_bytes = 0;
 		m_capacity = 0;
@@ -155,7 +158,7 @@ namespace libtorrent
 
 	chained_buffer::~chained_buffer()
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(!m_destructed);
 		m_destructed = true;
 #endif

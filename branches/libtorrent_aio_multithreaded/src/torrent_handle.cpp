@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -140,6 +140,7 @@ namespace libtorrent
 		, has_metadata(false)
 		, has_incoming(false)
 		, seed_mode(false)
+		, moving_storage(false)
 		, is_loaded(true)
 		, info_hash(0)
 	{}
@@ -297,7 +298,7 @@ namespace libtorrent
 
 	void torrent_handle::set_max_uploads(int max_uploads) const
 	{
-		TORRENT_ASSERT(max_uploads >= 2 || max_uploads == -1);
+		TORRENT_ASSERT_PRECOND(max_uploads >= 2 || max_uploads == -1);
 		TORRENT_ASYNC_CALL2(set_max_uploads, max_uploads, true);
 	}
 
@@ -309,13 +310,13 @@ namespace libtorrent
 
 	void torrent_handle::set_max_connections(int max_connections) const
 	{
-		TORRENT_ASSERT(max_connections >= 2 || max_connections == -1);
+		TORRENT_ASSERT_PRECOND(max_connections >= 2 || max_connections == -1);
 		TORRENT_ASYNC_CALL2(set_max_connections, max_connections, true);
 	}
 
 	void torrent_handle::set_upload_limit(int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL1(set_upload_limit, limit);
 	}
 
@@ -327,7 +328,7 @@ namespace libtorrent
 
 	void torrent_handle::set_download_limit(int limit) const
 	{
-		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT_PRECOND(limit >= -1);
 		TORRENT_ASYNC_CALL1(set_download_limit, limit);
 	}
 
@@ -415,6 +416,16 @@ namespace libtorrent
 	{
 #ifdef TORRENT_USE_OPENSSL
 		TORRENT_ASYNC_CALL4(set_ssl_cert, certificate, private_key, dh_params, passphrase);
+#endif
+	}
+
+	void torrent_handle::set_ssl_certificate_buffer(
+		std::string const& certificate
+		, std::string const& private_key
+		, std::string const& dh_params)
+	{
+#ifdef TORRENT_USE_OPENSSL
+		TORRENT_ASYNC_CALL3(set_ssl_cert_buffer, certificate, private_key, dh_params);
 #endif
 	}
 
@@ -738,7 +749,8 @@ namespace libtorrent
 
 	boost::shared_ptr<const torrent_info> torrent_handle::torrent_file() const
 	{
-		TORRENT_SYNC_CALL_RET(boost::shared_ptr<const torrent_info>, boost::shared_ptr<const torrent_info>(), get_torrent_copy);
+		TORRENT_SYNC_CALL_RET(boost::shared_ptr<const torrent_info>
+			, boost::shared_ptr<const torrent_info>(), get_torrent_copy);
 		return r;
 	}
 
@@ -801,11 +813,14 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL3(add_peer, adr, source, flags);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const
 	{
-		TORRENT_ASYNC_CALL1(force_tracker_request, time_now() + seconds(duration.total_seconds()));
+		TORRENT_ASYNC_CALL2(force_tracker_request, time_now()
+			+ seconds(duration.total_seconds()), -1);
 	}
+#endif
 
 	void torrent_handle::force_dht_announce() const
 	{
@@ -814,9 +829,9 @@ namespace libtorrent
 #endif
 	}
 
-	void torrent_handle::force_reannounce() const
+	void torrent_handle::force_reannounce(int s, int idx) const
 	{
-		TORRENT_ASYNC_CALL1(force_tracker_request, time_now());
+		TORRENT_ASYNC_CALL2(force_tracker_request, time_now() + seconds(s), idx);
 	}
 
 	void torrent_handle::file_status(std::vector<pool_file_status>& status) const
@@ -879,6 +894,11 @@ namespace libtorrent
 	void torrent_handle::reset_piece_deadline(int index) const
 	{
 		TORRENT_ASYNC_CALL1(reset_piece_deadline, index);
+	}
+
+	void torrent_handle::clear_piece_deadlines() const
+	{
+		TORRENT_ASYNC_CALL(clear_time_critical);
 	}
 
 	boost::shared_ptr<torrent> torrent_handle::native_handle() const

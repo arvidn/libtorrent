@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <fstream>
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent { namespace dht
 {

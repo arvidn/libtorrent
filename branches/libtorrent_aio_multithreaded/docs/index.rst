@@ -3,12 +3,14 @@
    <div id="librarySidebar">
 
 * download_
+* `download python binding`_
 * features_
 * contributing_
 * `building libtorrent`_
 * examples_
 * `library overview`_
 * `reference documentation`_
+* `troubleshooting issues`_
 * `tuning`_
 * screenshot_
 * `mailing list`_ (archive_)
@@ -25,9 +27,10 @@ Extensions
 * `uTP`_
 * `extensions protocol`_
 * `plugin interface`_
+* `streaming`_
 * `DHT extensions`_
 * `DHT security extension`_
-* `DHT feed extension`_
+* `DHT store extension`_
 * `UDP tracker protocol`_
 * `HTTP seed`_
 * multitracker_
@@ -52,21 +55,24 @@ Bindings
 libtorrent
 ==========
 
-.. _download: http://code.google.com/p/libtorrent/downloads/list
+.. _download: https://sourceforge.net/projects/libtorrent/files/libtorrent/
+.. _`download python binding`: https://sourceforge.net/projects/libtorrent/files/py-libtorrent/
 .. _features: features.html
 .. _contributing: contributing.html
 .. _`building libtorrent`: building.html
 .. _examples: examples.html
 .. _`library overview`: manual-ref.html
 .. _`reference documentation`: reference.html
+.. _`troubleshooting issues`: troubleshooting.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
 .. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: reference-Plugins.html
+.. _`streaming`: streaming.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`DHT security extension`: dht_sec.html
-.. _`DHT feed extension`: dht_rss.html
+.. _`DHT store extension`: dht_store.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
 .. _multitracker: http://bittorrent.org/beps/bep_0012.html
@@ -140,7 +146,7 @@ list or posted to the `bug tracker`_.
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright |copy| 2003-2009
+Written by Arvid Norberg. Copyright |copy| 2003-2014
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 

@@ -3,12 +3,23 @@ import SimpleHTTPServer
 import sys
 import os
 import ssl
+import gzip
 
 chunked_encoding = False
+keepalive = True
+
+try:
+	fin = open('test_file', 'rb')
+	f = gzip.open('test_file.gz', 'wb')
+	f.writelines(fin)
+	f.close()
+	fin.close()
+except:
+	pass
 
 class http_server_with_timeout(BaseHTTPServer.HTTPServer):
 	allow_reuse_address = True
-	timeout = 120
+	timeout = 190
 
 	def handle_timeout(self):
 		raise Exception('timeout')
@@ -19,13 +30,14 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 		#print s.requestline
 		global chunked_encoding
+		global keepalive
 
 		# if the request contains the hostname and port. strip it
 		if s.path.startswith('http://') or s.path.startswith('https://'):
 			s.path = s.path[8:]
 			s.path = s.path[s.path.find('/'):]
 
-		s.path = os.path.normpath(s.path)
+		file_path = os.path.normpath(s.path)
 
 		if s.path == '/redirect':
 			s.send_response(301)
@@ -79,9 +91,9 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.end_headers()
 		else:
 			try:
-				filename = s.path[1:]
+				filename = file_path[1:]
 				# serve file by invoking default handler
-				f = open(filename)
+				f = open(filename, 'rb')
 				size = int(os.stat(filename).st_size)
 				start_range = 0
 				end_range = size
@@ -107,6 +119,9 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.send_header('Content-Length', end_range - start_range)
 				if filename.endswith('.gz'):
 					s.send_header('Content-Encoding', 'gzip')
+				if not keepalive:
+					s.send_header("Connection", "close")
+
 				s.end_headers()
    
 				f.seek(start_range)
@@ -133,6 +148,7 @@ if __name__ == '__main__':
 	port = int(sys.argv[1])
 	chunked_encoding = sys.argv[2] != '0'
 	use_ssl = sys.argv[3] != '0'
+	keepalive = sys.argv[4] != '0'
 
 	http_handler.protocol_version = 'HTTP/1.1'
 	httpd = http_server_with_timeout(('127.0.0.1', port), http_handler)

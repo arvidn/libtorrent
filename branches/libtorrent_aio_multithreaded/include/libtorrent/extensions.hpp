@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -181,6 +181,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/torrent_peer.hpp" // for torrent_peer
 
 namespace libtorrent
 {
@@ -198,6 +199,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	class torrent;
 	struct add_torrent_params;
+	struct torrent_peer;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -219,7 +221,7 @@ namespace libtorrent
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
-		virtual void added(boost::weak_ptr<aux::session_impl>) {}
+		virtual void added(aux::session_impl*) {}
 
 		// called when an alert is posted
 		// alerts that are filtered are not
@@ -233,6 +235,15 @@ namespace libtorrent
 
 		// called once per second
 		virtual void on_tick() {}
+
+		// called when choosing peers to optimisticly unchoke
+		// peer's will be unchoked in the order they appear in the given
+		// vector which is initiallity sorted by when they were last
+		// optimistically unchoked.
+		// if the plugin returns true then the ordering provided will be
+		// used and no other plugin will be allowed to change it.
+		virtual bool on_optimistic_unchoke(std::vector<torrent_peer*>& /* peers */)
+		{ return false; }
 
 		// called when saving settings state
 		virtual void save_state(entry&) const {}
@@ -355,7 +366,7 @@ namespace libtorrent
 		virtual void add_handshake(entry&) {}
 		
 		// called when the peer is being disconnected.
-		virtual void on_disconnect(error_code const& ec) {}
+		virtual void on_disconnect(error_code const& /*ec*/) {}
 
 		// called when the peer is successfully connected. Note that
 		// incoming connections will have been connected by the time
@@ -401,9 +412,12 @@ namespace libtorrent
 		virtual bool on_reject(peer_request const&) { return false; }
 		virtual bool on_suggest(int /*index*/) { return false; }
 
+		// called after a choke message has been sent to the peer
+		virtual void sent_unchoke() {}
+
 		// called when libtorrent think this peer should be disconnected.
 		// if the plugin returns false, the peer will not be disconnected.
-		virtual bool can_disconnect(error_code const& ec) { return true; }
+		virtual bool can_disconnect(error_code const& /*ec*/) { return true; }
 
 		// called when an extended message is received. If returning true,
 		// the message is not processed by any other plugin and if false

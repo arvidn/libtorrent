@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,7 @@ void routing_table::status(session_status& s) const
 		dht_routing_bucket b;
 		b.num_nodes = i->live_nodes.size();
 		b.num_replacements = i->replacements.size();
-		b.last_active = total_seconds(now - i->last_active);
+		b.last_active = int(total_seconds(now - i->last_active));
 		s.dht_routing_table.push_back(b);
 	}
 }
@@ -141,21 +141,21 @@ size_type routing_table::num_global_nodes() const
 
 int routing_table::depth() const
 {
-	if (m_depth >= m_buckets.size())
+	if (m_depth >= int(m_buckets.size()))
 		m_depth = m_buckets.size() - 1;
 
 	if (m_depth < 0) return m_depth;
 
 	// maybe the table is deeper now?
 	while (m_depth < int(m_buckets.size())-1
-		&& m_buckets[m_depth+1].live_nodes.size() >= m_bucket_size / 2)
+		&& int(m_buckets[m_depth+1].live_nodes.size()) >= m_bucket_size / 2)
 	{
 		++m_depth;
 	}
 
 	// maybe the table is more shallow now?
 	while (m_depth > 0
-		&& m_buckets[m_depth-1].live_nodes.size() < m_bucket_size / 2)
+		&& int(m_buckets[m_depth-1].live_nodes.size()) < m_bucket_size / 2)
 	{
 		--m_depth;
 	}
@@ -308,7 +308,7 @@ bool routing_table::need_refresh(node_id& target) const
 	ptime now = time_now();
 
 	// refresh our own bucket once every 15 minutes
-	if (now - m_last_self_refresh > minutes(15))
+	if (now - minutes(15) > m_last_self_refresh)
 	{
 		m_last_self_refresh = now;
 		target = m_id;
@@ -323,8 +323,8 @@ bool routing_table::need_refresh(node_id& target) const
 	table_t::const_iterator i = std::min_element(m_buckets.begin(), m_buckets.end()
 		, &compare_bucket_refresh);
 
-	if (now - i->last_active < minutes(15)) return false;
-	if (now - m_last_refresh < seconds(45)) return false;
+	if (now - minutes(15) < i->last_active) return false;
+	if (now - seconds(45) < m_last_refresh) return false;
 
 	// generate a random node_id within the given bucket
 	target = generate_random_id();
@@ -424,6 +424,30 @@ node_entry* routing_table::find_node(udp::endpoint const& ep
 	return 0;
 }
 
+void routing_table::remove_node(node_entry* n
+	, routing_table::table_t::iterator bucket) 
+{
+	if (!bucket->replacements.empty()
+		&& n >= &bucket->replacements[0]
+		&& n < &bucket->replacements[0] + bucket->replacements.size())
+	{
+		int idx = n - &bucket->replacements[0];
+		TORRENT_ASSERT(m_ips.count(n->endpoint.address().to_v4().to_bytes()) > 0);
+		m_ips.erase(n->endpoint.address().to_v4().to_bytes());
+		bucket->replacements.erase(bucket->replacements.begin() + idx);
+	}
+
+	if (!bucket->live_nodes.empty()
+		&& n >= &bucket->live_nodes[0]
+		&& n < &bucket->live_nodes[0] + bucket->live_nodes.size())
+	{
+		int idx = n - &bucket->live_nodes[0];
+		TORRENT_ASSERT(m_ips.count(n->endpoint.address().to_v4().to_bytes()) > 0);
+		m_ips.erase(n->endpoint.address().to_v4().to_bytes());
+		bucket->live_nodes.erase(bucket->live_nodes.begin() + idx);
+	}
+}
+
 bool routing_table::add_node(node_entry e)
 {
 	INVARIANT_CHECK;
@@ -437,19 +461,19 @@ bool routing_table::add_node(node_entry e)
 	if (e.id == m_id) return ret;
 
 	// do we already have this IP in the table?
-	if (m_ips.find(e.addr().to_v4().to_bytes()) != m_ips.end())
+	if (m_ips.count(e.addr().to_v4().to_bytes()) > 0)
 	{
 		// this exact IP already exists in the table. It might be the case
 		// that the node changed IP. If pinged is true, and the port also
-		// matches the we assume it's in fact the same node, and just update
+		// matches then we assume it's in fact the same node, and just update
 		// the routing table
 		// pinged means that we have sent a message to the IP, port and received
 		// a response with a correct transaction ID, i.e. it is verified to not
-		// be the result of a poioned routing table
+		// be the result of a poisoned routing table
 
-		node_entry* existing = 0;
 		table_t::iterator existing_bucket;
-		if (!e.pinged() || (existing = find_node(e.ep(), &existing_bucket)) == 0)
+		node_entry* existing = find_node(e.ep(), &existing_bucket);
+		if (!e.pinged() || existing == 0)
 		{
 			// the new node is not pinged, or it's not an existing node
 			// we should ignore it, unless we allow duplicate IPs in our
@@ -463,45 +487,21 @@ bool routing_table::add_node(node_entry e)
 				return ret;
 			}
 		}
-		if (e.pinged() && existing)
+		else if (existing && existing->id == e.id)
 		{
 			// if the node ID is the same, just update the failcount
 			// and be done with it
-			if (existing->id == e.id)
-			{
-				existing->timeout_count = 0;
-				existing->update_rtt(e.rtt);
-				return ret;
-			}
-
-			// delete the current entry before we instert the new one
-			bucket_t& b = existing_bucket->live_nodes;
-			bucket_t& rb = existing_bucket->replacements;
-
-			bucket_t::iterator i = std::find_if(b.begin(), b.end()
-				, boost::bind(&node_entry::ep, _1) == e.ep());
-			if (i != b.end())
-			{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-				TORRENT_LOG(table) << "node ID changed, deleting old entry: "
-					<< i->id << " " << i->addr();
-#endif
-				b.erase(i);
-			}
-			else
-			{
-				i = std::find_if(rb.begin(), rb.end()
-					, boost::bind(&node_entry::ep, _1) == e.ep());
-
-				// this must hold because existing != NULL
-				TORRENT_ASSERT(i != rb.end());
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-				TORRENT_LOG(table) << "node ID changed, deleting old entry: "
-					<< i->id << " " << i->addr();
-#endif
-				rb.erase(i);
-			}
-			m_ips.erase(e.addr().to_v4().to_bytes());
+			existing->timeout_count = 0;
+			existing->update_rtt(e.rtt);
+			return ret;
+		}
+		else if (existing)
+		{
+			TORRENT_ASSERT(existing->id != e.id);
+			// this is the same IP and port, but with
+			// a new node ID. remove the old entry and
+			// replace it with this new ID
+			remove_node(existing, existing_bucket);
 		}
 	}
 	
@@ -810,7 +810,7 @@ bool routing_table::add_node(node_entry e)
 
 	m_ips.insert(e.addr().to_v4().to_bytes());
 
-	while (m_buckets.back().live_nodes.size() > bucket_limit(m_buckets.size()-1))
+	while (int(m_buckets.back().live_nodes.size()) > bucket_limit(m_buckets.size() - 1))
 		split_bucket();
 	return ret;
 }
@@ -823,9 +823,6 @@ void routing_table::split_bucket()
 	int bucket_size_limit = bucket_limit(bucket_index);
 	TORRENT_ASSERT(m_buckets.back().live_nodes.size() >= bucket_size_limit);
 
-	bucket_t& b = m_buckets.back().live_nodes;
-	bucket_t& rb = m_buckets.back().replacements;
-
 	// this is the last bucket, and it's full already. Split
 	// it by adding another bucket
 	m_buckets.push_back(routing_table_node());
@@ -834,6 +831,9 @@ void routing_table::split_bucket()
 	m_buckets.back().last_active = min_time() + seconds(160 - m_buckets.size());
 	bucket_t& new_bucket = m_buckets.back().live_nodes;
 	bucket_t& new_replacement_bucket = m_buckets.back().replacements;
+
+	bucket_t& b = m_buckets[bucket_index].live_nodes;
+	bucket_t& rb = m_buckets[bucket_index].replacements;
 
 	// move any node whose (160 - distane_exp(m_id, id)) >= (i - m_buckets.begin())
 	// to the new bucket
@@ -984,7 +984,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint ep, int rtt)
 bool routing_table::need_bootstrap() const
 {
 	ptime now = time_now();
-	if (now - m_last_bootstrap < seconds(30)) return false;
+	if (now - seconds(30) < m_last_bootstrap) return false;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
@@ -1089,10 +1089,10 @@ void routing_table::find_node(node_id const& target
 	TORRENT_ASSERT(int(l.size()) <= count);
 }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
-	boost::unordered_set<address_v4::bytes_type> all_ips;
+	boost::unordered_multiset<address_v4::bytes_type> all_ips;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/detail/atomic_count.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
-#include <libtorrent/ptime.hpp>
+#include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
 
 namespace libtorrent {
@@ -104,7 +104,7 @@ struct observer : boost::noncopyable
 	address target_addr() const;
 	udp::endpoint target_ep() const;
 
-	void set_id(node_id const& id) { m_id = id; }
+	void set_id(node_id const& id);
 	node_id const& id() const { return m_id; }
 
 	void set_transaction_id(boost::uint16_t tid)

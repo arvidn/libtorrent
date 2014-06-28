@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -110,13 +110,61 @@ web_peer_connection::web_peer_connection(
 #endif
 }
 
+void web_peer_connection::on_connected()
+{
+	incoming_have_all();
+	if (m_web.restart_request.piece != -1)
+	{
+		// increase the chances of requesting the block
+		// we have partial data for already, to finish it
+		incoming_suggest(m_web.restart_request.piece);
+	}
+	web_connection_base::on_connected();
+}
+
 void web_peer_connection::disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error)
 {
+	if (is_disconnecting()) return;
+
 	boost::shared_ptr<torrent> t = associated_torrent().lock();
+
+	if (!m_requests.empty() && !m_file_requests.empty()
+		&& !m_piece.empty())
+	{
+#if 0
+		std::cerr << this << " SAVE-RESTART-DATA: data: " << m_piece.size()
+			<< " req: " << m_requests.front().piece
+			<< " off: " << m_requests.front().start
+			<< std::endl;
+#endif
+		m_web.restart_request = m_requests.front();
+		if (!m_web.restart_piece.empty())
+		{
+			// we're about to replace a different restart piece
+			// buffer. So it was wasted download
+			if (t) t->add_redundant_bytes(m_web.restart_piece.size()
+				, torrent::piece_closing);
+		}
+		m_web.restart_piece.swap(m_piece);
+
+		// we have to do this to not count this data as redundant. The
+		// upper layer will call downloading_piece_progress and assume
+		// it's all wasted download. Since we're saving it here, it isn't.
+		m_requests.clear();
+		m_block_pos = 0;
+	}
+
+	if (!m_web.supports_keepalive && error == 0)
+	{
+		// if the web server doesn't support keepalive and we were
+		// disconnected as a graceful EOF, reconnect right away
+		if (t) t->session().get_io_service().post(
+			boost::bind(&torrent::maybe_connect_web_seeds, t));
+	}
 	peer_connection::disconnect(ec, op, error);
 	if (t) t->disconnect_web_seed(this);
 }
-
+	
 boost::optional<piece_block_progress>
 web_peer_connection::downloading_piece_progress() const
 {
@@ -187,6 +235,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	}
 
 	torrent_info const& info = t->torrent_file();
+	peer_request req = r;
 	
 	std::string request;
 	request.reserve(400);
@@ -202,6 +251,33 @@ void web_peer_connection::write_request(peer_request const& r)
 		pr.length = (std::min)(block_size, size);
 		pr.piece = r.piece + request_offset / piece_size;
 		m_requests.push_back(pr);
+
+		if (m_web.restart_request == m_requests.front())
+		{
+			m_piece.swap(m_web.restart_piece);
+			m_block_pos += m_piece.size();
+			peer_request& front = m_requests.front();
+			TORRENT_ASSERT(front.length > m_piece.size());
+
+#if 0
+			std::cerr << this << " RESTART-DATA: data: " << m_piece.size()
+				<< " req: ( " << front.piece << ", " << front.start
+				<< ", " << (front.start + front.length - 1) << ")"
+				<< std::endl;
+#endif
+
+			req.start += m_piece.size();
+			req.length -= m_piece.size();
+
+			// just to keep the accounting straight for the upper layer.
+			// it doesn't know we just re-wrote the request
+			incoming_piece_fragment(m_piece.size());
+			m_web.restart_request.piece = -1;
+		}
+
+#if 0
+			std::cerr << this << " REQ: p: " << pr.piece << " " << pr.start << std::endl;
+#endif
 		size -= pr.length;
 	}
 
@@ -218,9 +294,11 @@ void web_peer_connection::write_request(peer_request const& r)
 		request += " HTTP/1.1\r\n";
 		add_headers(request, ps, using_proxy);
 		request += "\r\nRange: bytes=";
-		request += to_string(size_type(r.piece) * info.piece_length() + r.start).elems;
+		request += to_string(size_type(req.piece) * info.piece_length()
+			+ req.start).elems;
 		request += "-";
-		request += to_string(size_type(r.piece) * info.piece_length() + r.start + r.length - 1).elems;
+		request += to_string(size_type(req.piece) * info.piece_length()
+			+ req.start + req.length - 1).elems;
 		request += "\r\n\r\n";
 		m_first_request = false;
 		m_file_requests.push_back(0);
@@ -278,6 +356,12 @@ void web_peer_connection::write_request(peer_request const& r)
 			request += to_string(f.offset + f.size - 1).elems;
 			request += "\r\n\r\n";
 			m_first_request = false;
+
+#if 0
+			std::cerr << this << " SEND-REQUEST: f: " << f.file_index
+				<< " s: " << f.offset
+				<< " e: " << (f.offset + f.size - 1) << std::endl;
+#endif
 			TORRENT_ASSERT(f.file_index >= 0);
 			m_file_requests.push_back(f.file_index);
 		}
@@ -286,6 +370,13 @@ void web_peer_connection::write_request(peer_request const& r)
 #ifdef TORRENT_VERBOSE_LOGGING
 	peer_log("==> %s", request.c_str());
 #endif
+
+	// in case the first file on this series of requests is a padfile
+	// we need to handle it right now, and pretend that we got a response
+	// with zeros.
+	buffer::const_interval recv_buffer = receive_buffer();
+	handle_padfile(recv_buffer);
+	if (associated_torrent().expired()) return;
 
 	send_buffer(request.c_str(), request.size(), message_type_request);
 }
@@ -362,7 +453,7 @@ bool web_peer_connection::received_invalid_data(int index, bool single_peer)
 		int fi = files[0].file_index;
 		int first_piece = fs.file_offset(fi) / fs.piece_length();
 		// one past last piece
-		int end_piece = (fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length();
+		int end_piece = int((fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length());
 		for (int i = first_piece; i < end_piece; ++i)
 			incoming_dont_have(i);
 	}
@@ -558,7 +649,9 @@ void web_peer_connection::on_receive(error_code const& error
 							disconnect(errors::torrent_aborted, op_bittorrent);
 							return;
 						}
-// TODO: 2 create a mapping of file-index to redirection URLs. Use that to form URLs instead. Support to reconnect to a new server without destructing this peer_connection
+// TODO: 2 create a mapping of file-index to redirection URLs. Use that to form
+// URLs instead. Support to reconnect to a new server without destructing this
+// peer_connection
 						torrent_info const& info = t->torrent_file();
 						std::string path = info.orig_files().file_path(file_index);
 #ifdef TORRENT_WINDOWS
@@ -661,18 +754,6 @@ void web_peer_connection::on_receive(error_code const& error
 				}
 			}
 
-			if (m_requests.empty() || m_file_requests.empty())
-			{
-				received_bytes(0, bytes_transferred);
-				disconnect(errors::http_error, op_bittorrent, 2);
-#ifdef TORRENT_DEBUG
-				TORRENT_ASSERT(statistics().last_payload_downloaded()
-					+ statistics().last_protocol_downloaded()
-					== dl_target);
-#endif
-				return;
-			}
-
 			// =========================
 			// === CHUNKED ENCODING  ===
 			// =========================
@@ -720,7 +801,22 @@ void web_peer_connection::on_receive(error_code const& error
 #endif
 						m_chunk_pos = -1;
 					}
+					// if all of hte receive buffer was just consumed as chunk
+					// header, we're done
+					if (bytes_transferred == 0) return;
 				}
+			}
+
+			if (m_requests.empty() || m_file_requests.empty())
+			{
+				received_bytes(0, bytes_transferred);
+				disconnect(errors::http_error, op_bittorrent, 2);
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(statistics().last_payload_downloaded()
+					+ statistics().last_protocol_downloaded()
+					== dl_target);
+#endif
+				return;
 			}
 
 			size_type left_in_response = range_end - range_start - m_range_pos;
@@ -744,11 +840,6 @@ void web_peer_connection::on_receive(error_code const& error
 			m_block_pos += payload_transferred;
 			if (m_range_pos > range_end - range_start) m_range_pos = range_end - range_start;
 
-#if 0
-			std::cerr << "REQUESTS: m_requests: " << m_requests.size()
-				<< " file_requests: " << m_file_requests.size() << std::endl;
-#endif
-
 			if (!t->need_loaded())
 			{
 				disconnect(errors::torrent_aborted, op_bittorrent);
@@ -764,13 +855,6 @@ void web_peer_connection::on_receive(error_code const& error
 			size_type re = rs + in_range.length;
 			// file start
 			size_type fs = size_type(front_request.piece) * info.piece_length() + front_request.start;
-#if 0
-			size_type fe = fs + front_request.length;
-
-			std::cerr << "RANGE: r = (" << rs << ", " << re << " ) "
-				"f = (" << fs << ", " << fe << ") "
-				"file_index = " << file_index << " received_body = " << m_received_body << std::endl;
-#endif
 
 			// the http response body consists of 3 parts
 			// 1. the middle of a block or the ending of a block
@@ -795,7 +879,8 @@ void web_peer_connection::on_receive(error_code const& error
 			// fits in the range) we should not start a partial piece, since we soon
 			// will receive enough to call incoming_piece() and pass the read buffer
 			// directly (in the next loop below).
-			if (range_overlaps_request && !range_contains(in_range, front_request, info.piece_length()))
+			if (range_overlaps_request
+				&& !range_contains(in_range, front_request, info.piece_length()))
 			{
 				// the start of the next block to receive is stored
 				// in m_piece. We need to append the rest of that
@@ -822,7 +907,7 @@ void web_peer_connection::on_receive(error_code const& error
 						m_chunk_pos -= copy_size;
 					}
 					TORRENT_ASSERT(m_received_body <= range_end - range_start);
-					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+					TORRENT_ASSERT(m_piece.size() <= front_request.length);
 					incoming_piece_fragment(copy_size);
 					TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
 				}
@@ -842,6 +927,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 				incoming_piece_fragment(r.length);
 				incoming_piece(r, recv_buffer.begin);
+
 				m_requests.pop_front();
 				if (associated_torrent().expired()) return;
 				TORRENT_ASSERT(m_block_pos >= r.length);
@@ -916,31 +1002,11 @@ void web_peer_connection::on_receive(error_code const& error
 					return;
 				}
 
-				torrent_info const& info = t->torrent_file();
-				while (!m_file_requests.empty()
-					&& info.orig_files().pad_file_at(m_file_requests.front()))
-				{
-					// the next file is a pad file. We didn't actually send
-					// a request for this since it most likely doesn't exist on
-					// the web server anyway. Just pretend that we received a
-					// bunch of zeroes here and pop it again
-					int file_index = m_file_requests.front();
-					m_file_requests.pop_front();
-					size_type file_size = info.orig_files().file_size(file_index);
-					TORRENT_ASSERT(m_block_pos < front_request.length);
-					int pad_size = (std::min)(file_size, size_type(front_request.length - m_block_pos));
-
-					// insert zeroes to represent the pad file
-					m_piece.resize(m_piece.size() + pad_size, 0);
-					m_block_pos += pad_size;
-					incoming_piece_fragment(pad_size);
-
-					if (maybe_harvest_block())
-						recv_buffer = receive_buffer();
-					if (associated_torrent().expired()) return;
-				}
+				handle_padfile(recv_buffer);
+				if (associated_torrent().expired()) return;
 				continue;
 			}
+
 			if (bytes_transferred == 0 || payload_transferred == 0)
 			{
 #ifdef TORRENT_DEBUG
@@ -966,5 +1032,37 @@ void web_peer_connection::on_receive(error_code const& error
 		p.connection_type = peer_info::web_seed;
 	}
 
+	void web_peer_connection::handle_padfile(buffer::const_interval& recv_buffer)
+	{
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+		torrent_info const& info = t->torrent_file();
+
+		while (!m_file_requests.empty()
+			&& info.orig_files().pad_file_at(m_file_requests.front()))
+		{
+			// the next file is a pad file. We didn't actually send
+			// a request for this since it most likely doesn't exist on
+			// the web server anyway. Just pretend that we received a
+			// bunch of zeroes here and pop it again
+			int file_index = m_file_requests.front();
+			m_file_requests.pop_front();
+			size_type file_size = info.orig_files().file_size(file_index);
+
+			peer_request front_request = m_requests.front();
+
+			TORRENT_ASSERT(m_block_pos < front_request.length);
+			int pad_size = int((std::min)(file_size, size_type(front_request.length - m_block_pos)));
+
+			// insert zeroes to represent the pad file
+			m_piece.resize(m_piece.size() + size_t(pad_size), 0);
+			m_block_pos += pad_size;
+			incoming_piece_fragment(pad_size);
+
+			if (maybe_harvest_block())
+				recv_buffer = receive_buffer();
+			if (associated_torrent().expired()) return;
+		}
+	}
 }
 

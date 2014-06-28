@@ -21,9 +21,11 @@ if ret != 0:
 	sys.exit(1)
 
 try: os.remove('.ses_state')
-except: pass
-try: shutils.rmtree('.resume')
-except: pass
+except Exception, e: print e
+try: shutil.rmtree('.resume')
+except Exception, e: print e
+try: shutil.rmtree('cpu_benchmark')
+except Exception, e: print e
 
 if not os.path.exists('cpu_benchmark.torrent'):
 	ret = os.system('../examples/connection_tester gen-torrent -s 10000 -n 15 -t cpu_benchmark.torrent')
@@ -36,6 +38,9 @@ except: pass
 
 def run_test(name, test_cmd, client_arg, num_peers):
 	output_dir = 'logs_%s' % name
+
+	try: shutil.rmtree(output_dir)
+	except: pass
 	try: os.mkdir(output_dir)
 	except: pass
 
@@ -63,8 +68,12 @@ def run_test(name, test_cmd, client_arg, num_peers):
 
 	end = time.time();
 
-	c.communicate('q')
+	try: c.communicate('q')
+	except: pass
 	c.wait()
+
+	client_out.close();
+	test_out.close();
 
 	print 'runtime %d seconds' % (end - start)
 	print 'analyzing proile...'

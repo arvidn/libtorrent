@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -119,6 +119,7 @@ namespace libtorrent
 		// for torrent_info::invariant_check
 		friend class torrent_info;
 #endif
+
 		internal_file_entry()
 			: offset(0)
 			, symlink_index(not_a_symlink)
@@ -409,10 +410,13 @@ namespace libtorrent
 		// returns true when populated with at least one file
 		bool is_loaded() const { return !m_files.empty(); }
 
-		// if pad_file_limit >= 0, files larger than
-		// that limit will be padded, default is to
-		// not add any padding
-		void optimize(int pad_file_limit = -1, int alignment = 0x10000);
+		// if pad_file_limit >= 0, files larger than that limit will be padded,
+		// default is to not add any padding (-1). The alignment specifies the
+		// alignment files should be padded to. This defaults to the piece size
+		// (-1) but it may also make sense to set it to 16 kiB, or something
+		// divisible by 16 kiB.
+		// If pad_file_limit is 0, every file will be padded (except empty ones).
+		void optimize(int pad_file_limit = -1, int alignment = -1);
 
 		// These functions are used to query attributes of files at
 		// a given index.

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2013, Arvid Norberg, Daniel Wallin.
+Copyright (c) 2010-2014, Arvid Norberg, Daniel Wallin.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -94,7 +94,7 @@ namespace libtorrent
 		index_type span() const
 		{ return (m_last - m_first) & 0xffff; }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 

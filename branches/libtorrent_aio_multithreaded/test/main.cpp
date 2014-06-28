@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
+#include "udp_tracker.hpp" // for stop_udp_tracker
 
 int test_main();
 
@@ -94,7 +95,7 @@ int main()
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 #endif
 
-	srand(total_microseconds(time_now_hires() - min_time()));
+	srand((total_microseconds(time_now_hires() - min_time())) & 0x7fffffff);
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
 	// which sometimes causes tests to fail with EAGAIN just
@@ -131,6 +132,7 @@ int main()
 #else
 	chdir(dir);
 #endif
+	fprintf(stderr, "cwd = \"%s\"\n", test_dir.c_str());
 
 #ifndef BOOST_NO_EXCEPTIONS
 	try
@@ -153,7 +155,7 @@ int main()
 
 	// just in case of premature exits
 	// make sure we try to clean up some
-	stop_tracker();
+	stop_udp_tracker();
 	stop_all_proxies();
 	stop_web_server();
 	stop_peer();
@@ -172,6 +174,6 @@ int main()
 	}
 #endif
 
-	return ret;
+	return ret ? 333 : 0;
 }
 

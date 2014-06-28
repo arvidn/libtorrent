@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -221,9 +221,11 @@ void node_impl::incoming(msg const& m)
 	lazy_entry const* y_ent = m.message.dict_find_string("y");
 	if (!y_ent || y_ent->string_length() == 0)
 	{
-		entry e;
-		incoming_error(e, "missing 'y' entry");
-		m_sock->send_packet(e, m.addr, 0);
+		// don't respond to this obviously broken messages. We don't
+		// want to open up a magnification opportunity
+//		entry e;
+//		incoming_error(e, "missing 'y' entry");
+//		m_sock->send_packet(e, m.addr, 0);
 		return;
 	}
 
@@ -285,6 +287,8 @@ void node_impl::incoming(msg const& m)
 				TORRENT_LOG(node) << "INCOMING ERROR: " << err->list_string_value_at(1);
 			}
 #endif
+			node_id id;
+			m_rpc.incoming(m, &id, m_settings);
 			break;
 		}
 	}
@@ -293,7 +297,7 @@ void node_impl::incoming(msg const& m)
 namespace
 {
 	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
-		, node_impl& node, int listen_port, sha1_hash const& ih, bool seed)
+		, node_impl& node, int listen_port, sha1_hash const& ih, int flags)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(node) << "sending announce_peer [ ih: " << ih
@@ -326,8 +330,8 @@ namespace
 			a["info_hash"] = ih.to_string();
 			a["port"] = listen_port;
 			a["token"] = i->second;
-			a["seed"] = int(seed);
-			// TODO: 3 if uTP is enabled, we should say "implied_port": 1
+			a["seed"] = (flags & node_impl::flag_seed) ? 1 : 0;
+			if (flags & node_impl::flag_implied_port) a["implied_port"] = 1;
 			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_in);
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
@@ -365,7 +369,7 @@ void node_impl::add_node(udp::endpoint node)
 	m_rpc.invoke(e, node, o);
 }
 
-void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
+void node_impl::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -379,28 +383,43 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
 	{
 		ta.reset(new obfuscated_get_peers(*this, info_hash, f
 			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, seed), seed));
+			, listen_port, info_hash, flags), flags & node_impl::flag_seed));
 	}
 	else
 	{
 		ta.reset(new get_peers(*this, info_hash, f
 			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, seed), seed));
+			, listen_port, info_hash, flags), flags & node_impl::flag_seed));
 	}
 
 	ta->start();
 }
 
-void node_impl::get_item(sha1_hash const& target, boost::function<bool(item&)> f)
+void node_impl::get_item(sha1_hash const& target
+	, boost::function<bool(item&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "starting get for [ " << target << " ]" ;
+	TORRENT_LOG(node) << "starting get for [ hash: " << target << " ]" ;
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
 	ta.reset(new dht::get_item(*this, target, f));
 	ta->start();
 }
+
+void node_impl::get_item(char const* pk, std::string const& salt
+	, boost::function<bool(item&)> f)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(node) << "starting get for [ key: "
+		<< to_hex(std::string(pk, 32)) << " ]" ;
+#endif
+
+	boost::intrusive_ptr<dht::get_item> ta;
+	ta.reset(new dht::get_item(*this, pk, salt, f));
+	ta->start();
+}
+
 
 void node_impl::tick()
 {
@@ -413,7 +432,7 @@ time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
 	ptime now(time_now());
-	if (now - m_last_tracker_tick < minutes(2)) return d;
+	if (now - minutes(2) < m_last_tracker_tick) return d;
 	m_last_tracker_tick = now;
 
 	for (dht_immutable_table_t::iterator i = m_immutable_table.begin();
@@ -936,11 +955,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"k", lazy_entry::string_t, item_pk_len, key_desc_t::optional},
 			{"sig", lazy_entry::string_t, item_sig_len, key_desc_t::optional},
 			{"cas", lazy_entry::string_t, 20, key_desc_t::optional},
+			{"salt", lazy_entry::string_t, 0, key_desc_t::optional},
 		};
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[6];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[7];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -951,6 +971,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// is this a mutable put?
 		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
 
+		// public key (only set if it's a mutable put)
+		char const* pk = NULL;
+		if (msg_keys[3]) pk = msg_keys[3]->string_ptr();
+
+		// signature (only set if it's a mutable put)
+		char const* sig = NULL;
+		if (msg_keys[4]) sig = msg_keys[4]->string_ptr();
+
 		// pointer and length to the whole entry
 		std::pair<char const*, int> buf = msg_keys[1]->data_section();
 		if (buf.second > 1000 || buf.second <= 0)
@@ -959,15 +987,27 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash target;
-		if (!mutable_put)
-			target = hasher(buf.first, buf.second).final();
-		else
-			target = hasher(msg_keys[3]->string_ptr(), item_pk_len).final();
+		std::pair<char const*, int> salt(static_cast<char const*>(NULL), 0);
+		if (msg_keys[6])
+			salt = std::pair<char const*, int>(
+				msg_keys[6]->string_ptr(), msg_keys[6]->string_length());
+		if (salt.second > 64)
+		{
+			incoming_error(e, "salt too big", 207);
+			return;
+		}
 
-//		fprintf(stderr, "%s PUT target: %s\n"
+		sha1_hash target;
+		if (pk)
+			target = item_target_id(salt, pk);
+		else
+			target = item_target_id(buf);
+
+//		fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
 //			, mutable_put ? "mutable":"immutable"
-//			, to_hex(target.to_string()).c_str());
+//			, to_hex(target.to_string()).c_str()
+//			, salt.second > 0 ? std::string(salt.first, salt.second).c_str() : ""
+//			, pk ? to_hex(std::string(pk, 32)).c_str() : "");
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
@@ -1019,19 +1059,16 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 #ifdef TORRENT_USE_VALGRIND
 			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4]->string_ptr(), item_sig_len);
-			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[3]->string_ptr(), item_pk_len);
+			VALGRIND_CHECK_MEM_IS_DEFINED(pk, item_pk_len);
 #endif
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
-			if (!verify_mutable_item(msg_keys[1]->data_section()
-				, msg_keys[2]->int_value()
-				, msg_keys[3]->string_ptr()
-				, msg_keys[4]->string_ptr()))
+			if (!verify_mutable_item(buf, salt
+				, msg_keys[2]->int_value(), pk, sig))
 			{
 				incoming_error(e, "invalid signature", 206);
 				return;
 			}
 
-			sha1_hash target = hasher(msg_keys[3]->string_ptr(), msg_keys[3]->string_length()).final();
 			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end())
 			{
@@ -1047,6 +1084,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 							, boost::bind(&dht_mutable_table_t::value_type::second, _1)));
 					TORRENT_ASSERT(j != m_mutable_table.end());
 					free(j->second.value);
+					free(j->second.salt);
 					m_mutable_table.erase(j);
 					m_counters.inc_stats_counter(counters::dht_mutable_data, -1);
 				}
@@ -1054,10 +1092,18 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				to_add.value = (char*)malloc(buf.second);
 				to_add.size = buf.second;
 				to_add.seq = msg_keys[2]->int_value();
-				memcpy(to_add.sig, msg_keys[4]->string_ptr(), sizeof(to_add.sig));
+				to_add.salt = NULL;
+				to_add.salt_size = 0;
+				if (salt.second > 0)
+				{
+					to_add.salt = (char*)malloc(salt.second);
+					to_add.salt_size = salt.second;
+					memcpy(to_add.salt, salt.first, salt.second);
+				}
+				memcpy(to_add.sig, sig, sizeof(to_add.sig));
 				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4]->string_length());
 				memcpy(to_add.value, buf.first, buf.second);
-				memcpy(&to_add.key, msg_keys[3]->string_ptr(), sizeof(to_add.key));
+				memcpy(&to_add.key, pk, sizeof(to_add.key));
 		
 				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
@@ -1075,7 +1121,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				// matches the expected value before replacing it
 				if (msg_keys[5])
 				{
-					sha1_hash h = mutable_item_cas(std::make_pair(item->value, item->size), item->seq);
+					sha1_hash h = mutable_item_cas(
+						std::make_pair(item->value, item->size)
+						, std::make_pair(item->salt, item->salt_size)
+						, item->seq);
 
 					if (h != sha1_hash(msg_keys[5]->string_ptr()))
 					{
@@ -1084,13 +1133,13 @@ void node_impl::incoming_request(msg const& m, entry& e)
 					}
 				}
 
-				if (item->seq > msg_keys[2]->int_value())
+				if (item->seq > boost::uint64_t(msg_keys[2]->int_value()))
 				{
 					incoming_error(e, "old sequence number", 302);
 					return;
 				}
 
-				if (item->seq < msg_keys[2]->int_value())
+				if (item->seq < boost::uint64_t(msg_keys[2]->int_value()))
 				{
 					if (item->size != buf.second)
 					{

@@ -128,6 +128,7 @@ namespace libtorrent
 	namespace dht
 	{
 		struct dht_tracker;
+		class item;
 	}
 
 	struct bencode_map_entry;
@@ -203,7 +204,6 @@ namespace libtorrent
 			, initialize_timer
 			, udp_socket_observer
 			, uncork_interface
-			, boost::enable_shared_from_this<session_impl>
 			, single_threaded
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -251,7 +251,7 @@ namespace libtorrent
 				torrent*, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			bool has_peer(peer_connection const* p) const;
 			bool any_torrent_has_peer(peer_connection const* p) const;
 			bool is_single_thread() const { return single_threaded::is_single_thread(); }
@@ -347,6 +347,22 @@ namespace libtorrent
 			// the DHT, to get the initial peers quickly
 			void prioritize_dht(boost::weak_ptr<torrent> t);
 
+			void get_immutable_callback(sha1_hash target
+				, dht::item const& i);
+			void get_mutable_callback(dht::item const& i);
+
+			void dht_get_immutable_item(sha1_hash const& target);
+
+			void dht_get_mutable_item(boost::array<char, 32> key
+				, std::string salt = std::string());
+
+			void dht_put_item(entry data, sha1_hash target);
+
+			void dht_put_mutable_item(boost::array<char, 32> key
+				, boost::function<void(entry&, boost::array<char,64>&
+					, boost::uint64_t&, std::string const&)> cb
+				, std::string salt = std::string());
+
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
 #endif
@@ -358,8 +374,14 @@ namespace libtorrent
 			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
+
+#ifndef TORRENT_NO_DEPRECATE
+			// deprecated in libtorrent 1.1
+			// use settings_pack instead
 			void set_pe_settings(pe_settings const& settings);
-			pe_settings const& get_pe_settings() const { return m_pe_settings; }
+			pe_settings const& get_pe_settings() const;
+#endif // TORRENT_NO_DEPRECATE
+
 			torrent const* find_encrypted_torrent(
 				sha1_hash const& info_hash, sha1_hash const& xor_mask);
 
@@ -535,7 +557,7 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_DISABLE_DHT
-			bool is_dht_running() const { return m_dht.get(); }
+			bool is_dht_running() const { return (m_dht.get() != NULL); }
 			int external_udp_port() const { return m_external_udp_port; }
 #endif
 
@@ -558,7 +580,11 @@ namespace libtorrent
 			void stop_natpmp();
 			void stop_upnp();
 
-			int next_port();
+			int add_port_mapping(int t, int external_port
+				, int local_port);
+			void delete_port_mapping(int handle);
+
+			int next_port() const;
 
 			void add_redundant_bytes(size_type b, int reason)
 			{
@@ -636,7 +662,10 @@ namespace libtorrent
 			void post_socket_job(socket_job& j);
 
 			// implements session_interface
-			virtual tcp::endpoint get_interface() const;
+			virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address
+				const& remote_address, error_code& ec) const;
+			virtual bool verify_bound_address(address const& addr, bool utp
+				, error_code& ec);
 
 			bool has_lsd() const { return m_lsd.get(); }
 
@@ -674,6 +703,11 @@ namespace libtorrent
 			void update_outgoing_interfaces();
 			void update_listen_interfaces();
 			void update_privileged_ports();
+
+			void update_upnp();
+			void update_natpmp();
+			void update_lsd();
+			void update_dht();
 
 			void on_trigger_auto_manage();
 			
@@ -859,17 +893,24 @@ namespace libtorrent
 			// is incremented by one
 			int m_listen_port_retries;
 
-			// the ip-address of the interface
-			// we are supposed to listen on.
-			// if the ip is set to zero, it means
-			// that we should let the os decide which
-			// interface to listen on
+			// the addresses or device names of the interfaces we are supposed to
+			// listen on. if empty, it means that we should let the os decide
+			// which interface to listen on
+			std::vector<std::pair<std::string, int> > m_listen_interfaces;
+
+			// keep this around until everything uses the list of interfaces
+			// instead.
 			tcp::endpoint m_listen_interface;
 
-			// the network interfaces outgoing connections
-			// are opened through. If there is more then one,
-			// they are used in a round-robin fasion
-			std::vector<union_endpoint> m_net_interfaces;
+			// the network interfaces outgoing connections are opened through. If
+			// there is more then one, they are used in a round-robin fasion
+			// each element is a device name or IP address (in string form) and
+			// a port number. The port determins which port to bind the listen
+			// socket to, and the device or IP determines which network adapter
+			// to be used. If no adapter with the specified name exists, the listen
+			// socket fails.
+			// TODO: should this be renamed m_outgoing_interfaces?
+			std::vector<std::string> m_net_interfaces;
 
 			// if we're listening on an IPv6 interface
 			// this is one of the non local IPv6 interfaces
@@ -901,8 +942,8 @@ namespace libtorrent
 
 			void open_new_incoming_socks_connection();
 
-			void setup_listener(listen_socket_t* s, tcp::endpoint ep, int& retries
-				, bool v6_only, int flags, error_code& ec);
+			void setup_listener(listen_socket_t* s, std::string const& device
+				, bool ipv4, int port, int& retries, int flags, error_code& ec);
 
 			// the proxy used for bittorrent
 			proxy_settings m_proxy;
@@ -987,7 +1028,7 @@ namespace libtorrent
 			void recalculate_optimistic_unchoke_slots();
 
 			ptime m_created;
-			int session_time() const { return total_seconds(time_now() - m_created); }
+			boost::int64_t session_time() const { return total_seconds(time_now() - m_created); }
 
 			ptime m_last_tick;
 			ptime m_last_second_tick;
@@ -1008,7 +1049,7 @@ namespace libtorrent
 
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to
-			int m_next_port;
+			mutable int m_next_port;
 
 #ifndef TORRENT_DISABLE_DHT
 			boost::intrusive_ptr<dht::dht_tracker> m_dht;
@@ -1047,8 +1088,10 @@ namespace libtorrent
 			// this is deducted from the connect speed
 			int m_boost_connections;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-			pe_settings m_pe_settings;
+#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
+			// this is only here because get_pe_settings() returns a reference,
+			// and we need something to back it
+			mutable pe_settings m_pe_settings;
 #endif
 
 			boost::intrusive_ptr<natpmp> m_natpmp;
@@ -1125,7 +1168,7 @@ namespace libtorrent
 			// get to download again after the disk has been
 			// blocked
 			connection_map::iterator m_next_disk_peer;
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 			void check_invariant() const;
 #endif
 
@@ -1217,11 +1260,6 @@ namespace libtorrent
 
 			counters m_stats_counters;
 
-			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
-			int m_send_buffer_sizes[18];
-			int m_recv_buffer_sizes[18];
-
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;
 #endif
@@ -1285,7 +1323,7 @@ namespace libtorrent
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 			pthread_t m_network_thread;
 #endif
 		};

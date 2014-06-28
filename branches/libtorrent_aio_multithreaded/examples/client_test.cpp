@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 
 using boost::bind;
+using libtorrent::total_milliseconds;
 
 void terminal_size(int* terminal_width, int* terminal_height)
 {
@@ -332,21 +333,21 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	FILE* f = fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		return -1;
 	}
 
 	int r = fseek(f, 0, SEEK_END);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -360,7 +361,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fseek(f, 0, SEEK_SET);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -375,7 +376,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fread(&v[0], 1, v.size(), f);
 	if (r < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -822,10 +823,10 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		if (print_timers)
 		{
 			snprintf(str, sizeof(str), "%8d %4d %7d %6d "
-				, total_seconds(i->last_active)
-				, total_seconds(i->last_request)
+				, int(total_seconds(i->last_active))
+				, int(total_seconds(i->last_request))
 				, i->request_timeout
-				, total_seconds(i->download_queue_time));
+				, int(total_seconds(i->download_queue_time)));
 			out += str;
 		}
 		snprintf(str, sizeof(str), "%s|%s %4d "
@@ -1004,11 +1005,20 @@ void scan_dir(std::string const& dir_path
 	using namespace libtorrent;
 
 	error_code ec;
+	std::vector<std::pair<boost::uint64_t, std::string> > ents;
 	// TODO: don't use internal directory type
 	for (directory i(dir_path, ec); !i.done(); i.next(ec))
 	{
-		std::string file = combine_path(dir_path, i.file());
-		if (extension(file) != ".torrent") continue;
+		if (extension(i.file()) != ".torrent") continue;
+		ents.push_back(std::make_pair(i.inode(), i.file()));
+	}
+
+	std::sort(ents.begin(), ents.end());
+
+	for (std::vector<std::pair<boost::uint64_t, std::string> >::iterator i = ents.begin()
+		, end(ents.end()); i != end; ++i)
+	{
+		std::string file = combine_path(dir_path, i->second);
 
 		handles_t::iterator k = files.find(file);
 		if (k != files.end())
@@ -1062,6 +1072,15 @@ torrent_status const& get_active_torrent(std::vector<torrent_status const*> cons
 	return *filtered_handles[active_torrent];
 }
 
+char const* timestamp()
+{
+	time_t t = std::time(0);
+	tm* timeinfo = std::localtime(&t);
+	static char str[200];
+	std::strftime(str, 200, "%b %d %X", timeinfo);
+	return str;
+}
+
 void print_alert(libtorrent::alert const* a, std::string& str)
 {
 	using namespace libtorrent;
@@ -1075,13 +1094,13 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 		str += esc("33");
 	}
 	str += "[";
-	str += time_now_string();
+	str += timestamp();
 	str += "] ";
 	str += a->message();
 	str += esc("0");
 
 	if (g_log_file)
-		fprintf(g_log_file, "[%s] %s\n", time_now_string(),  a->message().c_str());
+		fprintf(g_log_file, "[%s] %s\n", timestamp(),  a->message().c_str());
 }
 
 int save_file(std::string const& filename, std::vector<char>& v)
@@ -1106,9 +1125,15 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files
 	, int* counters, boost::unordered_set<torrent_status>& all_handles
 	, std::vector<torrent_status const*>& filtered_handles
-	, bool& need_resort)
+	, bool& need_resort, std::vector<boost::uint64_t>& stats_counters)
 {
 	using namespace libtorrent;
+
+	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
+	{
+		stats_counters.swap(s->values);
+		return true;
+	}
 
 #ifdef TORRENT_USE_OPENSSL
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
@@ -1124,7 +1149,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			char msg[256];
 			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), ec.message().c_str());
-			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
 		stat_file(priv, &st, ec);
@@ -1132,13 +1157,13 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			char msg[256];
 			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), ec.message().c_str());
-			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
 
 		char msg[256];
 		snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
-		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 
 		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "1234");
 		h.resume();
@@ -1462,7 +1487,7 @@ int main(int argc, char* argv[])
 #endif
 			"  -l <limit>            sets the listen socket queue size\n"
 			"\n DISK OPTIONS\n"
-			"  -a <mode>             sets the allocation mode. [sparse|full]\n"
+			"  -a <mode>             sets the allocation mode. [sparse|allocate]\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -j                    disable disk read-ahead\n"
@@ -1481,15 +1506,21 @@ int main(int argc, char* argv[])
 	}
 
 	using namespace libtorrent;
+	namespace lt = libtorrent;
+
 	settings_pack settings;
 	settings.set_int(settings_pack::active_loaded_limit, 20);
+
+	std::vector<boost::uint64_t> stats_counters;
+	std::vector<stats_metric> metrics = session_stats_metrics();
+	stats_counters.resize(metrics.size(), 0);
+
+	const int queued_bytes_idx = find_metric_idx(metrics, "queued_write_bytes");
 
 	proxy_settings ps;
 
 	int refresh_delay = 500;
 	bool start_dht = true;
-	bool start_upnp = true;
-	bool start_lsd = true;
 
 	std::deque<std::string> events;
 
@@ -1510,8 +1541,8 @@ int main(int argc, char* argv[])
 	int counters[torrents_max];
 	memset(counters, 0, sizeof(counters));
 
-	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-		, session::add_default_plugins
+	libtorrent::session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+		, lt::session::add_default_plugins | lt::session::start_default_features
 		, alert::all_categories
 			& ~(alert::dht_notification
 			+ alert::progress_notification
@@ -1589,7 +1620,8 @@ int main(int argc, char* argv[])
 			case 'S': settings.set_int(settings_pack::unchoke_slots_limit, atoi(arg)); break;
 			case 'a':
 				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
-				if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
+				else if (strcmp(arg, "full") == 0) allocation_mode = storage_mode_allocate;
+				else if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
 				break;
 			case 's': save_path = arg; break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
@@ -1600,18 +1632,19 @@ int main(int argc, char* argv[])
 			case 'w': settings.set_int(settings_pack::urlseed_wait_retry, atoi(arg)); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
-			case 'H': start_dht = false; --i; break;
+			case 'H':
+				start_dht = false;
+				settings.set_bool(settings_pack::enable_dht, false);
+				--i;
+				break;
 			case 'l': settings.set_int(settings_pack::listen_queue_size, atoi(arg)); break;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			case 'e':
 				{
-					pe_settings s;
-	
-					s.out_enc_policy = libtorrent::pe_settings::forced;
-					s.in_enc_policy = libtorrent::pe_settings::forced;
-					s.allowed_enc_level = pe_settings::rc4;
-					s.prefer_rc4 = true;
-					ses.set_pe_settings(s);
+					settings.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+					settings.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+					settings.set_int(settings_pack::allowed_enc_level, settings_pack::pe_rc4);
+					settings.set_bool(settings_pack::prefer_rc4, true);
 					--i;
 					break;
 				}
@@ -1706,7 +1739,11 @@ int main(int argc, char* argv[])
 				}
 				break;
 			case 'I': settings.set_str(settings_pack::outgoing_interfaces, arg); break;
-			case 'N': start_upnp = false; --i; break;
+			case 'N':
+				settings.set_bool(settings_pack::enable_upnp, false);
+				settings.set_bool(settings_pack::enable_natpmp, false);
+				--i;
+				break;
 			case 'Y':
 				{
 					--i;
@@ -1721,7 +1758,7 @@ int main(int argc, char* argv[])
 					ses.set_peer_class_filter(pcf);
 					break;
 				}
-			case 'X': start_lsd = false; --i; break;
+			case 'X': settings.set_bool(settings_pack::enable_lsd, false); --i; break;
 			case 'Z':
 				settings.set_str(settings_pack::mmap_cache, arg);
 				settings.set_bool(settings_pack::contiguous_recv_buffer, false);
@@ -1745,15 +1782,6 @@ int main(int argc, char* argv[])
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
 
-	if (start_lsd)
-		ses.start_lsd();
-
-	if (start_upnp)
-	{
-		ses.start_upnp();
-		ses.start_natpmp();
-	}
-
 	ses.set_proxy(ps);
 
 	if (bind_to_interface.empty()) bind_to_interface = "0.0.0.0";
@@ -1774,8 +1802,6 @@ int main(int argc, char* argv[])
 			std::string("router.utorrent.com"), 6881));
 		ses.add_dht_router(std::make_pair(
 			std::string("router.bitcomet.com"), 6881));
-
-		ses.start_dht();
 	}
 #endif
 
@@ -1848,6 +1874,7 @@ int main(int argc, char* argv[])
 	{
 		++tick;
 		ses.post_torrent_updates();
+		ses.post_session_stats();
 		if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
 		if (active_torrent >= 0)
 		{
@@ -2007,7 +2034,7 @@ int main(int argc, char* argv[])
 								files.erase(i);
 							}
 							if (st.handle.is_valid())
-								ses.remove_torrent(st.handle, session::delete_files);
+								ses.remove_torrent(st.handle, lt::session::delete_files);
 						}
 					}
 				}
@@ -2170,7 +2197,7 @@ int main(int argc, char* argv[])
 		// loop through the alert queue to see if anything has happened.
 		std::deque<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		std::string now = time_now_string();
+		std::string now = timestamp();
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
@@ -2178,7 +2205,7 @@ int main(int argc, char* argv[])
 			TORRENT_TRY
 			{
 				if (!::handle_alert(ses, *i, files, non_files, counters
-					, all_handles, filtered_handles, need_resort))
+					, all_handles, filtered_handles, need_resort, stats_counters))
 				{
 					// if we didn't handle the alert, print it to the log
 					std::string event_string;
@@ -2376,7 +2403,7 @@ int main(int argc, char* argv[])
 */
 		}
 
-		int cache_flags = print_downloads ? 0 : session::disk_cache_no_pieces;
+		int cache_flags = print_downloads ? 0 : lt::session::disk_cache_no_pieces;
 		torrent_handle h;
 		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
 
@@ -2477,12 +2504,12 @@ int main(int argc, char* argv[])
 			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
 				"queued-bytes: %5" PRId64 " kB\n"
 				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.blocked_jobs
-				, cs.queued_bytes / 1000);
+				, stats_counters[queued_bytes_idx] / 1000);
 			out += str;
 
 			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d\n"
 				, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size, cs.write_cache_size, cs.pinned_blocks
-				, int(cs.queued_bytes / 0x4000));
+				, int(stats_counters[queued_bytes_idx] / 0x4000));
 			out += str;
 
 			int mru_size = cs.arc_mru_size + cs.arc_mru_ghost_size;
@@ -2548,7 +2575,7 @@ int main(int argc, char* argv[])
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
-						, i->min_announce > now ? total_seconds(i->min_announce - now) : 0
+						, int(i->min_announce > now ? total_seconds(i->min_announce - now) : 0)
 						, i->last_error ? i->last_error.message().c_str() : ""
 						, i->message.c_str());
 					out += str;
@@ -2724,7 +2751,7 @@ int main(int argc, char* argv[])
 
 		std::deque<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		std::string now = time_now_string();
+		std::string now = timestamp();
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{

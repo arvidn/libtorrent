@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -83,6 +83,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
+// define as 0 to disable. 1 enables debug output of the pieces and requested
+// blocks. 2 also enables trace output of the time critical piece picking
+// logic
+#define TORRENT_DEBUG_STREAMING 0
+
 namespace libtorrent
 {
 	class http_parser;
@@ -110,6 +115,29 @@ namespace libtorrent
 	{
 		std::vector<char> buf;
 		lazy_entry entry;
+	};
+
+	struct time_critical_piece
+	{
+		// when this piece was first requested
+		ptime first_requested;
+		// when this piece was last requested
+		ptime last_requested;
+		// by what time we want this piece
+		ptime deadline;
+		// 1 = send alert with piece data when available
+		int flags;
+		// how many peers it's been requested from
+		int peers;
+		// the piece index
+		int piece;
+#if TORRENT_DEBUG_STREAMING > 0
+		// the number of multiple requests are allowed
+		// to blocks still not downloaded (debugging only)
+		int timed_out;
+#endif
+		bool operator<(time_critical_piece const& rhs) const
+		{ return deadline < rhs.deadline; }
 	};
 
 	struct torrent_hot_members
@@ -253,7 +281,7 @@ namespace libtorrent
 
 		peer_connection* find_lowest_ranking_peer() const;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool has_peer(peer_connection const* p) const
 		{ return sorted_find(m_connections, (peer_connection*)p) != m_connections.end(); }
 #endif
@@ -350,6 +378,8 @@ namespace libtorrent
 		void abort();
 		bool is_aborted() const { return m_abort; }
 
+		void new_external_ip();
+
 		torrent_status::state_t state() const { return (torrent_status::state_t)m_state; }
 		void set_state(torrent_status::state_t s);
 
@@ -395,9 +425,18 @@ namespace libtorrent
 		void clear_error();
 
 		enum {
-			error_file_none = -1, // the error did not occur on a file
-			error_file_url = -2, // the error occurred on m_url
-			error_file_ssl_ctx = -3, // the error occurred setting up the SSL context
+			// the error did not occur on a file
+			error_file_none = -1,
+
+			// the error occurred on m_url
+			error_file_url = -2,
+
+			// the error occurred setting up the SSL context
+			error_file_ssl_ctx = -3,
+
+			// the error occurred while loading the .torrent file via the user
+			// supplied load function
+			error_file_metadata = -4,
 		};
 		void set_error(error_code const& ec, int file);
 		bool has_error() const { return !!m_error; }
@@ -465,8 +504,10 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files);
 		void file_priorities(std::vector<int>*) const;
 
+		void cancel_non_critical();
 		void set_piece_deadline(int piece, int t, int flags);
 		void reset_piece_deadline(int piece);
+		void clear_time_critical();
 		void update_piece_priorities();
 
 		void status(torrent_status* st, boost::uint32_t flags);
@@ -499,7 +540,8 @@ namespace libtorrent
 		bool resolving_countries() const;
 
 		void resolve_peer_country(boost::shared_ptr<peer_connection> const& p) const;
-		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
+		void on_country_lookup(error_code const& error
+			, std::vector<address> const& host_list
 			, boost::shared_ptr<peer_connection> p) const;
 #endif
 
@@ -647,8 +689,7 @@ namespace libtorrent
 		ptime next_announce() const;
 
 		// forcefully sets next_announce to the current time
-		void force_tracker_request();
-		void force_tracker_request(ptime);
+		void force_tracker_request(ptime, int tracker_idx);
 		void scrape_tracker();
 		void announce_with_tracker(boost::uint8_t e
 			= tracker_request::none
@@ -721,6 +762,11 @@ namespace libtorrent
 
 		int num_have() const
 		{
+			// pretend we have every piece when in seed mode
+			if (m_seed_mode) {
+				return m_torrent_file->num_pieces();
+			}
+
 			return has_picker()
 				? m_picker->num_have()
 				: m_have_all ? m_torrent_file->num_pieces() : 0;
@@ -770,7 +816,9 @@ namespace libtorrent
 
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
-		void on_peer_name_lookup(error_code const& e, tcp::resolver::iterator i);
+		void on_peer_name_lookup(error_code const& e
+			, std::vector<address> const& host_list
+			, int port);
 
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.
@@ -854,6 +902,9 @@ namespace libtorrent
 				&& m_torrent_file->num_pieces() - m_picker->num_filtered() - m_picker->num_passed() == 0;
 		}
 
+		bool is_inactive() const
+		{ return m_inactive; }
+
 		std::string save_path() const;
 		alert_manager& alerts() const;
 		piece_picker& picker()
@@ -889,7 +940,11 @@ namespace libtorrent
 		{ return m_trackers; }
 
 		void replace_trackers(std::vector<announce_entry> const& urls);
-		void add_tracker(announce_entry const& url);
+
+		// returns true if the tracker was added, and false if it was already
+		// in the tracker list (in which case the source was added to the
+		// entry in the list)
+		bool add_tracker(announce_entry const& url);
 
 		torrent_handle get_handle();
 
@@ -910,7 +965,7 @@ namespace libtorrent
 #endif
 
 		// DEBUG
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
@@ -949,17 +1004,8 @@ namespace libtorrent
 		int sequence_number() const { return m_sequence_number; }
 
 		bool seed_mode() const { return m_seed_mode; }
-		void leave_seed_mode(bool seed)
-		{
-			if (!m_seed_mode) return;
-			m_seed_mode = false;
-			// seed is false if we turned out not
-			// to be a seed after all
-			if (!seed) force_recheck();
-			m_num_verified = 0;
-			m_verified.clear();
-			m_verifying.clear();
-		}
+		void leave_seed_mode(bool seed);
+
 		bool all_verified() const
 		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
 		bool verifying_piece(int piece) const
@@ -981,14 +1027,7 @@ namespace libtorrent
 			TORRENT_ASSERT(piece >= 0);
 			return m_verified.get_bit(piece);
 		}
-		void verified(int piece)
-		{
-			TORRENT_ASSERT(piece < int(m_verified.size()));
-			TORRENT_ASSERT(piece >= 0);
-			TORRENT_ASSERT(m_verified.get_bit(piece) == false);
-			++m_num_verified;
-			m_verified.set_bit(piece);
-		}
+		void verified(int piece);
 
 		bool add_merkle_nodes(std::map<int, sha1_hash> const& n, int piece);
 
@@ -1032,8 +1071,14 @@ namespace libtorrent
 			, std::string const& private_key
 			, std::string const& dh_params
 			, std::string const& passphrase);
+		void set_ssl_cert_buffer(std::string const& certificate
+			, std::string const& private_key
+			, std::string const& dh_params);
 		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
 #endif
+
+		int num_time_critical_pieces() const
+		{ return m_time_critical_pieces.size(); }
 
 	private:
 
@@ -1141,12 +1186,13 @@ namespace libtorrent
 		// -----------------------------
 
 		// used to resolve hostnames for web seeds
+		// TODO: 2 replace all usage of this with m_ses.get_resolver()
 		mutable tcp::resolver m_host_resolver;
 
 		// this vector is allocated lazily. If no file priorities are
 		// ever changed, this remains empty. Any unallocated slot
 		// implicitly means the file has priority 1.
-		// TODO: this wastes 5 bits per piece
+		// TODO: this wastes 5 bits per file
 		std::vector<boost::uint8_t> m_file_priority;
 
 		// this vector contains the number of bytes completely
@@ -1162,24 +1208,6 @@ namespace libtorrent
 		
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
-
-		struct time_critical_piece
-		{
-			// when this piece was first requested
-			ptime first_requested;
-			// when this piece was last requested
-			ptime last_requested;
-			// by what time we want this piece
-			ptime deadline;
-			// 1 = send alert with piece data when available
-			int flags;
-			// how many peers it's been requested from
-			int peers;
-			// the piece index
-			int piece;
-			bool operator<(time_critical_piece const& rhs) const
-			{ return deadline < rhs.deadline; }
-		};
 
 		// this list is sorted by time_critical_piece::deadline
 		std::vector<time_critical_piece> m_time_critical_pieces;
@@ -1554,7 +1582,15 @@ namespace libtorrent
 		// the current stats gauge this torrent counts against
 		boost::uint32_t m_current_gauge_state:4;
 
-		// TODO: there's space for 3 bits here
+		// set to true while moving the storage
+		bool m_moving_storage:1;
+
+		// this is true if this torrent is considered inactive from the
+		// queuing mechanism's point of view. If a torrent doesn't transfer
+		// at high enough rates, it's inactive.
+		bool m_inactive:1;
+
+		// TODO: there's space for 1 bits here
 
 // ----
 
@@ -1572,7 +1608,18 @@ namespace libtorrent
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// the number of seconds this torrent has been under the inactive
+		// threshold in terms of sending and receiving data. When this counter
+		// reaches the settings.inactive_torrent_timeout it will be considered
+		// inactive and possibly open up another queue slot, to start another,
+		// queued, torrent. Every second it's above the threshold
+		boost::int16_t m_inactive_counter;
+
+		// if this is set, accept the save path saved in the resume data, if
+		// present
+		bool m_use_resume_save_path:1;
+
+#if TORRENT_USE_ASSERTS
 	public:
 		// set to false until we've loaded resume data
 		bool m_resume_data_loaded;

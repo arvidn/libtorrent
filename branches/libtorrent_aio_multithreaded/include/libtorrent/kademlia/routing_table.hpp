@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/size_type.hpp>
 #include <libtorrent/assert.hpp>
-#include <libtorrent/ptime.hpp>
+#include <libtorrent/time.hpp>
 #include <boost/unordered_set.hpp>
 
 namespace libtorrent
@@ -86,6 +86,8 @@ struct routing_table_node
 class TORRENT_EXTRA_EXPORT routing_table
 {
 public:
+	typedef std::vector<routing_table_node> table_t;
+
 	routing_table(node_id const& id, int bucket_size
 		, dht_settings const& settings);
 
@@ -128,6 +130,8 @@ public:
 	// are nearest to the given id.
 	void find_node(node_id const& id, std::vector<node_entry>& l
 		, int options, int count = 0);
+	void remove_node(node_entry* n
+		, table_t::iterator bucket) ;
 	
 	int bucket_size(int bucket) const
 	{
@@ -169,13 +173,11 @@ public:
 
 	int bucket_limit(int bucket) const;
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 
 private:
-
-	typedef std::vector<routing_table_node> table_t;
 
 	table_t::iterator find_bucket(node_id const& id);
 
@@ -225,7 +227,7 @@ private:
 	// table. It's used to only allow a single entry
 	// per IP in the whole table. Currently only for
 	// IPv4
-	boost::unordered_set<address_v4::bytes_type> m_ips;
+	boost::unordered_multiset<address_v4::bytes_type> m_ips;
 
 	// constant called k in paper
 	int m_bucket_size;

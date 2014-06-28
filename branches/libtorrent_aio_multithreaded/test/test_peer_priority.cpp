@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
+#include <boost/crc.hpp>
 
 #include "test.hpp"
 
@@ -40,12 +41,9 @@ using namespace libtorrent;
 
 boost::uint32_t hash_buffer(char const* buf, int len)
 {
-	hasher h;
-	h.update(buf, len);
-	sha1_hash digest = h.final();
-	boost::uint32_t ret;
-	memcpy(&ret, &digest[0], 4);
-	return ntohl(ret);
+	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+	crc.process_block(buf, buf + len);
+	return crc.checksum();
 }
 
 int test_main()
@@ -76,6 +74,17 @@ int test_main()
 		tcp::endpoint(address::from_string("230.120.23.1"), 0x4d2)
 		, tcp::endpoint(address::from_string("230.12.123.3"), 0x12c));
 	TEST_EQUAL(p, hash_buffer("\xe6\x0c\x51\x01\xe6\x78\x15\x01", 8));
+
+	// test vectors from BEP 40
+	TEST_EQUAL(peer_priority(
+		tcp::endpoint(address::from_string("123.213.32.10"), 0)
+		, tcp::endpoint(address::from_string("98.76.54.32"), 0))
+		, 0xec2d7224);
+
+	TEST_EQUAL(peer_priority(
+		tcp::endpoint(address::from_string("123.213.32.10"), 0)
+		, tcp::endpoint(address::from_string("123.213.32.234"), 0))
+		, 0x99568189);
 
 	if (supports_ipv6())
 	{

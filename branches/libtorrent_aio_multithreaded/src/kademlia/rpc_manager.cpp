@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -151,6 +151,13 @@ void observer::timeout()
 	m_algorithm->failed(observer_ptr(this));
 }
 
+void observer::set_id(node_id const& id)
+{
+	if (m_id == id) return;
+	m_id = id;
+	if (m_algorithm) m_algorithm->resort_results();
+}
+
 enum { observer_size = max3<
 	sizeof(find_data_observer)
 	, sizeof(announce_observer)
@@ -168,7 +175,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_allocated_observers(0)
 	, m_destructing(false)
 {
-	std::srand(time(0));
+	std::srand((unsigned int)time(0));
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Constructing";
@@ -225,13 +232,13 @@ void rpc_manager::free_observer(void* ptr)
 	m_pool_allocator.free(ptr);
 }
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 size_t rpc_manager::allocation_size() const
 {
 	return observer_size;
 }
 #endif
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 void rpc_manager::check_invariant() const
 {
 	for (transactions_t::const_iterator i = m_transactions.begin()
@@ -255,7 +262,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 		observer_ptr const& o = i->second;
 		if (o->target_ep() != ep) { ++i; continue; }
 		observer_ptr ptr = i->second;
-		m_transactions.erase(i++);
+		i = m_transactions.erase(i);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(rpc) << "  found transaction [ tid: " << ptr->transaction_id() << " ]";
 #endif
@@ -273,13 +280,15 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 
 	if (m_destructing) return false;
 
-	// we only deal with replies, not queries
-	TORRENT_ASSERT(m.message.dict_find_string_value("y") == "r");
+	// we only deal with replies and errors, not queries
+	TORRENT_ASSERT(m.message.dict_find_string_value("y") == "r"
+		|| m.message.dict_find_string_value("y") == "e");
 
 	// if we don't have the transaction id in our
 	// request list, ignore the packet
 
 	std::string transaction_id = m.message.dict_find_string_value("t");
+	if (transaction_id.empty()) return false;
 
 	std::string::const_iterator i = transaction_id.begin();	
 	int tid = transaction_id.size() != 2 ? -1 : io::read_uint16(i);
@@ -290,19 +299,24 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 	{
 		if (m.addr.address() != i->second->target_addr()) continue;
 		o = i->second;
-		m_transactions.erase(i);
+		i = m_transactions.erase(i);
 		break;
 	}
 
 	if (!o)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(rpc) << "Reply with invalid transaction id size: " 
+		TORRENT_LOG(rpc) << "Reply with unknown transaction id size: " 
 			<< transaction_id.size() << " from " << m.addr;
 #endif
-		entry e;
-		incoming_error(e, "invalid transaction id");
-		m_sock->send_packet(e, m.addr, 0);
+		// this isn't necessarily because the other end is doing
+		// something wrong. This can also happen when we restart
+		// the node, and we prematurely abort all outstanding
+		// requests. Also, this opens up a potential magnification
+		// attack.
+//		entry e;
+//		incoming_error(e, "invalid transaction id");
+//		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -317,10 +331,15 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 	lazy_entry const* ret_ent = m.message.dict_find_dict("r");
 	if (ret_ent == 0)
 	{
+		// it may be an error
+		ret_ent = m.message.dict_find_dict("e");
 		o->timeout();
-		entry e;
-		incoming_error(e, "missing 'r' key");
-		m_sock->send_packet(e, m.addr, 0);
+		if (ret_ent == NULL)
+		{
+			entry e;
+			incoming_error(e, "missing 'r' key");
+			m_sock->send_packet(e, m.addr, 0);
+		}
 		return false;
 	}
 
@@ -337,6 +356,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 	node_id nid = node_id(node_id_ent->string_ptr());
 	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
+		o->timeout();
 		entry e;
 		incoming_error(e, "invalid node ID");
 		m_sock->send_packet(e, m.addr, 0);
@@ -350,7 +370,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 	o->reply(m);
 	*id = nid;
 
-	int rtt = total_milliseconds(now - o->sent());
+	int rtt = int(total_milliseconds(now - o->sent()));
 
 	// we found an observer for this reply, hence the node is not spoofing
 	// add it to the routing table
@@ -362,7 +382,7 @@ time_duration rpc_manager::tick()
 	INVARIANT_CHECK;
 
 	const static int short_timeout = 1;
-	const static int timeout = 8;
+	const static int timeout = 15;
 
 	//	look for observers that have timed out
 
@@ -449,7 +469,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	if (m_sock->send_packet(e, target_addr, 1))
 	{
 		m_transactions.insert(std::make_pair(tid,o));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		o->m_was_sent = true;
 #endif
 		return true;
@@ -465,7 +485,7 @@ observer::~observer()
 	// reported back
 	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done) || m_was_abandoned);
 	TORRENT_ASSERT(!m_in_constructor);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_in_use);
 	m_in_use = false;
 #endif

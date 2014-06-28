@@ -122,9 +122,13 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_bool(settings_pack::enable_outgoing_utp, use_utp);
 	sett.set_bool(settings_pack::enable_incoming_tcp, !use_utp);
 	sett.set_bool(settings_pack::enable_outgoing_tcp, !use_utp);
+	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
 
-	session ses1(sett, fingerprint("LT", 0, 1, 0, 0));
+	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 
 	if (!test.downloader_has_cert)
 		// this disables outgoing SSL connections
@@ -132,7 +136,7 @@ void test_ssl(int test_idx, bool use_utp)
 	else
 		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
 
-	session ses2(sett, fingerprint("LT", 0, 1, 0, 0));
+	session ses2(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
@@ -142,11 +146,12 @@ void test_ssl(int test_idx, bool use_utp)
 
 	create_directory("tmp1_ssl", ec);
 	std::ofstream file("tmp1_ssl/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false, "../ssl/root_ca_cert.pem");
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file
+		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
 	add_torrent_params addp;
-	addp.save_path = ".";
+	addp.save_path = "tmp1_ssl";
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
@@ -285,7 +290,7 @@ attack_t attacks[] =
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
 bool try_connect(session& ses1, int port
-	, boost::intrusive_ptr<torrent_info> const& t, boost::uint32_t flags)
+	, boost::shared_ptr<torrent_info> const& t, boost::uint32_t flags)
 {
 	using boost::asio::ssl::context;
 
@@ -340,6 +345,7 @@ bool try_connect(session& ses1, int port
 
 	if (flags & (valid_certificate | invalid_certificate))
 	{
+		fprintf(stderr, "set_password_callback\n");
 		ctx.set_password_callback(boost::bind(&password_callback, _1, _2, "test"), ec);
 		if (ec)
 		{
@@ -348,6 +354,7 @@ bool try_connect(session& ses1, int port
 			TEST_CHECK(!ec);
 			return false;
 		}
+		fprintf(stderr, "use_certificate_file \"%s\"\n", certificate.c_str());
 		ctx.use_certificate_file(certificate, context::pem, ec);
 		if (ec)
 		{
@@ -356,6 +363,7 @@ bool try_connect(session& ses1, int port
 			TEST_CHECK(!ec);
 			return false;
 		}
+		fprintf(stderr, "use_private_key_file \"%s\"\n", private_key.c_str());
 		ctx.use_private_key_file(private_key, context::pem, ec);
 		if (ec)
 		{
@@ -364,6 +372,7 @@ bool try_connect(session& ses1, int port
 			TEST_CHECK(!ec);
 			return false;
 		}
+		fprintf(stderr, "use_tmp_dh_file \"%s\"\n", dh_params.c_str());
 		ctx.use_tmp_dh_file(dh_params, ec);
 		if (ec)
 		{
@@ -376,6 +385,7 @@ bool try_connect(session& ses1, int port
 
 	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_sock(ios, ctx);
 
+	fprintf(stderr, "connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
 		address_v4::from_string("127.0.0.1"), port), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
@@ -406,6 +416,7 @@ bool try_connect(session& ses1, int port
 		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
 	}
 
+	fprintf(stderr, "SSL handshake\n");
 	ssl_sock.handshake(asio::ssl::stream_base::client, ec);
 
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
@@ -435,6 +446,8 @@ bool try_connect(session& ses1, int port
 
 	// fill in the peer-id
 	std::generate(handshake + 48, handshake + 68, &rand);
+
+	fprintf(stderr, "bittorrent handshake\n");
 	boost::asio::write(ssl_sock, libtorrent::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
 	if (ec)
 	{
@@ -444,6 +457,7 @@ bool try_connect(session& ses1, int port
 	}
 	
 	char buf[68];
+	fprintf(stderr, "read bittorrent handshake\n");
 	boost::asio::read(ssl_sock, libtorrent::asio::buffer(buf, sizeof(buf)), ec);
 	if (ec)
 	{
@@ -475,22 +489,32 @@ void test_malicious_peer()
 	remove_all("tmp3_ssl", ec);
 
 	// set up session
-	session ses1(fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+
+	int ssl_port = 1024 + rand() % 50000;
+	settings_pack sett;
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+	sett.set_int(settings_pack::max_retry_port_bind, 100);
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	sett.set_int(settings_pack::ssl_listen, ssl_port);
+	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+
+	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 	wait_for_listen(ses1, "ses1");
-	session_settings sett;
-	sett.ssl_listen = 1024 + rand() % 50000;
-	ses1.set_settings(sett);
 
 	// create torrent
 	create_directory("tmp3_ssl", ec);
 	std::ofstream file("tmp3_ssl/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file
-		, 16 * 1024, 13, false, "ssl/root_ca_cert.pem");
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file
+		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
+	TEST_CHECK(!t->ssl_cert().empty());
+
 	add_torrent_params addp;
-	addp.save_path = ".";
+	addp.save_path = "tmp3_ssl";
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.ti = t;
@@ -498,16 +522,16 @@ void test_malicious_peer()
 	torrent_handle tor1 = ses1.add_torrent(addp, ec);
 
 	tor1.set_ssl_certificate(
-		combine_path("ssl", "peer_certificate.pem")
-		, combine_path("ssl", "peer_private_key.pem")
-		, combine_path("ssl", "dhparams.pem")
+		combine_path("..", combine_path("ssl", "peer_certificate.pem"))
+		, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
+		, combine_path("..", combine_path("ssl", "dhparams.pem"))
 		, "test");
 
-	wait_for_listen(ses1, "ses1");
+	wait_for_alert(ses1, torrent_finished_alert::alert_type);
 
 	for (int i = 0; i < num_attacks; ++i)
 	{
-		bool success = try_connect(ses1, sett.ssl_listen, t, attacks[i].flags);
+		bool success = try_connect(ses1, ssl_port, t, attacks[i].flags);
 		TEST_EQUAL(attacks[i].expect, success);
 	}
 }

@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = subdir-objects
+
 lib_LTLIBRARIES = libtorrent-rasterbar.la
 
 if ENABLE_DHT
@@ -34,7 +36,6 @@ endif
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
   alert.cpp                       \
-  alert_handler.cpp               \
   alert_manager.cpp               \
   allocator.cpp                   \
   asio.cpp                        \
@@ -49,6 +50,7 @@ libtorrent_rasterbar_la_SOURCES = \
   chained_buffer.cpp              \
   connection_queue.cpp            \
   ConvertUTF.cpp                  \
+  crc32c.cpp                      \
   create_torrent.cpp              \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
@@ -132,6 +134,7 @@ libtorrent_rasterbar_la_SOURCES = \
   utp_socket_manager.cpp          \
   utp_stream.cpp                  \
   web_peer_connection.cpp         \
+  xml_parse.cpp                   \
   \
   $(KADEMLIA_SOURCES)             \
   $(GEOIP_SOURCES)                \

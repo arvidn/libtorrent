@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2013, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,49 +30,34 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ALERT_HANDLER_HPP_INCLUDED
-#define TORRENT_ALERT_HANDLER_HPP_INCLUDED
+#ifndef TORRENT_CPUID_HPP_INCLUDED
+#define TORRENT_CPUID_HPP_INCLUDED
 
-#include "libtorrent/alert_types.hpp" // for num_alert_types
-#include <vector>
+#include "libtorrent/config.hpp"
+#include <cstring>
+
+#if defined _MSC_VER && TORRENT_HAS_SSE
+#include <intrin.h>
+#include <nmmintrin.h>
+#endif
 
 namespace libtorrent
 {
+	inline void cpuid(unsigned int info[4], int type)
+	{
+#if TORRENT_HAS_SSE && defined _MSC_VER
+		__cpuid((int*)info, type);
 
-	struct alert_observer;
-	struct alert_handler;
-
-	// block until the specified alert is posted to
-	// the alert_handler, return a copy of the alert
-	// keep in mind that this has to be called from a
-	// different thread than the one calling dispatch_alerts(),
-	// otherwise you'll have a deadlock.
-	TORRENT_EXPORT std::auto_ptr<alert> wait_for_alert(alert_handler& h, int type);
-
-struct TORRENT_EXPORT alert_handler
-{
-	alert_handler(session& ses);
-
-	// TODO 2: move the responsibility of picking which
-	// alert types to subscribe to to the observer
-	// TODO 3: make subscriptions automatically enable
-	// the corresponding category of alerts in the session somehow
-	void subscribe(alert_observer* o, int flags = 0, ...);
-	void dispatch_alerts(std::deque<alert*>& alerts) const;
-	void dispatch_alerts() const;
-	void unsubscribe(alert_observer* o);
-
-private:
-
-	void subscribe_impl(int const* type_list, int num_types, alert_observer* o, int flags);
-
-	std::vector<alert_observer*> m_observers[num_alert_types];
-
-	session& m_ses;
-};
-
-
+#elif TORRENT_HAS_SSE && defined __GNUC__
+		asm volatile
+			("cpuid" : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
+			 : "a" (type), "c" (0));
+#else
+		// for non-x86 and non-amd64, just return zeroes
+		std::memset(info, 0, sizeof(info));
+#endif
+	}
 }
 
-#endif // TORRENT_ALERT_HANDLER_HPP_INCLUDED
+#endif // TORRENT_CPUID_HPP_INCLUDED
 

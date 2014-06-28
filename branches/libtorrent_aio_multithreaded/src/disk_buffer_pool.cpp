@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,10 +43,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <boost/bind.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/shared_ptr.hpp>
 
 #if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>
+#endif
+
+#ifdef TORRENT_BSD
+#include <sys/sysctl.h>
+#endif
+
+#if TORRENT_USE_RLIMIT
+#include <sys/resource.h>
+#endif
+
+#ifdef TORRENT_LINUX
+#include <linux/unistd.h>
 #endif
 
 #if TORRENT_USE_PURGABLE_CONTROL
@@ -120,7 +133,7 @@ namespace libtorrent
 		m_categories["read cache"] = 0;
 		m_categories["write cache"] = 0;
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
 		m_settings_set = false;
 #endif
@@ -129,7 +142,7 @@ namespace libtorrent
 	disk_buffer_pool::~disk_buffer_pool()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_magic = 0;
 #endif
 
@@ -218,7 +231,7 @@ namespace libtorrent
 		m_ios.post(boost::bind(&watermark_callback, cbs, handlers));
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
 	bool disk_buffer_pool::is_disk_buffer(char* buffer
 		, mutex::scoped_lock& l) const
 	{
@@ -233,10 +246,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG
 		return m_buffers_in_use.count(buffer) == 1;
-#endif
-
-#if TORRENT_USE_PURGABLE_CONTROL
-		return true;
 #endif
 
 #ifdef TORRENT_BUFFER_STATS
@@ -327,6 +336,8 @@ namespace libtorrent
 		else
 #endif
 		{
+#if defined TORRENT_DISABLE_POOL_ALLOCATOR
+
 #if TORRENT_USE_PURGABLE_CONTROL
 			kern_return_t res = vm_allocate(
 				mach_task_self(),
@@ -336,9 +347,10 @@ namespace libtorrent
 				VM_FLAGS_ANYWHERE);
 			if (res != KERN_SUCCESS)
 				ret = NULL;
-
-#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
+#else
 			ret = page_aligned_allocator::malloc(m_block_size);
+#endif // TORRENT_USE_PURGABLE_CONTROL
+
 #else
 			if (m_using_pool_allocator)
 			{
@@ -440,6 +452,53 @@ namespace libtorrent
 		check_buffer_level(l);
 	}
 
+	boost::uint64_t physical_ram()
+	{
+		boost::uint64_t ret = 0;
+		// figure out how much physical RAM there is in
+		// this machine. This is used for automatically
+		// sizing the disk cache size when it's set to
+		// automatic.
+#ifdef TORRENT_BSD
+#ifdef HW_MEMSIZE
+		int mib[2] = { CTL_HW, HW_MEMSIZE };
+#else
+		// not entirely sure this sysctl supports 64
+		// bit return values, but it's probably better
+		// than not building
+		int mib[2] = { CTL_HW, HW_PHYSMEM };
+#endif
+		size_t len = sizeof(ret);
+		if (sysctl(mib, 2, &ret, &len, NULL, 0) != 0)
+			ret = 0;
+#elif defined TORRENT_WINDOWS
+		MEMORYSTATUSEX ms;
+		ms.dwLength = sizeof(MEMORYSTATUSEX);
+		if (GlobalMemoryStatusEx(&ms))
+			ret = ms.ullTotalPhys;
+		else
+			ret = 0;
+#elif defined TORRENT_LINUX
+		ret = sysconf(_SC_PHYS_PAGES);
+		ret *= sysconf(_SC_PAGESIZE);
+#elif defined TORRENT_AMIGA
+		ret = AvailMem(MEMF_PUBLIC);
+#endif
+
+#if TORRENT_USE_RLIMIT
+		if (ret > 0)
+		{
+			struct rlimit r;
+			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
+			{
+				if (ret > r.rlim_cur)
+					ret = r.rlim_cur;
+			}
+		}
+#endif
+		return ret;
+	}
+
 	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
@@ -469,7 +528,17 @@ namespace libtorrent
 #endif
 			sett.get_str(settings_pack::mmap_cache).empty())
 		{
-			m_max_use = sett.get_int(settings_pack::cache_size);
+			int cache_size = sett.get_int(settings_pack::cache_size);
+			if (cache_size < 0)
+			{
+				boost::uint64_t phys_ram = physical_ram();
+				if (phys_ram == 0) m_max_use = 1024;
+				else m_max_use = phys_ram / 8 / m_block_size;
+			}
+			else
+			{
+				m_max_use = cache_size;
+			}
 			m_low_watermark = m_max_use - (std::max)(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
 			if (m_low_watermark < 0) m_low_watermark = 0;
 			if (m_in_use >= m_max_use && !m_exceeded_max_size)
@@ -479,7 +548,7 @@ namespace libtorrent
 			}
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_settings_set = true;
 #endif
 
@@ -509,7 +578,7 @@ namespace libtorrent
 			{
 				if (m_post_alert)
 				{
-					error_code ec(errno, boost::system::get_generic_category());
+					error_code ec(errno, boost::system::generic_category());
 					m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
 				}
 			}
@@ -525,7 +594,7 @@ namespace libtorrent
 				{
 					if (m_post_alert)
 					{
-						error_code ec(errno, boost::system::get_generic_category());
+						error_code ec(errno, boost::system::generic_category());
 						m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
 					}
 					m_cache_pool = 0;
@@ -600,14 +669,18 @@ namespace libtorrent
 		else
 #endif
 		{
+#if defined TORRENT_DISABLE_POOL_ALLOCATOR
+
 #if TORRENT_USE_PURGABLE_CONTROL
-			vm_deallocate(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t>(buf),
-				0x4000
-				);
-#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
+		vm_deallocate(
+			mach_task_self(),
+			reinterpret_cast<vm_address_t>(buf),
+			0x4000
+			);
+#else
 		page_aligned_allocator::free(buf);
+#endif // TORRENT_USE_PURGABLE_CONTROL
+
 #else
 		if (m_using_pool_allocator)
 			m_pool.free(buf);

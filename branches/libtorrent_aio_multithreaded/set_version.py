@@ -25,6 +25,8 @@ def substitute_file(name):
 			l = ':Version: %d.%d.%d\n' % (version[0], version[1], version[2])
 		elif 'VERSION = ' in l and name.endswith('Jamfile'):
 			l = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
+		elif 'version=' in l and name.endswith('setup.py'):
+			l = "\tversion='%d.%d.%d'\n" % (version[0], version[1], version[2])
 
 		subst += l
 

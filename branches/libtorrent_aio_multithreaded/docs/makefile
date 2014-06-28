@@ -28,6 +28,7 @@ TARGETS = index \
 	client_test \
 	building \
 	features \
+	troubleshooting \
 	contributing\
 	examples \
 	extension_protocol \
@@ -38,6 +39,7 @@ TARGETS = index \
 	utp \
 	tuning \
 	hacking \
+	streaming \
 	$(REFERENCE_TARGETS)
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
@@ -59,6 +61,12 @@ settings.rst: ../include/libtorrent/settings_pack.hpp
 manual.rst: settings.rst stats_counters.rst
 	touch manual.rst
 
+troubleshooting_thumb.png: troubleshooting.png
+	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
+
+troubleshooting.png: troubleshooting.dot
+	dot troubleshooting.dot -Tpng >troubleshooting.png
+
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
 
@@ -72,8 +80,8 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	rst2html-2.6.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
-	cp $@ $(WEB_PATH)/$@
+	rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+	rst2html.py --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
 
 %.png:%.dot
 	dot -Tpng $? >$@
@@ -84,5 +92,5 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 	cp $@ $(WEB_PATH)/$@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html reference*.html reference*.rst
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) settings.rst todo.html reference*.html reference*.rst
 

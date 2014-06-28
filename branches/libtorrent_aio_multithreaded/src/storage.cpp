@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003-2014, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -194,7 +194,7 @@ namespace libtorrent
 			std::memset(i->iov_base, 0, i->iov_len);
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	int count_bufs(file::iovec_t const* bufs, int bytes)
 	{
 		int size = 0;
@@ -272,7 +272,7 @@ namespace libtorrent
 				if (ec)
 				{
 					ec.file = i;
-					ec.operation = storage_error::write;
+					ec.operation = storage_error::partfile_write;
 					return;
 				}
 			}
@@ -301,7 +301,7 @@ namespace libtorrent
 					if (ec)
 					{
 						ec.file = i;
-						ec.operation = storage_error::read;
+						ec.operation = storage_error::partfile_read;
 						return;
 					}
 					// remove the file
@@ -322,13 +322,28 @@ namespace libtorrent
 		if (ec)
 		{
 			ec.file = -1;
-			ec.operation = storage_error::partfile;
+			ec.operation = storage_error::partfile_write;
 		}
 	}
 
 	void default_storage::initialize(storage_error& ec)
 	{
 		m_stat_cache.init(files().num_files());
+
+#ifdef TORRENT_WINDOWS
+		// don't do full file allocations on network drives
+#if TORRENT_USE_WSTRING
+		std::wstring f = convert_to_wstring(m_save_path);
+		int drive_type = GetDriveTypeW(f.c_str());
+#else
+		int drive_type = GetDriveTypeA(m_save_path.c_str());
+#endif
+
+		if (drive_type == DRIVE_REMOTE)
+			m_allocate_files = false;
+#endif
+
+		m_file_created.resize(files().num_files(), false);
 
 		// first, create all missing directories
 		std::string last_path;
@@ -360,13 +375,10 @@ namespace libtorrent
 				m_stat_cache.set_cache(file_index, s.file_size, s.mtime);
 			}
 
-			// ec is either ENOENT or the file existed and s is valid
-			// allocate file only if it is not exist and (m_allocate_files == true)
 			// if the file already exists, but is larger than what
-			// it's supposed to be, also truncate it
+			// it's supposed to be, truncate it
 			// if the file is empty, just create it either way.
-			if ((ec && m_allocate_files)
-				|| (!ec && m_stat_cache.get_filesize(file_index) > files().file_size(file_index))
+			if ((!ec && m_stat_cache.get_filesize(file_index) > files().file_size(file_index))
 				|| files().file_size(file_index) == 0)
 			{
 				std::string dir = parent_path(file_path);
@@ -541,7 +553,7 @@ namespace libtorrent
 	{
 		DFLOG(stderr, "[%p] delete_files\n", this);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		// this is a fence job, we expect no other
 		// threads to hold any references to any files
 		// in this file storage. Assert that that's the 
@@ -562,7 +574,7 @@ namespace libtorrent
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+#if TORRENT_USE_ASSERTS
 		m_pool.mark_deleted(m_files);
 #endif
 		// delete the files from disk
@@ -672,17 +684,17 @@ namespace libtorrent
 	int default_storage::sparse_end(int slot) const
 	{
 		TORRENT_ASSERT(slot >= 0);
-		TORRENT_ASSERT(slot < m_files.num_pieces());
+		TORRENT_ASSERT(slot < files().num_pieces());
 
-		size_type file_offset = (size_type)slot * m_files.piece_length();
+		size_type file_offset = (size_type)slot * files().piece_length();
 		int file_index = 0;
 
 		for (;;)
 		{
-			if (file_offset < m_files.file_size(file_index))
+			if (file_offset < files().file_size(file_index))
 				break;
 
-			file_offset -= m_files.file_size(file_index);
+			file_offset -= files().file_size(file_index);
 			++file_index;
 			TORRENT_ASSERT(file_index != files().num_files());
 		}
@@ -692,7 +704,7 @@ namespace libtorrent
 		if (!handle || ec) return slot;
 
 		size_type data_start = handle->sparse_end(file_offset);
-		return int((data_start + m_files.piece_length() - 1) / m_files.piece_length());
+		return int((data_start + files().piece_length() - 1) / files().piece_length());
 	}
 
 	bool default_storage::verify_resume_data(lazy_entry const& rd, storage_error& ec)
@@ -1000,7 +1012,7 @@ namespace libtorrent
 				if (ec)
 				{
 					ec.file = -1;
-					ec.operation = storage_error::partfile;
+					ec.operation = storage_error::partfile_move;
 					return piece_manager::fatal_disk_error; 
 				}
 			}
@@ -1048,7 +1060,7 @@ namespace libtorrent
 		TORRENT_ASSERT(size > 0);
 		TORRENT_ASSERT(files().is_loaded());
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		std::vector<file_slice> slices
 			= files().map_block(slot, offset, size);
 		TORRENT_ASSERT(!slices.empty());
@@ -1068,7 +1080,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(bytes_left >= 0);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int counter = 0;
 #endif
 
@@ -1089,7 +1101,7 @@ namespace libtorrent
 
 			if (file_bytes_left == 0) continue;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(int(slices.size()) > counter);
 			TORRENT_ASSERT(slices[counter].file_index == file_index);
 			++counter;
@@ -1131,18 +1143,28 @@ namespace libtorrent
 				if ((op.mode & file::rw_mask) == file::read_write)
 				{
 					// write
-					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs, slot, offset, e);
+					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs
+						, slot, offset, e);
 				}
 				else
 				{
 					// read
-					bytes_transferred = m_part_file->readv(tmp_bufs, num_tmp_bufs, slot, offset, e);
+					bytes_transferred = m_part_file->readv(tmp_bufs, num_tmp_bufs
+						, slot, offset, e);
+				}
+				if (e)
+				{
+					ec.ec = e;
+					ec.file = file_index;
+					ec.operation = (op.mode & file::rw_mask) == file::read_only
+						? storage_error::partfile_read : storage_error::partfile_write;
+					return -1;
 				}
 			}
 			else
 			{
 				handle = open_file(file_index, op.mode, e);
-				if (((op.mode & file::rw_mask) == file::read_write)
+				if (((op.mode & file::rw_mask) != file::read_only)
 					&& e == boost::system::errc::no_such_file_or_directory)
 				{
 					// this means the directory the file is in doesn't exist.
@@ -1150,9 +1172,18 @@ namespace libtorrent
 					e.clear();
 					std::string path = files().file_path(file_index, m_save_path);
 					create_directories(parent_path(path), e);
+
+					if (e)
+					{
+						ec.ec = e;
+						ec.file = file_index;
+						ec.operation = storage_error::mkdir;
+						return -1;
+					}
+
 					// if the directory creation failed, don't try to open the file again
 					// but actually just fail
-					if (!e) handle = open_file(file_index, op.mode, e);
+					handle = open_file(file_index, op.mode, e);
 				}
 
 				if (!handle || e)
@@ -1161,6 +1192,24 @@ namespace libtorrent
 					ec.file = file_index;
 					ec.operation = storage_error::open;
 					return -1;
+				}
+
+				if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
+				{
+					TORRENT_ASSERT(m_file_created.size() == files().num_files());
+					TORRENT_ASSERT(file_index < m_file_created.size());
+					if (m_file_created[file_index] == false)
+					{
+						handle->set_size(files().file_size(file_index), e);
+						m_file_created.set_bit(file_index);
+						if (e)
+						{
+							ec.ec = e;
+							ec.file = file_index;
+							ec.operation = storage_error::fallocate;
+							return -1;
+						}
+					}
 				}
 
 				size_type adjusted_offset = files().file_base(file_index) + file_offset;
@@ -1204,6 +1253,11 @@ namespace libtorrent
 		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
 		if (lock_files) mode |= file::lock_file;
 		if (!m_allocate_files) mode |= file::sparse;
+
+		// files with priority 0 should always be sparse
+		if (int(m_file_priority.size()) > file && m_file_priority[file] == 0)
+			mode |= file::sparse;
+
 		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
@@ -1281,7 +1335,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->storage.get() == this);
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
 		m_cached_pieces.insert(p);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		p->in_storage = true;
 #endif
 	}
@@ -1296,7 +1350,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->in_storage == true);
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
 		m_cached_pieces.erase(p);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		p->in_storage = false;
 #endif
 	}
@@ -1449,7 +1503,7 @@ namespace libtorrent
 						bj->flags |= disk_io_job::in_progress;
 						++m_outstanding_jobs;
 						++ret;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 						TORRENT_ASSERT(bj->blocked);
 						bj->blocked = false;
 #endif
@@ -1467,7 +1521,7 @@ namespace libtorrent
 
 				++m_outstanding_jobs;
 				++ret;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(bj->blocked);
 				bj->blocked = false;
 #endif
@@ -1493,7 +1547,7 @@ namespace libtorrent
 		bj->flags |= disk_io_job::in_progress;
 
 		++m_outstanding_jobs;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(bj->blocked);
 		bj->blocked = false;
 #endif
@@ -1521,7 +1575,7 @@ namespace libtorrent
 		
 		m_blocked_jobs.push_back(j);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->blocked == false);
 		j->blocked = true;
 #endif
@@ -1572,7 +1626,7 @@ namespace libtorrent
 		++m_has_fence;
 		if (m_has_fence > 1)
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(fj->blocked == false);
 			fj->blocked = true;
 #endif
@@ -1585,7 +1639,7 @@ namespace libtorrent
 			fj->flags |= disk_io_job::in_progress;
 			++m_outstanding_jobs;
 		}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->blocked == false);
 		j->blocked = true;
 #endif

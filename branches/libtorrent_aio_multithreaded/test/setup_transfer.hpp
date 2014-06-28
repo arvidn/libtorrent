@@ -46,6 +46,7 @@ namespace libtorrent
 }
 
 int EXPORT print_failures();
+unsigned char EXPORT random_byte();
 
 int EXPORT load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000);
 void EXPORT save_file(char const* filename, char const* data, int size);
@@ -78,8 +79,6 @@ void EXPORT wait_for_listen(libtorrent::session& ses, char const* name);
 void EXPORT wait_for_downloading(libtorrent::session& ses, char const* name);
 void EXPORT test_sleep(int millisec);
 
-extern EXPORT libtorrent::atomic_count g_udp_tracker_requests;
-
 void EXPORT create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
 boost::shared_ptr<libtorrent::torrent_info> EXPORT create_torrent(std::ostream* file = 0
@@ -93,16 +92,16 @@ EXPORT setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
 	, boost::shared_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
-	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool use_ssl_ports = false);
+	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool use_ssl_ports = false
+	, boost::shared_ptr<libtorrent::torrent_info>* torrent2 = 0);
 
-int EXPORT start_web_server(bool ssl = false, bool chunked = false);
+int EXPORT start_web_server(bool ssl = false, bool chunked = false
+	, bool keepalive = true);
+
 void EXPORT stop_web_server();
 int EXPORT start_proxy(int type);
 void EXPORT stop_proxy(int port);
 void EXPORT stop_all_proxies();
-
-void EXPORT stop_tracker();
-int EXPORT start_tracker();
 
 #endif
 

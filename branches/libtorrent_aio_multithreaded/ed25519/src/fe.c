@@ -1,6 +1,11 @@
 #include "fixedint.h"
 #include "fe.h"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4146 ) /* warning C4146: unary minus operator applied to unsigned type, result still unsigned */
+#pragma warning(disable : 4244 ) /* warning C4244: '=' : conversion from 'int64_t' to 'int32_t', possible loss of data */
+#endif // _MSC_VER
 
 /*
     helper functions
@@ -225,7 +230,7 @@ void fe_cswap(fe f,fe g,unsigned int b) {
     int32_t x7 = f7 ^ g7;
     int32_t x8 = f8 ^ g8;
     int32_t x9 = f9 ^ g9;
-    b = -b;
+    b = -b; // warning C4146: unary minus operator applied to unsigned type, result still unsigned
     x0 &= b;
     x1 &= b;
     x2 &= b;
@@ -1456,36 +1461,40 @@ void fe_tobytes(unsigned char *s, const fe h) {
     evidently 2^255 h10-2^255 q = 0.
     Goal: Output h0+...+2^230 h9.
     */
-    s[0] = (unsigned char) (h0 >> 0);
-    s[1] = (unsigned char) (h0 >> 8);
-    s[2] = (unsigned char) (h0 >> 16);
-    s[3] = (unsigned char) ((h0 >> 24) | (h1 << 2));
-    s[4] = (unsigned char) (h1 >> 6);
-    s[5] = (unsigned char) (h1 >> 14);
-    s[6] = (unsigned char) ((h1 >> 22) | (h2 << 3));
-    s[7] = (unsigned char) (h2 >> 5);
-    s[8] = (unsigned char) (h2 >> 13);
-    s[9] = (unsigned char) ((h2 >> 21) | (h3 << 5));
-    s[10] = (unsigned char) (h3 >> 3);
-    s[11] = (unsigned char) (h3 >> 11);
-    s[12] = (unsigned char) ((h3 >> 19) | (h4 << 6));
-    s[13] = (unsigned char) (h4 >> 2);
-    s[14] = (unsigned char) (h4 >> 10);
-    s[15] = (unsigned char) (h4 >> 18);
-    s[16] = (unsigned char) (h5 >> 0);
-    s[17] = (unsigned char) (h5 >> 8);
-    s[18] = (unsigned char) (h5 >> 16);
-    s[19] = (unsigned char) ((h5 >> 24) | (h6 << 1));
-    s[20] = (unsigned char) (h6 >> 7);
-    s[21] = (unsigned char) (h6 >> 15);
-    s[22] = (unsigned char) ((h6 >> 23) | (h7 << 3));
-    s[23] = (unsigned char) (h7 >> 5);
-    s[24] = (unsigned char) (h7 >> 13);
-    s[25] = (unsigned char) ((h7 >> 21) | (h8 << 4));
-    s[26] = (unsigned char) (h8 >> 4);
-    s[27] = (unsigned char) (h8 >> 12);
-    s[28] = (unsigned char) ((h8 >> 20) | (h9 << 6));
-    s[29] = (unsigned char) (h9 >> 2);
-    s[30] = (unsigned char) (h9 >> 10);
-    s[31] = (unsigned char) (h9 >> 18);
+    s[0] = (unsigned char) ((h0 >> 0) & 0xff);
+    s[1] = (unsigned char) ((h0 >> 8) & 0xff);
+    s[2] = (unsigned char) ((h0 >> 16) & 0xff);
+    s[3] = (unsigned char) (((h0 >> 24) | (h1 << 2)) & 0xff);
+    s[4] = (unsigned char) ((h1 >> 6) & 0xff);
+    s[5] = (unsigned char) ((h1 >> 14) & 0xff);
+    s[6] = (unsigned char) (((h1 >> 22) | (h2 << 3)) & 0xff);
+    s[7] = (unsigned char) ((h2 >> 5) & 0xff);
+    s[8] = (unsigned char) ((h2 >> 13) & 0xff);
+    s[9] = (unsigned char) (((h2 >> 21) | (h3 << 5)) & 0xff);
+    s[10] = (unsigned char) ((h3 >> 3) & 0xff);
+    s[11] = (unsigned char) ((h3 >> 11) & 0xff);
+    s[12] = (unsigned char) (((h3 >> 19) | (h4 << 6)) & 0xff);
+    s[13] = (unsigned char) ((h4 >> 2) & 0xff);
+    s[14] = (unsigned char) ((h4 >> 10) & 0xff);
+    s[15] = (unsigned char) ((h4 >> 18) & 0xff);
+    s[16] = (unsigned char) ((h5 >> 0) & 0xff);
+    s[17] = (unsigned char) ((h5 >> 8) & 0xff);
+    s[18] = (unsigned char) ((h5 >> 16) & 0xff);
+    s[19] = (unsigned char) (((h5 >> 24) | (h6 << 1)) & 0xff);
+    s[20] = (unsigned char) ((h6 >> 7) & 0xff);
+    s[21] = (unsigned char) ((h6 >> 15) & 0xff);
+    s[22] = (unsigned char) (((h6 >> 23) | (h7 << 3)) & 0xff);
+    s[23] = (unsigned char) ((h7 >> 5) & 0xff);
+    s[24] = (unsigned char) ((h7 >> 13) & 0xff);
+    s[25] = (unsigned char) (((h7 >> 21) | (h8 << 4)) & 0xff);
+    s[26] = (unsigned char) ((h8 >> 4) & 0xff);
+    s[27] = (unsigned char) ((h8 >> 12) & 0xff);
+    s[28] = (unsigned char) (((h8 >> 20) | (h9 << 6)) & 0xff);
+    s[29] = (unsigned char) ((h9 >> 2) & 0xff);
+    s[30] = (unsigned char) ((h9 >> 10) & 0xff);
+    s[31] = (unsigned char) ((h9 >> 18) & 0xff);
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif // _MSC_VER

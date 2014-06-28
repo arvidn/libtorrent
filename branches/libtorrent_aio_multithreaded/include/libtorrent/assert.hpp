@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,14 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
 #include <string>
 std::string demangle(char const* name);
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 #endif
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) \
-	&& !TORRENT_NO_ASSERTS
+#if TORRENT_USE_ASSERTS
 
 #if TORRENT_PRODUCTION_ASSERTS
 extern char const* libtorrent_assert_log;
@@ -56,28 +55,36 @@ extern char const* libtorrent_assert_log;
 TORRENT_EXPORT void assert_print(char const* fmt, ...);
 
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
-	, char const* function, char const* val);
+	, char const* function, char const* val, int kind = 0);
 
-#define TORRENT_ASSERT(x) do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } while (false)
+#define TORRENT_ASSERT_PRECOND(x) \
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } while (false)
+
+#define TORRENT_ASSERT(x) \
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } while (false)
 
 #if TORRENT_USE_IOSTREAM
-#define TORRENT_ASSERT_VAL(x, y) do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str()); } } while (false)
+#define TORRENT_ASSERT_VAL(x, y) \
+	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
+	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } while (false)
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)
 #endif
 
 #else
 #include <cassert>
+#define TORRENT_ASSERT_PRECOND(x) assert(x)
 #define TORRENT_ASSERT(x) assert(x)
 #define TORRENT_ASSERT_VAL(x, y) assert(x)
 #endif
 
-#else // TORRENT_DEBUG || TORENT_RELEASE_ASSERTS && !TORRENT_NO_ASSERTS
+#else // TORRENT_USE_ASSERTS
 
+#define TORRENT_ASSERT_PRECOND(a) do {} while(false)
 #define TORRENT_ASSERT(a) do {} while(false)
 #define TORRENT_ASSERT_VAL(a, b) do {} while(false)
 
-#endif // TORRENT_DEBUG || TORENT_RELEASE_ASSERTS && !TORRENT_NO_ASSERTS
+#endif // TORRENT_USE_ASSERTS
 
 #endif
 

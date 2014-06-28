@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -122,7 +122,7 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_mutex);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERT
+#if TORRENT_USE_ASSERTS
 		// we're not allowed to open a file
 		// from a deleted storage!
 		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), std::make_pair(fs.name(), (void const*)&fs))
@@ -292,7 +292,7 @@ namespace libtorrent
 		// the files are closed here
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	void file_pool::mark_deleted(file_storage const& fs)
 	{
 		mutex::scoped_lock l(m_mutex);
@@ -320,6 +320,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_mutex);
 
 		TORRENT_ASSERT(size > 0);
+
 		if (size == m_size) return;
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;

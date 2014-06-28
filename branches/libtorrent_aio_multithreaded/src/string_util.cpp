@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2013, Arvid Norberg
+Copyright (c) 2012-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -143,5 +143,100 @@ namespace libtorrent
 		// 8 - offset.
 		return static_cast<char*>(p) + (8 - offset);
 	}
+
+	// this parses the string that's used as the liste_interfaces setting.
+	// it is a comma-separated list of IP or device names with ports. For
+	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
+	void parse_comma_separated_string_port(std::string const& in
+		, std::vector<std::pair<std::string, int> >& out)
+	{
+		out.clear();
+
+		std::string::size_type start = 0;
+		std::string::size_type end = 0;
+
+		while (start < in.size())
+		{
+			// skip leading spaces
+			while (start < in.size()
+				&& is_space(in[start]))
+				++start;
+
+			end = in.find_first_of(',', start);
+			if (end == std::string::npos) end = in.size();
+
+			std::string::size_type colon = in.find_last_of(':', end);
+
+			if (colon != std::string::npos && colon > start)
+			{
+				int port = atoi(in.substr(colon + 1, end - colon - 1).c_str());
+
+				// skip trailing spaces
+				std::string::size_type soft_end = colon;
+				while (soft_end > start
+					&& is_space(in[soft_end-1]))
+					--soft_end;
+
+				// in case this is an IPv6 address, strip off the square brackets
+				// to make it more easily parseable into an ip::address
+				if (in[start] == '[') ++start;
+				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
+
+				out.push_back(std::make_pair(in.substr(start, soft_end - start), port));
+			}
+
+			start = end + 1;
+		}
+	}
+
+	void parse_comma_separated_string(std::string const& in, std::vector<std::string>& out)
+	{
+		out.clear();
+
+		std::string::size_type start = 0;
+		std::string::size_type end = 0;
+
+		while (start < in.size())
+		{
+			// skip leading spaces
+			while (start < in.size()
+				&& is_space(in[start]))
+				++start;
+
+			end = in.find_first_of(',', start);
+			if (end == std::string::npos) end = in.size();
+
+			// skip trailing spaces
+			std::string::size_type soft_end = end;
+			while (soft_end > start
+				&& is_space(in[soft_end-1]))
+				--soft_end;
+
+			out.push_back(in.substr(start, soft_end - start));
+			start = end + 1;
+		}
+	}
+
+	char* string_tokenize(char* last, char sep, char** next)
+	{
+		if (last == 0) return 0;
+		if (last[0] == '"')
+		{
+			*next = strchr(last + 1, '"');
+			// consume the actual separator as well.
+			if (*next != NULL)
+				*next = strchr(*next, sep);
+		}
+		else
+		{
+			*next = strchr(last, sep);
+		}
+		if (*next == 0) return last;
+		**next = 0;
+		++(*next);
+		while (**next == sep && **next) ++(*next);
+		return last;
+	}
+
 }
 

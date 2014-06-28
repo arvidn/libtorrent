@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int test_main()
 {
@@ -44,7 +45,7 @@ int test_main()
 	session_proxy p2;
 	{
 	// test session state load/restore
-	session* s = new session(fingerprint("LT",0,0,0,0), 0);
+	lt::session* s = new lt::session(fingerprint("LT",0,0,0,0), 0);
 
 	settings_pack pack;
 	pack.set_str(settings_pack::user_agent, "test");
@@ -148,7 +149,7 @@ int test_main()
 
 	p1 = s->abort();
 	delete s;
-	s = new session(fingerprint("LT",0,0,0,0), 0);
+	s = new lt::session(fingerprint("LT",0,0,0,0), 0);
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);
@@ -161,6 +162,14 @@ int test_main()
 	// parse_magnet_uri
 	parse_magnet_uri("magnet:?dn=foo&dht=127.0.0.1:43", p, ec);
 	TEST_CHECK(ec == error_code(errors::missing_info_hash_in_uri));
+	ec.clear();
+
+	// parse_magnet_uri
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&ws=http://foo.com/bar&ws=http://bar.com/foo", p, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(p.url_seeds.size(), 2);
+	TEST_EQUAL(p.url_seeds[0], "http://foo.com/bar");
+	TEST_EQUAL(p.url_seeds[1], "http://bar.com/foo");
 	ec.clear();
 
 	parse_magnet_uri("magnet:?xt=blah&dn=foo&dht=127.0.0.1:43", p, ec);
@@ -254,6 +263,30 @@ int test_main()
 		printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 	}
 
+	// make_magnet_uri
+	{
+		entry info;
+		info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+		info["name"] = "test";
+		info["name.utf-8"] = "test";
+		info["piece length"] = 16 * 1024;
+		info["length"] = 3245;
+		entry torrent;
+		torrent["info"] = info;
+
+		torrent["url-list"] = "http://foo.com/bar";
+
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), torrent);
+		buf.push_back('\0');
+		printf("%s\n", &buf[0]);
+		error_code ec;
+		torrent_info ti(&buf[0], buf.size(), ec);
+
+		std::string magnet = make_magnet_uri(ti);
+		printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+		TEST_CHECK(magnet.find("&ws=http%3a%2f%2ffoo.com%2fbar") != std::string::npos);
+	}
 
 	return 0;
 }

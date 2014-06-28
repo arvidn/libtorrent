@@ -34,6 +34,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
 
+char const* timestamp()
+{
+	time_t t = std::time(0);
+	tm* timeinfo = std::localtime(&t);
+	static char str[200];
+	std::strftime(str, 200, "%b %d %X", timeinfo);
+	return str;
+}
+
 void print_alert(libtorrent::alert const* a)
 {
 	using namespace libtorrent;
@@ -47,13 +56,14 @@ void print_alert(libtorrent::alert const* a)
 		printf("%s","\x1b[33m");
 	}
 
-	printf("[%s] %s\n", time_now_string(), a->message().c_str());
+	printf("[%s] %s\n", timestamp(), a->message().c_str());
 	printf("%s", "\x1b[0m");
 }
 
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	if (argc != 1)
 	{
@@ -63,15 +73,17 @@ int main(int argc, char* argv[])
 
 	settings_pack p;
 	p.set_int(settings_pack::alert_mask, alert::port_mapping_notification);
-	session s(p);
+	lt::session s(p);
 
 	for (;;)
 	{
 		alert const* a = s.wait_for_alert(seconds(5));
 		if (a == 0)
 		{
-			s.stop_upnp();
-			s.stop_natpmp();
+			settings_pack p;
+			p.set_bool(settings_pack::enable_upnp, false);
+			p.set_bool(settings_pack::enable_natpmp, false);
+			s.apply_settings(p);
 			break;
 		}
 		std::auto_ptr<alert> holder = s.pop_alert();

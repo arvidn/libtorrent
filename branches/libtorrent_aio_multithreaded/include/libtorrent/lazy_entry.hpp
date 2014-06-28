@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -386,7 +386,9 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
-	TORRENT_EXTRA_EXPORT std::string print_entry(lazy_entry const& e
+	// print the bencoded structure in a human-readable format to a stting
+	// that's returned.
+	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
 
 	// get the ``error_category`` for bdecode errors
@@ -412,6 +414,8 @@ namespace libtorrent
 			depth_exceeded,
 			// bencoded item count limit exceeded
 			limit_exceeded,
+			// integer overflow
+			overflow,
 
 			// the number of error codes
 			error_code_max
@@ -423,6 +427,11 @@ namespace libtorrent
 			return boost::system::error_code(e, get_bdecode_category());
 		}
 	}
+
+	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
+		, char const* end, char delimiter, boost::int64_t& val
+		, bdecode_errors::error_code_enum& ec);
+
 }
 
 #endif

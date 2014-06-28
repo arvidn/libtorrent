@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <vector>
 
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/hasher.hpp"
@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #include "libtorrent/disk_io_job.hpp"
 #endif
 
@@ -65,11 +65,11 @@ namespace libtorrent
 	struct counters;
 	namespace aux { struct session_settings; }
 	struct alert_dispatcher;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	class file_storage;
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	struct piece_log_t
 	{
 		piece_log_t(int j, int b= -1): job(j), block(b) {}
@@ -85,6 +85,8 @@ namespace libtorrent
 			try_flush_write_blocks,
 			try_flush_write_blocks2,
 			flush_range,
+			clear_outstanding_jobs,
+			set_outstanding_jobs,
 
 			last_job
 		};
@@ -116,7 +118,7 @@ namespace libtorrent
 			, hitcount(0)
 			, pending(false)
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			hashing_count = 0;
 			reading_count = 0;
 			flushing_count = 0;
@@ -153,7 +155,7 @@ namespace libtorrent
 		// write job to write this block.
 		boost::uint16_t pending:1;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		// this many of the references are held by hashing operations
 		int hashing_count;
 		// this block is being used in this many peer's send buffers currently
@@ -313,7 +315,7 @@ namespace libtorrent
 		// the sum of all refcounts in all blocks
 		boost::uint32_t refcount;	
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		// the number of times this piece has finished hashing
 		int hash_passes;
 
@@ -437,7 +439,7 @@ namespace libtorrent
 		void insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
 			, int iov_len, disk_io_job* j, int flags = 0);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 		
@@ -460,7 +462,7 @@ namespace libtorrent
 
 		int pinned_blocks() const { return m_pinned_blocks; }
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		void mark_deleted(file_storage const& fs);
 #endif
 
@@ -522,7 +524,7 @@ namespace libtorrent
 		// they may not be evicted
 		int m_pinned_blocks;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
 #endif
 	};

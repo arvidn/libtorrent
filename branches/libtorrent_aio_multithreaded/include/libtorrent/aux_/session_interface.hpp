@@ -62,7 +62,9 @@ namespace libtorrent
 	class torrent;
 	struct proxy_settings;
 	struct socket_job;
+#ifndef TORRENT_NO_DEPRECATE
 	struct pe_settings;
+#endif
 	struct peer_class_set;
 	struct bandwidth_channel;
 	struct bandwidth_manager;
@@ -142,7 +144,7 @@ namespace libtorrent { namespace aux
 		virtual ip_filter const& get_ip_filter() const = 0;
 		virtual port_filter const& get_port_filter() const = 0;
 
-		virtual int session_time() const = 0;
+		virtual boost::int64_t session_time() const = 0;
 	
 		virtual bool is_paused() const = 0;
 		virtual bool is_aborted() const = 0;
@@ -184,10 +186,6 @@ namespace libtorrent { namespace aux
 		// used to (potentially) issue socket write calls onto multiple threads
 		virtual void post_socket_job(socket_job& j) = 0;
 
-		// when binding outgoing connections, this provides a round-robin
-		// port selection
-		virtual int next_port() = 0;
-
 		// load the specified torrent. also evict one torrent, except
 		// for the one specified, if we are at the limit of loaded torrents
 		virtual bool load_torrent(torrent* t) = 0;
@@ -197,7 +195,10 @@ namespace libtorrent { namespace aux
 		virtual void bump_torrent(torrent* t, bool back = true) = 0;
 
 		// ask for which interface and port to bind outgoing peer connections on
-		virtual tcp::endpoint get_interface() const = 0;
+		virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address const&
+			remote_address, error_code& ec) const = 0;
+		virtual bool verify_bound_address(address const& addr, bool utp
+			, error_code& ec) = 0;
 
 		// TODO: it would be nice to not have this be part of session_interface
 		virtual void set_proxy(proxy_settings const& s) = 0;
@@ -284,7 +285,11 @@ namespace libtorrent { namespace aux
 #endif
 	
 #ifndef TORRENT_DISABLE_ENCRYPTION
+
+#ifndef TORRENT_NO_DEPRECATE
 		virtual pe_settings const& get_pe_settings() const = 0;
+#endif
+
 		virtual torrent const* find_encrypted_torrent(
 			sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;
 		virtual void add_obfuscated_hash(sha1_hash const& obfuscated
@@ -300,7 +305,7 @@ namespace libtorrent { namespace aux
 		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		virtual bool is_single_thread() const = 0;
 		virtual bool has_peer(peer_connection const* p) const = 0;
 		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;

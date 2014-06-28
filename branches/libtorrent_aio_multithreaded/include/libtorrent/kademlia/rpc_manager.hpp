@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define RPC_MANAGER_HPP
 
 #include <vector>
+#include <deque>
 #include <map>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
@@ -51,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent { namespace aux { struct session_impl; } }
 
@@ -95,10 +96,10 @@ public:
 
 	void add_our_id(entry& e);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	size_t allocation_size() const;
 #endif
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
 

@@ -146,7 +146,6 @@ namespace libtorrent
 		SET(lock_disk_cache, false, 0),
 		SET(disable_hash_checks, false, 0),
 		SET(allow_i2p_mixed, false, 0),
-		SET(drop_skipped_requests, false, 0),
 		SET(low_prio_disk, true, 0),
 		SET(volatile_read_cache, false, 0),
 		SET(guided_read_cache, false, 0),
@@ -183,6 +182,11 @@ namespace libtorrent
 		SET_NOPREV(listen_system_port_fallback, true, 0),
 		SET(use_disk_cache_pool, false, 0),
 		SET_NOPREV(announce_crypto_support, true, 0),
+		SET_NOPREV(enable_upnp, true, &session_impl::update_upnp),
+		SET_NOPREV(enable_natpmp, true, &session_impl::update_natpmp),
+		SET_NOPREV(enable_lsd, true, &session_impl::update_lsd),
+		SET_NOPREV(enable_dht, true, &session_impl::update_dht),
+		SET_NOPREV(prefer_rc4, false, 0),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
@@ -235,7 +239,7 @@ namespace libtorrent
 		SET(active_tracker_limit, 1600, 0),
 		SET(active_lsd_limit, 60, 0),
 		SET(active_limit, 15, &session_impl::trigger_auto_manage),
-		SET_NOPREV(active_loaded_limit, 0, &session_impl::trigger_auto_manage),
+		SET_NOPREV(active_loaded_limit, 100, &session_impl::trigger_auto_manage),
 		SET(auto_manage_interval, 30, 0),
 		SET(seed_time_limit, 24 * 60 * 60, 0),
 		SET(auto_scrape_interval, 1800, 0),
@@ -243,7 +247,7 @@ namespace libtorrent
 		SET(max_peerlist_size, 3000, 0),
 		SET(max_paused_peerlist_size, 1000, 0),
 		SET(min_announce_interval, 5 * 60, 0),
-		SET(auto_manage_startup, 120, 0),
+		SET(auto_manage_startup, 60, 0),
 		SET(seeding_piece_quota, 20, 0),
 #ifdef TORRENT_WINDOWS
 		SET(max_sparse_regions, 30000, 0),
@@ -297,9 +301,6 @@ namespace libtorrent
 		SET(predictive_piece_announce, 0, 0),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, 0),
-		// multiple network threads won't work until udp_socket supports multi threading
-		// also, boost.asio doesn't guarantee thread safe access to sockets from multiple threads
-		// even when one is just reading and the other is just writing
 		SET(network_threads, 0, &session_impl::update_network_threads),
 		SET(ssl_listen, 4433, 0),
 		SET(tracker_backoff, 250, 0),
@@ -309,9 +310,14 @@ namespace libtorrent
 		SET_NOPREV(peer_turnover_cutoff, 90, 0),
 		SET(peer_turnover_interval, 300, 0),
 		SET_NOPREV(connect_seed_every_n_download, 10, 0),
-		SET(max_http_recv_buffer_size, 2*1024*204, 0),
-		SET_NOPREV(max_retry_port_bind, 0, 0),
-		SET_NOPREV(alert_mask, alert::error_notification, &session_impl::update_alert_mask)
+		SET(max_http_recv_buffer_size, 4*1024*204, 0),
+		SET_NOPREV(max_retry_port_bind, 10, 0),
+		SET_NOPREV(alert_mask, alert::error_notification, &session_impl::update_alert_mask),
+		SET_NOPREV(out_enc_policy, settings_pack::pe_enabled, 0),
+		SET_NOPREV(in_enc_policy, settings_pack::pe_enabled, 0),
+		SET_NOPREV(allowed_enc_level, settings_pack::pe_both, 0),
+		SET(inactive_down_rate, 2048, 0),
+		SET(inactive_up_rate, 2048, 0)
 	};
 
 #undef SET

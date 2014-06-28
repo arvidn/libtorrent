@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "test.hpp"
+#include "setup_transfer.hpp" // for test_sleep
 #include <string.h> // for strcmp
 #include <vector>
 #include <set>
@@ -58,8 +59,55 @@ int touch_file(std::string const& filename, int size)
 	return 0;
 }
 
+void test_create_directory()
+{
+	error_code ec;
+	create_directory("__foobar__", ec);
+	TEST_CHECK(!ec);
+
+	file_status st;
+	stat_file("__foobar__", &st, ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(st.mode & file_status::directory);
+
+	remove("__foobar__", ec);
+	TEST_CHECK(!ec);
+}
+
+void test_stat()
+{
+	error_code ec;
+
+	// test that the modification timestamps
+	touch_file("__test_timestamp__", 10);
+
+	file_status st1;
+	stat_file("__test_timestamp__", &st1, ec);
+	TEST_CHECK(!ec);
+
+	// sleep for 3 seconds and then make sure the difference in timestamp is
+	// between 2-4 seconds after touching it again
+	test_sleep(3000);
+
+	touch_file("__test_timestamp__", 10);
+
+	file_status st2;
+	stat_file("__test_timestamp__", &st2, ec);
+	TEST_CHECK(!ec);
+
+	int diff = int(st2.mtime - st1.mtime);
+	fprintf(stderr, "timestamp difference: %d seconds. expected approx. 3 seconds\n"
+		, diff);
+
+	TEST_CHECK(diff >= 2 && diff <= 4);
+}
+
 int test_main()
 {
+	test_create_directory();
+	test_stat();
+
 	error_code ec;
 
 	create_directory("file_test_dir", ec);

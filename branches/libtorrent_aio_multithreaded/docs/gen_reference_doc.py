@@ -110,16 +110,17 @@ category_fun_mapping = {
 
 def categorize_symbol(name, filename):
 	f = os.path.split(filename)[1]
-	if f in category_mapping:
-		return category_mapping[f]
 
-	if name.endswith('_category') \
+	if name.endswith('_category()') \
 		or name.endswith('_error_code') \
 		or name.endswith('error_code_enum'):
 		return 'Error Codes'
 
 	if name in category_fun_mapping:
 		return category_fun_mapping[name]
+
+	if f in category_mapping:
+		return category_mapping[f]
 
 	return 'Core'
 
@@ -147,8 +148,22 @@ def highlight_signature(s):
 	name = s.split('(')
 	name2 = name[0].split(' ')
 	if len(name2[-1]) == 0: return s
+
+	# make the name of the function bold
 	name2[-1] = '**' + name2[-1] + '** '
+
+	# if there is a return value, make sure we preserve pointer types
+	if len(name2) > 1:
+		name2[0] = name2[0].replace('*', '\\*')
 	name[0] = ' '.join(name2)
+
+	# we have to escape asterisks, since this is rendered into
+	# a parsed literal in rst
+	name[1] = name[1].replace('*', '\\*')
+
+	# comments in signatures are italic
+	name[1] = name[1].replace('/\\*', '*/\\*')
+	name[1] = name[1].replace('\\*/', '\\*/*')
 	return '('.join(name)
 
 def html_sanitize(s):
@@ -491,6 +506,8 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 
 	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
 		l == '#ifdef TORRENT_DEBUG' or \
+		(l.startswith('#if ') and ' TORRENT_USE_ASSERTS' in l) or \
+		(l.startswith('#if ') and ' TORRENT_USE_INVARIANT_CHECKS' in l) or \
 		l == '#ifdef TORRENT_ASIO_DEBUGGING' or \
 		(l.startswith('#if') and 'defined TORRENT_DEBUG' in l) or \
 		(l.startswith('#if') and 'defined TORRENT_ASIO_DEBUGGING' in l):
@@ -763,25 +780,28 @@ def linkify_symbols(string):
 			in_literal = True
 		words = l.split(' ')
 
-		if len(words) == 1:
-			ret.append(l)
-			continue
-
 		for i in range(len(words)):
 			# it's important to preserve leading
 			# tabs, since that's relevant for
 			# rst markup
-			leading_tabs = 0
-			while leading_tabs < len(words[i]) and words[i][leading_tabs] == '\t':
-				leading_tabs += 1
+
+			leading = ''
+			w = words[i]
+
+			if len(w) == 0: continue
+
+			while len(w) > 0 and \
+				w[0] in ['\t', ' ', '(', '[', '{']:
+				leading += w[0]
+				w = w[1:]
 
 			# preserve commas and dots at the end
-			w = words[i].strip()
+			w = w.strip()
 			trailing = ''
 
 			if len(w) == 0: continue
 
-			while len(w) > 1 and (w[-1] == '.' or w[-1] == ',' or (w[-1] == ')' and w[-2:] != '()')):
+			while len(w) > 1 and w[-1] in ['.', ',', ')'] and w[-2:] != '()':
 				trailing = w[-1] + trailing
 				w = w[:-1]
 
@@ -796,7 +816,7 @@ def linkify_symbols(string):
 			if w in symbols:
 				link_name = link_name.replace('-', ' ')
 #				print '  found %s -> %s' % (w, link_name)
-				words[i] = (leading_tabs * '\t') + print_link(link_name, symbols[w]) + trailing
+				words[i] = leading + print_link(link_name, symbols[w]) + trailing
 		ret.append(' '.join(words))
 	return '\n'.join(ret)
 

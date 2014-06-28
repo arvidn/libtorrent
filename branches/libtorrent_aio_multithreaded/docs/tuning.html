@@ -356,8 +356,7 @@ enough to not draining the socket's send buffer before the disk operation comple
 <p>The watermark is bound to a max value, to avoid buffer sizes growing out of control.
 The default max send buffer size might not be enough to sustain very high upload rates,
 and you might have to increase it. It's specified in bytes in
-<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>. The <tt class="docutils literal">high_performance_seed()</tt> preset
-sets this value to 5 MB.</p>
+<tt class="docutils literal"><span class="pre">session_settings::send_buffer_watermark</span></tt>.</p>
 </div>
 <div class="section" id="peers">
 <h2>peers</h2>
@@ -640,17 +639,6 @@ suboptimal, please contribute that knowledge back as well, to allow us to improv
 <p>If you have additional suggestions on how to tune libtorrent for any specific use case,
 please let us know and we'll update this document.</p>
 </div>
-    </div>
-    <div id="footer">
-    <span>Copyright &copy; 2005-2013 Rasterbar Software.</span>
-    </div>
-    </div>
-    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
-    </script>
-    <script type="text/javascript">
-    _uacct = "UA-1599045-1";
-    urchinTracker();
-    </script>
 </div>
 </body>
 </html>

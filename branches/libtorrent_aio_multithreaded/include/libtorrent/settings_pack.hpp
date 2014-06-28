@@ -144,32 +144,39 @@ namespace libtorrent
 			// message. If this is an empty string, the user_agent is used instead
 			handshake_client_version,
 
-
-			// sets the network interface this session will use when it opens outgoing
-			// connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
-			// OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
-			// (either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
-			// in round-robin order. This may be useful for clients that are multi-homed.
-			// Binding an outgoing connection to a local IP does not necessarily make the connection via the associated
-			// NIC/Adapter. Setting this to an empty string will disable binding of outgoing connections.
+			// sets the network interface this session will use when it opens
+			// outgoing connections. By default, it binds outgoing connections to
+			// INADDR_ANY and port 0 (i.e. let the OS decide). Ths parameter must
+			// be a string containing one or more, comma separated, adapter names.
+			// Adapter names on unix systems are of the form "eth0", "eth1", "tun0",
+			// etc. When specifying multiple
+			// interfaces, they will be assigned in round-robin order. This may be
+			// useful for clients that are multi-homed. Binding an outgoing
+			// connection to a local IP does not necessarily make the connection
+			// via the associated NIC/Adapter. Setting this to an empty string
+			// will disable binding of outgoing connections.
 			outgoing_interfaces,
 
-			// a comma-separated list of (IP, port) pairs. These are the listen ports that will be opened
-			// for accepting incoming uTP and TCP connections. It is possible to listen on multiple interfaces
-			// and multiple ports. Binding to port 0 will make the operating system pick the port.
-			// The default is "0.0.0.0:0", which binds to all interfaces on a port the OS picks.
+			// a comma-separated list of (IP or device name, port) pairs. These
+			// are the listen ports that will be opened for accepting incoming uTP
+			// and TCP connections. It is possible to listen on multiple
+			// interfaces and multiple ports. Binding to port 0 will make the
+			// operating system pick the port. The default is "0.0.0.0:0", which
+			// binds to all interfaces on a port the OS picks.
 			//
-			// if binding fails, the listen_failed_alert is posted, otherwise the listen_succeeded_alert.
+			// if binding fails, the listen_failed_alert is posted, otherwise the
+			// listen_succeeded_alert.
 			//
-			// If the DHT is running, it will also have its socket rebound to the same port as the main
-			// listen port.
+			// If the DHT is running, it will also have its socket rebound to the
+			// same port as the main listen port.
 			// 
-			// The reason why it's a good idea to run the DHT and the bittorrent socket on the same
-			// port is because that is an assumption that may be used to increase performance. One
-			// way to accelerate the connecting of peers on windows may be to first ping all peers
-			// with a DHT ping packet, and connect to those that responds first. On windows one
-			// can only connect to a few peers at a time because of a built in limitation (in XP
-			// Service pack 2).
+			// The reason why it's a good idea to run the DHT and the bittorrent
+			// socket on the same port is because that is an assumption that may
+			// be used to increase performance. One way to accelerate the
+			// connecting of peers on windows may be to first ping all peers with
+			// a DHT ping packet, and connect to those that responds first. On
+			// windows one can only connect to a few peers at a time because of a
+			// built in limitation (in XP Service pack 2).
 			listen_interfaces,
 
 			max_string_setting_internal,
@@ -333,16 +340,6 @@ namespace libtorrent
 			// the anonymization of i2p, but still wants to
 			// be able to connect to i2p peers.
 			allow_i2p_mixed,
-
-			// If ``drop_skipped_requests`` is set to true (it defaults to false), piece
-			// requests that have been skipped enough times when piece messages
-			// are received, will be considered lost. Requests are considered skipped
-			// when the returned piece messages are re-ordered compared to the order
-			// of the requests. This was an attempt to get out of dead-locks caused by
-			// BitComet peers silently ignoring some requests. It may cause problems
-			// at high rates, and high level of reordering in the uploading peer, that's
-			// why it's disabled by default.
-			drop_skipped_requests,
 
 			// ``low_prio_disk`` determines if the disk I/O should use a normal
 			// or low priority policy. This defaults to true, which means that
@@ -566,6 +563,38 @@ namespace libtorrent
 			// when this is true, and incoming encrypted connections are enabled, &supportcrypt=1
 			// is included in http tracker announces
 			announce_crypto_support,
+
+			// Starts and stops the UPnP service. When started, the listen port and the DHT
+			// port are attempted to be forwarded on local UPnP router devices.
+			// 
+			// The upnp object returned by ``start_upnp()`` can be used to add and remove
+			// arbitrary port mappings. Mapping status is returned through the
+			// portmap_alert and the portmap_error_alert. The object will be valid until
+			// ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
+			enable_upnp,
+
+			// Starts and stops the NAT-PMP service. When started, the listen port and the DHT
+			// port are attempted to be forwarded on the router through NAT-PMP.
+			// 
+			// The natpmp object returned by ``start_natpmp()`` can be used to add and remove
+			// arbitrary port mappings. Mapping status is returned through the
+			// portmap_alert and the portmap_error_alert. The object will be valid until
+			// ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
+			enable_natpmp,
+
+			// Starts and stops Local Service Discovery. This service will broadcast
+			// the infohashes of all the non-private torrents on the local network to
+			// look for peers on the same swarm within multicast reach.
+			enable_lsd,
+
+			// starts the dht node and makes the trackerless service
+			// available to torrents.
+			enable_dht,
+
+			// if the allowed encryption level is both, setting this to
+			// true will prefer rc4 if both methods are offered, plaintext
+			// otherwise
+			prefer_rc4,
 
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
@@ -910,9 +939,8 @@ namespace libtorrent
 			// ``active_downloads`` is 4 and ``active_seeds`` is 4, there will be 4 seeds
 			// active and 4 downloading torrents. If the settings are ``active_downloads`` = 2
 			// and ``active_seeds`` = 4, then there will be 2 downloading torrents and 4 seeding
-			// torrents active. Torrents that are not auto managed are also counted against these
-			// limits. If there are non-auto managed torrents that use up all the slots, no
-			// auto managed torrent will be activated.
+			// torrents active. Torrents that are not auto managed are not counted against these
+			// limits.
 			// 
 			// ``active_limit`` is a hard limit on the number of active torrents. This applies even to
 			// slow torrents.
@@ -1363,6 +1391,27 @@ namespace libtorrent
 			// which kinds of alerts to receive
 			alert_mask,
 
+			// control the settings for incoming
+			// and outgoing connections respectively.
+			// see enc_policy enum for the available options.
+			out_enc_policy,
+			in_enc_policy,
+
+			// determines the encryption level of the
+			// connections.  This setting will adjust which encryption scheme is
+			// offered to the other peer, as well as which encryption scheme is
+			// selected by the client. See enc_level enum for options.
+			allowed_enc_level,
+
+			// the download and upload rate limits for a torrent to be considered
+			// active by the queuing mechanism. A torrent whose download rate is less
+			// than ``inactive_down_rate`` and whose upload rate is less than
+			// ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is
+			// considered inactive, and another queued torrent may be startert.
+			// This logic is disabled if ``dont_count_slow_torrents`` is false.
+			inactive_down_rate,
+			inactive_up_rate,
+
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
@@ -1403,6 +1452,36 @@ namespace libtorrent
 			// does not throttle uTP, throttles TCP to the same proportion
 			// of throughput as there are TCP connections
 			peer_proportional = 1
+		};
+
+		// the encoding policy options for use with settings_pack::pe_out_enc_policy
+		// and settings_pack::pe_in_enc_policy.
+		enum enc_policy
+		{
+			// Only encrypted connections are allowed. Incoming connections that
+			// are not encrypted are closed and if the encrypted outgoing
+			// connection fails, a non-encrypted retry will not be made.
+			pe_forced,
+
+			// encrypted connections are enabled, but non-encrypted connections
+			// are allowed. An incoming non-encrypted connection will be accepted,
+			// and if an outgoing encrypted connection fails, a non- encrypted
+			// connection will be tried.
+			pe_enabled,
+			
+			// only non-encrypted connections are allowed.
+			pe_disabled
+		};
+
+		// the encryption levels, to be used with settings_pack::pe_allowed_enc_level.
+		enum enc_level
+		{
+			// use only plaintext encryption
+			pe_plaintext = 1,
+			// use only rc4 encryption 
+			pe_rc4 = 2,
+			// allow both
+			pe_both = 3
 		};
 
 	private:

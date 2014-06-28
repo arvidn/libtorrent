@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include <boost/function/function1.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/buffer.hpp>
@@ -46,11 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string.h> // for memcpy
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-#include "libtorrent/disk_io_job.hpp"
-#include "libtorrent/block_cache.hpp"
-#endif
-
+#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
 #include "libtorrent/debug.hpp"
 
 namespace libtorrent
@@ -63,21 +58,24 @@ namespace libtorrent
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
 			thread_started();
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			m_destructed = false;
 #endif
 		}
 
+		// destructs/frees the buffer (1st arg) with
+		// 2nd argument as userdata
+		typedef void (*free_buffer_fun)(char*, void*, block_cache_reference ref);
+
 		struct buffer_t
 		{
-			boost::function<void(char*)> free; // destructs the buffer
+			free_buffer_fun free_fun;
+			void* userdata;
 			char* buf; // the first byte of the buffer
 			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive
-#ifdef TORRENT_DEBUG
 			block_cache_reference ref;
-#endif
 		};
 
 		bool empty() const { return m_bytes == 0; }
@@ -87,25 +85,8 @@ namespace libtorrent
 		void pop_front(int bytes_to_pop);
 
 		void append_buffer(char* buffer, int s, int used_size
-			, boost::function<void(char*)> const& destructor);
-
-#ifdef TORRENT_DEBUG
-		void set_ref(block_cache_reference ref)
-		{
-/*
-			int count = 1;
-			for (std::deque<buffer_t>::iterator i = m_vec.begin()
-				, end(m_vec.end()); i != end; ++i)
-			{
-				// technically this is allowed, but not very likely to happen
-				// without being a bug
-				// i->ref may be uninitialized here, it's not valud to access it.
-				if (i->ref.storage == ref.storage && i->ref.piece == ref.piece && i->ref.block == ref.block) ++count;
-			}
-*/
-			m_vec.back().ref = ref;
-		}
-#endif
+			, free_buffer_fun destructor, void* userdata
+			, block_cache_reference ref = block_cache_reference());
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.
@@ -146,7 +127,7 @@ namespace libtorrent
 		// invoking the async write call
 		std::vector<asio::const_buffer> m_tmp_vec;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool m_destructed;
 #endif
 	};	

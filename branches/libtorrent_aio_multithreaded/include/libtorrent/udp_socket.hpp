@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -260,7 +260,7 @@ namespace libtorrent
 #endif
 		bool m_v4_write_subscribed:1;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool m_started;
 		int m_magic;
 		int m_outstanding_when_aborted;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, MassaRoddel, Arvid Norberg
+Copyright (c) 2006-2014, MassaRoddel, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -115,7 +115,7 @@ namespace libtorrent { namespace
 		virtual void tick()
 		{
 			ptime now = time_now();
-			if (now - m_last_msg < seconds(60)) return;
+			if (now - seconds(60) < m_last_msg) return;
 			m_last_msg = now;
 
 			int num_peers = m_torrent.num_peers();
@@ -289,7 +289,7 @@ namespace libtorrent { namespace
 			if (body.left() < length) return true;
 
 			ptime now = time_now();
-			if (now - m_last_pex[0] < seconds(60))
+			if (now - seconds(60) <  m_last_pex[0])
 			{
 				// this client appears to be trying to flood us
 				// with pex messages. Don't allow that.
@@ -436,7 +436,7 @@ namespace libtorrent { namespace
 			if (!m_message_index) return;
 
 			ptime now = time_now();
-			if (now - m_last_msg < seconds(60))
+			if (now - seconds(60) < m_last_msg)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("*** PEX [ waiting: %d seconds to next msg ]"
@@ -447,14 +447,14 @@ namespace libtorrent { namespace
 			static ptime global_last = min_time();
 
 			int num_peers = m_torrent.num_peers();
-			if (num_peers == 1) return;
+			if (num_peers <= 1) return;
 
 			// don't send pex messages more often than 1 every 100 ms, and
 			// allow pex messages to be sent 5 seconds apart if there isn't
 			// contention
 			int delay = (std::min)((std::max)(60000 / num_peers, 100), 3000);
 
-			if (now - global_last < milliseconds(delay))
+			if (now - milliseconds(delay) < global_last)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				m_pc.peer_log("*** PEX [ global-wait: %d ]", total_seconds(milliseconds(delay) - (now - global_last)));

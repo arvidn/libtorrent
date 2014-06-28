@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -364,7 +364,7 @@ public:
 			ec = asio::error::would_block;
 			return 0;
 		}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		size_t buf_size = 0;
 #endif
 
@@ -374,7 +374,7 @@ public:
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			buf_size += buffer_size(*i);
 #endif
 		}
@@ -388,7 +388,7 @@ public:
 	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
 		TORRENT_ASSERT(false && "not implemented!");
-		// TODO: 1 implement blocking write. Low priority since it's not used (yet)
+		// TODO: implement blocking write. Low priority since it's not used (yet)
 		return 0;
 	}
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2013, Arvid Norberg
+Copyright (c) 2012-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include <vector>
+#include <string>
 
 namespace libtorrent
 {
@@ -50,6 +52,18 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
 
+	// this parses the string that's used as the liste_interfaces setting.
+	// it is a comma-separated list of IP or device names with ports. For
+	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
+	TORRENT_EXTRA_EXPORT void parse_comma_separated_string_port(
+		std::string const& in, std::vector<std::pair<std::string, int> >& out);
+
+	// this parses the string that's used as the outgoing_interfaces setting.
+	// it is a comma separated list of IPs and device names. For example:
+	// "eth0, eth1, 127.0.0.1"
+	TORRENT_EXTRA_EXPORT void parse_comma_separated_string(
+		std::string const& in, std::vector<std::string>& out);
+
 	// strdup is not part of the C standard. Some systems
 	// don't have it and it won't be available when building
 	// in strict ansi mode
@@ -59,6 +73,15 @@ namespace libtorrent
 	// x cannot be greater than 7
 	void* align_pointer(void* p);
 
+	// searches for separator in the string 'last'. the pointer last points to
+	// is set to point to the first character following the separator.
+	// returns a pointer to a null terminated string starting at last, ending
+	// at the separator (the string is mutated to replace the separator with
+	// a '\0' character). If there is no separator, but the end of the string,
+	// the pointer next points to is set to the last null terminator, which will
+	// make the following invocation return NULL, to indicate the end of the
+	// string.
+	TORRENT_EXTRA_EXPORT char* string_tokenize(char* last, char sep, char** next);
 }
 
 #endif

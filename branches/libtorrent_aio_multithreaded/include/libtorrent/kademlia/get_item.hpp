@@ -50,7 +50,16 @@ public:
 		boost::uint64_t seq,
 		char const* sig);
 
-	get_item(node_impl& node, node_id target, data_callback const& dcallback);
+	// for immutable itms
+	get_item(node_impl& node
+		, node_id target
+		, data_callback const& dcallback);
+
+	// for mutable items
+	get_item(node_impl& node
+		, char const* pk
+		, std::string const& salt
+		, data_callback const& dcallback);
 
 	virtual char const* name() const;
 
@@ -63,6 +72,7 @@ protected:
 
 	data_callback m_data_callback;
 	item m_data;
+	std::string m_salt;
 };
 
 class get_item_observer : public find_data_observer

@@ -36,23 +36,71 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "ed25519.h"
 
+#ifdef TORRENT_DEBUG
+#include "libtorrent/lazy_entry.hpp"
+#endif
+
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
 namespace libtorrent { namespace dht
 {
 
 namespace
 {
-	enum { canonical_length = 1100 };
-	int canonical_string(std::pair<char const*, int> v, boost::uint64_t seq, char out[canonical_length])
+	enum { canonical_length = 1200 };
+	int canonical_string(std::pair<char const*, int> v, boost::uint64_t seq
+		, std::pair<char const*, int> salt, char out[canonical_length])
 	{
-		int len = snprintf(out, canonical_length, "3:seqi%" PRId64 "e1:v", seq);
-		memcpy(out + len, v.first, v.second);
-		len += v.second;
-		TORRENT_ASSERT(len <= canonical_length);
-		return len;
+		// v must be valid bencoding!
+#ifdef TORRENT_DEBUG
+		lazy_entry e;
+		error_code ec;
+		TORRENT_ASSERT(lazy_bdecode(v.first, v.first + v.second, e, ec) == 0);
+#endif
+		char* ptr = out;
+
+		int left = canonical_length - (ptr - out);
+		if (salt.second > 0)
+		{
+			ptr += snprintf(ptr, left, "4:salt%d:", salt.second);
+			left = canonical_length - (ptr - out);
+			memcpy(ptr, salt.first, (std::min)(salt.second, left));
+			ptr += (std::min)(salt.second, left);
+			left = canonical_length - (ptr - out);
+		}
+		ptr += snprintf(ptr, canonical_length - (ptr - out)
+			, "3:seqi%" PRId64 "e1:v", seq);
+		left = canonical_length - (ptr - out);
+		memcpy(ptr, v.first, (std::min)(v.second, left));
+		ptr += (std::min)(v.second, left);
+		TORRENT_ASSERT((ptr - out) <= canonical_length);
+		return ptr - out;
 	}
 }
 
-bool verify_mutable_item(std::pair<char const*, int> v,
+// calculate the target hash for an immutable item.
+sha1_hash item_target_id(std::pair<char const*, int> v)
+{
+	hasher h;
+	h.update(v.first, v.second);
+	return h.final();
+}
+
+// calculate the target hash for a mutable item.
+sha1_hash item_target_id(std::pair<char const*, int> salt
+	, char const* pk)
+{
+	hasher h;
+	h.update(pk, item_pk_len);
+	if (salt.second > 0) h.update(salt.first, salt.second);
+	return h.final();
+}
+
+bool verify_mutable_item(
+	std::pair<char const*, int> v,
+	std::pair<char const*, int> salt,
 	boost::uint64_t seq,
 	char const* pk,
 	char const* sig)
@@ -64,7 +112,7 @@ bool verify_mutable_item(std::pair<char const*, int> v,
 #endif
 
 	char str[canonical_length];
-	int len = canonical_string(v, seq, str);
+	int len = canonical_string(v, seq, salt, str);
 
 	return ed25519_verify((unsigned char const*)sig,
 		(unsigned char const*)str,
@@ -72,7 +120,15 @@ bool verify_mutable_item(std::pair<char const*, int> v,
 		(unsigned char const*)pk) == 1;
 }
 
-void sign_mutable_item(std::pair<char const*, int> v,
+// given the bencoded buffer ``v``, the salt (which is optional and may have
+// a length of zero to be omitted), sequence number ``seq``, public key (32
+// bytes ed25519 key) ``pk`` and a secret/private key ``sk`` (64 bytes ed25519
+// key) a signature ``sig`` is produced. The ``sig`` pointer must point to
+// at least 64 bytes of available space. This space is where the signature is
+// written.
+void sign_mutable_item(
+	std::pair<char const*, int> v,
+	std::pair<char const*, int> salt,
 	boost::uint64_t seq,
 	char const* pk,
 	char const* sk,
@@ -85,7 +141,7 @@ void sign_mutable_item(std::pair<char const*, int> v,
 #endif
 
 	char str[canonical_length];
-	int len = canonical_string(v, seq, str);
+	int len = canonical_string(v, seq, salt, str);
 
 	ed25519_sign((unsigned char*)sig,
 		(unsigned char const*)str,
@@ -95,35 +151,39 @@ void sign_mutable_item(std::pair<char const*, int> v,
 	);
 }
 
-sha1_hash mutable_item_cas(std::pair<char const*, int> v, boost::uint64_t seq)
+sha1_hash mutable_item_cas(std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq)
 {
 	char str[canonical_length];
-	int len = canonical_string(v, seq, str);
+	int len = canonical_string(v, seq, salt, str);
 	return hasher(str, len).final();
 }
 
-item::item(entry const& v, boost::uint64_t seq, char const* pk, char const* sk)
+item::item(char const* pk, std::string const& salt)
+	: m_salt(salt)
+	, m_seq(0)
+	, m_mutable(true)
 {
-	assign(v, seq, pk, sk);
+	memcpy(m_pk.data(), pk, item_pk_len);
 }
 
-item::item(lazy_entry const* v, boost::uint64_t seq, char const* pk, char const* sig)
+item::item(entry const& v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq, char const* pk, char const* sk)
 {
-	if (!assign(v, seq, pk, sig))
+	assign(v, salt, seq, pk, sk);
+}
+
+item::item(lazy_entry const* v, std::pair<char const*, int> salt
+	, boost::uint64_t seq, char const* pk, char const* sig)
+{
+	if (!assign(v, salt, seq, pk, sig))
 		throw invalid_item();
 }
 
-item::item(lazy_item const& i)
-	: m_seq(i.seq)
-	, m_mutable(i.is_mutable())
-{
-	m_value = *i.value;
-	// if this is a mutable item lazy_item will have already verified it
-	memcpy(m_pk, i.pk, item_pk_len);
-	memcpy(m_sig, i.sig, item_sig_len);
-}
-
-void item::assign(entry const& v, boost::uint64_t seq, char const* pk, char const* sk)
+void item::assign(entry const& v, std::pair<char const*, int> salt
+	, boost::uint64_t seq, char const* pk, char const* sk)
 {
 	m_value = v;
 	if (pk && sk)
@@ -131,8 +191,10 @@ void item::assign(entry const& v, boost::uint64_t seq, char const* pk, char cons
 		char buffer[1000];
 		int bsize = bencode(buffer, v);
 		TORRENT_ASSERT(bsize <= 1000);
-		sign_mutable_item(std::make_pair(buffer, bsize), seq, pk, sk, m_sig);
-		memcpy(m_pk, pk, item_pk_len);
+		sign_mutable_item(std::make_pair(buffer, bsize)
+			, salt, seq, pk, sk, m_sig.c_array());
+		m_salt.assign(salt.first, salt.second);
+		memcpy(m_pk.c_array(), pk, item_pk_len);
 		m_seq = seq;
 		m_mutable = true;
 	}
@@ -140,15 +202,21 @@ void item::assign(entry const& v, boost::uint64_t seq, char const* pk, char cons
 		m_mutable = false;
 }
 
-bool item::assign(lazy_entry const* v, boost::uint64_t seq, char const* pk, char const* sig)
+bool item::assign(lazy_entry const* v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq, char const* pk, char const* sig)
 {
 	TORRENT_ASSERT(v->data_section().second <= 1000);
 	if (pk && sig)
 	{
-		if (!verify_mutable_item(v->data_section(), seq, pk, sig))
+		if (!verify_mutable_item(v->data_section(), salt, seq, pk, sig))
 			return false;
-		memcpy(m_pk, pk, item_pk_len);
-		memcpy(m_sig, sig, item_sig_len);
+		memcpy(m_pk.c_array(), pk, item_pk_len);
+		memcpy(m_sig.c_array(), sig, item_sig_len);
+		if (salt.second > 0)
+			m_salt.assign(salt.first, salt.second);
+		else
+			m_salt.clear();
 		m_seq = seq;
 		m_mutable = true;
 	}
@@ -159,19 +227,23 @@ bool item::assign(lazy_entry const* v, boost::uint64_t seq, char const* pk, char
 	return true;
 }
 
-sha1_hash item::cas()
+void item::assign(entry const& v, std::string salt, boost::uint64_t seq
+	, char const* pk, char const* sig)
 {
-	TORRENT_ASSERT(m_mutable);
-	char buffer[1000];
-	int bsize = bencode(buffer, m_value);
-	return mutable_item_cas(std::make_pair(buffer, bsize), m_seq);
+	memcpy(m_pk.c_array(), pk, item_pk_len);
+	memcpy(m_sig.c_array(), sig, item_sig_len);
+	m_salt = salt;
+	m_seq = seq;
+	m_mutable = true;
+	m_value = v;
 }
 
-lazy_item::lazy_item(lazy_entry const* v, char const* pk, char const* sig, boost::uint64_t seq)
-	: value(v), pk(pk), sig(sig), seq(seq)
+sha1_hash item::cas()
 {
-	if (is_mutable() && !verify_mutable_item(v->data_section(), seq, pk, sig))
-		throw invalid_item();
+	char buffer[1000];
+	int bsize = bencode(buffer, m_value);
+	return mutable_item_cas(std::make_pair(buffer, bsize)
+		, std::pair<char const*, int>(m_salt.c_str(), m_salt.size()), m_seq);
 }
 
 } } // namespace libtorrent::dht

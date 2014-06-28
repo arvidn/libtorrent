@@ -43,10 +43,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "udp_tracker.hpp"
 #include <fstream>
 #include <iostream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 using boost::tuples::ignore;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
@@ -82,8 +84,8 @@ void test_transfer(settings_pack const& sett)
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
 
 	settings_pack pack = sett;
 	// we need a short reconnect time since we
@@ -102,6 +104,9 @@ void test_transfer(settings_pack const& sett)
 	pack.set_bool(settings_pack::enable_incoming_utp, false);
 	pack.set_int(settings_pack::alert_mask, mask);
 
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
 
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
@@ -118,14 +123,6 @@ void test_transfer(settings_pack const& sett)
 
 	ses2.apply_settings(pack);
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::disabled;
-	pes.in_enc_policy = pe_settings::disabled;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-#endif
-
 	torrent_handle tor1;
 	torrent_handle tor2;
 
@@ -134,7 +131,7 @@ void test_transfer(settings_pack const& sett)
 	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
 
-	int udp_tracker_port = start_tracker();
+	int udp_tracker_port = start_udp_tracker();
 	int tracker_port = start_web_server();
 
 	char tracker_url[200];
@@ -230,37 +227,31 @@ void test_transfer(settings_pack const& sett)
 
 	peer_disconnects = 0;
 
+	// when we're done checking, we're likely to be put in downloading state
+	// for a split second before transitioning to finished. This loop waits
+	// for the finished state
+	torrent_status st2;
 	for (int i = 0; i < 50; ++i)
 	{
+		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
-		torrent_status st2 = tor2.status();
+		st2 = tor2.status();
 		if (i % 10 == 0)
 		{
 			std::cerr << int(st2.progress * 100) << "% " << std::endl;
 		}
-		if (st2.state != torrent_status::checking_files) break;
-		if (peer_disconnects >= 1) break;
+		if (st2.state == torrent_status::finished) break;
 		test_sleep(100);
 	}
+
+	TEST_CHECK(st2.state != torrent_status::checking_files);
+	if (st2.state != torrent_status::checking_files) std::cerr << "recheck complete" << std::endl;
 
 	priorities2 = tor2.piece_priorities();
 	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
 	std::cerr << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
-
-	peer_disconnects = 0;
-
-	// wait for force recheck to complete
-	for (int i = 0; i < 5; ++i)
-	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
-		torrent_status st2 = tor2.status();
-		if (st2.state == torrent_status::finished) break;
-		if (peer_disconnects >= 1) break;
-		test_sleep(100);
-	}
 
 	tor2.pause();
 	wait_for_alert(ses2, torrent_paused_alert::alert_type, "ses2");
@@ -325,7 +316,6 @@ void test_transfer(settings_pack const& sett)
 	// wait for torrent 2 to settle in back to finished state (it will
 	// start as checking)
 	torrent_status st1;
-	torrent_status st2;
 	for (int i = 0; i < 5; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
@@ -351,8 +341,18 @@ void test_transfer(settings_pack const& sett)
 	std::cout << "setting priorities to 1" << std::endl;
 	TEST_EQUAL(tor2.status().is_finished, false);
 
+	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
+	std::cerr << std::endl;
+
+	// drain alerts
+	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+	print_alerts(ses2, "ses2", true, true, true, &on_alert);
+
 	peer_disconnects = 0;
 
+	// this loop makes sure ses2 reconnects to the peer now that it's
+	// in download mode again. If this fails, the reconnect logic may
+	// not work or be inefficient
 	st1 = tor1.status();
 	st2 = tor2.status();
 	for (int i = 0; i < 130; ++i)
@@ -373,7 +373,7 @@ void test_transfer(settings_pack const& sett)
 
 		if (peer_disconnects >= 2)
 		{
-			printf("too many disconnects (%d), exiting\n", peer_disconnects);
+			fprintf(stderr, "too many disconnects (%d), exiting\n", peer_disconnects);
 			break;
 		}
 
@@ -381,13 +381,15 @@ void test_transfer(settings_pack const& sett)
 	}
 
 	st2 = tor2.status();
+	if (!st2.is_seeding)
+		fprintf(stderr, "ses2 failed to reconnect to ses1!\n");
 	TEST_CHECK(st2.is_seeding);
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
 	p2 = ses2.abort();
 
-	stop_tracker();
+	stop_udp_tracker();
 	stop_web_server();
 }
 

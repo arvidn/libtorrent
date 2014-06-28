@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 #include <deque>
+#include <map>
 
 #include "setup_transfer.hpp"
 
@@ -54,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/atomic.hpp"
-#include "setup_transfer.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>
@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG if (DEBUG_WEB_SERVER) fprintf
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 static int tests_failure = 0;
 static std::vector<std::string> failure_strings;
@@ -121,7 +122,7 @@ int print_failures()
 	return tests_failure;
 }
 
-std::auto_ptr<alert> wait_for_alert(session& ses, int type, char const* name)
+std::auto_ptr<alert> wait_for_alert(lt::session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;
 	ptime end = time_now() + seconds(10);
@@ -155,21 +156,21 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	FILE* f = fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		return -1;
 	}
 
 	int r = fseek(f, 0, SEEK_END);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -183,7 +184,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fseek(f, 0, SEEK_SET);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -198,7 +199,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fread(&v[0], 1, v.size(), f);
 	if (r < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -231,7 +232,7 @@ void save_file(char const* filename, char const* data, int size)
 
 }
 
-bool print_alerts(libtorrent::session& ses, char const* name
+bool print_alerts(lt::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
 	, bool (*predicate)(libtorrent::alert*), bool no_output)
 {
@@ -297,7 +298,7 @@ bool listen_alert(libtorrent::alert* a)
 	return true;
 }
 
-void wait_for_listen(libtorrent::session& ses, char const* name)
+void wait_for_listen(lt::session& ses, char const* name)
 {
 	listen_done = false;
 	alert const* a = 0;
@@ -320,7 +321,7 @@ bool downloading_alert(libtorrent::alert* a)
 	return true;
 }
 
-void wait_for_downloading(libtorrent::session& ses, char const* name)
+void wait_for_downloading(lt::session& ses, char const* name)
 {
 	downloading_done = false;
 	alert const* a = 0;
@@ -337,25 +338,32 @@ void print_ses_rate(float time
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3)
 {
-	fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d", time
-		, int(st1->download_payload_rate / 1000)
-		, int(st1->upload_payload_rate / 1000)
-		, int(st1->progress * 100)
-		, st1->num_peers);
+	if (st1)
+	{
+		fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+			, int(st1->download_payload_rate / 1000)
+			, int(st1->upload_payload_rate / 1000)
+			, int(st1->progress * 100)
+			, st1->num_peers
+			, st1->connect_candidates
+			, st1->error.empty() ? "" : (" [" + st1->error + "]").c_str());
+	}
 	if (st2)
-		std::cerr << " : "
-			<< int(st2->download_payload_rate / 1000.f) << "kB/s "
-			<< int(st2->upload_payload_rate / 1000.f) << "kB/s "
-			<< int(st2->progress * 100) << "% "
-			<< st2->num_peers
-			<< " cc: " << st2->connect_candidates;
+		fprintf(stderr, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+			, int(st2->download_payload_rate / 1000)
+			, int(st2->upload_payload_rate / 1000)
+			, int(st2->progress * 100)
+			, st2->num_peers
+			, st2->connect_candidates
+			, st2->error.empty() ? "" : (" [" + st2->error + "]").c_str());
 	if (st3)
-		std::cerr << " : "
-			<< int(st3->download_payload_rate / 1000.f) << "kB/s "
-			<< int(st3->upload_payload_rate / 1000.f) << "kB/s "
-			<< int(st3->progress * 100) << "% "
-			<< st3->num_peers
-			<< " cc: " << st3->connect_candidates;
+		fprintf(stderr, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+			, int(st3->download_payload_rate / 1000)
+			, int(st3->upload_payload_rate / 1000)
+			, int(st3->progress * 100)
+			, st3->num_peers
+			, st3->connect_candidates
+			, st3->error.empty() ? "" : (" [" + st3->error + "]").c_str());
 
 	fprintf(stderr, "\n");
 }
@@ -382,6 +390,7 @@ static std::map<int, proxy_t> running_proxies;
 
 void stop_proxy(int port)
 {
+	fprintf(stderr, "stopping proxy on port %d\n", port);
 	// don't shut down proxies until the test is
 	// completely done. This saves a lot of time.
 	// they're closed at the end of main() by
@@ -407,7 +416,7 @@ pid_type async_run(char const* cmdline)
 	if (ret == 0)
 	{
 		int error = GetLastError();
-		fprintf(stderr, "failed (%d) %s\n", error, error_code(error, get_system_category()).message().c_str());
+		fprintf(stderr, "failed (%d) %s\n", error, error_code(error, system_category()).message().c_str());
 		return 0;
 	}
 	return pi.dwProcessId;
@@ -468,17 +477,17 @@ int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
 
-	for (std::map<int, proxy_t>::iterator i = running_proxies.begin()
-		, end(running_proxies.end()); i != end; ++i)
+	std::map<int, proxy_t> :: iterator i = running_proxies.begin();
+	for (; i != running_proxies.end(); ++i)
 	{
-		if (i->second.type == proxy_type) return i->first;
+		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	unsigned int seed = total_microseconds(time_now_hires() - min_time());
+	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
 	printf("random seed: %u\n", seed);
 	std::srand(seed);
-	int port = 5000 + (rand() % 55000);
 
+	int port = 5000 + (rand() % 55000);
 	char const* type = "";
 	char const* auth = "";
 	char const* cmd = "";
@@ -509,7 +518,6 @@ int start_proxy(int proxy_type)
 			cmd = "python ../http.py";
 			break;
 	}
-
 	char buf[512];
 	snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
 
@@ -532,16 +540,26 @@ boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 	return boost::make_shared<T>(*ptr);
 }
 
+unsigned char random_byte()
+{ return std::rand() & 0xff; }
+
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
 {
 	error_code ec;
 	char* random_data = (char*)malloc(300000);
 	for (int i = 0; i != num_files; ++i)
 	{
-		std::generate(random_data, random_data + 300000, &std::rand);
+		std::generate(random_data, random_data + 300000, random_byte);
 		char filename[200];
 		snprintf(filename, sizeof(filename), "test%d", i);
-		std::string full_path = combine_path(path, filename);
+		char dirname[200];
+		snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+
+		std::string full_path = combine_path(path, dirname);
+		error_code ec;
+		create_directory(full_path, ec);
+		full_path = combine_path(full_path, filename);
+
 		int to_write = file_sizes[i];
 		file f(full_path, file::write_only, ec);
 		if (ec) fprintf(stderr, "failed to create file \"%s\": (%d) %s\n"
@@ -628,20 +646,23 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 }
 
 boost::tuple<torrent_handle, torrent_handle, torrent_handle>
-setup_transfer(session* ses1, session* ses2, session* ses3
+setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::shared_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports)
+	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
+	, boost::shared_ptr<torrent_info>* torrent2)
 {
 	assert(ses1);
 	assert(ses2);
 
 	if (stop_lsd)
 	{
-		ses1->stop_lsd();
-		ses2->stop_lsd();
-		if (ses3) ses3->stop_lsd();
+		settings_pack pack;
+		pack.set_bool(settings_pack::enable_lsd, false);
+		ses1->apply_settings(pack);
+		ses2->apply_settings(pack);
+		if (ses3) ses3->apply_settings(pack);
 	}
 
 	// This has the effect of applying the global
@@ -649,7 +670,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	ip_filter f;
 	f.add_rule(address_v4::from_string("0.0.0.0")
 		, address_v4::from_string("255.255.255.255")
-		, session::global_peer_class_id);
+		, lt::session::global_peer_class_id);
 	ses1->set_peer_class_filter(f);
 	ses2->set_peer_class_filter(f);
 	if (ses3) ses3->set_peer_class_filter(f);
@@ -664,14 +685,14 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (ses3) ses3->apply_settings(pack);
 
 	peer_id pid;
-	std::generate(&pid[0], &pid[0] + 20, std::rand);
+	std::generate(&pid[0], &pid[0] + 20, random_byte);
 	ses1->set_peer_id(pid);
-	std::generate(&pid[0], &pid[0] + 20, std::rand);
+	std::generate(&pid[0], &pid[0] + 20, random_byte);
 	ses2->set_peer_id(pid);
 	assert(ses1->id() != ses2->id());
 	if (ses3)
 	{
-		std::generate(&pid[0], &pid[0] + 20, std::rand);
+		std::generate(&pid[0], &pid[0] + 20, random_byte);
 		ses3->set_peer_id(pid);
 		assert(ses3->id() != ses2->id());
 	}
@@ -737,6 +758,10 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		param.ti.reset();
 		param.info_hash = t->info_hash();
+	}
+	else if (torrent2)
+	{
+		param.ti = clone_ptr(*torrent2);
 	}
 	else
 	{
@@ -809,189 +834,18 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	return boost::make_tuple(tor1, tor2, tor3);
 }
 
-boost::asio::io_service* tracker_ios = 0;
-boost::shared_ptr<libtorrent::thread> tracker_server;
-libtorrent::mutex tracker_lock;
-libtorrent::event tracker_initialized;
-
-bool udp_failed = false;
-
-void stop_tracker()
-{
-	fprintf(stderr, "%s: stop_tracker()\n", time_now_string());
-	if (tracker_ios)
-	{
-		tracker_ios->stop();
-	}
-
-	if (tracker_server)
-	{
-		tracker_server->join();
-		tracker_server.reset();
-	}
-
-	if (tracker_ios)
-	{
-		delete tracker_ios;
-		tracker_ios = 0;
-	}
-	fprintf(stderr, "%s: stop_tracker() done\n", time_now_string());
-}
-
-void udp_tracker_thread(int* port);
-
-int start_tracker()
-{
-	stop_tracker();
-
-	{
-		libtorrent::mutex::scoped_lock l(tracker_lock);
-		tracker_initialized.clear(l);
-	}
-
-	int port = 0;
-
-	delete tracker_ios;
-	tracker_ios = new io_service;
-	tracker_server.reset(new libtorrent::thread(boost::bind(&udp_tracker_thread, &port)));
-
-	{
-		libtorrent::mutex::scoped_lock l(tracker_lock);
-		tracker_initialized.wait(l);
-	}
-//	test_sleep(100);
-	return port;
-}
-
-atomic_count g_udp_tracker_requests(0);
-
-void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint const* from, char* buffer, udp::socket* sock)
-{
-	if (ec)
-	{
-		fprintf(stderr, "%s: UDP tracker, read failed: %s\n", time_now_string(), ec.message().c_str());
-		return;
-	}
-
-	udp_failed = false;
-
-	if (bytes_transferred < 16)
-	{
-		fprintf(stderr, "%s: UDP message too short (from: %s)\n", time_now_string(), print_endpoint(*from).c_str());
-		return;
-	}
-
-	fprintf(stderr, "%s: UDP message %d bytes\n", time_now_string(), int(bytes_transferred));
-
-	char* ptr = buffer;
-	detail::read_uint64(ptr);
-	boost::uint32_t action = detail::read_uint32(ptr);
-	boost::uint32_t transaction_id = detail::read_uint32(ptr);
-
-	error_code e;
-
-	switch (action)
-	{
-		case 0: // connect
-
-			fprintf(stderr, "%s: UDP connect from %s\n", time_now_string(), print_endpoint(*from).c_str());
-			ptr = buffer;
-			detail::write_uint32(0, ptr); // action = connect
-			detail::write_uint32(transaction_id, ptr); // transaction_id
-			detail::write_uint64(10, ptr); // connection_id
-			sock->send_to(asio::buffer(buffer, 16), *from, 0, e);
-			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
-			break;
-
-		case 1: // announce
-
-			++g_udp_tracker_requests;
-			fprintf(stderr, "%s: UDP announce [%d]\n", time_now_string(), int(g_udp_tracker_requests));
-			ptr = buffer;
-			detail::write_uint32(1, ptr); // action = announce
-			detail::write_uint32(transaction_id, ptr); // transaction_id
-			detail::write_uint32(1800, ptr); // interval
-			detail::write_uint32(1, ptr); // incomplete
-			detail::write_uint32(1, ptr); // complete
-			// 0 peers
-			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
-			if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
-			break;
-		case 2:
-			// ignore scrapes
-			fprintf(stderr, "%s: UDP scrape\n", time_now_string());
-			break;
-		default:
-			fprintf(stderr, "%s: UDP unknown message: %d\n", time_now_string(), action);
-			break;
-	}
-}
-
-void udp_tracker_thread(int* port)
-{
-	udp::socket acceptor(*tracker_ios);
-	error_code ec;
-	acceptor.open(udp::v4(), ec);
-	if (ec)
-	{
-		fprintf(stderr, "Error opening listen UDP socket: %s\n", ec.message().c_str());
-		libtorrent::mutex::scoped_lock l(tracker_lock);
-		tracker_initialized.signal(l);
-		return;
-	}
-	acceptor.bind(udp::endpoint(address_v4::any(), 0), ec);
-	if (ec)
-	{
-		fprintf(stderr, "Error binding UDP socket to port 0: %s\n", ec.message().c_str());
-		libtorrent::mutex::scoped_lock l(tracker_lock);
-		tracker_initialized.signal(l);
-		return;
-	}
-	*port = acceptor.local_endpoint().port();
-
-	fprintf(stderr, "%s: UDP tracker initialized on port %d\n", time_now_string(), *port);
-
-	{
-		libtorrent::mutex::scoped_lock l(tracker_lock);
-		tracker_initialized.signal(l);
-	}
-
-	char buffer[2000];
-
-	for (;;)
-	{
-		error_code ec;
-		udp::endpoint from;
-		udp_failed = true;
-		acceptor.async_receive_from(
-			asio::buffer(buffer, sizeof(buffer)), from, boost::bind(
-				&on_udp_receive, _1, _2, &from, &buffer[0], &acceptor));
-		tracker_ios->run_one(ec);
-		if (udp_failed) return;
-
-		if (ec)
-		{
-			fprintf(stderr, "%s: Error receiving on UDP socket: %s\n", time_now_string(), ec.message().c_str());
-			libtorrent::mutex::scoped_lock l(tracker_lock);
-			tracker_initialized.signal(l);
-			return;
-		}
-		tracker_ios->reset();
-	}
-}
-
 pid_type web_server_pid = 0;
 
-int start_web_server(bool ssl, bool chunked_encoding)
+int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
-	unsigned int seed = total_microseconds(time_now_hires() - min_time());
-	printf("random seed: %u\n", seed);
+	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
+	fprintf(stderr, "random seed: %u\n", seed);
 	std::srand(seed);
 	int port = 5000 + (rand() % 55000);
 
 	char buf[200];
-	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d"
-		, port, chunked_encoding , ssl);
+	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
+		, port, chunked_encoding , ssl, keepalive);
 
 	fprintf(stderr, "%s starting web_server on port %d...\n", time_now_string(), port);
 
@@ -1007,6 +861,7 @@ int start_web_server(bool ssl, bool chunked_encoding)
 void stop_web_server()
 {
 	if (web_server_pid == 0) return;
+	fprintf(stderr, "stopping web server\n");
 	stop_process(web_server_pid);
 	web_server_pid = 0;
 }

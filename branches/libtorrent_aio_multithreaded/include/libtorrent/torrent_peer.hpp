@@ -45,7 +45,8 @@ namespace libtorrent
 	// calculate the priority of a peer based on its address. One of the
 	// endpoint should be our own. The priority is symmetric, so it doesn't
 	// matter which is which
-	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2);
+	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(
+		tcp::endpoint e1, tcp::endpoint e2);
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer
 	{
@@ -187,7 +188,7 @@ namespace libtorrent
 		// so, any torrent_peer with the web_seed bit set, is
 		// never considered a connect candidate
 		bool web_seed:1;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool in_use:1;
 #endif
 	};

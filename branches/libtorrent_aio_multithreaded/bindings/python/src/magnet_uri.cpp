@@ -10,13 +10,14 @@
 
 using namespace boost::python;
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 extern void dict_to_add_torrent_params(dict params, add_torrent_params& p);
 
 namespace {
 
 #ifndef TORRENT_NO_DEPRECATE
-    torrent_handle _add_magnet_uri(session& s, std::string uri, dict params)
+    torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
     {
         add_torrent_params p;
 
@@ -53,7 +54,7 @@ namespace {
 		list nodes_list;
 		for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
 			, end(p.dht_nodes.end()); i != end; ++i)
-			tracker_list.append(make_tuple(i->first, i->second));
+			tracker_list.append(boost::python::make_tuple(i->first, i->second));
 		ret["dht_nodes"] =  nodes_list;
 		ret["info_hash"] = p.info_hash;
 		ret["name"] = p.name;

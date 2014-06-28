@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -141,6 +141,8 @@ struct dht_mutable_item : dht_immutable_item
 	char sig[item_sig_len];
 	boost::uint64_t seq;
 	ed25519_public_key key;
+	char* salt;
+	int salt_size;
 };
 
 // internal
@@ -232,10 +234,12 @@ public:
 	{ m_table.print_state(os); }
 #endif
 
-	void announce(sha1_hash const& info_hash, int listen_port, bool seed
+	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
+	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	void get_item(sha1_hash const& target, boost::function<bool(item&)> f);
+	void get_item(char const* pk, std::string const& salt, boost::function<bool(item&)> f);
 
 	bool verify_token(std::string const& token, char const* info_hash
 		, udp::endpoint const& addr);

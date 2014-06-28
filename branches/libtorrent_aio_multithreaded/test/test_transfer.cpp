@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
+
 using boost::tuples::ignore;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
@@ -75,6 +77,7 @@ struct test_storage : default_storage
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
+	virtual void set_file_priority(std::vector<boost::uint8_t> const& p) {}
 
 	void set_limit(int lim)
 	{
@@ -124,8 +127,11 @@ storage_interface* test_storage_constructor(storage_params const& params)
 	return new test_storage(params);
 }
 
-void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_full = false)
+void test_transfer(int proxy_type, settings_pack const& sett
+	, bool test_disk_full = false
+	, storage_mode_t storage_mode = storage_mode_sparse)
 {
+	static int listen_port = 0;
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
@@ -145,8 +151,11 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(48075 + listen_port, 49000), "0.0.0.0", 0, mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(49075 + listen_port, 50000), "0.0.0.0", 0, mask);
+	listen_port += 10;
 
 	proxy_settings ps;
 	if (proxy_type)
@@ -177,6 +186,9 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 	pack.set_bool(settings_pack::enable_incoming_utp, false);
 	pack.set_int(settings_pack::alert_mask, mask);
 
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
 
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
@@ -193,14 +205,6 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 
 	ses2.apply_settings(pack);
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::disabled;
-	pes.in_enc_policy = pe_settings::disabled;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-#endif
-
 	torrent_handle tor1;
 	torrent_handle tor2;
 
@@ -215,6 +219,9 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
+	add_torrent_params params;
+	params.storage_mode = storage_mode;
+
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
 
@@ -222,7 +229,7 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
+		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:&params);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(num_pieces, 1);
@@ -260,10 +267,24 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 		// wait 10 loops before we restart the torrent. This lets
 		// us catch all events that failed (and would put the torrent
 		// back into upload mode) before we restart it.
+
+		// TODO: 3 factor out the disk-full test into its own unit test
 		if (test_disk_full && st2.upload_mode && ++upload_mode_timer > 10)
 		{
 			test_disk_full = false;
 			((test_storage*)tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
+
+			// if we reset the upload mode too soon, there may be more disk
+			// jobs failing right after, putting us back in upload mode. So,
+			// give the disk some time to fail all disk jobs before resetting
+			// upload mode to false
+			test_sleep(500);
+
+			// then we need to drain the alert queue, so the peer_disconnects
+			// counter doesn't get incremented by old alerts
+			print_alerts(ses1, "ses1", true, true, true, &on_alert);
+			print_alerts(ses2, "ses2", true, true, true, &on_alert);
+
 			tor2.set_upload_mode(false);
 
 			// at this point we probably disconnected the seed
@@ -277,7 +298,7 @@ void test_transfer(int proxy_type, settings_pack const& sett, bool test_disk_ful
 			fprintf(stderr, "disconnects: %d\n", peer_disconnects);
 			TEST_CHECK(peer_disconnects >= 2);
 			fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
-			peer_disconnects = -1;
+			peer_disconnects = 0;
 			continue;
 		}
 
@@ -330,6 +351,17 @@ int test_main()
 	p.set_int(settings_pack::allowed_fast_set_size, 2000);
 	test_transfer(0, p, false);
 
+	test_transfer(0, p, false);
+
+	// test storage_mode_allocate
+	fprintf(stderr, "full allocation mode\n");
+	test_transfer(0, p, false, storage_mode_allocate);
+
+#ifndef TORRENT_NO_DEPRECATE
+	fprintf(stderr, "compact mode\n");
+	test_transfer(0, p, false, storage_mode_compact);
+#endif
+	
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
 	remove_all("tmp2_transfer", ec);

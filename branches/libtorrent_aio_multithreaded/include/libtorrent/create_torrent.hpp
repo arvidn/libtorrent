@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -166,11 +166,11 @@ namespace libtorrent
 		// The ``flags`` arguments specifies options for the torrent creation. It can
 		// be any combination of the flags defined by create_torrent::flags_t.
 		// 
-		// ``alignment`` is used when pad files are enabled. This is the size eligible
-		// files are aligned to. The default is the default bittorrent block size of
-		// 16 kiB. It is common to align to the piece size of the torrent.
+		// ``alignment`` is used when pad files are enabled. This is the size
+		// eligible files are aligned to. The default is -1, which means the
+		// piece size of the torrent.
 		create_torrent(file_storage& fs, int piece_size = 0
-			, int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
+			, int pad_file_limit = -1, int flags = optimize, int alignment = -1);
 		create_torrent(torrent_info const& ti);
 
 		// internal
@@ -369,7 +369,7 @@ namespace libtorrent
 		inline bool ignore_subdir(std::string const& leaf)
 		{ return leaf == ".." || leaf == "."; }
 
-		inline void nop(int i) {}
+		inline void nop(int) {}
 
 		int get_file_attributes(std::string const& p);
 		std::string get_symlink_path(std::string const& p);
@@ -423,8 +423,7 @@ namespace libtorrent
 		set_piece_hashes(t, p, detail::nop, ec);
 	}
 #ifndef BOOST_NO_EXCEPTIONS
-	inline void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int i)> const& f)
+	inline void set_piece_hashes(create_torrent& t, std::string const& p)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, detail::nop, ec);

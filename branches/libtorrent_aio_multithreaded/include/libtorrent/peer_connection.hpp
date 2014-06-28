@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -107,16 +107,11 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: block(b), skipped(0), not_wanted(false)
-			, timed_out(false), busy(false) {}
+			: block(b), not_wanted(false)
+			, timed_out(false), busy(false)
+		{}
 
 		piece_block block;
-
-		// the number of times the request
-		// has been skipped by out of order blocks
-		// TODO: the skipped field and its associated feature
-		// should probably be removed
-		boost::uint16_t skipped:13;
 
 		// if any of these are set to true, this block
 		// is not allocated
@@ -135,8 +130,9 @@ namespace libtorrent
 
 		bool operator==(pending_block const& b)
 		{
-			return b.skipped == skipped && b.block == block
-				&& b.not_wanted == not_wanted && b.timed_out == timed_out;
+			return b.block == block
+				&& b.not_wanted == not_wanted
+				&& b.timed_out == timed_out;
 		}
 	};
 
@@ -148,7 +144,8 @@ namespace libtorrent
 		{ return pb.block == block; }
 	};
 
-	inline void nop(char*) {}
+	// internal
+	inline void nop(char*, void*, block_cache_reference) {}
 
 	struct peer_connection_hot_members
 	{
@@ -311,6 +308,7 @@ namespace libtorrent
 		void set_peer_info(torrent_peer* pi)
 		{
 			TORRENT_ASSERT(m_peer_info == 0 || pi == 0 );
+			TORRENT_ASSERT(pi != NULL || m_disconnect_started);
 			m_peer_info = pi;
 		}
 
@@ -488,7 +486,9 @@ namespace libtorrent
 		ptime last_received() const { return m_last_receive; }
 
 		// this will cause this peer_connection to be disconnected.
-		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
+		virtual void disconnect(error_code const& ec
+			, peer_connection_interface::operation_t op, int error = 0);
+
 		// called when a connect attempt fails (not when an
 		// established connection fails)
 		void connect_failed(error_code const& e);
@@ -632,7 +632,9 @@ namespace libtorrent
 
 		bool can_request_time_critical() const;
 
-		void make_time_critical(piece_block const& block);
+		// returns true if the specified block was actually made time-critical.
+		// if the block was already time-critical, it returns false.
+		bool make_time_critical(piece_block const& block);
 
 		// adds a block to the request queue
 		// returns true if successful, false otherwise
@@ -654,7 +656,7 @@ namespace libtorrent
 
 		void assign_bandwidth(int channel, int amount);
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
@@ -691,10 +693,15 @@ namespace libtorrent
 		void log_buffer_usage(char* buffer, int size, char const* label);
 #endif
 
-		virtual void append_send_buffer(char* buffer, int size, boost::function<void(char*)> const& destructor
-			, bool encrypted = false);
+		virtual void append_send_buffer(char* buffer, int size
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference(), bool encrypted = false);
 
-		virtual void append_const_send_buffer(char const* buffer, int size, boost::function<void(char*)> const& destructor = &nop);
+		virtual void append_const_send_buffer(char const* buffer, int size
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference());
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)
@@ -1102,7 +1109,11 @@ namespace libtorrent
 		piece_block m_receiving_block;
 
 		// the local endpoint for this peer, i.e. our address
-		// and our port
+		// and our port. If this is set for outgoing connections
+		// before the connection completes, it means we want to
+		// force the connection to be bound to the specified interface.
+		// if it ends up being bound to a different local IP, the connection
+		// is closed.
 		tcp::endpoint m_local;
 		
 		// remote peer's id
@@ -1206,10 +1217,10 @@ namespace libtorrent
 		// another peer sends us a have message for this piece
 		int m_superseed_piece[2];
 
-		// bytes downloaded since last second
+		// pieces downloaded since last second
 		// timer timeout; used for determining 
 		// approx download rate
-		int m_remote_bytes_dled;
+		int m_remote_pieces_dled;
 
 		// approximate peer download rate
 		int m_remote_dl_rate;
@@ -1428,7 +1439,7 @@ namespace libtorrent
 			);
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	public:
 		bool m_in_constructor;
 		bool m_disconnect_started;

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/hasher.hpp"
+#include "libtorrent/crc32c.hpp"
 #include "libtorrent/ip_voter.hpp"
 
 namespace libtorrent
@@ -73,15 +73,15 @@ namespace libtorrent
 
 		using std::swap;
 
-		hasher h;
+		boost::uint32_t ret;
 		if (e1.address() == e2.address())
 		{
 			if (e1.port() > e2.port())
 				swap(e1, e2);
-			boost::uint16_t p[2];
-			p[0] = htons(e1.port());
-			p[1] = htons(e2.port());
-			h.update((char const*)&p[0], 4);
+			boost::uint32_t p;
+			reinterpret_cast<boost::uint16_t*>(&p)[0] = htons(e1.port());
+			reinterpret_cast<boost::uint16_t*>(&p)[1] = htons(e2.port());
+			ret = crc32c_32(p);
 		}
 #if TORRENT_USE_IPV6
 		else if (e1.address().is_v6())
@@ -99,8 +99,10 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 6) ? 1 : 2;
 			apply_mask(&b1[0], v6mask[mask], 8);
 			apply_mask(&b2[0], v6mask[mask], 8);
-			h.update((char const*)&b1[0], b1.size());
-			h.update((char const*)&b2[0], b2.size());
+			boost::uint64_t addrbuf[4];
+			memcpy(&addrbuf[0], &b1[0], 16);
+			memcpy(&addrbuf[2], &b2[0], 16);
+			ret = crc32c(addrbuf, 4);
 		}
 #endif
 		else
@@ -118,14 +120,13 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 3) ? 1 : 2;
 			apply_mask(&b1[0], v4mask[mask], 4);
 			apply_mask(&b2[0], v4mask[mask], 4);
-			h.update((char const*)&b1[0], b1.size());
-			h.update((char const*)&b2[0], b2.size());
+			boost::uint64_t addrbuf;
+			memcpy(&addrbuf, &b1[0], 4);
+			memcpy(reinterpret_cast<char*>(&addrbuf) + 4, &b2[0], 4);
+			ret = crc32c(&addrbuf, 1);
 		}
 
-		boost::uint32_t ret;
-		sha1_hash digest = h.final();
-		memcpy(&ret, &digest[0], 4);
-		return ntohl(ret);
+		return ret;
 	}
 
 	torrent_peer::torrent_peer(boost::uint16_t port, bool conn, int src)
@@ -163,7 +164,7 @@ namespace libtorrent
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
 		, web_seed(false)
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		, in_use(false)
 #endif
 	{

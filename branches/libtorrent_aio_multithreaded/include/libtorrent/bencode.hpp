@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -97,6 +97,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/io.hpp" // for write_string
 
 namespace libtorrent
 {
@@ -110,16 +111,9 @@ namespace libtorrent
 
 	namespace detail
 	{
-		template <class OutIt>
-		int write_string(OutIt& out, const std::string& val)
-		{
-			for (std::string::const_iterator i = val.begin()
-				, end(val.end()); i != end; ++i)
-				*out++ = *i;
-			return int(val.length());
-		}
-
-		TORRENT_EXTRA_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val);
+		// this is used in the template, so it must be available to the client
+		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
+			, entry::integer_type val);
 
 		template <class OutIt>
 		int write_integer(OutIt& out, entry::integer_type val)
@@ -200,7 +194,7 @@ namespace libtorrent
 			case entry::string_t:
 				ret += write_integer(out, e.string().length());
 				write_char(out, ':');
-				ret += write_string(out, e.string());
+				ret += write_string(e.string(), out);
 				ret += 1;
 				break;
 			case entry::list_t:
@@ -218,7 +212,7 @@ namespace libtorrent
 					// write key
 					ret += write_integer(out, i->first.length());
 					write_char(out, ':');
-					ret += write_string(out, i->first);
+					ret += write_string(i->first, out);
 					// write value
 					ret += bencode_recursive(out, i->second);
 					ret += 1;

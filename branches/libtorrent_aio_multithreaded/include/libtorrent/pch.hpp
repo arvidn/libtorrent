@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,10 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/config.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/date_time/gregorian/gregorian_types.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/function.hpp>
 #include <boost/integer_traits.hpp>

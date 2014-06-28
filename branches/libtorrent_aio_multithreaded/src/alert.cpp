@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003-2014, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -305,9 +305,9 @@ namespace libtorrent {
 		{
 			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5"
 		};
-		char ret[250];
+		char ret[300];
 		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
-			, print_endpoint(endpoint).c_str()
+			, interface.c_str()
 			, op_str[operation]
 			, type_str[sock_type]
 			, convert_from_native(error.message()).c_str());
@@ -347,6 +347,27 @@ namespace libtorrent {
 		static char const* type_str[] = {"NAT-PMP", "UPnP"};
 		char ret[600];
 		snprintf(ret, sizeof(ret), "%s: %s", type_str[map_type], msg.c_str());
+		return ret;
+	}
+
+	std::string peer_blocked_alert::message() const
+	{
+		error_code ec;
+		char ret[600];
+		char const* reason_str[] =
+		{
+			"ip_filter",
+			"port_filter",
+			"i2p_mixed",
+			"privileged_ports",
+			"utp_disabled",
+			"tcp_disabled",
+			"invalid_local_interface"
+		};
+
+		snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
+			, torrent_alert::message().c_str(), ip.to_string(ec).c_str()
+			, reason_str[reason]);
 		return ret;
 	}
 
@@ -569,6 +590,7 @@ namespace libtorrent {
 			"encryption",
 			"connect",
 			"ssl_handshake",
+			"get_interface",
 		};
 
 		if (op < 0 || op >= sizeof(names)/sizeof(names[0]))
@@ -600,6 +622,65 @@ namespace libtorrent {
 		char msg[600];
 		snprintf(msg, sizeof(msg), "%s disconnecting [%s] [%s]: %s", peer_alert::message().c_str()
 			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
+		return msg;
+	}
+
+	std::string dht_error_alert::message() const
+	{
+		const static char* const operation_names[] =
+		{
+			"unknown",
+			"hostname lookup"
+		};
+
+		int op = operation;
+		if (op < 0 || op > sizeof(operation_names)/sizeof(operation_names[0]))
+			op = 0;
+
+		char msg[600];
+		snprintf(msg, sizeof(msg), "DHT error [%s] (%d) %s"
+			, operation_names[op]
+			, error.value()
+			, convert_from_native(error.message()).c_str());
+		return msg;
+	}
+
+	std::string dht_immutable_item_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
+			, to_hex(target.to_string()).c_str()
+			, item.to_string().c_str());
+		return msg;
+	}
+
+	std::string dht_mutable_item_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 ") [ %s ]"
+			, to_hex(std::string(&key[0], 32)).c_str()
+			, salt.c_str()
+			, seq
+			, item.to_string().c_str());
+		return msg;
+	}
+
+	std::string dht_put_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT put complete (key=%s sig=%s salt=%s seq=%" PRId64 ")"
+			, to_hex(std::string(&public_key[0], 32)).c_str()
+			, to_hex(std::string(&signature[0], 64)).c_str()
+			, salt.c_str()
+			, seq);
+		return msg;
+	}
+
+	std::string i2p_alert::message() const
+	{
+		char msg[600];
+		snprintf(msg, sizeof(msg), "i2p_error: [%s] %s"
+			, error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
 

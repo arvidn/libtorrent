@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -77,6 +77,7 @@ struct traversal_algorithm : boost::noncopyable
 
 	node_id const& target() const { return m_target; }
 
+	void resort_results();
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 
 	traversal_algorithm(node_impl& node, node_id target);
@@ -119,6 +120,11 @@ protected:
 	boost::uint16_t m_branch_factor;
 	boost::uint16_t m_responses;
 	boost::uint16_t m_timeouts;
+
+	// the IP addresses of the nodes in m_results
+	std::set<boost::uint32_t> m_peer4_prefixes;
+// no IPv6 support yet anyway
+//	std::set<boost::uint64_t> m_peer6_prefixes;
 };
 
 struct traversal_observer : observer

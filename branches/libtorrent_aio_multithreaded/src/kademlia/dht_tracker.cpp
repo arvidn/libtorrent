@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,29 +71,6 @@ enum
 namespace
 {
 	const int tick_period = 1; // minutes
-
-	template <class EndpointType>
-	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)
-	{
-		using namespace libtorrent;
-		if (n->type() != entry::list_t) return;
-		entry::list_type const& contacts = n->list();
-		for (entry::list_type::const_iterator i = contacts.begin()
-			, end(contacts.end()); i != end; ++i)
-		{
-			if (i->type() != entry::string_t) return;
-			std::string const& p = i->string();
-			if (p.size() < 6) continue;
-			std::string::const_iterator in = p.begin();
-			if (p.size() == 6)
-				epl.push_back(read_v4_endpoint<EndpointType>(in));
-#if TORRENT_USE_IPV6
-			else if (p.size() == 18)
-				epl.push_back(read_v6_endpoint<EndpointType>(in));
-#endif
-		}
-	}
-
 }
 
 namespace libtorrent { namespace dht
@@ -207,7 +184,7 @@ namespace libtorrent { namespace dht
 		, m_dht(&ses, this, settings, extract_node_id(state)
 			, ses.external_address().external_address(address_v4()), &ses, cnt)
 		, m_sock(sock)
-		, m_last_new_key(time_now() - minutes(key_refresh))
+		, m_last_new_key(time_now() - minutes(int(key_refresh)))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -248,7 +225,8 @@ namespace libtorrent { namespace dht
 	// defined in node.cpp
 	extern void nop();
 
-	void dht_tracker::start(entry const& bootstrap)
+	void dht_tracker::start(entry const& bootstrap
+		, find_data::nodes_callback const& f)
 	{
 		std::vector<udp::endpoint> initial_nodes;
 
@@ -270,7 +248,7 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(boost::bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(initial_nodes, boost::bind(&libtorrent::dht::nop));
+		m_dht.bootstrap(initial_nodes, f);
 	}
 
 	void dht_tracker::stop()
@@ -326,7 +304,7 @@ namespace libtorrent { namespace dht
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
 		ptime now = time_now();
-		if (now - m_last_new_key > minutes(key_refresh))
+		if (now - minutes(int(key_refresh)) > m_last_new_key)
 		{
 			m_last_new_key = now;
 			m_dht.new_write_key();
@@ -418,12 +396,82 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	void dht_tracker::announce(sha1_hash const& ih, int listen_port, bool seed
+	void dht_tracker::announce(sha1_hash const& ih, int listen_port, int flags
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
-		m_dht.announce(ih, listen_port, seed, f);
+		m_dht.announce(ih, listen_port, flags, f);
 	}
 
+	// these functions provide a slightly higher level
+	// interface to the get/put functionality in the DHT
+	bool get_immutable_item_callback(item& it, boost::function<void(item const&)> f)
+	{
+		// the reason to wrap here is to control the return value
+		// since it controls whether we re-put the content
+		TORRENT_ASSERT(!it.is_mutable());
+		f(it);
+		return false;
+	}
+
+	bool get_mutable_item_callback(item& it, boost::function<void(item const&)> f)
+	{
+		// the reason to wrap here is to control the return value
+		// since it controls whether we re-put the content
+		TORRENT_ASSERT(it.is_mutable());
+		f(it);
+		return false;
+	}
+
+	bool put_immutable_item_callback(item& it, boost::function<void()> f
+		, entry data)
+	{
+		TORRENT_ASSERT(!it.is_mutable());
+		it.assign(data);
+		// TODO: ideally this function would be called when the
+		// put completes
+		f();
+		return true;
+	}
+
+	bool put_mutable_item_callback(item& it, boost::function<void(item&)> cb)
+	{
+		cb(it);
+		return true;
+	}
+
+	void dht_tracker::get_item(sha1_hash const& target
+		, boost::function<void(item const&)> cb)
+	{
+		m_dht.get_item(target, boost::bind(&get_immutable_item_callback, _1, cb));
+	}
+
+	// key is a 32-byte binary string, the public key to look up.
+	// the salt is optional
+	void dht_tracker::get_item(char const* key
+		, boost::function<void(item const&)> cb
+		, std::string salt)
+	{
+		m_dht.get_item(key, salt, boost::bind(&get_mutable_item_callback, _1, cb));
+	}
+
+	void dht_tracker::put_item(entry data
+		, boost::function<void()> cb)
+	{
+		std::string flat_data;
+		bencode(std::back_inserter(flat_data), data);
+		sha1_hash target = item_target_id(
+			std::pair<char const*, int>(flat_data.c_str(), flat_data.size()));
+
+		m_dht.get_item(target, boost::bind(&put_immutable_item_callback
+			, _1, cb, data));
+	}
+
+	void dht_tracker::put_item(char const* key
+		, boost::function<void(item&)> cb, std::string salt)
+	{
+		m_dht.get_item(key, salt, boost::bind(&put_mutable_item_callback
+			, _1, cb));
+	}
 
 	// translate bittorrent kademlia message into the generice kademlia message
 	// used by the library
@@ -436,10 +484,10 @@ namespace libtorrent { namespace dht
 				|| ec == asio::error::connection_reset
 				|| ec == asio::error::connection_aborted
 #ifdef WIN32
-				|| ec == error_code(ERROR_HOST_UNREACHABLE, get_system_category())
-				|| ec == error_code(ERROR_PORT_UNREACHABLE, get_system_category())
-				|| ec == error_code(ERROR_CONNECTION_REFUSED, get_system_category())
-				|| ec == error_code(ERROR_CONNECTION_ABORTED, get_system_category())
+				|| ec == error_code(ERROR_HOST_UNREACHABLE, system_category())
+				|| ec == error_code(ERROR_PORT_UNREACHABLE, system_category())
+				|| ec == error_code(ERROR_CONNECTION_REFUSED, system_category())
+				|| ec == error_code(ERROR_CONNECTION_ABORTED, system_category())
 #endif
 				)
 			{
@@ -452,6 +500,20 @@ namespace libtorrent { namespace dht
 
 		// account for IP and UDP overhead
 		m_received_bytes += size + (ep.address().is_v6() ? 48 : 28);
+	
+		if (m_settings.ignore_dark_internet && ep.address().is_v4())
+		{
+			address_v4::bytes_type b = ep.address().to_v4().to_bytes();
+
+			// these are class A networks not available to the public
+			// if we receive messages from here, that seems suspicious
+			boost::uint8_t class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
+				, 26, 28, 29, 30, 33, 34, 45, 48, 51, 52, 56, 102, 104 };
+
+			int num = sizeof(class_a)/sizeof(class_a[0]);
+			if (std::find(class_a, class_a + num, b[0]) != class_a + num)
+				return true;
+		}
 
 		if (!m_blocker.incoming(ep.address(), time_now()))
 			return true;

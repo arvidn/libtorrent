@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #include <set>
 #endif
 
@@ -100,7 +100,6 @@ namespace libtorrent
 
 		bool operator!=(piece_block const& b) const
 		{ return piece_index != b.piece_index || block_index != b.block_index; }
-
 	};
 
 	class TORRENT_EXTRA_EXPORT piece_picker
@@ -130,7 +129,7 @@ namespace libtorrent
 			// the state of this block
 			enum { state_none, state_requested, state_writing, state_finished };
 			unsigned state:2;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			// to allow verifying the invariant of blocks belonging to the right piece
 			int piece_index;
 			std::set<void*> peers;
@@ -160,10 +159,14 @@ namespace libtorrent
 			speed_affinity = 32,
 			// ignore the prefer_whole_pieces parameter
 			ignore_whole_pieces = 64,
+			// treat pieces with priority 6 and below as filtered
+			// to trigger end-game mode until all prio 7 pieces are
+			// completed
+			time_critical_mode = 128,
 			// only expands pieces (when prefer whole pieces is set)
 			// within properly aligned ranges, not the largest possible
 			// range of pieces.
-			align_expanded_pieces = 128
+			align_expanded_pieces = 256
 		};
 
 		struct downloading_piece
@@ -331,7 +334,7 @@ namespace libtorrent
 		// peer pointer
 		void clear_peer(void* peer);
 
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		// this is an invariant check
 		void check_peers();
 #endif
@@ -438,14 +441,13 @@ namespace libtorrent
 		// the number of pieces we want and don't have
 		int num_want_left() const { return num_pieces() - m_num_have - m_num_filtered + m_num_have_filtered; }
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_piece_state() const;
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
-#endif
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+
 		void check_peer_invariant(bitfield const& have, void const* p) const;
 		void check_invariant(const torrent* t = 0) const;
 #endif
@@ -491,14 +493,6 @@ namespace libtorrent
 				TORRENT_ASSERT(index_ >= 0);
 			}
 
-			// the number of peers that has this piece
-			// (availability)
-#if TORRENT_OPTIMIZE_MEMORY_USAGE
-			boost::uint32_t peer_count : 9;
-#else
-			boost::uint32_t peer_count : 16;
-#endif
-
 			// state of this piece.
 			enum state_t
 			{
@@ -514,6 +508,14 @@ namespace libtorrent
 				// pieces whose priority is 0
 				piece_zero_prio
 			};
+
+			// the number of peers that has this piece
+			// (availability)
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
+			boost::uint32_t peer_count : 9;
+#else
+			boost::uint32_t peer_count : 16;
+#endif
 
 			boost::uint32_t state : 3;
 

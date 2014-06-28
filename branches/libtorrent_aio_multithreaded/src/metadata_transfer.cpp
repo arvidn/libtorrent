@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -506,7 +506,7 @@ namespace libtorrent { namespace
 
 		bool has_metadata() const
 		{
-			return time_now() - m_no_metadata > minutes(5);
+			return time_now() - minutes(5) > m_no_metadata;
 		}
 
 	private:

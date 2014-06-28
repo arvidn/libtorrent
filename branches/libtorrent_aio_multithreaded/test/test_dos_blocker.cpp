@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 int test_main()
 {
+#ifndef TORRENT_DISABLE_DHT
 	using namespace libtorrent;
 	using namespace libtorrent::dht;
 
@@ -57,6 +58,8 @@ int test_main()
 	now += milliseconds(1);
 
 	TEST_EQUAL(b.incoming(spammer, now), false);
+#endif
+
 	return 0;
 }
 

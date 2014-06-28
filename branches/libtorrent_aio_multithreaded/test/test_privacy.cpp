@@ -34,12 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "dht_server.hpp"
 #include "peer_server.hpp"
+#include "udp_tracker.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 
 #include <fstream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 char const* proxy_name[] = {
 	"none",
@@ -83,17 +85,15 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 #endif
 	fprintf(stderr, "\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & anonymous_mode) ? "yes" : "no");
 	int http_port = start_web_server();
-	int udp_port = start_tracker();
+	int udp_port = start_udp_tracker();
 	int dht_port = start_dht();
 	int peer_port = start_peer();
 
-	int prev_udp_announces = g_udp_tracker_requests;
+	int prev_udp_announces = num_udp_announces();
 
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
-
-	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
 	settings_pack sett;
 	sett.set_int(settings_pack::stop_tracker_timeout, 2);
@@ -104,12 +104,21 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	sett.set_bool(settings_pack::announce_to_all_tiers, true);
 	sett.set_bool(settings_pack::anonymous_mode, flags & anonymous_mode);
 	sett.set_bool(settings_pack::force_proxy, flags & anonymous_mode);
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+
+	// since multiple sessions may exist simultaneously (because of the
+	// pipelining of the tests) they actually need to use different ports
+	static int listen_port = 48875;
+	char iface[200];
+	snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port++);
+	sett.set_str(settings_pack::listen_interfaces, iface);
+	sett.set_bool(settings_pack::enable_dht, true);
 
 	// if we don't do this, the peer connection test
 	// will be delayed by several seconds, by first
 	// trying uTP
 	sett.set_bool(settings_pack::enable_outgoing_utp, false);
-	s->apply_settings(sett);
+	lt::session* s = new lt::session(sett, fingerprint("LT", 0, 1, 0, 0));
 
 	// in non-anonymous mode we circumvent/ignore the proxy if it fails
 	// wheras in anonymous mode, we just fail
@@ -119,9 +128,8 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	ps.type = proxy_type;
 	s->set_proxy(ps);
 
-	s->start_dht();
-
 	error_code ec;
+	remove_all("tmp1_privacy", ec);
 	create_directory("tmp1_privacy", ec);
 	std::ofstream file(combine_path("tmp1_privacy", "temporary").c_str());
 	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
@@ -138,6 +146,11 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 	add_torrent_params addp;
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
+
+	// we don't want to waste time checking the torrent, just go straight into
+	// seeding it, announcing to trackers and connecting to peers
+	addp.flags |= add_torrent_params::flag_seed_mode;
+
 	addp.ti = t;
 	addp.save_path = "tmp1_privacy";
 	addp.dht_nodes.push_back(std::pair<std::string, int>("127.0.0.1", dht_port));
@@ -159,13 +172,13 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 		print_alerts(*s, "s", false, false, false, &alert_predicate);
 		test_sleep(100);
 
-		if (g_udp_tracker_requests >= prev_udp_announces + 1
+		if (num_udp_announces() >= prev_udp_announces + 1
 			&& num_peer_hits() > 0)
 			break;
 	}
 
 	// we should have announced to the tracker by now
-	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + bool(flags & expect_udp_connection));
+	TEST_EQUAL(num_udp_announces(), prev_udp_announces + bool(flags & expect_udp_connection));
 	if (flags & expect_dht_msg)
 	{
 		TEST_CHECK(num_dht_hits() > 0);
@@ -196,7 +209,7 @@ session_proxy test_proxy(proxy_settings::proxy_type proxy_type, int flags)
 
 	stop_peer();
 	stop_dht();
-	stop_tracker();
+	stop_udp_tracker();
 	stop_web_server();
 	return pr;
 }

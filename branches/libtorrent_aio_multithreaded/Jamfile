@@ -25,6 +25,28 @@ if $(BOOST_ROOT)
 
 VERSION = 1.1.0 ;
 
+rule coverage ( properties * )
+{
+	local result ;
+	if <toolset>gcc in $(properties)
+		|| <toolset>darwin in $(properties)
+		|| <toolset>clang in $(properties)
+	{
+		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage ;
+
+		if <toolset>gcc in $(properties)
+			|| <toolset>darwin in $(properties)
+		{
+			result += <linkflags>-lgcov ;
+		}
+		else
+		{
+			result += <linkflags>--coverage ;
+		}
+	}
+	return $(result) ;
+}
+
 # rule for linking the correct libraries depending
 # on features and target-os
 rule linking ( properties * )
@@ -111,25 +133,6 @@ rule linking ( properties * )
 		result += <library>libsocket <library>libnsl ;
 	}
 
-	if <test-coverage>on in $(properties)
-		&& ( <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties)
-		|| <toolset>clang in $(properties) )
-	{
-		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage
-			<define>NDEBUG ;
-
-		if <toolset>gcc in $(properties)
-			|| <toolset>darwin in $(properties)
-		{
-			result += <linkflags>-lgcov ;
-		}
-		else
-		{
-			result += <linkflags>--coverage ;
-		}
-	}
-
 	# clock_gettime on linux requires librt
 	if <need-librt>yes in $(properties)
 	{
@@ -170,10 +173,12 @@ rule linking ( properties * )
 				# library, so that it properly exports its symbols
 				result += <define>BOOST_ALL_DYN_LINK ;
 				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
+				result += <library>/boost/chrono//boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
 			}
 			else
 			{
 				result += <library>/boost/system//boost_system/<link>static ;
+				result += <library>/boost/chrono//boost_chrono/<link>static ;
 			}
 
 			if <toolset>gcc in $(properties) && <link>shared in $(properties)
@@ -185,14 +190,7 @@ rule linking ( properties * )
 		else
 		{
 			result += <library>/boost/system//boost_system/<link>shared ;
-
-			# when building a shared library with openssl, for some reason we really need
-			# boost date time (at least on windows). Hopefully a future version of asio
-			# will allow disabling this dependency
-			if <encryption>openssl in $(properties)
-			{
-				result += <library>/boost/date_time//boost_date_time/<link>shared ;
-			}
+			result += <library>/boost/chrono//boost_chrono/<link>shared ;
 		}
 		result += <include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
@@ -203,11 +201,7 @@ rule linking ( properties * )
 	else
 	{
 		result += <library>boost_system ;
-
-		if <boost-link>shared in $(properties) && <encryption>openssl in $(properties)
-		{
-			result += <library>boost_date_time ;
-		}
+		result += <library>boost_chrono ;
 
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
@@ -234,6 +228,14 @@ rule building ( properties * )
 		# this is off by default to keep the export
 		# symbol table reasonably small
 		result += <define>TORRENT_EXPORT_EXTRA ;
+	}
+
+	if ( <variant>debug in $(properties)
+		&& ( <toolset>clang in $(properties)
+			|| <toolset>gcc in $(properties)
+			|| <toolset>darwin in $(properties) ) )
+	{
+		result += <cflags>-ftrapv ;
 	}
 
 	if ( <variant>debug in $(properties)
@@ -305,16 +307,16 @@ rule tag ( name : type  ? : property-set )
 
 feature tcmalloc : no yes : composite propagated link-incompatible ;
 
-feature timer : auto boost absolute performance clock system_time
-	: composite propagated link-incompatible ;
-feature.compose <timer>boost : <define>TORRENT_USE_BOOST_DATE_TIME=1 ;
-feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
-feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
-feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
-feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
-
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
+
+feature sanitize : off address undefined thread rtc : composite propagated link-incompatible ;
+# sanitize is a clang and GCC feature
+feature.compose <sanitize>address : <cflags>-fsanitize=address <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=address ;
+feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <linkflags>-fsanitize=undefined ;
+feature.compose <sanitize>thread : <cflags>-fsanitize=thread <linkflags>-fsanitize=thread ;
+# RTC (runtime check) is an msvc feature
+feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
 
 feature need-librt : no yes : composite propagated link-incompatible ;
 
@@ -344,11 +346,10 @@ feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE 
 feature asserts : auto on off production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 <define>TORRENT_RELEASE_ASSERTS=1 ;
-feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
+feature.compose <asserts>off : <define>TORRENT_USE_ASSERTS=0 ;
 feature.compose <asserts>system : <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 
-feature windows-version : 2k xp vista win7 : composite propagated link-incompatible ;
-feature.compose <windows-version>2k : <define>_WIN32_WINNT=0x0500 ;
+feature windows-version : xp vista win7 : composite propagated link-incompatible ;
 feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
 feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
@@ -359,12 +360,15 @@ feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSIONS ;
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
+feature picker-debugging : off on : composite propagated link-incompatible ;
+feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
+
 # deprecated use allocator=pool instead
 feature pool-allocators : on off debug : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
 feature.compose <pool-allocators>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
 
-feature allocator : pool system debug : composite ;
+feature allocator : pool system debug : composite propagated ;
 feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
 feature.compose <allocator>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
 
@@ -428,6 +432,7 @@ feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
 
 feature test-coverage : off on : composite propagated ;
+feature.compose <test-coverage>on : <conditional>@coverage ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
@@ -468,9 +473,9 @@ lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-sea
 lib boost_system : : <target-os>solaris <name>boost_system $(boost-library-search-path) ;
 lib boost_system : : <name>boost_system ;
 
-lib boost_date_time : : <target-os>darwin <name>boost_date_time-mt $(boost-library-search-path) ;
-lib boost_date_time : : <target-os>solaris <name>boost_date_time $(boost-library-search-path) ;
-lib boost_date_time : : <name>boost_date_time ;
+lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-library-search-path) ;
+lib boost_chrono : : <target-os>solaris <name>boost_chrono $(boost-library-search-path) ;
+lib boost_chrono : : <name>boost_chrono ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
@@ -498,7 +503,6 @@ lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
-	alert_handler
 	alert_manager
 	allocator
 	asio
@@ -510,6 +514,7 @@ SOURCES =
 	bloom_filter
 	chained_buffer
 	connection_queue
+	crc32c
 	create_torrent
 	disk_buffer_holder
 	disk_buffer_pool
@@ -583,6 +588,7 @@ SOURCES =
 	parse_url
 	ConvertUTF
 	thread
+	xml_parse
 	peer_class
 	peer_class_set
 	part_file
@@ -662,8 +668,6 @@ local usage-requirements =
 	<toolset>gcc:<cflags>-fno-strict-aliasing
 	<toolset>gcc:<cflags>-Wno-missing-braces
 # assert on integer overflow
-	<toolset>gcc,<variant>debug:<cflags>-ftrapv
-	<toolset>darwin,<variant>debug:<cflags>-ftrapv
 	<toolset>clang:<cflags>-Wno-invalid-offsetof
 	<toolset>clang-darwin:<cflags>-Wno-invalid-offsetof
 	<boost>system:<cxxflags>$(CXXFLAGS)
@@ -688,6 +692,7 @@ lib torrent
 	<include>./ed25519/src
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
+	<define>BOOST_NO_DEPRECATED
 
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
@@ -713,6 +718,7 @@ lib torrent
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
+
 	;
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;

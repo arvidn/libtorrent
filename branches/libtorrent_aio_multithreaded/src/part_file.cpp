@@ -196,7 +196,8 @@ namespace libtorrent
 		return m_file.writev(slot_offset + offset, bufs, num_bufs, ec);
 	}
 
-	int part_file::readv(file::iovec_t const* bufs, int num_bufs, int piece, int offset, error_code& ec)
+	int part_file::readv(file::iovec_t const* bufs, int num_bufs
+		, int piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
 		mutex::scoped_lock l(m_mutex);
@@ -204,13 +205,9 @@ namespace libtorrent
 		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
 		{
-			int ret = 0;
-			for (int i = 0; i < num_bufs; ++i)
-			{
-				memset(bufs[i].iov_base, 0, bufs[i].iov_len);
-				ret += bufs[i].iov_len;
-			}
-			return ret;
+			ec = error_code(boost::system::errc::no_such_file_or_directory
+				, boost::system::generic_category());
+			return -1;
 		}
 
 		int slot = i->second;
@@ -232,6 +229,17 @@ namespace libtorrent
 
 		std::string fn = combine_path(m_path, m_name);
 		m_file.open(fn, mode, ec);
+		if (((mode & file::rw_mask) != file::read_only)
+			&& ec == boost::system::errc::no_such_file_or_directory)
+		{
+			// this means the directory the file is in doesn't exist.
+			// so create it
+			ec.clear();
+			create_directories(m_path, ec);
+
+			if (ec) return;
+			m_file.open(fn, mode, ec);
+		}
 	}
 
 	void part_file::free_piece(int piece, error_code& ec)

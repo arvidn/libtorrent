@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
 {
@@ -45,21 +46,21 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	FILE* f = fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		return -1;
 	}
 
 	int r = fseek(f, 0, SEEK_END);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -73,7 +74,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fseek(f, 0, SEEK_SET);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -88,7 +89,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	r = fread(&v[0], 1, v.size(), f);
 	if (r < 0)
 	{
-		ec.assign(errno, boost::system::get_generic_category());
+		ec.assign(errno, boost::system::generic_category());
 		fclose(f);
 		return -1;
 	}
@@ -163,7 +164,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	session ses;
+	lt::session ses;
 
 	settings_pack pack;
 	pack.set_int(settings_pack::active_downloads, 2);

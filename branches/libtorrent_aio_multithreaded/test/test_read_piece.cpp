@@ -45,6 +45,7 @@ enum flags_t
 void test_read_piece(int flags)
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	fprintf(stderr, "==== TEST READ PIECE =====\n");
 
@@ -86,8 +87,10 @@ void test_read_piece(int flags)
 	fprintf(stderr, "generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, to_hex(ti->info_hash().to_string()).c_str());
 
-	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
-	ses.set_alert_mask(alert::all_categories);
+	lt::session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
+	settings_pack sett;
+	sett.set_int(settings_pack::alert_mask, alert::all_categories);
+	ses.apply_settings(sett);
 
 	add_torrent_params p;
 	p.save_path = "tmp1_read_piece";

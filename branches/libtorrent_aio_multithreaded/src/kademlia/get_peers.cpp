@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -152,7 +152,7 @@ observer_ptr get_peers::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
 	observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	return o;
@@ -178,7 +178,7 @@ observer_ptr obfuscated_get_peers::new_observer(void* ptr
 	if (m_obfuscated)
 	{
 		observer_ptr o(new (ptr) obfuscated_get_peers_observer(this, ep, id));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
 #endif
 		return o;
@@ -186,7 +186,7 @@ observer_ptr obfuscated_get_peers::new_observer(void* ptr
 	else
 	{
 		observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
 #endif
 		return o;

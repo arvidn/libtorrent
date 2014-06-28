@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// returns protocol, auth, hostname, port, path
 	TORRENT_EXTRA_EXPORT boost::tuple<std::string, std::string
 		, std::string, int, std::string>
 		parse_url_components(std::string url, error_code& ec);

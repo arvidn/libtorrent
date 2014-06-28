@@ -38,22 +38,47 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/entry.hpp>
 #include <vector>
 #include <exception>
+#include <boost/array.hpp>
 
 namespace libtorrent { namespace dht
 {
 
-bool TORRENT_EXTRA_EXPORT verify_mutable_item(std::pair<char const*, int> v,
-	boost::uint64_t seq,
-	char const* pk,
-	char const* sig);
+// calculate the target hash for an immutable item.
+sha1_hash TORRENT_EXTRA_EXPORT item_target_id(
+	std::pair<char const*, int> v);
 
-void TORRENT_EXTRA_EXPORT sign_mutable_item(std::pair<char const*, int> v,
-	boost::uint64_t seq,
-	char const* pk,
-	char const* sk,
-	char* sig);
+// calculate the target hash for a mutable item.
+sha1_hash TORRENT_EXTRA_EXPORT item_target_id(std::pair<char const*, int> salt
+	, char const* pk);
 
-sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(std::pair<char const*, int> v, boost::uint64_t seq);
+bool TORRENT_EXTRA_EXPORT verify_mutable_item(
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq
+	, char const* pk
+	, char const* sig);
+
+// TODO: since this is a public function, it should probably be moved
+// out of this header and into one with other public functions.
+
+// given a byte range ``v`` and an optional byte range ``salt``, a
+// sequence number, public key ``pk`` (must be 32 bytes) and a secret key
+// ``sk`` (must be 64 bytes), this function produces a signature which
+// is written into a 64 byte buffer pointed to by ``sig``. The caller
+// is responsible for allocating the destination buffer that's passed in
+// as the ``sig`` argument. Typically it would be allocated on the stack.
+void TORRENT_EXPORT sign_mutable_item(
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq
+	, char const* pk
+	, char const* sk
+	, char* sig);
+
+sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq);
 
 struct TORRENT_EXTRA_EXPORT invalid_item : std::exception
 {
@@ -67,22 +92,35 @@ enum
 	item_sig_len = 64
 };
 
-struct lazy_item;
-
 class TORRENT_EXTRA_EXPORT item
 {
 public:
-	item() : m_mutable(false) {}
+	item() : m_seq(0), m_mutable(false)  {}
+	item(char const* pk, std::string const& salt);
 	item(entry const& v) { assign(v); }
-	item(entry const& v, boost::uint64_t seq, char const* pk, char const* sk);
+	item(entry const& v
+		, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sk);
 	item(lazy_entry const* v) { assign(v); }
-	item(lazy_entry const* v, boost::uint64_t seq, char const* pk, char const* sig);
-	item(lazy_item const&);
+	item(lazy_entry const* v, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sig);
 
-	void assign(entry const& v) { assign(v, 0, NULL, NULL); }
-	void assign(entry const& v, boost::uint64_t seq, char const* pk, char const* sk);
-	void assign(lazy_entry const* v) { assign(v, 0, NULL, NULL); }
-	bool assign(lazy_entry const* v, boost::uint64_t seq, char const* pk, char const* sig);
+	void assign(entry const& v)
+	{
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
+			, 0), 0, NULL, NULL);
+	}
+	void assign(entry const& v, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sk);
+	void assign(lazy_entry const* v)
+	{
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
+			, 0), 0, NULL, NULL);
+	}
+	bool assign(lazy_entry const* v, std::pair<char const*, int> salt
+		, boost::uint64_t seq, char const* pk, char const* sig);
+	void assign(entry const& v, std::string salt, boost::uint64_t seq
+		, char const* pk, char const* sig);
 
 	void clear() { m_value = entry(); }
 	bool empty() const { return m_value.type() == entry::undefined_t; }
@@ -92,29 +130,20 @@ public:
 	sha1_hash cas();
 
 	entry const& value() const { return m_value; }
-	char const* pk() { TORRENT_ASSERT(m_mutable); return m_pk; }
-	char const* sig() { TORRENT_ASSERT(m_mutable); return m_sig; }
-	boost::uint64_t seq() { TORRENT_ASSERT(m_mutable); return m_seq; }
+	boost::array<char, item_pk_len> const& pk() const
+	{ return m_pk; }
+	boost::array<char, item_sig_len> const& sig() const
+	{ return m_sig; }
+	boost::uint64_t seq() const { return m_seq; }
+	std::string const& salt() const { return m_salt; }
 
 private:
 	entry m_value;
-	char m_pk[item_pk_len];
-	char m_sig[item_sig_len];
+	std::string m_salt;
+	boost::array<char, item_pk_len> m_pk;
+	boost::array<char, item_sig_len> m_sig;
 	boost::uint64_t m_seq;
 	bool m_mutable;
-};
-
-struct lazy_item
-{
-	lazy_item(lazy_entry const* v) : value(v), pk(NULL), sig(NULL), seq(0) {}
-	lazy_item(lazy_entry const* v, char const* pk, char const* sig, boost::uint64_t seq);
-
-	bool is_mutable() const { return pk && sig; }
-
-	lazy_entry const* value;
-	char const* pk;
-	char const* sig;
-	boost::uint64_t const seq;
 };
 
 } } // namespace libtorrent::dht

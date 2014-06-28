@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -218,7 +218,7 @@ namespace libtorrent
 		atomic_count cumulative_write_time;
 		atomic_count cumulative_hash_time;
 
-		// the number of bytes that had to be read back from disk because
+		// the number of blocks that had to be read back from disk because
 		// they were flushed before the SHA-1 hash got to hash them. If this
 		// is large, a larger cache could significantly improve performance
 		int total_read_back;
@@ -361,7 +361,7 @@ namespace libtorrent
 
 		block_cache* cache() { return &m_disk_cache; }
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
 		bool is_disk_buffer(char* buffer) const { return m_disk_cache.is_disk_buffer(buffer); }
 #endif
 
@@ -381,7 +381,9 @@ namespace libtorrent
 
 		io_service& get_io_service() { return m_ios; }
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		int prep_read_job_impl(disk_io_job* j, bool check_fence = true);
+
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
@@ -433,7 +435,8 @@ namespace libtorrent
 
 		void add_completed_job(disk_io_job* j);
 		void add_completed_jobs(tailqueue& jobs);
-		void add_completed_job_impl(disk_io_job* j);
+		void add_completed_jobs_impl(tailqueue& jobs
+			, tailqueue& completed_jobs);
 
 		void fail_jobs(storage_error const& e, tailqueue& jobs_);
 		void fail_jobs_impl(storage_error const& e, tailqueue& src, tailqueue& dst);
@@ -490,6 +493,9 @@ namespace libtorrent
 		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, tailqueue& completed_jobs, mutex::scoped_lock& l);
 
 		void try_flush_write_blocks(int num, tailqueue& completed_jobs, mutex::scoped_lock& l);
+
+		// used to batch reclaiming of blocks to once per cycle
+		void commit_reclaimed_blocks();
 
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
@@ -608,6 +614,19 @@ namespace libtorrent
 		// handler functions
 		mutex m_completed_jobs_mutex;
 		tailqueue m_completed_jobs;
+
+		// these are blocks that have been returned by the main thread
+		// but they haven't been freed yet. This is used to batch
+		// reclaiming of blocks, to only need one mutex lock per cycle
+		std::vector<block_cache_reference> m_blocks_to_reclaim;
+
+		// when this is true, there is an outstanding message in the
+		// message queue that will reclaim all blocks in
+		// m_blocks_to_reclaim, there's no need to send another one
+		bool m_outstanding_reclaim_message;
+#if TORRENT_USE_ASSERTS
+		int m_magic;
+#endif
 	};
 }
 

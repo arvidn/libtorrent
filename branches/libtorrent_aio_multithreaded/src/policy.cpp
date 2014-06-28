@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
@@ -187,6 +187,13 @@ namespace libtorrent
 		}
 	}
 
+	void policy::clear_peer_prio()
+	{
+		for (peers_t::iterator i = m_peers.begin()
+			, end(m_peers.end()); i != end; ++i)
+			(*i)->peer_rank = 0;
+	}
+
 	// disconnects and removes all peers that are now filtered
 	// fills in 'erased' with torrent_peer pointers that were removed
 	// from the peer list. Any references to these peers must be cleared
@@ -225,7 +232,7 @@ namespace libtorrent
 
 				p->disconnect(errors::banned_by_port_filter, peer_connection_interface::op_bittorrent);
 				// what *i refers to has changed, i.e. cur was deleted
-				if (m_peers.size() < count)
+				if (int(m_peers.size()) < count)
 				{
 					i = m_peers.begin() + current;
 					continue;
@@ -277,7 +284,7 @@ namespace libtorrent
 		std::vector<torrent_peer*>::iterator ci = std::find(m_candidate_cache.begin(), m_candidate_cache.end(), *i);
 		if (ci != m_candidate_cache.end()) m_candidate_cache.erase(ci);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT((*i)->in_use);
 		(*i)->in_use = false;
 #endif
@@ -729,7 +736,7 @@ namespace libtorrent
 #endif
 				new (p) ipv4_peer(c.remote(), false, 0);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
@@ -795,9 +802,7 @@ namespace libtorrent
 					// as well, if it's considered useless (which this specific)
 					// case will, since it was an incoming peer that just disconnected
 					// and we allow multiple connections per IP. Because of that,
-					// we need to make sure we don't let it do that, by unlinking
-					// the peer_connection from the torrent_peer first.
-					p->connection->set_peer_info(0);
+					// we need to make sure we don't let it do that, locking i
 					TORRENT_ASSERT(m_locked_peer == NULL);
 					m_locked_peer = p;
 					p->connection->disconnect(errors::duplicate_peer_id, peer_connection_interface::op_bittorrent);
@@ -996,13 +1001,13 @@ namespace libtorrent
 			if (p == NULL) return NULL;
 			new (p) i2p_peer(destination, true, src);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
 			if (!insert_peer(p, iter, flags, state))
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				p->in_use = false;
 #endif
 
@@ -1080,13 +1085,13 @@ namespace libtorrent
 #endif
 				new (p) ipv4_peer(remote, true, src);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			p->in_use = true;
 #endif
 
 			if (!insert_peer(p, iter, flags, state))
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				p->in_use = false;
 #endif
 				state->peer_allocator->free_peer_entry(p);
@@ -1234,7 +1239,7 @@ namespace libtorrent
 		}
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	bool policy::has_connection(const peer_connection_interface* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1256,7 +1261,7 @@ namespace libtorrent
 	}
 #endif
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void policy::check_invariant() const
 	{
 		TORRENT_ASSERT(is_single_thread());

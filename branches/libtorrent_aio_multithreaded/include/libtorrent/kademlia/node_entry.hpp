@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg
+Copyright (c) 2006-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ struct node_entry
 	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff, bool pinged = false)
 		: id(id_)
 		, endpoint(ep)
-		, rtt(roundtriptime)
+		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING

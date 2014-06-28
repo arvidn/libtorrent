@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/copy_ptr.hpp"
@@ -287,6 +287,12 @@ namespace libtorrent
 		// the removed flag to true, to make the resolver
 		// callback remove it
 		bool removed;
+
+		// if the web server doesn't support keepalive or a block request was
+		// interrupted, the block received so far is kept here for the next
+		// connection to pick up
+		peer_request restart_request;
+		std::vector<char> restart_piece;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -681,7 +687,7 @@ namespace libtorrent
 
 		void resolve_duplicate_filenames();
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		friend class invariant_access;
 		void check_invariant() const;
 #endif

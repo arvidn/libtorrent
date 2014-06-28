@@ -173,7 +173,7 @@ AC_CHECK_FUNCS([clock_gettime], [],
 )
 
 
-dnl Pass some build options to setup.py and .pc file
+dnl Pass some build options to .pc file
 COMPILETIME_OPTIONS=""
 
 
@@ -582,6 +582,8 @@ AM_CONDITIONAL([WITH_OPENSSL], [test "x$ARG_ENABLE_ENCRYPTION" = "xyes" -o "x$AR
 AC_DEFINE([BOOST_ASIO_HASH_MAP_BUCKETS],[1021],[Define to fix a wrong behavior in boost 1.39.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
 
+COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -msse4.2 "
+
 AC_DEFINE([BOOST_EXCEPTION_DISABLE],[1],[Define to disable the boost.exception features.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_EXCEPTION_DISABLE "
 
@@ -628,7 +630,8 @@ AC_CONFIG_FILES(
   [tools/Makefile]
   [bindings/Makefile]
   [bindings/python/Makefile]
-  [bindings/python/setup.py]
+  [bindings/python/link_flags]
+  [bindings/python/compile_flags]
   [libtorrent-rasterbar.pc]
   [libtorrent-rasterbar-cmake.pc]
 )

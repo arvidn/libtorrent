@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,10 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/byteswap.hpp"
+#include "libtorrent/cpuid.hpp"
+
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
 #include <boost/cstdint.hpp> // uint32_t
-#include <algorithm>
+#include <algorithm> // for min()
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -53,7 +55,7 @@ namespace libtorrent
 	{
 		// constructs a new bitfield. The default constructor creates an empty
 		// bitfield. ``bits`` is the size of the bitfield (specified in bits).
-		// `` val`` is the value to initialize the bits to. If not specified
+		// ``val`` is the value to initialize the bits to. If not specified
 		// all bits are initialized to 0.
 		//
 		// The constructor taking a pointer ``b`` and ``bits`` copies a bitfield
@@ -68,7 +70,6 @@ namespace libtorrent
 		{ assign(b, bits); }
 		bitfield(bitfield const& rhs): m_buf(NULL)
 		{ assign(rhs.bytes(), rhs.size()); }
-
 #if __cplusplus > 199711L
 		bitfield(bitfield&& rhs): m_buf(rhs.m_buf)
 		{ rhs.m_buf = NULL; }
@@ -136,7 +137,6 @@ namespace libtorrent
 			{
 				if (m_buf[i] != 0) return false;
 			}
-
 			return true;
 		}
 
@@ -170,20 +170,38 @@ namespace libtorrent
 		{
 			int ret = 0;
 			const int words = num_words();
+#if TORRENT_HAS_SSE
+			unsigned int cpui[4];
+			cpuid(cpui, 1);
+			if (cpui[2] & (1 << 23))
+			{
+				for (int i = 0; i < words; ++i)
+				{
+#ifdef __GNUC__
+					ret += __builtin_popcount(m_buf[i]);
+#else
+					ret += _mm_popcnt_u32(m_buf[i]);
+#endif
+				}
+
+				return ret;
+			}	
+#endif // TORRENT_HAS_SSE
+
 			for (int i = 0; i < words; ++i)
 			{
-#ifdef _MSC_VER
-				ret += __popcnt(m_buf[i]);
-#elif defined __GNU__
-				ret += __builtin_popcount(m_buf[i]);
-#else
 				boost::uint32_t v = m_buf[i];
-				while (v)
-				{
-					ret += v & 1;
-					v >>= 1;
-				}
-#endif
+				// from:
+				// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+				static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
+				static const int B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
+
+				boost::uint32_t c = v - ((v >> 1) & B[0]);
+				c = ((c >> S[1]) & B[1]) + (c & B[1]);
+				c = ((c >> S[2]) + c) & B[2];
+				c = ((c >> S[3]) + c) & B[3];
+				c = ((c >> S[4]) + c) & B[4];
+				ret += c;
 			}
 
 			TORRENT_ASSERT(ret <= size());

@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 const int piece_size = 16 * 1024 * 16;
 const int block_size = 16 * 1024;
@@ -273,7 +274,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	p.files = &fs;
 	p.pool = &fp;
 	p.path = test_path;
-	p.mode = storage_mode_sparse;
+	p.mode = storage_mode_allocate;
 	boost::scoped_ptr<storage_interface> s(new default_storage(p));
 	s->m_settings = &set;
 
@@ -289,10 +290,37 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	// directories are not created up-front, unless they contain
 	// an empty file (all of which are created up-front, along with
 	// all required directories)
-	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	// files are created on first write
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
 
 	// this directory and file is created up-front because it's an empty file
-	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage", combine_path("folder2", "test3.tmp")))));	
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder2", "test3.tmp")))));	
+
+	// this isn't
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp")))));	
+
+	file::iovec_t b = {&buf[0], 4};
+	s->writev(&b, 1, 2, 0, 0, se);
+
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp")))));	
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	file_status st;
+	stat_file(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp"))), &st, ec);
+	TEST_EQUAL(st.file_size, 8);
+
+	s->writev(&b, 1, 4, 0, 0, se);
+
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+	stat_file(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", "test5.tmp"))), &st, ec);
+	TEST_EQUAL(st.file_size, 8);
 
 	s->delete_files(se);
 	if (se) print_error("delete_files", 0, se.ec);
@@ -326,8 +354,8 @@ void test_check_files(std::string const& test_path
 	char piece0[piece_size];
 	char piece2[piece_size];
 
-	std::generate(piece0, piece0 + piece_size, std::rand);
-	std::generate(piece2, piece2 + piece_size, std::rand);
+	std::generate(piece0, piece0 + piece_size, random_byte);
+	std::generate(piece2, piece2 + piece_size, random_byte);
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(0, hasher(piece0, piece_size).final());
@@ -523,7 +551,7 @@ void test_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		error_code ec;
 
@@ -560,7 +588,7 @@ void test_fastresume(std::string const& test_path)
 		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
 		TEST_CHECK(ra.get());
 		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
-		ses.remove_torrent(h, session::delete_files);
+		ses.remove_torrent(h, lt::session::delete_files);
 		std::auto_ptr<alert> da = wait_for_alert(ses, torrent_deleted_alert::alert_type);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("tmp1", "temporary"))));
@@ -568,12 +596,13 @@ void test_fastresume(std::string const& test_path)
 		return;
 
 	std::cerr << resume.to_string() << "\n";
+	TEST_CHECK(resume.dict().find("file sizes") != resume.dict().end());
 
 	// make sure the fast resume check fails! since we removed the file
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -631,7 +660,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -642,7 +671,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		h.rename_file(0, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
 		bool renamed = false;
-		for (int i = 0; i < 5; ++i)
+		for (int i = 0; i < 10; ++i)
 		{
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
 			torrent_status s = h.status();
@@ -663,6 +692,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/testing_renamed_files")));
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
+	TEST_CHECK(resume.dict().find("file sizes") != resume.dict().end());
 
 	std::cerr << resume.to_string() << "\n";
 
@@ -670,7 +700,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -710,13 +740,13 @@ int test_main()
 {
 	// initialize test pieces
 	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 	for (char* p = piece1, *end(piece1 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 	for (char* p = piece2, *end(piece2 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 	for (char* p = piece3, *end(piece3 + piece_size); p < end; ++p)
-		*p = rand();
+		*p = random_byte();
 
 	std::vector<std::string> test_paths;
 	char* env = std::getenv("TORRENT_TEST_PATHS");

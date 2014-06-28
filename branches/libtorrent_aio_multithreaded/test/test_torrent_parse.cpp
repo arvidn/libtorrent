@@ -75,6 +75,7 @@ test_torrent_t test_torrents[] =
 	{ "duplicate_web_seeds.torrent" },
 	{ "invalid_name2.torrent" },
 	{ "invalid_name3.torrent" },
+	{ "symlink1.torrent" },
 };
 
 struct test_failing_torrent_t

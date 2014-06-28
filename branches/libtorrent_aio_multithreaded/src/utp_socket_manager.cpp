@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -126,7 +126,7 @@ namespace libtorrent
 
 	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
-		if (time_now() - m_last_route_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_route_update)
 		{
 			m_last_route_update = time_now();
 			error_code ec;
@@ -235,7 +235,7 @@ namespace libtorrent
 		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
 
 		// first enumerate the routes in the routing table
-		if (time_now() - m_last_route_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_route_update)
 		{
 			m_last_route_update = time_now();
 			error_code ec;
@@ -266,7 +266,7 @@ namespace libtorrent
 		// for this target. Now figure out what the local address
 		// is for that interface
 
-		if (time_now() - m_last_if_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_if_update)
 		{
 			m_last_if_update = time_now();
 			error_code ec;
@@ -334,7 +334,7 @@ namespace libtorrent
 		if (ph->get_type() == ST_SYN)
 		{
 			// possible SYN flood. Just ignore
-			if (m_utp_sockets.size() > m_sett.get_int(settings_pack::connections_limit) * 2)
+			if (int(m_utp_sockets.size()) > m_sett.get_int(settings_pack::connections_limit) * 2)
 				return false;
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
@@ -359,6 +359,8 @@ namespace libtorrent
 			// we need to move it to the correct ID
 			return true;
 		}
+
+		if (ph->get_type() == ST_RESET) return false;
 
 		// #error send reset
 
@@ -470,7 +472,7 @@ namespace libtorrent
 		}
 		else
 		{
-			send_id = random();
+			send_id = random() & 0xffff;
 			recv_id = send_id - 1;
 		}
 		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);

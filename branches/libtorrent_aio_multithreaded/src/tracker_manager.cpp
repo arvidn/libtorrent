@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -133,7 +133,7 @@ namespace libtorrent
 		if (m_completion_timeout > 0)
 		{
 			timeout = timeout == 0
-				? m_completion_timeout - total_seconds(m_read_time - m_start_time)
+				? int(m_completion_timeout - total_seconds(m_read_time - m_start_time))
 				: (std::min)(int(m_completion_timeout - total_seconds(m_read_time - m_start_time)), timeout);
 		}
 #if defined TORRENT_ASIO_DEBUGGING

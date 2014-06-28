@@ -77,14 +77,14 @@ namespace
 
 } // namespace unnamed
 
-list file_progress(torrent_handle& handle)
+list file_progress(torrent_handle& handle, int flags)
 {
     std::vector<size_type> p;
 
     {
         allow_threading_guard guard;
         p.reserve(handle.torrent_file()->num_files());
-        handle.file_progress(p);
+        handle.file_progress(p, flags);
     }
 
     list result;
@@ -315,11 +315,6 @@ namespace
     }
 }
 
-void force_reannounce(torrent_handle& th, int s)
-{
-    th.force_reannounce(boost::posix_time::seconds(s));
-}
-
 void connect_peer(torrent_handle& th, tuple ip, int source)
 {
     th.connect_peer(tuple_to_endpoint(ip), source);
@@ -366,7 +361,8 @@ void add_piece(torrent_handle& th, int piece, char const *data, int flags)
 
 void bind_torrent_handle()
 {
-    void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
+    // arguments are: number of seconds and tracker index
+    void (torrent_handle::*force_reannounce0)(int, int) const = &torrent_handle::force_reannounce;
 
 #ifndef TORRENT_NO_DEPRECATE
     bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
@@ -398,7 +394,7 @@ void bind_torrent_handle()
         .def("get_peer_info", get_peer_info)
         .def("status", _(&torrent_handle::status), arg("flags") = 0xffffffff)
         .def("get_download_queue", get_download_queue)
-        .def("file_progress", file_progress)
+        .def("file_progress", file_progress, arg("flags") = 0)
         .def("trackers", trackers)
         .def("replace_trackers", replace_trackers)
         .def("add_tracker", add_tracker)
@@ -460,8 +456,8 @@ void bind_torrent_handle()
         .def("file_priority", &file_prioritity1)
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
-        .def("force_reannounce", _(force_reannounce0))
-        .def("force_reannounce", &force_reannounce)
+        .def("force_reannounce", _(force_reannounce0)
+			  , (arg("seconds") = 0, arg("tracker_idx") = -1))
 #ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
@@ -497,6 +493,10 @@ void bind_torrent_handle()
         .def("rename_file", _(rename_file1))
 #endif
         ;
+
+    enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
+        .value("piece_granularity", torrent_handle::piece_granularity)
+    ;
 
     enum_<torrent_handle::pause_flags_t>("pause_flags_t")
         .value("graceful_pause", torrent_handle::graceful_pause)

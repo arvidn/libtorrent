@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -326,10 +326,12 @@ namespace libtorrent
 			// The peer tried to connect to a torrent with a certificate
 			// for a different torrent.
 			invalid_ssl_cert,
+			// the torrent is not an SSL torrent, and the operation requires
+			// an SSL torrent
+			not_an_ssl_torrent,
 			// peer was banned because its listen port is within a banned port
 			// range, as specified by the port_filter.
 			banned_by_port_filter,
-
 
 
 			// The NAT-PMP router responded with an unsupported protocol version
@@ -378,6 +380,10 @@ namespace libtorrent
 			// and the files on disk are using compact storage. The pieces needs
 			// to be moved to their right position
 			pieces_need_reorder,
+			// this error is returned when asking to save resume data and
+			// specifying the flag to only save when there's anything new to save
+			// (torrent_handle::only_if_modified) and there wasn't anything changed.
+			resume_data_not_modified,
 
 
 
@@ -432,6 +438,8 @@ namespace libtorrent
 			depth_exceeded,
 			// bencoded item count limit exceeded
 			limit_exceeded,
+			// integer overflow
+			overflow,
 #endif
 
 			// the number of error codes
@@ -482,9 +490,11 @@ namespace libtorrent
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
 	// hidden
-	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
+	inline asio::error::error_category posix_category()
+	{ return asio::error::system_category; }
 	// hidden
-	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
+	inline asio::error::error_category system_category()
+	{ return asio::error::system_category; }
 
 	// hidden
 	boost::system::error_category const& get_libtorrent_category()
@@ -501,14 +511,6 @@ namespace libtorrent
 	}
 
 #else
-
-	struct TORRENT_EXPORT http_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
 
 	// return the instance of the libtorrent_error_category which
 	// maps libtorrent error codes to human readable error messages.
@@ -529,7 +531,7 @@ namespace libtorrent
 	using boost::system::error_code;
 
 	// hidden
-	inline boost::system::error_category const& get_system_category()
+	inline boost::system::error_category const& system_category()
 #if BOOST_VERSION < 104400
 	{ return boost::system::get_system_category(); }
 #else
@@ -595,7 +597,9 @@ namespace libtorrent
 			write,
 			fallocate,
 			alloc_cache_piece,
-			partfile
+			partfile_move,
+			partfile_read,
+			partfile_write,
 		};
 
 		// Returns a string literal representing the file operation
@@ -607,7 +611,7 @@ namespace libtorrent
 			{
 				"", "stat", "mkdir", "open", "rename", "remove", "copy"
 				, "read", "write", "fallocate", "allocate cache piece"
-				, "partfile"
+				, "partfile move", "partfile read", "partfile write"
 			};
 			return ops[operation];
 		}

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2013, Arvid Norberg
+Copyright (c) 2010-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -614,7 +614,7 @@ void feed::get_feed_status(feed_status* ret) const
 
 int feed::next_update(time_t now) const
 {
-	if (m_last_update == 0) return m_last_attempt + 60 * 5 - now;
+	if (m_last_update == 0) return int(m_last_attempt + 60 * 5 - now);
 	int ttl = m_ttl == -1 ? m_settings.default_ttl : m_ttl;
 	TORRENT_ASSERT((m_last_update + ttl * 60) - now < INT_MAX);
 	return int((m_last_update + ttl * 60) - now);

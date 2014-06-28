@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -165,7 +165,7 @@ namespace libtorrent
 				, tracker_req().num_want);
 			url += str;
 #ifndef TORRENT_DISABLE_ENCRYPTION
-			if (m_ses.get_pe_settings().in_enc_policy != pe_settings::disabled
+			if (m_ses.settings().get_int(settings_pack::in_enc_policy) != settings_pack::pe_disabled
 				&& m_ses.settings().get_bool(settings_pack::announce_crypto_support))
 				url += "&supportcrypto=1";
 #endif
@@ -224,6 +224,10 @@ namespace libtorrent
 			?settings.get_int(settings_pack::stop_tracker_timeout)
 			:settings.get_int(settings_pack::tracker_completion_timeout);
 
+		// when sending stopped requests, prefer the cached DNS entry
+		// to avoid being blocked for slow or failing responses. Chances
+		// are that we're shutting down, and this should be a best-effort
+		// attempt. It's not worth stalling shutdown.
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
 			, &m_ps, 5, settings.get_bool(settings_pack::anonymous_mode)

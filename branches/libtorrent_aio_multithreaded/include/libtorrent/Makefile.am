@@ -4,7 +4,6 @@ nobase_include_HEADERS = \
   address.hpp                  \
   add_torrent_params.hpp       \
   alert.hpp                    \
-  alert_handler.hpp            \
   alert_manager.hpp            \
   alert_observer.hpp           \
   alert_dispatcher.hpp         \
@@ -32,6 +31,8 @@ nobase_include_HEADERS = \
   connection_queue.hpp         \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \
+  cpuid.hpp                    \
+  crc32c.hpp                   \
   create_torrent.hpp           \
   deadline_timer.hpp           \
   debug.hpp                    \
@@ -122,7 +123,6 @@ nobase_include_HEADERS = \
   storage.hpp                  \
   storage_defs.hpp             \
   tailqueue.hpp                \
-  struct_debug.hpp             \
   string_util.hpp              \
   thread.hpp                   \
   thread_pool.hpp              \

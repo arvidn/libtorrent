@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -61,10 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/assert.hpp>
 #if TORRENT_HAS_BOOST_UNORDERED
 #include <boost/unordered_set.hpp>
-#else
-#include <set>
 #endif
 
+#include <set>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -445,6 +446,10 @@ namespace libtorrent
 				target.symlink_path = combine_path(target.symlink_path, path_element);
 			}
 		}
+		else
+		{
+			target.symlink_attribute = false;
+		}
 
 		return true;
 	}
@@ -582,7 +587,7 @@ namespace libtorrent
 			ec = error_code(errors::metadata_too_large, get_libtorrent_category());
 			return -2;
 		}
-		v.resize(s);
+		v.resize((unsigned int)s);
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], size_t(s) };
 		size_type read = f.readv(0, &b, 1, ec);
@@ -612,6 +617,9 @@ namespace libtorrent
 	announce_entry::announce_entry()
 		: next_announce(min_time())
 		, min_announce(min_time())
+		, scrape_incomplete(-1)
+		, scrape_complete(-1)
+		, scrape_downloaded(-1)
 		, tier(0)
 		, fail_limit(0)
 		, fails(0)
@@ -684,6 +692,7 @@ namespace libtorrent
 		, removed(false)
 	{
 		peer_info.web_seed = true;
+		restart_request.piece = -1;
 	}
 
 	torrent_info::torrent_info(torrent_info const& t)
@@ -704,7 +713,7 @@ namespace libtorrent
 		, m_private(t.m_private)
 		, m_i2p(t.m_i2p)
 	{
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		t.check_invariant();
 #endif
 		if (m_info_section_size > 0)
@@ -712,7 +721,7 @@ namespace libtorrent
 			error_code ec;
 			m_info_section.reset(new char[m_info_section_size]);
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
+#if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 			int ret =
 #endif
 				lazy_bdecode(m_info_section.get(), m_info_section.get()
@@ -1097,6 +1106,14 @@ namespace libtorrent
 
 	std::string torrent_info::ssl_cert() const
 	{
+		// this is parsed lazily
+		if (m_info_dict.type() == lazy_entry::none_t)
+		{
+			error_code ec;
+			lazy_bdecode(m_info_section.get(), m_info_section.get()
+				+ m_info_section_size, m_info_dict, ec);
+			if (ec) return "";
+		}
 		if (m_info_dict.type() != lazy_entry::dict_t) return "";
 		return m_info_dict.dict_find_string_value("ssl-cert");
 	}
@@ -1191,6 +1208,11 @@ namespace libtorrent
 					e.symlink_path = combine_path(e.symlink_path, path_element);
 				}
 			}
+			else
+			{
+				e.symlink_attribute = false;
+			}
+
 			lazy_entry const* fh = info.dict_find_string("sha1");
 			if (fh && fh->string_length() != 20) fh = 0;
 
@@ -1372,6 +1394,23 @@ namespace libtorrent
 		lazy_entry const* info = torrent_file.dict_find_dict("info");
 		if (info == 0)
 		{
+			lazy_entry const* link = torrent_file.dict_find_string("magnet-uri");
+			if (link)
+			{
+				std::string uri = link->string_value();
+
+				add_torrent_params p;
+				parse_magnet_uri(uri, p, ec);
+				if (ec) return false;
+
+				m_info_hash = p.info_hash;
+				for (std::vector<std::string>::iterator i = p.trackers.begin()
+					, end(p.trackers.end()); i != end; ++i)
+					m_urls.push_back(*i);
+
+				return true;
+			}
+
 			ec = errors::torrent_missing_info;
 			return false;
 		}
@@ -1609,7 +1648,7 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const
 	{
 		for (int i = 0; i < m_files.num_files(); ++i)

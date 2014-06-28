@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -86,6 +86,8 @@ http_connection::http_connection(io_service& ios
 	, m_rate_limit(0)
 	, m_download_quota(0)
 	, m_priority(0)
+	, m_resolve_flags(0)
+	, m_port(0)
 	, m_bottled(bottled)
 	, m_called(false)
 	, m_limiter_timer_active(false)
@@ -156,7 +158,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
 	
-	char request[2048];
+	char request[4096];
 	char* end = request + sizeof(request);
 	char* ptr = request;
 
@@ -236,7 +238,8 @@ void http_connection::start(std::string const& hostname, int port
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
 	m_completion_timeout = timeout;
-	m_read_timeout = (std::max)(seconds(5), timeout / 5);
+	m_read_timeout = seconds(5);
+	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
 	error_code ec;
 	m_timer.expires_from_now(m_completion_timeout, ec);
 #if defined TORRENT_ASIO_DEBUGGING
@@ -890,11 +893,15 @@ void http_connection::on_read(error_code const& e
 		m_last_receive = time_now_hires();
 	}
 
+	// if we've hit the limit, double the buffer size
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize((std::min)(m_read_pos + 2048, m_max_bottled_buffer_size));
+		m_recvbuffer.resize((std::min)(m_read_pos * 2, m_max_bottled_buffer_size));
+
 	if (m_read_pos == m_max_bottled_buffer_size)
 	{
-		callback(asio::error::eof);
+		// if we've reached the size limit, terminate the connection and
+		// report the error
+		callback(error_code(boost::system::errc::file_too_large, generic_category()));
 		close();
 		return;
 	}

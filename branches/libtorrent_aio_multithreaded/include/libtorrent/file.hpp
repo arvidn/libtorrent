@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -97,9 +97,9 @@ namespace libtorrent
 	struct file_status
 	{
 		size_type file_size;
-		time_t atime;
-		time_t mtime;
-		time_t ctime;
+		boost::uint64_t atime;
+		boost::uint64_t mtime;
+		boost::uint64_t ctime;
 		enum {
 #if defined TORRENT_WINDOWS
 			fifo = 0x1000, // named pipe (fifo)
@@ -173,10 +173,12 @@ namespace libtorrent
 		~directory();
 		void next(error_code& ec);
 		std::string file() const;
+		boost::uint64_t inode() const;
 		bool done() const { return m_done; }
 	private:
 #ifdef TORRENT_WINDOWS
 		HANDLE m_handle;
+		int m_inode;
 #if TORRENT_USE_WSTRING
 		WIN32_FIND_DATAW m_fd;
 #else
@@ -350,6 +352,8 @@ typedef boost::intrusive_ptr<file> file_handle;
 #endif
 #if defined TORRENT_WINDOWS
 		mutable int m_cluster_size;
+
+		static bool has_manage_volume_privs;
 #endif
 
 #if TORRENT_DEBUG_FILE_LEAKS

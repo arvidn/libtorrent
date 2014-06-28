@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,20 @@ namespace libtorrent
 	void bandwidth_manager::close()
 	{
 		m_abort = true;
-		m_queue.clear();
+
+		queue_t tm;
+		tm.swap(m_queue);
 		m_queued_bytes = 0;
+
+		while (!tm.empty())
+		{
+			bw_request& bwr = tm.back();
+			bwr.peer->assign_bandwidth(m_channel, bwr.assigned);
+			tm.pop_back();
+		}
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	bool bandwidth_manager::is_queued(bandwidth_socket const* peer) const
 	{
 		for (queue_t::const_iterator i = m_queue.begin()
@@ -76,7 +85,7 @@ namespace libtorrent
 		return m_queue.size();
 	}
 
-	int bandwidth_manager::queued_bytes() const
+	boost::int64_t bandwidth_manager::queued_bytes() const
 	{
 		return m_queued_bytes;
 	}
@@ -106,17 +115,25 @@ namespace libtorrent
 			return blk;
 		}
 
+		int k = 0;
 		bw_request bwr(peer, blk, priority);
-		memcpy(bwr.channel, chan, (std::min)(sizeof(*chan) * num_channels, sizeof(bwr.channel)));
+		for (int i = 0; i < num_channels; ++i)
+		{
+			if (chan[i]->need_queueing(blk))
+				bwr.channel[k++] = chan[i];
+		}
+
+		if (k == 0) return blk;
+
 		m_queued_bytes += blk;
 		m_queue.push_back(bwr);
 		return 0;
 	}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	void bandwidth_manager::check_invariant() const
 	{
-		int queued = 0;
+		boost::int64_t queued = 0;
 		for (queue_t::const_iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{
@@ -133,7 +150,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		int dt_milliseconds = total_milliseconds(dt);
+		boost::int64_t dt_milliseconds = total_milliseconds(dt);
 		if (dt_milliseconds > 3000) dt_milliseconds = 3000;
 
 		// for each bandwidth channel, call update_quota(dt)
@@ -185,7 +202,7 @@ namespace libtorrent
 		for (std::vector<bandwidth_channel*>::iterator i = channels.begin()
 			, end(channels.end()); i != end; ++i)
 		{
-			(*i)->update_quota(dt_milliseconds);
+			(*i)->update_quota(int(dt_milliseconds));
 		}
 
 		for (queue_t::iterator i = m_queue.begin();

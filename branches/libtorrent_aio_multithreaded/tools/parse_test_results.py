@@ -38,7 +38,7 @@ import glob
 import json
 
 # TODO: different parsers could be run on output from different actions
-# if we would use the xml output in stead of stdout/stderr
+# if we would use the xml output instead of stdout/stderr
 def style_output(logfile, outfile):
 	subtle = False
 	for l in logfile.split('\n'):
@@ -59,11 +59,18 @@ def style_output(logfile, outfile):
 			print >>outfile, '<span class="test-error">%s</span>' % l
 		elif '**passed**' in l:
 			print >>outfile, '<span class="test-pass">%s</span>' % l
-		elif ': error: ' in l or ': fatal error: ' in l or ' : fatal error ' in l or \
-			'failed to write output file' in l or ') : error C' in l or \
-			' : error LNK' in l or ': undefined reference to ' in l:
+		elif ': error: ' in l or \
+			';1;31merror: ' in l or \
+			': fatal error: ' in l or \
+			' : fatal error ' in l or \
+			'failed to write output file' in l or \
+			') : error C' in l or \
+			' : error LNK' in l or \
+			': undefined reference to ' in l:
 			print >>outfile, '<span class="compile-error">%s</span>' % l
-		elif ': warning: ' in l or ') : warning C' in l or \
+		elif ': warning: ' in l or \
+			') : warning C' in l or \
+			'0;1;35mwarning: ' in l or \
 			'Uninitialised value was created by a' in l or \
 			'bytes after a block of size' in l or \
 			'bytes inside a block of size' in l:
@@ -187,9 +194,9 @@ project_name = 'libtorrent'
 # maps branch name to latest rev
 revs = {}
 
-os.chdir('regression_tests')
+input_dir = os.path.abspath('regression_tests')
 
-for rev in os.listdir('.'):
+for rev in os.listdir(input_dir):
 	try:
 		branch = rev.split('-')[0]
 		if branch == 'logs': continue
@@ -210,6 +217,11 @@ print 'latest versions'
 for b in revs:
 	print '%s\t%d' % (b, revs[b])
 
+try: os.mkdir('regression_test_report')
+except: pass
+
+os.chdir('regression_test_report')
+
 for branch_name in revs:
 
 	latest_rev = revs[branch_name]
@@ -221,6 +233,10 @@ for branch_name in revs:
 	print >>html, '''<html><head><title>regression tests, %s</title><style type="text/css">
 		.passed { display: block; width: 6px; height: 1em; background-color: #6f8 }
 		.failed { display: block; width: 6px; height: 1em; background-color: #f68 }
+		.crash { display: block; width: 6px; height: 1em; background-color: #f08 }
+		.compile-failed { display: block; width: 6px; height: 1em; background-color: #000 }
+		.timeout { display: block; width: 6px; height: 1em; background-color: #86f }
+		.valgrind-error { display: block; width: 6px; height: 1em; background-color: #f80 }
 		table { border: 0; border-collapse: collapse; }
 		h1 { font-size: 15pt; }
 		th { font-size: 8pt; }
@@ -236,15 +252,20 @@ for branch_name in revs:
 		sys.stdout.write('.')
 		sys.stdout.flush()
 
-		rev_dir = '%s-%d' % (branch_name, r)
+		rev_dir = os.path.join(input_dir, '%s-%d' % (branch_name, r))
 		(platforms, tests) = parse_tests(rev_dir)
 
 		if len(tests) + len(platforms) == 0: continue
 
 		print >>html, '<tr><th colspan="2" style="border:0;">revision %d</th>' % r
 
-		for f in tests:
-			print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*6 - 5, f)
+		features = tests.keys()
+		features = sorted(features, key=lambda x: len(tests[x]))
+
+		for f in features:
+			title = f
+			if len(tests[f]) < 10: title = '#'
+			print >>html, '<th colspan="%d" style="width: %dpx;">%s</th>' % (len(tests[f]), len(tests[f])*6 - 5, title)
 		print >>html, '</tr>'
 
 		for p in platforms:
@@ -261,30 +282,76 @@ for branch_name in revs:
 				print >>details_file, '''<html><head><title>%s %s [%s]</title><style type="text/css">
 					.passed { background-color: #6f8 }
 					.failed { background-color: #f68 }
+					.missing { background-color: #fff }
+					.crash { background-color: #f08 }
+					.compile-failed { background-color: #000 }
+					.timeout { background-color: #86f }
+					.valgrind-error { background-color: #f80 }
 					table { border: 0; border-collapse: collapse; display: inline-block; }
 					th { font-size: 15pt; width: 18em; }
 					td { border: 0; border-spacing: 0px; padding: 1px 0px 0px 1px; }
 					</style>
 					</head><body>''' % (p, toolset, branch_name)
 				print >>html, '<th class="left-head"><a href="%s">%s</a></th>' % (details_name, toolset)
-				for f in platforms[p][toolset]:
-					print >>details_file, '<table><tr><th>%s</th></tr>' % f
+
+				deferred_end_table = False
+				for f in features:
+					title = f
+					if len(tests[f]) < 10: title = '#'
+
+					if title != '#':
+						if deferred_end_table:
+							print >>details_file, '</table><table>'
+							print >>details_file, '<tr><th>%s</th></tr>' % title
+							deferred_end_table = False
+						else:
+							print >>details_file, '<table>'
+							print >>details_file, '<tr><th>%s</th></tr>' % title
+					elif not deferred_end_table:
+						print >>details_file, '<table>'
+						print >>details_file, '<tr><th>%s</th></tr>' % title
+
+					if not f in platforms[p][toolset]:
+						for i in range(len(tests[f])):
+							print >>html, '<td title="%s"><a class="missing"></a></td>' % (f)
+						continue
+
 					for t in platforms[p][toolset][f]:
 						details = platforms[p][toolset][f][t]
 						exitcode = details['status']
-						if exitcode == 0: c = 'passed'
-						else: c = 'failed'
-						error_state = '%d' % exitcode
-						if exitcode == 222:
+
+						if exitcode == 0:
+							error_state = 'passed'
+							c = 'passed'
+						elif exitcode == 222:
 							error_state = 'valgrind error'
-						elif exitcode == 139:
+							c = 'valgrind-error'
+						elif exitcode == 139 or \
+							exitcode == 138:
 							error_state = 'crash'
+							c = 'crash'
 						elif exitcode == -1073740777:
 							error_state = 'timeout'
+							c = 'timeout'
+						elif exitcode == 333 or \
+							exitcode == 77:
+							error_code = 'test-failed'
+							c = 'failed'
+						else:
+							error_state = 'compile-failed (%d)' % exitcode
+							c = 'compile-failed'
+
 						log_name = os.path.join('logs-%s-%d' % (branch_name, r), p + '~' + toolset + '~' + t + '~' + f.replace(' ', '.') + '.html')
 						print >>html, '<td title="%s %s"><a class="%s" href="%s"></a></td>' % (t, f, c, log_name)
 						print >>details_file, '<tr><td class="%s"><a href="%s">%s [%s]</a></td></tr>' % (c, os.path.split(log_name)[1], t, error_state)
 						save_log_file(log_name, project_name, branch_name, '%s - %s' % (t, f), int(details['timestamp']), details['output'])
+					if title != '#':
+						print >>details_file, '</table>'
+						deferred_end_table = False
+					else:
+						deferred_end_table = True
+
+				if deferred_end_table:
 					print >>details_file, '</table>'
 
 				print >>html, '</tr>'

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,8 @@ namespace libtorrent
 #endif
 	};
 
-	struct storage_params
+	// see default_storage::default_storage()
+	struct TORRENT_EXPORT storage_params
 	{
 		storage_params(): files(NULL), mapped_files(NULL), pool(NULL)
 			, mode(storage_mode_sparse), priorities(NULL), info(NULL) {}

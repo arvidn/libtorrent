@@ -43,6 +43,7 @@ const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
 void test_checking(bool read_only_files, bool corrupt_files = false)
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	fprintf(stderr, "==== TEST CHECKING %s%s=====\n"
 		, read_only_files?"read-only-files ":""
@@ -116,9 +117,13 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		{
 			char name[1024];
 			snprintf(name, sizeof(name), "test%d", i);
-			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+			char dirname[200];
+			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+
+			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
 			fprintf(stderr, "   %s\n", path.c_str());
+
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_READONLY);
 #else
@@ -131,7 +136,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
-	session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	add_torrent_params p;
 	p.save_path = "tmp1_checking";
@@ -200,7 +205,10 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		{
 			char name[1024];
 			snprintf(name, sizeof(name), "test%d", i);
-			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+			char dirname[200];
+			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+
+			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);

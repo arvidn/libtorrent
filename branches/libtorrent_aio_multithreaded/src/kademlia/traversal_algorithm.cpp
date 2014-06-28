@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2013, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/session_status.hpp>
-#include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 
 #include <boost/bind.hpp>
@@ -55,11 +54,29 @@ using detail::read_v4_endpoint;
 using detail::read_v6_endpoint;
 #endif
 
+#if TORRENT_USE_ASSERTS
+template <class It, class Cmp>
+bool is_sorted(It b, It e, Cmp cmp)
+{
+	if (b == e) return true;
+
+	typename std::iterator_traits<It>::value_type v = *b;
+	++b;
+	while (b != e)
+	{
+		if (cmp(*b, v)) return false;
+		v = *b;
+		++b;
+	}
+	return true;
+}
+#endif
+
 observer_ptr traversal_algorithm::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
 	observer_ptr o(new (ptr) null_observer(boost::intrusive_ptr<traversal_algorithm>(this), ep, id));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	return o;
@@ -78,23 +95,24 @@ traversal_algorithm::traversal_algorithm(
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(traversal) << "[" << this << "] NEW"
-		" target: " << target << " k: " << m_node.m_table.bucket_size();
+		" target: " << target
+		<< " k: " << m_node.m_table.bucket_size()
+		;
 #endif
 }
 
-// returns true of lhs and rhs are too close to each other to appear
-// in the same DHT search under different node IDs
-bool compare_ip_cidr(observer_ptr const& lhs, observer_ptr const& rhs)
+void traversal_algorithm::resort_results()
 {
-	if (lhs->target_addr().is_v4() != rhs->target_addr().is_v4())
-		return false;
-	// the number of bits in the IPs that may match. If
-	// more bits that this matches, something suspicious is
-	// going on and we shouldn't add the second one to our
-	// routing table
-	int cutoff = rhs->target_addr().is_v4() ? 4 : 64;
-	int dist = cidr_distance(lhs->target_addr(), rhs->target_addr());
-	return dist <= cutoff;
+	std::sort(
+		m_results.begin()
+		, m_results.end()
+		, boost::bind(
+			compare_ref
+			, boost::bind(&observer::id, _1)
+			, boost::bind(&observer::id, _2)
+			, m_target
+		)
+	);
 }
 
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
@@ -118,6 +136,14 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	o->flags |= flags;
 
+	TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), m_results.end()
+		, boost::bind(
+			compare_ref
+			, boost::bind(&observer::id, _1)
+			, boost::bind(&observer::id, _2)
+			, m_target)
+		));
+
 	std::vector<observer_ptr>::iterator i = std::lower_bound(
 		m_results.begin()
 		, m_results.end()
@@ -135,11 +161,11 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		if (m_node.settings().restrict_search_ips
 			&& !(flags & observer::flag_initial))
 		{
-			// don't allow multiple entries from IPs very close to each other
-			std::vector<observer_ptr>::iterator j = std::find_if(
-				m_results.begin(), m_results.end(), boost::bind(&compare_ip_cidr, _1, o));
+			// mask the lower octet
+			boost::uint32_t prefix4 = o->target_addr().to_v4().to_ulong();
+			prefix4 &= 0xffffff00;
 
-			if (j != m_results.end())
+			if (m_peer4_prefixes.count(prefix4) > 0)
 			{
 				// we already have a node in this search with an IP very
 				// close to this one. We know that it's not the same, because
@@ -148,28 +174,39 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			TORRENT_LOG(traversal) << "[" << this << "] IGNORING result "
 				<< "id: " << o->id()
 				<< " address: " << o->target_addr()
-				<< " existing node: "
-				<< (*j)->id() << " " << (*j)->target_addr()
-				<< " distance: " << distance_exp(m_target, o->id());
+				<< " type: " << name()
+				;
 #endif
 				return;
 			}
+
+			m_peer4_prefixes.insert(prefix4);
 		}
 
-		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
+		TORRENT_ASSERT((o->flags & observer::flag_no_id) || std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << this << "] ADD id: " << id
 			<< " address: " << addr
 			<< " distance: " << distance_exp(m_target, id)
-			<< " invoke-count: " << m_invoke_count;
+			<< " invoke-count: " << m_invoke_count
+			<< " type: " << name()
+			;
 #endif
 		i = m_results.insert(i, o);
+
+		TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), m_results.end()
+			, boost::bind(
+				compare_ref
+				, boost::bind(&observer::id, _1)
+				, boost::bind(&observer::id, _2)
+				, m_target)
+			));
 	}
 
 	if (m_results.size() > 100)
 	{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		for (int i = 100; i < m_results.size(); ++i)
 			m_results[i]->m_was_abandoned = true;
 #endif
@@ -181,7 +218,7 @@ void traversal_algorithm::start()
 {
 	// in case the routing table is empty, use the
 	// router nodes in the table
-	if (m_results.empty()) add_router_entries();
+	if (m_results.size() < 8) add_router_entries();
 	init();
 	bool is_done = add_requests();
 	if (is_done) done();
@@ -267,7 +304,9 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
-			<< " invoke-count: " << m_invoke_count;
+			<< " invoke-count: " << m_invoke_count
+			<< " type: " << name()
+			;
 #endif
 	}
 	else
@@ -284,7 +323,9 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
-			<< " invoke-count: " << m_invoke_count;
+			<< " invoke-count: " << m_invoke_count
+			<< " type: " << name()
+			;
 #endif
 		// don't tell the routing table about
 		// node ids that we just generated ourself
@@ -321,7 +362,8 @@ void traversal_algorithm::done()
 				<< results_target
 				<< " id: " << o->id()
 				<< " distance: " << distance_exp(m_target, o->id())
-				<< " address: " << o->target_ep();
+				<< " address: " << o->target_ep()
+				;
 			--results_target;
 			int dist = distance_exp(m_target, o->id());
 			if (dist < closest_target) closest_target = dist;
@@ -329,7 +371,9 @@ void traversal_algorithm::done()
 	}
 
 	TORRENT_LOG(traversal) << "[" << this << "] COMPLETED "
-		<< "distance: " << closest_target;
+		<< "distance: " << closest_target
+		<< " type: " << name()
+		;
 
 #endif
 	// delete all our references to the observer objects so
@@ -392,6 +436,7 @@ bool traversal_algorithm::add_requests()
 			<< " invoke-count: " << m_invoke_count
 			<< " branch-factor: " << m_branch_factor
 			<< " distance: " << distance_exp(m_target, (*i)->id())
+			<< " type: " << name()
 			;
 #endif
 
@@ -497,6 +542,19 @@ void traversal_observer::reply(msg const& m)
 			m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
 		}
 	}
+
+	lazy_entry const* id = r->dict_find_string("id");
+	if (!id || id->string_length() != 20)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] invalid id in response";
+#endif
+		return;
+	}
+
+	// in case we didn't know the id of this peer when we sent the message to
+	// it. For instance if it's a bootstrap node.
+	set_id(node_id(id->string_ptr()));
 }
 
 void traversal_algorithm::abort()

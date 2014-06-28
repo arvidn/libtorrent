@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define _FILE_OFFSET_BITS 64
 #define _LARGE_FILES 1
+
+// on mingw this is necessary to enable 64-bit time_t, specifically used for
+// the stat struct. Without this, modification times returned by stat may be
+// incorrect and consistently fail resume data
+#ifndef __MINGW_USE_VC2005_COMPAT
+# define __MINGW_USE_VC2005_COMPAT
+#endif
 
 #include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
@@ -179,7 +186,7 @@ namespace
 			DWORD num_read;
 			if (ReadFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_read, &ol[i]) == FALSE
 				&& GetLastError() != ERROR_IO_PENDING
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				&& GetLastError() != ERROR_CANT_WAIT
 #endif
 				)
@@ -197,7 +204,7 @@ namespace
 			DWORD num_read;
 			if (GetOverlappedResult(fd, &ol[i], &num_read, FALSE) == FALSE)
 			{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
 #endif
 				ret = -1;
@@ -241,7 +248,7 @@ done:
 			DWORD num_written;
 			if (WriteFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_written, &ol[i]) == FALSE
 				&& GetLastError() != ERROR_IO_PENDING
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				&& GetLastError() != ERROR_CANT_WAIT
 #endif
 				)
@@ -259,7 +266,7 @@ done:
 			DWORD num_written;
 			if (GetOverlappedResult(fd, &ol[i], &num_written, FALSE) == FALSE)
 			{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
 #endif
 				ret = -1;
@@ -298,9 +305,20 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 	std::string convert_separators(std::string p)
 	{
-		for (int i = 0; i < p.size(); ++i)
+		for (int i = 0; i < int(p.size()); ++i)
 			if (p[i] == '/') p[i] = '\\';
 		return p;
+	}
+
+	time_t file_time_to_posix(FILETIME f)
+	{
+		const boost::uint64_t posix_time_offset = 11644473600LL;
+		boost::uint64_t ft = (boost::uint64_t(f.dwHighDateTime) << 32)
+			| f.dwLowDateTime;
+
+		// windows filetime is specified in 100 nanoseconds resolution.
+		// convert to seconds
+		return time_t(ft / 10000000 - posix_time_offset);
 	}
 #endif
 
@@ -314,26 +332,37 @@ namespace libtorrent
 		if (!inf.empty() && (inf[inf.size() - 1] == '\\'
 			|| inf[inf.size() - 1] == '/'))
 			inf.resize(inf.size() - 1);
-#endif
 
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
+#define GetFileAttributesEx_ GetFileAttributesExW
 		std::wstring f = convert_to_wstring(inf);
 #else
+#define GetFileAttributesEx_ GetFileAttributesExA
 		std::string f = convert_to_native(inf);
 #endif
-
-#if defined TORRENT_WINDOWS
-		struct _stati64 ret;
-#if TORRENT_USE_WSTRING
-		if (_wstati64(f.c_str(), &ret) < 0)
-#else
-		if (_stati64(f.c_str(), &ret) < 0)
-#endif
+		WIN32_FILE_ATTRIBUTE_DATA data;
+		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
 		{
-			ec.assign(errno, generic_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 			return;
 		}
+
+		s->file_size = (boost::uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
+		s->ctime = file_time_to_posix(data.ftCreationTime);
+		s->atime = file_time_to_posix(data.ftLastAccessTime);
+		s->mtime = file_time_to_posix(data.ftLastWriteTime);
+
+		s->mode = (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			? file_status::directory
+			: (data.dwFileAttributes & FILE_ATTRIBUTE_DEVICE)
+			? file_status::character_special : file_status::regular_file;
+
 #else
+		
+		// posix version
+
+		std::string f = convert_to_native(inf);
+
 		struct stat ret;
 		int retval;
 		if (flags & dont_follow_links)
@@ -345,26 +374,21 @@ namespace libtorrent
 			ec.assign(errno, generic_category());
 			return;
 		}
-#endif // TORRENT_WINDOWS
 
 		s->file_size = ret.st_size;
 		s->atime = ret.st_atime;
 		s->mtime = ret.st_mtime;
 		s->ctime = ret.st_ctime;
-#if defined TORRENT_WINDOWS
-    s->mode = ((ret.st_mode & _S_IFREG) ? file_status::regular_file : 0)
-      | ((ret.st_mode & _S_IFDIR) ? file_status::directory : 0)
-      | ((ret.st_mode & _S_IFCHR) ? file_status::character_special : 0)
-      | ((ret.st_mode & _S_IFIFO) ? file_status::fifo : 0);
-#else
-    s->mode = (S_ISREG(ret.st_mode) ? file_status::regular_file : 0)
-      | (S_ISDIR(ret.st_mode) ? file_status::directory : 0)
-      | (S_ISLNK(ret.st_mode) ? file_status::link : 0)
-      | (S_ISFIFO(ret.st_mode) ? file_status::fifo : 0)
-      | (S_ISCHR(ret.st_mode) ? file_status::character_special : 0)
-      | (S_ISBLK(ret.st_mode) ? file_status::block_special : 0)
-      | (S_ISSOCK(ret.st_mode) ? file_status::socket : 0);
-#endif
+
+		s->mode = (S_ISREG(ret.st_mode) ? file_status::regular_file : 0)
+			| (S_ISDIR(ret.st_mode) ? file_status::directory : 0)
+			| (S_ISLNK(ret.st_mode) ? file_status::link : 0)
+			| (S_ISFIFO(ret.st_mode) ? file_status::fifo : 0)
+			| (S_ISCHR(ret.st_mode) ? file_status::character_special : 0)
+			| (S_ISBLK(ret.st_mode) ? file_status::block_special : 0)
+			| (S_ISSOCK(ret.st_mode) ? file_status::socket : 0);
+
+#endif // TORRENT_WINDOWS
 	}
 
 	void rename(std::string const& inf, std::string const& newf, error_code& ec)
@@ -417,7 +441,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 #else
 		int ret = mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
@@ -472,7 +496,7 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
@@ -619,7 +643,7 @@ namespace libtorrent
 			// we don't care about the last character, since it's OK for it
 			// to be a slash or a back slash
 			bool found = false;
-			for (int i = 2; i < f.size() - 1; ++i)
+			for (int i = 2; i < int(f.size()) - 1; ++i)
 			{
 				if (f[i] != '\\' && f[i] != '/') continue;
 				// there is a directory separator in here,
@@ -876,7 +900,7 @@ namespace libtorrent
 				if (RemoveDirectory_(f.c_str()) != 0)
 					return;
 			}
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 			return;
 		}
 #else // TORRENT_WINDOWS
@@ -942,6 +966,7 @@ namespace libtorrent
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
+		m_inode = 0;
 		// the path passed to FindFirstFile() must be
 		// a pattern
 		std::string f = convert_separators(path);
@@ -957,7 +982,7 @@ namespace libtorrent
 		m_handle = FindFirstFile_(p.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
-			ec.assign(GetLastError(), boost::system::get_system_category());
+			ec.assign(GetLastError(), boost::system::system_category());
 			m_done = true;
 			return;
 		}
@@ -995,6 +1020,15 @@ namespace libtorrent
 #endif
 	}
 
+	boost::uint64_t directory::inode() const
+	{
+#ifdef TORRENT_WINDOWS
+		return m_inode;
+#else
+		return m_dirent.d_ino;
+#endif
+	}
+
 	std::string directory::file() const
 	{
 #ifdef TORRENT_WINDOWS
@@ -1022,8 +1056,9 @@ namespace libtorrent
 			m_done = true;
 			int err = GetLastError();
 			if (err != ERROR_NO_MORE_FILES)
-				ec.assign(err, boost::system::get_system_category());
+				ec.assign(err, boost::system::system_category());
 		}
+		++m_inode;
 #else
 		dirent* dummy;
 		if (readdir_r(m_handle, &m_dirent, &dummy) != 0)
@@ -1057,7 +1092,7 @@ namespace libtorrent
 			if (ol.hEvent != INVALID_HANDLE_VALUE
 				&& WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 				return -1;
 			}
 
@@ -1067,10 +1102,10 @@ namespace libtorrent
 				DWORD last_error = GetLastError();
 				if (last_error != ERROR_HANDLE_EOF)
 				{
-#ifndef TORRENT_MINGW
+#ifdef ERROR_CANT_WAIT
 					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
 #endif
-					ec.assign(last_error, get_system_category());
+					ec.assign(last_error, system_category());
 					return -1;
 				}
 			}
@@ -1080,6 +1115,14 @@ namespace libtorrent
 		OVERLAPPED ol;
 	};
 #endif // TORRENT_WINDOWS
+
+
+#ifdef TORRENT_WINDOWS
+	bool get_manage_volume_privs();
+
+	// this needs to be run before CreateFile
+	bool file::has_manage_volume_privs = get_manage_volume_privs();
+#endif
 
 	file::file()
 		: m_file_handle(INVALID_HANDLE_VALUE)
@@ -1210,7 +1253,7 @@ namespace libtorrent
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			TORRENT_ASSERT(ec);
 			return false;
 		}
@@ -1278,24 +1321,11 @@ namespace libtorrent
 
 		m_file_handle = handle;
 
-#ifdef F_SETLK
-		if (mode & lock_file)
-		{
-			struct flock l =
-			{
-				0, // start offset
-				0, // length (0 = until EOF)
-				getpid(), // owner
-				short((mode & write_only) ? F_WRLCK : F_RDLCK), // lock type
-				SEEK_SET // whence
-			};
-			if (fcntl(native_handle(), F_SETLK, &l) != 0)
-			{
-				ec.assign(errno, get_posix_category());
-				return false;
-			}
-		}
-#endif
+		// The purpose of the lock_file flag is primarily to prevent other
+		// processes from corrupting files that are being used by libtorrent.
+		// the posix file locking mechanism does not prevent others from
+		// accessing files, unless they also attempt to lock the file. That's
+		// why the SETLK mechanism is not used here.
 
 #ifdef DIRECTIO_ON
 		// for solaris
@@ -1355,10 +1385,10 @@ namespace libtorrent
 	{
 		LARGE_INTEGER file_size;
 		if (!GetFileSizeEx(file, &file_size))
-			return -1;
+			return false;
 
 		overlapped_t ol;
-		if (ol.ol.hEvent == NULL) return -1;
+		if (ol.ol.hEvent == NULL) return false;
 
 #ifdef TORRENT_MINGW
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
@@ -1389,8 +1419,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			return true;
 		}
 
-		// if we only have a single range in the file, we're not sparse
-		return returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+		// if we have more than one range in the file, we're sparse
+		if (returned_bytes != sizeof(FILE_ALLOCATED_RANGE_BUFFER)) {
+			return true;
+		}
+
+		return (in.Length.QuadPart != out[0].Length.QuadPart);
 	}
 #endif
 
@@ -1411,7 +1445,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// flag set, but there are no sparse regions, unset
 		// the flag
 		int rw_mode = m_open_mode & rw_mask;
-		if ((rw_mode == read_write || rw_mode == write_only)
+		if ((rw_mode != read_only)
 			&& (m_open_mode & sparse)
 			&& !is_sparse(native_handle()))
 		{
@@ -1527,7 +1561,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
@@ -1550,7 +1584,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(last_error, get_system_category());
+				ec.assign(last_error, system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
@@ -1570,7 +1604,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_WINDOWS
 		if (SetFilePointerEx(fd, offs, &offs, FILE_BEGIN) == FALSE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return -1;
 		}
 #else
@@ -1587,7 +1621,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
@@ -1611,9 +1645,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
 #ifdef TORRENT_WINDOWS
-			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
+			ec = error_code(ERROR_INVALID_HANDLE, system_category());
 #else
-			ec = error_code(EBADF, get_system_category());
+			ec = error_code(EBADF, system_category());
 #endif
 			return -1;
 		}
@@ -1656,9 +1690,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
 #ifdef TORRENT_WINDOWS
-			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
+			ec = error_code(ERROR_INVALID_HANDLE, system_category());
 #else
-			ec = error_code(EBADF, get_system_category());
+			ec = error_code(EBADF, system_category());
 #endif
 			return -1;
 		}
@@ -1707,10 +1741,110 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return ret;
 	}
 
-	bool file::set_size(size_type s, error_code& ec)
+#ifdef TORRENT_WINDOWS
+	bool get_manage_volume_privs()
 	{
-		TORRENT_ASSERT(is_open());
-		TORRENT_ASSERT(s >= 0);
+		typedef BOOL (WINAPI *OpenProcessToken_t)(
+			HANDLE ProcessHandle,
+			DWORD DesiredAccess,
+			PHANDLE TokenHandle);
+
+		typedef BOOL (WINAPI *LookupPrivilegeValue_t)(
+			LPCSTR lpSystemName,
+			LPCSTR lpName,
+			PLUID lpLuid);
+
+		typedef BOOL (WINAPI *AdjustTokenPrivileges_t)(
+			HANDLE TokenHandle,
+			BOOL DisableAllPrivileges,
+			PTOKEN_PRIVILEGES NewState,
+			DWORD BufferLength,
+			PTOKEN_PRIVILEGES PreviousState,
+			PDWORD ReturnLength);
+
+		static OpenProcessToken_t pOpenProcessToken = NULL;
+		static LookupPrivilegeValue_t pLookupPrivilegeValue = NULL;
+		static AdjustTokenPrivileges_t pAdjustTokenPrivileges = NULL;
+		static bool failed_advapi = false;
+
+		if (pOpenProcessToken == NULL && !failed_advapi)
+		{
+			HMODULE advapi = LoadLibraryA("advapi32");
+			if (advapi == NULL)
+			{
+				failed_advapi = true;
+				return false;
+			}
+			pOpenProcessToken = (OpenProcessToken_t)GetProcAddress(advapi, "OpenProcessToken");
+			pLookupPrivilegeValue = (LookupPrivilegeValue_t)GetProcAddress(advapi, "LookupPrivilegeValueA");
+			pAdjustTokenPrivileges = (AdjustTokenPrivileges_t)GetProcAddress(advapi, "AdjustTokenPrivileges");
+			if (pOpenProcessToken == NULL
+				|| pLookupPrivilegeValue == NULL
+				|| pAdjustTokenPrivileges == NULL)
+			{
+				failed_advapi = true;
+				return false;
+			}
+		}
+
+		HANDLE token;
+		if (!pOpenProcessToken(GetCurrentProcess()
+			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
+			return false;
+
+		TOKEN_PRIVILEGES privs;
+		if (!pLookupPrivilegeValue(NULL, "SeManageVolumePrivilege"
+			, &privs.Privileges[0].Luid))
+		{
+			CloseHandle(token);
+			return false;
+		}
+
+		privs.PrivilegeCount = 1;
+		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+		bool ret = pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL)
+			&& GetLastError() == ERROR_SUCCESS;
+
+		CloseHandle(token);
+
+		return ret;
+	}
+
+	void set_file_valid_data(HANDLE f, boost::int64_t size)
+	{
+		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
+		static SetFileValidData_t pSetFileValidData = NULL;
+		static bool failed_kernel32 = false;
+
+		if (pSetFileValidData == NULL && !failed_kernel32)
+		{
+			HMODULE k32 = LoadLibraryA("kernel32");
+			if (k32 == NULL)
+			{
+				failed_kernel32 = true;
+				return;
+			}
+			pSetFileValidData = (SetFileValidData_t)GetProcAddress(k32, "SetFileValidData");
+			if (pSetFileValidData == NULL)
+			{
+				failed_kernel32 = true;
+				return;
+			}
+		}
+
+		TORRENT_ASSERT(pSetFileValidData);
+
+		// we don't necessarily expect to have enough
+		// privilege to do this, so ignore errors.
+		pSetFileValidData(f, size);
+	}
+#endif
+
+  	bool file::set_size(size_type s, error_code& ec)
+  	{
+  		TORRENT_ASSERT(is_open());
+  		TORRENT_ASSERT(s >= 0);
 
 #ifdef TORRENT_WINDOWS
 
@@ -1718,7 +1852,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		LARGE_INTEGER cur_size;
 		if (GetFileSizeEx(native_handle(), &cur_size) == FALSE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return false;
 		}
 		offs.QuadPart = s;
@@ -1729,12 +1863,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		{
 			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 				return false;
 			}
 			if (::SetEndOfFile(native_handle()) == FALSE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(GetLastError(), system_category());
 				return false;
 			}
 		}
@@ -1746,10 +1880,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #else
 			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCSTR lpFileName, LPDWORD lpFileSizeHigh);
 #endif
-			typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE hFile, LONGLONG ValidDataLength);
 
 			static GetCompressedFileSize_t GetCompressedFileSize_ = NULL;
-			static SetFileValidData_t SetFileValidData = NULL;
 
 			static bool failed_kernel32 = false;
 
@@ -1763,11 +1895,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #else
 					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeA");
 #endif
-					SetFileValidData = (SetFileValidData_t)GetProcAddress(kernel32, "SetFileValidData");
-					if ((GetCompressedFileSize_ == NULL) || (SetFileValidData == NULL))
-					{ 
-						failed_kernel32 = true;
-					}
 				}
 				else
 				{
@@ -1775,7 +1902,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				}
 			}
 
-			if (!failed_kernel32 && GetCompressedFileSize_ && SetFileValidData)
+			offs.QuadPart = 0;
+			if (GetCompressedFileSize_)
 			{
 				// only allocate the space if the file
 				// is not fully allocated
@@ -1784,16 +1912,17 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				offs.HighPart = high_dword;
 				if (offs.LowPart == INVALID_FILE_SIZE)
 				{
-					ec.assign(GetLastError(), get_system_category());
+					ec.assign(GetLastError(), system_category());
 					if (ec) return false;
 				}
-				if (offs.QuadPart != s)
-				{
-					// if the user has permissions, avoid filling
-					// the file with zeroes, but just fill it with
-					// garbage instead
-					SetFileValidData(m_file_handle, offs.QuadPart);
-				}
+			}
+
+			if (offs.QuadPart != s)
+			{
+				// if the user has permissions, avoid filling
+				// the file with zeroes, but just fill it with
+				// garbage instead
+				set_file_valid_data(m_file_handle, s);
 			}
 		}
 #else // NON-WINDOWS
@@ -1902,7 +2031,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		LARGE_INTEGER file_size;
 		if (!GetFileSizeEx(native_handle(), &file_size))
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return -1;
 		}
 		return file_size.QuadPart;

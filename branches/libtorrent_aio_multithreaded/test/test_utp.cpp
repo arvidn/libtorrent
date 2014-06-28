@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 using boost::tuples::ignore;
 
 void test_transfer()
@@ -62,10 +63,12 @@ void test_transfer()
 	session_proxy p1;
 	session_proxy p2;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48885, 49930), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49885, 50930), "0.0.0.0", 0);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48885, 49930), "0.0.0.0", 0);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49885, 50930), "0.0.0.0", 0);
 
 	settings_pack pack;
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
 	pack.set_bool(settings_pack::enable_outgoing_tcp, false);
 	pack.set_bool(settings_pack::enable_incoming_tcp, false);
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
@@ -75,14 +78,6 @@ void test_transfer()
 	pack.set_int(settings_pack::min_reconnect_time, 1);
 	ses1.apply_settings(pack);
 	ses2.apply_settings(pack);
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::disabled;
-	pes.in_enc_policy = pe_settings::disabled;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-#endif
 
 	torrent_handle tor1;
 	torrent_handle tor2;

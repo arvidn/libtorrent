@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2013, Arvid Norberg
+Copyright (c) 2009-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,7 @@ namespace libtorrent {
 
 	namespace i2p_error {
 
+		// error values for the i2p_category error_category.
 		enum i2p_error_code
 		{
 			no_error = 0,
@@ -66,15 +67,8 @@ namespace libtorrent {
 		};
 	}
 
-struct TORRENT_EXPORT i2p_error_category : boost::system::error_category
-{
-	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-	virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{ return boost::system::error_condition(ev, *this); }
-};
-
-extern i2p_error_category i2p_category;
+	// returns the error category for I2P errors
+	TORRENT_EXPORT boost::system::error_category& get_i2p_category();
 
 class i2p_stream : public proxy_base
 {
@@ -153,7 +147,7 @@ private:
 	};
 
 	int m_state;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	int m_magic;
 #endif
 };

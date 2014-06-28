@@ -7,7 +7,6 @@
 #include <string>
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings.hpp> // for bencode_map_entry
-#include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
@@ -15,6 +14,7 @@
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/lazy_entry.hpp>
 #include <libtorrent/bencode.hpp>
+#include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 
 #include <libtorrent/extensions/lt_trackers.hpp>
 #include <libtorrent/extensions/metadata_transfer.hpp>
@@ -26,11 +26,12 @@
 
 using namespace boost::python;
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 namespace
 {
 #ifndef TORRENT_NO_DEPRECATE
-    void listen_on(session& s, int min_, int max_, char const* interface, int flags)
+    void listen_on(lt::session& s, int min_, int max_, char const* interface, int flags)
     {
         allow_threading_guard guard;
         error_code ec;
@@ -39,7 +40,7 @@ namespace
     }
 #endif
 
-    void outgoing_ports(session& s, int _min, int _max)
+    void outgoing_ports(lt::session& s, int _min, int _max)
     {
         allow_threading_guard guard;
 		  settings_pack p;
@@ -49,21 +50,21 @@ namespace
         return;
     }
 #ifndef TORRENT_DISABLE_DHT
-    void add_dht_node(session& s, tuple n)
+    void add_dht_node(lt::session& s, tuple n)
     {
         std::string ip = extract<std::string>(n[0]);
         int port = extract<int>(n[1]);
         s.add_dht_node(std::make_pair(ip, port));
     }
 
-    void add_dht_router(session& s, std::string router_, int port_)
+    void add_dht_router(lt::session& s, std::string router_, int port_)
     {
         allow_threading_guard guard;
         return s.add_dht_router(std::make_pair(router_, port_));
     }
 #endif
 
-    void add_extension(session& s, object const& e)
+    void add_extension(lt::session& s, object const& e)
     {
 #ifndef TORRENT_DISABLE_EXTENSIONS
        if (!extract<std::string>(e).check()) return;
@@ -80,18 +81,12 @@ namespace
 #ifndef TORRENT_NO_DEPRECATE
        else if (name == "metadata_transfer")
             s.add_extension(create_metadata_plugin);
-#endif
+#endif // TORRENT_NO_DEPRECATE
+
+#endif // TORRENT_DISABLE_EXTENSIONS
     }
 
-#ifndef TORRENT_NO_DEPRECATE
-
-    boost::shared_ptr<torrent_plugin> dummy_plugin_wrapper(torrent* t) {
-        return boost::shared_ptr<torrent_plugin>();
-    }
-
-#endif
-
-	void session_set_settings(session& ses, dict const& sett_dict)
+	void session_set_settings(lt::session& ses, dict const& sett_dict)
 	{
 		settings_pack p;
 		list iterkeys = (list)sett_dict.iterkeys();
@@ -126,7 +121,7 @@ namespace
 		ses.apply_settings(p);
 	}
 
-	dict session_get_settings(session const& ses)
+	dict session_get_settings(lt::session const& ses)
 	{
 		aux::session_settings sett;
 		{
@@ -156,7 +151,7 @@ namespace
 
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
-    torrent_handle add_torrent_depr(session& s, torrent_info const& ti
+    torrent_handle add_torrent_depr(lt::session& s, torrent_info const& ti
         , std::string const& save, entry const& resume
         , storage_mode_t storage_mode, bool paused)
     {
@@ -250,7 +245,7 @@ namespace
 namespace
 {
 
-    torrent_handle add_torrent(session& s, dict params)
+    torrent_handle add_torrent(lt::session& s, dict params)
     {
         add_torrent_params p;
         dict_to_add_torrent_params(params, p);
@@ -265,7 +260,7 @@ namespace
 #endif
     }
 
-    void async_add_torrent(session& s, dict params)
+    void async_add_torrent(lt::session& s, dict params)
     {
         add_torrent_params p;
         dict_to_add_torrent_params(params, p);
@@ -292,7 +287,7 @@ namespace
             dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args);
     }
 
-    feed_handle add_feed(session& s, dict params)
+    feed_handle add_feed(lt::session& s, dict params)
     {
         feed_settings feed;
         // this static here is a bit of a hack. It will
@@ -361,25 +356,27 @@ namespace
         return ret;
     }
 
-    void start_natpmp(session& s)
+#ifndef TORRENT_NO_DEPRECATE
+    void start_natpmp(lt::session& s)
     {
         allow_threading_guard guard;
         s.start_natpmp();
     }
 
-    void start_upnp(session& s)
+    void start_upnp(lt::session& s)
     {
         allow_threading_guard guard;
         s.start_upnp();
     }
+#endif
 
-    alert const* wait_for_alert(session& s, int ms)
+    alert const* wait_for_alert(lt::session& s, int ms)
     {
         allow_threading_guard guard;
         return s.wait_for_alert(milliseconds(ms));
     }
 
-    list get_torrents(session& s)
+    list get_torrents(lt::session& s)
     {
         list ret;
         std::vector<torrent_handle> torrents;
@@ -395,7 +392,7 @@ namespace
         return ret;
     }
 
-	 cache_status get_cache_info1(session& s, torrent_handle h, int flags)
+	 cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
 	 {
 	 	cache_status ret;
 		s.get_cache_info(&ret, h, flags);
@@ -403,7 +400,7 @@ namespace
 	 }
 
 #ifndef TORRENT_NO_DEPRECATE
-	 cache_status get_cache_status(session& s)
+	 cache_status get_cache_status(lt::session& s)
 	 {
 	 	cache_status ret;
 		s.get_cache_info(&ret);
@@ -423,7 +420,7 @@ namespace
     }
 
 #ifndef TORRENT_NO_DEPRECATE
-    list get_cache_info2(session& ses, sha1_hash ih)
+    list get_cache_info2(lt::session& ses, sha1_hash ih)
     {
        std::vector<cached_piece_info> ret;
 
@@ -449,20 +446,20 @@ namespace
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
-    void load_asnum_db(session& s, std::string file)
+    void load_asnum_db(lt::session& s, std::string file)
     {
         allow_threading_guard guard;
         s.load_asnum_db(file.c_str());
     }
 
-    void load_country_db(session& s, std::string file)
+    void load_country_db(lt::session& s, std::string file)
     {
         allow_threading_guard guard;
         s.load_country_db(file.c_str());
     }
 #endif
 
-    entry save_state(session const& s, boost::uint32_t flags)
+    entry save_state(lt::session const& s, boost::uint32_t flags)
     {
         allow_threading_guard guard;
         entry e;
@@ -470,7 +467,7 @@ namespace
         return e;
     }
 
-    object pop_alert(session& ses)
+    object pop_alert(lt::session& ses)
     {
         std::auto_ptr<alert> a;
         {
@@ -481,7 +478,7 @@ namespace
         return object(boost::shared_ptr<alert>(a.release()));
     }
 
-    list pop_alerts(session& ses)
+    list pop_alerts(lt::session& ses)
     {
         std::deque<alert*> alerts;
         {
@@ -498,7 +495,7 @@ namespace
         return ret;
     }
 
-    void load_state(session& ses, entry const& st)
+    void load_state(lt::session& ses, entry const& st)
 	 {
 		 allow_threading_guard guard;
 
@@ -515,10 +512,10 @@ namespace
 
 void bind_session()
 {
-#ifndef TORRENT_DISABLE_DHT
-    void (session::*start_dht0)() = &session::start_dht;
 #ifndef TORRENT_NO_DEPRECATE
-    void (session::*start_dht1)(entry const&) = &session::start_dht;
+#ifndef TORRENT_DISABLE_DHT
+    void (lt::session::*start_dht0)() = &lt::session::start_dht;
+    void (lt::session::*start_dht1)(entry const&) = &lt::session::start_dht;
 #endif
 #endif
 
@@ -595,13 +592,13 @@ void bind_session()
 #endif
     ;
 
-    enum_<session::options_t>("options_t")
-        .value("delete_files", session::delete_files)
+    enum_<lt::session::options_t>("options_t")
+        .value("delete_files", lt::session::delete_files)
     ;
 
-    enum_<session::session_flags_t>("session_flags_t")
-        .value("add_default_plugins", session::add_default_plugins)
-        .value("start_default_features", session::start_default_features)
+    enum_<lt::session::session_flags_t>("session_flags_t")
+        .value("add_default_plugins", lt::session::add_default_plugins)
+        .value("start_default_features", lt::session::start_default_features)
     ;
 
     enum_<add_torrent_params::flags_t>("add_torrent_params_flags_t")
@@ -615,6 +612,9 @@ void bind_session()
         .value("flag_duplicate_is_error", add_torrent_params::flag_duplicate_is_error)
         .value("flag_merge_resume_trackers", add_torrent_params::flag_merge_resume_trackers)
         .value("flag_update_subscribe", add_torrent_params::flag_update_subscribe)
+        .value("flag_super_seeding", add_torrent_params::flag_super_seeding)
+        .value("flag_sequential_download", add_torrent_params::flag_sequential_download)
+        .value("flag_use_resume_save_path", add_torrent_params::flag_use_resume_save_path)
     ;
     class_<cache_status>("cache_status")
         .def_readonly("blocks_written", &cache_status::blocks_written)
@@ -622,8 +622,8 @@ void bind_session()
         .def_readonly("blocks_read", &cache_status::blocks_read)
         .def_readonly("blocks_read_hit", &cache_status::blocks_read_hit)
         .def_readonly("reads", &cache_status::reads)
-        .def_readonly("queued_bytes", &cache_status::queued_bytes)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("queued_bytes", &cache_status::queued_bytes)
         .def_readonly("cache_size", &cache_status::cache_size)
 #endif
         .def_readonly("write_cache_size", &cache_status::write_cache_size)
@@ -653,20 +653,20 @@ void bind_session()
         .def_readonly("arc_mfu_ghost_size", &cache_status::arc_mfu_ghost_size)
     ;
 
-    class_<session, boost::noncopyable>("session", no_init)
+    class_<lt::session, boost::noncopyable>("session", no_init)
         .def(
             init<settings_pack const&, fingerprint, int>((
                 arg("settings")
                 , arg("fingerprint")=fingerprint("LT",0,1,0,0)
-                , arg("flags")=session::start_default_features | session::add_default_plugins))
+                , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins))
         )
         .def(
             init<fingerprint, int, boost::uint32_t>((
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
-                , arg("flags")=session::start_default_features | session::add_default_plugins
+                , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins
                 , arg("alert_mask")=alert::error_notification))
         )
-        .def("post_torrent_updates", allow_threads(&session::post_torrent_updates))
+        .def("post_torrent_updates", allow_threads(&lt::session::post_torrent_updates))
 #ifndef TORRENT_NO_DEPRECATE
         .def(
             "listen_on", &listen_on
@@ -674,24 +674,24 @@ void bind_session()
         )
 #endif
         .def("outgoing_ports", &outgoing_ports)
-        .def("is_listening", allow_threads(&session::is_listening))
-        .def("listen_port", allow_threads(&session::listen_port))
-        .def("status", allow_threads(&session::status))
+        .def("is_listening", allow_threads(&lt::session::is_listening))
+        .def("listen_port", allow_threads(&lt::session::listen_port))
+        .def("status", allow_threads(&lt::session::status))
 #ifndef TORRENT_DISABLE_DHT
         .def("add_dht_node", add_dht_node)
         .def(
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
         )
-        .def("is_dht_running", allow_threads(&session::is_dht_running))
-        .def("set_dht_settings", allow_threads(&session::set_dht_settings))
-        .def("start_dht", allow_threads(start_dht0))
-        .def("stop_dht", allow_threads(&session::stop_dht))
+        .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
+        .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("start_dht", allow_threads(start_dht0))
+        .def("stop_dht", allow_threads(&lt::session::stop_dht))
         .def("start_dht", allow_threads(start_dht1))
-        .def("dht_state", allow_threads(&session::dht_state))
-        .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
-        .def("dht_proxy", allow_threads(&session::dht_proxy))
+        .def("dht_state", allow_threads(&lt::session::dht_state))
+        .def("set_dht_proxy", allow_threads(&lt::session::set_dht_proxy))
+        .def("dht_proxy", allow_threads(&lt::session::dht_proxy))
 #endif
 #endif
         .def("add_torrent", &add_torrent)
@@ -709,27 +709,27 @@ void bind_session()
 #endif
 #endif
         .def("add_feed", &add_feed)
-        .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = 0)
+        .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
 #ifndef TORRENT_NO_DEPRECATE
-        .def("set_local_download_rate_limit", allow_threads(&session::set_local_download_rate_limit))
-        .def("local_download_rate_limit", allow_threads(&session::local_download_rate_limit))
+        .def("set_local_download_rate_limit", allow_threads(&lt::session::set_local_download_rate_limit))
+        .def("local_download_rate_limit", allow_threads(&lt::session::local_download_rate_limit))
 
-        .def("set_local_upload_rate_limit", allow_threads(&session::set_local_upload_rate_limit))
-        .def("local_upload_rate_limit", allow_threads(&session::local_upload_rate_limit))
+        .def("set_local_upload_rate_limit", allow_threads(&lt::session::set_local_upload_rate_limit))
+        .def("local_upload_rate_limit", allow_threads(&lt::session::local_upload_rate_limit))
 
-        .def("set_download_rate_limit", allow_threads(&session::set_download_rate_limit))
-        .def("download_rate_limit", allow_threads(&session::download_rate_limit))
+        .def("set_download_rate_limit", allow_threads(&lt::session::set_download_rate_limit))
+        .def("download_rate_limit", allow_threads(&lt::session::download_rate_limit))
 
-        .def("set_upload_rate_limit", allow_threads(&session::set_upload_rate_limit))
-        .def("upload_rate_limit", allow_threads(&session::upload_rate_limit))
+        .def("set_upload_rate_limit", allow_threads(&lt::session::set_upload_rate_limit))
+        .def("upload_rate_limit", allow_threads(&lt::session::upload_rate_limit))
 
-        .def("set_max_uploads", allow_threads(&session::set_max_uploads))
-        .def("set_max_connections", allow_threads(&session::set_max_connections))
-        .def("max_connections", allow_threads(&session::max_connections))
-        .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
-        .def("num_connections", allow_threads(&session::num_connections))
-        .def("set_settings", &session::set_settings)
-        .def("settings", &session::settings)
+        .def("set_max_uploads", allow_threads(&lt::session::set_max_uploads))
+        .def("set_max_connections", allow_threads(&lt::session::set_max_connections))
+        .def("max_connections", allow_threads(&lt::session::max_connections))
+        .def("set_max_half_open_connections", allow_threads(&lt::session::set_max_half_open_connections))
+        .def("num_connections", allow_threads(&lt::session::num_connections))
+        .def("set_settings", &lt::session::set_settings)
+        .def("settings", &lt::session::settings)
         .def("get_settings", &session_get_settings)
 #else
         .def("settings", &session_get_settings)
@@ -737,8 +737,8 @@ void bind_session()
 #endif
         .def("set_settings", &session_set_settings)
 #ifndef TORRENT_DISABLE_ENCRYPTION
-        .def("set_pe_settings", allow_threads(&session::set_pe_settings))
-        .def("get_pe_settings", allow_threads(&session::get_pe_settings))
+        .def("set_pe_settings", allow_threads(&lt::session::set_pe_settings))
+        .def("get_pe_settings", allow_threads(&lt::session::get_pe_settings))
 #endif
 #ifndef TORRENT_DISABLE_GEO_IP
         .def("load_asnum_db", &load_asnum_db)
@@ -747,70 +747,70 @@ void bind_session()
         .def("load_state", &load_state)
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
 #ifndef TORRENT_NO_DEPRECATE
-        .def("set_severity_level", allow_threads(&session::set_severity_level))
-        .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
-        .def("set_alert_mask", allow_threads(&session::set_alert_mask))
+        .def("set_severity_level", allow_threads(&lt::session::set_severity_level))
+        .def("set_alert_queue_size_limit", allow_threads(&lt::session::set_alert_queue_size_limit))
+        .def("set_alert_mask", allow_threads(&lt::session::set_alert_mask))
 #endif
         .def("pop_alert", &pop_alert)
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
-        .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
-        .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
-        .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
-        .def("peer_proxy", allow_threads(&session::peer_proxy))
-        .def("tracker_proxy", allow_threads(&session::tracker_proxy))
-        .def("web_seed_proxy", allow_threads(&session::web_seed_proxy))
+        .def("set_peer_proxy", allow_threads(&lt::session::set_peer_proxy))
+        .def("set_tracker_proxy", allow_threads(&lt::session::set_tracker_proxy))
+        .def("set_web_seed_proxy", allow_threads(&lt::session::set_web_seed_proxy))
+        .def("peer_proxy", allow_threads(&lt::session::peer_proxy))
+        .def("tracker_proxy", allow_threads(&lt::session::tracker_proxy))
+        .def("web_seed_proxy", allow_threads(&lt::session::web_seed_proxy))
 #endif
 #if TORRENT_USE_I2P
-        .def("set_i2p_proxy", allow_threads(&session::set_i2p_proxy))
-        .def("i2p_proxy", allow_threads(&session::i2p_proxy))
+        .def("set_i2p_proxy", allow_threads(&lt::session::set_i2p_proxy))
+        .def("i2p_proxy", allow_threads(&lt::session::i2p_proxy))
 #endif
-        .def("set_proxy", allow_threads(&session::set_proxy))
-        .def("proxy", allow_threads(&session::proxy))
-        .def("start_upnp", &start_upnp)
-        .def("stop_upnp", allow_threads(&session::stop_upnp))
-        .def("start_lsd", allow_threads(&session::start_lsd))
-        .def("stop_lsd", allow_threads(&session::stop_lsd))
-        .def("start_natpmp", &start_natpmp)
-        .def("stop_natpmp", allow_threads(&session::stop_natpmp))
-        .def("set_ip_filter", allow_threads(&session::set_ip_filter))
-        .def("get_ip_filter", allow_threads(&session::get_ip_filter))
-        .def("find_torrent", allow_threads(&session::find_torrent))
+        .def("set_proxy", allow_threads(&lt::session::set_proxy))
+        .def("proxy", allow_threads(&lt::session::proxy))
+        .def("set_ip_filter", allow_threads(&lt::session::set_ip_filter))
+        .def("get_ip_filter", allow_threads(&lt::session::get_ip_filter))
+        .def("find_torrent", allow_threads(&lt::session::find_torrent))
         .def("get_torrents", &get_torrents)
-        .def("pause", allow_threads(&session::pause))
-        .def("resume", allow_threads(&session::resume))
-        .def("is_paused", allow_threads(&session::is_paused))
-        .def("id", allow_threads(&session::id))
+        .def("pause", allow_threads(&lt::session::pause))
+        .def("resume", allow_threads(&lt::session::resume))
+        .def("is_paused", allow_threads(&lt::session::is_paused))
+        .def("id", allow_threads(&lt::session::id))
         .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("start_upnp", &start_upnp)
+        .def("stop_upnp", allow_threads(&lt::session::stop_upnp))
+        .def("start_lsd", allow_threads(&lt::session::start_lsd))
+        .def("stop_lsd", allow_threads(&lt::session::stop_lsd))
+        .def("start_natpmp", &start_natpmp)
+        .def("stop_natpmp", allow_threads(&lt::session::stop_natpmp))
         .def("get_cache_status", &get_cache_status)
         .def("get_cache_info", &get_cache_info2)
 #endif
-        .def("set_peer_id", allow_threads(&session::set_peer_id))
+        .def("set_peer_id", allow_threads(&lt::session::set_peer_id))
         ;
 
-    enum_<session::save_state_flags_t>("save_state_flags_t")
-        .value("save_settings", session::save_settings)
-        .value("save_dht_settings", session::save_dht_settings)
-        .value("save_dht_state", session::save_dht_state)
-        .value("save_i2p_proxy", session::save_i2p_proxy)
-        .value("save_encryption_settings", session:: save_encryption_settings)
-        .value("save_as_map", session::save_as_map)
-        .value("save_proxy", session::save_proxy)
+    enum_<lt::session::save_state_flags_t>("save_state_flags_t")
+        .value("save_settings", lt::session::save_settings)
+        .value("save_dht_settings", lt::session::save_dht_settings)
+        .value("save_dht_state", lt::session::save_dht_state)
+        .value("save_i2p_proxy", lt::session::save_i2p_proxy)
+        .value("save_encryption_settings", lt::session:: save_encryption_settings)
+        .value("save_as_map", lt::session::save_as_map)
+        .value("save_proxy", lt::session::save_proxy)
 #ifndef TORRENT_NO_DEPRECATE
-        .value("save_dht_proxy", session::save_dht_proxy)
-        .value("save_peer_proxy", session::save_peer_proxy)
-        .value("save_web_proxy", session::save_web_proxy)
-        .value("save_tracker_proxy", session::save_tracker_proxy)
+        .value("save_dht_proxy", lt::session::save_dht_proxy)
+        .value("save_peer_proxy", lt::session::save_peer_proxy)
+        .value("save_web_proxy", lt::session::save_web_proxy)
+        .value("save_tracker_proxy", lt::session::save_tracker_proxy)
 #endif
     ;
 
 #ifndef TORRENT_NO_DEPRECATE
-    enum_<session::listen_on_flags_t>("listen_on_flags_t")
-        .value("listen_reuse_address", session::listen_reuse_address)
-        .value("listen_no_system_port", session::listen_no_system_port)
+    enum_<lt::session::listen_on_flags_t>("listen_on_flags_t")
+        .value("listen_reuse_address", lt::session::listen_reuse_address)
+        .value("listen_no_system_port", lt::session::listen_no_system_port)
     ;
 #endif
 
@@ -820,13 +820,6 @@ void bind_session()
         .def("set_settings", &set_feed_settings)
         .def("settings", &get_feed_settings)
     ;
-
-#ifndef TORRENT_NO_DEPRECATE
-    def("create_ut_pex_plugin", dummy_plugin_wrapper);
-    def("create_metadata_plugin", dummy_plugin_wrapper);
-    def("create_ut_metadata_plugin", dummy_plugin_wrapper);
-    def("create_smart_ban_plugin", dummy_plugin_wrapper);
-#endif
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 

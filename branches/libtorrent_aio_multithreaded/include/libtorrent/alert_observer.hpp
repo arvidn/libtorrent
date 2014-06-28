@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALERT_OBSERVER_HPP_INCLUDED
 #define TORRENT_ALERT_OBSERVER_HPP_INCLUDED
 
+#include <boost/cstdint.hpp>
+
 namespace libtorrent
 {
 
@@ -45,7 +47,7 @@ struct alert_observer
 	alert_observer(): num_types(0), flags(0) {}
 	virtual void handle_alert(alert const* a) = 0;
 private:
-	int types[20];
+	boost::uint8_t types[64];
 	int num_types;
 	int flags;
 };

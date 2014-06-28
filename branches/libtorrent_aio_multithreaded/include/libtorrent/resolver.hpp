@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-struct resolver : resolver_interface
+struct TORRENT_EXTRA_EXPORT resolver : resolver_interface
 {
 	resolver(io_service& ios);
 
@@ -67,6 +67,12 @@ private:
 	cache_t m_cache;
 	io_service& m_ios;
 	tcp::resolver m_resolver;
+
+	// max number of cached entries
+	int m_max_size;
+
+	// timeout (in seconds) of cache entries
+	int m_timeout;
 };
 
 }

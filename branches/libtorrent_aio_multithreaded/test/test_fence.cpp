@@ -32,6 +32,12 @@ void test_disk_job_empty_fence()
 	// now it's fine to post the blocked jobs
 	TEST_CHECK(jobs.size() == 2);
 	TEST_CHECK(jobs.first() == &test_job[7]);
+
+	// the disk_io_fence has an assert in its destructor
+	// to make sure all outstanding jobs are completed, so we must
+	// complete them before we're done
+	fence.job_complete(&test_job[7], jobs);
+	fence.job_complete(&test_job[8], jobs);
 }
 
 void test_disk_job_fence()
@@ -96,9 +102,15 @@ void test_disk_job_fence()
 	// complete the fence job
 	fence.job_complete(&test_job[5], jobs);
 
-	// now it's fine to post the blocke jobs
+	// now it's fine to post the blocked jobs
 	TEST_EQUAL(jobs.size(), 2);
 	TEST_CHECK(jobs.first() == &test_job[7]);
+
+	// the disk_io_fence has an assert in its destructor
+	// to make sure all outstanding jobs are completed, so we must
+	// complete them before we're done
+	fence.job_complete(&test_job[7], jobs);
+	fence.job_complete(&test_job[8], jobs);
 }
 
 void test_disk_job_double_fence()
@@ -182,6 +194,11 @@ void test_disk_job_double_fence()
 	// and now we can run the remaining blocked job
 	TEST_CHECK(jobs.size() == 1);
 	TEST_CHECK(jobs.first() == &test_job[9]);
+
+	// the disk_io_fence has an assert in its destructor
+	// to make sure all outstanding jobs are completed, so we must
+	// complete them before we're done
+	fence.job_complete(&test_job[9], jobs);
 }
 
 int test_main()

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -129,7 +129,8 @@ namespace libtorrent
 		return total_size - size;
 	}
 
-	bool inflate_gzip(
+	// TODO: 2 it would be nice to use proper error handling here
+	TORRENT_EXTRA_EXPORT bool inflate_gzip(
 		char const* in
 		, int size
 		, std::vector<char>& buffer
@@ -145,28 +146,56 @@ namespace libtorrent
 			return true;
 		}
 
-		// start off with one kilobyte and grow
+		// start off with 4 kilobytes and grow
 		// if needed
-		buffer.resize(maximum_size);
-
-		boost::uint32_t destlen = buffer.size();
+		boost::uint32_t destlen = 4096;
+		int ret = 0;
 		boost::uint32_t srclen = size - header_len;
 		in += header_len;
-		int ret = puff((unsigned char*)&buffer[0], &destlen, (unsigned char*)in, &srclen);
 
-		if (ret == -1)
+		do
 		{
-			error = "inflated data too big";
-			return true;
-		}
+			TORRENT_TRY {
+				buffer.resize(destlen);
+			} TORRENT_CATCH(std::exception& e) {
+				error = "out of memory: ";
+				error += e.what();
+				return true;
+			}
 
-		buffer.resize(destlen);
+			ret = puff((unsigned char*)&buffer[0], &destlen, (unsigned char*)in, &srclen);
+
+			// if the destination buffer wasn't large enough, double its
+			// size and try again. Unless it's already at its max, in which
+			// case we fail
+			if (ret == 1) // 1:  output space exhausted before completing inflate
+			{
+				if (destlen == maximum_size)
+				{
+					error = "inflated data too big";
+					return true;
+				}
+
+				destlen *= 2;
+				if (destlen > (unsigned int)maximum_size)
+					destlen = maximum_size;
+			}
+		} while (ret == 1);
 
 		if (ret != 0)
 		{
 			error = "error while inflating data";
 			return true;
 		}
+
+		if (destlen > buffer.size())
+		{
+			error = "internal gzip error";
+			return true;
+		}
+
+		buffer.resize(destlen);
+
 		return false;
 	}
 

@@ -454,7 +454,7 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
       }
 
       /* store term */
-      W[ix] = ((mp_digit)_W) & MP_MASK;
+      W[ix] = (mp_digit)(_W & MP_MASK);
 
       /* make next carry */
       _W = _W >> ((mp_word)DIGIT_BIT);

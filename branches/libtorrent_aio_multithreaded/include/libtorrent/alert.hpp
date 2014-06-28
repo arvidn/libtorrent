@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003-2014, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,31 +50,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // OVERVIEW
 //
-// The pop_alert() function on session is the interface for retrieving
-// alerts, warnings, messages and errors from libtorrent. If no alerts have
-// been posted by libtorrent pop_alert() will return a default initialized
-// ``std::auto_ptr`` object. If there is an alert in libtorrent's queue, the alert
-// from the front of the queue is popped and returned.
-// You can then use the alert object and query
+// The pop_alerts() function on session is the main interface for retrieving
+// alerts (warnings, messages and errors from libtorrent). If no alerts have
+// been posted by libtorrent pop_alert() will return an empty list.
 // 
-// By default, only errors are reported. set_alert_mask() can be
-// used to specify which kinds of events should be reported. The alert mask
-// is comprised by bits from the category_t enum.
+// By default, only errors are reported. set_alert_mask() can be used to
+// specify which kinds of events should be reported. The alert mask is
+// comprised by bits from the category_t enum.
 // 
-// Every alert belongs to one or more category. There is a small cost involved in posting alerts. Only
-// alerts that belong to an enabled category are posted. Setting the alert bitmask to 0 will disable
-// all alerts (except those that are non-discardable).
+// Every alert belongs to one or more category. There is a small cost involved
+// in posting alerts. Only alerts that belong to an enabled category are
+// posted. Setting the alert bitmask to 0 will disable all alerts (except those
+// that are non-discardable).
 // 
 // There are other alert base classes that some alerts derive from, all the
-// alerts that are generated for a specific torrent are derived from torrent_alert,
-// and tracker events derive from tracker_alert.
+// alerts that are generated for a specific torrent are derived from
+// torrent_alert, and tracker events derive from tracker_alert.
 //
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE

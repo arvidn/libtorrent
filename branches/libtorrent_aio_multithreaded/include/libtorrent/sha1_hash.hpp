@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
+Copyright (c) 2003-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -196,7 +196,7 @@ namespace libtorrent
 				{
 					m_number[i] >>= n;
 					m_number[i-1] = ntohl(m_number[i-1]);
-					m_number[i] |= m_number[i-1] << (32 - n);
+					m_number[i] |= (m_number[i-1] << (32 - n)) & 0xffffffff;
 					m_number[i] = htonl(m_number[i]);
 				}
 				m_number[0] >>= n;
@@ -210,7 +210,6 @@ namespace libtorrent
 		{
 			return std::equal(n.m_number, n.m_number+number_size, m_number);
 		}
-
 		bool operator!=(sha1_hash const& n) const
 		{
 			return !std::equal(n.m_number, n.m_number+number_size, m_number);
@@ -227,7 +226,7 @@ namespace libtorrent
 			return false;
 		}
 		
-		// negate every bit in the sha1-hash
+		// returns a bit-wise negated copy of the sha1-hash
 		sha1_hash operator~()
 		{
 			sha1_hash ret;
@@ -236,13 +235,15 @@ namespace libtorrent
 			return ret;
 		}
 		
-		// bit-wise XOR of the two sha1-hash.
+		// returns the bit-wise XOR of the two sha1-hashes.
 		sha1_hash operator^(sha1_hash const& n) const
 		{
 			sha1_hash ret = *this;
 			ret ^= n;
 			return ret;
 		}
+
+		// in-place bit-wise XOR with the passed in sha1_hash.
 		sha1_hash& operator^=(sha1_hash const& n)
 		{
 			for (int i = 0; i < number_size; ++i)
@@ -250,13 +251,15 @@ namespace libtorrent
 			return *this;
 		}
 
-		// bit-wise AND of the two sha1-hash.
+		// returns the bit-wise AND of the two sha1-hashes.
 		sha1_hash operator&(sha1_hash const& n) const
 		{
 			sha1_hash ret = *this;
 			ret &= n;
 			return ret;
 		}
+
+		// in-place bit-wise AND of the passed in sha1_hash
 		sha1_hash& operator&=(sha1_hash const& n)
 		{
 			for (int i = 0; i < number_size; ++i)
@@ -264,7 +267,7 @@ namespace libtorrent
 			return *this;
 		}
 
-		// bit-wise OR of the two sha1-hash.
+		// in-place bit-wise OR of the two sha1-hash.
 		sha1_hash& operator|=(sha1_hash const& n)
 		{
 			for (int i = 0; i < number_size; ++i)

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2013, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,20 +95,7 @@ namespace libtorrent
 		};
 	}
 
-#if BOOST_VERSION < 103500
-	extern asio::error::error_category upnp_category;
-#else
-
-	struct TORRENT_EXPORT upnp_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
-
-	extern TORRENT_EXPORT upnp_error_category upnp_category;
-#endif
+	TORRENT_EXPORT boost::system::error_category& get_upnp_category();
 
 // int: port-mapping index
 // address: external address as queried from router
@@ -172,6 +159,8 @@ public:
 
 private:
 
+	void map_timer(error_code const& ec);
+	void try_map_upnp(mutex::scoped_lock& l, bool timer = false);
 	void discover_device_impl(mutex::scoped_lock& l);
 	static address_v4 upnp_multicast_address;
 	static udp::endpoint upnp_multicast_endpoint;
@@ -268,13 +257,14 @@ private:
 			, lease_duration(default_lease_time)
 			, supports_specific_external(true)
 			, disabled(false)
+			, non_router(false)
 		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			magic = 1337;
 #endif
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		~rootdevice()
 		{
 			TORRENT_ASSERT(magic == 1337);
@@ -308,9 +298,16 @@ private:
 		
 		bool disabled;
 
+		// this is true if the IP of this device is not
+		// one of our default routes. i.e. it may be someone
+		// else's router, we just happen to have multicast
+		// enabled across networks
+		// this is only relevant if ignore_non_routers is set.
+		bool non_router;
+
 		mutable boost::shared_ptr<http_connection> upnp_connection;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		int magic;
 #endif
 		void close() const
@@ -358,6 +355,13 @@ private:
 
 	// timer used to refresh mappings
 	deadline_timer m_refresh_timer;
+
+	// this timer fires one second after the last UPnP response. This is the
+	// point where we assume we have received most or all SSDP reponses. If we
+	// are ignoring non-routers and at this point we still haven't received a
+	// response from a router UPnP device, we override the ignoring behavior and
+	// map them anyway.
+	deadline_timer m_map_timer;
 	
 	bool m_disabled;
 	bool m_closing;

@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2003-2013, Arvid Norberg
-Copyright (c) 2007-2013, Arvid Norberg, Un Shyam
+Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2007-2014, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -93,8 +93,8 @@ namespace libtorrent
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, torrent_peer* peerinfo
-			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
-			, bool outgoing = false);
+			, peer_id const& pid
+			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>());
 
 		void start();
 
@@ -253,7 +253,7 @@ namespace libtorrent
 		void on_connected();
 		void on_metadata();
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 		ptime m_last_choke;
 #endif
@@ -303,12 +303,17 @@ public:
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
 		virtual void append_const_send_buffer(char const* buffer, int size
-			, boost::function<void(char*)> const& destructor = &nop);
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference());
 
 		virtual void send_buffer(char const* begin, int size, int flags = 0
 			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
-		virtual void append_send_buffer(char* buffer, int size, boost::function<void(char*)> const& destructor
-			, bool encrypted = false);
+
+		virtual void append_send_buffer(char* buffer, int size
+			, chained_buffer::free_buffer_fun destructor = &nop
+			, void* userdata = NULL, block_cache_reference ref
+			= block_cache_reference(), bool encrypted = false);
 
 private:
 
@@ -374,6 +379,9 @@ private:
 #endif
 
 		std::string m_client_version;
+
+		// the peer ID we advertise for ourself
+		peer_id m_our_peer_id;
 
 		// this is a queue of ranges that describes
 		// where in the send buffer actual payload

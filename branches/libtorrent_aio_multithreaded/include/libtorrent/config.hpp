@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2005-2013, Arvid Norberg
+Copyright (c) 2005-2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,8 +44,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#if !defined INT16_MAX
+#define INT16_MAX 32767
+#endif
+
+#if !defined INT16_MIN
+#define INT16_MIN -32768
+#endif
+
 #include <boost/config.hpp>
+#include <boost/asio/detail/config.hpp>
 #include <boost/version.hpp>
+#include <boost/detail/endian.hpp>
 #include <stdio.h> // for snprintf
 #include <limits.h> // for IOV_MAX
 
@@ -394,11 +404,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdarg.h>
 
 // internal
-inline int snprintf(char* buf, int len, char const* fmt, ...)
+#ifdef __cplusplus
+inline
+#else
+static
+#endif
+int snprintf(char* buf, int len, char const* fmt, ...)
 {
 	va_list lp;
+	int ret;
 	va_start(lp, fmt);
-	int ret = _vsnprintf(buf, len, fmt, lp);
+	ret = _vsnprintf(buf, len, fmt, lp);
 	va_end(lp);
 	if (ret < 0) { buf[len-1] = 0; ret = len-1; }
 	return ret;
@@ -645,6 +661,24 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #endif
 
+// debug builds have asserts enabled by default, release
+// builds have asserts if they are explicitly enabled by
+// the release_asserts macro.
+#ifndef TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#define TORRENT_USE_ASSERTS 1
+#else
+#define TORRENT_USE_ASSERTS 0
+#endif
+#endif // TORRENT_USE_ASSERTS
+
+#if defined TORRENT_DEBUG && TORRENT_USE_ASSERTS \
+	&& !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#define TORRENT_USE_INVARIANT_CHECKS 1
+#else
+#define TORRENT_USE_INVARIANT_CHECKS 0
+#endif
+
 // for non-exception builds
 #ifdef BOOST_NO_EXCEPTIONS
 #define TORRENT_TRY if (true)
@@ -655,6 +689,20 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_CATCH(x) catch(x)
 #define TORRENT_DECLARE_DUMMY(x, y)
 #endif // BOOST_NO_EXCEPTIONS
+
+// SSE is x86 / amd64 specific. On top of that, we only
+// know how to access it on msvc and gcc (and gcc compatibles).
+// GCC requires the user to enable SSE support in order for
+// the program to have access to the intrinsics, this is
+// indicated by the __SSE4_1__ macro
+#if (defined _M_AMD64 || defined _M_IX86 || defined _M_X64 \
+	|| defined __amd64__ || defined __i386 || defined __i386__ \
+	|| defined __x86_64__ || defined __x86_64) \
+	&& (defined __GNUC__ || defined _MSC_VER)
+#define TORRENT_HAS_SSE 1
+#else
+#define TORRENT_HAS_SSE 0
+#endif
 
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
