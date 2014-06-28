@@ -70,7 +70,6 @@ nobase_include_HEADERS = \
   natpmp.hpp                   \
   packet_buffer.hpp            \
   parse_url.hpp                \
-  pch.hpp                      \
   pe_crypto.hpp                \
   peer_connection.hpp          \
   peer.hpp                     \

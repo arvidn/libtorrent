@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #ifdef _MSC_VER

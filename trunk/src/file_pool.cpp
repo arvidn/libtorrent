@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
-#include "libtorrent/pch.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"

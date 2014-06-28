@@ -31,8 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
