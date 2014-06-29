@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <vector>
 #include <iterator> // std::distance()
 #include <algorithm> // std::copy, std::remove_copy_if
