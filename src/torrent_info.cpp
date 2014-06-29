@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <ctime>
 
 #if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
