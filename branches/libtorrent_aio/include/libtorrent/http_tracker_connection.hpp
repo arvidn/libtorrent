@@ -74,7 +74,6 @@ namespace libtorrent
 			, tracker_request const& req
 			, boost::weak_ptr<request_callback> c
 			, aux::session_impl& ses
-			, proxy_settings const& ps
 			, std::string const& password = ""
 #if TORRENT_USE_I2P
 			, i2p_connection* i2p_conn = 0
@@ -103,7 +102,6 @@ namespace libtorrent
 		boost::shared_ptr<http_connection> m_tracker_connection;
 		aux::session_impl& m_ses;
 		address m_tracker_ip;
-		proxy_settings const& m_ps;
 		connection_queue& m_cc;
 		io_service& m_ios;
 #if TORRENT_USE_I2P

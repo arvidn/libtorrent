@@ -44,13 +44,19 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+#ifndef TORRENT_NO_DEPRECATE
+#define TORRENT_EXPORT_DEPRECATED TORRENT_EXPORT
+#else
+#define TORRENT_EXPORT_DEPRECATED
+#endif
+
 	// The ``proxy_settings`` structs contains the information needed to
 	// direct certain traffic to a proxy.
-	struct TORRENT_EXPORT proxy_settings
+	struct TORRENT_EXPORT_DEPRECATED proxy_settings
 	{
 		// defaults constructs proxy settings, initializing it to the default
 		// settings.
-		proxy_settings() : type(none)
+		proxy_settings() : type(0)
 			, port(0), proxy_hostnames(true)
 			, proxy_peer_connections(true)
 		{}
@@ -65,6 +71,7 @@ namespace libtorrent
 		std::string username;
 		std::string password;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the type of proxy to use. Assign one of these to the
 		// proxy_settings::type field.
 		enum proxy_type {
@@ -107,9 +114,10 @@ namespace libtorrent
 			// authorization. The username and password will be sent to the proxy.
 			http_pw,
 
-			// route through a i2p SAM proxy
+			// route through an i2p SAM proxy
 			i2p_proxy
 		};
+#endif
 		
 		// tells libtorrent what kind of proxy server it is. See proxy_type
 		// enum for options

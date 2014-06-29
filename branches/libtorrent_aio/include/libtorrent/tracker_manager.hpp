@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp" // peer_entry
-#include "libtorrent/session_settings.hpp" // proxy_settings
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
@@ -267,9 +266,8 @@ namespace libtorrent
 	{
 	public:
 
-		tracker_manager(aux::session_impl& ses, proxy_settings const& ps)
+		tracker_manager(aux::session_impl& ses)
 			: m_ses(ses)
-			, m_proxy(ps)
 			, m_abort(false) {}
 		~tracker_manager();
 
@@ -306,7 +304,6 @@ namespace libtorrent
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		aux::session_impl& m_ses;
-		proxy_settings const& m_proxy;
 		bool m_abort;
 	};
 }

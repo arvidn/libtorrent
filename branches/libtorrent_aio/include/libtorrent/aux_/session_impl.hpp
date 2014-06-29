@@ -544,25 +544,10 @@ namespace libtorrent
 			void save_state(entry* e, boost::uint32_t flags) const;
 			void load_state(lazy_entry const* e);
 
-			void set_proxy(proxy_settings const& s);
-			proxy_settings const& proxy() const { return m_proxy; }
-
 			bool has_connection(peer_connection* p) const;
 			void insert_peer(boost::shared_ptr<peer_connection> const& c);
-		
-#ifndef TORRENT_NO_DEPRECATE
-			void set_peer_proxy(proxy_settings const& s) { set_proxy(s); }
-			void set_web_seed_proxy(proxy_settings const& s) { set_proxy(s); }
-			void set_tracker_proxy(proxy_settings const& s) { set_proxy(s); }
-			proxy_settings const& peer_proxy() const { return proxy(); }
-			proxy_settings const& web_seed_proxy() const { return proxy(); }
-			proxy_settings const& tracker_proxy() const { return proxy(); }
 
-#ifndef TORRENT_DISABLE_DHT
-			void set_dht_proxy(proxy_settings const& s) { set_proxy(s); }
-			proxy_settings const& dht_proxy() const { return proxy(); }
-#endif
-#endif // TORRENT_NO_DEPRECATE
+			proxy_settings proxy() const;
 
 #ifndef TORRENT_DISABLE_DHT
 			bool is_dht_running() const { return (m_dht.get() != NULL); }
@@ -571,10 +556,9 @@ namespace libtorrent
 
 #if TORRENT_USE_I2P
 			char const* i2p_session() const { return m_i2p_conn.session_id(); }
-			void set_i2p_proxy(proxy_settings const& s);
+			proxy_settings i2p_proxy() const;
+
 			void on_i2p_open(error_code const& ec);
-			proxy_settings const& i2p_proxy() const
-			{ return m_i2p_conn.proxy(); }
 			void open_new_incoming_i2p_connection();
 			void on_i2p_accept(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
@@ -715,13 +699,15 @@ namespace libtorrent
 			// implements alert_dispatcher
 			virtual bool post_alert(alert* a);
 
+			void update_proxy();
+			void update_i2p_bridge();
 			void update_peer_tos();
 			void update_user_agent();
 			void update_choking_algorithm();
 			void update_connection_speed();
 			void update_queued_disk_bytes();
 			void update_alert_queue_size();
-			void upate_dht_upload_rate_limit();
+			void update_dht_upload_rate_limit();
 			void update_disk_threads();
 			void update_network_threads();
 			void update_cache_buffer_chunk_size();
@@ -746,7 +732,6 @@ namespace libtorrent
 			void update_download_rate();
 			void update_upload_rate();
 			void update_connections_limit();
-			void update_dht_upload_rate_limit();
 #ifndef TORRENT_NO_DEPRECATE
 			void update_local_download_rate();
 			void update_local_upload_rate();
@@ -971,9 +956,6 @@ namespace libtorrent
 
 			void setup_listener(listen_socket_t* s, std::string const& device
 				, bool ipv4, int port, int& retries, int flags, error_code& ec);
-
-			// the proxy used for bittorrent
-			proxy_settings m_proxy;
 
 #ifndef TORRENT_DISABLE_DHT	
 			entry m_dht_state;

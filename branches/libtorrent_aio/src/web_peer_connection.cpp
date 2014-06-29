@@ -281,9 +281,9 @@ void web_peer_connection::write_request(peer_request const& r)
 		size -= pr.length;
 	}
 
-	proxy_settings const& ps = m_ses.proxy();
-	bool using_proxy = (ps.type == proxy_settings::http
-		|| ps.type == proxy_settings::http_pw) && !m_ssl;
+	int proxy_type = m_ses.settings().get_int(settings_pack::proxy_type);
+	bool using_proxy = (proxy_type == settings_pack::http
+		|| proxy_type == settings_pack::http_pw) && !m_ssl;
 
 	if (single_file_request)
 	{
@@ -292,7 +292,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		// assumed to be encoded in the torrent file
 		request += using_proxy ? m_url : m_path;
 		request += " HTTP/1.1\r\n";
-		add_headers(request, ps, using_proxy);
+		add_headers(request, m_ses.settings(), using_proxy);
 		request += "\r\nRange: bytes=";
 		request += to_string(size_type(req.piece) * info.piece_length()
 			+ req.start).elems;
@@ -349,7 +349,7 @@ void web_peer_connection::write_request(peer_request const& r)
 				request += escape_path(path.c_str(), path.length());
 			}
 			request += " HTTP/1.1\r\n";
-			add_headers(request, ps, using_proxy);
+			add_headers(request, m_ses.settings(), using_proxy);
 			request += "\r\nRange: bytes=";
 			request += to_string(f.offset).elems;
 			request += "-";

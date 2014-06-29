@@ -135,7 +135,7 @@ namespace libtorrent
 	protected:
 
 		virtual void add_headers(std::string& request
-			, proxy_settings const& ps, bool using_proxy) const;
+			, aux::session_settings const& sett, bool using_proxy) const;
 
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left

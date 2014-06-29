@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-const int proxy = libtorrent::proxy_settings::socks5_pw;
+const int proxy = libtorrent::settings_pack::socks5_pw;
 
 int test_main()
 {

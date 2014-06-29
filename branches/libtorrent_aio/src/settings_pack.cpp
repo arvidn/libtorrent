@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
 
+#include <algorithm>
+
 namespace {
 
 	template <class T>
@@ -117,6 +119,10 @@ namespace libtorrent
 		SET(handshake_client_version, 0, 0),
 		SET_NOPREV(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
 		SET_NOPREV(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
+		SET_NOPREV(proxy_hostname, "", &session_impl::update_proxy),
+		SET_NOPREV(proxy_username, "", &session_impl::update_proxy),
+		SET_NOPREV(proxy_password, "", &session_impl::update_proxy),
+		SET_NOPREV(i2p_hostname, "", &session_impl::update_i2p_bridge)
 	};
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
@@ -187,6 +193,8 @@ namespace libtorrent
 		SET_NOPREV(enable_lsd, true, &session_impl::update_lsd),
 		SET_NOPREV(enable_dht, true, &session_impl::update_dht),
 		SET_NOPREV(prefer_rc4, false, 0),
+		SET_NOPREV(proxy_hostnames, true, 0),
+		SET_NOPREV(proxy_peer_connections, true, 0),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
@@ -317,7 +325,10 @@ namespace libtorrent
 		SET_NOPREV(in_enc_policy, settings_pack::pe_enabled, 0),
 		SET_NOPREV(allowed_enc_level, settings_pack::pe_both, 0),
 		SET(inactive_down_rate, 2048, 0),
-		SET(inactive_up_rate, 2048, 0)
+		SET(inactive_up_rate, 2048, 0),
+		SET_NOPREV(proxy_type, settings_pack::none, &session_impl::update_proxy),
+		SET_NOPREV(proxy_port, 0, &session_impl::update_proxy),
+		SET_NOPREV(i2p_port, 0, &session_impl::update_i2p_bridge)
 	};
 
 #undef SET
@@ -542,8 +553,12 @@ namespace libtorrent
 */
 	}
 
-	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses)
+	void apply_pack(settings_pack const* pack, aux::session_settings& sett
+		, aux::session_impl* ses)
 	{
+		typedef void (aux::session_impl::*fun_t)();
+		std::vector<fun_t> callbacks;
+
 		for (std::vector<std::pair<boost::uint16_t, std::string> >::const_iterator i = pack->m_strings.begin()
 			, end(pack->m_strings.end()); i != end; ++i)
 		{
@@ -558,7 +573,9 @@ namespace libtorrent
 
 			sett.set_str(i->first, i->second);
 			str_setting_entry_t const& sa = str_settings[i->first & settings_pack::index_mask];
-			if (sa.fun && ses) (ses->*sa.fun)();
+			if (sa.fun && ses
+				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
+				callbacks.push_back(sa.fun);
 		}
 	
 		for (std::vector<std::pair<boost::uint16_t, int> >::const_iterator i = pack->m_ints.begin()
@@ -575,7 +592,9 @@ namespace libtorrent
 
 			sett.set_int(i->first, i->second);
 			int_setting_entry_t const& sa = int_settings[i->first & settings_pack::index_mask];
-			if (sa.fun && ses) (ses->*sa.fun)();
+			if (sa.fun && ses
+				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
+				callbacks.push_back(sa.fun);
 		}
 
 		for (std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i = pack->m_bools.begin()
@@ -592,7 +611,18 @@ namespace libtorrent
 
 			sett.set_bool(i->first, i->second);
 			bool_setting_entry_t const& sa = bool_settings[i->first & settings_pack::index_mask];
-			if (sa.fun && ses) (ses->*sa.fun)();
+			if (sa.fun && ses
+				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
+				callbacks.push_back(sa.fun);
+		}
+
+		// call the callbacks once all the settings have been applied, and
+		// only once per callback
+		for (std::vector<fun_t>::iterator i = callbacks.begin(), end(callbacks.end());
+			i != end; ++i)
+		{
+			fun_t const& f = *i;
+			(ses->*f)();
 		}
 	}
 

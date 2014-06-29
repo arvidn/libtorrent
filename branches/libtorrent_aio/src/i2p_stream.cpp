@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/settings_pack.hpp"
 
 #if TORRENT_USE_I2P
 
@@ -93,18 +94,28 @@ namespace libtorrent
 		if (m_sam_socket) m_sam_socket->close(e);
 	}
 
-	void i2p_connection::open(proxy_settings const& s, i2p_stream::handler_type const& handler)
+	proxy_settings i2p_connection::proxy() const
+	{
+		proxy_settings ret;
+		ret.hostname = m_hostname;
+		ret.port = m_port;
+		ret.type = settings_pack::i2p_proxy;
+		return ret;
+	}
+
+	void i2p_connection::open(std::string const& s, int port
+		, i2p_stream::handler_type const& handler)
 	{
 		// we already seem to have a session to this SAM router
-		if (m_sam_router.hostname == s.hostname
-			&& m_sam_router.port == s.port
+		if (m_hostname == s
+			&& m_port == port
 			&& m_sam_socket
 			&& (is_open() || m_state == sam_connecting)) return;
 
-		m_sam_router = s;
-		m_sam_router.type = proxy_settings::i2p_proxy;
+		m_hostname = s;
+		m_port = port;
 
-		if (m_sam_router.hostname.empty()) return;
+		if (m_hostname.empty()) return;
 
 		m_state = sam_connecting;
 
@@ -114,7 +125,7 @@ namespace libtorrent
 		to_hex(tmp, 20, &m_session_id[0]);
 
 		m_sam_socket.reset(new i2p_stream(m_io_service));
-		m_sam_socket->set_proxy(m_sam_router.hostname, m_sam_router.port);
+		m_sam_socket->set_proxy(m_hostname, m_port);
 		m_sam_socket->set_command(i2p_stream::cmd_create_session);
 		m_sam_socket->set_session_id(m_session_id.c_str());
 

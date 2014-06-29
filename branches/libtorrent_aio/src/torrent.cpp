@@ -788,7 +788,8 @@ namespace libtorrent
 				, m_ssl_ctx.get()
 #endif
 				));
-		conn->get(m_url, seconds(30), 0, &m_ses.proxy()
+		proxy_settings ps = m_ses.proxy();
+		conn->get(m_url, seconds(30), 0, &ps
 			, 5, m_ses.settings().get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);
 	}
@@ -2942,12 +2943,12 @@ namespace libtorrent
 				// we only allow trackers if there is a proxy and issue
 				// a warning if there isn't one
 				std::string protocol = req.url.substr(0, req.url.find(':'));
-				int proxy_type = m_ses.proxy().type;
+				int proxy_type = m_ses.settings().get_int(settings_pack::proxy_type);
 	
 				// http can run over any proxy, so as long as one is used
 				// it's OK. If no proxy is configured, skip this tracker
 				if ((protocol == "http" || protocol == "https")
-					&& proxy_type == proxy_settings::none)
+					&& proxy_type == settings_pack::none)
 				{
 					ae.next_announce = now + minutes(10);
 					if (m_ses.alerts().should_post<anonymous_mode_alert>())
@@ -2963,9 +2964,9 @@ namespace libtorrent
 				// if we're not using one of those proxues with a UDP
 				// tracker, skip it
 				if (protocol == "udp"
-					&& proxy_type != proxy_settings::socks5
-					&& proxy_type != proxy_settings::socks5_pw
-					&& proxy_type != proxy_settings::i2p_proxy)
+					&& proxy_type != settings_pack::socks5
+					&& proxy_type != settings_pack::socks5_pw
+					&& proxy_type != settings_pack::i2p_proxy)
 				{
 					ae.next_announce = now + minutes(10);
 					if (m_ses.alerts().should_post<anonymous_mode_alert>())
@@ -5882,8 +5883,8 @@ namespace libtorrent
 #endif
 
 		proxy_settings const& ps = m_ses.proxy();
-		if (ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw)
+		if (ps.type == settings_pack::http
+			|| ps.type == settings_pack::http_pw)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			debug_log("resolving proxy for web seed: %s", web->url.c_str());
@@ -5896,8 +5897,8 @@ namespace libtorrent
 				boost::bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
 		}
 		else if (ps.proxy_hostnames
-			&& (ps.type == proxy_settings::socks5
-				|| ps.type == proxy_settings::socks5_pw))
+			&& (ps.type == settings_pack::socks5
+				|| ps.type == settings_pack::socks5_pw))
 		{
 			connect_web_seed(web, tcp::endpoint(address(), port));
 		}
@@ -6121,9 +6122,12 @@ namespace libtorrent
 			return;
 		}
 
-		if (ps.proxy_hostnames
-			&& (ps.type == proxy_settings::socks5
-				|| ps.type == proxy_settings::socks5_pw))
+		bool proxy_hostnames = m_ses.settings().get_bool(settings_pack::proxy_hostnames);
+		int proxy_type = m_ses.settings().get_int(settings_pack::proxy_type);
+
+		if (proxy_hostnames
+			&& (proxy_type == settings_pack::socks5
+				|| proxy_type == settings_pack::socks5_pw))
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it

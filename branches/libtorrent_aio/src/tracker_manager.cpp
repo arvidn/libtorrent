@@ -253,7 +253,7 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, c
-				, m_ses, m_proxy, auth
+				, m_ses, auth
 #if TORRENT_USE_I2P
 				, &m_ses.m_i2p_conn
 #endif
@@ -262,8 +262,7 @@ namespace libtorrent
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
-				ios, cc, *this, req , c, m_ses
-				, m_proxy);
+				ios, cc, *this, req , c, m_ses, m_ses.proxy());
 		}
 		else
 		{

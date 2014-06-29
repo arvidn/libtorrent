@@ -179,6 +179,21 @@ namespace libtorrent
 			// built in limitation (in XP Service pack 2).
 			listen_interfaces,
 
+			// when using a poxy, this is the hostname where the proxy is running
+			// see proxy_type.
+			proxy_hostname,
+			
+			// when using a proxy, these are the credentials (if any) to use
+			// whne connecting to it. see proxy_type
+			proxy_username,
+			proxy_password,
+
+			// sets the i2p_ SAM bridge to connect to. set the port with the
+			// ``i2p_port`` setting.
+			// 
+			// .. _i2p: http://www.i2p2.de
+			i2p_hostname,
+
 			max_string_setting_internal,
 			num_string_settings = max_string_setting_internal - string_type_base
 		};
@@ -596,6 +611,14 @@ namespace libtorrent
 			// otherwise
 			prefer_rc4,
 
+			// if true, hostname lookups are done via the configured proxy (if
+			// any). This is only supported by SOCKS5 and HTTP.
+			proxy_hostnames,
+
+			// if true, peer connections are made (and accepted) over the
+			// configured proxy, if any.
+			proxy_peer_connections,
+
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
 		};
@@ -848,32 +871,36 @@ namespace libtorrent
 			choking_algorithm,
 			seed_choking_algorithm,
 
-			// ``cache_size`` is the disk write and read  cache. It is specified in units of
-			// 16 KiB blocks. Buffers that are part of a peer's send or receive buffer also
-			// count against this limit. Send and receive buffers will never be denied to be
-			// allocated, but they will cause the actual cached blocks to be flushed or evicted.
-			// If this is set to -1, the cache size is automatically set to the amount
-			// of physical RAM available in the machine divided by 8. If the amount of physical
-			// RAM cannot be determined, it's set to 1024 (= 16 MiB).
+			// ``cache_size`` is the disk write and read  cache. It is specified
+			// in units of 16 KiB blocks. Buffers that are part of a peer's send
+			// or receive buffer also count against this limit. Send and receive
+			// buffers will never be denied to be allocated, but they will cause
+			// the actual cached blocks to be flushed or evicted. If this is set
+			// to -1, the cache size is automatically set to the amount of
+			// physical RAM available in the machine divided by 8. If the amount
+			// of physical RAM cannot be determined, it's set to 1024 (= 16 MiB).
 			// 
-			// Disk buffers are allocated using a pool allocator, the number of blocks that
-			// are allocated at a time when the pool needs to grow can be specified in
-			// ``cache_buffer_chunk_size``. Lower numbers saves memory at the expense of more
-			// heap allocations. If it is set to 0, the effective chunk size is proportional
-			// to the total cache size, attempting to strike a good balance between performance
-			// and memory usage. It defaults to 0.
-			// ``cache_expiry`` is the number of seconds from the last cached write to a piece
-			// in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
+			// Disk buffers are allocated using a pool allocator, the number of
+			// blocks that are allocated at a time when the pool needs to grow can
+			// be specified in ``cache_buffer_chunk_size``. Lower numbers saves
+			// memory at the expense of more heap allocations. If it is set to 0,
+			// the effective chunk size is proportional to the total cache size,
+			// attempting to strike a good balance between performance and memory
+			// usage. It defaults to 0. ``cache_expiry`` is the number of seconds
+			// from the last cached write to a piece in the write cache, to when
+			// it's forcefully flushed to disk. Default is 60 second.
 			cache_size,
 			cache_buffer_chunk_size,
 			cache_expiry,
 
-			// ``explicit_cache_interval`` is the number of seconds in between each refresh of
-			// a part of the explicit read cache. Torrents take turns in refreshing and this
-			// is the time in between each torrent refresh. Refreshing a torrent's explicit
-			// read cache means scanning all pieces and picking a random set of the rarest ones.
-			// There is an affinity to pick pieces that are already in the cache, so that
-			// subsequent refreshes only swaps in pieces that are rarer than whatever is in
+			// ``explicit_cache_interval`` is the number of seconds in between
+			// each refresh of a part of the explicit read cache. Torrents take
+			// turns in refreshing and this is the time in between each torrent
+			// refresh. Refreshing a torrent's explicit read cache means scanning
+			// all pieces and picking a random set of the rarest ones. There is an
+			// affinity to pick pieces that are already in the cache, so that
+			// subsequent refreshes only swaps in pieces that are rarer than
+			// whatever is in
 			// the cache at the time.
 			explicit_cache_interval,
 
@@ -884,16 +911,19 @@ namespace libtorrent
 			//    This is the default and files are opened normally, with the OS caching
 			//    reads and writes.
 			// * disable_os_cache
-			//    This opens all files in no-cache mode. This corresponds to the OS not letting
-			//    blocks for the files linger in the cache. This makes sense in order to avoid
-			//    the bittorrent client to potentially evict all other processes' cache by simply
-			//    handling high throughput and large files. If libtorrent's read cache is disabled,
-			//    enabling this may reduce performance.
+			//    This opens all files in no-cache mode. This corresponds to the
+			//    OS not letting blocks for the files linger in the cache. This
+			//    makes sense in order to avoid the bittorrent client to
+			//    potentially evict all other processes' cache by simply handling
+			//    high throughput and large files. If libtorrent's read cache is
+			//    disabled, enabling this may reduce performance.
 			// 
-			// One reason to disable caching is that it may help the operating system from growing
-			// its file cache indefinitely. Since some OSes only allow aligned files to be opened
-			// in unbuffered mode, It is recommended to make the largest file in a torrent the first
-			// file (with offset 0) or use pad files to align all files to piece boundries.
+			// One reason to disable caching is that it may help the operating
+			// system from growing its file cache indefinitely. Since some OSes
+			// only allow aligned files to be opened in unbuffered mode, It is
+			// recommended to make the largest file in a torrent the first file
+			// (with offset 0) or use pad files to align all files to piece
+			// boundries.
 			disk_io_write_mode,
 			disk_io_read_mode,
 
@@ -911,8 +941,9 @@ namespace libtorrent
 			//    escape hatch for cheap routers with QoS capability but can only classify
 			//    flows based on port numbers.
 			// 
-			// It is a range instead of a single port because of the problems with failing to reconnect
-			// to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
+			// It is a range instead of a single port because of the problems with
+			// failing to reconnect to peers if a previous socket to that peer and
+			// port is in ``TIME_WAIT`` state.
 			outgoing_port,
 			num_outgoing_ports,
 
@@ -1412,7 +1443,20 @@ namespace libtorrent
 			inactive_down_rate,
 			inactive_up_rate,
 
+			// proxy to use, defaults to none. see proxy_type_t.
+			proxy_type,
+
+			// the port of the proxy server
+			proxy_port,
+
+			// sets the i2p_ SAM bridge port to connect to. set the hostname with
+			// the ``i2p_hostname`` setting.
+			// 
+			// .. _i2p: http://www.i2p2.de
+			i2p_port,
+
 			max_int_setting_internal,
+
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
 
@@ -1484,6 +1528,43 @@ namespace libtorrent
 			pe_both = 3
 		};
 
+		enum proxy_type_t
+		{
+			// This is the default, no proxy server is used, all other fields
+			// are ignored.
+			none,
+
+			// The server is assumed to be a `SOCKS4 server`_ that
+			// requires a username.
+			//
+			// .. _`SOCKS4 server`: http://www.ufasoft.com/doc/socks4_protocol.htm
+			socks4,
+			// The server is assumed to be a SOCKS5 server (`RFC 1928`_) that
+			// does not require any authentication. The username and password are ignored.
+			//
+			// .. _`RFC 1928`: http://www.faqs.org/rfcs/rfc1928.html
+			socks5,
+
+			// The server is assumed to be a SOCKS5 server that supports
+			// plain text username and password authentication (`RFC 1929`_). The username
+			// and password specified may be sent to the proxy if it requires.
+			//
+			// .. _`RFC 1929`: http://www.faqs.org/rfcs/rfc1929.html
+			socks5_pw,
+			// The server is assumed to be an HTTP proxy. If the transport used
+			// for the connection is non-HTTP, the server is assumed to support the
+			// CONNECT_ method. i.e. for web seeds and HTTP trackers, a plain proxy will
+			// suffice. The proxy is assumed to not require authorization. The username
+			// and password will not be used.
+			//
+			// .. _CONNECT: http://tools.ietf.org/html/draft-luotonen-web-proxy-tunneling-01
+			http,
+			// The server is assumed to be an HTTP proxy that requires
+			// user authorization. The username and password will be sent to the proxy.
+			http_pw,
+			// route through a i2p SAM proxy
+			i2p_proxy
+		};
 	private:
 
 		std::vector<std::pair<boost::uint16_t, std::string> > m_strings;

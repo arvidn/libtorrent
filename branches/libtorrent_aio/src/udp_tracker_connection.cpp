@@ -103,8 +103,8 @@ namespace libtorrent
 		aux::session_settings const& settings = m_ses.settings();
 
 		if (m_proxy.proxy_hostnames
-			&& (m_proxy.type == proxy_settings::socks5
-				|| m_proxy.type == proxy_settings::socks5_pw))
+			&& (m_proxy.type == settings_pack::socks5
+				|| m_proxy.type == settings_pack::socks5_pw))
 		{
 			m_hostname = hostname;
 			m_target.port(port);

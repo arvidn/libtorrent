@@ -174,8 +174,8 @@ namespace libtorrent
 
 		mtu -= TORRENT_UDP_HEADER;
 
-		if (m_sock.get_proxy_settings().type == proxy_settings::socks5
-			|| m_sock.get_proxy_settings().type == proxy_settings::socks5_pw)
+		if (m_sock.get_proxy_settings().type == settings_pack::socks5
+			|| m_sock.get_proxy_settings().type == settings_pack::socks5_pw)
 		{
 			// this is for the IP layer
 			address proxy_addr = m_sock.proxy_addr().address();

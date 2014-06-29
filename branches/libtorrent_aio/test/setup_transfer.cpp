@@ -494,25 +494,25 @@ int start_proxy(int proxy_type)
 
 	switch (proxy_type)
 	{
-		case proxy_settings::socks4:
+		case settings_pack::socks4:
 			type = "socks4";
 			auth = " --allow-v4";
 			cmd = "python ../socks.py";
 			break;
-		case proxy_settings::socks5:
+		case settings_pack::socks5:
 			type = "socks5";
 			cmd = "python ../socks.py";
 			break;
-		case proxy_settings::socks5_pw:
+		case settings_pack::socks5_pw:
 			type = "socks5";
 			auth = " --username testuser --password testpass";
 			cmd = "python ../socks.py";
 			break;
-		case proxy_settings::http:
+		case settings_pack::http:
 			type = "http";
 			cmd = "python ../http.py";
 			break;
-		case proxy_settings::http_pw:
+		case settings_pack::http_pw:
 			type = "http";
 			auth = " --username testuser --password testpass";
 			cmd = "python ../http.py";

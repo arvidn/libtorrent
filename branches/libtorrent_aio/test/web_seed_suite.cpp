@@ -102,30 +102,33 @@ static void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torr
 		, chunked_encoding ? "chunked": "none", test_ban ? "yes" : "no"
 		, keepalive ? "yes" : "no");
 
-	proxy_settings ps;
+	int proxy_port = 0;
 	
 	if (proxy)
 	{
-		ps.port = start_proxy(proxy);
-		if (ps.port < 0)
+		proxy_port = start_proxy(proxy);
+		if (proxy_port < 0)
 		{
 			fprintf(stderr, "failed to start proxy");
 			return;
 		}
-		ps.hostname = "127.0.0.1";
-		ps.username = "testuser";
-		ps.password = "testpass";
-		ps.type = (proxy_settings::proxy_type)proxy;
-		ses.set_proxy(ps);
+		settings_pack pack;
+		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+		pack.set_str(settings_pack::proxy_username, "testuser");
+		pack.set_str(settings_pack::proxy_password, "testpass");
+		pack.set_int(settings_pack::proxy_type, (settings_pack::proxy_type_t)proxy);
+		pack.set_int(settings_pack::proxy_port, proxy_port);
+		ses.apply_settings(pack);
 	}
 	else
 	{
-		ps.port = 0;
-		ps.hostname.clear();
-		ps.username.clear();
-		ps.password.clear();
-		ps.type = proxy_settings::none;
-		ses.set_proxy(ps);
+		settings_pack pack;
+		pack.set_str(settings_pack::proxy_hostname, "");
+		pack.set_str(settings_pack::proxy_username, "");
+		pack.set_str(settings_pack::proxy_password, "");
+		pack.set_int(settings_pack::proxy_type, settings_pack::none);
+		pack.set_int(settings_pack::proxy_port, 0);
+		ses.apply_settings(pack);
 	}
 
 	add_torrent_params p;
@@ -251,7 +254,7 @@ static void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torr
 	// otherwise, we are supposed to have
 	TEST_CHECK(th.status().is_seeding == !test_ban);
 
-	if (proxy) stop_proxy(ps.port);
+	if (proxy) stop_proxy(proxy_port);
 
 	th.flush_cache();
 

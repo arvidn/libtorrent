@@ -157,16 +157,19 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		, std::make_pair(49075 + listen_port, 50000), "0.0.0.0", 0, mask);
 	listen_port += 10;
 
-	proxy_settings ps;
+	int proxy_port = 0;
 	if (proxy_type)
 	{
-		ps.port = start_proxy(proxy_type);
-		ps.hostname = "127.0.0.1";
-		ps.username = "testuser";
-		ps.password = "testpass";
-		ps.type = (proxy_settings::proxy_type)proxy_type;
-		ses1.set_proxy(ps);
-		ses2.set_proxy(ps);
+		proxy_port = start_proxy(proxy_type);
+
+		settings_pack pack;
+		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+		pack.set_str(settings_pack::proxy_username, "testuser");
+		pack.set_str(settings_pack::proxy_password, "testpass");
+		pack.set_int(settings_pack::proxy_type, (settings_pack::proxy_type_t)proxy_type);
+		pack.set_int(settings_pack::proxy_port, proxy_port);
+		ses1.apply_settings(pack);
+		ses2.apply_settings(pack);
 	}
 
 	settings_pack pack = sett;
@@ -324,7 +327,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	p1 = ses1.abort();
 	p2 = ses2.abort();
 
-	if (proxy_type) stop_proxy(ps.port);
+	if (proxy_type) stop_proxy(proxy_port);
 }
 
 int test_main()

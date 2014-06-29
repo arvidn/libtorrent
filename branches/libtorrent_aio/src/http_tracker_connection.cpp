@@ -78,7 +78,6 @@ namespace libtorrent
 		, tracker_request const& req
 		, boost::weak_ptr<request_callback> c
 		, aux::session_impl& ses
-		, proxy_settings const& ps
 		, std::string const& auth
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn
@@ -87,7 +86,6 @@ namespace libtorrent
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
 		, m_ses(ses)
-		, m_ps(ps)
 		, m_cc(cc)
 		, m_ios(ios)
 #if TORRENT_USE_I2P
@@ -228,9 +226,10 @@ namespace libtorrent
 		// to avoid being blocked for slow or failing responses. Chances
 		// are that we're shutting down, and this should be a best-effort
 		// attempt. It's not worth stalling shutdown.
+		proxy_settings ps = m_ses.proxy();
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
-			, &m_ps, 5, settings.get_bool(settings_pack::anonymous_mode)
+			, &ps, 5, settings.get_bool(settings_pack::anonymous_mode)
 				? "" : settings.get_str(settings_pack::user_agent)
 			, bind_interface()
 			, tracker_req().event == tracker_request::stopped

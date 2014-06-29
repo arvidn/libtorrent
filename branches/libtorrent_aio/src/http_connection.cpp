@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/socket_type.hpp" // for async_shutdown
 #include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/settings_pack.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -168,14 +169,14 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	// exclude ssl here, because SSL assumes CONNECT support in the
 	// proxy and is handled at the lower layer
-	if (ps && (ps->type == proxy_settings::http
-		|| ps->type == proxy_settings::http_pw)
+	if (ps && (ps->type == settings_pack::http
+		|| ps->type == settings_pack::http_pw)
 		&& !ssl)
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
 		APPEND_FMT1("GET %s HTTP/1.1\r\n", url.c_str());
-		if (ps->type == proxy_settings::http_pw)
+		if (ps->type == settings_pack::http_pw)
 			APPEND_FMT1("Proxy-Authorization: Basic %s\r\n", base64encode(
 				ps->username + ":" + ps->password).c_str());
 
@@ -293,7 +294,7 @@ void http_connection::start(std::string const& hostname, int port
 #endif
 
 #if TORRENT_USE_I2P
-		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
+		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
 		{
 			m_timer.get_io_service().post(boost::bind(&http_connection::callback
 				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
@@ -303,14 +304,19 @@ void http_connection::start(std::string const& hostname, int port
 
 		proxy_settings const* proxy = ps;
 #if TORRENT_USE_I2P
-		if (is_i2p) proxy = &i2p_conn->proxy();
+		proxy_settings i2p_proxy;
+		if (is_i2p)
+		{
+			i2p_proxy = i2p_conn->proxy();
+			proxy = &i2p_proxy;
+		}
 #endif
 
 		// in this case, the upper layer is assumed to have taken
 		// care of the proxying already. Don't instantiate the socket
 		// with this proxy
-		if (proxy && (proxy->type == proxy_settings::http
-			|| proxy->type == proxy_settings::http_pw)
+		if (proxy && (proxy->type == settings_pack::http
+			|| proxy->type == settings_pack::http_pw)
 			&& !ssl)
 		{
 			proxy = 0;
@@ -372,8 +378,8 @@ void http_connection::start(std::string const& hostname, int port
 		else
 #endif
 		if (ps && ps->proxy_hostnames
-			&& (ps->type == proxy_settings::socks5
-				|| ps->type == proxy_settings::socks5_pw))
+			&& (ps->type == settings_pack::socks5
+				|| ps->type == settings_pack::socks5_pw))
 		{
 			m_hostname = hostname;
 			m_port = port;
@@ -602,8 +608,8 @@ void http_connection::on_allow_connect(int ticket)
 
 	m_connection_ticket = ticket;
 	if (m_proxy.proxy_hostnames
-		&& (m_proxy.type == proxy_settings::socks5
-			|| m_proxy.type == proxy_settings::socks5_pw))
+		&& (m_proxy.type == settings_pack::socks5
+			|| m_proxy.type == settings_pack::socks5_pw))
 	{
 		// we're using a socks proxy and we're resolving
 		// hostnames through it

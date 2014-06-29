@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/broadcast_socket.hpp" // for is_any
+#include "libtorrent/settings_pack.hpp"
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
@@ -778,8 +779,8 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 
 	if (m_abort) return;
 
-	if (ps.type == proxy_settings::socks5
-		|| ps.type == proxy_settings::socks5_pw)
+	if (ps.type == settings_pack::socks5
+		|| ps.type == settings_pack::socks5_pw)
 	{
 		m_queue_packets = true;
 		// connect to socks5 server and open up the UDP tunnel
@@ -997,7 +998,7 @@ void udp_socket::on_connected(error_code const& e)
 	char* p = &m_tmp_buf[0];
 	write_uint8(5, p); // SOCKS VERSION 5
 	if (m_proxy_settings.username.empty()
-		|| m_proxy_settings.type == proxy_settings::socks5)
+		|| m_proxy_settings.type == settings_pack::socks5)
 	{
 		write_uint8(1, p); // 1 authentication method (no auth)
 		write_uint8(0, p); // no authentication

@@ -131,7 +131,7 @@ namespace libtorrent
 	}
 
 	void web_connection_base::add_headers(std::string& request
-		, proxy_settings const& ps, bool using_proxy) const
+		, aux::session_settings const& sett, bool using_proxy) const
 	{
 		request += "Host: ";
 		request += m_host;
@@ -146,9 +146,10 @@ namespace libtorrent
 			request += "\r\nAuthorization: Basic ";
 			request += m_basic_auth;
 		}
-		if (ps.type == proxy_settings::http_pw) {
+		if (sett.get_int(settings_pack::proxy_type) == settings_pack::http_pw) {
 			request += "\r\nProxy-Authorization: Basic ";
-			request += base64encode(ps.username + ":" + ps.password);
+			request += base64encode(sett.get_str(settings_pack::proxy_username)
+				+ ":" + sett.get_str(settings_pack::proxy_password));
 		}
 		for (web_seed_entry::headers_t::const_iterator it = m_extra_headers.begin();
 		     it != m_extra_headers.end(); ++it) {

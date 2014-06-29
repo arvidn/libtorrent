@@ -407,10 +407,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
 #endif
-		TORRENT_CATEGORY("proxy", save_proxy, m_proxy, proxy_settings_map)
-#if TORRENT_USE_I2P
-//		TORRENT_CATEGORY("i2p", save_i2p_proxy, m_i2p_proxy, proxy_settings_map)
-#endif
 #if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
 		TORRENT_CATEGORY("encryption", save_encryption_settings, m_pe_settings, pe_settings_map)
 #endif
@@ -551,7 +547,7 @@ namespace aux {
 #else
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
-		, m_tracker_manager(*this, m_proxy)
+		, m_tracker_manager(*this)
 		, m_num_save_resume(0)
 		, m_num_queued_resume(0)
 		, m_work(io_service::work(m_io_service))
@@ -1350,14 +1346,6 @@ namespace aux {
 		}
 #endif
 
-#if TORRENT_USE_I2P
-		if (flags & session::save_i2p_proxy)
-		{
-			save_struct(e["i2p"], &i2p_proxy(), proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0])
-				, &def.m_proxy);
-		}
-#endif
 #ifndef TORRENT_DISABLE_GEO_IP
 		if (flags & session::save_as_map)
 		{
@@ -1394,24 +1382,27 @@ namespace aux {
 		}
 #endif
 	}
-	
-	void session_impl::set_proxy(proxy_settings const& s)
+
+	proxy_settings session_impl::proxy() const
 	{
-		TORRENT_ASSERT(is_single_thread());
+		proxy_settings ret;
 
-		m_proxy = s;
-		// in case we just set a socks proxy, we might have to
-		// open the socks incoming connection
-		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
-		m_udp_socket.set_proxy_settings(m_proxy);
+		ret.hostname = m_settings.get_str(settings_pack::proxy_hostname);
+		ret.username = m_settings.get_str(settings_pack::proxy_username);
+		ret.password = m_settings.get_str(settings_pack::proxy_password);
+		ret.type = m_settings.get_int(settings_pack::proxy_type);
+		ret.port = m_settings.get_int(settings_pack::proxy_port);
+		ret.proxy_hostnames = m_settings.get_bool(settings_pack::proxy_hostnames);
+		ret.proxy_peer_connections = m_settings.get_bool(
+			settings_pack::proxy_peer_connections);
+		return ret;
 	}
-
+	
 	void session_impl::load_state(lazy_entry const* e)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		lazy_entry const* settings;
-	  
 		if (e->type() != lazy_entry::dict_t) return;
 
 		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
@@ -1440,7 +1431,7 @@ namespace aux {
 		// in case we just set a socks proxy, we might have to
 		// open the socks incoming connection
 		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
-		m_udp_socket.set_proxy_settings(m_proxy);
+		m_udp_socket.set_proxy_settings(proxy());
 
 #ifndef TORRENT_DISABLE_DHT
 		settings = e->dict_find_dict("dht state");
@@ -1450,16 +1441,6 @@ namespace aux {
 		}
 #endif
 
-#if TORRENT_USE_I2P
-		settings = e->dict_find_dict("i2p");
-		if (settings)
-		{
-			proxy_settings s;
-			load_struct(*settings, &s, proxy_settings_map
-				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
-			set_i2p_proxy(s);
-		}
-#endif
 #ifndef TORRENT_DISABLE_GEO_IP
 		settings  = e->dict_find_dict("AS map");
 		if (settings)
@@ -2268,9 +2249,11 @@ namespace aux {
 	{
 		bool reopen_listen_port =
 			(pack->has_val(settings_pack::ssl_listen)
-				&& pack->get_int(settings_pack::ssl_listen) != m_settings.get_int(settings_pack::ssl_listen))
+				&& pack->get_int(settings_pack::ssl_listen)
+					!= m_settings.get_int(settings_pack::ssl_listen))
 			|| (pack->has_val(settings_pack::listen_interfaces)
-				&& pack->get_str(settings_pack::listen_interfaces) != m_settings.get_str(settings_pack::listen_interfaces));
+				&& pack->get_str(settings_pack::listen_interfaces)
+					!= m_settings.get_str(settings_pack::listen_interfaces));
 
 		apply_pack(pack, m_settings, this);
 		m_disk_thread.set_settings(pack);
@@ -2739,15 +2722,17 @@ retry:
 
 	void session_impl::open_new_incoming_socks_connection()
 	{
-		if (m_proxy.type != proxy_settings::socks5
-			&& m_proxy.type != proxy_settings::socks5_pw
-			&& m_proxy.type != proxy_settings::socks4)
+		int proxy_type = m_settings.get_int(settings_pack::proxy_type);
+
+		if (proxy_type != settings_pack::socks5
+			&& proxy_type != settings_pack::socks5_pw
+			&& proxy_type != settings_pack::socks4)
 			return;
 		
 		if (m_socks_listen_socket) return;
 
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
-		bool ret = instantiate_connection(m_io_service, m_proxy
+		bool ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket);
 		TORRENT_ASSERT_VAL(ret, ret);
 
@@ -2762,15 +2747,31 @@ retry:
 			, boost::bind(&session_impl::on_socks_accept, this, m_socks_listen_socket, _1));
 	}
 
-#if TORRENT_USE_I2P
-	void session_impl::set_i2p_proxy(proxy_settings const& s)
+	void session_impl::update_i2p_bridge()
 	{
 		// we need this socket to be open before we
 		// can make name lookups for trackers for instance.
 		// pause the session now and resume it once we've
 		// established the i2p SAM connection
-		m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
+#if TORRENT_USE_I2P
+		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
+			, m_settings.get_int(settings_pack::i2p_port)
+			, boost::bind(&session_impl::on_i2p_open, this, _1));
+
 		open_new_incoming_i2p_connection();
+#endif
+	}
+
+#if TORRENT_USE_I2P
+
+	proxy_settings session_impl::i2p_proxy() const
+	{
+		proxy_settings ret;
+
+		ret.hostname = m_settings.get_str(settings_pack::i2p_hostname);
+		ret.type = settings_pack::i2p_proxy;
+		ret.port = m_settings.get_int(settings_pack::i2p_port);
+		return ret;
 	}
 
 	void session_impl::on_i2p_open(error_code const& ec)
@@ -6364,6 +6365,14 @@ retry:
 		}
 	}
 
+	void session_impl::update_proxy()
+	{
+		// in case we just set a socks proxy, we might have to
+		// open the socks incoming connection
+		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
+		m_udp_socket.set_proxy_settings(proxy());
+	}
+
 	void session_impl::update_upnp()
 	{
 		if (m_settings.get_bool(settings_pack::enable_upnp))
@@ -7125,7 +7134,7 @@ retry:
 		return m_num_unchoked < m_allowed_upload_slots;
 	}
 
-	void session_impl::upate_dht_upload_rate_limit()
+	void session_impl::update_dht_upload_rate_limit()
 	{
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
 	}
@@ -7437,11 +7446,6 @@ retry:
 					, error_code(errors::too_many_connections, get_libtorrent_category()));
 			}
 		}
-	}
-
-	void session_impl::update_dht_upload_rate_limit()
-	{
-		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));	
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

@@ -141,7 +141,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 void run_suite(std::string const& protocol, proxy_settings ps, int port)
 {
-	if (ps.type != proxy_settings::none)
+	if (ps.type != settings_pack::none)
 	{
 		ps.port = start_proxy(ps.type);
 	}
@@ -177,12 +177,12 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 	{
 		// if we're going through an http proxy, we won't get the same error as if the hostname
 		// resolution failed
-		if ((ps.type == proxy_settings::http || ps.type == proxy_settings::http_pw) && protocol != "https")
+		if ((ps.type == settings_pack::http || ps.type == settings_pack::http_pw) && protocol != "https")
 			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, 502, 1, err(), ps);
 		else
 			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
 	}
-	if (ps.type != proxy_settings::none)
+	if (ps.type != settings_pack::none)
 		stop_proxy(ps.port);
 }
 
@@ -211,7 +211,7 @@ int test_main()
 
 	for (int i = 0; i < 5; ++i)
 	{
-		ps.type = (proxy_settings::proxy_type)i;
+		ps.type = (settings_pack::proxy_type_t)i;
 		run_suite("http", ps, port);
 	}
 	stop_web_server();
@@ -220,7 +220,7 @@ int test_main()
 	port = start_web_server(true);
 	for (int i = 0; i < 5; ++i)
 	{
-		ps.type = (proxy_settings::proxy_type)i;
+		ps.type = (settings_pack::proxy_type)i;
 		run_suite("https", ps, port);
 	}
 	stop_web_server();
@@ -228,7 +228,7 @@ int test_main()
 
 	// test chunked encoding
 	port = start_web_server(false, true);
-	ps.type = proxy_settings::none;
+	ps.type = settings_pack::none;
 	run_suite("http", ps, port);
 
 	stop_web_server();

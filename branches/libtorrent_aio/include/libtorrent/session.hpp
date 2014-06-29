@@ -297,12 +297,6 @@ namespace libtorrent
 			// joining the DHT if provided at next session startup.
 			save_dht_state =    0x004,
 
-			// save proxy_settings
-			save_proxy =        0x008,
-
-			// save i2p_proxy settings
-			save_i2p_proxy =    0x010,
-
 			// save pe_settings
 			save_encryption_settings = 0x020,
 
@@ -314,6 +308,8 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			,
+			save_proxy =        0x008,
+			save_i2p_proxy =    0x010,
 			save_dht_proxy = save_proxy,
 			save_peer_proxy = save_proxy,
 			save_web_proxy = save_proxy,
@@ -999,6 +995,25 @@ namespace libtorrent
 		void apply_settings(settings_pack const& s);
 		aux::session_settings get_settings() const;
 
+#ifdef TORRENT_STATS
+		// internal
+		void enable_stats_logging(bool s);
+#endif
+
+#ifndef TORRENT_NO_DEPRECATE
+		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
+		// connection to it. The only used fields in the proxy settings structs
+		// are ``hostname`` and ``port``.
+		//
+		// ``i2p_proxy`` returns the current i2p proxy in use.
+		//
+		// .. _i2p: http://www.i2p2.de
+
+		TORRENT_DEPRECATED_PREFIX
+		void set_i2p_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings i2p_proxy() const TORRENT_DEPRECATED;
+
 		// These functions sets and queries the proxy settings to be used for the
 		// session.
 		//
@@ -1008,25 +1023,11 @@ namespace libtorrent
 		// will flow without using any proxy. If you want to enforce using a
 		// proxy, even when the proxy doesn't work, enable anonymous_mode in
 		// session_settings.
-		void set_proxy(proxy_settings const& s);
-		proxy_settings proxy() const;
+		TORRENT_DEPRECATED_PREFIX
+		void set_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		proxy_settings proxy() const TORRENT_DEPRECATED;
 
-#ifdef TORRENT_STATS
-		// internal
-		void enable_stats_logging(bool s);
-#endif
-
-		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
-		// connection to it. The only used fields in the proxy settings structs
-		// are ``hostname`` and ``port``.
-		//
-		// ``i2p_proxy`` returns the current i2p proxy in use.
-		//
-		// .. _i2p: http://www.i2p2.de
-		void set_i2p_proxy(proxy_settings const& s);
-		proxy_settings i2p_proxy() const;
-
-#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16
 		// Get the number of uploads.
 		TORRENT_DEPRECATED_PREFIX

@@ -1095,86 +1095,96 @@ namespace libtorrent
 		return r;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+
 	void session::set_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_proxy, s);
+		settings_pack pack;
+		pack.set_str(settings_pack::proxy_hostname, s.hostname);
+		pack.set_str(settings_pack::proxy_username, s.username);
+		pack.set_str(settings_pack::proxy_password, s.password);
+		pack.set_int(settings_pack::proxy_type, s.type);
+		pack.set_int(settings_pack::proxy_port, s.port);
+		pack.set_bool(settings_pack::proxy_hostnames,s.proxy_hostnames);
+		pack.set_bool(settings_pack::proxy_peer_connections, s.proxy_peer_connections);
+
+		apply_settings(pack);
 	}
 
 	proxy_settings session::proxy() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, proxy);
-		return r;
+		aux::session_settings sett = get_settings();
+
+		proxy_settings ret;
+		ret.hostname = sett.get_str(settings_pack::proxy_hostname);
+		ret.username = sett.get_str(settings_pack::proxy_username);
+		ret.password = sett.get_str(settings_pack::proxy_password);
+		ret.type = sett.get_int(settings_pack::proxy_type);
+		ret.port = sett.get_int(settings_pack::proxy_port);
+		ret.proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
+		ret.proxy_peer_connections = sett.get_bool(
+			settings_pack::proxy_peer_connections);
+		return ret;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	void session::set_peer_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_peer_proxy, s);
+		set_proxy(s);
 	}
 
 	void session::set_web_seed_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_web_seed_proxy, s);
+		set_proxy(s);
 	}
 
 	void session::set_tracker_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_tracker_proxy, s);
+		set_proxy(s);
 	}
 
 	proxy_settings session::peer_proxy() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, peer_proxy);
-		return r;
+		return proxy();
 	}
 
 	proxy_settings session::web_seed_proxy() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, web_seed_proxy);
-		return r;
+		return proxy();
 	}
 
 	proxy_settings session::tracker_proxy() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, tracker_proxy);
-		return r;
+		return proxy();
 	}
-
 
 	void session::set_dht_proxy(proxy_settings const& s)
 	{
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(set_dht_proxy, s);
-#endif
+		set_proxy(s);
 	}
 
 	proxy_settings session::dht_proxy() const
 	{
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_SYNC_CALL_RET(proxy_settings, dht_proxy);
-		return r;
-#else
-		return proxy_settings();
-#endif
+		return proxy();
 	}
-#endif // TORRENT_NO_DEPRECATE
 
 	void session::set_i2p_proxy(proxy_settings const& s)
 	{
-#if TORRENT_USE_I2P
-		TORRENT_ASYNC_CALL1(set_i2p_proxy, s);
-#endif
+		settings_pack pack;
+		pack.set_str(settings_pack::i2p_hostname, s.hostname);
+		pack.set_int(settings_pack::i2p_port, s.port);
+
+		apply_settings(pack);
 	}
 	
 	proxy_settings session::i2p_proxy() const
 	{
-#if TORRENT_USE_I2P
-		TORRENT_SYNC_CALL_RET(proxy_settings, i2p_proxy);
-#else
-		proxy_settings r;
-#endif
-		return r;
+		proxy_settings ret;
+		aux::session_settings sett = get_settings();
+		ret.hostname = sett.get_str(settings_pack::i2p_hostname);
+		ret.port = sett.get_int(settings_pack::i2p_port);
+		return ret;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 #ifdef TORRENT_STATS
 	void session::enable_stats_logging(bool s)
