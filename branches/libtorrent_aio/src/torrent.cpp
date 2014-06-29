@@ -1526,7 +1526,7 @@ namespace libtorrent
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 		OpenSSL_add_all_algorithms();
 
-		boost::uint64_t now = total_microseconds(time_now_hires() - min_time());
+		boost::uint64_t now = time_now_hires().time_since_epoch().count();
 		// assume 9 bits of entropy (i.e. about 1 millisecond)
 		RAND_add(&now, 8, 1.125);
 		RAND_add(&info_hash()[0], 20, 3);
@@ -6102,7 +6102,6 @@ namespace libtorrent
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
-		proxy_settings const& ps = m_ses.proxy();
 		if (s->get<http_stream>())
 		{
 			// the web seed connection will talk immediately to

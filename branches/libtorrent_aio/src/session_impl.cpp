@@ -287,20 +287,16 @@ namespace aux {
 		mach_msg_type_number_t t_info_count = TASK_THREAD_TIMES_INFO_COUNT;
 		task_info(mach_task_self(), TASK_THREAD_TIMES_INFO, (task_info_t)&t_info, &t_info_count);
 
-		tu->user_time = min_time()
-			+ seconds(t_info.user_time.seconds)
+		tu->user_time = seconds(t_info.user_time.seconds)
 			+ microseconds(t_info.user_time.microseconds);
-		tu->system_time = min_time()
-			+ seconds(t_info.system_time.seconds)
+		tu->system_time = seconds(t_info.system_time.seconds)
 			+ microseconds(t_info.system_time.microseconds);
 #elif defined TORRENT_LINUX
 		struct rusage ru;
 		getrusage(RUSAGE_THREAD, &ru);
-		tu->user_time = min_time()
-			+ seconds(ru.ru_utime.tv_sec)
+		tu->user_time = seconds(ru.ru_utime.tv_sec)
 			+ microseconds(ru.ru_utime.tv_usec);
-		tu->system_time = min_time()
-			+ seconds(ru.ru_stime.tv_sec)
+		tu->system_time = seconds(ru.ru_stime.tv_sec)
 			+ microseconds(ru.ru_stime.tv_usec);
 #elif defined TORRENT_WINDOWS
 		FILETIME system_time;
@@ -314,8 +310,8 @@ namespace aux {
 		boost::uint64_t stime = (boost::uint64_t(system_time.dwHighDateTime) << 32)
 			+ system_time.dwLowDateTime;
 
-		tu->user_time = min_time() + microseconds(utime / 10);
-		tu->system_time = min_time() + microseconds(stime / 10);
+		tu->user_time = microseconds(utime / 10);
+		tu->system_time = microseconds(stime / 10);
 #endif
 	}
 #endif // TORRENT_STATS
@@ -575,8 +571,6 @@ namespace aux {
 		, m_created(time_now_hires())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
-		, m_last_disk_performance_warning(min_time())
-		, m_last_disk_queue_performance_warning(min_time())
 		, m_last_choke(m_created)
 		, m_next_rss_update(min_time())
 #ifndef TORRENT_DISABLE_DHT
@@ -3031,7 +3025,7 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 		// add the current time to the PRNG, to add more unpredictability
-		boost::uint64_t now = total_microseconds(time_now_hires() - min_time());
+		boost::uint64_t now = time_now_hires().time_since_epoch().count();
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #endif
@@ -6439,8 +6433,7 @@ retry:
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
-		if (m_socks_listen_socket && m_socks_listen_socket->is_open()
-			&& m_proxy.hostname == m_proxy.hostname)
+		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
 			return m_socks_listen_port;
 
 		// if not, don't tell the tracker anything if we're in force_proxy

@@ -185,8 +185,8 @@ namespace libtorrent
 
 		struct thread_cpu_usage
 		{
-			ptime user_time;
-			ptime system_time;
+			time_duration user_time;
+			time_duration system_time;
 		};
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -1041,9 +1041,6 @@ namespace libtorrent
 
 			ptime m_last_tick;
 			ptime m_last_second_tick;
-			// used to limit how often disk warnings are generated
-			ptime m_last_disk_performance_warning;
-			ptime m_last_disk_queue_performance_warning;
 
 			// the last time we went through the peers
 			// to decide which ones to choke/unchoke

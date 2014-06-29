@@ -220,7 +220,7 @@ int test_main()
 	port = start_web_server(true);
 	for (int i = 0; i < 5; ++i)
 	{
-		ps.type = (settings_pack::proxy_type)i;
+		ps.type = (settings_pack::proxy_type_t)i;
 		run_suite("https", ps, port);
 	}
 	stop_web_server();
