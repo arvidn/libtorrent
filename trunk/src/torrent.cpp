@@ -1468,6 +1468,14 @@ namespace libtorrent
 		}
 
 		m_file_priority.resize(m_torrent_file->num_files(), 1);
+
+		// initialize pad files to priority 0
+		file_storage const& fs = m_torrent_file->files();
+		for (int i = 0; i < fs.num_files(); ++i)
+		{
+			if (!fs.pad_file_at(i)) continue;
+			m_file_priority[i] = 0;
+		}
 		m_file_progress.resize(m_torrent_file->num_files(), 0);
 
 		m_block_size_shift = root2((std::min)(int(block_size()), m_torrent_file->piece_length()));
@@ -1595,7 +1603,6 @@ namespace libtorrent
 
 		int num_pad_files = 0;
 		TORRENT_ASSERT(block_size() > 0);
-		file_storage const& fs = m_torrent_file->files();
 		for (int i = 0; i < fs.num_files(); ++i)
 		{
 			if (fs.pad_file_at(i)) ++num_pad_files;
@@ -4062,7 +4069,7 @@ namespace libtorrent
 		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
 			m_file_priority.resize(m_torrent_file->num_files(), 1);
 
-		// stoage may be NULL during shutdown
+		// storage may be NULL during shutdown
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
 			filesystem().async_set_file_priority(m_file_priority
