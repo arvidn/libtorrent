@@ -56,7 +56,6 @@ set(sources
 	session
 	session_impl
 	session_stats
-	settings
 	settings_pack
 	socket_io
 	socket_type  

@@ -89,7 +89,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/settings.hpp"
 #include "libtorrent/build_config.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
@@ -323,63 +322,6 @@ namespace aux {
 			random_seed((unsigned int)((time_now().time_since_epoch().count()) & 0xffffffff));
 		}
 	};
-
-#ifndef TORRENT_DISABLE_DHT
-#define TORRENT_SETTING(t, x) {#x, offsetof(dht_settings,x), t},
-	bencode_map_entry dht_settings_map[] =
-	{
-		TORRENT_SETTING(integer, max_peers_reply)
-		TORRENT_SETTING(integer, search_branching)
-#ifndef TORRENT_NO_DEPRECATE
-		TORRENT_SETTING(integer, service_port)
-#endif
-		TORRENT_SETTING(integer, max_fail_count)
-		TORRENT_SETTING(integer, max_torrents)
-		TORRENT_SETTING(integer, max_dht_items)
-		TORRENT_SETTING(integer, max_torrent_search_reply)
-		TORRENT_SETTING(boolean, restrict_routing_ips)
-		TORRENT_SETTING(boolean, restrict_search_ips)
-		TORRENT_SETTING(boolean, extended_routing_table)
-	};
-#undef TORRENT_SETTING
-#endif
-
-	struct session_category
-	{
-		char const* name;
-		bencode_map_entry const* map;
-		int num_entries;
-		int flag;
-		int offset;
-		int default_offset;
-	};
-
-	// the names in here need to match the names in session_impl
-	// to make the macro simpler
-	struct all_default_values
-	{
-#ifndef TORRENT_DISABLE_DHT
-		dht_settings m_dht_settings;
-#endif
-	};
-
-#define lenof(x) sizeof(x)/sizeof(x[0])
-#define TORRENT_CATEGORY(name, flag, member, map) \
-	{ name, map, lenof(map), session:: flag , offsetof(session_impl, member), offsetof(all_default_values, member) },
-
-	session_category all_settings[] =
-	{
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
-#endif
-	};
-/*
-	std::pair<bencode_map_entry*, int> settings_map()
-	{
-		return std::make_pair(session_settings_map, lenof(session_settings_map));
-	}
-*/
-#undef lenof
 
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
@@ -1281,20 +1223,24 @@ namespace aux {
 
 		entry& e = *eptr;
 
-		all_default_values def;
-
-		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
-		{
-			session_category const& c = all_settings[i];
-			if ((flags & c.flag) == 0) continue;
-			save_struct(e[c.name], reinterpret_cast<char const*>(this) + c.offset
-				, c.map, c.num_entries, reinterpret_cast<char const*>(&def) + c.default_offset);
-		}
-
 		entry::dictionary_type& sett = e["settings"].dict();
 		save_settings_to_dict(m_settings, sett);
 
 #ifndef TORRENT_DISABLE_DHT
+		if (flags & session::save_dht_settings)
+		{
+			entry::dictionary_type& dht_sett = e["dht"].dict();
+		
+			dht_sett["max_peers_reply"] = m_dht_settings.max_peers_reply;
+			dht_sett["search_branching"] = m_dht_settings.search_branching;
+			dht_sett["max_fail_count"] = m_dht_settings.max_fail_count;
+			dht_sett["max_torrents"] = m_dht_settings.max_torrents;
+			dht_sett["max_dht_items"] = m_dht_settings.max_dht_items;
+			dht_sett["max_torrent_search_reply"] = m_dht_settings.max_torrent_search_reply;
+			dht_sett["restrict_routing_ips"] = m_dht_settings.restrict_routing_ips;
+			dht_sett["extended_routing_table"] = m_dht_settings.extended_routing_table;
+		}
+
 		if (m_dht && (flags & session::save_dht_state))
 		{
 			e["dht state"] = m_dht->state();
@@ -1360,16 +1306,32 @@ namespace aux {
 		lazy_entry const* settings;
 		if (e->type() != lazy_entry::dict_t) return;
 
-		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
+#ifndef TORRENT_DISABLE_DHT
+		// load from the old settings names
+		settings = e->dict_find_dict("dht");
+		if (settings)
 		{
-			session_category const& c = all_settings[i];
-			settings = e->dict_find_dict(c.name);
-			if (!settings) continue;
-			load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
+			lazy_entry const* val;
+			val = settings->dict_find_int("max_peers_reply");
+			if (val) m_dht_settings.max_peers_reply = val->int_value();
+			val = settings->dict_find_int("search_branching");
+			if (val) m_dht_settings.search_branching = val->int_value();
+			val = settings->dict_find_int("max_fail_count");
+			if (val) m_dht_settings.max_fail_count = val->int_value();
+			val = settings->dict_find_int("max_torrents");
+			if (val) m_dht_settings.max_torrents = val->int_value();
+			val = settings->dict_find_int("max_dht_items");
+			if (val) m_dht_settings.max_dht_items = val->int_value();
+			val = settings->dict_find_int("max_torrent_search_reply");
+			if (val) m_dht_settings.max_torrent_search_reply = val->int_value();
+			val = settings->dict_find_int("restrict_routing_ips");
+			if (val) m_dht_settings.restrict_routing_ips = val->int_value();
+			val = settings->dict_find_int("extended_routing_table");
+			if (val) m_dht_settings.extended_routing_table = val->int_value();
 		}
+#endif
 
 #ifndef TORRENT_NO_DEPRECATE
-		// load from the old settings names
 		settings = e->dict_find_dict("proxy");
 		if (settings)
 		{
