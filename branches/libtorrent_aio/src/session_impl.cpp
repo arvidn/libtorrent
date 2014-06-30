@@ -324,20 +324,6 @@ namespace aux {
 		}
 	};
 
-#define TORRENT_SETTING(t, x) {#x, offsetof(proxy_settings,x), t},
-
-	bencode_map_entry proxy_settings_map[] =
-	{
-		TORRENT_SETTING(std_string, hostname)
-		TORRENT_SETTING(integer16, port)
-		TORRENT_SETTING(std_string, username)
-		TORRENT_SETTING(std_string, password)
-		TORRENT_SETTING(character, type)
-		TORRENT_SETTING(boolean, proxy_hostnames)
-		TORRENT_SETTING(boolean, proxy_peer_connections)
-	};
-#undef TORRENT_SETTING
-
 #ifndef TORRENT_DISABLE_DHT
 #define TORRENT_SETTING(t, x) {#x, offsetof(dht_settings,x), t},
 	bencode_map_entry dht_settings_map[] =
@@ -358,18 +344,6 @@ namespace aux {
 #undef TORRENT_SETTING
 #endif
 
-#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
-#define TORRENT_SETTING(t, x) {#x, offsetof(pe_settings,x), t},
-	bencode_map_entry pe_settings_map[] = 
-	{
-		TORRENT_SETTING(character, out_enc_policy)
-		TORRENT_SETTING(character, in_enc_policy)
-		TORRENT_SETTING(character, allowed_enc_level)
-		TORRENT_SETTING(boolean, prefer_rc4)
-	};
-#undef TORRENT_SETTING
-#endif
-
 	struct session_category
 	{
 		char const* name;
@@ -384,10 +358,6 @@ namespace aux {
 	// to make the macro simpler
 	struct all_default_values
 	{
-		proxy_settings m_proxy;
-#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
-		pe_settings m_pe_settings;
-#endif
 #ifndef TORRENT_DISABLE_DHT
 		dht_settings m_dht_settings;
 #endif
@@ -399,12 +369,8 @@ namespace aux {
 
 	session_category all_settings[] =
 	{
-//		TORRENT_CATEGORY("settings", save_settings, m_settings, session_settings_map)
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_CATEGORY("dht", save_dht_settings, m_dht_settings, dht_settings_map)
-#endif
-#if !defined TORRENT_DISABLE_ENCRYPTION && !defined TORRENT_NO_DEPRECATE
-		TORRENT_CATEGORY("encryption", save_encryption_settings, m_pe_settings, pe_settings_map)
 #endif
 	};
 /*
@@ -1317,11 +1283,6 @@ namespace aux {
 
 		all_default_values def;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// copy settings from m_settings to m_pe_settings
-		get_pe_settings();
-#endif
-
 		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
 		{
 			session_category const& c = all_settings[i];
@@ -1409,10 +1370,39 @@ namespace aux {
 
 #ifndef TORRENT_NO_DEPRECATE
 		// load from the old settings names
-		m_settings.set_bool(settings_pack::prefer_rc4, m_pe_settings.prefer_rc4);
-		m_settings.set_int(settings_pack::out_enc_policy, m_pe_settings.out_enc_policy);
-		m_settings.set_int(settings_pack::in_enc_policy, m_pe_settings.in_enc_policy);
-		m_settings.set_int(settings_pack::allowed_enc_level, m_pe_settings.allowed_enc_level);
+		settings = e->dict_find_dict("proxy");
+		if (settings)
+		{
+			lazy_entry const* val;
+			val = settings->dict_find_int("port");
+			if (val) m_settings.set_int(settings_pack::proxy_port, val->int_value());
+			val = settings->dict_find_int("type");
+			if (val) m_settings.set_int(settings_pack::proxy_type, val->int_value());
+			val = settings->dict_find_int("proxy_hostnames");
+			if (val) m_settings.set_bool(settings_pack::proxy_hostnames, val->int_value());
+			val = settings->dict_find_int("proxy_peer_connections");
+			if (val) m_settings.set_bool(settings_pack::proxy_peer_connections, val->int_value());
+			val = settings->dict_find_string("hostname");
+			if (val) m_settings.set_str(settings_pack::proxy_hostname, val->string_value());
+			val = settings->dict_find_string("password");
+			if (val) m_settings.set_str(settings_pack::proxy_password, val->string_value());
+			val = settings->dict_find_string("username");
+			if (val) m_settings.set_str(settings_pack::proxy_username, val->string_value());
+		}
+
+		settings = e->dict_find_dict("encryption");
+		if (settings)
+		{
+			lazy_entry const* val;
+			val = settings->dict_find_int("prefer_rc4");
+			if (val) m_settings.set_bool(settings_pack::prefer_rc4, val->int_value());
+			val = settings->dict_find_int("out_enc_policy");
+			if (val) m_settings.set_int(settings_pack::out_enc_policy, val->int_value());
+			val = settings->dict_find_int("in_enc_policy");
+			if (val) m_settings.set_int(settings_pack::in_enc_policy, val->int_value());
+			val = settings->dict_find_int("allowed_enc_level");
+			if (val) m_settings.set_int(settings_pack::allowed_enc_level, val->int_value());
+		}
 #endif
 		
 		settings = e->dict_find_dict("settings");
@@ -6866,29 +6856,11 @@ retry:
 	}
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
-	
-#if !defined TORRENT_NO_DEPRECATE
-	void session_impl::set_pe_settings(pe_settings const& settings)
-	{
-		m_pe_settings = settings;
-	}
-
-	pe_settings const& session_impl::get_pe_settings() const
-	{
-		m_pe_settings.prefer_rc4 = m_settings.get_bool(settings_pack::prefer_rc4);
-		m_pe_settings.out_enc_policy = m_settings.get_int(settings_pack::out_enc_policy);
-		m_pe_settings.in_enc_policy = m_settings.get_int(settings_pack::in_enc_policy);
-		m_pe_settings.allowed_enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
-		return m_pe_settings;
-	}
-#endif // TORRENT_NO_DEPRECATE
-
 	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
 		, boost::weak_ptr<torrent> const& t)
 	{
 		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t.lock()));
 	}
-
 #endif // TORRENT_DISABLE_ENCRYPTION
 
 	bool session_impl::is_listening() const

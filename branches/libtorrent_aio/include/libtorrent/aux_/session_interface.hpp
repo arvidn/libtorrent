@@ -284,11 +284,6 @@ namespace libtorrent { namespace aux
 #endif
 	
 #ifndef TORRENT_DISABLE_ENCRYPTION
-
-#ifndef TORRENT_NO_DEPRECATE
-		virtual pe_settings const& get_pe_settings() const = 0;
-#endif
-
 		virtual torrent const* find_encrypted_torrent(
 			sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;
 		virtual void add_obfuscated_hash(sha1_hash const& obfuscated

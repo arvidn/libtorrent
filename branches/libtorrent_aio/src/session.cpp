@@ -1014,20 +1014,26 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	void session::set_pe_settings(pe_settings const& settings)
+	void session::set_pe_settings(pe_settings const& r)
 	{
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		TORRENT_ASYNC_CALL1(set_pe_settings, settings);
-#endif
+		settings_pack pack;
+		pack.set_bool(settings_pack::prefer_rc4, r.prefer_rc4);
+		pack.set_int(settings_pack::out_enc_policy, r.out_enc_policy);
+		pack.set_int(settings_pack::in_enc_policy, r.in_enc_policy);
+		pack.set_int(settings_pack::allowed_enc_level, r.allowed_enc_level);
+
+		apply_settings(pack);
 	}
 
 	pe_settings session::get_pe_settings() const
 	{
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		TORRENT_SYNC_CALL_RET(pe_settings, get_pe_settings);
-#else
+		aux::session_settings sett = get_settings();
+
 		pe_settings r;
-#endif
+		r.prefer_rc4 = sett.get_bool(settings_pack::prefer_rc4);
+		r.out_enc_policy = sett.get_int(settings_pack::out_enc_policy);
+		r.in_enc_policy = sett.get_int(settings_pack::in_enc_policy);
+		r.allowed_enc_level = sett.get_int(settings_pack::allowed_enc_level);
 		return r;
 	}
 #endif // TORRENT_NO_DEPRECATE
