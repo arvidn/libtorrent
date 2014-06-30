@@ -1,5 +1,6 @@
 1.0 release
 
+	* fix bug in udp_socket when changing socks5 proxy quickly
 	* fix bugs in convert_to/from_native() on windows
 	* fix support for web servers not supporting keepalive
 	* support storing save_path in resume data

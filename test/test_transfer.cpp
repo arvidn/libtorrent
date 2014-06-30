@@ -205,10 +205,18 @@ void test_transfer(int proxy_type, bool test_disk_full = false
 	if (proxy_type)
 	{
 		ps.port = start_proxy(proxy_type);
-		ps.hostname = "127.0.0.1";
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
+
+		// test resetting the proxy in quick succession.
+		// specifically the udp_socket connecting to a new
+		// socks5 proxy while having one connection attempt
+		// in progress.
+		ps.hostname = "5.6.7.8";
+		ses1.set_proxy(ps);
+
+		ps.hostname = "127.0.0.1";
 		ses1.set_proxy(ps);
 		ses2.set_proxy(ps);
 	}
