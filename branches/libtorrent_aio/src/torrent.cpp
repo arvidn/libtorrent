@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <ctime>
 #include <algorithm>
 #include <set>
@@ -5201,6 +5199,14 @@ namespace libtorrent
 		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
 			m_file_priority.resize(m_torrent_file->num_files(), 1);
 
+		// initialize pad files to priority 0
+		file_storage const& fs = m_torrent_file->files();
+		for (int i = 0; i < (std::min)(fs.num_files(), limit); ++i)
+		{
+			if (!fs.pad_file_at(i)) continue;
+			m_file_priority[i] = 0;
+		}
+
 		// storage may be NULL during shutdown
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
@@ -5227,6 +5233,15 @@ namespace libtorrent
 			// any unallocated slot is assumed to be 1
 			if (prio == 1) return;
 			m_file_priority.resize(index+1, 1);
+
+			// initialize pad files to priority 0
+			file_storage const& fs = m_torrent_file->files();
+			for (int i = 0; i < (std::min)(fs.num_files(), index+1); ++i)
+			{
+				if (!fs.pad_file_at(i)) continue;
+				m_file_priority[i] = 0;
+			}
+
 		}
 
 		if (m_file_priority[index] == prio) return;
@@ -6463,6 +6478,14 @@ namespace libtorrent
 			int end_range = num_files - 1;
 			for (; end_range >= 0; --end_range) if (m_file_priority[end_range] != 1) break;
 			m_file_priority.resize(end_range + 1);
+
+			// initialize pad files to priority 0
+			file_storage const& fs = m_torrent_file->files();
+			for (int i = 0; i < (std::min)(fs.num_files(), end_range + 1); ++i)
+			{
+				if (!fs.pad_file_at(i)) continue;
+				m_file_priority[i] = 0;
+			}
 
 			update_piece_priorities();
 		}

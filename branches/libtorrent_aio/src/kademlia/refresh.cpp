@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>

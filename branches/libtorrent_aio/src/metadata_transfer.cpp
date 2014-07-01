@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_EXTENSIONS
 

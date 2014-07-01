@@ -29,6 +29,7 @@
 
 1.0 release
 
+	* fix bugs in convert_to/from_native() on windows
 	* fix support for web servers not supporting keepalive
 	* support storing save_path in resume data
 	* don't use full allocation on network drives (on windows)
@@ -84,6 +85,8 @@
 	  with more files
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
+
+	* fix bug in udp_socket when changing socks5 proxy quickly
 
 0.16.17 release
 

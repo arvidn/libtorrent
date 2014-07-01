@@ -187,7 +187,7 @@ namespace libtorrent
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
 		void on_connect_timeout();
 		void on_allow_connect(int ticket);
-		void on_connected(error_code const& ec);
+		void on_connected(error_code const& ec, int ticket);
 		void handshake1(error_code const& e);
 		void handshake2(error_code const& e);
 		void handshake3(error_code const& e);

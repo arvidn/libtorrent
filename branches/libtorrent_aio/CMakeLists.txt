@@ -7,7 +7,6 @@ set(sources
 	alert_manager
 	allocator
 	asio
-	asio_ssl
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -244,6 +243,7 @@ if (encryption)
 		FIND_PACKAGE(OpenSSL REQUIRED)
 	endif()
 	add_definitions(-DTORRENT_USE_OPENSSL)
+	list(APPEND sources asio_ssl)
 	include_directories(${OPENSSL_INCLUDE_DIR})
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
 else()
@@ -300,7 +300,7 @@ else()
 endif()
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
-add_definitions(-DBOOST_DISABLE_EXCEPTION)
+add_definitions(-DBOOST_EXCEPTION_DISABLE)
 add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
 
 if (tcmalloc)

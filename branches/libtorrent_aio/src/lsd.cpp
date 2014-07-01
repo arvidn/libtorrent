@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"

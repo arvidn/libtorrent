@@ -163,11 +163,19 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		proxy_port = start_proxy(proxy_type);
 
 		settings_pack pack;
-		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
 		pack.set_str(settings_pack::proxy_username, "testuser");
 		pack.set_str(settings_pack::proxy_password, "testpass");
 		pack.set_int(settings_pack::proxy_type, (settings_pack::proxy_type_t)proxy_type);
 		pack.set_int(settings_pack::proxy_port, proxy_port);
+
+		// test resetting the proxy in quick succession.
+		// specifically the udp_socket connecting to a new
+		// socks5 proxy while having one connection attempt
+		// in progress.
+		pack.set_str(settings_pack::proxy_hostname, "5.6.7.8");
+		ses1.apply_settings(pack);
+
+		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
 		ses1.apply_settings(pack);
 		ses2.apply_settings(pack);
 	}

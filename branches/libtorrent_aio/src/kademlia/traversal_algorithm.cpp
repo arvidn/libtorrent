@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include "libtorrent/time.hpp" // for total_seconds
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>

@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # define __MINGW_USE_VC2005_COMPAT
 #endif
 
-#include "libtorrent/pch.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size

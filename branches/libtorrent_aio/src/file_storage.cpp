@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/file.hpp"
