@@ -1,3 +1,5 @@
+ 	* fix bug in udp_socket when changing socks5 proxy quickly
+
 0.16.17 release
 
 	* don't fall back on wildcard port in UPnP
