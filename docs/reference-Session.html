@@ -55,14 +55,14 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id172">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id173">cache_status</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id174">session_proxy</a></li>
-<li><a class="reference internal" href="#id36" id="id175">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id176">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id177">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id178">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id179">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id173">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id174">cache_status</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id175">session_proxy</a></li>
+<li><a class="reference internal" href="#id37" id="id176">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id177">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id178">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id179">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id180">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -106,6 +106,7 @@ struct add_torrent_params
       flag_update_subscribe,
       flag_super_seeding,
       flag_sequential_download,
+      flag_use_resume_save_path,
    };
 
    int version;
@@ -146,9 +147,9 @@ data for the torrent. For more information, see the <tt class="docutils literal"
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/add_torrent_params.hpp">libtorrent/add_torrent_params.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="27%" />
+<col width="26%" />
 <col width="7%" />
-<col width="66%" />
+<col width="67%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -176,9 +177,9 @@ in there will override the seed mode you set here.</p>
 </tr>
 <tr><td>flag_override_resume_data</td>
 <td>2</td>
-<td><p class="first">If <tt class="docutils literal">flag_override_resume_data</tt> is set, the <tt class="docutils literal">paused</tt> and
-<tt class="docutils literal">auto_managed</tt> state of the torrent are not loaded from the
-resume data, but the states requested by the flags in
+<td><p class="first">If <tt class="docutils literal">flag_override_resume_data</tt> is set, the <tt class="docutils literal">paused</tt>,
+<tt class="docutils literal">auto_managed</tt> and <tt class="docutils literal">save_path</tt> of the torrent are not loaded
+from the resume data, but the states requested by the flags in
 <tt class="docutils literal">add_torrent_params</tt> will override them.</p>
 <p class="last">If you pass in resume data, the paused state of the torrent when
 the resume data was saved will override the paused state you pass
@@ -282,6 +283,12 @@ immediately after adding it.</td>
 effect as calling <tt class="docutils literal"><span class="pre">torrent_handle::sequential_download(true)</span></tt> on
 the torrent handle immediately after adding it.</td>
 </tr>
+<tr><td>flag_use_resume_save_path</td>
+<td>4096</td>
+<td>if this flag is set, the save path from the resume data file, if
+present, is honored. This defaults to not being set, in which
+case the save_path specified in <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> is always used.</td>
+</tr>
 </tbody>
 </table>
 <a name="version"></a><dl class="docutils">
@@ -304,11 +311,17 @@ peers, the <tt class="docutils literal">trackers</tt> can specify tracker URLs f
 <dd>url seeds to be added to the torrent (<a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a>).</dd>
 </dl>
 <a name="dht_nodes"></a>
-<a name="name"></a>
-<a name="save_path"></a><dl class="docutils">
-<dt>dht_nodes  name  save_path</dt>
+<a name="name"></a><dl class="docutils">
+<dt>dht_nodes  name</dt>
 <dd>a list of hostname and port pairs, representing DHT nodes to be added
 to the <a class="reference external" href="reference-Session.html#session">session</a> (if DHT is enabled). The hostname may be an IP address.</dd>
+</dl>
+<a name="save_path"></a><dl class="docutils">
+<dt>save_path</dt>
+<dd>the path where the torrent is or will be stored. Note that this may
+alos be stored in resume data. If you which the save path saved in
+the resume data to be used, you need to set the
+flag_use_resume_save_path flag.</dd>
 </dl>
 <a name="resume_data"></a><dl class="docutils">
 <dt>resume_data</dt>
@@ -441,7 +454,7 @@ struct cache_status
    int read_queue_size;
 };
 </pre>
-<a name="cache_status()"></a><div class="section" id="id23">
+<a name="cache_status()"></a><div class="section" id="id24">
 <h2>cache_status()</h2>
 <pre class="literal-block">
 <strong>cache_status</strong> ();
@@ -563,7 +576,7 @@ class session_proxy
    <strong>session_proxy</strong> ();
 };
 </pre>
-<a name="session_proxy()"></a><div class="section" id="id34">
+<a name="session_proxy()"></a><div class="section" id="id35">
 <h2>session_proxy()</h2>
 <pre class="literal-block">
 <strong>session_proxy</strong> ();
@@ -572,7 +585,7 @@ class session_proxy
 implementation object.</p>
 <a name="session"></a></div>
 </div>
-<div class="section" id="id36">
+<div class="section" id="id37">
 <h1>session</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <p>The <a class="reference external" href="reference-Session.html#session">session</a> holds all state that spans multiple torrents. Among other
@@ -710,7 +723,7 @@ class session: public boost::noncopyable
    };
 };
 </pre>
-<a name="session()"></a><div class="section" id="id40">
+<a name="session()"></a><div class="section" id="id41">
 <h2>session()</h2>
 <pre class="literal-block">
 <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
@@ -742,7 +755,7 @@ pass 0 as the flags parameter.</p>
 <p>The <tt class="docutils literal">alert_mask</tt> is the same mask that you would send to
 <a class="reference external" href="reference-Session.html#set_alert_mask()">set_alert_mask()</a>.</p>
 <a name="~session()"></a></div>
-<div class="section" id="id43">
+<div class="section" id="id44">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
@@ -1027,7 +1040,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id98">
+<div class="section" id="id99">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1049,7 +1062,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id100">
+<div class="section" id="id101">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key

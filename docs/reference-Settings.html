@@ -55,10 +55,10 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#proxy-settings" id="id38">proxy_settings</a></li>
-<li><a class="reference internal" href="#session-settings" id="id39">session_settings</a></li>
-<li><a class="reference internal" href="#dht-settings" id="id40">dht_settings</a></li>
-<li><a class="reference internal" href="#pe-settings" id="id41">pe_settings</a></li>
+<li><a class="reference internal" href="#proxy-settings" id="id46">proxy_settings</a></li>
+<li><a class="reference internal" href="#session-settings" id="id47">session_settings</a></li>
+<li><a class="reference internal" href="#dht-settings" id="id48">dht_settings</a></li>
+<li><a class="reference internal" href="#pe-settings" id="id49">pe_settings</a></li>
 </ul>
 </div>
 <a name="proxy_settings"></a><div class="section" id="proxy-settings">
@@ -70,6 +70,17 @@ direct certain traffic to a proxy.</p>
 struct proxy_settings
 {
    <strong>proxy_settings</strong> ();
+
+   enum proxy_type
+   {
+      none,
+      socks4,
+      socks5,
+      socks5_pw,
+      http,
+      http_pw,
+      i2p_proxy,
+   };
 
    std::string hostname;
    std::string username;
@@ -87,6 +98,65 @@ struct proxy_settings
 </pre>
 <p>defaults constructs proxy settings, initializing it to the default
 settings.</p>
+<a name="proxy_type"></a></div>
+<div class="section" id="enum-proxy-type">
+<h2>enum proxy_type</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_settings.hpp">libtorrent/session_settings.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="7%" />
+<col width="81%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>none</td>
+<td>0</td>
+<td>This is the default, no proxy server is used, all other fields are
+ignored.</td>
+</tr>
+<tr><td>socks4</td>
+<td>1</td>
+<td>The server is assumed to be a <a class="reference external" href="http://www.ufasoft.com/doc/socks4_protocol.htm">SOCKS4 server</a> that requires a
+username.</td>
+</tr>
+<tr><td>socks5</td>
+<td>2</td>
+<td>The server is assumed to be a SOCKS5 server (<a class="reference external" href="http://www.faqs.org/rfcs/rfc1928.html">RFC 1928</a>) that does
+not require any authentication. The username and password are
+ignored.</td>
+</tr>
+<tr><td>socks5_pw</td>
+<td>3</td>
+<td>The server is assumed to be a SOCKS5 server that supports plain
+text username and password authentication (<a class="reference external" href="http://www.faqs.org/rfcs/rfc1929.html">RFC 1929</a>). The
+username and password specified may be sent to the proxy if it
+requires.</td>
+</tr>
+<tr><td>http</td>
+<td>4</td>
+<td>The server is assumed to be an HTTP proxy. If the transport used
+for the connection is non-HTTP, the server is assumed to support
+the <a class="reference external" href="http://tools.ietf.org/html/draft-luotonen-web-proxy-tunneling-01">CONNECT</a> method. i.e. for web seeds and HTTP trackers, a plain
+proxy will suffice. The proxy is assumed to not require
+authorization. The username and password will not be used.</td>
+</tr>
+<tr><td>http_pw</td>
+<td>5</td>
+<td>The server is assumed to be an HTTP proxy that requires user
+authorization. The username and password will be sent to the proxy.</td>
+</tr>
+<tr><td>i2p_proxy</td>
+<td>6</td>
+<td>route through a i2p SAM proxy</td>
+</tr>
+</tbody>
+</table>
 <a name="hostname"></a><dl class="docutils">
 <dt>hostname</dt>
 <dd>the name or IP of the proxy server. <tt class="docutils literal">port</tt> is the port number the
@@ -101,7 +171,7 @@ and password fields must be set to the credentials for the proxy.</dd>
 </dl>
 <a name="type"></a><dl class="docutils">
 <dt>type</dt>
-<dd>tells libtorrent what kind of proxy server it is. See proxy_type
+<dd>tells libtorrent what kind of proxy server it is. See <a class="reference external" href="reference-Settings.html#proxy_type">proxy_type</a>
 enum for options</dd>
 </dl>
 <a name="port"></a><dl class="docutils">
@@ -134,6 +204,27 @@ struct session_settings
    <strong>session_settings</strong> (std::string const&amp; user_agent = &quot;libtorrent/&quot;
       LIBTORRENT_VERSION);
    <strong>~session_settings</strong> ();
+
+   enum suggest_mode_t
+   {
+      no_piece_suggestions,
+      suggest_read_cache,
+   };
+
+   enum choking_algorithm_t
+   {
+      fixed_slots_choker,
+      auto_expand_choker,
+      rate_based_choker,
+      bittyrant_choker,
+   };
+
+   enum seed_choking_algorithm_t
+   {
+      round_robin,
+      fastest_upload,
+      anti_leech,
+   };
 
    enum io_buffer_mode_t
    {
@@ -187,7 +278,6 @@ struct session_settings
    int num_want;
    int initial_picker_threshold;
    int allowed_fast_set_size;
-   suggest_read_cache = 1 };
    int suggest_mode;
    int max_queued_disk_bytes;
    int max_queued_disk_bytes_low_watermark;
@@ -198,9 +288,7 @@ struct session_settings
    int send_buffer_low_watermark;
    int send_buffer_watermark;
    int send_buffer_watermark_factor;
-   bittyrant_choker };
    int choking_algorithm;
-   anti_leech };
    int seed_choking_algorithm;
    bool use_parole_mode;
    int cache_size;
@@ -343,6 +431,118 @@ struct session_settings
 <strong>~session_settings</strong> ();
 </pre>
 <p>initializes the <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a> to the default settings.</p>
+<a name="suggest_mode_t"></a></div>
+<div class="section" id="enum-suggest-mode-t">
+<h2>enum suggest_mode_t</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_settings.hpp">libtorrent/session_settings.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="7%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_piece_suggestions</td>
+<td>0</td>
+<td>the default. will not send out suggest messages.</td>
+</tr>
+<tr><td>suggest_read_cache</td>
+<td>1</td>
+<td>send out suggest messages for the most recent pieces that are in
+the read cache.</td>
+</tr>
+</tbody>
+</table>
+<a name="choking_algorithm_t"></a></div>
+<div class="section" id="enum-choking-algorithm-t">
+<h2>enum choking_algorithm_t</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_settings.hpp">libtorrent/session_settings.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="7%" />
+<col width="72%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>fixed_slots_choker</td>
+<td>0</td>
+<td>the traditional choker with a fixed number of unchoke slots, as
+specified by session::set_max_uploads()..</td>
+</tr>
+<tr><td>auto_expand_choker</td>
+<td>1</td>
+<td>opens at least the number of slots as specified by
+session::set_max_uploads() but opens up more slots if the upload
+capacity is not saturated. This unchoker will work just like the
+<tt class="docutils literal">fixed_slot_choker</tt> if there's no global upload rate limit set.</td>
+</tr>
+<tr><td>rate_based_choker</td>
+<td>2</td>
+<td>opens up unchoke slots based on the upload rate achieved to peers.
+The more slots that are opened, the marginal upload rate required
+to open up another slot increases.</td>
+</tr>
+<tr><td>bittyrant_choker</td>
+<td>3</td>
+<td>attempts to optimize download rate by finding the reciprocation
+rate of each peer individually and prefers peers that gives the
+highest <em>return on investment</em>. It still allocates all upload
+capacity, but shuffles it around to the best peers first. For this
+choker to be efficient, you need to set a global upload rate limit
+<a class="reference external" href="reference-Settings.html#upload_rate_limit">session_settings::upload_rate_limit</a>. For more information about
+this choker, see the <a class="reference external" href="http://bittyrant.cs.washington.edu/#papers">paper</a>.</td>
+</tr>
+</tbody>
+</table>
+<a name="seed_choking_algorithm_t"></a></div>
+<div class="section" id="enum-seed-choking-algorithm-t">
+<h2>enum seed_choking_algorithm_t</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_settings.hpp">libtorrent/session_settings.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="8%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>round_robin</td>
+<td>0</td>
+<td>round-robins the peers that are unchoked when seeding. This
+distributes the upload bandwidht uniformly and fairly. It minimizes
+the ability for a peer to download everything without
+redistributing it.</td>
+</tr>
+<tr><td>fastest_upload</td>
+<td>1</td>
+<td>unchokes the peers we can send to the fastest. This might be a bit
+more reliable in utilizing all available capacity.</td>
+</tr>
+<tr><td>anti_leech</td>
+<td>2</td>
+<td>prioritizes peers who have just started or are just about to finish
+the download. The intention is to force peers in the middle of the
+download to trade with each other.</td>
+</tr>
+</tbody>
+</table>
 <a name="io_buffer_mode_t"></a></div>
 <div class="section" id="enum-io-buffer-mode-t">
 <h2>enum io_buffer_mode_t</h2>
@@ -661,18 +861,13 @@ rarest first order.</dd>
 <dd>the number of allowed pieces to send to choked peers that supports the
 fast extensions</dd>
 </dl>
-<a name="}"></a><dl class="docutils">
-<dt>}</dt>
-<dd>send out suggest messages for the most recent pieces that are in
-the read cache.</dd>
-</dl>
 <a name="suggest_mode"></a><dl class="docutils">
 <dt>suggest_mode</dt>
 <dd><p class="first">this determines which pieces will be suggested to peers suggest read
 cache will make libtorrent suggest pieces that are fresh in the disk
 read cache, to potentially lower disk access and increase the cache
 hit ratio</p>
-<p class="last">for options, see suggest_mode_t.</p>
+<p class="last">for options, see <a class="reference external" href="reference-Settings.html#suggest_mode_t">suggest_mode_t</a>.</p>
 </dd>
 </dl>
 <a name="max_queued_disk_bytes"></a><dl class="docutils">
@@ -757,36 +952,17 @@ performance and disk throughput. Setting it too high may waste RAM and
 create a bias towards read jobs over write jobs.</p>
 </dd>
 </dl>
-<a name="}"></a><dl class="docutils">
-<dt>}</dt>
-<dd>opens up unchoke slots based on the upload rate achieved to peers.
-The more slots that are opened, the marginal upload rate required
-to open up another slot increases.
-attempts to optimize download rate by finding the reciprocation
-rate of each peer individually and prefers peers that gives the
-highest <em>return on investment</em>. It still allocates all upload
-capacity, but shuffles it around to the best peers first. For this
-choker to be efficient, you need to set a global upload rate limit
-<a class="reference external" href="reference-Settings.html#upload_rate_limit">session_settings::upload_rate_limit</a>. For more information about
-this choker, see the <a class="reference external" href="http://bittyrant.cs.washington.edu/#papers">paper</a>.</dd>
-</dl>
 <a name="choking_algorithm"></a><dl class="docutils">
 <dt>choking_algorithm</dt>
 <dd>specifies which algorithm to use to determine which peers to unchoke.
 This setting replaces the deprecated settings <tt class="docutils literal">auto_upload_slots</tt>
 and <tt class="docutils literal">auto_upload_slots_rate_based</tt>. For options, see
-choking_algorithm_t.</dd>
-</dl>
-<a name="}"></a><dl class="docutils">
-<dt>}</dt>
-<dd>prioritizes peers who have just started or are just about to finish
-the download. The intention is to force peers in the middle of the
-download to trade with each other.</dd>
+<a class="reference external" href="reference-Settings.html#choking_algorithm_t">choking_algorithm_t</a>.</dd>
 </dl>
 <a name="seed_choking_algorithm"></a><dl class="docutils">
 <dt>seed_choking_algorithm</dt>
 <dd>controls the seeding unchoke behavior. For options, see
-seed_choking_algorithm_t.</dd>
+<a class="reference external" href="reference-Settings.html#seed_choking_algorithm_t">seed_choking_algorithm_t</a>.</dd>
 </dl>
 <a name="use_parole_mode"></a><dl class="docutils">
 <dt>use_parole_mode</dt>
@@ -1773,7 +1949,7 @@ struct dht_settings
    bool ignore_dark_internet;
 };
 </pre>
-<a name="dht_settings()"></a><div class="section" id="id26">
+<a name="dht_settings()"></a><div class="section" id="id34">
 <h2>dht_settings()</h2>
 <pre class="literal-block">
 <strong>dht_settings</strong> ();
@@ -1893,7 +2069,7 @@ struct pe_settings
    bool prefer_rc4;
 };
 </pre>
-<a name="pe_settings()"></a><div class="section" id="id30">
+<a name="pe_settings()"></a><div class="section" id="id38">
 <h2>pe_settings()</h2>
 <pre class="literal-block">
 <strong>pe_settings</strong> ();
