@@ -776,7 +776,6 @@ Python environment:
   cppflags:             ${PYTHON_CPPFLAGS}
   ldflags:              ${PYTHON_LDFLAGS}
   extra libs:           ${PYTHON_EXTRA_LIBS}
-  extra ldflags:        ${PYTHON_EXTRA_LDFLAGS}
 
 END
 ])
