@@ -66,7 +66,8 @@ namespace libtorrent
 
 		// the type of proxy to use. Assign one of these to the
 		// proxy_settings::type field.
-		enum proxy_type {
+		enum proxy_type
+		{
 			// This is the default, no proxy server is used, all other fields are
 			// ignored.
 			none,
@@ -98,8 +99,7 @@ namespace libtorrent
 			// proxy will suffice. The proxy is assumed to not require
 			// authorization. The username and password will not be used.
 			//
-			// .. _CONNECT:
-			// http://tools.ietf.org/html/draft-luotonen-web-proxy-tunneling-01
+			// .. _CONNECT: http://tools.ietf.org/html/draft-luotonen-web-proxy-tunneling-01
 			http,
 
 			// The server is assumed to be an HTTP proxy that requires user
@@ -324,13 +324,15 @@ namespace libtorrent
 		int allowed_fast_set_size;
 
 		// options for session_settings::suggest_mode.
-		enum suggest_mode_t {
+		enum suggest_mode_t
+		{
 			// the default. will not send out suggest messages.
 			no_piece_suggestions = 0,
 
 			// send out suggest messages for the most recent pieces that are in
 			// the read cache.
-			suggest_read_cache = 1 };
+			suggest_read_cache = 1
+		};
 
 		// this determines which pieces will be suggested to peers suggest read
 		// cache will make libtorrent suggest pieces that are fresh in the disk
@@ -433,7 +435,8 @@ namespace libtorrent
 
 		// the different choking algorithms available. Set
 		// session_settings::choking_algorithm to one of these
-		enum choking_algorithm_t {
+		enum choking_algorithm_t
+		{
 			// the traditional choker with a fixed number of unchoke slots, as
 			// specified by session::set_max_uploads()..
 			fixed_slots_choker,
@@ -457,7 +460,8 @@ namespace libtorrent
 			// this choker, see the paper_.
 			// 
 			// .. _paper: http://bittyrant.cs.washington.edu/#papers
-			bittyrant_choker };
+			bittyrant_choker 
+		};
 
 		// specifies which algorithm to use to determine which peers to unchoke.
 		// This setting replaces the deprecated settings ``auto_upload_slots``
@@ -467,7 +471,8 @@ namespace libtorrent
 
 		// the different choking algorithms available when seeding. Set
 		// session_settings::seed_choking_algorithm to one of these
-		enum seed_choking_algorithm_t {
+		enum seed_choking_algorithm_t
+		{
 			// round-robins the peers that are unchoked when seeding. This
 			// distributes the upload bandwidht uniformly and fairly. It minimizes
 			// the ability for a peer to download everything without
@@ -481,7 +486,8 @@ namespace libtorrent
 			// prioritizes peers who have just started or are just about to finish
 			// the download. The intention is to force peers in the middle of the
 			// download to trade with each other.
-			anti_leech };
+			anti_leech
+		};
  
 		// controls the seeding unchoke behavior. For options, see
 		// seed_choking_algorithm_t.
@@ -1219,7 +1225,6 @@ namespace libtorrent
 			// does not throttle uTP, throttles TCP to the same proportion
 			// of throughput as there are TCP connections
 			peer_proportional = 1
-
 		};
 
 		// determines how to treat TCP connections when there are uTP

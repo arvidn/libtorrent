@@ -103,9 +103,9 @@ the torrent. The <a class="reference external" href="reference-Bencoding.html#en
 <pre class="literal-block">
 struct create_torrent
 {
-   <strong>create_torrent</strong> (torrent_info const&amp; ti);
    <strong>create_torrent</strong> (file_storage&amp; fs, int piece_size = 0
-      , int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
+      , int pad_file_limit = -1, int flags = optimize, int alignment = -1);
+   <strong>create_torrent</strong> (torrent_info const&amp; ti);
    entry <strong>generate</strong> () const;
    file_storage const&amp; <strong>files</strong> () const;
    void <strong>set_comment</strong> (char const* str);
@@ -137,9 +137,9 @@ struct create_torrent
 <a name="create_torrent()"></a><div class="section" id="id5">
 <h2>create_torrent()</h2>
 <pre class="literal-block">
-<strong>create_torrent</strong> (torrent_info const&amp; ti);
 <strong>create_torrent</strong> (file_storage&amp; fs, int piece_size = 0
-      , int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
+      , int pad_file_limit = -1, int flags = optimize, int alignment = -1);
+<strong>create_torrent</strong> (torrent_info const&amp; ti);
 </pre>
 <p>The <tt class="docutils literal">piece_size</tt> is the size of each piece in bytes. It must
 be a multiple of 16 kiB. If a piece size of 0 is specified, a
@@ -157,9 +157,9 @@ the content of the info dictionary (such as <tt class="docutils literal">set_has
 have any affect.</p>
 <p>The <tt class="docutils literal">flags</tt> arguments specifies options for the torrent creation. It can
 be any combination of the flags defined by <a class="reference external" href="reference-Create_Torrents.html#flags_t">create_torrent::flags_t</a>.</p>
-<p><tt class="docutils literal">alignment</tt> is used when pad files are enabled. This is the size eligible
-files are aligned to. The default is the default bittorrent block size of
-16 kiB. It is common to align to the piece size of the torrent.</p>
+<p><tt class="docutils literal">alignment</tt> is used when pad files are enabled. This is the size
+eligible files are aligned to. The default is -1, which means the
+piece size of the torrent.</p>
 <a name="generate()"></a></div>
 <div class="section" id="generate">
 <h2>generate()</h2>

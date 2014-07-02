@@ -410,6 +410,11 @@ including the root and all leaves. The tree is not
 necessarily complete, but complete enough to be able to send
 any piece that we have, indicated by the have bitmask.</td>
 </tr>
+<tr><td><tt class="docutils literal">save_path</tt></td>
+<td>string. The save path where this torrent was saved. This is
+especially useful when moving torrents with move_storage()
+since this will be updated.</td>
+</tr>
 <tr><td><tt class="docutils literal">peers</tt></td>
 <td><p class="first">list of dictionaries. Each dictionary has the following
 layout:</p>

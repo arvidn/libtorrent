@@ -201,7 +201,7 @@ class file_storage
    void <strong>set_name</strong> (std::string const&amp; n);
    const std::string&amp; <strong>name</strong> () const;
    void <strong>swap</strong> (file_storage&amp; ti);
-   void <strong>optimize</strong> (int pad_file_limit = -1, int alignment = 0x10000);
+   void <strong>optimize</strong> (int pad_file_limit = -1, int alignment = -1);
    size_type <strong>file_size</strong> (int index) const;
    sha1_hash <strong>hash</strong> (int index) const;
    std::string <strong>file_name</strong> (int index) const;
@@ -377,11 +377,14 @@ void <strong>swap</strong> (file_storage&amp; ti);
 <div class="section" id="optimize">
 <h2>optimize()</h2>
 <pre class="literal-block">
-void <strong>optimize</strong> (int pad_file_limit = -1, int alignment = 0x10000);
+void <strong>optimize</strong> (int pad_file_limit = -1, int alignment = -1);
 </pre>
-<p>if pad_file_limit &gt;= 0, files larger than
-that limit will be padded, default is to
-not add any padding</p>
+<p>if pad_file_limit &gt;= 0, files larger than that limit will be padded,
+default is to not add any padding (-1). The alignment specifies the
+alignment files should be padded to. This defaults to the piece size
+(-1) but it may also make sense to set it to 16 kiB, or something
+divisible by 16 kiB.
+If pad_file_limit is 0, every file will be padded (except empty ones).</p>
 <a name="mtime()"></a>
 <a name="hash()"></a>
 <a name="symlink()"></a>
