@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>client_test example program</title>
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="client-test-example-program">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">client_test example program</h1>
+
+<p>Client test is a, more or less, complete bittorrent client. It lacks most
+settings and you can't start or stop torrents once you've started it. All
+the settings are hardcoded. The commandline arguments are:</p>
+<pre class="literal-block">
+client_test &lt;filename1.torrent&gt; &lt;filename2.torrent&gt; ...
+</pre>
+<p>You can start any number of torrent downloads/seeds via the commandline.
+If one argument starts with <tt class="docutils literal"><span class="pre">http://</span></tt> it is interpreted as a tracker
+announce url, and it expects an info-hash as the next argument. The info-hash
+has to be hex-encoded. For example: <tt class="docutils literal">2410d4554d5ed856d69f426c38791673c59f4418</tt>.
+If you pass an announce url and info-hash, a torrent-less download is started.
+It relies on that at least one peer on the tracker is running a libtorrent based
+client and has the metadata (.torrent file). The metadata extension in
+libtorrent will then download it from that peer (or from those peers if more
+than one).</p>
+<p>While running, the <tt class="docutils literal">client_test</tt> sample will look something like this:</p>
+<img alt="client_test.png" src="client_test.png" />
+<p>The commands available in the client are:</p>
+<ul class="simple">
+<li><tt class="docutils literal">q</tt> quits the client (there will be a delay while the client waits
+for tracker responses)</li>
+<li><tt class="docutils literal">l</tt> toggle log. Will display the log at the bottom, informing about
+tracker and peer events.</li>
+<li><tt class="docutils literal">i</tt> toggles torrent info. Will show the peer list for each torrent.</li>
+<li><tt class="docutils literal">d</tt> toggle download info. Will show the block list for each torrent,
+showing downloaded and requested blocks.</li>
+<li><tt class="docutils literal">p</tt> pause all torrents.</li>
+<li><tt class="docutils literal">u</tt> unpause all torrents.</li>
+<li><tt class="docutils literal">r</tt> force tracker reannounce for all torrents.</li>
+<li><tt class="docutils literal">f</tt> toggle show file progress. Displays a list of all files and the
+download progress for each file.</li>
+</ul>
+<p>The list at the bottom (shown if you press <tt class="docutils literal">d</tt>) shows which blocks has
+been requested from which peer. The green background means that it has been
+downloaded. It shows that fast peers will prefer to request whole pieces
+instead of dowloading parts of pieces. It may make it easier to determine
+which peer that sent the corrupt data if a piece fails the hash test.</p>
+<img alt="unicode_support.png" src="unicode_support.png" />
+<p>There's unicode support on linux, MacOS X and Windows.</p>
+</div>
+</body>
+</html>

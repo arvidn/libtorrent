@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>BitTorrent extension for arbitrary DHT store</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="bittorrent-extension-for-arbitrary-dht-store">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">BitTorrent extension for arbitrary DHT store</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#terminology" id="id3">terminology</a></li>
+<li><a class="reference internal" href="#messages" id="id4">messages</a><ul>
+<li><a class="reference internal" href="#put-message" id="id5">put message</a></li>
+<li><a class="reference internal" href="#get-message" id="id6">get message</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mutable-items" id="id7">mutable items</a><ul>
+<li><a class="reference internal" href="#id1" id="id8">put message</a></li>
+<li><a class="reference internal" href="#id2" id="id9">get message</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#signature-verification" id="id10">signature verification</a></li>
+<li><a class="reference internal" href="#expiration" id="id11">expiration</a></li>
+<li><a class="reference internal" href="#test-vectors" id="id12">test vectors</a><ul>
+<li><a class="reference internal" href="#test-1-mutable" id="id13">test 1 (mutable)</a></li>
+<li><a class="reference internal" href="#test-2-mutable-with-salt" id="id14">test 2 (mutable with salt)</a></li>
+<li><a class="reference internal" href="#test-3-immutable" id="id15">test 3 (immutable)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#resources" id="id16">resources</a></li>
+</ul>
+</div>
+<p>This is a proposal for an extension to the BitTorrent DHT to allow
+storing and retrieving of arbitrary data.</p>
+<p>It supports both storing <em>immutable</em> items, where the key is
+the SHA-1 hash of the data itself, and <em>mutable</em> items, where
+the key is the public key of the key pair used to sign the data.</p>
+<p>There are two new proposed messages, <tt class="docutils literal">put</tt> and <tt class="docutils literal">get</tt>.</p>
+<div class="section" id="terminology">
+<h1>terminology</h1>
+<p>In this document, a <em>storage node</em> refers to the node in the DHT to which
+an item is being announced and stored on. A <em>requesting node</em> refers to
+a node which makes look-ups in the DHT to find the storage nodes, to
+request items from them, and possibly re-announce those items to keep them
+alive.</p>
+</div>
+<div class="section" id="messages">
+<h1>messages</h1>
+<p>The proposed new messages <tt class="docutils literal">get</tt> and <tt class="docutils literal">put</tt> are similar to the existing
+<tt class="docutils literal">get_peers</tt> and <tt class="docutils literal">announce_peer</tt>.</p>
+<p>Responses to <tt class="docutils literal">get</tt> should always include <tt class="docutils literal">nodes</tt> and <tt class="docutils literal">nodes6</tt>. Those
+fields have the same semantics as in its <tt class="docutils literal">get_peers</tt> response. It should also
+include a write token, <tt class="docutils literal">token</tt>, with the same semantics as int <tt class="docutils literal">get_peers</tt>.
+The write token MAY be tied specifically to the key which <tt class="docutils literal">get</tt> requested.
+i.e. the <tt class="docutils literal">token</tt> can only be used to store values under that one key. It may
+also be tied to the node ID and IP address of the requesting node.</p>
+<p>The <tt class="docutils literal">id</tt> field in these messages has the same semantics as the standard DHT
+messages, i.e. the node ID of the node sending the message, to maintain the
+structure of the DHT network.</p>
+<p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message
+<tt class="docutils literal">get_peers</tt> and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an
+item respectively.</p>
+<p>The <tt class="docutils literal">k</tt> field is the 32 byte ed25519 public key, which the signature can be
+authenticated with. When looking up a mutable item, the <tt class="docutils literal">target</tt> field MUST be
+the SHA-1 hash of this key concatenated with the <tt class="docutils literal">salt</tt>, if present.</p>
+<p>The distinction between storing mutable and immutable items is the inclusion of
+a public key, a sequence number, signature and an optional salt (<tt class="docutils literal">k</tt>, <tt class="docutils literal">seq</tt>,
+<tt class="docutils literal">sig</tt> and <tt class="docutils literal">salt</tt>).</p>
+<p><tt class="docutils literal">get</tt> requests for mutable items and immutable items cannot be distinguished
+from eachother. An implementation can either store mutable and immutable items
+in the same hash table internally, or in separate ones and potentially do two
+lookups for <tt class="docutils literal">get</tt> requests.</p>
+<p>The <tt class="docutils literal">v</tt> field is the <em>value</em> to be stored. It is allowed to be any bencoded
+type (list, dict, string or integer). When it's being hashed (for verifying its
+signature or to calculate its key), its flattened, bencoded, form is used. It is
+important to use the verbatim bencoded representation as it appeared in the
+message. decoding and then re-encoding bencoded structures is not necessarily an
+identity operation.</p>
+<p>Storing nodes MAY reject <tt class="docutils literal">put</tt> requests where the bencoded form of <tt class="docutils literal">v</tt> is
+longer than 1000 bytes. In other words, it's not safe to assume storing more
+than 1000 bytes will succeed.</p>
+<p>immutable items ---------------</p>
+<p>Immutable items are stored under their SHA-1 hash, and since they cannot be
+modified, there is no need to authenticate the origin of them. This makes
+immutable items simple.</p>
+<p>A node making a lookup SHOULD verify the data it receives from the network, to
+verify that its hash matches the target that was looked up.</p>
+<div class="section" id="put-message">
+<h2>put message</h2>
+<p>Request:</p>
+<pre class="literal-block">
+{
+        &quot;a&quot;:
+        {
+                &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
+                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt;= 1000&gt;</em>
+        },
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;q&quot;,
+        &quot;q&quot;: &quot;put&quot;
+}
+</pre>
+<p>Response:</p>
+<pre class="literal-block">
+{
+        &quot;r&quot;: { &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em> },
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;r&quot;,
+}
+</pre>
+</div>
+<div class="section" id="get-message">
+<h2>get message</h2>
+<p>Request:</p>
+<pre class="literal-block">
+{
+        &quot;a&quot;:
+        {
+                &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
+                &quot;target&quot;: <em>&lt;SHA-1 hash of item (string)&gt;</em>,
+        },
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;q&quot;,
+        &quot;q&quot;: &quot;get&quot;
+}
+</pre>
+<p>Response:</p>
+<pre class="literal-block">
+{
+        &quot;r&quot;:
+        {
+                &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
+                &quot;token&quot;: <em>&lt;write token (string)&gt;</em>,
+                &quot;v&quot;: <em>&lt;any bencoded type whose SHA-1 hash matches 'target'&gt;</em>,
+                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
+                &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>
+        },
+        &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
+        &quot;y&quot;: &quot;r&quot;,
+}
+</pre>
+</div>
+</div>
+<div class="section" id="mutable-items">
+<h1>mutable items</h1>
+<p>Mutable items can be updated, without changing their DHT keys. To authenticate
+that only the original publisher can update an item, it is signed by a private
+key generated by the original publisher. The target ID mutable items are stored
+under is the SHA-1 hash of the public key (as it appears in the <tt class="docutils literal">put</tt>
+message).</p>
+<p>In order to avoid a malicious node to overwrite the list head with an old
+version, the sequence number <tt class="docutils literal">seq</tt> must be monotonically increasing for each
+update, and a node hosting the list node MUST not downgrade a list head from a
+higher sequence number to a lower one, only upgrade. The sequence number SHOULD
+not exceed <tt class="docutils literal">MAX_INT64</tt>, (i.e. <tt class="docutils literal">0x7fffffffffffffff</tt>. A client MAY reject any
+message with a sequence number exceeding this. A client MAY also reject any
+message with a negative sequence number.</p>
+<p>The signature is a 64 byte ed25519 signature of the bencoded sequence number
+concatenated with the <tt class="docutils literal">v</tt> key. e.g. something like this:</p>
+<pre class="literal-block">
+3:seqi4e1:v12:Hello world!
+</pre>
+<p>If the <tt class="docutils literal">salt</tt> key is present and non-empty, the salt string must be included
+in what's signed. Note that if <tt class="docutils literal">salt</tt> is specified and an empty string, it is
+as if it was not specified and nothing in addition to the sequence number and
+the data is signed. The salt string may not be longer than 64 bytes.</p>
+<p>When a salt is included in what is signed, the key <tt class="docutils literal">salt</tt> with the value of
+the key is prepended in its bencoded form. For example, if <tt class="docutils literal">salt</tt> is &quot;foobar&quot;,
+the buffer to be signed is:</p>
+<pre class="literal-block">
+4:salt6:foobar3:seqi4e1:v12:Hello world!
+</pre>
+<div class="section" id="id1">
+<h2>put message</h2>
+<p>Request:</p>
+<pre class="literal-block">
+{
+        &quot;a&quot;:
+        {
+                &quot;cas&quot;: <em>&lt;optional 20 byte hash (string)&gt;</em>,
+                &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
+                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
+                &quot;salt&quot;: <em>&lt;optional salt to be appended to &quot;k&quot; when hashing (string)&gt;</em>
+                &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
+                &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
+                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 1000&gt;</em>
+        },
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;q&quot;,
+        &quot;q&quot;: &quot;put&quot;
+}
+</pre>
+<p>Storing nodes receiving a <tt class="docutils literal">put</tt> request where <tt class="docutils literal">seq</tt> is lower than or equal
+to what's already stored on the node, MUST reject the request. If the sequence
+number is equal, and the value is also the same, the node SHOULD reset its
+timeout counter.</p>
+<p>If the sequence number in the <tt class="docutils literal">put</tt> message is lower than the sequence number
+associated with the currently stored value, the storing node MAY return an error
+message with code 302 (see error codes below).</p>
+<p>Note that this request does not contain a target hash. The target hash under
+which this blob is stored is implied by the <tt class="docutils literal">k</tt> argument. The key is the SHA-1
+hash of the key (<tt class="docutils literal">k</tt>).</p>
+<p>In order to support a single key being used to store separate items in the DHT,
+an optional <tt class="docutils literal">salt</tt> can be specified in the <tt class="docutils literal">put</tt> request of mutable items.
+If the salt entry is not present, it can be assumed to be an empty string, and
+its semantics should be identical as specifying a salt key with an empty string.
+The salt can be any binary string (but probably most conveniently a hash of
+something). This string is appended to the key, as specified in the <tt class="docutils literal">k</tt> field,
+when calculating the key to store the blob under (i.e. the key <tt class="docutils literal">get</tt> requests
+specify to retrieve this data).</p>
+<p>This lets a single entity, with a single key, publish any number of unrelated
+items, with a single key that readers can verify. This is useful if the
+publisher doesn't know ahead of time how many different items are to be
+published. It can distribute a single public key for users to authenticate the
+published blobs.</p>
+<p>Note that the salt is not returned in the response to a <tt class="docutils literal">get</tt> request. This
+is intentional. When issuing a <tt class="docutils literal">get</tt> request for an item is expected to
+know what the salt is (because it is part of what the target ID that is being
+looked up is derived from). There is no need to repeat it back for bystanders
+to see.</p>
+<p>The <tt class="docutils literal">cas</tt> field is optional. If present it is interpreted as the sha-1 hash of
+the sequence number, <tt class="docutils literal">v</tt> field and possibly the <tt class="docutils literal">salt</tt> field, that is
+expected to be replaced. The buffer to hash is the same as the one signed when
+storing. <tt class="docutils literal">cas</tt> is short for <em>compare and swap</em>, it has similar semantics as
+CAS CPU instructions. If specified as part of the put command, and the current
+value stored under the public key differs from the expected value, the store
+fails. The <tt class="docutils literal">cas</tt> field only applies to mutable puts. If there is no current
+value, the <tt class="docutils literal">cas</tt> field SHOULD be ignored. A put operation should not be
+prevented based on the <tt class="docutils literal">cas</tt> field if no value is currently present.</p>
+<p>Response:</p>
+<pre class="literal-block">
+{
+        &quot;r&quot;: { &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em> },
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;r&quot;,
+}
+</pre>
+<p>If the store fails for any reason an error message is returned instead of the
+message template above, i.e. one where &quot;y&quot; is &quot;e&quot; and &quot;e&quot; is a tuple of
+[error-code, message]). Failures include where the <tt class="docutils literal">cas</tt> hash mismatches and
+the sequence number is outdated.</p>
+<p>If no <tt class="docutils literal">cas</tt> field is included in the <tt class="docutils literal">put</tt> message, the value of the current
+<tt class="docutils literal">v</tt> field should be disregarded when determining whether or not to save the
+item. (However, the signature, sequence number obviously still should).</p>
+<p>The error message (as specified by <a class="reference external" href="http://www.bittorrent.org/beps/bep_0005.html">BEP5</a>) looks like this:</p>
+<pre class="literal-block">
+{
+        &quot;e&quot;: [ <em>&lt;error-code (integer)&gt;</em>, <em>&lt;error-string (string)&gt;</em> ],
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;e&quot;,
+}
+</pre>
+<p>In addition to the error codes defined in <a class="reference external" href="http://www.bittorrent.org/beps/bep_0005.html">BEP5</a>, this specification defines
+some additional error codes.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="29%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">error-code</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>205</td>
+<td>message (i.e. <tt class="docutils literal">v</tt> field)
+too big.</td>
+</tr>
+<tr><td>206</td>
+<td>invalid signature</td>
+</tr>
+<tr><td>207</td>
+<td>salt (i.e. <tt class="docutils literal">salt</tt> field)
+too big.</td>
+</tr>
+<tr><td>301</td>
+<td>the CAS hash mismatched,
+re-read value and try
+again.</td>
+</tr>
+<tr><td>302</td>
+<td>sequence number less than
+current.</td>
+</tr>
+</tbody>
+</table>
+<p>An implementation MUST emit 301 errors if the cas-hash mismatches. This is a
+critical feature in synchronization of multiple agents sharing an immutable
+item.</p>
+</div>
+<div class="section" id="id2">
+<h2>get message</h2>
+<p>Request:</p>
+<pre class="literal-block">
+{
+        &quot;a&quot;:
+        {
+                &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
+                &quot;target:&quot; <em>&lt;20 byte SHA-1 hash of public key and salt (string)&gt;</em>
+        },
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;q&quot;,
+        &quot;q&quot;: &quot;get&quot;
+}
+</pre>
+<p>Response:</p>
+<pre class="literal-block">
+{
+        &quot;r&quot;:
+        {
+                &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
+                &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
+                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
+                &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>,
+                &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
+                &quot;sig&quot;: <em>&lt;ed25519 signature (64 bytes string)&gt;</em>,
+                &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
+                &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt;= 1000&gt;</em>
+        },
+        &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
+        &quot;y&quot;: &quot;r&quot;,
+}
+</pre>
+</div>
+</div>
+<div class="section" id="signature-verification">
+<h1>signature verification</h1>
+<p>In order to make it maximally difficult to attack the bencoding parser, signing
+and verification of the value and sequence number should be done as follows:</p>
+<ol class="arabic simple">
+<li>encode value and sequence number separately</li>
+<li>concatenate (&quot;4:salt&quot; <em>length-of-salt</em> &quot;:&quot; <em>salt</em>) &quot;3:seqi&quot; <em>seq</em>
+&quot;e1:v&quot; <em>len</em> &quot;:&quot; and the encoded value.
+sequence number 1 of value &quot;Hello World!&quot; would be converted to:
+&quot;3:seqi1e1:v12:Hello World!&quot;. In this way it is not possible to convince a
+node that part of the length is actually part of the sequence number even if
+the parser contains certain bugs. Furthermore it is not possible to have a
+verification failure if a bencoding serializer alters the order of entries in
+the dictionary. The salt is in parenthesis because it is optional. It is only
+prepended if a non-empty salt is specified in the <tt class="docutils literal">put</tt> request.</li>
+<li>sign or verify the concatenated string</li>
+</ol>
+<p>On the storage node, the signature MUST be verified before accepting the store
+command. The data MUST be stored under the SHA-1 hash of the public key (as it
+appears in the bencoded dict).</p>
+<p>On the requesting nodes, the key they get back from a <tt class="docutils literal">get</tt> request MUST be
+verified to hash to the target ID the lookup was made for, as well as verifying
+the signature. If any of these fail, the response SHOULD be considered invalid.</p>
+</div>
+<div class="section" id="expiration">
+<h1>expiration</h1>
+<p>Without re-announcement, these items MAY expire in 2 hours. In order
+to keep items alive, they SHOULD be re-announced once an hour.</p>
+<p>Any node that's interested in keeping a blob in the DHT alive may announce it.
+It would simply repeat the signature for a mutable put without having the
+private key.</p>
+</div>
+<div class="section" id="test-vectors">
+<h1>test vectors</h1>
+<div class="section" id="test-1-mutable">
+<h2>test 1 (mutable)</h2>
+<p>value:</p>
+<pre class="literal-block">
+12:Hello World!
+</pre>
+<p>buffer being signed:</p>
+<pre class="literal-block">
+3:seqi1e1:v12:Hello World!
+</pre>
+<p>public key:</p>
+<pre class="literal-block">
+77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548
+</pre>
+<p>private key:</p>
+<pre class="literal-block">
+e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d
+b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
+</pre>
+<p><strong>target ID</strong>:</p>
+<pre class="literal-block">
+4a533d47ec9c7d95b1ad75f576cffc641853b750
+</pre>
+<p><strong>signature</strong>:</p>
+<pre class="literal-block">
+305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff
+1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01
+</pre>
+</div>
+<div class="section" id="test-2-mutable-with-salt">
+<h2>test 2 (mutable with salt)</h2>
+<p>value:</p>
+<pre class="literal-block">
+12:Hello World!
+</pre>
+<p>salt:</p>
+<pre class="literal-block">
+foobar
+</pre>
+<p>buffer being signed:</p>
+<pre class="literal-block">
+4:salt6:foobar3:seqi1e1:v12:Hello World!
+</pre>
+<p>public key:</p>
+<pre class="literal-block">
+77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548
+</pre>
+<p>private key:</p>
+<pre class="literal-block">
+e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d
+b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
+</pre>
+<p><strong>target ID</strong>:</p>
+<pre class="literal-block">
+411eba73b6f087ca51a3795d9c8c938d365e32c1
+</pre>
+<p><strong>signature</strong>:</p>
+<pre class="literal-block">
+6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d
+df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08
+</pre>
+</div>
+<div class="section" id="test-3-immutable">
+<h2>test 3 (immutable)</h2>
+<p>value:</p>
+<pre class="literal-block">
+12:Hello World!
+</pre>
+<p><strong>target ID</strong>:</p>
+<pre class="literal-block">
+e5f96f6f38320f0f33959cb4d3d656452117aadb
+</pre>
+</div>
+</div>
+<div class="section" id="resources">
+<h1>resources</h1>
+<p>Libraries that implement ed25519 DSA:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://nacl.cr.yp.to/">NaCl</a></li>
+<li><a class="reference external" href="https://github.com/jedisct1/libsodium">libsodium</a></li>
+<li><a class="reference external" href="https://github.com/nightcracker/ed25519">nightcracker's ed25519</a></li>
+</ul>
+</div>
+</div>
+</body>
+</html>

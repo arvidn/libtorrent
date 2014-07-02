@@ -1,0 +1,135 @@
+<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+	<specVersion>
+		<major>1</major>
+		<minor>0</minor>
+	</specVersion>
+	<URLBase>http://127.0.0.1</URLBase>
+
+	
+	<device>
+	
+		<deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType>
+		<presentationURL>/</presentationURL>
+		<friendlyName>Xtreme N GIGABIT Router</friendlyName>
+		<manufacturer>D-Link Systems</manufacturer>
+		<manufacturerURL>http://www.dlink.com</manufacturerURL>
+		<modelDescription>Xtreme N GIGABIT Router</modelDescription>
+		<modelName>Xtreme N GIGABIT Router</modelName>
+		<modelNumber>DIR-655</modelNumber>
+		<modelURL>http://www.dlink.com</modelURL>
+		<serialNumber>none</serialNumber>		
+		<UDN>uuid:E17FAEB7-CABB-3BCC-9C36-7207D5397C0E</UDN>
+		
+		
+		
+		<UPC>00000-00001</UPC>
+		<serviceList>
+			<service>
+				<serviceType>urn:schemas-upnp-org:service:Layer3Forwarding:1</serviceType>
+				
+				<serviceId>urn:upnp-org:serviceId:L3Forwarding1</serviceId>
+				<controlURL>http://192.168.0.1:4444/l3fw</controlURL>
+				<eventSubURL>http://192.168.0.1:9393/l3fw</eventSubURL>
+				<SCPDURL>http://192.168.0.1/l3fw.xml</SCPDURL>
+			</service>
+		</serviceList>
+		<deviceList>
+			<device>
+				<deviceType>urn:schemas-upnp-org:device:WANDevice:1</deviceType>
+				
+				<friendlyName>Xtreme N GIGABIT Router</friendlyName>
+				<manufacturer>D-Link Systems</manufacturer>
+				<manufacturerURL>http://www.dlink.com</manufacturerURL>
+				<modelDescription>Xtreme N GIGABIT Router</modelDescription>
+				<modelName>Xtreme N GIGABIT Router</modelName>
+				<modelNumber>DIR-655</modelNumber>
+				<modelURL>http://www.dlink.com</modelURL>
+				<serialNumber>none</serialNumber>
+				<UDN>uuid:EC4A6889-B956-363F-9849-62C053B72D72</UDN>
+				
+				<UPC>00000-00001</UPC>
+				<serviceList>
+					<service>
+						<serviceType>urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1</serviceType>
+						
+						<serviceId>urn:upnp-org:serviceId:WANCommonIFC1</serviceId>
+						<controlURL>http://192.168.0.1:4444/wcommifc</controlURL>
+						<eventSubURL>http://192.168.0.1:9393/wcommifc</eventSubURL>
+						<SCPDURL>http://192.168.0.1/WANCommonIFC1.xml</SCPDURL>
+					</service>
+				</serviceList>
+				<deviceList>
+					<device>
+						<deviceType>urn:schemas-upnp-org:device:WANConnectionDevice:1</deviceType>
+						
+						<friendlyName>Xtreme N GIGABIT Router</friendlyName>
+						<manufacturer>D-Link Systems</manufacturer>
+						<manufacturerURL>http://www.dlink.com</manufacturerURL>
+						<modelDescription>Xtreme N GIGABIT Router</modelDescription>
+						<modelName>Xtreme N GIGABIT Router</modelName>
+						<modelNumber>DIR-655</modelNumber>
+						<modelURL>http://www.dlink.com</modelURL>
+						<serialNumber>none</serialNumber>
+						<UDN>uuid:8843AAB0-7191-39C5-A763-9592A8C5AB32</UDN>
+						
+						<UPC>00000-00001</UPC>
+						<serviceList>
+							<service>
+								<serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
+								
+								<serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId>
+								<controlURL>http://127.0.0.1:%d/wipconn</controlURL>
+								<eventSubURL>http://192.168.0.1:9393/wipconn</eventSubURL>
+								<SCPDURL>http://192.168.0.1/WANIPConn1.xml</SCPDURL>
+							</service>
+						</serviceList>
+					</device>
+				</deviceList>
+			</device>
+
+
+
+			<device>
+				<deviceType>urn:schemas-wifialliance-org:device:WFADevice:1</deviceType>
+				<presentationURL>/</presentationURL>
+				<friendlyName>WFADevice</friendlyName>
+				<manufacturer>D-Link Systems</manufacturer>
+				<manufacturerURL>http://www.dlink.com</manufacturerURL>
+				<modelDescription>Xtreme N GIGABIT Router</modelDescription>
+				<modelName>Xtreme N GIGABIT Router</modelName>
+				<modelNumber>DIR-655</modelNumber>
+				<modelURL>http://www.dlink.com</modelURL>
+				<serialNumber>none</serialNumber>				
+
+                                <UDN>uuid:003F35AE-C81C-3EE7-972E-8AEF712289D5</UDN>
+                                
+
+
+	
+
+
+				
+
+				<UPC>00000-00001</UPC>
+				<serviceList>
+					<service>
+						<serviceType>urn:schemas-wifialliance-org:service:WFAWLANConfig:1</serviceType>
+
+						
+
+						<serviceId>urn:wifialliance-org:serviceId:WFAWLANConfig1</serviceId>
+						<controlURL>http://192.168.0.1:8832/wfawc</controlURL>
+						<eventSubURL>http://192.168.0.1:8456/wfawc</eventSubURL>
+						<SCPDURL>http://192.168.0.1/WFAwc.xml</SCPDURL>
+					</service>
+				</serviceList>
+			</device>
+	
+
+
+		</deviceList>
+	</device>
+
+
+</root>

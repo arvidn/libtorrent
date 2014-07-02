@@ -1,0 +1,960 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>libtorrent API Documentation</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="libtorrent-api-documentation">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">libtorrent API Documentation</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#overview" id="id55">overview</a></li>
+<li><a class="reference internal" href="#things-to-keep-in-mind" id="id56">things to keep in mind</a></li>
+<li><a class="reference internal" href="#network-primitives" id="id57">network primitives</a></li>
+<li><a class="reference internal" href="#exceptions" id="id58">exceptions</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id59">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id60">queuing</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id61">fast resume</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id62">storage allocation</a></li>
+<li><a class="reference internal" href="#extensions" id="id63">extensions</a></li>
+<li><a class="reference internal" href="#piece-picker" id="id64">piece picker</a></li>
+<li><a class="reference internal" href="#ssl-torrents" id="id65">SSL torrents</a></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h1>overview</h1>
+<p>The interface of libtorrent consists of a few classes. The main class is
+the <tt class="docutils literal">session</tt>, it contains the main loop that serves all torrents.</p>
+<p>The basic usage is as follows:</p>
+<ul>
+<li><p class="first">construct a <a class="reference external" href="reference-Session.html#session">session</a></p>
+</li>
+<li><p class="first">load <a class="reference external" href="reference-Session.html#session">session</a> state from settings file (see <a class="reference external" href="reference-Session.html#load_state()">load_state()</a>)</p>
+</li>
+<li><p class="first">start extensions (see <a class="reference external" href="reference-Core.html#add_extension()">add_extension()</a>).</p>
+</li>
+<li><p class="first">start DHT, LSD, UPnP, NAT-PMP etc (see <a class="reference external" href="reference-Session.html#start_dht()">start_dht()</a>, <a class="reference external" href="reference-Session.html#start_lsd()">start_lsd()</a>, <a class="reference external" href="reference-Session.html#start_upnp()">start_upnp()</a>
+and <a class="reference external" href="reference-Session.html#start_natpmp()">start_natpmp()</a>).</p>
+</li>
+<li><p class="first">parse .torrent-files and add them to the <a class="reference external" href="reference-Session.html#session">session</a> (see <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a>,
+<a class="reference external" href="reference-Session.html#async_add_torrent()">async_add_torrent()</a> and <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a>)</p>
+</li>
+<li><p class="first">main loop (see <a class="reference external" href="reference-Session.html#session">session</a>)</p>
+<blockquote>
+<ul class="simple">
+<li>poll for alerts (see <a class="reference external" href="reference-Session.html#wait_for_alert()">wait_for_alert()</a>, <a class="reference external" href="reference-Session.html#pop_alerts()">pop_alerts()</a>)</li>
+<li>handle updates to torrents, (see <a class="reference external" href="reference-Alerts.html#state_update_alert">state_update_alert</a>).</li>
+<li>handle other alerts, (see <a class="reference external" href="reference-Alerts.html#alert">alert</a>).</li>
+<li>query the <a class="reference external" href="reference-Session.html#session">session</a> for information (see <a class="reference external" href="reference-Session.html#status()">session::status()</a>).</li>
+<li>add and remove torrents from the <a class="reference external" href="reference-Session.html#session">session</a> (<a class="reference external" href="reference-Session.html#remove_torrent()">remove_torrent()</a>)</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first">save resume data for all torrent_handles (optional, see
+<a class="reference external" href="reference-Core.html#save_resume_data()">save_resume_data()</a>)</p>
+</li>
+<li><p class="first">save <a class="reference external" href="reference-Session.html#session">session</a> state (see <a class="reference external" href="reference-Session.html#save_state()">save_state()</a>)</p>
+</li>
+<li><p class="first">destruct <a class="reference external" href="reference-Session.html#session">session</a> object</p>
+</li>
+</ul>
+<p>Each class and function is described in this manual.</p>
+<p>For a description on how to create torrent files, see <a class="reference external" href="reference-Create_Torrents.html#create_torrent">create_torrent</a>.</p>
+</div>
+<div class="section" id="things-to-keep-in-mind">
+<h1>things to keep in mind</h1>
+<p>A common problem developers are facing is torrents stopping without explanation.
+Here is a description on which conditions libtorrent will stop your torrents,
+how to find out about it and what to do about it.</p>
+<p>Make sure to keep track of the paused state, the error state and the upload
+mode of your torrents. By default, torrents are auto-managed, which means
+libtorrent will pause them, unpause them, scrape them and take them out
+of upload-mode automatically.</p>
+<p>Whenever a torrent encounters a fatal error, it will be stopped, and the
+<tt class="docutils literal"><span class="pre">torrent_status::error</span></tt> will describe the error that caused it. If a torrent
+is auto managed, it is scraped periodically and paused or resumed based on
+the number of downloaders per seed. This will effectively seed torrents that
+are in the greatest need of seeds.</p>
+<p>If a torrent hits a disk write error, it will be put into upload mode. This
+means it will not download anything, but only upload. The assumption is that
+the write error is caused by a full disk or write permission errors. If the
+torrent is auto-managed, it will periodically be taken out of the upload
+mode, trying to write things to the disk again. This means torrent will recover
+from certain disk errors if the problem is resolved. If the torrent is not
+auto managed, you have to call <a class="reference external" href="reference-Core.html#set_upload_mode()">set_upload_mode()</a> to turn
+downloading back on again.</p>
+</div>
+<div class="section" id="network-primitives">
+<h1>network primitives</h1>
+<p>There are a few typedefs in the <tt class="docutils literal">libtorrent</tt> namespace which pulls
+in network types from the <tt class="docutils literal">asio</tt> namespace. These are:</p>
+<pre class="literal-block">
+typedef asio::ip::address address;
+typedef asio::ip::address_v4 address_v4;
+typedef asio::ip::address_v6 address_v6;
+using asio::ip::tcp;
+using asio::ip::udp;
+</pre>
+<p>These are declared in the <tt class="docutils literal">&lt;libtorrent/socket.hpp&gt;</tt> header.</p>
+<p>The <tt class="docutils literal">using</tt> statements will give easy access to:</p>
+<pre class="literal-block">
+tcp::endpoint
+udp::endpoint
+</pre>
+<p>Which are the endpoint types used in libtorrent. An endpoint is an address
+with an associated port.</p>
+<p>For documentation on these types, please refer to the <a class="reference external" href="http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html">asio documentation</a>.</p>
+</div>
+<div class="section" id="exceptions">
+<h1>exceptions</h1>
+<p>Many functions in libtorrent have two versions, one that throws exceptions on
+errors and one that takes an <tt class="docutils literal">error_code</tt> reference which is filled with the
+error code on errors.</p>
+<p>There is one exception class that is used for errors in libtorrent, it is based
+on boost.system's <tt class="docutils literal">error_code</tt> class to carry the error code.</p>
+<p>For more information, see <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a> and <a class="reference external" href="reference-Error_Codes.html#error_code_enum">error_code_enum</a>.</p>
+<div class="section" id="translating-error-codes">
+<h2>translating error codes</h2>
+<p>The error_code::message() function will typically return a localized error string,
+for system errors. That is, errors that belong to the generic or system category.</p>
+<p>Errors that belong to the libtorrent error category are not localized however, they
+are only available in english. In order to translate libtorrent errors, compare the
+error category of the <tt class="docutils literal">error_code</tt> object against <tt class="docutils literal"><span class="pre">libtorrent::get_libtorrent_category()</span></tt>,
+and if matches, you know the error code refers to the list above. You can provide
+your own mapping from error code to string, which is localized. In this case, you
+cannot rely on <tt class="docutils literal"><span class="pre">error_code::message()</span></tt> to generate your strings.</p>
+<p>The numeric values of the errors are part of the API and will stay the same, although
+new error codes may be appended at the end.</p>
+<p>Here's a simple example of how to translate error codes:</p>
+<pre class="literal-block">
+std::string error_code_to_string(boost::system::error_code const&amp; ec)
+{
+        if (ec.category() != libtorrent::get_libtorrent_category())
+        {
+                return ec.message();
+        }
+        // the error is a libtorrent error
+
+        int code = ec.value();
+        static const char const* swedish[] =
+        {
+                &quot;inget fel&quot;,
+                &quot;en fil i torrenten kolliderar med en fil fran en annan torrent&quot;,
+                &quot;hash check misslyckades&quot;,
+                &quot;torrentfilen ar inte en dictionary&quot;,
+                &quot;'info'-nyckeln saknas eller ar korrupt i torrentfilen&quot;,
+                &quot;'info'-faltet ar inte en dictionary&quot;,
+                &quot;'piece length' faltet saknas eller ar korrupt i torrentfilen&quot;,
+                &quot;torrentfilen saknar namnfaltet&quot;,
+                &quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;,
+                // ... more strings here
+        };
+
+        // use the default error string in case we don't have it
+        // in our translated list
+        if (code &lt; 0 || code &gt;= sizeof(swedish)/sizeof(swedish[0]))
+                return ec.message();
+
+        return swedish[code];
+}
+</pre>
+</div>
+</div>
+<div class="section" id="magnet-links">
+<h1>magnet links</h1>
+<p>Magnet links are URIs that includes an info-hash, a display name and optionally
+a tracker url. The idea behind magnet links is that an end user can click on a
+link in a browser and have it handled by a bittorrent application, to start a
+download, without any .torrent file.</p>
+<p>The format of the magnet URI is:</p>
+<p><strong>magnet:?xt=urn:btih:</strong> <em>Base16 encoded info-hash</em> [ <strong>&amp;dn=</strong> <em>name of download</em> ] [ <strong>&amp;tr=</strong> <em>tracker URL</em> ]*</p>
+</div>
+<div class="section" id="queuing">
+<h1>queuing</h1>
+<p>libtorrent supports <em>queuing</em>. Which means it makes sure that a limited number of
+torrents are being downloaded at any given time, and once a torrent is completely
+downloaded, the next in line is started.</p>
+<p>Torrents that are <em>auto managed</em> are subject to the queuing and the active
+torrents limits. To make a torrent auto managed, set <tt class="docutils literal">auto_managed</tt> to true
+when adding the torrent (see <a class="reference external" href="reference-Session.html#async_add_torrent()">async_add_torrent()</a> and <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a>).</p>
+<p>The limits of the number of downloading and seeding torrents are controlled via
+<tt class="docutils literal">active_downloads</tt>, <tt class="docutils literal">active_seeds</tt> and <tt class="docutils literal">active_limit</tt> in
+<a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>. These limits takes non auto managed torrents into account as
+well. If there are more non-auto managed torrents being downloaded than the
+<tt class="docutils literal">active_downloads</tt> setting, any auto managed torrents will be queued until
+torrents are removed so that the number drops below the limit.</p>
+<p>The default values are 8 active downloads and 5 active seeds.</p>
+<p>At a regular interval, torrents are checked if there needs to be any
+re-ordering of which torrents are active and which are queued. This interval
+can be controlled via <tt class="docutils literal">auto_manage_interval</tt> in <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>. It defaults
+to every 30 seconds.</p>
+<p>For queuing to work, resume data needs to be saved and restored for all
+torrents. See <a class="reference external" href="reference-Core.html#save_resume_data()">save_resume_data()</a>.</p>
+<div class="section" id="downloading">
+<h2>downloading</h2>
+<p>Torrents that are currently being downloaded or incomplete (with bytes still to
+download) are queued. The torrents in the front of the queue are started to be
+actively downloaded and the rest are ordered with regards to their queue
+position. Any newly added torrent is placed at the end of the queue. Once a
+torrent is removed or turns into a seed, its queue position is -1 and all
+torrents that used to be after it in the queue, decreases their position in
+order to fill the gap.</p>
+<p>The queue positions are always in a sequence without any gaps.</p>
+<p>Lower queue position means closer to the front of the queue, and will be
+started sooner than torrents with higher queue positions.</p>
+<p>To query a torrent for its position in the queue, or change its position, see:
+<a class="reference external" href="reference-Core.html#queue_position()">queue_position()</a>, <a class="reference external" href="reference-Core.html#queue_position_up()">queue_position_up()</a>, <a class="reference external" href="reference-Core.html#queue_position_down()">queue_position_down()</a>,
+<a class="reference external" href="reference-Core.html#queue_position_top()">queue_position_top()</a> and <a class="reference external" href="reference-Core.html#queue_position_bottom()">queue_position_bottom()</a>.</p>
+</div>
+<div class="section" id="seeding">
+<h2>seeding</h2>
+<p>Auto managed seeding torrents are rotated, so that all of them are allocated a
+fair amount of seeding. Torrents with fewer completed <em>seed cycles</em> are
+prioritized for seeding. A seed cycle is completed when a torrent meets either
+the share ratio limit (uploaded bytes / downloaded bytes), the share time ratio
+(time seeding / time downloaing) or seed time limit (time seeded).</p>
+<p>The relevant settings to control these limits are <tt class="docutils literal">share_ratio_limit</tt>,
+<tt class="docutils literal">seed_time_ratio_limit</tt> and <tt class="docutils literal">seed_time_limit</tt> in <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>.</p>
+</div>
+</div>
+<div class="section" id="fast-resume">
+<h1>fast resume</h1>
+<p>The fast resume mechanism is a way to remember which pieces are downloaded
+and where they are put between sessions. You can generate fast resume data by
+calling <a class="reference external" href="reference-Core.html#save_resume_data()">save_resume_data()</a> on <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a>. You can
+then save this data to disk and use it when resuming the torrent. libtorrent
+will not check the piece hashes then, and rely on the information given in the
+fast-resume data. The fast-resume data also contains information about which
+blocks, in the unfinished pieces, were downloaded, so it will not have to
+start from scratch on the partially downloaded pieces.</p>
+<p>To use the fast-resume data you simply give it to <a class="reference external" href="reference-Session.html#async_add_torrent()">async_add_torrent()</a> and
+<a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a>, and it will skip the time consuming checks. It may have to do
+the checking anyway, if the fast-resume data is corrupt or doesn't fit the
+storage for that torrent, then it will not trust the fast-resume data and just
+do the checking.</p>
+<div class="section" id="file-format">
+<h2>file format</h2>
+<p>The file format is a bencoded dictionary containing the following fields:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="30%" />
+<col width="70%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">file-format</span></tt></td>
+<td>string: &quot;libtorrent resume file&quot;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">file-version</span></tt></td>
+<td>integer: 1</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">info-hash</span></tt></td>
+<td>string, the info hash of the torrent this data is saved for.</td>
+</tr>
+<tr><td><tt class="docutils literal">blocks per piece</tt></td>
+<td>integer, the number of blocks per piece. Must be: piece_size
+/ (16 * 1024). Clamped to be within the range [1, 256]. It
+is the number of blocks per (normal sized) piece. Usually
+each block is 16 * 1024 bytes in size. But if piece size is
+greater than 4 megabytes, the block size will increase.</td>
+</tr>
+<tr><td><tt class="docutils literal">pieces</tt></td>
+<td>A string with piece flags, one character per piece.
+Bit 1 means we have that piece.
+Bit 2 means we have verified that this piece is correct.
+This only applies when the torrent is in seed_mode.</td>
+</tr>
+<tr><td><tt class="docutils literal">slots</tt></td>
+<td><p class="first">list of integers. The list maps slots to piece indices. It
+tells which piece is on which slot. If piece index is -2 it
+means it is free, that there's no piece there. If it is -1,
+means the slot isn't allocated on disk yet. The pieces have
+to meet the following requirement:</p>
+<p class="last">If there's a slot at the position of the piece index,
+the piece must be located in that slot.</p>
+</td>
+</tr>
+<tr><td><tt class="docutils literal">total_uploaded</tt></td>
+<td>integer. The number of bytes that have been uploaded in
+total for this torrent.</td>
+</tr>
+<tr><td><tt class="docutils literal">total_downloaded</tt></td>
+<td>integer. The number of bytes that have been downloaded in
+total for this torrent.</td>
+</tr>
+<tr><td><tt class="docutils literal">active_time</tt></td>
+<td>integer. The number of seconds this torrent has been active.
+i.e. not paused.</td>
+</tr>
+<tr><td><tt class="docutils literal">seeding_time</tt></td>
+<td>integer. The number of seconds this torrent has been active
+and seeding.</td>
+</tr>
+<tr><td><tt class="docutils literal">num_seeds</tt></td>
+<td>integer. An estimate of the number of seeds on this torrent
+when the resume data was saved. This is scrape data or based
+on the peer list if scrape data is unavailable.</td>
+</tr>
+<tr><td><tt class="docutils literal">num_downloaders</tt></td>
+<td>integer. An estimate of the number of downloaders on this
+torrent when the resume data was last saved. This is used as
+an initial estimate until we acquire up-to-date scrape info.</td>
+</tr>
+<tr><td><tt class="docutils literal">upload_rate_limit</tt></td>
+<td>integer. In case this torrent has a per-torrent upload rate
+limit, this is that limit. In bytes per second.</td>
+</tr>
+<tr><td><tt class="docutils literal">download_rate_limit</tt></td>
+<td>integer. The download rate limit for this torrent in case
+one is set, in bytes per second.</td>
+</tr>
+<tr><td><tt class="docutils literal">max_connections</tt></td>
+<td>integer. The max number of peer connections this torrent
+may have, if a limit is set.</td>
+</tr>
+<tr><td><tt class="docutils literal">max_uploads</tt></td>
+<td>integer. The max number of unchoked peers this torrent may
+have, if a limit is set.</td>
+</tr>
+<tr><td><tt class="docutils literal">seed_mode</tt></td>
+<td>integer. 1 if the torrent is in seed mode, 0 otherwise.</td>
+</tr>
+<tr><td><tt class="docutils literal">file_priority</tt></td>
+<td>list of integers. One entry per file in the torrent. Each
+entry is the priority of the file with the same index.</td>
+</tr>
+<tr><td><tt class="docutils literal">piece_priority</tt></td>
+<td>string of bytes. Each byte is interpreted as an integer and
+is the priority of that piece.</td>
+</tr>
+<tr><td><tt class="docutils literal">auto_managed</tt></td>
+<td>integer. 1 if the torrent is auto managed, otherwise 0.</td>
+</tr>
+<tr><td><tt class="docutils literal">sequential_download</tt></td>
+<td>integer. 1 if the torrent is in sequential download mode,
+0 otherwise.</td>
+</tr>
+<tr><td><tt class="docutils literal">paused</tt></td>
+<td>integer. 1 if the torrent is paused, 0 otherwise.</td>
+</tr>
+<tr><td><tt class="docutils literal">trackers</tt></td>
+<td>list of lists of strings. The top level list lists all
+tracker tiers. Each second level list is one tier of
+trackers.</td>
+</tr>
+<tr><td><tt class="docutils literal">mapped_files</tt></td>
+<td>list of strings. If any file in the torrent has been
+renamed, this entry contains a list of all the filenames.
+In the same order as in the torrent file.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">url-list</span></tt></td>
+<td>list of strings. List of url-seed URLs used by this torrent.
+The urls are expected to be properly encoded and not contain
+any illegal url characters.</td>
+</tr>
+<tr><td><tt class="docutils literal">httpseeds</tt></td>
+<td>list of strings. List of httpseed URLs used by this torrent.
+The urls are expected to be properly encoded and not contain
+any illegal url characters.</td>
+</tr>
+<tr><td><tt class="docutils literal">merkle tree</tt></td>
+<td>string. In case this torrent is a merkle torrent, this is a
+string containing the entire merkle tree, all nodes,
+including the root and all leaves. The tree is not
+necessarily complete, but complete enough to be able to send
+any piece that we have, indicated by the have bitmask.</td>
+</tr>
+<tr><td><tt class="docutils literal">save_path</tt></td>
+<td>string. The save path where this torrent was saved. This is
+especially useful when moving torrents with move_storage()
+since this will be updated.</td>
+</tr>
+<tr><td><tt class="docutils literal">peers</tt></td>
+<td><p class="first">list of dictionaries. Each dictionary has the following
+layout:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="82%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">ip</tt></td>
+<td>string, the ip address of the peer. This is
+not a binary representation of the ip
+address, but the string representation. It
+may be an IPv6 string or an IPv4 string.</td>
+</tr>
+<tr><td><tt class="docutils literal">port</tt></td>
+<td>integer, the listen port of the peer</td>
+</tr>
+</tbody>
+</table>
+<p class="last">These are the local peers we were connected to when this
+fast-resume data was saved.</p>
+</td>
+</tr>
+<tr><td><tt class="docutils literal">unfinished</tt></td>
+<td><p class="first">list of dictionaries. Each dictionary represents an
+piece, and has the following layout:</p>
+<table border="1" class="last docutils">
+<colgroup>
+<col width="23%" />
+<col width="77%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">piece</tt></td>
+<td>integer, the index of the piece this entry
+refers to.</td>
+</tr>
+<tr><td><tt class="docutils literal">bitmask</tt></td>
+<td>string, a binary bitmask representing the
+blocks that have been downloaded in this
+piece.</td>
+</tr>
+<tr><td><tt class="docutils literal">adler32</tt></td>
+<td>The adler32 checksum of the data in the
+blocks specified by <tt class="docutils literal">bitmask</tt>.</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr><td><tt class="docutils literal">file sizes</tt></td>
+<td>list where each entry corresponds to a file in the file list
+in the metadata. Each entry has a list of two values, the
+first value is the size of the file in bytes, the second
+is the time stamp when the last time someone wrote to it.
+This information is used to compare with the files on disk.
+All the files must match exactly this information in order
+to consider the resume data as current. Otherwise a full
+re-check is issued.</td>
+</tr>
+<tr><td><tt class="docutils literal">allocation</tt></td>
+<td>The allocation mode for the storage. Can be either <tt class="docutils literal">full</tt>
+or <tt class="docutils literal">compact</tt>. If this is full, the file sizes and
+timestamps are disregarded. Pieces are assumed not to have
+moved around even if the files have been modified after the
+last resume data checkpoint.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="storage-allocation">
+<h1>storage allocation</h1>
+<p>There are two modes in which storage (files on disk) are allocated in libtorrent.</p>
+<ol class="arabic simple">
+<li>The traditional <em>full allocation</em> mode, where the entire files are filled up
+with zeros before anything is downloaded. Files are allocated on demand, the
+first time anything is written to them. The main benefit of this mode is that
+it avoids creating heavily fragmented files.</li>
+<li>The <em>sparse allocation</em>, sparse files are used, and pieces are downloaded
+directly to where they belong. This is the recommended (and default) mode.</li>
+</ol>
+<p>In previous versions of libtorrent, a 3rd mode was supported, <em>compact
+allocation</em>. Support for this is deprecated and will be removed in future
+versions of libtorrent. It's still described in here for completeness.</p>
+<p>The allocation mode is selected when a torrent is started. It is passed as an
+argument to <a class="reference external" href="reference-Session.html#add_torrent()">session::add_torrent()</a> or <a class="reference external" href="reference-Session.html#async_add_torrent()">session::async_add_torrent()</a>.</p>
+<p>The decision to use full allocation or compact allocation typically depends on
+whether any files have priority 0 and if the filesystem supports sparse files.</p>
+<div class="section" id="sparse-allocation">
+<h2>sparse allocation</h2>
+<p>On filesystems that supports sparse files, this allocation mode will only use
+as much space as has been downloaded.</p>
+<p>The main drawback of this mode is that it may create heavily fragmented files.</p>
+<blockquote>
+<ul class="simple">
+<li>It does not require an allocation pass on startup.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="full-allocation">
+<h2>full allocation</h2>
+<p>When a torrent is started in full allocation mode, the disk-io thread
+will make sure that the entire storage is allocated, and fill any gaps with zeros.
+It will of course still check for existing pieces and fast resume data. The main
+drawbacks of this mode are:</p>
+<blockquote>
+<ul class="simple">
+<li>It may take longer to start the torrent, since it will need to fill the files
+with zeroes. This delay is linear to the size of the download.</li>
+<li>The download may occupy unnecessary disk space between download sessions.</li>
+<li>Disk caches usually perform poorly with random access to large files
+and may slow down the download some.</li>
+</ul>
+</blockquote>
+<p>The benefits of this mode are:</p>
+<blockquote>
+<ul class="simple">
+<li>Downloaded pieces are written directly to their final place in the files and
+the total number of disk operations will be fewer and may also play nicer to
+filesystems' file allocation, and reduce fragmentation.</li>
+<li>No risk of a download failing because of a full disk during download, once
+all files have been created.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="compact-allocation">
+<h2>compact allocation</h2>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Note that support for compact allocation is deprecated in libttorrent, and will
+be removed in future versions.</p>
+</div>
+<p>The compact allocation will only allocate as much storage as it needs to keep
+the pieces downloaded so far. This means that pieces will be moved around to be
+placed at their final position in the files while downloading (to make sure the
+completed download has all its pieces in the correct place). So, the main
+drawbacks are:</p>
+<blockquote>
+<ul class="simple">
+<li>More disk operations while downloading since pieces are moved around.</li>
+<li>Potentially more fragmentation in the filesystem.</li>
+<li>Cannot be used while having files with priority 0.</li>
+</ul>
+</blockquote>
+<p>The benefits though, are:</p>
+<blockquote>
+<ul class="simple">
+<li>No startup delay, since the files don't need allocating.</li>
+<li>The download will not use unnecessary disk space.</li>
+<li>Disk caches perform much better than in full allocation and raises the
+download speed limit imposed by the disk.</li>
+<li>Works well on filesystems that don't support sparse files.</li>
+</ul>
+</blockquote>
+<p>The algorithm that is used when allocating pieces and slots isn't very
+complicated. For the interested, a description follows.</p>
+<p>storing a piece:</p>
+<ol class="arabic simple">
+<li>let <strong>A</strong> be a newly downloaded piece, with index <strong>n</strong>.</li>
+<li>let <strong>s</strong> be the number of slots allocated in the file we're
+downloading to. (the number of pieces it has room for).</li>
+<li>if <strong>n</strong> &gt;= <strong>s</strong> then allocate a new slot and put the piece there.</li>
+<li>if <strong>n</strong> &lt; <strong>s</strong> then allocate a new slot, move the data at
+slot <strong>n</strong> to the new slot and put <strong>A</strong> in slot <strong>n</strong>.</li>
+</ol>
+<p>allocating a new slot:</p>
+<ol class="arabic simple">
+<li>if there's an unassigned slot (a slot that doesn't
+contain any piece), return that slot index.</li>
+<li>append the new slot at the end of the file (or find an unused slot).</li>
+<li>let <strong>i</strong> be the index of newly allocated slot</li>
+<li>if we have downloaded piece index <strong>i</strong> already (to slot <strong>j</strong>) then<ol class="arabic">
+<li>move the data at slot <strong>j</strong> to slot <strong>i</strong>.</li>
+<li>return slot index <strong>j</strong> as the newly allocated free slot.</li>
+</ol>
+</li>
+<li>return <strong>i</strong> as the newly allocated slot.</li>
+</ol>
+</div>
+</div>
+<div class="section" id="extensions">
+<h1>extensions</h1>
+<p>These extensions all operates within the <a class="reference external" href="extension_protocol.html">extension protocol</a>. The name of the
+extension is the name used in the extension-list packets, and the payload is
+the data in the extended message (not counting the length-prefix, message-id
+nor extension-id).</p>
+<p>Note that since this protocol relies on one of the reserved bits in the
+handshake, it may be incompatible with future versions of the mainline
+bittorrent client.</p>
+<p>These are the extensions that are currently implemented.</p>
+<div class="section" id="metadata-from-peers">
+<h2>metadata from peers</h2>
+<p>Extension name: &quot;LT_metadata&quot;</p>
+<p>This extension is deprecated in favor of the more widely supported
+<tt class="docutils literal">ut_metadata</tt> extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>. The point with this extension is that
+you don't have to distribute the metadata (.torrent-file) separately. The
+metadata can be distributed through the bittorrent swarm. The only thing you
+need to download such a torrent is the tracker url and the info-hash of the
+torrent.</p>
+<p>It works by assuming that the initial seeder has the metadata and that the
+metadata will propagate through the network as more peers join.</p>
+<p>There are three kinds of messages in the metadata extension. These packets are
+put as payload to the extension message. The three packets are:</p>
+<blockquote>
+<ul class="simple">
+<li>request metadata</li>
+<li>metadata</li>
+<li>don't have metadata</li>
+</ul>
+</blockquote>
+<p>request metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>Determines the kind of message this is
+0 means 'request metadata'</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>start</td>
+<td>The start of the metadata block that
+is requested. It is given in 256:ths
+of the total size of the metadata,
+since the requesting client don't know
+the size of the metadata.</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>size</td>
+<td>The size of the metadata block that is
+requested. This is also given in
+256:ths of the total size of the
+metadata. The size is given as size-1.
+That means that if this field is set
+0, the request wants one 256:th of the
+metadata.</td>
+</tr>
+</tbody>
+</table>
+<p>metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>1 means 'metadata'</td>
+</tr>
+<tr><td>int32_t</td>
+<td>total_size</td>
+<td>The total size of the metadata, given
+in number of bytes.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>offset</td>
+<td>The offset of where the metadata block
+in this message belongs in the final
+metadata. This is given in bytes.</td>
+</tr>
+<tr><td>uint8_t[]</td>
+<td>metadata</td>
+<td>The actual metadata block. The size of
+this part is given implicit by the
+length prefix in the bittorrent
+protocol packet.</td>
+</tr>
+</tbody>
+</table>
+<p>Don't have metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>2 means 'I don't have metadata'.
+This message is sent as a reply to a
+metadata request if the the client
+doesn't have any metadata.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="dont-have">
+<h2>dont_have</h2>
+<p>Extension name: &quot;lt_dont_have&quot;</p>
+<p>The <tt class="docutils literal">dont_have</tt> extension message is used to tell peers that the client no
+longer has a specific piece. The extension message should be advertised in the
+<tt class="docutils literal">m</tt> dictionary as <tt class="docutils literal">lt_dont_have</tt>. The message format mimics the regular
+<tt class="docutils literal">HAVE</tt> bittorrent message.</p>
+<p>Just like all extension messages, the first 2 bytes in the mssage itself are 20
+(the bittorrent extension message) and the message ID assigned to this
+extension in the <tt class="docutils literal">m</tt> dictionary in the handshake.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint32_t</td>
+<td>piece</td>
+<td>index of the piece the peer no longer
+has.</td>
+</tr>
+</tbody>
+</table>
+<p>The length of this message (including the extension message prefix) is 6 bytes,
+i.e. one byte longer than the normal <tt class="docutils literal">HAVE</tt> message, because of the extension
+message wrapping.</p>
+</div>
+<div class="section" id="http-seeding">
+<h2>HTTP seeding</h2>
+<p>There are two kinds of HTTP seeding. One with that assumes a smart (and polite)
+client and one that assumes a smart server. These are specified in <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a>
+and <a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a> respectively.</p>
+<p>libtorrent supports both. In the libtorrent source code and API, BEP 19 urls
+are typically referred to as <em>url seeds</em> and BEP 17 urls are typically referred
+to as <em>HTTP seeds</em>.</p>
+<p>The libtorrent implementation of <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a> assumes that, if the URL ends with a
+slash ('/'), the filename should be appended to it in order to request pieces
+from that file. The way this works is that if the torrent is a single-file
+torrent, only that filename is appended. If the torrent is a multi-file
+torrent, the torrent's name '/' the file name is appended. This is the same
+directory structure that libtorrent will download torrents into.</p>
+</div>
+</div>
+<div class="section" id="piece-picker">
+<h1>piece picker</h1>
+<p>The piece picker in libtorrent has the following features:</p>
+<ul class="simple">
+<li>rarest first</li>
+<li>sequential download</li>
+<li>random pick</li>
+<li>reverse order picking</li>
+<li>parole mode</li>
+<li>prioritize partial pieces</li>
+<li>prefer whole pieces</li>
+<li>piece affinity by speed category</li>
+<li>piece priorities</li>
+</ul>
+<div class="section" id="internal-representation">
+<h2>internal representation</h2>
+<p>It is optimized by, at all times, keeping a list of pieces ordered by rarity,
+randomly shuffled within each rarity class. This list is organized as a single
+vector of contigous memory in RAM, for optimal memory locality and to eliminate
+heap allocations and frees when updating rarity of pieces.</p>
+<p>Expensive events, like a peer joining or leaving, are evaluated lazily, since
+it's cheaper to rebuild the whole list rather than updating every single piece
+in it. This means as long as no blocks are picked, peers joining and leaving is
+no more costly than a single peer joining or leaving. Of course the special
+cases of peers that have all or no pieces are optimized to not require
+rebuilding the list.</p>
+</div>
+<div class="section" id="picker-strategy">
+<h2>picker strategy</h2>
+<p>The normal mode of the picker is of course <em>rarest first</em>, meaning pieces that
+few peers have are preferred to be downloaded over pieces that more peers have.
+This is a fundamental algorithm that is the basis of the performance of
+bittorrent. However, the user may set the piece picker into sequential download
+mode. This mode simply picks pieces sequentially, always preferring lower piece
+indices.</p>
+<p>When a torrent starts out, picking the rarest pieces means increased risk that
+pieces won't be completed early (since there are only a few peers they can be
+downloaded from), leading to a delay of having any piece to offer to other
+peers. This lack of pieces to trade, delays the client from getting started
+into the normal tit-for-tat mode of bittorrent, and will result in a long
+ramp-up time. The heuristic to mitigate this problem is to, for the first few
+pieces, pick random pieces rather than rare pieces. The threshold for when to
+leave this initial picker mode is determined by
+<a class="reference external" href="reference-Settings.html#initial_picker_threshold">session_settings::initial_picker_threshold</a>.</p>
+</div>
+<div class="section" id="reverse-order">
+<h2>reverse order</h2>
+<p>An orthogonal setting is <em>reverse order</em>, which is used for <em>snubbed</em> peers.
+Snubbed peers are peers that appear very slow, and might have timed out a piece
+request. The idea behind this is to make all snubbed peers more likely to be
+able to do download blocks from the same piece, concentrating slow peers on as
+few pieces as possible. The reverse order means that the most common pieces are
+picked, instead of the rarest pieces (or in the case of sequential download,
+the last pieces, intead of the first).</p>
+</div>
+<div class="section" id="parole-mode">
+<h2>parole mode</h2>
+<p>Peers that have participated in a piece that failed the hash check, may be put
+in <em>parole mode</em>. This means we prefer downloading a full piece  from this
+peer, in order to distinguish which peer is sending corrupt data. Whether to do
+this is or not is controlled by <a class="reference external" href="reference-Settings.html#use_parole_mode">session_settings::use_parole_mode</a>.</p>
+<p>In parole mode, the piece picker prefers picking one whole piece at a time for
+a given peer, avoiding picking any blocks from a piece any other peer has
+contributed to (since that would defeat the purpose of parole mode).</p>
+</div>
+<div class="section" id="prioritize-partial-pieces">
+<h2>prioritize partial pieces</h2>
+<p>This setting determines if partially downloaded or requested pieces should
+always be preferred over other pieces. The benefit of doing this is that the
+number of partial pieces is minimized (and hence the turn-around time for
+downloading a block until it can be uploaded to others is minimized). It also
+puts less stress on the disk cache, since fewer partial pieces need to be kept
+in the cache. Whether or not to enable this is controlled by
+<a class="reference external" href="reference-Settings.html#prioritize_partial_pieces">session_settings::prioritize_partial_pieces</a>.</p>
+<p>The main benefit of not prioritizing partial pieces is that the rarest first
+algorithm gets to have more influence on which pieces are picked. The picker is
+more likely to truly pick the rarest piece, and hence improving the performance
+of the swarm.</p>
+<p>This setting is turned on automatically whenever the number of partial pieces
+in the piece picker exceeds the number of peers we're connected to times 1.5.
+This is in order to keep the waste of partial pieces to a minimum, but still
+prefer rarest pieces.</p>
+</div>
+<div class="section" id="prefer-whole-pieces">
+<h2>prefer whole pieces</h2>
+<p>The <em>prefer whole pieces</em> setting makes the piece picker prefer picking entire
+pieces at a time. This is used by web connections (both http seeding
+standards), in order to be able to coalesce the small bittorrent requests to
+larger HTTP requests. This significantly improves performance when downloading
+over HTTP.</p>
+<p>It is also used by peers that are downloading faster than a certain threshold.
+The main advantage is that these peers will better utilize the other peer's
+disk cache, by requesting all blocks in a single piece, from the same peer.</p>
+<p>This threshold is controlled by <a class="reference external" href="reference-Settings.html#whole_pieces_threshold">session_settings::whole_pieces_threshold</a>.</p>
+<p><em>TODO: piece affinity by speed category</em>
+<em>TODO: piece priorities</em></p>
+</div>
+</div>
+<div class="section" id="ssl-torrents">
+<h1>SSL torrents</h1>
+<p>Torrents may have an SSL root (CA) certificate embedded in them. Such torrents
+are called <em>SSL torrents</em>. An SSL torrent talks to all bittorrent peers over
+SSL. The protocols are layered like this:</p>
+<pre class="literal-block">
++-----------------------+
+| BitTorrent protocol   |
++-----------------------+
+| SSL                   |
++-----------+-----------+
+| TCP       | uTP       |
+|           +-----------+
+|           | UDP       |
++-----------+-----------+
+</pre>
+<p>During the SSL handshake, both peers need to authenticate by providing a
+certificate that is signed by the CA certificate found in the .torrent file.
+These peer certificates are expected to be privided to peers through some other
+means than bittorrent. Typically by a peer generating a certificate request
+which is sent to the publisher of the torrent, and the publisher returning a
+signed certificate.</p>
+<p>In libtorrent, <a class="reference external" href="reference-Core.html#set_ssl_certificate()">set_ssl_certificate()</a> in <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> is used to tell
+libtorrent where to find the peer certificate and the private key for it. When
+an SSL torrent is loaded, the <a class="reference external" href="reference-Alerts.html#torrent_need_cert_alert">torrent_need_cert_alert</a> is posted to remind the
+user to provide a certificate.</p>
+<p>A peer connecting to an SSL torrent MUST provide the <em>SNI</em> TLS extension
+(server name indication). The server name is the hex encoded info-hash of the
+torrent to connect to. This is required for the client accepting the connection
+to know which certificate to present.</p>
+<p>SSL connections are accepted on a separate socket from normal bittorrent
+connections. To pick which port the SSL socket should bind to, set
+<a class="reference external" href="reference-Settings.html#ssl_listen">session_settings::ssl_listen</a> to a different port. It defaults to port 4433.
+This setting is only taken into account when the normal listen socket is opened
+(i.e. just changing this setting won't necessarily close and re-open the SSL
+socket). To not listen on an SSL socket at all, set <tt class="docutils literal">ssl_listen</tt> to 0.</p>
+<p>This feature is only available if libtorrent is build with openssl support
+(<tt class="docutils literal">TORRENT_USE_OPENSSL</tt>) and requires at least openSSL version 1.0, since it
+needs SNI support.</p>
+<p>Peer certificates must have at least one <em>SubjectAltName</em> field of type
+dNSName. At least one of the fields must <em>exactly</em> match the name of the
+torrent. This is a byte-by-byte comparison, the UTF-8 encoding must be
+identical (i.e. there's no unicode normalization going on). This is the
+recommended way of verifying certificates for HTTPS servers according to <a class="reference external" href="http://www.ietf.org/rfc/rfc2818.txt">RFC
+2818</a>. Note the difference that for torrents only <em>dNSName</em> fields are taken
+into account (not IP address fields). The most specific (i.e. last) <em>Common
+Name</em> field is also taken into account if no <em>SubjectAltName</em> did not match.</p>
+<p>If any of these fields contain a single asterisk (&quot;*&quot;), the certificate is
+considered covering any torrent, allowing it to be reused for any torrent.</p>
+<p>The purpose of matching the torrent name with the fields in the peer
+certificate is to allow a publisher to have a single root certificate for all
+torrents it distributes, and issue separate peer certificates for each torrent.
+A peer receiving a certificate will not necessarily be able to access all
+torrents published by this root certificate (only if it has a &quot;star cert&quot;).</p>
+<div class="section" id="testing">
+<h2>testing</h2>
+<p>To test incoming SSL connections to an SSL torrent, one can use the following
+<em>openssl</em> command:</p>
+<pre class="literal-block">
+openssl s_client -cert &lt;peer-certificate&gt;.pem -key &lt;peer-private-key&gt;.pem -CAfile \
+   &lt;torrent-cert&gt;.pem -debug -connect 127.0.0.1:4433 -tls1 -servername &lt;info-hash&gt;
+</pre>
+<p>To create a root certificate, the Distinguished Name (<em>DN</em>) is not taken into
+account by bittorrent peers. You still need to specify something, but from
+libtorrent's point of view, it doesn't matter what it is. libtorrent only makes
+sure the peer certificates are signed by the correct root certificate.</p>
+<p>One way to create the certificates is to use the <tt class="docutils literal">CA.sh</tt> script that comes
+with openssl, like thisi (don't forget to enter a common Name for the
+certificate):</p>
+<pre class="literal-block">
+CA.sh -newca
+CA.sh -newreq
+CA.sh -sign
+</pre>
+<p>The torrent certificate is located in <tt class="docutils literal">./demoCA/private/demoCA/cacert.pem</tt>,
+this is the pem file to include in the .torrent file.</p>
+<p>The peer's certificate is located in <tt class="docutils literal">./newcert.pem</tt> and the certificate's
+private key in <tt class="docutils literal">./newkey.pem</tt>.</p>
+</div>
+</div>
+</div>
+</body>
+</html>

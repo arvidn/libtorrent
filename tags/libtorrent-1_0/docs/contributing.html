@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>libtorrent manual</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="libtorrent-manual">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">libtorrent manual</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#contributing-to-libtorrent" id="id1">contributing to libtorrent</a></li>
+</ul>
+</div>
+<div class="section" id="contributing-to-libtorrent">
+<h1>contributing to libtorrent</h1>
+<p>There are several ways to contribute to libtorrent at various levels. Any help is
+much appreciated. If you're interested in something libtorrent related that's not
+enumerated on this page, please contact <a class="reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a> or the <a class="reference external" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>.</p>
+<ol class="arabic">
+<li><dl class="first docutils">
+<dt>Testing</dt>
+<dd><p class="first">This is not just limited to finding bugs and ways to reproduce crashes, but also
+sub-optimal behavior is certain scenarios and finding ways to reproduce those. Please
+report any issue to the bug tracker at <a class="reference external" href="http://code.google.com/p/libtorrent/issues/entry">google code</a>.</p>
+<p class="last">New features that need testing are streaming (<tt class="docutils literal">set_piece_deadline()</tt>), the different
+choking algorithms (especially the new BitTyrant choker), the disk cache options (such
+as <tt class="docutils literal">explicit_cache</tt>).</p>
+</dd>
+</dl>
+</li>
+</ol>
+<ol class="arabic" start="2">
+<li><dl class="first docutils">
+<dt>Documentation</dt>
+<dd><p class="first last">Finding typos or outdated sections in the documentation. Contributing documentation
+based on your own experience and experimentation with the library or with BitTorrent
+in general. Non-reference documentation is very much welcome as well, higher level
+descriptions on how to configure libtorrent for various situations for instance.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Code</dt>
+<dd><p class="first">Contributing code for new features or bug-fixes is highly welcome. If you're interested
+in adding a feature but not sure where to start, please contact the <a class="reference external" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a> or
+<tt class="docutils literal">#libtorrent</tt> &#64; <tt class="docutils literal">irc.freenode.net</tt>.</p>
+<p class="last">New features might be better support for integrating with other services, new choking
+algorithms, seeding policies, ports to new platforms etc.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<p>For an overview of the internals of libtorrent, see the <a class="reference external" href="hacking.html">hacking</a> page.</p>
+<p>For outstanding things to do, see the <a class="reference external" href="todo.html">todo list</a>.</p>
+</div>
+</div>
+</body>
+</html>

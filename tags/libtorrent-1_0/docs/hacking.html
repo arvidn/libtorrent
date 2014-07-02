@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>libtorrent hacking</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="libtorrent-hacking">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">libtorrent hacking</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#terminology" id="id1">terminology</a></li>
+<li><a class="reference internal" href="#structure" id="id2">structure</a><ul>
+<li><a class="reference internal" href="#session-impl" id="id3">session_impl</a></li>
+<li><a class="reference internal" href="#session" id="id4">session</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id5">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent" id="id6">torrent</a></li>
+<li><a class="reference internal" href="#peer-connection" id="id7">peer_connection</a></li>
+<li><a class="reference internal" href="#policy" id="id8">policy</a></li>
+<li><a class="reference internal" href="#piece-picker" id="id9">piece_picker</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id10">torrent_info</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#threads" id="id11">threads</a></li>
+</ul>
+</div>
+<p>This describe some of the internals of libtorrent. If you're looking for
+something to contribute, please take a look at the <a class="reference external" href="todo.html">todo list</a>.</p>
+<div class="section" id="terminology">
+<h1>terminology</h1>
+<p>This section describes some of the terminology used throughout the
+libtorrent source. Having a good understanding of some of these keywords
+helps understanding what's going on.</p>
+<p>A <em>piece</em> is a part of the data of a torrent that has a SHA-1 hash in
+the .torrent file. Pieces are almost always a power of two in size, but not
+necessarily. Each piece is plit up in <em>blocks</em>, which is a 16 kiB. A block
+never spans two pieces. If a piece is smaller than 16 kiB or not divisible
+by 16 kiB, there are blocks smaller than that.</p>
+<p>16 kiB is a de-facto standard of the largest transfer unit in the bittorrent
+protocol. Clients typically reject any request for larger pieces than this.</p>
+<p>The <em>piece picker</em> is the part of a bittorrent client that is responsible for
+the logic to determine which requests to send to peers. It doesn't actually
+pick full pieces, but blocks (from pieces).</p>
+<p>The file layout of a torrent is represented by <em>file storage</em> objects. This
+class contains a list of all files in the torrent (in a well defined order),
+the size of the pieces and implicitly the total size of the whole torrent and
+number of pieces. The file storage determines the mapping from <em>pieces</em>
+to <em>files</em>. This representation may be quite complex in order to keep it extremely
+compact. This is useful to load very large torrents without exploding in memory
+usage.</p>
+<p>A <em>torrent</em> object represents all the state of swarm download. This includes
+a piece picker, a list of peer connections, file storage (torrent file). One
+important distiction is between a connected peer (<em>peer_connection</em>) and a peer
+we just know about, and may have been connected to, and may connect to in the
+future (<em>policy::peer</em>). The list of (not connected) peers may grow very large
+if not limited (through tracker responses, DHT and peer exchange). This list
+is typically limited to a few thousand peers.</p>
+<p>The <em>policy</em> in libtorrent is somewhat poorly named. It was initially intended
+to be a customization point where a client could define peer selection behavior
+and unchoke logic. It didn't end up being though, and a more accurate name would
+be peer_list. It really just maintains a potentially large list of known peers
+for a swarm (not necessarily connected).</p>
+</div>
+<div class="section" id="structure">
+<h1>structure</h1>
+<p>This is the high level structure of libtorrent. Bold types are part of the public
+interface:</p>
+<pre class="literal-block">
++=========+  pimpl     +-------------------+
+| <strong>session</strong> | ---------&gt; | aux::session_impl |
++=========+            +-------------------+
+                m_torrents[]  |  |
++================+            |  |
+| <strong>torrent_handle</strong> | ------+    |  |
++================+       |    |  |
+                         |    |  | m_connections[]
+                         |    |  |
+                         |    |  +---------------------+
+         m_picker        v    v                        |
+ +--------------+      +---------+---------+-- . .     |
+ | piece_picker | &lt;--+-| torrent | torrent | to        |
+ +--------------+    | +---------+---------+-- . .     |
+      m_torrent_file |      | m_connections[]          |
+ +==============+    |      |                          |
+ | <strong>torrent_info</strong> | &lt;--+      v                          v
+ +==============+    |     +-----------------+-----------------+-- . .
+            m_policy |     | peer_connection | peer_connection | pe
+ +--------+          |     +-----------------+-----------------+-- . .
+ | policy | &lt;--------+      |             | m_socket
+ +--------+                 |             |
+   | m_peers[]              |             v
+   |                        |            +-----------------------+
+   |                        |            | socket_type (variant) |
+   v                        |            +-----------------------+
++--------------+            |
+| policy::peer |            |
++--------------+            |
+| policy::peer |            |
++--------------+ m_peer_info|
+| policy::peer | &lt;----------+
++--------------+
+.              .
++ - - - - - - -+
+</pre>
+<div class="section" id="session-impl">
+<h2>session_impl</h2>
+<p>This is the session state object, containing all session global information, such as:</p>
+<blockquote>
+<ul class="simple">
+<li>the list of all torrents <tt class="docutils literal">m_torrent</tt>.</li>
+<li>the list of all peer connections <tt class="docutils literal">m_connections</tt>.</li>
+<li>the global rate limits <tt class="docutils literal">m_settings</tt>.</li>
+<li>the DHT state <tt class="docutils literal">m_dht</tt>.</li>
+<li>the port mapping state, <tt class="docutils literal">m_upnp</tt> and <tt class="docutils literal">m_natpmp</tt>.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="session">
+<h2>session</h2>
+<p>This is the public interface to the session. It implements pimpl (pointer to implementation)
+in order to hide the internal representation of the <tt class="docutils literal">session_impl</tt> object from the user and
+make binary compatibility simpler to maintain.</p>
+</div>
+<div class="section" id="torrent-handle">
+<h2>torrent_handle</h2>
+<p>This is the public interface to a <tt class="docutils literal">torrent</tt>. It holds a weak reference to the internal
+<tt class="docutils literal">torrent</tt> object and manipulates it by sending messages to the network thread.</p>
+</div>
+<div class="section" id="torrent">
+<h2>torrent</h2>
+</div>
+<div class="section" id="peer-connection">
+<h2>peer_connection</h2>
+</div>
+<div class="section" id="policy">
+<h2>policy</h2>
+</div>
+<div class="section" id="piece-picker">
+<h2>piece_picker</h2>
+</div>
+<div class="section" id="torrent-info">
+<h2>torrent_info</h2>
+</div>
+</div>
+<div class="section" id="threads">
+<h1>threads</h1>
+<p>libtorrent starts 2 or 3 threads.</p>
+<blockquote>
+<ul class="simple">
+<li>The first thread is the main thread that will sit
+idle in a <tt class="docutils literal">kqueue()</tt> or <tt class="docutils literal">epoll</tt> call most of the time.
+This thread runs the main loop that will send and receive
+data on all connections.</li>
+<li>The second thread is the disk I/O thread. All disk read and write operations
+are passed to this thread and messages are passed back to the main thread when
+the operation completes. The disk thread also verifies the piece hashes.</li>
+<li>The third and forth threads are spawned by asio on systems that don't support
+non-blocking host name resolution to simulate non-blocking getaddrinfo().</li>
+</ul>
+</blockquote>
+</div>
+</div>
+</body>
+</html>
