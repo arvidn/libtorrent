@@ -111,7 +111,7 @@ EXTRA_DIST = Jamfile \
 EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
-	peer_server.hpp udp_tracker.hpp
+	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp
 
 libtest_la_SOURCES = main.cpp \
   setup_transfer.cpp \
