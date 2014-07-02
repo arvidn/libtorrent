@@ -546,7 +546,6 @@ void traversal_observer::reply(msg const& m)
 	lazy_entry const* n = r->dict_find_string("nodes");
 	if (n)
 	{
-		std::vector<node_entry> node_list;
 		char const* nodes = n->string_ptr();
 		char const* end = nodes + n->string_length();
 

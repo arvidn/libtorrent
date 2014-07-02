@@ -166,7 +166,6 @@ namespace libtorrent
 	{
 		ec.clear();
 		std::string name;
-		std::string tracker;
 
 		error_code e;
 		std::string display_name = url_has_argument(uri, "dn");
