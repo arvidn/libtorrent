@@ -5,7 +5,7 @@ devices.
 
 The main goals of libtorrent are to be efficient and easy to use.
 
-See docs/manual.html for more detailed build and usage instructions.
+See docs/index.html for more detailed build and usage instructions.
 
 To build with boost-build, run:
 
