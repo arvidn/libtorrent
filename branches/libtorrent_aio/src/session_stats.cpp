@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
 #include "libtorrent/session.hpp" // for stats_metric
 #include "libtorrent/aux_/session_interface.hpp" // for stats counter names
 #include "libtorrent/performance_counters.hpp" // for counters
