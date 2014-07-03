@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>BitTorrent extension for DHT RSS feeds</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="bittorrent-extension-for-dht-rss-feeds">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">BitTorrent extension for DHT RSS feeds</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#terminology" id="id1">terminology</a></li>
+<li><a class="reference internal" href="#linked-lists" id="id2">linked lists</a></li>
+<li><a class="reference internal" href="#skip-lists" id="id3">skip lists</a></li>
+<li><a class="reference internal" href="#list-head" id="id4">list-head</a></li>
+<li><a class="reference internal" href="#messages" id="id5">messages</a><ul>
+<li><a class="reference internal" href="#requesting-items" id="id6">requesting items</a></li>
+<li><a class="reference internal" href="#request-item-response" id="id7">request item response</a></li>
+<li><a class="reference internal" href="#announcing-items" id="id8">announcing items</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#re-announcing" id="id9">re-announcing</a></li>
+<li><a class="reference internal" href="#timeouts" id="id10">timeouts</a></li>
+<li><a class="reference internal" href="#rss-feeds" id="id11">RSS feeds</a><ul>
+<li><a class="reference internal" href="#example" id="id12">example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#rss-feed-uri-scheme" id="id13">RSS feed URI scheme</a></li>
+<li><a class="reference internal" href="#rationale" id="id14">rationale</a></li>
+</ul>
+</div>
+<p>This proposal has been superseded by the <a class="reference external" href="dht_store.html">dht_put</a> feature. This may
+still be implemented on top of that.</p>
+<p>This is a proposal for an extension to the BitTorrent DHT to allow
+for decentralized RSS feed like functionality.</p>
+<p>The intention is to allow the creation of repositories of torrents
+where only a single identity has the authority to add new content. For
+this repository to be robust against network failures and resilient
+to attacks at the source.</p>
+<p>The target ID under which the repository is stored in the DHT, is the
+SHA-1 hash of a feed name and the 512 bit public key. This private key
+in this pair MUST be used to sign every item stored in the repository.
+Every message that contain signed items MUST also include this key, to
+allow the receiver to verify the key itself against the target ID as well
+as the validity of the signatures of the items. Every recipient of a
+message with feed items in it MUST verify both the validity of the public
+key against the target ID it is stored under, as well as the validity of
+the signatures of each individual item.</p>
+<p>As with normal DHT announces, the write-token mechanism is used to
+prevent IP spoof attacks.</p>
+<div class="section" id="terminology">
+<h1>terminology</h1>
+<p>In this document, a <em>storage node</em> refers to the node in the DHT to which
+an item is being announce. A <em>subscribing node</em> refers to a node which
+makes look ups in the DHT to find the storage nodes, to request items
+from them.</p>
+</div>
+<div class="section" id="linked-lists">
+<h1>linked lists</h1>
+<p>Items are chained together in a geneal singly linked list. A linked
+list does not necessarily contain RSS items, and no RSS related items
+are mandatory. However, RSS items will be used as examples in this BEP:</p>
+<pre class="literal-block">
+key = SHA1(name + key)
++---------+
+| head    |           key = SHA1(bencode(item))
+| +---------+         +---------+
+| | next    |--------&gt;| item    |          key = SHA1(bencode(item))
+| | key     |         | +---------+        +---------+
+| | name    |         | | next    |-------&gt;| item    |
+| | seq     |         | | key     |        | +---------+
+| | ...     |         | | ...     |        | | next    |---&gt;0
+| +---------+         | +---------+        | | key     |
+| sig     |           | sig     |          | | ...     |
++---------+           +---------+          | +---------+
+                                           | sig     |
+                                           +---------+
+</pre>
+<p>The <tt class="docutils literal">next</tt> pointer is at least 20 byte ID in the DHT key space pointing to where the next
+item in the list is announced. The list is terminated with an ID of all zeroes.</p>
+<p>The ID an items is announced to is determined by the SHA1 hash of the bencoded representation
+of the item iteself. This contains all fields in the item, except the signature.
+The only mandatory fields in an item are <tt class="docutils literal">next</tt>, <tt class="docutils literal">key</tt> and <tt class="docutils literal">sig</tt>.</p>
+<p>The <tt class="docutils literal">key</tt> field MUST match the public key of the list head node. The <tt class="docutils literal">sig</tt> field
+MUST be the signature of the bencoded representation of <tt class="docutils literal">item</tt> or <tt class="docutils literal">head</tt> (whichever
+is included in the message).</p>
+<p>All subscribers MUST verify that the item is announced under the correct DHT key
+and MUST verify the signature is valid and MUST verify the public key is the same
+as the list-head. If a node fails any of these checks, it must be ignored and the
+chain of items considered terminated.</p>
+<p>Each item holds a bencoded dictionary with arbitrary keys, except two mandatory keys:
+<tt class="docutils literal">next</tt> and <tt class="docutils literal">key</tt>. The signature <tt class="docutils literal">sig</tt> is transferred outside of this dictionary
+and is the signature of all of it. An implementation should stora any arbitrary keys that
+are announced to an item, within reasonable restriction such as nesting, size and numeric
+range of integers.</p>
+</div>
+<div class="section" id="skip-lists">
+<h1>skip lists</h1>
+<p>The <tt class="docutils literal">next</tt> key stored in the list head and the items is a string of at least length
+20 bytes, it may be any length divisible by 20. Each 20 bytes are the ID of the next
+item in the list, the item 2 hops away, 4 hops away, 8 hops away, and so on. For
+simplicity, only the first ID (1 hop) in the <tt class="docutils literal">next</tt> field is illustrated above.</p>
+<p>A publisher of an item SHOULD include as many IDs in the <tt class="docutils literal">next</tt> field as the remaining
+size of the list warrants, within reason.</p>
+<p>These skip lists allow for parallelized lookups of items and also makes it more efficient
+to search for specific items. It also mitigates breaking lists missing some items.</p>
+<p>Figure of the skip list in the first list item:</p>
+<pre class="literal-block">
+n      Item0  Item1  Item2  Item3  Item4  Item5  Item6  Item7  Item8  Item9  Item10
+0        O-----&gt;
+20       O------------&gt;
+40       O--------------------------&gt;
+60       O------------------------------------------------------&gt;
+</pre>
+<p><em>n</em> refers to the byte offset into the <tt class="docutils literal">next</tt> field.</p>
+</div>
+<div class="section" id="list-head">
+<h1>list-head</h1>
+<p>The list head item is special in that it can be updated, without changing its
+DHT key. This is required to prepend new items to the linked list. To authenticate
+that only the original publisher can update the head, the whole linked list head
+is signed. In order to avoid a malicious node to overwrite the list head with an old
+version, the sequence number <tt class="docutils literal">seq</tt> must be monotonically increasing for each update,
+and a node hosting the list node MUST not downgrade a list head from a higher sequence
+number to a lower one, only upgrade.</p>
+<p>The list head's DHT key (which it is announced to) MUST be the SHA1 hash of the name
+(<tt class="docutils literal">n</tt>) and <tt class="docutils literal">key</tt> fields concatenated.</p>
+<p>Any node MUST reject any list head which is announced under any other ID.</p>
+</div>
+<div class="section" id="messages">
+<h1>messages</h1>
+<p>These are the messages to deal with linked lists.</p>
+<p>The <tt class="docutils literal">id</tt> field in these messages has the same semantics as the standard DHT messages,
+i.e. the node ID of the node sending the message, to maintain the structure of the DHT
+network.</p>
+<p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message <tt class="docutils literal">get_peers</tt>
+and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an item respectively.</p>
+<p><tt class="docutils literal">nodes</tt> and <tt class="docutils literal">nodes6</tt> has the same semantics as in its <tt class="docutils literal">get_peers</tt> response.</p>
+<div class="section" id="requesting-items">
+<h2>requesting items</h2>
+<p>This message can be used to request both a list head and a list item. When requesting
+a list head, the <tt class="docutils literal">n</tt> (name) field MUST be specified. When requesting a list item the
+<tt class="docutils literal">n</tt> field is not required.</p>
+<pre class="literal-block">
+{
+   &quot;a&quot;:
+   {
+      &quot;id&quot;: <em>&lt;20 byte ID of sending node&gt;</em>,
+      &quot;key&quot;: <em>&lt;64 byte public curve25519 key for this list&gt;</em>,
+      &quot;n&quot;: <em>&lt;list name&gt;</em>
+      &quot;target&quot;: <em>&lt;target-id for 'head' or 'item'&gt;</em>
+   },
+   &quot;q&quot;: &quot;get_item&quot;,
+   &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
+   &quot;y&quot;: &quot;q&quot;,
+}
+</pre>
+<p>When requesting a list-head the <tt class="docutils literal">target</tt> MUST always be SHA-1(<em>feed_name</em> + <em>public_key</em>).
+<tt class="docutils literal">target</tt> is the target node ID the item was written to.</p>
+<p>The <tt class="docutils literal">n</tt> field is the name of the list. If specified, It MUST be UTF-8 encoded string
+and it MUST match the name of the feed in the receiving node.</p>
+</div>
+<div class="section" id="request-item-response">
+<h2>request item response</h2>
+<p>This is the format of a response of a list head:</p>
+<pre class="literal-block">
+{
+   &quot;r&quot;:
+   {
+      &quot;head&quot;:
+      {
+         &quot;key&quot;: <em>&lt;64 byte public curve25519 key for this list&gt;</em>,
+         &quot;next&quot;: <em>&lt;20 bytes item ID&gt;</em>,
+         &quot;n&quot;: <em>&lt;name of the linked list&gt;</em>,
+         &quot;seq&quot;: <em>&lt;monotonically increasing sequence number&gt;</em>
+      },
+      &quot;sig&quot;: <em>&lt;curve25519 signature of 'head' entry (in bencoded form)&gt;</em>,
+      &quot;id&quot;: <em>&lt;20 byte id of sending node&gt;</em>,
+      &quot;token&quot;: <em>&lt;write-token&gt;</em>,
+      &quot;nodes&quot;: <em>&lt;n * compact IPv4-port pair&gt;</em>,
+      &quot;nodes6&quot;: <em>&lt;n * compact IPv6-port pair&gt;</em>
+   },
+   &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
+   &quot;y&quot;: &quot;r&quot;,
+}
+</pre>
+<p>This is the format of a response of a list item:</p>
+<pre class="literal-block">
+{
+   &quot;r&quot;:
+   {
+      &quot;item&quot;:
+      {
+         &quot;key&quot;: <em>&lt;64 byte public curve25519 key for this list&gt;</em>,
+         &quot;next&quot;: <em>&lt;20 bytes item ID&gt;</em>,
+         ...
+      },
+      &quot;sig&quot;: <em>&lt;curve25519 signature of 'item' entry (in bencoded form)&gt;</em>,
+      &quot;id&quot;: <em>&lt;20 byte id of sending node&gt;</em>,
+      &quot;token&quot;: <em>&lt;write-token&gt;</em>,
+      &quot;nodes&quot;: <em>&lt;n * compact IPv4-port pair&gt;</em>,
+      &quot;nodes6&quot;: <em>&lt;n * compact IPv6-port pair&gt;</em>
+   },
+   &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
+   &quot;y&quot;: &quot;r&quot;,
+}
+</pre>
+<p>A client receiving a <tt class="docutils literal">get_item</tt> response MUST verify the signature in the <tt class="docutils literal">sig</tt>
+field against the bencoded representation of the <tt class="docutils literal">item</tt> field, using the <tt class="docutils literal">key</tt> as
+the public key. The <tt class="docutils literal">key</tt> MUST match the public key of the feed.</p>
+<p>The <tt class="docutils literal">item</tt> dictionary MAY contain arbitrary keys, and all keys MUST be stored for
+items.</p>
+</div>
+<div class="section" id="announcing-items">
+<h2>announcing items</h2>
+<p>The message format for announcing a list head:</p>
+<pre class="literal-block">
+{
+   &quot;a&quot;:
+   {
+      &quot;head&quot;:
+      {
+         &quot;key&quot;: <em>&lt;64 byte public curve25519 key for this list&gt;</em>,
+         &quot;next&quot;: <em>&lt;20 bytes item ID&gt;</em>,
+         &quot;n&quot;: <em>&lt;name of the linked list&gt;</em>,
+         &quot;seq&quot;: <em>&lt;monotonically increasing sequence number&gt;</em>
+      },
+      &quot;sig&quot;: <em>&lt;curve25519 signature of 'head' entry (in bencoded form)&gt;</em>,
+      &quot;id&quot;: <em>&lt;20 byte node-id of origin node&gt;</em>,
+      &quot;target&quot;: <em>&lt;target-id as derived from public key and name&gt;</em>,
+      &quot;token&quot;: <em>&lt;write-token as obtained by previous request&gt;</em>
+   },
+   &quot;y&quot;: &quot;q&quot;,
+   &quot;q&quot;: &quot;announce_item&quot;,
+   &quot;t&quot;: <em>&lt;transaction-id&gt;</em>
+}
+</pre>
+<p>The message format for announcing a list item:</p>
+<pre class="literal-block">
+{
+   &quot;a&quot;:
+   {
+      &quot;item&quot;:
+      {
+         &quot;key&quot;: <em>&lt;64 byte public curve25519 key for this list&gt;</em>,
+         &quot;next&quot;: <em>&lt;20 bytes item ID&gt;</em>,
+         ...
+      },
+      &quot;sig&quot;: <em>&lt;curve25519 signature of 'item' entry (in bencoded form)&gt;</em>,
+      &quot;id&quot;: <em>&lt;20 byte node-id of origin node&gt;</em>,
+      &quot;target&quot;: <em>&lt;target-id as derived from item dict&gt;</em>,
+      &quot;token&quot;: <em>&lt;write-token as obtained by previous request&gt;</em>
+   },
+   &quot;y&quot;: &quot;q&quot;,
+   &quot;q&quot;: &quot;announce_item&quot;,
+   &quot;t&quot;: <em>&lt;transaction-id&gt;</em>
+}
+</pre>
+<p>A storage node MAY reject items and heads whose bencoded representation is
+greater than 1024 bytes.</p>
+</div>
+</div>
+<div class="section" id="re-announcing">
+<h1>re-announcing</h1>
+<p>In order to keep feeds alive, subscriber nodes SHOULD help out in announcing
+items they have downloaded to the DHT.</p>
+<p>Every subscriber node SHOULD store items in long term storage, across sessions,
+in order to keep items alive for as long as possible, with as few sources as possible.</p>
+<p>Subscribers to a feed SHOULD also announce items that they know of, to the feed.
+Since a feed may have many subscribers and many items, subscribers should re-announce
+items according to the following algorithm.</p>
+<pre class="literal-block">
+1. pick one random item (<em>i</em>) from the local repository (except
+   items already announced this round)
+2. If all items in the local repository have been announced
+  2.1 terminate
+3. look up item <em>i</em> in the DHT
+4. If fewer than 8 nodes returned the item
+  4.1 announce <em>i</em> to the DHT
+  4.2 goto 1
+</pre>
+<p>This ensures a balanced load on the DHT while still keeping items alive</p>
+</div>
+<div class="section" id="timeouts">
+<h1>timeouts</h1>
+<p>Items SHOULD be announced to the DHT every 30 minutes. A storage node MAY time
+out an item after 60 minutes of no one announcing it.</p>
+<p>A storing node MAY extend the timeout when it receives a request for it. Since
+items are immutable, the data doesn't go stale. Therefore it doesn't matter if
+the storing node no longer is in the set of the 8 closest nodes.</p>
+</div>
+<div class="section" id="rss-feeds">
+<h1>RSS feeds</h1>
+<p>For RSS feeds, following keys are mandatory in the list item's <tt class="docutils literal">item</tt> dictionary.</p>
+<dl class="docutils">
+<dt>ih</dt>
+<dd>The torrent's info hash</dd>
+<dt>size</dt>
+<dd>The size (in bytes) of all files the torrent</dd>
+<dt>n</dt>
+<dd>name of the torrent</dd>
+</dl>
+<div class="section" id="example">
+<h2>example</h2>
+<p>This is an example of an <tt class="docutils literal">announce_item</tt> message:</p>
+<pre class="literal-block">
+{
+   &quot;a&quot;:
+   {
+      &quot;item&quot;:
+      {
+         &quot;key&quot;: &quot;6bc1de5443d1a7c536cdf69433ac4a7163d3c63e2f9c92d
+            78f6011cf63dbcd5b638bbc2119cdad0c57e4c61bc69ba5e2c08
+            b918c2db8d1848cf514bd9958d307&quot;,
+         &quot;info-hash&quot;: &quot;7ea94c240691311dc0916a2a91eb7c3db2c6f3e4&quot;,
+         &quot;size&quot;: 24315329,
+         &quot;n&quot;: &quot;my stuff&quot;,
+         &quot;next&quot;: &quot;c68f29156404e8e0aas8761ef5236bcagf7f8f2e&quot;
+      }
+      &quot;sig&quot;: <em>&lt;signature&gt;</em>
+      &quot;id&quot;: &quot;b46989156404e8e0acdb751ef553b210ef77822e&quot;,
+      &quot;target&quot;: &quot;b4692ef0005639e86d7165bf378474107bf3a762&quot;
+      &quot;token&quot;: &quot;23ba&quot;
+   },
+   &quot;y&quot;: &quot;q&quot;,
+   &quot;q&quot;: &quot;announce_item&quot;,
+&quot;t&quot;: &quot;a421&quot;
+}
+</pre>
+<p>Strings are printed in hex for printability, but actual encoding is binary.</p>
+<p>Note that <tt class="docutils literal">target</tt> is in fact SHA1 hash of the same data the signature <tt class="docutils literal">sig</tt>
+is the signature of, i.e.:</p>
+<pre class="literal-block">
+d9:info-hash20:7ea94c240691311dc0916a2a91eb7c3db2c6f3e43:key64:6bc1de5443d1
+a7c536cdf69433ac4a7163d3c63e2f9c92d78f6011cf63dbcd5b638bbc2119cdad0c57e4c61
+bc69ba5e2c08b918c2db8d1848cf514bd9958d3071:n8:my stuff4:next20:c68f29156404
+e8e0aas8761ef5236bcagf7f8f2e4:sizei24315329ee
+</pre>
+<p>(note that binary data is printed as hex)</p>
+</div>
+</div>
+<div class="section" id="rss-feed-uri-scheme">
+<h1>RSS feed URI scheme</h1>
+<p>The proposed URI scheme for DHT feeds is:</p>
+<pre class="literal-block">
+magnet:?xt=btfd:<em>&lt;base16-curve25519-public-key&gt;</em> &amp;dn= <em>&lt;feed name&gt;</em>
+</pre>
+<p>Note that a difference from regular torrent magnet links is the <strong>btfd</strong>
+versus <strong>btih</strong> used in regular magnet links to torrents.</p>
+<p>The <em>feed name</em> is mandatory since it is used in the request and when
+calculating the target ID.</p>
+</div>
+<div class="section" id="rationale">
+<h1>rationale</h1>
+<p>The reason to use <a class="reference external" href="http://cr.yp.to/ecdh.html">curve25519</a> instead of, for instance, RSA is compactness. According to
+<a class="reference external" href="http://cr.yp.to/">http://cr.yp.to/</a>, curve25519 is free from patent claims and there are open implementations
+in both C and Java.</p>
+</div>
+</div>
+</body>
+</html>

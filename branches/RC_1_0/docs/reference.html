@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title>libtorrent reference documentation</title>
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="libtorrent-reference-documentation">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <div id="orange"></div>
+    <div id="logo"></div>
+    </div>
+    <div id="main">
+<h1 class="title">libtorrent reference documentation</h1>
+
+<div style="column-count: 4; -webkit-column-count: 4; -moz-column-count: 4"><div class="section" id="custom-storage">
+<h1>Custom Storage</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Custom_Storage.html#overview">overview</a></div>
+<div class="line"><a class="reference external" href="reference-Custom_Storage.html#file_pool">file_pool</a></div>
+<div class="line"><a class="reference external" href="reference-Custom_Storage.html#storage_interface">storage_interface</a></div>
+<div class="line"><a class="reference external" href="reference-Custom_Storage.html#default_storage">default_storage</a></div>
+<div class="line"><a class="reference external" href="reference-Custom_Storage.html#move_flags_t">move_flags_t</a></div>
+</div>
+</div>
+<div class="section" id="core">
+<h1>Core</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Core.html#disk_buffer_holder">disk_buffer_holder</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#hasher">hasher</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#peer_info">peer_info</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#peer_request">peer_request</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#block_info">block_info</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#partial_piece_info">partial_piece_info</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#torrent_status">torrent_status</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#announce_entry">announce_entry</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#make_magnet_uri()">make_magnet_uri()</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#parse_magnet_uri()">parse_magnet_uri()</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#hash_value()">hash_value()</a></div>
+<div class="line"><a class="reference external" href="reference-Core.html#sign_mutable_item()">sign_mutable_item()</a></div>
+</div>
+</div>
+<div class="section" id="time">
+<h1>Time</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Time.html#overview">overview</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#time_duration">time_duration</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#ptime">ptime</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#is_negative()">is_negative()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator*()">operator*()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator&gt;=()">operator&gt;=()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator!=()">operator!=()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator&gt;()">operator&gt;()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator&lt;()">operator&lt;()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator==()">operator==()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator+()">operator+()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator&lt;=()">operator&lt;=()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#operator-()">operator-()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#time_now()">time_now()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#time_now_hires()">time_now_hires()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#min_time()">min_time()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#max_time()">max_time()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#microsec()">microsec()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#minutes()">minutes()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#hours()">hours()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#milliseconds()">milliseconds()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#seconds()">seconds()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#total_seconds()">total_seconds()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#total_microseconds()">total_microseconds()</a></div>
+<div class="line"><a class="reference external" href="reference-Time.html#total_milliseconds()">total_milliseconds()</a></div>
+</div>
+</div>
+<div class="section" id="bencoding">
+<h1>Bencoding</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Bencoding.html#overview">overview</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#invalid_encoding">invalid_encoding</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#type_error">type_error</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#entry">entry</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#pascal_string">pascal_string</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#bdecode()">bdecode()</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#bencode()">bencode()</a></div>
+<div class="line"><a class="reference external" href="reference-Utility.html#operator&lt;&lt;()">operator&lt;&lt;()</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#lazy_bdecode()">lazy_bdecode()</a></div>
+<div class="line"><a class="reference external" href="reference-Bencoding.html#print_entry()">print_entry()</a></div>
+</div>
+</div>
+<div class="section" id="string">
+<h1>String</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-String.html#to_hex()">to_hex()</a></div>
+<div class="line"><a class="reference external" href="reference-String.html#to_hex()">to_hex()</a></div>
+<div class="line"><a class="reference external" href="reference-String.html#from_hex()">from_hex()</a></div>
+<div class="line"><a class="reference external" href="reference-String.html#is_digit()">is_digit()</a></div>
+<div class="line"><a class="reference external" href="reference-String.html#utf8_wchar()">utf8_wchar()</a></div>
+<div class="line"><a class="reference external" href="reference-String.html#wchar_utf8()">wchar_utf8()</a></div>
+<div class="line"><a class="reference external" href="reference-String.html#utf8_conv_result_t">utf8_conv_result_t</a></div>
+</div>
+</div>
+<div class="section" id="settings">
+<h1>Settings</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Settings.html#proxy_settings">proxy_settings</a></div>
+<div class="line"><a class="reference external" href="reference-Settings.html#session_settings">session_settings</a></div>
+<div class="line"><a class="reference external" href="reference-Settings.html#dht_settings">dht_settings</a></div>
+<div class="line"><a class="reference external" href="reference-Settings.html#pe_settings">pe_settings</a></div>
+<div class="line"><a class="reference external" href="reference-Settings.html#min_memory_usage()">min_memory_usage()</a></div>
+<div class="line"><a class="reference external" href="reference-Settings.html#high_performance_seed()">high_performance_seed()</a></div>
+</div>
+</div>
+<div class="section" id="plugins">
+<h1>Plugins</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Plugins.html#overview">overview</a></div>
+<div class="line"><a class="reference external" href="reference-Plugins.html#plugin">plugin</a></div>
+<div class="line"><a class="reference external" href="reference-Plugins.html#torrent_plugin">torrent_plugin</a></div>
+<div class="line"><a class="reference external" href="reference-Plugins.html#peer_plugin">peer_plugin</a></div>
+<div class="line"><a class="reference external" href="reference-Plugins.html#create_lt_trackers_plugin()">create_lt_trackers_plugin()</a></div>
+<div class="line"><a class="reference external" href="reference-Plugins.html#create_smart_ban_plugin()">create_smart_ban_plugin()</a></div>
+<div class="line"><a class="reference external" href="reference-Plugins.html#create_ut_metadata_plugin()">create_ut_metadata_plugin()</a></div>
+<div class="line"><a class="reference external" href="reference-Plugins.html#create_ut_pex_plugin()">create_ut_pex_plugin()</a></div>
+</div>
+</div>
+<div class="section" id="alerts">
+<h1>Alerts</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Alerts.html#overview">overview</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#alert">alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_alert">torrent_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_alert">peer_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#tracker_alert">tracker_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_added_alert">torrent_added_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_removed_alert">torrent_removed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#read_piece_alert">read_piece_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#file_completed_alert">file_completed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#file_renamed_alert">file_renamed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#file_rename_failed_alert">file_rename_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#performance_alert">performance_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#state_changed_alert">state_changed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#tracker_error_alert">tracker_error_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#tracker_warning_alert">tracker_warning_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#scrape_reply_alert">scrape_reply_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#scrape_failed_alert">scrape_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#tracker_reply_alert">tracker_reply_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_reply_alert">dht_reply_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#tracker_announce_alert">tracker_announce_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#hash_failed_alert">hash_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_ban_alert">peer_ban_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_unsnubbed_alert">peer_unsnubbed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_snubbed_alert">peer_snubbed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_error_alert">peer_error_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_connect_alert">peer_connect_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_disconnected_alert">peer_disconnected_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#invalid_request_alert">invalid_request_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_finished_alert">torrent_finished_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#piece_finished_alert">piece_finished_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#request_dropped_alert">request_dropped_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#block_timeout_alert">block_timeout_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#block_finished_alert">block_finished_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#block_downloading_alert">block_downloading_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#unwanted_block_alert">unwanted_block_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#storage_moved_alert">storage_moved_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#storage_moved_failed_alert">storage_moved_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_deleted_alert">torrent_deleted_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_delete_failed_alert">torrent_delete_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#save_resume_data_alert">save_resume_data_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#save_resume_data_failed_alert">save_resume_data_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_paused_alert">torrent_paused_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_resumed_alert">torrent_resumed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_checked_alert">torrent_checked_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#url_seed_alert">url_seed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#file_error_alert">file_error_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#metadata_failed_alert">metadata_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#metadata_received_alert">metadata_received_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#udp_error_alert">udp_error_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#external_ip_alert">external_ip_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#listen_failed_alert">listen_failed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#listen_succeeded_alert">listen_succeeded_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#portmap_error_alert">portmap_error_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#portmap_alert">portmap_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#portmap_log_alert">portmap_log_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#fastresume_rejected_alert">fastresume_rejected_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#peer_blocked_alert">peer_blocked_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_announce_alert">dht_announce_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_get_peers_alert">dht_get_peers_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#stats_alert">stats_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#cache_flushed_alert">cache_flushed_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#anonymous_mode_alert">anonymous_mode_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#lsd_peer_alert">lsd_peer_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#trackerid_alert">trackerid_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_bootstrap_alert">dht_bootstrap_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#rss_alert">rss_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_error_alert">torrent_error_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_need_cert_alert">torrent_need_cert_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#incoming_connection_alert">incoming_connection_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#add_torrent_alert">add_torrent_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#state_update_alert">state_update_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#torrent_update_alert">torrent_update_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#rss_item_alert">rss_item_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_error_alert">dht_error_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_mutable_item_alert">dht_mutable_item_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#dht_put_alert">dht_put_alert</a></div>
+<div class="line"><a class="reference external" href="reference-Alerts.html#i2p_alert">i2p_alert</a></div>
+</div>
+</div>
+<div class="section" id="storage">
+<h1>Storage</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Storage.html#file_entry">file_entry</a></div>
+<div class="line"><a class="reference external" href="reference-Storage.html#file_slice">file_slice</a></div>
+<div class="line"><a class="reference external" href="reference-Storage.html#file_storage">file_storage</a></div>
+<div class="line"><a class="reference external" href="reference-Storage.html#default_storage_constructor()">default_storage_constructor()</a></div>
+<div class="line"><a class="reference external" href="reference-Storage.html#disabled_storage_constructor()">disabled_storage_constructor()</a></div>
+<div class="line"><a class="reference external" href="reference-Storage.html#storage_mode_t">storage_mode_t</a></div>
+</div>
+</div>
+<div class="section" id="filter">
+<h1>Filter</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a></div>
+<div class="line"><a class="reference external" href="reference-Filter.html#port_filter">port_filter</a></div>
+</div>
+</div>
+<div class="section" id="session">
+<h1>Session</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a></div>
+<div class="line"><a class="reference external" href="reference-Session.html#cache_status">cache_status</a></div>
+<div class="line"><a class="reference external" href="reference-Session.html#session_proxy">session_proxy</a></div>
+<div class="line"><a class="reference external" href="reference-Session.html#session">session</a></div>
+<div class="line"><a class="reference external" href="reference-Session.html#dht_lookup">dht_lookup</a></div>
+<div class="line"><a class="reference external" href="reference-Session.html#dht_routing_bucket">dht_routing_bucket</a></div>
+<div class="line"><a class="reference external" href="reference-Session.html#utp_status">utp_status</a></div>
+<div class="line"><a class="reference external" href="reference-Session.html#session_status">session_status</a></div>
+</div>
+</div>
+<div class="section" id="create-torrents">
+<h1>Create Torrents</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Create_Torrents.html#overview">overview</a></div>
+<div class="line"><a class="reference external" href="reference-Create_Torrents.html#create_torrent">create_torrent</a></div>
+<div class="line"><a class="reference external" href="reference-Create_Torrents.html#add_files()">add_files()</a></div>
+<div class="line"><a class="reference external" href="reference-Create_Torrents.html#set_piece_hashes()">set_piece_hashes()</a></div>
+</div>
+</div>
+<div class="section" id="error-codes">
+<h1>Error Codes</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#get_libtorrent_category()">get_libtorrent_category()</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#get_http_category()">get_http_category()</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#get_i2p_category()">get_i2p_category()</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#get_bdecode_category()">get_bdecode_category()</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#get_socks_category()">get_socks_category()</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#get_upnp_category()">get_upnp_category()</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#error_code_enum">error_code_enum</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#http_errors">http_errors</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#i2p_error_code">i2p_error_code</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#error_code_enum">error_code_enum</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#socks_error_code">socks_error_code</a></div>
+<div class="line"><a class="reference external" href="reference-Error_Codes.html#error_code_enum">error_code_enum</a></div>
+</div>
+</div>
+<div class="section" id="rss">
+<h1>RSS</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-RSS.html#feed_item">feed_item</a></div>
+<div class="line"><a class="reference external" href="reference-RSS.html#feed_settings">feed_settings</a></div>
+<div class="line"><a class="reference external" href="reference-RSS.html#feed_status">feed_status</a></div>
+<div class="line"><a class="reference external" href="reference-RSS.html#feed_handle">feed_handle</a></div>
+<div class="line"><a class="reference external" href="reference-RSS.html#add_feed_item()">add_feed_item()</a></div>
+<div class="line"><a class="reference external" href="reference-RSS.html#new_feed()">new_feed()</a></div>
+</div>
+</div>
+<div class="section" id="utility">
+<h1>Utility</h1>
+<div class="line-block">
+<div class="line"><a class="reference external" href="reference-Utility.html#bitfield">bitfield</a></div>
+<div class="line"><a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a></div>
+<div class="line"><a class="reference external" href="reference-Utility.html#identify_client()">identify_client()</a></div>
+<div class="line"><a class="reference external" href="reference-Utility.html#client_fingerprint()">client_fingerprint()</a></div>
+<div class="line"><a class="reference external" href="reference-Utility.html#operator&lt;&lt;()">operator&lt;&lt;()</a></div>
+<div class="line"><a class="reference external" href="reference-Utility.html#operator&gt;&gt;()">operator&gt;&gt;()</a></div>
+<div class="line"><a class="reference external" href="reference-Utility.html#sleep()">sleep()</a></div>
+</div>
+</div></div>
+</div>
+</body>
+</html>

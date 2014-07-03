@@ -1,0 +1,152 @@
+import testing ;
+import feature : feature ;
+
+use-project /torrent : .. ;
+
+exe test_natpmp : test_natpmp.cpp /torrent//torrent
+	: <threading>multi <debug-iterators>on <invariant-checks>full ;
+
+exe enum_if : enum_if.cpp /torrent//torrent
+	: <threading>multi <debug-iterators>on <invariant-checks>full ;
+
+explicit test_natpmp ;
+explicit enum_if ;
+
+rule link_test ( properties * )
+{
+	local result ;
+	if <link>shared in $(properties)
+	{
+		result +=
+			<library>libtorrent_test/<link>shared ;
+	}
+	else
+	{
+		result +=
+			<library>libtorrent_test/<link>static ;
+	}
+	return $(result) ;
+}
+
+rule link_libtorrent ( properties * )
+{
+	local result ;
+	if <link>shared in $(properties)
+	{
+		result +=
+			<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+	}
+	else
+	{
+		result +=
+			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+	}
+	return $(result) ;
+}
+
+lib libtorrent_test
+	: # sources
+	setup_transfer.cpp
+	dht_server.cpp
+	udp_tracker.cpp
+	peer_server.cpp
+	web_seed_suite.cpp
+
+	: # requirements
+	# this is used to determine whether
+	# symbols are exported or imported
+	<link>shared:<define>TORRENT_BUILDING_TEST_SHARED
+	<link>shared:<define>ED25519_BUILD_DLL
+	<include>../ed25519/src
+	<target-os>windows:<library>advapi32
+	<conditional>@link_libtorrent
+
+	: # default build
+	<link>shared
+
+	: # user-requirements
+	<link>shared:<define>TORRENT_LINK_TEST_SHARED
+;
+
+explicit libtorrent_test ;
+
+lib advapi32 : : <name>Advapi32 ;
+
+project
+   : requirements
+	<source>main.cpp
+	<conditional>@link_test
+	<conditional>@link_libtorrent
+   : default-build
+	<threading>multi
+	<invariant-checks>full
+	<debug-iterators>on
+	<link>shared
+   ;
+
+feature launcher : none valgrind : composite ;
+feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <valgrind>on ;
+
+test-suite libtorrent : 	
+	[ run test_socket_io.cpp ]
+	[ run test_utf8.cpp ]
+	[ run test_gzip.cpp ]
+	[ run test_bitfield.cpp ]
+	[ run test_torrent_info.cpp ]
+	[ run test_time.cpp ]
+	[ run test_file_storage.cpp ]
+	[ run test_priority.cpp ]
+	[ run test_peer_priority.cpp ]
+	[ run test_file.cpp ]
+	[ run test_privacy.cpp ]
+	[ run test_threads.cpp ]
+	[ run test_rss.cpp ]
+	[ run test_bandwidth_limiter.cpp ]
+	[ run test_buffer.cpp ]
+	[ run test_piece_picker.cpp ]
+	[ run test_bencoding.cpp ]
+	[ run test_fast_extension.cpp ]
+	[ run test_primitives.cpp ]
+	[ run test_http_parser.cpp ]
+	[ run test_packet_buffer.cpp ]
+	[ run test_string.cpp ]
+	[ run test_magnet.cpp ]
+	[ run test_xml.cpp ]
+	[ run test_ip_filter.cpp ]
+	[ run test_hasher.cpp ]
+	[ run test_dht.cpp ]
+	[ run test_storage.cpp ]
+	[ run test_torrent_parse.cpp ]
+	[ run test_session.cpp ]
+	[ run test_upnp.cpp ]
+	[ run test_read_piece.cpp ]
+
+	[ run test_ssl.cpp ]
+	[ run test_tracker.cpp ]
+	[ run test_checking.cpp ]
+	[ run test_url_seed.cpp ]
+	[ run test_web_seed.cpp ]
+	[ run test_web_seed_socks4.cpp ]
+	[ run test_web_seed_socks5.cpp ]
+	[ run test_web_seed_socks5_pw.cpp ]
+	[ run test_web_seed_http.cpp ]
+	[ run test_web_seed_http_pw.cpp ]
+	[ run test_web_seed_chunked.cpp ]
+	[ run test_web_seed_ban.cpp ]
+	[ run test_bdecode_performance.cpp ]
+	[ run test_pe_crypto.cpp ]
+
+	[ run test_remap_files.cpp ]
+	[ run test_utp.cpp ]
+	[ run test_auto_unchoke.cpp ]
+	[ run test_http_connection.cpp ]
+	[ run test_torrent.cpp ]
+	[ run test_transfer.cpp ]
+#	[ run test_entry.cpp ]
+	[ run test_metadata_extension.cpp ]
+	[ run test_trackers_extension.cpp ]
+	[ run test_swarm.cpp ]
+	[ run test_lsd.cpp ]
+	[ run test_pex.cpp ]
+	; 
+
