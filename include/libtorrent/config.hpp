@@ -59,12 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 	build, to automatically apply these defines
 #endif
 
-#if !defined _MSC_VER || _MSC_VER >= 1600
-
-#include <stdint.h> // for INT64_MAX et.al.
-
-#else 
-
+// some parts pulled out of stdint.h
+// to avoid C99 or C++11 dependency
 #if !defined INT64_MAX
 #define INT64_MAX 0x7fffffffffffffffLL
 #endif
@@ -73,8 +69,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #if !defined INT16_MIN
 #define INT16_MIN -32768
-#endif
-
 #endif
 
 #ifndef _MSC_VER
