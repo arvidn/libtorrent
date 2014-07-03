@@ -40,16 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef __STDC_CONSTANT_MACROS
 #define __STDC_CONSTANT_MACROS 1
 #endif
-#else
-#if !defined INT64_MAX
-#define INT64_MAX 0x7fffffffffffffffLL
-#endif
-#if !defined INT16_MAX
-#define INT16_MAX 32767
-#endif
-#if !defined INT16_MIN
-#define INT16_MIN -32768
-#endif
 #endif
 
 #include <boost/config.hpp>
@@ -70,11 +60,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if !defined _MSC_VER || _MSC_VER >= 1600
-#include <stdint.h> // for INT64_MAX
-#else
+
+#include <stdint.h> // for INT64_MAX et.al.
+
+#else 
+
 #if !defined INT64_MAX
 #define INT64_MAX 0x7fffffffffffffffLL
 #endif
+#if !defined INT16_MAX
+#define INT16_MAX 32767
+#endif
+#if !defined INT16_MIN
+#define INT16_MIN -32768
+#endif
+
 #endif
 
 #ifndef _MSC_VER
