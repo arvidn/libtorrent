@@ -24,7 +24,7 @@ build_features:
 
 project: libtorrent
 
-branch: trunk
+branch: 1.0
 
 clean:
  - test_tmp_*
