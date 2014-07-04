@@ -209,7 +209,7 @@ namespace libtorrent
 		}
 
 		// all entries are connecting, no need to look for new ones
-		if (m_queue.size() == m_num_connecting)
+		if (int(m_queue.size()) == m_num_connecting)
 			return;
 
 		std::list<entry>::iterator i = std::find_if(m_queue.begin()
@@ -245,7 +245,7 @@ namespace libtorrent
 
 			if (m_num_connecting >= m_half_open_limit
 				&& m_half_open_limit > 0) break;
-			if (m_num_connecting == m_queue.size()) break;
+			if (m_num_connecting == int(m_queue.size())) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		}
 

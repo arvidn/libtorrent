@@ -78,7 +78,7 @@ namespace libtorrent { namespace
 		// metadata. If the torrent is greater than 16 MiB,
 		// we may hit this case (and the client requesting
 		// doesn't throttle its requests)
-		max_incoming_requests = 1024,
+		max_incoming_requests = 1024
 	};
 
 	int div_round_up(int numerator, int denominator)

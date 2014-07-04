@@ -110,7 +110,7 @@ namespace libtorrent
 			invalid_pkts_in,
 			redundant_pkts_in,
 
-			num_counters,
+			num_counters
 		};
 
 		// used to keep stats of uTP events
