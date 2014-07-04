@@ -170,7 +170,7 @@ namespace libtorrent
 			// case we fail
 			if (ret == 1) // 1:  output space exhausted before completing inflate
 			{
-				if (destlen == maximum_size)
+				if (destlen == boost::uint32_t(maximum_size))
 				{
 					error = "inflated data too big";
 					return true;

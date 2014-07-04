@@ -465,7 +465,7 @@ namespace libtorrent
 
 			// this file is a symlink. The symlink target is
 			// specified in a separate field
-			flag_symlink = 8,
+			flag_symlink = 8
 		};
 
 		// returns a bitmask of flags from file_flags_t that apply

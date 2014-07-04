@@ -1239,9 +1239,9 @@ ret:
 
 			// if the file has priority 0, don't allocate it
 			if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only
-				&& (m_file_priority.size() <= file_index || m_file_priority[file_index] > 0))
+				&& (int(m_file_priority.size()) <= file_index || m_file_priority[file_index] > 0))
 			{
-				TORRENT_ASSERT(m_file_created.size() == files().num_files());
+				TORRENT_ASSERT(int(m_file_created.size()) == files().num_files());
 				if (m_file_created[file_index] == false)
 				{
 					file_handle->set_size(files().file_size(file_index), ec);

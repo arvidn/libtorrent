@@ -3802,7 +3802,6 @@ namespace libtorrent
 				--i;
 			}
 			// just in case this piece had priority 0
-			int prev_prio = m_picker->piece_priority(piece);
 			m_picker->set_piece_priority(piece, 7);
 			return;
 		}
@@ -3819,7 +3818,6 @@ namespace libtorrent
 		m_time_critical_pieces.insert(i, p);
 
 		// just in case this piece had priority 0
-		int prev_prio = m_picker->piece_priority(piece);
 		m_picker->set_piece_priority(piece, 7);
 
 		piece_picker::downloading_piece pi;
@@ -6886,7 +6884,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(total_done == 0);
 		}
-
+/*
 		if (m_picker && !m_abort)
 		{
 			// make sure that pieces that have completed the download
@@ -6907,9 +6905,10 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
+				TORRENT_ASSERT(complete);
 			}
 		}
-			
+*/			
 		if (m_files_checked && valid_metadata())
 		{
 			TORRENT_ASSERT(block_size() > 0);
@@ -7389,7 +7388,7 @@ namespace libtorrent
 			boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 	}
 
-	void torrent::on_cache_flushed(int ret, disk_io_job const& j)
+	void torrent::on_cache_flushed(int /* ret */, disk_io_job const& j)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -8694,7 +8693,7 @@ namespace libtorrent
 		// remove the bottom 10% of peers from the candidate set.
 		// this is just to remove outliers that might stall downloads
 		int new_size = (peers.size() * 9 + 9) / 10;
-		TORRENT_ASSERT(new_size <= peers.size());
+		TORRENT_ASSERT(new_size <= int(peers.size()));
 		peers.resize(new_size);
 
 		// remember all the peers we issued requests to, so we can commit them

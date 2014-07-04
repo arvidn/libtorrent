@@ -115,7 +115,7 @@ enum
 	// less likely to loose the re-sent packet. Because
 	// when that happens, we must time-out in order
 	// to continue, which takes a long time.
-	sack_resend_limit = 1,
+	sack_resend_limit = 1
 };
 
 // compare if lhs is less than rhs, taking wrapping
