@@ -315,7 +315,7 @@ namespace libtorrent
 			query_name = 64,
 			// includes ``save_path``, the path to the directory the files of the
 			// torrent are saved to.
-			query_save_path = 128,
+			query_save_path = 128
 		};
 
 		// ``status()`` will return a structure with information about the status

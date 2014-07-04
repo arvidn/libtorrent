@@ -105,7 +105,7 @@ namespace libtorrent
 			// recommend_msg = 5,
 			// comment_msg = 6,
 			dont_have_msg = 7,
-			share_mode_msg = 8,
+			share_mode_msg = 8
 		};
 
 		~bt_peer_connection();

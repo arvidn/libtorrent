@@ -566,7 +566,7 @@ namespace libtorrent {
 		};
 
 		int op = operation;
-		if (op < 0 || op > sizeof(operation_names)/sizeof(operation_names[0]))
+		if (op < 0 || op > int(sizeof(operation_names)/sizeof(operation_names[0])))
 			op = 0;
 
 		char msg[600];

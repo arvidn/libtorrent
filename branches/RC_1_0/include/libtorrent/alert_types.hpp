@@ -692,7 +692,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT(peer_connect_alert);
 
 		const static int static_category = alert::debug_notification;
-		virtual std::string message() const;;
+		virtual std::string message() const;
 
 		int socket_type;
 	};

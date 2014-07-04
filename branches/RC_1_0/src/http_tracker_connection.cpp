@@ -511,10 +511,10 @@ namespace libtorrent
 		if (ip_ent)
 		{
 			char const* p = ip_ent->string_ptr();
-			if (ip_ent->string_length() == address_v4::bytes_type().size())
+			if (ip_ent->string_length() == int(address_v4::bytes_type().size()))
 				external_ip = detail::read_v4_address(p);
 #if TORRENT_USE_IPV6
-			else if (ip_ent->string_length() == address_v6::bytes_type().size())
+			else if (ip_ent->string_length() == int(address_v6::bytes_type().size()))
 				external_ip = detail::read_v6_address(p);
 #endif
 		}

@@ -281,6 +281,11 @@ namespace aux {
 		}
 	};
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
+
 #define TORRENT_SETTING(t, x) {#x, offsetof(session_settings,x), t},
 
 	bencode_map_entry session_settings_map[] =
@@ -553,6 +558,10 @@ namespace aux {
 		return std::make_pair(session_settings_map, lenof(session_settings_map));
 	}
 #undef lenof
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef TORRENT_STATS
 	int session_impl::logging_allocator::allocations = 0;
@@ -4480,9 +4489,9 @@ retry:
 		{
 			// this is the maximum number of connections we will
 			// attempt this tick
-			int average_peers = 0;
-			if (num_downloads > 0)
-				average_peers = num_downloads_peers / num_downloads;
+//			int average_peers = 0;
+//			if (num_downloads > 0)
+//				average_peers = num_downloads_peers / num_downloads;
 
 			if (m_next_connect_torrent == m_torrents.end())
 				m_next_connect_torrent = m_torrents.begin();

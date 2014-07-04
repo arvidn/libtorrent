@@ -364,7 +364,7 @@ namespace libtorrent
 			web_seed = 1,
 
 			// HTTP connection using the `BEP 17`_ protocol
-			http_seed = 2,
+			http_seed = 2
 		};
 
 		// the kind of connection this peer uses. See connection_type_t.

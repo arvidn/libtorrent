@@ -116,7 +116,7 @@ private:
 		boost::function<void()> on_timeout;
 		ptime expires;
 		time_duration timeout;
-		boost::uint32_t ticket;
+		boost::int32_t ticket;
 		bool connecting;
 		boost::uint8_t priority;
 	};

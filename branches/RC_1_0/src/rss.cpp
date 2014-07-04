@@ -398,6 +398,11 @@ void feed::on_feed(error_code const& ec
 	m_ses.update_rss_feeds();
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
+
 #define TORRENT_SETTING(t, x) {#x, offsetof(feed_settings,x), t},
 	bencode_map_entry feed_settings_map[] =
 	{
@@ -438,6 +443,10 @@ void feed::on_feed(error_code const& ec
 		TORRENT_SETTING(size_integer, flags)
 	};
 #undef TORRENT_SETTING
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 void feed::load_state(lazy_entry const& rd)
 {
@@ -670,5 +679,5 @@ feed_settings feed_handle::settings() const
 	return ret;
 }
 
-};
+}
 
