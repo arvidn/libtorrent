@@ -522,7 +522,7 @@ namespace libtorrent
 	{
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
-		void set_file_priority(std::vector<boost::uint8_t> const& prio) {}
+		void set_file_priority(std::vector<boost::uint8_t> const&) {}
 		bool has_any_file() { return false; }
 		bool rename_file(int, std::string const&) { return false; }
 		bool release_files() { return false; }
@@ -561,7 +561,7 @@ namespace libtorrent
 
 		// if any file exist in the target, take those files instead
 		// of the ones we may have in the source.
-		dont_replace,
+		dont_replace
 	};
 
 	struct disk_io_thread;
@@ -651,7 +651,7 @@ namespace libtorrent
 			need_full_check = -1,
 			fatal_disk_error = -2,
 			disk_check_aborted = -3,
-			file_exist = -4,
+			file_exist = -4
 		};
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }

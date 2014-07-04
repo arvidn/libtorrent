@@ -271,7 +271,7 @@ namespace libtorrent
 		aux::session_impl& m_ses;
 	};
 	
-};
+}
 	
 #endif
 

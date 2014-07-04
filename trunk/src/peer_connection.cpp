@@ -4784,7 +4784,6 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 
 		// we may want to request more quota at this point
-		int ret = 0;
 		bool utp = m_socket->get<utp_stream>() != 0;
 		bool ignore_limits = m_ignore_bandwidth_limits
 			|| (!m_ses.m_settings.rate_limit_utp && utp);
@@ -4793,7 +4792,7 @@ namespace libtorrent
 			// in this case, we have data to send, but no
 			// bandwidth. So, we simply request bandwidth
 			// from the bandwidth manager
-			ret = request_upload_bandwidth(
+			request_upload_bandwidth(
 				&m_ses.m_upload_channel
 				, t ? &t->m_bandwidth_channel[upload_channel] : 0
 				, &m_bandwidth_channel[upload_channel]
@@ -4806,12 +4805,12 @@ namespace libtorrent
 			// instead we rate limit ourself against the special
 			// global bandwidth channel for local peers, which defaults
 			// to unthrottled
-			ret = request_upload_bandwidth(&m_ses.m_local_upload_channel
+			request_upload_bandwidth(&m_ses.m_local_upload_channel
 				, &m_bandwidth_channel[upload_channel]);
 		}
 
 		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
-		
+
 		if (m_quota[upload_channel] == 0
 			&& !m_send_buffer.empty()
 			&& !m_connecting)
@@ -4929,7 +4928,6 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 		
 		// we may want to request more quota at this point
-		int ret = 0;
 		bool utp = m_socket->get<utp_stream>() != 0;
 		bool ignore_limits = m_ignore_bandwidth_limits
 			|| (!m_ses.m_settings.rate_limit_utp && utp);
@@ -4938,7 +4936,7 @@ namespace libtorrent
 			// in this case, we have outstanding data to
 			// receive, but no bandwidth quota. So, we simply
 			// request bandwidth from the bandwidth manager
-			ret = request_download_bandwidth(
+			request_download_bandwidth(
 				&m_ses.m_download_channel
 				, t ? &t->m_bandwidth_channel[download_channel] : 0
 				, &m_bandwidth_channel[download_channel]
@@ -4951,7 +4949,7 @@ namespace libtorrent
 			// instead we rate limit ourself against the special
 			// global bandwidth channel for local peers, which defaults
 			// to unthrottled
-			ret = request_download_bandwidth(&m_ses.m_local_download_channel
+			request_download_bandwidth(&m_ses.m_local_download_channel
 				, &m_bandwidth_channel[download_channel]);
 		}
 
@@ -5755,7 +5753,7 @@ namespace libtorrent
 			// if the piece is fully downloaded, we might have popped it from the
 			// download queue already
 			int outstanding_bytes = 0;
-			bool in_download_queue = false;
+//			bool in_download_queue = false;
 			int block_size = t->block_size();
 			piece_block last_block(ti.num_pieces()-1
 				, (ti.piece_size(ti.num_pieces()-1) + block_size - 1) / block_size);
@@ -5767,7 +5765,7 @@ namespace libtorrent
 					|| i->block.block_index <= last_block.block_index);
 				if (m_received_in_piece && i == m_download_queue.begin())
 				{
-					in_download_queue = true;
+//					in_download_queue = true;
 					// this assert is not correct since block may have different sizes
 					// and may not be returned in the order they were requested
 //					TORRENT_ASSERT(t->to_req(i->block).length >= m_received_in_piece);
@@ -5911,6 +5909,7 @@ namespace libtorrent
 			TORRENT_ASSERT(i != end);
 		}
 #endif
+/*
 		if (t->has_picker() && !t->is_aborted())
 		{
 			// make sure that pieces that have completed the download
@@ -5931,9 +5930,10 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
+				TORRENT_ASSERT(complete);
 			}
 		}
-
+*/
 // extremely expensive invariant check
 /*
 		if (!t->is_seed())

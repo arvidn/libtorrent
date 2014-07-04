@@ -217,7 +217,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	{
 		// we expect it to be hexadecimal
 		// if it isn't, it's not our cookie anyway
-		boost::uint32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
+		boost::int32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
 		if (cookie == m_cookie)
 		{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)

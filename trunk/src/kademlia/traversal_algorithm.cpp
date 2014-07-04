@@ -223,7 +223,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (m_results.size() > 100)
 	{
 #if TORRENT_USE_ASSERTS
-		for (int i = 100; i < m_results.size(); ++i)
+		for (int i = 100; i < int(m_results.size()); ++i)
 			m_results[i]->m_was_abandoned = true;
 #endif
 		m_results.resize(100);

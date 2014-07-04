@@ -262,7 +262,7 @@ void routing_table::print_state(std::ostream& os) const
 			node_id id = j->id;
 			id <<= bucket_index + 1;
 			int b = (id[0] & top_mask) >> mask_shift;
-			TORRENT_ASSERT(b >= 0 && b < sizeof(sub_buckets));
+			TORRENT_ASSERT(b >= 0 && b < int(sizeof(sub_buckets)/sizeof(sub_buckets[0])));
 			sub_buckets[b] = true;
 		}
 

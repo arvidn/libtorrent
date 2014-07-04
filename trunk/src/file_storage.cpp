@@ -309,7 +309,7 @@ namespace libtorrent
 		// find the file iterator and file offset
 		internal_file_entry target;
 		target.offset = piece * (size_type)m_piece_length + offset;
-		TORRENT_ASSERT_PRECOND(target.offset + size <= m_total_size);
+		TORRENT_ASSERT_PRECOND(size_type(target.offset + size) <= m_total_size);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
@@ -644,7 +644,7 @@ namespace libtorrent
 	}
 
 	file_entry file_storage::at(file_storage::iterator i) const
-	{ return at(i - begin()); }
+	{ return at(i - m_files.begin()); }
 #endif // TORRENT_NO_DEPRECATE
 
 	bool compare_file_entry_size(internal_file_entry const& fe1, internal_file_entry const& fe2)
@@ -704,7 +704,7 @@ namespace libtorrent
 				}
 			}
 			else if (pad_file_limit >= 0
-				&& i->size > pad_file_limit
+				&& i->size > boost::uint32_t(pad_file_limit)
 				&& i->pad_file == false)
 			{
 				// if we have pad files enabled, and this file is
@@ -722,7 +722,7 @@ namespace libtorrent
 				{
 					for (std::vector<internal_file_entry>::iterator j = i+1; j < m_files.end(); ++j)
 					{
-						if (j->size > pad_size) continue;
+						if (j->size > boost::uint32_t(pad_size)) continue;
 						if (best_match == m_files.end() || j->size > best_match->size)
 							best_match = j;
 					}

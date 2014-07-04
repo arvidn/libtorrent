@@ -2237,7 +2237,7 @@ namespace libtorrent
 					if (i != idx.end())
 					{
 						TORRENT_ASSERT(i->storage);
-						int ret = flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
+						ret = flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
 						idx.erase(i);
 						if (test_error(j))
 						{
