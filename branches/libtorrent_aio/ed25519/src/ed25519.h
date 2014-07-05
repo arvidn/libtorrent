@@ -12,7 +12,7 @@ enum
 	ed25519_public_key_size = 32,
 	ed25519_signature_size = 64,
 	ed25519_scalar_size = 32,
-	ed25519_shared_secret_size = 32,
+	ed25519_shared_secret_size = 32
 };
 
 #ifdef __cplusplus

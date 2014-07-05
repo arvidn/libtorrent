@@ -168,5 +168,5 @@ namespace libtorrent
 		clear();
 	}
 
-};
+}
 

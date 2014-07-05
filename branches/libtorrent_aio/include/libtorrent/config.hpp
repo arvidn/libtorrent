@@ -44,14 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-#if !defined INT16_MAX
-#define INT16_MAX 32767
-#endif
-
-#if !defined INT16_MIN
-#define INT16_MIN -32768
-#endif
-
 #include <boost/config.hpp>
 #include <boost/asio/detail/config.hpp>
 #include <boost/version.hpp>
@@ -74,12 +66,16 @@ POSSIBILITY OF SUCH DAMAGE.
 	build, to automatically apply these defines
 #endif
 
-#if !defined _MSC_VER || _MSC_VER >= 1600
-#include <stdint.h> // for INT64_MAX
-#else
+// some parts pulled out of stdint.h
+// to avoid C99 or C++11 dependency
 #if !defined INT64_MAX
 #define INT64_MAX 0x7fffffffffffffffLL
 #endif
+#if !defined INT16_MAX
+#define INT16_MAX 32767
+#endif
+#if !defined INT16_MIN
+#define INT16_MIN -32768
 #endif
 
 #ifndef _MSC_VER

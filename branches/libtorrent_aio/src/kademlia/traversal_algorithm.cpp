@@ -205,7 +205,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (m_results.size() > 100)
 	{
 #if TORRENT_USE_ASSERTS
-		for (int i = 100; i < m_results.size(); ++i)
+		for (int i = 100; i < int(m_results.size()); ++i)
 			m_results[i]->m_was_abandoned = true;
 #endif
 		m_results.resize(100);
@@ -528,7 +528,6 @@ void traversal_observer::reply(msg const& m)
 	lazy_entry const* n = r->dict_find_string("nodes");
 	if (n)
 	{
-		std::vector<node_entry> node_list;
 		char const* nodes = n->string_ptr();
 		char const* end = nodes + n->string_length();
 

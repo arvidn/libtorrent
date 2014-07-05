@@ -5191,7 +5191,7 @@ namespace libtorrent
 		if (valid_metadata() && limit > m_torrent_file->num_files())
 			limit = m_torrent_file->num_files();
 
-		if (m_file_priority.size() < limit)
+		if (int(m_file_priority.size()) < limit)
 			m_file_priority.resize(limit, 1);
 
 		std::copy(files.begin(), files.begin() + limit, m_file_priority.begin());
@@ -5228,7 +5228,7 @@ namespace libtorrent
 		if (index < 0 || index >= m_torrent_file->num_files()) return;
 		if (prio < 0) prio = 0;
 		else if (prio > 7) prio = 7;
-		if (m_file_priority.size() <= index)
+		if (int(m_file_priority.size()) <= index)
 		{
 			// any unallocated slot is assumed to be 1
 			if (prio == 1) return;
@@ -5265,7 +5265,10 @@ namespace libtorrent
 		if (index < 0 || index >= m_torrent_file->num_files()) return 0;
 
 		// any unallocated slot is assumed to be 1
-		if (m_file_priority.size() <= index) return 1;
+		// unless it's a pad file
+		if (int(m_file_priority.size()) <= index)
+			return m_torrent_file->files().pad_file_at(index) ? 0 : 1;
+
 		return m_file_priority[index];
 	}
 
@@ -5282,7 +5285,7 @@ namespace libtorrent
 
 		files->clear();
 		files->resize(m_torrent_file->num_files(), 1);
-		TORRENT_ASSERT(m_file_priority.size() <= m_torrent_file->num_files());
+		TORRENT_ASSERT(int(m_file_priority.size()) <= m_torrent_file->num_files());
 		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 	}
 
@@ -8225,7 +8228,7 @@ namespace libtorrent
 
 		int num_uploads = 0;
 		std::map<piece_block, int> num_requests;
-		for (const_peer_iterator i = begin(); i != end(); ++i)
+		for (const_peer_iterator i = this->begin(); i != this->end(); ++i)
 		{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			// make sure this peer is not a dangling pointer
@@ -8330,7 +8333,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(total_done == 0);
 		}
-
+/*
 		if (m_picker && !m_abort)
 		{
 			// make sure that pieces that have completed the download
@@ -8351,9 +8354,10 @@ namespace libtorrent
 					complete = false;
 					break;
 				}
+				TORRENT_ASSERT(complete);
 			}
 		}
-			
+*/			
 		if (m_files_checked && valid_metadata())
 		{
 			TORRENT_ASSERT(block_size() > 0);
@@ -10154,7 +10158,7 @@ namespace libtorrent
 		// remove the bottom 10% of peers from the candidate set.
 		// this is just to remove outliers that might stall downloads
 		int new_size = (peers.size() * 9 + 9) / 10;
-		TORRENT_ASSERT(new_size <= peers.size());
+		TORRENT_ASSERT(new_size <= int(peers.size()));
 		peers.resize(new_size);
 
 		// remember all the peers we issued requests to, so we can commit them

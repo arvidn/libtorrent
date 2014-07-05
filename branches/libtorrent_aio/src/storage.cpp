@@ -1133,8 +1133,9 @@ namespace libtorrent
 				m_stat_cache.set_dirty(file_index);
 			}
 	
-			if (file_index < int(m_file_priority.size())
+			if ((file_index < int(m_file_priority.size())
 				&& m_file_priority[file_index] == 0)
+				|| files().pad_file_at(file_index))
 			{
 				need_partfile();
 
@@ -1194,7 +1195,7 @@ namespace libtorrent
 
 				if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
 				{
-					TORRENT_ASSERT(m_file_created.size() == files().num_files());
+					TORRENT_ASSERT(int(m_file_created.size()) == files().num_files());
 					TORRENT_ASSERT(file_index < m_file_created.size());
 					if (m_file_created[file_index] == false)
 					{

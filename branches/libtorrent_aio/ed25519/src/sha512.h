@@ -19,3 +19,4 @@ int sha512_update(sha512_context * md, const unsigned char *in, size_t inlen);
 int sha512(const unsigned char *message, size_t message_len, unsigned char *out);
 
 #endif
+

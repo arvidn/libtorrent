@@ -25,11 +25,13 @@ namespace {
 
         allow_threading_guard guard;
 
+		  p.url = uri;
+
 #ifndef BOOST_NO_EXCEPTIONS
-        return add_magnet_uri(s, uri, p);
+        return s.add_torrent(p);
 #else
         error_code ec;
-        return add_magnet_uri(s, uri, p, ec);
+        return s.add_torrent(p, ec);
 #endif
     }
 #endif

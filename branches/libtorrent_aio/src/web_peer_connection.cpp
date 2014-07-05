@@ -255,7 +255,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			m_piece.swap(m_web.restart_piece);
 			m_block_pos += m_piece.size();
 			peer_request& front = m_requests.front();
-			TORRENT_ASSERT(front.length > m_piece.size());
+			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
 #if 0
 			std::cerr << this << " RESTART-DATA: data: " << m_piece.size()
@@ -892,7 +892,7 @@ void web_peer_connection::on_receive(error_code const& error
 				if (copy_size > m_chunk_pos && m_chunk_pos > 0) copy_size = m_chunk_pos;
 				if (copy_size > 0)
 				{
-					TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
+					TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
 					m_piece.resize(piece_size + copy_size);
 					std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
 					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
@@ -905,9 +905,9 @@ void web_peer_connection::on_receive(error_code const& error
 						m_chunk_pos -= copy_size;
 					}
 					TORRENT_ASSERT(m_received_body <= range_end - range_start);
-					TORRENT_ASSERT(m_piece.size() <= front_request.length);
+					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
 					incoming_piece_fragment(copy_size);
-					TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
+					TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
 				}
 
 				if (maybe_harvest_block())
@@ -954,14 +954,14 @@ void web_peer_connection::on_receive(error_code const& error
 					TORRENT_ASSERT(copy_size >= 0);
 					if (copy_size > 0)
 					{
-						TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
+						TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
 						m_piece.resize(piece_size + copy_size);
 						std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
 						recv_buffer.begin += copy_size;
 						m_received_body += copy_size;
 						m_body_start += copy_size;
 						incoming_piece_fragment(copy_size);
-						TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
+						TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
 					}
 					TORRENT_ASSERT(m_received_body == range_end - range_start);
 				}

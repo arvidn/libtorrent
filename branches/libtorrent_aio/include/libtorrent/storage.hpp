@@ -187,7 +187,7 @@ namespace libtorrent
 
 		// if any file exist in the target, take those files instead
 		// of the ones we may have in the source.
-		dont_replace,
+		dont_replace
 	};
 
 	// The storage interface is a pure virtual class that can be implemented to
@@ -506,7 +506,7 @@ namespace libtorrent
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
 		bool has_any_file(storage_error&) { return false; }
-		void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec) {}
+		void set_file_priority(std::vector<boost::uint8_t> const&, storage_error&) {}
 		void rename_file(int, std::string const&, storage_error&) {}
 		void release_files(storage_error&) {}
 		void delete_files(storage_error&) {}
@@ -535,14 +535,18 @@ namespace libtorrent
 		virtual int writev(file::iovec_t const* bufs, int num_bufs
 			, int piece, int offset, int flags, storage_error& ec);
 
-		virtual bool has_any_file(storage_error& ec) { return false; }
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec) {}
-		virtual int move_storage(std::string const& save_path, int flags, storage_error& ec) { return 0; }
-		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) { return false; }
-		virtual void write_resume_data(entry& rd, storage_error& ec) const {}
+		virtual bool has_any_file(storage_error&) { return false; }
+		virtual void set_file_priority(std::vector<boost::uint8_t> const& /* prio */
+			, storage_error&) {}
+		virtual int move_storage(std::string const& /* save_path */
+			, int /* flags */, storage_error&) { return 0; }
+		virtual bool verify_resume_data(lazy_entry const& /* rd */, storage_error&)
+			{ return false; }
+		virtual void write_resume_data(entry&, storage_error&) const {}
 		virtual void release_files(storage_error& ec) {}
-		virtual void rename_file(int index, std::string const& new_filenamem, storage_error& ec) {}
-		virtual void delete_files(storage_error& ec) {}
+		virtual void rename_file(int /* index */
+			, std::string const& /* new_filenamem */, storage_error&) {}
+		virtual void delete_files(storage_error&) {}
 	};
 
 	struct disk_io_thread;
@@ -652,7 +656,7 @@ namespace libtorrent
 			fatal_disk_error = -1,
 			need_full_check = -2,
 			disk_check_aborted = -3,
-			file_exist = -4,
+			file_exist = -4
 		};
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }

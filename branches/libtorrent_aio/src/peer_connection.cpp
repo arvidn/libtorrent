@@ -2701,7 +2701,6 @@ namespace libtorrent
 
 		piece_picker& picker = t->picker();
 
-		std::vector<piece_block> finished_blocks;
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		TORRENT_ASSERT(verify_piece(p));
 
@@ -5350,7 +5349,7 @@ namespace libtorrent
 		request_bandwidth(upload_channel);
 
 		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
-		
+
 		if (m_quota[upload_channel] == 0
 			&& !m_send_buffer.empty()
 			&& !m_connecting)
@@ -6579,7 +6578,7 @@ namespace libtorrent
 			// if the piece is fully downloaded, we might have popped it from the
 			// download queue already
 			int outstanding_bytes = 0;
-			bool in_download_queue = false;
+//			bool in_download_queue = false;
 			int block_size = t->block_size();
 			piece_block last_block(ti.num_pieces()-1
 				, (ti.piece_size(ti.num_pieces()-1) + block_size - 1) / block_size);
@@ -6591,7 +6590,7 @@ namespace libtorrent
 					|| i->block.block_index <= last_block.block_index);
 				if (m_received_in_piece && i == m_download_queue.begin())
 				{
-					in_download_queue = true;
+//					in_download_queue = true;
 					// this assert is not correct since block may have different sizes
 					// and may not be returned in the order they were requested
 //					TORRENT_ASSERT(t->to_req(i->block).length >= m_received_in_piece);
@@ -6721,6 +6720,7 @@ namespace libtorrent
 			}
 		}
 #endif
+/*
 		if (t->has_picker() && !t->is_aborted())
 		{
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
@@ -6729,9 +6729,10 @@ namespace libtorrent
 				pending_block const& pb = *i;
 				if (pb.timed_out || pb.not_wanted) continue;
 				TORRENT_ASSERT(t->picker().get_block_state(pb.block) != piece_picker::block_info::state_none);
+				TORRENT_ASSERT(complete);
 			}
 		}
-
+*/
 // extremely expensive invariant check
 /*
 		if (!t->is_seed())

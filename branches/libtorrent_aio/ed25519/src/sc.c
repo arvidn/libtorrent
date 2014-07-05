@@ -313,7 +313,7 @@ void sc_reduce(unsigned char *s) {
     s10 -= carry10 << 21;
 
     s[0] = (unsigned char) ((s0 >> 0) & 0xff);
-    s[1] = (unsigned char) ((s0 >> 8 & 0xff));
+    s[1] = (unsigned char) ((s0 >> 8) & 0xff);
     s[2] = (unsigned char) (((s0 >> 16) | (s1 << 5)) & 0xff);
     s[3] = (unsigned char) ((s1 >> 3) & 0xff);
     s[4] = (unsigned char) ((s1 >> 11) & 0xff);

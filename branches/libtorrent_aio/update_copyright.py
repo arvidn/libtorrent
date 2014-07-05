@@ -25,6 +25,7 @@ def update_file(name):
 	open(name, 'w+').write(subst)
 
 for i in glob.glob('src/*.cpp') + glob.glob('include/libtorrent/*.hpp') + \
-	glob.glob('include/libtorrent/kademlia/*.hpp') + glob.glob('src/kademlia/*.cpp'):
+	glob.glob('include/libtorrent/kademlia/*.hpp') + glob.glob('src/kademlia/*.cpp') + \
+	['COPYING', 'LICENSE']:
 	update_file(i)
 

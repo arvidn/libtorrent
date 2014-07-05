@@ -309,6 +309,8 @@ namespace libtorrent
 		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		void set_name(std::wstring const& n) TORRENT_DEPRECATED;
+
+		void rename_file_deprecated(int index, std::wstring const& new_filename);
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
@@ -473,7 +475,7 @@ namespace libtorrent
 
 			// this file is a symlink. The symlink target is
 			// specified in a separate field
-			flag_symlink = 8,
+			flag_symlink = 8
 		};
 
 		std::vector<std::string> const& paths() const { return m_paths; }

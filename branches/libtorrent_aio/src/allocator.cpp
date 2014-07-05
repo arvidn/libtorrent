@@ -102,7 +102,7 @@ namespace libtorrent
 		// for cases where the cache size is several gigabytes)
 		TORRENT_ASSERT(bytes < 0x30000000);
 
-		TORRENT_ASSERT(bytes >= page_size());
+		TORRENT_ASSERT(int(bytes) >= page_size());
 #ifdef TORRENT_DEBUG_BUFFERS
 		int page = page_size();
 		int num_pages = (bytes + (page-1)) / page + 2;

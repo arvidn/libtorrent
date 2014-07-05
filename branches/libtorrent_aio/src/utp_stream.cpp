@@ -116,7 +116,7 @@ enum
 	// less likely to loose the re-sent packet. Because
 	// when that happens, we must time-out in order
 	// to continue, which takes a long time.
-	sack_resend_limit = 1,
+	sack_resend_limit = 1
 };
 
 // compare if lhs is less than rhs, taking wrapping
@@ -171,7 +171,7 @@ struct packet
 #endif
 
 	// the actual packet buffer
-	boost::uint8_t buf[];
+	boost::uint8_t buf[1];
 };
 
 // since the uTP socket state may be needed after the
@@ -2776,7 +2776,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
-		if (ptr - buf + len > size_t(size))
+		if (ptr - buf + len > ptrdiff_t(size))
 		{
 			UTP_LOG("%8p: ERROR: invalid extension header size:%d packet:%d\n"
 				, this, len, int(ptr - buf));
@@ -2981,7 +2981,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			// (i.e. ST_STATE) we're not ACKing anything. If we just
 			// received a FIN packet, we need to ack that as well
 			bool has_ack = ph->get_type() == ST_DATA || ph->get_type() == ST_FIN || ph->get_type() == ST_SYN;
-			int prev_out_packets = m_out_packets;
+			boost::uint32_t prev_out_packets = m_out_packets;
 
 			// try to send more data as long as we can
 			// if send_pkt returns true
@@ -3479,7 +3479,7 @@ void utp_socket_impl::check_receive_buffers() const
 void utp_socket_impl::check_invariant() const
 {
 	for (int i = m_outbuf.cursor();
-		i != ((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK); 
+		i != int((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK); 
 		i = (i + 1) & ACK_MASK)
 	{
 		packet* p = (packet*)m_outbuf.at(i);

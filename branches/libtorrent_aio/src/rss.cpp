@@ -668,5 +668,5 @@ feed_settings feed_handle::settings() const
 	return ret;
 }
 
-};
+}
 
