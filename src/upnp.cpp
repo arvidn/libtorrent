@@ -371,7 +371,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 			std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
 			for (std::vector<ip_interface>::const_iterator i = net.begin()
-				, end(net.end()); i != end && num_chars < sizeof(msg); ++i)
+				, end(net.end()); i != end && num_chars < int(sizeof(msg)); ++i)
 			{
 				num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 					, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
@@ -405,7 +405,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					"%s: IP is not a router. "
 					, print_endpoint(from).c_str());
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
-					, end(routes.end()); i != end && num_chars < sizeof(msg); ++i)
+					, end(routes.end()); i != end && num_chars < int(sizeof(msg)); ++i)
 				{
 					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());

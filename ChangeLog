@@ -1,3 +1,5 @@
+	* fix compiler warnings
+
 1.0 release
 
 	* fix bugs in convert_to/from_native() on windows

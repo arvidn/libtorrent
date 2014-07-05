@@ -685,7 +685,7 @@ namespace libtorrent
 			detail::write_string(request_string, out);
 		}
 
-		TORRENT_ASSERT(out - buf <= sizeof(buf));
+		TORRENT_ASSERT(out - buf <= int(sizeof(buf)));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();

@@ -323,7 +323,7 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 			int ret = fwrite(&t.merkle_tree()[0], 20, t.merkle_tree().size(), output);
-			if (ret != t.merkle_tree().size())
+			if (ret != int(t.merkle_tree().size()))
 			{
 				fprintf(stderr, "failed to write %s: (%d) %s\n"
 					, merklefile.c_str(), errno, strerror(errno));
