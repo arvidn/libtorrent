@@ -2681,8 +2681,8 @@ retry:
 
 	// to test SSL connections, one can use this openssl command template:
 	// 
-	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem \ 
-	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1 \ 
+	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem
+	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1
 	//   -servername <hex-encoded-info-hash>
 
 	void session_impl::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
@@ -3106,7 +3106,7 @@ retry:
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht_interval_update_torrents < 40
-			&& m_dht_interval_update_torrents != m_torrents.size())
+			&& m_dht_interval_update_torrents != int(m_torrents.size()))
 			update_dht_announce_interval();
 #endif
 

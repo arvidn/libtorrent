@@ -209,7 +209,7 @@ namespace libtorrent
 		m_name = utf8;
 	}
 
-	void file_storage::rename_file(int index, std::wstring const& new_filename)
+	void file_storage::rename_file_deprecated(int index, std::wstring const& new_filename)
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		std::string utf8;
@@ -224,6 +224,11 @@ namespace libtorrent
 		std::string utf8;
 		wchar_utf8(file, utf8);
 		add_file(utf8, size, flags, mtime, symlink_path);
+	}
+
+	void file_storage::rename_file(int index, std::wstring const& new_filename)
+	{
+		rename_file_deprecated(index, new_filename);
 	}
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING

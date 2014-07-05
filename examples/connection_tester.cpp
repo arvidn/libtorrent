@@ -79,7 +79,8 @@ static boost::detail::atomic_count num_seeds(0);
 // a client and dual uploads and downloads from a client
 // at the same time (this is presumably the most realistic
 // test)
-enum { none, upload_test, download_test, dual_test } test_mode = none;
+enum test_mode_t{ none, upload_test, download_test, dual_test };
+test_mode_t test_mode = none;
 
 // the number of suggest messages received (total across all peers)
 boost::detail::atomic_count num_suggest(0);
@@ -449,7 +450,7 @@ struct peer_conn
 			{
 				pieces.reserve(num_pieces);
 				int piece = 0;
-				for (int i = 0; i < bytes_transferred; ++i)
+				for (int i = 0; i < int(bytes_transferred); ++i)
 				{
 					int mask = 0x80;
 					for (int k = 0; k < 8; ++k)
@@ -476,7 +477,7 @@ struct peer_conn
 				--outstanding_requests;
 				int piece = detail::read_int32(ptr);
 				int start = detail::read_int32(ptr);
-				if ((start + bytes_transferred) / 0x4000 == blocks_per_piece)
+				if (int((start + bytes_transferred) / 0x4000) == blocks_per_piece)
 				{
 					write_have(piece);
 					return;

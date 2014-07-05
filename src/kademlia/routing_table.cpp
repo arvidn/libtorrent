@@ -73,7 +73,7 @@ int routing_table::bucket_limit(int bucket) const
 	if (!m_settings.extended_routing_table) return m_bucket_size;
 
 	const static int size_exceptions[] = {16, 8, 4, 2};
-	if (bucket < sizeof(size_exceptions)/sizeof(size_exceptions[0]))
+	if (bucket < int(sizeof(size_exceptions)/sizeof(size_exceptions[0])))
 		return m_bucket_size * size_exceptions[bucket];
 	return m_bucket_size;
 }
@@ -678,7 +678,7 @@ bool routing_table::add_node(node_entry e)
 
 			// find node entries with duplicate prefixes in O(1)
 			std::vector<bucket_t::iterator> prefix(1 << (8 - mask_shift), b.end());
-			TORRENT_ASSERT(prefix.size() >= bucket_size_limit);
+			TORRENT_ASSERT(int(prefix.size()) >= bucket_size_limit);
 
 			// the begin iterator from this object is used as a placeholder
 			// for an occupied slot whose node has already been added to the
@@ -692,7 +692,7 @@ bool routing_table::add_node(node_entry e)
 				id <<= bucket_index + 1;
 				int this_prefix = (id[0] & mask) >> mask_shift;
 				TORRENT_ASSERT(this_prefix >= 0);
-				TORRENT_ASSERT(this_prefix < prefix.size());
+				TORRENT_ASSERT(this_prefix < int(prefix.size()));
 				if (prefix[this_prefix] != b.end())
 				{
 					// there's already a node with this prefix. Remember both
@@ -810,7 +810,7 @@ void routing_table::split_bucket()
 
 	int bucket_index = m_buckets.size()-1;
 	int bucket_size_limit = bucket_limit(bucket_index);
-	TORRENT_ASSERT(m_buckets.back().live_nodes.size() >= bucket_size_limit);
+	TORRENT_ASSERT(int(m_buckets.back().live_nodes.size()) >= bucket_size_limit);
 
 	// this is the last bucket, and it's full already. Split
 	// it by adding another bucket
