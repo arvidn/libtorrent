@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id183">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id184">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id185">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id186">session_proxy</a></li>
-<li><a class="reference internal" href="#id40" id="id187">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id188">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id189">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id190">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id191">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id179">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id180">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id181">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id182">session_proxy</a></li>
+<li><a class="reference internal" href="#id40" id="id183">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id184">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id185">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id186">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id187">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -758,10 +758,6 @@ class session: public boost::noncopyable
    void <strong>remove_torrent</strong> (const torrent_handle&amp; h, int options = 0);
    aux::session_settings <strong>get_settings</strong> () const;
    void <strong>apply_settings</strong> (settings_pack const&amp; s);
-   void <strong>set_proxy</strong> (proxy_settings const&amp; s);
-   proxy_settings <strong>proxy</strong> () const;
-   proxy_settings <strong>i2p_proxy</strong> () const;
-   void <strong>set_i2p_proxy</strong> (proxy_settings const&amp; s);
    void <strong>pop_alerts</strong> (std::deque&lt;alert*&gt;* alerts);
    std::auto_ptr&lt;alert&gt; <strong>pop_alert</strong> ();
    alert const* <strong>wait_for_alert</strong> (time_duration max_wait);
@@ -774,8 +770,6 @@ class session: public boost::noncopyable
       save_settings,
       save_dht_settings,
       save_dht_state,
-      save_proxy,
-      save_i2p_proxy,
       save_encryption_settings,
       save_feeds,
    };
@@ -1446,34 +1440,6 @@ void <strong>apply_settings</strong> (settings_pack const&amp; s);
 <p>Applies the settings specified by the <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a> <tt class="docutils literal">s</tt>. This is an
 asynchronous operation that will return immediately and actually apply
 the settings to the main thread of libtorrent some time later.</p>
-<a name="set_proxy()"></a>
-<a name="proxy()"></a></div>
-<div class="section" id="set-proxy-proxy">
-<h2>set_proxy() proxy()</h2>
-<pre class="literal-block">
-void <strong>set_proxy</strong> (proxy_settings const&amp; s);
-proxy_settings <strong>proxy</strong> () const;
-</pre>
-<p>These functions sets and queries the proxy settings to be used for the
-<a class="reference external" href="reference-Session.html#session">session</a>.</p>
-<p>For more information on what settings are available for proxies, see
-<a class="reference external" href="reference-Settings.html#proxy_settings">proxy_settings</a>. If the <a class="reference external" href="reference-Session.html#session">session</a> is not in anonymous mode, proxies that
-aren't working or fail, will automatically be disabled and packets
-will flow without using any proxy. If you want to enforce using a
-proxy, even when the proxy doesn't work, enable anonymous_mode in
-session_settings.</p>
-<a name="i2p_proxy()"></a>
-<a name="set_i2p_proxy()"></a></div>
-<div class="section" id="i2p-proxy-set-i2p-proxy">
-<h2>i2p_proxy() set_i2p_proxy()</h2>
-<pre class="literal-block">
-proxy_settings <strong>i2p_proxy</strong> () const;
-void <strong>set_i2p_proxy</strong> (proxy_settings const&amp; s);
-</pre>
-<p><tt class="docutils literal">set_i2p_proxy</tt> sets the <a class="reference external" href="http://www.i2p2.de">i2p</a> proxy, and tries to open a persistant
-connection to it. The only used fields in the proxy settings structs
-are <tt class="docutils literal">hostname</tt> and <tt class="docutils literal">port</tt>.</p>
-<p><tt class="docutils literal">i2p_proxy</tt> returns the current i2p proxy in use.</p>
 <a name="pop_alert()"></a>
 <a name="pop_alerts()"></a>
 <a name="wait_for_alert()"></a></div>
@@ -1584,14 +1550,6 @@ to remove it.</p>
 <td>4</td>
 <td>saves dht state such as nodes and node-id, possibly accelerating
 joining the DHT if provided at next <a class="reference external" href="reference-Session.html#session">session</a> startup.</td>
-</tr>
-<tr><td>save_proxy</td>
-<td>8</td>
-<td>save <a class="reference external" href="reference-Settings.html#proxy_settings">proxy_settings</a></td>
-</tr>
-<tr><td>save_i2p_proxy</td>
-<td>16</td>
-<td>save i2p_proxy settings</td>
 </tr>
 <tr><td>save_encryption_settings</td>
 <td>32</td>

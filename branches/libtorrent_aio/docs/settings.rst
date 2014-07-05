@@ -134,6 +134,58 @@ a DHT ping packet, and connect to those that responds first. On
 windows one can only connect to a few peers at a time because of a
 built in limitation (in XP Service pack 2).
 
+.. _proxy_hostname:
+
+.. raw:: html
+
+	<a name="proxy_hostname"></a>
+
++----------------+--------+---------+
+| name           | type   | default |
++================+========+=========+
+| proxy_hostname | string | ""      |
++----------------+--------+---------+
+
+when using a poxy, this is the hostname where the proxy is running
+see proxy_type.
+
+.. _proxy_username:
+
+.. _proxy_password:
+
+.. raw:: html
+
+	<a name="proxy_username"></a>
+	<a name="proxy_password"></a>
+
++----------------+--------+---------+
+| name           | type   | default |
++================+========+=========+
+| proxy_username | string | ""      |
++----------------+--------+---------+
+| proxy_password | string | ""      |
++----------------+--------+---------+
+
+when using a proxy, these are the credentials (if any) to use
+whne connecting to it. see proxy_type
+
+.. _i2p_hostname:
+
+.. raw:: html
+
+	<a name="i2p_hostname"></a>
+
++--------------+--------+---------+
+| name         | type   | default |
++==============+========+=========+
+| i2p_hostname | string | ""      |
++--------------+--------+---------+
+
+sets the i2p_ SAM bridge to connect to. set the port with the
+``i2p_port`` setting.
+
+.. _i2p: http://www.i2p2.de
+
 .. _allow_multiple_connections_per_ip:
 
 .. raw:: html
@@ -1194,6 +1246,36 @@ if the allowed encryption level is both, setting this to
 true will prefer rc4 if both methods are offered, plaintext
 otherwise
 
+.. _proxy_hostnames:
+
+.. raw:: html
+
+	<a name="proxy_hostnames"></a>
+
++-----------------+------+---------+
+| name            | type | default |
++=================+======+=========+
+| proxy_hostnames | bool | true    |
++-----------------+------+---------+
+
+if true, hostname lookups are done via the configured proxy (if
+any). This is only supported by SOCKS5 and HTTP.
+
+.. _proxy_peer_connections:
+
+.. raw:: html
+
+	<a name="proxy_peer_connections"></a>
+
++------------------------+------+---------+
+| name                   | type | default |
++========================+======+=========+
+| proxy_peer_connections | bool | true    |
++------------------------+------+---------+
+
+if true, peer connections are made (and accepted) over the
+configured proxy, if any.
+
 .. _tracker_completion_timeout:
 
 .. raw:: html
@@ -1804,22 +1886,24 @@ options are:
 | cache_expiry            | int  | 300     |
 +-------------------------+------+---------+
 
-``cache_size`` is the disk write and read  cache. It is specified in units of
-16 KiB blocks. Buffers that are part of a peer's send or receive buffer also
-count against this limit. Send and receive buffers will never be denied to be
-allocated, but they will cause the actual cached blocks to be flushed or evicted.
-If this is set to -1, the cache size is automatically set to the amount
-of physical RAM available in the machine divided by 8. If the amount of physical
-RAM cannot be determined, it's set to 1024 (= 16 MiB).
+``cache_size`` is the disk write and read  cache. It is specified
+in units of 16 KiB blocks. Buffers that are part of a peer's send
+or receive buffer also count against this limit. Send and receive
+buffers will never be denied to be allocated, but they will cause
+the actual cached blocks to be flushed or evicted. If this is set
+to -1, the cache size is automatically set to the amount of
+physical RAM available in the machine divided by 8. If the amount
+of physical RAM cannot be determined, it's set to 1024 (= 16 MiB).
 
-Disk buffers are allocated using a pool allocator, the number of blocks that
-are allocated at a time when the pool needs to grow can be specified in
-``cache_buffer_chunk_size``. Lower numbers saves memory at the expense of more
-heap allocations. If it is set to 0, the effective chunk size is proportional
-to the total cache size, attempting to strike a good balance between performance
-and memory usage. It defaults to 0.
-``cache_expiry`` is the number of seconds from the last cached write to a piece
-in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
+Disk buffers are allocated using a pool allocator, the number of
+blocks that are allocated at a time when the pool needs to grow can
+be specified in ``cache_buffer_chunk_size``. Lower numbers saves
+memory at the expense of more heap allocations. If it is set to 0,
+the effective chunk size is proportional to the total cache size,
+attempting to strike a good balance between performance and memory
+usage. It defaults to 0. ``cache_expiry`` is the number of seconds
+from the last cached write to a piece in the write cache, to when
+it's forcefully flushed to disk. Default is 60 second.
 
 .. _explicit_cache_interval:
 
@@ -1833,12 +1917,14 @@ in the write cache, to when it's forcefully flushed to disk. Default is 60 secon
 | explicit_cache_interval | int  | 30      |
 +-------------------------+------+---------+
 
-``explicit_cache_interval`` is the number of seconds in between each refresh of
-a part of the explicit read cache. Torrents take turns in refreshing and this
-is the time in between each torrent refresh. Refreshing a torrent's explicit
-read cache means scanning all pieces and picking a random set of the rarest ones.
-There is an affinity to pick pieces that are already in the cache, so that
-subsequent refreshes only swaps in pieces that are rarer than whatever is in
+``explicit_cache_interval`` is the number of seconds in between
+each refresh of a part of the explicit read cache. Torrents take
+turns in refreshing and this is the time in between each torrent
+refresh. Refreshing a torrent's explicit read cache means scanning
+all pieces and picking a random set of the rarest ones. There is an
+affinity to pick pieces that are already in the cache, so that
+subsequent refreshes only swaps in pieces that are rarer than
+whatever is in
 the cache at the time.
 
 .. _disk_io_write_mode:
@@ -1865,16 +1951,19 @@ read and write mode. The options are:
    This is the default and files are opened normally, with the OS caching
    reads and writes.
 * disable_os_cache
-   This opens all files in no-cache mode. This corresponds to the OS not letting
-   blocks for the files linger in the cache. This makes sense in order to avoid
-   the bittorrent client to potentially evict all other processes' cache by simply
-   handling high throughput and large files. If libtorrent's read cache is disabled,
-   enabling this may reduce performance.
+   This opens all files in no-cache mode. This corresponds to the
+   OS not letting blocks for the files linger in the cache. This
+   makes sense in order to avoid the bittorrent client to
+   potentially evict all other processes' cache by simply handling
+   high throughput and large files. If libtorrent's read cache is
+   disabled, enabling this may reduce performance.
 
-One reason to disable caching is that it may help the operating system from growing
-its file cache indefinitely. Since some OSes only allow aligned files to be opened
-in unbuffered mode, It is recommended to make the largest file in a torrent the first
-file (with offset 0) or use pad files to align all files to piece boundries.
+One reason to disable caching is that it may help the operating
+system from growing its file cache indefinitely. Since some OSes
+only allow aligned files to be opened in unbuffered mode, It is
+recommended to make the largest file in a torrent the first file
+(with offset 0) or use pad files to align all files to piece
+boundries.
 
 .. _outgoing_port:
 
@@ -1907,8 +1996,9 @@ the range. It should be more than a few
    escape hatch for cheap routers with QoS capability but can only classify
    flows based on port numbers.
 
-It is a range instead of a single port because of the problems with failing to reconnect
-to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
+It is a range instead of a single port because of the problems with
+failing to reconnect to peers if a previous socket to that peer and
+port is in ``TIME_WAIT`` state.
 
 .. _peer_tos:
 
@@ -3079,4 +3169,49 @@ than ``inactive_down_rate`` and whose upload rate is less than
 ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is
 considered inactive, and another queued torrent may be startert.
 This logic is disabled if ``dont_count_slow_torrents`` is false.
+
+.. _proxy_type:
+
+.. raw:: html
+
+	<a name="proxy_type"></a>
+
++------------+------+---------------------+
+| name       | type | default             |
++============+======+=====================+
+| proxy_type | int  | settings_pack::none |
++------------+------+---------------------+
+
+proxy to use, defaults to none. see proxy_type_t.
+
+.. _proxy_port:
+
+.. raw:: html
+
+	<a name="proxy_port"></a>
+
++------------+------+---------+
+| name       | type | default |
++============+======+=========+
+| proxy_port | int  | 0       |
++------------+------+---------+
+
+the port of the proxy server
+
+.. _i2p_port:
+
+.. raw:: html
+
+	<a name="i2p_port"></a>
+
++----------+------+---------+
+| name     | type | default |
++==========+======+=========+
+| i2p_port | int  | 0       |
++----------+------+---------+
+
+sets the i2p_ SAM bridge port to connect to. set the hostname with
+the ``i2p_hostname`` setting.
+
+.. _i2p: http://www.i2p2.de
 
