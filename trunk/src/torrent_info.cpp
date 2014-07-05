@@ -778,7 +778,7 @@ namespace libtorrent
 	void torrent_info::rename_file(int index, std::wstring const& new_filename)
 	{
 		copy_on_write();
-		m_files.rename_file(index, new_filename);
+		m_files.rename_file_deprecated(index, new_filename);
 	}
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
@@ -1451,8 +1451,9 @@ namespace libtorrent
 		os << "number of pieces: " << num_pieces() << "\n";
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";
-		for (file_storage::iterator i = m_files.begin(); i != m_files.end(); ++i)
-			os << "  " << std::setw(11) << i->size << "  " << m_files.file_path(*i) << "\n";
+		for (int i = 0; i < m_files.num_files(); ++i)
+			os << "  " << std::setw(11) << m_files.file_size(i)
+				<< "  " << m_files.file_path(i) << "\n";
 	}
 
 // ------- end deprecation -------

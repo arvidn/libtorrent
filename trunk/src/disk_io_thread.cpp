@@ -1612,7 +1612,7 @@ namespace libtorrent
 			int unchoke_limit = m_settings.unchoke_slots_limit;
 			if (unchoke_limit < 0) unchoke_limit = 100;
 
-			if (m_sorted_read_jobs.size() > unchoke_limit * 2)
+			if (int(m_sorted_read_jobs.size()) > unchoke_limit * 2)
 			{
 				int range = unchoke_limit;
 				int exceed = m_sorted_read_jobs.size() - range * 2;
