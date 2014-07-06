@@ -1304,11 +1304,6 @@ namespace libtorrent
 
 			// is true if the session is paused
 			bool m_paused;
-			// is false by default and set to true when
-			// the first incoming connection is established
-			// this is used to know if the client is behind
-			// NAT or not.
-			bool m_incoming_connection;
 			
 			// redundant bytes per category
 			size_type m_redundant_bytes[7];

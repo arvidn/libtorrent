@@ -189,8 +189,13 @@ namespace libtorrent
 
 			sent_payload_bytes,
 			sent_bytes,
+			sent_ip_overhead_bytes,
+			sent_tracker_bytes,
 			recv_payload_bytes,
 			recv_bytes,
+			recv_ip_overhead_bytes,
+			recv_tracker_bytes,
+
 			recv_failed_bytes,
 			recv_redundant_bytes,
 
@@ -340,6 +345,7 @@ namespace libtorrent
 			num_running_threads,
 			blocked_disk_jobs,
 			queued_write_bytes,
+			num_unchoke_slots,
 
 			arc_mru_size,
 			arc_mru_ghost_size,
@@ -355,6 +361,14 @@ namespace libtorrent
 			dht_immutable_data,
 			dht_mutable_data,
 			dht_allocated_observers,
+
+			has_oncoming_connections,
+
+			limiter_up_queue,
+			limiter_down_queue,
+
+			limiter_up_bytes,
+			limiter_down_bytes,
 
 			num_counters,
 			num_gauge_counters = num_counters - num_stats_counters

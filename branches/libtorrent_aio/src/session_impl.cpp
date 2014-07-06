@@ -510,7 +510,6 @@ namespace aux {
 		, m_need_auto_manage(false)
 		, m_abort(false)
 		, m_paused(false)
-		, m_incoming_connection(false)
 #if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif
@@ -2401,7 +2400,7 @@ retry:
 			, end(m_listen_sockets.end()); i != end; ++i)
 			i->sock->close(ec);
 		m_listen_sockets.clear();
-		m_incoming_connection = false;
+		m_stats_counters.set_value(counters::has_incoming_connections, 0);
 		ec.clear();
 
 		if (m_abort) return;
@@ -3073,7 +3072,7 @@ retry:
 		// and it does not reflect whether or not a router is open
 		// for incoming connections or not.
 		if (!is_local(endp.address()))
-			m_incoming_connection = true;
+			m_stats_counters.set_value(counters::has_incoming_connections, 1);
 
 		// this filter is ignored if a single torrent
 		// is set to ignore the filter, since this peer might be
@@ -5676,13 +5675,33 @@ retry:
 		// TODO: 3 it would be really nice to update these counters
 		// as they are incremented. This depends on the session
 		// being ticked, which has a fairly coarse grained resolution
-		m_stats_counters.set_value(counters::sent_bytes, m_stat.total_upload());
+		m_stats_counters.set_value(counters::sent_bytes
+			, m_stat.total_upload());
 		m_stats_counters.set_value(counters::sent_payload_bytes
 			, m_stat.total_transfer(stat::upload_payload));
+		m_stats_counters.set_value(counters::sent_ip_overhead_bytes
+			, m_stat.total_ip_overhead_upload());
+		m_stats_counters.set_value(counters::sent_tracker_bytes
+			, m_stat.total_transfer(stat::upload_tracker_protocol));
+
 		m_stats_counters.set_value(counters::recv_bytes
 			, m_stat.total_download());
 		m_stats_counters.set_value(counters::recv_payload_bytes
 			, m_stat.total_transfer(stat::download_payload));
+		m_stats_counters.set_value(counters::recv_ip_overhead_bytes
+			, m_stat.total_ip_overhead_download());
+		m_stats_counters.set_value(counters::recv_tracker_bytes
+			, m_stat.total_transfer(stat::download_tracker_protocol));
+
+		m_stats_counters.set_value(counters::limiter_up_queue
+			, m_upload_rate.queue_size());
+		m_stats_counters.set_value(counters::limiter_down_queue
+			, m_download_rate.queue_size());
+
+		m_stats_counters.set_value(counters::limiter_up_bytes
+			, m_upload_rate.queued_bytes());
+		m_stats_counters.set_value(counters::limiter_down_bytes
+			, m_download_rate.queued_bytes());
 
 		for (int i = 0; i < counters::num_counters; ++i)
 			values[i] = m_stats_counters[i];
@@ -6524,7 +6543,7 @@ retry:
 		s.disk_write_queue = m_stats_counters[counters::num_peers_down_disk];
 		s.disk_read_queue = m_stats_counters[counters::num_peers_up_disk];
 
-		s.has_incoming_connections = m_incoming_connection;
+		s.has_incoming_connections = m_stats_counters[counters::has_incoming_connections];
 
 		// total
 		s.download_rate = m_stat.download_rate();
@@ -7021,6 +7040,9 @@ retry:
 
 		if (m_allowed_upload_slots < 0)
 			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
+
+		m_stats_counters.set_value(counters::num_unchoke_slots
+			, m_m_allowed_upload_slots);
 
 		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots) >= m_allowed_upload_slots / 2)
 		{

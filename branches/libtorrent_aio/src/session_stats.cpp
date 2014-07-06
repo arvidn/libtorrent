@@ -152,10 +152,36 @@ namespace libtorrent
 		// total number of bytes sent and received by the session
 		METRIC(net, sent_payload_bytes, type_counter)
 		METRIC(net, sent_bytes, type_counter)
+		METRIC(net, sent_ip_overhead_bytes, type_counter)
+		METRIC(net, sent_tracker_bytes, type_counter)
 		METRIC(net, recv_payload_bytes, type_counter)
 		METRIC(net, recv_bytes, type_counter)
+		METRIC(net, recv_ip_overhead_bytes, type_counter)
+		METRIC(net, recv_tracker_bytes, type_counter)
+
+		// the number of sockets currently waiting for upload and download
+		// bandwidht from the rate limiter.
+		METRIC(net, limiter_up_queue, type_gauge)
+		METRIC(net, limiter_down_queue, type_gauge)
+
+		// the number of upload and download bytes waiting to be handed out from
+		// the rate limiter.
+		METRIC(net, limiter_up_bytes, type_gauge)
+		METRIC(net, limiter_down_bytes, type_gauge)
+
+		// the number of bytes downloaded that had to be discarded because they
+		// failed the hash check
 		METRIC(net, recv_failed_bytes, type_counter)
+
+		// the number of downloaded bytes that were discarded because they
+		// were downloaded multiple times (from different peers)
 		METRIC(net, recv_redundant_bytes, type_counter)
+
+		// is false by default and set to true when
+		// the first incoming connection is established
+		// this is used to know if the client is behind
+		// NAT or not.
+		METRIC(net, has_incoming_connections, type_gauge)
 
 		// these gauges count the number of torrents in
 		// different states. Each torrent only belongs to
@@ -192,6 +218,9 @@ namespace libtorrent
 		// evicted (only applies when `dynamic loading of torrent files`_
 		// is enabled).
 		METRIC(ses, torrent_evicted_counter, type_counter)
+
+		// the number of allowed unchoked peers
+		METRIC(peer, num_unchoke_slots, type_gauge)
 
 		// bittorrent message counters. These counters are incremented
 		// every time a message of the corresponding type is received from
