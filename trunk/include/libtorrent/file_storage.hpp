@@ -393,6 +393,7 @@ namespace libtorrent
 		{
 			using std::swap;
 			swap(ti.m_files, m_files);
+			swap(ti.m_num_files, m_num_files);
 			swap(ti.m_file_hashes, m_file_hashes);
 			swap(ti.m_symlinks, m_symlinks);
 			swap(ti.m_mtime, m_mtime);
@@ -403,6 +404,13 @@ namespace libtorrent
 			swap(ti.m_num_pieces, m_num_pieces);
 			swap(ti.m_piece_length, m_piece_length);
 		}
+
+		// deallocates most of the memory used by this
+		// instance, leaving it only partially usable
+		void unload();
+
+		// returns true when populated with at least one file
+		bool is_loaded() const { return !m_files.empty(); }
 
 		// if pad_file_limit >= 0, files larger than that limit will be padded,
 		// default is to not add any padding (-1). The alignment specifies the
@@ -470,6 +478,8 @@ namespace libtorrent
 			flag_symlink = 8
 		};
 
+		std::vector<std::string> const& paths() const { return m_paths; }
+
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
 		int file_flags(int index) const;
@@ -520,6 +530,13 @@ namespace libtorrent
 
 	private:
 
+		// the number of bytes in a regular piece
+		// (i.e. not the potentially truncated last piece)
+		int m_piece_length;
+
+		// the number of pieces in the torrent
+		int m_num_pieces;
+
 		void update_path_index(internal_file_entry& e);
 		void reorder_file(int index, int dst);
 
@@ -564,10 +581,10 @@ namespace libtorrent
 		// the sum of all filesizes
 		size_type m_total_size;
 
-		// the number of pieces in the torrent
-		int m_num_pieces;
+		// the number of files. This is used when
+		// the torrent is unloaded
+		int m_num_files;
 
-		int m_piece_length;
 	};
 }
 

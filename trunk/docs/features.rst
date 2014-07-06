@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 1.1.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -61,6 +61,10 @@ disk management
 
 * uses a separate disk I/O thread to not have the disk ever block on network or
   client interaction. (see threads_).
+* uses asynchronous disk I/O when available (overlapped I/O, kaio, and posix-aio)
+  to make optimal use of disk bandwidth capacity
+* supports verifying the SHA-1 hash of pieces in multiple threads, to take full
+  advantage of multi core machines.
 * supports files > 2 gigabytes.
 * fast resume support, a way to get rid of the costly piece check at the
   start of a resumed torrent. Saves the storage state, piece_picker state

@@ -33,14 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_INTRUSIVE_PTR_BASE
 #define TORRENT_INTRUSIVE_PTR_BASE
 
-#include <boost/detail/atomic_count.hpp>
 #include <boost/checked_delete.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/atomic.hpp"
 
 namespace libtorrent
 {
+	// TODO: 2 remove this class and transition over to using shared_ptr and make_shared instead
 	template<class T>
 	struct intrusive_ptr_base
 	{
@@ -75,7 +76,7 @@ namespace libtorrent
 	private:
 
 		// reference counter for intrusive_ptr
-		mutable boost::detail::atomic_count m_refs;
+		mutable atomic_count m_refs;
 	};
 
 }

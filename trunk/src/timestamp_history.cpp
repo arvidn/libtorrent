@@ -45,12 +45,12 @@ bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
 
 boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 {
-	if (!m_initialized)
+	if (!initialized())
 	{
 		for (int i = 0; i < history_size; ++i)
 			m_history[i] = sample;
 		m_base = sample;
-		m_initialized = true;
+		m_num_samples = 0;
 	}
 
 	++m_num_samples;
@@ -93,7 +93,7 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 
 void timestamp_history::adjust_base(int change)
 {
-	TORRENT_ASSERT(m_initialized);
+	TORRENT_ASSERT(initialized());
 	m_base += change;
 	// make sure this adjustment sticks by updating all history slots
 	for (int i = 0; i < history_size; ++i)

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include <boost/tuple/tuple.hpp>
 #include "test.hpp"
+#include "libtorrent/atomic.hpp"
 
 namespace libtorrent
 {
@@ -51,6 +52,13 @@ int EXPORT load_file(std::string const& filename, std::vector<char>& v, libtorre
 void EXPORT save_file(char const* filename, char const* data, int size);
 
 void EXPORT report_failure(char const* err, char const* file, int line);
+
+libtorrent::address EXPORT rand_v4();
+#if TORRENT_USE_IPV6
+libtorrent::address EXPORT rand_v6();
+#endif
+libtorrent::tcp::endpoint EXPORT rand_tcp_ep();
+libtorrent::udp::endpoint EXPORT rand_udp_ep();
 
 std::auto_ptr<libtorrent::alert> EXPORT wait_for_alert(
 	libtorrent::session& ses, int type, char const* name = "");
@@ -68,11 +76,12 @@ bool EXPORT print_alerts(libtorrent::session& ses, char const* name
 	, bool no_output = false);
 
 void EXPORT wait_for_listen(libtorrent::session& ses, char const* name);
+void EXPORT wait_for_downloading(libtorrent::session& ses, char const* name);
 void EXPORT test_sleep(int millisec);
 
 void EXPORT create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
-boost::intrusive_ptr<libtorrent::torrent_info> EXPORT create_torrent(std::ostream* file = 0
+boost::shared_ptr<libtorrent::torrent_info> EXPORT create_torrent(std::ostream* file = 0
 	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true
 	, std::string ssl_certificate = "");
 
@@ -82,9 +91,9 @@ boost::tuple<libtorrent::torrent_handle
 EXPORT setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
-	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
+	, boost::shared_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
 	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool use_ssl_ports = false
-	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent2 = 0);
+	, boost::shared_ptr<libtorrent::torrent_info>* torrent2 = 0);
 
 int EXPORT start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true);

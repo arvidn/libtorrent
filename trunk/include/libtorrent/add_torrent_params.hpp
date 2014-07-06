@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/peer_id.hpp" // sha1_hash
@@ -249,20 +249,26 @@ namespace libtorrent
 			// case the save_path specified in add_torrent_params is always used.
 			flag_use_resume_save_path = 0x1000,
 
+			// indicates that this torrent should never be unloaded from RAM, even
+			// if unloading torrents are allowed in general. Setting this makes
+			// the torrent exempt from loading/unloading management.
+			flag_pinned = 0x2000,
+
 			// internal
-			default_flags = flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
+			default_flags = flag_pinned | flag_update_subscribe
+				| flag_auto_managed | flag_paused | flag_apply_ip_filter
+
 #ifndef TORRENT_NO_DEPRECATE
 			, flag_ignore_flags = 0x80000000
 #endif
 		};
 	
-		// filled in by the constructor and should be left untouched. It
-		// is used for forward binary compatibility.
+		// filled in by the constructor and should be left untouched. It is used
+		// for forward binary compatibility.
 		int version;
-
 		// torrent_info object with the torrent to add. Unless the url or
 		// info_hash is set, this is required to be initiazlied.
-		boost::intrusive_ptr<torrent_info> ti;
+		boost::shared_ptr<torrent_info> ti;
 
 #ifndef TORRENT_NO_DEPRECATE
 		char const* tracker_url;
@@ -350,8 +356,8 @@ namespace libtorrent
 		// items which has UUIDs specified.
 		std::string uuid;
 
-		// should point to the URL of the RSS feed this torrent comes from,
-		// if it comes from an RSS feed.
+		// should point to the URL of the RSS feed this torrent comes from, if it
+		// comes from an RSS feed.
 		std::string source_feed_url;
 
 		// flags controlling aspects of this torrent and how it's added. See

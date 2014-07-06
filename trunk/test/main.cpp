@@ -35,7 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h> // for exit()
+#include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
 #include "setup_transfer.hpp" // for tests_failure
+#include "test.hpp"
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
 #include "udp_tracker.hpp" // for stop_udp_tracker
@@ -49,6 +52,8 @@ int test_main();
 #ifdef WIN32
 #include <windows.h> // fot SetErrorMode
 #endif
+
+using namespace libtorrent;
 
 void sig_handler(int sig)
 {
@@ -80,8 +85,6 @@ void sig_handler(int sig)
 	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
 	exit(138);
 }
-
-using namespace libtorrent;
 
 int main()
 {

@@ -145,7 +145,7 @@ utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
-void tick_utp_impl(utp_socket_impl* s, ptime const& now);
+void tick_utp_impl(utp_socket_impl* s, ptime now);
 void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu);
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
 	, int size, udp::endpoint const& ep, ptime receive_time);
@@ -282,12 +282,6 @@ public:
 		do_connect(endpoint, &utp_stream::on_connect);
 	}
 	
-	template <class Handler>
-	void async_read_some(boost::asio::null_buffers const& buffers, Handler const& handler)
-	{
-		TORRENT_ASSERT(false);
-	}
-
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
@@ -321,6 +315,25 @@ public:
 			return;
 		}
 
+		m_read_handler = handler;
+		set_read_handler(&utp_stream::on_read);
+	}
+
+	template <class Handler>
+	void async_read_some(boost::asio::null_buffers const&, Handler const& handler)
+	{
+		if (m_impl == 0)
+		{
+			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
+			return;
+		}
+
+		TORRENT_ASSERT(!m_read_handler);
+		if (m_read_handler)
+		{
+			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			return;
+		}
 		m_read_handler = handler;
 		set_read_handler(&utp_stream::on_read);
 	}
@@ -400,12 +413,6 @@ public:
 		return ret;
 	}
 #endif
-
-	template <class Handler>
-	void async_write_some(boost::asio::null_buffers const& buffers, Handler const& handler)
-	{
-		TORRENT_ASSERT(false);
-	}
 
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)

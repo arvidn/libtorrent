@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include <vector>
+#include <string>
 
 namespace libtorrent
 {
@@ -49,6 +51,18 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT bool string_equal_no_case(char const* s1, char const* s2);
 
 	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
+
+	// this parses the string that's used as the liste_interfaces setting.
+	// it is a comma-separated list of IP or device names with ports. For
+	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
+	TORRENT_EXTRA_EXPORT void parse_comma_separated_string_port(
+		std::string const& in, std::vector<std::pair<std::string, int> >& out);
+
+	// this parses the string that's used as the outgoing_interfaces setting.
+	// it is a comma separated list of IPs and device names. For example:
+	// "eth0, eth1, 127.0.0.1"
+	TORRENT_EXTRA_EXPORT void parse_comma_separated_string(
+		std::string const& in, std::vector<std::string>& out);
 
 	// strdup is not part of the C standard. Some systems
 	// don't have it and it won't be available when building

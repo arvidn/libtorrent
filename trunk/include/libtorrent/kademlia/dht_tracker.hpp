@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
+#include "libtorrent/kademlia/dos_blocker.hpp"
+
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
@@ -57,6 +59,7 @@ namespace libtorrent
 {
 	namespace aux { struct session_impl; }
 	struct lazy_entry;
+	struct counters;
 }
 
 namespace libtorrent { namespace dht
@@ -77,7 +80,7 @@ namespace libtorrent { namespace dht
 		friend void intrusive_ptr_release(dht_tracker const*);
 
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
-			, dht_settings const& settings, entry const* state = 0);
+			, dht_settings const& settings, counters& cnt, entry const* state = 0);
 		virtual ~dht_tracker();
 
 		void start(entry const& bootstrap
@@ -131,13 +134,16 @@ namespace libtorrent { namespace dht
 		void tick(error_code const& e);
 
 		// implements udp_socket_interface
+		virtual bool has_quota();
 		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
 			, int send_flags);
 
+		counters& m_counters;
 		node_impl m_dht;
 		rate_limited_udp_socket& m_sock;
 
 		std::vector<char> m_send_buf;
+		dos_blocker m_blocker;
 
 		ptime m_last_new_key;
 		deadline_timer m_timer;
@@ -154,19 +160,6 @@ namespace libtorrent { namespace dht
 		// sent and received bytes since queried last time
 		int m_sent_bytes;
 		int m_received_bytes;
-
-		// used to ignore abusive dht nodes
-		struct node_ban_entry
-		{
-			node_ban_entry(): count(0) {}
-			address src;
-			ptime limit;
-			int count;
-		};
-
-		enum { num_ban_nodes = 20 };
-
-		node_ban_entry m_ban_nodes[num_ban_nodes];
 
 		// reference counter for intrusive_ptr
 		mutable boost::detail::atomic_count m_refs;

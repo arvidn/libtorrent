@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>1.1.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -122,6 +122,10 @@ ratio rather than downloading the torrent.</li>
 <ul class="simple">
 <li>uses a separate disk I/O thread to not have the disk ever block on network or
 client interaction. (see <a class="reference external" href="manualref.html#threads">threads</a>).</li>
+<li>uses asynchronous disk I/O when available (overlapped I/O, kaio, and posix-aio)
+to make optimal use of disk bandwidth capacity</li>
+<li>supports verifying the SHA-1 hash of pieces in multiple threads, to take full
+advantage of multi core machines.</li>
 <li>supports files &gt; 2 gigabytes.</li>
 <li>fast resume support, a way to get rid of the costly piece check at the
 start of a resumed torrent. Saves the storage state, piece_picker state

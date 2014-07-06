@@ -43,6 +43,7 @@ const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
 void test_checking(bool read_only_files, bool corrupt_files = false)
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	fprintf(stderr, "==== TEST CHECKING %s%s=====\n"
 		, read_only_files?"read-only-files ":""
@@ -91,7 +92,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	boost::intrusive_ptr<torrent_info> ti(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], buf.size(), ec));
 
 	fprintf(stderr, "generated torrent: %s tmp1_checking/test_torrent_dir\n"
 		, to_hex(ti->info_hash().to_string()).c_str());
@@ -99,6 +100,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	// overwrite the files with new random data
 	if (corrupt_files)
 	{
+		fprintf(stderr, "corrupt file test. overwriting files\n");
 		// increase the size of some files. When they're read only that forces
 		// the checker to open them in write-mode to truncate them
 		static const int file_sizes2[] =
@@ -110,6 +112,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	// make the files read only
 	if (read_only_files)
 	{
+		fprintf(stderr, "making files read-only\n");
 		for (int i = 0; i < num_files; ++i)
 		{
 			char name[1024];
@@ -119,6 +122,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 
 			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
+			fprintf(stderr, "   %s\n", path.c_str());
 
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_READONLY);
@@ -128,8 +132,11 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		}
 	}
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
-	ses1.set_alert_mask(alert::all_categories);
+	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, alert::all_categories);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
+	pack.set_int(settings_pack::max_retry_port_bind, 1000);
+	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	add_torrent_params p;
 	p.save_path = "tmp1_checking";
@@ -146,8 +153,11 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 
 		printf("%d %f %s\n", st.state, st.progress_ppm / 10000.f, st.error.c_str());
 
-		if (st.state != torrent_status::queued_for_checking
-			&& st.state != torrent_status::checking_files
+		if (
+#ifndef TORRENT_NO_DEPRECATE
+			st.state != torrent_status::queued_for_checking &&
+#endif
+			st.state != torrent_status::checking_files
 			&& st.state != torrent_status::checking_resume_data)
 			break;
 
@@ -157,13 +167,31 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	if (corrupt_files)
 	{
 		TEST_CHECK(!st.is_seeding);
-		TEST_CHECK(!st.error.empty());
-		// wait a while to make sure libtorrent survived the error
-		test_sleep(5000);
 
-		st = tor1.status();
-		TEST_CHECK(!st.is_seeding);
-		TEST_CHECK(!st.error.empty());
+		if (read_only_files)
+		{
+			// we expect our checking of the files to trigger
+			// attempts to truncate them, since the files are
+			// read-only here, we expect the checking to fail.
+			TEST_CHECK(!st.error.empty());
+			if (!st.error.empty())
+				fprintf(stderr, "error: %s\n", st.error.c_str());
+
+			// wait a while to make sure libtorrent survived the error
+			test_sleep(1000);
+   
+			st = tor1.status();
+			TEST_CHECK(!st.is_seeding);
+			TEST_CHECK(!st.error.empty());
+			if (!st.error.empty())
+				fprintf(stderr, "error: %s\n", st.error.c_str());
+		}
+		else
+		{
+			TEST_CHECK(st.error.empty());
+			if (!st.error.empty())
+				fprintf(stderr, "error: %s\n", st.error.c_str());
+		}
 	}
 	else
 	{
@@ -200,6 +228,7 @@ int test_main()
 	test_checking(false);
 	test_checking(true);
 	test_checking(true, true);
+	test_checking(false, true);
 
 	return 0;
 }

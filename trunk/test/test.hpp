@@ -33,6 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEST_HPP
 #define TEST_HPP
 
+#include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
+
 #include <boost/config.hpp>
 #include <exception>
 #include <sstream>

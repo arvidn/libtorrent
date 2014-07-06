@@ -40,13 +40,7 @@ namespace libtorrent
 	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
 	{
-		if (e || i == tcp::resolver::iterator())
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		m_sock.async_connect(i->endpoint(), boost::bind(
 			&http_stream::connected, this, _1, h));
@@ -54,13 +48,7 @@ namespace libtorrent
 
 	void http_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 
@@ -95,13 +83,7 @@ namespace libtorrent
 
 	void http_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		// read one byte from the socket
 		m_buffer.resize(1);
@@ -111,13 +93,7 @@ namespace libtorrent
 
 	void http_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		int read_pos = m_buffer.size();
 		// look for \n\n and \r\n\r\n

@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/socket_type.hpp" // for async_shutdown
+#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/settings_pack.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -49,7 +51,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-http_connection::http_connection(io_service& ios, connection_queue& cc
+http_connection::http_connection(io_service& ios
+	, connection_queue& cc
+	, resolver_interface& resolver
 	, http_handler const& handler
 	, bool bottled
 	, int max_bottled_buffer_size
@@ -59,34 +63,37 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, boost::asio::ssl::context* ssl_ctx
 #endif
 	)
-	: m_sock(ios)
-#if TORRENT_USE_I2P
-	, m_i2p_conn(0)
-#endif
-	, m_read_pos(0)
-	, m_resolver(ios)
-	, m_handler(handler)
-	, m_connect_handler(ch)
-	, m_filter_handler(fh)
-	, m_timer(ios)
-	, m_last_receive(time_now())
-	, m_start_time(time_now())
-	, m_bottled(bottled)
-	, m_max_bottled_buffer_size(max_bottled_buffer_size)
-	, m_called(false)
+	: m_cc(cc)
 #ifdef TORRENT_USE_OPENSSL
 	, m_ssl_ctx(ssl_ctx)
 	, m_own_ssl_context(false)
 #endif
-	, m_rate_limit(0)
-	, m_download_quota(0)
-	, m_limiter_timer_active(false)
+	, m_sock(ios)
+#if TORRENT_USE_I2P
+	, m_i2p_conn(0)
+#endif
+	, m_resolver(resolver)
+	, m_handler(handler)
+	, m_connect_handler(ch)
+	, m_filter_handler(fh)
+	, m_timer(ios)
 	, m_limiter_timer(ios)
+	, m_last_receive(time_now())
+	, m_start_time(time_now())
+	, m_read_pos(0)
 	, m_redirects(5)
 	, m_connection_ticket(-1)
-	, m_cc(cc)
-	, m_ssl(false)
+	, m_max_bottled_buffer_size(max_bottled_buffer_size)
+	, m_rate_limit(0)
+	, m_download_quota(0)
 	, m_priority(0)
+	, m_resolve_flags(0)
+	, m_port(0)
+	, m_bottled(bottled)
+	, m_called(false)
+	, m_limiter_timer_active(false)
+	, m_queued_for_connection(false)
+	, m_ssl(false)
 	, m_abort(false)
 {
 	TORRENT_ASSERT(!m_handler.empty());
@@ -102,13 +109,14 @@ http_connection::~http_connection()
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, address const& bind_addr
+	, address const& bind_addr, int resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
 	)
 {
 	m_user_agent = user_agent;
+	m_resolve_flags = resolve_flags;
 
 	std::string protocol;
 	std::string auth;
@@ -127,6 +135,13 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	// deletes this object
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
+	if (ec)
+	{
+		m_timer.get_io_service().post(boost::bind(&http_connection::callback
+			, me, ec, (char*)0, 0));
+		return;
+	}
+
 	if (protocol != "http"
 #ifdef TORRENT_USE_OPENSSL
 		&& protocol != "https"
@@ -134,14 +149,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		)
 	{
 		error_code ec(errors::unsupported_url_protocol);
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-			, me, ec, (char*)0, 0));
-		return;
-	}
-
-	if (ec)
-	{
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(boost::bind(&http_connection::callback
 			, me, ec, (char*)0, 0));
 		return;
 	}
@@ -161,14 +169,14 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	// exclude ssl here, because SSL assumes CONNECT support in the
 	// proxy and is handled at the lower layer
-	if (ps && (ps->type == proxy_settings::http
-		|| ps->type == proxy_settings::http_pw)
+	if (ps && (ps->type == settings_pack::http
+		|| ps->type == settings_pack::http_pw)
 		&& !ssl)
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
 		APPEND_FMT1("GET %s HTTP/1.1\r\n", url.c_str());
-		if (ps->type == proxy_settings::http_pw)
+		if (ps->type == settings_pack::http_pw)
 			APPEND_FMT1("Proxy-Authorization: Basic %s\r\n", base64encode(
 				ps->username + ":" + ps->password).c_str());
 
@@ -202,17 +210,19 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	sendbuffer.assign(request);
 	m_url = url;
-	start(hostname, to_string(port).elems, timeout, prio
-		, ps, ssl, handle_redirects, bind_addr
+	start(hostname, port, timeout, prio
+		, ps, ssl, handle_redirects, bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 		, i2p_conn
 #endif
 		);
 }
 
-void http_connection::start(std::string const& hostname, std::string const& port
-	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl, int handle_redirects
+void http_connection::start(std::string const& hostname, int port
+	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl
+	, int handle_redirects
 	, address const& bind_addr
+	, int resolve_flags
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -221,6 +231,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	TORRENT_ASSERT(prio >= 0 && prio < 3);
 
 	m_redirects = handle_redirects;
+	m_resolve_flags = resolve_flags;
 	if (ps) m_proxy = *ps;
 
 	// keep ourselves alive even if the callback function
@@ -228,7 +239,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
 	m_completion_timeout = timeout;
-	m_read_timeout = (std::max)(seconds(5), timeout / 5);
+	m_read_timeout = seconds(5);
+	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
 	error_code ec;
 	m_timer.expires_from_now(m_completion_timeout, ec);
 #if defined TORRENT_ASIO_DEBUGGING
@@ -244,7 +256,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 	if (ec)
 	{
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(boost::bind(&http_connection::callback
 			, me, ec, (char*)0, 0));
 		return;
 	}
@@ -282,9 +294,9 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #endif
 
 #if TORRENT_USE_I2P
-		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
+		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
 		{
-			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			m_timer.get_io_service().post(boost::bind(&http_connection::callback
 				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
 			return;
 		}
@@ -292,14 +304,19 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 		proxy_settings const* proxy = ps;
 #if TORRENT_USE_I2P
-		if (is_i2p) proxy = &i2p_conn->proxy();
+		proxy_settings i2p_proxy;
+		if (is_i2p)
+		{
+			i2p_proxy = i2p_conn->proxy();
+			proxy = &i2p_proxy;
+		}
 #endif
 
 		// in this case, the upper layer is assumed to have taken
 		// care of the proxying already. Don't instantiate the socket
 		// with this proxy
-		if (proxy && (proxy->type == proxy_settings::http
-			|| proxy->type == proxy_settings::http_pw)
+		if (proxy && (proxy->type == settings_pack::http
+			|| proxy->type == settings_pack::http_pw)
 			&& !ssl)
 		{
 			proxy = 0;
@@ -313,7 +330,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			if (m_ssl_ctx == 0)
 			{
 				m_ssl_ctx = new (std::nothrow) boost::asio::ssl::context(
-					m_resolver.get_io_service(), asio::ssl::context::sslv23_client);
+					m_timer.get_io_service(), asio::ssl::context::sslv23_client);
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
@@ -325,7 +342,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			userdata = m_ssl_ctx;
 		}
 #endif
-		instantiate_connection(m_resolver.get_io_service()
+		instantiate_connection(m_timer.get_io_service()
 			, proxy ? *proxy : null_proxy, m_sock, userdata);
 
 		if (m_bind_addr != address_v4::any())
@@ -335,7 +352,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
 			{
-				m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+				m_timer.get_io_service().post(boost::bind(&http_connection::callback
 					, me, ec, (char*)0, 0));
 				return;
 			}
@@ -344,7 +361,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
-			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			m_timer.get_io_service().post(boost::bind(&http_connection::callback
 				, me, ec, (char*)0, 0));
 			return;
 		}
@@ -361,12 +378,12 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		else
 #endif
 		if (ps && ps->proxy_hostnames
-			&& (ps->type == proxy_settings::socks5
-				|| ps->type == proxy_settings::socks5_pw))
+			&& (ps->type == settings_pack::socks5
+				|| ps->type == settings_pack::socks5_pw))
 		{
 			m_hostname = hostname;
 			m_port = port;
-			m_endpoints.push_back(tcp::endpoint(address(), atoi(port.c_str())));
+			m_endpoints.push_back(tcp::endpoint(address(), port));
 			queue_connect();
 		}
 		else
@@ -374,9 +391,10 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_resolve");
 #endif
+			TORRENT_ASSERT(!m_self_reference);
 			m_endpoints.clear();
-			tcp::resolver::query query(hostname, port);
-			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
+			m_resolver.async_resolve(hostname, m_resolve_flags
+				, boost::bind(&http_connection::on_resolve
 				, me, _1, _2));
 		}
 		m_hostname = hostname;
@@ -387,6 +405,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 void http_connection::on_connect_timeout()
 {
 	TORRENT_ASSERT(m_connection_ticket > -1);
+	TORRENT_ASSERT(!m_queued_for_connection);
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
@@ -394,6 +413,8 @@ void http_connection::on_connect_timeout()
 
 	error_code ec;
 	m_sock.close(ec);
+
+	m_self_reference.reset();
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
@@ -448,17 +469,25 @@ void http_connection::close(bool force)
 	if (m_abort) return;
 
 	error_code ec;
-	m_timer.cancel(ec);
-	m_resolver.cancel();
-	m_limiter_timer.cancel(ec);
-
 	if (force)
 		m_sock.close(ec);
 	else
 		async_shutdown(m_sock, shared_from_this());
 
+	if (m_queued_for_connection)
+		m_cc.cancel(this);
+
+	if (m_connection_ticket > -1)
+	{
+		m_cc.done(m_connection_ticket);
+		m_connection_ticket = -1;
+	}
+
+	m_timer.cancel(ec);
+	m_limiter_timer.cancel(ec);
+
 	m_hostname.clear();
-	m_port.clear();
+	m_port = 0;
 	m_handler.clear();
 	m_abort = true;
 }
@@ -498,7 +527,7 @@ void http_connection::on_i2p_resolve(error_code const& e
 #endif
 
 void http_connection::on_resolve(error_code const& e
-	, tcp::resolver::iterator i)
+	, std::vector<address> const& addresses)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_resolve");
@@ -511,10 +540,11 @@ void http_connection::on_resolve(error_code const& e
 		close();
 		return;
 	}
-	TORRENT_ASSERT(i != tcp::resolver::iterator());
+	TORRENT_ASSERT(!addresses.empty());
 
-	std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
-		, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
+	for (std::vector<address>::const_iterator i = addresses.begin()
+		, end(addresses.end()); i != end; ++i)
+		m_endpoints.push_back(tcp::endpoint(*i, m_port));
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
 	if (m_endpoints.empty())
@@ -522,6 +552,8 @@ void http_connection::on_resolve(error_code const& e
 		close();
 		return;
 	}
+
+	std::random_shuffle(m_endpoints.begin(), m_endpoints.end());
 
 	// The following statement causes msvc to crash (ICE). Since it's not
 	// necessary in the vast majority of cases, just ignore the endpoint
@@ -542,26 +574,42 @@ void http_connection::on_resolve(error_code const& e
 void http_connection::queue_connect()
 {
 	TORRENT_ASSERT(!m_endpoints.empty());
-	tcp::endpoint target = m_endpoints.front();
-	m_endpoints.pop_front();
-
-	m_cc.enqueue(boost::bind(&http_connection::connect, shared_from_this(), _1, target)
-		, boost::bind(&http_connection::on_connect_timeout, shared_from_this())
-		, m_read_timeout, m_priority);
+	m_self_reference = shared_from_this();
+	m_cc.enqueue(this, m_read_timeout, m_priority);
+	m_queued_for_connection = true;
 }
 
-void http_connection::connect(int ticket, tcp::endpoint target_address)
+void http_connection::on_allow_connect(int ticket)
 {
+	TORRENT_ASSERT(m_queued_for_connection);
+	m_queued_for_connection = false;
+
+	boost::shared_ptr<http_connection> me(shared_from_this());
+	m_self_reference.reset();
+#if defined TORRENT_ASIO_DEBUGGING
+	TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
+#endif
+
 	if (ticket == -1)
 	{
 		close();
 		return;
 	}
 
+	TORRENT_ASSERT(!m_endpoints.empty());
+	if (m_endpoints.empty())
+	{
+		m_cc.done(ticket);
+		return;
+	}
+
+	tcp::endpoint target_address = m_endpoints.front();
+	m_endpoints.erase(m_endpoints.begin());
+
 	m_connection_ticket = ticket;
 	if (m_proxy.proxy_hostnames
-		&& (m_proxy.type == proxy_settings::socks5
-			|| m_proxy.type == proxy_settings::socks5_pw))
+		&& (m_proxy.type == settings_pack::socks5
+			|| m_proxy.type == settings_pack::socks5_pw))
 	{
 		// we're using a socks proxy and we're resolving
 		// hostnames through it
@@ -795,7 +843,7 @@ void http_connection::on_read(error_code const& e
 				if (!ec)
 				{
 					get(location, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr
+						, m_user_agent, m_bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 						, m_i2p_conn
 #endif
@@ -816,7 +864,7 @@ void http_connection::on_read(error_code const& e
 					url += location;
 
 					get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr
+						, m_user_agent, m_bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
 						, m_i2p_conn
 #endif

@@ -139,6 +139,7 @@ namespace libtorrent
 		, has_incoming(false)
 		, seed_mode(false)
 		, moving_storage(false)
+		, is_loaded(true)
 		, info_hash(0)
 	{}
 
@@ -156,41 +157,50 @@ namespace libtorrent
 	// defined in session.cpp
 	void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(void)> f);
 
+#ifdef TORRENT_PROFILE_CALLS
+	extern void blocking_call();
+
+#define TORRENT_RECORD_BLOCKING_CALL blocking_call();
+#else
+#define TORRENT_RECORD_BLOCKING_CALL
+#endif
+
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t))
 
 #define TORRENT_ASYNC_CALL1(x, a1) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1))
 
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1, a2))
 
 #define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1, a2, a3))
 
 #define TORRENT_ASYNC_CALL4(x, a1, a2, a3, a4) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1, a2, a3, a4))
 
 #define TORRENT_SYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t)))); \
 	while (!done) { ses.cond.wait(l); }
@@ -199,7 +209,8 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (t) { \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1)))); \
 	t.reset(); \
@@ -209,7 +220,8 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (t) { \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
 	t.reset(); \
@@ -219,7 +231,8 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (t) { \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2, a3)))); \
 	t.reset(); \
@@ -229,8 +242,9 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	type r; \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t)))); \
 	t.reset(); \
@@ -240,8 +254,9 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	type r; \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)))); \
 	t.reset(); \
@@ -251,8 +266,9 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	type r; \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
 	t.reset(); \
@@ -299,7 +315,7 @@ namespace libtorrent
 	void torrent_handle::set_upload_limit(int limit) const
 	{
 		TORRENT_ASSERT_PRECOND(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_upload_limit, limit, true);
+		TORRENT_ASYNC_CALL1(set_upload_limit, limit);
 	}
 
 	int torrent_handle::upload_limit() const
@@ -311,7 +327,7 @@ namespace libtorrent
 	void torrent_handle::set_download_limit(int limit) const
 	{
 		TORRENT_ASSERT_PRECOND(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_download_limit, limit, true);
+		TORRENT_ASYNC_CALL1(set_download_limit, limit);
 	}
 
 	int torrent_handle::download_limit() const
@@ -491,6 +507,11 @@ namespace libtorrent
 		return st;
 	}
 
+	void torrent_handle::set_pinned(bool p) const
+	{
+		TORRENT_ASYNC_CALL1(set_pinned, p);
+	}
+
 	void torrent_handle::set_sequential_download(bool sd) const
 	{
 		TORRENT_ASYNC_CALL1(set_sequential_download, sd);
@@ -515,6 +536,11 @@ namespace libtorrent
 	void torrent_handle::prioritize_pieces(std::vector<int> const& pieces) const
 	{
 		TORRENT_ASYNC_CALL1(prioritize_pieces, pieces);
+	}
+
+	void torrent_handle::prioritize_pieces(std::vector<std::pair<int, int> > const& pieces) const
+	{
+		TORRENT_ASYNC_CALL1(prioritize_piece_list, pieces);
 	}
 
 	std::vector<int> torrent_handle::piece_priorities() const
@@ -547,13 +573,18 @@ namespace libtorrent
 		return ret;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+// ============ start deprecation ===============
+
+	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const { return -1; }
+	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const { return -1; }
+	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const {}
+	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const {}
+	void torrent_handle::set_ratio(float ratio) const {}
 	void torrent_handle::use_interface(const char* net_interface) const
 	{
 		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
 	}
-
-#ifndef TORRENT_NO_DEPRECATE
-// ============ start deprecation ===============
 
 #if !TORRENT_NO_FPU
 	void torrent_handle::file_progress(std::vector<float>& progress) const
@@ -561,35 +592,6 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(file_progress, boost::ref(progress));
 	}
 #endif
-
-	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const
-	{
-		TORRENT_SYNC_CALL_RET1(int, -1, get_peer_upload_limit, ip);
-		return r;
-	}
-
-	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const
-	{
-		TORRENT_SYNC_CALL_RET1(int, -1, get_peer_download_limit, ip);
-		return r;
-	}
-
-	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
-	{
-		TORRENT_ASSERT_PRECOND(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_peer_upload_limit, ip, limit);
-	}
-
-	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const
-	{
-		TORRENT_ASSERT_PRECOND(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_peer_download_limit, ip, limit);
-	}
-
-	void torrent_handle::set_ratio(float ratio) const
-	{
-		TORRENT_ASSERT_PRECOND(ratio >= 0.f);
-	}
 
 	bool torrent_handle::is_seed() const
 	{
@@ -743,10 +745,10 @@ namespace libtorrent
 		return !m_torrent.expired();
 	}
 
-	boost::intrusive_ptr<torrent_info const> torrent_handle::torrent_file() const
+	boost::shared_ptr<const torrent_info> torrent_handle::torrent_file() const
 	{
-		TORRENT_SYNC_CALL_RET(boost::intrusive_ptr<torrent_info const>
-			, boost::intrusive_ptr<torrent_info const>(), get_torrent_copy);
+		TORRENT_SYNC_CALL_RET(boost::shared_ptr<const torrent_info>
+			, boost::shared_ptr<const torrent_info>(), get_torrent_copy);
 		return r;
 	}
 
@@ -756,23 +758,16 @@ namespace libtorrent
 	// forces the torrent to stay loaded while the client holds it
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
-#ifdef BOOST_NO_EXCEPTIONS
-		const static torrent_info empty(sha1_hash(0));
-#endif
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
-#ifdef BOOST_NO_EXCEPTIONS
-			return empty;
-#else
-			throw_invalid_handle();
-#endif
-		if (!t->valid_metadata())
-#ifdef BOOST_NO_EXCEPTIONS
-			return empty;
-#else
-			throw_invalid_handle();
-#endif
-		return t->torrent_file();
+		static boost::shared_ptr<const torrent_info> holder[4];
+		static int cursor = 0;
+		static mutex holder_mutex;
+
+		boost::shared_ptr<const torrent_info> r = torrent_file();
+
+		mutex::scoped_lock l(holder_mutex);
+		holder[cursor++] = r;
+		cursor = cursor % (sizeof(holder) / sizeof(holder[0]));
+		return *r;
 	}
 
 	entry torrent_handle::write_resume_data() const
@@ -783,11 +778,13 @@ namespace libtorrent
 		if (t)
 		{
 			bool done = false;
-			session_impl& ses = t->session();
+			session_impl& ses = (session_impl&) t->session();
+			TORRENT_RECORD_BLOCKING_CALL
 			mutex::scoped_lock l(ses.mut);
+			storage_error ec;
 			ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond
 				, &ses.mut, boost::function<void(void)>(boost::bind(
-					&piece_manager::write_resume_data, &t->filesystem(), boost::ref(ret)))));
+					&piece_manager::write_resume_data, &t->storage(), boost::ref(ret), boost::ref(ec)))));
 			t.reset();
 			while (!done) { ses.cond.wait(l); }
 		}
@@ -809,9 +806,9 @@ namespace libtorrent
 
 #endif
 
-	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
+	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source, int flags) const
 	{
-		TORRENT_ASYNC_CALL2(add_peer, adr, source);
+		TORRENT_ASYNC_CALL3(add_peer, adr, source, flags);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -833,6 +830,16 @@ namespace libtorrent
 	void torrent_handle::force_reannounce(int s, int idx) const
 	{
 		TORRENT_ASYNC_CALL2(force_tracker_request, time_now() + seconds(s), idx);
+	}
+
+	void torrent_handle::file_status(std::vector<pool_file_status>& status) const
+	{
+		status.clear();
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t || !t->has_storage()) return;
+		session_impl& ses = (session_impl&) t->session();
+		ses.m_disk_thread.files().get_status(&status, &t->storage());
 	}
 
 	void torrent_handle::scrape_tracker() const

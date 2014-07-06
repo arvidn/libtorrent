@@ -3,12 +3,12 @@ import os
 
 paths = ['src/*.cpp', 'src/kademlia/*.cpp', 'include/libtorrent/*.hpp', 'include/libtorrent/kademlia/*.hpp', 'include/libtorrent/aux_/*.hpp', 'include/libtorrent/extensions/*.hpp']
 
-os.system('(cd .. ; ctags %s 2>/dev/null)' % ' '.join(paths))
+os.system('ctags %s 2>/dev/null' % ' '.join(paths))
 
 files = []
 
 for p in paths:
-	files.extend(glob.glob(os.path.join('..', p)))
+	files.extend(glob.glob(p))
 
 items = []
 
@@ -48,7 +48,7 @@ for f in files:
 				line = line[1:].strip()
 			items[-1]['todo'] = line
 			prio = items[-1]['priority']
-			if prio >= 0 and prio <= 3: priority_count[prio] += 1
+			if prio >= 0 and prio <= 4: priority_count[prio] += 1
 			continue
 			
 		if state == '':
@@ -112,14 +112,15 @@ out.write('''<html><head>
 
 </head><body>
 <h1>libtorrent todo-list</h1>
+<span style="color: #f00">%d urgent</span>
 <span style="color: #f77">%d important</span>
 <span style="color: #3c3">%d relevant</span>
 <span style="color: #77f">%d feasible</span>
 <span style="color: #999">%d notes</span>
 <table width="100%%" border="1" style="border-collapse: collapse;">''' % \
-	(priority_count[3], priority_count[2], priority_count[1], priority_count[0]))
+	(priority_count[4], priority_count[3], priority_count[2], priority_count[1], priority_count[0]))
 
-prio_colors = [ '#ccc', '#ccf', '#cfc', '#fcc', '#fdd']
+prio_colors = [ '#ccc', '#ccf', '#cfc', '#fcc', '#f44']
 
 index = 0
 for i in items:

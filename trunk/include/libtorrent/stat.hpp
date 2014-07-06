@@ -50,21 +50,17 @@ namespace libtorrent
 	public:
 
 		stat_channel()
-			: m_counter(0)
+			: m_total_counter(0)
+			, m_counter(0)
 			, m_5_sec_average(0)
-			, m_30_sec_average(0)
-			, m_total_counter(0)
 		{}
 
 		void operator+=(stat_channel const& s)
 		{
-			TORRENT_ASSERT(m_counter >= 0);
 			TORRENT_ASSERT(m_total_counter >= 0);
-			TORRENT_ASSERT(s.m_counter >= 0);
 			m_counter += s.m_counter;
 			m_total_counter += s.m_counter;
-			TORRENT_ASSERT(m_counter >= 0);
-			TORRENT_ASSERT(m_total_counter >= 0);
+			TORRENT_ASSERT(m_counter >= m_counter - s.m_counter);
 		}
 
 		void add(int count)
@@ -72,15 +68,16 @@ namespace libtorrent
 			TORRENT_ASSERT(count >= 0);
 
 			m_counter += count;
-			TORRENT_ASSERT(m_counter >= 0);
+			TORRENT_ASSERT(m_counter >= m_counter - count);
 			m_total_counter += count;
-			TORRENT_ASSERT(m_total_counter >= 0);
+			TORRENT_ASSERT(m_total_counter >= m_total_counter - count);
 		}
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
 		int rate() const { return m_5_sec_average; }
-		int low_pass_rate() const { return m_30_sec_average; }
+		int low_pass_rate() const { return m_5_sec_average; }
+
 		size_type total() const { return m_total_counter; }
 
 		void offset(size_type c)
@@ -97,23 +94,19 @@ namespace libtorrent
 		{
 			m_counter = 0;
 			m_5_sec_average = 0;
-			m_30_sec_average = 0;
 			m_total_counter = 0;
 		}
 
 	private:
 
+		// total counters
+		boost::uint64_t m_total_counter;
+
 		// the accumulator for this second.
-		int m_counter;
+		boost::uint32_t m_counter;
 
 		// sliding average
-		int m_5_sec_average;
-		int m_30_sec_average;
-
-		// TODO: this is 4 bytes of padding!
-
-		// total counters
-		size_type m_total_counter;
+		boost::uint32_t m_5_sec_average;
 	};
 
 	class TORRENT_EXTRA_EXPORT stat
@@ -130,6 +123,8 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
+#else
+			m_stat[upload_protocol].add(ipv6 ? 60 : 40);
 #endif
 		}
 
@@ -139,38 +134,49 @@ namespace libtorrent
 			// we received SYN-ACK and also sent ACK back
 			m_stat[download_ip_protocol].add(ipv6 ? 60 : 40);
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
+#else
+			m_stat[download_protocol].add(ipv6 ? 60 : 40);
+			m_stat[upload_protocol].add(ipv6 ? 60 : 40);
 #endif
 		}
 
 		void received_dht_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
+#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[download_dht_protocol].add(bytes);
+#else
+			m_stat[download_protocol].add(bytes);
 #endif
 		}
 
 		void sent_dht_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
+#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[upload_dht_protocol].add(bytes);
+#else
+			m_stat[upload_protocol].add(bytes);
 #endif
 		}
 
 		void received_tracker_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
+#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[download_tracker_protocol].add(bytes);
+#else
+			m_stat[download_protocol].add(bytes);
 #endif
 		}
 
 		void sent_tracker_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
+#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[upload_tracker_protocol].add(bytes);
+#else
+			m_stat[upload_protocol].add(bytes);
 #endif
 		}
 
@@ -196,7 +202,6 @@ namespace libtorrent
 		// account for the overhead caused by it
 		void trancieve_ip_packet(int bytes_transferred, bool ipv6)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			// one TCP/IP packet header for the packet
 			// sent or received, and one for the ACK
 			// The IPv4 header is 20 bytes
@@ -205,8 +210,12 @@ namespace libtorrent
 			const int mtu = 1500;
 			const int packet_size = mtu - header;
 			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
+#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[download_ip_protocol].add(overhead);
 			m_stat[upload_ip_protocol].add(overhead);
+#else
+			m_stat[download_protocol].add(overhead);
+			m_stat[upload_protocol].add(overhead);
 #endif
 		}
 

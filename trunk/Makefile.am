@@ -104,6 +104,8 @@ DOCS_PAGES = \
   docs/python_binding.rst         \
   docs/tuning.html                \
   docs/tuning.rst                 \
+  docs/settings.rst               \
+  docs/stats_counters.rst         \
   docs/troubleshooting.html       \
   docs/udp_tracker_protocol.html  \
   docs/udp_tracker_protocol.rst   \

@@ -285,8 +285,10 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
-        .def_readonly("endpoint", &listen_failed_alert::endpoint)
+        .def_readonly("interface", &listen_failed_alert::interface)
         .def_readonly("error", &listen_failed_alert::error)
+        .def_readonly("operation", &listen_failed_alert::operation)
+        .def_readonly("sock_type", &listen_failed_alert::sock_type)
         ;
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(

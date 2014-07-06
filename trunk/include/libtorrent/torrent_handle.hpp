@@ -53,12 +53,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/socket.hpp" // tcp::endpoint
+#include "libtorrent/file_pool.hpp"
 
 namespace libtorrent
 {
@@ -71,6 +72,7 @@ namespace libtorrent
 	struct peer_info;
 	struct peer_list_entry;
 	struct torrent_status;
+	struct torrent_handle;
 	class torrent;
 
 	// allows torrent_handle to be used in unordered_map and unordered_set.
@@ -204,6 +206,9 @@ namespace libtorrent
 		state_t piece_state;
 	};
 
+	// for boost::hash (and to support using this type in unordered_map etc.)
+	std::size_t hash_value(torrent_handle const& h);
+
 	// You will usually have to store your torrent handles somewhere, since it's
 	// the object through which you retrieve information about the torrent and
 	// aborts the torrent.
@@ -234,6 +239,7 @@ namespace libtorrent
 	{
 		friend class invariant_access;
 		friend struct aux::session_impl;
+		friend class session;
 		friend struct feed;
 		friend class torrent;
 		friend std::size_t hash_value(torrent_handle const& th);
@@ -241,6 +247,9 @@ namespace libtorrent
 		// constructs a torrent handle that does not refer to a torrent.
 		// i.e. is_valid() will return false.
 		torrent_handle() {}
+
+		torrent_handle(torrent_handle const& t)
+		{ if (!t.m_torrent.expired()) m_torrent = t.m_torrent; }
 
 		// flags for add_piece().
 		enum flags_t { overwrite_existing = 1 };
@@ -428,6 +437,15 @@ namespace libtorrent
 		// already keeps track of this internally and no calculation is required.
 		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
 
+		// This function fills in the passed in vector with status about files
+		// that are open for this torrent. Any file that is not open in this
+		// torrent, will not be reported in the vector, i.e. it's possible that
+		// the vector is empty when returning, if none of the files in the
+		// torrent are currently open.
+		//
+		// see pool_file_status.
+		void file_status(std::vector<pool_file_status>& status) const;
+
 		// If the torrent is in an error state (i.e. ``torrent_status::error`` is
 		// non-empty), this will clear the error and start the torrent again.
 		void clear_error() const;
@@ -588,7 +606,15 @@ namespace libtorrent
 			// the resume data will contain the metadata from the torrent file as
 			// well. This is default for any torrent that's added without a
 			// torrent file (such as a magnet link or a URL).
-			save_info_dict = 2
+			save_info_dict = 2,
+
+			// if nothing significant has changed in the torrent since the last
+			// time resume data was saved, fail this attempt. Significant changes
+			// primarily include more data having been downloaded, file or piece
+			// priorities having changed etc. If the resume data doesn't need
+			// saving, a save_resume_data_failed_alert is posted with the error
+			// resume_data_not_modified.
+			only_if_modified = 4,
 		};
 
 		// ``save_resume_data()`` generates fast-resume data and returns it as an
@@ -816,7 +842,7 @@ namespace libtorrent
 		// without metadata only if it was started without a .torrent file, e.g.
 		// by using the libtorrent extension of just supplying a tracker and
 		// info-hash.
-		boost::intrusive_ptr<torrent_info const> torrent_file() const;
+		boost::shared_ptr<const torrent_info> torrent_file() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 
@@ -942,12 +968,19 @@ namespace libtorrent
 		// ``prioritize_pieces`` takes a vector of integers, one integer per
 		// piece in the torrent. All the piece priorities will be updated with
 		// the priorities in the vector.
+		// The second overload of ``prioritize_pieces`` that takes a vector of pairs
+		// will update the priorities of only select pieces, and leave all other
+		// unaffected. Each pair is (piece, priority). That is, the first item is
+		// the piece index and the second item is the priority of that piece.
+		// Invalid entries, where the piece index or priority is out of range, are
+		// not allowed.
 		// 
 		// ``piece_priorities`` returns a vector with one element for each piece
 		// in the torrent. Each element is the current priority of that piece.
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
+		void prioritize_pieces(std::vector<std::pair<int, int> > const& pieces) const;
 		std::vector<int> piece_priorities() const;
 
 		// ``index`` must be in the range [0, number_of_files).
@@ -1030,6 +1063,22 @@ namespace libtorrent
 		void set_download_limit(int limit) const;
 		int download_limit() const;
 
+		// A pinned torrent may not be unloaded by libtorrent. When the dynamic
+		// loading and unloading of torrents is enabled (by setting a load
+		// function on the session), this can be used to exempt certain torrents
+		// from the unloading logic.
+		// 
+		// Magnet links, and other torrents that start out without having
+		// metadata are pinned automatically. This is to give the client a chance
+		// to get the metadata and save it before it's unloaded. In this case, it
+		// may be useful to un-pin the torrent once its metadata has been saved
+		// to disk.
+		// 
+		// For more information about dynamically loading and unloading torrents,
+		// see dynamic-loading-of-torrent-files_.
+		// 
+		void set_pinned(bool p) const;
+
 		// ``set_sequential_download()`` enables or disables *sequential
 		// download*. When enabled, the piece picker will pick pieces in sequence
 		// instead of rarest first. In this mode, piece priorities are ignored,
@@ -1049,7 +1098,24 @@ namespace libtorrent
 		// argument will be bitwised ORed into the source mask of this peer.
 		// Typically this is one of the source flags in peer_info. i.e.
 		// ``tracker``, ``pex``, ``dht`` etc.
-		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
+		//
+		// ``flags`` are the same flags that are passed along with the ``ut_pex`` extension.
+		//
+		// ==== ==========================================
+		// 0x01 peer supports encryption
+		// 
+		// 0x02 peer is a seed
+		// 
+		// 0x04 supports uTP. This is only a positive flags
+		//      passing 0 doesn't mean the peer doesn't
+		//      support uTP
+		// 
+		// 0x08 supports holepunching protocol. If this
+		//      flag is received from a peer, it can be
+		//      used as a rendezvous point in case direct
+		//      connections to the peer fail
+		// ==== ==========================================
+		void connect_peer(tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
 		// ``set_max_uploads()`` sets the maximum number of peers that's unchoked
 		// at the same time on this torrent. If you set this to -1, there will be
@@ -1160,6 +1226,14 @@ namespace libtorrent
 		bool operator<(const torrent_handle& h) const
 		{ return m_torrent.lock() < h.m_torrent.lock(); }
 
+		boost::uint32_t id() const
+		{
+			uintptr_t ret = (uintptr_t)m_torrent.lock().get();
+			// a torrent object is about 1024 bytes, so
+			// it's safe to shift 11 bits
+			return boost::uint32_t(ret >> 11);
+		}
+
 		// This function is intended only for use by plugins and the alert
 		// dispatch function. Any code that runs in libtorrent's network thread
 		// may not use the public API of torrent_handle. Doing so results in a
@@ -1171,8 +1245,7 @@ namespace libtorrent
 	private:
 
 		torrent_handle(boost::weak_ptr<torrent> const& t)
-			: m_torrent(t)
-		{}
+		{ if (!t.expired()) m_torrent = t; }
 
 		boost::weak_ptr<torrent> m_torrent;
 
@@ -1197,10 +1270,14 @@ namespace libtorrent
 		// the different overall states a torrent can be in
 		enum state_t
 		{
+#ifndef TORRENT_NO_DEPRECATE
 			// The torrent is in the queue for being checked. But there
 			// currently is another torrent that are being checked.
 			// This torrent will wait for its turn.
 			queued_for_checking,
+#else
+			unused_enum_for_backwards_compatibility,
+#endif
 
 			// The torrent has not started its download yet, and is
 			// currently checking existing files.
@@ -1261,7 +1338,7 @@ namespace libtorrent
 		// set to point to the ``torrent_info`` object for this torrent. It's
 		// only included if the torrent status is queried with
 		// ``torrent_handle::query_torrent_file``.
-		boost::intrusive_ptr<const torrent_info> torrent_file;
+		boost::weak_ptr<const torrent_info> torrent_file;
 
 		// the time until the torrent will announce itself to the tracker.
 		boost::posix_time::time_duration next_announce;
@@ -1356,7 +1433,7 @@ namespace libtorrent
 
 		// progress parts per million (progress * 1000000) when disabling
 		// floating point operations, this is the only option to query progress
-
+		// 
 		// reflects the same value as ``progress``, but instead in a range [0,
 		// 1000000] (ppm = parts per million). When floating point operations are
 		// disabled, this is the only alternative to the floating point value in
@@ -1582,6 +1659,11 @@ namespace libtorrent
 		// one location to another. This may potentially be a long operation
 		// if a large file ends up being copied from one drive to another.
 		bool moving_storage;
+
+		// true if this torrent is loaded into RAM. A torrent can be started
+		// and still not loaded into RAM, in case it has not had any peers interested in it
+		// yet. Torrents are loaded on demand.
+		bool is_loaded;
 
 		// the info-hash for this torrent
 		sha1_hash info_hash;

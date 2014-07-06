@@ -3,9 +3,10 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/python.hpp>
+#include <boost/shared_ptr.hpp>
 #include <libtorrent/torrent_info.hpp>
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/time.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -186,14 +187,14 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
-    class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
+    class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
         .def(init<entry const&>(arg("e")))
 #endif
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
         .def(init<char const*, int, int>((arg("buffer"), arg("length"), arg("flags") = 0)))
         .def(init<std::string, int>((arg("file"), arg("flags") = 0)))
-        .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
+        .def(init<torrent_info const&>((arg("ti"))))
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
 #endif
@@ -268,7 +269,6 @@ void bind_torrent_info()
         .add_property("send_stats", &get_send_stats)
 
         .def("reset", &announce_entry::reset)
-        .def("failed", &announce_entry::failed, arg("retry_interval") = 0)
         .def("can_announce", &announce_entry::can_announce)
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)
@@ -282,8 +282,8 @@ void bind_torrent_info()
     ;
 
 #if BOOST_VERSION > 104200
-    implicitly_convertible<boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<const torrent_info> >();
-    boost::python::register_ptr_to_python<boost::intrusive_ptr<const torrent_info> >();
+    implicitly_convertible<boost::shared_ptr<torrent_info>, boost::shared_ptr<const torrent_info> >();
+    boost::python::register_ptr_to_python<boost::shared_ptr<const torrent_info> >();
 #endif
 }
 

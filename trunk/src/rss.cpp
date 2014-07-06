@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/settings.hpp"
 #include "libtorrent/alert_types.hpp" // for rss_alert
 
 #include <boost/bind.hpp>
@@ -398,86 +397,52 @@ void feed::on_feed(error_code const& ec
 	m_ses.update_rss_feeds();
 }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winvalid-offsetof"
-#endif
-
-#define TORRENT_SETTING(t, x) {#x, offsetof(feed_settings,x), t},
-	bencode_map_entry feed_settings_map[] =
-	{
-		TORRENT_SETTING(std_string, url)
-		TORRENT_SETTING(boolean, auto_download)
-		TORRENT_SETTING(boolean, auto_map_handles)
-		TORRENT_SETTING(integer, default_ttl)
-	};
-#undef TORRENT_SETTING
-
-#define TORRENT_SETTING(t, x) {#x, offsetof(feed_item,x), t},
-	bencode_map_entry feed_item_map[] =
-	{
-		TORRENT_SETTING(std_string, url)
-		TORRENT_SETTING(std_string, uuid)
-		TORRENT_SETTING(std_string, title)
-		TORRENT_SETTING(std_string, description)
-		TORRENT_SETTING(std_string, comment)
-		TORRENT_SETTING(std_string, category)
-		TORRENT_SETTING(size_integer, size)
-	};
-#undef TORRENT_SETTING
-
-#define TORRENT_SETTING(t, x) {#x, offsetof(feed,x), t},
-	bencode_map_entry feed_map[] =
-	{
-		TORRENT_SETTING(std_string, m_title)
-		TORRENT_SETTING(std_string, m_description)
-		TORRENT_SETTING(time_integer, m_last_attempt)
-		TORRENT_SETTING(time_integer, m_last_update)
-	};
-#undef TORRENT_SETTING
-
-#define TORRENT_SETTING(t, x) {#x, offsetof(add_torrent_params,x), t},
-	bencode_map_entry add_torrent_map[] =
-	{
-		TORRENT_SETTING(std_string, save_path)
-		TORRENT_SETTING(size_integer, flags)
-	};
-#undef TORRENT_SETTING
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
 void feed::load_state(lazy_entry const& rd)
 {
-	load_struct(rd, this, feed_map, sizeof(feed_map)/sizeof(feed_map[0]));
+	m_title = rd.dict_find_string_value("m_title");
+	m_description = rd.dict_find_string_value("m_description");
+	m_last_attempt = rd.dict_find_int_value("m_last_attempt");
+	m_last_update = rd.dict_find_int_value("m_last_update");
+
 	lazy_entry const* e = rd.dict_find_list("items");
 	if (e)
 	{
 		m_items.reserve(e->list_size());
 		for (int i = 0; i < e->list_size(); ++i)
 		{
-			if (e->list_at(i)->type() != lazy_entry::dict_t) continue;
+			lazy_entry const* entry = e->list_at(i);
+			if (entry->type() != lazy_entry::dict_t) continue;
+			
 			m_items.push_back(feed_item());
-			load_struct(*e->list_at(i), &m_items.back(), feed_item_map
-				, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
+			feed_item& item = m_items.back();
+			item.url = entry->dict_find_string_value("url");
+			item.uuid = entry->dict_find_string_value("uuid");
+			item.title = entry->dict_find_string_value("title");
+			item.description = entry->dict_find_string_value("description");
+			item.comment = entry->dict_find_string_value("comment");
+			item.category = entry->dict_find_string_value("category");
+			item.size = entry->dict_find_int_value("size");
 
 			// don't load duplicates
-			if (m_urls.find(m_items.back().url) != m_urls.end())
+			if (m_urls.find(item.url) != m_urls.end())
 			{
 				m_items.pop_back();
 				continue;
 			}
-			m_urls.insert(m_items.back().url);
+			m_urls.insert(item.url);
 		}
 	}
-	load_struct(rd, &m_settings, feed_settings_map
-		, sizeof(feed_settings_map)/sizeof(feed_settings_map[0]));
+
+	m_settings.url = rd.dict_find_string_value("url");
+	m_settings.auto_download = rd.dict_find_int_value("auto_download");
+	m_settings.auto_map_handles = rd.dict_find_int_value("auto_map_handles");
+	m_settings.default_ttl = rd.dict_find_int_value("default_ttl");
+
 	e = rd.dict_find_dict("add_params");
 	if (e)
 	{
-		load_struct(*e, &m_settings.add_args, add_torrent_map
-			, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]));
+		m_settings.add_args.save_path = e->dict_find_string_value("save_path");
+		m_settings.add_args.flags = e->dict_find_int_value("flags");
 	}
 
 	e = rd.dict_find_list("history");
@@ -504,7 +469,10 @@ void feed::load_state(lazy_entry const& rd)
 void feed::save_state(entry& rd) const
 {
 	// feed properties
-	save_struct(rd, this, feed_map, sizeof(feed_map)/sizeof(feed_map[0]));
+	rd["m_title"] = m_title;
+	rd["m_description"] = m_description;
+	rd["m_last_attempt"] = m_last_attempt;
+	rd["m_last_update"] = m_last_update;
 
 	// items
 	entry::list_type& items = rd["items"].list();
@@ -513,17 +481,36 @@ void feed::save_state(entry& rd) const
 	{
 		items.push_back(entry());
 		entry& item = items.back();
-		save_struct(item, &*i, feed_item_map, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
+		item["url"] = i->url;
+		item["uuid"] = i->uuid;
+		item["title"] = i->title;
+		item["description"] = i->description;
+		item["comment"] = i->comment;
+		item["category"] = i->category;
+		item["size"] = i->size;
 	}
 	
 	// settings
 	feed_settings sett_def;
-	save_struct(rd, &m_settings, feed_settings_map
-		, sizeof(feed_settings_map)/sizeof(feed_settings_map[0]), &sett_def);
+#define TORRENT_WRITE_SETTING(name) \
+	if (m_settings.name != sett_def.name) rd[#name] = m_settings.name
+
+	TORRENT_WRITE_SETTING(url);
+	TORRENT_WRITE_SETTING(auto_download);
+	TORRENT_WRITE_SETTING(auto_map_handles);
+	TORRENT_WRITE_SETTING(default_ttl);
+
+#undef TORRENT_WRITE_SETTING
+
 	entry& add = rd["add_params"];
 	add_torrent_params add_def;
-	save_struct(add, &m_settings.add_args, add_torrent_map
-		, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]), &add_def);
+#define TORRENT_WRITE_SETTING(name) \
+	if (m_settings.add_args.name != add_def.name) add[#name] = m_settings.add_args.name;
+
+	TORRENT_WRITE_SETTING(save_path);
+	TORRENT_WRITE_SETTING(flags);
+
+#undef TORRENT_WRITE_SETTING
 
 	entry::list_type& history = rd["history"].list();
 	for (std::map<std::string, time_t>::const_iterator i = m_added.begin()
@@ -597,11 +584,13 @@ int feed::update_feed()
 
 	boost::shared_ptr<http_connection> feed(
 		new http_connection(m_ses.m_io_service, m_ses.m_half_open
+			, m_ses.m_host_resolver
 			, boost::bind(&feed::on_feed, shared_from_this()
 			, _1, _2, _3, _4)));
 
 	m_updating = true;
-	feed->get(m_settings.url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
+	feed->get(m_settings.url, seconds(30), 0, 0, 5
+		, m_ses.m_settings.get_str(settings_pack::user_agent));
 
 	return 60 + m_failures * m_failures * 60;
 }

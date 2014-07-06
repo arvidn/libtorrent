@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>1.1.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -71,20 +71,22 @@
 <li><a class="reference internal" href="#high-performance-seeding" id="id12">high performance seeding</a><ul>
 <li><a class="reference internal" href="#file-pool" id="id13">file pool</a></li>
 <li><a class="reference internal" href="#disk-cache" id="id14">disk cache</a></li>
-<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id15">uTP-TCP mixed mode</a></li>
-<li><a class="reference internal" href="#send-buffer-low-watermark" id="id16">send buffer low watermark</a></li>
-<li><a class="reference internal" href="#peers" id="id17">peers</a></li>
-<li><a class="reference internal" href="#torrent-limits" id="id18">torrent limits</a></li>
+<li><a class="reference internal" href="#ssd-as-level-2-cache" id="id15">SSD as level 2 cache</a></li>
+<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id16">uTP-TCP mixed mode</a></li>
+<li><a class="reference internal" href="#send-buffer-low-watermark" id="id17">send buffer low watermark</a></li>
+<li><a class="reference internal" href="#peers" id="id18">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id19">torrent limits</a></li>
+<li><a class="reference internal" href="#sha-1-hashing" id="id20">SHA-1 hashing</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#scalability" id="id19">scalability</a></li>
-<li><a class="reference internal" href="#benchmarking" id="id20">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id21">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id22">session stats</a></li>
+<li><a class="reference internal" href="#scalability" id="id21">scalability</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id22">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id23">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id24">session stats</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#understanding-the-disk-thread" id="id23">understanding the disk thread</a></li>
-<li><a class="reference internal" href="#contributions" id="id24">contributions</a></li>
+<li><a class="reference internal" href="#understanding-the-disk-thread" id="id25">understanding the disk thread</a></li>
+<li><a class="reference internal" href="#contributions" id="id26">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -315,6 +317,21 @@ the same pieces, and on the other hand assume that they won't request the same p
 and drop them when the first peer requests it. To enable volatile read cache, set
 <tt class="docutils literal"><span class="pre">session_settings::volatile_read_cache</span></tt> to true.</p>
 </div>
+<div class="section" id="ssd-as-level-2-cache">
+<h2>SSD as level 2 cache</h2>
+<p>It is possible to introduce a second level of cache, below the RAM disk cache. This is done
+by setting <tt class="docutils literal"><span class="pre">session_settings::mmap_cache</span></tt> to a file path pointing to the SSD drive, and
+increasing the <tt class="docutils literal"><span class="pre">session_settings::cache_size</span></tt> to the number of 16 kiB blocks would fit
+on the drive (or less).</p>
+<p>This will allocate disk buffers (for reading and writing) from a memory region that has
+been mapped to the specified file. If the drive this file lives on is not significantly
+faster than the destination drive, performance will be degraded. The point is to take
+advantage primarily of the fast read speed from SSD drives and use it to extend the read
+cache, improving seed performance.</p>
+<p>Which parts of the cache that actually live in RAM is determined by the operating system.</p>
+<p>Note that when using this feature, any block which ends up being pulled from the mmapped
+file will be considered a cache hit.</p>
+</div>
 <div class="section" id="utp-tcp-mixed-mode">
 <h2>uTP-TCP mixed mode</h2>
 <p>libtorrent supports <a class="reference external" href="utp.html">uTP</a>, which has a delay based congestion controller. In order to
@@ -362,6 +379,15 @@ number via <tt class="docutils literal"><span class="pre">session::set_max_uploa
 <h2>torrent limits</h2>
 <p>To seed thousands of torrents, you need to increase the <tt class="docutils literal"><span class="pre">session_settings::active_limit</span></tt>
 and <tt class="docutils literal"><span class="pre">session_settings::active_seeds</span></tt>.</p>
+</div>
+<div class="section" id="sha-1-hashing">
+<h2>SHA-1 hashing</h2>
+<p>When downloading at very high rates, it is possible to have the CPU be the bottleneck
+for passing every downloaded byte through SHA-1. In order to enable calculating SHA-1
+hashes in parallel, on multi-core systems, set <tt class="docutils literal"><span class="pre">session_settings::hashing_threads</span></tt>
+to the number of threads libtorrent should start to do SHA-1 hashing. This defaults
+to 1, and only if that thread is close to saturating one core does it make sense to
+increase the number of threads.</p>
 </div>
 </div>
 <div class="section" id="scalability">
@@ -599,7 +625,7 @@ of these jobs are then posted back on the main thread's io_service.</p>
 <p>A disk job is essentially one of:</p>
 <ol class="arabic simple">
 <li>write this block to disk, i.e. a write job. For the most part this is just a matter of sticking the block in the disk cache, but if we've run out of cache space or completed a whole piece, we'll also flush blocks to disk. This is typically very fast, since the OS just sticks these buffers in its write cache which will be flushed at a later time, presumably when the drive head will pass the place on the platter where the blocks go.</li>
-<li>read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordere queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks.</li>
+<li>read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordered queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks. If the system supports asynchronous I/O (Windows, Linux, Mac OS X, BSD, Solars for instance), jobs will be issued immediately to the OS. This especially increases read throughput, since the OS has a much greater flexibility to reorder the read jobs.</li>
 </ol>
 <p>Other disk job consist of operations that needs to be synchronized with the disk I/O, like renaming files, closing files, flushing the cache, updating the settings etc. These are relatively rare though.</p>
 </div>

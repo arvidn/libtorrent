@@ -19,11 +19,15 @@ project client_test
 exe client_test : client_test.cpp ;
 
 exe simple_client : simple_client.cpp ;
+exe stats_counters : stats_counters.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
 exe connection_tester : connection_tester.cpp ;
 exe rss_reader : rss_reader.cpp ;
 exe upnp_test : upnp_test.cpp ;
+
+explicit stage_client_test ;
+explicit stage_connection_tester ;
 
 install stage_client_test : client_test : <location>. ;
 install stage_connection_tester : connection_tester : <location>. ;

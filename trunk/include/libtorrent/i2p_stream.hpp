@@ -94,8 +94,6 @@ public:
 	void set_destination(std::string const& d) { m_dest = d; }
 	std::string const& destination() { return m_dest; }
 
-	typedef boost::function<void(error_code const&)> handler_type;
-
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
@@ -123,7 +121,6 @@ public:
 
 private:
 
-	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);
 	void do_connect(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h);
 	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
@@ -161,7 +158,7 @@ public:
 	i2p_connection(io_service& ios);
 	~i2p_connection();
 
-	proxy_settings const& proxy() const { return m_sam_router; }
+	proxy_settings proxy() const;
 
 	bool is_open() const
 	{
@@ -169,7 +166,7 @@ public:
 			&& m_sam_socket->is_open()
 			&& m_state != sam_connecting;
 	}
-	void open(proxy_settings const& s, i2p_stream::handler_type const& h);
+	void open(std::string const& hostname, int port, i2p_stream::handler_type const& h);
 	void close(error_code&);
 
 	char const* session_id() const { return m_session_id.c_str(); }
@@ -192,7 +189,8 @@ private:
 
 	// to talk to i2p SAM bridge
 	boost::shared_ptr<i2p_stream> m_sam_socket;
-	proxy_settings m_sam_router;
+	std::string m_hostname;
+	int m_port;
 
 	// our i2p endpoint key
 	std::string m_i2p_local_endpoint;

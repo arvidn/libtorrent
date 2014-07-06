@@ -115,19 +115,34 @@ list get_peer_info(torrent_handle const& handle)
 void prioritize_pieces(torrent_handle& info, object o)
 {
    std::vector<int> result;
+   std::vector<std::pair<int, int> > piece_list;
    try
    {
       object iter_obj = object( handle<>( PyObject_GetIter( o.ptr() ) ));
       while( 1 )
       {
          object obj = extract<object>( iter_obj.attr( "next" )() );
-         result.push_back(extract<int const>( obj ));
+         extract<int const> val1(obj);
+         if (val1.check())
+         {
+            result.push_back(val1);
+            continue;
+         }
+         extract<std::pair<int, int> > val2(obj);
+         if (val2.check())
+         {
+            piece_list.push_back(val2);
+            continue;
+         }
       }
    }
    catch( error_already_set )
    {
       PyErr_Clear();
-      info.prioritize_pieces(result);
+      if (result.size())
+         info.prioritize_pieces(result);
+      else
+         info.prioritize_pieces(piece_list);
       return;
    }
 }
@@ -308,19 +323,21 @@ void connect_peer(torrent_handle& th, tuple ip, int source)
 #ifndef TORRENT_NO_DEPRECATE
 #if BOOST_VERSION > 104200
 
-boost::intrusive_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
+boost::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 {
-	return boost::intrusive_ptr<const torrent_info>(&h.get_torrent_info());
+	allow_threading_guard guard;
+	return h.torrent_file();
 }
 
 #else
 
-boost::intrusive_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
+boost::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
 {
-	// I can't figure out how to expose intrusive_ptr<const torrent_info>
+	// I can't figure out how to expose shared_ptr<const torrent_info>
 	// as well as supporting mutable instances. So, this hack is better
 	// than compilation errors. It seems to work on newer versions of boost though
-   return boost::intrusive_ptr<torrent_info>(const_cast<torrent_info*>(&h.get_torrent_info()));
+	allow_threading_guard guard;
+	return boost::const_pointer_cast<torrent_info>(h.torrent_file());
 }
 
 #endif
@@ -334,7 +351,8 @@ void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
 {
     th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
 }
-#endif
+
+#endif // TORRENT_NO_DEPRECAE
 
 void add_piece(torrent_handle& th, int piece, char const *data, int flags)
 {
@@ -408,7 +426,7 @@ void bind_torrent_handle()
 #endif
         // deprecated
 #ifndef TORRENT_NO_DEPRECATE
-        .def("get_torrent_info", get_torrent_info)
+        .def("get_torrent_info", &get_torrent_info)
         .def("super_seeding", super_seeding0)
         .def("filter_piece", _(&torrent_handle::filter_piece))
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))

@@ -64,32 +64,51 @@ sha1_hash to_hash(char const* s)
 	return ret;
 }
 
-address rand_v4()
+address_v4 v4(char const* str)
 {
-	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+	error_code ec;
+	return address_v4::from_string(str, ec);
 }
 
 #if TORRENT_USE_IPV6
-address rand_v6()
+address_v6 v6(char const* str)
 {
-	address_v6::bytes_type bytes;
-	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand() & 0xff;
-	return address_v6(bytes);
+	error_code ec;
+	return address_v6::from_string(str, ec);
 }
 #endif
+
+tcp::endpoint ep(char const* ip, int port)
+{
+	error_code ec;
+	return tcp::endpoint(address::from_string(ip, ec), port);
+}
 
 int test_main()
 {
 	using namespace libtorrent;
-	using namespace libtorrent::dht;
 	error_code ec;
+
+	sliding_average<4> avg;
+	TEST_EQUAL(avg.mean(), 0);
+	TEST_EQUAL(avg.avg_deviation(), 0);
+	avg.add_sample(500);
+	TEST_EQUAL(avg.mean(), 500);
+	TEST_EQUAL(avg.avg_deviation(), 0);
+	avg.add_sample(501);
+	TEST_EQUAL(avg.avg_deviation(), 1);
+	avg.add_sample(0);
+	avg.add_sample(0);
+	printf("avg: %d dev: %d\n", avg.mean(), avg.avg_deviation());
+	TEST_CHECK(abs(avg.mean() - 250) < 50);
+	TEST_CHECK(abs(avg.avg_deviation() - 250) < 80);
 
 	// make sure the retry interval keeps growing
 	// on failing announces
 	announce_entry ae("dummy");
 	int last = 0;
-	session_settings sett;
-	sett.tracker_backoff = 250;
+	aux::session_settings sett;
+	sett.set_int(settings_pack::tracker_backoff, 250);
 	for (int i = 0; i < 10; ++i)
 	{
 		ae.failed(sett, 5);
@@ -212,6 +231,71 @@ int test_main()
 	snprintf(msg, sizeof(msg), "too %s format string", "long");
 	TEST_CHECK(strcmp(msg, "too long ") == 0);
 
+	std::string path;
+	sanitize_append_path_element(path, "a...", 4);
+	TEST_EQUAL(path, "a");
+
+	path.clear();
+	sanitize_append_path_element(path, "a   ", 4);
+	TEST_EQUAL(path, "a");
+
+	path.clear();
+	sanitize_append_path_element(path, "a...b", 5);
+	TEST_EQUAL(path, "a...b");
+
+	path.clear();
+	sanitize_append_path_element(path, "a", 1);
+	sanitize_append_path_element(path, "..", 2);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "a\\c");
+#else
+	TEST_EQUAL(path, "a/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "/..", 3);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+	TEST_EQUAL(path, "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "dev:", 4);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "dev");
+#else
+	TEST_EQUAL(path, "dev:");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, "b", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\b");
+#else
+	TEST_EQUAL(path, "c:/b");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\c");
+#else
+	TEST_EQUAL(path, "c:/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "\\c", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\c");
+#else
+	TEST_EQUAL(path, "c/c");
+#endif
+
 	if (supports_ipv6())
 	{
 		// make sure the assumption we use in policy's peer list hold
@@ -255,6 +339,11 @@ int test_main()
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
 	
+	TEST_CHECK(match_addr_mask(
+		address::from_string("10.0.1.176", ec),
+		address::from_string("10.0.1.176", ec),
+		address::from_string("255.255.255.0", ec)));
+
 	TEST_CHECK(match_addr_mask(
 		address::from_string("10.0.1.3", ec),
 		address::from_string("10.0.3.3", ec),
@@ -347,6 +436,23 @@ int test_main()
 	std::cerr << h1 << std::endl;
 #endif
 	TEST_CHECK(h1 == to_hash("3800000000000000000000000000000000000000"));
+
+	h1 = to_hash("7000000000000000000000000000000000000000");
+	h1 >>= 32;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("0000000070000000000000000000000000000000"));
+	h1 >>= 33;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("0000000000000000380000000000000000000000"));
+	h1 <<= 33;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("0000000070000000000000000000000000000000"));
 	
 	// CIDR distance test
 	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
@@ -359,6 +465,36 @@ int test_main()
 	h2 = to_hash("0123456789abcdef11232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
 
+	// test print_endpoint, parse_endpoint and print_address
+	TEST_EQUAL(print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");
+#if TORRENT_USE_IPV6
+	TEST_EQUAL(print_endpoint(ep("ff::1", 1214)), "[ff::1]:1214");
+#endif
+	ec.clear();
+	TEST_EQUAL(parse_endpoint("127.0.0.1:23", ec), ep("127.0.0.1", 23));
+	TEST_CHECK(!ec);
+	ec.clear();
+#if TORRENT_USE_IPV6
+	TEST_EQUAL(parse_endpoint(" \t[ff::1]:1214 \r", ec), ep("ff::1", 1214));
+	TEST_CHECK(!ec);
+#endif
+	TEST_EQUAL(print_address(v4("241.124.23.5")), "241.124.23.5");
+#if TORRENT_USE_IPV6
+	TEST_EQUAL(print_address(v6("2001:ff::1")), "2001:ff::1");
+	parse_endpoint("[ff::1]", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_port, get_libtorrent_category()));
+#endif
+
+	parse_endpoint("[ff::1:5", ec);
+	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address, get_libtorrent_category()));
+
+	// test address_to_bytes
+	TEST_EQUAL(address_to_bytes(address_v4::from_string("10.11.12.13")), "\x0a\x0b\x0c\x0d");
+	TEST_EQUAL(address_to_bytes(address_v4::from_string("16.5.127.1")), "\x10\x05\x7f\x01");
+
+	// test endpoint_to_bytes
+	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("10.11.12.13"), 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
+	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
 	return 0;
 }
 

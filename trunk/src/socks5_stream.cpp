@@ -77,24 +77,13 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::name_lookup");
 #endif
-		if (e || i == tcp::resolver::iterator())
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		error_code ec;
 		if (!m_sock.is_open())
 		{
 			m_sock.open(i->endpoint().protocol(), ec);
-			if (ec)
-			{
-				(*h)(ec);
-				close(ec);
-				return;
-			}
+			if (handle_error(ec, h)) return;
 		}
 
 		// TOOD: we could bind the socket here, since we know what the
@@ -111,13 +100,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::connected");
 #endif
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 		if (m_version == 5)
@@ -160,13 +143,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::handshake1");
 #endif
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::handshake2");
@@ -181,13 +158,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::handshake2");
 #endif
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 
@@ -247,13 +218,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::handshake3");
 #endif
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::handshake4");
@@ -269,13 +234,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::handshake4");
 #endif
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 
@@ -364,13 +323,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::connect1");
 #endif
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		if (m_version == 5)
 			m_buffer.resize(6 + 4); // assume an IPv4 address
@@ -389,13 +342,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("socks5_stream::connect2");
 #endif
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 
@@ -540,13 +487,7 @@ namespace libtorrent
 #endif
 		using namespace libtorrent::detail;
 
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		if (m_command == 2)
 		{

@@ -23,7 +23,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 1.0.0 ;
+VERSION = 1.1.0 ;
 
 rule coverage ( properties * )
 {
@@ -178,10 +178,12 @@ rule linking ( properties * )
 				# library, so that it properly exports its symbols
 				result += <define>BOOST_ALL_DYN_LINK ;
 				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
+				result += <library>/boost/chrono//boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
 			}
 			else
 			{
 				result += <library>/boost/system//boost_system/<link>static ;
+				result += <library>/boost/chrono//boost_chrono/<link>static ;
 			}
 
 			if <toolset>gcc in $(properties) && <link>shared in $(properties)
@@ -193,14 +195,7 @@ rule linking ( properties * )
 		else
 		{
 			result += <library>/boost/system//boost_system/<link>shared ;
-
-			# when building a shared library with openssl, for some reason we really need
-			# boost date time (at least on windows). Hopefully a future version of asio
-			# will allow disabling this dependency
-			if <encryption>openssl in $(properties)
-			{
-				result += <library>/boost/date_time//boost_date_time/<link>shared ;
-			}
+			result += <library>/boost/chrono//boost_chrono/<link>shared ;
 		}
 		result += <include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
@@ -211,11 +206,7 @@ rule linking ( properties * )
 	else
 	{
 		result += <library>boost_system ;
-
-		if <boost-link>shared in $(properties) && <encryption>openssl in $(properties)
-		{
-			result += <library>boost_date_time ;
-		}
+		result += <library>boost_chrono ;
 
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
@@ -326,14 +317,6 @@ rule tag ( name : type  ? : property-set )
 
 feature tcmalloc : no yes : composite propagated link-incompatible ;
 
-feature timer : auto boost absolute performance clock system_time
-	: composite propagated link-incompatible ;
-feature.compose <timer>boost : <define>TORRENT_USE_BOOST_DATE_TIME=1 ;
-feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
-feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
-feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
-feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
-
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
@@ -350,6 +333,9 @@ feature need-librt : no yes : composite propagated link-incompatible ;
 feature fiemap : off on : composite propagated ;
 feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
 
+feature file-leak-logging : off on : composite propagated ;
+feature.compose <file-leak-logging>on : <define>TORRENT_DEBUG_FILE_LEAKS=1 ;
+
 feature i2p : on off : composite propagated ;
 feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
 feature.compose <i2p>off : <define>TORRENT_USE_I2P=0 ;
@@ -363,6 +349,9 @@ feature.compose <valgrind>on : <define>TORRENT_USE_VALGRIND=1 ;
 
 feature full-stats : on off : composite propagated link-incompatible ;
 feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
+
+feature memory-optimization : off on : composite propagated link-incompatible ;
+feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE ;
 
 feature asserts : auto on off production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
@@ -381,9 +370,13 @@ feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSIONS ;
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
+feature picker-debugging : off on : composite propagated link-incompatible ;
+feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
+
 # deprecated use allocator=pool instead
-feature pool-allocators : on off : composite propagated link-incompatible ;
+feature pool-allocators : on off debug : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
+feature.compose <pool-allocators>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
 
 feature allocator : pool system debug : composite propagated ;
 feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
@@ -408,6 +401,9 @@ feature.compose <request-log>on : <define>TORRENT_REQUEST_LOGGING ;
 
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
+
+feature buffer-stats : off on : composite propagated link-incompatible ;
+feature.compose <buffer-stats>on : <define>TORRENT_BUFFER_STATS ;
 
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
@@ -455,6 +451,9 @@ feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
+feature profile-calls : off on : composite propagated link-incompatible ;
+feature.compose <profile-calls>on : <define>TORRENT_PROFILE_CALLS=1 ;
+
 # controls whether or not to export some internal
 # libtorrent functions. Used for unit testing
 feature export-extra : off on : composite propagated ;
@@ -487,9 +486,9 @@ lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-sea
 lib boost_system : : <target-os>solaris <name>boost_system $(boost-library-search-path) ;
 lib boost_system : : <name>boost_system ;
 
-lib boost_date_time : : <target-os>darwin <name>boost_date_time-mt $(boost-library-search-path) ;
-lib boost_date_time : : <target-os>solaris <name>boost_date_time $(boost-library-search-path) ;
-lib boost_date_time : : <name>boost_date_time ;
+lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-library-search-path) ;
+lib boost_chrono : : <target-os>solaris <name>boost_chrono $(boost-library-search-path) ;
+lib boost_chrono : : <name>boost_chrono ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
@@ -497,6 +496,7 @@ lib z : : <link>shared <name>z <search>/usr/lib ;
 lib crypto : : <name>crypto <search>/usr/lib <use>z ;
 lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
+lib aio : : <link>shared <name>aio ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
@@ -523,11 +523,16 @@ SOURCES =
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
+	block_cache
 	bloom_filter
 	chained_buffer
 	connection_queue
+	crc32c
 	create_torrent
 	disk_buffer_holder
+	disk_buffer_pool
+	disk_io_job
+	disk_job_pool
 	entry
 	error_code
 	file_storage
@@ -544,6 +549,7 @@ SOURCES =
 	ip_filter
 	ip_voter
 	peer_connection
+	platform_util
 	bt_peer_connection
 	web_connection_base
 	web_peer_connection
@@ -554,12 +560,13 @@ SOURCES =
 	packet_buffer
 	piece_picker
 	policy
+	proxy_base
 	puff
 	random
 	rss
 	session
 	session_impl
-	settings
+	settings_pack
 	socket_io
 	socket_type
 	socks5_stream
@@ -568,11 +575,14 @@ SOURCES =
 	torrent
 	torrent_handle
 	torrent_info
+	torrent_peer
+	torrent_peer_allocator
 	time
 	tracker_manager
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
+	tailqueue
 	timestamp_history
 	udp_socket
 	upnp
@@ -591,6 +601,14 @@ SOURCES =
 	ConvertUTF
 	thread
 	xml_parse
+	peer_class
+	peer_class_set
+	part_file
+	stat_cache
+	request_blocks
+	session_stats
+	performance_counters
+	resolver
 
 # -- extensions --
 	metadata_transfer
@@ -610,6 +628,7 @@ KADEMLIA_SOURCES =
 	routing_table
 	traversal_algorithm
 	logging
+	dos_blocker
 	get_peers
 	item
 	get_item
@@ -683,6 +702,7 @@ lib torrent
 	<include>./ed25519/src
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
+	<define>BOOST_NO_DEPRECATED
 
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
@@ -708,6 +728,7 @@ lib torrent
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
+
 	;
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/utility.hpp>
+#include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
@@ -68,7 +69,7 @@ struct ip_range
 {
 	Addr first;
 	Addr last;
-	int flags;
+	boost::uint32_t flags;
 };
 
 namespace detail
@@ -161,8 +162,8 @@ namespace detail
 			TORRENT_ASSERT(j != m_access_list.begin());
 			TORRENT_ASSERT(j != i);
 			
-			int first_access = i->access;
-			int last_access = boost::prior(j)->access;
+			boost::uint32_t first_access = i->access;
+			boost::uint32_t last_access = boost::prior(j)->access;
 
 			if (i->start != first && first_access != flags)
 			{
@@ -182,7 +183,7 @@ namespace detail
 				// we can do this const-cast because we know that the new
 				// start address will keep the set correctly ordered
 				const_cast<Addr&>(i->start) = first;
-				const_cast<int&>(i->access) = flags;
+				const_cast<boost::uint32_t&>(i->access) = flags;
 			}
 			else if (first_access != flags)
 			{
@@ -203,7 +204,7 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 		}
 
-		int access(Addr const& addr) const
+		boost::uint32_t access(Addr const& addr) const
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
 			typename range_t::const_iterator i = m_access_list.upper_bound(addr);
@@ -250,7 +251,7 @@ namespace detail
 			Addr start;
 			// the end of the range is implicit
 			// and given by the next entry in the set
-			int access;
+			boost::uint32_t access;
 		};
 
 		typedef std::set<range> range_t;
@@ -290,7 +291,7 @@ struct TORRENT_EXPORT ip_filter
 	// 
 	// This means that in a case of overlapping ranges, the last one applied takes
 	// precedence.
-	void add_rule(address first, address last, int flags);
+	void add_rule(address first, address last, boost::uint32_t flags);
 
 	// Returns the access permissions for the given address (``addr``). The permission
 	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
@@ -343,7 +344,7 @@ public:
 	// set the flags for the specified port range (``first``, ``last``) to
 	// ``flags`` overwriting any existing rule for those ports. The range
 	// is inclusive, i.e. the port ``last`` also has the flag set on it.
-	void add_rule(boost::uint16_t first, boost::uint16_t last, int flags);
+	void add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags);
 
 	// test the specified port (``port``) for whether it is blocked
 	// or not. The returned value is the flags set for this port.

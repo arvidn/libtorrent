@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/enum_net.hpp"
+#include "libtorrent/resolver.hpp"
 
 #include <boost/function/function1.hpp>
 #include <boost/function/function4.hpp>
@@ -341,6 +343,8 @@ private:
 
 	io_service& m_io_service;
 
+	resolver m_resolver;
+
 	// the udp socket used to send and receive
 	// multicast messages on the network
 	broadcast_socket m_socket;
@@ -368,6 +372,10 @@ private:
 	mutex m_mutex;
 
 	std::string m_model;
+
+	// cache of interfaces
+	mutable std::vector<ip_interface> m_interfaces;
+	mutable ptime m_last_if_update;
 };
 
 }

@@ -34,10 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/torrent_info.hpp" // for merkle_*()
 
 #include <boost/bind.hpp>
 #include <boost/next_prior.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -46,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	class alert;
 
 	namespace detail
 	{
@@ -145,55 +150,43 @@ namespace libtorrent
 				}
 			}
 		}
-	}
+	} // detail namespace
 
-	struct piece_holder
+	void on_hash(disk_io_job const* j, create_torrent* t
+		, boost::shared_ptr<piece_manager> storage, disk_io_thread* iothread
+		, int* piece_counter, int* completed_piece
+		, boost::function<void(int)> const* f, error_code* ec)
 	{
-		piece_holder(int bytes): m_piece(page_aligned_allocator::malloc(bytes)) {}
-		~piece_holder() { page_aligned_allocator::free(m_piece); }
-		char* bytes() { return m_piece; }
-	private:
-		char* m_piece;
-	};
-
-#if TORRENT_USE_WSTRING
-	void set_piece_hashes(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> const& f, error_code& ec)
-	{
-		file_pool fp;
-		std::string utf8;
-		wchar_utf8(p, utf8);
-#if TORRENT_USE_UNC_PATHS
-		utf8 = canonicalize_path(utf8);
-#endif
-		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp
-			, std::vector<boost::uint8_t>()));
-
-		// calculate the hash for all pieces
-		int num = t.num_pieces();
-		std::vector<char> buf(t.piece_length());
-		for (int i = 0; i < num; ++i)
+		if (j->ret != 0)
 		{
-			// read hits the disk and will block. Progress should
-			// be updated in between reads
-			st->read(&buf[0], i, 0, t.piece_size(i));
-			if (st->error())
-			{
-				ec = st->error();
-				return;
-			}
-			hasher h(&buf[0], t.piece_size(i));
-			t.set_hash(i, h.final());
-			f(i);
+			// on error
+			*ec = j->error.ec;
+			iothread->set_num_threads(0);
+			return;
 		}
+		t->set_hash(j->piece, sha1_hash(j->d.piece_hash));
+		(*f)(*completed_piece);
+		++(*completed_piece);
+		if (*piece_counter < t->num_pieces())
+		{
+			iothread->async_hash(storage.get(), *piece_counter, disk_io_job::sequential_access
+				, boost::bind(&on_hash, _1, t, storage, iothread
+				, piece_counter, completed_piece, f, ec), (void*)0);
+			++(*piece_counter);
+		}
+		else
+		{
+			iothread->set_num_threads(0);
+		}
+		iothread->submit_jobs();
 	}
-#endif
 
 	void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int)> f, error_code& ec)
+		, boost::function<void(int)> const& f, error_code& ec)
 	{
-		file_pool fp;
+		// optimized path
+		io_service ios;
+
 #if TORRENT_USE_UNC_PATHS
 		std::string path = canonicalize_path(p);
 #else
@@ -206,60 +199,43 @@ namespace libtorrent
 			return;
 		}
 
-		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, path, fp
-			, std::vector<boost::uint8_t>()));
+		// dummy torrent object pointer
+		boost::shared_ptr<char> dummy;
+		disk_io_thread disk_thread(ios, 0, 0);
 
-		// if we're calculating file hashes as well, use this hasher
-		hasher filehash;
-		int file_idx = 0;
-		size_type left_in_file = t.files().at(0).size;
+		storage_params params;
+		params.files = &t.files();
+		params.mapped_files = NULL;
+		params.path = path;
+		params.pool = &disk_thread.files();
+		params.mode = storage_mode_sparse;
 
-		// calculate the hash for all pieces
-		int num = t.num_pieces();
-		piece_holder buf(t.piece_length());
-		for (int i = 0; i < num; ++i)
+		storage_interface* storage_impl = default_storage_constructor(params);
+
+		boost::shared_ptr<piece_manager> storage = boost::make_shared<piece_manager>(
+			storage_impl, dummy, (file_storage*)&t.files());
+
+		settings_pack sett;
+		sett.set_int(settings_pack::cache_size, 0);
+		sett.set_int(settings_pack::hashing_threads, 2);
+
+		disk_thread.set_settings(&sett);
+
+		int piece_counter = 0;
+		int completed_piece = 0;
+		int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();
+		if (piece_read_ahead < 1) piece_read_ahead = 1;
+
+		for (int i = 0; i < piece_read_ahead; ++i)
 		{
-			// read hits the disk and will block. Progress should
-			// be updated in between reads
-			st->read(buf.bytes(), i, 0, t.piece_size(i));
-			if (st->error())
-			{
-				ec = st->error();
-				return;
-			}
-			
-			if (t.should_add_file_hashes())
-			{
-				int left_in_piece = t.piece_size(i);
-				int this_piece_size = left_in_piece;
-				// the number of bytes from this file we just read
-				while (left_in_piece > 0)
-				{
-					int to_hash_for_file = int((std::min)(size_type(left_in_piece), left_in_file));
-					if (to_hash_for_file > 0)
-					{
-						int offset = this_piece_size - left_in_piece;
-						filehash.update(buf.bytes() + offset, to_hash_for_file);
-					}
-					left_in_file -= to_hash_for_file;
-					left_in_piece -= to_hash_for_file;
-					if (left_in_file == 0)
-					{
-						if (!t.files().at(file_idx).pad_file)
-							t.set_file_hash(file_idx, filehash.final());
-						filehash.reset();
-						file_idx++;
-						if (file_idx >= t.files().num_files()) break;
-						left_in_file = t.files().at(file_idx).size;
-					}
-				}
-			}
-
-			hasher h(buf.bytes(), t.piece_size(i));
-			t.set_hash(i, h.final());
-			f(i);
+			disk_thread.async_hash(storage.get(), i, disk_io_job::sequential_access
+				, boost::bind(&on_hash, _1, &t, storage, &disk_thread
+				, &piece_counter, &completed_piece, &f, &ec), (void*)0);
+			++piece_counter;
+			if (piece_counter >= t.num_pieces()) break;
 		}
+		disk_thread.submit_jobs();
+		ios.run(ec);
 	}
 
 	create_torrent::~create_torrent() {}

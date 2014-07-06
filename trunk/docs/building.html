@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>1.1.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -110,16 +110,16 @@ to step 3 (assuming you also have boost build installed).</p>
 <h3>Step 1: Download boost</h3>
 <p>You'll find boost <a class="reference external" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=619445">here</a>.</p>
 <p>Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt> (I'm using
+guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_55_0</span></tt> (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
-to use the autotools). You'll need at least version 1.34 of the boost library
+to use the autotools). You'll need at least version 1.49 of the boost library
 in order to build libtorrent.</p>
 </div>
 <div class="section" id="step-2-setup-bbv2">
 <h3>Step 2: Setup BBv2</h3>
 <p>First you need to build <tt class="docutils literal">bjam</tt>. You do this by opening a terminal (In
 windows, run <tt class="docutils literal">cmd</tt>). Change directory to
-<tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\jam\src</span></tt>. Then run the script called
+<tt class="docutils literal"><span class="pre">c:\boost_1_55_0\tools\jam\src</span></tt>. Then run the script called
 <tt class="docutils literal">build.bat</tt> or <tt class="docutils literal">build.sh</tt> on a unix system. This will build <tt class="docutils literal">bjam</tt> and
 place it in a directory starting with <tt class="docutils literal">bin.</tt> and then have the name of your
 platform. Copy the <tt class="docutils literal">bjam.exe</tt> (or <tt class="docutils literal">bjam</tt> on a unix system) to a place
@@ -133,20 +133,20 @@ set the environment variable <tt class="docutils literal">BOOST_BUILD_PATH</tt>.
 <tt class="docutils literal">bjam</tt> where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\build\v2</span></tt>.</p>
+it to <tt class="docutils literal"><span class="pre">c:\boost_1_55_0\tools\build\v2</span></tt>.</p>
 <p>To set an environment variable in windows, type for example:</p>
 <pre class="literal-block">
-set BOOST_BUILD_PATH=c:\boost_1_34_0\tools\build\v2
+set BOOST_BUILD_PATH=c:\boost_1_55_0\tools\build\v2
 </pre>
 <p>In a terminal window.</p>
 <p>The last thing to do to complete the setup of BBv2 is to modify your
-<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file. It is located in <tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\build\v2</span></tt>.
+<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file. It is located in <tt class="docutils literal"><span class="pre">c:\boost_1_55_0\tools\build\v2</span></tt>.
 Depending on your platform and which compiler you're using, you should add a
 line for each compiler and compiler version you have installed on your system
 that you want to be able to use with BBv2. For example, if you're using
-Microsoft Visual Studio 7.1 (2003), just add a line:</p>
+Microsoft Visual Studio 12 (2013), just add a line:</p>
 <pre class="literal-block">
-using msvc : 7.1 ;
+using msvc : 12.0 ;
 </pre>
 <p>If you use GCC, add the line:</p>
 <pre class="literal-block">
@@ -173,7 +173,7 @@ using darwin : 4.0 : g++-4.0 ;
 <p>When building libtorrent, the <tt class="docutils literal">Jamfile</tt> expects the environment variable
 <tt class="docutils literal">BOOST_ROOT</tt> to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt>. You only need this if you're
+files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_55_0</span></tt>. You only need this if you're
 building against a source distribution of boost.</p>
 <p>Then the only thing left is simply to invoke <tt class="docutils literal">bjam</tt>. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
@@ -239,8 +239,8 @@ from a cygwin terminal, you'll have to run it from a <tt class="docutils literal
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (<tt class="docutils literal">BOOST_BUILD_PATH</tt> and <tt class="docutils literal">BOOST_ROOT</tt>) should be in the typical unix-format (e.g.
-<tt class="docutils literal">/cygdrive/c/boost_1_34_0</tt>). In the windows environment, they should have the typical
-windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_34_0</span></tt>).</p>
+<tt class="docutils literal">/cygdrive/c/boost_1_55_0</tt>). In the windows environment, they should have the typical
+windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_55_0</span></tt>).</p>
 <div class="note">
 <p class="first admonition-title">Note</p>
 <p class="last">In Jamfiles, spaces are separators. It's typically easiest to avoid spaces
@@ -468,7 +468,7 @@ awareness except on windows).</li>
 <tr><td><tt class="docutils literal">asserts</tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">off</tt> - disable all asserts</li>
-<li><tt class="docutils literal">peoduction</tt> - enable asserts in release
+<li><tt class="docutils literal">production</tt> - enable asserts in release
 builds, but don't abort, just log them to
 <tt class="docutils literal">extern char const* libtorrent_assert_log</tt>.</li>
 <li><tt class="docutils literal">on</tt> - enable asserts in debug builds (this is
@@ -504,6 +504,17 @@ stats.</li>
 working directory session_stats&lt;pid&gt;. The log
 is rotated every hour. It can be parsed by the
 parse_session_stats.py script (requires gnuplot)</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">profile-calls</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal">off</tt> - default. No additional call profiling.</li>
+<li><tt class="docutils literal">on</tt> - Enable logging of stack traces of
+calls into libtorrent that are blocking. On
+session shutdown, a file <tt class="docutils literal">blocking_calls.txt</tt>
+is written with stack traces of blocking calls
+ordered by the number of them.</li>
 </ul>
 </td>
 </tr>

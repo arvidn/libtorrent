@@ -35,10 +35,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/byteswap.hpp"
+#include "libtorrent/cpuid.hpp"
+
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
 #include <boost/cstdint.hpp> // uint32_t
 #include <algorithm> // for min()
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 namespace libtorrent
 {
@@ -54,32 +61,19 @@ namespace libtorrent
 		// The constructor taking a pointer ``b`` and ``bits`` copies a bitfield
 		// from the specified buffer, and ``bits`` number of bits (rounded up to
 		// the nearest byte boundry).
-		bitfield(): m_bytes(0), m_size(0), m_own(false) {}
-		bitfield(int bits): m_bytes(0), m_size(0), m_own(false)
+		bitfield(): m_buf(NULL) {}
+		bitfield(int bits): m_buf(NULL)
 		{ resize(bits); }
-		bitfield(int bits, bool val): m_bytes(0), m_size(0), m_own(false)
+		bitfield(int bits, bool val): m_buf(NULL)
 		{ resize(bits, val); }
-		bitfield(char const* b, int bits): m_bytes(0), m_size(0), m_own(false)
+		bitfield(char const* b, int bits): m_buf(NULL)
 		{ assign(b, bits); }
-		bitfield(bitfield const& rhs): m_bytes(0), m_size(0), m_own(false)
+		bitfield(bitfield const& rhs): m_buf(NULL)
 		{ assign(rhs.bytes(), rhs.size()); }
 #if __cplusplus > 199711L
-		bitfield(bitfield&& rhs): m_bytes(rhs.m_bytes), m_size(rhs.m_size), m_own(rhs.m_own)
-		{ rhs.m_bytes = NULL; }
+		bitfield(bitfield&& rhs): m_buf(rhs.m_buf)
+		{ rhs.m_buf = NULL; }
 #endif
-
-		// assigns a bitfield pointed to ``b`` of ``bits`` number of bits, without
-		// taking ownership of the buffer. This is a way to avoid copying data and
-		// yet provide a raw buffer to functions that may operate on the bitfield
-		// type. It is the user's responsibility to make sure the passed-in buffer's
-		// life time exceeds all uses of the bitfield.
-		void borrow_bytes(char* b, int bits)
-		{
-			dealloc();
-			m_bytes = (unsigned char*)b;
-			m_size = bits;
-			m_own = false;
-		}
 
 		// hidden
 		~bitfield() { dealloc(); }
@@ -87,62 +81,82 @@ namespace libtorrent
 		// copy bitfield from buffer ``b`` of ``bits`` number of bits, rounded up to
 		// the nearest byte boundary.
 		void assign(char const* b, int bits)
-		{ resize(bits); std::memcpy(m_bytes, b, (bits + 7) / 8); clear_trailing_bits(); }
+		{
+			resize(bits);
+			if (bits > 0)
+			{
+				std::memcpy(m_buf, b, ((bits + 7) / 8));
+				clear_trailing_bits();
+			}
+		}
 
 		// query bit at ``index``. Returns true if bit is 1, otherwise false.
 		bool operator[](int index) const
 		{ return get_bit(index); }
+
 		bool get_bit(int index) const
 		{
 			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < m_size);
-			return (m_bytes[index / 8] & (0x80 >> (index & 7))) != 0;
+			TORRENT_ASSERT(index < size());
+			return (m_buf[index / 32] & htonl((0x80000000 >> (index & 31)))) != 0;
 		}
 		
 		// set bit at ``index`` to 0 (clear_bit) or 1 (set_bit).
 		void clear_bit(int index)
 		{
 			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < m_size);
-			m_bytes[index / 8] &= ~(0x80 >> (index & 7));
+			TORRENT_ASSERT(index < size());
+			m_buf[index / 32] &= htonl(~(0x80000000 >> (index & 31)));
 		}
 		void set_bit(int index)
 		{
 			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < m_size);
-			m_bytes[index / 8] |= (0x80 >> (index & 7));
+			TORRENT_ASSERT(index < size());
+			m_buf[index / 32] |= htonl((0x80000000 >> (index & 31)));
 		}
 
 		// returns true if all bits in the bitfield are set
 		bool all_set() const
 		{
-			const int num_words = m_size / 32;
-			const int num_bytes = m_size / 8;
-			boost::uint32_t* bits = (boost::uint32_t*)m_bytes;
-			for (int i = 0; i < num_words; ++i)
+			const int words = size() / 32;
+			for (int i = 0; i < words; ++i)
 			{
-				if (bits[i] != 0xffffffff) return false;
+				if (m_buf[i] != 0xffffffff) return false;
 			}
-
-			for (int i = num_words * 4; i < num_bytes; ++i)
-			{
-				if (m_bytes[i] != 0xff) return false;
-			}
-			int rest = m_size - num_bytes * 8;
-			boost::uint8_t mask = (0xff << (8-rest)) & 0xff;
-			if (rest > 0 && (m_bytes[num_bytes] & mask) != mask)
+			int rest = size() & 31;
+			boost::uint32_t mask = htonl(0xffffffff << (32-rest));
+			if (rest > 0 && (m_buf[words] & mask) != mask)
 				return false;
 			return true;
 		}
 
+		bool none_set() const
+		{
+			const int words = num_words();
+			for (int i = 0; i < words; ++i)
+			{
+				if (m_buf[i] != 0) return false;
+			}
+			return true;
+		}
+
 		// returns the size of the bitfield in bits.
-		std::size_t size() const { return m_size; }
+		int size() const
+		{
+			return m_buf == NULL ? 0 : m_buf[-1];
+		}
+
+		int num_words() const
+		{
+			return (size() + 31) / 32;
+		}
 
 		// returns true if the bitfield has zero size.
-		bool empty() const { return m_size == 0; }
+		bool empty() const { return m_buf == NULL ? true : m_buf[-1] == 0; }
 
 		// returns a pointer to the internal buffer of the bitfield.
-		char const* bytes() const { return (char*)m_bytes; }
+		// TODO: rename to data() ?
+		char const* bytes() const { return (char const*)m_buf; }
 
 		// copy operator
 		bitfield& operator=(bitfield const& rhs)
@@ -154,27 +168,43 @@ namespace libtorrent
 		// count the number of bits in the bitfield that are set to 1.
 		int count() const
 		{
-			// 0000, 0001, 0010, 0011, 0100, 0101, 0110, 0111,
-			// 1000, 1001, 1010, 1011, 1100, 1101, 1110, 1111
-			const static char num_bits[] =
-			{
-				0, 1, 1, 2, 1, 2, 2, 3,
-				1, 2, 2, 3, 2, 3, 3, 4
-			};
-
 			int ret = 0;
-			const int num_bytes = m_size / 8;
-			for (int i = 0; i < num_bytes; ++i)
+			const int words = num_words();
+#if TORRENT_HAS_SSE
+			unsigned int cpui[4];
+			cpuid(cpui, 1);
+			if (cpui[2] & (1 << 23))
 			{
-				ret += num_bits[m_bytes[i] & 0xf] + num_bits[m_bytes[i] >> 4];
+				for (int i = 0; i < words; ++i)
+				{
+#ifdef __GNUC__
+					ret += __builtin_popcount(m_buf[i]);
+#else
+					ret += _mm_popcnt_u32(m_buf[i]);
+#endif
+				}
+
+				return ret;
+			}	
+#endif // TORRENT_HAS_SSE
+
+			for (int i = 0; i < words; ++i)
+			{
+				boost::uint32_t v = m_buf[i];
+				// from:
+				// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+				static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
+				static const int B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
+
+				boost::uint32_t c = v - ((v >> 1) & B[0]);
+				c = ((c >> S[1]) & B[1]) + (c & B[1]);
+				c = ((c >> S[2]) + c) & B[2];
+				c = ((c >> S[3]) + c) & B[3];
+				c = ((c >> S[4]) + c) & B[4];
+				ret += c;
 			}
 
-			int rest = m_size - num_bytes * 8;
-			for (int i = 0; i < rest; ++i)
-			{
-				ret += (m_bytes[num_bytes] >> (7-i)) & 1;
-			}
-			TORRENT_ASSERT(ret <= m_size);
+			TORRENT_ASSERT(ret <= size());
 			TORRENT_ASSERT(ret >= 0);
 			return ret;
 		}
@@ -189,7 +219,7 @@ namespace libtorrent
 			typedef bool& reference;
 			typedef std::forward_iterator_tag iterator_category;
 
-			bool operator*() { return (*byte & bit) != 0; }
+			bool operator*() { return (*buf & htonl(bit)) != 0; }
 			const_iterator& operator++() { inc(); return *this; }
 			const_iterator operator++(int)
 			{ const_iterator ret(*this); inc(); return ret; }
@@ -197,21 +227,21 @@ namespace libtorrent
 			const_iterator operator--(int)
 			{ const_iterator ret(*this); dec(); return ret; }
 
-			const_iterator(): byte(0), bit(0x80) {}
+			const_iterator(): buf(0), bit(0x80000000) {}
 			bool operator==(const_iterator const& rhs) const
-			{ return byte == rhs.byte && bit == rhs.bit; }
+			{ return buf == rhs.buf && bit == rhs.bit; }
 
 			bool operator!=(const_iterator const& rhs) const
-			{ return byte != rhs.byte || bit != rhs.bit; }
+			{ return buf != rhs.buf || bit != rhs.bit; }
 
 		private:
 			void inc()
 			{
-				TORRENT_ASSERT(byte);
+				TORRENT_ASSERT(buf);
 				if (bit == 0x01)
 				{
-					bit = 0x80;
-					++byte;
+					bit = 0x80000000;
+					++buf;
 				}
 				else
 				{
@@ -220,103 +250,115 @@ namespace libtorrent
 			}
 			void dec()
 			{
-				TORRENT_ASSERT(byte);
-				if (bit == 0x80)
+				TORRENT_ASSERT(buf);
+				if (bit == 0x80000000)
 				{
 					bit = 0x01;
-					--byte;
+					--buf;
 				}
 				else
 				{
 					bit <<= 1;
 				}
 			}
-			const_iterator(unsigned char const* ptr, int offset)
-				: byte(ptr), bit(0x80 >> offset) {}
-			unsigned char const* byte;
-			int bit;
+			const_iterator(boost::uint32_t const* ptr, int offset)
+				: buf(ptr), bit(0x80000000 >> offset) {}
+			boost::uint32_t const* buf;
+			boost::uint32_t bit;
 		};
 
-		const_iterator begin() const { return const_iterator(m_bytes, 0); }
-		const_iterator end() const { return const_iterator(m_bytes + m_size / 8, m_size & 7); }
+		const_iterator begin() const { return const_iterator(m_buf, 0); }
+		const_iterator end() const { return const_iterator(
+			m_buf + num_words() - (((size() & 31) == 0) ? 0 : 1), size() & 31); }
 
 		// set the size of the bitfield to ``bits`` length. If the bitfield is extended,
 		// the new bits are initialized to ``val``.
 		void resize(int bits, bool val)
 		{
-			int s = m_size;
-			int b = m_size & 7;
+			if (bits == size()) return;
+
+			int s = size();
+			int b = size() & 31;
 			resize(bits);
-			if (s >= m_size) return;
-			int old_size_bytes = (s + 7) / 8;
-			int new_size_bytes = (m_size + 7) / 8;
+			if (s >= size()) return;
+			int old_size_words = (s + 31) / 32;
+			int new_size_words = num_words();
 			if (val)
 			{
-				if (old_size_bytes && b) m_bytes[old_size_bytes - 1] |= (0xff >> b);
-				if (old_size_bytes < new_size_bytes)
-					std::memset(m_bytes + old_size_bytes, 0xff, new_size_bytes - old_size_bytes);
+				if (old_size_words && b) m_buf[old_size_words - 1] |= htonl((0xffffffff >> b));
+				if (old_size_words < new_size_words)
+					std::memset(m_buf + old_size_words, 0xff, (new_size_words - old_size_words) * 4);
 				clear_trailing_bits();
 			}
 			else
 			{
-				if (old_size_bytes < new_size_bytes)
-					std::memset(m_bytes + old_size_bytes, 0x00, new_size_bytes - old_size_bytes);
+				if (old_size_words < new_size_words)
+					std::memset(m_buf + old_size_words, 0x00, (new_size_words - old_size_words) * 4);
 			}
+			TORRENT_ASSERT(size() == bits);
 		}
+
 		void resize(int bits)
 		{
+			if (bits == size()) return;
+
 			TORRENT_ASSERT(bits >= 0);
-			const int b = (bits + 7) / 8;
-			if (m_bytes)
+			// +1 because the first word is the size (in bits)
+			const int b = (bits + 31) / 32;
+			if (m_buf)
 			{
-				if (m_own)
-				{
-					m_bytes = (unsigned char*)std::realloc(m_bytes, b);
-					m_own = true;
-				}
-				else if (bits > m_size)
-				{
-					unsigned char* tmp = (unsigned char*)std::malloc(b);
-					std::memcpy(tmp, m_bytes, (std::min)(int(m_size + 7)/ 8, b));
-					m_bytes = tmp;
-					m_own = true;
-				}
+				m_buf = (boost::uint32_t*)std::realloc(m_buf-1, (b+1) * 4);
+				m_buf = m_buf + 1;
+				m_buf[-1] = bits;
 			}
 			else if (bits > 0)
 			{
-				m_bytes = (unsigned char*)std::malloc(b);
-				m_own = true;
+				m_buf = (boost::uint32_t*)std::malloc((b+1) * 4);
+				m_buf = m_buf + 1;
+				m_buf[-1] = bits;
 			}
-			m_size = bits;
+			else if (m_buf != NULL)
+			{
+				std::free(m_buf-1);
+				m_buf = NULL;
+			}
 			clear_trailing_bits();
+			TORRENT_ASSERT(size() == bits);
 		}
 
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all()
 		{
-			std::memset(m_bytes, 0xff, (m_size + 7) / 8);
+			std::memset(m_buf, 0xff, num_words() * 4);
 			clear_trailing_bits();
 		}
 		void clear_all()
 		{
-			std::memset(m_bytes, 0x00, (m_size + 7) / 8);
+			std::memset(m_buf, 0x00, num_words() * 4);
 		}
 	
 		// make the bitfield empty, of zero size.
-		void clear() { dealloc(); m_size = 0; }
+		void clear() { dealloc(); }
 
 	private:
 
 		void clear_trailing_bits()
 		{
 			// clear the tail bits in the last byte
-			if (m_size & 7) m_bytes[(m_size + 7) / 8 - 1] &= 0xff << (8 - (m_size & 7));
+			if (size() & 31) m_buf[num_words() - 1] &= htonl(0xffffffff << (32 - (size() & 31)));
 		}
 
-		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
-		unsigned char* m_bytes;
-		int m_size:31; // in bits
-		bool m_own:1;
+		void dealloc()
+		{
+			if (m_buf) std::free(m_buf-1);
+			m_buf = NULL;
+		}
+
+		// the first element is not part of the bitfield, it's the
+		// number of bits. For this purpose, the m_buf actually points
+		// the element 1, not 0. To access the size (in bits), access
+		// m_buf[-1]
+		boost::uint32_t* m_buf;
 	};
 
 }

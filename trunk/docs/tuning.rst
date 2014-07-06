@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 1.1.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -285,6 +285,25 @@ the same pieces, and on the other hand assume that they won't request the same p
 and drop them when the first peer requests it. To enable volatile read cache, set
 ``session_settings::volatile_read_cache`` to true.
 
+SSD as level 2 cache
+--------------------
+
+It is possible to introduce a second level of cache, below the RAM disk cache. This is done
+by setting ``session_settings::mmap_cache`` to a file path pointing to the SSD drive, and
+increasing the ``session_settings::cache_size`` to the number of 16 kiB blocks would fit
+on the drive (or less).
+
+This will allocate disk buffers (for reading and writing) from a memory region that has
+been mapped to the specified file. If the drive this file lives on is not significantly
+faster than the destination drive, performance will be degraded. The point is to take
+advantage primarily of the fast read speed from SSD drives and use it to extend the read
+cache, improving seed performance.
+
+Which parts of the cache that actually live in RAM is determined by the operating system.
+
+Note that when using this feature, any block which ends up being pulled from the mmapped
+file will be considered a cache hit.
+
 uTP-TCP mixed mode
 ------------------
 
@@ -343,6 +362,16 @@ torrent limits
 
 To seed thousands of torrents, you need to increase the ``session_settings::active_limit``
 and ``session_settings::active_seeds``.
+
+SHA-1 hashing
+-------------
+
+When downloading at very high rates, it is possible to have the CPU be the bottleneck
+for passing every downloaded byte through SHA-1. In order to enable calculating SHA-1
+hashes in parallel, on multi-core systems, set ``session_settings::hashing_threads``
+to the number of threads libtorrent should start to do SHA-1 hashing. This defaults
+to 1, and only if that thread is close to saturating one core does it make sense to
+increase the number of threads.
 
 scalability
 ===========
@@ -569,7 +598,7 @@ A disk job is essentially one of:
 
 1. write this block to disk, i.e. a write job. For the most part this is just a matter of sticking the block in the disk cache, but if we've run out of cache space or completed a whole piece, we'll also flush blocks to disk. This is typically very fast, since the OS just sticks these buffers in its write cache which will be flushed at a later time, presumably when the drive head will pass the place on the platter where the blocks go.
 
-2. read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordere queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks.
+2. read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordered queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks. If the system supports asynchronous I/O (Windows, Linux, Mac OS X, BSD, Solars for instance), jobs will be issued immediately to the OS. This especially increases read throughput, since the OS has a much greater flexibility to reorder the read jobs.
 
 Other disk job consist of operations that needs to be synchronized with the disk I/O, like renaming files, closing files, flushing the cache, updating the settings etc. These are relatively rare though.
 

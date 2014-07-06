@@ -417,7 +417,7 @@ namespace libtorrent
 	// The overloads that don't take an ``error_code&`` may throw an exception in case of a
 	// file error, the other overloads sets the error code to reflect the error, if any.
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int)> f, error_code& ec);
+		, boost::function<void(int)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
@@ -465,8 +465,13 @@ namespace libtorrent
 			, filename(utf8), detail::default_pred, flags);
 	}
 	
-	void TORRENT_EXPORT set_piece_hashes(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> const& f, error_code& ec);
+	inline void set_piece_hashes(create_torrent& t, std::wstring const& p, boost::function<void(int)> f
+		, error_code& ec)
+	{
+		std::string utf8;
+		wchar_utf8(p, utf8);
+		set_piece_hashes(t, utf8, f, ec);
+	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>

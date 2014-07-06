@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
+
 namespace libtorrent
 {
 	struct torrent_plugin;
@@ -62,6 +64,7 @@ namespace libtorrent
 	create_metadata_plugin(torrent*, void*) TORRENT_DEPRECATED;
 #endif
 }
+#endif
 
 #endif // TORRENT_DISABLE_EXTENSIONS
 

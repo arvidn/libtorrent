@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/broadcast_socket.hpp" // for is_any
+#include "libtorrent/settings_pack.hpp"
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
@@ -93,9 +94,6 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_outstanding_timeout = 0;
 	m_outstanding_resolve = 0;
 	m_outstanding_socks = 0;
-#if defined BOOST_HAS_PTHREADS
-	m_thread = 0;
-#endif
 #endif
 
 	m_buf_size = 2048;
@@ -291,8 +289,8 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 
 		// TODO: it would be nice to detect this on posix systems also
 #ifdef TORRENT_WINDOWS
-		if ((ec == error_code(ERROR_MORE_DATA, get_system_category())
-			|| ec == error_code(WSAEMSGSIZE, get_system_category()))
+		if ((ec == error_code(ERROR_MORE_DATA, system_category())
+			|| ec == error_code(WSAEMSGSIZE, system_category()))
 			&& m_buf_size < 65536)
 		{
 			// if this function fails to allocate memory, m_buf_size
@@ -442,13 +440,13 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 			&& e != asio::error::network_unreachable
 #ifdef WIN32
 			// ERROR_MORE_DATA means the same thing as EMSGSIZE
-			&& e != error_code(ERROR_MORE_DATA, get_system_category())
-			&& e != error_code(ERROR_HOST_UNREACHABLE, get_system_category())
-			&& e != error_code(ERROR_PORT_UNREACHABLE, get_system_category())
-			&& e != error_code(ERROR_RETRY, get_system_category())
-			&& e != error_code(ERROR_NETWORK_UNREACHABLE, get_system_category())
-			&& e != error_code(ERROR_CONNECTION_REFUSED, get_system_category())
-			&& e != error_code(ERROR_CONNECTION_ABORTED, get_system_category())
+			&& e != error_code(ERROR_MORE_DATA, system_category())
+			&& e != error_code(ERROR_HOST_UNREACHABLE, system_category())
+			&& e != error_code(ERROR_PORT_UNREACHABLE, system_category())
+			&& e != error_code(ERROR_RETRY, system_category())
+			&& e != error_code(ERROR_NETWORK_UNREACHABLE, system_category())
+			&& e != error_code(ERROR_CONNECTION_REFUSED, system_category())
+			&& e != error_code(ERROR_CONNECTION_ABORTED, system_category())
 #endif
 			&& e != asio::error::message_size)
 		{
@@ -781,8 +779,8 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 
 	if (m_abort) return;
 
-	if (ps.type == proxy_settings::socks5
-		|| ps.type == proxy_settings::socks5_pw)
+	if (ps.type == settings_pack::socks5
+		|| ps.type == settings_pack::socks5_pw)
 	{
 		m_queue_packets = true;
 		// connect to socks5 server and open up the UDP tunnel
@@ -858,11 +856,10 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	++m_outstanding_timeout;
 	++m_outstanding_connect_queue;
 #endif
-	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
-		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
+	m_cc.enqueue(this, seconds(10));
 }
 
-void udp_socket::on_timeout()
+void udp_socket::on_connect_timeout()
 {
 #if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_outstanding_timeout > 0);
@@ -889,7 +886,7 @@ void udp_socket::on_timeout()
 	m_connection_ticket = -1;
 }
 
-void udp_socket::on_connect(int ticket)
+void udp_socket::on_allow_connect(int ticket)
 {
 	TORRENT_ASSERT(is_single_thread());
 #if TORRENT_USE_ASSERTS
@@ -1013,7 +1010,7 @@ void udp_socket::on_connected(error_code const& e, int ticket)
 	char* p = &m_tmp_buf[0];
 	write_uint8(5, p); // SOCKS VERSION 5
 	if (m_proxy_settings.username.empty()
-		|| m_proxy_settings.type == proxy_settings::socks5)
+		|| m_proxy_settings.type == settings_pack::socks5)
 	{
 		write_uint8(1, p); // 1 authentication method (no auth)
 		write_uint8(0, p); // no authentication
@@ -1426,6 +1423,16 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 {
 }
 
+bool rate_limited_udp_socket::has_quota()
+{
+	ptime now = time_now_hires();
+	time_duration delta = now - m_last_tick;
+	m_last_tick = now;
+	// add any new quota we've accrued since last time
+	m_quota += boost::uint64_t(m_rate_limit) * total_microseconds(delta) / 1000000;
+	return m_quota > 0;
+}
+
 bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
 	, int len, error_code& ec, int flags)
 {
@@ -1441,7 +1448,7 @@ bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
 
 	// if there's no quota, and it's OK to drop, just
 	// drop the packet
-	if (m_quota < len && (flags & dont_drop) == 0) return false;
+	if (m_quota < 0 && (flags & dont_drop) == 0) return false;
 
 	m_quota -= len;
 	if (m_quota < 0) m_quota = 0;

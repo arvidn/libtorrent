@@ -50,7 +50,7 @@ namespace libtorrent
 
 	const char* libtorrent_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
-		return "libtorrent error";
+		return "libtorrent";
 	}
 
 	std::string libtorrent_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
@@ -171,7 +171,7 @@ namespace libtorrent
 			"SSL connection required",
 			"invalid SSL certificate",
 			"not an SSL torrent",
-			"",
+			"banned by port filter",
 			"",
 			"",
 			"",
@@ -204,7 +204,7 @@ namespace libtorrent
 			"invalid entry type in slot list",
 			"invalid piece index in slot list",
 			"pieces needs to be reordered",
-			"",
+			"fastresume not modified since last save",
 			"",
 			"",
 			"",
