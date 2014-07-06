@@ -362,11 +362,10 @@ namespace libtorrent
 			dht_mutable_data,
 			dht_allocated_observers,
 
-			has_oncoming_connections,
+			has_incoming_connections,
 
 			limiter_up_queue,
 			limiter_down_queue,
-
 			limiter_up_bytes,
 			limiter_down_bytes,
 

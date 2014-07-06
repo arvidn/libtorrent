@@ -5680,7 +5680,7 @@ retry:
 		m_stats_counters.set_value(counters::sent_payload_bytes
 			, m_stat.total_transfer(stat::upload_payload));
 		m_stats_counters.set_value(counters::sent_ip_overhead_bytes
-			, m_stat.total_ip_overhead_upload());
+			, m_stat.total_transfer(stat::upload_ip_protocol));
 		m_stats_counters.set_value(counters::sent_tracker_bytes
 			, m_stat.total_transfer(stat::upload_tracker_protocol));
 
@@ -5689,7 +5689,7 @@ retry:
 		m_stats_counters.set_value(counters::recv_payload_bytes
 			, m_stat.total_transfer(stat::download_payload));
 		m_stats_counters.set_value(counters::recv_ip_overhead_bytes
-			, m_stat.total_ip_overhead_download());
+			, m_stat.total_transfer(stat::download_ip_protocol));
 		m_stats_counters.set_value(counters::recv_tracker_bytes
 			, m_stat.total_transfer(stat::download_tracker_protocol));
 
@@ -7042,7 +7042,7 @@ retry:
 			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
 
 		m_stats_counters.set_value(counters::num_unchoke_slots
-			, m_m_allowed_upload_slots);
+			, m_allowed_upload_slots);
 
 		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots) >= m_allowed_upload_slots / 2)
 		{
