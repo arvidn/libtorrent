@@ -10,13 +10,14 @@
 
 using namespace boost::python;
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 extern void dict_to_add_torrent_params(dict params, add_torrent_params& p);
 
 namespace {
 
 #ifndef TORRENT_NO_DEPRECATE
-    torrent_handle _add_magnet_uri(session& s, std::string uri, dict params)
+    torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
     {
         add_torrent_params p;
 

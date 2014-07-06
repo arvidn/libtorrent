@@ -52,18 +52,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/size_type.hpp"
-#include "libtorrent/ptime.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/copy_ptr.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/policy.hpp" // for policy::peer
+#include "libtorrent/torrent_peer.hpp"
 
 namespace libtorrent
 {
 	class peer_connection;
-	struct session_settings;
+
+	namespace aux { struct session_settings; }
+	// exposed for the unit test
+	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path, char const* element, int element_len);
 
 	enum
 	{
@@ -78,7 +80,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_sibling(int);
-	TORRENT_EXTRA_EXPORT void trim_path_element(std::string& path_element);
 
 	// this class holds information about one bittorrent tracker, as it
 	// relates to a specific torrent.
@@ -184,16 +185,11 @@ namespace libtorrent
 		// reset announce counters and clears the started sent flag.
 		// The announce_entry will look like we've never talked to
 		// the tracker.
-		void reset()
-		{
-			start_sent = false;
-			next_announce = min_time();
-			min_announce = min_time();
-		}
+		void reset();
 
 		// updates the failure counter and time-outs for re-trying.
 		// This is called when the tracker announce fails.
-		void failed(session_settings const& sett, int retry_interval = 0);
+		void failed(aux::session_settings const& sett, int retry_interval = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0
@@ -253,9 +249,6 @@ namespace libtorrent
 		// The URL of the web seed
 		std::string url;
 
-		// The type of web seed (see type_t)
-		type_t type;
-		
 		// Optional authentication. If this is set, it's passed
 		// in as HTTP basic auth to the web seed. The format is:
 		// username:password.
@@ -267,6 +260,19 @@ namespace libtorrent
 		// if this is > now, we can't reconnect yet
 		ptime retry;
 
+		// if the hostname of the web seed has been resolved,
+		// this is its IP address
+		tcp::endpoint endpoint;
+
+		// this is the peer_info field used for the
+		// connection, just to count hash failures
+		// it's also used to hold the peer_connection
+		// pointer, when the web seed is connected
+		ipv4_peer peer_info;
+
+		// The type of web seed (see type_t)
+		boost::uint8_t type;
+		
 		// this is initialized to true, but if we discover the
 		// server not to support it, it's set to false, and we
 		// make larger requests.
@@ -282,16 +288,6 @@ namespace libtorrent
 		// callback remove it
 		bool removed;
 
-		// if the hostname of the web seed has been resolved,
-		// this is its IP address
-		tcp::endpoint endpoint;
-
-		// this is the peer_info field used for the
-		// connection, just to count hash failures
-		// it's also used to hold the peer_connection
-		// pointer, when the web seed is connected
-		policy::ipv4_peer peer_info;
-
 		// if the web server doesn't support keepalive or a block request was
 		// interrupted, the block received so far is kept here for the next
 		// connection to pick up
@@ -304,8 +300,9 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
-	// This class represents the information stored in a .torrent file
-	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
+	// TODO: 2 there may be some opportunities to optimize the size if torrent_info.
+	// specifically to turn some std::string and std::vector into pointers
+	class TORRENT_EXPORT torrent_info
 	{
 	public:
 
@@ -347,7 +344,7 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 #endif
-		torrent_info(torrent_info const& t, int flags = 0);
+		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
@@ -378,7 +375,11 @@ namespace libtorrent
 		// For more information on the file_storage object, see the separate document on how
 		// to create torrents.
 		file_storage const& files() const { return m_files; }
-		file_storage const& orig_files() const { return m_orig_files ? *m_orig_files : m_files; }
+		file_storage const& orig_files() const
+		{
+			TORRENT_ASSERT(is_loaded());
+			return m_orig_files ? *m_orig_files : m_files;
+		}
 
 		// Renames a the file with the specified index to the new name. The new filename is
 		// reflected by the ``file_storage`` returned by ``files()`` but not by the one
@@ -395,6 +396,7 @@ namespace libtorrent
 		// not moved when move_storage() is invoked.
 		void rename_file(int index, std::string const& new_filename)
 		{
+			TORRENT_ASSERT(is_loaded());
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
@@ -509,7 +511,10 @@ namespace libtorrent
 		// a size (in bytes) into the corresponding files with offsets where that data
 		// for that piece is supposed to be stored. See file_slice.
 		std::vector<file_slice> map_block(int piece, size_type offset, int size) const
-		{ return m_files.map_block(piece, offset, size); }
+		{
+			TORRENT_ASSERT(is_loaded());
+			return m_files.map_block(piece, offset, size);
+		}
 
 		// This function will map a range in a specific file into a range in the torrent.
 		// The ``file_offset`` parameter is the offset in the file, given in bytes, where
@@ -519,8 +524,15 @@ namespace libtorrent
 		// + ``size`` is not allowed to be greater than the file size. ``file_index``
 		// must refer to a valid file, i.e. it cannot be >= ``num_files()``.
 		peer_request map_file(int file, size_type offset, int size) const
-		{ return m_files.map_file(file, offset, size); }
-		
+		{
+			TORRENT_ASSERT(is_loaded());
+			return m_files.map_file(file, offset, size);
+		}
+
+		// load and unload this torrent info
+		void load(char const* buffer, int size, error_code& ec);
+		void unload();
+
 #ifndef TORRENT_NO_DEPRECATE
 // ------- start deprecation -------
 // these functions will be removed in a future version
@@ -563,6 +575,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < m_files.num_pieces());
+			TORRENT_ASSERT(is_loaded());
 			if (is_merkle_torrent())
 			{
 				TORRENT_ASSERT(index < int(m_merkle_tree.size() - m_merkle_first_leaf));
@@ -577,6 +590,8 @@ namespace libtorrent
 				return &m_piece_hashes[index*20];
 			}
 		}
+
+		bool is_loaded() const { return m_piece_hashes || !m_merkle_tree.empty(); }
 
 		// ``merkle_tree()`` returns a reference to the merkle tree for this torrent, if any.
 		// 
@@ -665,8 +680,12 @@ namespace libtorrent
 		// __ http://bittorrent.org/beps/bep_0030.html
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
+		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
+
 		// if we're logging member offsets, we need access to them
 	private:
+
+		void resolve_duplicate_filenames();
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend class invariant_access;
@@ -677,11 +696,6 @@ namespace libtorrent
 		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
-		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
-
-		// the index to the first leaf. This is where the hash for the
-		// first piece is stored
-		boost::uint32_t m_merkle_first_leaf;
 
 		file_storage m_files;
 
@@ -728,6 +742,10 @@ namespace libtorrent
 
 		// the hash that identifies this torrent
 		sha1_hash m_info_hash;
+
+		// the index to the first leaf. This is where the hash for the
+		// first piece is stored
+		boost::uint32_t m_merkle_first_leaf;
 
 		// the number of bytes in m_info_section
 		boost::uint32_t m_info_section_size:24;

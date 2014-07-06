@@ -35,37 +35,47 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include <boost/function/function1.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/buffer.hpp>
 #else
 #include <boost/asio/buffer.hpp>
 #endif
-#include <list>
+#include <deque>
+#include <vector>
 #include <string.h> // for memcpy
+
+#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
+#include "libtorrent/debug.hpp"
 
 namespace libtorrent
 {
 #if BOOST_VERSION >= 103500
 	namespace asio = boost::asio;
 #endif
-	struct TORRENT_EXTRA_EXPORT chained_buffer
+	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
+			thread_started();
 #if TORRENT_USE_ASSERTS
 			m_destructed = false;
 #endif
 		}
 
+		// destructs/frees the buffer (1st arg) with
+		// 2nd argument as userdata
+		typedef void (*free_buffer_fun)(char*, void*, block_cache_reference ref);
+
 		struct buffer_t
 		{
-			boost::function<void(char*)> free; // destructs the buffer
+			free_buffer_fun free_fun;
+			void* userdata;
 			char* buf; // the first byte of the buffer
 			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive
+			block_cache_reference ref;
 		};
 
 		bool empty() const { return m_bytes == 0; }
@@ -75,7 +85,8 @@ namespace libtorrent
 		void pop_front(int bytes_to_pop);
 
 		void append_buffer(char* buffer, int s, int used_size
-			, boost::function<void(char*)> const& destructor);
+			, free_buffer_fun destructor, void* userdata
+			, block_cache_reference ref = block_cache_reference());
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.
@@ -91,7 +102,9 @@ namespace libtorrent
 		// enough room, returns 0
 		char* allocate_appendix(int s);
 
-		std::list<asio::const_buffer> const& build_iovec(int to_send);
+		std::vector<asio::const_buffer> const& build_iovec(int to_send);
+
+		void clear();
 
 		~chained_buffer();
 
@@ -99,11 +112,7 @@ namespace libtorrent
 
 		// this is the list of all the buffers we want to
 		// send
-		std::list<buffer_t> m_vec;
-
-		// this is the vector of buffers used when
-		// invoking the async write call
-		std::list<asio::const_buffer> m_tmp_vec;
+		std::deque<buffer_t> m_vec;
 
 		// this is the number of bytes in the send buf.
 		// this will always be equal to the sum of the
@@ -113,6 +122,10 @@ namespace libtorrent
 		// the total size of all buffers in the chain
 		// including unused space
 		int m_capacity;
+
+		// this is the vector of buffers used when
+		// invoking the async write call
+		std::vector<asio::const_buffer> m_tmp_vec;
 
 #if TORRENT_USE_ASSERTS
 		bool m_destructed;

@@ -63,7 +63,7 @@ namespace libtorrent
 			str->set_impl(sm->new_utp_socket(str));
 		}
 #if TORRENT_USE_I2P
-		else if (ps.type == proxy_settings::i2p_proxy)
+		else if (ps.type == settings_pack::i2p_proxy)
 		{
 			// it doesn't make any sense to try ssl over i2p
 			TORRENT_ASSERT(ssl_context == 0);
@@ -71,7 +71,7 @@ namespace libtorrent
 			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
 		}
 #endif
-		else if (ps.type == proxy_settings::none
+		else if (ps.type == settings_pack::none
 			|| (peer_connection && !ps.proxy_peer_connections))
 		{
 #ifdef TORRENT_USE_OPENSSL
@@ -85,8 +85,8 @@ namespace libtorrent
 				s.instantiate<stream_socket>(ios);
 			}
 		}
-		else if (ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw)
+		else if (ps.type == settings_pack::http
+			|| ps.type == settings_pack::http_pw)
 		{
 			http_stream* str;
 #ifdef TORRENT_USE_OPENSSL
@@ -103,12 +103,12 @@ namespace libtorrent
 			}
 
 			str->set_proxy(ps.hostname, ps.port);
-			if (ps.type == proxy_settings::http_pw)
+			if (ps.type == settings_pack::http_pw)
 				str->set_username(ps.username, ps.password);
 		}
-		else if (ps.type == proxy_settings::socks5
-			|| ps.type == proxy_settings::socks5_pw
-			|| ps.type == proxy_settings::socks4)
+		else if (ps.type == settings_pack::socks5
+			|| ps.type == settings_pack::socks5_pw
+			|| ps.type == settings_pack::socks4)
 		{
 			socks5_stream* str;
 #ifdef TORRENT_USE_OPENSSL
@@ -124,9 +124,9 @@ namespace libtorrent
 				str = s.get<socks5_stream>();
 			}
 			str->set_proxy(ps.hostname, ps.port);
-			if (ps.type == proxy_settings::socks5_pw)
+			if (ps.type == settings_pack::socks5_pw)
 				str->set_username(ps.username, ps.password);
-			if (ps.type == proxy_settings::socks4)
+			if (ps.type == settings_pack::socks4)
 				str->set_version(4);
 		}
 		else

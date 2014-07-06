@@ -34,7 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_THREAD_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
+
+#include <memory>
 
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
@@ -50,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/detail/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
+#include <boost/cstdint.hpp>
 
 namespace libtorrent
 {
@@ -68,6 +72,7 @@ namespace libtorrent
 		void wait(mutex::scoped_lock& l);
 		void wait_for(mutex::scoped_lock& l, time_duration rel_time);
 		void notify_all();
+		void notify();
 	private:
 #ifdef BOOST_HAS_PTHREADS
 		pthread_cond_t m_cond;

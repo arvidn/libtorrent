@@ -3,7 +3,7 @@ libtorrent hacking
 ==================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 1.1.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -142,19 +142,85 @@ torrent_info
 threads
 =======
 
-libtorrent starts 2 or 3 threads.
+libtorrent starts 3 to 5 threads.
 
  * The first thread is the main thread that will sit
-   idle in a ``kqueue()`` or ``epoll`` call most of the time.
-   This thread runs the main loop that will send and receive
-   data on all connections.
+   idle in a ``select()`` call most of the time. This thread runs the main loop
+   that will send and receive data on all connections. In reality it's typically
+   not actually in ``select()``, but in ``kqueue()``, ``epoll_wait()`` or ``poll``,
+   depending on operating system.
 
  * The second thread is the disk I/O thread. All disk read and write operations
    are passed to this thread and messages are passed back to the main thread when
-   the operation completes. The disk thread also verifies the piece hashes.
+   the operation completes.
 
- * The third and forth threads are spawned by asio on systems that don't support
-   non-blocking host name resolution to simulate non-blocking getaddrinfo().
+ * The third thread is the SHA-1 hash thread. By default there's only one hash thread,
+   but on multi-core machines downloading at very high rates, libtorrent can be configured
+   to start any number of hashing threads, to take full use of multi core systems.
+   (see ``session_settings::hashing_threads``).
 
+ * The fourth and fifth threads are spawned by asio on systems that don't support
+   asynchronous host name resolution, in order to simulate non-blocking ``getaddrinfo()``.
 
+disk cache
+==========
+
+The disk cache implements *ARC*, Adaptive Replacement Cache. This consists of a number of LRUs:
+
+1. lru L1 (recently used)
+2. lru L1 ghost (recently evicted)
+3. lru L2 (frequently used)
+4. lru L2 ghost (recently evicted)
+5. volatile read blocks
+6. write cache (blocks waiting to be flushed to disk)
+
+.. parsed-literal::
+	
+	             <--- recently used  frequently used --->
+	+--------------+--------------+  +--------------+--------------+
+	|     L1 **ghost** |           L1 |  | L2           | L2 **ghost**     |
+	+--------------+--------------+  +--------------+--------------+
+	
+	               <---------- cache_size ---------->
+	
+	<---------------------- 2 x cache_size ------------------------>
+
+These LRUs are stored in ``block_cache`` in an array ``m_lru``.
+
+The cache algorithm works like this::
+
+	if (L1->is_hit(piece)) {
+		L1->erase(piece);
+		L2->push_back(piece);
+	} else if (L2->is_hit(piece)) {
+		L2->erase(piece);
+		L2->push_back(page);
+	} else if (L1->size() == cache_size) {
+		L1->pop_front();
+		L1->push_back(piece);
+	} else {
+		if (L1->size() + L2->size() == 2*chache_size) {
+			L2->pop_front();
+		}
+		L1->push_back(piece);
+	}
+
+It's a bit more complicated since within L1 and L2 in this pseudo code
+have to separate the ghost entries and the in-cache entries.
+
+Note that the most recently used and more frequently used pieces are at
+the *back* of the lists. Iterating over a list gives you low priority pieces
+first.
+
+In libtorrent pieces are cached, not individual blocks, a single peer would
+typically trigger many cache hits when downloading a piece. Since ARC is
+sensitive to extra cache hits (a piece is moved to L2 the second time it's
+hit) libtorrent only move the cache entry on cache hits when it's hit by
+another peer than the last peer that hit it.
+
+Another difference compared to the ARC paper is that libtorrent caches pieces,
+which aren't necessarily fully allocated. This means the real cache size is
+specified in number of blocks, not pieces, so there's not clear number of pieces
+to keep in the ghost lists. There's an ``m_num_arc_pieces`` member in ``block_cache``
+that defines the *arc cache size*, in pieces, rather than blocks.
 

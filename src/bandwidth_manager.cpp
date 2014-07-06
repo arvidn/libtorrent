@@ -93,36 +93,20 @@ namespace libtorrent
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
-	int bandwidth_manager::request_bandwidth(boost::intrusive_ptr<bandwidth_socket> const& peer
-		, int blk, int priority
-		, bandwidth_channel* chan1
-		, bandwidth_channel* chan2
-		, bandwidth_channel* chan3
-		, bandwidth_channel* chan4
-		, bandwidth_channel* chan5
-		)
+	int bandwidth_manager::request_bandwidth(boost::shared_ptr<bandwidth_socket> const& peer
+		, int blk, int priority, bandwidth_channel** chan, int num_channels)
 	{
 		INVARIANT_CHECK;
 		if (m_abort) return 0;
 
 		TORRENT_ASSERT(blk > 0);
 		TORRENT_ASSERT(priority > 0);
+
+		// if this assert is hit, the peer is requesting more bandwidth before
+		// being assigned bandwidth for an already outstanding request
 		TORRENT_ASSERT(!is_queued(peer.get()));
 
-		bw_request bwr(peer, blk, priority);
-		int i = 0;
-		if (chan1 && chan1->throttle() > 0 && chan1->need_queueing(blk))
-			bwr.channel[i++] = chan1;
-		if (chan2 && chan2->throttle() > 0 && chan2->need_queueing(blk))
-			bwr.channel[i++] = chan2;
-		if (chan3 && chan3->throttle() > 0 && chan3->need_queueing(blk))
-			bwr.channel[i++] = chan3;
-		if (chan4 && chan4->throttle() > 0 && chan4->need_queueing(blk))
-			bwr.channel[i++] = chan4;
-		if (chan5 && chan5->throttle() > 0 && chan5->need_queueing(blk))
-			bwr.channel[i++] = chan5;
-
-		if (i == 0)
+		if (num_channels == 0)
 		{
 			// the connection is not rate limited by any of its
 			// bandwidth channels, or it doesn't belong to any
@@ -130,6 +114,16 @@ namespace libtorrent
 			// the queue, just satisfy the request immediately
 			return blk;
 		}
+
+		int k = 0;
+		bw_request bwr(peer, blk, priority);
+		for (int i = 0; i < num_channels; ++i)
+		{
+			if (chan[i]->need_queueing(blk))
+				bwr.channel[k++] = chan[i];
+		}
+
+		if (k == 0) return blk;
 
 		m_queued_bytes += blk;
 		m_queue.push_back(bwr);

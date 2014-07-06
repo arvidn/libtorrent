@@ -73,6 +73,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/magnet_uri.hpp"
 
+#ifdef TORRENT_PROFILE_CALLS
+#include <boost/unordered_map.hpp>
+#endif
+
 using boost::shared_ptr;
 using boost::weak_ptr;
 using libtorrent::aux::session_impl;
@@ -82,225 +86,256 @@ namespace libtorrent
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
 
-	// this function returns a session_settings object
-	// which will optimize libtorrent for minimum memory
-	// usage, with no consideration of performance.
-	TORRENT_EXPORT session_settings min_memory_usage()
+	TORRENT_EXPORT void min_memory_usage(settings_pack& set)
 	{
-		session_settings set;
+		// receive data directly into disk buffers
+		// this yields more system calls to read() and
+		// kqueue(), but saves RAM.
+		set.set_bool(settings_pack::contiguous_recv_buffer, false);
 
-		set.alert_queue_size = 100;
+		set.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
+		set.set_int(settings_pack::disk_io_read_mode, settings_pack::disable_os_cache);
 
-		set.max_allowed_in_request_queue = 100;
+		// keep 2 blocks outstanding when hashing
+		set.set_int(settings_pack::checking_mem_usage, 2);
+
+		// don't use any extra threads to do SHA-1 hashing
+		set.set_int(settings_pack::hashing_threads, 0);
+		set.set_int(settings_pack::network_threads, 0);
+		set.set_int(settings_pack::aio_threads, 1);
+
+		set.set_int(settings_pack::alert_queue_size, 100);
+
+		set.set_int(settings_pack::max_out_request_queue, 300);
+		set.set_int(settings_pack::max_allowed_in_request_queue, 100);
 
 		// setting this to a low limit, means more
 		// peers are more likely to request from the
 		// same piece. Which means fewer partial
 		// pieces and fewer entries in the partial
 		// piece list
-		set.whole_pieces_threshold = 2;
-		set.use_parole_mode = false;
-		set.prioritize_partial_pieces = true;
+		set.set_int(settings_pack::whole_pieces_threshold, 2);
+		set.set_bool(settings_pack::use_parole_mode, false);
+		set.set_bool(settings_pack::prioritize_partial_pieces, true);
 
 		// connect to 5 peers per second
-		set.connection_speed = 5;
+		set.set_int(settings_pack::connection_speed, 5);
 
 		// be extra nice on the hard drive when running
 		// on embedded devices. This might slow down
 		// torrent checking
-		set.file_checks_delay_per_block = 5;
+		set.set_int(settings_pack::file_checks_delay_per_block, 5);
 
 		// only have 4 files open at a time
-		set.file_pool_size = 4;
+		set.set_int(settings_pack::file_pool_size, 4);
 
 		// we want to keep the peer list as small as possible
-		set.allow_multiple_connections_per_ip = false;
-		set.max_failcount = 2;
-		set.inactivity_timeout = 120;
+		set.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+		set.set_int(settings_pack::max_failcount, 2);
+		set.set_int(settings_pack::inactivity_timeout, 120);
 
 		// whenever a peer has downloaded one block, write
 		// it to disk, and don't read anything from the
 		// socket until the disk write is complete
-		set.max_queued_disk_bytes = 1;
+		set.set_int(settings_pack::max_queued_disk_bytes, 1);
 
 		// don't keep track of all upnp devices, keep
 		// the device list small
-		set.upnp_ignore_nonrouters = true;
+		set.set_bool(settings_pack::upnp_ignore_nonrouters, true);
 
 		// never keep more than one 16kB block in
 		// the send buffer
-		set.send_buffer_watermark = 9;
+		set.set_int(settings_pack::send_buffer_watermark, 9);
 
 		// don't use any disk cache
-		set.cache_size = 0;
-		set.cache_buffer_chunk_size = 1;
-		set.use_read_cache = false;
-		set.use_disk_read_ahead = false;
+		set.set_int(settings_pack::cache_size, 0);
+		set.set_int(settings_pack::cache_buffer_chunk_size, 1);
+		set.set_bool(settings_pack::use_read_cache, false);
+		set.set_bool(settings_pack::use_disk_read_ahead, false);
 
-		set.close_redundant_connections = true;
+		set.set_bool(settings_pack::close_redundant_connections, true);
 
-		set.max_peerlist_size = 500;
-		set.max_paused_peerlist_size = 50;
+		set.set_int(settings_pack::max_peerlist_size, 500);
+		set.set_int(settings_pack::max_paused_peerlist_size, 50);
 
 		// udp trackers are cheaper to talk to
-		set.prefer_udp_trackers = true;
+		set.set_bool(settings_pack::prefer_udp_trackers, true);
 
-		set.max_rejects = 10;
+		set.set_int(settings_pack::max_rejects, 10);
 
-		set.recv_socket_buffer_size = 16 * 1024;
-		set.send_socket_buffer_size = 16 * 1024;
-
-		// use less memory when checking pieces
-		set.optimize_hashing_for_speed = false;
+		set.set_int(settings_pack::recv_socket_buffer_size, 16 * 1024);
+		set.set_int(settings_pack::send_socket_buffer_size, 16 * 1024);
 
 		// use less memory when reading and writing
 		// whole pieces
-		set.coalesce_reads = false;
-		set.coalesce_writes = false;
+		set.set_bool(settings_pack::coalesce_reads, false);
+		set.set_bool(settings_pack::coalesce_writes, false);
 
 		// disallow the buffer size to grow for the uTP socket
-		set.utp_dynamic_sock_buf = false;
-		
-		// max 'bottled' http receive buffer/url torrent size
-		set.max_http_recv_buffer_size = 1024 * 1024;
-
-		return set;
+		set.set_bool(settings_pack::utp_dynamic_sock_buf, false);
 	}
 
-	TORRENT_EXPORT session_settings high_performance_seed()
+	TORRENT_EXPORT void high_performance_seed(settings_pack& set)
 	{
-		session_settings set;
-
-		// allow peers to request a lot of blocks at a time,
-		// to be more likely to saturate the bandwidth-delay-
-		// product.
-		set.max_out_request_queue = 1500;
-		set.max_allowed_in_request_queue = 2000;
-
 		// don't throttle TCP, assume there is
 		// plenty of bandwidth
-		set.mixed_mode_algorithm = session_settings::prefer_tcp;
+		set.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 
-		set.max_allowed_in_request_queue = 2000;
-		set.max_out_request_queue = 1000;
+		set.set_int(settings_pack::max_out_request_queue, 1500);
+		set.set_int(settings_pack::max_allowed_in_request_queue, 2000);
 
 		// we will probably see a high rate of alerts, make it less
 		// likely to loose alerts
-		set.alert_queue_size = 50000;
+		set.set_int(settings_pack::alert_queue_size, 10000);
 
 		// allow 500 files open at a time
-		set.file_pool_size = 500;
+		set.set_int(settings_pack::file_pool_size, 500);
 
 		// don't update access time for each read/write
-		set.no_atime_storage = true;
+		set.set_bool(settings_pack::no_atime_storage, true);
 
 		// as a seed box, we must accept multiple peers behind
 		// the same NAT
-		set.allow_multiple_connections_per_ip = true;
+//		set.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
 		// connect to 50 peers per second
-		set.connection_speed = 50;
+		set.set_int(settings_pack::connection_speed, 500);
 
 		// allow 8000 peer connections
-		set.connections_limit = 8000;
+		set.set_int(settings_pack::connections_limit, 8000);
 
 		// allow lots of peers to try to connect simultaneously
-		set.listen_queue_size = 200;
+		set.set_int(settings_pack::listen_queue_size, 3000);
 
 		// unchoke many peers
-		set.unchoke_slots_limit = 500;
+		set.set_int(settings_pack::unchoke_slots_limit, 2000);
 
 		// we need more DHT capacity to ping more peers
 		// candidates before trying to connect
-		set.dht_upload_rate_limit = 20000;
-
-		// we're more interested in downloading than seeding
-		// only service a read job every 1000 write job (when
-		// disk is congested). Presumably on a big box, writes
-		// are extremely cheap and reads are relatively expensive
-		// so that's the main reason this ratio should be adjusted
-		set.read_job_every = 100;
+		set.set_int(settings_pack::dht_upload_rate_limit, 20000);
 
 		// use 1 GB of cache
-		set.cache_size = 32768 * 2;
-		set.use_read_cache = true;
-		set.cache_buffer_chunk_size = 128;
-		set.read_cache_line_size = 32;
-		set.write_cache_line_size = 32;
-		set.low_prio_disk = false;
-		// one hour expiration
-		set.cache_expiry = 60 * 60;
+		set.set_int(settings_pack::cache_size, 32768 * 2);
+		set.set_bool(settings_pack::use_read_cache, true);
+		set.set_int(settings_pack::cache_buffer_chunk_size, 0);
+		set.set_int(settings_pack::read_cache_line_size, 32);
+		set.set_int(settings_pack::write_cache_line_size, 256);
+		set.set_bool(settings_pack::low_prio_disk, false);
+		// 30 seconds expiration to save cache
+		// space for active pieces
+		set.set_int(settings_pack::cache_expiry, 30);
 		// this is expensive and could add significant
 		// delays when freeing a large number of buffers
-		set.lock_disk_cache = false;
+		set.set_bool(settings_pack::lock_disk_cache, false);
+
+		// in case the OS we're running on doesn't support
+		// readv/writev, allocate contiguous buffers for
+		// reads and writes
+		// disable, since it uses a lot more RAM and a significant
+		// amount of CPU to copy it around
+		set.set_bool(settings_pack::coalesce_reads, false);
+		set.set_bool(settings_pack::coalesce_writes, false);
 
 		// the max number of bytes pending write before we throttle
 		// download rate
-		set.max_queued_disk_bytes = 10 * 1024 * 1024;
-		// flush write cache in a way to minimize the amount we need to
-		// read back once we want to hash-check the piece. i.e. try to
-		// flush all blocks in-order
-		set.disk_cache_algorithm = session_settings::avoid_readback;
+		set.set_int(settings_pack::max_queued_disk_bytes, 7 * 1024 * 1024);
 
-		set.explicit_read_cache = false;
+		set.set_bool(settings_pack::explicit_read_cache, false);
 		// prevent fast pieces to interfere with suggested pieces
 		// since we unchoke everyone, we don't need fast pieces anyway
-		set.allowed_fast_set_size = 0;
+		set.set_int(settings_pack::allowed_fast_set_size, 0);
+
 		// suggest pieces in the read cache for higher cache hit rate
-		set.suggest_mode = session_settings::suggest_read_cache;
+		set.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 
-		set.close_redundant_connections = true;
+		set.set_bool(settings_pack::close_redundant_connections, true);
 
-		set.max_rejects = 10;
+		set.set_int(settings_pack::max_rejects, 10);
 
-		set.recv_socket_buffer_size = 1024 * 1024;
-		set.send_socket_buffer_size = 1024 * 1024;
-
-		set.optimize_hashing_for_speed = true;
+		set.set_int(settings_pack::recv_socket_buffer_size, 1024 * 1024);
+		set.set_int(settings_pack::send_socket_buffer_size, 1024 * 1024);
 
 		// don't let connections linger for too long
-		set.request_timeout = 10;
-		set.peer_timeout = 20;
-		set.inactivity_timeout = 20;
+		set.set_int(settings_pack::request_timeout, 10);
+		set.set_int(settings_pack::peer_timeout, 20);
+		set.set_int(settings_pack::inactivity_timeout, 20);
 
-		set.active_limit = 2000;
-		set.active_tracker_limit = 2000;
-		set.active_dht_limit = 600;
-		set.active_seeds = 2000;
+		set.set_int(settings_pack::active_limit, 2000);
+		set.set_int(settings_pack::active_tracker_limit, 2000);
+		set.set_int(settings_pack::active_dht_limit, 600);
+		set.set_int(settings_pack::active_seeds, 2000);
 
-		set.choking_algorithm = session_settings::fixed_slots_choker;
+		set.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
 
-		// in order to be able to deliver very high
-		// upload rates, this should be able to cover
-		// the bandwidth delay product. Assuming an RTT
-		// of 500 ms, and a send rate of 20 MB/s, the upper
-		// limit should be 10 MB
-		set.send_buffer_watermark = 3 * 1024 * 1024;
+		// of 500 ms, and a send rate of 4 MB/s, the upper
+		// limit should be 2 MB
+		set.set_int(settings_pack::send_buffer_watermark, 3 * 1024 * 1024);
 
 		// put 1.5 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
 		// reads, and can maximize throughput
-		set.send_buffer_watermark_factor = 150;
+		set.set_int(settings_pack::send_buffer_watermark_factor, 150);
 
 		// always stuff at least 1 MiB down each peer
 		// pipe, to quickly ramp up send rates
- 		set.send_buffer_low_watermark = 1 * 1024 * 1024;
+ 		set.set_int(settings_pack::send_buffer_low_watermark, 1 * 1024 * 1024);
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
-		set.max_failcount = 1;
+		set.set_int(settings_pack::max_failcount, 1);
 
 		// allow the buffer size to grow for the uTP socket
-		set.utp_dynamic_sock_buf = true;
+		set.set_bool(settings_pack::utp_dynamic_sock_buf, true);
 
-		// max 'bottled' http receive buffer/url torrent size
-		set.max_http_recv_buffer_size = 6 * 1024 * 1024;
+		// we're likely to have more than 4 cores on a high
+		// performance machine. One core is needed for the
+		// network thread
+		set.set_int(settings_pack::hashing_threads, 4);
+
+		// the number of threads to use to call async_write_some
+		// and read_some on peer sockets
+		// this doesn't work. See comment in settings_pack.cpp
+		set.set_int(settings_pack::network_threads, 0);
+
+		// number of disk threads for low level file operations
+		set.set_int(settings_pack::aio_threads, 8);
+
+		// keep 5 MiB outstanding when checking hashes
+		// of a resumed file
+		set.set_int(settings_pack::checking_mem_usage, 320);
 
 		// the disk cache performs better with the pool allocator
-		set.use_disk_cache_pool = true;
-
-		return set;
+		set.set_bool(settings_pack::use_disk_cache_pool, true);
 	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	// this function returns a session_settings object
+	// which will optimize libtorrent for minimum memory
+	// usage, with no consideration of performance.
+	TORRENT_EXPORT session_settings min_memory_usage()
+	{
+		aux::session_settings def;
+		initialize_default_settings(def);
+		settings_pack pack;
+		min_memory_usage(pack);
+		apply_pack(&pack, def, 0);
+		session_settings ret;
+		load_struct_from_settings(def, ret);
+		return ret;
+	}
+
+	TORRENT_EXPORT session_settings high_performance_seed()
+	{
+		aux::session_settings def;
+		initialize_default_settings(def);
+		settings_pack pack;
+		high_performance_seed(pack);
+		apply_pack(&pack, def, 0);
+		session_settings ret;
+		load_struct_from_settings(def, ret);
+		return ret;
+	}
+#endif
 
 	// wrapper around a function that's executed in the network thread
 	// ans synchronized in the client thread
@@ -321,6 +356,44 @@ namespace libtorrent
 		e->notify_all();
 	}
 
+#ifdef TORRENT_PROFILE_CALLS
+
+	static mutex g_calls_mutex;
+	static boost::unordered_map<std::string, int> g_blocking_calls;
+
+	void blocking_call()
+	{
+		char stack[2048];
+		print_backtrace(stack, sizeof(stack), 20);
+		mutex::scoped_lock l(g_calls_mutex);
+		g_blocking_calls[stack] += 1;
+	}
+
+	void dump_call_profile()
+	{
+		FILE* out = fopen("blocking_calls.txt", "w+");
+
+		std::map<int, std::string> profile;
+
+		mutex::scoped_lock l(g_calls_mutex);
+		for (boost::unordered_map<std::string, int>::const_iterator i = g_blocking_calls.begin()
+			, end(g_blocking_calls.end()); i != end; ++i)
+		{
+			profile[i->second] = i->first;
+		}
+		for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
+			, end(profile.rend()); i != end; ++i)
+		{
+			fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
+		}
+		fclose(out);
+	}
+
+#define TORRENT_RECORD_BLOCKING_CALL blocking_call();
+#else
+#define TORRENT_RECORD_BLOCKING_CALL
+#endif
+
 #define TORRENT_ASYNC_CALL(x) \
 	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get()))
 
@@ -334,6 +407,7 @@ namespace libtorrent
 	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3))
 
 #define TORRENT_WAIT \
+	TORRENT_RECORD_BLOCKING_CALL \
 	mutex::scoped_lock l(m_impl->mut); \
 	while (!done) { m_impl->cond.wait(l); };
 
@@ -401,8 +475,7 @@ namespace libtorrent
 	{ throw; }
 #endif
 
-	void session::init(std::pair<int, int> listen_range, char const* listen_interface
-		, fingerprint const& id, boost::uint32_t alert_mask)
+	void session::init(fingerprint const& id)
 	{
 #if defined _MSC_VER && defined TORRENT_DEBUG
 		// workaround for microsofts
@@ -411,7 +484,7 @@ namespace libtorrent
 		::_set_se_translator(straight_to_debugger);
 #endif
 
-		m_impl.reset(new session_impl(listen_range, id, listen_interface, alert_mask));
+		m_impl.reset(new session_impl(id));
 	}
 
 	void session::set_log_path(std::string const& p)
@@ -422,7 +495,7 @@ namespace libtorrent
 #endif
 	}
 
-	void session::start(int flags)
+	void session::start(int flags, settings_pack const& pack)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
@@ -434,21 +507,16 @@ namespace libtorrent
 		}
 #endif
 
-		m_impl->start_session();
-
-		if (flags & start_default_features)
-		{
-			start_upnp();
-			start_natpmp();
-#ifndef TORRENT_DISABLE_DHT
-			start_dht();
-#endif
-			start_lsd();
-		}
+		m_impl->start_session(pack);
 	}
 
 	session::~session()
 	{
+
+#ifdef TORRENT_PROFILE_CALLS
+		dump_call_profile();
+#endif
+
 		TORRENT_ASSERT(m_impl);
 		// if there is at least one destruction-proxy
 		// abort the session and let the destructor
@@ -488,6 +556,11 @@ namespace libtorrent
 	{
 		f.clear();
 		TORRENT_SYNC_CALL1(get_feeds, &f);
+	}
+
+	void session::set_load_function(user_load_function_t fun)
+	{
+		TORRENT_ASYNC_CALL1(set_load_function, fun);
 	}
 
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
@@ -628,6 +701,20 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(post_torrent_updates);
 	}
 
+	std::vector<stats_metric> session_stats_metrics()
+	{
+		std::vector<stats_metric> ret;
+		// defined in session_stats.cpp
+		extern void get_stats_metric_map(std::vector<stats_metric>& stats);
+		get_stats_metric_map(ret);
+		return ret;
+	}
+
+	void session::post_session_stats()
+	{
+		TORRENT_ASYNC_CALL(post_session_stats);
+	}
+
 	std::vector<torrent_handle> session::get_torrents() const
 	{
 		TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);
@@ -681,7 +768,7 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
-		boost::intrusive_ptr<torrent_info> tip(new torrent_info(ti));
+		boost::shared_ptr<torrent_info> tip(boost::make_shared<torrent_info>(ti));
 		add_torrent_params p(sc);
 		p.ti = tip;
 		p.save_path = save_path;
@@ -691,28 +778,6 @@ namespace libtorrent
 		}
 		p.storage_mode = storage_mode;
 		p.paused = paused;
-		return add_torrent(p);
-	}
-
-	torrent_handle session::add_torrent(
-		boost::intrusive_ptr<torrent_info> ti
-		, std::string const& save_path
-		, entry const& resume_data
-		, storage_mode_t storage_mode
-		, bool paused
-		, storage_constructor_type sc
-		, void* userdata)
-	{
-		add_torrent_params p(sc);
-		p.ti = ti;
-		p.save_path = save_path;
-		if (resume_data.type() != entry::undefined_t)
-		{
-			bencode(std::back_inserter(p.resume_data), resume_data);
-		}
-		p.storage_mode = storage_mode;
-		p.paused = paused;
-		p.userdata = userdata;
 		return add_torrent(p);
 	}
 
@@ -750,23 +815,32 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	bool session::listen_on(
-		std::pair<int, int> const& port_range
-		, const char* net_interface, int flags)
-	{
-		error_code ec;
-		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
-		return !!ec;
-	}
-#endif
-
 	void session::listen_on(
 		std::pair<int, int> const& port_range
 		, error_code& ec
 		, const char* net_interface, int flags)
 	{
-		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
+		settings_pack p;
+		std::string interfaces_str;
+		if (net_interface == NULL || strlen(net_interface) == 0)
+			net_interface = "0.0.0.0";
+
+		interfaces_str = print_endpoint(tcp::endpoint(address::from_string(net_interface, ec), port_range.first));
+		if (ec) return;
+
+		p.set_str(settings_pack::listen_interfaces, interfaces_str);
+		p.set_int(settings_pack::max_retry_port_bind, port_range.second - port_range.first);
+		p.set_bool(settings_pack::listen_system_port_fallback, (flags & session::listen_no_system_port) == 0);
+		apply_settings(p);
 	}
+
+	void session::use_interfaces(char const* interfaces)
+	{
+		settings_pack pack;
+		pack.set_str(settings_pack::outgoing_interfaces, interfaces);
+		apply_settings(pack);
+	}
+#endif
 
 	unsigned short session::listen_port() const
 	{
@@ -802,31 +876,53 @@ namespace libtorrent
 		return r;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::get_cache_info(sha1_hash const& ih
 		, std::vector<cached_piece_info>& ret) const
 	{
-		m_impl->m_disk_thread.get_cache_info(ih, ret);
+		cache_status st;
+		get_cache_info(&st, find_torrent(ih));
+		ret.swap(st.pieces);
 	}
 
 	cache_status session::get_cache_status() const
 	{
-		return m_impl->m_disk_thread.status();
+		cache_status st;
+		get_cache_info(&st);
+		return st;
+	}
+#endif
+
+	void session::get_cache_info(cache_status* ret
+		, torrent_handle h, int flags) const
+	{
+		piece_manager* st = 0;
+		boost::shared_ptr<torrent> t = h.m_torrent.lock();
+		if (t)
+		{
+			if (t->has_storage())
+				st = &t->storage();
+			else
+				flags = session::disk_cache_no_pieces;
+		}
+		m_impl->m_disk_thread.get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::start_dht()
 	{
-#ifndef TORRENT_DISABLE_DHT
-		// the state is loaded in load_state()
-		TORRENT_ASYNC_CALL(start_dht);
-#endif
+		settings_pack p;
+		p.set_bool(settings_pack::enable_dht, true);
+		apply_settings(p);
 	}
 
 	void session::stop_dht()
 	{
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL(stop_dht);
-#endif
+		settings_pack p;
+		p.set_bool(settings_pack::enable_dht, false);
+		apply_settings(p);
 	}
+#endif
 
 	void session::set_dht_settings(dht_settings const& settings)
 	{
@@ -915,21 +1011,61 @@ namespace libtorrent
 #endif
 	}
 
-	void session::set_pe_settings(pe_settings const& settings)
+#ifndef TORRENT_NO_DEPRECATE
+	void session::set_pe_settings(pe_settings const& r)
 	{
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		TORRENT_ASYNC_CALL1(set_pe_settings, settings);
-#endif
+		settings_pack pack;
+		pack.set_bool(settings_pack::prefer_rc4, r.prefer_rc4);
+		pack.set_int(settings_pack::out_enc_policy, r.out_enc_policy);
+		pack.set_int(settings_pack::in_enc_policy, r.in_enc_policy);
+		pack.set_int(settings_pack::allowed_enc_level, r.allowed_enc_level);
+
+		apply_settings(pack);
 	}
 
 	pe_settings session::get_pe_settings() const
 	{
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		TORRENT_SYNC_CALL_RET(pe_settings, get_pe_settings);
-#else
+		aux::session_settings sett = get_settings();
+
 		pe_settings r;
-#endif
+		r.prefer_rc4 = sett.get_bool(settings_pack::prefer_rc4);
+		r.out_enc_policy = sett.get_int(settings_pack::out_enc_policy);
+		r.in_enc_policy = sett.get_int(settings_pack::in_enc_policy);
+		r.allowed_enc_level = sett.get_int(settings_pack::allowed_enc_level);
 		return r;
+	}
+#endif // TORRENT_NO_DEPRECATE
+
+	void session::set_peer_class_filter(ip_filter const& f)
+	{
+		TORRENT_ASYNC_CALL1(set_peer_class_filter, f);
+	}
+
+	void session::set_peer_class_type_filter(peer_class_type_filter const& f)
+	{
+		TORRENT_ASYNC_CALL1(set_peer_class_type_filter, f);
+	}
+
+	int session::create_peer_class(char const* name)
+	{
+		TORRENT_SYNC_CALL_RET1(int, create_peer_class, name);
+		return r;
+	}
+
+	void session::delete_peer_class(int cid)
+	{
+		TORRENT_ASYNC_CALL1(delete_peer_class, cid);
+	}
+
+	peer_class_info session::get_peer_class(int cid)
+	{
+		TORRENT_SYNC_CALL_RET1(peer_class_info, get_peer_class, cid);
+		return r;
+	}
+
+	void session::set_peer_class(int cid, peer_class_info const& pci)
+	{
+		TORRENT_ASYNC_CALL2(set_peer_class, cid, pci);
 	}
 
 	bool session::is_listening() const
@@ -938,6 +1074,7 @@ namespace libtorrent
 		return r;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_settings(session_settings const& s)
 	{
 		TORRENT_ASYNC_CALL1(set_settings, s);
@@ -945,90 +1082,113 @@ namespace libtorrent
 
 	session_settings session::settings() const
 	{
-		TORRENT_SYNC_CALL_RET(session_settings, settings);
+		TORRENT_SYNC_CALL_RET(session_settings, deprecated_settings);
 		return r;
 	}
+#endif
 
-	void session::set_proxy(proxy_settings const& s)
+	void session::apply_settings(settings_pack const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_proxy, s);
+		settings_pack* copy = new settings_pack(s);
+		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
 	}
 
-	proxy_settings session::proxy() const
+	aux::session_settings session::get_settings() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, proxy);
+		TORRENT_SYNC_CALL_RET(aux::session_settings, settings);
 		return r;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+
+	void session::set_proxy(proxy_settings const& s)
+	{
+		settings_pack pack;
+		pack.set_str(settings_pack::proxy_hostname, s.hostname);
+		pack.set_str(settings_pack::proxy_username, s.username);
+		pack.set_str(settings_pack::proxy_password, s.password);
+		pack.set_int(settings_pack::proxy_type, s.type);
+		pack.set_int(settings_pack::proxy_port, s.port);
+		pack.set_bool(settings_pack::proxy_hostnames,s.proxy_hostnames);
+		pack.set_bool(settings_pack::proxy_peer_connections, s.proxy_peer_connections);
+
+		apply_settings(pack);
+	}
+
+	proxy_settings session::proxy() const
+	{
+		aux::session_settings sett = get_settings();
+
+		proxy_settings ret;
+		ret.hostname = sett.get_str(settings_pack::proxy_hostname);
+		ret.username = sett.get_str(settings_pack::proxy_username);
+		ret.password = sett.get_str(settings_pack::proxy_password);
+		ret.type = sett.get_int(settings_pack::proxy_type);
+		ret.port = sett.get_int(settings_pack::proxy_port);
+		ret.proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
+		ret.proxy_peer_connections = sett.get_bool(
+			settings_pack::proxy_peer_connections);
+		return ret;
+	}
+
 	void session::set_peer_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_peer_proxy, s);
+		set_proxy(s);
 	}
 
 	void session::set_web_seed_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_web_seed_proxy, s);
+		set_proxy(s);
 	}
 
 	void session::set_tracker_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_tracker_proxy, s);
+		set_proxy(s);
 	}
 
 	proxy_settings session::peer_proxy() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, peer_proxy);
-		return r;
+		return proxy();
 	}
 
 	proxy_settings session::web_seed_proxy() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, web_seed_proxy);
-		return r;
+		return proxy();
 	}
 
 	proxy_settings session::tracker_proxy() const
 	{
-		TORRENT_SYNC_CALL_RET(proxy_settings, tracker_proxy);
-		return r;
+		return proxy();
 	}
-
 
 	void session::set_dht_proxy(proxy_settings const& s)
 	{
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(set_dht_proxy, s);
-#endif
+		set_proxy(s);
 	}
 
 	proxy_settings session::dht_proxy() const
 	{
-#ifndef TORRENT_DISABLE_DHT
-		TORRENT_SYNC_CALL_RET(proxy_settings, dht_proxy);
-		return r;
-#else
-		return proxy_settings();
-#endif
+		return proxy();
 	}
-#endif // TORRENT_NO_DEPRECATE
 
 	void session::set_i2p_proxy(proxy_settings const& s)
 	{
-#if TORRENT_USE_I2P
-		TORRENT_ASYNC_CALL1(set_i2p_proxy, s);
-#endif
+		settings_pack pack;
+		pack.set_str(settings_pack::i2p_hostname, s.hostname);
+		pack.set_int(settings_pack::i2p_port, s.port);
+
+		apply_settings(pack);
 	}
 	
 	proxy_settings session::i2p_proxy() const
 	{
-#if TORRENT_USE_I2P
-		TORRENT_SYNC_CALL_RET(proxy_settings, i2p_proxy);
-#else
-		proxy_settings r;
-#endif
-		return r;
+		proxy_settings ret;
+		aux::session_settings sett = get_settings();
+		ret.hostname = sett.get_str(settings_pack::i2p_hostname);
+		ret.port = sett.get_int(settings_pack::i2p_port);
+		return ret;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 #ifdef TORRENT_STATS
 	void session::enable_stats_logging(bool s)
@@ -1152,12 +1312,19 @@ namespace libtorrent
 		return m_impl->wait_for_alert(max_wait);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_alert_mask(boost::uint32_t m)
 	{
-		TORRENT_ASYNC_CALL1(set_alert_mask, m);
+		settings_pack p;
+		p.set_int(settings_pack::alert_mask, m);
+		apply_settings(p);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
+	boost::uint32_t session::get_alert_mask() const
+	{
+		return get_settings().get_int(settings_pack::alert_mask);
+	}
+
 	size_t session::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
 		TORRENT_SYNC_CALL_RET1(size_t, set_alert_queue_size_limit, queue_size_limit_);
@@ -1180,25 +1347,54 @@ namespace libtorrent
 			default: break;
 		}
 
-		TORRENT_ASYNC_CALL1(set_alert_mask, m);
+		settings_pack p;
+		p.set_int(settings_pack::alert_mask, m);
+		apply_settings(p);
 	}
-#endif
 
 	void session::start_lsd()
 	{
-		TORRENT_ASYNC_CALL(start_lsd);
+		settings_pack p;
+		p.set_bool(settings_pack::enable_lsd, true);
+		apply_settings(p);
 	}
 	
 	void session::start_natpmp()
 	{
-		TORRENT_ASYNC_CALL(start_natpmp);
+		settings_pack p;
+		p.set_bool(settings_pack::enable_natpmp, true);
+		apply_settings(p);
 	}
 	
 	void session::start_upnp()
 	{
-		TORRENT_ASYNC_CALL(start_upnp);
+		settings_pack p;
+		p.set_bool(settings_pack::enable_upnp, true);
+		apply_settings(p);
 	}
 
+	void session::stop_lsd()
+	{
+		settings_pack p;
+		p.set_bool(settings_pack::enable_lsd, false);
+		apply_settings(p);
+	}
+	
+	void session::stop_natpmp()
+	{
+		settings_pack p;
+		p.set_bool(settings_pack::enable_natpmp, false);
+		apply_settings(p);
+	}
+	
+	void session::stop_upnp()
+	{
+		settings_pack p;
+		p.set_bool(settings_pack::enable_upnp, false);
+		apply_settings(p);
+	}
+#endif
+	
 	int session::add_port_mapping(protocol_type t, int external_port, int local_port)
 	{
 		TORRENT_SYNC_CALL_RET3(int, add_port_mapping, int(t), external_port, local_port);
@@ -1210,213 +1406,22 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(delete_port_mapping, handle);
 	}
 	
-	void session::stop_lsd()
-	{
-		TORRENT_ASYNC_CALL(stop_lsd);
-	}
-	
-	void session::stop_natpmp()
-	{
-		TORRENT_ASYNC_CALL(stop_natpmp);
-	}
-	
-	void session::stop_upnp()
-	{
-		TORRENT_ASYNC_CALL(stop_upnp);
-	}
-	
 	connection_queue& session::get_connection_queue()
 	{
 		return m_impl->m_half_open;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	session_settings::session_settings(std::string const& user_agent_)
-		: version(LIBTORRENT_VERSION_NUM)
-		, user_agent(user_agent_)
-		, tracker_completion_timeout(60)
-		, tracker_receive_timeout(40)
-		, stop_tracker_timeout(5)
-		, tracker_maximum_response_length(1024*1024)
-		, piece_timeout(20)
-		, request_timeout(50)
-		, request_queue_time(3)
-		, max_allowed_in_request_queue(500)
-		, max_out_request_queue(500)
-		, whole_pieces_threshold(20)
-		, peer_timeout(120)
-		, urlseed_timeout(20)
-		, urlseed_pipeline_size(5)
-		, urlseed_wait_retry(30)
-		, file_pool_size(40)
-		, allow_multiple_connections_per_ip(false)
-		, max_failcount(3)
-		, min_reconnect_time(60)
-		, peer_connect_timeout(15)
-		, ignore_limits_on_local_network(true)
-		, connection_speed(6)
-		, send_redundant_have(true)
-		, lazy_bitfields(true)
-		, inactivity_timeout(600)
-		, unchoke_interval(15)
-		, optimistic_unchoke_interval(30)
-		, num_want(200)
-		, initial_picker_threshold(4)
-		, allowed_fast_set_size(10)
-		, suggest_mode(no_piece_suggestions)
-		, max_queued_disk_bytes(1024 * 1024)
-		, max_queued_disk_bytes_low_watermark(0)
-		, handshake_timeout(10)
-		, use_dht_as_fallback(false)
-		, free_torrent_hashes(true)
-		, upnp_ignore_nonrouters(false)
-		, send_buffer_low_watermark(512)
-		, send_buffer_watermark(500 * 1024)
-		, send_buffer_watermark_factor(50)
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.16
-		, auto_upload_slots(true)
-		, auto_upload_slots_rate_based(true)
-#endif
-		, choking_algorithm(fixed_slots_choker)
-		, seed_choking_algorithm(round_robin)
-		, use_parole_mode(true)
-		, cache_size(1024)
-		, cache_buffer_chunk_size(16)
-		, cache_expiry(300)
-		, use_read_cache(true)
-		, explicit_read_cache(0)
-		, explicit_cache_interval(30)
-		, disk_io_write_mode(0)
-		, disk_io_read_mode(0)
-		, coalesce_reads(false)
-		, coalesce_writes(false)
-		, outgoing_ports(0,0)
-		, peer_tos(0)
-		, active_downloads(3)
-		, active_seeds(5)
-		, active_dht_limit(88) // don't announce more than once every 40 seconds
-		, active_tracker_limit(1600) // don't announce to trackers more than once every 1.125 seconds
-		, active_lsd_limit(60) // don't announce to local network more than once every 5 seconds
-		, active_limit(15)
-		, auto_manage_prefer_seeds(false)
-		, dont_count_slow_torrents(true)
-		, auto_manage_interval(30)
-		, share_ratio_limit(2.f)
-		, seed_time_ratio_limit(7.f)
-		, seed_time_limit(24 * 60 * 60) // 24 hours
-		, peer_turnover_interval(300)
-		, peer_turnover(2 / 50.f)
-		, peer_turnover_cutoff(.9f)
-		, close_redundant_connections(true)
-		, auto_scrape_interval(1800)
-		, auto_scrape_min_interval(300)
-		, max_peerlist_size(4000)
-		, max_paused_peerlist_size(4000)
-		, min_announce_interval(5 * 60)
-		, prioritize_partial_pieces(false)
-		, auto_manage_startup(60)
-		, rate_limit_ip_overhead(true)
-		, announce_to_all_trackers(false)
-		, announce_to_all_tiers(false)
-		, prefer_udp_trackers(true)
-		, strict_super_seeding(false)
-		, seeding_piece_quota(20)
-#ifdef TORRENT_WINDOWS
-		, max_sparse_regions(30000)
-#else
-		, max_sparse_regions(0)
-#endif
-		, lock_disk_cache(false)
-		, max_rejects(50)
-		, recv_socket_buffer_size(0)
-		, send_socket_buffer_size(0)
-		, optimize_hashing_for_speed(true)
-		, file_checks_delay_per_block(0)
-		, disk_cache_algorithm(avoid_readback)
-		, read_cache_line_size(32)
-		, write_cache_line_size(32)
-		, optimistic_disk_retry(10 * 60)
-		, disable_hash_checks(false)
-		, allow_reordered_disk_operations(true)
-		, allow_i2p_mixed(false)
-		, max_suggest_pieces(10)
-		, drop_skipped_requests(false)
-		, low_prio_disk(true)
-		, local_service_announce_interval(5 * 60)
-		, dht_announce_interval(15 * 60)
-		, udp_tracker_token_expiry(60)
-		, volatile_read_cache(false)
-		, guided_read_cache(false)
-		, default_cache_min_age(1)
-		, num_optimistic_unchoke_slots(0)
-		, no_atime_storage(true)
-		, default_est_reciprocation_rate(16000)
-		, increase_est_reciprocation_rate(20)
-		, decrease_est_reciprocation_rate(3)
-		, incoming_starts_queued_torrents(false)
-		, report_true_downloaded(false)
-		, strict_end_game_mode(true)
-		, broadcast_lsd(true)
-		, enable_outgoing_utp(true)
-		, enable_incoming_utp(true)
-		, enable_outgoing_tcp(true)
-		, enable_incoming_tcp(true)
-		, max_pex_peers(50)
-		, ignore_resume_timestamps(false)
-		, no_recheck_incomplete_resume(false)
-		, anonymous_mode(true)
-		, force_proxy(false)
-		, tick_interval(500)
-		, report_web_seed_downloads(true)
-		, share_mode_target(3)
-		, upload_rate_limit(0)
-		, download_rate_limit(0)
-		, local_upload_rate_limit(0)
-		, local_download_rate_limit(0)
-		, dht_upload_rate_limit(4000)
-		, unchoke_slots_limit(8)
-		, half_open_limit(0)
-		, connections_limit(200)
-		, connections_slack(10)
-		, utp_target_delay(100) // milliseconds
-		, utp_gain_factor(1500) // bytes per rtt
-		, utp_min_timeout(500) // milliseconds
-		, utp_syn_resends(2)
-		, utp_fin_resends(2)
-		, utp_num_resends(6)
-		, utp_connect_timeout(3000) // milliseconds
-#ifndef TORRENT_NO_DEPRECATE
-		, utp_delayed_ack(0) // milliseconds
-#endif
-		, utp_dynamic_sock_buf(false) // this doesn't seem quite reliable yet
-		, utp_loss_multiplier(50) // specified in percent
-		, mixed_mode_algorithm(peer_proportional)
-		, rate_limit_utp(true)
-		, listen_queue_size(5)
-		, announce_double_nat(false)
-		, torrent_connect_boost(10)
-		, seeding_outgoing_connections(true)
-		, no_connect_privileged_ports(true)
-		, alert_queue_size(6000)
-		, max_metadata_size(3*1024*1024)
-		, smooth_connects(true)
-		, always_send_user_agent(false)
-		, apply_ip_filter_to_trackers(true)
-		, read_job_every(10)
-		, use_disk_read_ahead(true)
-		, lock_files(false)
-		, ssl_listen(4433)
-		, tracker_backoff(250)
-		, ban_web_seeds(true)
-		, max_http_recv_buffer_size(4*1024*1024)
-		, support_share_mode(true)
-		, support_merkle_torrents(false)
-		, report_redundant_bytes(true)
-		, use_disk_cache_pool(false)
-		, inactive_down_rate(2048)
-		, inactive_up_rate(2048)
-	{}
+	{
+		aux::session_settings def;
+		initialize_default_settings(def);
+		def.set_str(settings_pack::user_agent, user_agent_);
+		load_struct_from_settings(def, *this);
+	}
 
 	session_settings::~session_settings() {}
+#endif // TORRENT_NO_DEPRECATE
+
 }
 

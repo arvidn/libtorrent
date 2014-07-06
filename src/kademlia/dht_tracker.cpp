@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/performance_counters.hpp" // for counters
 
 using boost::ref;
 using libtorrent::dht::node_impl;
@@ -176,11 +177,12 @@ namespace libtorrent { namespace dht
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
-		, dht_settings const& settings, entry const* state)
-		: m_dht(&ses, this, settings, extract_node_id(state)
-			, ses.external_address().external_address(address_v4()), &ses)
+		, dht_settings const& settings, counters& cnt, entry const* state)
+		: m_counters(cnt)
+		, m_dht(&ses, this, settings, extract_node_id(state)
+			, ses.external_address().external_address(address_v4()), &ses, cnt)
 		, m_sock(sock)
-		, m_last_new_key(time_now() - minutes(key_refresh))
+		, m_last_new_key(time_now() - minutes(int(key_refresh)))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -300,7 +302,7 @@ namespace libtorrent { namespace dht
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
 		ptime now = time_now();
-		if (now - m_last_new_key > minutes(key_refresh))
+		if (now - minutes(int(key_refresh)) > m_last_new_key)
 		{
 			m_last_new_key = now;
 			m_dht.new_write_key();
@@ -480,10 +482,10 @@ namespace libtorrent { namespace dht
 				|| ec == asio::error::connection_reset
 				|| ec == asio::error::connection_aborted
 #ifdef WIN32
-				|| ec == error_code(ERROR_HOST_UNREACHABLE, get_system_category())
-				|| ec == error_code(ERROR_PORT_UNREACHABLE, get_system_category())
-				|| ec == error_code(ERROR_CONNECTION_REFUSED, get_system_category())
-				|| ec == error_code(ERROR_CONNECTION_ABORTED, get_system_category())
+				|| ec == error_code(ERROR_HOST_UNREACHABLE, system_category())
+				|| ec == error_code(ERROR_PORT_UNREACHABLE, system_category())
+				|| ec == error_code(ERROR_CONNECTION_REFUSED, system_category())
+				|| ec == error_code(ERROR_CONNECTION_ABORTED, system_category())
 #endif
 				)
 			{
@@ -511,57 +513,15 @@ namespace libtorrent { namespace dht
 				return true;
 		}
 
-		node_ban_entry* match = 0;
-		node_ban_entry* min = m_ban_nodes;
-		ptime now = time_now();
-		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
-		{
-			if (i->src == ep.address())
-			{
-				match = i;
-				break;
-			}
-			if (i->count < min->count) min = i;
-		}
-
-		if (match)
-		{
-			++match->count;
-			if (match->count >= 20)
-			{
-				if (now < match->limit)
-				{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					if (match->count == 20)
-					{
-						TORRENT_LOG(dht_tracker) << " BANNING PEER [ ip: "
-							<< ep << " time: " << total_milliseconds((now - match->limit) + seconds(5)) / 1000.f
-							<< " count: " << match->count << " ]";
-					}
-#endif
-					// we've received 20 messages in less than 5 seconds from
-					// this node. Ignore it until it's silent for 5 minutes
-					match->limit = now + minutes(5);
-					return true;
-				}
-
-				// we got 50 messages from this peer, but it was in
-				// more than 5 seconds. Reset the counter and the timer
-				match->count = 0;
-				match->limit = now + seconds(5);
-			}
-		}
-		else
-		{
-			min->count = 1;
-			min->limit = now + seconds(5);
-			min->src = ep.address();
-		}
+		if (!m_blocker.incoming(ep.address(), time_now()))
+			return true;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++m_total_message_input;
 		m_total_in_bytes += size;
 #endif
+		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
+		m_counters.inc_stats_counter(counters::dht_messages_in);
 
 		using libtorrent::entry;
 		using libtorrent::bdecode;
@@ -680,6 +640,11 @@ namespace libtorrent { namespace dht
 		m_dht.add_router_node(node);
 	}
 
+	bool dht_tracker::has_quota()
+	{
+		return m_sock.has_quota();
+	}
+
 	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags)
 	{
 		using libtorrent::bencode;
@@ -705,6 +670,7 @@ namespace libtorrent { namespace dht
 		{
 			if (ec)
 			{
+				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 				TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED (" << ec.message() << ") " << log_line.str();
 #endif
@@ -714,6 +680,8 @@ namespace libtorrent { namespace dht
 			// account for IP and UDP overhead
 			m_sent_bytes += m_send_buf.size() + (addr.address().is_v6() ? 48 : 28);
 
+			m_counters.inc_stats_counter(counters::dht_bytes_out, m_send_buf.size());
+			m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			m_total_out_bytes += m_send_buf.size();
 		
@@ -745,6 +713,8 @@ namespace libtorrent { namespace dht
 		}
 		else
 		{
+			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED " << log_line.str();
 #endif

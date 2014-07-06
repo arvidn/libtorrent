@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 1.1.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -75,9 +75,9 @@ You'll find boost here__.
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=619445
 
 Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to ``c:\boost_1_34_0`` (I'm using
+guide, let's assume you extract the package to ``c:\boost_1_55_0`` (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
-to use the autotools). You'll need at least version 1.34 of the boost library
+to use the autotools). You'll need at least version 1.49 of the boost library
 in order to build libtorrent.
 
 
@@ -86,7 +86,7 @@ Step 2: Setup BBv2
 
 First you need to build ``bjam``. You do this by opening a terminal (In
 windows, run ``cmd``). Change directory to
-``c:\boost_1_34_0\tools\jam\src``. Then run the script called
+``c:\boost_1_55_0\tools\jam\src``. Then run the script called
 ``build.bat`` or ``build.sh`` on a unix system. This will build ``bjam`` and
 place it in a directory starting with ``bin.`` and then have the name of your
 platform. Copy the ``bjam.exe`` (or ``bjam`` on a unix system) to a place
@@ -101,22 +101,22 @@ set the environment variable ``BOOST_BUILD_PATH``. This is the path that tells
 ``bjam`` where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to ``c:\boost_1_34_0\tools\build\v2``.
+it to ``c:\boost_1_55_0\tools\build\v2``.
 
 To set an environment variable in windows, type for example::
 
-  set BOOST_BUILD_PATH=c:\boost_1_34_0\tools\build\v2
+  set BOOST_BUILD_PATH=c:\boost_1_55_0\tools\build\v2
 
 In a terminal window.
 
 The last thing to do to complete the setup of BBv2 is to modify your
-``user-config.jam`` file. It is located in ``c:\boost_1_34_0\tools\build\v2``.
+``user-config.jam`` file. It is located in ``c:\boost_1_55_0\tools\build\v2``.
 Depending on your platform and which compiler you're using, you should add a
 line for each compiler and compiler version you have installed on your system
 that you want to be able to use with BBv2. For example, if you're using
-Microsoft Visual Studio 7.1 (2003), just add a line::
+Microsoft Visual Studio 12 (2013), just add a line::
 
-  using msvc : 7.1 ;
+  using msvc : 12.0 ;
 
 If you use GCC, add the line::
 
@@ -148,7 +148,7 @@ Step 3: Building libtorrent
 When building libtorrent, the ``Jamfile`` expects the environment variable
 ``BOOST_ROOT`` to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to ``c:\boost_1_34_0``. You only need this if you're
+files found. So, set this to ``c:\boost_1_55_0``. You only need this if you're
 building against a source distribution of boost.
 
 Then the only thing left is simply to invoke ``bjam``. If you want to specify
@@ -220,8 +220,8 @@ from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same 
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
-``/cygdrive/c/boost_1_34_0``). In the windows environment, they should have the typical
-windows format (``c:/boost_1_34_0``).
+``/cygdrive/c/boost_1_55_0``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_55_0``).
 
 .. note::
 	In Jamfiles, spaces are separators. It's typically easiest to avoid spaces
@@ -367,7 +367,7 @@ Build features:
 |                          |   awareness except on windows).                    |
 +--------------------------+----------------------------------------------------+
 | ``asserts``              | * ``off`` - disable all asserts                    |
-|                          | * ``peoduction`` - enable asserts in release       |
+|                          | * ``production`` - enable asserts in release       |
 |                          |   builds, but don't abort, just log them to        |
 |                          |   ``extern char const* libtorrent_assert_log``.    |
 |                          | * ``on`` - enable asserts in debug builds (this is |
@@ -391,6 +391,13 @@ Build features:
 |                          |   working directory session_stats<pid>. The log    |
 |                          |   is rotated every hour. It can be parsed by the   |
 |                          |   parse_session_stats.py script (requires gnuplot) |
++--------------------------+----------------------------------------------------+
+| ``profile-calls``        | * ``off`` - default. No additional call profiling. |
+|                          | * ``on`` - Enable logging of stack traces of       |
+|                          |   calls into libtorrent that are blocking. On      |
+|                          |   session shutdown, a file ``blocking_calls.txt``  |
+|                          |   is written with stack traces of blocking calls   |
+|                          |   ordered by the number of them.                   |
 +--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api

@@ -65,11 +65,6 @@ namespace libtorrent
 {
 	class torrent;
 
-	namespace detail
-	{
-		struct session_impl;
-	}
-
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
@@ -80,10 +75,12 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		web_peer_connection(
-			aux::session_impl& ses
+			aux::session_interface& ses
+			, aux::session_settings const& sett
+			, buffer_allocator_interface& allocator
+			, disk_interface& disk_thread
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
 			, web_seed_entry& web);
 
 		virtual void on_connected();
@@ -98,7 +95,7 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, int error = 0);
+		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
 
 		virtual void write_request(peer_request const& r);
 
@@ -140,9 +137,6 @@ namespace libtorrent
 		// position in the current range response
 		size_type m_range_pos;
 
-		// the position in the current block
-		int m_block_pos;
-
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
 		// this is updated for each chunk header that's
@@ -150,6 +144,9 @@ namespace libtorrent
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
 		size_type m_chunk_pos;
+
+		// the position in the current block
+		int m_block_pos;
 
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for

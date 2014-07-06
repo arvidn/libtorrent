@@ -33,9 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 #define TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 
-#include <boost/function/function1.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+
 #include "libtorrent/proxy_base.hpp"
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -112,8 +112,6 @@ public:
 		proxy_base::close();
 	}
 #endif
-
-	typedef boost::function<void(error_code const&)> handler_type;
 
 //#error fix error messages to use custom error_code category
 //#error add async_connect() that takes a hostname and port as well

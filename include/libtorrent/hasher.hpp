@@ -112,14 +112,11 @@ namespace libtorrent
 		// returns the SHA-1 digest of the buffers previously passed to
 		// update() and the hasher constructor.
 		sha1_hash final();
-
 		// restore the hasher state to be as if the hasher has just been
 		// default constructed.
 		void reset();
 
-#ifdef TORRENT_USE_GCRYPT
 		~hasher();
-#endif
 
 	private:
 
@@ -133,6 +130,7 @@ namespace libtorrent
 		sha_ctx m_context;
 #endif
 	};
+
 }
 
 #endif // TORRENT_HASHER_HPP_INCLUDED

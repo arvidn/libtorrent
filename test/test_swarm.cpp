@@ -42,9 +42,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <iostream>
 
-void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false, bool time_critical = false)
+enum test_flags_t
+{
+	super_seeding = 1,
+	strict_super_seeding = 2,
+	seed_mode = 4,
+	time_critical = 8,
+	suggest = 16,
+	explicit_cache = 32
+};
+
+void test_swarm(int flags = 0)
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
+
+	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s%s ===\n\n\n"
+		, (flags & super_seeding) ? "super-seeding ": ""
+		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
+		, (flags & seed_mode) ? "seed-mode ": ""
+		, (flags & time_critical) ? "time-critical ": ""
+		, (flags & suggest) ? "suggest ": ""
+		, (flags & explicit_cache) ? "explicit-cache ": ""
+		);
 
 	// in case the previous run was terminated
 	error_code ec;
@@ -59,53 +79,62 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	session_proxy p2;
 	session_proxy p3;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50000, 51000), "0.0.0.0", 0);
+	int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
+
+	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, mask);
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+
+	if (flags & strict_super_seeding)
+		pack.set_bool(settings_pack::strict_super_seeding, true);
+
+	if (flags & suggest)
+		pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+
+	if (flags & explicit_cache)
+		pack.set_bool(settings_pack::explicit_read_cache, true);
+
+	if (flags & explicit_cache)
+	{
+		pack.set_bool(settings_pack::explicit_read_cache, true);
+		pack.set_int(settings_pack::explicit_cache_interval, 5);
+	}
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 100000;
 
-	session_settings settings;
-	settings.allow_multiple_connections_per_ip = true;
-	settings.ignore_limits_on_local_network = false;
-	settings.strict_super_seeding = strict;
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
+	pack.set_int(settings_pack::max_retry_port_bind, 1000);
 
-	settings.upload_rate_limit = rate_limit;
-	ses1.set_settings(settings);
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 
-	settings.download_rate_limit = rate_limit / 2;
-	settings.upload_rate_limit = rate_limit;
-	ses2.set_settings(settings);
-	ses3.set_settings(settings);
+	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-	ses3.set_pe_settings(pes);
-#endif
+	ses1.apply_settings(pack);
+
+	pack.set_int(settings_pack::download_rate_limit, rate_limit / 2);
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	torrent_handle tor1;
 	torrent_handle tor2;
 	torrent_handle tor3;
 
 	add_torrent_params p;
-	p.flags |= add_torrent_params::flag_seed_mode;
+	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, 0, super_seeding, &p);
+		, false, true, "_swarm", 8 * 1024, 0, flags & super_seeding, &p);
 
-	int mask = alert::all_categories & ~(alert::progress_notification | alert::performance_warning | alert::stats_notification);
-	ses1.set_alert_mask(mask);
-	ses2.set_alert_mask(mask);
-	ses3.set_alert_mask(mask);
-
-	if (time_critical)
+	if (flags & time_critical)
 	{
 		tor2.set_piece_deadline(2, 0);
 		tor2.set_piece_deadline(5, 1000);
@@ -157,9 +186,9 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	if (tor2.status().is_seeding && tor3.status().is_seeding) std::cerr << "done\n";
 
 	// make sure the files are deleted
-	ses1.remove_torrent(tor1, session::delete_files);
-	ses2.remove_torrent(tor2, session::delete_files);
-	ses3.remove_torrent(tor3, session::delete_files);
+	ses1.remove_torrent(tor1, lt::session::delete_files);
+	ses2.remove_torrent(tor2, lt::session::delete_files);
+	ses3.remove_torrent(tor3, lt::session::delete_files);
 
 	std::auto_ptr<alert> a = ses1.pop_alert();
 	ptime end = time_now() + seconds(20);
@@ -212,18 +241,24 @@ int test_main()
 	using namespace libtorrent;
 
 	// with time critical pieces
-	test_swarm(false, false, false, true);
+	test_swarm(time_critical);
 
 	// with seed mode
-	test_swarm(false, false, true);
+	test_swarm(seed_mode);
 
 	test_swarm();
 
 	// with super seeding
-	test_swarm(true);
+	test_swarm(super_seeding);
 	
 	// with strict super seeding
-	test_swarm(true, true);
+	test_swarm(super_seeding | strict_super_seeding);
+	
+	// with suggest pieces
+	test_swarm(suggest);
+
+	// test explicit cache
+	test_swarm(suggest | explicit_cache);
 
 	return 0;
 }

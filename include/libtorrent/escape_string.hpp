@@ -53,6 +53,9 @@ namespace libtorrent
 	// it will be encoded
 	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(std::string const& url);
 
+	// convert a file://-URL to a proper path
+	TORRENT_EXTRA_EXPORT std::string resolve_file_url(std::string const& url);
+
 	// returns true if the given string (not null terminated) contains
 	// characters that would need to be escaped if used in a URL
 	TORRENT_EXTRA_EXPORT bool need_encoding(char const* str, int len);
@@ -68,6 +71,9 @@ namespace libtorrent
 
 	// replaces \ with /
 	TORRENT_EXTRA_EXPORT void convert_path_to_posix(std::string& path);
+#ifdef TORRENT_WINDOWS
+	TORRENT_EXTRA_EXPORT void convert_path_to_windows(std::string& path);
+#endif
 
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim, char const* end);
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 #ifdef TORRENT_DISABLE_DHT
 
@@ -71,7 +72,7 @@ void usage()
 	exit(1);
 }
 
-std::auto_ptr<alert> wait_for_alert(session& s, int alert_type)
+std::auto_ptr<alert> wait_for_alert(lt::session& s, int alert_type)
 {
 	std::auto_ptr<alert> ret;
 	bool found = false;
@@ -121,7 +122,7 @@ void put_string(entry& e, boost::array<char, 64>& sig, boost::uint64_t& seq
 		, sig.data());
 }
 
-void bootstrap(session& s)
+void bootstrap(lt::session& s)
 {
 	printf("bootstrapping\n");
 	wait_for_alert(s, dht_bootstrap_alert::alert_type);
@@ -157,10 +158,11 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	session s;
-	s.set_alert_mask(0xffffffff);
+	settings_pack sett;
+	sett.set_int(settings_pack::alert_mask, 0xffffffff);
+	lt::session s(sett);
 
-	s.add_dht_router(std::pair<std::string, int>("54.205.98.145", 10000));
+	s.add_dht_router(std::pair<std::string, int>("router.utorrent.com", 6881));
 
 	FILE* f = fopen(".dht", "rb");
 	if (f != NULL)
@@ -310,7 +312,7 @@ int main(int argc, char* argv[])
 	}
 
 	entry e;
-	s.save_state(e, session::save_dht_state);
+	s.save_state(e, lt::session::save_dht_state);
 	std::vector<char> state;
 	bencode(std::back_inserter(state), e);
 	f = fopen(".dht", "wb+");

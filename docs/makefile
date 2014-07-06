@@ -52,6 +52,15 @@ epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
 all: html
 
+settings.rst: ../include/libtorrent/settings_pack.hpp
+	python gen_settings_doc.py
+
+#stats_counters.rst: ../src/session_stats.cpp
+#	python gen_stats_doc.py
+
+manual.rst: settings.rst stats_counters.rst
+	touch manual.rst
+
 troubleshooting_thumb.png: troubleshooting.png
 	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
 
@@ -61,7 +70,7 @@ troubleshooting.png: troubleshooting.dot
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
 
-$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst
+$(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst settings.rst
 	python gen_reference_doc.py
 
 %.epub:%.rst
@@ -83,5 +92,5 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 	cp $@ $(WEB_PATH)/$@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) todo.html reference*.html reference*.rst
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) settings.rst todo.html reference*.html reference*.rst
 

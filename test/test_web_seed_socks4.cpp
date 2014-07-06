@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-const int proxy = libtorrent::proxy_settings::socks4;
+const int proxy = libtorrent::settings_pack::socks4;
 
 int test_main()
 {

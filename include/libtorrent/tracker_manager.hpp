@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <string>
+#include <list>
 #include <utility>
 #include <ctime>
 
@@ -57,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp" // peer_entry
-#include "libtorrent/session_settings.hpp" // proxy_settings
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
@@ -82,14 +82,14 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT tracker_request
 	{
 		tracker_request()
-			: kind(announce_request)
-			, downloaded(-1)
+			: downloaded(-1)
 			, uploaded(-1)
 			, left(-1)
 			, corrupt(0)
 			, redundant(0)
 			, listen_port(0)
 			, event(none)
+			, kind(announce_request)
 			, key(0)
 			, num_want(0)
 			, send_stats(true)
@@ -98,12 +98,6 @@ namespace libtorrent
 			, ssl_ctx(0)
 #endif
 		{}
-
-		enum
-		{
-			announce_request,
-			scrape_request
-		} kind;
 
 		enum event_t
 		{
@@ -114,20 +108,34 @@ namespace libtorrent
 			paused
 		};
 
-		sha1_hash info_hash;
-		peer_id pid;
+		enum kind_t
+		{
+			announce_request,
+			scrape_request
+		};
+
+		std::string url;
+		std::string trackerid;
+
 		size_type downloaded;
 		size_type uploaded;
 		size_type left;
 		size_type corrupt;
 		size_type redundant;
-		unsigned short listen_port;
-		event_t event;
-		std::string url;
-		std::string trackerid;
+		boost::uint16_t listen_port;
+
+		// values from event_t
+		boost::uint8_t event;
+
+		// values from kind_t
+		boost::uint8_t kind;
+
 		boost::uint32_t key;
 		int num_want;
+		sha1_hash info_hash;
+		peer_id pid;
 		address bind_ip;
+
 		bool send_stats;
 		bool apply_ip_filter;
 #ifdef TORRENT_USE_OPENSSL
@@ -138,7 +146,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT request_callback
 	{
 		friend class tracker_manager;
-		request_callback(): m_manager(0) {}
+		request_callback() {}
 		virtual ~request_callback() {}
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
@@ -164,14 +172,9 @@ namespace libtorrent
 			, const std::string& msg
 			, int retry_interval) = 0;
 
-		union_endpoint m_tracker_address;
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const char* fmt, ...) const = 0;
-#else
-	private:
 #endif
-		tracker_manager* m_manager;
 	};
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler
@@ -197,19 +200,23 @@ namespace libtorrent
 		boost::intrusive_ptr<timeout_handler> self()
 		{ return boost::intrusive_ptr<timeout_handler>(this); }
 
-		// used for timeouts
-		// this is set when the request has been sent
-		ptime m_start_time;
-		// this is set every time something is received
-		ptime m_read_time;
-		// the asio async operation
-		deadline_timer m_timeout;
-		
 		int m_completion_timeout;
-		int m_read_timeout;
 
 		typedef mutex mutex_t;
 		mutable mutex_t m_mutex;
+
+		// used for timeouts
+		// this is set when the request has been sent
+		ptime m_start_time;
+
+		// this is set every time something is received
+		ptime m_read_time;
+
+		// the asio async operation
+		deadline_timer m_timeout;
+		
+		int m_read_timeout;
+
 		bool m_abort;
 	};
 
@@ -241,6 +248,10 @@ namespace libtorrent
 		boost::intrusive_ptr<tracker_connection> self()
 		{ return boost::intrusive_ptr<tracker_connection>(this); }
 
+	private:
+
+		const tracker_request m_req;
+
 	protected:
 
 		void fail_impl(error_code const& ec, int code = -1, std::string msg = std::string()
@@ -249,19 +260,14 @@ namespace libtorrent
 		boost::weak_ptr<request_callback> m_requester;
 
 		tracker_manager& m_man;
-
-	private:
-
-		const tracker_request m_req;
 	};
 
 	class TORRENT_EXTRA_EXPORT tracker_manager: public udp_socket_observer, boost::noncopyable
 	{
 	public:
 
-		tracker_manager(aux::session_impl& ses, proxy_settings const& ps)
+		tracker_manager(aux::session_impl& ses)
 			: m_ses(ses)
-			, m_proxy(ps)
 			, m_abort(false) {}
 		~tracker_manager();
 
@@ -298,7 +304,6 @@ namespace libtorrent
 			tracker_connections_t;
 		tracker_connections_t m_connections;
 		aux::session_impl& m_ses;
-		proxy_settings const& m_proxy;
 		bool m_abort;
 	};
 }

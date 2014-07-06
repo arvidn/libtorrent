@@ -35,8 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
-#include "libtorrent/ptime.hpp"
 #include <boost/cstdint.hpp>
+
+#if defined BOOST_ASIO_HAS_STD_CHRONO
+#include <chrono>
+#else
+#include <boost/chrono.hpp>
+#endif
+
 #include <string>
 
 // OVERVIEW
@@ -63,6 +69,15 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT char const* time_now_string();
 	std::string log_time();
 
+#if defined BOOST_ASIO_HAS_STD_CHRONO
+	typedef std::chrono::high_resolution_clock clock_type;
+#else
+	typedef boost::chrono::high_resolution_clock clock_type;
+#endif
+
+	typedef clock_type::time_point ptime;
+	typedef clock_type::duration time_duration;
+
 	// returns the current time, as represented by ptime. The
 	// resolution of this timer is about 100 ms.
 	TORRENT_EXPORT ptime const& time_now();
@@ -70,58 +85,40 @@ namespace libtorrent
 	// returns the current time as represented by ptime. This is
 	// more expensive than time_now(), but provides as high resolution
 	// as the operating system can provide.
-	TORRENT_EXPORT ptime time_now_hires();
+	inline ptime time_now_hires() { return clock_type::now(); }
 
 	// the earliest and latest possible time points
 	// representable by ptime.
-	TORRENT_EXPORT ptime min_time();
-	TORRENT_EXPORT ptime max_time();
+	inline ptime min_time() { return (clock_type::time_point::min)(); }
+	inline ptime max_time() { return (clock_type::time_point::max)(); }
 
-#if defined TORRENT_USE_BOOST_DATE_TIME || defined TORRENT_USE_QUERY_PERFORMANCE_TIMER
+#if defined BOOST_ASIO_HAS_STD_CHRONO
+	using std::chrono::seconds;
+	using std::chrono::milliseconds;
+	using std::chrono::microseconds;
+	using std::chrono::minutes;
+	using std::chrono::hours;
+	using std::chrono::duration_cast;
+#else
+	using boost::chrono::seconds;
+	using boost::chrono::milliseconds;
+	using boost::chrono::microseconds;
+	using boost::chrono::minutes;
+	using boost::chrono::hours;
+	using boost::chrono::duration_cast;
+#endif
 
-	// returns a time_duration representing the specified number of seconds, milliseconds
-	// microseconds, minutes and hours.
-	TORRENT_EXPORT time_duration seconds(boost::int64_t s);
-	TORRENT_EXPORT time_duration milliseconds(boost::int64_t s);
-	TORRENT_EXPORT time_duration microsec(boost::int64_t s);
-	TORRENT_EXPORT time_duration minutes(boost::int64_t s);
-	TORRENT_EXPORT time_duration hours(boost::int64_t s);
+	template<class T>
+	boost::int64_t total_seconds(T td)
+	{ return duration_cast<seconds>(td).count(); }
 
-	// returns the number of seconds, milliseconds and microseconds
-	// a time_duration represents.
-	TORRENT_EXPORT boost::int64_t total_seconds(time_duration td);
-	TORRENT_EXPORT boost::int64_t total_milliseconds(time_duration td);
-	TORRENT_EXPORT boost::int64_t total_microseconds(time_duration td);
+	template<class T>
+	boost::int64_t total_milliseconds(T td)
+	{ return duration_cast<milliseconds>(td).count(); }
 
-#elif TORRENT_USE_CLOCK_GETTIME || TORRENT_USE_SYSTEM_TIME || TORRENT_USE_ABSOLUTE_TIME
-
-	// hidden
-	inline int total_seconds(time_duration td)
-	{ return td.diff / 1000000; }
-	// hidden
-	inline int total_milliseconds(time_duration td)
-	{ return td.diff / 1000; }
-	// hidden
-	inline boost::int64_t total_microseconds(time_duration td)
-	{ return td.diff; }
-
-	// hidden
-	inline time_duration microsec(boost::int64_t s)
-	{ return time_duration(s); }
-	// hidden
-	inline time_duration milliseconds(boost::int64_t s)
-	{ return time_duration(s * 1000); }
-	// hidden
-	inline time_duration seconds(boost::int64_t s)
-	{ return time_duration(s * 1000000); }
-	// hidden
-	inline time_duration minutes(boost::int64_t s)
-	{ return time_duration(s * 1000000 * 60); }
-	// hidden
-	inline time_duration hours(boost::int64_t s)
-	{ return time_duration(s * 1000000 * 60 * 60); }
-
-#endif // TORRENT_USE_CLOCK_GETTIME
+	template<class T>
+	boost::int64_t total_microseconds(T td)
+	{ return duration_cast<microseconds>(td).count(); }
 
 }
 

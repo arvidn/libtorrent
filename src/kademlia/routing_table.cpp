@@ -48,6 +48,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::uint8_t;
 
+#if BOOST_VERSION <= 104700
+namespace boost {
+size_t hash_value(libtorrent::address_v4::bytes_type ip)
+{
+	return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
+}
+}
+#endif
+
 namespace libtorrent { namespace dht
 {
 
@@ -58,12 +67,12 @@ TORRENT_DEFINE_LOG(table)
 routing_table::routing_table(node_id const& id, int bucket_size
 	, dht_settings const& settings)
 	: m_settings(settings)
-	, m_bucket_size(bucket_size)
 	, m_id(id)
 	, m_depth(0)
 	, m_last_bootstrap(min_time())
 	, m_last_refresh(min_time())
 	, m_last_self_refresh(min_time())
+	, m_bucket_size(bucket_size)
 {
 	m_buckets.reserve(30);
 }
@@ -297,7 +306,7 @@ bool routing_table::need_refresh(node_id& target) const
 	ptime now = time_now();
 
 	// refresh our own bucket once every 15 minutes
-	if (now - m_last_self_refresh > minutes(15))
+	if (now - minutes(15) > m_last_self_refresh)
 	{
 		m_last_self_refresh = now;
 		target = m_id;
@@ -312,8 +321,8 @@ bool routing_table::need_refresh(node_id& target) const
 	table_t::const_iterator i = std::min_element(m_buckets.begin(), m_buckets.end()
 		, &compare_bucket_refresh);
 
-	if (now - i->last_active < minutes(15)) return false;
-	if (now - m_last_refresh < seconds(45)) return false;
+	if (now - minutes(15) < i->last_active) return false;
+	if (now - seconds(45) < m_last_refresh) return false;
 
 	// generate a random node_id within the given bucket
 	target = generate_random_id();
@@ -973,7 +982,7 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint ep, int rtt)
 bool routing_table::need_bootstrap() const
 {
 	ptime now = time_now();
-	if (now - m_last_bootstrap < seconds(30)) return false;
+	if (now - seconds(30) < m_last_bootstrap) return false;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
@@ -1081,7 +1090,7 @@ void routing_table::find_node(node_id const& target
 #if TORRENT_USE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
-	std::multiset<address_v4::bytes_type> all_ips;
+	boost::unordered_multiset<address_v4::bytes_type> all_ips;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)

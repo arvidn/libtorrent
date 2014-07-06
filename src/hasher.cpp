@@ -125,12 +125,12 @@ namespace libtorrent
 #endif
 	}
 
-#ifdef TORRENT_USE_GCRYPT
 	hasher::~hasher()
 	{
+#ifdef TORRENT_USE_GCRYPT
 		gcry_md_close(m_context);
-	}
 #endif
+	}
 
 }
 

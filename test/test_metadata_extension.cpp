@@ -56,6 +56,7 @@ void test_transfer(int flags
 	, int timeout)
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	fprintf(stderr, "test transfer: timeout=%d %s%s%s\n"
 		, timeout
@@ -71,23 +72,22 @@ void test_transfer(int flags
 
 	// TODO: it would be nice to test reversing
 	// which session is making the connection as well
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
 	ses1.add_extension(constructor);
 	ses2.add_extension(constructor);
 	torrent_handle tor1;
 	torrent_handle tor2;
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.prefer_rc4 = (flags & full_encryption);
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-#endif
 
-	session* downloader = &ses2;
-	session* seed = &ses1;
+	settings_pack pack;
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+	pack.set_bool(settings_pack::prefer_rc4, flags & full_encryption);
+	ses1.apply_settings(pack);
+	ses2.apply_settings(pack);
+
+	lt::session* downloader = &ses2;
+	lt::session* seed = &ses1;
 
 	if (flags & reverse)
 	{
@@ -157,9 +157,10 @@ int test_main()
 	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
 	test_transfer(reverse, &create_ut_metadata_plugin, timeout);
 
+#ifndef TORRENT_NO_DEPRECATE
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
 		test_transfer(f, &create_metadata_plugin, timeout * 2);
-
+#endif
 
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
 		test_transfer(f, &create_ut_metadata_plugin, timeout);

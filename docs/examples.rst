@@ -130,40 +130,40 @@ This is a simple client. It doesn't have much output to keep it simple::
 	int main(int argc, char* argv[])
 	{
 		using namespace libtorrent;
-	#if BOOST_VERSION < 103400
-		namespace fs = boost::filesystem;
-		fs::path::default_name_check(fs::no_check);
-	#endif
-	
-	if (argc != 2)
-	{
-		std::cerr << "usage: ./simple_client torrent-file\n"
-			"to stop the client, press return.\n";
-		return 1;
-	}
-	
-	#ifndef BOOST_NO_EXCEPTIONS
-		try
-	#endif
+
+		if (argc != 2)
 		{
-			session s;
-			s.listen_on(std::make_pair(6881, 6889));
-			add_torrent_params p;
-			p.save_path = "./";
-			p.ti = new torrent_info(argv[1]);
-			s.add_torrent(p);
-	
-			// wait for the user to end
-			char a;
-			std::cin.unsetf(std::ios_base::skipws);
-			std::cin >> a;
+			fputs("usage: ./simple_client torrent-file\n"
+				"to stop the client, press return.\n", stderr);
+			return 1;
 		}
-	#ifndef BOOST_NO_EXCEPTIONS
-		catch (std::exception& e)
+
+		session s;
+		error_code ec;
+		s.listen_on(std::make_pair(6881, 6889), ec);
+		if (ec)
 		{
-	  		std::cout << e.what() << "\n";
+			fprintf(stderr, "failed to open listen socket: %s\n", ec.message().c_str());
+			return 1;
 		}
-	#endif
+		add_torrent_params p;
+		p.save_path = "./";
+		p.ti = boost::make_shared<torrent_info>(argv[1], ec);
+		if (ec)
+		{
+			fprintf(stderr, "%s\n", ec.message().c_str());
+			return 1;
+		}
+		s.add_torrent(p, ec);
+		if (ec)
+		{
+			fprintf(stderr, "%s\n", ec.message().c_str());
+			return 1;
+		}
+   	
+		// wait for the user to end
+		char a;
+		scanf("%c\n", &a);
 		return 0;
 	}
 

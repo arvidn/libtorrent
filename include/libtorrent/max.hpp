@@ -37,6 +37,9 @@ namespace libtorrent
 {
 
 	template<int v1, int v2>
+	struct min { enum { value = v1<v2?v1:v2 }; };
+
+	template<int v1, int v2>
 	struct max { enum { value = v1>v2?v1:v2 }; };
 
 	template<int v1, int v2, int v3>

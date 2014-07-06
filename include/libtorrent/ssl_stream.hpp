@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SSL_STREAM_HPP_INCLUDED
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
 
+#ifdef TORRENT_USE_OPENSSL
+
 #include "libtorrent/socket.hpp"
 #include <boost/bind.hpp>
 #if BOOST_VERSION < 103500
@@ -303,6 +305,8 @@ private:
 };
 
 }
+
+#endif // TORRENT_USE_OPENSSL
 
 #endif
 

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
-#include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 #include <fstream>
@@ -47,10 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_queue_entry.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
-#include "libtorrent/ptime.hpp"
-
-using boost::intrusive_ptr;
-
+#include "libtorrent/time.hpp"
 
 namespace libtorrent {
 
@@ -76,13 +73,8 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 	// this is used by web seeds
 	// returns the number of bytes to assign to the peer, or 0
 	// if the peer's 'assign_bandwidth' callback will be called later
-	int request_bandwidth(intrusive_ptr<bandwidth_socket> const& peer
-		, int blk, int priority
-		, bandwidth_channel* chan1 = 0
-		, bandwidth_channel* chan2 = 0
-		, bandwidth_channel* chan3 = 0
-		, bandwidth_channel* chan4 = 0
-		, bandwidth_channel* chan5 = 0);
+	int request_bandwidth(boost::shared_ptr<bandwidth_socket> const& peer
+		, int blk, int priority, bandwidth_channel** chan, int num_channels);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/performance_counters.hpp>
 
 #include <libtorrent/io.hpp>
 
@@ -73,6 +74,7 @@ bool refresh::invoke(observer_ptr o)
 	e["q"] = "find_node";
 	entry& a = e["a"];
 	a["target"] = target().to_string();
+	m_node.stats_counters().inc_stats_counter(counters::dht_find_node_out);
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
@@ -82,15 +84,19 @@ bootstrap::bootstrap(
 	, done_callback const& callback)
 	: refresh(node, target, callback)
 {
-	// make it more resilient to nodes not responding.
-	// we don't want to terminate early when we're bootstrapping
-	m_num_target_nodes *= 2;
 }
 
 char const* bootstrap::name() const { return "bootstrap"; }
 
 void bootstrap::done()
 {
+	// TODO: 4 when bootstrapping against our own IP completes,
+	// continue to issue another bootstrap against the deepest,
+	// non-full bucket. when it completes, issue a bootstrap against
+	// one bucket above it, and so on until the bootstrap lookup
+	// against the top level bucket (bucket 0) completes. That's
+	// when the bootstrap is done
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(traversal) << "[" << this << "]"
 		<< " bootstrap done, pinging remaining nodes";

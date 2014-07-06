@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <iostream>
@@ -44,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 void test_swarm()
 {
 	using namespace libtorrent;
+	namespace lt = libtorrent;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -52,41 +54,35 @@ void test_swarm()
 	session_proxy p2;
 	session_proxy p3;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48010, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49010, 50000), "0.0.0.0", 0);
-	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50010, 51000), "0.0.0.0", 0);
-
-	ses1.set_alert_mask(alert::all_categories);
-	ses2.set_alert_mask(alert::all_categories);
-	ses3.set_alert_mask(alert::all_categories);
-
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 100000;
 
-	session_settings settings;
-	settings.allow_multiple_connections_per_ip = true;
-	settings.ignore_limits_on_local_network = false;
-	settings.choking_algorithm = session_settings::auto_expand_choker;
-	settings.upload_rate_limit = rate_limit;
-	settings.unchoke_slots_limit = 1;
-	ses1.set_settings(settings);
+	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, alert::all_categories);
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	pack.set_int(settings_pack::unchoke_slots_limit, 1);
+	pack.set_int(settings_pack::max_retry_port_bind, 900);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48010");
 
-	settings.upload_rate_limit = rate_limit / 10;
-	settings.download_rate_limit = rate_limit / 5;
-	settings.unchoke_slots_limit = 0;
-	ses2.set_settings(settings);
-	ses3.set_settings(settings);
+	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	pe_settings pes;
-	pes.out_enc_policy = pe_settings::forced;
-	pes.in_enc_policy = pe_settings::forced;
-	ses1.set_pe_settings(pes);
-	ses2.set_pe_settings(pes);
-	ses3.set_pe_settings(pes);
-#endif
+	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit / 10);
+	pack.set_int(settings_pack::download_rate_limit, rate_limit / 5);
+	pack.set_int(settings_pack::unchoke_slots_limit, 0);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
+
+	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
+
+	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -95,6 +91,7 @@ void test_swarm()
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
 
 	session_status st = ses1.status();
+	fprintf(stderr, "st.allowed_upload_slots: %d\n", st.allowed_upload_slots);
 	TEST_EQUAL(st.allowed_upload_slots, 1);
 	for (int i = 0; i < 100; ++i)
 	{
@@ -118,9 +115,9 @@ void test_swarm()
 	TEST_CHECK(st.allowed_upload_slots >= 2);
 
 	// make sure the files are deleted
-	ses1.remove_torrent(tor1, session::delete_files);
-	ses2.remove_torrent(tor2, session::delete_files);
-	ses3.remove_torrent(tor3, session::delete_files);
+	ses1.remove_torrent(tor1, lt::session::delete_files);
+	ses2.remove_torrent(tor2, lt::session::delete_files);
+	ses3.remove_torrent(tor3, lt::session::delete_files);
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();

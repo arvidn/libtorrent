@@ -41,6 +41,7 @@ int test_main()
 {
 
 	file_storage fs;
+	int total_size = 100 * 0x4000;
 
 	fs.add_file("test/temporary.txt", 0x4000);
 	fs.add_file("test/A/tmp", 0x4000);
@@ -75,17 +76,12 @@ int test_main()
 	"test/A/tmp",
 	"test/Temporary.1.txt", // duplicate of temporary.txt
 	"test/TeMPorArY.2.txT", // duplicate of temporary.txt
-
-	// a file may not have the same name as a directory
-	// however, detecting this is not supported currently.
-	// it is in the next major release
-	"test/a",
-
+	"test/a.1", // a file may not have the same name as a directory
 	"test/b.exe",
 	"test/B.1.ExE", // duplicate of b.exe
 	"test/B.2.exe", // duplicate of b.exe
 	"test/test/TEMPORARY.TXT", // a file with the same name in a seprate directory is fine
-	"test/A.1", // duplicate of directory a
+	"test/A.2", // duplicate of directory a
 	};
 
 	for (int i = 0; i < ti.num_files(); ++i)

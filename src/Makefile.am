@@ -13,6 +13,7 @@ KADEMLIA_SOURCES = \
   kademlia/rpc_manager.cpp      \
   kademlia/logging.cpp          \
   kademlia/traversal_algorithm.cpp \
+  kademlia/dos_blocker.cpp      \
   kademlia/get_peers.cpp        \
   kademlia/get_item.cpp         \
   kademlia/item.cpp             \
@@ -37,7 +38,7 @@ ASIO_OPENSSL_SOURCES = asio_ssl.cpp
 endif
 
 libtorrent_rasterbar_la_SOURCES = \
-  web_connection_base.cpp     \
+  web_connection_base.cpp         \
   alert.cpp                       \
   alert_manager.cpp               \
   allocator.cpp                   \
@@ -48,14 +49,18 @@ libtorrent_rasterbar_la_SOURCES = \
   bandwidth_queue_entry.cpp       \
   bloom_filter.cpp                \
   broadcast_socket.cpp            \
+  block_cache.cpp                 \
   bt_peer_connection.cpp          \
   chained_buffer.cpp              \
   connection_queue.cpp            \
   ConvertUTF.cpp                  \
+  crc32c.cpp                      \
   create_torrent.cpp              \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
+  disk_io_job.cpp                 \
   disk_io_thread.cpp              \
+  disk_job_pool.cpp               \
   entry.cpp                       \
   enum_net.cpp                    \
   error_code.cpp                  \
@@ -84,29 +89,42 @@ libtorrent_rasterbar_la_SOURCES = \
   mpi.c                           \
   natpmp.cpp                      \
   parse_url.cpp                   \
+  part_file.cpp                   \
   pe_crypto.cpp                   \
+  performance_counters.cpp        \
   peer_connection.cpp             \
+  peer_class.cpp                  \
+  peer_class_set.cpp              \
   piece_picker.cpp                \
+  platform_util.cpp               \
   packet_buffer.cpp               \
+  proxy_base.cpp                  \
   policy.cpp                      \
   puff.cpp                        \
   random.cpp                      \
+  request_blocks.cpp              \
+  resolver.cpp                    \
   rss.cpp                         \
   session.cpp                     \
   session_impl.cpp                \
-  settings.cpp                    \
+  settings_pack.cpp               \
   sha1.cpp                        \
   smart_ban.cpp                   \
   socket_io.cpp                   \
   socket_type.cpp                 \
   socks5_stream.cpp               \
   stat.cpp                        \
+  stat_cache.cpp                  \
   storage.cpp                     \
+  session_stats.cpp               \
   string_util.cpp                 \
+  tailqueue.cpp                   \
   thread.cpp                      \
   torrent.cpp                     \
   torrent_handle.cpp              \
   torrent_info.cpp                \
+  torrent_peer.cpp                \
+  torrent_peer_allocator.cpp      \
   time.cpp                        \
   timestamp_history.cpp           \
   tracker_manager.cpp             \

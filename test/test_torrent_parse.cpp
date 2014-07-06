@@ -73,6 +73,7 @@ test_torrent_t test_torrents[] =
 	{ "root_hash.torrent" },
 	{ "empty_path_multi.torrent" },
 	{ "duplicate_web_seeds.torrent" },
+	{ "invalid_name2.torrent" },
 	{ "invalid_name3.torrent" },
 	{ "symlink1.torrent" },
 };
@@ -90,7 +91,6 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "negative_piece_len.torrent", errors::torrent_missing_piece_length },
 	{ "no_name.torrent", errors::torrent_missing_name },
 	{ "invalid_name.torrent", errors::torrent_missing_name },
-	{ "invalid_name2.torrent", errors::torrent_invalid_name },
 	{ "invalid_info.torrent", errors::torrent_missing_info },
 	{ "string.torrent", errors::torrent_is_no_dict },
 	{ "negative_size.torrent", errors::torrent_invalid_length },
@@ -108,7 +108,7 @@ namespace libtorrent
 {
 	// defined in torrent_info.cpp
 	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
-	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
+	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
 }
 
 // TODO: test remap_files
@@ -191,23 +191,45 @@ int test_main()
 	TEST_EQUAL(merkle_num_nodes(8), 15);
 	TEST_EQUAL(merkle_num_nodes(16), 31);
 
-	// test sanitize_path
+	// test sanitize_append_path_element
 
+	std::string path;
+
+	path.clear();
+	sanitize_append_path_element(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_", 250);
+	sanitize_append_path_element(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test", 250);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a\\b\\c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a\\c");
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_\\"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
 #else
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a/b/c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a/c");
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_/"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
 #endif
-	TEST_EQUAL(sanitize_path("/.././c"), "c");
-	TEST_EQUAL(sanitize_path("dev:"), "");
-	TEST_EQUAL(sanitize_path("c:/b"), "b");
+
+	path.clear();
+	sanitize_append_path_element(path, "/a/", 3);
+	sanitize_append_path_element(path, "b", 1);
+	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("c:\\.\\c"), "c");
-	TEST_EQUAL(sanitize_path("\\c"), "c");
+	TEST_EQUAL(path, "a\\b\\c");
 #else
-	TEST_EQUAL(sanitize_path("//./c"), "c");
+	TEST_EQUAL(path, "a/b/c");
 #endif
 
 	// test torrent parsing
@@ -238,9 +260,9 @@ int test_main()
 	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti2.name() == "test1\\test2\\test3");
+	TEST_CHECK(ti2.name() == "ctest1test2test3");
 #else
-	TEST_CHECK(ti2.name() == "test1/test2/test3");
+	TEST_CHECK(ti2.name() == "test1test2test3");
 #endif
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
@@ -249,11 +271,7 @@ int test_main()
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti3(&buf[0], buf.size(), ec);
 	std::cerr << ti3.name() << std::endl;
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti3.name() == "test2\\test3\\test4");
-#else
-	TEST_CHECK(ti3.name() == "test2/test3/test4");
-#endif
+	TEST_CHECK(ti3.name() == "test2..test3.......test4");
 
 	// verify_encoding
 	std::string test = "\b?filename=4";
@@ -316,56 +334,14 @@ int test_main()
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_____foobar");
 
-	// trim_path_element
-
-	fprintf(stderr, "TORRENT_MAX_PATH: %d\n", TORRENT_MAX_PATH);
-
-	// 1100 characters
-	test = "abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij012345.txt";
-	std::string comparison = test;
-	trim_path_element(test);
-	if (comparison.size() > TORRENT_MAX_PATH)
-	{
-		comparison.resize(TORRENT_MAX_PATH - 4);
-		comparison += ".txt"; // the extension is supposed to be preserved
-	}
-	TEST_EQUAL(test, comparison);
-
-	// extensions > 15 characters are ignored
-	test = "abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789"
-		"abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij.123456789abcdefghij0123456789";
-	comparison = test;
-	trim_path_element(test);
-	if (comparison.size() > TORRENT_MAX_PATH)
-		comparison.resize(TORRENT_MAX_PATH);
-	TEST_EQUAL(test, comparison);
-
 	std::string root_dir = parent_path(current_working_directory());
 	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
 	{
 		fprintf(stderr, "loading %s\n", test_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_torrents[i].file), ec));
+		std::string filename = combine_path(combine_path(root_dir, "test_torrents"), test_torrents[i].file);
+		boost::shared_ptr<torrent_info> ti(new torrent_info(filename, ec));
 		TEST_CHECK(!ec);
-		if (ec) fprintf(stderr, "  -> failed %s\n", ec.message().c_str());
+		if (ec) fprintf(stderr, " loading(\"%s\") -> failed %s\n", filename.c_str(), ec.message().c_str());
 
 		if (std::string(test_torrents[i].file) == "whitespace_url.torrent")
 		{
@@ -430,6 +406,13 @@ int test_main()
 			TEST_EQUAL(ti->url_seeds()[0], "http://test.com/test%20file/foo%20bar/");
 #endif
 		}
+		else if (std::string(test_torrents[i].file) == "invalid_name2.torrent")
+		{
+			// if, after all invalid characters are removed from the name, it ends up
+			// being empty, it's set to the info-hash. Some torrents also have an empty name
+			// in which case it's also set to the info-hash
+			TEST_EQUAL(ti->name(), "b61560c2918f463768cd122b6d2fdd47b77bdb35");
+		}
 		else if (std::string(test_torrents[i].file) == "invalid_name3.torrent")
 		{
 			TEST_EQUAL(ti->name(), "foobar");
@@ -474,7 +457,7 @@ int test_main()
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec));
+		boost::shared_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec));
 		fprintf(stderr, "E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str(), test_error_torrents[i].error.message().c_str());
 		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
 	}

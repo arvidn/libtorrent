@@ -40,12 +40,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 using boost::tuples::ignore;
 
 template <class T>
-boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
+boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 {
-	return boost::intrusive_ptr<T>(new T(*ptr));
+	return boost::shared_ptr<T>(new T(*ptr));
 }
 
 int peer_disconnects = 0;
@@ -67,8 +68,10 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
+		, "0.0.0.0", 0, alert_mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
+		, "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -105,8 +108,8 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	}
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
-	boost::intrusive_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
-	boost::intrusive_ptr<torrent_info> t2(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> t2(new torrent_info(&buf[0], buf.size(), ec));
 
 	// remap the files to a single one
 	file_storage st;
@@ -212,15 +215,17 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
+		, "0.0.0.0", 0, alert_mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
+		, "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
 
 	create_directory("tmp1_remap2", ec);
 	std::ofstream file("tmp1_remap2/temporary");
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 32 * 1024, 7);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 32 * 1024, 7);
 	file.close();
 
 	file_storage fs;
@@ -236,7 +241,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());
 
-	boost::intrusive_ptr<torrent_info> t2 = clone_ptr(t);
+	boost::shared_ptr<torrent_info> t2 = clone_ptr(t);
 
 	t2->remap_files(fs);
 
@@ -337,8 +342,10 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
+		, "0.0.0.0", 0, alert_mask);
+	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
+		, "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -368,7 +375,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
-	boost::intrusive_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
 
 	int num_new_files = 3;
 
@@ -385,7 +392,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());
 
-	boost::intrusive_ptr<torrent_info> t2 = clone_ptr(t);
+	boost::shared_ptr<torrent_info> t2 = clone_ptr(t);
 
 	t2->remap_files(fs);
 
@@ -467,6 +474,7 @@ int test_main()
 	using namespace libtorrent;
 
 	error_code ec;
+
 	remove_all("tmp1_remap", ec);
 	remove_all("tmp2_remap", ec);
 
@@ -478,7 +486,7 @@ int test_main()
 	remove_all("tmp2_remap2", ec);
 
 	test_remap_files_scatter();
-	
+
 	remove_all("tmp1_remap", ec);
 	remove_all("tmp2_remap", ec);
 	remove_all("tmp1_remap2", ec);

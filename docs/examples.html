@@ -178,40 +178,40 @@ int main(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
         using namespace libtorrent;
-#if BOOST_VERSION &lt; 103400
-        namespace fs = boost::filesystem;
-        fs::path::default_name_check(fs::no_check);
-#endif
 
-if (argc != 2)
-{
-        std::cerr &lt;&lt; &quot;usage: ./simple_client torrent-file\n&quot;
-                &quot;to stop the client, press return.\n&quot;;
-        return 1;
-}
-
-#ifndef BOOST_NO_EXCEPTIONS
-        try
-#endif
+        if (argc != 2)
         {
-                session s;
-                s.listen_on(std::make_pair(6881, 6889));
-                add_torrent_params p;
-                p.save_path = &quot;./&quot;;
-                p.ti = new torrent_info(argv[1]);
-                s.add_torrent(p);
+                fputs(&quot;usage: ./simple_client torrent-file\n&quot;
+                        &quot;to stop the client, press return.\n&quot;, stderr);
+                return 1;
+        }
 
-                // wait for the user to end
-                char a;
-                std::cin.unsetf(std::ios_base::skipws);
-                std::cin &gt;&gt; a;
-        }
-#ifndef BOOST_NO_EXCEPTIONS
-        catch (std::exception&amp; e)
+        session s;
+        error_code ec;
+        s.listen_on(std::make_pair(6881, 6889), ec);
+        if (ec)
         {
-                std::cout &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;;
+                fprintf(stderr, &quot;failed to open listen socket: %s\n&quot;, ec.message().c_str());
+                return 1;
         }
-#endif
+        add_torrent_params p;
+        p.save_path = &quot;./&quot;;
+        p.ti = boost::make_shared&lt;torrent_info&gt;(argv[1], ec);
+        if (ec)
+        {
+                fprintf(stderr, &quot;%s\n&quot;, ec.message().c_str());
+                return 1;
+        }
+        s.add_torrent(p, ec);
+        if (ec)
+        {
+                fprintf(stderr, &quot;%s\n&quot;, ec.message().c_str());
+                return 1;
+        }
+
+        // wait for the user to end
+        char a;
+        scanf(&quot;%c\n&quot;, &amp;a);
         return 0;
 }
 </pre>

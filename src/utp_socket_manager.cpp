@@ -37,13 +37,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
+#include "libtorrent/performance_counters.hpp"
 
 // #define TORRENT_DEBUG_MTU 1135
 
 namespace libtorrent
 {
 
-	utp_socket_manager::utp_socket_manager(session_settings const& sett, udp_socket& s
+	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett
+		, udp_socket& s
+		, counters& cnt
 		, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
@@ -53,9 +56,8 @@ namespace libtorrent
 		, m_last_route_update(min_time())
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
-	{
-		memset(m_counters, 0, sizeof(m_counters));
-	}
+		, m_counters(cnt)
+	{}
 
 	utp_socket_manager::~utp_socket_manager()
 	{
@@ -74,18 +76,20 @@ namespace libtorrent
 		s.num_fin_sent = 0;
 		s.num_close_wait = 0;
 
-		s.packet_loss = m_counters[packet_loss];
-		s.timeout = m_counters[timeout];
-		s.packets_in = m_counters[packets_in];
-		s.packets_out = m_counters[packets_out];
-		s.fast_retransmit = m_counters[fast_retransmit];
-		s.packet_resend = m_counters[packet_resend];
-		s.samples_above_target = m_counters[samples_above_target];
-		s.samples_below_target = m_counters[samples_below_target];
-		s.payload_pkts_in = m_counters[payload_pkts_in];
-		s.payload_pkts_out = m_counters[payload_pkts_out];
-		s.invalid_pkts_in = m_counters[invalid_pkts_in];
-		s.redundant_pkts_in = m_counters[redundant_pkts_in];
+#ifndef TORRENT_NO_DEPRECATE
+		s.packet_loss = m_counters[counters::utp_packet_loss];
+		s.timeout = m_counters[counters::utp_timeout];
+		s.packets_in = m_counters[counters::utp_packets_in];
+		s.packets_out = m_counters[counters::utp_packets_out];
+		s.fast_retransmit = m_counters[counters::utp_fast_retransmit];
+		s.packet_resend = m_counters[counters::utp_packet_resend];
+		s.samples_above_target = m_counters[counters::utp_samples_above_target];
+		s.samples_below_target = m_counters[counters::utp_samples_below_target];
+		s.payload_pkts_in = m_counters[counters::utp_payload_pkts_in];
+		s.payload_pkts_out = m_counters[counters::utp_payload_pkts_out];
+		s.invalid_pkts_in = m_counters[counters::utp_invalid_pkts_in];
+		s.redundant_pkts_in = m_counters[counters::utp_redundant_pkts_in];
+#endif
 
 		for (socket_map_t::const_iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end; ++i)
@@ -122,7 +126,7 @@ namespace libtorrent
 
 	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
-		if (time_now() - m_last_route_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_route_update)
 		{
 			m_last_route_update = time_now();
 			error_code ec;
@@ -170,8 +174,8 @@ namespace libtorrent
 
 		mtu -= TORRENT_UDP_HEADER;
 
-		if (m_sock.get_proxy_settings().type == proxy_settings::socks5
-			|| m_sock.get_proxy_settings().type == proxy_settings::socks5_pw)
+		if (m_sock.get_proxy_settings().type == settings_pack::socks5
+			|| m_sock.get_proxy_settings().type == settings_pack::socks5_pw)
 		{
 			// this is for the IP layer
 			address proxy_addr = m_sock.proxy_addr().address();
@@ -231,7 +235,7 @@ namespace libtorrent
 		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
 
 		// first enumerate the routes in the routing table
-		if (time_now() - m_last_route_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_route_update)
 		{
 			m_last_route_update = time_now();
 			error_code ec;
@@ -262,7 +266,7 @@ namespace libtorrent
 		// for this target. Now figure out what the local address
 		// is for that interface
 
-		if (time_now() - m_last_if_update > seconds(60))
+		if (time_now() - seconds(60) > m_last_if_update)
 		{
 			m_last_if_update = time_now();
 			error_code ec;
@@ -322,7 +326,7 @@ namespace libtorrent
 
 //		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
-		if (!m_sett.enable_incoming_utp)
+		if (!m_sett.get_bool(settings_pack::enable_incoming_utp))
 			return false;
 
 		// if not found, see if it's a SYN packet, if it is,
@@ -330,7 +334,7 @@ namespace libtorrent
 		if (ph->get_type() == ST_SYN)
 		{
 			// possible SYN flood. Just ignore
-			if (int(m_utp_sockets.size()) > m_sett.connections_limit * 2)
+			if (int(m_utp_sockets.size()) > m_sett.get_int(settings_pack::connections_limit) * 2)
 				return false;
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
@@ -451,9 +455,9 @@ namespace libtorrent
 
 	void utp_socket_manager::inc_stats_counter(int counter)
 	{
-		TORRENT_ASSERT(counter >= 0);
-		TORRENT_ASSERT(counter < num_counters);
-		++m_counters[counter];
+		TORRENT_ASSERT(counter >= counters::utp_packet_loss);
+		TORRENT_ASSERT(counter <= counters::utp_redundant_pkts_in);
+		m_counters.inc_stats_counter(counter);
 	}
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)

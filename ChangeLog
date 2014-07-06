@@ -1,3 +1,32 @@
+	* deprecate proxy settings in favor of regular settings
+	* deprecate separate settings for peer protocol encryption
+	* support specifying listen interfaces and outgoing interfaces as device
+	  names (eth0, en2, tun0 etc.)
+	* support for using purgrable memory as disk cache on Mac OS.
+	* be more aggressive in corking sockets, to coalesce messages into larger packets.
+	* pre-emptively unchoke peers to save one round-trip at connection start-up.
+	* add session constructor overload that takes a settings_pack
+	* torrent_info is no longer an intrusive_ptr type. It is held by shared_ptr. This is a non-backwards compatible change
+	* move listen interface and port to the settings
+	* move use_interfaces() to be a setting
+	* extend storage interface to allow deferred flushing and flush the part-file metadata periodically
+	* make statistics propagate instantly rather than on the second tick
+	* support for partfiles, where partial pieces belonging to skipped files are put
+	* support using multiple threads for socket operations (especially useful for high performance SSL connections)
+	* allow setting rate limits for arbitrary peer groups. Generalizes per-torrent rate limits, and local peer limits
+	* improved disk cache complexity O(1) instead of O(log(n))
+	* add feature to allow storing disk cache blocks in an mmapped file (presumably on an SSD)
+	* optimize peer connection distribution logic across torrents to scale better with many torrents
+	* replaced std::map with boost::unordered_map for torrent list, to scale better with many torrents
+	* optimized piece picker
+	* optimized disk cache
+	* optimized .torrent file parsing
+	* optimized initialization of storage when adding a torrent
+	* added support for adding torrents asynchronously (for improved startup performance)
+	* added support for asynchronous disk I/O
+	* almost completely changed the storage interface (for custom storage)
+	* added support for hashing pieces in multiple threads
+
 	* fix compiler warnings
 
 1.0 release

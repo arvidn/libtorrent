@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int test_main()
 {
@@ -44,22 +45,24 @@ int test_main()
 	session_proxy p2;
 	{
 	// test session state load/restore
-	session* s = new session(fingerprint("LT",0,0,0,0), 0);
+	lt::session* s = new lt::session(fingerprint("LT",0,0,0,0), 0);
 
-	session_settings sett;
-	sett.user_agent = "test";
-	sett.tracker_receive_timeout = 1234;
-	sett.file_pool_size = 543;
-	sett.urlseed_wait_retry = 74;
-	sett.file_pool_size = 754;
-	sett.initial_picker_threshold = 351;
-	sett.upnp_ignore_nonrouters = 5326;
-	sett.coalesce_writes = 623;
-	sett.auto_scrape_interval = 753;
-	sett.close_redundant_connections = 245;
-	sett.auto_scrape_interval = 235;
-	sett.auto_scrape_min_interval = 62;
-	s->set_settings(sett);
+	settings_pack pack;
+	pack.set_str(settings_pack::user_agent, "test");
+	pack.set_int(settings_pack::tracker_receive_timeout, 1234);
+	pack.set_int(settings_pack::file_pool_size, 543);
+	pack.set_int(settings_pack::urlseed_wait_retry, 74);
+	pack.set_int(settings_pack::initial_picker_threshold, 351);
+	pack.set_bool(settings_pack::upnp_ignore_nonrouters, true);
+	pack.set_bool(settings_pack::coalesce_writes, true);
+	pack.set_int(settings_pack::auto_scrape_interval, 753);
+	pack.set_bool(settings_pack::close_redundant_connections, false);
+	pack.set_int(settings_pack::auto_scrape_interval, 235);
+	pack.set_int(settings_pack::auto_scrape_min_interval, 62);
+	s->apply_settings(pack);
+
+	TEST_EQUAL(pack.get_str(settings_pack::user_agent), "test");
+	TEST_EQUAL(pack.get_int(settings_pack::tracker_receive_timeout), 1234);
 
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dhts;
@@ -146,7 +149,7 @@ int test_main()
 
 	p1 = s->abort();
 	delete s;
-	s = new session(fingerprint("LT",0,0,0,0), 0);
+	s = new lt::session(fingerprint("LT",0,0,0,0), 0);
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);
@@ -188,34 +191,23 @@ int test_main()
 	TEST_CHECK(session_state2.dict_find("settings")->dict_find("optimistic_disk_retry") == 0);
 
 	s->load_state(session_state2);
-#define CMP_SET(x) TEST_CHECK(s->settings().x == sett.x)
 
-	CMP_SET(user_agent);
+#define CMP_SET(x) fprintf(stderr, #x ": %d %d\n"\
+	, s->get_settings().get_int(settings_pack:: x)\
+	, pack.get_int(settings_pack:: x)); \
+	TEST_EQUAL(s->get_settings().get_int(settings_pack:: x), pack.get_int(settings_pack:: x))
+
 	CMP_SET(tracker_receive_timeout);
 	CMP_SET(file_pool_size);
 	CMP_SET(urlseed_wait_retry);
-	CMP_SET(file_pool_size);
 	CMP_SET(initial_picker_threshold);
-	CMP_SET(upnp_ignore_nonrouters);
-	CMP_SET(coalesce_writes);
 	CMP_SET(auto_scrape_interval);
-	CMP_SET(close_redundant_connections);
 	CMP_SET(auto_scrape_interval);
 	CMP_SET(auto_scrape_min_interval);
-	CMP_SET(max_peerlist_size);
-	CMP_SET(max_paused_peerlist_size);
-	CMP_SET(min_announce_interval);
-	CMP_SET(prioritize_partial_pieces);
-	CMP_SET(auto_manage_startup);
-	CMP_SET(rate_limit_ip_overhead);
-	CMP_SET(announce_to_all_trackers);
-	CMP_SET(announce_to_all_tiers);
-	CMP_SET(prefer_udp_trackers);
-	CMP_SET(strict_super_seeding);
-	CMP_SET(seeding_piece_quota);
 	p2 = s->abort();
 	delete s;
 	}
+
 	// make_magnet_uri
 	{
 		entry info;

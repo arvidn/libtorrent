@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/torrent.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {
@@ -49,18 +50,22 @@ namespace libtorrent {
 	alert::~alert() {}
 	ptime alert::timestamp() const { return m_timestamp; }
 
+	torrent_alert::torrent_alert(torrent_handle const& h)
+		: handle(h)
+		, name(h.native_handle() ? h.native_handle()->name() : "")
+	{
+		if (name.empty() && h.is_valid())
+		{
+			char msg[41];
+			to_hex((char const*)&h.native_handle()->info_hash()[0], 20, msg);
+			name = msg;
+		}
+	}
 
 	std::string torrent_alert::message() const
 	{
 		if (!handle.is_valid()) return " - ";
-		torrent_status st = handle.status(torrent_handle::query_name);
-		if (st.name.empty())
-		{
-			char msg[41];
-			to_hex((char const*)&st.info_hash[0], 20, msg);
-			return msg;
-		}
-		return st.name;
+		return name;
 	}
 
 	std::string peer_alert::message() const
@@ -127,6 +132,7 @@ namespace libtorrent {
 			"too many optimistic unchoke slots",
 			"using bittyrant unchoker with no upload rate limit set",
 			"the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size",
+			"outstanding AIO operations limit reached",
 			"too few ports allowed for outgoing connections",
 			"too few file descriptors are allowed for this process. connection limit lowered"
 		};
@@ -297,9 +303,9 @@ namespace libtorrent {
 		{
 			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5"
 		};
-		char ret[250];
+		char ret[300];
 		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
-			, print_endpoint(endpoint).c_str()
+			, interface.c_str()
 			, op_str[operation]
 			, type_str[sock_type]
 			, convert_from_native(error.message()).c_str());
@@ -353,7 +359,8 @@ namespace libtorrent {
 			"i2p_mixed",
 			"privileged_ports",
 			"utp_disabled",
-			"tcp_disabled"
+			"tcp_disabled",
+			"invalid_local_interface"
 		};
 
 		snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
@@ -387,8 +394,16 @@ namespace libtorrent {
 		: torrent_alert(h)
 		, interval(in)
 	{
+#ifndef TORRENT_DISABLE_FULL_STATS
 		for (int i = 0; i < num_channels; ++i)
 			transferred[i] = s[i].counter();
+#else
+		const int len = download_protocol + 1;
+		for (int i = 0; i < download_protocol + 1; ++i)
+			transferred[i] = s[i].counter();
+		for (int i = len; i < num_channels; ++i)
+			transferred[i] = 0;
+#endif
 	}
 
 	std::string stats_alert::message() const
@@ -531,6 +546,57 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string mmap_cache_alert::message() const
+	{
+		char msg[600];
+		snprintf(msg, sizeof(msg), "mmap cache failed: (%d) %s", error.value(), error.message().c_str());
+		return msg;
+	}
+
+	std::string session_stats_alert::message() const
+	{
+		char msg[100];
+		snprintf(msg, sizeof(msg), "session stats (%d values)", int(values.size()));
+		return msg;
+	}
+
+	std::string peer_error_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "%s peer error [%s] [%s]: %s", peer_alert::message().c_str()
+			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
+		return msg;
+	}
+
+	char const* operation_name(int op)
+	{
+		static char const* names[] = {
+			"bittorrent",
+			"iocontrol",
+			"getpeername",
+			"getname",
+			"alloc_recvbuf",
+			"alloc_sndbuf",
+			"file_write",
+			"file_read",
+			"file",
+			"sock_write",
+			"sock_read",
+			"sock_open",
+			"sock_bind",
+			"available",
+			"encryption",
+			"connect",
+			"ssl_handshake",
+			"get_interface",
+		};
+
+		if (op < 0 || op >= sizeof(names)/sizeof(names[0]))
+			return "unknown operation";
+
+		return names[op];
+	}
+
 	std::string torrent_update_alert::message() const
 	{
 		char msg[200];
@@ -552,8 +618,8 @@ namespace libtorrent {
 	std::string peer_disconnected_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "%s disconnecting: [%s] %s", peer_alert::message().c_str()
-			, error.category().name(), convert_from_native(error.message()).c_str());
+		snprintf(msg, sizeof(msg), "%s disconnecting [%s] [%s]: %s", peer_alert::message().c_str()
+			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
 

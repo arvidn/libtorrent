@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 int test_main()
 {
@@ -52,19 +53,19 @@ int test_main()
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
+	lt::session* s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
-	session_settings sett;
-	sett.half_open_limit = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = true;
-	s->set_settings(sett);
+	settings_pack pack;
+	pack.set_int(settings_pack::half_open_limit, 1);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	s->apply_settings(pack);
 
 	error_code ec;
 	remove_all("tmp1_tracker", ec);
 	create_directory("tmp1_tracker", ec);
 	std::ofstream file(combine_path("tmp1_tracker", "temporary").c_str());
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
 
 	char tracker_url[200];
@@ -107,14 +108,15 @@ int test_main()
 	// test that we move on to try the next tier if the first one fails
 	// ========================================
 
-	s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
+	s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
 
-	sett.half_open_limit = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = false;
-	sett.tracker_completion_timeout = 2;
-	sett.tracker_receive_timeout = 1;
-	s->set_settings(sett);
+	pack.clear();
+	pack.set_int(settings_pack::half_open_limit, 1);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_int(settings_pack::tracker_completion_timeout, 2);
+	pack.set_int(settings_pack::tracker_receive_timeout, 1);
+	s->apply_settings(pack);
 
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);

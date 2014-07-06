@@ -62,20 +62,20 @@ namespace libtorrent
 
 	http_parser::http_parser(int flags)
 		: m_recv_pos(0)
-		, m_status_code(-1)
 		, m_content_length(-1)
 		, m_range_start(-1)
 		, m_range_end(-1)
-		, m_state(read_status)
 		, m_recv_buffer(0, 0)
-		, m_body_start_pos(0)
-		, m_connection_close(false)
-		, m_chunked_encoding(false)
-		, m_finished(false)
 		, m_cur_chunk_end(-1)
+		, m_status_code(-1)
 		, m_chunk_header_size(0)
 		, m_partial_chunk_header(0)
 		, m_flags(flags)
+		, m_body_start_pos(0)
+		, m_state(read_status)
+		, m_connection_close(false)
+		, m_chunked_encoding(false)
+		, m_finished(false)
 	{}
 
 	boost::tuple<int, int> http_parser::incoming(

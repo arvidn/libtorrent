@@ -44,38 +44,35 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
 using boost::shared_ptr;
-using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
 	web_connection_base::web_connection_base(
-		session_impl& ses
+		aux::session_interface& ses
+		, aux::session_settings const& sett
+		, buffer_allocator_interface& allocator
+		, disk_interface& disk_thread
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
-		, tcp::endpoint const& remote
 		, web_seed_entry& web)
-		: peer_connection(ses, t, s, remote, &web.peer_info)
-		, m_parser(http_parser::dont_parse_chunks)
-		, m_external_auth(web.auth)
-		, m_extra_headers(web.extra_headers)
+		: peer_connection(ses, sett, allocator, disk_thread, ses.get_io_service()
+			, t, s, web.endpoint, &web.peer_info)
 		, m_first_request(true)
 		, m_ssl(false)
+		, m_external_auth(web.auth)
+		, m_extra_headers(web.extra_headers)
+		, m_parser(http_parser::dont_parse_chunks)
 		, m_body_start(0)
 	{
 		INVARIANT_CHECK;
 
 		// we only want left-over bandwidth
-		set_priority(1);
+		// TODO: introduce a web-seed default class which has a low download priority
 		
-		// since this is a web seed, change the timeout
-		// according to the settings.
-		set_timeout(ses.settings().urlseed_timeout);
-
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
@@ -98,6 +95,13 @@ namespace libtorrent
 
 		m_server_string = "URL seed @ ";
 		m_server_string += m_host;
+	}
+
+	int web_connection_base::timeout() const
+	{
+		// since this is a web seed, change the timeout
+		// according to the settings.
+		return m_settings.get_int(settings_pack::urlseed_timeout);
 	}
 
 	void web_connection_base::start()
@@ -125,13 +129,13 @@ namespace libtorrent
 	}
 
 	void web_connection_base::add_headers(std::string& request
-		, proxy_settings const& ps, bool using_proxy) const
+		, aux::session_settings const& sett, bool using_proxy) const
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request || m_ses.settings().always_send_user_agent) {
+		if (m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent)) {
 			request += "\r\nUser-Agent: ";
-			request += m_ses.settings().user_agent;
+			request += m_settings.get_str(settings_pack::user_agent);
 		}
 		if (!m_external_auth.empty()) {
 			request += "\r\nAuthorization: ";
@@ -140,9 +144,10 @@ namespace libtorrent
 			request += "\r\nAuthorization: Basic ";
 			request += m_basic_auth;
 		}
-		if (ps.type == proxy_settings::http_pw) {
+		if (sett.get_int(settings_pack::proxy_type) == settings_pack::http_pw) {
 			request += "\r\nProxy-Authorization: Basic ";
-			request += base64encode(ps.username + ":" + ps.password);
+			request += base64encode(sett.get_str(settings_pack::proxy_username)
+				+ ":" + sett.get_str(settings_pack::proxy_password));
 		}
 		for (web_seed_entry::headers_t::const_iterator it = m_extra_headers.begin();
 		     it != m_extra_headers.end(); ++it) {
@@ -186,7 +191,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (error) return;
-		m_statistics.sent_bytes(0, bytes_transferred);
+		sent_bytes(0, bytes_transferred);
 	}
 
 

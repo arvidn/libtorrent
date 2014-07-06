@@ -485,6 +485,55 @@ int test_main()
 		TEST_CHECK(ent == entry());
 	}
 
+	{
+		std::string buf;
+		buf += "l";
+		for (int i = 0; i < 1000; ++i)
+		{
+			char tmp[20];
+			snprintf(tmp, sizeof(tmp), "i%de", i);
+			buf += tmp;
+		}
+		buf += "e";
+
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
+		TEST_EQUAL(ret, 0);
+		TEST_EQUAL(e.type(), lazy_entry::list_t);
+		TEST_EQUAL(e.list_size(), 1000);
+		for (int i = 0; i < 1000; ++i)
+		{
+			TEST_EQUAL(e.list_int_value_at(i), i);
+		}
+	}
+
+	{
+		std::string buf;
+		buf += "d";
+		for (int i = 0; i < 1000; ++i)
+		{
+			char tmp[30];
+			snprintf(tmp, sizeof(tmp), "4:%04di%de", i, i);
+			buf += tmp;
+		}
+		buf += "e";
+
+		printf("%s\n", buf.c_str());
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
+		TEST_EQUAL(ret, 0);
+		TEST_EQUAL(e.type(), lazy_entry::dict_t);
+		TEST_EQUAL(e.dict_size(), 1000);
+		for (int i = 0; i < 1000; ++i)
+		{
+			char tmp[30];
+			snprintf(tmp, sizeof(tmp), "%04d", i);
+			TEST_EQUAL(e.dict_find_int_value(tmp), i);
+		}
+	}
+
 	// test parse_int
 	{
 		char b[] = "1234567890e";

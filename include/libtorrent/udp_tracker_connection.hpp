@@ -91,7 +91,8 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void name_lookup(error_code const& error, tcp::resolver::iterator i);
+		void name_lookup(error_code const& error
+			, std::vector<address> const& addresses, int port);
 		void timeout(error_code const& error);
 		void start_announce();
 
@@ -115,14 +116,10 @@ namespace libtorrent
 
 		udp::endpoint pick_target_endpoint() const;
 
-		bool m_abort;
 		std::string m_hostname;
-		udp::endpoint m_target;
 		std::list<tcp::endpoint> m_endpoints;
 
-		int m_transaction_id;
 		aux::session_impl& m_ses;
-		int m_attempts;
 
 		struct connection_cache_entry
 		{
@@ -133,9 +130,17 @@ namespace libtorrent
 		static std::map<address, connection_cache_entry> m_connection_cache;
 		static mutex m_cache_mutex;
 
-		action_t m_state;
-
 		proxy_settings m_proxy;
+
+		udp::endpoint m_target;
+
+		int m_transaction_id;
+		int m_attempts;
+
+		// action_t
+		boost::uint8_t m_state;
+
+		bool m_abort;
 	};
 
 }

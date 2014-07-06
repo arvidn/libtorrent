@@ -70,8 +70,11 @@ void bind_peer_info()
         .def_readonly("total_upload", &peer_info::total_upload)
         .def_readonly("pid", &peer_info::pid)
         .add_property("pieces", get_pieces)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("upload_limit", &peer_info::upload_limit)
         .def_readonly("download_limit", &peer_info::download_limit)
+        .def_readonly("load_balancing", &peer_info::load_balancing)
+#endif
         .add_property("last_request", get_last_request)
         .add_property("last_active", get_last_active)
         .add_property("download_queue_time", get_download_queue_time)

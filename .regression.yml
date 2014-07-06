@@ -24,7 +24,7 @@ build_features:
 
 project: libtorrent
 
-branch: trunk
+branch: aio
 
 clean:
  - test_tmp_*

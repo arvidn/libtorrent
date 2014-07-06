@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	void ip_filter::add_rule(address first, address last, int flags)
+	void ip_filter::add_rule(address first, address last, boost::uint32_t flags)
 	{
 		if (first.is_v4())
 		{
@@ -76,7 +76,7 @@ namespace libtorrent
 #endif
 	}
 	
-	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, int flags)
+	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags)
 	{
 		m_filter.add_rule(first, last, flags);
 	}
