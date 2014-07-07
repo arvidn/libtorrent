@@ -55,8 +55,7 @@ typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
 class lsd : public intrusive_ptr_base<lsd>
 {
 public:
-	lsd(io_service& ios, address const& listen_interface
-		, peer_callback_t const& cb);
+	lsd(io_service& ios, peer_callback_t const& cb);
 	~lsd();
 
 //	void rebind(address const& listen_interface);

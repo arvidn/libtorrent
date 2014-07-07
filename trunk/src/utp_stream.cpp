@@ -323,7 +323,7 @@ struct utp_socket_impl
 		, boost::uint32_t& min_rtt, boost::uint16_t seq_nr);
 	void write_sack(boost::uint8_t* buf, int size) const;
 	void incoming(boost::uint8_t const* buf, int size, packet* p, ptime now);
-	void do_ledbat(int acked_bytes, int delay, int in_flight, ptime const now);
+	void do_ledbat(int acked_bytes, int delay, int in_flight);
 	int packet_timeout() const;
 	bool test_socket_state();
 	void maybe_trigger_receive_callback();
@@ -2244,7 +2244,8 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	free(p);
 }
 
-void utp_socket_impl::incoming(boost::uint8_t const* buf, int size, packet* p, ptime now)
+void utp_socket_impl::incoming(boost::uint8_t const* buf, int size, packet* p
+	, ptime /* now */)
 {
 	INVARIANT_CHECK;
 
@@ -2967,7 +2968,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 				// only use the minimum from the last 3 delay measurements
 				delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
 
-				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
+				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
 				m_send_delay = delay;
 			}
 
@@ -3197,7 +3198,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	return false;
 }
 
-void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime const now)
+void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
 {
 	INVARIANT_CHECK;
 

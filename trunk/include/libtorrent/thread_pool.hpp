@@ -104,7 +104,7 @@ namespace libtorrent
 	protected:
 
 		virtual void process_job(T const& j, bool post) = 0;
-		virtual void retain_job(T& j) {}
+		virtual void retain_job(T&) {}
 
 	private:
 

@@ -98,7 +98,7 @@ protected:
 	virtual observer_ptr new_observer(void* ptr
 		, udp::endpoint const& ep, node_id const& id);
 
-	virtual bool invoke(observer_ptr o) { return false; }
+	virtual bool invoke(observer_ptr) { return false; }
 
 	friend void intrusive_ptr_add_ref(traversal_algorithm* p)
 	{

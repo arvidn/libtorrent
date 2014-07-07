@@ -153,7 +153,6 @@ namespace libtorrent
 			boost::weak_ptr<torrent> t
 			, aux::session_interface& ses
 			, aux::session_settings const& sett
-			, boost::shared_ptr<socket_type> const& sock
 			, bool outgoing)
 			: m_torrent(t)
 			, m_ses(ses)

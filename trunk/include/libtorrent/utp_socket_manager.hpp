@@ -59,7 +59,7 @@ namespace libtorrent
 		// return false if this is not a uTP packet
 		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
 			, char const* p, int size);
-		virtual bool incoming_packet(error_code const& ec, char const* host, char const* p, int size)
+		virtual bool incoming_packet(error_code const&, char const*, char const*, int)
 		{ return false; }
 		virtual void writable();
 

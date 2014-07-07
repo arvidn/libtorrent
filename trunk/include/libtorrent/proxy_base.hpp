@@ -148,13 +148,13 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void bind(endpoint_type const& endpoint)
+	void bind(endpoint_type const& /* endpoint */)
 	{
 //		m_sock.bind(endpoint);
 	}
 #endif
 
-	void bind(endpoint_type const& endpoint, error_code& ec)
+	void bind(endpoint_type const& /* endpoint */, error_code& /* ec */)
 	{
 		// the reason why we ignore binds here is because we don't
 		// (necessarily) yet know what address family the proxy
@@ -168,13 +168,13 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void open(protocol_type const& p)
+	void open(protocol_type const&)
 	{
 //		m_sock.open(p);
 	}
 #endif
 
-	void open(protocol_type const& p, error_code& ec)
+	void open(protocol_type const&, error_code&)
 	{
 		// we need to ignore this for the same reason as stated
 		// for ignoring bind()
