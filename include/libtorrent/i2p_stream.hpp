@@ -95,7 +95,7 @@ public:
 	std::string const& destination() { return m_dest; }
 
 	template <class Handler>
-	void async_connect(endpoint_type const& endpoint, Handler const& handler)
+	void async_connect(endpoint_type const&, Handler const& handler)
 	{
 		// since we don't support regular endpoints, just ignore the one
 		// provided and use m_dest.

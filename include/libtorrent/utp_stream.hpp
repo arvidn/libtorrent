@@ -190,33 +190,33 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command& ioc) {}
+	void io_control(IO_Control_Command&) {}
 #endif
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command& ioc, error_code& ec) {}
+	void io_control(IO_Control_Command&, error_code&) {}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& /*endpoint*/) {}
 #endif
 
-	void bind(endpoint_type const& endpoint, error_code& ec);
+	void bind(endpoint_type const&, error_code&);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class SettableSocketOption>
-	void set_option(SettableSocketOption const& opt) {}
+	void set_option(SettableSocketOption const&) {}
 #endif
 
 	template <class SettableSocketOption>
-	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
+	error_code set_option(SettableSocketOption const&, error_code& ec) { return ec; }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class GettableSocketOption>
-	void get_option(GettableSocketOption& opt) {}
+	void get_option(GettableSocketOption&) {}
 #endif
 
 	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption& opt, error_code& ec) { return ec; }
+	error_code get_option(GettableSocketOption&, error_code& ec) { return ec; }
 
 
 	void close();
@@ -342,11 +342,11 @@ public:
 		, boost::function<void(error_code const&)> const& handler);
 
 	template <class Protocol>
-	void open(Protocol const& p, error_code& ec)
+	void open(Protocol const&, error_code&)
 	{ m_open = true; }
 
 	template <class Protocol>
-	void open(Protocol const& p)
+	void open(Protocol const&)
 	{ m_open = true; }
 
 	template <class Mutable_Buffers>
@@ -385,7 +385,7 @@ public:
 	}
 
 	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
+	std::size_t write_some(Const_Buffers const& /* buffers */, error_code& /* ec */)
 	{
 		TORRENT_ASSERT(false && "not implemented!");
 		// TODO: implement blocking write. Low priority since it's not used (yet)

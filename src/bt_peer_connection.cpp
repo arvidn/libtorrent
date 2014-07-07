@@ -691,7 +691,8 @@ namespace libtorrent
 	}
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
-	void regular_c_free(char* buf, void* userdata, block_cache_reference ref)
+	void regular_c_free(char* buf, void* /* userdata */
+		, block_cache_reference /* ref */)
 	{
 		::free(buf);
 	}
@@ -2446,7 +2447,7 @@ namespace libtorrent
 #endif
 	}
 
-	void buffer_reclaim_block(char* buffer, void* userdata
+	void buffer_reclaim_block(char* /* buffer */, void* userdata
 		, block_cache_reference ref)
 	{
 		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
@@ -2454,7 +2455,7 @@ namespace libtorrent
 	}
 
 	void buffer_free_disk_buf(char* buffer, void* userdata
-		, block_cache_reference ref)
+		, block_cache_reference /* ref */)
 	{
 		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
 		buf->free_disk_buffer(buffer);

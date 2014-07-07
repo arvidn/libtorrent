@@ -136,7 +136,7 @@ namespace libtorrent
 		, tcp::endpoint const& endp
 		, torrent_peer* peerinfo
 		, bool outgoing)
-		: peer_connection_hot_members(tor, ses, sett, s, outgoing)
+		: peer_connection_hot_members(tor, ses, sett, outgoing)
 		, m_socket(s)
 		, m_peer_info(peerinfo)
 		, m_num_pieces(0)

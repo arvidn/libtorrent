@@ -7487,7 +7487,6 @@ retry:
 		if (m_lsd) return;
 
 		m_lsd = new lsd(m_io_service
-			, m_listen_interface.address()
 			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	

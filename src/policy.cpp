@@ -924,7 +924,7 @@ namespace libtorrent
 	}
 
 	void policy::update_peer(torrent_peer* p, int src, int flags
-		, tcp::endpoint const& remote, char const* destination)
+		, tcp::endpoint const& remote, char const* /* destination*/)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		bool was_conn_cand = is_connect_candidate(*p);

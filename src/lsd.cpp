@@ -65,8 +65,7 @@ namespace libtorrent
 
 static error_code ec;
 
-lsd::lsd(io_service& ios, address const& listen_interface
-	, peer_callback_t const& cb)
+lsd::lsd(io_service& ios, peer_callback_t const& cb)
 	: m_callback(cb)
 	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771)
 		, boost::bind(&lsd::on_announce, self(), _1, _2, _3))

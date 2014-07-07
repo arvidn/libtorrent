@@ -137,7 +137,6 @@ int test_main()
 
 	test_swarm();
 	
-	test_sleep(2000);
 	TEST_CHECK(!exists("./tmp1_unchoke/temporary"));
 	TEST_CHECK(!exists("./tmp2_unchoke/temporary"));
 	TEST_CHECK(!exists("./tmp3_unchoke/temporary"));

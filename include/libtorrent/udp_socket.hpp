@@ -55,8 +55,8 @@ namespace libtorrent
 		// propagated to the next observer)
 		virtual bool incoming_packet(error_code const& ec
 			, udp::endpoint const&, char const* buf, int size) = 0;
-		virtual bool incoming_packet(error_code const& ec
-			, char const* hostname, char const* buf, int size) { return false; }
+		virtual bool incoming_packet(error_code const& /* ec */
+			, char const* /* hostname */, char const* /* buf */, int /* size */) { return false; }
 
 		// called when the socket becomes writeable, after having
 		// failed with EWOULDBLOCK

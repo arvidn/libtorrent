@@ -134,7 +134,8 @@ namespace libtorrent
 		post_impl(a, lock);
 	}
 		
-	void alert_manager::post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l)
+	void alert_manager::post_impl(std::auto_ptr<alert>& alert_
+		, mutex::scoped_lock& /* l */)
 	{
 		if (m_dispatch)
 		{

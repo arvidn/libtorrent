@@ -192,7 +192,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual bool on_extended(int length
+		virtual bool on_extended(int /* length */
 			, int extended_msg, buffer::const_interval body)
 		{
 			if (extended_msg != 19) return false;

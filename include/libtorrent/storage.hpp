@@ -511,15 +511,15 @@ namespace libtorrent
 		void release_files(storage_error&) {}
 		void delete_files(storage_error&) {}
 		void initialize(storage_error&) {}
-		int move_storage(std::string const&, int flags, storage_error&) { return 0; }
+		int move_storage(std::string const&, int, storage_error&) { return 0; }
 
 		int readv(file::iovec_t const* bufs, int num_bufs, int piece
 			, int offset, int flags, storage_error& ec);
 		int writev(file::iovec_t const* bufs, int num_bufs, int piece
 			, int offset, int flags, storage_error& ec);
 
-		bool verify_resume_data(lazy_entry const& rd, storage_error& error) { return false; }
-		void write_resume_data(entry& rd, storage_error& ec) const {}
+		bool verify_resume_data(lazy_entry const&, storage_error&) { return false; }
+		void write_resume_data(entry&, storage_error&) const {}
 
 		int m_piece_size;
 	};
@@ -528,7 +528,7 @@ namespace libtorrent
 	// anything written to it
 	struct zero_storage : storage_interface
 	{
-		virtual void initialize(storage_error& ec) {}
+		virtual void initialize(storage_error&) {}
 
 		virtual int readv(file::iovec_t const* bufs, int num_bufs
 			, int piece, int offset, int flags, storage_error& ec);
@@ -543,7 +543,7 @@ namespace libtorrent
 		virtual bool verify_resume_data(lazy_entry const& /* rd */, storage_error&)
 			{ return false; }
 		virtual void write_resume_data(entry&, storage_error&) const {}
-		virtual void release_files(storage_error& ec) {}
+		virtual void release_files(storage_error&) {}
 		virtual void rename_file(int /* index */
 			, std::string const& /* new_filenamem */, storage_error&) {}
 		virtual void delete_files(storage_error&) {}
