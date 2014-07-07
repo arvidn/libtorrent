@@ -69,7 +69,7 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	: m_settings(settings)
 	, m_id(id)
 	, m_depth(0)
-	, m_last_bootstrap(min_time())
+	, m_last_bootstrap(time_now())
 	, m_last_refresh(min_time())
 	, m_last_self_refresh(min_time())
 	, m_bucket_size(bucket_size)
