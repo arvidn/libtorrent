@@ -31,7 +31,7 @@ void set_cursor_pos(int x, int y);
 
 void clear_screen();
 
-void clear_below(int y);
+void clear_rows(int y1, int y2);
 
 void terminal_size(int* terminal_width, int* terminal_height);
 

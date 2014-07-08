@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 
 #include "torrent_view.hpp"
+#include "session_view.hpp"
 #include "print.hpp"
 
 using boost::bind;
@@ -177,8 +178,10 @@ bool print_disk_stats = false;
 int num_outstanding_resume_data = 0;
 
 torrent_view view;
+session_view ses_view;
 
-int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
+int load_file(std::string const& filename, std::vector<char>& v
+	, libtorrent::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
 	FILE* f = fopen(filename.c_str(), "rb");
@@ -735,14 +738,13 @@ int save_file(std::string const& filename, std::vector<char>& v)
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
 bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
-	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files
-	, std::vector<boost::uint64_t>& stats_counters)
+	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files)
 {
 	using namespace libtorrent;
 
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
-		stats_counters.swap(s->values);
+		ses_view.update_counters(s->values, s->timestamp);
 		return true;
 	}
 
@@ -1078,12 +1080,6 @@ int main(int argc, char* argv[])
 
 	settings_pack settings;
 	settings.set_int(settings_pack::active_loaded_limit, 20);
-
-	std::vector<boost::uint64_t> stats_counters;
-	std::vector<stats_metric> metrics = session_stats_metrics();
-	stats_counters.resize(metrics.size(), 0);
-
-	const int queued_bytes_idx = find_metric_idx(metrics, "queued_write_bytes");
 
 	proxy_settings ps;
 
@@ -1436,18 +1432,24 @@ int main(int argc, char* argv[])
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 #endif
+
 	while (!quit)
 	{
 		++tick;
 		ses.post_torrent_updates();
 		ses.post_session_stats();
 
-		int c = 0;
+		int terminal_width = 80;
+		int terminal_height = 50;
+		terminal_size(&terminal_width, &terminal_height);
+		view.set_size(terminal_width, terminal_height / 2);
+		ses_view.set_pos(terminal_height / 2);
 
+		int c = 0;
 		if (sleep_and_input(&c, refresh_delay))
 		{
 
-#ifdef WIN32
+#ifdef _WIN32
 #define ESCAPE_SEQ 224
 #define LEFT_ARROW 75
 #define RIGHT_ARROW 77
@@ -1587,11 +1589,6 @@ int main(int argc, char* argv[])
 					h.force_recheck();
 				}
 
-				if (c == 'x')
-				{
-					print_disk_stats = !print_disk_stats;
-				}
-
 				if (c == 'r' && h.is_valid())
 				{
 					h.force_reannounce();
@@ -1672,6 +1669,7 @@ int main(int argc, char* argv[])
 				if (c == 'a') print_piece_bar = !print_piece_bar;
 				if (c == 'g') show_dht_status = !show_dht_status;
 				if (c == 'u') print_utp_stats = !print_utp_stats;
+				if (c == 'x') print_disk_stats = !print_disk_stats;
 				// toggle columns
 				if (c == '1') print_ip = !print_ip;
 				if (c == '2') print_as = !print_as;
@@ -1716,16 +1714,10 @@ int main(int argc, char* argv[])
 					int tmp;
 					while (sleep_and_input(&tmp, 500) == false);
 				}
+
 			} while (sleep_and_input(&c, 0));
 			if (c == 'q') break;
 		}
-
-		int terminal_width = 80;
-		int terminal_height = 50;
-
-		terminal_size(&terminal_width, &terminal_height);
-
-		view.set_max_size(terminal_height - 15);
 
 		// loop through the alert queue to see if anything has happened.
 		std::deque<alert*> alerts;
@@ -1736,8 +1728,7 @@ int main(int argc, char* argv[])
 		{
 			TORRENT_TRY
 			{
-				if (!::handle_alert(ses, *i, files, non_files
-						, stats_counters))
+				if (!::handle_alert(ses, *i, files, non_files))
 				{
 					// if we didn't handle the alert, print it to the log
 					std::string event_string;
@@ -1756,8 +1747,9 @@ int main(int argc, char* argv[])
 
 		char str[500];
 
-		clear_below(view.height());
-		set_cursor_pos(0, view.height());
+		int pos = view.height() + ses_view.height();
+		clear_rows(pos, terminal_height);
+		set_cursor_pos(0, pos);
 
 		int cache_flags = print_downloads ? 0 : lt::session::disk_cache_no_pieces;
 		torrent_handle h = view.get_active_handle();
@@ -1767,44 +1759,6 @@ int main(int argc, char* argv[])
 
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
-
-		snprintf(str, sizeof(str), "==== conns: %d (%d) down: %s%s%s (%s%s%s) up: %s%s%s (%s%s%s) "
-			"tcp/ip: %s%s%s %s%s%s DHT: %s%s%s %s%s%s tracker: %s%s%s %s%s%s ====\n"
-			, sess_stat.num_peers, sess_stat.num_dead_peers
-			, esc("32"), add_suffix(sess_stat.download_rate, "/s").c_str(), esc("0")
-			, esc("32"), add_suffix(sess_stat.total_download).c_str(), esc("0")
-			, esc("31"), add_suffix(sess_stat.upload_rate, "/s").c_str(), esc("0")
-			, esc("31"), add_suffix(sess_stat.total_upload).c_str(), esc("0")
-			, esc("32"), add_suffix(sess_stat.ip_overhead_download_rate, "/s").c_str(), esc("0")
-			, esc("31"), add_suffix(sess_stat.ip_overhead_upload_rate, "/s").c_str(), esc("0")
-			, esc("32"), add_suffix(sess_stat.dht_download_rate, "/s").c_str(), esc("0")
-			, esc("31"), add_suffix(sess_stat.dht_upload_rate, "/s").c_str(), esc("0")
-			, esc("32"), add_suffix(sess_stat.tracker_download_rate, "/s").c_str(), esc("0")
-			, esc("31"), add_suffix(sess_stat.tracker_upload_rate, "/s").c_str(), esc("0"));
-		out += str;
-
-		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
-			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %d%% r: %d%% "
-			"size: w: %s r: %s total: %s ===\n"
-			, add_suffix(sess_stat.total_redundant_bytes).c_str()
-			, add_suffix(sess_stat.total_failed_bytes).c_str()
-			, sess_stat.num_unchoked, sess_stat.allowed_upload_slots
-			, sess_stat.up_bandwidth_bytes_queue
-			, sess_stat.up_bandwidth_queue
-			, sess_stat.down_bandwidth_bytes_queue
-			, sess_stat.down_bandwidth_queue
-			, sess_stat.disk_write_queue
-			, sess_stat.disk_read_queue
-			, int((cs.blocks_written - cs.writes) * 100 / cs.blocks_written)
-			, int(cs.blocks_read_hit * 100 / cs.blocks_read)
-			, add_suffix(boost::int64_t(cs.write_cache_size) * 16 * 1024).c_str()
-			, add_suffix(boost::int64_t(cs.read_cache_size) * 16 * 1024).c_str()
-			, add_suffix(boost::int64_t(cs.total_used_buffers) * 16 * 1024).c_str());
-		out += str;
-
-		snprintf(str, sizeof(str), "==== optimistic unchoke: %d unchoke counter: %d peerlist: %d ====\n"
-			, sess_stat.optimistic_unchoke_counter, sess_stat.unchoke_counter, sess_stat.peerlist_size);
-		out += str;
 
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
@@ -1848,51 +1802,6 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
-		if (print_disk_stats)
-		{
-			snprintf(str, sizeof(str), "Disk stats:\n  timing - "
-				" read: %6d ms | write: %6d ms | hash: %6d\n"
-				, cs.average_read_time / 1000, cs.average_write_time / 1000
-				, cs.average_hash_time / 1000);
-			out += str;
-
-			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
-				"queued-bytes: %5" PRId64 " kB\n"
-				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.blocked_jobs
-				, stats_counters[queued_bytes_idx] / 1000);
-			out += str;
-
-			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d\n"
-				, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size, cs.write_cache_size, cs.pinned_blocks
-				, int(stats_counters[queued_bytes_idx] / 0x4000));
-			out += str;
-
-			int mru_size = cs.arc_mru_size + cs.arc_mru_ghost_size;
-			int mfu_size = cs.arc_mfu_size + cs.arc_mfu_ghost_size;
-			int arc_size = mru_size + mfu_size;
-
-			snprintf(str, sizeof(str), "LRU: (%d) %d LFU: %d (%d)\n"
-				, cs.arc_mru_ghost_size, cs.arc_mru_size
-				, cs.arc_mfu_size, cs.arc_mfu_ghost_size);
-			out += str;
-			if (arc_size > 0)
-			{
-				out += ' ';
-				if (mru_size > 0)
-				{
-					out += progress_bar(cs.arc_mru_ghost_size * 1000 / mru_size
-						, mru_size * (terminal_width-3) / arc_size, col_yellow, '-', '#');
-				}
-				out += '|';
-				if (mfu_size)
-				{
-					out += progress_bar(cs.arc_mfu_size * 1000 / mfu_size
-						, mfu_size * (terminal_width-3) / arc_size, col_green, '=', '-');
-				}
-			}
-			out += "\n";
-		}
-
 		if (print_utp_stats)
 		{
 			snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\n"
@@ -1909,10 +1818,6 @@ int main(int argc, char* argv[])
 			if ((print_downloads && s.state != torrent_status::seeding)
 				|| print_peers)
 				h.get_peer_info(peers);
-
-			out += "====== ";
-			out += s.name;
-			out += " ======\n";
 
 			if (print_peers && !peers.empty())
 				print_peer_info(out, peers);
