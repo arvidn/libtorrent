@@ -100,7 +100,10 @@ void routing_table::status(session_status& s) const
 		dht_routing_bucket b;
 		b.num_nodes = i->live_nodes.size();
 		b.num_replacements = i->replacements.size();
-		b.last_active = int(total_seconds(now - i->last_active));
+		if (i->last_active.time_since_epoch().count() < 0)
+			b.last_active = INT_MAX;
+		else
+			b.last_active = int(total_seconds(now - i->last_active));
 		s.dht_routing_table.push_back(b);
 	}
 }
