@@ -64,164 +64,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
 
+#include "torrent_view.hpp"
+#include "print.hpp"
+
 using boost::bind;
 using libtorrent::total_milliseconds;
 
-void terminal_size(int* terminal_width, int* terminal_height)
-{
 #ifdef _WIN32
-	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_SCREEN_BUFFER_INFO coninfo;
-	if (GetConsoleScreenBufferInfo(out, &coninfo))
-	{
-		*terminal_width = coninfo.dwSize.X;
-		*terminal_height = coninfo.srWindow.Bottom - coninfo.srWindow.Top;
-#else
-	int tty = open("/dev/tty", O_RDONLY);
-	winsize size;
-	int ret = ioctl(tty, TIOCGWINSZ, (char*)&size);
-	close(tty);
-	if (ret == 0)
-	{
-		*terminal_width = size.ws_col;
-		*terminal_height = size.ws_row;
-#endif
-
-		if (*terminal_width < 64)
-			*terminal_width = 64;
-		if (*terminal_height < 25)
-			*terminal_height = 25;
-	}
-	else
-	{
-		*terminal_width = 190;
-		*terminal_height = 100;
-	}
-}
-
-#ifdef WIN32
-void apply_ansi_code(int* attributes, bool* reverse, int code)
-{
-	const static int color_table[8] =
-	{
-		0, // black
-		FOREGROUND_RED, // red
-		FOREGROUND_GREEN, // green
-		FOREGROUND_RED | FOREGROUND_GREEN, // yellow
-		FOREGROUND_BLUE, // blue
-		FOREGROUND_RED | FOREGROUND_BLUE, // magenta
-		FOREGROUND_BLUE | FOREGROUND_GREEN, // cyan
-		FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE // white
-	};
-
-	enum
-	{
-		foreground_mask = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE,
-		background_mask = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE
-	};
-
-	const static int fg_mask[2] = {foreground_mask, background_mask};
-	const static int bg_mask[2] = {background_mask, foreground_mask};
-	const static int fg_shift[2] = { 0, 4};
-	const static int bg_shift[2] = { 4, 0};
-
-	if (code == 0)
-	{
-		// reset
-		*attributes = color_table[7];
-		*reverse = false;
-	}
-	else if (code == 7)
-	{
-		if (*reverse) return;
-		*reverse = true;
-		int fg_col = *attributes & foreground_mask;
-		int bg_col = (*attributes & background_mask) >> 4;
-		*attributes &= ~(foreground_mask + background_mask);
-		*attributes |= fg_col << 4;
-		*attributes |= bg_col;
-	}
-	else if (code >= 30 && code <= 37)
-	{
-		// foreground color
-		*attributes &= ~fg_mask[*reverse];
-		*attributes |= color_table[code - 30] << fg_shift[*reverse];
-	}
-	else if (code >= 40 && code <= 47)
-	{
-		// foreground color
-		*attributes &= ~bg_mask[*reverse];
-		*attributes |= color_table[code - 40] << bg_shift[*reverse];
-	}
-}
-#endif
-
-void print_with_ansi_colors(char const* str)
-{
-#ifdef WIN32
-	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	// first, clear the console and move the cursor
-	// to the top left corner
-	CONSOLE_SCREEN_BUFFER_INFO si;
-	GetConsoleScreenBufferInfo(out, &si);
-	COORD c = {0, 0};
-	DWORD n;
-	FillConsoleOutputCharacter(out, ' ', si.dwSize.X * si.dwSize.Y, c, &n);
-	FillConsoleOutputAttribute(out, 0x7, si.dwSize.X * si.dwSize.Y, c, &n);
-	SetConsoleCursorPosition(out, c);
-
-	char* buf = (char*)str;
-
-	int current_attributes = 7;
-	bool reverse = false;
-	SetConsoleTextAttribute(out, current_attributes);
-
-	char* start = buf;
-	DWORD written;
-	while (*buf != 0)
-	{
-		if (*buf == '\033' && buf[1] == '[')
-		{
-			*buf = 0;
-			WriteFile(out, start, buf - start, &written, NULL);
-			buf += 2; // skip escape and '['
-			start = buf;
-		one_more:
-			while (*buf != 'm' && *buf != ';' && *buf != 0) ++buf;
-			if (*buf == 0) break;
-			int code = atoi(start);
-			apply_ansi_code(&current_attributes, &reverse, code);
-			if (*buf == ';')
-			{
-				++buf;
-				start = buf;
-				goto one_more;
-			}
-			SetConsoleTextAttribute(out, current_attributes);
-			++buf; // skip 'm'
-			start = buf;
-		}
-		else
-		{
-			++buf;
-		}
-	}
-	WriteFile(out, start, buf - start, &written, NULL);
-
-#else
-	// first, clear the console and move the cursor
-	// to the top left corner
-	puts("\033[2J\033[0;0H");
-	puts(str);
-#endif
-}
-
-#ifdef _WIN32
-
-#if defined(_MSC_VER)
-#	define for if (false) {} else for
-#endif
 
 #include <windows.h>
 #include <conio.h>
@@ -327,6 +176,8 @@ bool print_disk_stats = false;
 // without having received a response (successful or failure)
 int num_outstanding_resume_data = 0;
 
+torrent_view view;
+
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
@@ -415,22 +266,6 @@ std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
 	return buf;
 }
 
-enum {
-	torrents_all,
-	torrents_downloading,
-	torrents_not_paused,
-	torrents_seeding,
-	torrents_queued,
-	torrents_stopped,
-	torrents_checking,
-	torrents_loaded,
-	torrents_feeds,
-
-	torrents_max
-};
-
-int torrent_filter = torrents_not_paused;
-
 struct torrent_entry
 {
 	torrent_entry(libtorrent::torrent_handle h) : handle(h) {}
@@ -446,202 +281,10 @@ files_t hash_to_filename;
 
 using libtorrent::torrent_status;
 
-bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int* counters)
-{
-	++counters[torrents_all];
-	
-	if (!st.paused
-		&& st.state != torrent_status::seeding
-		&& st.state != torrent_status::finished)
-	{
-		++counters[torrents_downloading];
-	}
-
-	if (!st.paused) ++counters[torrents_not_paused];
-
-	if (!st.paused
-		&& (st.state == torrent_status::seeding
-		|| st.state == torrent_status::finished))
-	{
-		++counters[torrents_seeding];
-	}
-
-	if (st.paused && st.auto_managed)
-	{
-		++counters[torrents_queued];
-	}
-
-	if (st.paused && !st.auto_managed)
-	{
-		++counters[torrents_stopped];
-	}
-
-	if (st.state == torrent_status::checking_files)
-	{
-		++counters[torrents_checking];
-	}
-
-	if (st.is_loaded)
-	{
-		++counters[torrents_loaded];
-	}
-
-	switch (torrent_filter)
-	{
-		case torrents_all: return true;
-		case torrents_downloading:
-			return !st.paused
-			&& st.state != torrent_status::seeding
-			&& st.state != torrent_status::finished;
-		case torrents_not_paused: return !st.paused;
-		case torrents_seeding:
-			return !st.paused
-			&& (st.state == torrent_status::seeding
-			|| st.state == torrent_status::finished);
-		case torrents_queued: return st.paused && st.auto_managed;
-		case torrents_stopped: return st.paused && !st.auto_managed;
-		case torrents_checking: return st.state == torrent_status::checking_files;
-		case torrents_loaded: return st.is_loaded;
-		case torrents_feeds: return false;
-	}
-	return true;
-}
-
 bool yes(libtorrent::torrent_status const&)
 { return true; }
 
 FILE* g_log_file = 0;
-
-int active_torrent = 0;
-
-bool compare_torrent(torrent_status const* lhs, torrent_status const* rhs)
-{
-	if (lhs->queue_position != -1 && rhs->queue_position != -1)
-	{
-		// both are downloading, sort by queue pos
-		return lhs->queue_position < rhs->queue_position;
-	}
-	else if (lhs->queue_position == -1 && rhs->queue_position == -1)
-	{
-		// both are seeding, sort by seed-rank
-		if (lhs->seed_rank != rhs->seed_rank)
-			return lhs->seed_rank > rhs->seed_rank;
-
-		return lhs->info_hash < rhs->info_hash;
-	}
-
-	return (lhs->queue_position == -1) < (rhs->queue_position == -1);
-}
-
-void update_filtered_torrents(boost::unordered_set<torrent_status>& all_handles
-	, std::vector<torrent_status const*>& filtered_handles, int* counters)
-{
-	filtered_handles.clear();
-	memset(counters, 0, sizeof(int) * torrents_max);
-	for (boost::unordered_set<torrent_status>::iterator i = all_handles.begin()
-		, end(all_handles.end()); i != end; ++i)
-	{
-		if (!show_torrent(*i, torrent_filter, counters)) continue;
-		filtered_handles.push_back(&*i);
-	}
-	if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
-	else if (active_torrent == -1 && !filtered_handles.empty()) active_torrent = 0;
-	std::sort(filtered_handles.begin(), filtered_handles.end(), &compare_torrent);
-}
-
-char const* esc(char const* code)
-{
-	// this is a silly optimization
-	// to avoid copying of strings
-	enum { num_strings = 200 };
-	static char buf[num_strings][20];
-	static int round_robin = 0;
-	char* ret = buf[round_robin];
-	++round_robin;
-	if (round_robin >= num_strings) round_robin = 0;
-	ret[0] = '\033';
-	ret[1] = '[';
-	int i = 2;
-	int j = 0;
-	while (code[j]) ret[i++] = code[j++];
-	ret[i++] = 'm';
-	ret[i++] = 0;
-	return ret;
-}
-
-enum color_code
-{
-	col_none = -1,
-	col_black = 0,
-	col_red = 1,
-	col_green = 2,
-	col_yellow = 3,
-	col_blue = 4,
-	col_magenta = 5,
-	col_cyan = 6,
-	col_white = 7,
-};
-
-std::string color(std::string const& s, color_code c)
-{
-	if (c == col_none) return s;
-
-	char buf[1024];
-	snprintf(buf, sizeof(buf), "\x1b[3%dm%s\x1b[39m", c, s.c_str());
-	return buf;
-}
-
-std::string to_string(int v, int width)
-{
-	char buf[100];
-	snprintf(buf, sizeof(buf), "%*d", width, v);
-	return buf;
-}
-
-std::string& to_string(float v, int width, int precision = 3)
-{
-	// this is a silly optimization
-	// to avoid copying of strings
-	enum { num_strings = 20 };
-	static std::string buf[num_strings];
-	static int round_robin = 0;
-	std::string& ret = buf[round_robin];
-	++round_robin;
-	if (round_robin >= num_strings) round_robin = 0;
-	ret.resize(20);
-	int size = snprintf(&ret[0], 20, "%*.*f", width, precision, v);
-	ret.resize((std::min)(size, width));
-	return ret;
-}
-
-std::string add_suffix(float val, char const* suffix = 0)
-{
-	std::string ret;
-	if (val == 0)
-	{
-		ret.resize(4 + 2, ' ');
-		if (suffix) ret.resize(4 + 2 + strlen(suffix), ' ');
-		return ret;
-	}
-
-	const char* prefix[] = {"kB", "MB", "GB", "TB"};
-	const int num_prefix = sizeof(prefix) / sizeof(const char*);
-	for (int i = 0; i < num_prefix; ++i)
-	{
-		val /= 1000.f;
-		if (std::fabs(val) < 1000.f)
-		{
-			ret = to_string(val, 4);
-			ret += prefix[i];
-			if (suffix) ret += suffix;
-			return ret;
-		}
-	}
-	ret = to_string(val, 4);
-	ret += "PB";
-	if (suffix) ret += suffix;
-	return ret;
-}
 
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
@@ -676,41 +319,6 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 	}
 	bar += esc("0");
 	bar += "]";
-	return bar;
-}
-
-std::string const& progress_bar(int progress, int width, color_code c = col_green
-	, char fill = '#', char bg = '-', std::string caption = "")
-{
-	static std::string bar;
-	bar.clear();
-	bar.reserve(width + 10);
-
-	int progress_chars = (progress * width + 500) / 1000;
-
-	if (caption.empty())
-	{
-		char code[10];
-		snprintf(code, sizeof(code), "\x1b[3%dm", c);
-		bar = code;
-		std::fill_n(std::back_inserter(bar), progress_chars, fill);
-		std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
-		bar += esc("39");
-	}
-	else
-	{
-		// foreground color (depends a bit on background color)
-		color_code tc = col_black;
-		if (c == col_black || c == col_blue)
-			tc = col_white;
-
-		caption.resize(width, ' ');
-
-		char str[256];
-		snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[48;5;238m\x1b[37m%s\x1b[49;39m"
-			, c, tc, caption.substr(0, progress_chars).c_str(), caption.substr(progress_chars).c_str());
-		bar = str;
-	}
 	return bar;
 }
 
@@ -928,12 +536,12 @@ bool seed_mode = false;
 bool share_mode = false;
 bool disable_storage = false;
 
-int loop_limit = 0;
+bool quit = false;
 
 void signal_handler(int signo)
 {
 	// make the main loop terminate
-	loop_limit = 1;
+	quit = true;
 }
 
 void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libtorrent::error_code& ec)
@@ -1077,13 +685,6 @@ void scan_dir(std::string const& dir_path
 	}
 }
 
-torrent_status const& get_active_torrent(std::vector<torrent_status const*> const& filtered_handles)
-{
-	if (active_torrent >= int(filtered_handles.size())
-		|| active_torrent < 0) active_torrent = 0;
-	return *filtered_handles[active_torrent];
-}
-
 char const* timestamp()
 {
 	time_t t = std::time(0);
@@ -1135,9 +736,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 // returns false if the alert was not handled
 bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files
-	, int* counters, boost::unordered_set<torrent_status>& all_handles
-	, std::vector<torrent_status const*>& filtered_handles
-	, bool& need_resort, std::vector<boost::uint64_t>& stats_counters)
+	, std::vector<boost::uint64_t>& stats_counters)
 {
 	using namespace libtorrent;
 
@@ -1188,7 +787,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		// also, add it to the files map, and remove it from the non_files list
 		// to keep the scan dir logic in sync so it's not removed, or added twice
 		torrent_handle h = p->handle;
-		if (h.is_valid()) {
+		if (h.is_valid())
+		{
 			boost::shared_ptr<const torrent_info> ti = h.torrent_file();
 			create_torrent ct(*ti);
 			entry te = ct.generate();
@@ -1316,30 +916,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
-		bool need_filter_update = false;
-		for (std::vector<torrent_status>::iterator i = p->status.begin();
-			i != p->status.end(); ++i)
-		{
-			boost::unordered_set<torrent_status>::iterator j = all_handles.find(*i);
-			// add new entries here
-			if (j == all_handles.end())
-			{
-				j = all_handles.insert(*i).first;
-				if (show_torrent(*j, torrent_filter, counters))
-				{
-					filtered_handles.push_back(&*j);
-					need_resort = true;
-				}
-			}
-			if (j->state != i->state
-				|| j->paused != i->paused
-				|| j->auto_managed != i->auto_managed)
-				need_filter_update = true;
-			((torrent_status&)*j) = *i;
-		}
-		if (need_filter_update)
-			update_filtered_torrents(all_handles, filtered_handles, counters);
-
+		view.update_torrents(p->status);
 		return true;
 	}
 	return false;
@@ -1409,25 +986,6 @@ void print_piece(libtorrent::partial_piece_info* pp
 	out += str;
 }
 
-static char const* state_str[] =
-	{"checking (q)", "checking", "dl metadata"
-	, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-
-std::string torrent_state(torrent_status const& s)
-{
-	if (!s.error.empty()) return s.error;
-	std::string ret;
-	if (s.paused && !s.auto_managed) ret += "paused";
-	else if (s.paused && s.auto_managed) ret += "queued";
-	else if (s.upload_mode) ret += "upload mode";
-	else ret += state_str[s.state];
-	if (!s.paused && !s.auto_managed) ret += " [F]";
-	char buf[10];
-	snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
-	ret += buf;
-	return ret;
-}
-
 int main(int argc, char* argv[])
 {
 	if (argc == 1)
@@ -1441,8 +999,6 @@ int main(int argc, char* argv[])
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
 			"  -F <milliseconds>     sets the UI refresh rate. This is the number of\n"
 			"                        milliseconds between screen refreshes.\n"
-			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
-			"                        this is useful for scripting tests\n"
 			"  -k                    enable high performance settings. This overwrites any other\n"
 			"                        previous command line options, so be sure to specify this first\n"
 			"  -G                    Add torrents in seed-mode (i.e. assume all pieces\n"
@@ -1542,16 +1098,10 @@ int main(int argc, char* argv[])
 	// it was added through the directory monitor. It is used to
 	// be able to remove torrents that were added via the directory
 	// monitor when they're not in the directory anymore.
-	boost::unordered_set<torrent_status> all_handles;
-	std::vector<torrent_status const*> filtered_handles;
-
 	handles_t files;
 
 	// torrents that were not added via the monitor dir
 	std::set<torrent_handle> non_files;
-
-	int counters[torrents_max];
-	memset(counters, 0, sizeof(counters));
 
 	libtorrent::session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 		, lt::session::add_default_plugins | lt::session::start_default_features
@@ -1787,7 +1337,6 @@ int main(int argc, char* argv[])
 				settings.set_int(settings_pack::active_seeds, atoi(arg));
 				settings.set_int(settings_pack::active_limit, atoi(arg) * 2);
 				break;
-			case 'q': loop_limit = atoi(arg); break;
 			case '0': disable_storage = true; --i;
 		}
 		++i; // skip the argument
@@ -1887,37 +1436,12 @@ int main(int argc, char* argv[])
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 #endif
-	while (loop_limit > 1 || loop_limit == 0)
+	while (!quit)
 	{
 		++tick;
 		ses.post_torrent_updates();
 		ses.post_session_stats();
-		if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
-		if (active_torrent >= 0)
-		{
-			// ask for distributed copies for the selected torrent. Since this
-			// is a somewhat expensive operation, don't do it by default for
-			// all torrents
-			torrent_status const& h = *filtered_handles[active_torrent];
-			h.handle.status(
-				torrent_handle::query_distributed_copies
-				| torrent_handle::query_pieces
-				| torrent_handle::query_verified_pieces);
-		}
 
-		std::vector<feed_handle> feeds;
-		ses.get_feeds(feeds);
-
-		counters[torrents_feeds] = feeds.size();
-
-		std::sort(filtered_handles.begin(), filtered_handles.end(), &compare_torrent);
-
-		if (loop_limit > 1)
-		{
-			// in test mode, don't quit until we're seeding
-			if (loop_limit > 2 || active_torrent == -1 || filtered_handles[active_torrent]->is_seeding)
-				--loop_limit;
-		}
 		int c = 0;
 
 		if (sleep_and_input(&c, refresh_delay))
@@ -1937,6 +1461,8 @@ int main(int argc, char* argv[])
 #define DOWN_ARROW 66
 #endif
 
+			torrent_handle h = view.get_active_handle();
+
 			if (c == EOF) { break; }
 			do
 			{
@@ -1955,33 +1481,36 @@ int main(int argc, char* argv[])
 					if (c == LEFT_ARROW)
 					{
 						// arrow left
-						if (torrent_filter > 0)
+						int filter = view.filter();
+						if (filter > 0)
 						{
-							--torrent_filter;
-							update_filtered_torrents(all_handles, filtered_handles, counters);
+							--filter;
+							view.set_filter(filter);
+							h = view.get_active_handle();
 						}
 					}
 					else if (c == RIGHT_ARROW)
 					{
 						// arrow right
-						if (torrent_filter < torrents_max - 1)
+						int filter = view.filter();
+						if (filter < torrent_view::torrents_max - 1)
 						{
-							++torrent_filter;
-							update_filtered_torrents(all_handles, filtered_handles, counters);
+							++filter;
+							view.set_filter(filter);
+							h = view.get_active_handle();
 						}
 					}
 					else if (c == UP_ARROW)
 					{
 						// arrow up
-						--active_torrent;
-						if (active_torrent < 0) active_torrent = 0;
+						view.arrow_up();
+						h = view.get_active_handle();
 					}
 					else if (c == DOWN_ARROW)
 					{
 						// arrow down
-						++active_torrent;
-						if (active_torrent >= int(filtered_handles.size()))
-							active_torrent = filtered_handles.size() - 1;
+						view.arrow_down();
+						h = view.get_active_handle();
 					}
 				}
 
@@ -2026,39 +1555,36 @@ int main(int argc, char* argv[])
 
 				if (c == 'q') break;
 
-				if (c == 'D')
+				if (c == 'D' && h.is_valid())
 				{
-					torrent_status const& st = get_active_torrent(filtered_handles);
-					if (st.handle.is_valid())
+					torrent_status const& st = view.get_active_torrent();
+					printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
+						, st.name.c_str());
+					char response = 'n';
+					scanf("%c", &response);
+					if (response == 'y')
 					{
-						printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
-							, st.name.c_str());
-						char response = 'n';
-						scanf("%c", &response);
-						if (response == 'y')
+						// also delete the .torrent file from the torrent directory
+						handles_t::iterator i = std::find_if(files.begin(), files.end()
+							, boost::bind(&handles_t::value_type::second, _1) == st.handle);
+						if (i != files.end())
 						{
-							// also delete the .torrent file from the torrent directory
-							handles_t::iterator i = std::find_if(files.begin(), files.end()
-								, boost::bind(&handles_t::value_type::second, _1) == st.handle);
-							if (i != files.end())
-							{
-								error_code ec;
-								std::string path;
-								if (is_complete(i->first)) path = i->first;
-								else path = combine_path(monitor_dir, i->first);
-								remove(path, ec);
-								if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
-								files.erase(i);
-							}
-							if (st.handle.is_valid())
-								ses.remove_torrent(st.handle, lt::session::delete_files);
+							error_code ec;
+							std::string path;
+							if (is_complete(i->first)) path = i->first;
+							else path = combine_path(monitor_dir, i->first);
+							remove(path, ec);
+							if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
+							files.erase(i);
 						}
+						if (st.handle.is_valid())
+							ses.remove_torrent(st.handle, lt::session::delete_files);
 					}
 				}
 
-				if (c == 'j' && !filtered_handles.empty())
+				if (c == 'j' && h.is_valid())
 				{
-					get_active_torrent(filtered_handles).handle.force_recheck();
+					h.force_recheck();
 				}
 
 				if (c == 'x')
@@ -2066,74 +1592,74 @@ int main(int argc, char* argv[])
 					print_disk_stats = !print_disk_stats;
 				}
 
-				if (c == 'r' && !filtered_handles.empty())
+				if (c == 'r' && h.is_valid())
 				{
-					get_active_torrent(filtered_handles).handle.force_reannounce();
+					h.force_reannounce();
 				}
 
-				if (c == 's' && !filtered_handles.empty())
+				if (c == 's' && h.is_valid())
 				{
-					torrent_status const& ts = get_active_torrent(filtered_handles);
-					ts.handle.set_sequential_download(!ts.sequential_download);
+					torrent_status const& ts = view.get_active_torrent();
+					h.set_sequential_download(!ts.sequential_download);
 				}
 
 				if (c == 'R')
 				{
 					// save resume data for all torrents
-					for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin()
-						, end(filtered_handles.end()); i != end; ++i)
+					std::vector<torrent_status> torrents;
+					ses.get_torrent_status(&torrents, &yes, 0);
+					for (std::vector<torrent_status>::iterator i = torrents.begin()
+						, end(torrents.end()); i != end; ++i)
 					{
-						if ((*i)->need_save_resume)
+						if (i->need_save_resume)
 						{
-							(*i)->handle.save_resume_data();
+							i->handle.save_resume_data();
 							++num_outstanding_resume_data;
 						}
 					}
 				}
 
-				if (c == 'o' && !filtered_handles.empty())
+				if (c == 'o' && h.is_valid())
 				{
-					torrent_status const& ts = get_active_torrent(filtered_handles);
+					torrent_status const& ts = view.get_active_torrent();
 					int num_pieces = ts.num_pieces;
 					if (num_pieces > 300) num_pieces = 300;
 					for (int i = 0; i < num_pieces; ++i)
 					{
-						ts.handle.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
+						h.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
 					}
 				}
 
-				if (c == 'v' && !filtered_handles.empty())
+				if (c == 'v' && h.is_valid())
 				{
-					torrent_status const& ts = get_active_torrent(filtered_handles);
-					ts.handle.scrape_tracker();
+					h.scrape_tracker();
 				}
 
-				if (c == 'p' && !filtered_handles.empty())
+				if (c == 'p' && h.is_valid())
 				{
-					torrent_status const& ts = get_active_torrent(filtered_handles);
+					torrent_status const& ts = view.get_active_torrent();
 					if (!ts.auto_managed && ts.paused)
 					{
-						ts.handle.auto_managed(true);
+						h.auto_managed(true);
 					}
 					else
 					{
-						ts.handle.auto_managed(false);
-						ts.handle.pause(torrent_handle::graceful_pause);
+						h.auto_managed(false);
+						h.pause(torrent_handle::graceful_pause);
 					}
 				}
 
 				// toggle force-start
-				if (c == 'k' && !filtered_handles.empty())
+				if (c == 'k' && h.is_valid())
 				{
-					torrent_status const& ts = get_active_torrent(filtered_handles);
-					ts.handle.auto_managed(!ts.auto_managed);
-					if (ts.auto_managed && ts.paused) ts.handle.resume();
+					torrent_status const& ts = view.get_active_torrent();
+					h.auto_managed(!ts.auto_managed);
+					if (ts.auto_managed && ts.paused) h.resume();
 				}
 
-				if (c == 'c' && !filtered_handles.empty())
+				if (c == 'c' && h.is_valid())
 				{
-					torrent_status const& ts = get_active_torrent(filtered_handles);
-					ts.handle.clear_error();
+					h.clear_error();
 				}
 
 				// toggle displays
@@ -2154,24 +1680,14 @@ int main(int argc, char* argv[])
 				if (c == '5') print_peer_rate = !print_peer_rate;
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
-				if (c == 'y')
-				{
-					char url[2048];
-					puts("Enter RSS feed URL:\n");
-					scanf("%2048s", url);
-					feed_settings set;
-					set.url = url;
-					set.add_args.save_path = save_path;
-					feed_handle h = ses.add_feed(set);
-					h.update_feed();
-				}
 				if (c == 'h')
 				{
-					print_with_ansi_colors(
+					clear_screen();
+					set_cursor_pos(0,0);
+					print(
 						"HELP SCREEN (press any key to dismiss)\n\n"
 						"CLIENT OPTIONS\n"
 						"[q] quit client                                 [m] add magnet link\n"
-						"[y] add RSS feed\n"
 						"\n"
 						"TORRENT ACTIONS\n"
 						"[p] pause/unpause selected torrent\n"
@@ -2209,7 +1725,7 @@ int main(int argc, char* argv[])
 
 		terminal_size(&terminal_width, &terminal_height);
 
-		int max_lines = terminal_height - 15;
+		view.set_max_size(terminal_height - 15);
 
 		// loop through the alert queue to see if anything has happened.
 		std::deque<alert*> alerts;
@@ -2218,11 +1734,10 @@ int main(int argc, char* argv[])
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			bool need_resort = false;
 			TORRENT_TRY
 			{
-				if (!::handle_alert(ses, *i, files, non_files, counters
-					, all_handles, filtered_handles, need_resort, stats_counters))
+				if (!::handle_alert(ses, *i, files, non_files
+						, stats_counters))
 				{
 					// if we didn't handle the alert, print it to the log
 					std::string event_string;
@@ -2231,198 +1746,21 @@ int main(int argc, char* argv[])
 					if (events.size() >= 20) events.pop_front();
 				}
 			} TORRENT_CATCH(std::exception& e) {}
-
-			if (need_resort)
-			{
-				std::sort(filtered_handles.begin(), filtered_handles.end()
-					, &compare_torrent);
-			}
-
 			delete *i;
 		}
 		alerts.clear();
 
 		session_status sess_stat = ses.status();
 
-		// in test mode, also quit when we loose the last peer
-		if (loop_limit > 1 && sess_stat.num_peers == 0 && tick > 30) break;
-
 		std::string out;
 
-		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "loaded", "RSS"};
-		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
-		{
-			char filter[200];
-			snprintf(filter, sizeof(filter), "%s[%s (%d)]%s", torrent_filter == i?esc("7"):""
-				, filter_names[i], counters[i], torrent_filter == i?esc("0"):"");
-			out += filter;
-		}
-		out += '\n';
-
 		char str[500];
-		int torrent_index = 0;
-		int lines_printed = 3;
 
-		if (torrent_filter == torrents_feeds)
-		{
-			for (std::vector<feed_handle>::iterator i = feeds.begin()
-				, end(feeds.end()); i != end; ++i)
-			{
-				if (lines_printed >= max_lines)
-				{
-					out += "...\n";
-					break;
-				}
-
-				feed_status st = i->get_feed_status();
-				if (st.url.size() > 70) st.url.resize(70);
-
-				char update_timer[20];
-				snprintf(update_timer, sizeof(update_timer), "%d", st.next_update);
-				snprintf(str, sizeof(str), "%-70s %s (%2d) %s\n", st.url.c_str()
-					, st.updating ? "updating" : update_timer
-					, int(st.items.size())
-					, st.error ? st.error.message().c_str() : "");
-				out += str;
-				++lines_printed;
-			}
-		}
-
-		// handle scrolling down when moving the cursor
-		// below the fold
-		static int start_offset = 0;
-		if (active_torrent >= max_lines - lines_printed - start_offset)
-			start_offset = active_torrent - max_lines + lines_printed + 1;
-		if (active_torrent < start_offset) start_offset = active_torrent;
-
-		// print title bar for torrent list
-		snprintf(str, sizeof(str), " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\n"
-			, "#", "Name", "Progress", "Download", "Upload", "Peers (D:S)", "Down", "Up", "Flags");
-		out += str;
-
-		for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin();
-			i != filtered_handles.end(); ++torrent_index)
-		{
-			if (torrent_index < start_offset)
-			{
-				++i;
-				continue;
-			}
-			if (lines_printed >= max_lines)
-			{
-				out += "...\n";
-				break;
-			}
-
-			torrent_status const& s = **i;
-			if (!s.handle.is_valid())
-			{
-				i = filtered_handles.erase(i);
-				continue;
-			}
-			else
-			{
-				++i;
-			}
-
-			// the active torrent is highligted in the list
-			// this inverses the forground and background colors
-			char const* selection = "";
-			if (active_torrent == torrent_index)
-			{
-				selection = "\x1b[1m\x1b[44m";
-				out += selection;
-			}
-
-			char queue_pos[16];
-			if (s.queue_position == -1)
-				strcpy(queue_pos, "-");
-			else
-				snprintf(queue_pos, sizeof(queue_pos), "%d", s.queue_position);
-
-			std::string name = s.name;
-			if (name.size() > 50) name.resize(50);
-
-//			int seeds = 0;
-//			int downloaders = 0;
-
-//			if (s.num_complete >= 0) seeds = s.num_complete;
-//			else seeds = s.list_seeds;
-
-//			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
-//			else downloaders = s.list_peers - s.list_seeds;
-
-			color_code progress_bar_color = col_yellow;
-			if (!s.error.empty()) progress_bar_color = col_red;
-			else if (s.paused) progress_bar_color = col_blue;
-			else if (s.state == torrent_status::downloading_metadata)
-				progress_bar_color = col_magenta;
-			else if (s.current_tracker.empty())
-				progress_bar_color = col_red;
-			else if (sess_stat.has_incoming_connections)
-				progress_bar_color = col_green;
-
-			snprintf(str, sizeof(str), "%c%-3s %-50s %s%s %s (%s) %s (%s) %5d:%-5d"
-				" %s %s %c%s\n"
-				, s.is_loaded ? 'L' : ' '
-				, queue_pos
-				, name.c_str()
-				, progress_bar(s.progress_ppm / 1000, 35, progress_bar_color, '-', '#', torrent_state(s)).c_str()
-				, selection
-				, color(add_suffix(s.download_rate, "/s"), col_green).c_str()
-				, color(add_suffix(s.total_download), col_green).c_str()
-				, color(add_suffix(s.upload_rate, "/s"), col_red).c_str()
-				, color(add_suffix(s.total_upload), col_red).c_str()
-				, s.num_peers - s.num_seeds, s.num_seeds
-				, color(add_suffix(s.all_time_download), col_green).c_str()
-				, color(add_suffix(s.all_time_upload), col_red).c_str()
-				, s.need_save_resume?'S':' ', esc("0"));
-			out += str;
-			++lines_printed;
-
-			// if this is the selected torrent, restore the background color
-			if (active_torrent == torrent_index)
-				out += esc("0");
-
-			// don't print the piece bar if we don't have any piece, or if we have all
-			if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
-			{
-				out += "     ";
-				out += piece_bar(s.pieces, terminal_width - 7);
-				out += "\n";
-				++lines_printed;
-				if (s.seed_mode)
-				{
-					out += "     ";
-					out += piece_bar(s.verified_pieces, terminal_width - 7);
-					out += "\n";
-					++lines_printed;
-				}
-			}
-/*
-			if (torrent_index != active_torrent) continue;
-
-			boost::posix_time::time_duration t = s.next_announce;
-			snprintf(str, sizeof(str)
-				, "     peers: %s%d%s (%s%d%s) seeds: %s%d%s distributed copies: %s%4.2f%s "
-				"sparse regions: %d download: %s%s%s next announce: %s%02d:%02d:%02d%s "
-				"tracker: %s%s%s\n"
-				, esc("37"), s.num_peers, esc("0")
-				, esc("37"), s.connect_candidates, esc("0")
-				, esc("37"), s.num_seeds, esc("0")
-				, esc("37"), s.distributed_copies, esc("0")
-				, s.sparse_regions
-				, esc("32"), add_suffix(s.download_rate, "/s").c_str(), esc("0")
-				, esc("37"), int(t.hours()), int(t.minutes()), int(t.seconds()), esc("0")
-				, esc("36"), s.current_tracker.c_str(), esc("0"));
-			out += str;
-			++lines_printed;
-*/
-		}
+		clear_below(view.height());
+		set_cursor_pos(0, view.height());
 
 		int cache_flags = print_downloads ? 0 : lt::session::disk_cache_no_pieces;
-		torrent_handle h;
-		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
+		torrent_handle h = view.get_active_handle();
 
 		cache_status cs;
 		ses.get_cache_info(&cs, h, cache_flags);
@@ -2564,18 +1902,16 @@ int main(int argc, char* argv[])
 			out += str;
 		}
 
-		torrent_status const* st = 0;
-		if (!filtered_handles.empty()) st = &get_active_torrent(filtered_handles);
 		if (h.is_valid())
 		{
-			torrent_status const& s = *st;
+			torrent_status const& s = view.get_active_torrent();
 
 			if ((print_downloads && s.state != torrent_status::seeding)
 				|| print_peers)
 				h.get_peer_info(peers);
 
 			out += "====== ";
-			out += st->name;
+			out += s.name;
 			out += " ======\n";
 
 			if (print_peers && !peers.empty())
@@ -2621,7 +1957,7 @@ int main(int argc, char* argv[])
 						< boost::bind(&partial_piece_info::piece_index, _2));
 					if (ppi != queue.end() && ppi->piece_index == i->piece) pp = &*ppi;
 
-					print_piece(pp, &*i, peers, st, out);
+					print_piece(pp, &*i, peers, &s, out);
 
 					if (pp) queue.erase(ppi);
 				}
@@ -2629,7 +1965,7 @@ int main(int argc, char* argv[])
 				for (std::vector<partial_piece_info>::iterator i = queue.begin()
 					, end(queue.end()); i != end; ++i)
 				{
-					print_piece(&*i, 0, peers, st, out);
+					print_piece(&*i, 0, peers, &s, out);
 				}
 				snprintf(str, sizeof(str), "%s %s: read cache %s %s: downloading %s %s: cached %s %s: flushed\n"
 					, esc("34;7"), esc("0") // read cache
@@ -2712,7 +2048,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		print_with_ansi_colors(out.c_str());
+		print(out.c_str());
 		fflush(stdout);
 
 		if (!monitor_dir.empty()
