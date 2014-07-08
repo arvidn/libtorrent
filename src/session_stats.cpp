@@ -220,7 +220,7 @@ namespace libtorrent
 		METRIC(ses, torrent_evicted_counter, type_counter)
 
 		// the number of allowed unchoked peers
-		METRIC(peer, num_unchoke_slots, type_gauge)
+		METRIC(ses, num_unchoke_slots, type_gauge)
 
 		// bittorrent message counters. These counters are incremented
 		// every time a message of the corresponding type is received from

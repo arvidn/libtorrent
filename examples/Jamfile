@@ -16,7 +16,7 @@ project client_test
 	<link>static
    ;  
 
-exe client_test : client_test.cpp print.cpp torrent_view.cpp ;
+exe client_test : client_test.cpp print.cpp torrent_view.cpp session_view.cpp ;
 
 exe simple_client : simple_client.cpp ;
 exe stats_counters : stats_counters.cpp ;

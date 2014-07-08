@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: 3 does this need to be exported?
 	struct TORRENT_EXTRA_EXPORT counters
 	{
 		enum stats_counter_t

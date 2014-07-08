@@ -45,12 +45,17 @@ torrent_view::torrent_view()
 	: m_active_torrent(0)
 	, m_scroll_position(0)
 	, m_torrent_filter(0)
-	, m_max_lines(30)
+	, m_width(80)
+	, m_height(30)
 {}
 
-void torrent_view::set_max_size(int height)
+void torrent_view::set_size(int width, int height)
 {
-	m_max_lines = height;
+	if (m_width == width && m_height == height) return;
+
+	m_width = width;
+	m_height = height;
+	render();
 }
 
 int torrent_view::filter() const
@@ -136,7 +141,7 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> const& st)
 				++i;
 				continue;
 			}
-			if (lines_printed >= m_max_lines)
+			if (lines_printed >= m_height)
 				break;
 
 			lt::torrent_status const& s = **i;
@@ -155,7 +160,7 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> const& st)
 
 int torrent_view::height() const
 {
-	return int(m_filtered_handles.size() + header_size);
+	return m_height;
 }
 
 void torrent_view::arrow_up()
@@ -197,8 +202,8 @@ void torrent_view::render()
 	// handle scrolling down when moving the cursor
 	// below the fold
 	TORRENT_ASSERT(m_scroll_position >= 0);
-	if (m_active_torrent >= m_max_lines - m_scroll_position)
-		m_scroll_position = m_active_torrent - m_max_lines + 1;
+	if (m_active_torrent >= m_height - m_scroll_position)
+		m_scroll_position = m_active_torrent - m_height+ 1;
 	TORRENT_ASSERT(m_scroll_position >= 0);
 	if (m_active_torrent < m_scroll_position)
 		m_scroll_position = m_active_torrent;
@@ -214,7 +219,7 @@ void torrent_view::render()
 			++i;
 			continue;
 		}
-		if (lines_printed >= m_max_lines)
+		if (lines_printed >= m_height)
 		{
 			print("...\n");
 			++lines_printed;
@@ -234,7 +239,7 @@ void torrent_view::render()
 		++lines_printed;
 	}
 
-	clear_below(torrent_index + header_size);
+	clear_rows(torrent_index + header_size, m_height);
 }
 
 void torrent_view::print_tabs()
@@ -253,6 +258,8 @@ void torrent_view::print_tabs()
 	}
 	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
 
+	if (m_width + 1 < sizeof(str))
+		str[m_width + 1] = '\0';
 	print(str);
 }
 
@@ -268,6 +275,9 @@ void torrent_view::print_headers()
 		, " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\x1bK"
 		, "#", "Name", "Progress", "Download", "Upload", "Peers (D:S)"
 		, "Down", "Up", "Flags");
+
+	if (m_width + 1 < sizeof(str))
+		str[m_width + 1] = '\0';
 
 	print(str);
 }
@@ -339,6 +349,9 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		}
 	}
 */
+
+	if (m_width + 1 < sizeof(str))
+		str[m_width + 1] = '\0';
 
 	print(str);
 }

@@ -142,22 +142,25 @@ void clear_screen()
 #endif
 }
 
-void clear_below(int y)
+void clear_rows(int y1, int y2)
 {
+	if (y1 > y2) return;
+
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	COORD c = {0, y};
+	COORD c = {0, y1};
 	SetConsoleCursorPosition(out, c);
 	CONSOLE_SCREEN_BUFFER_INFO si;
 	GetConsoleScreenBufferInfo(out, &si);
 	DWORD n;
-	FillConsoleOutputCharacter(out, ' ', si.dwSize.X * (si.dwSize.Y - y), c, &n);
-	FillConsoleOutputAttribute(out, 0x7, si.dwSize.X * (si.dwSize.Y - y), c, &n);
+	int num_chars = si.dwSize.X * (std::min)(si.dwSize.Y - y1, y2 - y1);
+	FillConsoleOutputCharacter(out, ' ', num_chars, c, &n);
+	FillConsoleOutputAttribute(out, 0x7, num_chars, c, &n);
 #else
-	printf("\033[%d;1H\033[J", y + 1);
+	for (int i = y1; i < y2; ++i)
+		printf("\033[%d;1H\033[2K", i + 1);
 #endif
-
 }
 
 void terminal_size(int* terminal_width, int* terminal_height)
