@@ -945,7 +945,7 @@ struct peer_error_alert: peer_alert
 <pre class="literal-block">
 struct peer_connect_alert: peer_alert
 {
-   virtual std::string <strong>message</strong> () const;;
+   virtual std::string <strong>message</strong> () const;
 
    const static int static_category = alert::debug_notification;
    int socket_type;

@@ -54,12 +54,15 @@ all: html
 
 troubleshooting_thumb.png: troubleshooting.png
 	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
+	cp $@ $(WEB_PATH)/$@
 
 troubleshooting.png: troubleshooting.dot
 	dot troubleshooting.dot -Tpng >troubleshooting.png
+	cp $@ $(WEB_PATH)/$@
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
+	cp $@ $(WEB_PATH)/$@
 
 $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst
 	python gen_reference_doc.py
