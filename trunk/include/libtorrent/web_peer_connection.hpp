@@ -120,7 +120,7 @@ namespace libtorrent
 
 		std::string m_url;
 	
-		web_seed_entry& m_web;
+		web_seed_entry* m_web;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
