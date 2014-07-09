@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/parse_url.hpp" // for parse_url_components
 
 using namespace libtorrent;
 
@@ -56,6 +57,54 @@ namespace libtorrent
 	{
 		return http_status >= 300
 			&& http_status < 400;
+	}
+
+	std::string resolve_redirect_location(std::string referrer
+		, std::string location)
+	{
+		if (location.empty()) return referrer;
+
+		error_code ec;
+		using boost::tuples::ignore;
+		boost::tie(ignore, ignore, ignore, ignore, ignore)
+			= parse_url_components(location, ec);
+
+		// if location is a full URL, just return it
+		if (!ec) return location;
+	
+		// otherwise it's likely to be just the path, or a relative path
+		std::string url = referrer;
+
+		if (location[0] == '/')
+		{
+			// it's an absolute path. replace the path component of
+			// referrer with location
+
+			// 8 is to skip the ur;l scheme://. We want the first slash
+			// that's part of the path.
+			std::size_t i = url.find_first_of('/', 8);
+			if (i == std::string::npos)
+				return location;
+			url.resize(i);
+			url += location;
+		}
+		else
+		{
+			// some web servers send out relative paths
+			// in the location header.
+			// remove the leaf filename
+			std::size_t i = url.find_last_of('/');
+			if (i == std::string::npos)
+				return location;
+
+			url.resize(i);
+
+			if ((url.empty() || url[url.size()-1] != '/')
+				&& (location.empty() || location[0] != '/'))
+				url += '/';
+			url += location;
+		}
+		return url;
 	}
 
 	http_parser::~http_parser() {}

@@ -819,7 +819,7 @@ void http_connection::on_read(error_code const& e
 		{
 			int code = m_parser.status_code();
 
-			if (code >= 300 && code < 400)
+			if (is_redirect(code))
 			{
 				// attempt a redirect
 				std::string const& location = m_parser.header("location");
@@ -837,39 +837,14 @@ void http_connection::on_read(error_code const& e
 				// in its handler. For now, just kill the connection.
 //				async_shutdown(m_sock, shared_from_this());
 				m_sock.close(ec);
-				using boost::tuples::ignore;
-				boost::tie(ignore, ignore, ignore, ignore, ignore)
-					= parse_url_components(location, ec);
-				if (!ec)
-				{
-					get(location, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr, m_resolve_flags
-#if TORRENT_USE_I2P
-						, m_i2p_conn
-#endif
-						);
-				}
-				else
-				{
-					// some broken web servers send out relative paths
-					// in the location header.
-					std::string url = m_url;
-					// remove the leaf filename
-					std::size_t i = url.find_last_of('/');
-					if (i != std::string::npos)
-						url.resize(i);
-					if ((url.empty() || url[url.size()-1] != '/')
-						&& (location.empty() || location[0] != '/'))
-						url += '/';
-					url += location;
 
-					get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr, m_resolve_flags
+				std::string url = resolve_redirect_location(m_url, location);
+				get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
+					, m_user_agent, m_bind_addr, m_resolve_flags
 #if TORRENT_USE_I2P
-						, m_i2p_conn
+					, m_i2p_conn
 #endif
-						);
-				}
+					);
 				return;
 			}
 	

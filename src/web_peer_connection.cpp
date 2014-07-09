@@ -70,7 +70,7 @@ web_peer_connection::web_peer_connection(
 	, web_seed_entry& web)
 	: web_connection_base(ses, sett, allocator, disk_thread, t, s, web)
 	, m_url(web.url)
-	, m_web(web)
+	, m_web(&web)
 	, m_received_body(0)
 	, m_range_pos(0)
 	, m_chunk_pos(0)
@@ -111,11 +111,11 @@ web_peer_connection::web_peer_connection(
 void web_peer_connection::on_connected()
 {
 	incoming_have_all();
-	if (m_web.restart_request.piece != -1)
+	if (m_web->restart_request.piece != -1)
 	{
 		// increase the chances of requesting the block
 		// we have partial data for already, to finish it
-		incoming_suggest(m_web.restart_request.piece);
+		incoming_suggest(m_web->restart_request.piece);
 	}
 	web_connection_base::on_connected();
 }
@@ -127,7 +127,7 @@ void web_peer_connection::disconnect(error_code const& ec, peer_connection_inter
 	boost::shared_ptr<torrent> t = associated_torrent().lock();
 
 	if (!m_requests.empty() && !m_file_requests.empty()
-		&& !m_piece.empty())
+		&& !m_piece.empty() && m_web)
 	{
 #if 0
 		std::cerr << this << " SAVE-RESTART-DATA: data: " << m_piece.size()
@@ -135,15 +135,15 @@ void web_peer_connection::disconnect(error_code const& ec, peer_connection_inter
 			<< " off: " << m_requests.front().start
 			<< std::endl;
 #endif
-		m_web.restart_request = m_requests.front();
-		if (!m_web.restart_piece.empty())
+		m_web->restart_request = m_requests.front();
+		if (!m_web->restart_piece.empty())
 		{
 			// we're about to replace a different restart piece
 			// buffer. So it was wasted download
-			if (t) t->add_redundant_bytes(m_web.restart_piece.size()
+			if (t) t->add_redundant_bytes(m_web->restart_piece.size()
 				, torrent::piece_closing);
 		}
-		m_web.restart_piece.swap(m_piece);
+		m_web->restart_piece.swap(m_piece);
 
 		// we have to do this to not count this data as redundant. The
 		// upper layer will call downloading_piece_progress and assume
@@ -152,7 +152,7 @@ void web_peer_connection::disconnect(error_code const& ec, peer_connection_inter
 		m_block_pos = 0;
 	}
 
-	if (!m_web.supports_keepalive && error == 0)
+	if (m_web && !m_web->supports_keepalive && error == 0)
 	{
 		// if the web server doesn't support keepalive and we were
 		// disconnected as a graceful EOF, reconnect right away
@@ -250,9 +250,9 @@ void web_peer_connection::write_request(peer_request const& r)
 		pr.piece = r.piece + request_offset / piece_size;
 		m_requests.push_back(pr);
 
-		if (m_web.restart_request == m_requests.front())
+		if (m_web->restart_request == m_requests.front())
 		{
-			m_piece.swap(m_web.restart_piece);
+			m_piece.swap(m_web->restart_piece);
 			m_block_pos += m_piece.size();
 			peer_request& front = m_requests.front();
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
@@ -270,7 +270,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			// just to keep the accounting straight for the upper layer.
 			// it doesn't know we just re-wrote the request
 			incoming_piece_fragment(m_piece.size());
-			m_web.restart_request.piece = -1;
+			m_web->restart_request.piece = -1;
 		}
 
 #if 0
@@ -576,7 +576,7 @@ void web_peer_connection::on_receive(error_code const& error
 			{
 				incoming_choke();
 				if (m_num_responses == 1)
-					m_web.supports_keepalive = false;
+					m_web->supports_keepalive = false;
 			}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -623,6 +623,7 @@ void web_peer_connection::on_receive(error_code const& error
 				{
 					// we should not try this server again.
 					t->remove_web_seed(this, errors::missing_location, op_bittorrent, 2);
+					m_web = NULL;
 					TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
@@ -660,6 +661,7 @@ void web_peer_connection::on_receive(error_code const& error
 						if (i == std::string::npos)
 						{
 							t->remove_web_seed(this, errors::invalid_redirection, op_bittorrent, 2);
+							m_web = NULL;
 							TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 							TORRENT_ASSERT(statistics().last_payload_downloaded()
@@ -670,11 +672,17 @@ void web_peer_connection::on_receive(error_code const& error
 						}
 						location.resize(i);
 					}
+					else
+					{
+						location = resolve_redirect_location(m_url, location);
+					}
+
 #ifdef TORRENT_VERBOSE_LOGGING
 					peer_log("*** LOCATION: %s", location.c_str());
 #endif
 					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
 					t->remove_web_seed(this, errors::redirecting, op_bittorrent, 2);
+					m_web = NULL;
 					TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
@@ -722,6 +730,7 @@ void web_peer_connection::on_receive(error_code const& error
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this, errors::invalid_range, op_bittorrent);
+					m_web = NULL;
 					TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
@@ -742,6 +751,7 @@ void web_peer_connection::on_receive(error_code const& error
 					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this, errors::no_content_length, op_bittorrent, 2);
+					m_web = NULL;
 					TORRENT_ASSERT(is_disconnecting());
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(statistics().last_payload_downloaded()
