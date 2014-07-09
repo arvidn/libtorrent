@@ -1,3 +1,4 @@
+	* fixed crash when web seeds redirect
 	* fix compiler warnings
 
 1.0 release

@@ -351,6 +351,24 @@ int test_main()
 	parse_url_components("http:", ec);
 	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
 	ec.clear();
+
+	// test resolve_redirect_location
+
+	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "a")
+		, "http://example.com/a/a");
+
+	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "c/d/e/")
+		, "http://example.com/a/c/d/e/");
+
+	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "../a")
+		, "http://example.com/a/../a");
+
+	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "/c")
+		, "http://example.com/c");
+
+	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "http://test.com/d")
+		, "http://test.com/d");
+
 	return 0;
 }
 
