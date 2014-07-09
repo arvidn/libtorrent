@@ -66,7 +66,7 @@ namespace libtorrent
 		, web_seed_entry& web)
 		: web_connection_base(ses, t, s, remote, web)
 		, m_url(web.url)
-		, m_web(web)
+		, m_web(&web)
 		, m_received_body(0)
 		, m_range_pos(0)
 		, m_block_pos(0)
@@ -107,11 +107,11 @@ namespace libtorrent
 	void web_peer_connection::on_connected()
 	{
 		incoming_have_all();
-		if (m_web.restart_request.piece != -1)
+		if (m_web->restart_request.piece != -1)
 		{
 			// increase the chances of requesting the block
 			// we have partial data for already, to finish it
-			incoming_suggest(m_web.restart_request.piece);
+			incoming_suggest(m_web->restart_request.piece);
 		}
 		web_connection_base::on_connected();
 	}
@@ -123,7 +123,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 
 		if (!m_requests.empty() && !m_file_requests.empty()
-			&& !m_piece.empty())
+			&& !m_piece.empty() && m_web)
 		{
 #if 0
 			std::cerr << this << " SAVE-RESTART-DATA: data: " << m_piece.size()
@@ -131,15 +131,15 @@ namespace libtorrent
 				<< " off: " << m_requests.front().start
 				<< std::endl;
 #endif
-			m_web.restart_request = m_requests.front();
-			if (!m_web.restart_piece.empty())
+			m_web->restart_request = m_requests.front();
+			if (!m_web->restart_piece.empty())
 			{
 				// we're about to replace a different restart piece
 				// buffer. So it was wasted download
-				if (t) t->add_redundant_bytes(m_web.restart_piece.size()
+				if (t) t->add_redundant_bytes(m_web->restart_piece.size()
 					, torrent::piece_closing);
 			}
-			m_web.restart_piece.swap(m_piece);
+			m_web->restart_piece.swap(m_piece);
 
 			// we have to do this to not count this data as redundant. The
 			// upper layer will call downloading_piece_progress and assume
@@ -148,7 +148,7 @@ namespace libtorrent
 			m_block_pos = 0;
 		}
 
-		if (!m_web.supports_keepalive && error == 0)
+		if (m_web && !m_web->supports_keepalive && error == 0)
 		{
 			// if the web server doesn't support keepalive and we were
 			// disconnected as a graceful EOF, reconnect right away
@@ -246,9 +246,9 @@ namespace libtorrent
 			pr.piece = r.piece + request_offset / piece_size;
 			m_requests.push_back(pr);
 			size -= pr.length;
-			if (m_web.restart_request == m_requests.front())
+			if (m_web->restart_request == m_requests.front())
 			{
-				m_piece.swap(m_web.restart_piece);
+				m_piece.swap(m_web->restart_piece);
 				m_block_pos += m_piece.size();
 				peer_request& front = m_requests.front();
 				TORRENT_ASSERT(front.length > int(m_piece.size()));
@@ -266,7 +266,7 @@ namespace libtorrent
 				// just to keep the accounting straight for the upper layer.
 				// it doesn't know we just re-wrote the request
 				incoming_piece_fragment(m_piece.size());
-				m_web.restart_request.piece = -1;
+				m_web->restart_request.piece = -1;
 			}
 
 #if 0
@@ -564,7 +564,7 @@ namespace libtorrent
 				{
 					incoming_choke();
 					if (m_num_responses == 1)
-						m_web.supports_keepalive = false;
+						m_web->supports_keepalive = false;
 				}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -611,6 +611,7 @@ namespace libtorrent
 					{
 						// we should not try this server again.
 						t->remove_web_seed(this);
+						m_web = NULL;
 						disconnect(errors::missing_location, 2);
 #ifdef TORRENT_DEBUG
 						TORRENT_ASSERT(m_statistics.last_payload_downloaded()
@@ -643,6 +644,7 @@ namespace libtorrent
 						if (i == std::string::npos)
 						{
 							t->remove_web_seed(this);
+							m_web = NULL;
 							disconnect(errors::invalid_redirection, 2);
 #ifdef TORRENT_DEBUG
 							TORRENT_ASSERT(m_statistics.last_payload_downloaded()
@@ -653,8 +655,14 @@ namespace libtorrent
 						}
 						location.resize(i);
 					}
-					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
+					else
+					{
+						location = resolve_redirect_location(m_url, location);
+					}
+					t->add_web_seed(location, web_seed_entry::url_seed
+						, m_external_auth, m_extra_headers);
 					t->remove_web_seed(this);
+					m_web = NULL;
 					disconnect(errors::redirecting, 2);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
@@ -702,6 +710,7 @@ namespace libtorrent
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this);
+					m_web = NULL;
 					disconnect(errors::invalid_range);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
@@ -722,6 +731,7 @@ namespace libtorrent
 					m_statistics.received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this);
+					m_web = NULL;
 					disconnect(errors::no_content_length, 2);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
