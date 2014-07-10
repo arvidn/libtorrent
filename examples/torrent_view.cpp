@@ -336,23 +336,6 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		pos += snprintf(str + pos, sizeof(str) - pos, "%s", esc("0"));
 
 	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
-/*
-	// don't print the piece bar if we don't have any piece, or if we have all
-	if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
-	{
-		out += "     ";
-		out += piece_bar(s.pieces, terminal_width - 7);
-		out += "\n";
-		++lines_printed;
-		if (s.seed_mode)
-		{
-			out += "     ";
-			out += piece_bar(s.verified_pieces, terminal_width - 7);
-			out += "\n";
-			++lines_printed;
-		}
-	}
-*/
 
 	if (m_width + 1 < sizeof(str))
 		str[m_width + 1] = '\0';

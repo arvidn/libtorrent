@@ -23,6 +23,7 @@ struct session_view
 private:
 
 	int m_position;
+	int m_width;
 
 	// there are two sets of counters. the current one and the last one. This
 	// is used to calculate rates
@@ -42,8 +43,6 @@ private:
 	int m_unchoke_slots_idx;
 	int m_limiter_up_queue_idx;
 	int m_limiter_down_queue_idx;
-	int m_limiter_up_bytes_idx;
-	int m_limiter_down_bytes_idx;
 	int m_queued_writes_idx;
 	int m_queued_reads_idx;
 	int m_writes_cache_idx;
@@ -54,6 +53,11 @@ private:
 	int m_blocks_in_use_idx;
 	int m_blocks_written_idx;
 	int m_write_ops_idx;
+
+	int m_mfu_size_idx;
+	int m_mfu_ghost_idx;
+	int m_mru_size_idx;
+	int m_mru_ghost_idx;
 };
 
 #endif

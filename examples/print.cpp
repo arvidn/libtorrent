@@ -81,7 +81,7 @@ std::string color(std::string const& s, color_code c)
 }
 
 std::string const& progress_bar(int progress, int width, color_code c
-	, char fill, char bg, std::string caption)
+	, char fill, char bg, std::string caption, int flags)
 {
 	static std::string bar;
 	bar.clear();
@@ -108,8 +108,13 @@ std::string const& progress_bar(int progress, int width, color_code c
 		caption.resize(width, ' ');
 
 		char str[256];
-		snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[48;5;238m\x1b[37m%s\x1b[49;39m"
-			, c, tc, caption.substr(0, progress_chars).c_str(), caption.substr(progress_chars).c_str());
+		if (flags & progress_invert)
+			snprintf(str, sizeof(str), "\x1b[48;5;238m\x1b[37m%s\x1b[4%d;3%dm%s\x1b[49;39m"
+				, caption.substr(0, progress_chars).c_str(), c, tc
+				, caption.substr(progress_chars).c_str());
+		else
+			snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[48;5;238m\x1b[37m%s\x1b[49;39m"
+				, c, tc, caption.substr(0, progress_chars).c_str(), caption.substr(progress_chars).c_str());
 		bar = str;
 	}
 	return bar;
