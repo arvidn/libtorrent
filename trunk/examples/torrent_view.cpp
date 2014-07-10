@@ -131,28 +131,27 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> const& st)
 	else
 	{
 		int torrent_index = 0;
-		int lines_printed = header_size;
 		for (std::vector<lt::torrent_status const*>::iterator i
 			= m_filtered_handles.begin();
 			i != m_filtered_handles.end(); ++torrent_index)
 		{
-			if (torrent_index < m_scroll_position)
+			if (torrent_index < m_scroll_position
+				|| torrent_index >= m_scroll_position + m_height - header_size)
 			{
 				++i;
 				continue;
 			}
-			if (lines_printed >= m_height)
-				break;
 
 			lt::torrent_status const& s = **i;
+			++i;
+
 			if (!s.handle.is_valid())
 				continue;
-			++i;
 
 			if (updates.count(s.handle) == 0)
 				continue;
 
-			set_cursor_pos(0, torrent_index + header_size);
+			set_cursor_pos(0, header_size + torrent_index - m_scroll_position);
 			print_torrent(s, torrent_index == m_active_torrent);
 		}
 	}
@@ -168,6 +167,15 @@ void torrent_view::arrow_up()
 	if (m_filtered_handles.empty()) return;
 	if (m_active_torrent <= 0) return;
 
+	if (m_active_torrent - 1 < m_scroll_position)
+	{
+		--m_active_torrent;
+		m_scroll_position = m_active_torrent;
+		TORRENT_ASSERT(m_scroll_position >= 0);
+		render();
+		return;
+	}
+
 	set_cursor_pos(0, header_size + m_active_torrent - m_scroll_position);
 	print_torrent(*m_filtered_handles[m_active_torrent], false);
 	--m_active_torrent;
@@ -182,11 +190,21 @@ void torrent_view::arrow_down()
 	if (m_filtered_handles.empty()) return;
 	if (m_active_torrent >= int(m_filtered_handles.size()) - 1) return;
 
+	int bottom_pos = m_height - header_size - 1;
+	if (m_active_torrent - m_scroll_position + 1 > bottom_pos)
+	{
+		++m_active_torrent;
+		m_scroll_position = m_active_torrent - bottom_pos;
+		TORRENT_ASSERT(m_scroll_position >= 0);
+		render();
+		return;
+	}
+
 	set_cursor_pos(0, header_size + m_active_torrent - m_scroll_position);
 	print_torrent(*m_filtered_handles[m_active_torrent], false);
 
-	++m_active_torrent;
 	TORRENT_ASSERT(m_active_torrent >= 0);
+	++m_active_torrent;
 
 	set_cursor_pos(0, header_size + m_active_torrent - m_scroll_position);
 	print_torrent(*m_filtered_handles[m_active_torrent], true);
@@ -199,16 +217,6 @@ void torrent_view::render()
 
 	int lines_printed = header_size;
 
-	// handle scrolling down when moving the cursor
-	// below the fold
-	TORRENT_ASSERT(m_scroll_position >= 0);
-	if (m_active_torrent >= m_height - m_scroll_position)
-		m_scroll_position = m_active_torrent - m_height+ 1;
-	TORRENT_ASSERT(m_scroll_position >= 0);
-	if (m_active_torrent < m_scroll_position)
-		m_scroll_position = m_active_torrent;
-	TORRENT_ASSERT(m_scroll_position >= 0);
-
 	int torrent_index = 0;
 
 	for (std::vector<lt::torrent_status const*>::iterator i = m_filtered_handles.begin();
@@ -220,11 +228,7 @@ void torrent_view::render()
 			continue;
 		}
 		if (lines_printed >= m_height)
-		{
-			print("...\n");
-			++lines_printed;
 			break;
-		}
 
 		lt::torrent_status const& s = **i;
 		if (!s.handle.is_valid())
@@ -234,7 +238,7 @@ void torrent_view::render()
 		}
 		++i;
 
-		set_cursor_pos(0, torrent_index + header_size);
+		set_cursor_pos(0, torrent_index + header_size - m_scroll_position);
 		print_torrent(s, torrent_index == m_active_torrent);
 		++lines_printed;
 	}
@@ -384,6 +388,7 @@ bool torrent_view::show_torrent(lt::torrent_status const& st)
 // visible or filtered
 void torrent_view::update_filtered_torrents()
 {
+	m_scroll_position = 0;
 	m_filtered_handles.clear();
 	for (boost::unordered_set<lt::torrent_status>::iterator i = m_all_handles.begin()
 		, end(m_all_handles.end()); i != end; ++i)
