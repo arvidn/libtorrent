@@ -1195,6 +1195,9 @@ namespace libtorrent
 
 				if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
 				{
+					if (m_file_created.size() != files().num_files())
+						m_file_created.resize(files().num_files(), false);
+
 					TORRENT_ASSERT(int(m_file_created.size()) == files().num_files());
 					TORRENT_ASSERT(file_index < m_file_created.size());
 					if (m_file_created[file_index] == false)
