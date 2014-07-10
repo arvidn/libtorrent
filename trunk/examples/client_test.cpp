@@ -1815,6 +1815,8 @@ int main(int argc, char* argv[])
 		{
 			torrent_status const& s = view.get_active_torrent();
 
+			print(piece_bar(s.pieces, 126).c_str());
+
 			if ((print_downloads && s.state != torrent_status::seeding)
 				|| print_peers)
 				h.get_peer_info(peers);
@@ -1940,7 +1942,10 @@ int main(int argc, char* argv[])
 
 				out += "___________________________________\n";
 			}
-
+		}
+		else
+		{
+			print("\x1b[K");
 		}
 
 		if (print_log)
@@ -1952,6 +1957,9 @@ int main(int argc, char* argv[])
 				out += *i;
 			}
 		}
+
+		++pos;
+		set_cursor_pos(0, pos);
 
 		print(out.c_str());
 		fflush(stdout);

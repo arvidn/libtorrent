@@ -24,8 +24,10 @@ std::string add_suffix(float val, char const* suffix = 0);
 
 std::string color(std::string const& s, color_code c);
 
+enum { progress_invert = 1};
+
 std::string const& progress_bar(int progress, int width, color_code c = col_green
-	, char fill = '#', char bg = '-', std::string caption = "");
+	, char fill = '#', char bg = '-', std::string caption = "", int flags = 0);
 
 void set_cursor_pos(int x, int y);
 
