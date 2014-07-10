@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/file_pool.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
@@ -751,28 +752,38 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files, char cons
 	bencode(out, t.generate());
 }
 
-void generate_data(char const* path, int num_pieces, int piece_size)
+void generate_data(char const* path, torrent_info const& ti)
 {
-	FILE* f;
+	file_storage const& fs = ti.files();
 
-	if ( (f = fopen(path, "w+")) == 0)
-	{
-		fprintf(stderr, "Could not open file '%s' for writing: %s\n", path, strerror(errno));
-		exit(2);
-	}
+	file_pool fp;
+
+	storage_params params;
+	params.files = &const_cast<file_storage&>(fs);
+	params.mapped_files = NULL;
+	params.path = path;
+	params.pool = &fp;
+	params.mode = storage_mode_sparse;
+
+	boost::scoped_ptr<storage_interface> st(default_storage_constructor(params));
+
+	storage_error error;
+	st->initialize(error);
 
 	boost::uint32_t piece[0x4000 / 4];
-	for (int i = 0; i < num_pieces; ++i)
+	for (int i = 0; i < ti.num_pieces(); ++i)
 	{
-		for (int j = 0; j < piece_size; j += 0x4000)
+		for (int j = 0; j < ti.piece_size(i); j += 0x4000)
 		{
 			generate_block(piece, i, j, 0x4000);
-			fwrite(piece, 0x4000, 1, f);
+			file::iovec_t b = { piece, 0x4000};
+			storage_error error;
+			st->writev(&b, 1, i, j, 0, error);
+			if (error)
+				fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
 		}
-		if (i & 1) fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(num_pieces));
+		if (i & 1) fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(ti.num_pieces()));
 	}
-
-	fclose(f);
 }
 
 void io_thread(io_service* ios)
@@ -876,7 +887,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
 			return 1;
 		}
-		generate_data(data_path, ti.num_pieces(), ti.piece_length());
+		generate_data(data_path, ti);
 		return 0;
 	}
 	else if (strcmp(command, "gen-test-torrents") == 0)
