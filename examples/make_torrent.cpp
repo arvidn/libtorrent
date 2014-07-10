@@ -248,7 +248,6 @@ int main(int argc, char* argv[])
 		}
 
 		file_storage fs;
-		file_pool fp;
 		std::string full_path = libtorrent::complete(argv[1]);
 
 		add_files(fs, full_path, file_filter, flags);
