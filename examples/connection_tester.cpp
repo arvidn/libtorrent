@@ -567,7 +567,9 @@ void print_usage()
 		"    options for this command:\n"
 		"    -s <size>          the size of the torrent in megabytes\n"
 		"    -n <num-files>     the number of files in the test torrent\n"
-		"    -t <file>          the file to save the .torrent file to\n\n"
+		"    -t <file>          the file to save the .torrent file to\n"
+		"    -T <name>          the name of the torrent (and directory\n"
+		"                       its files are saved in)\n\n"
 		"  gen-data             generate the data file(s) for the test torrent\n"
 		"    options for this command:\n"
 		"    -t <file>          the torrent file that was previously generated\n"
@@ -613,7 +615,8 @@ void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece
 }
 
 // size is in megabytes
-void generate_torrent(std::vector<char>& buf, int size, int num_files)
+void generate_torrent(std::vector<char>& buf, int size, int num_files
+	, char const* torrent_name)
 {
 	file_storage fs;
 	// 1 MiB piece size
@@ -627,7 +630,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files)
 	while (s > 0)
 	{
 		char b[100];
-		snprintf(b, sizeof(b), "t/stress_test%d", i);
+		snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
 		++i;
 		fs.add_file(b, (std::min)(s, size_type(file_size)));
 		s -= file_size;
@@ -696,6 +699,7 @@ int main(int argc, char* argv[])
 	int num_connections = 50;
 	char const* destination_ip = "127.0.0.1";
 	int destination_port = 6881;
+	char const* out_torrent_name = "t";
 
 	argv += 2;
 	argc -= 2;
@@ -738,6 +742,7 @@ int main(int argc, char* argv[])
 			case 'c': num_connections = atoi(optarg); break;
 			case 'p': destination_port = atoi(optarg); break;
 			case 'd': destination_ip = optarg; break;
+			case 'T': out_torrent_name = optarg; break;
 			default: fprintf(stderr, "unknown option: %s\n", optname);
 		}
 	}
@@ -745,7 +750,8 @@ int main(int argc, char* argv[])
 	if (strcmp(command, "gen-torrent") == 0)
 	{
 		std::vector<char> tmp;
-		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1);
+		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1
+			, out_torrent_name);
 
 		FILE* output = stdout;
 		if (strcmp("-", torrent_file) != 0)
