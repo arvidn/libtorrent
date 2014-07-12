@@ -7,7 +7,7 @@ feature pam : off on : composite ;
 
 feature use-boost : system source : composite ;
 
-use-project /torrent : ../libtorrent_aio ;
+use-project /torrent : ../libtorrent_trunk ;
 lib sqlite : : <name>sqlite3 <search>/opt/local/lib : <include>/opt/local/include ;
 lib cdk : : <name>cdk <search>/opt/local/lib : <include>/opt/local/include ;
 lib curses : : <name>curses <search>/opt/local/lib : <include>/opt/local/include ;
