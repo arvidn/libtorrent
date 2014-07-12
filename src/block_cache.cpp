@@ -1147,6 +1147,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	INVARIANT_CHECK;
 
 	TORRENT_ASSERT(pe);
+	TORRENT_ASSERT(pe->in_use);
 	TORRENT_PIECE_ASSERT(iov_len > 0, pe);
 
 #if TORRENT_USE_ASSERTS
@@ -1158,6 +1159,8 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 #endif
 
 	cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
+
+	TORRENT_ASSERT(pe->in_use);
 
 	for (int i = 0; i < iov_len; ++i, ++block)
 	{
