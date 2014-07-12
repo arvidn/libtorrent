@@ -279,7 +279,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		size -= pr.length;
 	}
 
-	int proxy_type = m_ses.settings().get_int(settings_pack::proxy_type);
+	int proxy_type = m_settings.get_int(settings_pack::proxy_type);
 	bool using_proxy = (proxy_type == settings_pack::http
 		|| proxy_type == settings_pack::http_pw) && !m_ssl;
 
@@ -290,7 +290,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		// assumed to be encoded in the torrent file
 		request += using_proxy ? m_url : m_path;
 		request += " HTTP/1.1\r\n";
-		add_headers(request, m_ses.settings(), using_proxy);
+		add_headers(request, m_settings, using_proxy);
 		request += "\r\nRange: bytes=";
 		request += to_string(size_type(req.piece) * info.piece_length()
 			+ req.start).elems;
@@ -347,7 +347,7 @@ void web_peer_connection::write_request(peer_request const& r)
 				request += escape_path(path.c_str(), path.length());
 			}
 			request += " HTTP/1.1\r\n";
-			add_headers(request, m_ses.settings(), using_proxy);
+			add_headers(request, m_settings, using_proxy);
 			request += "\r\nRange: bytes=";
 			request += to_string(f.offset).elems;
 			request += "-";
@@ -593,7 +593,7 @@ void web_peer_connection::on_receive(error_code const& error
 				// associated with the file we just requested. Only
 				// when it doesn't have any of the file do the following
 				int retry_time = atoi(m_parser.header("retry-after").c_str());
-				if (retry_time <= 0) retry_time = m_ses.settings().get_int(settings_pack::urlseed_wait_retry);
+				if (retry_time <= 0) retry_time = m_settings.get_int(settings_pack::urlseed_wait_retry);
 				// temporarily unavailable, retry later
 				t->retry_web_seed(this, retry_time);
 				std::string error_msg = to_string(m_parser.status_code()).elems

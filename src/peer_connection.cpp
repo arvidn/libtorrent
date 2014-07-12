@@ -3892,7 +3892,6 @@ namespace libtorrent
 	void peer_connection::on_connect_timeout()
 	{
 		m_queued_for_connection = false;
-		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -3977,8 +3976,6 @@ namespace libtorrent
 	// 2 protocol error (client sent something invalid)
 	void peer_connection::disconnect(error_code const& ec, operation_t op, int error)
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
-
 #if TORRENT_USE_ASSERTS
 		m_disconnect_started = true;
 #endif
@@ -6668,7 +6665,7 @@ namespace libtorrent
 		}
 
 		if (!m_disconnect_started && m_initialized
-			&& m_ses.settings().get_bool(settings_pack::close_redundant_connections))
+			&& m_settings.get_bool(settings_pack::close_redundant_connections))
 		{
 			// none of this matters if we're disconnecting anyway
 			if (t->is_upload_only() && !m_need_interest_update)
