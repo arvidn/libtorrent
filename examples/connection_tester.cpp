@@ -665,7 +665,9 @@ void print_usage()
 		"    options for this command:\n"
 		"    -s <size>          the size of the torrent in megabytes\n"
 		"    -n <num-files>     the number of files in the test torrent\n"
-		"    -t <file>          the file to save the .torrent file to\n\n"
+		"    -t <file>          the file to save the .torrent file to\n"
+		"    -T <name>          the name of the torrent (and directory\n"
+		"                       its files are saved in)\n\n"
 		"  gen-data             generate the data file(s) for the test torrent\n"
 		"    options for this command:\n"
 		"    -t <file>          the torrent file that was previously generated\n"
@@ -712,7 +714,8 @@ void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece
 }
 
 // size is in megabytes
-void generate_torrent(std::vector<char>& buf, int size, int num_files, char const* name)
+void generate_torrent(std::vector<char>& buf, int size, int num_files
+	, char const* torrent_name)
 {
 	file_storage fs;
 	// 1 MiB piece size
@@ -726,7 +729,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files, char cons
 	while (s > 0)
 	{
 		char b[100];
-		snprintf(b, sizeof(b), "%s/stress_test%d", name, i);
+		snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
 		++i;
 		fs.add_file(b, (std::min)(s, size_type(file_size)));
 		s -= file_size;
@@ -860,7 +863,8 @@ int main(int argc, char* argv[])
 		std::string name = filename(torrent_file);
 		name = name.substr(0, name.find_last_of('.'));
 		printf("generating torrent: %s\n", name.c_str());
-		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1, name.c_str());
+		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1
+			, name.c_str());
 
 		FILE* output = stdout;
 		if (strcmp("-", torrent_file) != 0)

@@ -162,8 +162,22 @@ if(UNIX)
 	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 endif()
 
+if (build_tests)
+	# this will make some internal functions available in the
+	# DLL interface, for the tests to access
+	add_definitions(-DTORRENT_EXPORT_EXTRA)
+endif (build_tests)
+
 if (encryption)
-	list(APPEND sources pe_crypto)
+	list(APPEND sources pe_crypto asio_ssl)
+	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
+		FIND_PACKAGE(OpenSSL REQUIRED)
+	endif()
+	add_definitions(-DTORRENT_USE_OPENSSL)
+	include_directories(${OPENSSL_INCLUDE_DIR})
+else()
+	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
+	list(APPEND sources sha1)
 endif (encryption)
 
 if (logging)
@@ -239,16 +253,7 @@ if (WIN32)
 endif()
 
 if (encryption)
-	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
-		FIND_PACKAGE(OpenSSL REQUIRED)
-	endif()
-	add_definitions(-DTORRENT_USE_OPENSSL)
-	list(APPEND sources asio_ssl)
-	include_directories(${OPENSSL_INCLUDE_DIR})
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
-else()
-	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
-	list(APPEND sources sha1)
 endif()
 
 if (NOT pool-allocators)
@@ -355,8 +360,10 @@ endif()
 
 # === build tests ===
 if(build_tests)
-	FILE(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "tests/*.cpp")
-	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp)
+	FILE(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
+	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp
+		test/dht_server.cpp test/udp_tracker.cpp test/peer_server.cpp
+		test/web_seed_suite.cpp)
 	enable_testing()
 
 	foreach(s ${tests})
@@ -366,9 +373,9 @@ if(build_tests)
 		add_test(${sn} ${s})
 	endforeach(s)
 
-	add_executable(test_upnp test/test_upnp.cpp)
-	target_link_libraries(test_upnp torrent-rasterbar)
+#	add_executable(test_upnp test/test_upnp.cpp)
+#	target_link_libraries(test_upnp torrent-rasterbar)
 
-	add_executable(test_natpmp test/test_natpmp.cpp)
-	target_link_libraries(test_natpmp torrent-rasterbar)
+#	add_executable(test_natpmp test/test_natpmp.cpp)
+#	target_link_libraries(test_natpmp torrent-rasterbar)
 endif()
