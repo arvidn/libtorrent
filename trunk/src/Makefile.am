@@ -17,16 +17,16 @@ KADEMLIA_SOURCES = \
   kademlia/get_peers.cpp        \
   kademlia/get_item.cpp         \
   kademlia/item.cpp             \
-  ../ed25519/src/add_scalar.c   \
-  ../ed25519/src/fe.c           \
-  ../ed25519/src/ge.c           \
-  ../ed25519/src/key_exchange.c \
-  ../ed25519/src/keypair.c      \
-  ../ed25519/src/sc.c           \
-  ../ed25519/src/seed.c         \
-  ../ed25519/src/sha512.c       \
-  ../ed25519/src/sign.c         \
-  ../ed25519/src/verify.c
+  ../ed25519/src/add_scalar.cpp \
+  ../ed25519/src/fe.cpp         \
+  ../ed25519/src/ge.cpp         \
+  ../ed25519/src/key_exchange.cpp \
+  ../ed25519/src/keypair.cpp    \
+  ../ed25519/src/sc.cpp         \
+  ../ed25519/src/seed.cpp       \
+  ../ed25519/src/sha512.cpp     \
+  ../ed25519/src/sign.cpp       \
+  ../ed25519/src/verify.cpp
 endif
 
 if WITH_SHIPPED_GEOIP

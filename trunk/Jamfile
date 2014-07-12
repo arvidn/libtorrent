@@ -713,8 +713,8 @@ lib torrent
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 
-	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).c
-	<dht>logging:<source>ed25519/src/$(ED25519_SOURCES).c
+	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
+	<dht>logging:<source>ed25519/src/$(ED25519_SOURCES).cpp
 
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)

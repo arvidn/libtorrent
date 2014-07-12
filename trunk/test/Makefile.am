@@ -128,17 +128,7 @@ libtest_la_SOURCES = main.cpp \
   dht_server.cpp \
   udp_tracker.cpp \
   peer_server.cpp \
-  web_seed_suite.cpp \
-  ../ed25519/src/add_scalar.c   \
-  ../ed25519/src/fe.c           \
-  ../ed25519/src/ge.c           \
-  ../ed25519/src/key_exchange.c \
-  ../ed25519/src/keypair.c      \
-  ../ed25519/src/sc.c           \
-  ../ed25519/src/seed.c         \
-  ../ed25519/src/sha512.c       \
-  ../ed25519/src/sign.c         \
-  ../ed25519/src/verify.c
+  web_seed_suite.cpp
 
 test_bitfield_SOURCES = test_bitfield.cpp
 test_connection_queue_SOURCES = test_connection_queue.cpp
