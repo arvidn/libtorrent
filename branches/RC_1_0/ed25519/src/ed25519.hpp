@@ -1,7 +1,5 @@
-#ifndef ED25519_H
-#define ED25519_H
-
-#include <stddef.h>
+#ifndef ED25519_HPP
+#define ED25519_HPP
 
 #include "libtorrent/config.hpp" // for TORRENT_EXPORT
 
@@ -15,9 +13,7 @@ enum
 	ed25519_shared_secret_size = 32
 };
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 #ifndef ED25519_NO_SEED
 int TORRENT_EXPORT ed25519_create_seed(unsigned char *seed);
@@ -29,9 +25,7 @@ int TORRENT_EXPORT ed25519_verify(const unsigned char *signature, const unsigned
 void TORRENT_EXPORT ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar);
 void TORRENT_EXPORT ed25519_key_exchange(unsigned char *shared_secret, const unsigned char *public_key, const unsigned char *private_key);
 
-
-#ifdef __cplusplus
 }
-#endif
 
-#endif
+#endif // ED25519_HPP
+

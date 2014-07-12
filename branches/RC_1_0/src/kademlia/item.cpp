@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/bencode.hpp>
 
-#include "ed25519.h"
+#include "ed25519.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/lazy_entry.hpp"
