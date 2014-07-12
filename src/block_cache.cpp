@@ -332,6 +332,9 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 // this can be pretty expensive
 //	INVARIANT_CHECK;
 
+	TORRENT_ASSERT(p);
+	TORRENT_ASSERT(p->in_use);
+
 	// move the piece into this queue. Whenever we have a cahe
 	// hit, we move the piece into the lru2 queue (i.e. the most
 	// frequently used piece). However, we only do that if the

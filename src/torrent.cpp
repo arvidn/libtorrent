@@ -1741,11 +1741,13 @@ namespace libtorrent
 			m_connections_initialized = true;
 			// all peer connections have to initialize themselves now that the metadata
 			// is available
-			for (torrent::peer_iterator i = m_connections.begin();
-				i != m_connections.end();)
+			// copy the peer list since peers may disconnect and invalidate
+			// m_connections as we initialize them
+			std::vector<peer_connection*> peers = m_connections;
+			for (torrent::peer_iterator i = peers.begin();
+				i != peers.end(); ++i)
 			{
 				peer_connection* pc = *i;
-				++i;
 				if (pc->is_disconnecting()) continue;
 				pc->on_metadata_impl();
 				if (pc->is_disconnecting()) continue;

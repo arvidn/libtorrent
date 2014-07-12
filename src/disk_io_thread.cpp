@@ -2307,6 +2307,7 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe)
 		{
+			TORRENT_ASSERT(pe->in_use);
 #if TORRENT_USE_ASSERTS
 			pe->piece_log.push_back(piece_log_t(j->action));
 #endif
