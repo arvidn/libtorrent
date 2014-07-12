@@ -326,7 +326,10 @@ namespace libtorrent
 			m_sequential_download = true;
 
 		if (p.flags & add_torrent_params::flag_super_seeding)
+		{
 			m_super_seeding = true;
+			m_need_save_resume_data = true;
+		}
 
 		set_max_uploads(p.max_uploads, false);
 		set_max_connections(p.max_connections, false);
@@ -710,6 +713,8 @@ namespace libtorrent
 		m_num_verified = 0;
 		m_verified.clear();
 		m_verifying.clear();
+
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::verified(int piece)
@@ -3092,6 +3097,9 @@ namespace libtorrent
 		m_complete = complete;
 		m_incomplete = incomplete;
 		m_downloaded = downloaded;
+
+		// these numbers are cached in the resume data
+		m_need_save_resume_data = true;
 	}
  
 	void torrent::tracker_response(
@@ -4650,6 +4658,7 @@ namespace libtorrent
 		if (on == m_super_seeding) return;
 
 		m_super_seeding = on;
+		m_need_save_resume_data = true;
 
 		if (m_super_seeding) return;
 
@@ -7988,7 +7997,11 @@ namespace libtorrent
 		if (!is_seed())
 		{
 			// turn off super seeding if we're not a seed
-			if (m_super_seeding) m_super_seeding = false;
+			if (m_super_seeding)
+			{
+				m_super_seeding = false;
+				m_need_save_resume_data = true;
+			}
 
 			// if we just finished checking and we're not a seed, we are
 			// likely to be unpaused
@@ -8997,6 +9010,7 @@ namespace libtorrent
 		// don't add duplicates
 		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
 		m_web_seeds.push_back(ent);
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type
@@ -9006,6 +9020,7 @@ namespace libtorrent
 		// don't add duplicates
 		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
 		m_web_seeds.push_back(ent);
+		m_need_save_resume_data = true;
 	}
 	
 	void torrent::set_allow_peers(bool b, bool graceful)
@@ -9434,6 +9449,10 @@ namespace libtorrent
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval_ms);
+
+		// these counters are saved in the resume data, since they updated
+		// we need to save the resume data too
+		m_need_save_resume_data = true;
 
 		// if the rate is 0, there's no update because of network transfers
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
@@ -10356,6 +10375,7 @@ namespace libtorrent
 		if (has_picker()) picker().clear_peer(&i->peer_info);
 		m_web_seeds.erase(i);
 		update_want_tick();
+		m_need_save_resume_data = true;
 	}
 
 	void torrent::retry_web_seed(peer_connection* p, int retry)
