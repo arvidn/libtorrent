@@ -12,6 +12,10 @@
 #include "fixedint.h"
 #include "sha512.h"
 
+#ifndef UINT64_C
+#define UINT64_C(x) x ## LL
+#endif
+
 /* the K array */
 static const uint64_t K[80] = {
     UINT64_C(0x428a2f98d728ae22), UINT64_C(0x7137449123ef65cd), 
