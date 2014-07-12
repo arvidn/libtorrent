@@ -162,7 +162,7 @@ namespace libtorrent
 			size -= pr.length;
 		}
 
-		int proxy_type = m_ses.settings().get_int(settings_pack::proxy_type);
+		int proxy_type = m_settings.get_int(settings_pack::proxy_type);
 		bool using_proxy = (proxy_type == settings_pack::http
 			|| proxy_type == settings_pack::http_pw) && !m_ssl;
 
@@ -185,7 +185,7 @@ namespace libtorrent
 		}
 
 		request += " HTTP/1.1\r\n";
-		add_headers(request, m_ses.settings(), using_proxy);
+		add_headers(request, m_settings, using_proxy);
 		request += "\r\n\r\n";
 		m_first_request = false;
 

@@ -762,7 +762,7 @@ namespace libtorrent
 		}
 
 		// TODO: 2 temporary hack until the stats counters are moved out
-		// from the session_interface.
+		// from the session_interface. This is used by ut_pex and ut_metadata.
 		aux::session_interface& ses() { return m_ses; }
 
 	protected:
