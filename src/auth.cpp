@@ -190,7 +190,7 @@ void auth::save_accounts(std::string const& filename, error_code& ec) const
 	FILE* f = fopen(filename.c_str(), "w+");
 	if (f == NULL)
 	{
-		ec = error_code(errno, get_system_category());
+		ec = error_code(errno, system_category());
 		return;
 	}
 
@@ -218,7 +218,7 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 	FILE* f = fopen(filename.c_str(), "r");
 	if (f == NULL)
 	{
-		ec = error_code(errno, get_system_category());
+		ec = error_code(errno, system_category());
 		return;
 	}
 

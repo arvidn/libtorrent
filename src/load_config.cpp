@@ -53,7 +53,7 @@ void load_config(std::string const& config_file, session* ses, error_code& ec)
 	struct stat st;
 	if (stat(config_file.c_str(), &st) < 0)
 	{
-		ec = error_code(errno, get_system_category());
+		ec = error_code(errno, system_category());
 		return;
 	}
 
@@ -64,7 +64,7 @@ void load_config(std::string const& config_file, session* ses, error_code& ec)
 	FILE* f = fopen(config_file.c_str(), "r");
 	if (f == NULL)
 	{
-		ec = error_code(errno, get_system_category());
+		ec = error_code(errno, system_category());
 		return;
 	}
 
