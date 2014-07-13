@@ -149,16 +149,16 @@ namespace libtorrent
 
 	struct peer_connection_hot_members
 	{
+		// if tor is set, this is an outgoing connection
 		peer_connection_hot_members(
 			boost::weak_ptr<torrent> t
 			, aux::session_interface& ses
-			, aux::session_settings const& sett
-			, bool outgoing)
+			, aux::session_settings const& sett)
 			: m_torrent(t)
 			, m_ses(ses)
 			, m_settings(sett)
 			, m_disconnecting(false)
-			, m_connecting(outgoing)
+			, m_connecting(!t.expired())
 			, m_endgame_mode(false)
 			, m_snubbed(false)
 			, m_interesting(false)
@@ -283,14 +283,14 @@ namespace libtorrent
 		peer_connection(
 			aux::session_interface& ses
 			, aux::session_settings const& sett
+			, counters& stats_counters
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread
 			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, torrent_peer* peerinfo
-			, bool outgoing = true);
+			, torrent_peer* peerinfo);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
@@ -761,9 +761,7 @@ namespace libtorrent
 			return shared_from_this();
 		}
 
-		// TODO: 2 temporary hack until the stats counters are moved out
-		// from the session_interface. This is used by ut_pex and ut_metadata.
-		aux::session_interface& ses() { return m_ses; }
+		counters& stats_counters() const { return m_counters; }
 
 	protected:
 
@@ -890,6 +888,9 @@ namespace libtorrent
 		// be 0, in case the connection is incoming
 		// and hasn't been added to a torrent yet.
 		torrent_peer* m_peer_info;
+
+		// stats counters
+		counters& m_counters;
 
 		// the number of pieces this peer
 		// has. Must be the same as

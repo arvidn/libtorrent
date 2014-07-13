@@ -55,12 +55,13 @@ namespace libtorrent
 	http_seed_connection::http_seed_connection(
 		aux::session_interface& ses
 		, aux::session_settings const& sett
+		, counters& stats_counters
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, web_seed_entry& web)
-		: web_connection_base(ses, sett, allocator, disk_thread
+		: web_connection_base(ses, sett, stats_counters, allocator, disk_thread
 			, t, s, web)
 		, m_url(web.url)
 		, m_response_left(0)

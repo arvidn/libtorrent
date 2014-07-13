@@ -2046,7 +2046,7 @@ namespace aux {
 		if (m_torrent_lru.size() > loaded_limit)
 		{
 			// just evict the torrent
-			inc_stats_counter(counters::torrent_evicted_counter);
+			m_stats_counters.inc_stats_counter(counters::torrent_evicted_counter);
 			TORRENT_ASSERT(t->is_pinned() == false);
 			t->unload();
 			m_torrent_lru.erase(t);
@@ -2090,7 +2090,7 @@ namespace aux {
 				i = (torrent*)i->next;
 				if (i == NULL) break;
 			}
-			inc_stats_counter(counters::torrent_evicted_counter);
+			m_stats_counters.inc_stats_counter(counters::torrent_evicted_counter);
 			TORRENT_ASSERT(i->is_pinned() == false);
 			i->unload();
 			m_torrent_lru.erase(i);
@@ -2785,7 +2785,7 @@ retry:
 	bool session_impl::incoming_packet(error_code const& ec
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
-		inc_stats_counter(counters::on_udp_counter);
+		m_stats_counters.inc_stats_counter(counters::on_udp_counter);
 
 		if (ec)
 		{
@@ -2838,7 +2838,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_accept_connection");
 #endif
-		inc_stats_counter(counters::on_accept_counter);
+		m_stats_counters.inc_stats_counter(counters::on_accept_counter);
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
@@ -3172,7 +3172,8 @@ retry:
 
 		boost::shared_ptr<peer_connection> c
 			= boost::make_shared<bt_peer_connection>(boost::ref(*this), m_settings
-				, boost::ref(*this), boost::ref(m_disk_thread), s, endp, (torrent_peer*)0
+				, boost::ref(m_stats_counters), boost::ref(*this)
+				, boost::ref(m_disk_thread), s, endp, (torrent_peer*)0
 				, get_peer_id());
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
@@ -3420,7 +3421,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_tick");
 #endif
-		inc_stats_counter(counters::on_tick_counter);
+		m_stats_counters.inc_stats_counter(counters::on_tick_counter);
 
 		TORRENT_ASSERT(is_single_thread());
 
@@ -4584,7 +4585,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_lsd_announce");
 #endif
-		inc_stats_counter(counters::on_lsd_counter);
+		m_stats_counters.inc_stats_counter(counters::on_lsd_counter);
 		TORRENT_ASSERT(is_single_thread());
 		if (e) return;
 
@@ -5011,7 +5012,7 @@ retry:
 					--max_connections;
 					--free_slots;
 					steps_since_last_connect = 0;
-					inc_stats_counter(counters::connection_attempts);
+					m_stats_counters.inc_stats_counter(counters::connection_attempts);
 				}
 			}
 			TORRENT_CATCH(std::bad_alloc&)
@@ -5285,7 +5286,7 @@ retry:
 
 	void session_impl::do_delayed_uncork()
 	{
-		inc_stats_counter(counters::on_disk_counter);
+		m_stats_counters.inc_stats_counter(counters::on_disk_counter);
 		TORRENT_ASSERT(is_single_thread());
 		for (std::vector<peer_connection*>::iterator i = m_delayed_uncorks.begin()
 			, end(m_delayed_uncorks.end()); i != end; ++i)
@@ -6428,7 +6429,7 @@ retry:
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
-		inc_stats_counter(counters::on_lsd_peer_counter);
+		m_stats_counters.inc_stats_counter(counters::on_lsd_peer_counter);
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;

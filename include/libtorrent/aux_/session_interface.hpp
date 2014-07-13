@@ -335,7 +335,6 @@ namespace libtorrent { namespace aux
 		virtual std::ofstream& buffer_usage_logger() = 0;
 #endif
 
-		virtual boost::uint64_t inc_stats_counter(int c, int value = 1) = 0;
 		virtual counters& stats_counters() = 0;
 		virtual void received_buffer(int size) = 0;
 		virtual void sent_buffer(int size) = 0;
