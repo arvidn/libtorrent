@@ -2403,11 +2403,10 @@ namespace libtorrent
 #endif
 			m_ses.inc_stats_counter(counters::choked_piece_requests);
 			write_reject_request(r);
-			time_duration since_choked = time_now() - m_last_choke;
 
 			// allow peers to send request up to 2 seconds after getting choked,
 			// then disconnect them
-			if (total_milliseconds(since_choked) > 2000
+			if (time_now() - seconds(2) > m_last_choke
 				&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
 			{
 				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
