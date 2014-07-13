@@ -1156,10 +1156,6 @@ namespace libtorrent
 			// to the next torrent to auto-scrape
 			int m_next_scrape_torrent;
 
-			// this is the round-robin cursor for peers that
-			// get to download again after the disk has been
-			// blocked
-			connection_map::iterator m_next_disk_peer;
 #if TORRENT_USE_INVARIANT_CHECKS
 			void check_invariant() const;
 #endif

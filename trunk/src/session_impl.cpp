@@ -583,7 +583,6 @@ namespace aux {
 		m_next_downloading_connect_torrent = 0;
 		m_next_finished_connect_torrent = 0;
 		m_next_scrape_torrent = 0;
-		m_next_disk_peer = m_connections.begin();
 
 		m_tcp_mapping[0] = -1;
 		m_tcp_mapping[1] = -1;
@@ -3190,8 +3189,6 @@ retry:
 			TORRENT_ASSERT(!c->m_in_constructor);
 			m_connections.insert(c);
 			c->start();
-			// update the next disk peer round-robin cursor
-			if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 		}
 	}
 
@@ -3259,9 +3256,7 @@ retry:
 
 		connection_map::iterator i = m_connections.find(sp);
 		// make sure the next disk peer round-robin cursor stays valid
-		if (m_next_disk_peer == i) ++m_next_disk_peer;
 		if (i != m_connections.end()) m_connections.erase(i);
-		if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 	}
 
 	// implements alert_dispatcher
