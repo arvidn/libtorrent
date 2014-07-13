@@ -94,7 +94,7 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	m_start_time = time(NULL);
 	m_version = 1;
 
-	boost::uint64_t seed = total_microseconds(time_now_hires() - min_time());
+	boost::uint64_t seed = time_now_hires().time_since_epoch().count();
 	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
 
 	m_params_model.save_path = ".";
