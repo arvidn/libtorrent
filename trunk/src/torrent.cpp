@@ -234,9 +234,9 @@ namespace libtorrent
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
 		if (m_pinned)
-			m_ses.inc_stats_counter(counters::num_pinned_torrents);
+			inc_stats_counter(counters::num_pinned_torrents);
 
-		m_ses.inc_stats_counter(counters::num_loaded_torrents);
+		inc_stats_counter(counters::num_loaded_torrents);
 
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
@@ -262,7 +262,7 @@ namespace libtorrent
 #endif
 		if (!m_apply_ip_filter)
 		{
-			m_ses.inc_stats_counter(counters::non_filter_torrents);
+			inc_stats_counter(counters::non_filter_torrents);
 		}
 
 		if (!p.ti || !p.ti->is_valid())
@@ -366,18 +366,21 @@ namespace libtorrent
 		if (!valid_metadata())
 		{
 			if (!m_pinned && m_refcount == 0)
-				m_ses.inc_stats_counter(counters::num_pinned_torrents);
+				inc_stats_counter(counters::num_pinned_torrents);
 
 			m_pinned = true;
 		}
 		else
 		{
-			m_ses.inc_stats_counter(counters::num_total_pieces_added
+			inc_stats_counter(counters::num_total_pieces_added
 				, m_torrent_file->num_pieces());
 		}
 
 		update_gauge();
 	}
+
+	void torrent::inc_stats_counter(int c, int value)
+	{ m_ses.stats_counters().inc_stats_counter(c, value); }
 
 #if 0
 	
@@ -565,9 +568,9 @@ namespace libtorrent
 		if (new_gauge_state == m_current_gauge_state) return;
 
 		if (m_current_gauge_state != no_gauge_state)
-			m_ses.inc_stats_counter(m_current_gauge_state + counters::num_checking_torrents, -1);
+			inc_stats_counter(m_current_gauge_state + counters::num_checking_torrents, -1);
 		if (new_gauge_state != no_gauge_state)
-			m_ses.inc_stats_counter(new_gauge_state + counters::num_checking_torrents, 1);
+			inc_stats_counter(new_gauge_state + counters::num_checking_torrents, 1);
 
 		m_current_gauge_state = new_gauge_state;
 	}
@@ -802,11 +805,11 @@ namespace libtorrent
 		if (b == m_apply_ip_filter) return;
 		if (b)
 		{
-			m_ses.inc_stats_counter(counters::non_filter_torrents, -1);
+			inc_stats_counter(counters::non_filter_torrents, -1);
 		}
 		else
 		{
-			m_ses.inc_stats_counter(counters::non_filter_torrents);
+			inc_stats_counter(counters::non_filter_torrents);
 		}
 		m_apply_ip_filter = b;
 		ip_filter_updated();
@@ -860,10 +863,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_refcount == 0);
 
 		if (m_pinned)
-			m_ses.inc_stats_counter(counters::num_pinned_torrents, -1);
+			inc_stats_counter(counters::num_pinned_torrents, -1);
 
 		if (is_loaded())
-			m_ses.inc_stats_counter(counters::num_loaded_torrents, -1);
+			inc_stats_counter(counters::num_loaded_torrents, -1);
 
 		// The invariant can't be maintained here, since the torrent
 		// is being destructed, all weak references to it have been
@@ -1164,7 +1167,7 @@ namespace libtorrent
 			if (!m_abort)
 			{
 				if (request_a_block(*this, *p))
-					m_ses.inc_stats_counter(counters::hash_fail_piece_picks);
+					inc_stats_counter(counters::hash_fail_piece_picks);
 				p->send_block_requests();
 			}
 		}
@@ -1931,7 +1934,7 @@ namespace libtorrent
 		if (m_refcount == 0)
 		{
 			if (!m_pinned)
-				m_ses.inc_stats_counter(counters::num_pinned_torrents, -1);
+				inc_stats_counter(counters::num_pinned_torrents, -1);
 
 			if (m_should_be_loaded == false)
 				unload();
@@ -1944,7 +1947,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_loaded());
 		++m_refcount;
 		if (!m_pinned && m_refcount == 1)
-			m_ses.inc_stats_counter(counters::num_pinned_torrents);
+			inc_stats_counter(counters::num_pinned_torrents);
 	}
 
 	void torrent::set_pinned(bool p)
@@ -1954,7 +1957,7 @@ namespace libtorrent
 		m_pinned = p;
 
 		if (m_refcount == 0)
-			m_ses.inc_stats_counter(counters::num_pinned_torrents, p ? 1 : -1);
+			inc_stats_counter(counters::num_pinned_torrents, p ? 1 : -1);
 
 		// if the torrent was just un-pinned, we need to insert
 		// it into the LRU
@@ -1991,7 +1994,7 @@ namespace libtorrent
 #endif
 */
 
-		m_ses.inc_stats_counter(counters::num_loaded_torrents);
+		inc_stats_counter(counters::num_loaded_torrents);
 
 		construct_storage();
 
@@ -2039,7 +2042,7 @@ namespace libtorrent
 			m_torrent_file = boost::make_shared<torrent_info>(*m_torrent_file);
 
 		m_torrent_file->unload();
-		m_ses.inc_stats_counter(counters::num_loaded_torrents, -1);
+		inc_stats_counter(counters::num_loaded_torrents, -1);
 
 		m_storage.reset();
 
@@ -2256,7 +2259,7 @@ namespace libtorrent
 						{
 							need_picker();
 							m_picker->we_have(i);
-							m_ses.inc_stats_counter(counters::num_piece_passed);
+							inc_stats_counter(counters::num_piece_passed);
 							update_gauge();
 							we_have(i);
 						}
@@ -2276,7 +2279,7 @@ namespace libtorrent
 								need_picker();
 								m_picker->we_have(piece);
 								update_gauge();
-								m_ses.inc_stats_counter(counters::num_piece_passed);
+								inc_stats_counter(counters::num_piece_passed);
 								we_have(piece);
 							}
 						}
@@ -3317,7 +3320,7 @@ namespace libtorrent
 			torrent_state st = get_policy_state();
 			torrent_peer* p = m_policy->connect_one_peer(m_ses.session_time(), &st);
 			peers_erased(st.erased);
-			m_ses.inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
+			inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
 			if (p == NULL)
 			{
 				update_want_peers();
@@ -3865,7 +3868,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(!has_picker() || m_picker->has_piece_passed(index));
 
-		m_ses.inc_stats_counter(counters::num_have_pieces);
+		inc_stats_counter(counters::num_have_pieces);
 
 		// at this point, we have the piece for sure. It has been
 		// successfully written to disk. We may announce it to peers
@@ -4041,7 +4044,7 @@ namespace libtorrent
 
 		m_need_save_resume_data = true;
 
-		m_ses.inc_stats_counter(counters::num_piece_passed);
+		inc_stats_counter(counters::num_piece_passed);
 
 		remove_time_critical_piece(index, true);
 
@@ -4129,7 +4132,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 	  	TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
-		m_ses.inc_stats_counter(counters::num_piece_failed);
+		inc_stats_counter(counters::num_piece_failed);
 
 		if (m_ses.alerts().should_post<hash_failed_alert>())
 			m_ses.alerts().post_alert(hash_failed_alert(get_handle(), index));
@@ -4242,7 +4245,7 @@ namespace libtorrent
 				// mark the peer as banned
 				ban_peer(p);
 				update_want_peers();
-				m_ses.inc_stats_counter(counters::banned_for_hash_failure);
+				inc_stats_counter(counters::banned_for_hash_failure);
 
 				if (p->connection)
 				{
@@ -4319,7 +4322,7 @@ namespace libtorrent
 			return;
 
 		if (request_a_block(*this, c))
-			m_ses.inc_stats_counter(counters::interesting_piece_picks);
+			inc_stats_counter(counters::interesting_piece_picks);
 		c.send_block_requests();
 	}
 
@@ -4638,7 +4641,7 @@ namespace libtorrent
 
 		if (!m_apply_ip_filter)
 		{
-			m_ses.inc_stats_counter(counters::non_filter_torrents, -1);
+			inc_stats_counter(counters::non_filter_torrents, -1);
 			m_apply_ip_filter = true;
 		}
 
@@ -6181,14 +6184,18 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = boost::make_shared<web_peer_connection>(
-				boost::ref(m_ses), m_ses.settings(), boost::ref(m_ses)
+				boost::ref(m_ses), m_ses.settings()
+				, boost::ref(m_ses.stats_counters())
+				, boost::ref(m_ses)
 				, boost::ref(m_ses.disk_thread())
 				, shared_from_this(), s, boost::ref(*web));
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = boost::make_shared<http_seed_connection>(
-				boost::ref(m_ses), m_ses.settings(), boost::ref(m_ses)
+				boost::ref(m_ses), m_ses.settings()
+				, boost::ref(m_ses.stats_counters())
+				, boost::ref(m_ses)
 				, boost::ref(m_ses.disk_thread())
 				, shared_from_this(), s, boost::ref(*web));
 		}
@@ -7191,7 +7198,9 @@ namespace libtorrent
 		m_ses.setup_socket_buffers(*s);
 
 		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
-			boost::ref(m_ses), m_ses.settings(), boost::ref(m_ses)
+			boost::ref(m_ses), m_ses.settings()
+			, boost::ref(m_ses.stats_counters())
+			, boost::ref(m_ses)
 			, boost::ref(m_ses.disk_thread())
 			, s, a, peerinfo, m_ses.get_peer_id(), shared_from_this());
 
@@ -7318,7 +7327,7 @@ namespace libtorrent
 		// we're a seed, because we have all 0 pieces
 		init();
 
-		m_ses.inc_stats_counter(counters::num_total_pieces_added
+		inc_stats_counter(counters::num_total_pieces_added
 			, m_torrent_file->num_pieces());
 
 		// disconnect redundant peers
@@ -8059,7 +8068,7 @@ namespace libtorrent
 			{
 				if (request_a_block(*this, *pc))
 				{
-					m_ses.inc_stats_counter(counters::unchoke_piece_picks);
+					inc_stats_counter(counters::unchoke_piece_picks);
 					pc->send_block_requests();
 				}
 			}
@@ -10416,7 +10425,7 @@ namespace libtorrent
 		need_policy();
 		torrent_peer* p = m_policy->connect_one_peer(m_ses.session_time(), &st);
 		peers_erased(st.erased);
-		m_ses.inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
+		inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
 
 		if (p == NULL)
 		{
@@ -10533,7 +10542,7 @@ namespace libtorrent
 		if (!m_policy->ban_peer(tp)) return false;
 		update_want_peers();
 
-		m_ses.inc_stats_counter(counters::num_banned_peers);
+		inc_stats_counter(counters::num_banned_peers);
 		return true;
 	}
 

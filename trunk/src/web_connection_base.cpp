@@ -54,13 +54,14 @@ namespace libtorrent
 	web_connection_base::web_connection_base(
 		aux::session_interface& ses
 		, aux::session_settings const& sett
+		, counters& stats_counters
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, web_seed_entry& web)
-		: peer_connection(ses, sett, allocator, disk_thread, ses.get_io_service()
-			, t, s, web.endpoint, &web.peer_info)
+		: peer_connection(ses, sett, stats_counters, allocator, disk_thread
+			, ses.get_io_service(), t, s, web.endpoint, &web.peer_info)
 		, m_first_request(true)
 		, m_ssl(false)
 		, m_external_auth(web.auth)

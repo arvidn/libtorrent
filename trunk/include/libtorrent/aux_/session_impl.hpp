@@ -1179,9 +1179,6 @@ namespace libtorrent
 			FILE* get_request_log() { return m_request_log; }
 #endif
 
-			boost::uint64_t inc_stats_counter(int c, int value = 1)
-			{ return m_stats_counters.inc_stats_counter(c, value); }
-
 			counters& stats_counters() { return m_stats_counters; }
 
 			void received_buffer(int size);
@@ -1306,6 +1303,7 @@ namespace libtorrent
 			bool m_paused;
 			
 			// redundant bytes per category
+			// TODO: 3 turn this into a stats_counter
 			size_type m_redundant_bytes[7];
 
 			std::vector<boost::shared_ptr<feed> > m_feeds;

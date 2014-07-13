@@ -1074,6 +1074,8 @@ namespace libtorrent
 
 	private:
 
+		void inc_stats_counter(int c, int value = 1);
+
 		// initialize the torrent_state structure passed to policy
 		// member functions. Don't forget to also call peers_erased()
 		// on the erased member after the policy call

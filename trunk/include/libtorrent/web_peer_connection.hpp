@@ -77,6 +77,7 @@ namespace libtorrent
 		web_peer_connection(
 			aux::session_interface& ses
 			, aux::session_settings const& sett
+			, counters& stats_counters
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread
 			, boost::weak_ptr<torrent> t
