@@ -52,17 +52,9 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
-	http_seed_connection::http_seed_connection(
-		aux::session_interface& ses
-		, aux::session_settings const& sett
-		, counters& stats_counters
-		, buffer_allocator_interface& allocator
-		, disk_interface& disk_thread
-		, boost::weak_ptr<torrent> t
-		, boost::shared_ptr<socket_type> s
+	http_seed_connection::http_seed_connection(peer_connection_args const& pack
 		, web_seed_entry& web)
-		: web_connection_base(ses, sett, stats_counters, allocator, disk_thread
-			, t, s, web)
+		: web_connection_base(pack, web)
 		, m_url(web.url)
 		, m_response_left(0)
 		, m_chunk_pos(0)
@@ -73,7 +65,7 @@ namespace libtorrent
 		if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
-		shared_ptr<torrent> tor = t.lock();
+		shared_ptr<torrent> tor = pack.tor.lock();
 		TORRENT_ASSERT(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
 

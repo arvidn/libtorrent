@@ -95,20 +95,9 @@ namespace libtorrent
 	};
 
 
-	bt_peer_connection::bt_peer_connection(
-		aux::session_interface& ses
-		, aux::session_settings const& sett
-		, counters& stats_counters
-		, buffer_allocator_interface& allocator
-		, disk_interface& disk_thread
-		, shared_ptr<socket_type> s
-		, tcp::endpoint const& remote
-		, torrent_peer* peerinfo
-		, peer_id const& pid
-		, boost::weak_ptr<torrent> tor)
-		: peer_connection(ses, sett, stats_counters, allocator, disk_thread
-			, ses.get_io_service()
-			, tor, s, remote, peerinfo)
+	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack
+		, peer_id const& pid)
+		: peer_connection(pack)
 		, m_state(read_protocol_identifier)
 		, m_supports_extensions(false)
 		, m_supports_dht_port(false)

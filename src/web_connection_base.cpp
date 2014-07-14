@@ -52,16 +52,9 @@ using boost::shared_ptr;
 namespace libtorrent
 {
 	web_connection_base::web_connection_base(
-		aux::session_interface& ses
-		, aux::session_settings const& sett
-		, counters& stats_counters
-		, buffer_allocator_interface& allocator
-		, disk_interface& disk_thread
-		, boost::weak_ptr<torrent> t
-		, boost::shared_ptr<socket_type> s
+		peer_connection_args const& pack
 		, web_seed_entry& web)
-		: peer_connection(ses, sett, stats_counters, allocator, disk_thread
-			, ses.get_io_service(), t, s, web.endpoint, &web.peer_info)
+		: peer_connection(pack)
 		, m_first_request(true)
 		, m_ssl(false)
 		, m_external_auth(web.auth)
@@ -69,6 +62,9 @@ namespace libtorrent
 		, m_parser(http_parser::dont_parse_chunks)
 		, m_body_start(0)
 	{
+		TORRENT_ASSERT(&web.peer_info == pack.peerinfo);
+		TORRENT_ASSERT(web.endpoint == *pack.endp);
+
 		INVARIANT_CHECK;
 
 		// we only want left-over bandwidth

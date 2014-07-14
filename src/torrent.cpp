@@ -6181,23 +6181,26 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<peer_connection> c;
+		peer_connection_args pack;
+		pack.ses = &m_ses;
+		pack.sett = &m_ses.settings();
+		pack.stats_counters = &m_ses.stats_counters();
+		pack.allocator = &m_ses;
+		pack.disk_thread = &m_ses.disk_thread();
+		pack.ios = &m_ses.get_io_service();
+		pack.tor = shared_from_this();
+		pack.s = s;
+		pack.endp = &web->endpoint;
+		pack.peerinfo = &web->peer_info;
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = boost::make_shared<web_peer_connection>(
-				boost::ref(m_ses), m_ses.settings()
-				, boost::ref(m_ses.stats_counters())
-				, boost::ref(m_ses)
-				, boost::ref(m_ses.disk_thread())
-				, shared_from_this(), s, boost::ref(*web));
+				boost::cref(pack), boost::ref(*web));
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = boost::make_shared<http_seed_connection>(
-				boost::ref(m_ses), m_ses.settings()
-				, boost::ref(m_ses.stats_counters())
-				, boost::ref(m_ses)
-				, boost::ref(m_ses.disk_thread())
-				, shared_from_this(), s, boost::ref(*web));
+				boost::cref(pack), boost::ref(*web));
 		}
 		if (!c) return;
 
@@ -7197,12 +7200,20 @@ namespace libtorrent
 
 		m_ses.setup_socket_buffers(*s);
 
+		peer_connection_args pack;
+		pack.ses = &m_ses;
+		pack.sett = &m_ses.settings();
+		pack.stats_counters = &m_ses.stats_counters();
+		pack.allocator = &m_ses;
+		pack.disk_thread = &m_ses.disk_thread();
+		pack.ios = &m_ses.get_io_service();
+		pack.tor = shared_from_this();
+		pack.s = s;
+		pack.endp = &a;
+		pack.peerinfo = peerinfo;
+
 		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
-			boost::ref(m_ses), m_ses.settings()
-			, boost::ref(m_ses.stats_counters())
-			, boost::ref(m_ses)
-			, boost::ref(m_ses.disk_thread())
-			, s, a, peerinfo, m_ses.get_peer_id(), shared_from_this());
+			boost::cref(pack), m_ses.get_peer_id());
 
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;

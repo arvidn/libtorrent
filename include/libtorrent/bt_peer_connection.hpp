@@ -85,17 +85,8 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		bt_peer_connection(
-			aux::session_interface& ses
-			, aux::session_settings const& sett
-			, counters& stats_counters
-			, buffer_allocator_interface& allocator
-			, disk_interface& disk_thread
-			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, torrent_peer* peerinfo
-			, peer_id const& pid
-			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>());
+		bt_peer_connection(peer_connection_args const& pack
+			, peer_id const& pid);
 
 		void start();
 
