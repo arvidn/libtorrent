@@ -60,17 +60,9 @@ enum
 
 struct disk_interface;
 
-web_peer_connection::web_peer_connection(
-	aux::session_interface& ses
-	, aux::session_settings const& sett
-	, counters& stats_counters
-	, buffer_allocator_interface& allocator
-	, disk_interface& disk_thread
-	, boost::weak_ptr<torrent> t
-	, boost::shared_ptr<socket_type> s
+web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	, web_seed_entry& web)
-	: web_connection_base(ses, sett, stats_counters, allocator, disk_thread
-		, t, s, web)
+	: web_connection_base(pack, web)
 	, m_url(web.url)
 	, m_web(&web)
 	, m_received_body(0)
@@ -85,7 +77,7 @@ web_peer_connection::web_peer_connection(
 	if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
 		ignore_stats(true);
 
-	shared_ptr<torrent> tor = t.lock();
+	shared_ptr<torrent> tor = pack.tor.lock();
 	TORRENT_ASSERT(tor);
 
 	// we always prefer downloading 1 MiB chunks

@@ -85,14 +85,7 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		web_connection_base(
-			aux::session_interface& ses
-			, aux::session_settings const& sett
-			, counters& stats_counters
-			, buffer_allocator_interface& allocator
-			, disk_interface& disk_thread
-			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<socket_type> s
+		web_connection_base(peer_connection_args const& pack
 			, web_seed_entry& web);
 
 		virtual int timeout() const;

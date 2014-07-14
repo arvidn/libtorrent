@@ -125,30 +125,20 @@ namespace libtorrent
 #endif
 
 	// outbound connection
-	peer_connection::peer_connection(
-		aux::session_interface& ses
-		, aux::session_settings const& sett
-		, counters& stats_counters
-		, buffer_allocator_interface& allocator
-		, disk_interface& disk_thread
-		, io_service& ios
-		, boost::weak_ptr<torrent> tor
-		, shared_ptr<socket_type> s
-		, tcp::endpoint const& endp
-		, torrent_peer* peerinfo)
-		: peer_connection_hot_members(tor, ses, sett)
-		, m_socket(s)
-		, m_peer_info(peerinfo)
-		, m_counters(stats_counters)
+	peer_connection::peer_connection(peer_connection_args const& pack)
+		: peer_connection_hot_members(pack.tor, *pack.ses, *pack.sett)
+		, m_socket(pack.s)
+		, m_peer_info(pack.peerinfo)
+		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
 		, m_rtt(0)
 		, m_recv_start(0)
 		, m_desired_queue_size(2)
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
-		, m_remote(endp)
-		, m_disk_thread(disk_thread)
-		, m_allocator(allocator)
-		, m_ios(ios)
+		, m_remote(*pack.endp)
+		, m_disk_thread(*pack.disk_thread)
+		, m_allocator(*pack.allocator)
+		, m_ios(*pack.ios)
 		, m_work(m_ios)
 		, m_last_piece(time_now())
 		, m_last_request(time_now())
@@ -168,7 +158,7 @@ namespace libtorrent
 		, m_uploaded_at_last_unchoke(0)
 		, m_soft_packet_size(0)
 		, m_outstanding_bytes(0)
-		, m_disk_recv_buffer(allocator, 0)
+		, m_disk_recv_buffer(*pack.allocator, 0)
 		, m_last_seen_complete(0)
 		, m_receiving_block(piece_block::invalid)
 		, m_timeout_extend(0)
@@ -189,12 +179,12 @@ namespace libtorrent
 		, m_prefer_whole_pieces(0)
 		, m_disk_read_failures(0)
 		, m_outstanding_piece_verification(0)
-		, m_outgoing(!tor.expired())
+		, m_outgoing(!pack.tor.expired())
 		, m_received_listen_port(false)
 		, m_fast_reconnect(false)
 		, m_failed(false)
-		, m_connected(tor.expired())
-		, m_queued(!tor.expired())
+		, m_connected(pack.tor.expired())
+		, m_queued(!pack.tor.expired())
 		, m_request_large_blocks(false)
 		, m_share_mode(false)
 		, m_upload_only(false)
@@ -241,7 +231,7 @@ namespace libtorrent
 		m_quota[0] = 0;
 		m_quota[1] = 0;
 
-		TORRENT_ASSERT(peerinfo == 0 || peerinfo->banned == false);
+		TORRENT_ASSERT(pack.peerinfo == 0 || pack.peerinfo->banned == false);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
 #ifndef TORRENT_DISABLE_GEO_IP

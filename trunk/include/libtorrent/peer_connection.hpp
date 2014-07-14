@@ -144,6 +144,21 @@ namespace libtorrent
 		{ return pb.block == block; }
 	};
 
+	// argument pack passed to peer_connection constructor
+	struct peer_connection_args
+	{
+		aux::session_interface* ses;
+		aux::session_settings const* sett;
+		counters* stats_counters;
+		buffer_allocator_interface* allocator;
+		disk_interface* disk_thread;
+		io_service* ios;
+		boost::weak_ptr<torrent> tor;
+		boost::shared_ptr<socket_type> s;
+		tcp::endpoint const* endp;
+		torrent_peer* peerinfo;
+	};
+
 	// internal
 	inline void nop(char*, void*, block_cache_reference) {}
 
@@ -280,17 +295,7 @@ namespace libtorrent
 			num_channels
 		};
 
-		peer_connection(
-			aux::session_interface& ses
-			, aux::session_settings const& sett
-			, counters& stats_counters
-			, buffer_allocator_interface& allocator
-			, disk_interface& disk_thread
-			, io_service& ios
-			, boost::weak_ptr<torrent> t
-			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, torrent_peer* peerinfo);
+		peer_connection(peer_connection_args const& pack);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function

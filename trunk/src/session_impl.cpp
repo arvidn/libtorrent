@@ -3169,10 +3169,20 @@ retry:
 
 		setup_socket_buffers(*s);
 
+		peer_connection_args pack;
+		pack.ses = this;
+		pack.sett = &m_settings;
+		pack.stats_counters = &m_stats_counters;
+		pack.allocator = this;
+		pack.disk_thread = &m_disk_thread;
+		pack.ios = &m_io_service;
+		pack.tor = boost::weak_ptr<torrent>();
+		pack.s = s;
+		pack.endp = &endp;
+		pack.peerinfo = 0;
+
 		boost::shared_ptr<peer_connection> c
-			= boost::make_shared<bt_peer_connection>(boost::ref(*this), m_settings
-				, boost::ref(m_stats_counters), boost::ref(*this)
-				, boost::ref(m_disk_thread), s, endp, (torrent_peer*)0
+			= boost::make_shared<bt_peer_connection>(boost::cref(pack)
 				, get_peer_id());
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
