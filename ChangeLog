@@ -1,4 +1,5 @@
- 	* fix bug in udp_socket when changing socks5 proxy quickly
+	* fix saving resume data when removing all trackers
+	* fix bug in udp_socket when changing socks5 proxy quickly
 
 0.16.17 release
 
