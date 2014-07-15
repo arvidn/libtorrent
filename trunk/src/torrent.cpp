@@ -6760,28 +6760,25 @@ namespace libtorrent
 		}
 
 		// save trackers
-		if (!m_trackers.empty())
+		entry::list_type& tr_list = ret["trackers"].list();
+		tr_list.push_back(entry::list_type());
+		int tier = 0;
+		for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
+			, end(m_trackers.end()); i != end; ++i)
 		{
-			entry::list_type& tr_list = ret["trackers"].list();
-			tr_list.push_back(entry::list_type());
-			int tier = 0;
-			for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
-				, end(m_trackers.end()); i != end; ++i)
+			// don't save trackers we can't trust
+			// TODO: 1 save the send_stats state instead of throwing them away
+			// it may pose an issue when downgrading though
+			if (i->send_stats == false) continue;
+			if (i->tier == tier)
 			{
-				// don't save trackers we can't trust
-				// TODO: 1 save the send_stats state instead of throwing them away
-				// it may pose an issue when downgrading though
-				if (i->send_stats == false) continue;
-				if (i->tier == tier)
-				{
-					tr_list.back().list().push_back(i->url);
-				}
-				else
-				{
-					tr_list.push_back(entry::list_t);
-					tr_list.back().list().push_back(i->url);
-					tier = i->tier;
-				}
+				tr_list.back().list().push_back(i->url);
+			}
+			else
+			{
+				tr_list.push_back(entry::list_t);
+				tr_list.back().list().push_back(i->url);
+				tier = i->tier;
 			}
 		}
 
