@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/random.hpp"
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
@@ -180,6 +181,8 @@ int test_main()
 #else
 	const int repcount = 128;
 #endif
+
+	random_seed(total_microseconds(time_now_hires() - min_time()));
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
