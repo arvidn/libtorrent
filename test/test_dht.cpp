@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/rsa.hpp" // for generate_rsa_keys and sign_rsa
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include <iostream>
+#include "libtorrent/random.hpp"
 
 #include "test.hpp"
 
@@ -273,8 +274,11 @@ void nop(address, int, address) {}
 
 int test_main()
 {
+	random_seed(total_microseconds(time_now_hires() - min_time()));
+
 	io_service ios;
 	alert_manager al(ios, 100);
+
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
