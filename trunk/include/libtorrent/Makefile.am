@@ -47,6 +47,7 @@ nobase_include_HEADERS = \
   disk_io_thread.hpp           \
   disk_observer.hpp            \
   disk_job_pool.hpp            \
+  ed25519.hpp                  \
   entry.hpp                    \
   enum_net.hpp                 \
   error.hpp                    \

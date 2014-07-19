@@ -1,4 +1,4 @@
-#include "ed25519.hpp"
+#include "libtorrent/ed25519.hpp"
 
 #ifndef ED25519_NO_SEED
 
