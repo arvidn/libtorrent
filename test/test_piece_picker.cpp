@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/random.hpp"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
@@ -269,6 +271,9 @@ int test_pick(boost::shared_ptr<piece_picker> const& p, int options = piece_pick
 
 int test_main()
 {
+	random_seed(time_now_hires().time_since_epoch().count());
+
+	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
 #if TORRENT_USE_ASSERTS
 	tmp0.in_use = true;
