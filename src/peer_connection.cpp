@@ -869,7 +869,6 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		m_destructed = true;
 #endif
-		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #if TORRENT_USE_ASSERTS
 		m_in_use = 0;
@@ -1104,7 +1103,7 @@ namespace libtorrent
 			// we don't know what rate we can get from this peer. Instead of assuming
 			// the lowest possible rate, assume the average.
 
-			int peers_with_requests = m_ses.stats_counters()[counters::num_peers_down_requests];
+			int peers_with_requests = stats_counters()[counters::num_peers_down_requests];
 			// avoid division by 0
 			if (peers_with_requests == 0) peers_with_requests = 1;
 
@@ -2898,7 +2897,6 @@ namespace libtorrent
 	{
 		torrent_ref_holder h(t.get(), "async_write");
 		if (t) t->dec_refcount("async_write");
-		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** FILE ASYNC WRITE COMPLETE [ ret: %d | piece: %d | s: %x | l: %x | e: %s ]"
@@ -5040,7 +5038,6 @@ namespace libtorrent
 	// checked, while in seed-mode
 	void peer_connection::on_seed_mode_hashed(disk_io_job const* j)
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
 		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -5096,8 +5093,6 @@ namespace libtorrent
 		// return value:
 		// 0: success, piece passed hash check
 		// -1: disk failure
-
-		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** FILE ASYNC READ COMPLETE [ ret: %d | piece: %d | s: %x | l: %x"
@@ -5808,8 +5803,6 @@ namespace libtorrent
 		// function.
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
 
-		TORRENT_ASSERT(m_ses.is_single_thread());
-
 		// nb is short for null_buffers. In this mode we don't actually
 		// allocate a receive buffer up-front, but get notified when
 		// we can read from the socket, and then determine how much there
@@ -5919,8 +5912,6 @@ namespace libtorrent
 		// that way we don't trigger any async read calls until the end of this
 		// function.
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-
-		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		receive_data_impl(error, bytes_transferred, 10);
 	}
@@ -6137,7 +6128,6 @@ namespace libtorrent
 		}
 #endif
 
-		TORRENT_ASSERT(m_ses.is_single_thread());
 #if TORRENT_USE_ASSERTS
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
@@ -6226,8 +6216,6 @@ namespace libtorrent
 		complete_async("peer_connection::on_connection_complete");
 #endif
 		ptime completed = time_now_hires();
-
-		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		INVARIANT_CHECK;
 
@@ -6374,7 +6362,6 @@ namespace libtorrent
 	{
 		m_counters.inc_stats_counter(counters::on_write_counter);
 		m_ses.sent_buffer(bytes_transferred);
-		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_socket_is_writing);
