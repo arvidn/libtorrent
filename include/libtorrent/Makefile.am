@@ -36,6 +36,7 @@ nobase_include_HEADERS = \
   disk_buffer_holder.hpp       \
   disk_buffer_pool.hpp         \
   disk_io_thread.hpp           \
+  ed25519.hpp                  \
   entry.hpp                    \
   enum_net.hpp                 \
   error.hpp                    \

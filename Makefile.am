@@ -129,7 +129,6 @@ DOCS_PAGES = \
 ED25519_SOURCE = \
 	ed25519/readme.md \
 	ed25519/test.cpp \
-	ed25519/src/ed25519.hpp \
 	ed25519/src/fe.h \
 	ed25519/src/fixedint.h \
 	ed25519/src/ge.h \
