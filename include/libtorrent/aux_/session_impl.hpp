@@ -1160,15 +1160,6 @@ namespace libtorrent
 			void check_invariant() const;
 #endif
 
-#ifdef TORRENT_BUFFER_STATS
-			void log_buffer_usage();
-			// used to log send buffer usage statistics
-			std::ofstream m_buffer_usage_logger;
-			std::ofstream& buffer_usage_logger() { return m_buffer_usage_logger; }
-			// the number of send buffers that are allocated
-			int m_buffer_allocations;
-#endif
-
 #ifdef TORRENT_REQUEST_LOGGING
 			// used to log all requests from peers
 			FILE* m_request_log;

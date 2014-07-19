@@ -51,10 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #endif
 
-#ifdef TORRENT_BUFFER_STATS
-#include <boost/unordered_map.hpp>
-#endif
-
 namespace libtorrent
 {
 	namespace aux { struct session_settings; }
@@ -69,7 +65,7 @@ namespace libtorrent
 			, alert_dispatcher* alert_disp);
 		~disk_buffer_pool();
 
-#if TORRENT_USE_ASSERTS || TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS
 		bool is_disk_buffer(char* buffer
 			, mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
@@ -196,18 +192,8 @@ namespace libtorrent
 		boost::pool<page_aligned_allocator> m_pool;
 #endif
 
-#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
+#if defined TORRENT_STATS
 		int m_allocations;
-#endif
-
-#ifdef TORRENT_BUFFER_STATS
-	public:
-		void rename_buffer(char* buf, char const* category);
-		boost::unordered_map<std::string, int> m_categories;
-	protected:
-		boost::unordered_map<char*, std::string> m_buf_to_category;
-		FILE* m_log;
-	private:
 #endif
 
 		// this is specifically exempt from release_asserts

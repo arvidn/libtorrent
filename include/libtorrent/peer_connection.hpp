@@ -689,10 +689,6 @@ namespace libtorrent
 		bool is_corked() const { return m_corked; }
 		void uncork_socket();
 
-#ifdef TORRENT_BUFFER_STATS
-		void log_buffer_usage(char* buffer, int size, char const* label);
-#endif
-
 		virtual void append_send_buffer(char* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
 			, void* userdata = NULL, block_cache_reference ref

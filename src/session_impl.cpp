@@ -725,10 +725,6 @@ namespace aux {
 
 		rotate_stats_log();
 #endif
-#ifdef TORRENT_BUFFER_STATS
-		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
-		m_buffer_allocations = 0;
-#endif
 
 #if TORRENT_USE_RLIMIT
 		// ---- auto-cap max connections ----
@@ -7693,12 +7689,6 @@ retry:
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-#ifdef TORRENT_BUFFER_STATS
-		TORRENT_ASSERT(m_buffer_allocations >= 0);
-		m_buffer_allocations++;
-		m_buffer_usage_logger << log_time() << " protocol_buffer: "
-			<< (m_buffer_allocations * send_buffer_size()) << std::endl;
-#endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		int num_bytes = send_buffer_size();
 		return (char*)malloc(num_bytes);
@@ -7707,37 +7697,10 @@ retry:
 #endif
 	}
 
-#ifdef TORRENT_BUFFER_STATS
-	void session_impl::log_buffer_usage()
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-		int send_buffer_capacity = 0;
-		int used_send_buffer = 0;
-		for (connection_map::const_iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
-		{
-			send_buffer_capacity += (*i)->send_buffer_capacity();
-			used_send_buffer += (*i)->send_buffer_size();
-		}
-		TORRENT_ASSERT(send_buffer_capacity >= used_send_buffer);
-		m_buffer_usage_logger << log_time() << " send_buffer_size: " << send_buffer_capacity << std::endl;
-		m_buffer_usage_logger << log_time() << " used_send_buffer: " << used_send_buffer << std::endl;
-		m_buffer_usage_logger << log_time() << " send_buffer_utilization: "
-			<< (used_send_buffer * 100.f / (std::max)(send_buffer_capacity, 1)) << std::endl;
-	}
-#endif
-
 	void session_impl::free_buffer(char* buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-#ifdef TORRENT_BUFFER_STATS
-		m_buffer_allocations--;
-		TORRENT_ASSERT(m_buffer_allocations >= 0);
-		m_buffer_usage_logger << log_time() << " protocol_buffer: "
-			<< (m_buffer_allocations * send_buffer_size()) << std::endl;
-#endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		free(buf);
 #else

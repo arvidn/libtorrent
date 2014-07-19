@@ -288,17 +288,6 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifdef TORRENT_BUFFER_STATS
-	void peer_connection::log_buffer_usage(char* buffer, int size, char const* label)
-	{
-		if (m_disk_thread.is_disk_buffer(buffer))
-			m_disk_thread.rename_buffer(buffer, label);
-	
-		m_ses.buffer_usage_logger() << log_time() << " append_send_buffer: " << size << std::endl;
-		m_ses.log_buffer_usage();
-	}
-#endif
-
 	void peer_connection::increase_est_reciprocation_rate()
 	{
 		m_est_reciprocation_rate += m_est_reciprocation_rate
@@ -5162,11 +5151,6 @@ namespace libtorrent
 		// this burst of disk events
 //		m_ses.cork_burst(this);
 
-#if TORRENT_BUFFER_STATS
-		if (j->buffer && j->d.io.ref.storage == 0)
-			m_disk_thread.rename_buffer(j->buffer, "received send buffer");
-#endif
-
 		if (!t)
 		{
 			disconnect(j->error.ec, op_file_read);
@@ -5183,11 +5167,6 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING
 		peer_log("==> PIECE   [ piece: %d s: %x l: %x ]"
 			, r.piece, r.start, r.length);
-#endif
-
-#if TORRENT_BUFFER_STATS
-		if (j->buffer && j->d.io.ref.storage == 0)
-			m_disk_thread.rename_buffer(j->buffer, "dispatched send buffer");
 #endif
 
 		// we probably just pulled this piece into the cache.
@@ -5742,9 +5721,6 @@ namespace libtorrent
 		, chained_buffer::free_buffer_fun destructor, void* userdata
 		, block_cache_reference ref, bool encrypted)
 	{
-#if defined TORRENT_BUFFER_STATS
-		log_buffer_usage(buffer, size, "queued send buffer");
-#endif
 		// bittorrent connections should never use this function, since
 		// they might be encrypted and this would circumvent the actual
 		// encryption. bt_peer_connection overrides this function with
@@ -5760,11 +5736,6 @@ namespace libtorrent
 	{
 		m_send_buffer.append_buffer((char*)buffer, size, size, destructor
 			, userdata, ref);
-
-#if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
-		m_ses.buffer_usage_logger() << log_time() << " append_const_send_buffer: " << size << std::endl;
-		m_ses.log_buffer_usage();
-#endif
 	}
 
 	void session_free_buffer(char* buffer, void* userdata, block_cache_reference)
@@ -5788,18 +5759,9 @@ namespace libtorrent
 			if (fun) fun(dst, free_space, userdata);
 			size -= free_space;
 			buf += free_space;
-#if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
-			m_ses.buffer_usage_logger() << log_time() << " send_buffer: "
-				<< free_space << std::endl;
-			m_ses.log_buffer_usage();
-#endif
 		}
 		if (size <= 0) return;
 
-#if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
-		m_ses.buffer_usage_logger() << log_time() << " send_buffer_alloc: " << size << std::endl;
-		m_ses.log_buffer_usage();
-#endif
 		int i = 0;
 		while (size > 0)
 		{
