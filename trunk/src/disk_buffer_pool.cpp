@@ -68,10 +68,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
 #endif
 
-#ifdef TORRENT_BUFFER_STATS
-#include "libtorrent/time.hpp"
-#endif
-
 namespace libtorrent
 {
 	// this is posted to the network thread
@@ -125,13 +121,8 @@ namespace libtorrent
 		, m_pool(block_size, 32)
 #endif
 	{
-#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
+#if defined TORRENT_STATS
 		m_allocations = 0;
-#endif
-#ifdef TORRENT_BUFFER_STATS
-		m_log = fopen("disk_buffers.log", "w+");
-		m_categories["read cache"] = 0;
-		m_categories["write cache"] = 0;
 #endif
 #if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
@@ -231,7 +222,7 @@ namespace libtorrent
 		m_ios.post(boost::bind(&watermark_callback, cbs, handlers));
 	}
 
-#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS
 	bool disk_buffer_pool::is_disk_buffer(char* buffer
 		, mutex::scoped_lock& l) const
 	{
@@ -246,11 +237,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG
 		return m_buffers_in_use.count(buffer) == 1;
-#endif
-
-#ifdef TORRENT_BUFFER_STATS
-		if (m_buf_to_category.find(buffer)
-			== m_buf_to_category.end()) return false;
 #endif
 
 #ifdef TORRENT_DEBUG_BUFFERS
@@ -395,37 +381,13 @@ namespace libtorrent
 		}
 #endif // TORRENT_USE_MLOCK
 
-#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
+#if defined TORRENT_STATS
 		++m_allocations;
 #endif
 
-#ifdef TORRENT_BUFFER_STATS
-		++m_categories[category];
-		m_buf_to_category[ret] = category;
-		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), category, m_categories[category]);
-#endif
 		TORRENT_ASSERT(is_disk_buffer(ret, l));
 		return ret;
 	}
-
-#ifdef TORRENT_BUFFER_STATS
-	void disk_buffer_pool::rename_buffer(char* buf, char const* category)
-	{
-		mutex::scoped_lock l(m_pool_mutex);
-		TORRENT_ASSERT(is_disk_buffer(buf, l));
-		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
-			!= m_categories.end());
-		std::string const& prev_category = m_buf_to_category[buf];
-		--m_categories[prev_category];
-		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), prev_category.c_str(), m_categories[category]);
-
-		++m_categories[category];
-		m_buf_to_category[buf] = category;
-		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), category, m_categories[category]);
-		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
-			!= m_categories.end());
-	}
-#endif
 
 	void disk_buffer_pool::free_multiple_buffers(char** bufvec, int numbufs)
 	{
@@ -634,16 +596,8 @@ namespace libtorrent
 		}
 #endif
 
-#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
+#if defined TORRENT_STATS
 		--m_allocations;
-#endif
-#ifdef TORRENT_BUFFER_STATS
-		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
-			!= m_categories.end());
-		std::string const& category = m_buf_to_category[buf];
-		--m_categories[category];
-		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), category.c_str(), m_categories[category]);
-		m_buf_to_category.erase(buf);
 #endif
 
 #if TORRENT_HAVE_MMAP

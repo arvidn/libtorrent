@@ -632,9 +632,6 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	}
 
 	b.buf = j->buffer;
-#ifdef TORRENT_BUFFER_STATS
-	rename_buffer(j->buffer, "write cache");
-#endif
 
 	b.dirty = true;
 	++pe->num_blocks;
@@ -679,9 +676,6 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 		// this is the last reference to it
 		pe->blocks[block].dirty = false;
 		dec_block_refcount(pe, block, block_cache::ref_flushing);
-#ifdef TORRENT_BUFFER_STATS
-		rename_buffer(pe->blocks[block].buf, "read cache");
-#endif
 	}
 
 	m_write_cache_size -= num_flushed;
@@ -1189,9 +1183,6 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		{
 			pe->blocks[block].buf = (char*)iov[i].iov_base;
 
-#ifdef TORRENT_BUFFER_STATS
-			rename_buffer(pe->blocks[block].buf, "read cache");
-#endif
 			TORRENT_PIECE_ASSERT(iov[i].iov_base != NULL, pe);
 			TORRENT_PIECE_ASSERT(pe->blocks[block].dirty == false, pe);
 			++pe->num_blocks;
@@ -1632,13 +1623,6 @@ void block_cache::check_invariant() const
 	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
 	TORRENT_ASSERT(m_pinned_blocks == num_pinned);
 	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size <= in_use());
-
-#ifdef TORRENT_BUFFER_STATS
-	int read_allocs = m_categories.find(std::string("read cache"))->second;
-	int write_allocs = m_categories.find(std::string("write cache"))->second;
-	TORRENT_ASSERT(cached_read_blocks == read_allocs);
-	TORRENT_ASSERT(cached_write_blocks == write_allocs);
-#endif
 }
 #endif
 

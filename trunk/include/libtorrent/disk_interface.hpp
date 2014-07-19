@@ -105,12 +105,8 @@ namespace libtorrent
 
 		virtual file_pool& files() = 0;
 
-#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS
 		virtual bool is_disk_buffer(char* buffer) const = 0;
-#endif
-
-#ifdef TORRENT_BUFFER_STATS
-		virtual void rename_buffer(char* buf, char const* category) = 0;
 #endif
 	};
 }

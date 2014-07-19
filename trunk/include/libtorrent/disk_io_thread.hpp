@@ -361,13 +361,8 @@ namespace libtorrent
 
 		block_cache* cache() { return &m_disk_cache; }
 
-#if TORRENT_USE_ASSERTS || defined TORRENT_BUFFER_STATS
+#if TORRENT_USE_ASSERTS
 		bool is_disk_buffer(char* buffer) const { return m_disk_cache.is_disk_buffer(buffer); }
-#endif
-
-#ifdef TORRENT_BUFFER_STATS
-		void rename_buffer(char* buf, char const* category)
-		{ m_disk_cache.rename_buffer(buf, category); }
 #endif
 
 		enum thread_type_t {
