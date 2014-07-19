@@ -1,4 +1,4 @@
-#include "ed25519.hpp"
+#include "libtorrent/ed25519.hpp"
 #include "sha512.h"
 #include "ge.h"
 #include "sc.h"

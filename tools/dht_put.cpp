@@ -36,7 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
-#include "ed25519.h"
+#include "libtorrent/ed25519.h"
+
 #include <boost/bind.hpp>
 
 #include <stdlib.h>
