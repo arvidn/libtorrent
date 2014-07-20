@@ -297,6 +297,14 @@ namespace libtorrent
 		}
 		else if (m_version == 4)
 		{
+			// SOCKS4 only supports IPv4
+			if (!m_remote_endpoint.address().is_v4())
+			{
+				(*h)(error_code(boost::asio::error::address_family_not_supported));
+				error_code ec;
+				close(ec);
+				return;
+			}
 			m_buffer.resize(m_user.size() + 9);
 			char* p = &m_buffer[0];
 			write_uint8(4, p); // SOCKS VERSION 4
