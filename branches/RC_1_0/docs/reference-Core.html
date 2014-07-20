@@ -49,22 +49,22 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>1.0.1</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id187">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#hasher" id="id188">hasher</a></li>
-<li><a class="reference internal" href="#peer-info" id="id189">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id190">peer_request</a></li>
-<li><a class="reference internal" href="#block-info" id="id191">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id192">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id193">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id194">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id195">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id196">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id189">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#hasher" id="id190">hasher</a></li>
+<li><a class="reference internal" href="#peer-info" id="id191">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id192">peer_request</a></li>
+<li><a class="reference internal" href="#block-info" id="id193">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id194">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id195">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id196">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id197">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id198">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -3496,6 +3496,28 @@ bool <strong>is_merkle_torrent</strong> () const;
 </pre>
 <p>returns whether or not this is a merkle torrent.
 see <a class="reference external" href="http://bittorrent.org/beps/bep_0030.html">BEP30</a>.</p>
+<a name="ed25519_create_seed()"></a></div>
+<div class="section" id="ed25519-create-seed">
+<h2>ed25519_create_seed()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ed25519.hpp">libtorrent/ed25519.hpp</a>&quot;</p>
+<pre class="literal-block">
+int <strong>ed25519_create_seed</strong> (unsigned char *seed);
+</pre>
+<a name="ed25519_key_exchange()"></a>
+<a name="ed25519_create_keypair()"></a>
+<a name="ed25519_verify()"></a>
+<a name="ed25519_sign()"></a>
+<a name="ed25519_add_scalar()"></a></div>
+<div class="section" id="ed25519-key-exchange-ed25519-create-keypair-ed25519-verify-ed25519-sign-ed25519-add-scalar">
+<h2>ed25519_key_exchange() ed25519_create_keypair() ed25519_verify() ed25519_sign() ed25519_add_scalar()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ed25519.hpp">libtorrent/ed25519.hpp</a>&quot;</p>
+<pre class="literal-block">
+void <strong>ed25519_add_scalar</strong> (unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar);
+void <strong>ed25519_key_exchange</strong> (unsigned char *shared_secret, const unsigned char *public_key, const unsigned char *private_key);
+void <strong>ed25519_create_keypair</strong> (unsigned char *public_key, unsigned char *private_key, const unsigned char *seed);
+int <strong>ed25519_verify</strong> (const unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *private_key);
+void <strong>ed25519_sign</strong> (unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key, const unsigned char *private_key);
+</pre>
 <a name="make_magnet_uri()"></a></div>
 <div class="section" id="make-magnet-uri">
 <h2>make_magnet_uri()</h2>

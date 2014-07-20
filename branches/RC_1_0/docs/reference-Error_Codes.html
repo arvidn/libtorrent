@@ -49,13 +49,13 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>1.0.1</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#libtorrent-exception" id="id38">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#libtorrent-exception" id="id41">libtorrent_exception</a></li>
 </ul>
 </div>
 <a name="libtorrent_exception"></a><div class="section" id="libtorrent-exception">
@@ -86,6 +86,14 @@ maps libtorrent error codes to human readable error messages.</p>
 boost::system::error_category&amp; <strong>get_http_category</strong> ();
 </pre>
 <p>returns the error_category for HTTP errors</p>
+<a name="get_gzip_category()"></a></div>
+<div class="section" id="get-gzip-category">
+<h2>get_gzip_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/gzip.hpp">libtorrent/gzip.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_gzip_category</strong> ();
+</pre>
+<p>get the <tt class="docutils literal">error_category</tt> for zip errors</p>
 <a name="get_i2p_category()"></a></div>
 <div class="section" id="get-i2p-category">
 <h2>get_i2p_category()</h2>
@@ -858,6 +866,94 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tr>
 </tbody>
 </table>
+<a name="error_code_enum"></a></div>
+<div class="section" id="id32">
+<h2>enum error_code_enum</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/gzip.hpp">libtorrent/gzip.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="6%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>Not an error</td>
+</tr>
+<tr><td>invalid_gzip_header</td>
+<td>1</td>
+<td>the supplied gzip buffer has invalid header</td>
+</tr>
+<tr><td>inflated_data_too_large</td>
+<td>2</td>
+<td>the gzip buffer would inflate to more bytes than the specified
+maximum size, and was rejected.</td>
+</tr>
+<tr><td>data_did_not_terminate</td>
+<td>3</td>
+<td>available inflate data did not terminate</td>
+</tr>
+<tr><td>space_exhausted</td>
+<td>4</td>
+<td>output space exhausted before completing inflate</td>
+</tr>
+<tr><td>invalid_block_type</td>
+<td>5</td>
+<td>invalid block type (type == 3)</td>
+</tr>
+<tr><td>invalid_stored_block_length</td>
+<td>6</td>
+<td>stored block length did not match one's complement</td>
+</tr>
+<tr><td>too_many_length_or_distance_codes</td>
+<td>7</td>
+<td>dynamic block code description: too many length or distance codes</td>
+</tr>
+<tr><td>code_lengths_codes_incomplete</td>
+<td>8</td>
+<td>dynamic block code description: code lengths codes incomplete</td>
+</tr>
+<tr><td>repeat_lengths_with_no_first_length</td>
+<td>9</td>
+<td>dynamic block code description: repeat lengths with no first length</td>
+</tr>
+<tr><td>repeat_more_than_specified_lengths</td>
+<td>10</td>
+<td>dynamic block code description: repeat more than specified lengths</td>
+</tr>
+<tr><td>invalid_literal_length_code_lengths</td>
+<td>11</td>
+<td>dynamic block code description: invalid literal/length code lengths</td>
+</tr>
+<tr><td>invalid_distance_code_lengths</td>
+<td>12</td>
+<td>dynamic block code description: invalid distance code lengths</td>
+</tr>
+<tr><td>invalid_literal_code_in_block</td>
+<td>13</td>
+<td>invalid literal/length or distance code in fixed or dynamic block</td>
+</tr>
+<tr><td>distance_too_far_back_in_block</td>
+<td>14</td>
+<td>distance is too far back in fixed or dynamic block</td>
+</tr>
+<tr><td>unknown_gzip_error</td>
+<td>15</td>
+<td>an unknown error occurred during gzip inflation</td>
+</tr>
+<tr><td>error_code_max</td>
+<td>16</td>
+<td>the number of error codes</td>
+</tr>
+</tbody>
+</table>
 <a name="i2p_error_code"></a></div>
 <div class="section" id="enum-i2p-error-code">
 <h2>enum i2p_error_code</h2>
@@ -918,7 +1014,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id32">
+<div class="section" id="id35">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
 <table border="1" class="docutils">
@@ -1036,7 +1132,7 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 </tbody>
 </table>
 <a name="error_code_enum"></a></div>
-<div class="section" id="id35">
+<div class="section" id="id38">
 <h2>enum error_code_enum</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
 <table border="1" class="docutils">
