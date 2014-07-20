@@ -422,10 +422,7 @@ namespace libtorrent
 		};
 
 		// hidden
-		inline boost::system::error_code make_error_code(error_code_enum e)
-		{
-			return boost::system::error_code(e, get_bdecode_category());
-		}
+		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 	}
 
 	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
@@ -433,6 +430,17 @@ namespace libtorrent
 		, bdecode_errors::error_code_enum& ec);
 
 }
+
+#if BOOST_VERSION >= 103500
+
+namespace boost { namespace system {
+
+	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
+	{ static const bool value = true; };
+
+} }
+
+#endif
 
 #endif
 
