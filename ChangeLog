@@ -89,6 +89,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* SOCKS4 fix for trying to connect over IPv6
 	* fix saving resume data when removing all trackers
 	* fix bug in udp_socket when changing socks5 proxy quickly
 
