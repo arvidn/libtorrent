@@ -2618,7 +2618,8 @@ namespace libtorrent
 
 		m_disk_cache.release_memory();
 
-		return 0;
+		j->storage->get_storage_impl()->release_files(j->error);
+		return j->error ? -1 : 0;
 	}
 
 	int disk_io_thread::do_cache_piece(disk_io_job* j, tailqueue& completed_jobs)
