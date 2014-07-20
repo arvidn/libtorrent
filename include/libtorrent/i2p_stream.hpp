@@ -66,6 +66,7 @@ namespace libtorrent {
 			num_errors
 		};
 
+		// hidden
 		TORRENT_EXPORT boost::system::error_code make_error_code(i2p_error_code e);
 	}
 
