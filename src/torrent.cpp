@@ -2421,7 +2421,7 @@ namespace libtorrent
 		dec_refcount("force_recheck");
 		state_updated();
 
-		if (j->ret == piece_manager::fatal_disk_error)
+		if (j->ret < 0)
 		{
 			handle_disk_error(j);
 			return;
@@ -2514,9 +2514,10 @@ namespace libtorrent
 
 		++m_num_checked_pieces;
 
-		if (j->ret == piece_manager::fatal_disk_error)
+		if (j->ret < 0)
 		{
-			if (j->error.ec == boost::system::errc::no_such_file_or_directory)
+			if (j->error.ec == boost::system::errc::no_such_file_or_directory
+				|| j->error.ec == boost::asio::error::eof)
 			{
 				// skip this file by updating m_checking_piece to the first piece following it
 				file_storage const& st = m_torrent_file->files();

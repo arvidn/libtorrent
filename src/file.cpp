@@ -1583,7 +1583,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(last_error, system_category());
+				ec.assign(GetLastError(), system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
@@ -1596,7 +1596,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		return ret;
 
-#else
+#else // not PREADV nor PREAD
 
 		int ret = 0;
 
