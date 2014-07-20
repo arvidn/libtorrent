@@ -651,7 +651,7 @@ namespace libtorrent
 
 		enum return_t
 		{
-			// return values from check_fastresume
+			// return values from check_fastresume, and move_storage
 			no_error = 0,
 			fatal_disk_error = -1,
 			need_full_check = -2,

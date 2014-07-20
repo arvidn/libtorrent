@@ -2375,7 +2375,8 @@ namespace libtorrent
 
 		pe->hashing = 1;
 
-		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+			|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 		++pe->piece_refcount;
 
 		if (pe->hash == NULL)
@@ -2467,6 +2468,19 @@ namespace libtorrent
 
 				if (ret < 0)
 				{
+					m_disk_cache.free_buffer((char*)iov.iov_base);
+					l.lock();
+					break;
+				}
+
+				// treat a short read as an error. The hash will be invalid, the
+				// block cannot be cached and the main thread should skip the rest
+				// of this file
+				if (ret != iov.iov_len)
+				{
+					ret = -1;
+					j->error.ec.assign(boost::asio::error::eof
+						, boost::asio::error::get_misc_category());
 					m_disk_cache.free_buffer((char*)iov.iov_base);
 					l.lock();
 					break;
