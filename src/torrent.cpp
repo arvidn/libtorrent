@@ -428,11 +428,12 @@ namespace libtorrent
 		if ((encoding == "gzip" || encoding == "x-gzip") && m_torrent_file_buf.size())
 		{
 			std::vector<char> buf;
-			std::string error;
-			if (inflate_gzip(&m_torrent_file_buf[0], m_torrent_file_buf.size()
-				, buf, 4 * 1024 * 1024, error))
+			error_code ec;
+			inflate_gzip(&m_torrent_file_buf[0], m_torrent_file_buf.size()
+				, buf, 4 * 1024 * 1024, ex);
+			if (ec)
 			{
-				set_error(errors::http_failed_decompress, error_file_url);
+				set_error(ec, error_file_url);
 				pause();
 				std::vector<char>().swap(m_torrent_file_buf);
 				return;

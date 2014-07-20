@@ -76,11 +76,20 @@ namespace libtorrent
 	};
 
 
-	TORRENT_EXPORT boost::system::error_category& get_i2p_category()
+	boost::system::error_category& get_i2p_category()
 	{
 		static i2p_error_category i2p_category;
 		return i2p_category;
 	}
+
+	namespace i2p_error
+	{
+		boost::system::error_code make_error_code(i2p_error_code e)
+		{
+			return error_code(e, get_i2p_category());
+		}
+	}
+
 	i2p_connection::i2p_connection(io_service& ios)
 		: m_state(sam_idle)
 		, m_io_service(ios)

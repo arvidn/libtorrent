@@ -48,13 +48,12 @@ int test_main()
 	TEST_CHECK(!ec);
 
 	std::vector<char> inflated;
-	std::string error;
-	bool ret = inflate_gzip(&zipped[0], zipped.size(), inflated, 1000000, error);
+	inflate_gzip(&zipped[0], zipped.size(), inflated, 1000000, ec);
 
-	if (ret != 0) {
-		fprintf(stderr, "failed to unzip\n");
+	if (ec) {
+		fprintf(stderr, "failed to unzip: %s\n", ec.message().c_str());
 	}
-	TEST_CHECK(ret == 0);
+	TEST_CHECK(!ec);
 	TEST_CHECK(inflated.size() > 0);
 	for (int i = 0; i < inflated.size(); ++i)
 		TEST_EQUAL(inflated[i], 0);

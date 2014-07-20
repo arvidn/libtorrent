@@ -27,6 +27,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* improved error handling of gzip
 	* fixed crash when web seeds redirect
 	* fix compiler warnings
 
