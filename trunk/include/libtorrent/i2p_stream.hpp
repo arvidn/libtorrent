@@ -65,6 +65,8 @@ namespace libtorrent {
 			duplicated_id,
 			num_errors
 		};
+
+		TORRENT_EXPORT boost::system::error_code make_error_code(i2p_error_code e);
 	}
 
 	// returns the error category for I2P errors
@@ -211,6 +213,19 @@ private:
 };
 
 }
+
+#if BOOST_VERSION >= 103500
+namespace boost { namespace system {
+
+template<>
+struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
+{
+	static const bool value = true;
+};
+
+} }
+#endif // BOOST_VERSION
+
 #endif // TORRENT_USE_I2P
 
 #endif

@@ -682,10 +682,12 @@ void http_connection::callback(error_code e, char const* data, int size)
 		std::string const& encoding = m_parser.header("content-encoding");
 		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
 		{
-			std::string error;
-			if (inflate_gzip(data, size, buf, m_max_bottled_buffer_size, error))
+			error_code ec;
+			inflate_gzip(data, size, buf, m_max_bottled_buffer_size, ec);
+
+			if (ec)
 			{
-				if (m_handler) m_handler(errors::http_failed_decompress, m_parser, data, size, *this);
+				if (m_handler) m_handler(ec, m_parser, data, size, *this);
 				close();
 				return;
 			}
