@@ -2801,16 +2801,7 @@ with actual strings. For example i2p trackers</h2><h4>../src/udp_tracker_connect
 	{
 		restart_read_timeout();
 		int action = detail::read_int32(buf);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(55)">../src/upnp.cpp:63</a></td><td>listen_interface is not used. It's meant to bind the broadcast socket</td></tr><tr id="55" style="display: none;" colspan="3"><td colspan="3"><h2>listen_interface is not used. It's meant to bind the broadcast socket</h2><h4>../src/upnp.cpp:63</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
-
-#include &lt;boost/bind.hpp&gt;
-#include &lt;boost/ref.hpp&gt;
-#if BOOST_VERSION &lt; 103500
-#include &lt;asio/ip/host_name.hpp&gt;
-#include &lt;asio/ip/multicast.hpp&gt;
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(55)">../src/upnp.cpp:72</a></td><td>listen_interface is not used. It's meant to bind the broadcast socket</td></tr><tr id="55" style="display: none;" colspan="3"><td colspan="3"><h2>listen_interface is not used. It's meant to bind the broadcast socket</h2><h4>../src/upnp.cpp:72</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#include &lt;asio/ip/multicast.hpp&gt;
 #else
 #include &lt;boost/asio/ip/host_name.hpp&gt;
 #include &lt;boost/asio/ip/multicast.hpp&gt;
@@ -2818,6 +2809,15 @@ with actual strings. For example i2p trackers</h2><h4>../src/udp_tracker_connect
 #include &lt;cstdlib&gt;
 
 namespace libtorrent {
+
+namespace upnp_errors
+{
+	boost::system::error_code make_error_code(error_code_enum e)
+	{
+		return error_code(e, get_upnp_category());
+	}
+
+} // upnp_errors namespace
 
 static error_code ec;
 
@@ -3314,12 +3314,12 @@ m_sock.bind(endpoint, ec);</h2><h4>../include/libtorrent/proxy_base.hpp:166</h4>
 		// flags for the source bitmask, each indicating where
 		// we heard about this tracker
 		enum tracker_source
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(65)">../include/libtorrent/upnp.hpp:108</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="65" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>../include/libtorrent/upnp.hpp:108</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			// specific IP addres or DNS name
-			remote_host_must_be_wildcard = 726,
-			// ExternalPort must be a wildcard and cannot be a
-			// specific port
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(65)">../include/libtorrent/upnp.hpp:111</a></td><td>support using the windows API for UPnP operations as well</td></tr><tr id="65" style="display: none;" colspan="3"><td colspan="3"><h2>support using the windows API for UPnP operations as well</h2><h4>../include/libtorrent/upnp.hpp:111</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			// specific port
 			external_port_must_be_wildcard = 727
 		};
+
+		// hidden
+		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 	}
 
 	TORRENT_EXPORT boost::system::error_category&amp; get_upnp_category();
