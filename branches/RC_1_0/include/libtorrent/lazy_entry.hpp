@@ -438,6 +438,8 @@ namespace boost { namespace system {
 	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
 	{ static const bool value = true; };
 
+	template<> struct is_error_condition_enum<libtorrent::bdecode_errors::error_code_enum>
+	{ static const bool value = true; };
 } }
 
 #endif
