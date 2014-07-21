@@ -220,9 +220,11 @@ namespace boost { namespace system {
 
 template<>
 struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
-{
-	static const bool value = true;
-};
+{ static const bool value = true; };
+
+template<>
+struct is_error_condition_enum<libtorrent::i2p_error::i2p_error_code>
+{ static const bool value = true; };
 
 } }
 #endif // BOOST_VERSION

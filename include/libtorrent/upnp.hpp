@@ -93,6 +93,9 @@ namespace libtorrent
 			// specific port
 			external_port_must_be_wildcard = 727
 		};
+
+		// hidden
+		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 	}
 
 	TORRENT_EXPORT boost::system::error_category& get_upnp_category();
@@ -380,6 +383,18 @@ private:
 
 }
 
+#if BOOST_VERSION >= 103500
+
+namespace boost { namespace system {
+
+	template<> struct is_error_code_enum<libtorrent::upnp_errors::error_code_enum>
+	{ static const bool value = true; };
+
+	template<> struct is_error_condition_enum<libtorrent::upnp_errors::error_code_enum>
+	{ static const bool value = true; };
+} }
+
+#endif // BOOST_VERSION
 
 #endif
 
