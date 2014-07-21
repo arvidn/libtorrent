@@ -245,8 +245,12 @@ void test_transfer(settings_pack const& sett)
 		test_sleep(100);
 	}
 
-	TEST_CHECK(st2.state != torrent_status::checking_files);
-	if (st2.state != torrent_status::checking_files) std::cerr << "recheck complete" << std::endl;
+	TEST_EQUAL(st2.state, torrent_status::finished);
+
+	if (st2.state != torrent_status::finished)
+		return;
+
+	std::cerr << "recheck complete" << std::endl;
 
 	priorities2 = tor2.piece_priorities();
 	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
@@ -290,6 +294,8 @@ void test_transfer(settings_pack const& sett)
 		a = ses2.wait_for_alert(seconds(10));
 	}
 	TEST_CHECK(resume_data.size());	
+
+	fprintf(stderr, "%s\n", resume_data.data());
 
 	ses2.remove_torrent(tor2);
 

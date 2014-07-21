@@ -2422,7 +2422,7 @@ namespace libtorrent
 		dec_refcount("force_recheck");
 		state_updated();
 
-		if (j->ret < 0)
+		if (j->ret == piece_manager::fatal_disk_error)
 		{
 			handle_disk_error(j);
 			return;

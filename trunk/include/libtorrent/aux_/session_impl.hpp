@@ -250,7 +250,7 @@ namespace libtorrent
 
 			void queue_async_resume_data(boost::shared_ptr<torrent> const& t);
 			void done_async_resume();
-			void async_resume_dispatched(bool all);
+			void async_resume_dispatched(int num_popped_resume);
 
 			void init_peer_class_filter(bool unlimited_local);
 
@@ -834,10 +834,6 @@ namespace libtorrent
 			// the number of save resume data disk jobs that are currently
 			// outstanding
 			int m_num_save_resume;
-
-			// the number of resume data job that are complete and are waiting
-			// to be reaped in the alert queue
-			int m_num_queued_resume;
 
 			// peer connections are put here when disconnected to avoid
 			// race conditions with the disk thread. It's important that

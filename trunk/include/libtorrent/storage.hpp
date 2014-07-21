@@ -287,8 +287,8 @@ namespace libtorrent
 		// 
 		// returns one of:
 		// | no_error = 0
-		// | need_full_check = -1
-		// | fatal_disk_error = -2
+		// | fatal_disk_error = -1
+		// | need_full_check = -2
 		// | file_exist = -4
 		virtual int move_storage(std::string const& save_path, int flags
 			, storage_error& ec) = 0;
