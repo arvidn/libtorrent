@@ -120,9 +120,11 @@ namespace boost { namespace system {
 
 template<>
 struct is_error_code_enum<libtorrent::gzip_errors::error_code_enum>
-{
-	static const bool value = true;
-};
+{ static const bool value = true; };
+
+template<>
+struct is_error_condition_enum<libtorrent::gzip_errors::error_code_enum>
+{ static const bool value = true; };
 
 } }
 #endif // BOOST_VERSION

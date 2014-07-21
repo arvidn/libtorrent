@@ -58,6 +58,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+namespace upnp_errors
+{
+	boost::system::error_code make_error_code(error_code_enum e)
+	{
+		return error_code(e, get_upnp_category());
+	}
+
+} // upnp_errors namespace
+
 static error_code ec;
 
 // TODO: listen_interface is not used. It's meant to bind the broadcast socket

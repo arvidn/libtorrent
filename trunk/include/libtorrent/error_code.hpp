@@ -468,24 +468,11 @@ namespace libtorrent
 			bad_gateway = 502,
 			service_unavailable = 503
 		};
-	}
-}
 
-#if BOOST_VERSION >= 103500
+		// hidden
+		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 
-namespace boost { namespace system {
-
-	template<> struct is_error_code_enum<libtorrent::errors::error_code_enum>
-	{ static const bool value = true; };
-
-	template<> struct is_error_condition_enum<libtorrent::errors::error_code_enum>
-	{ static const bool value = true; };
-} }
-
-#endif
-
-namespace libtorrent
-{
+	} // namespace errors
 
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
@@ -518,15 +505,6 @@ namespace libtorrent
 
 	// returns the error_category for HTTP errors
 	TORRENT_EXPORT boost::system::error_category& get_http_category();
-
-	namespace errors
-	{
-		// hidden
-		inline boost::system::error_code make_error_code(error_code_enum e)
-		{
-			return boost::system::error_code(e, get_libtorrent_category());
-		}
-	}
 
 	using boost::system::error_code;
 
@@ -618,6 +596,26 @@ namespace libtorrent
 	};
 
 }
+
+#if BOOST_VERSION >= 103500
+
+namespace boost { namespace system {
+
+	template<> struct is_error_code_enum<libtorrent::errors::error_code_enum>
+	{ static const bool value = true; };
+
+	template<> struct is_error_condition_enum<libtorrent::errors::error_code_enum>
+	{ static const bool value = true; };
+
+	template<> struct is_error_code_enum<libtorrent::errors::http_errors>
+	{ static const bool value = true; };
+
+	template<> struct is_error_condition_enum<libtorrent::errors::http_errors>
+	{ static const bool value = true; };
+} }
+
+#endif // BOOST_VERSION
+
 
 #endif
 
