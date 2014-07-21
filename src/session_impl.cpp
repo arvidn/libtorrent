@@ -451,7 +451,6 @@ namespace aux {
 #endif
 		, m_tracker_manager(*this)
 		, m_num_save_resume(0)
-		, m_num_queued_resume(0)
 		, m_work(io_service::work(m_io_service))
 		, m_max_queue_pos(-1)
 		, m_key(0)
@@ -1118,7 +1117,7 @@ namespace aux {
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 
-		if (m_num_save_resume + m_num_queued_resume >= loaded_limit
+		if (m_num_save_resume + m_alerts.num_queued_resume() >= loaded_limit
 			&& m_user_load_torrent
 			&& loaded_limit > 0)
 		{
@@ -1142,28 +1141,19 @@ namespace aux {
 	{
 		TORRENT_ASSERT(m_num_save_resume > 0);
 		--m_num_save_resume;
-		++m_num_queued_resume;
 	}
 
 	// this is called when one or all save resume alerts are
 	// popped off the alert queue
-	void session_impl::async_resume_dispatched(bool all)
+	void session_impl::async_resume_dispatched(int num_popped_resume)
 	{
 		INVARIANT_CHECK;
 
-		if (all)
-		{
-			m_num_queued_resume = 0;
-		}
-		else
-		{
-			TORRENT_ASSERT(m_num_queued_resume > 0);
-			--m_num_queued_resume;
-		}
+		int num_queued_resume = m_alerts.num_queued_resume();
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 		while (!m_save_resume_queue.empty()
-			&& (m_num_save_resume + m_num_queued_resume < loaded_limit
+			&& (m_num_save_resume + num_queued_resume < loaded_limit
 			|| loaded_limit == 0))
 		{
 			boost::shared_ptr<torrent> t = m_save_resume_queue.front();
@@ -7446,14 +7436,14 @@ retry:
 	// not the network thread
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
-		std::auto_ptr<alert> ret = m_alerts.get();
-		if (alert_cast<save_resume_data_failed_alert>(ret.get())
-			|| alert_cast<save_resume_data_alert>(ret.get()))
+		int num_resume = 0;
+		std::auto_ptr<alert> ret = m_alerts.get(num_resume);
+		if (num_resume > 0)
 		{
 			// we can only issue more resume data jobs from
 			// the network thread
 			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-				, this, false));
+				, this, num_resume));
 		}
 		return ret;
 	}
@@ -7462,11 +7452,12 @@ retry:
 	// not the network thread
 	void session_impl::pop_alerts(std::deque<alert*>* alerts)
 	{
-		m_alerts.get_all(alerts);
+		int num_resume = 0;
+		m_alerts.get_all(alerts, num_resume);
 		// we can only issue more resume data jobs from
 		// the network thread
 		m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-			, this, true));
+			, this, num_resume));
 	}
 
 	alert const* session_impl::wait_for_alert(time_duration max_wait)

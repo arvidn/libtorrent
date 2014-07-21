@@ -57,8 +57,8 @@ namespace libtorrent {
 		void post_alert(const alert& alert_);
 		void post_alert_ptr(alert* alert_);
 		bool pending() const;
-		std::auto_ptr<alert> get();
-		void get_all(std::deque<alert*>* alerts);
+		std::auto_ptr<alert> get(int& num_resume);
+		void get_all(std::deque<alert*>* alerts, int& num_resume);
 
 		template <class T>
 		bool should_post() const
@@ -88,6 +88,8 @@ namespace libtorrent {
 
 		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
 
+		int num_queued_resume() const;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<plugin> ext);
 #endif
@@ -101,6 +103,9 @@ namespace libtorrent {
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
+
+		// the number of resume data alerts  in the alert queue
+		int m_num_queued_resume;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;

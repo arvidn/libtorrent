@@ -44,6 +44,7 @@ namespace libtorrent
 	alert_manager::alert_manager(int queue_limit, boost::uint32_t alert_mask)
 		: m_alert_mask(alert_mask)
 		, m_queue_size_limit(queue_limit)
+		, m_num_queued_resume(0)
 	{}
 
 	alert_manager::~alert_manager()
@@ -57,6 +58,12 @@ namespace libtorrent
 			delete m_alerts.front();
 			m_alerts.pop_front();
 		}
+	}
+
+	int alert_manager::num_queued_resume() const
+	{
+		mutex::scoped_lock lock(m_mutex);
+		return m_num_queued_resume;
 	}
 
 	alert const* alert_manager::wait_for_alert(time_duration max_wait)
@@ -137,6 +144,11 @@ namespace libtorrent
 	void alert_manager::post_impl(std::auto_ptr<alert>& alert_
 		, mutex::scoped_lock& /* l */)
 	{
+
+		if (alert_cast<save_resume_data_failed_alert>(alert_.get())
+			|| alert_cast<save_resume_data_alert>(alert_.get()))
+			++m_num_queued_resume;
+
 		if (m_dispatch)
 		{
 			TORRENT_ASSERT(m_alerts.empty());
@@ -159,21 +171,37 @@ namespace libtorrent
 	}
 #endif
 
-	std::auto_ptr<alert> alert_manager::get()
+	std::auto_ptr<alert> alert_manager::get(int& num_resume)
 	{
 		mutex::scoped_lock lock(m_mutex);
 		
 		if (m_alerts.empty())
 			return std::auto_ptr<alert>(0);
 
+		TORRENT_ASSERT(m_num_queued_resume <= int(m_alerts.size()));
+
 		alert* result = m_alerts.front();
 		m_alerts.pop_front();
+
+		if (alert_cast<save_resume_data_failed_alert>(result)
+				|| alert_cast<save_resume_data_alert>(result))
+		{
+			--m_num_queued_resume;
+			num_resume = 1;
+		}
+		else
+		{
+			num_resume = 0;
+		}
 		return std::auto_ptr<alert>(result);
 	}
 
-	void alert_manager::get_all(std::deque<alert*>* alerts)
+	void alert_manager::get_all(std::deque<alert*>* alerts, int& num_resume)
 	{
 		mutex::scoped_lock lock(m_mutex);
+		TORRENT_ASSERT(m_num_queued_resume <= int(m_alerts.size()));
+		num_resume = m_num_queued_resume;
+		m_num_queued_resume = 0;
 		if (m_alerts.empty()) return;
 		m_alerts.swap(*alerts);
 	}
