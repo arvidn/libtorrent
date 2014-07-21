@@ -55,16 +55,16 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id189">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#hasher" id="id190">hasher</a></li>
-<li><a class="reference internal" href="#peer-info" id="id191">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id192">peer_request</a></li>
-<li><a class="reference internal" href="#block-info" id="id193">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id194">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id195">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id196">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id197">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id198">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id190">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#hasher" id="id191">hasher</a></li>
+<li><a class="reference internal" href="#peer-info" id="id192">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id193">peer_request</a></li>
+<li><a class="reference internal" href="#block-info" id="id194">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id195">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id196">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id197">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id198">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id199">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -3538,6 +3538,13 @@ void <strong>parse_magnet_uri</strong> (std::string const&amp; uri, add_torrent_
 </pre>
 <p>This function parses out information from the magnet link and populates the
 <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> object.</p>
+<a name="make_error_code()"></a></div>
+<div class="section" id="make-error-code">
+<h2>make_error_code()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/socks5_stream.hpp">libtorrent/socks5_stream.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_code <strong>make_error_code</strong> (socks_error_code e);
+</pre>
 <a name="hash_value()"></a></div>
 <div class="section" id="hash-value">
 <h2>hash_value()</h2>
