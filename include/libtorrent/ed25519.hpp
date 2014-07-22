@@ -1,7 +1,7 @@
 #ifndef ED25519_HPP
 #define ED25519_HPP
 
-#include "libtorrent/config.hpp" // for TORRENT_EXPORT
+#include "libtorrent/export.hpp" // for TORRENT_EXPORT
 
 enum
 {
