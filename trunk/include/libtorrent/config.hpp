@@ -100,40 +100,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-// backwards compatibility with older versions of boost
-#if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
-# if defined _MSC_VER || defined __MINGW32__
-#  define BOOST_SYMBOL_EXPORT __declspec(dllexport)
-#  define BOOST_SYMBOL_IMPORT __declspec(dllimport)
-# elif __GNU__ >= 4
-#  define BOOST_SYMBOL_EXPORT __attribute__((visibility("default")))
-#  define BOOST_SYMBOL_IMPORT __attribute__((visibility("default")))
-# else
-#  define BOOST_SYMBOL_EXPORT
-#  define BOOST_SYMBOL_IMPORT
-# endif
-#endif
-
-#if defined TORRENT_BUILDING_SHARED
-# define TORRENT_EXPORT BOOST_SYMBOL_EXPORT
-#elif defined TORRENT_LINKING_SHARED
-# define TORRENT_EXPORT BOOST_SYMBOL_IMPORT
-#endif
-
-// when this is specified, export a bunch of extra
-// symbols, mostly for the unit tests to reach
-#if TORRENT_EXPORT_EXTRA
-# if defined TORRENT_BUILDING_SHARED
-#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_EXPORT
-# elif defined TORRENT_LINKING_SHARED
-#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_IMPORT
-# endif
-#endif
-
-#ifndef TORRENT_EXTRA_EXPORT
-# define TORRENT_EXTRA_EXPORT
-#endif
-
 // ======= GCC =========
 
 #if defined __GNUC__
@@ -497,10 +463,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_HAS_FALLOCATE
 #define TORRENT_HAS_FALLOCATE 1
-#endif
-
-#ifndef TORRENT_EXPORT
-# define TORRENT_EXPORT
 #endif
 
 #ifndef TORRENT_DEPRECATED_PREFIX
