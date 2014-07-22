@@ -42,6 +42,7 @@ nobase_include_HEADERS = \
   error.hpp                    \
   error_code.hpp               \
   escape_string.hpp            \
+  export.hpp                   \
   extensions.hpp               \
   file.hpp                     \
   file_pool.hpp                \
