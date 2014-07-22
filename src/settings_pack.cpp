@@ -109,6 +109,11 @@ namespace libtorrent
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
 #endif
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
+
 	using aux::session_impl;
 
 	str_setting_entry_t str_settings[settings_pack::num_string_settings] =
@@ -332,6 +337,10 @@ namespace libtorrent
 	};
 
 #undef SET
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 	int setting_by_name(std::string const& key)
 	{

@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h> // for snprintf
 #include <limits.h> // for IOV_MAX
 
+#include "libtorrent/export.hpp"
+
 #ifdef __linux__
 #include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION
 #endif // __linux
