@@ -33,7 +33,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_EXPORT_HPP_INCLUDED
 #define TORRENT_EXPORT_HPP_INCLUDED
 
-#include <boost/config.hpp>
+#if !defined(BOOST_COMPILER_CONFIG) && !defined(BOOST_NO_COMPILER_CONFIG)
+#  include <boost/config/select_compiler_config.hpp>
+#endif
+#ifdef BOOST_COMPILER_CONFIG
+#  include BOOST_COMPILER_CONFIG
+#endif
+
+#if !defined(BOOST_PLATFORM_CONFIG) && !defined(BOOST_NO_PLATFORM_CONFIG)
+#  include <boost/config/select_platform_config.hpp>
+#endif
+#ifdef BOOST_PLATFORM_CONFIG
+#  include BOOST_PLATFORM_CONFIG
+#endif
 
 // backwards compatibility with older versions of boost
 #if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
