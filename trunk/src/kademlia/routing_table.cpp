@@ -212,9 +212,14 @@ void routing_table::print_state(std::ostream& os) const
 	{
 //		if (i->live_nodes.empty()) continue;
 		os << "=== BUCKET == " << bucket_index
-			<< " == " << i->live_nodes.size() << "|" << i->replacements.size()
-			<< " == " << total_seconds(time_now() - i->last_active)
-			<< " seconds ago ===== \n";
+			<< " == " << i->live_nodes.size() << "|" << i->replacements.size();
+
+		if (i->last_active == min_time())
+			os << " == -";
+		else
+			os << " == " << total_seconds(time_now() - i->last_active);
+
+		os << " seconds ago ===== \n";
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
 			, end(i->live_nodes.end()); j != end; ++j)
 		{
