@@ -9881,7 +9881,10 @@ namespace libtorrent
 		if (i != time_critical.end())
 		{
 			deadline = total_milliseconds(i->deadline - now) / 1000.f;
-			last_request = total_milliseconds(now - i->last_requested) / 1000.f;
+			if (i->last_requested == min_time())
+				last_request = -1;
+			else
+				last_request = total_milliseconds(now - i->last_requested) / 1000.f;
 			timed_out = i->timed_out;
 		}
 
