@@ -214,7 +214,7 @@ void routing_table::print_state(std::ostream& os) const
 		os << "=== BUCKET == " << bucket_index
 			<< " == " << i->live_nodes.size() << "|" << i->replacements.size();
 
-		if (i->last_active == min_time())
+		if (i->last_active < min_time() + seconds(161))
 			os << " == -";
 		else
 			os << " == " << total_seconds(time_now() - i->last_active);
