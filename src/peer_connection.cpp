@@ -1122,7 +1122,8 @@ namespace libtorrent
 		// average of current rate and peak
 //		rate = (rate + m_download_rate_peak) / 2;
 
-		return seconds((m_outstanding_bytes + m_queued_time_critical * t->block_size()) / rate);
+		return milliseconds((m_outstanding_bytes
+			+ m_queued_time_critical * t->block_size() * 1000) / rate);
 	}
 
 	void peer_connection::add_stat(size_type downloaded, size_type uploaded)

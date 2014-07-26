@@ -10010,7 +10010,13 @@ namespace libtorrent
 			// if this peer's download time exceeds 2 seconds, we're done.
 			// We don't want to build unreasonably long request queues
 			if (!peers.empty() && peers[0]->download_queue_time() > milliseconds(2000))
+			{
+#if TORRENT_DEBUG_STREAMING > 1
+				printf("queue time: %d ms, done\n"
+					, int(total_milliseconds(peers[0]->download_queue_time())));
+#endif
 				break;
+			}
 
 			// pick the peer with the lowest download_queue_time that has i->piece
 			std::vector<peer_connection*>::iterator p = std::find_if(peers.begin(), peers.end()
@@ -10086,7 +10092,7 @@ namespace libtorrent
 			bool already_requested = std::find_if(dq.begin(), dq.end()
 				, has_block(b)) != dq.end();
 
-			if (busy_mode && already_requested)
+			if (already_requested)
 			{
 				// if the piece is stalled, we may end up picking a block
 				// that we've already requested from this peer. If so, we should
@@ -10129,9 +10135,7 @@ namespace libtorrent
 				// makes us actually send it later
 				peers_with_requests.insert(peers_with_requests.begin(), &c);
 			}
-
-			if (!already_in_queue
-				&& !already_requested)
+			else
 			{
 				if (!c.add_request(b, peer_connection::req_time_critical
 					| (busy_mode ? peer_connection::req_busy : 0)))
