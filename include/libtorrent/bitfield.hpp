@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	// The bitfiled type stores any number of bits as a bitfield 
-	// in a heap allocated or borrowed array.
+	// in a heap allocated array.
 	struct TORRENT_EXPORT bitfield
 	{
 		// constructs a new bitfield. The default constructor creates an empty
