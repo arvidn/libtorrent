@@ -146,7 +146,7 @@ namespace libtorrent
 						break;
 				}
 
-				num_words = num_bytes / 32;
+				num_words = num_bytes / 4;
 
 				TORRENT_ASSERT((uintptr_t(bytes) & 0x3) == 0);
 				boost::uint32_t* words = (boost::uint32_t*)bytes;
