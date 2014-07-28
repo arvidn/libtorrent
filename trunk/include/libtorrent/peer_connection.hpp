@@ -107,11 +107,25 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: block(b), not_wanted(false)
-			, timed_out(false), busy(false)
+			: block(b), send_buffer_offset(-1), not_wanted(false)
+			, timed_out(false), busy(false), receiving(false)
 		{}
 
 		piece_block block;
+
+		// the time we sent this request. This is used to track the round-trip
+		// time of receiving the piece. This is not initialized until this
+		// pending_block is inserted in the download queue (i.e. not the
+		// requst_queue)
+		ptime request_time;
+
+		// the number of bytes into the send buffer this request is. Every time
+		// some portion of the send buffer is transmitted, this offset is
+		// decremented by the number of bytes sent. once this drops below 0, the
+		// request_time field is set to the current time.
+		// if the request has not been written to the send buffer, this field
+		// remoains -1.
+		int send_buffer_offset;
 
 		// if any of these are set to true, this block
 		// is not allocated
@@ -127,6 +141,11 @@ namespace libtorrent
 		// request was queued. We only allow a single
 		// busy request at a time in each peer's queue
 		bool busy:1;
+
+		// this is true when we first start to receive the resopnse for this
+		// request. The first time we read the message header for the piece
+		// response is when we calculate the RTT for this request.
+		bool receiving:1;
 
 		bool operator==(pending_block const& b)
 		{
@@ -907,12 +926,6 @@ namespace libtorrent
 
 	protected:
 
-		// estimated round trip time to this peer
-		// based on the time from when async_connect
-		// was called to when on_connection_complete
-		// was called. The rtt is specified in milliseconds
-		boost::uint16_t m_rtt;
-
 		buffer m_recv_buffer;
 
 		// number of bytes this peer can send and receive
@@ -966,6 +979,10 @@ namespace libtorrent
 		// the average rate of receiving complete piece messages
 		sliding_average<20> m_piece_rate;
 		sliding_average<20> m_send_rate;
+
+		// the round-trip time of piece requests and the corresponding piece
+		// message
+		sliding_average<50> m_rtt;
 
 		// keep the io_service running as long as we
 		// have peer connections
@@ -1096,10 +1113,6 @@ namespace libtorrent
 		// pieces that has been suggested to be
 		// downloaded from this peer
 		std::vector<int> m_suggested_pieces;
-
-		// a list of byte offsets inside the send buffer
-		// the piece requests
-		std::vector<int> m_requests_in_buffer;
 
 		// the time when this peer last saw a complete copy
 		// of this torrent
