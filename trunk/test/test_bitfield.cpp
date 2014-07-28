@@ -164,5 +164,29 @@ int test_main()
 		test1.resize(i, false);
 		test_iterators(test1);
 	}
+
+	// test alignment
+	boost::uint32_t buffer[4];
+	char* b = (char*)buffer;
+
+	for (int i = 0; i < 4; ++i)
+	{
+		b[i] = 0xc0;
+		test1.assign(b + i, 2);
+		print_bitfield(test1);
+		TEST_EQUAL(test1.count(), 2);
+		TEST_EQUAL(test1.all_set(), true);
+	}
+
+	for (int i = 0; i < 4; ++i)
+	{
+		memset(b + i, 0xff, 5);
+		b[i + 5] = 0xc0;
+		test1.assign(b + i, 32 + 8 + 2);
+		print_bitfield(test1);
+		TEST_EQUAL(test1.count(), 32 + 8 + 2);
+		TEST_EQUAL(test1.all_set(), true);
+	}
+
 	return 0;
 }
