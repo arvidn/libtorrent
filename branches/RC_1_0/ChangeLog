@@ -1,3 +1,4 @@
+	* fix alignment issue in bitfield
 	* improved error handling of gzip
 	* fixed crash when web seeds redirect
 	* fix compiler warnings

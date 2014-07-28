@@ -116,21 +116,54 @@ namespace libtorrent
 		// returns true if all bits in the bitfield are set
 		bool all_set() const
 		{
-			const int num_words = m_size / 32;
-			const int num_bytes = m_size / 8;
-			boost::uint32_t* bits = (boost::uint32_t*)m_bytes;
-			for (int i = 0; i < num_words; ++i)
+			boost::uint8_t* bytes = m_bytes;
+			int num_bytes = m_size / 8;
+			int num_words = 0;
+
+			// head
+			if (num_bytes >= 4)
 			{
-				if (bits[i] != 0xffffffff) return false;
+				switch (uintptr_t(bytes) & 0x3)
+				{
+					case 0: break;
+					case 1:
+						if (bytes[0] != 0xff) return false;
+						if (bytes[1] != 0xff) return false;
+						if (bytes[2] != 0xff) return false;
+						bytes += 3;
+						num_bytes -= 3;
+						break;
+					case 2:
+						if (bytes[0] != 0xff) return false;
+						if (bytes[1] != 0xff) return false;
+						bytes += 2;
+						num_bytes -= 2;
+						break;
+					case 3:
+						if (bytes[0] != 0xff) return false;
+						++bytes;
+						--num_bytes;
+						break;
+				}
+
+				num_words = num_bytes / 32;
+
+				TORRENT_ASSERT((uintptr_t(bytes) & 0x3) == 0);
+				boost::uint32_t* words = (boost::uint32_t*)bytes;
+				for (int i = 0; i < num_words; ++i)
+				{
+					if (words[i] != 0xffffffff) return false;
+				}
 			}
 
+			// tail
 			for (int i = num_words * 4; i < num_bytes; ++i)
 			{
-				if (m_bytes[i] != 0xff) return false;
+				if (bytes[i] != 0xff) return false;
 			}
-			int rest = m_size - num_bytes * 8;
+			int rest = m_size & 0x7;
 			boost::uint8_t mask = (0xff << (8-rest)) & 0xff;
-			if (rest > 0 && (m_bytes[num_bytes] & mask) != mask)
+			if (rest > 0 && (bytes[num_bytes] & mask) != mask)
 				return false;
 			return true;
 		}
