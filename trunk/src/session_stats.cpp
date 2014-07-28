@@ -288,6 +288,11 @@ namespace libtorrent
 
 		METRIC(disk, write_cache_blocks, type_gauge)
 		METRIC(disk, read_cache_blocks, type_gauge)
+
+		// the number of microseconds it takes from receiving a request from a
+		// peer until we're sending the response back on the socket.
+		METRIC(disk, request_latency, type_gauge)
+
 		METRIC(disk, pinned_blocks, type_gauge)
 		METRIC(disk, disk_blocks_in_use, type_gauge)
 		METRIC(disk, queued_disk_jobs, type_gauge)

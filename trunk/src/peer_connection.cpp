@@ -2487,7 +2487,7 @@ namespace libtorrent
 				int rtt = int(total_milliseconds(time_now_hires() - i->request_time));
 				m_rtt.add_sample(rtt);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				peer_log("*** RTT: %d ms [%s +/- %s ms]", rtt, m_rtt.mean()
+				peer_log("*** RTT: %d ms [%d +/- %d ms]", rtt, m_rtt.mean()
 					, m_rtt.avg_deviation());
 #endif
 			}
@@ -5041,7 +5041,7 @@ namespace libtorrent
 				t->inc_refcount("async_read");
 				m_disk_thread.async_read(&t->storage(), r
 					, boost::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, r), this);
+					, self(), _1, r, time_now_hires()), this);
 			}
 			m_requests.erase(m_requests.begin() + i);
 
@@ -5109,19 +5109,23 @@ namespace libtorrent
 		fill_send_buffer();
 	}
 
-	void peer_connection::on_disk_read_complete(disk_io_job const* j, peer_request r)
+	void peer_connection::on_disk_read_complete(disk_io_job const* j
+		, peer_request r, ptime issue_time)
 	{
 		// return value:
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
+		int disk_rtt = int(total_microseconds(time_now_hires() - issue_time));
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** FILE ASYNC READ COMPLETE [ ret: %d | piece: %d | s: %x | l: %x"
-			" | b: %p | c: %s | e: %s ]"
+			" | b: %p | c: %s | e: %s | rtt: %d us ]"
 			, j->ret, r.piece, r.start, r.length, j->buffer
 			, (j->flags & disk_io_job::cache_hit ? "cache hit" : "cache miss")
-			, j->error.ec.message().c_str());
+			, j->error.ec.message().c_str(), disk_rtt);
 #endif
+
 		m_reading_bytes -= r.length;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -5184,6 +5188,11 @@ namespace libtorrent
 		peer_log("==> PIECE   [ piece: %d s: %x l: %x ]"
 			, r.piece, r.start, r.length);
 #endif
+
+		// TODO: 3 it would be nice if the sliding_average state required
+		// for this would be baked into the counters object, in which case this
+		// would not be a session_impl dependency.
+		m_ses.request_latency_sample(disk_rtt);
 
 		// we probably just pulled this piece into the cache.
 		// if it's rare enough to make it into the suggested piece

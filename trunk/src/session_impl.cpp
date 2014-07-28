@@ -1107,6 +1107,8 @@ namespace aux {
 
 			":connection attempt loops"
 
+			":request latency"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -4411,6 +4413,8 @@ retry:
 			STAT_COUNTER(piece_picker_busy_loops);
 
 			STAT_COUNTER(connection_attempt_loops);
+
+			STAT_COUNTER(request_latency);
 
 			fprintf(m_stats_logger, "\n");
 
