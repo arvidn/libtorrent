@@ -409,6 +409,11 @@ namespace libtorrent
 			void set_port_filter(port_filter const& f);
 			port_filter const& get_port_filter() const;
 
+			void request_latency_sample(int us)
+			{
+				m_request_latency.add_sample(us);
+				m_stats_counters.set_value(counters::request_latency, m_request_latency.mean());
+			}
 
 			// TODO: move the login info into the tracker_request object
 			void queue_tracker_request(tracker_request& req
@@ -592,6 +597,9 @@ namespace libtorrent
 			void add_redundant_bytes(size_type b, int reason)
 			{
 				TORRENT_ASSERT(b > 0);
+				// TODO: 3 the m_redundant_bytes array should be made part of
+				// the stats counters. That way another session_impl dependency
+				// from the peer connections would be removed
 				m_redundant_bytes[reason] += b;
 				m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
 			}
@@ -1192,7 +1200,7 @@ namespace libtorrent
 			vm_statistics_data_t m_last_vm_stat;
 			thread_cpu_usage m_network_thread_cpu_usage;
 			sliding_average<20> m_read_ops;
-			sliding_average<20> m_write_ops;;
+			sliding_average<20> m_write_ops;
 #endif
 
 			// each second tick the timer takes a little
@@ -1231,6 +1239,10 @@ namespace libtorrent
 		private:
 
 			counters m_stats_counters;
+
+			// the sliding average of the latency (in microseconds) from an
+			// incoming request to sending the data back over the socket
+			sliding_average<50> m_request_latency;
 
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;

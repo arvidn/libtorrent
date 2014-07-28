@@ -883,7 +883,8 @@ namespace libtorrent
 		void do_update_interest();
 		int preferred_caching() const;
 		void fill_send_buffer();
-		void on_disk_read_complete(disk_io_job const* j, peer_request r);
+		void on_disk_read_complete(disk_io_job const* j, peer_request r
+			, ptime issue_time);
 		void on_disk_write_complete(disk_io_job const* j
 			, peer_request r, boost::shared_ptr<torrent> t);
 		void on_seed_mode_hashed(disk_io_job const* j);

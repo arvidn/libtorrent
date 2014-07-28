@@ -244,6 +244,8 @@ namespace libtorrent { namespace aux
 
 		virtual int peak_up_rate() const = 0;
 
+		virtual void request_latency_sample(int us) = 0;
+
 		enum torrent_list_index
 		{
 			// this is the set of (subscribed) torrents that have changed

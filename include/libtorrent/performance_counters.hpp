@@ -335,6 +335,7 @@ namespace libtorrent
 
 			write_cache_blocks,
 			read_cache_blocks,
+			request_latency,
 			pinned_blocks,
 			disk_blocks_in_use,
 			queued_disk_jobs,

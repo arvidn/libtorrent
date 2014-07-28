@@ -321,6 +321,7 @@ reports = [
 	('pinned torrents', 'num torrents', '', '', ['pinned torrents']),
 	('loaded torrents', 'num torrents', '', '', ['loaded torrents', 'pinned torrents']),
 	('requests', '', '', '', ['outstanding requests']),
+	('request latency', 'us', '', 'latency from receiving requests to sending response', ['request latency']),
 	('incoming messages', 'num', '', 'number of received bittorrent messages, by type', [ \
 		'num_incoming_choke', 'num_incoming_unchoke', 'num_incoming_interested', \
 		'num_incoming_not_interested', 'num_incoming_have', 'num_incoming_bitfield', \
