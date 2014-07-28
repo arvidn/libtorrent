@@ -656,9 +656,11 @@ namespace libtorrent
 		for (int i = 1; i <= num_blocks; ++i)
 		{
 			if (i < num_blocks && flushing[i] == flushing[i-1]+1) continue;
-			int ret = pe->storage->get_storage_impl()->writev(iov_start, i - flushing_start
+			int ret = pe->storage->get_storage_impl()->writev(iov_start
+				, i - flushing_start
 				, piece + flushing[flushing_start] / blocks_in_piece
-				, (flushing[flushing_start] % blocks_in_piece) * block_size, 0, error);
+				, (flushing[flushing_start] % blocks_in_piece) * block_size
+				, 0, error);
 			if (ret < 0 || error) failed = true;
 			iov_start = &iov[i];
 			flushing_start = i;
@@ -1204,10 +1206,11 @@ namespace libtorrent
 
 		ptime start_time = time_now_hires();
 
+		int file_flags = file_flags_for_job(j);
 		file::iovec_t b = { j->buffer, size_t(j->d.io.buffer_size) };
    
 		int ret = j->storage->get_storage_impl()->readv(&b, 1
-			, j->piece, j->d.io.offset, j->flags, j->error);
+			, j->piece, j->d.io.offset, file_flags, j->error);
    
 		if (!j->error.ec)
 		{
@@ -1305,10 +1308,11 @@ namespace libtorrent
 		// can remove them. We can now release the cache mutex and dive into the
 		// disk operations.
 
+		int file_flags = file_flags_for_job(j);
 		ptime start_time = time_now_hires();
 
 		ret = j->storage->get_storage_impl()->readv(iov, iov_len
-			, j->piece, adjusted_offset, j->flags, j->error);
+			, j->piece, adjusted_offset, file_flags, j->error);
 
 		if (!j->error.ec)
 		{
@@ -1454,12 +1458,13 @@ namespace libtorrent
 		ptime start_time = time_now_hires();
 
 		file::iovec_t b = { j->buffer, size_t(j->d.io.buffer_size) };
+		int file_flags = file_flags_for_job(j);
    
 		++m_num_writing_threads;
 
 		// the actual write operation
 		int ret = j->storage->get_storage_impl()->writev(&b, 1
-			, j->piece, j->d.io.offset, j->flags, j->error);
+			, j->piece, j->d.io.offset, file_flags, j->error);
    
 		--m_num_writing_threads;
 
