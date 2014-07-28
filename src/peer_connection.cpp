@@ -131,7 +131,6 @@ namespace libtorrent
 		, m_peer_info(pack.peerinfo)
 		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
-		, m_rtt(0)
 		, m_recv_start(0)
 		, m_desired_queue_size(2)
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
@@ -2477,11 +2476,21 @@ namespace libtorrent
 		m_receiving_block = b;
 
 		bool in_req_queue = false;
-		for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
+		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
 			, end(m_download_queue.end()); i != end; ++i)
 		{
 			if (i->block != b) continue;
 			in_req_queue = true;
+			if (i->receiving == false)
+			{
+				i->receiving = true;
+				int rtt = int(total_milliseconds(time_now_hires() - i->request_time));
+				m_rtt.add_sample(rtt);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+				peer_log("*** RTT: %d ms [%s +/- %s ms]", rtt, m_rtt.mean()
+					, m_rtt.avg_deviation());
+#endif
+			}
 			break;
 		}
 
@@ -3733,6 +3742,8 @@ namespace libtorrent
 
 		bool empty_download_queue = m_download_queue.empty();
 
+		ptime now = time_now_hires();
+
 		while (!m_request_queue.empty()
 			&& ((int)m_download_queue.size() < m_desired_queue_size
 				|| m_queued_time_critical > 0))
@@ -3771,6 +3782,7 @@ namespace libtorrent
 				m_counters.inc_stats_counter(counters::num_peers_down_requests);
 
 			TORRENT_ASSERT(verify_piece(t->to_req(block.block)));
+			block.send_buffer_offset = m_send_buffer.size();
 			m_download_queue.push_back(block);
 			m_outstanding_bytes += block_size;
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -3806,6 +3818,7 @@ namespace libtorrent
 					if (m_download_queue.empty())
 						m_counters.inc_stats_counter(counters::num_peers_down_requests);
 
+					block.send_buffer_offset = m_send_buffer.size();
 					m_download_queue.push_back(block);
 					if (m_queued_time_critical) --m_queued_time_critical;
 
@@ -3862,7 +3875,8 @@ namespace libtorrent
 			// This means we just added a request to this connection
 			m_requested = time_now();
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			t->debug_log("REQUEST [%p] (%d ms)", this, int(total_milliseconds(time_now_hires() - m_unchoke_time)));
+			t->debug_log("REQUEST [%p] (%d ms)", this
+				, int(total_milliseconds(time_now_hires() - m_unchoke_time)));
 #endif
 		}
 	}
@@ -4224,7 +4238,7 @@ namespace libtorrent
 
 		p.download_rate_peak = m_download_rate_peak;
 		p.upload_rate_peak = m_upload_rate_peak;
-		p.rtt = m_rtt;
+		p.rtt = m_rtt.mean();
 		p.down_speed = statistics().download_rate();
 		p.up_speed = statistics().upload_rate();
 		p.payload_down_speed = statistics().download_payload_rate();
@@ -4263,7 +4277,10 @@ namespace libtorrent
 #endif
 
 		p.download_queue_length = int(download_queue().size() + m_request_queue.size());
-		p.requests_in_buffer = int(m_requests_in_buffer.size() + m_request_queue.size());
+		p.requests_in_buffer = int(std::count_if(m_download_queue.begin()
+			, m_download_queue.end()
+			, boost::bind(&pending_block::send_buffer_offset, _1) >= 0));
+
 		p.target_dl_queue_length = int(desired_queue_size());
 		p.upload_queue_length = int(upload_queue().size());
 		p.timed_out_requests = 0;
@@ -4715,6 +4732,9 @@ namespace libtorrent
 			return;
 		}
 
+		// TODO: 3 instead of using settings_pack::request_timeout, use
+		// m_rtt.mean() + m_rtt.avg_deviation() * 2 or something like that.
+		// the configuration option could hopefully be removed
 		if (may_timeout
 			&& !m_download_queue.empty()
 			&& m_quota[download_channel] > 0
@@ -5743,9 +5763,6 @@ namespace libtorrent
 	void peer_connection::send_buffer(char const* buf, int size, int flags
 		, void (*fun)(char*, int, void*), void* userdata)
 	{
-		if (flags == message_type_request)
-			m_requests_in_buffer.push_back(m_send_buffer.size() + size);
-
 		int free_space = m_send_buffer.space_in_last_buffer();
 		if (free_space > size) free_space = size;
 		if (free_space > 0)
@@ -6220,12 +6237,12 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		m_rtt = boost::uint16_t(total_milliseconds(completed - m_connect));
+		m_rtt.add_sample(int(total_milliseconds(completed - m_connect)));
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
-			t->debug_log("END connect [%p] (%d ms)", this, m_rtt);
+			t->debug_log("END connect [%p] (RTT: %d ms)", this, m_rtt.mean());
 			m_connect_time = completed;
 		}
 #endif
@@ -6391,14 +6408,18 @@ namespace libtorrent
 
 		m_send_buffer.pop_front(bytes_transferred);
 
-		for (std::vector<int>::iterator i = m_requests_in_buffer.begin()
-			, end(m_requests_in_buffer.end()); i != end; ++i)
-			*i -= bytes_transferred;
+		ptime now = time_now_hires();
 
-		while (!m_requests_in_buffer.empty()
-			&& m_requests_in_buffer.front() <= 0)
-			m_requests_in_buffer.erase(m_requests_in_buffer.begin());
-		
+		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
+			, end(m_download_queue.end()); i != end; ++i)
+		{
+			if (i->send_buffer_offset < 0) continue;
+			i->send_buffer_offset -= bytes_transferred;
+			if (i->send_buffer_offset >= 0) continue;
+			i->request_time = now;
+			i->send_buffer_offset = -1;
+		}
+
 		m_channel_state[upload_channel] &= ~peer_info::bw_network;
 
 		TORRENT_ASSERT(int(bytes_transferred) <= m_quota[upload_channel]);
@@ -6430,7 +6451,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_connecting);
 		TORRENT_ASSERT(bytes_transferred > 0);
 
-		m_last_sent = time_now();
+		m_last_sent = now;
 
 #if TORRENT_USE_ASSERTS
 		size_type cur_payload_ul = m_statistics.last_payload_uploaded();

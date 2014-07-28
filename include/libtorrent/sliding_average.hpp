@@ -35,9 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
 // a sliding average accumulator. Add samples to it and it
 // keeps track of a sliding mean value and an average deviation
-// from that average.
 template <int history_size>
 struct sliding_average
 {
