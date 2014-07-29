@@ -284,7 +284,7 @@ reports = [
 	('disk_write_time', 'write time', 's', 'distribution of write jobs timing', ['disk write time'], {'type': histogram, 'binwidth': 0.1, 'numbins': 400}),
 	('disk_read_time', 'read time', 's', 'distribution of read jobs timing', ['disk read time'], {'type': histogram, 'binwidth': 0.1, 'numbins': 400}),
 	('waste', '% of all downloaded bytes', '%%', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes'], {'type':stacked}),
-	('waste by source', '% of all wasted bytes', '%%', 'what\' causing the waste', [ 'redundant timed-out', 'redundant cancelled', 'redundant unknown', 'redundant seed', 'redundant end-game', 'redundant closing'], {'type':stacked}),
+	('waste by source', 'num wasted bytes', 'B', 'what is causing the waste', [ 'redundant timed-out', 'redundant cancelled', 'redundant unknown', 'redundant seed', 'redundant end-game', 'redundant closing'], {'type':stacked}),
 	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk hash time']),
 	('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time'], {'type': stacked}),
 	('disk_cache_hits', 'blocks (16kiB)', '', '', ['disk block read', 'read cache hits'], {'type':stacked}),

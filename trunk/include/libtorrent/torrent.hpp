@@ -864,7 +864,8 @@ namespace libtorrent
 
 		enum wasted_reason_t
 		{
-			piece_timed_out, piece_cancelled, piece_unknown, piece_seed, piece_end_game, piece_closing
+			piece_timed_out, piece_cancelled, piece_unknown, piece_seed
+			, piece_end_game, piece_closing
 			, waste_reason_max
 		};
 		void add_redundant_bytes(int b, wasted_reason_t reason);
@@ -1236,6 +1237,9 @@ namespace libtorrent
 		// peers with outstanding requests, and dont_have to other
 		// peers. This vector is ordered, to make lookups fast.
 		std::vector<int> m_predictive_pieces;
+
+		// the performance counters of this session
+		counters& m_stats_counters;
 
 		// each bit represents a piece. a set bit means
 		// the piece has had its hash verified. This
