@@ -187,6 +187,13 @@ namespace libtorrent
 			disk_hash_time,
 			disk_job_time,
 
+			waste_piece_timed_out,
+			waste_piece_cancelled,
+			waste_piece_unknown,
+			waste_piece_seed,
+			waste_piece_end_game,
+			waste_piece_closing,
+
 			sent_payload_bytes,
 			sent_bytes,
 			sent_ip_overhead_bytes,

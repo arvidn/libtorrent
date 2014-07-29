@@ -330,6 +330,15 @@ namespace libtorrent
 		METRIC(disk, disk_hash_time, type_counter)
 		METRIC(disk, disk_job_time, type_counter)
 
+		// the number of wasted downloaded bytes by reason of the bytes being
+		// wasted.
+		METRIC(ses, waste_piece_timed_out, type_counter)
+		METRIC(ses, waste_piece_cancelled, type_counter)
+		METRIC(ses, waste_piece_unknown, type_counter)
+		METRIC(ses, waste_piece_seed, type_counter)
+		METRIC(ses, waste_piece_end_game, type_counter)
+		METRIC(ses, waste_piece_closing, type_counter)
+
 		// The number of nodes in the DHT routing table
 		METRIC(dht, dht_nodes, type_gauge)
 

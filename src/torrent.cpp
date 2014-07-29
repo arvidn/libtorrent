@@ -152,6 +152,7 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
+		, m_stats_counters(ses.stats_counters())
 		, m_host_resolver(ses.get_io_service())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
@@ -11216,9 +11217,12 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
-		m_ses.add_redundant_bytes(b, reason);
-//		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
-//			<= m_stat.total_payload_download());
+
+		TORRENT_ASSERT(b > 0);
+		TORRENT_ASSERT(reason >= 0);
+		TORRENT_ASSERT(reason < waste_reason_max);
+		m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
+		m_stats_counters.inc_stats_counter(counters::waste_piece_timed_out + reason, b);
 	}
 
 	void torrent::add_failed_bytes(int b)
@@ -11226,9 +11230,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(b > 0);
 		m_total_failed_bytes += b;
-		m_ses.add_failed_bytes(b);
-//		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
-//			<= m_stat.total_payload_download());
+		m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);
 	}
 
 	int torrent::num_seeds() const

@@ -516,7 +516,6 @@ namespace aux {
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
-		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
 
 		m_udp_socket.subscribe(&m_tracker_manager);
@@ -4264,12 +4263,12 @@ retry:
 					- m_network_thread_cpu_usage.user_time))
 				/ double(tick_interval_ms * 10));
 
-			for (int i = 0; i < torrent::waste_reason_max; ++i)
-			{
-				STAT_LOG(f, (m_redundant_bytes[i] * 100.)
-					/ double(m_stats_counters[counters::recv_redundant_bytes] == 0 ? 1
-						: m_stats_counters[counters::recv_redundant_bytes]));
-			}
+			STAT_COUNTER(waste_piece_timed_out);
+			STAT_COUNTER(waste_piece_cancelled);
+			STAT_COUNTER(waste_piece_unknown);
+			STAT_COUNTER(waste_piece_seed);
+			STAT_COUNTER(waste_piece_end_game);
+			STAT_COUNTER(waste_piece_closing);
 
 			STAT_COUNTER(no_memory_peers);
 			STAT_COUNTER(too_many_peers);

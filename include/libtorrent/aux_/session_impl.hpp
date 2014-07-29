@@ -594,22 +594,6 @@ namespace libtorrent
 
 			int next_port() const;
 
-			void add_redundant_bytes(size_type b, int reason)
-			{
-				TORRENT_ASSERT(b > 0);
-				// TODO: 3 the m_redundant_bytes array should be made part of
-				// the stats counters. That way another session_impl dependency
-				// from the peer connections would be removed
-				m_redundant_bytes[reason] += b;
-				m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
-			}
-
-			void add_failed_bytes(size_type b)
-			{
-				TORRENT_ASSERT(b > 0);
-				m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);
-			}
-
 			// load the specified torrent, also
 			// pick the least recently used torrent and unload it, unless
 			// t is the least recently used, then the next least recently
@@ -1297,10 +1281,6 @@ namespace libtorrent
 			// is true if the session is paused
 			bool m_paused;
 			
-			// redundant bytes per category
-			// TODO: 3 turn this into a stats_counter
-			size_type m_redundant_bytes[7];
-
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 
 			// this is a list of peer connections who have been
