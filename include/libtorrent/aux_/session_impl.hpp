@@ -409,12 +409,6 @@ namespace libtorrent
 			void set_port_filter(port_filter const& f);
 			port_filter const& get_port_filter() const;
 
-			void request_latency_sample(int us)
-			{
-				m_request_latency.add_sample(us);
-				m_stats_counters.set_value(counters::request_latency, m_request_latency.mean());
-			}
-
 			// TODO: move the login info into the tracker_request object
 			void queue_tracker_request(tracker_request& req
 				, std::string login, boost::weak_ptr<request_callback> c
@@ -1223,10 +1217,6 @@ namespace libtorrent
 		private:
 
 			counters m_stats_counters;
-
-			// the sliding average of the latency (in microseconds) from an
-			// incoming request to sending the data back over the socket
-			sliding_average<50> m_request_latency;
 
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;

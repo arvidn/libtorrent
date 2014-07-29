@@ -71,6 +71,22 @@ namespace libtorrent {
 		return m_stats_counter[c] += value;
 	}
 
+	// ratio is a vaue between 0 and 100 representing the percentage the value
+	// is blended in at.
+	void counters::blend_stats_counter(int c, boost::int64_t value, int ratio)
+	{
+		TORRENT_ASSERT(c >= 0);
+		TORRENT_ASSERT(c < num_counters);
+		TORRENT_ASSERT(ratio >= 0);
+		TORRENT_ASSERT(ratio <= 100);
+
+		TORRENT_ASSERT(num_stats_counters);
+
+		// TODO: 2 to make this thread safe, use compare_exchange_weak
+		boost::uint64_t current = m_stats_counter[c];
+		m_stats_counter[c] = (current * (100-ratio) + value * ratio) / 100;
+	}
+
 	void counters::set_value(int c, boost::int64_t value)
 	{
 		TORRENT_ASSERT(c >= 0);
