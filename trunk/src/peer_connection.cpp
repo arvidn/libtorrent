@@ -5189,10 +5189,7 @@ namespace libtorrent
 			, r.piece, r.start, r.length);
 #endif
 
-		// TODO: 3 it would be nice if the sliding_average state required
-		// for this would be baked into the counters object, in which case this
-		// would not be a session_impl dependency.
-		m_ses.request_latency_sample(disk_rtt);
+		m_counters.blend_stats_counter(counters::request_latency, disk_rtt, 5);
 
 		// we probably just pulled this piece into the cache.
 		// if it's rare enough to make it into the suggested piece

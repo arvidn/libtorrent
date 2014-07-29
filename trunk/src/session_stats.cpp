@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// TODO: 3 this function could just use the static metrics array
+	// instead of taking it as an argument. Also, document it
 	int find_metric_idx(std::vector<stats_metric> const& metrics
 		, char const* name)
 	{
@@ -48,6 +50,9 @@ namespace libtorrent
 		return i->value_index;
 	}
 
+	// TODO: 3 the type of counter does not need to be stored in this array.
+	// when the user asks for the list of counters, that field could be
+	// generated based on the range of the counter index.
 #define METRIC(category, name, type) { #category "." #name, counters:: name, stats_metric:: type},
 	const static stats_metric metrics[] =
 	{

@@ -388,6 +388,7 @@ namespace libtorrent
 		boost::int64_t operator[](int i) const;
 
 		void set_value(int c, boost::int64_t value);
+		void blend_stats_counter(int c, boost::int64_t value, int ratio);
 
 	private:
 
