@@ -296,6 +296,8 @@ namespace libtorrent
 			num_stats_counters
 		};
 
+		// it is important that all gauges have a higher index than counters.
+		// This assumption is relied upon in other parts of the code
 		enum stats_gauges_t
 		{
 			num_checking_torrents = num_stats_counters,
