@@ -2780,6 +2780,9 @@ namespace libtorrent
 	{
 		// These are atomic_counts, so it's safe to access them from
 		// a different thread
+		
+		// TODO: 3 instead of updating these counters in this function,
+		// they could be updated every time a job completes
 		c.set_value(counters::disk_read_time, m_cache_stats.cumulative_read_time);
 		c.set_value(counters::disk_write_time, m_cache_stats.cumulative_write_time);
 		c.set_value(counters::disk_hash_time, m_cache_stats.cumulative_hash_time);

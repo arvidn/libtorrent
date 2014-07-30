@@ -55,7 +55,7 @@ all: html
 settings.rst: ../include/libtorrent/settings_pack.hpp
 	python gen_settings_doc.py
 
-stats_counters.rst: ../src/session_stats.cpp
+stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_counters.hpp
 	python gen_stats_doc.py
 
 manual.rst: stats_counters.rst
