@@ -133,12 +133,10 @@ namespace libtorrent
 #error TORRENT_CFG is not defined!
 #endif
 
-	// given a vector if stats_metric objects (as returned by
-	// session_stats_metrics()) and a name of a metric, this function returns
-	// the counter index of it, or -1 if it could not be found. The counter
-	// index is the index into the values array returned by session_stats_alert.
-	TORRENT_EXPORT int find_metric_idx(std::vector<stats_metric> const& metrics
-		, char const* name);
+	// given a name of a metric, this function returns the counter index of it,
+	// or -1 if it could not be found. The counter index is the index into the
+	// values array returned by session_stats_alert.
+	TORRENT_EXPORT int find_metric_idx(char const* name);
 
 	void TORRENT_EXPORT TORRENT_CFG();
 
