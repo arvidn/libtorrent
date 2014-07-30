@@ -386,7 +386,8 @@ namespace libtorrent
 		METRIC(dht, dht_put_in)
 		METRIC(dht, dht_put_out)
 
-		// uTP counters
+		// uTP counters. Each counter represents the number of time each event
+		// has occurred.
 		METRIC(utp, utp_packet_loss)
 		METRIC(utp, utp_timeout)
 		METRIC(utp, utp_packets_in)

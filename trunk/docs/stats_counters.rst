@@ -16,6 +16,9 @@
 +-------------------------+---------+
 
 
+TODO: 3 the type of counter does not need to be stored in this array.
+when the user asks for the list of counters, that field could be
+generated based on the range of the counter index.
 ``error_peers`` is the total number of peer disconnects
 caused by an error (not initiated by this client) and
 disconnected initiated by this client (``disconnected_peers``).
@@ -950,24 +953,6 @@ the number of pieces considered while picking pieces
 
 .. _disk.read_cache_blocks:
 
-.. _disk.pinned_blocks:
-
-.. _disk.disk_blocks_in_use:
-
-.. _disk.queued_disk_jobs:
-
-.. _disk.num_read_jobs:
-
-.. _disk.num_write_jobs:
-
-.. _disk.num_jobs:
-
-.. _disk.num_writing_threads:
-
-.. _disk.num_running_threads:
-
-.. _disk.blocked_disk_jobs:
-
 .. raw:: html
 
 	<a name="picker.reject_piece_picks"></a>
@@ -980,15 +965,6 @@ the number of pieces considered while picking pieces
 	<a name="picker.hash_fail_piece_picks"></a>
 	<a name="disk.write_cache_blocks"></a>
 	<a name="disk.read_cache_blocks"></a>
-	<a name="disk.pinned_blocks"></a>
-	<a name="disk.disk_blocks_in_use"></a>
-	<a name="disk.queued_disk_jobs"></a>
-	<a name="disk.num_read_jobs"></a>
-	<a name="disk.num_write_jobs"></a>
-	<a name="disk.num_jobs"></a>
-	<a name="disk.num_writing_threads"></a>
-	<a name="disk.num_running_threads"></a>
-	<a name="disk.blocked_disk_jobs"></a>
 
 +---------------------------------------+---------+
 | name                                  | type    |
@@ -1013,28 +989,71 @@ the number of pieces considered while picking pieces
 +---------------------------------------+---------+
 | disk.read_cache_blocks                | gauge   |
 +---------------------------------------+---------+
-| disk.pinned_blocks                    | gauge   |
-+---------------------------------------+---------+
-| disk.disk_blocks_in_use               | gauge   |
-+---------------------------------------+---------+
-| disk.queued_disk_jobs                 | gauge   |
-+---------------------------------------+---------+
-| disk.num_read_jobs                    | gauge   |
-+---------------------------------------+---------+
-| disk.num_write_jobs                   | gauge   |
-+---------------------------------------+---------+
-| disk.num_jobs                         | gauge   |
-+---------------------------------------+---------+
-| disk.num_writing_threads              | gauge   |
-+---------------------------------------+---------+
-| disk.num_running_threads              | gauge   |
-+---------------------------------------+---------+
-| disk.blocked_disk_jobs                | gauge   |
-+---------------------------------------+---------+
 
 
 This breaks down the piece picks into the event that
 triggered it
+
+.. _disk.request_latency:
+
+.. _disk.pinned_blocks:
+
+.. _disk.disk_blocks_in_use:
+
+.. _disk.queued_disk_jobs:
+
+.. _disk.num_read_jobs:
+
+.. _disk.num_write_jobs:
+
+.. _disk.num_jobs:
+
+.. _disk.num_writing_threads:
+
+.. _disk.num_running_threads:
+
+.. _disk.blocked_disk_jobs:
+
+.. raw:: html
+
+	<a name="disk.request_latency"></a>
+	<a name="disk.pinned_blocks"></a>
+	<a name="disk.disk_blocks_in_use"></a>
+	<a name="disk.queued_disk_jobs"></a>
+	<a name="disk.num_read_jobs"></a>
+	<a name="disk.num_write_jobs"></a>
+	<a name="disk.num_jobs"></a>
+	<a name="disk.num_writing_threads"></a>
+	<a name="disk.num_running_threads"></a>
+	<a name="disk.blocked_disk_jobs"></a>
+
++--------------------------+-------+
+| name                     | type  |
++==========================+=======+
+| disk.request_latency     | gauge |
++--------------------------+-------+
+| disk.pinned_blocks       | gauge |
++--------------------------+-------+
+| disk.disk_blocks_in_use  | gauge |
++--------------------------+-------+
+| disk.queued_disk_jobs    | gauge |
++--------------------------+-------+
+| disk.num_read_jobs       | gauge |
++--------------------------+-------+
+| disk.num_write_jobs      | gauge |
++--------------------------+-------+
+| disk.num_jobs            | gauge |
++--------------------------+-------+
+| disk.num_writing_threads | gauge |
++--------------------------+-------+
+| disk.num_running_threads | gauge |
++--------------------------+-------+
+| disk.blocked_disk_jobs   | gauge |
++--------------------------+-------+
+
+
+the number of microseconds it takes from receiving a request from a
+peer until we're sending the response back on the socket.
 
 .. _disk.queued_write_bytes:
 
@@ -1141,6 +1160,47 @@ bytes just hanging out in the cache)
 
 cumulative time spent in various disk jobs, as well
 as total for all disk jobs. Measured in microseconds
+
+.. _ses.waste_piece_timed_out:
+
+.. _ses.waste_piece_cancelled:
+
+.. _ses.waste_piece_unknown:
+
+.. _ses.waste_piece_seed:
+
+.. _ses.waste_piece_end_game:
+
+.. _ses.waste_piece_closing:
+
+.. raw:: html
+
+	<a name="ses.waste_piece_timed_out"></a>
+	<a name="ses.waste_piece_cancelled"></a>
+	<a name="ses.waste_piece_unknown"></a>
+	<a name="ses.waste_piece_seed"></a>
+	<a name="ses.waste_piece_end_game"></a>
+	<a name="ses.waste_piece_closing"></a>
+
++---------------------------+---------+
+| name                      | type    |
++===========================+=========+
+| ses.waste_piece_timed_out | counter |
++---------------------------+---------+
+| ses.waste_piece_cancelled | counter |
++---------------------------+---------+
+| ses.waste_piece_unknown   | counter |
++---------------------------+---------+
+| ses.waste_piece_seed      | counter |
++---------------------------+---------+
+| ses.waste_piece_end_game  | counter |
++---------------------------+---------+
+| ses.waste_piece_closing   | counter |
++---------------------------+---------+
+
+
+the number of wasted downloaded bytes by reason of the bytes being
+wasted.
 
 .. _dht.dht_nodes:
 
@@ -1442,7 +1502,8 @@ by kind.
 +------------------------------+---------+
 
 
-uTP counters
+uTP counters. Each counter represents the number of time each event
+has occurred.
 
 .. _sock_bufs.socket_send_size3:
 
