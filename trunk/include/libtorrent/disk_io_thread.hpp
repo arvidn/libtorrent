@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/atomic.hpp"
+#include <boost/atomic.hpp>
 
 namespace libtorrent
 {
@@ -146,9 +146,10 @@ namespace libtorrent
 
 		std::vector<cached_piece_info> pieces;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the total number of 16 KiB blocks written to disk
 		// since this session was started.
-		atomic_count blocks_written;
+		int blocks_written;
 
 		// the total number of write operations performed since this
 		// session was started.
@@ -156,22 +157,21 @@ namespace libtorrent
 		// The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
 		// the number of saved write operations per total write operations. i.e. a kind
 		// of cache hit ratio for the write cahe.
-		atomic_count writes;
+		int writes;
 
 		// the number of blocks that were requested from the
 		// bittorrent engine (from peers), that were served from disk or cache.
-		atomic_count blocks_read;
+		int blocks_read;
 
 		// the number of blocks that was just copied from the read cache
 		//
 		// The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
 		// for the read cache.
-		size_type blocks_read_hit;
+		int blocks_read_hit;
 
 		// the number of read operations used
-		atomic_count reads;
+		int reads;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// the number of bytes queued for writing, including bytes
 		// submitted to the OS for writing, but not yet complete
 		mutable size_type queued_bytes;
@@ -217,10 +217,10 @@ namespace libtorrent
 
 		// the number of milliseconds spent in all disk jobs, and specific ones
 		// since the start of the session. Times are specified in milliseconds
-		atomic_count cumulative_job_time;
-		atomic_count cumulative_read_time;
-		atomic_count cumulative_write_time;
-		atomic_count cumulative_hash_time;
+		int cumulative_job_time;
+		int cumulative_read_time;
+		int cumulative_write_time;
+		int cumulative_hash_time;
 
 		// the number of blocks that had to be read back from disk because
 		// they were flushed before the SHA-1 hash got to hash them. If this
@@ -500,12 +500,12 @@ namespace libtorrent
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
-		atomic_count m_num_threads;
+		boost::atomic<int> m_num_threads;
 
 		// this is a counter of how many threads are currently running.
 		// it's used to identify the last thread still running while
 		// shutting down. This last thread is responsible for cleanup
-		atomic_count m_num_running_threads;
+		boost::atomic<int> m_num_running_threads;
 
 		// the actual threads running disk jobs
 		std::vector<boost::shared_ptr<thread> > m_threads;
@@ -554,7 +554,7 @@ namespace libtorrent
 		// limit the number of jobs issued in parallel. It also creates
 		// an opportunity to sort the jobs by physical offset before
 		// issued to the AIO subsystem
-		atomic_count m_outstanding_jobs;
+		boost::atomic<int> m_outstanding_jobs;
 
 		// this is the main thread io_service. Callbacks are
 		// posted on this in order to have them execute in
@@ -565,7 +565,7 @@ namespace libtorrent
 		// jobs are queued up in their respective storage, waiting for
 		// the fence to be lowered. This counter is just used to know
 		// when it's OK to exit the main loop of the disk thread
-		atomic_count m_num_blocked_jobs;
+		boost::atomic<int> m_num_blocked_jobs;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that

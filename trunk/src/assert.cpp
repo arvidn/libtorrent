@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #if TORRENT_PRODUCTION_ASSERTS
-#include "libtorrent/atomic.hpp"
+#include <boost/atomic.hpp>
 #endif
 
 #if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || defined TORRENT_PROFILE_CALLS || TORRENT_RELEASE_ASSERTS
@@ -213,7 +213,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 #if TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
 // the number of asserts we've printed to the log
-libtorrent::atomic_count assert_counter(0);
+boost::atomic<int> assert_counter(0);
 #endif
 
 TORRENT_EXPORT void assert_print(char const* fmt, ...)
@@ -241,7 +241,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 {
 #if TORRENT_PRODUCTION_ASSERTS
 	// no need to flood the assert log with infinite number of asserts
-	if (++assert_counter > 500) return;
+	if (assert_counter.fetch_add(1) + 1 > 500) return;
 #endif
 
 	char stack[8192];
@@ -274,7 +274,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 		"%s\n"
 		, message
 #if TORRENT_PRODUCTION_ASSERTS
-		, int(assert_counter)
+		, assert_counter.load()
 #endif
 		, file, line, function, expr
 		, value ? value : "", value ? "\n" : ""

@@ -101,7 +101,7 @@ namespace libtorrent
 {
 
 #ifdef TORRENT_DISK_STATS
-	static atomic_count event_id;
+	static boost::atomic<int> event_id;
 	static mutex disk_access_mutex;
 
 	// this is opened and closed by the disk_io_thread class
@@ -1600,7 +1600,8 @@ namespace libtorrent
 	// j is the fence job. It must have exclusive access to the storage
 	// fj is the flush job. If the job j is queued, we need to issue
 	// this job
-	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj, atomic_count* blocked_counter)
+	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj
+		, boost::atomic<int>* blocked_counter)
 	{
 		TORRENT_ASSERT((j->flags & disk_io_job::fence) == 0);
 		j->flags |= disk_io_job::fence;

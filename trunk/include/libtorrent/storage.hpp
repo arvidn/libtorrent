@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/unordered_set.hpp>
+#include <boost/atomic.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -61,7 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/atomic.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file_pool.hpp" // pool_file_status
@@ -575,7 +575,8 @@ namespace libtorrent
 		// but the flush job should be posted (i.e. put on the job queue)
 		// fence_post_none if both the fence and the flush jobs were queued.
 		enum { fence_post_fence = 0, fence_post_flush = 1, fence_post_none = 2 };
-		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job, atomic_count* blocked_counter);
+		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job
+			, boost::atomic<int>* blocked_counter);
 		bool has_fence() const;
 
 		// called whenever a job completes and is posted back to the
@@ -607,7 +608,7 @@ namespace libtorrent
 		// to this torrent, currently pending, hanging off of
 		// cached_piece_entry objects. This is used to determine
 		// when the fence can be lowered
-		atomic_count m_outstanding_jobs;
+		boost::atomic<int> m_outstanding_jobs;
 
 		// must be held when accessing m_has_fence and
 		// m_blocked_jobs

@@ -2,12 +2,14 @@
 #include "libtorrent/disk_io_job.hpp"
 #include "test.hpp"
 
+#include <boost/atomic.hpp>
+
 using namespace libtorrent;
 
 void test_disk_job_empty_fence()
 {
 	libtorrent::disk_job_fence fence;
-	atomic_count counter(0);
+	boost::atomic<int> counter(0);
 
 	disk_io_job test_job[10];
 
@@ -42,7 +44,7 @@ void test_disk_job_empty_fence()
 
 void test_disk_job_fence()
 {
-	atomic_count counter(0);
+	boost::atomic<int> counter(0);
 	libtorrent::disk_job_fence fence;
 
 	disk_io_job test_job[10];
@@ -115,7 +117,7 @@ void test_disk_job_fence()
 
 void test_disk_job_double_fence()
 {
-	atomic_count counter(0);
+	boost::atomic<int> counter(0);
 	libtorrent::disk_job_fence fence;
 
 	disk_io_job test_job[10];
