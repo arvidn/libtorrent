@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include <boost/tuple/tuple.hpp>
 #include "test.hpp"
-#include "libtorrent/atomic.hpp"
 
 namespace libtorrent
 {
