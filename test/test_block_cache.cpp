@@ -323,7 +323,6 @@ void test_arc_promote()
 	RETURN_BUFFER;
 
 	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 1);
 	TEST_EQUAL(status.write_cache_size, 0);
 	TEST_EQUAL(status.read_cache_size, 1);
 	TEST_EQUAL(status.pinned_blocks, 0);
@@ -342,7 +341,6 @@ void test_arc_promote()
 	RETURN_BUFFER;
 
 	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 2);
 	TEST_EQUAL(status.write_cache_size, 0);
 	TEST_EQUAL(status.read_cache_size, 1);
 	TEST_EQUAL(status.pinned_blocks, 0);
@@ -364,7 +362,6 @@ void test_arc_unghost()
 	INSERT(0, 0);
 
 	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
 	TEST_EQUAL(status.write_cache_size, 0);
 	TEST_EQUAL(status.read_cache_size, 1);
 	TEST_EQUAL(status.pinned_blocks, 0);
@@ -379,7 +376,6 @@ void test_arc_unghost()
 	bc.evict_piece(pe, jobs);
 
 	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
 	TEST_EQUAL(status.write_cache_size, 0);
 	TEST_EQUAL(status.read_cache_size, 0);
 	TEST_EQUAL(status.pinned_blocks, 0);
@@ -395,7 +391,6 @@ void test_arc_unghost()
 	bc.cache_hit(pe, (void*)1, false);
 
 	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
 	TEST_EQUAL(status.write_cache_size, 0);
 	// we didn't actually read in any blocks, so the cache size
 	// is still 0

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/block_cache.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/performance_counters.hpp"
 
 #include <boost/function/function0.hpp>
 #include <boost/noncopyable.hpp>
@@ -99,12 +100,13 @@ namespace libtorrent
 	{
 		// initializes all counters to 0
 		cache_status()
-			: blocks_written(0)
+			: pieces()
+#ifndef TORRENT_NO_DEPRECATE
+			, blocks_written(0)
 			, writes(0)
 			, blocks_read(0)
 			, blocks_read_hit(0)
 			, reads(0)
-#ifndef TORRENT_NO_DEPRECATE
 			, queued_bytes(0)
 			, cache_size(0)
 #endif
@@ -112,6 +114,7 @@ namespace libtorrent
 			, read_cache_size(0)
 			, pinned_blocks(0)
 			, total_used_buffers(0)
+#ifndef TORRENT_NO_DEPRECATE
 			, average_read_time(0)
 			, average_write_time(0)
 			, average_hash_time(0)
@@ -121,6 +124,7 @@ namespace libtorrent
 			, cumulative_write_time(0)
 			, cumulative_hash_time(0)
 			, total_read_back(0)
+#endif
 			, read_queue_size(0)
 			, blocked_jobs(0)
 			, queued_jobs(0)
@@ -275,6 +279,7 @@ namespace libtorrent
 	{
 		disk_io_thread(io_service& ios
 			, alert_dispatcher* alert_disp
+			, counters& cnt
 			, void* userdata
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
@@ -502,10 +507,6 @@ namespace libtorrent
 		// shutting down. This last thread is responsible for cleanup
 		atomic_count m_num_running_threads;
 
-		// this is the number of threads currently writing bytes
-		// to disk
-		atomic_count m_num_writing_threads;
-
 		// the actual threads running disk jobs
 		std::vector<boost::shared_ptr<thread> > m_threads;
 
@@ -527,11 +528,14 @@ namespace libtorrent
 		mutable mutex m_cache_mutex;
 		block_cache m_disk_cache;
 
-		void flip_stats();
-
 		// total number of blocks in use by both the read
 		// and the write cache. This is not supposed to
 		// exceed m_cache_size
+
+		counters& m_stats_counters;
+
+		// TODO: 3 turn these counters and gauges into session_stats
+		// counters (which also would need to be thread safe)
 		cache_status m_cache_stats;
 
 		// average read time for cache misses (in microseconds)
@@ -545,10 +549,6 @@ namespace libtorrent
 
 		// average time to serve a job (any job) in microseconds
 		average_accumulator m_job_time;
-
-		// the last time we reset the average time and store the
-		// latest value in m_cache_stats
-		ptime m_last_stats_flip;
 
 		// the total number of outstanding jobs. This is used to
 		// limit the number of jobs issued in parallel. It also creates

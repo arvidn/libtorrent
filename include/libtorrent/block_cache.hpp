@@ -383,7 +383,7 @@ namespace libtorrent
 
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
-		int try_read(disk_io_job* j, bool count_stats = true, bool expect_no_fail = false);
+		int try_read(disk_io_job* j, bool expect_no_fail = false);
 
 		// called when we're reading and we found the piece we're
 		// reading from in the hash table (not necessarily that we
@@ -517,8 +517,6 @@ namespace libtorrent
 		// the same block, it counts as 2, even though there're
 		// no buffer duplication
 		boost::uint32_t m_send_buffer_blocks;
-
-		boost::uint32_t m_blocks_read_hit;
 
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted

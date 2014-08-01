@@ -163,17 +163,17 @@ namespace libtorrent
 
 	disk_io_thread::disk_io_thread(io_service& ios
 		, alert_dispatcher* alert_disp
+		, counters& cnt
 		, void* userdata
 		, int block_size)
 		: m_num_threads(0)
 		, m_num_running_threads(0)
-		, m_num_writing_threads(0)
 		, m_userdata(userdata)
 		, m_last_cache_expiry(min_time())
 		, m_last_file_check(time_now_hires())
 		, m_file_pool(40)
 		, m_disk_cache(block_size, ios, boost::bind(&disk_io_thread::trigger_cache_trim, this), alert_disp)
-		, m_last_stats_flip(time_now())
+		, m_stats_counters(cnt)
 		, m_outstanding_jobs(0)
 		, m_ios(ios)
 		, m_num_blocked_jobs(0)
@@ -635,7 +635,7 @@ namespace libtorrent
 	{
 		TORRENT_PIECE_ASSERT(!error, pe);
 		TORRENT_PIECE_ASSERT(num_blocks > 0, pe);
-		++m_num_writing_threads;
+		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
 		ptime start_time = time_now_hires();
 		int block_size = m_disk_cache.block_size();
@@ -666,18 +666,18 @@ namespace libtorrent
 			flushing_start = i;
 		}
 
-		--m_num_writing_threads;
+		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 
 		if (!failed)
 		{
 			TORRENT_PIECE_ASSERT(!error, pe);
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - start_time);
 			m_write_time.add_sample(write_time / num_blocks);
-			m_cache_stats.cumulative_write_time += write_time / 1000;
-			m_cache_stats.cumulative_job_time += write_time / 1000;
-			m_cache_stats.blocks_written += num_blocks;
-			++m_cache_stats.writes;
 
+			m_stats_counters.inc_stats_counter(counters::num_blocks_written, num_blocks);
+			m_stats_counters.inc_stats_counter(counters::num_write_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 #if DEBUG_DISK_THREAD
 			DLOG("flush_iovec: %d\n", num_blocks);
 #endif
@@ -941,7 +941,7 @@ namespace libtorrent
 		// not have had its flush_hashed job run on it 
 		// so only do it if no other thread is currently flushing
 
-		if (num == 0 || m_num_writing_threads > 0) return;
+		if (num == 0 || m_stats_counters[counters::num_writing_threads] > 0) return;
 
 		// if we still need to flush blocks, start over and flush
 		// everything in LRU order (degrade to lru cache eviction)
@@ -1101,7 +1101,7 @@ namespace libtorrent
 			// don't evict write jobs if at least one other thread
 			// is flushing right now. Doing so could result in
 			// unnecessary flushing of the wrong pieces
-			if (evict > 0 && m_num_writing_threads == 0)
+			if (evict > 0 && m_stats_counters[counters::num_writing_threads] == 0)
 			{
 				try_flush_write_blocks(evict, completed_jobs, l);
 			}
@@ -1137,9 +1137,6 @@ namespace libtorrent
 			storage->get_storage_impl()->m_settings = &m_settings;
 
 		TORRENT_ASSERT(j->action < sizeof(job_functions)/sizeof(job_functions[0]));
-
-		// TODO: hold disk_io_thread mutex here!
-		if (time_now() > m_last_stats_flip + seconds(1)) flip_stats();
 
 		ptime start_time = time_now_hires();
 
@@ -1216,11 +1213,12 @@ namespace libtorrent
 		{
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 			m_read_time.add_sample(read_time);
-			m_cache_stats.cumulative_read_time += read_time / 1000;
-			m_cache_stats.cumulative_job_time += read_time / 1000;
-			++m_cache_stats.total_read_back;
-			++m_cache_stats.blocks_read;
-			++m_cache_stats.reads;
+
+			m_stats_counters.inc_stats_counter(counters::num_read_back);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
 		return ret;
 	}
@@ -1318,10 +1316,11 @@ namespace libtorrent
 		{
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 			m_read_time.add_sample(read_time / iov_len);
-			m_cache_stats.cumulative_read_time += read_time / 1000;
-			m_cache_stats.cumulative_job_time += read_time / 1000;
-			m_cache_stats.blocks_read += iov_len;
-			++m_cache_stats.reads;
+
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read, iov_len);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
 
 		l.lock();
@@ -1363,7 +1362,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(pe->blocks[block].buf);
 
-		int tmp = m_disk_cache.try_read(j, false, true);
+		int tmp = m_disk_cache.try_read(j, true);
 		TORRENT_ASSERT(tmp >= 0);
 
 		maybe_issue_queued_read_jobs(pe, completed_jobs);
@@ -1411,6 +1410,7 @@ namespace libtorrent
 			if (ret >= 0)
 			{
 				// cache-hit
+				m_stats_counters.inc_stats_counter(counters::num_blocks_cache_hits);
 				DLOG("do_read: cache hit\n");
 				j->flags |= disk_io_job::cache_hit;
 				j->ret = ret;
@@ -1460,22 +1460,23 @@ namespace libtorrent
 		file::iovec_t b = { j->buffer, size_t(j->d.io.buffer_size) };
 		int file_flags = file_flags_for_job(j);
    
-		++m_num_writing_threads;
+		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
 		// the actual write operation
 		int ret = j->storage->get_storage_impl()->writev(&b, 1
 			, j->piece, j->d.io.offset, file_flags, j->error);
    
-		--m_num_writing_threads;
+		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
 
 		if (!j->error.ec)
 		{
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - start_time);
 			m_write_time.add_sample(write_time);
-			m_cache_stats.cumulative_write_time += write_time / 1000;
-			m_cache_stats.cumulative_job_time += write_time / 1000;
-			++m_cache_stats.blocks_written;
-			++m_cache_stats.writes;
+
+			m_stats_counters.inc_stats_counter(counters::num_blocks_written);
+			m_stats_counters.inc_stats_counter(counters::num_write_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
 
 		m_disk_cache.free_buffer(j->buffer);
@@ -1614,6 +1615,7 @@ namespace libtorrent
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
 			{
+				m_stats_counters.inc_stats_counter(counters::num_blocks_cache_hits);
 				DLOG("do_read: cache hit\n");
 				j->flags |= disk_io_job::cache_hit;
 				j->ret = ret;
@@ -2200,8 +2202,10 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(pe->hash, pe);
 
 		m_hash_time.add_sample(hash_time / (end - cursor));
-		m_cache_stats.cumulative_hash_time += hash_time / 1000;
-		m_cache_stats.cumulative_job_time += hash_time / 1000;
+
+		m_stats_counters.inc_stats_counter(counters::num_blocks_hashed, end - cursor);
+		m_stats_counters.inc_stats_counter(counters::disk_hash_time, hash_time);
+		m_stats_counters.inc_stats_counter(counters::disk_job_time, hash_time);
 
 		pe->hashing = 0;
 
@@ -2280,10 +2284,11 @@ namespace libtorrent
 			{
 				boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 				m_read_time.add_sample(read_time);
-				m_cache_stats.cumulative_read_time += read_time / 1000;
-				m_cache_stats.cumulative_job_time += read_time / 1000;
-				++m_cache_stats.blocks_read;
-				++m_cache_stats.reads;
+
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+				m_stats_counters.inc_stats_counter(counters::num_read_ops);
+				m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
 			offset += block_size;
@@ -2495,11 +2500,12 @@ namespace libtorrent
 				{
 					boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 					m_read_time.add_sample(read_time);
-					m_cache_stats.cumulative_read_time += read_time / 1000;
-					m_cache_stats.cumulative_job_time += read_time / 1000;
-					++m_cache_stats.total_read_back;
-					++m_cache_stats.blocks_read;
-					++m_cache_stats.reads;
+
+					m_stats_counters.inc_stats_counter(counters::num_read_back);
+					m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+					m_stats_counters.inc_stats_counter(counters::num_read_ops);
+					m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+					m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 				}
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
@@ -2723,10 +2729,11 @@ namespace libtorrent
 			{
 				boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
 				m_read_time.add_sample(read_time);
-				m_cache_stats.cumulative_read_time += read_time / 1000;
-				m_cache_stats.cumulative_job_time += read_time / 1000;
-				++m_cache_stats.blocks_read;
-				++m_cache_stats.reads;
+
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+				m_stats_counters.inc_stats_counter(counters::num_read_ops);
+				m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 			}
 
 			offset += block_size;
@@ -2747,16 +2754,6 @@ namespace libtorrent
 		return j->error ? -1 : 0;
 	}
 #endif
-
-	void disk_io_thread::flip_stats()
-	{
-		// calling mean() will actually reset the accumulators
-		m_cache_stats.average_read_time = m_read_time.mean();
-		m_cache_stats.average_write_time = m_write_time.mean();
-		m_cache_stats.average_hash_time = m_hash_time.mean();
-		m_cache_stats.average_job_time = m_job_time.mean();
-		m_last_stats_flip = time_now();
-	}
 
 	void get_cache_info_impl(cached_piece_info& info, cached_piece_entry const* i, int block_size)
 	{
@@ -2781,22 +2778,7 @@ namespace libtorrent
 		// These are atomic_counts, so it's safe to access them from
 		// a different thread
 		
-		// TODO: 3 instead of updating these counters in this function,
-		// they could be updated every time a job completes
-		c.set_value(counters::disk_read_time, m_cache_stats.cumulative_read_time);
-		c.set_value(counters::disk_write_time, m_cache_stats.cumulative_write_time);
-		c.set_value(counters::disk_hash_time, m_cache_stats.cumulative_hash_time);
-		c.set_value(counters::disk_job_time, m_cache_stats.cumulative_job_time);
-
-		c.set_value(counters::num_writing_threads, m_num_writing_threads);
-		c.set_value(counters::num_running_threads, m_num_running_threads);
 		c.set_value(counters::blocked_disk_jobs, m_num_blocked_jobs);
-
-		// counters
-		c.set_value(counters::num_blocks_written, m_cache_stats.blocks_written);
-		c.set_value(counters::num_blocks_read, m_cache_stats.blocks_read);
-		c.set_value(counters::num_write_ops, m_cache_stats.writes);
-		c.set_value(counters::num_read_ops, m_cache_stats.reads);
 
 		mutex::scoped_lock jl(m_job_mutex);
 
@@ -2823,6 +2805,32 @@ namespace libtorrent
 		ret->queued_jobs = m_queued_jobs.size() + m_queued_hash_jobs.size();
 		jl.unlock();
 
+#ifndef TORRENT_NO_DEPRECATE
+		ret->blocks_read_hit = m_stats_counters[counters::num_blocks_cache_hits];
+		ret->blocks_read = m_stats_counters[counters::num_blocks_read];
+		ret->blocks_written = m_stats_counters[counters::num_blocks_written];
+		ret->writes = m_stats_counters[counters::num_write_ops];
+		ret->reads = m_stats_counters[counters::num_read_ops];
+
+		int num_read_jobs = (std::max)(boost::int64_t(1)
+			, m_stats_counters[counters::num_read_ops]);
+		int num_write_jobs = (std::max)(boost::int64_t(1)
+			, m_stats_counters[counters::num_write_ops]);
+		int num_hash_jobs = (std::max)(boost::int64_t(1)
+			, m_stats_counters[counters::num_blocks_hashed]);
+
+		ret->average_read_time = m_stats_counters[counters::disk_read_time] / num_read_jobs;
+		ret->average_write_time = m_stats_counters[counters::disk_write_time] / num_write_jobs;
+		ret->average_hash_time = m_stats_counters[counters::disk_hash_time] / num_hash_jobs;
+		ret->average_job_time = m_stats_counters[counters::disk_job_time]
+			/ (num_read_jobs + num_write_jobs + num_hash_jobs);
+		ret->cumulative_job_time = m_stats_counters[counters::disk_job_time];
+		ret->cumulative_read_time = m_stats_counters[counters::disk_read_time];
+		ret->cumulative_write_time = m_stats_counters[counters::disk_write_time];
+		ret->cumulative_hash_time = m_stats_counters[counters::disk_hash_time];
+		ret->total_read_back = m_stats_counters[counters::num_read_back];
+#endif
+
 		mutex::scoped_lock l(m_cache_mutex);
 		*ret = m_cache_stats;
 		ret->total_used_buffers = m_disk_cache.in_use();
@@ -2832,7 +2840,7 @@ namespace libtorrent
 		ret->num_jobs = jobs_in_use();
 		ret->num_read_jobs = read_jobs_in_use();
 		ret->num_write_jobs = write_jobs_in_use();
-		ret->num_writing_threads = m_num_writing_threads;
+		ret->num_writing_threads = m_stats_counters[counters::num_writing_threads];
 
 		m_disk_cache.get_stats(ret);
 
@@ -3153,6 +3161,7 @@ namespace libtorrent
 		DLOG("started disk thread %d\n", int(thread_id));
 
 		++m_num_running_threads;
+		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
 
 		mutex::scoped_lock l(m_job_mutex);
 		for (;;)
@@ -3220,6 +3229,7 @@ namespace libtorrent
 		l.unlock();
 
 		// do cleanup in the last running thread 
+		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 		if (--m_num_running_threads > 0)
 		{
 			DLOG("exiting disk thread %d. num_threads: %d\n", thread_id, int(m_num_threads));

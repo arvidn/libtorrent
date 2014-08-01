@@ -43,7 +43,43 @@ namespace libtorrent {
 
 	counters::counters()
 	{
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		for (int i = 0; i < sizeof(m_stats_counter)
+			/ sizeof(m_stats_counter[0]); ++i)
+			m_stats_counter[i].store(0, boost::memory_order_relaxed);
+#else
 		memset(m_stats_counter, 0, sizeof(m_stats_counter));
+#endif
+	}
+
+	counters::counters(counters const& c)
+	{
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		for (int i = 0; i < sizeof(m_stats_counter)
+			/ sizeof(m_stats_counter[0]); ++i)
+			m_stats_counter[i].store(
+				c.m_stats_counter[i].load(boost::memory_order_relaxed)
+					, boost::memory_order_relaxed);
+#else
+		mutex::scoped_lock l(c.m_mutex);
+		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+#endif
+	}
+
+	counters& counters::operator=(counters const& c)
+	{
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		for (int i = 0; i < sizeof(m_stats_counter)
+			/ sizeof(m_stats_counter[0]); ++i)
+			m_stats_counter[i].store(
+				c.m_stats_counter[i].load(boost::memory_order_relaxed)
+					, boost::memory_order_relaxed);
+#else
+		mutex::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(c.m_mutex);
+		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+#endif
+		return *this;
 	}
 
 	boost::int64_t counters::operator[](int i) const
@@ -53,12 +89,18 @@ namespace libtorrent {
 #ifdef TORRENT_USE_VALGRIND
 		VALGRIND_CHECK_VALUE_IS_DEFINED(m_stats_counter[i]);
 #endif
+
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		return m_stats_counter[i].load(boost::memory_order_relaxed);
+#else
+		mutex::scoped_lock l(m_mutex);
 		return m_stats_counter[i];
+#endif
 	}
 
 	// the argument specifies which counter to
 	// increment or decrement
-	boost::uint64_t counters::inc_stats_counter(int c, boost::int64_t value)
+	boost::int64_t counters::inc_stats_counter(int c, boost::int64_t value)
 	{
 		// if c >= num_stats_counters, it means it's not
 		// a monotonically increasing counter, but a gauge
@@ -67,8 +109,15 @@ namespace libtorrent {
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		boost::int64_t pv = m_stats_counter[c].fetch_add(value, boost::memory_order_relaxed);
+		TORRENT_ASSERT(pv + value >= 0);
+		return pv + value;
+#else
+		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(m_stats_counter[c] + value >= 0);
 		return m_stats_counter[c] += value;
+#endif
 	}
 
 	// ratio is a vaue between 0 and 100 representing the percentage the value
@@ -82,9 +131,20 @@ namespace libtorrent {
 
 		TORRENT_ASSERT(num_stats_counters);
 
-		// TODO: 2 to make this thread safe, use compare_exchange_weak
-		boost::uint64_t current = m_stats_counter[c];
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		boost::int64_t current = m_stats_counter[c].load(boost::memory_order_relaxed);
+		boost::int64_t new_value = (current * (100-ratio) + value * ratio) / 100;
+
+		while (!m_stats_counter[c].compare_exchange_weak(current, new_value
+			, boost::memory_order_relaxed))
+		{
+			new_value = (current * (100-ratio) + value * ratio) / 100;
+		}
+#else
+		mutex::scoped_lock l(m_mutex);
+		boost::int64_t current = m_stats_counter[c];
 		m_stats_counter[c] = (current * (100-ratio) + value * ratio) / 100;
+#endif
 	}
 
 	void counters::set_value(int c, boost::int64_t value)
@@ -92,11 +152,17 @@ namespace libtorrent {
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		m_stats_counter[c].store(value);
+#else
+		mutex::scoped_lock l(m_mutex);
+
 		// if this assert fires, someone is trying to decrement a counter
 		// which is not allowed. Counters are monotonically increasing
 		TORRENT_ASSERT(value >= m_stats_counter[c] || c >= num_stats_counters);
 	
 		m_stats_counter[c] = value;
+#endif
 	}
 
 }
