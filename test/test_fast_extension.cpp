@@ -52,7 +52,8 @@ int read_message(stream_socket& s, char* buffer)
 	if (ec)
 	{
 		std::cout << time_now_string() << ": " << ec.message() << std::endl;
-		exit(1);
+		TEST_ERROR("read_message: " + ec.message());
+		return 0;
 	}
 	char* ptr = buffer;
 	int length = read_int32(ptr);
@@ -62,7 +63,8 @@ int read_message(stream_socket& s, char* buffer)
 	if (ec)
 	{
 		std::cout << time_now_string() << ": " << ec.message() << std::endl;
-		exit(1);
+		TEST_ERROR("read_message: " + ec.message());
+		return 0;
 	}
 	return length;
 }
