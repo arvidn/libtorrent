@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 
 #include <boost/cstdint.hpp>
+#include <boost/atomic.hpp>
 #include "libtorrent/config.hpp"
 
 namespace libtorrent
@@ -178,9 +179,11 @@ namespace libtorrent
 
 			num_blocks_written,
 			num_blocks_read,
+			num_blocks_hashed,
 			num_blocks_cache_hits,
 			num_write_ops,
 			num_read_ops,
+			num_read_back,
 
 			disk_read_time,
 			disk_write_time,
@@ -386,8 +389,11 @@ namespace libtorrent
 
 		counters();
 
+		counters(counters const&);
+		counters& operator=(counters const&);
+
 		// returns the new value
-		boost::uint64_t inc_stats_counter(int c, boost::int64_t value = 1);
+		boost::int64_t inc_stats_counter(int c, boost::int64_t value = 1);
 		boost::int64_t operator[](int i) const;
 
 		void set_value(int c, boost::int64_t value);
@@ -396,8 +402,14 @@ namespace libtorrent
 	private:
 
 		// TODO: some space could be saved here by making gauges 32 bits
+#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+		boost::atomic<boost::int64_t> m_stats_counter[num_counters];
+#else
+		// if the atomic type is't lock-free, use a single lock instead, for
+		// the whole array
+		mutex m_mutex;
 		boost::int64_t m_stats_counter[num_counters];
-
+#endif
 	};
 }
 

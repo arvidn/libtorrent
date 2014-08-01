@@ -383,7 +383,8 @@ void test_check_files(std::string const& test_path
 	aux::session_settings set;
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_io_thread io(ios, NULL, NULL);
+	counters cnt;
+	disk_io_thread io(ios, NULL, cnt, NULL);
 	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
 	storage_params p;
 	p.files = &fs;

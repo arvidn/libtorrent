@@ -441,7 +441,8 @@ namespace aux {
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
-		, m_disk_thread(m_io_service, this, (uncork_interface*)this)
+		, m_disk_thread(m_io_service, this, m_stats_counters
+			, (uncork_interface*)this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -715,10 +716,6 @@ namespace aux {
 		get_vm_stats(&vst, ec);
 		if (!ec) m_last_vm_stat = vst;
 
-		m_last_failed = 0;
-		m_last_redundant = 0;
-		m_last_uploaded = 0;
-		m_last_downloaded = 0;
 		get_thread_cpu_usage(&m_network_thread_cpu_usage);
 
 		rotate_stats_log();
@@ -4080,26 +4077,25 @@ retry:
 
 		if (m_stats_logger)
 		{
+			counters cnt = m_stats_counters;
+
 			cache_status cs;
 			m_disk_thread.get_cache_info(&cs);
 			session_status sst = status();
-
-			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000000.0 / float(tick_interval_ms));
-			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000000.0 / float(tick_interval_ms));
 
 #ifdef TORRENT_USE_VALGRIND
 #define STAT_LOGL(type, val) VALGRIND_CHECK_VALUE_IS_DEFINED(val); fprintf(m_stats_logger, "%" #type "\t", val)
 #else
 #define STAT_LOGL(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 #endif
-#define STAT_COUNTER(cnt) fprintf(m_stats_logger, "%" PRId64 "\t", m_stats_counters[counters:: cnt])
+#define STAT_COUNTER(c) fprintf(m_stats_logger, "%" PRId64 "\t", cnt[counters:: c])
+#define STAT_COUNTER_DELTA(c) fprintf(m_stats_logger, "%" PRId64 "\t", cnt[counters:: c] \
+	- m_last_stats_counters[counters:: c])
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 
 			STAT_LOG(f, total_milliseconds(now - m_last_log_rotation) / 1000.f);
-			size_type uploaded = m_stat.total_upload() - m_last_uploaded;
-			STAT_LOG(d, int(uploaded));
-			size_type downloaded = m_stat.total_download() - m_last_downloaded;
-			STAT_LOG(d, int(downloaded));
+			STAT_COUNTER_DELTA(sent_bytes);
+			STAT_COUNTER_DELTA(recv_bytes);
 			STAT_COUNTER(num_downloading_torrents);
 			STAT_COUNTER(num_seeding_torrents);
 			STAT_COUNTER(num_peers_connected);
@@ -4158,29 +4154,44 @@ retry:
 			STAT_COUNTER(connect_timeouts);
 			STAT_COUNTER(uninteresting_peers);
 			STAT_COUNTER(timeout_peers);
-			STAT_LOG(f, float(m_stats_counters[counters::recv_failed_bytes]) * 100.f
-				/ (std::max)(m_stats_counters[counters::recv_bytes], boost::int64_t(1)));
-			STAT_LOG(f, float(m_stats_counters[counters::recv_redundant_bytes]) * 100.f
-				/ (std::max)(m_stats_counters[counters::recv_bytes], boost::int64_t(1)));
-			STAT_LOG(f, float(m_stats_counters[counters::recv_bytes]
-					- m_stats_counters[counters::recv_payload_bytes]) * 100.f
-				/ (std::max)(m_stats_counters[counters::recv_bytes], boost::int64_t(1)));
-			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
-			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
+			STAT_LOG(f, float(cnt[counters::recv_failed_bytes]) * 100.f
+				/ (std::max)(cnt[counters::recv_bytes], boost::int64_t(1)));
+			STAT_LOG(f, float(cnt[counters::recv_redundant_bytes]) * 100.f
+				/ (std::max)(cnt[counters::recv_bytes], boost::int64_t(1)));
+			STAT_LOG(f, float(cnt[counters::recv_bytes]
+					- cnt[counters::recv_payload_bytes]) * 100.f
+				/ (std::max)(cnt[counters::recv_bytes], boost::int64_t(1)));
+
+			int delta_read_jobs = cnt[counters::num_read_ops]
+				- m_last_stats_counters[counters::num_read_ops];
+			int delta_read_time = cnt[counters::disk_read_time]
+				- m_last_stats_counters[counters::disk_read_time];
+			int delta_write_jobs = cnt[counters::num_write_ops]
+				- m_last_stats_counters[counters::num_write_ops];
+			int delta_write_time = cnt[counters::disk_write_time]
+				- m_last_stats_counters[counters::disk_write_time];
+			int delta_hash_jobs = cnt[counters::num_blocks_hashed]
+				- m_last_stats_counters[counters::num_blocks_hashed];
+			int delta_hash_time = cnt[counters::disk_hash_time]
+				- m_last_stats_counters[counters::disk_hash_time];
+
+			STAT_LOG(f, float(delta_read_jobs == 0 ? 0.f
+				: delta_read_time / delta_read_jobs) / 1000000.f);
+			STAT_LOG(f, float(delta_write_jobs == 0 ? 0.f
+				: delta_write_time / delta_write_jobs) / 1000000.f);
 			STAT_LOG(d, int(cs.pending_jobs + cs.queued_jobs));
 			STAT_COUNTER(queued_write_bytes);
-			STAT_LOG(d, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit));
-			STAT_LOG(d, int(cs.blocks_read - m_last_cache_status.blocks_read));
-			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
-			STAT_LOG(d, int(m_stats_counters[counters::recv_failed_bytes]
-					- m_last_failed));
-			STAT_LOG(d, int(m_stats_counters[counters::recv_redundant_bytes]
-				- m_last_redundant));
+			STAT_COUNTER_DELTA(num_blocks_cache_hits);
+			STAT_COUNTER_DELTA(num_blocks_read);
+			STAT_COUNTER_DELTA(num_blocks_written);
+			STAT_COUNTER_DELTA(recv_failed_bytes);
+			STAT_COUNTER_DELTA(recv_redundant_bytes);
 			STAT_COUNTER(num_error_torrents);
 			STAT_LOGL(d, cs.read_cache_size);
 			STAT_LOG(d, cs.write_cache_size + cs.read_cache_size);
 			STAT_COUNTER(disk_blocks_in_use);
-			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
+			STAT_LOG(f, float(delta_hash_jobs == 0 ? 0.f
+				: delta_hash_time / delta_hash_jobs) / 1000000.f);
 			STAT_COUNTER(connection_attempts);
 			STAT_COUNTER(num_banned_peers);
 			STAT_COUNTER(banned_for_hash_failure);
@@ -4189,14 +4200,14 @@ retry:
 			STAT_LOGL(d, connect_candidates);
 			STAT_LOG(d, int(m_settings.get_int(settings_pack::cache_size)
 				- m_settings.get_int(settings_pack::max_queued_disk_bytes) / 0x4000));
-			STAT_LOG(f, float(m_stats_counters[counters::disk_read_time] * 100.f
-				/ (std::max)(m_stats_counters[counters::disk_job_time], boost::int64_t(1))));
-			STAT_LOG(f, float(m_stats_counters[counters::disk_write_time] * 100.f
-				/ (std::max)(m_stats_counters[counters::disk_job_time], boost::int64_t(1))));
-			STAT_LOG(f, float(m_stats_counters[counters::disk_hash_time] * 100.f
-				/ (std::max)(m_stats_counters[counters::disk_job_time], boost::int64_t(1))));
-			STAT_LOG(d, int(cs.total_read_back - m_last_cache_status.total_read_back));
-			STAT_LOG(f, float(cs.total_read_back * 100.f / (std::max)(1, int(cs.blocks_written))));
+			STAT_LOG(f, float(cnt[counters::disk_read_time] * 100.f
+				/ (std::max)(cnt[counters::disk_job_time], boost::int64_t(1))));
+			STAT_LOG(f, float(cnt[counters::disk_write_time] * 100.f
+				/ (std::max)(cnt[counters::disk_job_time], boost::int64_t(1))));
+			STAT_LOG(f, float(cnt[counters::disk_hash_time] * 100.f
+				/ (std::max)(cnt[counters::disk_job_time], boost::int64_t(1))));
+			STAT_COUNTER_DELTA(num_read_back);
+			STAT_LOG(f, float(cnt[counters::num_read_back] * 100.f / (std::max)(1, int(cnt[counters::num_blocks_written]))));
 			STAT_COUNTER(num_read_jobs);
 			STAT_LOG(f, float(tick_interval_ms) / 1000.f);
 			STAT_LOG(f, float(m_tick_residual) / 1000.f);
@@ -4214,8 +4225,8 @@ retry:
 			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
 			STAT_LOG(f, float(utp_peak_recv_delay) / 1000000.f);
 			STAT_LOG(f, float(utp_num_recv_delay_sockets ? float(utp_recv_delay_sum) / float(utp_num_recv_delay_sockets) : 0) / 1000000.f);
-			STAT_LOG(f, float(cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
-			STAT_LOG(f, float(cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
+			STAT_LOG(f, float(delta_read_jobs) * 1000.0 / float(tick_interval_ms));
+			STAT_LOG(f, float(delta_write_jobs) * 1000.0 / float(tick_interval_ms));
 
 			STAT_LOG(d, int(vm_stat.active_count));
 			STAT_LOG(d, int(vm_stat.inactive_count));
@@ -4225,8 +4236,8 @@ retry:
 			STAT_LOG(d, int(vm_stat.pageouts - m_last_vm_stat.pageouts));
 			STAT_LOG(d, int(vm_stat.faults - m_last_vm_stat.faults));
 
-			STAT_LOG(f, m_read_ops.mean() / 1000.f);
-			STAT_LOG(f, m_write_ops.mean() / 1000.f);
+			STAT_LOG(f, float(delta_read_jobs) * 1000.f / float(tick_interval_ms));
+			STAT_LOG(f, float(delta_write_jobs) * 1000.f / float(tick_interval_ms));
 			STAT_COUNTER(pinned_blocks);
 
 			STAT_LOGL(d, partial_pieces);
@@ -4243,16 +4254,16 @@ retry:
 
 			for (int i = counters::on_read_counter; i <= counters::on_disk_counter; ++i)
 			{
-				STAT_LOG(d, int(m_stats_counters[i]));
+				STAT_LOG(d, int(cnt[i]));
 			}
 
 			for (int i = counters::socket_send_size3; i <= counters::socket_send_size20; ++i)
 			{
-				STAT_LOG(d, int(m_stats_counters[i]));
+				STAT_LOG(d, int(cnt[i]));
 			}
 			for (int i = counters::socket_recv_size3; i <= counters::socket_recv_size20; ++i)
 			{
-				STAT_LOG(d, int(m_stats_counters[i]));
+				STAT_LOG(d, int(cnt[i]));
 			}
 
 			STAT_LOG(f, total_microseconds(cur_cpu_usage.user_time
@@ -4310,7 +4321,7 @@ retry:
 
 			STAT_LOG(d, int(m_connections.size()));
 			STAT_LOGL(d, pending_incoming_reqs);
-			STAT_LOG(f, m_stats_counters[counters::num_peers_connected] == 0 ? 0.f : (float(pending_incoming_reqs) / m_stats_counters[counters::num_peers_connected]));
+			STAT_LOG(f, cnt[counters::num_peers_connected] == 0 ? 0.f : (float(pending_incoming_reqs) / cnt[counters::num_peers_connected]));
 
 			STAT_LOGL(d, num_want_more_peers);
 			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
@@ -4423,10 +4434,8 @@ retry:
 			m_last_cache_status = cs;
 			if (!vm_ec) m_last_vm_stat = vm_stat;
 			m_network_thread_cpu_usage = cur_cpu_usage;
-			m_last_failed = m_stats_counters[counters::recv_failed_bytes];
-			m_last_redundant = m_stats_counters[counters::recv_redundant_bytes];
-			m_last_uploaded = m_stat.total_upload();
-			m_last_downloaded = m_stat.total_download();
+
+			m_last_stats_counters = cnt;
 		}
 	}
 #endif // TORRENT_STATS

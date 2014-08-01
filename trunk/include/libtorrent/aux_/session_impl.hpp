@@ -724,6 +724,8 @@ namespace libtorrent
 			// the settings for the client
 			aux::session_settings m_settings;
 
+			counters m_stats_counters;
+
 			// this is a pool allocator for torrent_peer objects
 			torrent_peer_allocator m_peer_allocator;
 
@@ -1170,15 +1172,11 @@ namespace libtorrent
 			// incremented by one
 			int m_log_seq;
 
+			counters m_last_stats_counters;
+
 			cache_status m_last_cache_status;
-			size_type m_last_failed;
-			size_type m_last_redundant;
-			size_type m_last_uploaded;
-			size_type m_last_downloaded;
 			vm_statistics_data_t m_last_vm_stat;
 			thread_cpu_usage m_network_thread_cpu_usage;
-			sliding_average<20> m_read_ops;
-			sliding_average<20> m_write_ops;
 #endif
 
 			// each second tick the timer takes a little
@@ -1215,8 +1213,6 @@ namespace libtorrent
 #endif
 
 		private:
-
-			counters m_stats_counters;
 
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;

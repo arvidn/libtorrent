@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/torrent_info.hpp" // for merkle_*()
+#include "libtorrent/performance_counters.hpp" // for counters
 
 #include <boost/bind.hpp>
 #include <boost/next_prior.hpp>
@@ -201,7 +202,8 @@ namespace libtorrent
 
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy;
-		disk_io_thread disk_thread(ios, 0, 0);
+		counters cnt;
+		disk_io_thread disk_thread(ios, 0, cnt, 0);
 
 		storage_params params;
 		params.files = &t.files();

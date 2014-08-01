@@ -269,14 +269,13 @@ block_cache::block_cache(int block_size, io_service& ios
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
 	, m_send_buffer_blocks(0)
-	, m_blocks_read_hit(0)
 	, m_pinned_blocks(0)
 {}
 
 // returns:
 // -1: not in cache
 // -2: no memory
-int block_cache::try_read(disk_io_job* j, bool count_stats, bool expect_no_fail)
+int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
 {
 	INVARIANT_CHECK;
 
@@ -308,8 +307,6 @@ int block_cache::try_read(disk_io_job* j, bool count_stats, bool expect_no_fail)
 	if (ret < 0) return ret;
 
 	ret = j->d.io.buffer_size;
-	if (count_stats)
-		++m_blocks_read_hit;
 	return ret;
 }
 
@@ -1450,7 +1447,6 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 
 void block_cache::update_stats_counters(counters& c) const
 {
-	c.set_value(counters::num_blocks_cache_hits, m_blocks_read_hit);
 	c.set_value(counters::write_cache_blocks, m_write_cache_size);
 	c.set_value(counters::read_cache_blocks, m_read_cache_size);
 	c.set_value(counters::pinned_blocks, m_pinned_blocks);
@@ -1465,7 +1461,6 @@ void block_cache::update_stats_counters(counters& c) const
 
 void block_cache::get_stats(cache_status* ret) const
 {
-	ret->blocks_read_hit = m_blocks_read_hit;
 	ret->write_cache_size = m_write_cache_size;
 	ret->read_cache_size = m_read_cache_size;
 	ret->pinned_blocks = m_pinned_blocks;

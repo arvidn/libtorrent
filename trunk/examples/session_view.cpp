@@ -3,38 +3,40 @@
 
 session_view::session_view()
 {
+	using libtorrent::find_metric_idx;
+
 	m_width = 128;
 
 	std::vector<lt::stats_metric> metrics = lt::session_stats_metrics();
 	m_cnt[0].resize(metrics.size(), 0);
 	m_cnt[1].resize(metrics.size(), 0);
 
-	m_queued_bytes_idx = find_metric_idx(metrics, "disk.queued_write_bytes");
-	m_wasted_bytes_idx = find_metric_idx(metrics, "net.recv_redundant_bytes");
-	m_failed_bytes_idx = find_metric_idx(metrics, "net.recv_failed_bytes");
-	m_num_peers_idx = find_metric_idx(metrics, "peer.num_peers_connected");
-	m_recv_payload_idx = find_metric_idx(metrics, "net.recv_payload_bytes");
-	m_sent_payload_idx = find_metric_idx(metrics, "net.sent_payload_bytes");
-	m_unchoked_idx = find_metric_idx(metrics, "peer.num_peers_up_unchoked");
-	m_unchoke_slots_idx = find_metric_idx(metrics, "ses.num_unchoke_slots");
-	m_limiter_up_queue_idx = find_metric_idx(metrics, "net.limiter_up_queue");
-	m_limiter_down_queue_idx = find_metric_idx(metrics, "net.limiter_down_queue");
-	m_queued_writes_idx = find_metric_idx(metrics, "disk.num_write_jobs");
-	m_queued_reads_idx = find_metric_idx(metrics, "disk.num_read_jobs");
+	m_queued_bytes_idx = find_metric_idx("disk.queued_write_bytes");
+	m_wasted_bytes_idx = find_metric_idx("net.recv_redundant_bytes");
+	m_failed_bytes_idx = find_metric_idx("net.recv_failed_bytes");
+	m_num_peers_idx = find_metric_idx("peer.num_peers_connected");
+	m_recv_payload_idx = find_metric_idx("net.recv_payload_bytes");
+	m_sent_payload_idx = find_metric_idx("net.sent_payload_bytes");
+	m_unchoked_idx = find_metric_idx("peer.num_peers_up_unchoked");
+	m_unchoke_slots_idx = find_metric_idx("ses.num_unchoke_slots");
+	m_limiter_up_queue_idx = find_metric_idx("net.limiter_up_queue");
+	m_limiter_down_queue_idx = find_metric_idx("net.limiter_down_queue");
+	m_queued_writes_idx = find_metric_idx("disk.num_write_jobs");
+	m_queued_reads_idx = find_metric_idx("disk.num_read_jobs");
 
-	m_writes_cache_idx = find_metric_idx(metrics, "disk.write_cache_blocks");
-	m_reads_cache_idx = find_metric_idx(metrics, "disk.read_cache_blocks");
-	m_pinned_idx = find_metric_idx(metrics, "disk.pinned_blocks");
-	m_num_blocks_read_idx = find_metric_idx(metrics, "disk.num_blocks_read");
-	m_cache_hit_idx = find_metric_idx(metrics, "disk.num_blocks_cache_hits");
-	m_blocks_in_use_idx = find_metric_idx(metrics, "disk.disk_blocks_in_use");
-	m_blocks_written_idx = find_metric_idx(metrics, "disk.num_blocks_written");
-	m_write_ops_idx = find_metric_idx(metrics, "disk.num_write_ops");
+	m_writes_cache_idx = find_metric_idx("disk.write_cache_blocks");
+	m_reads_cache_idx = find_metric_idx("disk.read_cache_blocks");
+	m_pinned_idx = find_metric_idx("disk.pinned_blocks");
+	m_num_blocks_read_idx = find_metric_idx("disk.num_blocks_read");
+	m_cache_hit_idx = find_metric_idx("disk.num_blocks_cache_hits");
+	m_blocks_in_use_idx = find_metric_idx("disk.disk_blocks_in_use");
+	m_blocks_written_idx = find_metric_idx("disk.num_blocks_written");
+	m_write_ops_idx = find_metric_idx("disk.num_write_ops");
 
-	m_mfu_size_idx = find_metric_idx(metrics, "disk.arc_mfu_size");
-	m_mfu_ghost_idx = find_metric_idx(metrics, "disk.arc_mfu_ghost_size");
-	m_mru_size_idx = find_metric_idx(metrics, "disk.arc_mru_size");
-	m_mru_ghost_idx = find_metric_idx(metrics, "disk.arc_mru_ghost_size");
+	m_mfu_size_idx = find_metric_idx("disk.arc_mfu_size");
+	m_mfu_ghost_idx = find_metric_idx("disk.arc_mfu_ghost_size");
+	m_mru_size_idx = find_metric_idx("disk.arc_mru_size");
+	m_mru_ghost_idx = find_metric_idx("disk.arc_mru_ghost_size");
 }
 
 void session_view::set_pos(int pos)

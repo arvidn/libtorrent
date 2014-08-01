@@ -44,9 +44,6 @@ namespace libtorrent
 		int value_index;
 	};
 
-	// TODO: 3 the type of counter does not need to be stored in this array.
-	// when the user asks for the list of counters, that field could be
-	// generated based on the range of the counter index.
 #define METRIC(category, name) { #category "." #name, counters:: name },
 	const static stats_metric_impl metrics[] =
 	{
@@ -316,11 +313,25 @@ namespace libtorrent
 		METRIC(disk, arc_write_size)
 		METRIC(disk, arc_volatile_size)
 
+		// the number of blocks written and read from disk in total. A block is
+		// 16 kiB.
 		METRIC(disk, num_blocks_written)
 		METRIC(disk, num_blocks_read)
+
+		// the total number of blocks run through SHA-1 hashing
+		METRIC(disk, num_blocks_hashed)
+		
+		// the number of blocks read from the disk cache
 		METRIC(disk, num_blocks_cache_hits)
+		
+		// the number of disk I/O operation for reads and writes. One disk
+		// operation may transfer more then one block.
 		METRIC(disk, num_write_ops)
 		METRIC(disk, num_read_ops)
+
+		// the number of blocks that had to be read back from disk in order to
+		// hash a piece (when verifying against the piece hash)
+		METRIC(disk, num_read_back)
 
 		// cumulative time spent in various disk jobs, as well
 		// as total for all disk jobs. Measured in microseconds
@@ -466,7 +477,7 @@ namespace libtorrent
 
 	int find_metric_idx(char const* name)
 	{
-		stats_metric_impl const* end = metrics + sizeof(metrics)/sizeof(metrics);
+		stats_metric_impl const* end = metrics + sizeof(metrics)/sizeof(metrics[0]);
 		stats_metric_impl const* i = std::find_if(metrics, end , boost::bind(&strcmp
 				, boost::bind(&stats_metric_impl::name, _1), name) == 0);
 		if (i == end) return -1;
