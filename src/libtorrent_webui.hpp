@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LIBTORRENT_WEBUI_HPP
 
 #include "websocket_handler.hpp"
-#include "libtorrent/atomic.hpp"
 #include "libtorrent/torrent_handle.hpp"
+#include <boost/atomic.hpp>
 
 struct mg_connection;
 
@@ -119,7 +119,7 @@ namespace libtorrent
 		torrent_history const* m_hist;
 		auth_interface const* m_auth;
 		alert_handler* m_alert;
-		atomic_count m_transaction_id;
+		boost::atomic<int> m_transaction_id;
 
 		mutex m_stats_mutex;
 		// TODO: factor this out into its own class
