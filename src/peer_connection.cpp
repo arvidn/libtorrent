@@ -2484,7 +2484,12 @@ namespace libtorrent
 			if (i->receiving == false)
 			{
 				i->receiving = true;
-				int rtt = int(total_milliseconds(time_now_hires() - i->request_time));
+				// if byte_offset is greater then or equal to 0, it means
+				// the callback of the send operation when we sent this
+				// request hasn't come back yet, and we're already
+				// receiving the response from it. Count the rtt as 0.
+				int rtt = (i->byte_offset >= 0) ? 0
+					: int(total_milliseconds(time_now_hires() - i->request_time));
 				m_rtt.add_sample(rtt);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				peer_log("*** RTT: %d ms [%d +/- %d ms]", rtt, m_rtt.mean()
