@@ -27,6 +27,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+1.0.1 release
+
 	* fix alignment issue in bitfield
 	* improved error handling of gzip
 	* fixed crash when web seeds redirect

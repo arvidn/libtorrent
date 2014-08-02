@@ -26,7 +26,9 @@ def substitute_file(name):
 		elif 'VERSION = ' in l and name.endswith('Jamfile'):
 			l = 'VERSION = %d.%d.%d ;\n' % (version[0], version[1], version[2])
 		elif 'version=' in l and name.endswith('setup.py'):
-			l = "\tversion='%d.%d.%d'\n" % (version[0], version[1], version[2])
+			l = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
+		elif "version = '" in l and name.endswith('setup.py'):
+			l = "\tversion = '%d.%d.%d',\n" % (version[0], version[1], version[2])
 
 		subst += l
 
@@ -37,6 +39,7 @@ def substitute_file(name):
 substitute_file('include/libtorrent/version.hpp')
 substitute_file('CMakeLists.txt')
 substitute_file('configure.ac')
+substitute_file('bindings/python/setup.py')
 substitute_file('docs/gen_reference_doc.py')
 for i in glob.glob('docs/*.rst'):
 	substitute_file(i)
