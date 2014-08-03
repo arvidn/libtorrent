@@ -33,7 +33,6 @@ DOCS_IMAGES = \
   docs/hacking.html               \
   docs/im_thumb.jpg               \
   docs/leechcraft.png             \
-  docs/libtorrent_screen.png      \
   docs/limewire.png               \
   docs/lince.png                  \
   docs/Linkage.png                \
@@ -75,40 +74,23 @@ DOCS_IMAGES = \
 
 DOCS_PAGES = \
   docs/building.html              \
-  docs/building.rst               \
   docs/client_test.html           \
-  docs/client_test.rst            \
   docs/contributing.html          \
-  docs/contributing.rst           \
   docs/dht_extensions.html        \
-  docs/dht_extensions.rst         \
   docs/dht_rss.html               \
-  docs/dht_rss.rst                \
   docs/dht_sec.html               \
-  docs/dht_sec.rst                \
   docs/dht_store.html             \
-  docs/dht_store.rst              \
   docs/examples.html              \
-  docs/examples.rst               \
   docs/extension_protocol.html    \
-  docs/extension_protocol.rst     \
   docs/features.html              \
-  docs/features.rst               \
   docs/index.html                 \
-  docs/index.rst                  \
   docs/manual-ref.html            \
-  docs/manual.rst                 \
   docs/projects.html              \
-  docs/projects.rst               \
   docs/python_binding.html        \
-  docs/python_binding.rst         \
   docs/tuning.html                \
-  docs/tuning.rst                 \
   docs/troubleshooting.html       \
   docs/udp_tracker_protocol.html  \
-  docs/udp_tracker_protocol.rst   \
   docs/utp.html                   \
-  docs/utp.rst                    \
   docs/reference-Alerts.html      \
   docs/reference-Bencoding.html   \
   docs/reference-Core.html        \
