@@ -548,8 +548,8 @@ the chunk headers should be subtracted from the receive_buffer_size</h2><h4>../s
 		std::string request;
 		request.reserve(400);
 
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(10)">../src/peer_connection.cpp:2587</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="10" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
-all completed disk operations</h2><h4>../src/peer_connection.cpp:2587</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		}
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(10)">../src/peer_connection.cpp:2588</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="10" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
+all completed disk operations</h2><h4>../src/peer_connection.cpp:2588</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		}
 
 		if (is_disconnecting()) return;
 
@@ -1548,7 +1548,8 @@ remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.c
 		// average of current rate and peak
 //		rate = (rate + m_download_rate_peak) / 2;
 
-		return seconds((m_outstanding_bytes + m_queued_time_critical * t-&gt;block_size()) / rate);
+		return milliseconds((m_outstanding_bytes
+			+ m_queued_time_critical * t-&gt;block_size() * 1000) / rate);
 	}
 
 	void peer_connection::add_stat(size_type downloaded, size_type uploaded)
@@ -1560,10 +1561,9 @@ remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.c
 	{
 		return m_have_piece;
 	}
-
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(30)">../src/peer_connection.cpp:2750</a></td><td>this might need something more so that once we have the metadata we can construct a full bitfield</td></tr><tr id="30" style="display: none;" colspan="3"><td colspan="3"><h2>this might need something more
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(30)">../src/peer_connection.cpp:2751</a></td><td>this might need something more so that once we have the metadata we can construct a full bitfield</td></tr><tr id="30" style="display: none;" colspan="3"><td colspan="3"><h2>this might need something more
 so that once we have the metadata
-we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2750</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2751</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
@@ -1614,7 +1614,7 @@ we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2750</h4><pr
 		boost::shared_ptr&lt;torrent&gt; t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(31)">../src/peer_connection.cpp:2881</a></td><td>sort the allowed fast set in priority order</td></tr><tr id="31" style="display: none;" colspan="3"><td colspan="3"><h2>sort the allowed fast set in priority order</h2><h4>../src/peer_connection.cpp:2881</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// this piece index later
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(31)">../src/peer_connection.cpp:2882</a></td><td>sort the allowed fast set in priority order</td></tr><tr id="31" style="display: none;" colspan="3"><td colspan="3"><h2>sort the allowed fast set in priority order</h2><h4>../src/peer_connection.cpp:2882</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// this piece index later
 		m_allowed_fast.push_back(index);
 
 		// if the peer has the piece and we want
@@ -1665,8 +1665,8 @@ we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2750</h4><pr
 		TORRENT_ASSERT(t-&gt;has_picker());
 		TORRENT_ASSERT(t-&gt;picker().is_requested(block));
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(32)">../src/peer_connection.cpp:4547</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="32" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
-all completed disk operations</h2><h4>../src/peer_connection.cpp:4547</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// this means we're in seed mode and we haven't yet
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(32)">../src/peer_connection.cpp:4548</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="32" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
+all completed disk operations</h2><h4>../src/peer_connection.cpp:4548</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				t-&gt;filesystem().async_read_and_hash(r, boost::bind(&amp;peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.second);
@@ -2645,8 +2645,8 @@ it num_interested == 0, we need to pick a new piece</h2><h4>../src/torrent.cpp:8
 		{
 			m_picker-&gt;get_availability(avail_vec);
 		}
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(52)">../src/torrent.cpp:8818</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
-directly into the right place</h2><h4>../src/torrent.cpp:8818</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(52)">../src/torrent.cpp:8822</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
+directly into the right place</h2><h4>../src/torrent.cpp:8822</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
 					, m_average_piece_time);
 #endif
 			}
@@ -3007,7 +3007,7 @@ bool compare_bucket_refresh(routing_table_node const&amp; lhs, routing_table_nod
 	node_id mask = generate_prefix_mask(num_bits);
 
 	// target = (target &amp; ~mask) | (root &amp; mask)
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../include/libtorrent/config.hpp:327</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>../include/libtorrent/config.hpp:327</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../include/libtorrent/config.hpp:295</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>../include/libtorrent/config.hpp:295</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 // ==== eCS(OS/2) ===
 #elif defined __OS2__
 #define TORRENT_OS2
