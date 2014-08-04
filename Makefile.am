@@ -5,45 +5,22 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = include/libtorrent src examples test bindings tools
 
 DOCS_IMAGES = \
-  docs/arctic_thumb.png           \
-  docs/bitbuddy_thumb.jpg         \
-  docs/bitfox.png                 \
-  docs/bitrocket_thumb.png        \
-  docs/bitscast_thumb.png         \
-  docs/bitslug_thumb.png          \
-  docs/btg_thumb.jpg              \
-  docs/bubba.png                  \
   docs/client_test.png            \
   docs/cwnd.png                   \
   docs/cwnd_thumb.png             \
   docs/delays.png                 \
   docs/delays_thumb.png           \
-  docs/deluge.png                 \
   docs/disk_access.png            \
   docs/disk_buffer_before_optimization.png  \
   docs/disk_buffer.png            \
   docs/disk_buffer_sample.png     \
   docs/disk_io.png                \
-  docs/electric_sheep_thumb.jpg   \
-  docs/fatrat.png                 \
-  docs/fdm.png                    \
-  docs/firetorrent.png            \
-  docs/flush.jpg                  \
-  docs/halite_thumb.png           \
   docs/hacking.html               \
   docs/im_thumb.jpg               \
-  docs/leechcraft.png             \
-  docs/limewire.png               \
-  docs/lince.png                  \
-  docs/Linkage.png                \
   docs/merkle_tree.graffle        \
   docs/merkle_tree.png            \
-  docs/miro.jpg                   \
-  docs/moopolice_thumb.gif        \
   docs/our_delay_base.png         \
   docs/our_delay_base_thumb.png   \
-  docs/pump.png                   \
-  docs/qbittorrent_thumb.jpg      \
   docs/read_disk_buffers.dot      \
   docs/read_disk_buffers.graffle  \
   docs/read_disk_buffers.png      \
@@ -51,18 +28,11 @@ DOCS_IMAGES = \
   docs/storage.graffle            \
   docs/storage.png                \
   docs/style.css                  \
-  docs/t2e.jpg                    \
   docs/todo.html                  \
-  docs/tvblob.jpg                 \
-  docs/tvitty.jpg                 \
-  docs/unicode_support.png        \
   docs/write_disk_buffers.dot     \
   docs/write_disk_buffers.graffle \
   docs/write_disk_buffers.png     \
   docs/ziptorrent_thumb.gif       \
-  docs/zyxel.png                  \
-  docs/folx.png                   \
-  docs/tonidoplug.png             \
   docs/disk_access_elevator.png   \
   docs/disk_access_no_elevator.png\
   docs/ip_id_v4.png               \

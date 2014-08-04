@@ -43,8 +43,3 @@ downloaded. It shows that fast peers will prefer to request whole pieces
 instead of dowloading parts of pieces. It may make it easier to determine
 which peer that sent the corrupt data if a piece fails the hash test.
 
-.. image:: unicode_support.png
-
-There's unicode support on linux, MacOS X and Windows.
-
-
