@@ -16,9 +16,6 @@
 +-------------------------+---------+
 
 
-TODO: 3 the type of counter does not need to be stored in this array.
-when the user asks for the list of counters, that field could be
-generated based on the range of the counter index.
 ``error_peers`` is the total number of peer disconnects
 caused by an error (not initiated by this client) and
 disconnected initiated by this client (``disconnected_peers``).
@@ -1069,16 +1066,6 @@ peer until we're sending the response back on the socket.
 
 .. _disk.arc_volatile_size:
 
-.. _disk.num_blocks_written:
-
-.. _disk.num_blocks_read:
-
-.. _disk.num_blocks_cache_hits:
-
-.. _disk.num_write_ops:
-
-.. _disk.num_read_ops:
-
 .. raw:: html
 
 	<a name="disk.queued_write_bytes"></a>
@@ -1088,39 +1075,24 @@ peer until we're sending the response back on the socket.
 	<a name="disk.arc_mfu_ghost_size"></a>
 	<a name="disk.arc_write_size"></a>
 	<a name="disk.arc_volatile_size"></a>
-	<a name="disk.num_blocks_written"></a>
-	<a name="disk.num_blocks_read"></a>
-	<a name="disk.num_blocks_cache_hits"></a>
-	<a name="disk.num_write_ops"></a>
-	<a name="disk.num_read_ops"></a>
 
-+----------------------------+---------+
-| name                       | type    |
-+============================+=========+
-| disk.queued_write_bytes    | gauge   |
-+----------------------------+---------+
-| disk.arc_mru_size          | gauge   |
-+----------------------------+---------+
-| disk.arc_mru_ghost_size    | gauge   |
-+----------------------------+---------+
-| disk.arc_mfu_size          | gauge   |
-+----------------------------+---------+
-| disk.arc_mfu_ghost_size    | gauge   |
-+----------------------------+---------+
-| disk.arc_write_size        | gauge   |
-+----------------------------+---------+
-| disk.arc_volatile_size     | gauge   |
-+----------------------------+---------+
-| disk.num_blocks_written    | counter |
-+----------------------------+---------+
-| disk.num_blocks_read       | counter |
-+----------------------------+---------+
-| disk.num_blocks_cache_hits | counter |
-+----------------------------+---------+
-| disk.num_write_ops         | counter |
-+----------------------------+---------+
-| disk.num_read_ops          | counter |
-+----------------------------+---------+
++-------------------------+-------+
+| name                    | type  |
++=========================+=======+
+| disk.queued_write_bytes | gauge |
++-------------------------+-------+
+| disk.arc_mru_size       | gauge |
++-------------------------+-------+
+| disk.arc_mru_ghost_size | gauge |
++-------------------------+-------+
+| disk.arc_mfu_size       | gauge |
++-------------------------+-------+
+| disk.arc_mfu_ghost_size | gauge |
++-------------------------+-------+
+| disk.arc_write_size     | gauge |
++-------------------------+-------+
+| disk.arc_volatile_size  | gauge |
++-------------------------+-------+
 
 
 the number of bytes we have sent to the disk I/O
@@ -1129,6 +1101,94 @@ the disk I/O thread with a completed write job, this
 is updated to the number of bytes the disk I/O thread
 is actually waiting for to be written (as opposed to
 bytes just hanging out in the cache)
+
+.. _disk.num_blocks_written:
+
+.. _disk.num_blocks_read:
+
+.. raw:: html
+
+	<a name="disk.num_blocks_written"></a>
+	<a name="disk.num_blocks_read"></a>
+
++-------------------------+---------+
+| name                    | type    |
++=========================+=========+
+| disk.num_blocks_written | counter |
++-------------------------+---------+
+| disk.num_blocks_read    | counter |
++-------------------------+---------+
+
+
+the number of blocks written and read from disk in total. A block is
+16 kiB.
+
+.. _disk.num_blocks_hashed:
+
+.. raw:: html
+
+	<a name="disk.num_blocks_hashed"></a>
+
++------------------------+---------+
+| name                   | type    |
++========================+=========+
+| disk.num_blocks_hashed | counter |
++------------------------+---------+
+
+
+the total number of blocks run through SHA-1 hashing
+
+.. _disk.num_blocks_cache_hits:
+
+.. raw:: html
+
+	<a name="disk.num_blocks_cache_hits"></a>
+
++----------------------------+---------+
+| name                       | type    |
++============================+=========+
+| disk.num_blocks_cache_hits | counter |
++----------------------------+---------+
+
+
+the number of blocks read from the disk cache
+
+.. _disk.num_write_ops:
+
+.. _disk.num_read_ops:
+
+.. raw:: html
+
+	<a name="disk.num_write_ops"></a>
+	<a name="disk.num_read_ops"></a>
+
++--------------------+---------+
+| name               | type    |
++====================+=========+
+| disk.num_write_ops | counter |
++--------------------+---------+
+| disk.num_read_ops  | counter |
++--------------------+---------+
+
+
+the number of disk I/O operation for reads and writes. One disk
+operation may transfer more then one block.
+
+.. _disk.num_read_back:
+
+.. raw:: html
+
+	<a name="disk.num_read_back"></a>
+
++--------------------+---------+
+| name               | type    |
++====================+=========+
+| disk.num_read_back | counter |
++--------------------+---------+
+
+
+the number of blocks that had to be read back from disk in order to
+hash a piece (when verifying against the piece hash)
 
 .. _disk.disk_read_time:
 
