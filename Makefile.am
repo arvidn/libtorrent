@@ -17,20 +17,14 @@ DOCS_IMAGES = \
   docs/disk_io.png                \
   docs/hacking.html               \
   docs/im_thumb.jpg               \
-  docs/merkle_tree.graffle        \
   docs/merkle_tree.png            \
   docs/our_delay_base.png         \
   docs/our_delay_base_thumb.png   \
-  docs/read_disk_buffers.dot      \
-  docs/read_disk_buffers.graffle  \
   docs/read_disk_buffers.png      \
   docs/session_stats_peers.png    \
-  docs/storage.graffle            \
   docs/storage.png                \
   docs/style.css                  \
   docs/todo.html                  \
-  docs/write_disk_buffers.dot     \
-  docs/write_disk_buffers.graffle \
   docs/write_disk_buffers.png     \
   docs/ziptorrent_thumb.gif       \
   docs/disk_access_elevator.png   \
