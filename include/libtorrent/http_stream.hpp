@@ -77,6 +77,8 @@ public:
 	}
 #endif
 
+	typedef boost::function<void(error_code const&)> handler_type;
+
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{

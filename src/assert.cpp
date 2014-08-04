@@ -33,10 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #if TORRENT_PRODUCTION_ASSERTS
-#include <boost/atomic.hpp>
+#include <boost/detail/atomic_count.hpp>
 #endif
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || defined TORRENT_PROFILE_CALLS || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstring>
 #include <stdlib.h>
-#include <stdarg.h>
 
 // uClibc++ doesn't have cxxabi.h
 #if defined __GNUC__ && __GNUC__ >= 3 \
@@ -201,8 +200,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 #else
 
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
-{ out[0] = 0; }
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth) {}
 
 #endif
 
@@ -213,35 +211,20 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 #if TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
 // the number of asserts we've printed to the log
-boost::atomic<int> assert_counter(0);
+boost::detail::atomic_count assert_counter(0);
 #endif
-
-TORRENT_EXPORT void assert_print(char const* fmt, ...)
-{
-#if TORRENT_PRODUCTION_ASSERTS
-	if (assert_counter > 500) return;
-
-	FILE* out = fopen(libtorrent_assert_log, "a+");
-	if (out == 0) out = stderr;
-#else
-	FILE* out = stderr;
-#endif
-	va_list va;
-	va_start(va, fmt);
-	vfprintf(out, fmt, va);
-	va_end(va);
-
-#if TORRENT_PRODUCTION_ASSERTS
-	if (out != stderr) fclose(out);
-#endif
-}
 
 TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 	, char const* function, char const* value, int kind)
 {
 #if TORRENT_PRODUCTION_ASSERTS
 	// no need to flood the assert log with infinite number of asserts
-	if (assert_counter.fetch_add(1) + 1 > 500) return;
+	if (++assert_counter > 500) return;
+
+	FILE* out = fopen(libtorrent_assert_log, "a+");
+	if (out == 0) out = stderr;
+#else
+	FILE* out = stderr;
 #endif
 
 	char stack[8192];
@@ -261,10 +244,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 				"This indicates a bug in the client application using libtorrent\n";
 	}
 	  
-	assert_print("%s\n"
-#if TORRENT_PRODUCTION_ASSERTS
-		"#: %d\n"
-#endif
+	fprintf(out, "%s\n"
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
@@ -272,16 +252,14 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 		"%s%s\n"
 		"stack:\n"
 		"%s\n"
-		, message
-#if TORRENT_PRODUCTION_ASSERTS
-		, assert_counter.load()
-#endif
-		, file, line, function, expr
+		, message, file, line, function, expr
 		, value ? value : "", value ? "\n" : ""
 		, stack);
 
 	// if production asserts are defined, don't abort, just print the error
-#ifndef TORRENT_PRODUCTION_ASSERTS
+#if TORRENT_PRODUCTION_ASSERTS
+	if (out != stderr) fclose(out);
+#else
  	// send SIGINT to the current process
  	// to break into the debugger
  	raise(SIGINT);
@@ -291,7 +269,6 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 
 #else
 
-TORRENT_EXPORT void assert_print(char const* fmt, ...) {}
 TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 	, char const* function, char const* value, int kind) {}
 

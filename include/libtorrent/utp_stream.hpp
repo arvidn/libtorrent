@@ -145,7 +145,7 @@ utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
-void tick_utp_impl(utp_socket_impl* s, ptime now);
+void tick_utp_impl(utp_socket_impl* s, ptime const& now);
 void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu);
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
 	, int size, udp::endpoint const& ep, ptime receive_time);
@@ -190,33 +190,33 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command&) {}
+	void io_control(IO_Control_Command& ioc) {}
 #endif
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command&, error_code&) {}
+	void io_control(IO_Control_Command& ioc, error_code& ec) {}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& /*endpoint*/) {}
 #endif
 
-	void bind(endpoint_type const&, error_code&);
+	void bind(endpoint_type const& endpoint, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class SettableSocketOption>
-	void set_option(SettableSocketOption const&) {}
+	void set_option(SettableSocketOption const& opt) {}
 #endif
 
 	template <class SettableSocketOption>
-	error_code set_option(SettableSocketOption const&, error_code& ec) { return ec; }
+	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class GettableSocketOption>
-	void get_option(GettableSocketOption&) {}
+	void get_option(GettableSocketOption& opt) {}
 #endif
 
 	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption&, error_code& ec) { return ec; }
+	error_code get_option(GettableSocketOption& opt, error_code& ec) { return ec; }
 
 
 	void close();
@@ -282,6 +282,12 @@ public:
 		do_connect(endpoint, &utp_stream::on_connect);
 	}
 	
+	template <class Handler>
+	void async_read_some(boost::asio::null_buffers const& buffers, Handler const& handler)
+	{
+		TORRENT_ASSERT(false);
+	}
+
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
@@ -319,34 +325,15 @@ public:
 		set_read_handler(&utp_stream::on_read);
 	}
 
-	template <class Handler>
-	void async_read_some(boost::asio::null_buffers const&, Handler const& handler)
-	{
-		if (m_impl == 0)
-		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
-			return;
-		}
-
-		TORRENT_ASSERT(!m_read_handler);
-		if (m_read_handler)
-		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
-			return;
-		}
-		m_read_handler = handler;
-		set_read_handler(&utp_stream::on_read);
-	}
-
 	void do_async_connect(endpoint_type const& ep
 		, boost::function<void(error_code const&)> const& handler);
 
 	template <class Protocol>
-	void open(Protocol const&, error_code&)
+	void open(Protocol const& p, error_code& ec)
 	{ m_open = true; }
 
 	template <class Protocol>
-	void open(Protocol const&)
+	void open(Protocol const& p)
 	{ m_open = true; }
 
 	template <class Mutable_Buffers>
@@ -385,7 +372,7 @@ public:
 	}
 
 	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const& /* buffers */, error_code& /* ec */)
+	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
 		TORRENT_ASSERT(false && "not implemented!");
 		// TODO: implement blocking write. Low priority since it's not used (yet)
@@ -413,6 +400,12 @@ public:
 		return ret;
 	}
 #endif
+
+	template <class Handler>
+	void async_write_some(boost::asio::null_buffers const& buffers, Handler const& handler)
+	{
+		TORRENT_ASSERT(false);
+	}
 
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)

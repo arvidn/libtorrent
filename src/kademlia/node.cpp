@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/get_peers.hpp"
 #include "libtorrent/kademlia/get_item.hpp"
-#include "libtorrent/performance_counters.hpp" // for counters
 
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
@@ -99,8 +98,7 @@ void nop() {}
 node_impl::node_impl(alert_dispatcher* alert_disp
 	, udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid, address const& external_address
-	, dht_observer* observer
-	, struct counters& cnt)
+	, dht_observer* observer)
 	: m_settings(settings)
 	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
@@ -109,7 +107,6 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	, m_last_tracker_tick(time_now())
 	, m_post_alert(alert_disp)
 	, m_sock(sock)
-	, m_counters(cnt)
 {
 	m_secret[0] = random();
 	m_secret[1] = std::rand();
@@ -330,7 +327,6 @@ namespace
 			a["token"] = i->second;
 			a["seed"] = (flags & node_impl::flag_seed) ? 1 : 0;
 			if (flags & node_impl::flag_implied_port) a["implied_port"] = 1;
-			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_in);
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
 	}
@@ -363,7 +359,6 @@ void node_impl::add_node(udp::endpoint node)
 	entry e;
 	e["y"] = "q";
 	e["q"] = "ping";
-	m_counters.inc_stats_counter(counters::dht_get_peers_out);
 	m_rpc.invoke(e, node, o);
 }
 
@@ -430,7 +425,7 @@ time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
 	ptime now(time_now());
-	if (now - minutes(2) < m_last_tracker_tick) return d;
+	if (now - m_last_tracker_tick < minutes(2)) return d;
 	m_last_tracker_tick = now;
 
 	for (dht_immutable_table_t::iterator i = m_immutable_table.begin();
@@ -443,7 +438,6 @@ time_duration node_impl::connection_timeout()
 		}
 		free(i->second.value);
 		m_immutable_table.erase(i++);
-		m_counters.inc_stats_counter(counters::dht_immutable_data, -1);
 	}
 
 	// look through all peers and see if any have timed out
@@ -458,11 +452,7 @@ time_duration node_impl::connection_timeout()
 		if (t.peers.empty())
 		{
 			table_t::iterator i = m_map.find(key);
-			if (i != m_map.end())
-			{
-				m_map.erase(i);
-				m_counters.inc_stats_counter(counters::dht_torrents, -1);
-			}
+			if (i != m_map.end()) m_map.erase(i);
 		}
 	}
 
@@ -714,9 +704,6 @@ struct immutable_item_comparator
 // build response
 void node_impl::incoming_request(msg const& m, entry& e)
 {
-	if (!m_sock->has_quota())
-		return;
-
 	e = entry(entry::dictionary_t);
 	e["y"] = "r";
 	e["t"] = m.message.dict_find_string_value("t");
@@ -762,7 +749,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	if (strcmp(query, "ping") == 0)
 	{
-		m_counters.inc_stats_counter(counters::dht_ping_in);
 		// we already have 't' and 'id' in the response
 		// no more left to add
 	}
@@ -784,8 +770,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		reply["token"] = generate_token(m.addr, msg_keys[0]->string_ptr());
 		
-		m_counters.inc_stats_counter(counters::dht_get_peers_in);
-
 		sha1_hash info_hash(msg_keys[0]->string_ptr());
 		nodes_t n;
 		// always return nodes as well as peers
@@ -821,7 +805,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		m_counters.inc_stats_counter(counters::dht_find_node_in);
 		sha1_hash target(msg_keys[0]->string_ptr());
 
 		// TODO: 1 find_node should write directly to the response entry
@@ -883,60 +866,45 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		m_counters.inc_stats_counter(counters::dht_announce_peer_in);
-
 		// the token was correct. That means this
 		// node is not spoofing its address. So, let
 		// the table get a chance to add it.
 		m_table.node_seen(id, m.addr, 0xffff);
 
-		table_t::iterator ti = m_map.find(info_hash);
-		torrent_entry* v;
-		if (ti == m_map.end())
+		if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
 		{
-			// we don't have this torrent, add it
-			// do we need to remove another one first?
-			if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
+			// we need to remove some. Remove the ones with the
+			// fewest peers
+			int num_peers = m_map.begin()->second.peers.size();
+			table_t::iterator candidate = m_map.begin();
+			for (table_t::iterator i = m_map.begin()
+				, end(m_map.end()); i != end; ++i)
 			{
-				// we need to remove some. Remove the ones with the
-				// fewest peers
-				int num_peers = m_map.begin()->second.peers.size();
-				table_t::iterator candidate = m_map.begin();
-				for (table_t::iterator i = m_map.begin()
-					, end(m_map.end()); i != end; ++i)
-				{
-					if (int(i->second.peers.size()) > num_peers) continue;
-					if (i->first == info_hash) continue;
-					num_peers = i->second.peers.size();
-					candidate = i;
-				}
-				m_map.erase(candidate);
-				m_counters.inc_stats_counter(counters::dht_torrents, -1);
+				if (int(i->second.peers.size()) > num_peers) continue;
+				if (i->first == info_hash) continue;
+				num_peers = i->second.peers.size();
+				candidate = i;
 			}
-			m_counters.inc_stats_counter(counters::dht_torrents);
-	  		v = &m_map[info_hash];
+			m_map.erase(candidate);
 		}
-		else
-		{
-			v = &ti->second;
-		}
+		torrent_entry& v = m_map[info_hash];
 
 		// the peer announces a torrent name, and we don't have a name
 		// for this torrent. Store it.
-		if (msg_keys[3] && v->name.empty())
+		if (msg_keys[3] && v.name.empty())
 		{
 			std::string name = msg_keys[3]->string_value();
 			if (name.size() > 50) name.resize(50);
-			v->name = name;
+			v.name = name;
 		}
 
 		peer_entry peer;
 		peer.addr = tcp::endpoint(m.addr.address(), port);
 		peer.added = time_now();
 		peer.seed = msg_keys[4] && msg_keys[4]->int_value();
-		std::set<peer_entry>::iterator i = v->peers.find(peer);
-		if (i != v->peers.end()) v->peers.erase(i++);
-		v->peers.insert(i, peer);
+		std::set<peer_entry>::iterator i = v.peers.find(peer);
+		if (i != v.peers.end()) v.peers.erase(i++);
+		v.peers.insert(i, peer);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++g_announces;
 #endif
@@ -963,8 +931,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			incoming_error(e, error_string);
 			return;
 		}
-
-		m_counters.inc_stats_counter(counters::dht_put_in);
 
 		// is this a mutable put?
 		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
@@ -1035,7 +1001,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 					TORRENT_ASSERT(j != m_immutable_table.end());
 					free(j->second.value);
 					m_immutable_table.erase(j);
-					m_counters.inc_stats_counter(counters::dht_immutable_data, -1);
 				}
 				dht_immutable_item to_add;
 				to_add.value = (char*)malloc(buf.second);
@@ -1044,7 +1009,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		
 				boost::tie(i, boost::tuples::ignore) = m_immutable_table.insert(
 					std::make_pair(target, to_add));
-				m_counters.inc_stats_counter(counters::dht_immutable_data);
 			}
 
 //			fprintf(stderr, "added immutable item (%d)\n", int(m_immutable_table.size()));
@@ -1084,7 +1048,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 					free(j->second.value);
 					free(j->second.salt);
 					m_mutable_table.erase(j);
-					m_counters.inc_stats_counter(counters::dht_mutable_data, -1);
 				}
 				dht_mutable_item to_add;
 				to_add.value = (char*)malloc(buf.second);
@@ -1105,7 +1068,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		
 				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
-				m_counters.inc_stats_counter(counters::dht_mutable_data);
 
 //				fprintf(stderr, "added mutable item (%d)\n", int(m_mutable_table.size()));
 			}
@@ -1184,7 +1146,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		m_counters.inc_stats_counter(counters::dht_get_in);
 		sha1_hash target(msg_keys[0]->string_ptr());
 
 //		fprintf(stderr, "%s GET target: %s\n"

@@ -87,7 +87,7 @@ int test_main()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	boost::shared_ptr<torrent_info> torrent_file(new torrent_info(&buf[0]
+	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0]
 		, buf.size(), ec));
 
 	{

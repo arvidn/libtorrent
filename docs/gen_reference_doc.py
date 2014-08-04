@@ -31,7 +31,6 @@ symbols = {}
 preprocess_rst = \
 {
 	'manual.rst':'manual-ref.rst',
-	'settings.rst':'settings-ref.rst'
 }
 
 # some pre-defined sections from the main manual
@@ -46,9 +45,6 @@ symbols = \
 	"metadata-from-peers_": "manual-ref.html#metadata-from-peers",
 	"magnet-links_": "manual-ref.html#magnet-links",
 	"ssl-torrents_": "manual-ref.html#ssl-torrents",
-	"dynamic-loading-of-torrent-files_": "manual-ref.html#dynamic-loading-of-torrent-files",
-	"session-statistics_": "manual-ref.html#session-statistics",
-	"peer-classes_": "manual-ref.html#peer-classes"
 }
 
 static_links = \
@@ -99,7 +95,6 @@ category_mapping = {
 	'thread.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
 	'session_settings.hpp': 'Settings',
-	'settings_pack.hpp': 'Settings',
 }
 
 category_fun_mapping = {
@@ -752,19 +747,7 @@ def linkify_symbols(string):
 	lines = string.split('\n')
 	ret = []
 	in_literal = False
-	lno = 0
 	for l in lines:
-		lno += 1
-		# don't touch headlines, i.e. lines whose
-		# next line entirely contains one of =, - or .
-		if (lno < len(lines)-1): next_line = lines[lno]
-		else: next_line = ''
-
-		if len(next_line) > 0 and lines[lno].replace('=',''). \
-			replace('-','').replace('.', '') == '':
-			ret.append(l)
-			continue
-
 		if l.startswith('|'):
 			ret.append(l)
 			continue
@@ -829,7 +812,7 @@ def print_link(name, target):
 
 def dump_link_targets():
 	global link_targets
-	ret = '\n'
+	ret = ''
 	for l in link_targets:
 		ret += '__ %s\n' % l
 	link_targets = []
@@ -924,7 +907,7 @@ for cat in categories:
 
 	out.write('''
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 1.0.1
 
 .. contents:: Table of contents
   :depth: 1

@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 	class alert_manager;
 	struct alert_dispatcher;
-	struct counters;
 }
 
 namespace libtorrent { namespace dht
@@ -185,7 +184,6 @@ struct count_peers
 
 struct udp_socket_interface
 {
-	virtual bool has_quota() = 0;
 	virtual bool send_packet(entry& e, udp::endpoint const& addr, int flags) = 0;
 };
 
@@ -198,7 +196,7 @@ typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 public:
 	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid, address const& external_address
-		, dht_observer* observer, counters& cnt);
+		, dht_observer* observer);
 
 	virtual ~node_impl() {}
 
@@ -278,7 +276,6 @@ public:
 	void status(libtorrent::session_status& s);
 
 	libtorrent::dht_settings const& settings() const { return m_settings; }
-	counters& stats_counters() const { return m_counters; }
 
 protected:
 
@@ -288,7 +285,7 @@ protected:
 		, char* tags) const;
 
 	libtorrent::dht_settings const& m_settings;
-
+	
 private:
 	typedef libtorrent::mutex mutex_t;
 	mutex_t m_mutex;
@@ -319,7 +316,6 @@ private:
 
 	alert_dispatcher* m_post_alert;
 	udp_socket_interface* m_sock;
-	counters& m_counters;
 };
 
 

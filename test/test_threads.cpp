@@ -33,9 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <list>
 #include "libtorrent/thread.hpp"
-#include "libtorrent/atomic.hpp"
+#include <boost/smart_ptr/detail/atomic_count.hpp>
 #include "test.hpp"
 
+using boost::detail::atomic_count;
 using namespace libtorrent;
 
 void fun(condition_variable* s, libtorrent::mutex* m, int* waiting, int i)

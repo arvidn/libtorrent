@@ -48,9 +48,6 @@ namespace libtorrent
 
 		static char* malloc(const size_type bytes);
 		static void free(char* block);
-#ifdef TORRENT_DEBUG_BUFFERS
-		static bool in_use(char const* block);
-#endif
 	};
 
 	struct TORRENT_EXTRA_EXPORT aligned_holder

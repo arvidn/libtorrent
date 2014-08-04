@@ -63,7 +63,6 @@ void print_alert(libtorrent::alert const* a)
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
-	namespace lt = libtorrent;
 
 	if (argc != 1)
 	{
@@ -71,19 +70,16 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	settings_pack p;
-	p.set_int(settings_pack::alert_mask, alert::port_mapping_notification);
-	lt::session s(p);
+	session s;
+	s.set_alert_mask(alert::port_mapping_notification);
 
 	for (;;)
 	{
 		alert const* a = s.wait_for_alert(seconds(5));
 		if (a == 0)
 		{
-			settings_pack p;
-			p.set_bool(settings_pack::enable_upnp, false);
-			p.set_bool(settings_pack::enable_natpmp, false);
-			s.apply_settings(p);
+			s.stop_upnp();
+			s.stop_natpmp();
 			break;
 		}
 		std::auto_ptr<alert> holder = s.pop_alert();

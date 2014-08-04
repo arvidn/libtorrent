@@ -39,9 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/connection_interface.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/debug.hpp"
 
 #include <deque>
 
@@ -55,8 +53,8 @@ namespace libtorrent
 		// propagated to the next observer)
 		virtual bool incoming_packet(error_code const& ec
 			, udp::endpoint const&, char const* buf, int size) = 0;
-		virtual bool incoming_packet(error_code const& /* ec */
-			, char const* /* hostname */, char const* /* buf */, int /* size */) { return false; }
+		virtual bool incoming_packet(error_code const& ec
+			, char const* hostname, char const* buf, int size) { return false; }
 
 		// called when the socket becomes writeable, after having
 		// failed with EWOULDBLOCK
@@ -66,7 +64,7 @@ namespace libtorrent
 		virtual void socket_drained() {}
 	};
 
-	class udp_socket : connection_interface, single_threaded
+	class udp_socket
 	{
 	public:
 		udp_socket(io_service& ios, connection_queue& cc);
@@ -185,8 +183,8 @@ namespace libtorrent
 		void on_read_impl(udp::socket* sock, udp::endpoint const& ep
 			, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
-		void on_connect_timeout();
-		void on_allow_connect(int ticket);
+		void on_timeout();
+		void on_connect(int ticket);
 		void on_connected(error_code const& ec, int ticket);
 		void handshake1(error_code const& e);
 		void handshake2(error_code const& e);
@@ -202,6 +200,22 @@ namespace libtorrent
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
+
+#if TORRENT_USE_ASSERTS
+
+#if defined BOOST_HAS_PTHREADS
+		mutable pthread_t m_thread;
+#endif
+		bool is_single_thread() const
+		{
+#if defined BOOST_HAS_PTHREADS
+			if (m_thread == 0)
+				m_thread = pthread_self();
+			return m_thread == pthread_self();
+#endif
+			return true;
+		}
+#endif
 
 		udp::socket m_ipv4_sock;
 		int m_buf_size;
@@ -280,7 +294,6 @@ namespace libtorrent
 		void set_rate_limit(int limit) { m_rate_limit = limit; }
 		bool send(udp::endpoint const& ep, char const* p, int len
 			, error_code& ec, int flags = 0);
-		bool has_quota();
 
 	private:
 

@@ -35,27 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
 #include <algorithm>
-#include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
 
 namespace libtorrent
 {
-	struct disk_io_thread;
-	struct disk_observer;
 
-	struct buffer_allocator_interface
-	{
-		virtual char* allocate_disk_buffer(char const* category) = 0;
-		virtual void free_disk_buffer(char* b) = 0;
-		virtual void reclaim_block(block_cache_reference ref) = 0;
-		virtual char* allocate_disk_buffer(bool& exceeded
-			, boost::shared_ptr<disk_observer> o
-			, char const* category) = 0;
-		virtual char* async_allocate_disk_buffer(char const* category
-			, boost::function<void(char*)> const& handler) = 0;
-	};
+	namespace aux { struct session_impl; }
+	struct disk_buffer_pool;
 
 	// The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer
 	// when it's destructed, unless it's released. ``release`` returns the disk
@@ -68,12 +54,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT disk_buffer_holder
 	{
 		// internal
-		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf);
+		disk_buffer_holder(aux::session_impl& ses, char* buf);
 
 		// construct a buffer holder that will free the held buffer
 		// using a disk buffer pool directly (there's only one
 		// disk_buffer_pool per session)
-		disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j);
+		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf);
 
 		// frees any unreleased disk buffer held by this object
 		~disk_buffer_holder();
@@ -90,17 +76,13 @@ namespace libtorrent
 		// (or NULL by default). If it's already holding a
 		// disk buffer, it will first be freed.
 		void reset(char* buf = 0);
-		void reset(disk_io_job const& j);
 
 		// swap pointers of two disk buffer holders.
 		void swap(disk_buffer_holder& h)
 		{
-			TORRENT_ASSERT(&h.m_allocator == &m_allocator);
+			TORRENT_ASSERT(&h.m_disk_pool == &m_disk_pool);
 			std::swap(h.m_buf, m_buf);
-			std::swap(h.m_ref, m_ref);
 		}
-
-		block_cache_reference ref() const { return m_ref; }
 
 		typedef char* (disk_buffer_holder::*unspecified_bool_type)();
 
@@ -109,9 +91,8 @@ namespace libtorrent
 		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
 
 	private:
-		buffer_allocator_interface& m_allocator;
+		disk_buffer_pool& m_disk_pool;
 		char* m_buf;
-		block_cache_reference m_ref;
 	};
 
 }

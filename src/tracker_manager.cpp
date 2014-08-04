@@ -56,10 +56,10 @@ namespace
 namespace libtorrent
 {
 	timeout_handler::timeout_handler(io_service& ios)
-		: m_completion_timeout(0)
-		, m_start_time(time_now_hires())
+		: m_start_time(time_now_hires())
 		, m_read_time(m_start_time)
 		, m_timeout(ios)
+		, m_completion_timeout(0)
 		, m_read_timeout(0)
 		, m_abort(false)
 	{}
@@ -149,9 +149,9 @@ namespace libtorrent
 		, io_service& ios
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
-		, m_req(req)
 		, m_requester(r)
 		, m_man(man)
+		, m_req(req)
 	{}
 
 	boost::shared_ptr<request_callback> tracker_connection::requester() const
@@ -200,13 +200,13 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
@@ -251,7 +251,7 @@ namespace libtorrent
 		{
 			con = new http_tracker_connection(
 				ios, cc, *this, req, c
-				, m_ses, auth
+				, m_ses, m_proxy, auth
 #if TORRENT_USE_I2P
 				, &m_ses.m_i2p_conn
 #endif
@@ -260,7 +260,8 @@ namespace libtorrent
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
-				ios, cc, *this, req , c, m_ses, m_ses.proxy());
+				ios, cc, *this, req , c, m_ses
+				, m_proxy);
 		}
 		else
 		{
@@ -275,6 +276,7 @@ namespace libtorrent
 		m_connections.push_back(con);
 
 		boost::shared_ptr<request_callback> cb = con->requester();
+		if (cb) cb->m_manager = this;
 		con->start();
 	}
 
@@ -320,7 +322,7 @@ namespace libtorrent
 		for (tracker_connections_t::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
-			boost::intrusive_ptr<tracker_connection> c = *i;
+			intrusive_ptr<tracker_connection> c = *i;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;

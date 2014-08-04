@@ -11,7 +11,6 @@ set(sources
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
-	block_cache
 	bloom_filter
 	chained_buffer
 	connection_queue
@@ -33,43 +32,31 @@ set(sources
 	identify_client
 	ip_filter
 	ip_voter
-	performance_counters
-	peer_class
-	peer_class_set
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
 	http_seed_connection
 	instantiate_connection
 	natpmp
-	part_file
 	packet_buffer
 	piece_picker
-	platform_util
-	proxy_base
 	policy
 	puff
 	random
-	request_blocks
 	rss
 	session
 	session_impl
-	session_stats
-	settings_pack
+	settings
 	socket_io
 	socket_type  
 	socks5_stream
 	stat
-	stat_cache
 	storage
-	tailqueue
 	time
 	timestamp_history
 	torrent
 	torrent_handle
 	torrent_info
-	torrent_peer
-	torrent_peer_allocator
 	tracker_manager
 	http_tracker_connection
 	utf8
@@ -81,8 +68,6 @@ set(sources
 	logger
 	file_pool
 	lsd
-	disk_io_job
-	disk_job_pool
 	disk_buffer_pool
 	disk_io_thread
 	enum_net
@@ -318,7 +303,7 @@ set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
-set (VERSION "1.1.0")
+set (VERSION "1.0.1")
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}

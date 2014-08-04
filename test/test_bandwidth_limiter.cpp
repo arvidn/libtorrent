@@ -39,12 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <iostream>
 #include <math.h>
 
@@ -59,7 +57,7 @@ const float sample_time = 20.f; // seconds
 
 bandwidth_channel global_bwc;
 
-struct peer_connection: bandwidth_socket, boost::enable_shared_from_this<peer_connection>
+struct peer_connection: bandwidth_socket
 {
 	peer_connection(bandwidth_manager& bwm
 		, bandwidth_channel& torrent_bwc, int prio, bool ignore_limits, std::string name)
@@ -103,17 +101,14 @@ void peer_connection::assign_bandwidth(int channel, int amount)
 
 void peer_connection::start()
 {
-	bandwidth_channel* channels[] = {
-		&m_bandwidth_channel
+	m_bwm.request_bandwidth(self(), 400000000, m_priority
+		, &m_bandwidth_channel
 		, &m_torrent_bandwidth_channel
-		, &global_bwc
-	};
-
-	m_bwm.request_bandwidth(shared_from_this(), 400000000, m_priority, channels, 3);
+		, &global_bwc);
 }
 
 
-typedef std::vector<boost::shared_ptr<peer_connection> > connections_t;
+typedef std::vector<boost::intrusive_ptr<peer_connection> > connections_t;
 
 void do_change_rate(bandwidth_channel& t1, bandwidth_channel& t2, int limit)
 {
@@ -157,9 +152,7 @@ void run_test(connections_t& v
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::start, _1));
 
-	libtorrent::aux::session_settings s;
-	initialize_default_settings(s);
-	int tick_interval = s.get_int(settings_pack::tick_interval);
+	int tick_interval = session_settings().tick_interval;
 
 	for (int i = 0; i < int(sample_time * 1000 / tick_interval); ++i)
 	{
@@ -180,7 +173,7 @@ void spawn_connections(connections_t& v, bandwidth_manager& bwm
 	{
 		char name[200];
 		snprintf(name, sizeof(name), "%s%d", prefix, i);
-		v.push_back(boost::shared_ptr<peer_connection>(new peer_connection(bwm, bwc, 200, false, name)));
+		v.push_back(new peer_connection(bwm, bwc, 200, false, name));
 	}
 }
 
@@ -400,7 +393,7 @@ void test_peer_priority(int limit, bool torrent_limit)
 	spawn_connections(v1, manager, t1, 10, "p");
 	connections_t v;
 	std::copy(v1.begin(), v1.end(), std::back_inserter(v));
-	boost::shared_ptr<peer_connection> p(
+	boost::intrusive_ptr<peer_connection> p(
 		new peer_connection(manager, t1, 1, false, "no-priority"));
 	v.push_back(p);
 	run_test(v, manager);
@@ -436,7 +429,7 @@ void test_no_starvation(int limit)
 	spawn_connections(v1, manager, t1, num_peers, "p");
 	connections_t v;
 	std::copy(v1.begin(), v1.end(), std::back_inserter(v));
-	boost::shared_ptr<peer_connection> p(
+	boost::intrusive_ptr<peer_connection> p(
 		new peer_connection(manager, t2, 1, false, "no-priority"));
 	v.push_back(p);
 	run_test(v, manager);
