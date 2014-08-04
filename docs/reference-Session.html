@@ -55,15 +55,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id179">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id180">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id181">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id182">session_proxy</a></li>
-<li><a class="reference internal" href="#id40" id="id183">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id184">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id185">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id186">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id187">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id175">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id176">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id177">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id178">session_proxy</a></li>
+<li><a class="reference internal" href="#id38" id="id179">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id180">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id181">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id182">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id183">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -446,11 +446,6 @@ struct cache_status
    <strong>cache_status</strong> ();
 
    std::vector&lt;cached_piece_info&gt; pieces;
-   atomic_count blocks_written;
-   atomic_count writes;
-   atomic_count blocks_read;
-   size_type blocks_read_hit;
-   atomic_count reads;
    int write_cache_size;
    int read_cache_size;
    int pinned_blocks;
@@ -459,10 +454,10 @@ struct cache_status
    int average_write_time;
    int average_hash_time;
    int average_job_time;
-   atomic_count cumulative_job_time;
-   atomic_count cumulative_read_time;
-   atomic_count cumulative_write_time;
-   atomic_count cumulative_hash_time;
+   int cumulative_job_time;
+   int cumulative_read_time;
+   int cumulative_write_time;
+   int cumulative_hash_time;
    int total_read_back;
    int read_queue_size;
    int blocked_jobs;
@@ -488,36 +483,6 @@ struct cache_status
 <strong>cache_status</strong> ();
 </pre>
 <p>initializes all counters to 0</p>
-<a name="blocks_written"></a><dl class="docutils">
-<dt>blocks_written</dt>
-<dd>the total number of 16 KiB blocks written to disk
-since this <a class="reference external" href="reference-Session.html#session">session</a> was started.</dd>
-</dl>
-<a name="writes"></a><dl class="docutils">
-<dt>writes</dt>
-<dd><p class="first">the total number of write operations performed since this
-<a class="reference external" href="reference-Session.html#session">session</a> was started.</p>
-<p class="last">The ratio (<tt class="docutils literal">blocks_written</tt> - <tt class="docutils literal">writes</tt>) / <tt class="docutils literal">blocks_written</tt> represents
-the number of saved write operations per total write operations. i.e. a kind
-of cache hit ratio for the write cahe.</p>
-</dd>
-</dl>
-<a name="blocks_read"></a><dl class="docutils">
-<dt>blocks_read</dt>
-<dd>the number of blocks that were requested from the
-bittorrent engine (from peers), that were served from disk or cache.</dd>
-</dl>
-<a name="blocks_read_hit"></a><dl class="docutils">
-<dt>blocks_read_hit</dt>
-<dd><p class="first">the number of blocks that was just copied from the read cache</p>
-<p class="last">The ratio <tt class="docutils literal">blocks_read_hit</tt> / <tt class="docutils literal">blocks_read</tt> is the cache hit ratio
-for the read cache.</p>
-</dd>
-</dl>
-<a name="reads"></a><dl class="docutils">
-<dt>reads</dt>
-<dd>the number of read operations used</dd>
-</dl>
 <a name="write_cache_size"></a><dl class="docutils">
 <dt>write_cache_size</dt>
 <dd>the number of blocks in the cache used for write cache</dd>
@@ -657,7 +622,7 @@ class session_proxy
    <strong>session_proxy</strong> ();
 };
 </pre>
-<a name="session_proxy()"></a><div class="section" id="id38">
+<a name="session_proxy()"></a><div class="section" id="id36">
 <h2>session_proxy()</h2>
 <pre class="literal-block">
 <strong>session_proxy</strong> ();
@@ -666,7 +631,7 @@ class session_proxy
 implementation object.</p>
 <a name="session"></a></div>
 </div>
-<div class="section" id="id40">
+<div class="section" id="id38">
 <h1>session</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <p>The <a class="reference external" href="reference-Session.html#session">session</a> holds all state that spans multiple torrents. Among other
@@ -792,7 +757,7 @@ class session: public boost::noncopyable
    };
 };
 </pre>
-<a name="session()"></a><div class="section" id="id47">
+<a name="session()"></a><div class="section" id="id45">
 <h2>session()</h2>
 <pre class="literal-block">
 <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
@@ -814,7 +779,7 @@ class session: public boost::noncopyable
 <p>TODO: 3 could the fingerprint be a setting as well? And should the
 <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a> be optional?</p>
 <a name="~session()"></a></div>
-<div class="section" id="id49">
+<div class="section" id="id47">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
@@ -1094,7 +1059,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id106">
+<div class="section" id="id104">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1116,7 +1081,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id108">
+<div class="section" id="id106">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1975,13 +1940,11 @@ connected peers, just peers we know of.</dd>
 <h2>find_metric_idx()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <pre class="literal-block">
-int <strong>find_metric_idx</strong> (std::vector&lt;stats_metric&gt; const&amp; metrics
-   , char const* name);
+int <strong>find_metric_idx</strong> (char const* name);
 </pre>
-<p>given a vector if <a class="reference external" href="reference-Session.html#stats_metric">stats_metric</a> objects (as returned by
-<a class="reference external" href="reference-Session.html#session_stats_metrics()">session_stats_metrics()</a>) and a name of a metric, this function returns
-the counter index of it, or -1 if it could not be found. The counter
-index is the index into the values array returned by <a class="reference external" href="reference-Alerts.html#session_stats_alert">session_stats_alert</a>.</p>
+<p>given a name of a metric, this function returns the counter index of it,
+or -1 if it could not be found. The counter index is the index into the
+values array returned by <a class="reference external" href="reference-Alerts.html#session_stats_alert">session_stats_alert</a>.</p>
 <a name="session_stats_metrics()"></a></div>
 <div class="section" id="session-stats-metrics">
 <h2>session_stats_metrics()</h2>
