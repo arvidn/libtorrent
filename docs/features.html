@@ -372,24 +372,14 @@ it is fully functional.</p>
 <p>libtorrent runs on most major operating systems, including Windows,
 MacOS X, Linux, BSD and Solaris.
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
-boost libraries as well as <a class="reference external" href="http://www.zlib.org">zlib</a> (shipped) and <a class="reference external" href="http://asio.sf.net">asio</a> (shipped). At least version
-1.34.1 of boost is required.</p>
+boost libraries. At least version 1.46.1 of boost is required.</p>
 <p>libtorrent uses asio, hence it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
 epoll on linux and kqueue on MacOS X and BSD.</p>
-<p>libtorrent has been successfully compiled and tested on:</p>
-<ul class="simple">
-<li>Windows 2000, XP and Vista vc7.1, vc8</li>
-<li>Linux x86 GCC 3.3, GCC 3.4.2, 4.x</li>
-<li>Linux PPC GCC 4.1.1</li>
-<li>MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0</li>
-<li>SunOS 5.8 GCC 3.1 and Sunpro</li>
-<li>Cygwin GCC 3.3.3</li>
-</ul>
-<p>Fails on:</p>
+<p>libtorrent does not build with the following compilers:</p>
 <ul class="simple">
 <li>GCC 2.95.4</li>
-<li>msvc6</li>
+<li>Visual Studio 6, 7.0, 7.1</li>
 </ul>
 </div>
 </div>

@@ -380,28 +380,14 @@ portability
 libtorrent runs on most major operating systems, including Windows,
 MacOS X, Linux, BSD and Solaris.
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
-boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
-1.34.1 of boost is required.
-
-.. _zlib: http://www.zlib.org
-.. _asio: http://asio.sf.net
+boost libraries. At least version 1.46.1 of boost is required.
 
 libtorrent uses asio, hence it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
 epoll on linux and kqueue on MacOS X and BSD.
 
-libtorrent has been successfully compiled and tested on:
-
-* Windows 2000, XP and Vista vc7.1, vc8
-* Linux x86 GCC 3.3, GCC 3.4.2, 4.x
-* Linux PPC GCC 4.1.1
-* MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
-* SunOS 5.8 GCC 3.1 and Sunpro
-* Cygwin GCC 3.3.3
-
-Fails on:
+libtorrent does not build with the following compilers:
 
 * GCC 2.95.4
-* msvc6
-
+* Visual Studio 6, 7.0, 7.1
 
