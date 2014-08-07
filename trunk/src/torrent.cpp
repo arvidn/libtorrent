@@ -5521,7 +5521,10 @@ namespace libtorrent
 		m_last_working_tracker = -1;
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
+		{
 			if (i->source == 0) i->source = announce_entry::source_client;
+			i->complete_sent = is_seed();
+		}
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
