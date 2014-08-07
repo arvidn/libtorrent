@@ -2341,6 +2341,26 @@ retry:
 #endif
 		}
 
+		if (m_listen_sockets.empty() && ec)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, sizeof(msg), "cannot bind TCP listen socket to interface \"%s\": %s"
+				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
+			if (m_listen_port_retries > 0)
+			{
+				m_listen_interface.port(m_listen_interface.port() + 1);
+				--m_listen_port_retries;
+				goto retry;
+			}
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(m_listen_interface
+					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
+			return;
+		}
+
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
 		{
@@ -2357,6 +2377,7 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(m_listen_interface
 					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
+			return;
 		}
 		else
 		{
