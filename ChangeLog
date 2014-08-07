@@ -1,3 +1,4 @@
+	* improved error handling of session::listen_on
 	* suppress initial 'completed' announce to trackers added with replace_trackers
 	  after becoming a seed
 	* SOCKS4 fix for trying to connect over IPv6
