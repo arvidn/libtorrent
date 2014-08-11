@@ -2488,7 +2488,7 @@ namespace libtorrent
 				// the callback of the send operation when we sent this
 				// request hasn't come back yet, and we're already
 				// receiving the response from it. Count the rtt as 0.
-				int rtt = (i->byte_offset >= 0) ? 0
+				int rtt = (i->send_buffer_offset >= 0) ? 0
 					: int(total_milliseconds(time_now_hires() - i->request_time));
 				m_rtt.add_sample(rtt);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
