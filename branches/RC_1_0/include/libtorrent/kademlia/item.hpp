@@ -80,11 +80,6 @@ sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(
 	, std::pair<char const*, int> salt
 	, boost::uint64_t seq);
 
-struct TORRENT_EXTRA_EXPORT invalid_item : std::exception
-{
-	virtual const char* what() const throw() { return "invalid DHT item"; }
-};
-
 enum
 {
 	item_pk_len = 32,
@@ -102,8 +97,6 @@ public:
 		, std::pair<char const*, int> salt
 		, boost::uint64_t seq, char const* pk, char const* sk);
 	item(lazy_entry const* v) { assign(v); }
-	item(lazy_entry const* v, std::pair<char const*, int> salt
-		, boost::uint64_t seq, char const* pk, char const* sig);
 
 	void assign(entry const& v)
 	{
