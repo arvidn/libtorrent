@@ -7,6 +7,7 @@
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/config.hpp"
 
 #if TORRENT_USE_INVARIANT_CHECKS
 
@@ -37,11 +38,11 @@ namespace libtorrent
 		invariant_checker_impl(T const& self_)
 			: self(self_)
 		{
-			try
+			TORRENT_TRY
 			{
 				check_invariant(self);
 			}
-			catch (...)
+			TORRENT_CATCH_ALL
 			{
 				TORRENT_ASSERT(false);
 			}
@@ -49,11 +50,11 @@ namespace libtorrent
 
 		~invariant_checker_impl()
 		{
-			try
+			TORRENT_TRY
 			{
 				check_invariant(self);
 			}
-			catch (...)
+			TORRENT_CATCH_ALL
 			{
 				TORRENT_ASSERT(false);
 			}
