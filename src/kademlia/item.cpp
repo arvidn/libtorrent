@@ -174,13 +174,6 @@ item::item(entry const& v
 	assign(v, salt, seq, pk, sk);
 }
 
-item::item(lazy_entry const* v, std::pair<char const*, int> salt
-	, boost::uint64_t seq, char const* pk, char const* sig)
-{
-	if (!assign(v, salt, seq, pk, sig))
-		throw invalid_item();
-}
-
 void item::assign(entry const& v, std::pair<char const*, int> salt
 	, boost::uint64_t seq, char const* pk, char const* sk)
 {
