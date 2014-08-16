@@ -2,6 +2,7 @@
 #define ED25519_HPP
 
 #include "libtorrent/export.hpp" // for TORRENT_EXPORT
+#include <stddef.h> // for size_t
 
 enum
 {
