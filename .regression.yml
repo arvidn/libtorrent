@@ -15,6 +15,7 @@ build_dirs:
 build_features:
  - ipv6=off
  - deprecated-functions=off 
+ - exception-handling=off
  - logging=verbose
  - statistics=on
  - asserts=off

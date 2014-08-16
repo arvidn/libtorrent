@@ -27,6 +27,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix missing support for DHT put salt
+
 1.0.1 release
 
 	* fix alignment issue in bitfield
@@ -93,6 +95,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* disable optimistic disconnects when connection limit is low
+	* improved error handling of session::listen_on
 	* suppress initial 'completed' announce to trackers added with replace_trackers
 	  after becoming a seed
 	* SOCKS4 fix for trying to connect over IPv6

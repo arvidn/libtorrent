@@ -497,6 +497,11 @@ void udp_socket::setup_read(udp::socket* s)
 	}
 	TORRENT_CATCH(boost::system::system_error& e)
 	{
+#ifdef BOOST_NO_EXCEPTIONS
+		// dummy
+		error_code ec;
+		boost::system::system_error e(ec);
+#endif
 		get_io_service().post(boost::bind(&udp_socket::on_read
 			, this, e.code(), s));
 	}
