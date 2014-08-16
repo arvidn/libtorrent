@@ -96,8 +96,6 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	return 0;
 }
 
-struct static_ { static_() { std::srand((unsigned int)std::time(0)); } } static__;
-
 node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 {
 	boost::uint8_t* ip = 0;

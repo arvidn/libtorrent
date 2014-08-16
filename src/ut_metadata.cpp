@@ -196,9 +196,9 @@ namespace libtorrent { namespace
 
 		struct metadata_piece
 		{
-			metadata_piece(): num_requests(0), last_request(0) {}
+			metadata_piece(): num_requests(0), last_request(min_time()) {}
 			int num_requests;
-			time_t last_request;
+			ptime last_request;
 			boost::weak_ptr<ut_metadata_peer_plugin> source;
 			bool operator<(metadata_piece const& rhs) const
 			{ return num_requests < rhs.num_requests; }
@@ -523,8 +523,10 @@ namespace libtorrent { namespace
 		int piece = i - m_requested_metadata.begin();
 
 		// don't request the same block more than once every 3 seconds
-		time_t now = time(0);
-		if (now - m_requested_metadata[piece].last_request < 3) return -1;
+		ptime now = time_now();
+		if (m_requested_metadata[piece].last_request != min_time()
+			&& total_seconds(now - m_requested_metadata[piece].last_request) < 3)
+			return -1;
 
 		++m_requested_metadata[piece].num_requests;
 
