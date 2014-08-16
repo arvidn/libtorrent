@@ -434,8 +434,6 @@ bool get_item_cb(dht::item& i)
 // TODO: 3 test obfuscated_get_peers
 int test_main()
 {
-	random_seed(time_now_hires().time_since_epoch().count());
-
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;

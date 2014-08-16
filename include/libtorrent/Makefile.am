@@ -102,7 +102,6 @@ nobase_include_HEADERS = \
   platform_util.hpp            \
   policy.hpp                   \
   proxy_base.hpp               \
-  ptime.hpp                    \
   puff.hpp                     \
   random.hpp                   \
   resolver.hpp                 \

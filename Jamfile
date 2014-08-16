@@ -179,11 +179,13 @@ rule linking ( properties * )
 				result += <define>BOOST_ALL_DYN_LINK ;
 				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
 				result += <library>/boost/chrono//boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
+				result += <library>/boost/random//boost_random/<link>static/<define>BOOST_ALL_DYN_LINK ;
 			}
 			else
 			{
 				result += <library>/boost/system//boost_system/<link>static ;
 				result += <library>/boost/chrono//boost_chrono/<link>static ;
+				result += <library>/boost/chrono//boost_random/<link>static ;
 			}
 
 			if <toolset>gcc in $(properties) && <link>shared in $(properties)
@@ -196,6 +198,7 @@ rule linking ( properties * )
 		{
 			result += <library>/boost/system//boost_system/<link>shared ;
 			result += <library>/boost/chrono//boost_chrono/<link>shared ;
+			result += <library>/boost/chrono//boost_random/<link>shared ;
 		}
 		result += <include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
@@ -207,6 +210,7 @@ rule linking ( properties * )
 	{
 		result += <library>boost_system ;
 		result += <library>boost_chrono ;
+		result += <library>boost_random ;
 
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
@@ -486,6 +490,10 @@ lib boost_system : : <name>boost_system ;
 lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-library-search-path) ;
 lib boost_chrono : : <target-os>solaris <name>boost_chrono $(boost-library-search-path) ;
 lib boost_chrono : : <name>boost_chrono ;
+
+lib boost_random : : <target-os>darwin <name>boost_random-mt $(boost-library-search-path) ;
+lib boost_random : : <target-os>solaris <name>boost_random $(boost-library-search-path) ;
+lib boost_random : : <name>boost_random ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;

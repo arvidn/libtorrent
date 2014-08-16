@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/performance_counters.hpp"
 
+#ifdef TORRENT_DEBUG
+#include "libtorrent/random.hpp"
+#endif
+
 #if TORRENT_USE_PURGABLE_CONTROL
 #include <mach/mach.h>
 // see comments at:
@@ -1201,7 +1205,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 					VM_PURGABLE_SET_STATE,
 					&state);
 #ifdef TORRENT_DEBUG
-				//			if ((rand() % 200) == 0) ret = 1;
+//				if ((random() % 200) == 0) ret = 1;
 #endif
 				if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 				{
@@ -1250,7 +1254,7 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 				VM_PURGABLE_SET_STATE,
 				&state);
 #ifdef TORRENT_DEBUG
-//			if ((rand() % 200) == 0) ret = 1;
+//			if ((random() % 200) == 0) ret = 1;
 #endif
 			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 			{
@@ -1312,7 +1316,7 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 				VM_PURGABLE_SET_STATE,
 				&state);
 #ifdef TORRENT_DEBUG
-//			if ((rand() % 200) == 0) ret = 1;
+//			if ((random() % 200) == 0) ret = 1;
 #endif
 			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 			{

@@ -133,8 +133,6 @@ private:
 
 int test_main()
 {
-	random_seed(time_now_hires().time_since_epoch().count());
-
 	torrent_peer_allocator allocator;
 	external_ip ext_ip;
 

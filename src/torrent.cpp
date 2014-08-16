@@ -1623,7 +1623,7 @@ namespace libtorrent
 		SSL_CTX_set_cert_store(ssl_ctx, cert_store);
 #if 0
 		char filename[100];
-		snprintf(filename, sizeof(filename), "/tmp/%d.pem", rand());
+		snprintf(filename, sizeof(filename), "/tmp/%u.pem", random());
 		FILE* f = fopen(filename, "w+");
 		fwrite(cert.c_str(), cert.size(), 1, f);
 		fclose(f);

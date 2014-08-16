@@ -313,14 +313,6 @@ namespace aux {
 	}
 #endif // TORRENT_STATS
 
-	struct seed_random_generator
-	{
-		seed_random_generator()
-		{
-			random_seed((unsigned int)((time_now().time_since_epoch().count()) & 0xffffffff));
-		}
-	};
-
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -543,8 +535,6 @@ namespace aux {
 		TORRENT_ASSERT_VAL(!ec, ec);
 
 		// ---- generate a peer id ----
-		static seed_random_generator seeder;
-
 		std::string print = cl_fprint.to_string();
 		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
 
@@ -1852,8 +1842,8 @@ namespace aux {
 		{
 #ifdef TORRENT_DEBUG
 			// make it obvious that the return value is undefined
-			ret.upload_limit = rand();
-			ret.download_limit = rand();
+			ret.upload_limit = random();
+			ret.download_limit = random();
 			ret.label.resize(20);
 			url_random(&ret.label[0], &ret.label[0] + 20);
 			ret.ignore_unchoke_slots = false;
