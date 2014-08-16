@@ -56,25 +56,26 @@
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
 <li><a class="reference internal" href="#terminology" id="id3">terminology</a></li>
-<li><a class="reference internal" href="#messages" id="id4">messages</a><ul>
-<li><a class="reference internal" href="#put-message" id="id5">put message</a></li>
-<li><a class="reference internal" href="#get-message" id="id6">get message</a></li>
+<li><a class="reference internal" href="#messages" id="id4">messages</a></li>
+<li><a class="reference internal" href="#immutable-items" id="id5">immutable items</a><ul>
+<li><a class="reference internal" href="#put-message" id="id6">put message</a></li>
+<li><a class="reference internal" href="#get-message" id="id7">get message</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#mutable-items" id="id7">mutable items</a><ul>
-<li><a class="reference internal" href="#id1" id="id8">put message</a></li>
-<li><a class="reference internal" href="#id2" id="id9">get message</a></li>
+<li><a class="reference internal" href="#mutable-items" id="id8">mutable items</a><ul>
+<li><a class="reference internal" href="#id1" id="id9">put message</a></li>
+<li><a class="reference internal" href="#id2" id="id10">get message</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#signature-verification" id="id10">signature verification</a></li>
-<li><a class="reference internal" href="#expiration" id="id11">expiration</a></li>
-<li><a class="reference internal" href="#test-vectors" id="id12">test vectors</a><ul>
-<li><a class="reference internal" href="#test-1-mutable" id="id13">test 1 (mutable)</a></li>
-<li><a class="reference internal" href="#test-2-mutable-with-salt" id="id14">test 2 (mutable with salt)</a></li>
-<li><a class="reference internal" href="#test-3-immutable" id="id15">test 3 (immutable)</a></li>
+<li><a class="reference internal" href="#signature-verification" id="id11">signature verification</a></li>
+<li><a class="reference internal" href="#expiration" id="id12">expiration</a></li>
+<li><a class="reference internal" href="#test-vectors" id="id13">test vectors</a><ul>
+<li><a class="reference internal" href="#test-1-mutable" id="id14">test 1 (mutable)</a></li>
+<li><a class="reference internal" href="#test-2-mutable-with-salt" id="id15">test 2 (mutable with salt)</a></li>
+<li><a class="reference internal" href="#test-3-immutable" id="id16">test 3 (immutable)</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#resources" id="id16">resources</a></li>
+<li><a class="reference internal" href="#resources" id="id17">resources</a></li>
 </ul>
 </div>
 <p>This is a proposal for an extension to the BitTorrent DHT to allow
@@ -126,7 +127,9 @@ identity operation.</p>
 <p>Storing nodes MAY reject <tt class="docutils literal">put</tt> requests where the bencoded form of <tt class="docutils literal">v</tt> is
 longer than 1000 bytes. In other words, it's not safe to assume storing more
 than 1000 bytes will succeed.</p>
-<p>immutable items ---------------</p>
+</div>
+<div class="section" id="immutable-items">
+<h1>immutable items</h1>
 <p>Immutable items are stored under their SHA-1 hash, and since they cannot be
 modified, there is no need to authenticate the origin of them. This makes
 immutable items simple.</p>

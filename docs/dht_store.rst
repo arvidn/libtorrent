@@ -72,7 +72,8 @@ Storing nodes MAY reject ``put`` requests where the bencoded form of ``v`` is
 longer than 1000 bytes. In other words, it's not safe to assume storing more
 than 1000 bytes will succeed.
 
-immutable items ---------------
+immutable items
+---------------
 
 Immutable items are stored under their SHA-1 hash, and since they cannot be
 modified, there is no need to authenticate the origin of them. This makes
