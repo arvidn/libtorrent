@@ -8,6 +8,8 @@
 #include <unistd.h> // for close()
 #include <fcntl.h> // for open()
 #include <sys/ioctl.h>
+#include <stdio.h> // for snprintf
+#include <stdlib.h> // for atoi
 
 #endif
 
