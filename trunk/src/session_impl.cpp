@@ -2555,6 +2555,26 @@ retry:
 			}
 		}
 
+		if (m_listen_sockets.empty() && ec)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, sizeof(msg), "cannot bind TCP listen socket to interface \"%s\": %s"
+				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
+			if (m_listen_port_retries > 0)
+			{
+				m_listen_interface.port(m_listen_interface.port() + 1);
+				--m_listen_port_retries;
+				goto retry;
+			}
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(print_endpoint(m_listen_interface)
+					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
+			return;
+		}
+
 		// TODO: 2 use bind_to_device in udp_socket
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
@@ -2575,6 +2595,7 @@ retry:
 				m_alerts.post_alert(listen_failed_alert(print_endpoint(m_listen_interface)
 					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
 			}
+			return;
 		}
 		else
 		{
@@ -3805,39 +3826,49 @@ retry:
 		{
 			m_disconnect_time_scaler = m_settings.get_int(settings_pack::peer_turnover_interval);
 
-			if (num_connections() >= m_settings.get_int(settings_pack::connections_limit)
-				* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
-				&& !m_torrents.empty())
+			// if the connections_limit is too low, the disconnect
+			// logic is disabled, since it is too disruptive
+			if (m_settings.get_int(settings_pack::connections_limit) > 5)
 			{
-				// every 90 seconds, disconnect the worst peers
-				// if we have reached the connection limit
-				torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
-					, boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _1))
-					< boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _2)));
-			
-				TORRENT_ASSERT(i != m_torrents.end());
-				int peers_to_disconnect = (std::min)((std::max)(
-					int(i->second->num_peers() * m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
-					, i->second->num_connect_candidates());
-				i->second->disconnect_peers(peers_to_disconnect
-					, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
-			}
-			else
-			{
-				// if we haven't reached the global max. see if any torrent
-				// has reached its local limit
-				for (torrent_map::iterator i = m_torrents.begin()
-					, end(m_torrents.end()); i != end; ++i)
+				if (num_connections() >= m_settings.get_int(settings_pack::connections_limit)
+					* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
+					&& !m_torrents.empty())
 				{
-					boost::shared_ptr<torrent> t = i->second;
-					if (t->num_peers() < t->max_connections() * m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100)
-						continue;
-
-					int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
-						* m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
+					// every 90 seconds, disconnect the worst peers
+					// if we have reached the connection limit
+					torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
+						, boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _1))
+						< boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _2)));
+			
+					TORRENT_ASSERT(i != m_torrents.end());
+					int peers_to_disconnect = (std::min)((std::max)(
+						int(i->second->num_peers() * m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
 						, i->second->num_connect_candidates());
-					t->disconnect_peers(peers_to_disconnect
+					i->second->disconnect_peers(peers_to_disconnect
 						, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
+				}
+				else
+				{
+					// if we haven't reached the global max. see if any torrent
+					// has reached its local limit
+					for (torrent_map::iterator i = m_torrents.begin()
+						, end(m_torrents.end()); i != end; ++i)
+					{
+						boost::shared_ptr<torrent> t = i->second;
+
+						// ths disconnect logic is disabled for torrents with
+						// too low connection limit
+						if (t->num_peers() < t->max_connections()
+							* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
+							|| t->max_connections() < 6)
+							continue;
+
+						int peers_to_disconnect = (std::min)((std::max)(int(t->num_peers()
+							* m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
+							, t->num_connect_candidates());
+						t->disconnect_peers(peers_to_disconnect
+							, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
+					}
 				}
 			}
 		}

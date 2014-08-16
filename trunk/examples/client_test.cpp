@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <iterator>
+#include <stdio.h> // for snprintf
+#include <stdlib.h> // for atoi
 
 #include "libtorrent/config.hpp"
 
