@@ -1,3 +1,4 @@
+	* disable optimistic disconnects when connection limit is low
 	* improved error handling of session::listen_on
 	* suppress initial 'completed' announce to trackers added with replace_trackers
 	  after becoming a seed
