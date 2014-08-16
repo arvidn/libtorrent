@@ -43,7 +43,7 @@ namespace libtorrent
 		: m_ios(ios)
 		, m_resolver(ios)
 		, m_max_size(700)
-		, m_timeout(1200)
+		, m_timeout(seconds(1200))
 	{}
 
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
@@ -60,7 +60,7 @@ namespace libtorrent
 		}
 	
 		dns_cache_entry& ce = m_cache[hostname];
-		time_t now = time(NULL);
+		ptime now = time_now();
 		ce.last_seen = now;
 		ce.addresses.clear();
 		while (i != tcp::resolver::iterator())
@@ -81,8 +81,8 @@ namespace libtorrent
 			{
 				cache_t::iterator e = i;
 				++i;
-				if (i->second.last_seen < oldest->second.last_seen)
-					oldest = i;
+				if (e->second.last_seen < oldest->second.last_seen)
+					oldest = e;
 			}
 
 			// remove the oldest entry
@@ -99,7 +99,7 @@ namespace libtorrent
 		{
 			// keep cache entries valid for m_timeout seconds
 			if ((flags & resolver_interface::prefer_cache)
-				|| i->second.last_seen + m_timeout >= time(NULL))
+				|| i->second.last_seen + m_timeout >= time_now())
 			{
 				error_code ec;
 				m_ios.post(boost::bind(h, ec, i->second.addresses));

@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/session_settings.hpp> // for dht_settings
 #include <libtorrent/time.hpp>
-#include <time.h> // time()
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
@@ -174,8 +173,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_allocated_observers(0)
 	, m_destructing(false)
 {
-	std::srand((unsigned int)time(0));
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "Constructing";
 

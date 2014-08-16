@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -59,7 +60,7 @@ private:
 
 	struct dns_cache_entry
 	{
-		time_t last_seen;
+		ptime last_seen;
 		std::vector<address> addresses;
 	};
 
@@ -71,8 +72,8 @@ private:
 	// max number of cached entries
 	int m_max_size;
 
-	// timeout (in seconds) of cache entries
-	int m_timeout;
+	// timeout of cache entries
+	time_duration m_timeout;
 };
 
 }
