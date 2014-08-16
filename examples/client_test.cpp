@@ -1081,8 +1081,6 @@ int main(int argc, char* argv[])
 	settings_pack settings;
 	settings.set_int(settings_pack::active_loaded_limit, 20);
 
-	proxy_settings ps;
-
 	int refresh_delay = 500;
 	bool start_dht = true;
 
@@ -1241,11 +1239,9 @@ int main(int argc, char* argv[])
 #if TORRENT_USE_I2P
 			case 'i':
 				{
-					proxy_settings ps;
-					ps.hostname = arg;
-					ps.port = 7656; // default SAM port
-					ps.type = proxy_settings::i2p_proxy;
-					ses.set_i2p_proxy(ps);
+					settings.set_str(settings_pack::i2p_hostname, arg);
+					settings.set_int(settings_pack::i2p_port, 7650);
+					settings.set_int(settings_pack::proxy_type, settings_pack::i2p_proxy);
 					break;
 				}
 #endif // TORRENT_USE_I2P
@@ -1277,14 +1273,14 @@ int main(int argc, char* argv[])
 						break;
 					}
 					*port++ = 0;
-					ps.hostname = arg;
-					ps.port = atoi(port);
-					if (ps.port == 0) {
+					settings.set_str(settings_pack::proxy_hostname, arg);
+					settings.set_int(settings_pack::proxy_port, atoi(port));
+					if (atoi(port) == 0) {
 						fprintf(stderr, "invalid proxy port\n");
 						break;
 					}
-					if (ps.type == proxy_settings::none)
-						ps.type = proxy_settings::socks5;
+					if (settings.get_int(settings_pack::proxy_type) == settings_pack::none)
+						settings.set_int(settings_pack::proxy_type, settings_pack::socks5);
 				}
 				break;
 			case 'L':
@@ -1296,9 +1292,9 @@ int main(int argc, char* argv[])
 						break;
 					}
 					*pw++ = 0;
-					ps.username = arg;
-					ps.password = pw;
-					ps.type = proxy_settings::socks5_pw;
+					settings.set_str(settings_pack::proxy_username, arg);
+					settings.set_str(settings_pack::proxy_password, pw);
+					settings.set_int(settings_pack::proxy_type, settings_pack::socks5_pw);
 				}
 				break;
 			case 'I': settings.set_str(settings_pack::outgoing_interfaces, arg); break;
@@ -1343,8 +1339,6 @@ int main(int argc, char* argv[])
 	create_directory(combine_path(save_path, ".resume"), ec);
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
-
-	ses.set_proxy(ps);
 
 	if (bind_to_interface.empty()) bind_to_interface = "0.0.0.0";
 	settings.set_str(settings_pack::listen_interfaces, bind_to_interface + ":" + to_string(listen_port).elems);
@@ -1756,9 +1750,6 @@ int main(int argc, char* argv[])
 
 		cache_status cs;
 		ses.get_cache_info(&cs, h, cache_flags);
-
-		if (cs.blocks_read < 1) cs.blocks_read = 1;
-		if (cs.blocks_written < 1) cs.blocks_written = 1;
 
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
