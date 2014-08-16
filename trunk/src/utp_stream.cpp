@@ -1899,7 +1899,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	error_code ec;
 #ifdef TORRENT_DEBUG
 	// simulate 1% packet loss
-//	if ((rand() % 100) > 0)
+//	if ((random() % 100) > 0)
 #endif
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 		, (char const*)h, p->size, ec

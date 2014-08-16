@@ -271,8 +271,6 @@ int test_pick(boost::shared_ptr<piece_picker> const& p, int options = piece_pick
 
 int test_main()
 {
-	random_seed(time_now_hires().time_since_epoch().count());
-
 	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
 #if TORRENT_USE_ASSERTS

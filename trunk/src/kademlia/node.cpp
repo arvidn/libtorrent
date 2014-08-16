@@ -112,7 +112,7 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	, m_counters(cnt)
 {
 	m_secret[0] = random();
-	m_secret[1] = std::rand();
+	m_secret[1] = random();
 }
 
 bool node_impl::verify_token(std::string const& token, char const* info_hash

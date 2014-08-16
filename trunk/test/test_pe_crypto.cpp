@@ -182,8 +182,6 @@ int test_main()
 	const int repcount = 128;
 #endif
 
-	random_seed(time_now_hires().time_since_epoch().count());
-
 	for (int rep = 0; rep < repcount; ++rep)
 	{
 		dh_key_exchange DH1, DH2;

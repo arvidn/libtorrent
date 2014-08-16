@@ -90,6 +90,7 @@ feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck
 
 test-suite libtorrent : 	
 	[ run test_socket_io.cpp ]
+	[ run test_random.cpp ]
 	[ run test_utf8.cpp ]
 	[ run test_gzip.cpp ]
 	[ run test_bitfield.cpp ]

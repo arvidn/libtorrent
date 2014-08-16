@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011-2014, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,24 +30,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/random.hpp"
-#include "libtorrent/assert.hpp"
-#include <boost/random/random_device.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
+#include "test.hpp"
+#include "setup_transfer.hpp"
+#include "random.hpp"
 
-namespace libtorrent
+using namespace libtorrent;
+
+int test_main()
 {
-	boost::uint32_t random()
-	{
-		using boost::random::random_device;
-		using boost::random::mt19937;
-		using boost::random::uniform_int_distribution;
 
-		static random_device dev;
-		static mt19937 random_engine(dev());
-		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
+	const int repetitions = 200000;
+
+	for (int byte = 0; byte < 4; ++byte)
+	{
+		int buckets[256];
+		memset(buckets, 0, sizeof(buckets));
+	
+		for (int i = 0; i < repetitions; ++i)
+		{
+			boost::uint32_t val = libtorrent::random();
+			val >>= byte * 8;
+			++buckets[val & 0xff];
+		}
+
+		for (int i = 0; i < 256; ++i)
+		{
+			const int expected = repetitions / 256;
+			// expect each bucket to be within 15% of the expected value
+			fprintf(stderr, "%d: %f\n", i, float(buckets[i] - expected) * 100.f / expected);
+			TEST_CHECK(abs(buckets[i] - expected) < expected / 6);
+		}
 	}
+
+	return 0;
 }
 

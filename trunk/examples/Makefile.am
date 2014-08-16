@@ -1,5 +1,6 @@
 example_programs =  \
   client_test       \
+  stats_counters    \
   dump_torrent      \
   make_torrent      \
   simple_client     \
