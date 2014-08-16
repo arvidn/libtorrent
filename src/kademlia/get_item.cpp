@@ -231,6 +231,10 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 			a["k"] = std::string(m_data.pk().data(), item_pk_len);
 			a["seq"] = m_data.seq();
 			a["sig"] = std::string(m_data.sig().data(), item_sig_len);
+			if (!m_data.salt().empty())
+			{
+				a["salt"] = m_data.salt();
+			}
 		}
 		m_node.m_rpc.invoke(e, i->first.ep(), o);
 	}
