@@ -77,7 +77,7 @@ void utp_log(char const* fmt, ...)
 {
 	mutex::scoped_lock lock(log_file_holder.utp_log_mutex);
 	static ptime start = time_now_hires();
-	fprintf(log_file_holder.utp_log_file, "[%012"PRId64"] ", total_microseconds(time_now_hires() - start));
+	fprintf(log_file_holder.utp_log_file, "[%012" PRId64 "] ", total_microseconds(time_now_hires() - start));
 	va_list l;
 	va_start(l, fmt);
 	vfprintf(log_file_holder.utp_log_file, fmt, l);
@@ -3212,7 +3212,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
 
 	// true if the upper layer is pushing enough data down the socket to be
 	// limited by the cwnd. If this is not the case, we should not adjust cwnd.
-	bool cwnd_saturated = (m_bytes_in_flight + acked_bytes + m_mtu > (m_cwnd << 16));
+	bool cwnd_saturated = (m_bytes_in_flight + acked_bytes + m_mtu > (m_cwnd >> 16));
 
 	// all of these are fixed points with 16 bits fraction portion
 	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
@@ -3221,7 +3221,9 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
   
 	if (delay >= target_delay)
 	{
-		UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
+		if (m_slow_start)
+			UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
+
 		m_sm->inc_stats_counter(counters::utp_samples_above_target);
 		m_slow_start = false;
 	}

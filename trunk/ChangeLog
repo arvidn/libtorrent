@@ -27,6 +27,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fixed uTP upload performance issue
 	* fix missing support for DHT put salt
 
 1.0.1 release
