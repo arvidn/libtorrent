@@ -284,12 +284,12 @@ some additional error codes.
 +------------+-----------------------------+
 | error-code | description                 |
 +============+=============================+
-| 205        | message (i.e. ``v`` field)  |
+| 205        | message (``v`` field)       |
 |            | too big.                    |
 +------------+-----------------------------+
 | 206        | invalid signature           |
 +------------+-----------------------------+
-| 207        | salt (i.e. ``salt`` field)  |
+| 207        | salt (``salt`` field)       |
 |            | too big.                    |
 +------------+-----------------------------+
 | 301        | the CAS hash mismatched,    |
@@ -362,7 +362,7 @@ and verification of the value and sequence number should be done as follows:
 
 On the storage node, the signature MUST be verified before accepting the store
 command. The data MUST be stored under the SHA-1 hash of the public key (as it
-appears in the bencoded dict).
+appears in the bencoded dict) and the salt (if present).
 
 On the requesting nodes, the key they get back from a ``get`` request MUST be
 verified to hash to the target ID the lookup was made for, as well as verifying
