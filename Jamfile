@@ -185,7 +185,7 @@ rule linking ( properties * )
 			{
 				result += <library>/boost/system//boost_system/<link>static ;
 				result += <library>/boost/chrono//boost_chrono/<link>static ;
-				result += <library>/boost/chrono//boost_random/<link>static ;
+				result += <library>/boost/random//boost_random/<link>static ;
 			}
 
 			if <toolset>gcc in $(properties) && <link>shared in $(properties)
@@ -198,7 +198,7 @@ rule linking ( properties * )
 		{
 			result += <library>/boost/system//boost_system/<link>shared ;
 			result += <library>/boost/chrono//boost_chrono/<link>shared ;
-			result += <library>/boost/chrono//boost_random/<link>shared ;
+			result += <library>/boost/random//boost_random/<link>shared ;
 		}
 		result += <include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
