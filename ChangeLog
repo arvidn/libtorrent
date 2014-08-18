@@ -1,3 +1,4 @@
+	* fixed uTP upload performance issue
 	* fix missing support for DHT put salt
 
 1.0.1 release
