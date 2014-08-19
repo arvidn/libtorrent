@@ -612,14 +612,21 @@ namespace libtorrent {
 	std::string add_torrent_alert::message() const
 	{
 		char msg[600];
+		char info_hash[41];
+		char const* torrent_name = info_hash;
+		if (params.ti) torrent_name = params.ti->name().c_str();
+		else if (!params.url.empty()) torrent_name = params.url.c_str();
+		else to_hex((const char*)&params.info_hash[0], 20, info_hash);
+
 		if (error)
 		{
-			snprintf(msg, sizeof(msg), "failed to add torrent: %s"
+			snprintf(msg, sizeof(msg), "failed to add torrent \"%s\": [%s] %s"
+				, torrent_name, error.category().name()
 				, convert_from_native(error.message()).c_str());
 		}
 		else
 		{
-			snprintf(msg, sizeof(msg), "added torrent: %s", !params.url.empty() ? params.url.c_str() : params.ti->name().c_str());
+			snprintf(msg, sizeof(msg), "added torrent: %s", torrent_name);
 		}
 		return msg;
 	}
