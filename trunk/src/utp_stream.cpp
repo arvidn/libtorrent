@@ -236,6 +236,7 @@ struct utp_socket_impl
 		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
 		, m_last_history_step(time_now_hires())
 		, m_cwnd(TORRENT_ETHERNET_MTU << 16)
+		, m_ssthres(0)
 		, m_buffered_incoming_bytes(0)
 		, m_reply_micro(0)
 		, m_adv_wnd(TORRENT_ETHERNET_MTU)
@@ -437,6 +438,11 @@ struct utp_socket_impl
 
 	timestamp_history m_delay_hist;
 	timestamp_history m_their_delay_hist;
+
+	// the slow-start threshold. This is the congestion window size (m_cwnd)
+	// in bytes the last time we left slow-start mode. This is used as a
+	// threshold to leave slow-start earlier next time, to avoid packet-loss
+	boost::int32_t m_ssthres;
 
 	// the number of bytes we have buffered in m_inbuf
 	boost::int32_t m_buffered_incoming_bytes;
@@ -2153,6 +2159,14 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	// same packet again, ignore it.
 	if (compare_less_wrap(seq_nr, m_loss_seq_nr + 1, ACK_MASK)) return;
 	
+	// if we happen to be in slow-start mode, we need to leave it
+	if (m_slow_start)
+	{
+		m_ssthres = m_cwnd >> 16;
+		m_slow_start = false;
+		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", this);
+	}
+
 	// cut window size in 2
 	m_cwnd = (std::max)(m_cwnd * m_sm->loss_multiplier() / 100, boost::int64_t(m_mtu << 16));
 	m_loss_seq_nr = m_seq_nr;
@@ -2161,8 +2175,6 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	// the window size could go below one MMS here, if it does,
 	// we'll get a timeout in about one second
 	
-	// if we happen to be in slow-start mode, we need to leave it
-	m_slow_start = false;
 	m_sm->inc_stats_counter(counters::utp_packet_loss);
 }
 
@@ -3062,6 +3074,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 					"send_buffer:%d "
 					"recv_buffer:%d "
 					"fast_resend_seq_nr:%d "
+					"ssthres:%d "
 					"\n"
 					, this
 					, sample
@@ -3093,7 +3106,8 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 					, min_rtt / 1000
 					, m_write_buffer_size
 					, m_read_buffer_size
-					, m_fast_resend_seq_nr);
+					, m_fast_resend_seq_nr
+					, m_ssthres);
 			}
 #endif
 
@@ -3222,10 +3236,13 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
 	if (delay >= target_delay)
 	{
 		if (m_slow_start)
+		{
 			UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
+			m_ssthres = m_cwnd >> 16;
+			m_slow_start = false;
+		}
 
 		m_sm->inc_stats_counter(counters::utp_samples_above_target);
-		m_slow_start = false;
 	}
 	else
 	{
@@ -3239,11 +3256,25 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
 	// congestion window), don't adjust it at all.
 	if (cwnd_saturated)
 	{
+		boost::int64_t exponential_gain = boost::int64_t(acked_bytes) << 16;
 		if (m_slow_start)
 		{
 			// mimic TCP slow-start by adding the number of acked
 			// bytes to cwnd
-			scaled_gain = (std::max)(boost::int64_t(acked_bytes) << 16, linear_gain);
+			if (m_ssthres != 0 && ((m_cwnd + exponential_gain) >> 16) > m_ssthres)
+			{
+				// if we would exeed the slow start threshold by growing the cwnd
+				// exponentially, don't do it, and leave slow-start mode. This
+				// make us avoid causing more delay and/or packet loss by being too
+				// aggressive
+				m_slow_start = false;
+				scaled_gain = linear_gain;
+				UTP_LOGV("%8p: cwnd > ssthres (%d) slow_start -> 0\n", this, m_ssthres);
+			}
+			else
+			{
+				scaled_gain = (std::max)(exponential_gain, linear_gain);
+			}
 		}
 		else
 		{
@@ -3288,7 +3319,11 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
 	}
 
 	if ((m_cwnd >> 16) >= m_adv_wnd)
+	{
 		m_slow_start = false;
+		UTP_LOGV("%8p: cwnd > advertized wnd (%d) slow_start -> 0\n"
+			, this, m_adv_wnd);
+	}
 }
 
 void utp_stream::bind(endpoint_type const& ep, error_code& ec) { }
@@ -3389,6 +3424,13 @@ void utp_socket_impl::tick(ptime now)
 		// loss that we might detect for packets that just
 		// timed out
 		m_loss_seq_nr = m_seq_nr;
+
+		// when we time out, the cwnd is reset to 1 MSS, which means we
+		// need to ramp it up quickly again. enter slow start mode. This time
+		// we're very likely to have an ssthres set, which will make us leave
+		// slow start before inducing more delay or loss.
+		m_slow_start = true;
+		UTP_LOGV("%8p: timeout slow_start -> 1\n", this);
 
 		// we need to go one past m_seq_nr to cover the case
 		// where we just sent a SYN packet and then adjusted for

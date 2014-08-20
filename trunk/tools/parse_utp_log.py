@@ -71,6 +71,7 @@ metrics = {
 	'their_delay':['their delay (ms)', 'x1y2', delay_samples],
 	'get_microseconds':['clock (us)', 'x1y1', 'steps'],
 	'wnduser':['advertised window size (B)', 'x1y1', 'steps'],
+	'ssthres':['slow-start threshold (B)', 'x1y1', 'steps'],
 
 	'delay_base':['delay base (us)', 'x1y1', delay_base],
 	'their_delay_base':['their delay base (us)', 'x1y1', delay_base],
@@ -204,7 +205,7 @@ plot = [
 		'y2': 'Time (ms)'
 	},
 	{
-		'data': ['max_window', 'cur_window', 'our_delay', 'target_delay'],
+		'data': ['max_window', 'cur_window', 'our_delay', 'target_delay', 'ssthres'],
 		'title': 'cwnd',
 		'y1': 'Bytes',
 		'y2': 'Time (ms)'
