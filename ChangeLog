@@ -27,6 +27,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* made uTP re-enter slow-start after time-out
 	* fixed uTP upload performance issue
 	* fix missing support for DHT put salt
 
@@ -96,6 +97,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fixed bug in add_torrent_alert::message for magnet links
 	* disable optimistic disconnects when connection limit is low
 	* improved error handling of session::listen_on
 	* suppress initial 'completed' announce to trackers added with replace_trackers
