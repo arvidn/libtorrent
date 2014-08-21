@@ -1282,6 +1282,8 @@ int main(int argc, char* argv[])
 		// if there's a flag but no argument following, ignore it
 		if (argc == i) continue;
 		char const* arg = argv[i+1];
+		if (arg == NULL) arg = "";
+
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = fopen(arg, "w+"); break;
