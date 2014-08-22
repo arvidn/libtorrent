@@ -1971,7 +1971,14 @@ namespace aux {
 		if (m_settings.peer_tos != s.peer_tos && s.peer_tos != 0)
 		{
 			error_code ec;
-			m_udp_socket.set_option(type_of_service(s.peer_tos), ec);
+
+#if TORRENT_USE_IPV6
+			if (m_udp_socket.local_endpoint(ec).address().is_v6())
+				m_udp_socket.set_option(traffic_class(s.peer_tos), ec);
+			else
+#endif
+				m_udp_socket.set_option(type_of_service(s.peer_tos), ec);
+
 #if defined TORRENT_VERBOSE_LOGGING
 			(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << s.peer_tos << " e: " << ec.message() << " ]\n";
 #endif
@@ -2389,7 +2396,14 @@ retry:
 		}
 
 		if (m_settings.peer_tos != 0) {
-			m_udp_socket.set_option(type_of_service(m_settings.peer_tos), ec);
+
+#if TORRENT_USE_IPV6
+			if (m_udp_socket.local_endpoint(ec).address().is_v6())
+				m_udp_socket.set_option(traffic_class(m_settings.peer_tos), ec);
+			else
+#endif
+				m_udp_socket.set_option(type_of_service(m_settings.peer_tos), ec);
+
 #if defined TORRENT_VERBOSE_LOGGING
 			(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.peer_tos << " e: " << ec.message() << " ]\n";
 #endif
