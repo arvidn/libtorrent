@@ -93,17 +93,25 @@ int test_main()
 	std::vector<udp::endpoint> list;
 	read_endpoint_list<udp::endpoint>(&e, list);
 
+#if TORRENT_USE_IPV6
 	TEST_EQUAL(list.size(), 2);
-	TEST_EQUAL(list[0], udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
 	TEST_EQUAL(list[1], udp::endpoint(address_v6::from_string("1000::ffff"), 1337));
+#else
+	TEST_EQUAL(list.size(), 1);
+#endif
+	TEST_EQUAL(list[0], udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
 
 	entry e2 = bdecode(eplist, eplist + sizeof(eplist)-1);
 	list.clear();
 	read_endpoint_list<udp::endpoint>(&e2, list);
 
+#if TORRENT_USE_IPV6
 	TEST_EQUAL(list.size(), 2);
-	TEST_EQUAL(list[0], udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
 	TEST_EQUAL(list[1], udp::endpoint(address_v6::from_string("1000::ffff"), 1337));
+#else
+	TEST_EQUAL(list.size(), 1);
+#endif
+	TEST_EQUAL(list[0], udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
 
 	return 0;
 }

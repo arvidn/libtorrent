@@ -520,6 +520,12 @@ namespace libtorrent
 				peer_log(">>> SET_TOS[ tos: %d e: %s ]", m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
 #endif
 			}
+#if TORRENT_USE_IPV6
+			else if (m_remote.address().is_v6() && m_settings.get_int(settings_pack::peer_tos) != 0)
+			{
+				m_socket->set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), ec);
+			}
+#endif
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING
@@ -6368,6 +6374,12 @@ namespace libtorrent
 			peer_log(">>> SET_TOS[ tos: %d e: %s ]", m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
 #endif
 		}
+#if TORRENT_USE_IPV6
+		else if (m_remote.address().is_v6() && m_settings.get_int(settings_pack::peer_tos) != 0)
+		{
+			m_socket->set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), ec);
+		}
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -6381,7 +6393,7 @@ namespace libtorrent
 		setup_send();
 		setup_receive();
 	}
-	
+
 	// --------------------------
 	// SEND DATA
 	// --------------------------

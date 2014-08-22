@@ -2597,12 +2597,9 @@ retry:
 		}
 
 		if (m_settings.get_int(settings_pack::peer_tos) != 0) {
-			m_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
-#if defined TORRENT_VERBOSE_LOGGING
-			session_log(">>> SET_TOS[ udp_socket tos: %x e: %s ]"
-				, m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
-#endif
+			update_peer_tos();
 		}
+
 		ec.clear();
 
 		set_socket_buffer_size(m_udp_socket, m_settings, ec);
@@ -7034,9 +7031,16 @@ retry:
 	void session_impl::update_peer_tos()
 	{
 		error_code ec;
-		m_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
+
+#if TORRENT_USE_IPV6
+		if (m_udp_socket.local_endpoint(ec).address().is_v6())
+			m_udp_socket.set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), ec);
+		else
+#endif
+			m_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
+
 #if defined TORRENT_VERBOSE_LOGGING
-		session_log(">>> SET_TOS[ udp_socket tos: %x e: %s ]"
+		session_log(">>> SET_TOS [ udp_socket tos: %x e: %s ]"
 			, m_settings.get_int(settings_pack::peer_tos)
 			, ec.message().c_str());
 #endif
