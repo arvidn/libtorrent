@@ -7649,19 +7649,33 @@ namespace libtorrent
 		update_list(aux::session_interface::torrent_want_tick, want_tick());
 	}
 
+	// returns true if this torrent is interested in connecting to more peers
 	bool torrent::want_peers() const
 	{
-		return m_connections.size() < m_max_connections
-			&& !is_paused()
-			&& ((m_state != torrent_status::checking_files
-			&& m_state != torrent_status::checking_resume_data)
-				|| !valid_metadata())
-			&& m_policy
-			&& m_policy->num_connect_candidates() > 0
-			&& !m_abort
-			&& (m_ses.settings().get_bool(settings_pack::seeding_outgoing_connections)
-				|| (m_state != torrent_status::seeding
-				&& m_state != torrent_status::finished));
+		// if all our connection slots are taken, we can't connect to more
+		if (m_connections.size() >= m_max_connections) return false;
+
+		// if we're paused, obviously we're not connecting to peers
+		if (is_paused() || m_abort) return false;
+
+		if ((m_state == torrent_status::checking_files
+			|| m_state == torrent_status::checking_resume_data)
+			&& valid_metadata())
+			return false;
+
+		// if we don't know of any more potential peers to connect to, there's
+		// no point in trying
+		if (!m_policy || m_policy->num_connect_candidates() == 0)
+			return false;
+
+		// if the user disabled outgoing connections for seeding torrents,
+		// don't make any
+		if (!m_ses.settings().get_bool(settings_pack::seeding_outgoing_connections)
+			&& (m_state == torrent_status::seeding
+				|| m_state == torrent_status::finished))
+			return false;
+
+		return true;
 	}
 
 	bool torrent::want_peers_download() const
