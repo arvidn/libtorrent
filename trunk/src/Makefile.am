@@ -106,6 +106,7 @@ libtorrent_rasterbar_la_SOURCES = \
   resolver.cpp                    \
   rss.cpp                         \
   session.cpp                     \
+  session_call.cpp                \
   session_impl.cpp                \
   settings_pack.cpp               \
   sha1.cpp                        \

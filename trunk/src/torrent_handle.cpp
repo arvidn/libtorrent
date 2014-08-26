@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/thread.hpp"
@@ -145,26 +146,6 @@ namespace libtorrent
 
 	torrent_status::~torrent_status() {}
 
-	template <class R>
-	void fun_ret(R* ret, bool* done, condition_variable* e, mutex* m, boost::function<R(void)> f)
-	{
-		*ret = f();
-		mutex::scoped_lock l(*m);
-		*done = true;
-		e->notify_all();
-	}
-
-	// defined in session.cpp
-	void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(void)> f);
-
-#ifdef TORRENT_PROFILE_CALLS
-	extern void blocking_call();
-
-#define TORRENT_RECORD_BLOCKING_CALL blocking_call();
-#else
-#define TORRENT_RECORD_BLOCKING_CALL
-#endif
-
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
@@ -197,82 +178,34 @@ namespace libtorrent
 
 #define TORRENT_SYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return; \
-	bool done = false; \
-	session_impl& ses = (session_impl&) t->session(); \
-	TORRENT_RECORD_BLOCKING_CALL \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t)))); \
-	while (!done) { ses.cond.wait(l); }
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t));
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (t) { \
-	bool done = false; \
-	session_impl& ses = (session_impl&) t->session(); \
-	TORRENT_RECORD_BLOCKING_CALL \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1)))); \
-	t.reset(); \
-	while (!done) { ses.cond.wait(l); }; }
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1));
 
 #define TORRENT_SYNC_CALL2(x, a1, a2) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (t) { \
-	bool done = false; \
-	session_impl& ses = (session_impl&) t->session(); \
-	TORRENT_RECORD_BLOCKING_CALL \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
-	t.reset(); \
-	while (!done) { ses.cond.wait(l); }; }
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1, a2));
 
 #define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (t) { \
-	bool done = false; \
-	session_impl& ses = (session_impl&) t->session(); \
-	TORRENT_RECORD_BLOCKING_CALL \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2, a3)))); \
-	t.reset(); \
-	while (!done) { ses.cond.wait(l); }; }
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1, a2, a3));
 
 #define TORRENT_SYNC_CALL_RET(type, def, x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return def; \
-	bool done = false; \
-	session_impl& ses = (session_impl&) t->session(); \
-	type r; \
-	TORRENT_RECORD_BLOCKING_CALL \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t)))); \
-	t.reset(); \
-	while (!done) { ses.cond.wait(l); }
+	type r = def; \
+	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t)));
 
 #define TORRENT_SYNC_CALL_RET1(type, def, x, a1) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return def; \
-	bool done = false; \
-	session_impl& ses = (session_impl&) t->session(); \
-	type r; \
-	TORRENT_RECORD_BLOCKING_CALL \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)))); \
-	t.reset(); \
-	while (!done) { ses.cond.wait(l); }
+	type r = def; \
+	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)));
 
 #define TORRENT_SYNC_CALL_RET2(type, def, x, a1, a2) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return def; \
-	bool done = false; \
-	session_impl& ses = (session_impl&) t->session(); \
-	type r; \
-	TORRENT_RECORD_BLOCKING_CALL \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.dispatch(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
-	t.reset(); \
-	while (!done) { ses.cond.wait(l); }
+	type r = def; \
+	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)));
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle()
@@ -779,14 +712,12 @@ namespace libtorrent
 		{
 			bool done = false;
 			session_impl& ses = (session_impl&) t->session();
-			TORRENT_RECORD_BLOCKING_CALL
-			mutex::scoped_lock l(ses.mut);
 			storage_error ec;
-			ses.m_io_service.dispatch(boost::bind(&fun_wrap, &done, &ses.cond
-				, &ses.mut, boost::function<void(void)>(boost::bind(
+			ses.m_io_service.dispatch(boost::bind(&aux::fun_wrap, boost::ref(done), boost::ref(ses.cond)
+				, boost::ref(ses.mut), boost::function<void(void)>(boost::bind(
 					&piece_manager::write_resume_data, &t->storage(), boost::ref(ret), boost::ref(ec)))));
 			t.reset();
-			while (!done) { ses.cond.wait(l); }
+			aux::torrent_wait(done, ses);
 		}
 
 		return ret;
