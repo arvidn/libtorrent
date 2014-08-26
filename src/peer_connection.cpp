@@ -1148,6 +1148,16 @@ namespace libtorrent
 	void peer_connection::sent_bytes(int bytes_payload, int bytes_protocol)
 	{
 		m_statistics.sent_bytes(bytes_payload, bytes_protocol);
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		if (bytes_payload)
+		{
+			for (extension_list_t::iterator i = m_extensions.begin()
+				, end(m_extensions.end()); i != end; ++i)
+			{
+				(*i)->sent_payload(bytes_payload);
+			}
+		}
+#endif
 		if (m_ignore_stats) return;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
