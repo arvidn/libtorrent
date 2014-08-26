@@ -23,7 +23,6 @@ DOCS_IMAGES = \
   docs/read_disk_buffers.png      \
   docs/session_stats_peers.png    \
   docs/storage.png                \
-  docs/style.css                  \
   docs/todo.html                  \
   docs/write_disk_buffers.png     \
   docs/ziptorrent_thumb.gif       \
@@ -34,7 +33,17 @@ DOCS_IMAGES = \
   docs/hash_distribution.png      \
   docs/complete_bit_prefixes.png  \
   docs/troubleshooting.png        \
-  docs/troubleshooting_thumb.png
+  docs/troubleshooting_thumb.png  \
+  docs/style.css                  \
+  docs/base.css                   \
+  docs/rst.css                    \
+  docs/img/bg.png                 \
+  docs/img/blue_bottom.png        \
+  docs/img/blue_top.png           \
+  docs/img/dotline.gif            \
+  docs/img/logo.png               \
+  docs/img/minus.gif              \
+  docs/img/orange.png
 
 DOCS_PAGES = \
   docs/building.html              \

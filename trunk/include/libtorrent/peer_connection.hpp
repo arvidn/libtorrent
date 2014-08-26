@@ -565,7 +565,7 @@ namespace libtorrent
 		{
 			// this peer is in end-game mode we only want
 			// one outstanding request
-			return m_endgame_mode ? 1: m_desired_queue_size;
+			return (m_endgame_mode || m_snubbed) ? 1 : m_desired_queue_size;
 		}
 
 		bool bittyrant_unchoke_compare(
@@ -939,10 +939,6 @@ namespace libtorrent
 		// the start of the logical receive buffer
 		int m_recv_start:24;
 
-		// the number of request we should queue up
-		// at the remote end.
-		boost::uint8_t m_desired_queue_size;
-
 		// this is the limit on the number of outstanding requests
 		// we have to this peer. This is initialized to the settings
 		// in the session_settings structure. But it may be lowered
@@ -1253,6 +1249,10 @@ namespace libtorrent
 		// we need to send to this peer for it to unchoke
 		// us
 		int m_est_reciprocation_rate;
+
+		// the number of request we should queue up
+		// at the remote end.
+		boost::uint16_t m_desired_queue_size;
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		// in case the session settings is set
