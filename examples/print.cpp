@@ -8,13 +8,13 @@
 #include <unistd.h> // for close()
 #include <fcntl.h> // for open()
 #include <sys/ioctl.h>
-#include <stdio.h> // for snprintf
-#include <stdlib.h> // for atoi
 
 #endif
 
 #include "print.hpp"
 
+#include <stdio.h> // for snprintf
+#include <stdlib.h> // for atoi
 #include <cmath>
 
 char const* esc(char const* code)
