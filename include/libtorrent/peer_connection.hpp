@@ -421,7 +421,7 @@ namespace libtorrent
 		{
 			// this peer is in end-game mode we only want
 			// one outstanding request
-			return m_endgame_mode ? 1: m_desired_queue_size;
+			return (m_endgame_mode || m_snubbed) ? 1: m_desired_queue_size;
 		}
 
 		bool bittyrant_unchoke_compare(
@@ -1046,6 +1046,10 @@ namespace libtorrent
 		// was called. The rtt is specified in milliseconds
 		boost::uint16_t m_rtt;
 
+		// the number of request we should queue up
+		// at the remote end.
+		boost::uint16_t m_desired_queue_size;
+
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.
 		// where n is the value of this variable.
@@ -1054,10 +1058,6 @@ namespace libtorrent
 		// are preferred.
 		boost::uint8_t m_prefer_whole_pieces;
 		
-		// the number of request we should queue up
-		// at the remote end.
-		boost::uint8_t m_desired_queue_size;
-
 		// the number of piece requests we have rejected
 		// in a row because the peer is choked. This is
 		// used to re-send the choked message in case the

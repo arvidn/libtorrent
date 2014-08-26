@@ -1,3 +1,4 @@
+	* fixed overflow and download performance issue when downloading at high rates
 	* fixed bug in add_torrent_alert::message for magnet links
 	* disable optimistic disconnects when connection limit is low
 	* improved error handling of session::listen_on
