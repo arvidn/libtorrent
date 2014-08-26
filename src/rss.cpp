@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp" // for rss_alert
 
@@ -616,9 +617,6 @@ int feed::next_update(time_t now) const
 	return int((m_last_update + ttl * 60) - now);
 }
 
-// defined in session.cpp
-void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(void)> f);
-
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \
 	if (!f) return; \
@@ -633,13 +631,7 @@ void fun_wrap(bool* done, condition_variable* e, mutex* m, boost::function<void(
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \
-	if (f) { \
-	bool done = false; \
-	aux::session_impl& ses = f->session(); \
-	mutex::scoped_lock l(ses.mut); \
-	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&feed:: x, f, a1)))); \
-	f.reset(); \
-	do { ses.cond.wait(l); } while(!done); }
+	if (f) aux::sync_call_handle(f, boost::bind(&feed:: x, f, a1));
 
 feed_handle::feed_handle(boost::weak_ptr<feed> const& p)
 	: m_feed_ptr(p) {}

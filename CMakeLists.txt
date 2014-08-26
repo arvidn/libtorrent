@@ -53,6 +53,7 @@ set(sources
 	request_blocks
 	rss
 	session
+	session_call
 	session_impl
 	session_stats
 	settings_pack

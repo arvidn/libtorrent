@@ -571,6 +571,7 @@ SOURCES =
 	rss
 	session
 	session_impl
+	session_call
 	settings_pack
 	socket_io
 	socket_type
