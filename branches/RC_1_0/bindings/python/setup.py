@@ -35,12 +35,16 @@ def target_specific():
 	return ['-Wno-error=unused-command-line-argument-hard-error-in-future']
 
 try:
-	extra_cmd = open('compile_flags').read()
+	with open('compile_flags') as _file:
+		extra_cmd = _file.read()
+
 except:
 	extra_cmd = None
 
 try:
-	ldflags = open('link_flags').read()
+	with open('link_flags') as _file:
+		ldflags = _file.read()
+
 except:
 	ldflags = None
 
@@ -67,7 +71,7 @@ if '--bjam' in sys.argv or ldflags == None or extra_cmd == None:
 
 		# build libtorrent using bjam and build the installer with distutils
 		cmdline = 'bjam boost=source link=static geoip=static boost-link=static release optimization=space stage_module --abbreviate-paths' + toolset + parallell_builds
-		print cmdline
+		print(cmdline)
 		if os.system(cmdline) != 0:
 			print('build failed')
 			sys.exit(1)
@@ -92,7 +96,7 @@ else:
 	ext = [Extension('libtorrent',
 		sources = source_list,
 		language='c++',
-		include_dirs = ['../../include'] + parse_cmd(extra_cmd, '-I'),
+		include_dirs = ['../../../include'] + parse_cmd(extra_cmd, '-I'),
 		library_dirs = ['../../src/.libs'] + parse_cmd(extra_cmd, '-L'),
 		extra_link_args = ldflags.split() + arch(),
 		extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch() \
