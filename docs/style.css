@@ -118,7 +118,7 @@ div.section p, div.section ul, div.section dl {
 
 #header {
     height: 116px;
-    background: url(../img/bg.png) #1f5c85;
+    background: url('img/bg.png') #1f5c85;
     -moz-border-radius: 6pt;
     border-radius: 6pt;
 }
@@ -129,7 +129,7 @@ div.section p, div.section ul, div.section dl {
     float: left;
     width: 159px;
     height: 116px;
-    background: url(../img/orange.png) no-repeat top left;
+    background: url('img/orange.png') no-repeat top left;
 }
 
 #logo {
@@ -138,7 +138,7 @@ div.section p, div.section ul, div.section dl {
     float: right;
     width: 535px;
     height: 116px;
-    background: url(../img/logo.png);
+    background: url('img/logo.png');
 }
 
 #footer {

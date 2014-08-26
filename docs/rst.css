@@ -179,13 +179,13 @@ div.contents {
     width: 200px;
     float: right;
     clear: right;
-    background: url(../img/blue_bottom.png) no-repeat bottom left;
+    background: url('img/blue_bottom.png') no-repeat bottom left;
     border-right: solid 1px #A1C5D6;
 }
 
 #table-of-contents p {
     font-family: Georgia, "Times New Roman", serif;
-    background: #A1C5D6 url(../img/blue_top.png) no-repeat top left;
+    background: #A1C5D6 url('img/blue_top.png') no-repeat top left;
     color: #AD370A;
     padding: 0.5em;
     margin: 0;
@@ -204,7 +204,7 @@ div.contents {
 }
 
 #table-of-contents ul ul {
-    background: url(../img/dotline.gif) repeat-y;
+    background: url('img/dotline.gif') repeat-y;
 }
 
 #table-of-contents a.reference {
@@ -213,7 +213,7 @@ div.contents {
     font-weight: bold;
     color: #000050;
     margin-right: 1em;
-    background: url(../img/minus.gif) no-repeat left 50%;
+    background: url('img/minus.gif') no-repeat left 50%;
     padding-left: 15px;
 }
 

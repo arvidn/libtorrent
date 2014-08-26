@@ -1,7 +1,7 @@
 %(head_prefix)s
 %(head)s
-<link rel="stylesheet" type="text/css" href="../../css/base.css" />
-<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<link rel="stylesheet" type="text/css" href="base.css" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
 <script type="text/javascript">
 /* <![CDATA[ */
     (function() {
@@ -21,13 +21,6 @@
 </style>
 %(body_prefix)s
     <div id="container">
-    <div id="headerNav">
-    <ul>
-    <li class="first"><a href="/">Home</a></li>
-    <li><a href="../../products.html">Products</a></li>
-    <li><a href="../../contact.html">Contact</a></li>
-    </ul>
-    </div>
     <div id="header">
     <div id="orange"></div>
     <div id="logo"></div>
