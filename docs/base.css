@@ -47,7 +47,7 @@ body { text-align: center; }
 #header {
     height: 116px;
     width: 695px;
-    background: url(../img/orange.png) #FDA72A no-repeat top left;
+    background: url('img/orange.png') #FDA72A no-repeat top left;
 }
 
 #header h1 {
@@ -56,7 +56,7 @@ body { text-align: center; }
     float: right;
     width: 536px;
     height: 116px;
-    background: url(../img/logo.png);
+    background: url('img/logo.png');
 }
 
 #header h1 span, #header h2 { display: none; }
@@ -65,7 +65,7 @@ body { text-align: center; }
     clear: both;
     width: 695px;
     height: 49px;
-    background: #D3D3D3 url(../img/footer.png) no-repeat left top;
+    background: #D3D3D3 url('img/footer.png') no-repeat left top;
     text-align: center;
     margin-bottom: 1em;
 }

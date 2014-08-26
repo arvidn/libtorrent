@@ -6,8 +6,8 @@
 <meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
-<link rel="stylesheet" type="text/css" href="../../css/base.css" />
-<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<link rel="stylesheet" type="text/css" href="base.css" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
 <script type="text/javascript">
 /* <![CDATA[ */
     (function() {
@@ -29,13 +29,6 @@
 <body>
 <div class="document" id="bittorrent-extension-for-arbitrary-dht-store">
     <div id="container">
-    <div id="headerNav">
-    <ul>
-    <li class="first"><a href="/">Home</a></li>
-    <li><a href="../../products.html">Products</a></li>
-    <li><a href="../../contact.html">Contact</a></li>
-    </ul>
-    </div>
     <div id="header">
     <div id="orange"></div>
     <div id="logo"></div>
@@ -315,14 +308,14 @@ some additional error codes.</p>
 </thead>
 <tbody valign="top">
 <tr><td>205</td>
-<td>message (i.e. <tt class="docutils literal">v</tt> field)
+<td>message (<tt class="docutils literal">v</tt> field)
 too big.</td>
 </tr>
 <tr><td>206</td>
 <td>invalid signature</td>
 </tr>
 <tr><td>207</td>
-<td>salt (i.e. <tt class="docutils literal">salt</tt> field)
+<td>salt (<tt class="docutils literal">salt</tt> field)
 too big.</td>
 </tr>
 <tr><td>301</td>
@@ -394,7 +387,7 @@ prepended if a non-empty salt is specified in the <tt class="docutils literal">p
 </ol>
 <p>On the storage node, the signature MUST be verified before accepting the store
 command. The data MUST be stored under the SHA-1 hash of the public key (as it
-appears in the bencoded dict).</p>
+appears in the bencoded dict) and the salt (if present).</p>
 <p>On the requesting nodes, the key they get back from a <tt class="docutils literal">get</tt> request MUST be
 verified to hash to the target ID the lookup was made for, as well as verifying
 the signature. If any of these fail, the response SHOULD be considered invalid.</p>
