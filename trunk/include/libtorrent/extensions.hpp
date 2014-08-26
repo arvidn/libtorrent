@@ -181,7 +181,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/torrent_peer.hpp" // for torrent_peer
 
 namespace libtorrent
 {
@@ -198,8 +197,8 @@ namespace libtorrent
 	class alert;
 	struct torrent_plugin;
 	class torrent;
-	struct add_torrent_params;
 	struct torrent_peer;
+	struct add_torrent_params;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -414,6 +413,10 @@ namespace libtorrent
 
 		// called after a choke message has been sent to the peer
 		virtual void sent_unchoke() {}
+
+		// called after piece data has been sent to the peer
+		// this can be used for stats book keeping
+		virtual void sent_payload(int /* bytes */) {}
 
 		// called when libtorrent think this peer should be disconnected.
 		// if the plugin returns false, the peer will not be disconnected.
