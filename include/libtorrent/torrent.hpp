@@ -447,6 +447,10 @@ namespace libtorrent
 		void do_pause();
 		void do_resume();
 
+		int finished_time() const;
+		int active_time() const;
+		int seeding_time() const;
+
 		bool is_paused() const;
 		bool allows_peers() const { return m_allow_peers; }
 		bool is_torrent_paused() const { return !m_allow_peers || m_graceful_pause_mode; }
@@ -686,7 +690,7 @@ namespace libtorrent
 		void announce_with_tracker(boost::uint8_t e
 			= tracker_request::none
 			, address const& bind_interface = address_v4::any());
-		int seconds_since_last_scrape() const { return m_last_scrape; }
+		int seconds_since_last_scrape() const { return m_ses.session_time() - m_last_scrape; }
 
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();
@@ -1028,7 +1032,7 @@ namespace libtorrent
 		// that are not private
 		void lsd_announce();
 
-		void update_last_upload() { m_last_upload = 0; }
+		void update_last_upload() { m_last_upload = m_ses.session_time(); }
 
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
@@ -1307,6 +1311,14 @@ namespace libtorrent
 		// hours to keep the timestamps fit in 16 bits
 		boost::uint16_t m_started;
 
+		// if we're a seed, this is the session time
+		// timestamp of when we became one
+		boost::uint16_t m_became_seed;
+
+		// if we're finished, this is the session time
+		// timestamp of when we finished
+		boost::uint16_t m_became_finished;
+
 		// when checking, this is the first piece we have not
 		// issued a hash job for
 		int m_checking_piece;
@@ -1357,8 +1369,9 @@ namespace libtorrent
 		// 8 bits after each one
 		// ==============================
 
-		// the number of seconds we've been in upload mode
-		unsigned int m_upload_mode_time:24;
+		// the session time timestamp of when we entered upload mode
+		// if we're currently in upload-mode
+		boost::uint16_t m_upload_mode_time;
 
 		// true when this torrent should anncounce to
 		// trackers
@@ -1551,9 +1564,11 @@ namespace libtorrent
 
 // ----
 
-		// the number of seconds since the last piece passed for
-		// this torrent
-		boost::uint64_t m_last_download:24;
+		// the timestamp of the last piece passed for this torrent
+		// specified in session_time
+		boost::uint16_t m_last_download;
+
+		// TODO: 8 bits free here
 
 		// this is a second count-down to when we should tick the
 		// storage for this torrent. Ticking the storage is used
@@ -1565,9 +1580,11 @@ namespace libtorrent
 
 // ----
 
-		// the number of seconds since the last byte was uploaded
-		// from this torrent
-		boost::uint64_t m_last_upload:24;
+		// the timestamp of the last byte uploaded from this torrent
+		// specified in session_time
+		boost::uint16_t m_last_upload;
+
+		// TODO: 8 bits here
 
 		// if this is true, libtorrent may pause and resume
 		// this torrent depending on queuing rules. Torrents
@@ -1596,9 +1613,10 @@ namespace libtorrent
 		// is optional and may be 0xffffff
 		unsigned int m_downloaded:24;
 
-		// the number of seconds since the last scrape request to
+		// the timestamp of the last scrape request to
 		// one of the trackers in this torrent
-		boost::uint64_t m_last_scrape:16;
+		// specified in session_time
+		boost::uint16_t m_last_scrape;
 
 // ----
 
