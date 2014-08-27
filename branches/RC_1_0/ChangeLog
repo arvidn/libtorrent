@@ -1,3 +1,4 @@
+	* simplify CAS function in DHT put
 	* support IPv6 traffic class (via the TOS setting)
 	* made uTP re-enter slow-start after time-out
 	* fixed uTP upload performance issue

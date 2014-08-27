@@ -75,11 +75,6 @@ void TORRENT_EXPORT sign_mutable_item(
 	, char const* sk
 	, char* sig);
 
-sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(
-	std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
-	, boost::uint64_t seq);
-
 enum
 {
 	item_pk_len = 32,
@@ -119,8 +114,6 @@ public:
 	bool empty() const { return m_value.type() == entry::undefined_t; }
 
 	bool is_mutable() const { return m_mutable; }
-
-	sha1_hash cas();
 
 	entry const& value() const { return m_value; }
 	boost::array<char, item_pk_len> const& pk() const
