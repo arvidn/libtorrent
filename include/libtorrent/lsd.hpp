@@ -65,23 +65,25 @@ public:
 
 private:
 
-	void resend_announce(error_code const& e, std::string msg);
+	void announce_impl(sha1_hash const& ih, int listen_port
+		, bool broadcast, int retry_count);
+	void resend_announce(error_code const& e, sha1_hash const& ih
+		, int listen_port, int retry_count);
 	void on_announce(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
-//	void setup_receive();
 
 	peer_callback_t m_callback;
 
 	// the udp socket used to send and receive
 	// multicast messages on
 	broadcast_socket m_socket;
+#if TORRENT_USE_IPV6
+	broadcast_socket m_socket6;
+#endif
 
 	// used to resend udp packets in case
 	// they time out
 	deadline_timer m_broadcast_timer;
-
-	// current retry count
-	boost::uint32_t m_retry_count;
 
 	// this is a random (presumably unique)
 	// ID for this LSD node. It is used to
@@ -91,6 +93,9 @@ private:
 	int m_cookie;
 
 	bool m_disabled;
+#if TORRENT_USE_IPV6
+	bool m_disabled6;
+#endif
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	FILE* m_log;
 #endif

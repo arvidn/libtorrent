@@ -57,18 +57,21 @@
 </li>
 <li><a class="reference internal" href="#mutable-items" id="id8">mutable items</a><ul>
 <li><a class="reference internal" href="#id1" id="id9">put message</a></li>
-<li><a class="reference internal" href="#id2" id="id10">get message</a></li>
+<li><a class="reference internal" href="#cas" id="id10">CAS</a></li>
+<li><a class="reference internal" href="#response" id="id11">response</a></li>
+<li><a class="reference internal" href="#errors" id="id12">errors</a></li>
+<li><a class="reference internal" href="#id2" id="id13">get message</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#signature-verification" id="id11">signature verification</a></li>
-<li><a class="reference internal" href="#expiration" id="id12">expiration</a></li>
-<li><a class="reference internal" href="#test-vectors" id="id13">test vectors</a><ul>
-<li><a class="reference internal" href="#test-1-mutable" id="id14">test 1 (mutable)</a></li>
-<li><a class="reference internal" href="#test-2-mutable-with-salt" id="id15">test 2 (mutable with salt)</a></li>
-<li><a class="reference internal" href="#test-3-immutable" id="id16">test 3 (immutable)</a></li>
+<li><a class="reference internal" href="#signature-verification" id="id14">signature verification</a></li>
+<li><a class="reference internal" href="#expiration" id="id15">expiration</a></li>
+<li><a class="reference internal" href="#test-vectors" id="id16">test vectors</a><ul>
+<li><a class="reference internal" href="#test-1-mutable" id="id17">test 1 (mutable)</a></li>
+<li><a class="reference internal" href="#test-2-mutable-with-salt" id="id18">test 2 (mutable with salt)</a></li>
+<li><a class="reference internal" href="#test-3-immutable" id="id19">test 3 (immutable)</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#resources" id="id17">resources</a></li>
+<li><a class="reference internal" href="#resources" id="id20">resources</a></li>
 </ul>
 </div>
 <p>This is a proposal for an extension to the BitTorrent DHT to allow
@@ -220,7 +223,7 @@ the buffer to be signed is:</p>
 {
         &quot;a&quot;:
         {
-                &quot;cas&quot;: <em>&lt;optional 20 byte hash (string)&gt;</em>,
+                &quot;cas&quot;: <em>&lt;optional expected seq-nr (int)&gt;</em>,
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;k&quot;: <em>&lt;ed25519 public key (32 bytes string)&gt;</em>,
                 &quot;salt&quot;: <em>&lt;optional salt to be appended to &quot;k&quot; when hashing (string)&gt;</em>
@@ -262,15 +265,25 @@ is intentional. When issuing a <tt class="docutils literal">get</tt> request for
 know what the salt is (because it is part of what the target ID that is being
 looked up is derived from). There is no need to repeat it back for bystanders
 to see.</p>
-<p>The <tt class="docutils literal">cas</tt> field is optional. If present it is interpreted as the sha-1 hash of
-the sequence number, <tt class="docutils literal">v</tt> field and possibly the <tt class="docutils literal">salt</tt> field, that is
-expected to be replaced. The buffer to hash is the same as the one signed when
-storing. <tt class="docutils literal">cas</tt> is short for <em>compare and swap</em>, it has similar semantics as
-CAS CPU instructions. If specified as part of the put command, and the current
-value stored under the public key differs from the expected value, the store
-fails. The <tt class="docutils literal">cas</tt> field only applies to mutable puts. If there is no current
-value, the <tt class="docutils literal">cas</tt> field SHOULD be ignored. A put operation should not be
-prevented based on the <tt class="docutils literal">cas</tt> field if no value is currently present.</p>
+</div>
+<div class="section" id="cas">
+<h2>CAS</h2>
+<p>CAS is short for <em>compare and swap</em>, it has similar semantics as CAS CPU
+instructions. It is used to avoid race conditions when multiple nodes are
+writing to the same slot in the DHT.</p>
+<p>The <tt class="docutils literal">cas</tt> field is optional. If present it specifies the sequence number of
+the data blob being overwritten by the put. When present, the storing node
+MUST compare this number to the current sequence number it has stored under
+this key. Only if the <tt class="docutils literal">cas</tt> matches the stored sequence number is the put
+performed. If it mismatches, the store fails and an error is returned.
+See <a class="reference internal" href="#errors">errors</a> below.</p>
+<p>The <tt class="docutils literal">cas</tt> field only applies to mutable puts. If there is no current
+value, the <tt class="docutils literal">cas</tt> field SHOULD be ignored.</p>
+<p>When sending a <tt class="docutils literal">put</tt> request to a node that did not return any data for the
+<tt class="docutils literal">get</tt>, the <tt class="docutils literal">cas</tt> field SHOULD NOT be included.</p>
+</div>
+<div class="section" id="response">
+<h2>response</h2>
 <p>Response:</p>
 <pre class="literal-block">
 {
@@ -279,13 +292,13 @@ prevented based on the <tt class="docutils literal">cas</tt> field if no value i
         &quot;y&quot;: &quot;r&quot;,
 }
 </pre>
+</div>
+<div class="section" id="errors">
+<h2>errors</h2>
 <p>If the store fails for any reason an error message is returned instead of the
 message template above, i.e. one where &quot;y&quot; is &quot;e&quot; and &quot;e&quot; is a tuple of
-[error-code, message]). Failures include where the <tt class="docutils literal">cas</tt> hash mismatches and
-the sequence number is outdated.</p>
-<p>If no <tt class="docutils literal">cas</tt> field is included in the <tt class="docutils literal">put</tt> message, the value of the current
-<tt class="docutils literal">v</tt> field should be disregarded when determining whether or not to save the
-item. (However, the signature, sequence number obviously still should).</p>
+[error-code, message]). Failures include <tt class="docutils literal">cas</tt> mismatches and the sequence
+number is outdated.</p>
 <p>The error message (as specified by <a class="reference external" href="http://www.bittorrent.org/beps/bep_0005.html">BEP5</a>) looks like this:</p>
 <pre class="literal-block">
 {
@@ -329,7 +342,7 @@ current.</td>
 </tr>
 </tbody>
 </table>
-<p>An implementation MUST emit 301 errors if the cas-hash mismatches. This is a
+<p>An implementation MUST emit 301 errors if the cas mismatches. This is a
 critical feature in synchronization of multiple agents sharing an immutable
 item.</p>
 </div>
