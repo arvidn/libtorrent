@@ -150,15 +150,6 @@ void sign_mutable_item(
 	);
 }
 
-sha1_hash mutable_item_cas(std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
-	, boost::uint64_t seq)
-{
-	char str[canonical_length];
-	int len = canonical_string(v, seq, salt, str);
-	return hasher(str, len).final();
-}
-
 item::item(char const* pk, std::string const& salt)
 	: m_salt(salt)
 	, m_seq(0)
@@ -228,14 +219,6 @@ void item::assign(entry const& v, std::string salt, boost::uint64_t seq
 	m_seq = seq;
 	m_mutable = true;
 	m_value = v;
-}
-
-sha1_hash item::cas()
-{
-	char buffer[1000];
-	int bsize = bencode(buffer, m_value);
-	return mutable_item_cas(std::make_pair(buffer, bsize)
-		, std::pair<char const*, int>(m_salt.c_str(), m_salt.size()), m_seq);
 }
 
 } } // namespace libtorrent::dht

@@ -189,7 +189,7 @@ Request:
 	{
 		"a":
 		{
-			"cas": *<optional 20 byte hash (string)>*,
+			"cas": *<optional expected seq-nr (int)>*,
 			"id": *<20 byte id of sending node (string)>*,
 			"k": *<ed25519 public key (32 bytes string)>*,
 			"salt": *<optional salt to be appended to "k" when hashing (string)>*
@@ -237,15 +237,28 @@ know what the salt is (because it is part of what the target ID that is being
 looked up is derived from). There is no need to repeat it back for bystanders
 to see.
 
-The ``cas`` field is optional. If present it is interpreted as the sha-1 hash of
-the sequence number, ``v`` field and possibly the ``salt`` field, that is
-expected to be replaced. The buffer to hash is the same as the one signed when
-storing. ``cas`` is short for *compare and swap*, it has similar semantics as
-CAS CPU instructions. If specified as part of the put command, and the current
-value stored under the public key differs from the expected value, the store
-fails. The ``cas`` field only applies to mutable puts. If there is no current
-value, the ``cas`` field SHOULD be ignored. A put operation should not be
-prevented based on the ``cas`` field if no value is currently present.
+CAS
+...
+
+CAS is short for *compare and swap*, it has similar semantics as CAS CPU
+instructions. It is used to avoid race conditions when multiple nodes are
+writing to the same slot in the DHT.
+
+The ``cas`` field is optional. If present it specifies the sequence number of
+the data blob being overwritten by the put. When present, the storing node
+MUST compare this number to the current sequence number it has stored under
+this key. Only if the ``cas`` matches the stored sequence number is the put
+performed. If it mismatches, the store fails and an error is returned.
+See errors_ below.
+
+The ``cas`` field only applies to mutable puts. If there is no current
+value, the ``cas`` field SHOULD be ignored.
+
+When sending a ``put`` request to a node that did not return any data for the
+``get``, the ``cas`` field SHOULD NOT be included.
+
+response
+........
 
 Response:
 
@@ -257,14 +270,13 @@ Response:
 		"y": "r",
 	}
 
+errors
+......
+
 If the store fails for any reason an error message is returned instead of the
 message template above, i.e. one where "y" is "e" and "e" is a tuple of
-[error-code, message]). Failures include where the ``cas`` hash mismatches and
-the sequence number is outdated.
-
-If no ``cas`` field is included in the ``put`` message, the value of the current
-``v`` field should be disregarded when determining whether or not to save the
-item. (However, the signature, sequence number obviously still should).
+[error-code, message]). Failures include ``cas`` mismatches and the sequence
+number is outdated.
 
 The error message (as specified by BEP5_) looks like this:
 
@@ -300,7 +312,7 @@ some additional error codes.
 |            | current.                    |
 +------------+-----------------------------+
 
-An implementation MUST emit 301 errors if the cas-hash mismatches. This is a
+An implementation MUST emit 301 errors if the cas mismatches. This is a
 critical feature in synchronization of multiple agents sharing an immutable
 item.
 
