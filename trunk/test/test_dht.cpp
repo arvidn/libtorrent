@@ -140,7 +140,7 @@ void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
 	, char const* target = 0, entry const* value = 0
 	, bool scrape = false, bool seed = false
 	, std::string const key = std::string(), std::string const sig = std::string()
-	, int seq = -1, char const* cas = 0, sha1_hash const* nid = NULL
+	, int seq = -1, boost::int64_t cas = -1, sha1_hash const* nid = NULL
 	, char const* put_salt = NULL)
 {
 	// we're about to clear out the backing buffer
@@ -164,7 +164,7 @@ void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
 	if (scrape) a["scrape"] = 1;
 	if (seed) a["seed"] = 1;
 	if (seq >= 0) a["seq"] = seq;
-	if (cas) a["cas"] = std::string(cas, 20);
+	if (cas != -1) a["cas"] = cas;
 	if (put_salt) a["salt"] = put_salt;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
@@ -832,7 +832,7 @@ int test_main()
 		send_dht_request(node, "put", source, &response, "10", 0
 			, 0, token, 0, 0, &items[0].ent, false, false
 			, std::string(public_key, item_pk_len)
-			, std::string(signature, item_sig_len), seq, NULL, NULL, salt.first);
+			, std::string(signature, item_sig_len), seq, -1, NULL, salt.first);
 
 		ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
 		if (ret)
@@ -905,7 +905,7 @@ int test_main()
 		send_dht_request(node, "put", source, &response, "10", 0
 			, 0, token, 0, 0, &items[0].ent, false, false
 			, std::string(public_key, item_pk_len)
-			, std::string(signature, item_sig_len), seq, NULL, NULL, salt.first);
+			, std::string(signature, item_sig_len), seq, -1, NULL, salt.first);
 
 		ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
 		if (ret)
@@ -924,8 +924,9 @@ int test_main()
 	
 		// === test CAS put ===
 
-		// this is the hash that we expect to be there
-		sha1_hash cas = mutable_item_cas(itemv, salt, seq);
+		// this is the sequence number we expect to be there
+		boost::uint64_t cas = seq;
+
 		// increment sequence number
 		++seq;
 		// put item 1
@@ -944,7 +945,7 @@ int test_main()
 			, 0, token, 0, 0, &items[1].ent, false, false
 			, std::string(public_key, item_pk_len)
 			, std::string(signature, item_sig_len), seq
-			, (char const*)&cas[0], NULL, salt.first);
+			, cas, NULL, salt.first);
 
 		ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
 		if (ret)
@@ -969,7 +970,7 @@ int test_main()
 			, 0, token, 0, 0, &items[1].ent, false, false
 			, std::string(public_key, item_pk_len)
 			, std::string(signature, item_sig_len), seq
-			, (char const*)&cas[0], NULL, salt.first);
+			, cas, NULL, salt.first);
 
 		ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
 		if (ret)

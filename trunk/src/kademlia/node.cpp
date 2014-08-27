@@ -952,7 +952,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			// public key
 			{"k", lazy_entry::string_t, item_pk_len, key_desc_t::optional},
 			{"sig", lazy_entry::string_t, item_sig_len, key_desc_t::optional},
-			{"cas", lazy_entry::string_t, 20, key_desc_t::optional},
+			{"cas", lazy_entry::int_t, 0, key_desc_t::optional},
 			{"salt", lazy_entry::string_t, 0, key_desc_t::optional},
 		};
 
@@ -1115,20 +1115,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				dht_mutable_item* item = &i->second;
 
 				// this is the "cas" field in the put message
-				// if it was specified, we MUST make sure the current value
-				// matches the expected value before replacing it
-				if (msg_keys[5])
+				// if it was specified, we MUST make sure the current sequence
+				// number matches the expected value before replacing it
+				// this is critical for avoiding race conditions when multiple
+				// writers are accessing the same slot
+				if (msg_keys[5] && item->seq != msg_keys[5]->int_value())
 				{
-					sha1_hash h = mutable_item_cas(
-						std::make_pair(item->value, item->size)
-						, std::make_pair(item->salt, item->salt_size)
-						, item->seq);
-
-					if (h != sha1_hash(msg_keys[5]->string_ptr()))
-					{
-						incoming_error(e, "CAS hash failed", 301);
-						return;
-					}
+					incoming_error(e, "CAS mismatch", 301);
+					return;
 				}
 
 				if (item->seq > boost::uint64_t(msg_keys[2]->int_value()))
