@@ -96,8 +96,8 @@ else:
 	ext = [Extension('libtorrent',
 		sources = source_list,
 		language='c++',
-		include_dirs = ['../../../include'] + parse_cmd(extra_cmd, '-I'),
-		library_dirs = ['../../src/.libs'] + parse_cmd(extra_cmd, '-L'),
+		include_dirs = parse_cmd(extra_cmd, '-I'),
+		library_dirs = parse_cmd(extra_cmd, '-L'),
 		extra_link_args = ldflags.split() + arch(),
 		extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch() \
 			+ target_specific(),
