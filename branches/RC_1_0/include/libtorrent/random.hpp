@@ -35,6 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	void random_seed(boost::uint32_t v);
+	void TORRENT_EXTRA_EXPORT random_seed(boost::uint32_t v);
 	boost::uint32_t TORRENT_EXTRA_EXPORT random();
 }
