@@ -209,7 +209,7 @@ namespace libtorrent
 				- common_bits(b1.data(), b2.data(), b1.size());
 #if TORRENT_USE_IPV6
 		}
-	
+
 		address_v6::bytes_type b1;
 		address_v6::bytes_type b2;
 		if (a1.is_v4()) b1 = address_v6::v4_mapped(a1.to_v4()).to_bytes();
@@ -244,7 +244,7 @@ namespace libtorrent
 		else
 #endif
 			open_multicast_socket(ios, address_v4::any(), loopback, ec);
-		
+
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
@@ -254,6 +254,19 @@ namespace libtorrent
 			if (!loopback && is_loopback(i->interface_address)) continue;
 
 			ec = error_code();
+#if TORRENT_USE_IPV6
+			if (i->interface_address.is_v6() &&
+			    i->interface_address.to_v6().is_link_local()) {
+				address_v6 addr6 = i->interface_address.to_v6();
+				addr6.scope_id(if_nametoindex(i->name));
+				open_multicast_socket(ios, addr6, loopback, ec);
+
+				address_v4 const& mask = i->netmask.is_v4() ?
+				    i->netmask.to_v4() : address_v4();
+				open_unicast_socket(ios, addr6, mask);
+				continue;
+			}
+#endif
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifdef TORRENT_DEBUG
 //			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
