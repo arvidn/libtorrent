@@ -8,6 +8,7 @@
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings.hpp> // for bencode_map_entry
 #include <libtorrent/storage.hpp>
+#include <libtorrent/error_code.hpp>
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/aux_/session_settings.hpp>
@@ -267,12 +268,7 @@ namespace
 
         allow_threading_guard guard;
 
-#ifndef BOOST_NO_EXCEPTIONS
         s.async_add_torrent(p);
-#else
-        error_code ec;
-        s.async_add_torrent(p, ec);
-#endif
     }
 
     void dict_to_feed_settings(dict params, feed_settings& feed)
