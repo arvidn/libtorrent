@@ -11,11 +11,14 @@
 
 #endif
 
+#include "libtorrent/config.hpp"
+
 #include "print.hpp"
 
-#include <stdio.h> // for snprintf
 #include <stdlib.h> // for atoi
+#include <string.h> // for strlen
 #include <cmath>
+#include <algorithm> // for std::min
 
 char const* esc(char const* code)
 {
@@ -263,7 +266,9 @@ void print(char const* str)
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	char* buf = (char*)str;
+	char buffer[4096];
+	char* buf = buffer;
+	strcpy(buf, str);
 
 	int current_attributes = 7;
 	bool reverse = false;
