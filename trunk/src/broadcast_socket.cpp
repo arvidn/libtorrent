@@ -60,6 +60,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/multicast.hpp>
 #endif
 
+#ifdef TORRENT_WINDOWS
+#include <iphlpapi.h> // for if_nametoindex
+#endif
+
 namespace libtorrent
 {
 	bool is_local(address const& a)

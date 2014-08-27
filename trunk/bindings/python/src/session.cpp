@@ -6,7 +6,6 @@
 #include <list>
 #include <string>
 #include <libtorrent/session.hpp>
-#include <libtorrent/settings.hpp> // for bencode_map_entry
 #include <libtorrent/storage.hpp>
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/ip_filter.hpp>
