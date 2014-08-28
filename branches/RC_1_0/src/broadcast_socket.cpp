@@ -60,6 +60,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/multicast.hpp>
 #endif
 
+#ifdef TORRENT_WINDOWS
+#include <iphlpapi.h> // for if_nametoindex
+#endif
+
 namespace libtorrent
 {
 	bool is_local(address const& a)
@@ -254,7 +258,10 @@ namespace libtorrent
 			if (!loopback && is_loopback(i->interface_address)) continue;
 
 			ec = error_code();
-#if TORRENT_USE_IPV6
+
+			// if_nametoindex was introduced in vista
+#if TORRENT_USE_IPV6 \
+		&& (!defined TORRENT_WINDOWS || _WIN32_WINNT >= _WIN32_WINNT_VISTA)
 			if (i->interface_address.is_v6() &&
 			    i->interface_address.to_v6().is_link_local()) {
 				address_v6 addr6 = i->interface_address.to_v6();
