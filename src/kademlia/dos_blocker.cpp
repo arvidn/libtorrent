@@ -64,6 +64,8 @@ namespace libtorrent { namespace dht
 		if (match)
 		{
 			++match->count;
+
+			// TODO: 2 make these limits configurable
 			if (match->count >= 50)
 			{
 				if (now < match->limit)
