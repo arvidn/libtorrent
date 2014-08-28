@@ -6351,7 +6351,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log(">>> COMPLETED [ ep: %s rtt: %d ]", print_endpoint(m_remote).c_str(), m_rtt);
+		peer_log(">>> COMPLETED [ ep: %s rtt: %d ]"
+			, print_endpoint(m_remote).c_str(), m_rtt.mean());
 #endif
 
 		// set the socket to non-blocking, so that we can
