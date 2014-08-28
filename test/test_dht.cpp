@@ -1367,14 +1367,6 @@ int test_main()
 
 	// test traversal algorithms
 
-	dht::key_desc_t ping_desc[] = {
-		{"y", lazy_entry::string_t, 1, 0},
-		{"t", lazy_entry::string_t, 2, 0},
-		{"q", lazy_entry::string_t, 4, 0},
-		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
-			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
-	};
-
 	dht::key_desc_t find_node_desc[] = {
 		{"y", lazy_entry::string_t, 1, 0},
 		{"t", lazy_entry::string_t, 2, 0},
