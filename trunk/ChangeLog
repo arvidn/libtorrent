@@ -27,6 +27,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* make DHT DOS detection more forgiving to bursts
 	* support IPv6 multicast in local service discovery
 	* simplify CAS function in DHT put
 	* support IPv6 traffic class (via the TOS setting)

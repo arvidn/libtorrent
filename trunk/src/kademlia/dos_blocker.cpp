@@ -57,40 +57,42 @@ namespace libtorrent { namespace dht
 				break;
 			}
 			if (i->count < min->count) min = i;
+			else if (i->count == min->count
+				&& i->limit < min->limit) min = i;
 		}
 
 		if (match)
 		{
 			++match->count;
-			if (match->count >= 20)
+			if (match->count >= 50)
 			{
 				if (now < match->limit)
 				{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-					if (match->count == 20)
+					if (match->count == 50)
 					{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 						TORRENT_LOG(dht_tracker) << " BANNING PEER [ ip: "
-							<< addr << " time: " << total_milliseconds((now - match->limit) + seconds(5)) / 1000.f
+							<< addr << " time: " << total_milliseconds((now - match->limit) + seconds(10)) / 1000.f
 							<< " count: " << match->count << " ]";
-					}
 #endif
+						// we've received 50 messages in less than 10 seconds from
+						// this node. Ignore it until it's silent for 5 minutes
+						match->limit = now + minutes(5);
+					}
 		
-					// we've received 20 messages in less than 5 seconds from
-					// this node. Ignore it until it's silent for 5 minutes
-					match->limit = now + minutes(5);
 					return false;
 				}
 
 				// we got 50 messages from this peer, but it was in
-				// more than 5 seconds. Reset the counter and the timer
+				// more than 10 seconds. Reset the counter and the timer
 				match->count = 0;
-				match->limit = now + seconds(5);
+				match->limit = now + seconds(10);
 			}
 		}
 		else
 		{
 			min->count = 1;
-			min->limit = now + seconds(5);
+			min->limit = now + seconds(10);
 			min->src = addr;
 		}
 		return true;
