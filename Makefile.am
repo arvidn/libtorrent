@@ -64,6 +64,24 @@ DOCS_PAGES = \
   docs/troubleshooting.html       \
   docs/udp_tracker_protocol.html  \
   docs/utp.html                   \
+  docs/building.rst               \
+  docs/client_test.rst            \
+  docs/contributing.rst           \
+  docs/dht_extensions.rst         \
+  docs/dht_rss.rst                \
+  docs/dht_sec.rst                \
+  docs/dht_store.rst              \
+  docs/examples.rst               \
+  docs/extension_protocol.rst     \
+  docs/features.rst               \
+  docs/index.rst                  \
+  docs/manual-ref.rst             \
+  docs/projects.rst               \
+  docs/python_binding.rst         \
+  docs/tuning.rst                 \
+  docs/troubleshooting.rst        \
+  docs/udp_tracker_protocol.rst   \
+  docs/utp.rst                    \
   docs/reference-Alerts.html      \
   docs/reference-Bencoding.html   \
   docs/reference-Core.html        \
