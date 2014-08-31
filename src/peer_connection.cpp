@@ -2500,7 +2500,7 @@ namespace libtorrent
 			if (i->receiving == false)
 			{
 				i->receiving = true;
-				// if byte_offset is greater then or equal to 0, it means
+				// if send_buffer_offset is greater then or equal to 0, it means
 				// the callback of the send operation when we sent this
 				// request hasn't come back yet, and we're already
 				// receiving the response from it. Count the rtt as 0.
