@@ -36,7 +36,9 @@ namespace
         allow_threading_guard guard;
         error_code ec;
         s.listen_on(std::make_pair(min_, max_), ec, interface, flags);
+#ifndef BOOST_NO_EXCEPTIONS
         if (ec) throw libtorrent_exception(ec);
+#endif
     }
 #endif
 
