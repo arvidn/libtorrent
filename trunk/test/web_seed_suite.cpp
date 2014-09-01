@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/alert_types.hpp"
 
+#include "test.hpp"
 #include "setup_transfer.hpp"
 
 #include <boost/tuple/tuple.hpp>
