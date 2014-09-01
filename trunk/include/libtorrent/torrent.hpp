@@ -1568,7 +1568,7 @@ namespace libtorrent
 		// specified in session_time
 		boost::uint16_t m_last_download;
 
-		// TODO: 8 bits free here
+		// TODO: There are 8 bits free here
 
 		// this is a second count-down to when we should tick the
 		// storage for this torrent. Ticking the storage is used
@@ -1584,7 +1584,7 @@ namespace libtorrent
 		// specified in session_time
 		boost::uint16_t m_last_upload;
 
-		// TODO: 8 bits here
+		// TODO: There are 8 bits here
 
 		// if this is true, libtorrent may pause and resume
 		// this torrent depending on queuing rules. Torrents

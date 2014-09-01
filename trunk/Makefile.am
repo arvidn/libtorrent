@@ -21,10 +21,12 @@ DOCS_IMAGES = \
   docs/our_delay_base.png         \
   docs/our_delay_base_thumb.png   \
   docs/read_disk_buffers.png      \
+  docs/read_disk_buffers.diagram  \
   docs/session_stats_peers.png    \
   docs/storage.png                \
   docs/todo.html                  \
   docs/write_disk_buffers.png     \
+  docs/write_disk_buffers.diagram \
   docs/ziptorrent_thumb.gif       \
   docs/disk_access_elevator.png   \
   docs/disk_access_no_elevator.png\
@@ -32,8 +34,13 @@ DOCS_IMAGES = \
   docs/ip_id_v6.png               \
   docs/hash_distribution.png      \
   docs/complete_bit_prefixes.png  \
+  docs/troubleshooting.dot        \
   docs/troubleshooting.png        \
   docs/troubleshooting_thumb.png  \
+  docs/hacking.diagram            \
+  docs/hacking.png                \
+  docs/utp_stack.diagram          \
+  docs/utp_stack.png              \
   docs/style.css                  \
   docs/base.css                   \
   docs/rst.css                    \
@@ -66,6 +73,24 @@ DOCS_PAGES = \
   docs/troubleshooting.html       \
   docs/udp_tracker_protocol.html  \
   docs/utp.html                   \
+  docs/building.rst               \
+  docs/client_test.rst            \
+  docs/contributing.rst           \
+  docs/dht_extensions.rst         \
+  docs/dht_rss.rst                \
+  docs/dht_sec.rst                \
+  docs/dht_store.rst              \
+  docs/examples.rst               \
+  docs/extension_protocol.rst     \
+  docs/features.rst               \
+  docs/index.rst                  \
+  docs/manual-ref.rst             \
+  docs/projects.rst               \
+  docs/python_binding.rst         \
+  docs/tuning.rst                 \
+  docs/troubleshooting.rst        \
+  docs/udp_tracker_protocol.rst   \
+  docs/utp.rst                    \
   docs/reference-Alerts.html      \
   docs/reference-Bencoding.html   \
   docs/reference-Core.html        \

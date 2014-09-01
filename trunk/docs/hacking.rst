@@ -62,43 +62,8 @@ structure
 This is the high level structure of libtorrent. Bold types are part of the public
 interface:
 
-.. parsed-literal::
 
-	+=========+  pimpl     +-------------------+
-	| **session** | ---------> | aux::session_impl |
-	+=========+            +-------------------+
-	                m_torrents[]  |  |
-	+================+            |  |
-	| **torrent_handle** | ------+    |  |
-	+================+       |    |  |
-	                         |    |  | m_connections[]
-	                         |    |  |
-	                         |    |  +---------------------+
-	         m_picker        v    v                        |
-	 +--------------+      +---------+---------+-- . .     |
-	 | piece_picker | <--+-| torrent | torrent | to        |
-	 +--------------+    | +---------+---------+-- . .     |
-	      m_torrent_file |      | m_connections[]          |
-	 +==============+    |      |                          |
-	 | **torrent_info** | <--+      v                          v
-	 +==============+    |     +-----------------+-----------------+-- . .
-	            m_policy |     | peer_connection | peer_connection | pe
-	 +--------+          |     +-----------------+-----------------+-- . .
-	 | policy | <--------+      |             | m_socket
-	 +--------+                 |             |
-	   | m_peers[]              |             v
-	   |                        |            +-----------------------+
-	   |                        |            | socket_type (variant) |
-	   v                        |            +-----------------------+
-	+--------------+            |
-	| policy::peer |            |
-	+--------------+            |
-	| policy::peer |            |
-	+--------------+ m_peer_info|
-	| policy::peer | <----------+
-	+--------------+
-	.              .
-	+ - - - - - - -+
+.. image:: hacking.png
 
 session_impl
 ------------

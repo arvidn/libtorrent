@@ -45,6 +45,10 @@ for f in files:
 			items[-1]['priority'] = 0
 			if line[0] in '0123456789':
 				items[-1]['priority'] = int(line[0])
+				if int(line[0]) > 5:
+					print 'priority too high: ' + line
+					sys.exit(1)
+
 				line = line[1:].strip()
 			items[-1]['todo'] = line
 			prio = items[-1]['priority']
