@@ -907,7 +907,7 @@ for cat in categories:
 
 	out.write('''
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.1
+:Version: 1.0.2
 
 .. contents:: Table of contents
   :depth: 1
