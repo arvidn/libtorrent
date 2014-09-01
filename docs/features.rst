@@ -277,6 +277,9 @@ to provide additional bandwidth to an entire feed.
 merkle hash tree torrents
 -------------------------
 
+.. image:: merkle_tree.png
+	:align: right
+
 Merkle hash tree torrents is an extension that lets a torrent file only contain the
 root hash of the hash tree forming the piece hashes. The main benefit of this feature
 is that regardless of how many pieces there is in a torrent, the .torrent file will
@@ -305,16 +308,14 @@ which lets peers verify every block of data received from peers, immediately. Th
 gives a minimum turnaround time and completely removes the problem of identifying malicious
 peers.
 
-.. image:: merkle_tree.png
-
 The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
 down to the root.
 
-.. image:: storage.png
-	:align: right
-
 customizable file storage
 -------------------------
+
+.. image:: storage.png
+	:align: right
 
 libtorrent's storage implementation is customizable. That means a special purpose bittorrent
 client can replace the default way to store files on disk.

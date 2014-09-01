@@ -39,6 +39,9 @@ li { margin-left: 2.8em; font-size: 92%; }
 
 p, ul, ol, img {margin-bottom: 1em;}
 
+.align-right {
+	float: right;
+}
 
 .document {
     margin-left: 10px;

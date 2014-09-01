@@ -276,6 +276,7 @@ to provide additional bandwidth to an entire feed.</p>
 </div>
 <div class="section" id="merkle-hash-tree-torrents">
 <h2>merkle hash tree torrents</h2>
+<img alt="merkle_tree.png" class="align-right" src="merkle_tree.png" />
 <p>Merkle hash tree torrents is an extension that lets a torrent file only contain the
 root hash of the hash tree forming the piece hashes. The main benefit of this feature
 is that regardless of how many pieces there is in a torrent, the .torrent file will
@@ -299,13 +300,12 @@ piece size. With merkle torrents, the piece size can be the minimum block size (
 which lets peers verify every block of data received from peers, immediately. This
 gives a minimum turnaround time and completely removes the problem of identifying malicious
 peers.</p>
-<img alt="merkle_tree.png" src="merkle_tree.png" />
 <p>The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
 down to the root.</p>
-<img alt="storage.png" class="align-right" src="storage.png" />
 </div>
 <div class="section" id="customizable-file-storage">
 <h2>customizable file storage</h2>
+<img alt="storage.png" class="align-right" src="storage.png" />
 <p>libtorrent's storage implementation is customizable. That means a special purpose bittorrent
 client can replace the default way to store files on disk.</p>
 <p>When implementing a bittorrent cache, it doesn't matter how the data is stored on disk, as

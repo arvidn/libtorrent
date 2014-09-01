@@ -42,7 +42,13 @@ TARGETS = index \
 	streaming \
 	$(REFERENCE_TARGETS)
 
-FIGURES = read_disk_buffers write_disk_buffers troubleshooting
+FIGURES = \
+	read_disk_buffers \
+	write_disk_buffers \
+	troubleshooting \
+	hacking \
+	utp_stack \
+	storage
 
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
 
@@ -63,10 +69,6 @@ manual.rst: stats_counters.rst
 
 troubleshooting_thumb.png: troubleshooting.png
 	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
-	cp $@ $(WEB_PATH)/$@
-
-troubleshooting.png: troubleshooting.dot
-	dot troubleshooting.dot -Tpng >troubleshooting.png
 	cp $@ $(WEB_PATH)/$@
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
@@ -92,6 +94,10 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 
 %.eps:%.dot
 	dot -Teps $? >$@
+	cp $@ $(WEB_PATH)/$@
+
+%.png:%.diagram
+	java -jar /opt/local/share/java/ditaa0_9.jar -E $? $@
 	cp $@ $(WEB_PATH)/$@
 
 clean:
