@@ -873,17 +873,7 @@ disk cache, by requesting all blocks in a single piece, from the same peer.</p>
 <p>Torrents may have an SSL root (CA) certificate embedded in them. Such torrents
 are called <em>SSL torrents</em>. An SSL torrent talks to all bittorrent peers over
 SSL. The protocols are layered like this:</p>
-<pre class="literal-block">
-+-----------------------+
-| BitTorrent protocol   |
-+-----------------------+
-| SSL                   |
-+-----------+-----------+
-| TCP       | uTP       |
-|           +-----------+
-|           | UDP       |
-+-----------+-----------+
-</pre>
+<img alt="utp_stack.png" src="utp_stack.png" />
 <p>During the SSL handshake, both peers need to authenticate by providing a
 certificate that is signed by the CA certificate found in the .torrent file.
 These peer certificates are expected to be privided to peers through some other

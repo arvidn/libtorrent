@@ -3452,11 +3452,6 @@ void TORRENT_EXPORT sign_mutable_item(
 	, char const* sk
 	, char* sig);
 
-sha1_hash TORRENT_EXTRA_EXPORT mutable_item_cas(
-	std::pair&lt;char const*, int&gt; v
-	, std::pair&lt;char const*, int&gt; salt
-	, boost::uint64_t seq);
-
 enum
 {
 	item_pk_len = 32,
@@ -3468,4 +3463,9 @@ class TORRENT_EXTRA_EXPORT item
 {
 public:
 	item() : m_seq(0), m_mutable(false)  {}
+	item(char const* pk, std::string const&amp; salt);
+	item(entry const&amp; v) { assign(v); }
+	item(entry const&amp; v
+		, std::pair&lt;char const*, int&gt; salt
+		, boost::uint64_t seq, char const* pk, char const* sk);
 </pre></td></tr></table></body></html>
