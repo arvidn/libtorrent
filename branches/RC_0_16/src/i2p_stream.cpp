@@ -116,18 +116,24 @@ namespace libtorrent
 	{
 		m_state = sam_idle;
 	
-		do_name_lookup("ME", boost::bind(&i2p_connection::set_local_endpoint, this, _1, _2));
-		h(ec);
-	}
-
-	void i2p_connection::set_local_endpoint(error_code const& ec, char const* dest)
-	{
-		if (ec || dest == 0)
+		if (ec)
 		{
-			m_i2p_local_endpoint.clear();
+			h(ec);
 			return;
 		}
-		m_i2p_local_endpoint = dest;
+
+		do_name_lookup("ME", boost::bind(&i2p_connection::set_local_endpoint, this, _1, _2, h));
+	}
+
+	void i2p_connection::set_local_endpoint(error_code const& ec, char const* dest
+		, i2p_stream::handler_type const& h)
+	{
+		if (!ec && dest != 0)
+			m_i2p_local_endpoint = dest;
+		else
+			m_i2p_local_endpoint.clear();
+
+		h(ec);
 	}
 
 	void i2p_connection::async_name_lookup(char const* name

@@ -194,7 +194,8 @@ private:
 		, name_lookup_handler handler
 		, boost::shared_ptr<i2p_stream>);
 
-	void set_local_endpoint(error_code const& ec, char const* dest);
+	void set_local_endpoint(error_code const& ec, char const* dest
+		, i2p_stream::handler_type const& h);
 
 	// to talk to i2p SAM bridge
 	boost::shared_ptr<i2p_stream> m_sam_socket;
