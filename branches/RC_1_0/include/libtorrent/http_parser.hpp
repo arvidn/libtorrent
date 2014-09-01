@@ -62,7 +62,7 @@ namespace libtorrent
 	// return true if the status code is a redirect
 	bool is_redirect(int http_status);
 
-	std::string resolve_redirect_location(std::string referrer
+	TORRENT_EXTRA_EXPORT std::string resolve_redirect_location(std::string referrer
 		, std::string location);
 
 	class TORRENT_EXTRA_EXPORT http_parser

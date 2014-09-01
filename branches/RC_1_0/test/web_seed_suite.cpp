@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include <boost/tuple/tuple.hpp>
 
+#include "test.hpp"
 #include "setup_transfer.hpp"
 
 #include <iostream>
