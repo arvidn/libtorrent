@@ -79,10 +79,8 @@ namespace libtorrent
 			for (cache_t::iterator i = m_cache.begin();
 				i != m_cache.end(); ++i)
 			{
-				cache_t::iterator e = i;
-				++i;
-				if (e->second.last_seen < oldest->second.last_seen)
-					oldest = e;
+				if (i->second.last_seen < oldest->second.last_seen)
+					oldest = i;
 			}
 
 			// remove the oldest entry
