@@ -42,7 +42,13 @@ TARGETS = index \
 	streaming \
 	$(REFERENCE_TARGETS)
 
-FIGURES = read_disk_buffers write_disk_buffers troubleshooting
+FIGURES = \
+	read_disk_buffers \
+	write_disk_buffers \
+	troubleshooting \
+	hacking \
+	utp_stack \
+	storage
 
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
 
@@ -54,10 +60,6 @@ all: html
 
 troubleshooting_thumb.png: troubleshooting.png
 	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
-	cp $@ $(WEB_PATH)/$@
-
-troubleshooting.png: troubleshooting.dot
-	dot troubleshooting.dot -Tpng >troubleshooting.png
 	cp $@ $(WEB_PATH)/$@
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
@@ -74,8 +76,8 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
-	rst2html.py --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
+	rst2html-2.6.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+	rst2html-2.6.py --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
 
 %.png:%.dot
 	dot -Tpng $? >$@
@@ -83,6 +85,10 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 
 %.eps:%.dot
 	dot -Teps $? >$@
+	cp $@ $(WEB_PATH)/$@
+
+%.png:%.diagram
+	java -jar /opt/local/share/java/ditaa0_9.jar -E $? $@
 	cp $@ $(WEB_PATH)/$@
 
 clean:

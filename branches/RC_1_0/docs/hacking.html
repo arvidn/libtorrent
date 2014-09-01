@@ -104,43 +104,7 @@ for a swarm (not necessarily connected).</p>
 <h1>structure</h1>
 <p>This is the high level structure of libtorrent. Bold types are part of the public
 interface:</p>
-<pre class="literal-block">
-+=========+  pimpl     +-------------------+
-| <strong>session</strong> | ---------&gt; | aux::session_impl |
-+=========+            +-------------------+
-                m_torrents[]  |  |
-+================+            |  |
-| <strong>torrent_handle</strong> | ------+    |  |
-+================+       |    |  |
-                         |    |  | m_connections[]
-                         |    |  |
-                         |    |  +---------------------+
-         m_picker        v    v                        |
- +--------------+      +---------+---------+-- . .     |
- | piece_picker | &lt;--+-| torrent | torrent | to        |
- +--------------+    | +---------+---------+-- . .     |
-      m_torrent_file |      | m_connections[]          |
- +==============+    |      |                          |
- | <strong>torrent_info</strong> | &lt;--+      v                          v
- +==============+    |     +-----------------+-----------------+-- . .
-            m_policy |     | peer_connection | peer_connection | pe
- +--------+          |     +-----------------+-----------------+-- . .
- | policy | &lt;--------+      |             | m_socket
- +--------+                 |             |
-   | m_peers[]              |             v
-   |                        |            +-----------------------+
-   |                        |            | socket_type (variant) |
-   v                        |            +-----------------------+
-+--------------+            |
-| policy::peer |            |
-+--------------+            |
-| policy::peer |            |
-+--------------+ m_peer_info|
-| policy::peer | &lt;----------+
-+--------------+
-.              .
-+ - - - - - - -+
-</pre>
+<img alt="hacking.png" src="hacking.png" />
 <div class="section" id="session-impl">
 <h2>session_impl</h2>
 <p>This is the session state object, containing all session global information, such as:</p>

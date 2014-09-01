@@ -21,10 +21,12 @@ DOCS_IMAGES = \
   docs/our_delay_base.png         \
   docs/our_delay_base_thumb.png   \
   docs/read_disk_buffers.png      \
+  docs/read_disk_buffers.diagram  \
   docs/session_stats_peers.png    \
   docs/storage.png                \
   docs/todo.html                  \
   docs/write_disk_buffers.png     \
+  docs/write_disk_buffers.diagram \
   docs/ziptorrent_thumb.gif       \
   docs/disk_access_elevator.png   \
   docs/disk_access_no_elevator.png\
@@ -32,8 +34,13 @@ DOCS_IMAGES = \
   docs/ip_id_v6.png               \
   docs/hash_distribution.png      \
   docs/complete_bit_prefixes.png  \
+  docs/troubleshooting.dot        \
   docs/troubleshooting.png        \
   docs/troubleshooting_thumb.png  \
+  docs/hacking.diagram            \
+  docs/hacking.png                \
+  docs/utp_stack.diagram          \
+  docs/utp_stack.png              \
   docs/style.css                  \
   docs/base.css                   \
   docs/rst.css                    \
