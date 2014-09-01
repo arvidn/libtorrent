@@ -2494,8 +2494,13 @@ retry:
 		// can make name lookups for trackers for instance.
 		// pause the session now and resume it once we've
 		// established the i2p SAM connection
+		if (s.hostname.empty())
+		{
+			error_code ec;
+			m_i2p_conn.close(ec);
+			return;
+		}
 		m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
-		open_new_incoming_i2p_connection();
 	}
 
 	void session_impl::on_i2p_open(error_code const& ec)
