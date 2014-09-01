@@ -396,6 +396,11 @@ void bind_alert()
         .add_property("status", &get_status_from_update_alert)
         ;
 
+    class_<i2p_alert, bases<alert>, noncopyable>(
+        "i2p_alert", no_init)
+        .add_property("error", &i2p_alert::error)
+        ;
+
     class_<dht_reply_alert, bases<tracker_alert>, noncopyable>(
         "dht_reply_alert", no_init)
         .def_readonly("num_peers", &dht_reply_alert::num_peers)
