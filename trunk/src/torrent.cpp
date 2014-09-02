@@ -7137,6 +7137,16 @@ namespace libtorrent
 		bool i2p = peerinfo->is_i2p_addr;
 		if (i2p)
 		{
+			if (m_ses.i2p_proxy().hostname.empty())
+			{
+				// we have an i2p torrent, but we're not connected to an i2p
+				// SAM proxy.
+				if (alerts().should_post<i2p_alert>())
+					alerts().post_alert(i2p_alert(error_code(errors::no_i2p_router
+						, get_libtorrent_category())));
+				return false;
+			}
+
 			bool ret = instantiate_connection(m_ses.get_io_service(), m_ses.i2p_proxy(), *s);
 			(void)ret;
 			TORRENT_ASSERT(ret);

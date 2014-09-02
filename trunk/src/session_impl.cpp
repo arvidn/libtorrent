@@ -2688,11 +2688,15 @@ retry:
 		// pause the session now and resume it once we've
 		// established the i2p SAM connection
 #if TORRENT_USE_I2P
+		if (m_settings.get_str(settings_pack::i2p_hostname).empty())
+		{
+			error_code ec;
+			m_i2p_conn.close(ec);
+			return;
+		}
 		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
 			, m_settings.get_int(settings_pack::i2p_port)
 			, boost::bind(&session_impl::on_i2p_open, this, _1));
-
-		open_new_incoming_i2p_connection();
 #endif
 	}
 
