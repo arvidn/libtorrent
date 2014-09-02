@@ -107,7 +107,7 @@ namespace libtorrent
 		// uint32_t length
 		char event[32];
 		char* ptr = event;
-		detail::write_uint64(total_microseconds((time_now_hires() - min_time())), ptr);
+		detail::write_uint64(time_now_hires().time_since_epoch().count(), ptr);
 		memcpy(ptr, &ih[0], 8);
 		ptr += 8;
 		detail::write_uint32(uintptr_t(p) & 0xffffffff, ptr);
@@ -2290,7 +2290,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ we don't have metadata yet ]");
 			peer_log("==> REJECT_PIECE [ piece: %d | s: %x | l: %x ] no metadata"
-				, r.piece , r.start , r.length);
+				, r.piece, r.start, r.length);
 #endif
 			write_reject_request(r);
 			return;
@@ -2307,7 +2307,7 @@ namespace libtorrent
 			peer_log("*** INVALID_REQUEST [ incoming request queue full %d ]"
 				, int(m_requests.size()));
 			peer_log("==> REJECT_PIECE [ piece: %d | s: %x | l: %x ] too many requests"
-				, r.piece , r.start , r.length);
+				, r.piece, r.start, r.length);
 #endif
 			write_reject_request(r);
 			return;
