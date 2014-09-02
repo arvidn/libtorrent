@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "web_seed_suite.hpp"
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/make_shared.hpp>
