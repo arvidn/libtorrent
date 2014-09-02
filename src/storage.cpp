@@ -126,7 +126,7 @@ namespace libtorrent
 		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
 		char event[29];
 		char* ptr = event;
-		detail::write_uint64(total_microseconds((timestamp - min_time())), ptr);
+		detail::write_uint64(timestamp.time_since_epoch().count(), ptr);
 		detail::write_uint64(offset, ptr);
 		detail::write_uint64((boost::uint64_t)event_id++, ptr);
 		detail::write_uint32(fileid, ptr);
