@@ -91,7 +91,7 @@ int test_main()
 		, buf.size(), ec));
 
 	{
-		session ses(fingerprint("  ", 0,0,0,0), 0);
+		libtorrent::session ses(fingerprint("  ", 0,0,0,0), 0);
 		session_settings settings;
 		settings.max_queued_disk_bytes = 256 * 1024;
 		ses.set_settings(settings);
