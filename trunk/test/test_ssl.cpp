@@ -128,7 +128,7 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
 
-	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
+	libtorrent::session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 
 	if (!test.downloader_has_cert)
 		// this disables outgoing SSL connections
@@ -136,7 +136,7 @@ void test_ssl(int test_idx, bool use_utp)
 	else
 		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
 
-	session ses2(sett, fingerprint("LT", 0, 1, 0, 0), 0);
+	libtorrent::session ses2(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
@@ -289,7 +289,7 @@ attack_t attacks[] =
 
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
-bool try_connect(session& ses1, int port
+bool try_connect(libtorrent::session& ses1, int port
 	, boost::shared_ptr<torrent_info> const& t, boost::uint32_t flags)
 {
 	using boost::asio::ssl::context;
@@ -501,7 +501,7 @@ void test_malicious_peer()
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 
-	session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
+	libtorrent::session ses1(sett, fingerprint("LT", 0, 1, 0, 0), 0);
 	wait_for_listen(ses1, "ses1");
 
 	// create torrent
