@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
+#include "libtorrent/ed25519.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
