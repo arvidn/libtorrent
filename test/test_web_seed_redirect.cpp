@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-const int proxy = libtorrent::proxy_settings::none;
+const int proxy = libtorrent::settings_pack::none;
 
 //static unsigned char random_byte()
 //{ return std::rand() & 0xff; }
@@ -92,10 +92,10 @@ int test_main()
 
 	{
 		libtorrent::session ses(fingerprint("  ", 0,0,0,0), 0);
-		session_settings settings;
-		settings.max_queued_disk_bytes = 256 * 1024;
-		ses.set_settings(settings);
-		ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
+		settings_pack settings;
+		settings.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
+		settings.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
+		ses.apply_settings(settings);
    
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)

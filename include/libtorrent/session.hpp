@@ -368,9 +368,10 @@ namespace libtorrent
 		// included. This flag is on by default. See add_torrent_params.
 		void post_torrent_updates();
 
-		// This function will post a session_stats_alert object, containing a snapshot of
-		// the performance counters from the internals of libtorrent. To interpret these counters,
-		// query the session via session_stats_metrics().
+		// This function will post a session_stats_alert object, containing a
+		// snapshot of the performance counters from the internals of libtorrent.
+		// To interpret these counters, query the session via
+		// session_stats_metrics().
 		//
 		// For more information, see the session-statistics_ section.
 		void post_session_stats();
