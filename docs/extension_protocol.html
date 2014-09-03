@@ -289,6 +289,175 @@ protocol more readable for a human, but the BT protocol wasn't designed to
 be a human readable protocol, so why bother.</p>
 </div>
 </div>
+<div class="section" id="extensions">
+<h1>extensions</h1>
+<p>These extensions all operates within the <a class="reference external" href="extension_protocol.html">extension protocol</a>. The name of the
+extension is the name used in the extension-list packets, and the payload is
+the data in the extended message (not counting the length-prefix, message-id
+nor extension-id).</p>
+<p>Note that since this protocol relies on one of the reserved bits in the
+handshake, it may be incompatible with future versions of the mainline
+bittorrent client.</p>
+<p>These are the extensions that are currently implemented.</p>
+<div class="section" id="metadata-from-peers">
+<h2>metadata from peers</h2>
+<p>Extension name: &quot;LT_metadata&quot;</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">This extension is deprecated in favor of the more widely supported
+<tt class="docutils literal">ut_metadata</tt> extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.</p>
+</div>
+<p>The point with this extension is that you don't have to distribute the
+metadata (.torrent-file) separately. The metadata can be distributed
+through the bittorrent swarm. The only thing you need to download such
+a torrent is the tracker url and the info-hash of the torrent.</p>
+<p>It works by assuming that the initial seeder has the metadata and that the
+metadata will propagate through the network as more peers join.</p>
+<p>There are three kinds of messages in the metadata extension. These packets are
+put as payload to the extension message. The three packets are:</p>
+<blockquote>
+<ul class="simple">
+<li>request metadata</li>
+<li>metadata</li>
+<li>don't have metadata</li>
+</ul>
+</blockquote>
+<p>request metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>Determines the kind of message this is
+0 means 'request metadata'</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>start</td>
+<td>The start of the metadata block that
+is requested. It is given in 256:ths
+of the total size of the metadata,
+since the requesting client don't know
+the size of the metadata.</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>size</td>
+<td>The size of the metadata block that is
+requested. This is also given in
+256:ths of the total size of the
+metadata. The size is given as size-1.
+That means that if this field is set
+0, the request wants one 256:th of the
+metadata.</td>
+</tr>
+</tbody>
+</table>
+<p>metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>1 means 'metadata'</td>
+</tr>
+<tr><td>int32_t</td>
+<td>total_size</td>
+<td>The total size of the metadata, given
+in number of bytes.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>offset</td>
+<td>The offset of where the metadata block
+in this message belongs in the final
+metadata. This is given in bytes.</td>
+</tr>
+<tr><td>uint8_t[]</td>
+<td>metadata</td>
+<td>The actual metadata block. The size of
+this part is given implicit by the
+length prefix in the bittorrent
+protocol packet.</td>
+</tr>
+</tbody>
+</table>
+<p>Don't have metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>2 means 'I don't have metadata'.
+This message is sent as a reply to a
+metadata request if the the client
+doesn't have any metadata.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="dont-have">
+<h2>dont_have</h2>
+<p>Extension name: &quot;lt_donthave&quot;</p>
+<p>The <tt class="docutils literal">dont_have</tt> extension message is used to tell peers that the client no
+longer has a specific piece. The extension message should be advertised in the
+<tt class="docutils literal">m</tt> dictionary as <tt class="docutils literal">lt_donthave</tt>. The message format mimics the regular
+<tt class="docutils literal">HAVE</tt> bittorrent message.</p>
+<p>Just like all extension messages, the first 2 bytes in the mssage itself are 20
+(the bittorrent extension message) and the message ID assigned to this
+extension in the <tt class="docutils literal">m</tt> dictionary in the handshake.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint32_t</td>
+<td>piece</td>
+<td>index of the piece the peer no longer
+has.</td>
+</tr>
+</tbody>
+</table>
+<p>The length of this message (including the extension message prefix) is 6 bytes,
+i.e. one byte longer than the normal <tt class="docutils literal">HAVE</tt> message, because of the extension
+message wrapping.</p>
+</div>
+</div>
 </div>
 </body>
 </html>
