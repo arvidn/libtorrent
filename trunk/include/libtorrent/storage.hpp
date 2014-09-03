@@ -88,7 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // ``std::map``, i.e. in RAM. It's not necessarily very useful in practice, but
 // illustrates the basics of implementing a custom storage.
 //
-//::
+// .. code:: c++
 //
 //	struct temp_storage : storage_interface
 //	{

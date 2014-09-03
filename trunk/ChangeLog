@@ -27,6 +27,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* added missing force_proxy to python binding
 	* anonymous_mode defaults to false
 	* make DHT DOS detection more forgiving to bursts
 	* support IPv6 multicast in local service discovery

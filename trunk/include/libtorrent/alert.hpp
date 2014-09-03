@@ -187,7 +187,9 @@ namespace libtorrent {
 		// in the alert. It can be used to determine the run-time type of an alert* in
 		// order to cast to that alert type and access specific members.
 		// 
-		// e.g::
+		// e.g:
+		//
+		// .. code:: c++
 		//
 		//	std::auto_ptr<alert> a = ses.pop_alert();
 		//	switch (a->type())
