@@ -66,70 +66,70 @@ the <a class="reference external" href="reference-Session.html#storage">add_torr
 <p>This is an example storage implementation that stores all pieces in a
 <tt class="docutils literal"><span class="pre">std::map</span></tt>, i.e. in RAM. It's not necessarily very useful in practice, but
 illustrates the basics of implementing a custom storage.</p>
-<pre class="literal-block">
-struct temp_storage : storage_interface
-{
-        temp_storage(file_storage const&amp; fs) : m_files(fs) {}
-        void set_file_priority(std::vector&lt;boost::uint8_t&gt; const&amp; prio) {}
-        virtual bool initialize(bool allocate_files) { return false; }
-        virtual bool has_any_file() { return false; }
-        virtual int read(char* buf, int slot, int offset, int size)
-        {
-                std::map&lt;int, std::vector&lt;char&gt; &gt;::const_iterator i = m_file_data.find(slot);
-                if (i == m_file_data.end()) return 0;
-                int available = i-&gt;second.size() - offset;
-                if (available &lt;= 0) return 0;
-                if (available &gt; size) available = size;
-                memcpy(buf, &amp;i-&gt;second[offset], available);
-                return available;
-        }
-        virtual int write(const char* buf, int slot, int offset, int size)
-        {
-                std::vector&lt;char&gt;&amp; data = m_file_data[slot];
-                if (data.size() &lt; offset + size) data.resize(offset + size);
-                std::memcpy(&amp;data[offset], buf, size);
-                return size;
-        }
-        virtual bool rename_file(int file, std::string const&amp; new_name)
-        { assert(false); return false; }
-        virtual bool move_storage(std::string const&amp; save_path) { return false; }
-        virtual bool verify_resume_data(lazy_entry const&amp; rd, error_code&amp; error) { return false; }
-        virtual bool write_resume_data(entry&amp; rd) const { return false; }
-        virtual bool move_slot(int src_slot, int dst_slot) { assert(false); return false; }
-        virtual bool swap_slots(int slot1, int slot2) { assert(false); return false; }
-        virtual bool swap_slots3(int slot1, int slot2, int slot3) { assert(false); return false; }
-        virtual size_type physical_offset(int slot, int offset)
-        { return slot * m_files.piece_length() + offset; };
-        virtual sha1_hash hash_for_slot(int slot, partial_hash&amp; ph, int piece_size)
-        {
-                int left = piece_size - ph.offset;
-                assert(left &gt;= 0);
-                if (left &gt; 0)
-                {
-                        std::vector&lt;char&gt;&amp; data = m_file_data[slot];
-                        // if there are padding files, those blocks will be considered
-                        // completed even though they haven't been written to the storage.
-                        // in this case, just extend the piece buffer to its full size
-                        // and fill it with zeroes.
-                        if (data.size() &lt; piece_size) data.resize(piece_size, 0);
-                        ph.h.update(&amp;data[ph.offset], left);
-                }
-                return ph.h.final();
-        }
-        virtual bool release_files() { return false; }
-        virtual bool delete_files() { return false; }
+<pre class="code c++ literal-block">
+<span class="keyword">struct</span> <span class="name">temp_storage</span> <span class="operator">:</span> <span class="name">storage_interface</span>
+<span class="punctuation">{</span>
+        <span class="name">temp_storage</span><span class="punctuation">(</span><span class="name">file_storage</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">fs</span><span class="punctuation">)</span> <span class="operator">:</span> <span class="name">m_files</span><span class="punctuation">(</span><span class="name">fs</span><span class="punctuation">)</span> <span class="punctuation">{}</span>
+        <span class="keyword type">void</span> <span class="name">set_file_priority</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">boost</span><span class="operator">::</span><span class="keyword type">uint8_t</span><span class="operator">&gt;</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">prio</span><span class="punctuation">)</span> <span class="punctuation">{}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">initialize</span><span class="punctuation">(</span><span class="keyword type">bool</span> <span class="name">allocate_files</span><span class="punctuation">)</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">has_any_file</span><span class="punctuation">()</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">int</span> <span class="name">read</span><span class="punctuation">(</span><span class="keyword type">char</span><span class="operator">*</span> <span class="name">buf</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">slot</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">offset</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">size</span><span class="punctuation">)</span>
+        <span class="punctuation">{</span>
+                <span class="name">std</span><span class="operator">::</span><span class="name">map</span><span class="operator">&lt;</span><span class="keyword type">int</span><span class="punctuation">,</span> <span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">char</span><span class="operator">&gt;</span> <span class="operator">&gt;::</span><span class="name">const_iterator</span> <span class="name">i</span> <span class="operator">=</span> <span class="name">m_file_data</span><span class="punctuation">.</span><span class="name">find</span><span class="punctuation">(</span><span class="name">slot</span><span class="punctuation">);</span>
+                <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">i</span> <span class="operator">==</span> <span class="name">m_file_data</span><span class="punctuation">.</span><span class="name">end</span><span class="punctuation">())</span> <span class="keyword">return</span> <span class="literal number integer">0</span><span class="punctuation">;</span>
+                <span class="keyword type">int</span> <span class="name">available</span> <span class="operator">=</span> <span class="name">i</span><span class="operator">-&gt;</span><span class="name">second</span><span class="punctuation">.</span><span class="name">size</span><span class="punctuation">()</span> <span class="operator">-</span> <span class="name">offset</span><span class="punctuation">;</span>
+                <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">available</span> <span class="operator">&lt;=</span> <span class="literal number integer">0</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="literal number integer">0</span><span class="punctuation">;</span>
+                <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">available</span> <span class="operator">&gt;</span> <span class="name">size</span><span class="punctuation">)</span> <span class="name">available</span> <span class="operator">=</span> <span class="name">size</span><span class="punctuation">;</span>
+                <span class="name">memcpy</span><span class="punctuation">(</span><span class="name">buf</span><span class="punctuation">,</span> <span class="operator">&amp;</span><span class="name">i</span><span class="operator">-&gt;</span><span class="name">second</span><span class="punctuation">[</span><span class="name">offset</span><span class="punctuation">],</span> <span class="name">available</span><span class="punctuation">);</span>
+                <span class="keyword">return</span> <span class="name">available</span><span class="punctuation">;</span>
+        <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">int</span> <span class="name">write</span><span class="punctuation">(</span><span class="keyword">const</span> <span class="keyword type">char</span><span class="operator">*</span> <span class="name">buf</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">slot</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">offset</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">size</span><span class="punctuation">)</span>
+        <span class="punctuation">{</span>
+                <span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">char</span><span class="operator">&gt;&amp;</span> <span class="name">data</span> <span class="operator">=</span> <span class="name">m_file_data</span><span class="punctuation">[</span><span class="name">slot</span><span class="punctuation">];</span>
+                <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">data</span><span class="punctuation">.</span><span class="name">size</span><span class="punctuation">()</span> <span class="operator">&lt;</span> <span class="name">offset</span> <span class="operator">+</span> <span class="name">size</span><span class="punctuation">)</span> <span class="name">data</span><span class="punctuation">.</span><span class="name">resize</span><span class="punctuation">(</span><span class="name">offset</span> <span class="operator">+</span> <span class="name">size</span><span class="punctuation">);</span>
+                <span class="name">std</span><span class="operator">::</span><span class="name">memcpy</span><span class="punctuation">(</span><span class="operator">&amp;</span><span class="name">data</span><span class="punctuation">[</span><span class="name">offset</span><span class="punctuation">],</span> <span class="name">buf</span><span class="punctuation">,</span> <span class="name">size</span><span class="punctuation">);</span>
+                <span class="keyword">return</span> <span class="name">size</span><span class="punctuation">;</span>
+        <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">rename_file</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">file</span><span class="punctuation">,</span> <span class="name">std</span><span class="operator">::</span><span class="name">string</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">new_name</span><span class="punctuation">)</span>
+        <span class="punctuation">{</span> <span class="name">assert</span><span class="punctuation">(</span><span class="name builtin">false</span><span class="punctuation">);</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">move_storage</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">string</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">save_path</span><span class="punctuation">)</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">verify_resume_data</span><span class="punctuation">(</span><span class="name">lazy_entry</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">rd</span><span class="punctuation">,</span> <span class="name">error_code</span><span class="operator">&amp;</span> <span class="name">error</span><span class="punctuation">)</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">write_resume_data</span><span class="punctuation">(</span><span class="name">entry</span><span class="operator">&amp;</span> <span class="name">rd</span><span class="punctuation">)</span> <span class="keyword">const</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">move_slot</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">src_slot</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">dst_slot</span><span class="punctuation">)</span> <span class="punctuation">{</span> <span class="name">assert</span><span class="punctuation">(</span><span class="name builtin">false</span><span class="punctuation">);</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">swap_slots</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">slot1</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">slot2</span><span class="punctuation">)</span> <span class="punctuation">{</span> <span class="name">assert</span><span class="punctuation">(</span><span class="name builtin">false</span><span class="punctuation">);</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name">swap_slots3</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">slot1</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">slot2</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">slot3</span><span class="punctuation">)</span> <span class="punctuation">{</span> <span class="name">assert</span><span class="punctuation">(</span><span class="name builtin">false</span><span class="punctuation">);</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="name">size_type</span> <span class="name">physical_offset</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">slot</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">offset</span><span class="punctuation">)</span>
+        <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name">slot</span> <span class="operator">*</span> <span class="name">m_files</span><span class="punctuation">.</span><span class="name">piece_length</span><span class="punctuation">()</span> <span class="operator">+</span> <span class="name">offset</span><span class="punctuation">;</span> <span class="punctuation">};</span>
+        <span class="keyword">virtual</span> <span class="name">sha1_hash</span> <span class="name function">hash_for_slot</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">slot</span><span class="punctuation">,</span> <span class="name">partial_hash</span><span class="operator">&amp;</span> <span class="name">ph</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">piece_size</span><span class="punctuation">)</span>
+        <span class="punctuation">{</span>
+                <span class="keyword type">int</span> <span class="name">left</span> <span class="operator">=</span> <span class="name">piece_size</span> <span class="operator">-</span> <span class="name">ph</span><span class="punctuation">.</span><span class="name">offset</span><span class="punctuation">;</span>
+                <span class="name">assert</span><span class="punctuation">(</span><span class="name">left</span> <span class="operator">&gt;=</span> <span class="literal number integer">0</span><span class="punctuation">);</span>
+                <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">left</span> <span class="operator">&gt;</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
+                <span class="punctuation">{</span>
+                        <span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">char</span><span class="operator">&gt;&amp;</span> <span class="name">data</span> <span class="operator">=</span> <span class="name">m_file_data</span><span class="punctuation">[</span><span class="name">slot</span><span class="punctuation">];</span>
+                        <span class="comment single">// if there are padding files, those blocks will be considered
+</span>                        <span class="comment single">// completed even though they haven't been written to the storage.
+</span>                        <span class="comment single">// in this case, just extend the piece buffer to its full size
+</span>                        <span class="comment single">// and fill it with zeroes.
+</span>                        <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">data</span><span class="punctuation">.</span><span class="name">size</span><span class="punctuation">()</span> <span class="operator">&lt;</span> <span class="name">piece_size</span><span class="punctuation">)</span> <span class="name">data</span><span class="punctuation">.</span><span class="name">resize</span><span class="punctuation">(</span><span class="name">piece_size</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">);</span>
+                        <span class="name">ph</span><span class="punctuation">.</span><span class="name">h</span><span class="punctuation">.</span><span class="name">update</span><span class="punctuation">(</span><span class="operator">&amp;</span><span class="name">data</span><span class="punctuation">[</span><span class="name">ph</span><span class="punctuation">.</span><span class="name">offset</span><span class="punctuation">],</span> <span class="name">left</span><span class="punctuation">);</span>
+                <span class="punctuation">}</span>
+                <span class="keyword">return</span> <span class="name">ph</span><span class="punctuation">.</span><span class="name">h</span><span class="punctuation">.</span><span class="name">final</span><span class="punctuation">();</span>
+        <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name function">release_files</span><span class="punctuation">()</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
+        <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name function">delete_files</span><span class="punctuation">()</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
 
-        std::map&lt;int, std::vector&lt;char&gt; &gt; m_file_data;
-        file_storage m_files;
-};
+        <span class="name">std</span><span class="operator">::</span><span class="name">map</span><span class="operator">&lt;</span><span class="keyword type">int</span><span class="punctuation">,</span> <span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">char</span><span class="operator">&gt;</span> <span class="operator">&gt;</span> <span class="name">m_file_data</span><span class="punctuation">;</span>
+        <span class="name">file_storage</span> <span class="name">m_files</span><span class="punctuation">;</span>
+<span class="punctuation">};</span>
 
-storage_interface* temp_storage_constructor(
-        file_storage const&amp; fs, file_storage const* mapped
-        , std::string const&amp; path, file_pool&amp; fp
-        , std::vector&lt;boost::uint8_t&gt; const&amp; prio)
-{
-        return new temp_storage(fs);
-}
+<span class="name">storage_interface</span><span class="operator">*</span> <span class="name function">temp_storage_constructor</span><span class="punctuation">(</span>
+        <span class="name">file_storage</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">fs</span><span class="punctuation">,</span> <span class="name">file_storage</span> <span class="keyword">const</span><span class="operator">*</span> <span class="name">mapped</span>
+        <span class="punctuation">,</span> <span class="name">std</span><span class="operator">::</span><span class="name">string</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">path</span><span class="punctuation">,</span> <span class="name">file_pool</span><span class="operator">&amp;</span> <span class="name">fp</span>
+        <span class="punctuation">,</span> <span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">boost</span><span class="operator">::</span><span class="keyword type">uint8_t</span><span class="operator">&gt;</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">prio</span><span class="punctuation">)</span>
+<span class="punctuation">{</span>
+        <span class="keyword">return</span> <span class="keyword">new</span> <span class="name">temp_storage</span><span class="punctuation">(</span><span class="name">fs</span><span class="punctuation">);</span>
+<span class="punctuation">}</span>
 </pre>
 <a name="file_pool"></a><div class="section" id="file-pool">
 <h1>file_pool</h1>

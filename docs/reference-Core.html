@@ -1606,55 +1606,55 @@ the entire file.</p>
 download as well as when closing down.</p>
 <p>Example code to pause and save resume data for all torrents and wait
 for the alerts:</p>
-<pre class="literal-block">
-extern int outstanding_resume_data; // global counter of outstanding resume data
-std::vector&lt;torrent_handle&gt; handles = ses.get_torrents();
-ses.pause();
-for (std::vector&lt;torrent_handle&gt;::iterator i = handles.begin();
-        i != handles.end(); ++i)
-{
-        torrent_handle&amp; h = *i;
-        if (!h.is_valid()) continue;
-        torrent_status s = h.status();
-        if (!s.has_metadata) continue;
-        if (!s.need_save_resume_data()) continue;
+<pre class="code c++ literal-block">
+<span class="keyword">extern</span> <span class="keyword type">int</span> <span class="name">outstanding_resume_data</span><span class="punctuation">;</span> <span class="comment single">// global counter of outstanding resume data
+</span><span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">torrent_handle</span><span class="operator">&gt;</span> <span class="name">handles</span> <span class="operator">=</span> <span class="name">ses</span><span class="punctuation">.</span><span class="name">get_torrents</span><span class="punctuation">();</span>
+<span class="name">ses</span><span class="punctuation">.</span><span class="name">pause</span><span class="punctuation">();</span>
+<span class="keyword">for</span> <span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">torrent_handle</span><span class="operator">&gt;::</span><span class="name">iterator</span> <span class="name">i</span> <span class="operator">=</span> <span class="name">handles</span><span class="punctuation">.</span><span class="name">begin</span><span class="punctuation">();</span>
+        <span class="name">i</span> <span class="operator">!=</span> <span class="name">handles</span><span class="punctuation">.</span><span class="name">end</span><span class="punctuation">();</span> <span class="operator">++</span><span class="name">i</span><span class="punctuation">)</span>
+<span class="punctuation">{</span>
+        <span class="name">torrent_handle</span><span class="operator">&amp;</span> <span class="name">h</span> <span class="operator">=</span> <span class="operator">*</span><span class="name">i</span><span class="punctuation">;</span>
+        <span class="keyword">if</span> <span class="punctuation">(</span><span class="operator">!</span><span class="name">h</span><span class="punctuation">.</span><span class="name">is_valid</span><span class="punctuation">())</span> <span class="keyword">continue</span><span class="punctuation">;</span>
+        <span class="name">torrent_status</span> <span class="name">s</span> <span class="operator">=</span> <span class="name">h</span><span class="punctuation">.</span><span class="name">status</span><span class="punctuation">();</span>
+        <span class="keyword">if</span> <span class="punctuation">(</span><span class="operator">!</span><span class="name">s</span><span class="punctuation">.</span><span class="name">has_metadata</span><span class="punctuation">)</span> <span class="keyword">continue</span><span class="punctuation">;</span>
+        <span class="keyword">if</span> <span class="punctuation">(</span><span class="operator">!</span><span class="name">s</span><span class="punctuation">.</span><span class="name">need_save_resume_data</span><span class="punctuation">())</span> <span class="keyword">continue</span><span class="punctuation">;</span>
 
-        h.save_resume_data();
-        ++outstanding_resume_data;
-}
+        <span class="name">h</span><span class="punctuation">.</span><span class="name">save_resume_data</span><span class="punctuation">();</span>
+        <span class="operator">++</span><span class="name">outstanding_resume_data</span><span class="punctuation">;</span>
+<span class="punctuation">}</span>
 
-while (outstanding_resume_data &gt; 0)
-{
-        alert const* a = ses.wait_for_alert(seconds(10));
+<span class="keyword">while</span> <span class="punctuation">(</span><span class="name">outstanding_resume_data</span> <span class="operator">&gt;</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
+<span class="punctuation">{</span>
+        <span class="name">alert</span> <span class="keyword">const</span><span class="operator">*</span> <span class="name">a</span> <span class="operator">=</span> <span class="name">ses</span><span class="punctuation">.</span><span class="name">wait_for_alert</span><span class="punctuation">(</span><span class="name">seconds</span><span class="punctuation">(</span><span class="literal number integer">10</span><span class="punctuation">));</span>
 
-        // if we don't get an alert within 10 seconds, abort
-        if (a == 0) break;
+        <span class="comment single">// if we don't get an alert within 10 seconds, abort
+</span>        <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">a</span> <span class="operator">==</span> <span class="literal number integer">0</span><span class="punctuation">)</span> <span class="keyword">break</span><span class="punctuation">;</span>
 
-        std::auto_ptr&lt;alert&gt; holder = ses.pop_alert();
+        <span class="name">std</span><span class="operator">::</span><span class="name">auto_ptr</span><span class="operator">&lt;</span><span class="name">alert</span><span class="operator">&gt;</span> <span class="name">holder</span> <span class="operator">=</span> <span class="name">ses</span><span class="punctuation">.</span><span class="name">pop_alert</span><span class="punctuation">();</span>
 
-        if (alert_cast&lt;save_resume_data_failed_alert&gt;(a))
-        {
-                process_alert(a);
-                --outstanding_resume_data;
-                continue;
-        }
+        <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">alert_cast</span><span class="operator">&lt;</span><span class="name">save_resume_data_failed_alert</span><span class="operator">&gt;</span><span class="punctuation">(</span><span class="name">a</span><span class="punctuation">))</span>
+        <span class="punctuation">{</span>
+                <span class="name">process_alert</span><span class="punctuation">(</span><span class="name">a</span><span class="punctuation">);</span>
+                <span class="operator">--</span><span class="name">outstanding_resume_data</span><span class="punctuation">;</span>
+                <span class="keyword">continue</span><span class="punctuation">;</span>
+        <span class="punctuation">}</span>
 
-        save_resume_data_alert const* rd = alert_cast&lt;save_resume_data_alert&gt;(a);
-        if (rd == 0)
-        {
-                process_alert(a);
-                continue;
-        }
+        <span class="name">save_resume_data_alert</span> <span class="keyword">const</span><span class="operator">*</span> <span class="name">rd</span> <span class="operator">=</span> <span class="name">alert_cast</span><span class="operator">&lt;</span><span class="name">save_resume_data_alert</span><span class="operator">&gt;</span><span class="punctuation">(</span><span class="name">a</span><span class="punctuation">);</span>
+        <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">rd</span> <span class="operator">==</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
+        <span class="punctuation">{</span>
+                <span class="name">process_alert</span><span class="punctuation">(</span><span class="name">a</span><span class="punctuation">);</span>
+                <span class="keyword">continue</span><span class="punctuation">;</span>
+        <span class="punctuation">}</span>
 
-        torrent_handle h = rd-&gt;handle;
-        torrent_status st = h.status(torrent_handle::query_save_path | torrent_handle::query_name);
-        std::ofstream out((st.save_path
-                + &quot;/&quot; + st.name + &quot;.fastresume&quot;).c_str()
-                , std::ios_base::binary);
-        out.unsetf(std::ios_base::skipws);
-        bencode(std::ostream_iterator&lt;char&gt;(out), *rd-&gt;resume_data);
-        --outstanding_resume_data;
-}
+        <span class="name">torrent_handle</span> <span class="name">h</span> <span class="operator">=</span> <span class="name">rd</span><span class="operator">-&gt;</span><span class="name">handle</span><span class="punctuation">;</span>
+        <span class="name">torrent_status</span> <span class="name">st</span> <span class="operator">=</span> <span class="name">h</span><span class="punctuation">.</span><span class="name">status</span><span class="punctuation">(</span><span class="name">torrent_handle</span><span class="operator">::</span><span class="name">query_save_path</span> <span class="operator">|</span> <span class="name">torrent_handle</span><span class="operator">::</span><span class="name">query_name</span><span class="punctuation">);</span>
+        <span class="name">std</span><span class="operator">::</span><span class="name">ofstream</span> <span class="name">out</span><span class="punctuation">((</span><span class="name">st</span><span class="punctuation">.</span><span class="name">save_path</span>
+                <span class="operator">+</span> <span class="literal string">&quot;/&quot;</span> <span class="operator">+</span> <span class="name">st</span><span class="punctuation">.</span><span class="name">name</span> <span class="operator">+</span> <span class="literal string">&quot;.fastresume&quot;</span><span class="punctuation">).</span><span class="name">c_str</span><span class="punctuation">()</span>
+                <span class="punctuation">,</span> <span class="name">std</span><span class="operator">::</span><span class="name">ios_base</span><span class="operator">::</span><span class="name">binary</span><span class="punctuation">);</span>
+        <span class="name">out</span><span class="punctuation">.</span><span class="name">unsetf</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">ios_base</span><span class="operator">::</span><span class="name">skipws</span><span class="punctuation">);</span>
+        <span class="name">bencode</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">ostream_iterator</span><span class="operator">&lt;</span><span class="keyword type">char</span><span class="operator">&gt;</span><span class="punctuation">(</span><span class="name">out</span><span class="punctuation">),</span> <span class="operator">*</span><span class="name">rd</span><span class="operator">-&gt;</span><span class="name">resume_data</span><span class="punctuation">);</span>
+        <span class="operator">--</span><span class="name">outstanding_resume_data</span><span class="punctuation">;</span>
+<span class="punctuation">}</span>
 </pre>
 <div class="note">
 <p class="first admonition-title">Note</p>
