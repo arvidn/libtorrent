@@ -34,9 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/block_cache.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
+#include "libtorrent/session.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
@@ -116,7 +118,6 @@ void nop() {}
 	wj.storage = pm; \
 	cached_piece_entry* pe = NULL; \
 	int ret = 0; \
-	cache_status status; \
 	file::iovec_t iov[1]
 
 #define WRITE_BLOCK(p, b) \
@@ -166,21 +167,23 @@ void test_write()
 	// write block (0,0)
 	WRITE_BLOCK(0, 0);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
-	TEST_EQUAL(status.write_cache_size, 1);
-	TEST_EQUAL(status.read_cache_size, 0);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 0);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 1);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	counters c;
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 1);
+	TEST_EQUAL(c[counters::read_cache_blocks], 0);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 0);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 1);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	// try to read it back
 	READ_BLOCK(0, 0, 1);
 	TEST_EQUAL(bc.pinned_blocks(), 1);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::pinned_blocks], 1);
 
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
@@ -188,6 +191,8 @@ void test_write()
 	// return the reference to the buffer we just read
 	RETURN_BUFFER;
 	TEST_EQUAL(bc.pinned_blocks(), 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
 
 	// try to read block (1, 0)
 	READ_BLOCK(1, 0, 1);
@@ -195,6 +200,8 @@ void test_write()
 	// that's supposed to be a cache miss
 	TEST_CHECK(ret < 0);
 	TEST_EQUAL(bc.pinned_blocks(), 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
 
 	// just in case it wasn't we're supposed to return the reference
 	// to the buffer
@@ -225,17 +232,17 @@ void test_insert()
 
 	INSERT(0, 0);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 1);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 1);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	counters c;
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 1);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 1);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	tailqueue jobs;
 	bc.clear(jobs);
@@ -247,17 +254,17 @@ void test_evict()
 
 	INSERT(0, 0);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 1);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 1);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	counters c;
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 1);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 1);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	tailqueue jobs;
 	// this should make it not be evicted
@@ -265,32 +272,30 @@ void test_evict()
 	++pe->piece_refcount;
 	bc.evict_piece(pe, jobs);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 0);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 1);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 0);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 1);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	--pe->piece_refcount;
 	bc.evict_piece(pe, jobs);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 0);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 0);
-	TEST_EQUAL(status.arc_mru_ghost_size, 1);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 0);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 0);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 1);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	bc.clear(jobs);
 }
@@ -303,53 +308,59 @@ void test_arc_promote()
 
 	INSERT(0, 0);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.blocks_read_hit, 0);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 1);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 1);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	counters c;
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 1);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 1);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	READ_BLOCK(0, 0, 1);
 	TEST_EQUAL(bc.pinned_blocks(), 1);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::pinned_blocks], 1);
+
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
 	RETURN_BUFFER;
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 1);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 1);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 1);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 1);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	READ_BLOCK(0, 0, 2);
 	TEST_EQUAL(bc.pinned_blocks(), 1);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::pinned_blocks], 1);
+
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
 	RETURN_BUFFER;
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 1);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 0);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 1);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 1);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 0);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 1);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	tailqueue jobs;
 	bc.clear(jobs);
@@ -361,47 +372,48 @@ void test_arc_unghost()
 
 	INSERT(0, 0);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 1);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 1);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	counters c;
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 1);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 1);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	tailqueue jobs;
 	bc.evict_piece(pe, jobs);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.write_cache_size, 0);
-	TEST_EQUAL(status.read_cache_size, 0);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 0);
-	TEST_EQUAL(status.arc_mru_ghost_size, 1);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 0);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 0);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 1);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	// the block is now a ghost. If we cache-hit it,
 	// it should be promoted back to the main list
 	bc.cache_hit(pe, (void*)1, false);
 
-	bc.get_stats(&status);
-	TEST_EQUAL(status.write_cache_size, 0);
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::write_cache_blocks], 0);
 	// we didn't actually read in any blocks, so the cache size
 	// is still 0
-	TEST_EQUAL(status.read_cache_size, 0);
-	TEST_EQUAL(status.pinned_blocks, 0);
-	TEST_EQUAL(status.arc_mru_size, 1);
-	TEST_EQUAL(status.arc_mru_ghost_size, 0);
-	TEST_EQUAL(status.arc_mfu_size, 0);
-	TEST_EQUAL(status.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(status.arc_write_size, 0);
-	TEST_EQUAL(status.arc_volatile_size, 0);
+	TEST_EQUAL(c[counters::read_cache_blocks], 0);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+	TEST_EQUAL(c[counters::arc_mru_size], 1);
+	TEST_EQUAL(c[counters::arc_mru_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_size], 0);
+	TEST_EQUAL(c[counters::arc_mfu_ghost_size], 0);
+	TEST_EQUAL(c[counters::arc_write_size], 0);
+	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
 	bc.clear(jobs);
 }
@@ -433,6 +445,10 @@ void test_unaligned_read()
 	// unaligned reads copies the data into a new buffer
 	// rather than
 	TEST_EQUAL(bc.pinned_blocks(), 0);
+	counters c;
+	bc.update_stats_counters(c);
+	TEST_EQUAL(c[counters::pinned_blocks], 0);
+
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read

@@ -121,6 +121,27 @@ int print_failures()
 	return tests_failure;
 }
 
+std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s)
+{
+	using namespace libtorrent;
+	s.post_session_stats();
+
+	std::map<std::string, boost::uint64_t> ret;
+	std::auto_ptr<alert> a = wait_for_alert(s, session_stats_alert::alert_type
+		, "get_counters()");
+
+	TEST_CHECK(a.get());
+	if (!a.get()) return ret;
+
+	session_stats_alert* sa = alert_cast<session_stats_alert>(a.get());
+	if (!sa) return ret;
+
+	static std::vector<stats_metric> metrics = session_stats_metrics();
+	for (int i = 0; i < metrics.size(); ++i)
+		ret[metrics[i].name] = sa->values[metrics[i].value_index];
+	return ret;
+}
+
 std::auto_ptr<alert> wait_for_alert(lt::session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;

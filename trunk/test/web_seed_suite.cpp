@@ -154,8 +154,6 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	float rate_sum = 0.f;
 	float ses_rate_sum = 0.f;
 
-	cache_status cs;
-
 	file_storage const& fs = torrent_file->files();
 	int pad_file_size = 0;
 	for (int i = 0; i < fs.num_files(); ++i)
@@ -172,10 +170,6 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 		session_status ss = ses.status();
 		rate_sum += s.download_payload_rate;
 		ses_rate_sum += ss.payload_download_rate;
-
-		ses.get_cache_info(&cs);
-		if (cs.blocks_read < 1) cs.blocks_read = 1;
-		if (cs.blocks_written < 1) cs.blocks_written = 1;
 
 		print_ses_rate(i / 10.f, &s, NULL);
 
@@ -214,6 +208,9 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	// for test_ban tests, make sure we removed
 	// the url seed (i.e. banned it)
 	TEST_CHECK(!test_ban || (th.url_seeds().empty() && th.http_seeds().empty()));
+
+	cache_status cs;
+	ses.get_cache_info(&cs);
 
 	// if the web seed senr corrupt data and we banned it, we probably didn't
 	// end up using all the cache anyway
