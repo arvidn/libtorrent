@@ -230,31 +230,31 @@ to get a reference which you then can assign the value you want it to
 have.</p>
 <p>The typical code to get info from a torrent file will then look like
 this:</p>
-<pre class="literal-block">
-entry torrent_file;
-// ...
-
-// throws if this is not a dictionary
-entry::dictionary_type const&amp; dict = torrent_file.dict();
-entry::dictionary_type::const_iterator i;
-i = dict.find(&quot;announce&quot;);
-if (i != dict.end())
-{
-        std::string tracker_url = i-&gt;second.string();
-        std::cout &lt;&lt; tracker_url &lt;&lt; &quot;\n&quot;;
-}
+<pre class="code c++ literal-block">
+<span class="name">entry</span> <span class="name">torrent_file</span><span class="punctuation">;</span>
+<span class="comment single">// ...
+</span>
+<span class="comment single">// throws if this is not a dictionary
+</span><span class="name">entry</span><span class="operator">::</span><span class="name">dictionary_type</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">dict</span> <span class="operator">=</span> <span class="name">torrent_file</span><span class="punctuation">.</span><span class="name">dict</span><span class="punctuation">();</span>
+<span class="name">entry</span><span class="operator">::</span><span class="name">dictionary_type</span><span class="operator">::</span><span class="name">const_iterator</span> <span class="name">i</span><span class="punctuation">;</span>
+<span class="name">i</span> <span class="operator">=</span> <span class="name">dict</span><span class="punctuation">.</span><span class="name">find</span><span class="punctuation">(</span><span class="literal string">&quot;announce&quot;</span><span class="punctuation">);</span>
+<span class="keyword">if</span> <span class="punctuation">(</span><span class="name">i</span> <span class="operator">!=</span> <span class="name">dict</span><span class="punctuation">.</span><span class="name">end</span><span class="punctuation">())</span>
+<span class="punctuation">{</span>
+        <span class="name">std</span><span class="operator">::</span><span class="name">string</span> <span class="name">tracker_url</span> <span class="operator">=</span> <span class="name">i</span><span class="operator">-&gt;</span><span class="name">second</span><span class="punctuation">.</span><span class="name">string</span><span class="punctuation">();</span>
+        <span class="name">std</span><span class="operator">::</span><span class="name">cout</span> <span class="operator">&lt;&lt;</span> <span class="name">tracker_url</span> <span class="operator">&lt;&lt;</span> <span class="literal string">&quot;</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span><span class="punctuation">;</span>
+<span class="punctuation">}</span>
 </pre>
 <p>The following code is equivalent, but a little bit shorter:</p>
-<pre class="literal-block">
-entry torrent_file;
-// ...
-
-// throws if this is not a dictionary
-if (entry* i = torrent_file.find_key(&quot;announce&quot;))
-{
-        std::string tracker_url = i-&gt;string();
-        std::cout &lt;&lt; tracker_url &lt;&lt; &quot;\n&quot;;
-}
+<pre class="code c++ literal-block">
+<span class="name">entry</span> <span class="name">torrent_file</span><span class="punctuation">;</span>
+<span class="comment single">// ...
+</span>
+<span class="comment single">// throws if this is not a dictionary
+</span><span class="keyword">if</span> <span class="punctuation">(</span><span class="name">entry</span><span class="operator">*</span> <span class="name">i</span> <span class="operator">=</span> <span class="name">torrent_file</span><span class="punctuation">.</span><span class="name">find_key</span><span class="punctuation">(</span><span class="literal string">&quot;announce&quot;</span><span class="punctuation">))</span>
+<span class="punctuation">{</span>
+        <span class="name">std</span><span class="operator">::</span><span class="name">string</span> <span class="name">tracker_url</span> <span class="operator">=</span> <span class="name">i</span><span class="operator">-&gt;</span><span class="name">string</span><span class="punctuation">();</span>
+        <span class="name">std</span><span class="operator">::</span><span class="name">cout</span> <span class="operator">&lt;&lt;</span> <span class="name">tracker_url</span> <span class="operator">&lt;&lt;</span> <span class="literal string">&quot;</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span><span class="punctuation">;</span>
+<span class="punctuation">}</span>
 </pre>
 <p>To make it easier to extract information from a torrent file, the
 class <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> exists.</p>

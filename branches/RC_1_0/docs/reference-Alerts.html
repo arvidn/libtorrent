@@ -191,25 +191,25 @@ compared against a specific <a class="reference external" href="reference-Alerts
 in the <a class="reference external" href="reference-Alerts.html#alert">alert</a>. It can be used to determine the run-time type of an alert* in
 order to cast to that <a class="reference external" href="reference-Alerts.html#alert">alert</a> type and access specific members.</p>
 <p>e.g:</p>
-<pre class="literal-block">
-std::auto_ptr&lt;alert&gt; a = ses.pop_alert();
-switch (a-&gt;type())
-{
-        case read_piece_alert::alert_type:
-        {
-                read_piece_alert* p = (read_piece_alert*)a.get();
-                if (p-&gt;ec) {
-                        // read_piece failed
-                        break;
-                }
-                // use p
-                break;
-        }
-        case file_renamed_alert::alert_type:
-        {
-                // etc...
-        }
-}
+<pre class="code c++ literal-block">
+<span class="name">std</span><span class="operator">::</span><span class="name">auto_ptr</span><span class="operator">&lt;</span><span class="name">alert</span><span class="operator">&gt;</span> <span class="name">a</span> <span class="operator">=</span> <span class="name">ses</span><span class="punctuation">.</span><span class="name">pop_alert</span><span class="punctuation">();</span>
+<span class="keyword">switch</span> <span class="punctuation">(</span><span class="name">a</span><span class="operator">-&gt;</span><span class="name">type</span><span class="punctuation">())</span>
+<span class="punctuation">{</span>
+        <span class="keyword">case</span> <span class="name">read_piece_alert</span>:<span class="operator">:</span><span class="name">alert_type</span><span class="operator">:</span>
+        <span class="punctuation">{</span>
+                <span class="name">read_piece_alert</span><span class="operator">*</span> <span class="name">p</span> <span class="operator">=</span> <span class="punctuation">(</span><span class="name">read_piece_alert</span><span class="operator">*</span><span class="punctuation">)</span><span class="name">a</span><span class="punctuation">.</span><span class="name">get</span><span class="punctuation">();</span>
+                <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">p</span><span class="operator">-&gt;</span><span class="name">ec</span><span class="punctuation">)</span> <span class="punctuation">{</span>
+                        <span class="comment single">// read_piece failed
+</span>                        <span class="keyword">break</span><span class="punctuation">;</span>
+                <span class="punctuation">}</span>
+                <span class="comment single">// use p
+</span>                <span class="keyword">break</span><span class="punctuation">;</span>
+        <span class="punctuation">}</span>
+        <span class="keyword">case</span> <span class="name">file_renamed_alert</span>:<span class="operator">:</span><span class="name">alert_type</span><span class="operator">:</span>
+        <span class="punctuation">{</span>
+                <span class="comment single">// etc...
+</span>        <span class="punctuation">}</span>
+<span class="punctuation">}</span>
 </pre>
 <a name="what()"></a></div>
 <div class="section" id="what">
