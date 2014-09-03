@@ -366,3 +366,8 @@ li p, li li { font-size: 100%; }
 * html #table-of-contents ul ul { height: 1%; }
 /* End hide from IE-mac */
 
+.keyword { font-weight: bold }
+.string { color: #771; }
+.comment { font-style: italic; color: #559; }
+.preproc { font-style: italic; color: #959; }
+.number { color: #595; }
