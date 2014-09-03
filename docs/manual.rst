@@ -3112,7 +3112,9 @@ The fast resume data will be empty in the following cases:
 	2. The torrent is checking (or is queued for checking) its storage, it will obviously
 	   not be ready to write resume data.
 	3. The torrent hasn't received valid metadata and was started without metadata
-	   (see libtorrent's `metadata from peers`_ extension)
+	   (see libtorrent's metadata from peers extension_)
+
+.. _extension: extension_protocol.html
 
 Note that by the time you receive the fast resume data, it may already be invalid if the torrent
 is still downloading! The recommended practice is to first pause the session, then generate the
@@ -8895,126 +8897,8 @@ allocating a new slot:
 5. return **i** as the newly allocated slot.
                               
  
-extensions
-==========
-
-These extensions all operates within the `extension protocol`__. The
-name of the extension is the name used in the extension-list packets,
-and the payload is the data in the extended message (not counting the
-length-prefix, message-id nor extension-id).
-
-__ extension_protocol.html
-
-Note that since this protocol relies on one of the reserved bits in the
-handshake, it may be incompatible with future versions of the mainline
-bittorrent client.
-
-These are the extensions that are currently implemented.
-
-metadata from peers
--------------------
-
-Extension name: "LT_metadata"
-
-This extension is deprecated in favor of the more widely supported ``ut_metadata``
-extension, see `BEP 9`_.
-The point with this extension is that you don't have to distribute the
-metadata (.torrent-file) separately. The metadata can be distributed
-through the bittorrent swarm. The only thing you need to download such
-a torrent is the tracker url and the info-hash of the torrent.
-
-It works by assuming that the initial seeder has the metadata and that
-the metadata will propagate through the network as more peers join.
-
-There are three kinds of messages in the metadata extension. These packets
-are put as payload to the extension message. The three packets are:
-
-	* request metadata
-	* metadata
-	* don't have metadata
-
-request metadata:
-
-+-----------+---------------+----------------------------------------+
-| size      | name          | description                            |
-+===========+===============+========================================+
-| uint8_t   | msg_type      | Determines the kind of message this is |
-|           |               | 0 means 'request metadata'             |
-+-----------+---------------+----------------------------------------+
-| uint8_t   | start         | The start of the metadata block that   |
-|           |               | is requested. It is given in 256:ths   |
-|           |               | of the total size of the metadata,     |
-|           |               | since the requesting client don't know |
-|           |               | the size of the metadata.              |
-+-----------+---------------+----------------------------------------+
-| uint8_t   | size          | The size of the metadata block that is |
-|           |               | requested. This is also given in       |
-|           |               | 256:ths of the total size of the       |
-|           |               | metadata. The size is given as size-1. |
-|           |               | That means that if this field is set   |
-|           |               | 0, the request wants one 256:th of the |
-|           |               | metadata.                              |
-+-----------+---------------+----------------------------------------+
-
-metadata:
-
-+-----------+---------------+----------------------------------------+
-| size      | name          | description                            |
-+===========+===============+========================================+
-| uint8_t   | msg_type      | 1 means 'metadata'                     |
-+-----------+---------------+----------------------------------------+
-| int32_t   | total_size    | The total size of the metadata, given  |
-|           |               | in number of bytes.                    |
-+-----------+---------------+----------------------------------------+
-| int32_t   | offset        | The offset of where the metadata block |
-|           |               | in this message belongs in the final   |
-|           |               | metadata. This is given in bytes.      |
-+-----------+---------------+----------------------------------------+
-| uint8_t[] | metadata      | The actual metadata block. The size of |
-|           |               | this part is given implicit by the     |
-|           |               | length prefix in the bittorrent        |
-|           |               | protocol packet.                       |
-+-----------+---------------+----------------------------------------+
-
-Don't have metadata:
-
-+-----------+---------------+----------------------------------------+
-| size      | name          | description                            |
-+===========+===============+========================================+
-| uint8_t   | msg_type      | 2 means 'I don't have metadata'.       |
-|           |               | This message is sent as a reply to a   |
-|           |               | metadata request if the the client     |
-|           |               | doesn't have any metadata.             |
-+-----------+---------------+----------------------------------------+
-
-.. _`BEP 9`: http://bittorrent.org/beps/bep_0009.html
-
-dont_have
----------
-
-Extension name: "lt_dont_have"
-
-The ``dont_have`` extension message is used to tell peers that the client no longer
-has a specific piece. The extension message should be advertised in the ``m`` dictionary
-as ``lt_dont_have``. The message format mimics the regular ``HAVE`` bittorrent message.
-
-Just like all extension messages, the first 2 bytes in the mssage itself are 20 (the
-bittorrent extension message) and the message ID assigned to this extension in the ``m``
-dictionary in the handshake.
-
-+-----------+---------------+----------------------------------------+
-| size      | name          | description                            |
-+===========+===============+========================================+
-| uint32_t  | piece         | index of the piece the peer no longer  |
-|           |               | has.                                   |
-+-----------+---------------+----------------------------------------+
-
-The length of this message (including the extension message prefix) is
-6 bytes, i.e. one byte longer than the normal ``HAVE`` message, because
-of the extension message wrapping.
-
 HTTP seeding
-------------
+============
 
 There are two kinds of HTTP seeding. One with that assumes a smart
 (and polite) client and one that assumes a smart server. These
