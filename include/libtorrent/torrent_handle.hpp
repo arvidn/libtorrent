@@ -682,7 +682,9 @@ namespace libtorrent
 		// download as well as when closing down.
 		// 
 		// Example code to pause and save resume data for all torrents and wait
-		// for the alerts::
+		// for the alerts:
+		// 
+		// .. code:: c++
 		// 
 		//	extern int outstanding_resume_data; // global counter of outstanding resume data
 		//	std::vector<torrent_handle> handles = ses.get_torrents();

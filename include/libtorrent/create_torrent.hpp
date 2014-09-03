@@ -81,7 +81,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // All of these classes and functions are declared by including
 // ``libtorrent/create_torrent.hpp``.
 // 
-// example::
+// example:
+//
+// .. code:: c++
 // 
 //	file_storage fs;
 //
@@ -184,7 +186,9 @@ namespace libtorrent
 		// 
 		// If anything goes wrong during torrent generation, this function will return
 		// an empty ``entry`` structure. You can test for this condition by querying the
-		// type of the entry::
+		// type of the entry:
+		//
+		// .. code:: c++
 		// 
 		//	file_storage fs;
 		//	// add file ...

@@ -882,17 +882,9 @@ SSL torrents
 
 Torrents may have an SSL root (CA) certificate embedded in them. Such torrents
 are called *SSL torrents*. An SSL torrent talks to all bittorrent peers over
-SSL. The protocols are layered like this::
+SSL. The protocols are layered like this:
 
-	+-----------------------+
-	| BitTorrent protocol   |
-	+-----------------------+
-	| SSL                   |
-	+-----------+-----------+
-	| TCP       | uTP       |
-	|           +-----------+
-	|           | UDP       |
-	+-----------+-----------+
+.. image:: utp_stack.png
 
 During the SSL handshake, both peers need to authenticate by providing a
 certificate that is signed by the CA certificate found in the .torrent file.
