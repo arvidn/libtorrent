@@ -74,9 +74,9 @@ int EXPORT print_failures();
 	if (!(x)) \
 		TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__);
 #define TEST_EQUAL(x, y) \
-	if (x != y) { \
+	if ((x) != (y)) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << x << "\nexpected: " << y; \
+		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << (x) << "\nexpected: " << (y); \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else
@@ -97,9 +97,9 @@ int EXPORT print_failures();
 
 #define TEST_EQUAL(x, y) \
 	try { \
-		if (x != y) { \
+		if ((x) != (y)) { \
 			std::stringstream s__; \
-			s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y; \
+			s__ << "TEST_EQUAL_ERROR: " #x ": " << (x) << " expected: " << (y); \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
@@ -114,7 +114,7 @@ int EXPORT print_failures();
 #endif
 
 #define TEST_ERROR(x) \
-	TEST_REPORT_AUX((std::string("ERROR: \"") + x + "\"").c_str(), __FILE__, __LINE__)
+	TEST_REPORT_AUX((std::string("ERROR: \"") + (x) + "\"").c_str(), __FILE__, __LINE__)
 
 #define TEST_NOTHROW(x) \
 	try \
