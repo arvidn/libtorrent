@@ -924,6 +924,14 @@ namespace libtorrent
 
 		piece_pos& p = m_piece_map[index];
 		int prev_priority = p.priority(this);
+		if (p.peer_count == 0)
+		{
+			TORRENT_ASSERT(m_seeds > 0);
+			--m_seeds;
+			for (int i = 0; i < m_piece_map.size(); ++i)
+				++m_piece_map[i].peer_count;
+			m_dirty = true;
+		}
 		TORRENT_ASSERT(p.peer_count > 0);
 		--p.peer_count;
 		if (m_dirty) return;
@@ -961,11 +969,22 @@ namespace libtorrent
 
 		int index = 0;
 		bool updated = false;
+		bool split = false;
 		for (bitfield::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
 			if (*i)
 			{
+				if (m_piece_map[index].peer_count == 0 && !split)
+				{
+					TORRENT_ASSERT(m_seeds > 0);
+					--m_seeds;
+					for (int i = 0; i < m_piece_map.size(); ++i)
+						++m_piece_map[i].peer_count;
+					m_dirty = true;
+					split = true;
+				}
+				TORRENT_ASSERT(m_piece_map[index].peer_count > 0);
 				--m_piece_map[index].peer_count;
 				updated = true;
 			}

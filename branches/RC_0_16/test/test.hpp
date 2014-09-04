@@ -60,9 +60,9 @@ void report_failure(char const* str, char const* file, int line);
 	if (!(x)) \
 		TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__);
 #define TEST_EQUAL(x, y) \
-	if (x != y) { \
+	if ((x) != (y)) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
+		s__ << "TEST_EQUAL_ERROR: " #x ": " << (x) << " expected: " << (y) << std::endl; \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else
@@ -83,9 +83,9 @@ void report_failure(char const* str, char const* file, int line);
 
 #define TEST_EQUAL(x, y) \
 	try { \
-		if (x != y) { \
+		if ((x) != (y)) { \
 			std::stringstream s__; \
-			s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
+			s__ << "TEST_EQUAL_ERROR: " #x ": " << (x) << " expected: " << (y) << std::endl; \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
@@ -100,7 +100,7 @@ void report_failure(char const* str, char const* file, int line);
 #endif
 
 #define TEST_ERROR(x) \
-	TEST_REPORT_AUX((std::string("ERROR: \"") + x + "\"").c_str(), __FILE__, __LINE__)
+	TEST_REPORT_AUX((std::string("ERROR: \"") + (x) + "\"").c_str(), __FILE__, __LINE__)
 
 #define TEST_NOTHROW(x) \
 	try \
