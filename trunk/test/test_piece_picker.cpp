@@ -511,6 +511,33 @@ int test_main()
 	TEST_CHECK(picked.front().piece_index == 1);
 
 // ========================================================
+
+	// make sure we can split m_seed when removing a refcount
+	print_title("test dec_refcount split seed");
+	p = setup_picker("0000000", "       ", "0000000", "");
+	p->inc_refcount_all(0);
+
+	std::vector<int> avail;
+	p->get_availability(avail);
+	TEST_EQUAL(avail.size(), 7);
+	TEST_CHECK(avail[0] != 0);
+	TEST_CHECK(avail[1] != 0);
+	TEST_CHECK(avail[2] != 0);
+	TEST_CHECK(avail[3] != 0);
+	TEST_CHECK(avail[4] != 0);
+
+	p->dec_refcount(3, 0);
+
+	p->get_availability(avail);
+	TEST_EQUAL(avail.size(), 7);
+
+	TEST_CHECK(avail[0] != 0);
+	TEST_CHECK(avail[1] != 0);
+	TEST_CHECK(avail[2] != 0);
+	TEST_CHECK(avail[3] == 0);
+	TEST_CHECK(avail[4] != 0);
+
+// ========================================================
 	
 	// make sure init preserves priorities
 	print_title("test init");

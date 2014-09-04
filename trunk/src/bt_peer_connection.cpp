@@ -1751,7 +1751,7 @@ namespace libtorrent
 #endif
 				return;
 			}
-			int piece = detail::read_uint32(recv_buffer.begin) != 0;
+			int piece = detail::read_uint32(recv_buffer.begin);
 			incoming_dont_have(piece);
 			return;
 		}

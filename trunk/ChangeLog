@@ -103,6 +103,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix bug in lt_donthave extension
 	* expose i2p_alert to python. cleaning up of i2p connection code
 	* fixed overflow and download performance issue when downloading at high rates
 	* fixed bug in add_torrent_alert::message for magnet links
