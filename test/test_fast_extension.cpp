@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/peer_info.hpp"
+#include "libtorrent/lazy_entry.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
@@ -82,6 +84,8 @@ void print_message(char const* buffer, int len)
 		int msg = buffer[0];
 		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
 			strcpy(message, message_name[msg]);
+		else if (msg == 20)
+			snprintf(message, sizeof(message), "extension msg [%d]", buffer[1]);
 		else
 			snprintf(message, sizeof(message), "unknown[%d]", msg);
 
@@ -149,7 +153,7 @@ void send_unchoke(stream_socket& s)
 
 void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 {
-	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
+	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x04"
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa" // peer-id
 		"\0\0\0\x01\x0e"; // have_all
@@ -327,10 +331,102 @@ void test_respect_suggest()
 	TEST_CHECK(fail_counter > 0);
 }
 
+// makes sure that pieces that are lost are not requested
+void test_dont_have()
+{
+	using namespace libtorrent::detail;
+
+	std::cerr << " === test dont_have ===" << std::endl;
+
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
+	sha1_hash ih = t->info_hash();
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48950, 49050), "0.0.0.0", 0);
+	error_code ec;
+	add_torrent_params p;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.ti = t;
+	p.save_path = "./tmp1_dont_have";
+
+	remove("./tmp1_dont_have/temporary", ec);
+	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
+	ec.clear();
+	torrent_handle th = ses1.add_torrent(p, ec);
+
+	test_sleep(300);
+
+	io_service ios;
+	stream_socket s(ios);
+	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+
+	std::vector<peer_info> pi;
+	th.get_peer_info(pi);
+
+	TEST_EQUAL(pi.size(), 1);
+	if (pi.size() != 1) return;
+
+	// at this point, the peer should be considered a seed
+	TEST_CHECK(pi[0].flags & peer_info::seed);
+
+	int lt_dont_have = 0;
+	while (lt_dont_have == 0)
+	{
+		int len = read_message(s, recv_buffer);
+		print_message(recv_buffer, len);
+		if (len == 0) continue;
+		int msg = recv_buffer[0];
+		if (msg != 20) continue;
+		int ext_msg = recv_buffer[1];
+		if (ext_msg != 0) continue;
+
+		lazy_entry e;
+		error_code ec;
+		lazy_bdecode(recv_buffer + 2, recv_buffer + len - 2, e, ec);
+		
+		printf("extension handshake: %s\n", print_entry(e).c_str());
+		lazy_entry const* m = e.dict_find_dict("m");
+		TEST_CHECK(m);
+		if (!m) return;
+		lazy_entry const* dont_have = m->dict_find_int("lt_donthave");
+		TEST_CHECK(dont_have);
+		if (!dont_have) return;
+
+		lt_dont_have = dont_have->int_value();
+	}
+
+	char* ptr = recv_buffer;
+	write_uint32(6, ptr);
+	write_uint8(20, ptr);
+	write_uint8(lt_dont_have, ptr);
+	write_uint32(3, ptr);
+
+	libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 10)
+		, libtorrent::asio::transfer_all(), ec);
+
+	test_sleep(1000);
+
+	th.get_peer_info(pi);
+
+	TEST_EQUAL(pi.size(), 1);
+	if (pi.size() != 1) return;
+
+	TEST_EQUAL(pi[0].flags & peer_info::seed, 0);
+	TEST_EQUAL(pi[0].pieces.count(), pi[0].pieces.size() - 1);
+	TEST_EQUAL(pi[0].pieces[3], false);
+	TEST_EQUAL(pi[0].pieces[2], true);
+	TEST_EQUAL(pi[0].pieces[1], true);
+	TEST_EQUAL(pi[0].pieces[0], true);
+}
+
 int test_main()
 {
 	test_reject_fast();
 	test_respect_suggest();
+	test_dont_have();
+
 	return 0;
 }
 
