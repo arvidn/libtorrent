@@ -1,3 +1,5 @@
+1.0.2 release
+
 	* added missing force_proxy to python binding
 	* anonymous_mode defaults to false
 	* make DHT DOS detection more forgiving to bursts
@@ -73,6 +75,8 @@
 	  with more files
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
+
+0.16.18 release
 
 	* fix bug in lt_donthave extension
 	* expose i2p_alert to python. cleaning up of i2p connection code
