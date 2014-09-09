@@ -169,6 +169,7 @@ test_remap_files_SOURCES = test_remap_files.cpp
 test_gzip_SOURCES = test_gzip.cpp
 test_utf8_SOURCES = test_utf8.cpp
 test_socket_io_SOURCES = test_socket_io.cpp
+test_sliding_average_SOURCES = test_sliding_average.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
