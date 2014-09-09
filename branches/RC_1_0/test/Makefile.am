@@ -48,7 +48,8 @@ test_programs = \
   test_remap_files           \
   test_gzip                  \
   test_utf8                  \
-  test_socket_io
+  test_socket_io             \
+  test_sliding_average
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
