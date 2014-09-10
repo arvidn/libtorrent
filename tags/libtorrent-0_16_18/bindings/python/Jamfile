@@ -1,0 +1,83 @@
+import python ;
+
+use-project /torrent : ../.. ;
+
+lib boost_python : : <target-os>darwin <name>boost_python-mt $(boost-library-search-path) ;
+lib boost_python : : <name>boost_python ;
+
+rule libtorrent_linking ( properties * )
+{
+    local result ;
+
+    if <toolset>gcc in $(properties)
+    {
+        result += <fpic>on ;
+    }
+
+    if <toolset>gcc in $(properties)
+      || <toolset>darwin in $(properties)
+      || <toolset>clang in $(properties)
+      || <toolset>clang-darwin in $(properties)
+    {
+        result += <cxxflags>-fvisibility=hidden ;
+    }
+
+    if <boost>source in $(properties)
+    {
+        if <boost-link>static in $(properties)
+        {
+            result += <library>/boost/python//boost_python/<link>static ;
+        }
+        else
+        {
+            result += <library>/boost/python//boost_python/<link>shared ;
+        }
+
+        if <link>static in $(properties)
+        {
+            result += <library>/torrent//torrent/<link>static ;
+        }
+        else
+        {
+            result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
+        }
+    }
+    else
+    {
+        result += <library>boost_python ;
+        result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
+    }
+
+    return $(result) ;
+}
+
+python-extension libtorrent 
+  : src/module.cpp
+    src/big_number.cpp
+    src/converters.cpp
+    src/create_torrent.cpp
+    src/fingerprint.cpp
+    src/utility.cpp
+    src/session.cpp
+    src/entry.cpp
+    src/torrent_info.cpp
+    src/string.cpp
+    src/torrent_handle.cpp
+    src/torrent_status.cpp
+    src/session_settings.cpp
+    src/version.cpp
+    src/alert.cpp
+    src/datetime.cpp
+    src/torrent.cpp
+    src/peer_info.cpp
+    src/ip_filter.cpp
+    src/magnet_uri.cpp
+    src/error_code.cpp
+  : <include>src
+    <conditional>@libtorrent_linking
+  : 
+    <boost-link>static
+  ;
+
+install stage_module : libtorrent : <location>. ;
+
