@@ -1,0 +1,39 @@
+import modules ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+use-project /torrent : .. ;
+
+if $(BOOST_ROOT)
+{
+	use-project /boost : $(BOOST_ROOT) ;
+}
+
+rule link_libtorrent ( properties * )
+{
+	local result ;
+	if <link>shared in $(properties)
+	{
+		result +=
+			<library>/torrent//torrent/<link>shared/<boost-link>shared ;
+	}
+	else
+	{
+		result +=
+			<library>/torrent//torrent/<link>static/<boost-link>static ;
+	}
+	return $(result) ;
+}
+
+project tools
+   : requirements
+	<threading>multi
+	<conditional>@link_libtorrent
+	: default-build
+	<link>static
+   ;  
+
+exe parse_hash_fails : parse_hash_fails.cpp ;
+exe parse_request_log : parse_request_log.cpp ;
+exe dht : dht_put.cpp : <include>../ed25519/src ;
+
