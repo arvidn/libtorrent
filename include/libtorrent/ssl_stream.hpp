@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_SSL_STREAM_HPP_INCLUDED
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
-
-#ifdef TORRENT_USE_OPENSSL
 
 #include "libtorrent/socket.hpp"
 #include <boost/bind.hpp>
@@ -146,20 +144,6 @@ public:
 	error_code set_option(SettableSocketOption const& opt, error_code& ec)
 	{
 		return m_sock.next_layer().set_option(opt, ec);
-	}
-
-#ifndef BOOST_NO_EXCEPTIONS
-	template <class GettableSocketOption>
-	void get_option(GettableSocketOption& opt)
-	{
-		m_sock.next_layer().get_option(opt);
-	}
-#endif
-
-	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption& opt, error_code& ec)
-	{
-		return m_sock.next_layer().get_option(opt, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -305,8 +289,6 @@ private:
 };
 
 }
-
-#endif // TORRENT_USE_OPENSSL
 
 #endif
 

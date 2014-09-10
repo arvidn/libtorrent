@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.1.0
+:Version: 0.16.18
 
 .. contents:: Table of contents
   :depth: 2
@@ -75,9 +75,9 @@ You'll find boost here__.
 __ http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=8041&release_id=619445
 
 Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to ``c:\boost_1_55_0`` (I'm using
+guide, let's assume you extract the package to ``c:\boost_1_34_0`` (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
-to use the autotools). You'll need at least version 1.49 of the boost library
+to use the autotools). You'll need at least version 1.34 of the boost library
 in order to build libtorrent.
 
 
@@ -86,7 +86,7 @@ Step 2: Setup BBv2
 
 First you need to build ``bjam``. You do this by opening a terminal (In
 windows, run ``cmd``). Change directory to
-``c:\boost_1_55_0\tools\jam\src``. Then run the script called
+``c:\boost_1_34_0\tools\jam\src``. Then run the script called
 ``build.bat`` or ``build.sh`` on a unix system. This will build ``bjam`` and
 place it in a directory starting with ``bin.`` and then have the name of your
 platform. Copy the ``bjam.exe`` (or ``bjam`` on a unix system) to a place
@@ -101,22 +101,22 @@ set the environment variable ``BOOST_BUILD_PATH``. This is the path that tells
 ``bjam`` where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to ``c:\boost_1_55_0\tools\build\v2``.
+it to ``c:\boost_1_34_0\tools\build\v2``.
 
 To set an environment variable in windows, type for example::
 
-  set BOOST_BUILD_PATH=c:\boost_1_55_0\tools\build\v2
+  set BOOST_BUILD_PATH=c:\boost_1_34_0\tools\build\v2
 
 In a terminal window.
 
 The last thing to do to complete the setup of BBv2 is to modify your
-``user-config.jam`` file. It is located in ``c:\boost_1_55_0\tools\build\v2``.
+``user-config.jam`` file. It is located in ``c:\boost_1_34_0\tools\build\v2``.
 Depending on your platform and which compiler you're using, you should add a
 line for each compiler and compiler version you have installed on your system
 that you want to be able to use with BBv2. For example, if you're using
-Microsoft Visual Studio 12 (2013), just add a line::
+Microsoft Visual Studio 7.1 (2003), just add a line::
 
-  using msvc : 12.0 ;
+  using msvc : 7.1 ;
 
 If you use GCC, add the line::
 
@@ -148,7 +148,7 @@ Step 3: Building libtorrent
 When building libtorrent, the ``Jamfile`` expects the environment variable
 ``BOOST_ROOT`` to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to ``c:\boost_1_55_0``. You only need this if you're
+files found. So, set this to ``c:\boost_1_34_0``. You only need this if you're
 building against a source distribution of boost.
 
 Then the only thing left is simply to invoke ``bjam``. If you want to specify
@@ -220,8 +220,8 @@ from a cygwin terminal, you'll have to run it from a ``cmd`` terminal. The same 
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
-``/cygdrive/c/boost_1_55_0``). In the windows environment, they should have the typical
-windows format (``c:/boost_1_55_0``).
+``/cygdrive/c/boost_1_34_0``). In the windows environment, they should have the typical
+windows format (``c:/boost_1_34_0``).
 
 .. note::
 	In Jamfiles, spaces are separators. It's typically easiest to avoid spaces
@@ -254,7 +254,7 @@ Build features:
 |                          | * ``verbose`` - verbose peer wire logging.         |
 |                          | * ``errors`` - like verbose, but limited to errors.|
 +--------------------------+----------------------------------------------------+
-| ``dht``                  | * ``on`` - build with support for tracker less     |
+| ``dht-support``          | * ``on`` - build with support for tracker less     |
 |                          |   torrents and DHT support.                        |
 |                          | * ``logging`` - build with DHT support and verbose |
 |                          |   logging of the DHT protocol traffic.             |
@@ -298,13 +298,11 @@ Build features:
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
 +--------------------------+----------------------------------------------------+
-| ``allocator``            | * ``pool`` - default, uses pool allocators for     |
-|                          |   send buffers.                                    |
-|                          | * ``system`` - uses ``malloc()`` and ``free()``    |
+| ``pool-allocators``      | * ``on`` - default, uses pool allocators for send  |
+|                          |   buffers.                                         |
+|                          | * ``off`` - uses ``malloc()`` and ``free()``       |
 |                          |   instead. Might be useful to debug buffer issues  |
 |                          |   with tools like electric fence or libgmalloc.    |
-|                          | * ``debug`` - instruments buffer usage to catch    |
-|                          |   bugs in libtorrent.                              |
 +--------------------------+----------------------------------------------------+
 | ``link``                 | * ``static`` - builds libtorrent as a static       |
 |                          |   library (.a / .lib)                              |
@@ -367,7 +365,7 @@ Build features:
 |                          |   awareness except on windows).                    |
 +--------------------------+----------------------------------------------------+
 | ``asserts``              | * ``off`` - disable all asserts                    |
-|                          | * ``production`` - enable asserts in release       |
+|                          | * ``peoduction`` - enable asserts in release       |
 |                          |   builds, but don't abort, just log them to        |
 |                          |   ``extern char const* libtorrent_assert_log``.    |
 |                          | * ``on`` - enable asserts in debug builds (this is |
@@ -391,13 +389,6 @@ Build features:
 |                          |   working directory session_stats<pid>. The log    |
 |                          |   is rotated every hour. It can be parsed by the   |
 |                          |   parse_session_stats.py script (requires gnuplot) |
-+--------------------------+----------------------------------------------------+
-| ``profile-calls``        | * ``off`` - default. No additional call profiling. |
-|                          | * ``on`` - Enable logging of stack traces of       |
-|                          |   calls into libtorrent that are blocking. On      |
-|                          |   session shutdown, a file ``blocking_calls.txt``  |
-|                          |   is written with stack traces of blocking calls   |
-|                          |   ordered by the number of them.                   |
 +--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
@@ -634,10 +625,6 @@ defines you can use to control the build.
 |                                        | ``TORRENT_USE_OPENSSL`` or                      |
 |                                        | ``TORRENT_USE_GCRYPT`` must be defined.         |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_EXTENSIONS``         | When defined, libtorrent plugin support is      |
-|                                        | disabled along with support for the extension   |
-|                                        | handskake (BEP 10).                             |
-+----------------------------------------+-------------------------------------------------+
 | ``_UNICODE``                           | On windows, this will cause the file IO         |
 |                                        | use wide character API, to properly support     |
 |                                        | non-ansi characters.                            |
@@ -662,7 +649,7 @@ defines you can use to control the build.
 | ``TORRENT_PRODUCTION_ASSERTS``         | Define to either 0 or 1. Enables assert logging |
 |                                        | in release builds.                              |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_USE_ASSERTS``                | Define as 0 to disable asserts unconditionally. |
+| ``TORRENT_NO_ASSERTS``                 | Disables all asserts.                           |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
 |                                        | custom one.                                     |

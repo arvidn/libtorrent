@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2014, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/settings.hpp"
 #include "libtorrent/alert_types.hpp" // for rss_alert
 
 #include <boost/bind.hpp>
@@ -369,6 +369,39 @@ void feed::on_feed(error_code const& ec
 
 	time_t now = time(NULL);
 
+	if (m_settings.auto_download || m_settings.auto_map_handles)
+	{
+		for (std::vector<feed_item>::iterator i = m_items.begin()
+			, end(m_items.end()); i != end; ++i)
+		{
+			i->handle = torrent_handle(m_ses.find_torrent(i->uuid.empty() ? i->url : i->uuid));
+
+			// if we're already downloading this torrent, or if we
+			// don't have auto-download enabled, just move along to
+			// the next one
+			if (i->handle.is_valid() || !m_settings.auto_download) continue;
+
+			// has this already been added?
+			if (m_added.find(i->url) != m_added.end()) continue;
+
+			// this means we should add this torrent to the session
+			add_torrent_params p = m_settings.add_args;
+			p.url = i->url;
+			p.uuid = i->uuid;
+			p.source_feed_url = m_settings.url;
+			p.ti.reset();
+			p.info_hash.clear();
+			p.name = i->title.c_str();
+
+			error_code e;
+			torrent_handle h = m_ses.add_torrent(p, e);
+			m_ses.m_alerts.post_alert(add_torrent_alert(h, p, e));
+			m_added.insert(make_pair(i->url, now));
+		}
+	}
+
+	m_last_update = now;
+
 	// keep history of the typical feed size times 5
 	int max_history = (std::max)(s.num_items * 5, 100);
 
@@ -384,8 +417,6 @@ void feed::on_feed(error_code const& ec
 		m_added.erase(i);
 	}
 
-	m_last_update = now;
-
 	// report that we successfully updated the feed
 	if (m_ses.m_alerts.should_post<rss_alert>())
 	{
@@ -398,52 +429,77 @@ void feed::on_feed(error_code const& ec
 	m_ses.update_rss_feeds();
 }
 
+#define TORRENT_SETTING(t, x) {#x, offsetof(feed_settings,x), t},
+	bencode_map_entry feed_settings_map[] =
+	{
+		TORRENT_SETTING(std_string, url)
+		TORRENT_SETTING(boolean, auto_download)
+		TORRENT_SETTING(boolean, auto_map_handles)
+		TORRENT_SETTING(integer, default_ttl)
+	};
+#undef TORRENT_SETTING
+
+#define TORRENT_SETTING(t, x) {#x, offsetof(feed_item,x), t},
+	bencode_map_entry feed_item_map[] =
+	{
+		TORRENT_SETTING(std_string, url)
+		TORRENT_SETTING(std_string, uuid)
+		TORRENT_SETTING(std_string, title)
+		TORRENT_SETTING(std_string, description)
+		TORRENT_SETTING(std_string, comment)
+		TORRENT_SETTING(std_string, category)
+		TORRENT_SETTING(size_integer, size)
+	};
+#undef TORRENT_SETTING
+
+#define TORRENT_SETTING(t, x) {#x, offsetof(feed,x), t},
+	bencode_map_entry feed_map[] =
+	{
+		TORRENT_SETTING(std_string, m_title)
+		TORRENT_SETTING(std_string, m_description)
+		TORRENT_SETTING(time_integer, m_last_attempt)
+		TORRENT_SETTING(time_integer, m_last_update)
+	};
+#undef TORRENT_SETTING
+
+#define TORRENT_SETTING(t, x) {#x, offsetof(add_torrent_params,x), t},
+	bencode_map_entry add_torrent_map[] =
+	{
+		TORRENT_SETTING(std_string, save_path)
+		TORRENT_SETTING(size_integer, flags)
+	};
+#undef TORRENT_SETTING
+
 void feed::load_state(lazy_entry const& rd)
 {
-	m_title = rd.dict_find_string_value("m_title");
-	m_description = rd.dict_find_string_value("m_description");
-	m_last_attempt = rd.dict_find_int_value("m_last_attempt");
-	m_last_update = rd.dict_find_int_value("m_last_update");
-
+	load_struct(rd, this, feed_map, sizeof(feed_map)/sizeof(feed_map[0]));
 	lazy_entry const* e = rd.dict_find_list("items");
 	if (e)
 	{
 		m_items.reserve(e->list_size());
 		for (int i = 0; i < e->list_size(); ++i)
 		{
-			lazy_entry const* entry = e->list_at(i);
-			if (entry->type() != lazy_entry::dict_t) continue;
-			
+			if (e->list_at(i)->type() != lazy_entry::dict_t) continue;
 			m_items.push_back(feed_item());
-			feed_item& item = m_items.back();
-			item.url = entry->dict_find_string_value("url");
-			item.uuid = entry->dict_find_string_value("uuid");
-			item.title = entry->dict_find_string_value("title");
-			item.description = entry->dict_find_string_value("description");
-			item.comment = entry->dict_find_string_value("comment");
-			item.category = entry->dict_find_string_value("category");
-			item.size = entry->dict_find_int_value("size");
+			load_struct(*e->list_at(i), &m_items.back(), feed_item_map
+				, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
 
 			// don't load duplicates
-			if (m_urls.find(item.url) != m_urls.end())
+			if (m_urls.find(m_items.back().url) != m_urls.end())
 			{
 				m_items.pop_back();
 				continue;
 			}
-			m_urls.insert(item.url);
+			m_urls.insert(m_items.back().url);
 		}
 	}
-
-	m_settings.url = rd.dict_find_string_value("url");
-	m_settings.auto_download = rd.dict_find_int_value("auto_download");
-	m_settings.auto_map_handles = rd.dict_find_int_value("auto_map_handles");
-	m_settings.default_ttl = rd.dict_find_int_value("default_ttl");
-
+	load_struct(rd, &m_settings, feed_settings_map
+		, sizeof(feed_settings_map)/sizeof(feed_settings_map[0]));
 	e = rd.dict_find_dict("add_params");
 	if (e)
 	{
-		m_settings.add_args.save_path = e->dict_find_string_value("save_path");
-		m_settings.add_args.flags = e->dict_find_int_value("flags");
+		load_struct(*e, &m_settings.add_args, add_torrent_map
+			, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]));
 	}
 
 	e = rd.dict_find_list("history");
@@ -470,10 +526,7 @@ void feed::load_state(lazy_entry const& rd)
 void feed::save_state(entry& rd) const
 {
 	// feed properties
-	rd["m_title"] = m_title;
-	rd["m_description"] = m_description;
-	rd["m_last_attempt"] = m_last_attempt;
-	rd["m_last_update"] = m_last_update;
+	save_struct(rd, this, feed_map, sizeof(feed_map)/sizeof(feed_map[0]));
 
 	// items
 	entry::list_type& items = rd["items"].list();
@@ -482,36 +535,17 @@ void feed::save_state(entry& rd) const
 	{
 		items.push_back(entry());
 		entry& item = items.back();
-		item["url"] = i->url;
-		item["uuid"] = i->uuid;
-		item["title"] = i->title;
-		item["description"] = i->description;
-		item["comment"] = i->comment;
-		item["category"] = i->category;
-		item["size"] = i->size;
+		save_struct(item, &*i, feed_item_map, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
 	}
 	
 	// settings
 	feed_settings sett_def;
-#define TORRENT_WRITE_SETTING(name) \
-	if (m_settings.name != sett_def.name) rd[#name] = m_settings.name
-
-	TORRENT_WRITE_SETTING(url);
-	TORRENT_WRITE_SETTING(auto_download);
-	TORRENT_WRITE_SETTING(auto_map_handles);
-	TORRENT_WRITE_SETTING(default_ttl);
-
-#undef TORRENT_WRITE_SETTING
-
+	save_struct(rd, &m_settings, feed_settings_map
+		, sizeof(feed_settings_map)/sizeof(feed_settings_map[0]), &sett_def);
 	entry& add = rd["add_params"];
 	add_torrent_params add_def;
-#define TORRENT_WRITE_SETTING(name) \
-	if (m_settings.add_args.name != add_def.name) add[#name] = m_settings.add_args.name;
-
-	TORRENT_WRITE_SETTING(save_path);
-	TORRENT_WRITE_SETTING(flags);
-
-#undef TORRENT_WRITE_SETTING
+	save_struct(add, &m_settings.add_args, add_torrent_map
+		, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]), &add_def);
 
 	entry::list_type& history = rd["history"].list();
 	for (std::map<std::string, time_t>::const_iterator i = m_added.begin()
@@ -532,41 +566,6 @@ void feed::add_item(feed_item const& item)
 
 	m_urls.insert(item.url);
 	m_items.push_back(item);
-
-	feed_item& i = m_items.back();
-
-	if (m_settings.auto_map_handles)
-		i.handle = torrent_handle(m_ses.find_torrent(i.uuid.empty() ? i.url : i.uuid));
-
-	if (m_ses.m_alerts.should_post<rss_item_alert>())
-		m_ses.m_alerts.post_alert(rss_item_alert(my_handle(), i));
-
-	if (m_settings.auto_download)
-	{
-		if (!m_settings.auto_map_handles)
-			i.handle = torrent_handle(m_ses.find_torrent(i.uuid.empty() ? i.url : i.uuid));
-
-		// if we're already downloading this torrent
-		// move along to the next one
-		if (i.handle.is_valid()) return;
-
-		// has this already been added?
-		if (m_added.find(i.url) != m_added.end()) return;
-
-		// this means we should add this torrent to the session
-		add_torrent_params p = m_settings.add_args;
-		p.url = i.url;
-		p.uuid = i.uuid;
-		p.source_feed_url = m_settings.url;
-		p.ti.reset();
-		p.info_hash.clear();
-		p.name = i.title.c_str();
-
-		error_code e;
-		m_ses.add_torrent(p, e);
-		time_t now = time(NULL);
-		m_added.insert(make_pair(i.url, now));
-	}
 }
 
 // returns the number of seconds until trying again
@@ -585,13 +584,11 @@ int feed::update_feed()
 
 	boost::shared_ptr<http_connection> feed(
 		new http_connection(m_ses.m_io_service, m_ses.m_half_open
-			, m_ses.m_host_resolver
 			, boost::bind(&feed::on_feed, shared_from_this()
 			, _1, _2, _3, _4)));
 
 	m_updating = true;
-	feed->get(m_settings.url, seconds(30), 0, 0, 5
-		, m_ses.m_settings.get_str(settings_pack::user_agent));
+	feed->get(m_settings.url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
 
 	return 60 + m_failures * m_failures * 60;
 }
@@ -611,11 +608,14 @@ void feed::get_feed_status(feed_status* ret) const
 
 int feed::next_update(time_t now) const
 {
-	if (m_last_update == 0) return int(m_last_attempt + 60 * 5 - now);
+	if (m_last_update == 0) return m_last_attempt + 60 * 5 - now;
 	int ttl = m_ttl == -1 ? m_settings.default_ttl : m_ttl;
 	TORRENT_ASSERT((m_last_update + ttl * 60) - now < INT_MAX);
 	return int((m_last_update + ttl * 60) - now);
 }
+
+// defined in session.cpp
+void fun_wrap(bool* done, condition* e, mutex* m, boost::function<void(void)> f);
 
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \
@@ -631,7 +631,13 @@ int feed::next_update(time_t now) const
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \
-	if (f) aux::sync_call_handle(f, boost::bind(&feed:: x, f, a1));
+	if (f) { \
+	bool done = false; \
+	aux::session_impl& ses = f->session(); \
+	mutex::scoped_lock l(ses.mut); \
+	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&feed:: x, f, a1)))); \
+	f.reset(); \
+	do { ses.cond.wait(l); } while(!done); }
 
 feed_handle::feed_handle(boost::weak_ptr<feed> const& p)
 	: m_feed_ptr(p) {}
@@ -650,7 +656,7 @@ feed_status feed_handle::get_feed_status() const
 
 void feed_handle::set_settings(feed_settings const& s)
 {
-	TORRENT_ASYNC_CALL1(set_settings, s);
+	TORRENT_SYNC_CALL1(set_settings, s);
 }
 
 feed_settings feed_handle::settings() const
@@ -660,5 +666,5 @@ feed_settings feed_handle::settings() const
 	return ret;
 }
 
-}
+};
 

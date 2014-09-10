@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.1.0
+:Version: 0.16.18
 
 .. contents:: Table of contents
   :depth: 2
@@ -53,18 +53,14 @@ extensions
   ratio rather than downloading the torrent.
 
 .. _article: utp.html
-.. _extensions: manual-ref.html#extensions
-.. _`http seeding`: manual-ref.html#http-seeding
+.. _extensions: manual.html#extensions
+.. _`http seeding`: manual.html#http-seeding
 
 disk management
 ---------------
 
 * uses a separate disk I/O thread to not have the disk ever block on network or
   client interaction. (see threads_).
-* uses asynchronous disk I/O when available (overlapped I/O, kaio, and posix-aio)
-  to make optimal use of disk bandwidth capacity
-* supports verifying the SHA-1 hash of pieces in multiple threads, to take full
-  advantage of multi core machines.
 * supports files > 2 gigabytes.
 * fast resume support, a way to get rid of the costly piece check at the
   start of a resumed torrent. Saves the storage state, piece_picker state
@@ -76,7 +72,7 @@ disk management
 * seed mode, where the files on disk are assumed to be complete, and each
   piece's hash is verified the first time it is requested.
 
-.. _threads: manualref.html#threads
+.. _threads: manual.html#threads
 
 network
 -------
@@ -277,9 +273,6 @@ to provide additional bandwidth to an entire feed.
 merkle hash tree torrents
 -------------------------
 
-.. image:: merkle_tree.png
-	:align: right
-
 Merkle hash tree torrents is an extension that lets a torrent file only contain the
 root hash of the hash tree forming the piece hashes. The main benefit of this feature
 is that regardless of how many pieces there is in a torrent, the .torrent file will
@@ -308,14 +301,16 @@ which lets peers verify every block of data received from peers, immediately. Th
 gives a minimum turnaround time and completely removes the problem of identifying malicious
 peers.
 
+.. image:: merkle_tree.png
+
 The root hash is built by hashing all the piece hashes pair-wise, until they all collapse
 down to the root.
 
-customizable file storage
--------------------------
-
 .. image:: storage.png
 	:align: right
+
+customizable file storage
+-------------------------
 
 libtorrent's storage implementation is customizable. That means a special purpose bittorrent
 client can replace the default way to store files on disk.
@@ -381,14 +376,28 @@ portability
 libtorrent runs on most major operating systems, including Windows,
 MacOS X, Linux, BSD and Solaris.
 It uses Boost.Thread, Boost.Filesystem, Boost.Date_time and various other
-boost libraries. At least version 1.46.1 of boost is required.
+boost libraries as well as zlib_ (shipped) and asio_ (shipped). At least version
+1.34.1 of boost is required.
+
+.. _zlib: http://www.zlib.org
+.. _asio: http://asio.sf.net
 
 libtorrent uses asio, hence it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
 epoll on linux and kqueue on MacOS X and BSD.
 
-libtorrent does not build with the following compilers:
+libtorrent has been successfully compiled and tested on:
+
+* Windows 2000, XP and Vista vc7.1, vc8
+* Linux x86 GCC 3.3, GCC 3.4.2, 4.x
+* Linux PPC GCC 4.1.1
+* MacOS X (darwin), (Apple's) GCC 3.3, (Apple's) GCC 4.0
+* SunOS 5.8 GCC 3.1 and Sunpro
+* Cygwin GCC 3.3.3
+
+Fails on:
 
 * GCC 2.95.4
-* Visual Studio 6, 7.0, 7.1
+* msvc6
+
 

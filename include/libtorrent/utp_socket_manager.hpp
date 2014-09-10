@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,32 +38,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent
 {
 	class udp_socket;
 	class utp_stream;
 	struct utp_socket_impl;
-	struct counters;
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
-	struct utp_socket_manager : udp_socket_observer
+	struct utp_socket_manager
 	{
-		utp_socket_manager(aux::session_settings const& sett, udp_socket& s, counters& cnt, incoming_utp_callback_t cb);
+		utp_socket_manager(session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
 
 		void get_status(utp_status& s) const;
 
 		// return false if this is not a uTP packet
-		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size);
-		virtual bool incoming_packet(error_code const&, char const*, char const*, int)
-		{ return false; }
-		virtual void writable();
-
-		virtual void socket_drained();
+		bool incoming_packet(char const* p, int size, udp::endpoint const& ep);
 
 		void tick(ptime now);
 
@@ -74,32 +66,25 @@ namespace libtorrent
 		enum { dont_fragment = 1 };
 		void send_packet(udp::endpoint const& ep, char const* p, int len
 			, error_code& ec, int flags = 0);
-		void subscribe_writable(utp_socket_impl* s);
 
 		// internal, used by utp_stream
 		void remove_socket(boost::uint16_t id);
 
 		utp_socket_impl* new_utp_socket(utp_stream* str);
-		int gain_factor() const { return m_sett.get_int(settings_pack::utp_gain_factor); }
-		int target_delay() const { return m_sett.get_int(settings_pack::utp_target_delay) * 1000; }
-		int syn_resends() const { return m_sett.get_int(settings_pack::utp_syn_resends); }
-		int fin_resends() const { return m_sett.get_int(settings_pack::utp_fin_resends); }
-		int num_resends() const { return m_sett.get_int(settings_pack::utp_num_resends); }
-		int connect_timeout() const { return m_sett.get_int(settings_pack::utp_connect_timeout); }
-		int min_timeout() const { return m_sett.get_int(settings_pack::utp_min_timeout); }
-		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
-		bool allow_dynamic_sock_buf() const { return m_sett.get_bool(settings_pack::utp_dynamic_sock_buf); }
+		int gain_factor() const { return m_sett.utp_gain_factor; }
+		int target_delay() const { return m_sett.utp_target_delay * 1000; }
+		int syn_resends() const { return m_sett.utp_syn_resends; }
+		int fin_resends() const { return m_sett.utp_fin_resends; }
+		int num_resends() const { return m_sett.utp_num_resends; }
+		int connect_timeout() const { return m_sett.utp_connect_timeout; }
+		int delayed_ack() const { return m_sett.utp_delayed_ack; }
+		int min_timeout() const { return m_sett.utp_min_timeout; }
+		int loss_multiplier() const { return m_sett.utp_loss_multiplier; }
+		bool allow_dynamic_sock_buf() const { return m_sett.utp_dynamic_sock_buf; }
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
 		void set_sock_buf(int size);
 		int num_sockets() const { return m_utp_sockets.size(); }
-
-		void defer_ack(utp_socket_impl* s);
-		void subscribe_drained(utp_socket_impl* s);
-
-		// used to keep stats of uTP events
-		// the counter is the enum from ``counters``.
-		void inc_stats_counter(int counter);
 
 	private:
 		udp_socket& m_sock;
@@ -109,30 +94,12 @@ namespace libtorrent
 		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
 
-		// this is a list of sockets that needs to send an ack.
-		// once the UDP socket is drained, all of these will
-		// have a chance to do that. This is to avoid sending
-		// an ack for every single packet
-		std::vector<utp_socket_impl*> m_deferred_acks;
-
-		// sockets that have received or sent packets this
-		// round, may subscribe to the event of draining the
-		// UDP socket. At that point they may call the
-		// user callback function to indicate bytes have been
-		// sent or received.
-		std::vector<utp_socket_impl*> m_drained_event;
-		
-		// list of sockets that received EWOULDBLOCK from the
-		// underlying socket. They are notified when the socket
-		// becomes writable again
-		std::vector<utp_socket_impl*> m_stalled_sockets;
-
 		// the last socket we received a packet on
 		utp_socket_impl* m_last_socket;
 
 		int m_new_connection;
 
-		aux::session_settings const& m_sett;
+		session_settings const& m_sett;
 
 		// this is a copy of the routing table, used
 		// to initialize MTU sizes of uTP sockets
@@ -149,9 +116,6 @@ namespace libtorrent
 		// the buffer size of the socket. This is used
 		// to now lower the buffer size
 		int m_sock_buf_size;
-
-		// stats counters
-		counters& m_counters;
 	};
 }
 

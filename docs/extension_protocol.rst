@@ -126,12 +126,12 @@ An example of what the payload of a handshake message could look like:
 +-------------------+----------------------------------+
 | ``p``             | 6881                             |
 +-------------------+----------------------------------+
-| ``v``             | "uTorrent 1.2"                   |
+| ``v``             | "µTorrent 1.2"                   |
 +-------------------+----------------------------------+
 
 and in the encoded form:
 
-``d1:md11:LT_metadatai1e6:ut_pexi2ee1:pi6881e1:v12:uTorrent 1.2e``
+``d1:md11:LT_metadatai1e6:µT_PEXi2ee1:pi6881e1:v13:\xc2\xb5Torrent 1.2e``
 
 To make sure the extension names do not collide by mistake, they should be
 prefixed with the two (or one) character code that is used to identify the
@@ -204,12 +204,10 @@ be a human readable protocol, so why bother.
 extensions
 ==========
 
-These extensions all operates within the `extension protocol`_. The name of the
-extension is the name used in the extension-list packets, and the payload is
-the data in the extended message (not counting the length-prefix, message-id
-nor extension-id).
-
-.. _`extension protocol`: extension_protocol.html
+These extensions all operates within the `extension protocol for bittorrent`_.
+The name of the extension is the name used in the extension-list packets,
+and the payload is the data in the extended message (not counting the
+length-prefix, message-id nor extension-id).
 
 Note that since this protocol relies on one of the reserved bits in the
 handshake, it may be incompatible with future versions of the mainline
@@ -222,20 +220,18 @@ metadata from peers
 
 Extension name: "LT_metadata"
 
-.. note::
-	This extension is deprecated in favor of the more widely supported
-	``ut_metadata`` extension, see `BEP 9`_.
-
+This extension is deprecated in favor of the more widely supported ``ut_metadata``
+extension, see `BEP 9`_.
 The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
 through the bittorrent swarm. The only thing you need to download such
 a torrent is the tracker url and the info-hash of the torrent.
 
-It works by assuming that the initial seeder has the metadata and that the
-metadata will propagate through the network as more peers join.
+It works by assuming that the initial seeder has the metadata and that
+the metadata will propagate through the network as more peers join.
 
-There are three kinds of messages in the metadata extension. These packets are
-put as payload to the extension message. The three packets are:
+There are three kinds of messages in the metadata extension. These packets
+are put as payload to the extension message. The three packets are:
 
 	* request metadata
 	* metadata
@@ -302,14 +298,13 @@ dont_have
 
 Extension name: "lt_donthave"
 
-The ``dont_have`` extension message is used to tell peers that the client no
-longer has a specific piece. The extension message should be advertised in the
-``m`` dictionary as ``lt_donthave``. The message format mimics the regular
-``HAVE`` bittorrent message.
+The ``dont_have`` extension message is used to tell peers that the client no longer
+has a specific piece. The extension message should be advertised in the ``m`` dictionary
+as ``lt_donthave``. The message format mimics the regular ``HAVE`` bittorrent message.
 
-Just like all extension messages, the first 2 bytes in the mssage itself are 20
-(the bittorrent extension message) and the message ID assigned to this
-extension in the ``m`` dictionary in the handshake.
+Just like all extension messages, the first 2 bytes in the mssage itself are 20 (the
+bittorrent extension message) and the message ID assigned to this extension in the ``m``
+dictionary in the handshake.
 
 +-----------+---------------+----------------------------------------+
 | size      | name          | description                            |
@@ -318,7 +313,7 @@ extension in the ``m`` dictionary in the handshake.
 |           |               | has.                                   |
 +-----------+---------------+----------------------------------------+
 
-The length of this message (including the extension message prefix) is 6 bytes,
-i.e. one byte longer than the normal ``HAVE`` message, because of the extension
-message wrapping.
+The length of this message (including the extension message prefix) is
+6 bytes, i.e. one byte longer than the normal ``HAVE`` message, because
+of the extension message wrapping.
 

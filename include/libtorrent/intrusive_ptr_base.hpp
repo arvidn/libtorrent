@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,21 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_INTRUSIVE_PTR_BASE
 #define TORRENT_INTRUSIVE_PTR_BASE
 
+#include <boost/detail/atomic_count.hpp>
 #include <boost/checked_delete.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include <boost/atomic.hpp>
 
 namespace libtorrent
 {
-	// TODO: 2 remove this class and transition over to using shared_ptr and
-	// make_shared instead
 	template<class T>
 	struct intrusive_ptr_base
 	{
 		intrusive_ptr_base(intrusive_ptr_base<T> const&)
 			: m_refs(0) {}
+
+		intrusive_ptr_base& operator=(intrusive_ptr_base const& rhs)
+		{ return *this; }
 
 		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
 		{
@@ -74,10 +75,14 @@ namespace libtorrent
 
 		intrusive_ptr_base(): m_refs(0) {}
 
+		// so that we can access this when logging
+#if !defined TORRENT_LOGGING \
+		&& !defined TORRENT_VERBOSE_LOGGING \
+		&& !defined TORRENT_ERROR_LOGGING
 	private:
-
+#endif
 		// reference counter for intrusive_ptr
-		mutable boost::atomic<int> m_refs;
+		mutable boost::detail::atomic_count m_refs;
 	};
 
 }

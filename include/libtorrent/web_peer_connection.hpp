@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,11 @@ namespace libtorrent
 {
 	class torrent;
 
+	namespace detail
+	{
+		struct session_impl;
+	}
+
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
@@ -74,10 +79,15 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		web_peer_connection(peer_connection_args const& pack
-			, web_seed_entry& web);
-
-		virtual void on_connected();
+		web_peer_connection(
+			aux::session_impl& ses
+			, boost::weak_ptr<torrent> t
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, std::string const& url
+			, policy::peer* peerinfo
+			, std::string const& ext_auth
+			, web_seed_entry::headers_t const& ext_headers);
 
 		virtual int type() const { return peer_connection::url_seed_connection; }
 
@@ -89,11 +99,9 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
+		virtual void disconnect(error_code const& ec, int error = 0);
 
-		virtual void write_request(peer_request const& r);
-
-		virtual bool received_invalid_data(int index, bool single_peer);
+		void write_request(peer_request const& r);
 
 	private:
 
@@ -106,19 +114,15 @@ namespace libtorrent
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const;
 
-		void handle_padfile(buffer::const_interval& recv_buffer);
-
 		// this has one entry per http-request
 		// (might be more than the bt requests)
 		std::deque<int> m_file_requests;
 
 		std::string m_url;
-	
-		web_seed_entry* m_web;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
-		// TODO: 1 if we make this be a disk_buffer_holder instead
+		// TODO: if we make this be a disk_buffer_holder instead
 		// we would save a copy sometimes
 		// use allocate_disk_receive_buffer and release_disk_receive_buffer
 		std::vector<char> m_piece;
@@ -131,6 +135,9 @@ namespace libtorrent
 		// position in the current range response
 		size_type m_range_pos;
 
+		// the position in the current block
+		int m_block_pos;
+
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
 		// this is updated for each chunk header that's
@@ -139,16 +146,9 @@ namespace libtorrent
 		// it yet. This offset never includes the HTTP header
 		size_type m_chunk_pos;
 
-		// the position in the current block
-		int m_block_pos;
-
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for
 		int m_partial_chunk_header;
-
-		// the number of responses we've received so far on
-		// this connection
-		int m_num_responses;
 	};
 }
 

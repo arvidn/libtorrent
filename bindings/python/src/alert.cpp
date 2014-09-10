@@ -285,10 +285,8 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
-        .def_readonly("interface", &listen_failed_alert::interface)
+        .def_readonly("endpoint", &listen_failed_alert::endpoint)
         .def_readonly("error", &listen_failed_alert::error)
-        .def_readonly("operation", &listen_failed_alert::operation)
-        .def_readonly("sock_type", &listen_failed_alert::sock_type)
         ;
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
@@ -536,10 +534,4 @@ void bind_alert()
        .def_readonly("error", &add_torrent_alert::error)
        .add_property("params", &get_params)
        ;
-
-    class_<torrent_update_alert, bases<torrent_alert>, noncopyable>(
-       "torrent_update_alert", no_init)
-        .def_readonly("old_ih", &torrent_update_alert::old_ih)
-        .def_readonly("new_ih", &torrent_update_alert::new_ih)
-        ;
 }

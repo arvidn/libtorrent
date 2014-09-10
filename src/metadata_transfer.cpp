@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/pch.hpp"
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #ifdef _MSC_VER
@@ -38,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/io.hpp"
 
 namespace libtorrent { namespace
 {
@@ -107,21 +106,6 @@ namespace libtorrent { namespace
 			, m_metadata_size(0)
 		{
 			m_requested_metadata.resize(256, 0);
-		}
-
-		bool need_loaded()
-		{ return m_torrent.need_loaded(); }
-
-		virtual void on_unload()
-		{
-			m_metadata.reset();
-		}
-
-		virtual void on_load()
-		{
-			// initialize m_metadata_size
-			TORRENT_ASSERT(m_torrent.is_loaded());
-			metadata();
 		}
 
 		virtual void on_files_checked()
@@ -305,8 +289,8 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			m_pc.peer_log("==> METADATA_REQUEST  [ start: %d | size: %d ]\n"
-				, start, size);
+			(*m_pc.m_logger) << time_now_string()
+				<< " ==> METADATA_REQUEST  [ start: " << start << " | size: " << size << " ]\n";
 #endif
 
 			char msg[9];
@@ -343,8 +327,12 @@ namespace libtorrent { namespace
 				char* ptr = msg;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-				m_pc.peer_log("==> METADATA [ start: %d | total_size: %d | offset: %d | data_size: %d ]"
-					, req.first, req.second, offset.first, offset.second);
+				(*m_pc.m_logger) << time_now_string()
+					<< " ==> METADATA [ start: " << req.first
+					<< " | size: " << req.second
+					<< " | offset: " << offset.first
+					<< " | byte_size: " << offset.second
+					<< " ]\n";
 #endif
 				// yes, we have metadata, send it
 				detail::write_uint32(11 + offset.second, ptr);
@@ -355,16 +343,14 @@ namespace libtorrent { namespace
 				detail::write_uint32((int)m_tp.metadata().left(), ptr);
 				detail::write_uint32(offset.first, ptr);
 				m_pc.send_buffer(msg, sizeof(msg));
-
-				// TODO: this is not safe. The torrent could be unloaded while
-				// we're still sending the metadata
 				char const* metadata = m_tp.metadata().begin;
 				m_pc.append_const_send_buffer(metadata + offset.first, offset.second);
 			}
 			else
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				m_pc.peer_log("==> DONT HAVE METADATA\n");
+				(*m_pc.m_logger) << time_now_string()
+					<< " ==> DONT HAVE METADATA\n";
 #endif
 				char msg[4+3];
 				char* ptr = msg;
@@ -389,7 +375,7 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect(errors::metadata_too_large, peer_connection_interface::op_bittorrent, 2);
+				m_pc.disconnect(errors::metadata_too_large, 2);
 				return true;
 			}
 
@@ -405,14 +391,16 @@ namespace libtorrent { namespace
 					int size = detail::read_uint8(body.begin) + 1;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-					m_pc.peer_log("<== METADATA_REQUEST  [ start: %d | size: %d ]\n"
-						, start, size);
+					(*m_pc.m_logger) << time_now_string()
+						<< " <== METADATA_REQUEST [ start: " << start
+						<< " | size: " << size
+						<< " ]\n";
 #endif
 
 					if (length != 3)
 					{
 						// invalid metadata request
-						m_pc.disconnect(errors::invalid_metadata_request, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_request, 2);
 						return true;
 					}
 
@@ -428,28 +416,31 @@ namespace libtorrent { namespace
 					int data_size = length - 9;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-					m_pc.peer_log("<== METADATA [ total_size: %d | offset: %d | data_size: %d ]"
-						,total_size, offset, data_size);
+					(*m_pc.m_logger) << time_now_string()
+						<< " <== METADATA [ total_size: " << total_size
+						<< " | offset: " << offset
+						<< " | data_size: " << data_size
+						<< " ]\n";
 #endif
 
-					if (total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
+					if (total_size > m_torrent.session().settings().max_metadata_size)
 					{
-						m_pc.disconnect(errors::metadata_too_large, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::metadata_too_large, 2);
 						return true;
 					}
 					if (total_size <= 0)
 					{
-						m_pc.disconnect(errors::invalid_metadata_size, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_size, 2);
 						return true;
 					}
 					if (offset > total_size || offset < 0)
 					{
-						m_pc.disconnect(errors::invalid_metadata_offset, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_offset, 2);
 						return true;
 					}
 					if (offset + data_size > total_size)
 					{
-						m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_message, 2);
 						return true;
 					}
 
@@ -471,12 +462,13 @@ namespace libtorrent { namespace
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
 #ifdef TORRENT_VERBOSE_LOGGING
-				m_pc.peer_log("<== DONT HAVE METADATA\n");
+				(*m_pc.m_logger) << time_now_string()
+					<< " <== DONT HAVE METADATA\n";
 #endif
 				break;
 			default:
 				{
-					m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
+					m_pc.disconnect(errors::invalid_metadata_message, 2);
 				}
 			}
 			return true;
@@ -504,7 +496,7 @@ namespace libtorrent { namespace
 
 		bool has_metadata() const
 		{
-			return time_now() - minutes(5) > m_no_metadata;
+			return time_now() - m_no_metadata > minutes(5);
 		}
 
 	private:
@@ -599,6 +591,5 @@ namespace libtorrent
 
 }
 
-#endif
 #endif
 

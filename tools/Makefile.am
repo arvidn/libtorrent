@@ -1,32 +1,15 @@
 tool_programs =  \
-  parse_hash_fails \
-  parse_request_log
+  parse_hash_fails
 
 if ENABLE_EXAMPLES
 bin_PROGRAMS = $(tool_programs)
 endif
 
 EXTRA_PROGRAMS = $(tool_programs)
-EXTRA_DIST = Jamfile     \
-  parse_bandwidth_log.py \
-  parse_buffer_log.py    \
-  parse_dht_log.py       \
-  parse_dht_rtt.py       \
-  parse_dht_stats.py     \
-  parse_disk_access.py   \
-  parse_disk_buffer_log.py\
-  parse_disk_log.py      \
-  parse_memory_log.py    \
-  parse_peer_log.py      \
-  parse_sample.py        \
-  parse_session_stats.py \
-  parse_test_results.py  \
-  parse_utp_log.py       \
-  run_regression_tests.py\
-  run_tests.py
+EXTRA_DIST = Jamfile
 
 parse_hash_fails_SOURCES = parse_hash_fails.cpp
-parse_request_log_SOURCES = parse_request_log.cpp
+#client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2014, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 
+#ifdef TORRENT_DEBUG
+#define TORRENT_CFG_DEBUG dbg_
+#else
+#define TORRENT_CFG_DEBUG rel_
+#endif
+
 #if TORRENT_USE_BOOST_DATE_TIME
 #define TORRENT_CFG_TIME boosttime_
 #elif TORRENT_USE_ABSOLUTE_TIME
@@ -57,15 +63,65 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CFG_IPV6 noipv_-
 #endif
 
+#ifdef TORRENT_DISABLE_DHT
+#define TORRENT_CFG_DHT nodht_
+#else
+#define TORRENT_CFG_DHT dht_
+#endif
+
+#ifdef TORRENT_DISABLE_POOL_ALLOCATORS
+#define TORRENT_CFG_POOL nopools_
+#else
+#define TORRENT_CFG_POOL pools_
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+#define TORRENT_CFG_LOG verboselog_
+#elif defined TORRENT_LOGGING
+#define TORRENT_CFG_LOG log_
+#else
+#define TORRENT_CFG_LOG nolog_
+#endif
+
+#ifdef _UNICODE
+#define TORRENT_CFG_UNICODE unicode_
+#else
+#define TORRENT_CFG_UNICODE ansi_
+#endif
+
+#ifdef TORRENT_DISABLE_RESOLVE_COUNTRIES
+#define TORRENT_CFG_RESOLVE noresolvecountries_
+#else
+#define TORRENT_CFG_RESOLVE resolvecountries_
+#endif
+
 #ifdef TORRENT_NO_DEPRECATE
 #define TORRENT_CFG_DEPR nodeprecate_
 #else
 #define TORRENT_CFG_DEPR deprecated_
 #endif
 
+#ifdef TORRENT_DISABLE_FULL_STATS
+#define TORRENT_CFG_STATS partialstats_
+#else
+#define TORRENT_CFG_STATS fullstats_
+#endif
+
+#ifdef TORRENT_DISABLE_EXTENSIONS
+#define TORRENT_CFG_EXT noext_
+#else
+#define TORRENT_CFG_EXT ext_
+#endif
+
 #define TORRENT_CFG \
+	BOOST_PP_CAT(TORRENT_CFG_DEBUG, \
 	BOOST_PP_CAT(TORRENT_CFG_TIME, \
-	TORRENT_CFG_DEPR)
+	BOOST_PP_CAT(TORRENT_CFG_POOL, \
+	BOOST_PP_CAT(TORRENT_CFG_LOG, \
+	BOOST_PP_CAT(TORRENT_CFG_RESOLVE, \
+	BOOST_PP_CAT(TORRENT_CFG_DEPR, \
+	BOOST_PP_CAT(TORRENT_CFG_DHT, \
+	TORRENT_CFG_EXT)))))))
 
 #define TORRENT_CFG_STRING BOOST_PP_STRINGIZE(TORRENT_CFG)
 

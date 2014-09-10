@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <vector>
 #include <limits>
 #include <boost/bind.hpp>
@@ -44,47 +46,49 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
 using boost::shared_ptr;
+using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
 	web_connection_base::web_connection_base(
-		peer_connection_args const& pack
-		, web_seed_entry& web)
-		: peer_connection(pack)
+		session_impl& ses
+		, boost::weak_ptr<torrent> t
+		, boost::shared_ptr<socket_type> s
+		, tcp::endpoint const& remote
+		, std::string const& url
+		, policy::peer* peerinfo
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+		: peer_connection(ses, t, s, remote, peerinfo)
+		, m_parser(http_parser::dont_parse_chunks)
+		, m_external_auth(auth)
+		, m_extra_headers(extra_headers)
 		, m_first_request(true)
 		, m_ssl(false)
-		, m_external_auth(web.auth)
-		, m_extra_headers(web.extra_headers)
-		, m_parser(http_parser::dont_parse_chunks)
 		, m_body_start(0)
 	{
-		TORRENT_ASSERT(&web.peer_info == pack.peerinfo);
-		TORRENT_ASSERT(web.endpoint == *pack.endp);
-
 		INVARIANT_CHECK;
 
 		// we only want left-over bandwidth
-		// TODO: introduce a web-seed default class which has a low download priority
+		set_priority(1);
 		
+		// since this is a web seed, change the timeout
+		// according to the settings.
+		set_timeout(ses.settings().urlseed_timeout);
+
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
-			= parse_url_components(web.url, ec);
+			= parse_url_components(url, ec);
 		TORRENT_ASSERT(!ec);
 
-		if (m_port == -1 && protocol == "http")
-			m_port = 80;
-
 #ifdef TORRENT_USE_OPENSSL
-		if (protocol == "https")
-		{
-			m_ssl = true;
-			if (m_port == -1) m_port = 443;
-		}
+		if (protocol == "https") m_ssl = true;
 #endif
 
 		if (!m_basic_auth.empty())
@@ -92,13 +96,6 @@ namespace libtorrent
 
 		m_server_string = "URL seed @ ";
 		m_server_string += m_host;
-	}
-
-	int web_connection_base::timeout() const
-	{
-		// since this is a web seed, change the timeout
-		// according to the settings.
-		return m_settings.get_int(settings_pack::urlseed_timeout);
 	}
 
 	void web_connection_base::start()
@@ -126,13 +123,13 @@ namespace libtorrent
 	}
 
 	void web_connection_base::add_headers(std::string& request
-		, aux::session_settings const& sett, bool using_proxy) const
+		, proxy_settings const& ps, bool using_proxy) const
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent)) {
+		if (m_first_request || m_ses.settings().always_send_user_agent) {
 			request += "\r\nUser-Agent: ";
-			request += m_settings.get_str(settings_pack::user_agent);
+			request += m_ses.settings().user_agent;
 		}
 		if (!m_external_auth.empty()) {
 			request += "\r\nAuthorization: ";
@@ -141,10 +138,9 @@ namespace libtorrent
 			request += "\r\nAuthorization: Basic ";
 			request += m_basic_auth;
 		}
-		if (sett.get_int(settings_pack::proxy_type) == settings_pack::http_pw) {
+		if (ps.type == proxy_settings::http_pw) {
 			request += "\r\nProxy-Authorization: Basic ";
-			request += base64encode(sett.get_str(settings_pack::proxy_username)
-				+ ":" + sett.get_str(settings_pack::proxy_password));
+			request += base64encode(ps.username + ":" + ps.password);
 		}
 		for (web_seed_entry::headers_t::const_iterator it = m_extra_headers.begin();
 		     it != m_extra_headers.end(); ++it) {
@@ -188,11 +184,11 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (error) return;
-		sent_bytes(0, bytes_transferred);
+		m_statistics.sent_bytes(0, bytes_transferred);
 	}
 
 
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void web_connection_base::check_invariant() const
 	{
 /*

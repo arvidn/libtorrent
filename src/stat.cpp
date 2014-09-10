@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <numeric>
 #include <algorithm>
 
@@ -42,6 +44,7 @@ void stat_channel::second_tick(int tick_interval_ms)
 	int sample = int(size_type(m_counter) * 1000 / tick_interval_ms);
 	TORRENT_ASSERT(sample >= 0);
 	m_5_sec_average = size_type(m_5_sec_average) * 4 / 5 + sample / 5;
+	m_30_sec_average = size_type(m_30_sec_average) * 29 / 30 + sample / 30;
 	m_counter = 0;
 }
 

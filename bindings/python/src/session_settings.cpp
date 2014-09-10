@@ -10,7 +10,6 @@ using namespace libtorrent;
 
 void bind_session_settings()
 {
-#ifndef TORRENT_NO_DEPRECATE
     class_<session_settings>("session_settings")
         .def_readwrite("user_agent", &session_settings::user_agent)
         .def_readwrite("tracker_completion_timeout", &session_settings::tracker_completion_timeout)
@@ -43,7 +42,7 @@ void bind_session_settings()
         .def_readwrite("num_want", &session_settings::num_want)
         .def_readwrite("initial_picker_threshold", &session_settings::initial_picker_threshold)
         .def_readwrite("allowed_fast_set_size", &session_settings::allowed_fast_set_size)
-		  // this is no longer used
+        .def_readwrite("suggest_mode", &session_settings::suggest_mode)
         .def_readwrite("max_queued_disk_bytes", &session_settings::max_queued_disk_bytes)
         .def_readwrite("max_queued_disk_bytes_low_watermark", &session_settings::max_queued_disk_bytes_low_watermark)
         .def_readwrite("handshake_timeout", &session_settings::handshake_timeout)
@@ -55,6 +54,10 @@ void bind_session_settings()
         .def_readwrite("send_buffer_low_watermark", &session_settings::send_buffer_low_watermark)
         .def_readwrite("send_buffer_watermark", &session_settings::send_buffer_watermark)
         .def_readwrite("send_buffer_watermark_factor", &session_settings::send_buffer_watermark_factor)
+#ifndef TORRENT_NO_DEPRECATE
+        .def_readwrite("auto_upload_slots", &session_settings::auto_upload_slots)
+        .def_readwrite("auto_upload_slots_rate_based", &session_settings::auto_upload_slots_rate_based)
+#endif
         .def_readwrite("choking_algorithm", &session_settings::choking_algorithm)
         .def_readwrite("seed_choking_algorithm", &session_settings::seed_choking_algorithm)
         .def_readwrite("use_parole_mode", &session_settings::use_parole_mode)
@@ -68,6 +71,7 @@ void bind_session_settings()
         .def_readwrite("disk_io_read_mode", &session_settings::disk_io_read_mode)
         .def_readwrite("coalesce_reads", &session_settings::coalesce_reads)
         .def_readwrite("coalesce_writes", &session_settings::coalesce_writes)
+        .def_readwrite("outgoing_ports", &session_settings::outgoing_ports)
         .def_readwrite("peer_tos", &session_settings::peer_tos)
         .def_readwrite("active_downloads", &session_settings::active_downloads)
         .def_readwrite("active_seeds", &session_settings::active_seeds)
@@ -135,7 +139,6 @@ void bind_session_settings()
         .def_readwrite("ignore_resume_timestamps", &session_settings::ignore_resume_timestamps)
         .def_readwrite("no_recheck_incomplete_resume", &session_settings::no_recheck_incomplete_resume)
         .def_readwrite("anonymous_mode", &session_settings::anonymous_mode)
-        .def_readwrite("force_proxy", &session_settings::force_proxy)
         .def_readwrite("tick_interval", &session_settings::tick_interval)
         .def_readwrite("report_web_seed_downloads", &session_settings::report_web_seed_downloads)
         .def_readwrite("share_mode_target", &session_settings::share_mode_target)
@@ -155,9 +158,7 @@ void bind_session_settings()
         .def_readwrite("utp_fin_resends", &session_settings::utp_fin_resends)
         .def_readwrite("utp_num_resends", &session_settings::utp_num_resends)
         .def_readwrite("utp_connect_timeout", &session_settings::utp_connect_timeout)
-#ifndef TORRENT_NO_DEPRECATE
         .def_readwrite("utp_delayed_ack", &session_settings::utp_delayed_ack)
-#endif
         .def_readwrite("utp_dynamic_sock_buf", &session_settings::utp_dynamic_sock_buf)
         .def_readwrite("utp_loss_multiplier", &session_settings::utp_loss_multiplier)
         .def_readwrite("mixed_mode_algorithm", &session_settings::mixed_mode_algorithm)
@@ -182,12 +183,16 @@ void bind_session_settings()
         .def_readwrite("ssl_listen", &session_settings::ssl_listen)
         .def_readwrite("tracker_backoff", &session_settings::tracker_backoff)
         .def_readwrite("ban_web_seeds", &session_settings::ban_web_seeds)
-        .def_readwrite("max_http_recv_buffer_size", &session_settings::max_http_recv_buffer_size)
-		  .def_readwrite("support_share_mode", &session_settings::support_share_mode)
-		  .def_readwrite("support_merkle_torrents", &session_settings::support_merkle_torrents)
-		  .def_readwrite("report_redundant_bytes", &session_settings::report_redundant_bytes)
-		  .def_readwrite("handshake_client_version", &session_settings::handshake_client_version)
-		  .def_readwrite("use_disk_cache_pool", &session_settings::use_disk_cache_pool)
+    ;
+
+    enum_<proxy_settings::proxy_type>("proxy_type")
+        .value("none", proxy_settings::none)
+        .value("socks4", proxy_settings::socks4)
+        .value("socks5", proxy_settings::socks5)
+        .value("socks5_pw", proxy_settings::socks5_pw)
+        .value("http", proxy_settings::http)
+        .value("http_pw", proxy_settings::http_pw)
+        .value("i2p_proxy", proxy_settings::i2p_proxy)
     ;
 
     enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")
@@ -223,18 +228,6 @@ void bind_session_settings()
     enum_<session_settings::bandwidth_mixed_algo_t>("bandwidth_mixed_algo_t")
         .value("prefer_tcp", session_settings::prefer_tcp)
         .value("peer_proportional", session_settings::peer_proportional)
-    ;
-
-#endif
-
-    enum_<proxy_settings::proxy_type>("proxy_type")
-        .value("none", proxy_settings::none)
-        .value("socks4", proxy_settings::socks4)
-        .value("socks5", proxy_settings::socks5)
-        .value("socks5_pw", proxy_settings::socks5_pw)
-        .value("http", proxy_settings::http)
-        .value("http_pw", proxy_settings::http_pw)
-        .value("i2p_proxy", proxy_settings::i2p_proxy)
     ;
 
     class_<proxy_settings>("proxy_settings")

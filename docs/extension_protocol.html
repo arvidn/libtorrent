@@ -6,8 +6,8 @@
 <meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com Ludvig Strigeus, ludde&#64;utorrent.com" />
-<link rel="stylesheet" type="text/css" href="base.css" />
-<link rel="stylesheet" type="text/css" href="rst.css" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
 <script type="text/javascript">
 /* <![CDATA[ */
     (function() {
@@ -29,9 +29,16 @@
 <body>
 <div class="document">
     <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
     <div id="header">
-    <div id="orange"></div>
-    <div id="logo"></div>
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
     </div>
     <div id="main">
 
@@ -224,12 +231,12 @@ imaginable.</p>
 <td>6881</td>
 </tr>
 <tr><td><tt class="docutils literal">v</tt></td>
-<td>&quot;uTorrent 1.2&quot;</td>
+<td>&quot;µTorrent 1.2&quot;</td>
 </tr>
 </tbody>
 </table>
 <p>and in the encoded form:</p>
-<p><tt class="docutils literal">d1:md11:LT_metadatai1e6:ut_pexi2ee1:pi6881e1:v12:uTorrent 1.2e</tt></p>
+<p><tt class="docutils literal"><span class="pre">d1:md11:LT_metadatai1e6:µT_PEXi2ee1:pi6881e1:v13:\xc2\xb5Torrent</span> 1.2e</tt></p>
 <p>To make sure the extension names do not collide by mistake, they should be
 prefixed with the two (or one) character code that is used to identify the
 client that introduced the extension. This applies for both the names of
@@ -291,10 +298,10 @@ be a human readable protocol, so why bother.</p>
 </div>
 <div class="section" id="extensions">
 <h1>extensions</h1>
-<p>These extensions all operates within the <a class="reference external" href="extension_protocol.html">extension protocol</a>. The name of the
-extension is the name used in the extension-list packets, and the payload is
-the data in the extended message (not counting the length-prefix, message-id
-nor extension-id).</p>
+<p>These extensions all operates within the <a class="reference internal" href="#extension-protocol-for-bittorrent">extension protocol for bittorrent</a>.
+The name of the extension is the name used in the extension-list packets,
+and the payload is the data in the extended message (not counting the
+length-prefix, message-id nor extension-id).</p>
 <p>Note that since this protocol relies on one of the reserved bits in the
 handshake, it may be incompatible with future versions of the mainline
 bittorrent client.</p>
@@ -302,19 +309,16 @@ bittorrent client.</p>
 <div class="section" id="metadata-from-peers">
 <h2>metadata from peers</h2>
 <p>Extension name: &quot;LT_metadata&quot;</p>
-<div class="note">
-<p class="first admonition-title">Note</p>
-<p class="last">This extension is deprecated in favor of the more widely supported
-<tt class="docutils literal">ut_metadata</tt> extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.</p>
-</div>
-<p>The point with this extension is that you don't have to distribute the
+<p>This extension is deprecated in favor of the more widely supported <tt class="docutils literal">ut_metadata</tt>
+extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.
+The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
 through the bittorrent swarm. The only thing you need to download such
 a torrent is the tracker url and the info-hash of the torrent.</p>
-<p>It works by assuming that the initial seeder has the metadata and that the
-metadata will propagate through the network as more peers join.</p>
-<p>There are three kinds of messages in the metadata extension. These packets are
-put as payload to the extension message. The three packets are:</p>
+<p>It works by assuming that the initial seeder has the metadata and that
+the metadata will propagate through the network as more peers join.</p>
+<p>There are three kinds of messages in the metadata extension. These packets
+are put as payload to the extension message. The three packets are:</p>
 <blockquote>
 <ul class="simple">
 <li>request metadata</li>
@@ -426,13 +430,12 @@ doesn't have any metadata.</td>
 <div class="section" id="dont-have">
 <h2>dont_have</h2>
 <p>Extension name: &quot;lt_donthave&quot;</p>
-<p>The <tt class="docutils literal">dont_have</tt> extension message is used to tell peers that the client no
-longer has a specific piece. The extension message should be advertised in the
-<tt class="docutils literal">m</tt> dictionary as <tt class="docutils literal">lt_donthave</tt>. The message format mimics the regular
-<tt class="docutils literal">HAVE</tt> bittorrent message.</p>
-<p>Just like all extension messages, the first 2 bytes in the mssage itself are 20
-(the bittorrent extension message) and the message ID assigned to this
-extension in the <tt class="docutils literal">m</tt> dictionary in the handshake.</p>
+<p>The <tt class="docutils literal">dont_have</tt> extension message is used to tell peers that the client no longer
+has a specific piece. The extension message should be advertised in the <tt class="docutils literal">m</tt> dictionary
+as <tt class="docutils literal">lt_donthave</tt>. The message format mimics the regular <tt class="docutils literal">HAVE</tt> bittorrent message.</p>
+<p>Just like all extension messages, the first 2 bytes in the mssage itself are 20 (the
+bittorrent extension message) and the message ID assigned to this extension in the <tt class="docutils literal">m</tt>
+dictionary in the handshake.</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="17%" />
@@ -453,11 +456,22 @@ has.</td>
 </tr>
 </tbody>
 </table>
-<p>The length of this message (including the extension message prefix) is 6 bytes,
-i.e. one byte longer than the normal <tt class="docutils literal">HAVE</tt> message, because of the extension
-message wrapping.</p>
+<p>The length of this message (including the extension message prefix) is
+6 bytes, i.e. one byte longer than the normal <tt class="docutils literal">HAVE</tt> message, because
+of the extension message wrapping.</p>
 </div>
 </div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
 </div>
 </body>
 </html>

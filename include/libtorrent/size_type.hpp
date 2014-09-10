@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// TODO: remove these and just use boost's types directly
 	typedef boost::int64_t size_type;
 	typedef boost::uint64_t unsigned_size_type;
 }

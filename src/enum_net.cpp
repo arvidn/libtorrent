@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/socket_type.hpp"
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #else
@@ -87,10 +86,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_IFADDRS
 #include <ifaddrs.h>
-#endif
-
-#if defined(TORRENT_OS2) && !defined(IF_NAMESIZE)
-#define IF_NAMESIZE IFNAMSIZ
 #endif
 
 namespace libtorrent { namespace
@@ -227,9 +222,6 @@ namespace libtorrent { namespace
 #endif
 
 #if TORRENT_USE_SYSCTL
-#ifdef TORRENT_OS2
-int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
-#endif
 
 	bool parse_route(int s, rt_msghdr* rtm, ip_route* rt_info)
 	{
@@ -344,12 +336,7 @@ namespace libtorrent
 	{
 		std::vector<ip_interface> net = enum_net_interfaces(ios, ec);
 		if (ec) return false;
-		return in_local_network(net, addr);
-	}
-
-	bool in_local_network(std::vector<ip_interface> const& net, address const& addr)
-	{
-		for (std::vector<ip_interface>::const_iterator i = net.begin()
+		for (std::vector<ip_interface>::iterator i = net.begin()
 			, end(net.end()); i != end; ++i)
 		{
 			if (match_addr_mask(addr, i->interface_address, i->netmask))
@@ -510,11 +497,7 @@ namespace libtorrent
 					close(s);
 					return ret;
 				}
-#ifndef TORRENT_OS2
 				iface.mtu = req.ifr_mtu;
-#else
-				iface.mtu = req.ifr_metric; // according to tcp/ip reference
-#endif
 
 				memset(&req, 0, sizeof(req));
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
@@ -783,11 +766,7 @@ namespace libtorrent
 	int mib[6] = { CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_DUMP, 0};
 
 	size_t needed = 0;
-#ifdef TORRENT_OS2
-	if (__libsocket_sysctl(mib, 6, 0, &needed, 0, 0) < 0)
-#else
 	if (sysctl(mib, 6, 0, &needed, 0, 0) < 0)
-#endif
 	{
 		ec = error_code(errno, asio::error::system_category);
 		return std::vector<ip_route>();
@@ -805,11 +784,7 @@ namespace libtorrent
 		return std::vector<ip_route>();
 	}
 
-#ifdef TORRENT_OS2
-	if (__libsocket_sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
-#else
 	if (sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
-#endif
 	{
 		ec = error_code(errno, asio::error::system_category);
 		return std::vector<ip_route>();
@@ -1061,28 +1036,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	// returns true if the given device exists
-	bool has_interface(char const* name, io_service& ios, error_code& ec)
-	{
-		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
-		if (ec) return false;
-
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].name == name) return true;
-		return false;
-	}
-
-	// returns the device name whose local address is ``addr``. If
-	// no such device is found, an empty string is returned.
-	std::string device_for_address(address addr, io_service& ios, error_code& ec)
-	{
-		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
-		if (ec) return std::string();
-
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].interface_address == addr) return ifs[i].name;
-		return std::string();
-	}
 }
 
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+#include "libtorrent/pch.hpp"
 
 #include <vector>
 #include <cctype>
@@ -61,7 +63,6 @@ namespace libtorrent
 
 	mutex udp_tracker_connection::m_cache_mutex;
 
-	// TODO: 2 it would be nice to not have a dependency on session_impl here
 	udp_tracker_connection::udp_tracker_connection(
 		io_service& ios
 		, connection_queue& cc
@@ -71,26 +72,25 @@ namespace libtorrent
 		, aux::session_impl& ses
 		, proxy_settings const& proxy)
 		: tracker_connection(man, req, ios, c)
-		, m_ses(ses)
-		, m_proxy(proxy)
+//		, m_man(man)
+		, m_abort(false)
 		, m_transaction_id(0)
+		, m_ses(ses)
 		, m_attempts(0)
 		, m_state(action_error)
-		, m_abort(false)
+		, m_proxy(proxy)
 	{
 	}
 
 	void udp_tracker_connection::start()
 	{
 		std::string hostname;
-		std::string protocol;
 		int port;
 		error_code ec;
 
 		using boost::tuples::ignore;
-		boost::tie(protocol, ignore, hostname, port, ignore)
+		boost::tie(ignore, ignore, hostname, port, ignore)
 			= parse_url_components(tracker_req().url, ec);
-		if (port == -1) port = protocol == "http" ? 80 : 443;
 
 		if (ec)
 		{
@@ -98,11 +98,11 @@ namespace libtorrent
 			return;
 		}
 		
-		aux::session_settings const& settings = m_ses.settings();
+		session_settings const& settings = m_ses.settings();
 
 		if (m_proxy.proxy_hostnames
-			&& (m_proxy.type == settings_pack::socks5
-				|| m_proxy.type == settings_pack::socks5_pw))
+			&& (m_proxy.type == proxy_settings::socks5
+				|| m_proxy.type == proxy_settings::socks5_pw))
 		{
 			m_hostname = hostname;
 			m_target.port(port);
@@ -113,16 +113,10 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_tracker_connection::name_lookup");
 #endif
-			// when stopping, pass in the prefer cache flag, because we
-			// don't want to get stuck on DNS lookups when shutting down
-			// if we can avoid it
-			m_ses.m_host_resolver.async_resolve(hostname
-				, tracker_req().event == tracker_request::stopped
-					? resolver_interface::prefer_cache
-					: 0
-				, boost::bind(&udp_tracker_connection::name_lookup
-					, self(), _1, _2, port));
-
+			tcp::resolver::query q(hostname, to_string(port).elems);
+			m_ses.m_host_resolver.async_resolve(q
+				, boost::bind(
+				&udp_tracker_connection::name_lookup, self(), _1, _2));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			boost::shared_ptr<request_callback> cb = requester();
 			if (cb) cb->debug_log("*** UDP_TRACKER [ initiating name lookup: \"%s\" ]"
@@ -131,9 +125,9 @@ namespace libtorrent
 		}
 
 		set_timeout(tracker_req().event == tracker_request::stopped
-			? settings.get_int(settings_pack::stop_tracker_timeout)
-			: settings.get_int(settings_pack::tracker_completion_timeout)
-			, settings.get_int(settings_pack::tracker_receive_timeout));
+			? settings.stop_tracker_timeout
+			: settings.tracker_completion_timeout
+			, settings.tracker_receive_timeout);
 	}
 
 	void udp_tracker_connection::fail(error_code const& ec, int code
@@ -170,14 +164,14 @@ namespace libtorrent
 	}
 
 	void udp_tracker_connection::name_lookup(error_code const& error
-		, std::vector<address> const& addresses, int port)
+		, tcp::resolver::iterator i)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("udp_tracker_connection::name_lookup");
 #endif
 		if (m_abort) return;
 		if (error == asio::error::operation_aborted) return;
-		if (error || addresses.empty())
+		if (error || i == tcp::resolver::iterator())
 		{
 			fail(error);
 			return;
@@ -199,9 +193,8 @@ namespace libtorrent
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
 
-		for (std::vector<address>::const_iterator i = addresses.begin()
-			, end(addresses.end()); i != end; ++i)
-			m_endpoints.push_back(tcp::endpoint(*i, port));
+		std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
+			, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
 		if (tracker_req().apply_ip_filter)
 		{
@@ -230,6 +223,8 @@ namespace libtorrent
 		}
 		
 		m_target = pick_target_endpoint();
+
+		if (cb) cb->m_tracker_address = tcp::endpoint(m_target.address(), m_target.port());
 
 		start_announce();
 	}
@@ -418,7 +413,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
 		cce.connection_id = connection_id;
-		cce.expires = time_now() + seconds(m_ses.m_settings.get_int(settings_pack::udp_tracker_token_expiry));
+		cce.expires = time_now() + seconds(m_ses.m_settings.udp_tracker_token_expiry);
 
 		if (tracker_req().kind == tracker_request::announce_request)
 			send_udp_announce();
@@ -551,9 +546,9 @@ namespace libtorrent
 		std::vector<peer_entry> peer_list;
 		for (int i = 0; i < num_peers; ++i)
 		{
-			// TODO: it would be more efficient to not use a string here.
-			// however, the problem is that some trackers will respond
-			// with actual strings. For example i2p trackers
+			// TODO: don't use a string here. The problem is that
+			// some trackers will respond with actual strings.
+			// Especially i2p trackers
 			peer_entry e;
 			char ip_string[100];
 			unsigned int a = detail::read_uint8(buf);
@@ -575,7 +570,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list
-			, peer_list, interval, min_interval, complete, incomplete, 0, address(), "" /*trackerid*/);
+			, peer_list, interval, min_interval, complete, incomplete, address(), "" /*trackerid*/);
 
 		close();
 		return true;
@@ -641,7 +636,7 @@ namespace libtorrent
 
 		tracker_request const& req = tracker_req();
 		const bool stats = req.send_stats;
-		aux::session_settings const& settings = m_ses.settings();
+		session_settings const& settings = m_ses.settings();
 
 		std::map<address, connection_cache_entry>::iterator i
 			= m_connection_cache.find(m_target.address());
@@ -663,11 +658,11 @@ namespace libtorrent
 		// ip address
 		address_v4 announce_ip;
 
-		if (!settings.get_bool(settings_pack::anonymous_mode)
-			&& !settings.get_str(settings_pack::announce_ip).empty())
+		if (!m_ses.settings().anonymous_mode
+			&& !settings.announce_ip.empty())
 		{
 			error_code ec;
-			address ip = address::from_string(settings.get_str(settings_pack::announce_ip).c_str(), ec);
+			address ip = address::from_string(settings.announce_ip.c_str(), ec);
 			if (!ec && ip.is_v4()) announce_ip = ip.to_v4();
 		}
 		detail::write_uint32(announce_ip.to_ulong(), out);
@@ -691,7 +686,7 @@ namespace libtorrent
 			detail::write_string(request_string, out);
 		}
 
-		TORRENT_ASSERT(out - buf <= int(sizeof(buf)));
+		TORRENT_ASSERT(out - buf <= sizeof(buf));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();

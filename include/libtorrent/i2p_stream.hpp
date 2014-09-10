@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,6 @@ namespace libtorrent {
 
 	namespace i2p_error {
 
-		// error values for the i2p_category error_category.
 		enum i2p_error_code
 		{
 			no_error = 0,
@@ -65,13 +64,17 @@ namespace libtorrent {
 			duplicated_id,
 			num_errors
 		};
-
-		// hidden
-		TORRENT_EXPORT boost::system::error_code make_error_code(i2p_error_code e);
 	}
 
-	// returns the error category for I2P errors
-	TORRENT_EXPORT boost::system::error_category& get_i2p_category();
+struct TORRENT_EXPORT i2p_error_category : boost::system::error_category
+{
+	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
+	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
+	virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
+	{ return boost::system::error_condition(ev, *this); }
+};
+
+extern i2p_error_category i2p_category;
 
 class i2p_stream : public proxy_base
 {
@@ -97,8 +100,10 @@ public:
 	void set_destination(std::string const& d) { m_dest = d; }
 	std::string const& destination() { return m_dest; }
 
+	typedef boost::function<void(error_code const&)> handler_type;
+
 	template <class Handler>
-	void async_connect(endpoint_type const&, Handler const& handler)
+	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
 		// since we don't support regular endpoints, just ignore the one
 		// provided and use m_dest.
@@ -124,6 +129,7 @@ public:
 
 private:
 
+	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);
 	void do_connect(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h);
 	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
@@ -150,7 +156,7 @@ private:
 	};
 
 	int m_state;
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	int m_magic;
 #endif
 };
@@ -161,7 +167,7 @@ public:
 	i2p_connection(io_service& ios);
 	~i2p_connection();
 
-	proxy_settings proxy() const;
+	proxy_settings const& proxy() const { return m_sam_router; }
 
 	bool is_open() const
 	{
@@ -169,7 +175,7 @@ public:
 			&& m_sam_socket->is_open()
 			&& m_state != sam_connecting;
 	}
-	void open(std::string const& hostname, int port, i2p_stream::handler_type const& h);
+	void open(proxy_settings const& s, i2p_stream::handler_type const& h);
 	void close(error_code&);
 
 	char const* session_id() const { return m_session_id.c_str(); }
@@ -193,8 +199,7 @@ private:
 
 	// to talk to i2p SAM bridge
 	boost::shared_ptr<i2p_stream> m_sam_socket;
-	std::string m_hostname;
-	int m_port;
+	proxy_settings m_sam_router;
 
 	// our i2p endpoint key
 	std::string m_i2p_local_endpoint;
@@ -215,21 +220,6 @@ private:
 };
 
 }
-
-#if BOOST_VERSION >= 103500
-namespace boost { namespace system {
-
-template<>
-struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
-{ static const bool value = true; };
-
-template<>
-struct is_error_condition_enum<libtorrent::i2p_error::i2p_error_code>
-{ static const bool value = true; };
-
-} }
-#endif // BOOST_VERSION
-
 #endif // TORRENT_USE_I2P
 
 #endif

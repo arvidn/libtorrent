@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,11 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
-#include "libtorrent/config.hpp"
-#if defined TORRENT_OS2
-#include <pthread.h>
-#endif
-
 #include <boost/bind.hpp>
 
 #include "libtorrent/socket.hpp"
@@ -60,10 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/multicast.hpp>
 #endif
 
-#ifdef TORRENT_WINDOWS
-#include <iphlpapi.h> // for if_nametoindex
-#endif
-
 namespace libtorrent
 {
 	bool is_local(address const& a)
@@ -84,7 +75,7 @@ namespace libtorrent
 				|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
 				|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
 				|| (ip & 0xff000000) == 0x7f000000); // 127.x.x.x
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
 	bool is_loopback(address const& addr)
@@ -95,7 +86,7 @@ namespace libtorrent
 				return addr.to_v4() == address_v4::loopback();
 			else
 				return addr.to_v6() == address_v6::loopback();
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return addr.to_v4() == address_v4::loopback();
 #endif
@@ -109,7 +100,7 @@ namespace libtorrent
 				return addr.to_v4().is_multicast();
 			else
 				return addr.to_v6().is_multicast();
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return addr.to_v4().is_multicast();
 #endif
@@ -128,10 +119,10 @@ namespace libtorrent
 #else
 		return addr.to_v4() == address_v4::any();
 #endif
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
-	bool is_teredo(address const& addr)
+	TORRENT_EXPORT bool is_teredo(address const& addr)
 	{
 #if TORRENT_USE_IPV6
 		TORRENT_TRY {
@@ -139,7 +130,7 @@ namespace libtorrent
 			boost::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
 			address_v6::bytes_type b = addr.to_v6().to_bytes();
 			return memcmp(&b[0], teredo_prefix, 4) == 0;
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return false;
 #endif
@@ -152,7 +143,7 @@ namespace libtorrent
 			error_code ec;
 			address::from_string("::1", ec);
 			return !ec;
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return false;
 #endif
@@ -213,7 +204,7 @@ namespace libtorrent
 				- common_bits(b1.data(), b2.data(), b1.size());
 #if TORRENT_USE_IPV6
 		}
-
+	
 		address_v6::bytes_type b1;
 		address_v6::bytes_type b2;
 		if (a1.is_v4()) b1 = address_v6::v4_mapped(a1.to_v4()).to_bytes();
@@ -248,7 +239,7 @@ namespace libtorrent
 		else
 #endif
 			open_multicast_socket(ios, address_v4::any(), loopback, ec);
-
+		
 		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
 			, end(interfaces.end()); i != end; ++i)
 		{
@@ -258,22 +249,6 @@ namespace libtorrent
 			if (!loopback && is_loopback(i->interface_address)) continue;
 
 			ec = error_code();
-
-			// if_nametoindex was introduced in vista
-#if TORRENT_USE_IPV6 \
-		&& (!defined TORRENT_WINDOWS || _WIN32_WINNT >= _WIN32_WINNT_VISTA)
-			if (i->interface_address.is_v6() &&
-			    i->interface_address.to_v6().is_link_local()) {
-				address_v6 addr6 = i->interface_address.to_v6();
-				addr6.scope_id(if_nametoindex(i->name));
-				open_multicast_socket(ios, addr6, loopback, ec);
-
-				address_v4 const& mask = i->netmask.is_v4() ?
-				    i->netmask.to_v4() : address_v4();
-				open_unicast_socket(ios, addr6, mask);
-				continue;
-			}
-#endif
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifdef TORRENT_DEBUG
 //			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"

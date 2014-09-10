@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cassert>
+#include <boost/timer.hpp>
 #include <iostream>
 #include <vector>
 #include <utility>
@@ -168,9 +169,8 @@ void test_buffer()
 
 std::set<char*> buffer_list;
 
-void free_buffer(char* m, void* userdata, block_cache_reference ref)
+void free_buffer(char* m)
 {
-	TEST_CHECK(userdata == (void*)0x1337);
 	std::set<char*>::iterator i = buffer_list.find(m);
 	TEST_CHECK(i != buffer_list.end());
 
@@ -203,7 +203,7 @@ bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 {
 	if (size == 0) return true;
 	std::vector<char> flat(size);
-	std::vector<libtorrent::asio::const_buffer> const& iovec2 = b.build_iovec(size);
+	std::list<libtorrent::asio::const_buffer> const& iovec2 = b.build_iovec(size);
 	int copied = copy_buffers(iovec2, &flat[0]);
 	TEST_CHECK(copied == size);
 	return std::memcmp(&flat[0], mem, size) == 0;
@@ -216,19 +216,15 @@ void test_chained_buffer()
 		chained_buffer b;
 		
 		TEST_CHECK(b.empty());
-		TEST_EQUAL(b.capacity(), 0);
-		TEST_EQUAL(b.size(), 0);
-		TEST_EQUAL(b.space_in_last_buffer(), 0);
+		TEST_CHECK(b.capacity() == 0);
+		TEST_CHECK(b.size() == 0);
+		TEST_CHECK(b.space_in_last_buffer() == 0);
 		TEST_CHECK(buffer_list.empty());
-
-		// there are no buffers, we should not be able to allocate
-		// an appendix in an existing buffer
-		TEST_EQUAL(b.allocate_appendix(1), 0);
 
 		char* b1 = allocate_buffer(512);
 		std::memcpy(b1, data, 6);
-		b.append_buffer(b1, 512, 6, &free_buffer, (void*)0x1337);
-		TEST_EQUAL(buffer_list.size(), 1);
+		b.append_buffer(b1, 512, 6, (void(*)(char*))&free_buffer);
+		TEST_CHECK(buffer_list.size() == 1);
 
 		TEST_CHECK(b.capacity() == 512);
 		TEST_CHECK(b.size() == 6);
@@ -250,19 +246,18 @@ void test_chained_buffer()
 		TEST_CHECK(!b.empty());
 		TEST_CHECK(b.space_in_last_buffer() == 512 - 12);
 
-		char data2[1024];
-		ret = b.append(data2, 1024);
+		ret = b.append(data, 1024);
 
 		TEST_CHECK(ret == false);
 
 		char* b2 = allocate_buffer(512);
 		std::memcpy(b2, data, 6);
-		b.append_buffer(b2, 512, 6, free_buffer, (void*)0x1337);
+		b.append_buffer(b2, 512, 6, (void(*)(char*))&free_buffer);
 		TEST_CHECK(buffer_list.size() == 2);
 
 		char* b3 = allocate_buffer(512);
 		std::memcpy(b3, data, 6);
-		b.append_buffer(b3, 512, 6, &free_buffer, (void*)0x1337);
+		b.append_buffer(b3, 512, 6, (void(*)(char*))&free_buffer);
 		TEST_CHECK(buffer_list.size() == 3);
 
 		TEST_CHECK(b.capacity() == 512 * 3);
@@ -297,7 +292,7 @@ void test_chained_buffer()
 		char* b4 = allocate_buffer(20);
 		std::memcpy(b4, data, 6);
 		std::memcpy(b4 + 6, data, 6);
-		b.append_buffer(b4, 20, 12, &free_buffer, (void*)0x1337);
+		b.append_buffer(b4, 20, 12, (void(*)(char*))&free_buffer);
 		TEST_CHECK(b.space_in_last_buffer() == 8);
 
 		ret = b.append(data, 6);
@@ -311,7 +306,7 @@ void test_chained_buffer()
 		
 		char* b5 = allocate_buffer(20);
 		std::memcpy(b4, data, 6);
-		b.append_buffer(b5, 20, 6, &free_buffer, (void*)0x1337);
+		b.append_buffer(b5, 20, 6, (void(*)(char*))&free_buffer);
 
 		b.pop_front(22);
 		TEST_CHECK(b.size() == 5);

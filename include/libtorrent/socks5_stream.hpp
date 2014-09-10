@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,41 +33,47 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 #define TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 
+#include <boost/function/function1.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
-
 #include "libtorrent/proxy_base.hpp"
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
 
 namespace libtorrent {
-namespace socks_error {
 
-	// SOCKS5 error values. If an error_code has the
-	// socks error category (get_socks_category()), these
-	// are the error values.
-	enum socks_error_code
-	{
-		no_error = 0,
-		unsupported_version,
-		unsupported_authentication_method,
-		unsupported_authentication_version,
-		authentication_error,
-		username_required,
-		general_failure,
-		command_not_supported,
-		no_identd,
-		identd_error,
+	namespace socks_error {
 
-		num_errors
-	};
+		enum socks_error_code
+		{
+			no_error = 0,
+			unsupported_version,
+			unsupported_authentication_method,
+			unsupported_authentication_version,
+			authentication_error,
+			username_required,
+			general_failure,
+			command_not_supported,
+			no_identd,
+			identd_error,
 
-	TORRENT_EXPORT boost::system::error_code make_error_code(socks_error_code e);
-} // namespace socks_error
+			num_errors
+		};
+	}
 
-// returns the error_category for SOCKS5 errors
-TORRENT_EXPORT boost::system::error_category& get_socks_category();
+#if BOOST_VERSION < 103500
+typedef asio::error::error_category socks_error_category;
+#else
+
+struct TORRENT_EXTRA_EXPORT socks_error_category : boost::system::error_category
+{
+	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
+	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
+	virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
+	{ return boost::system::error_condition(ev, *this); }
+};
+
+#endif
+
+extern socks_error_category socks_category;
 
 class socks5_stream : public proxy_base
 {
@@ -114,6 +120,8 @@ public:
 	}
 #endif
 
+	typedef boost::function<void(error_code const&)> handler_type;
+
 //#error fix error messages to use custom error_code category
 //#error add async_connect() that takes a hostname and port as well
 	template <class Handler>
@@ -134,9 +142,6 @@ public:
 		// store it in a shaed_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("socks5_stream::name_lookup");
-#endif
 		tcp::resolver::query q(m_hostname, to_string(m_port).elems);
 		m_resolver.async_resolve(q, boost::bind(
 			&socks5_stream::name_lookup, this, _1, _2, h));
@@ -170,19 +175,6 @@ private:
 };
 
 }
-
-#if BOOST_VERSION >= 103500
-
-namespace boost { namespace system {
-
-	template<> struct is_error_code_enum<libtorrent::socks_error::socks_error_code>
-	{ static const bool value = true; };
-
-	template<> struct is_error_condition_enum<libtorrent::socks_error::socks_error_code>
-	{ static const bool value = true; };
-} }
-
-#endif // BOOST_VERSION
 
 #endif
 

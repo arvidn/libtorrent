@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,72 +68,30 @@ namespace libtorrent
 	std::string print_endpoint(tcp::endpoint const& ep)
 	{
 		error_code ec;
-		char buf[200];
+		std::string ret;
 		address const& addr = ep.address();
 #if TORRENT_USE_IPV6
 		if (addr.is_v6())
-			snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+		{
+			ret += '[';
+			ret += addr.to_string(ec);
+			ret += ']';
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
 		else
 #endif
-			snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
-		return buf;
+		{
+			ret += addr.to_string(ec);
+			ret += ':';
+			ret += to_string(ep.port()).elems;
+		}
+		return ret;
 	}
 
 	std::string print_endpoint(udp::endpoint const& ep)
 	{
 		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
-	}
-
-	tcp::endpoint parse_endpoint(std::string str, error_code& ec)
-	{
-		tcp::endpoint ret;
-
-		std::string::iterator start = str.begin();
-		std::string::iterator port_pos;
-		// remove white spaces in front of the string
-		while (start != str.end() && is_space(*start))
-			++start;
-
-		// this is for IPv6 addresses
-		if (start != str.end() && *start == '[')
-		{
-			++start;
-			port_pos = std::find(start, str.end(), ']');
-			if (port_pos == str.end())
-			{
-				ec = errors::expected_close_bracket_in_address;
-				return ret;
-			}
-			*port_pos = '\0';
-			++port_pos;
-#if TORRENT_USE_IPV6
-			ret.address(address_v6::from_string(&*start, ec));
-#else
-			ec = boost::asio::error::address_family_not_supported;
-#endif
-			if (ec) return ret;
-		}
-		else
-		{
-			port_pos = std::find(start, str.end(), ':');
-			if (port_pos == str.end())
-			{
-				ec = errors::invalid_port;
-				return ret;
-			}
-			*port_pos = '\0';
-			ret.address(address_v4::from_string(&*start, ec));
-			if (ec) return ret;
-		}
-
-		if (port_pos == str.end())
-		{
-			ec = errors::invalid_port;
-			return ret;
-		}
-		++port_pos;
-		ret.port(std::atoi(&*port_pos));
-		return ret;
 	}
 
 	void hash_address(address const& ip, sha1_hash& h)

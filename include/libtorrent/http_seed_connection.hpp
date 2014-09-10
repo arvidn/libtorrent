@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2014, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -81,8 +81,15 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		http_seed_connection(peer_connection_args const& pack
-			, web_seed_entry& web);
+		http_seed_connection(
+			aux::session_impl& ses
+			, boost::weak_ptr<torrent> t
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, std::string const& url
+			, policy::peer* peerinfo
+			, std::string const& ext_auth
+			, web_seed_entry::headers_t const& ext_headers);
 
 		virtual int type() const { return peer_connection::http_seed_connection; }
 
@@ -94,7 +101,7 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
+		virtual void disconnect(error_code const& ec, int error = 0);
 
 		void write_request(peer_request const& r);
 

@@ -30,12 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/thread.hpp"
-#include <boost/make_shared.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #include "test.hpp"
@@ -50,16 +47,9 @@ using boost::tuples::ignore;
 int test_main()
 {
 	using namespace libtorrent;
-	namespace lt = libtorrent;
 
-	// these are declared before the session objects
-	// so that they are destructed last. This enables
-	// the sessions to destruct in parallel
-	session_proxy p1;
-	session_proxy p2;
-
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 49000), "0.0.0.0", 0);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49130, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 49000), "0.0.0.0", 0);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49130, 50000), "0.0.0.0", 0);
 	ses1.add_extension(create_lt_trackers_plugin);
 	ses2.add_extension(create_lt_trackers_plugin);
 
@@ -98,7 +88,7 @@ int test_main()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	boost::shared_ptr<torrent_info> ti(boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec)));
+	boost::intrusive_ptr<torrent_info> ti(new torrent_info(&buf[0], buf.size(), ec));
 	TEST_CHECK(!ec);
 
 	atp.ti = ti;
@@ -124,16 +114,8 @@ int test_main()
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor1.trackers().size() == 1);
-
-	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
+	TEST_EQUAL(tor1.trackers().size(), 1);
 
 	return 0;
 }
-
-#else
-int test_main() { return 0; }
-#endif // TORRENT_DISABLE_EXTENSIONS
 

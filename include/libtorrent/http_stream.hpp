@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,6 +76,8 @@ public:
 		proxy_base::close();
 	}
 #endif
+
+	typedef boost::function<void(error_code const&)> handler_type;
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
