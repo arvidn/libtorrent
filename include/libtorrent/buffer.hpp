@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include <cstdlib> // malloc/free/realloc
-#include <boost/cstdint.hpp>
 
 namespace libtorrent {
 
@@ -99,16 +98,16 @@ public:
 
 	buffer(std::size_t n = 0)
 		: m_begin(0)
-		, m_size(0)
-		, m_capacity(0)
+		, m_end(0)
+		, m_last(0)
 	{
 		if (n) resize(n);
 	}
 
 	buffer(buffer const& b)
 		: m_begin(0)
-		, m_size(0)
-		, m_capacity(0)
+		, m_end(0)
+		, m_last(0)
 	{
 		if (b.size() == 0) return;
 		resize(b.size());
@@ -116,14 +115,8 @@ public:
 	}
 
 #if __cplusplus > 199711L
-	buffer(buffer&& b)
-		: m_begin(b.m_begin)
-		, m_size(b.m_size)
-		, m_capacity(b.m_capacity)
-	{
-		b.m_begin = NULL;
-		b.m_size = b.m_capacity = 0;
-	}
+	buffer(buffer&& b): m_begin(b.m_begin), m_end(b.m_end), m_last(b.m_last)
+	{ b.m_begin = b.m_end = b.m_last = NULL; }
 #endif
 
 	buffer& operator=(buffer const& b)
@@ -140,21 +133,19 @@ public:
 		std::free(m_begin);
 	}
 
-	buffer::interval data()
-	{ return interval(m_begin, m_begin + m_size); }
-	buffer::const_interval data() const
-	{ return const_interval(m_begin, m_begin + m_size); }
+	buffer::interval data() { return interval(m_begin, m_end); }
+	buffer::const_interval data() const { return const_interval(m_begin, m_end); }
 	
 	void resize(std::size_t n)
 	{
 		reserve(n);
-		m_size = n;
+		m_end = m_begin + n;
 	}
 
 	void insert(char* point, char const* first, char const* last)
 	{
 		std::size_t p = point - m_begin;
-		if (point == m_begin + m_size)
+		if (point == m_end)
 		{
 			resize(size() + last - first);
 			std::memcpy(m_begin + p, first, last - first);
@@ -168,51 +159,52 @@ public:
 
 	void erase(char* b, char* e)
 	{
-		TORRENT_ASSERT(e <= m_begin + m_size);
+		TORRENT_ASSERT(e <= m_end);
 		TORRENT_ASSERT(b >= m_begin);
 		TORRENT_ASSERT(b <= e);
-	 	if (e == m_begin + m_size)
+	 	if (e == m_end)
 		{
 			resize(b - m_begin);
 			return;
 		}
-		std::memmove(b, e, m_begin + m_size - e);
-		TORRENT_ASSERT(e - b <= m_size);
-		m_size -= e - b;
+		std::memmove(b, e, m_end - e);
+		m_end = b + (m_end - e);
 	 }
 
-	void clear() { m_size = 0; }
-	std::size_t size() const { return m_size; }
-	std::size_t capacity() const { return m_capacity; }
+	void clear() { m_end = m_begin; }
+	std::size_t size() const { return m_end - m_begin; }
+	std::size_t capacity() const { return m_last - m_begin; }
 	void reserve(std::size_t n)
 	{
 		if (n <= capacity()) return;
 		TORRENT_ASSERT(n > 0);
 
+		std::size_t s = size();
 		m_begin = (char*)std::realloc(m_begin, n);
-		m_capacity = n;
+		m_end = m_begin + s;
+		m_last = m_begin + n;
 	}
 
-	bool empty() const { return m_size == 0; }
+	bool empty() const { return m_begin == m_end; }
 	char& operator[](std::size_t i) { TORRENT_ASSERT(i < size()); return m_begin[i]; }
 	char const& operator[](std::size_t i) const { TORRENT_ASSERT(i < size()); return m_begin[i]; }
 
 	char* begin() { return m_begin; }
 	char const* begin() const { return m_begin; }
-	char* end() { return m_begin + m_size; }
-	char const* end() const { return m_begin + m_size; }
+	char* end() { return m_end; }
+	char const* end() const { return m_end; }
 
 	void swap(buffer& b)
 	{
 		using std::swap;
 		swap(m_begin, b.m_begin);
-		swap(m_size, b.m_size);
-		swap(m_capacity, b.m_capacity);
+		swap(m_end, b.m_end);
+		swap(m_last, b.m_last);
 	}
 private:
-	char* m_begin;
-	boost::uint32_t m_size;
-	boost::uint32_t m_capacity;
+	char* m_begin; // first
+	char* m_end; // one passed end of size
+	char* m_last; // one passed end of allocation
 };
 
 

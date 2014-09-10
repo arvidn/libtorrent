@@ -81,7 +81,11 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		http_seed_connection(peer_connection_args const& pack
+		http_seed_connection(
+			aux::session_impl& ses
+			, boost::weak_ptr<torrent> t
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
 			, web_seed_entry& web);
 
 		virtual int type() const { return peer_connection::http_seed_connection; }
@@ -94,7 +98,7 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error = 0);
+		virtual void disconnect(error_code const& ec, int error = 0);
 
 		void write_request(peer_request const& r);
 

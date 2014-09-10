@@ -79,7 +79,6 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_log_callback(lcb)
 	, m_retry_count(0)
 	, m_io_service(ios)
-	, m_resolver(ios)
 	, m_socket(udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
 		, boost::bind(&upnp::on_reply, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
@@ -89,7 +88,6 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_closing(false)
 	, m_ignore_non_routers(ignore_nonrouters)
 	, m_cc(cc)
-	, m_last_if_update(min_time())
 {
 	TORRENT_ASSERT(cb);
 
@@ -312,8 +310,7 @@ void upnp::resend_request(error_code const& ec)
 				log(msg, l);
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
-					, m_cc, m_resolver
-					, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
+					, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
@@ -365,9 +362,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 */
 	error_code ec;
-	if (time_now_hires() - seconds(60) > m_last_if_update)
+	if (!in_local_network(m_io_service, from.address(), ec))
 	{
-		m_interfaces = enum_net_interfaces(m_io_service, ec);
 		if (ec)
 		{
 			char msg[500];
@@ -375,25 +371,23 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 			log(msg, l);
 		}
-		m_last_if_update = time_now();
-	}
-
-	if (!ec && !in_local_network(m_interfaces, from.address()))
-	{
-		char msg[400];
-		int num_chars = snprintf(msg, sizeof(msg)
-			, "ignoring response from: %s. IP is not on local network. "
-			, print_endpoint(from).c_str());
-
-		std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
-		for (std::vector<ip_interface>::const_iterator i = net.begin()
-			, end(net.end()); i != end && num_chars < int(sizeof(msg)); ++i)
+		else
 		{
-			num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
-				, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
+			char msg[400];
+			int num_chars = snprintf(msg, sizeof(msg)
+				, "ignoring response from: %s. IP is not on local network. "
+				, print_endpoint(from).c_str());
+
+			std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
+			for (std::vector<ip_interface>::const_iterator i = net.begin()
+				, end(net.end()); i != end && num_chars < int(sizeof(msg)); ++i)
+			{
+				num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
+					, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
+			}
+			log(msg, l);
+			return;
 		}
-		log(msg, l);
-		return;
 	} 
 
 	bool non_router = false;
@@ -633,8 +627,7 @@ void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
 
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
-					, m_cc, m_resolver
-					, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
+					, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
@@ -777,23 +770,21 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, m_resolver
-			, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
+			, m_cc, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
 			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, boost::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
 
-		d.upnp_connection->start(d.hostname, d.port
+		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
 	}
 	else if (m.action == mapping_t::action_delete)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, m_resolver
-			, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
+			, m_cc, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, boost::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
-		d.upnp_connection->start(d.hostname, d.port
+		d.upnp_connection->start(d.hostname, to_string(d.port).elems
 			, seconds(10), 1);
 	}
 
@@ -1040,11 +1031,10 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	d.upnp_connection.reset(new http_connection(m_io_service
-		, m_cc, m_resolver
-		, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
+		, m_cc, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
 		, boost::ref(d), _5), true, default_max_bottled_buffer_size 
 		, boost::bind(&upnp::get_ip_address, self(), boost::ref(d))));
-	d.upnp_connection->start(d.hostname, d.port
+	d.upnp_connection->start(d.hostname, to_string(d.port).elems
 		, seconds(10), 1);
 }
 

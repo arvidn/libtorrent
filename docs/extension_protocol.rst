@@ -222,14 +222,12 @@ metadata from peers
 
 Extension name: "LT_metadata"
 
-.. note::
-	This extension is deprecated in favor of the more widely supported
-	``ut_metadata`` extension, see `BEP 9`_.
-
-The point with this extension is that you don't have to distribute the
-metadata (.torrent-file) separately. The metadata can be distributed
-through the bittorrent swarm. The only thing you need to download such
-a torrent is the tracker url and the info-hash of the torrent.
+This extension is deprecated in favor of the more widely supported
+``ut_metadata`` extension, see `BEP 9`_. The point with this extension is that
+you don't have to distribute the metadata (.torrent-file) separately. The
+metadata can be distributed through the bittorrent swarm. The only thing you
+need to download such a torrent is the tracker url and the info-hash of the
+torrent.
 
 It works by assuming that the initial seeder has the metadata and that the
 metadata will propagate through the network as more peers join.

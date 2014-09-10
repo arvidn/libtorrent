@@ -32,13 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp" // for print_backtrace
+#include "libtorrent/assert.hpp"
 
 #if defined TORRENT_BEOS
 #include <kernel/OS.h>
 #include <stdlib.h> // malloc/free
 #elif !defined TORRENT_WINDOWS
-#include <stdlib.h> // posix_memalign/free
+#include <stdlib.h> // valloc/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
@@ -197,14 +197,6 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 	}
 
-#ifdef TORRENT_DEBUG_BUFFERS
-	bool page_aligned_allocator::in_use(char const* block)
-	{
-		int page = page_size();
-		alloc_header* h = (alloc_header*)(block - page);
-		return h->magic == 0x1337;
-	}
-#endif
 
 }
 

@@ -33,21 +33,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/assert.hpp"
-#include <boost/random/random_device.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
 
 namespace libtorrent
 {
+
+	namespace
+	{
+		boost::uint32_t x = 123456789;
+#ifdef TORRENT_USE_ASSERTS
+		bool seeded = false;
+#endif
+	}
+
+	void random_seed(boost::uint32_t v)
+	{
+		x = v;
+#ifdef TORRENT_USE_ASSERTS
+		seeded = true;
+#endif
+	}
+
+	// this is an xorshift random number generator
+	// see: http://en.wikipedia.org/wiki/Xorshift
 	boost::uint32_t random()
 	{
-		using boost::random::random_device;
-		using boost::random::mt19937;
-		using boost::random::uniform_int_distribution;
+		TORRENT_ASSERT(seeded);
 
-		static random_device dev;
-		static mt19937 random_engine(dev());
-		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
+		static boost::uint32_t y = 362436069;
+		static boost::uint32_t z = 521288629;
+		static boost::uint32_t w = 88675123;
+		boost::uint32_t t;
+
+		t = x ^ (x << 11);
+		x = y; y = z; z = w;
+		return w = w ^ (w >> 19) ^ (t ^ (t >> 8));
 	}
 }
 

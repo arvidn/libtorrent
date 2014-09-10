@@ -108,11 +108,7 @@ namespace libtorrent
 		int num_fin_sent;
 		int num_close_wait;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in libtorrent 1.1
-		// use session_stats/performance_counters instead
-		// counters
-		// These are monotonically increasing
+		// counters. These are monotonically increasing
 		// and cumulative counters for their respective event.
 		boost::uint64_t packet_loss;
 		boost::uint64_t timeout;
@@ -126,7 +122,6 @@ namespace libtorrent
 		boost::uint64_t payload_pkts_out;
 		boost::uint64_t invalid_pkts_in;
 		boost::uint64_t redundant_pkts_in;
-#endif
 	};
 
 	// contains session wide state and counters
@@ -196,8 +191,6 @@ namespace libtorrent
 		// be assigned a torrent yet.
 		int num_peers;
 
-		int num_dead_peers;
-
 		// the current number of unchoked peers.
 		int num_unchoked;
 
@@ -262,11 +255,6 @@ namespace libtorrent
 		// the number of known peers across all torrents. These are not necessarily
 		// connected peers, just peers we know of.
 		int peerlist_size;
-
-		// the number of torrents in the
-		// session and the number of them that are currently paused, respectively.
-		int num_torrents;
-		int num_paused_torrents;
 	};
 
 }

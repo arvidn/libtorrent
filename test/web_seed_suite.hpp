@@ -36,8 +36,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 	, bool keepalive = true, bool test_rename = false);
 
 void EXPORT test_transfer(libtorrent::session& ses
-	, boost::shared_ptr<libtorrent::torrent_info> torrent_file
+	, boost::intrusive_ptr<libtorrent::torrent_info> torrent_file
 	, int proxy = 0, int port = 0, char const* protocol = "http"
 	, bool url_seed = true, bool chunked_encoding = false
 	, bool test_ban = false, bool keepalive = true);
-
