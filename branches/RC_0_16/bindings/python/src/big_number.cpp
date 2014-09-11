@@ -4,6 +4,19 @@
 
 #include <libtorrent/peer_id.hpp>
 #include <boost/python.hpp>
+#include "bytes.hpp"
+
+long get_hash(boost::python::object o)
+{
+    using namespace boost::python;
+    return PyObject_Hash(str(o).ptr());
+}
+
+using namespace libtorrent;
+
+bytes big_number_bytes(const big_number& bn) {
+    return bytes(bn.to_string());
+}
 
 void bind_big_number()
 {
@@ -18,8 +31,8 @@ void bind_big_number()
         .def(init<char const*>())
         .def("clear", &big_number::clear)
         .def("is_all_zeros", &big_number::is_all_zeros)
-        .def("to_string", &big_number::to_string)
-//        .def("__getitem__", &big_number::opreator[])
+        .def("to_bytes", big_number_bytes)
+        .def("__hash__", get_hash)
         ;
 }
 
