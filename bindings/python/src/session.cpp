@@ -22,6 +22,7 @@
 #include <libtorrent/extensions/ut_pex.hpp>
 
 #include "gil.hpp"
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -89,7 +90,7 @@ namespace
 		bencode_map_entry* map;
 		int len;
 		boost::tie(map, len) = aux::settings_map();
-	 
+
 		session_settings sett;
 		for (int i = 0; i < len; ++i)
 		{
@@ -185,7 +186,7 @@ namespace
             p.ti = extract<intrusive_ptr<torrent_info> >(params["ti"]);
 
         if (params.has_key("info_hash"))
-            p.info_hash = extract<sha1_hash>(params["info_hash"]);
+            p.info_hash = sha1_hash(bytes(extract<bytes>(params["info_hash"])).arr);
         if (params.has_key("name"))
             p.name = extract<std::string>(params["name"]);
         p.save_path = extract<std::string>(params["save_path"]);
@@ -431,8 +432,9 @@ namespace
         return ret;
     }
 
-    list get_cache_info(session& ses, sha1_hash ih)
+    list get_cache_info(session& ses, bytes const& b)
     {
+        sha1_hash ih(b.arr);
         std::vector<cached_piece_info> ret;
 
         {
