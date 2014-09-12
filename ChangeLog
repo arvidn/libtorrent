@@ -1,3 +1,5 @@
+	* mingw fixes
+
 1.0.2 release
 
 	* added missing force_proxy to python binding

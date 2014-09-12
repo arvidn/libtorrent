@@ -135,6 +135,7 @@ namespace libtorrent
 	};
 #endif
 
+#ifdef IPV6_TCLASS
 	struct traffic_class
 	{
 		traffic_class(char val): m_value(val) {}
@@ -148,6 +149,7 @@ namespace libtorrent
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		int m_value;
 	};
+#endif
 
 	struct type_of_service
 	{
