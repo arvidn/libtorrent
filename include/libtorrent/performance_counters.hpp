@@ -402,6 +402,9 @@ namespace libtorrent
 	private:
 
 		// TODO: some space could be saved here by making gauges 32 bits
+		// TODO: restore these to regular integers. Instead have one copy
+		// of the counters per thread and collect them at convenient
+		// synchronization points
 #if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
 		boost::atomic<boost::int64_t> m_stats_counter[num_counters];
 #else
