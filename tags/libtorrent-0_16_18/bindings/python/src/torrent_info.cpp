@@ -6,6 +6,7 @@
 #include <libtorrent/torrent_info.hpp>
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -72,7 +73,7 @@ namespace
         for (std::vector<sha1_hash>::const_iterator i = mt.begin()
             , end(mt.end()); i != end; ++i)
         {
-            ret.append(i->to_string());
+            ret.append(bytes(i->to_string()));
         }
         return ret;
     }
@@ -81,7 +82,7 @@ namespace
     {
         std::vector<sha1_hash> h;
         for (int i = 0, e = len(hashes); i < e; ++i)
-            h.push_back(sha1_hash(extract<char const*>(hashes[i])));
+            h.push_back(sha1_hash(bytes(extract<bytes>(hashes[i])).arr));
 
         ti.set_merkle_tree(h);
     }

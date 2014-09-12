@@ -6,20 +6,21 @@
 #include <libtorrent/create_torrent.hpp>
 #include <libtorrent/file_storage.hpp>
 #include "libtorrent/intrusive_ptr_base.hpp"
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
 
 namespace
 {
-    void set_hash(create_torrent& c, int p, char const* hash)
+    void set_hash(create_torrent& c, int p, bytes const& b)
     {
-        c.set_hash(p, sha1_hash(hash));
+        c.set_hash(p, sha1_hash(b.arr));
     }
 
-    void set_file_hash(create_torrent& c, int f, char const* hash)
+    void set_file_hash(create_torrent& c, int f, bytes const& b)
     {
-        c.set_file_hash(f, sha1_hash(hash));
+        c.set_file_hash(f, sha1_hash(b.arr));
     }
 
     void call_python_object(boost::python::object const& obj, int i)
