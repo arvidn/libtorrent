@@ -4,6 +4,7 @@
 
 #include <boost/python.hpp>
 #include <libtorrent/session.hpp>
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -27,7 +28,7 @@ struct entry_to_python
         dict result;
 
         for (entry::dictionary_type::const_iterator i(d.begin()), e(d.end()); i != e; ++i)
-            result[i->first] = i->second;
+            result[bytes(i->first)] = i->second;
 
         return result;
     }
@@ -39,7 +40,7 @@ struct entry_to_python
         case entry::int_t:
             return object(e.integer());
         case entry::string_t:
-            return object(e.string());
+            return object(bytes(e.string()));
         case entry::list_t:
             return convert(e.list());
         case entry::dictionary_t:
@@ -87,12 +88,24 @@ struct entry_from_python
 
             for (std::size_t i = 0; i < length; ++i)
             {
-                result.dict().insert(
-                    std::make_pair(
-                        extract<char const*>(items[i][0])()
-                      , construct0(items[i][1])
-                    )
-                );
+                if (extract<bytes>(items[i][0]).check())
+                {
+                    result.dict().insert(
+                        std::make_pair(
+                            extract<bytes>(items[i][0])().arr,
+                            construct0(items[i][1])
+                        )
+                    );
+                }
+                else
+                {
+                    result.dict().insert(
+                        std::make_pair(
+                            extract<char const*>(items[i][0])(),
+                            construct0(items[i][1])
+                        )
+                    );
+                }
             }
 
             return result;
@@ -111,9 +124,13 @@ struct entry_from_python
 
             return result;
         }
+        else if (extract<bytes>(e).check())
+        {
+            return entry(extract<bytes>(e)().arr);
+        }
         else if (extract<str>(e).check())
         {
-            return entry(extract<std::string>(e)());
+             return entry(extract<std::string>(e)());
         }
         else if (extract<entry::integer_type>(e).check())
         {
