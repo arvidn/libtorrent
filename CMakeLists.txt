@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(libtorrent)
+set (SOVERSION "8")
+set (VERSION "1.0.2")
 
 set(sources
 	web_connection_base
@@ -300,10 +302,7 @@ endif()
 include_directories(${includes})
 
 set_target_properties(torrent-rasterbar PROPERTIES
-	SOVERSION 1
-	VERSION 1)
-
-set (VERSION "1.0.2")
+	SOVERSION ${SOVERSION})
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
@@ -325,7 +324,7 @@ else()
 	set (LIBDIR "lib")
 endif()
 
-install(TARGETS torrent-rasterbar DESTINATION ${LIBDIR} CONFIGURATIONS release)
+install(TARGETS torrent-rasterbar DESTINATION ${LIBDIR})
 install(DIRECTORY include/libtorrent
 	DESTINATION include
 	PATTERN ".svn" EXCLUDE)
