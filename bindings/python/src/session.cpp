@@ -23,6 +23,7 @@
 #include <libtorrent/extensions/ut_pex.hpp>
 
 #include "gil.hpp"
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -171,7 +172,7 @@ namespace
             p.ti = extract<boost::shared_ptr<torrent_info> >(params["ti"]);
 
         if (params.has_key("info_hash"))
-            p.info_hash = extract<sha1_hash>(params["info_hash"]);
+            p.info_hash = sha1_hash(bytes(extract<bytes>(params["info_hash"])).arr);
         if (params.has_key("name"))
             p.name = extract<std::string>(params["name"]);
         p.save_path = extract<std::string>(params["save_path"]);
