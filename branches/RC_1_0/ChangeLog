@@ -78,6 +78,7 @@
 
 0.16.18 release
 
+	* fix python3 support
 	* fix bug in lt_donthave extension
 	* expose i2p_alert to python. cleaning up of i2p connection code
 	* fixed overflow and download performance issue when downloading at high rates

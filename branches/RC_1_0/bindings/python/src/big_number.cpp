@@ -4,6 +4,19 @@
 
 #include <libtorrent/sha1_hash.hpp>
 #include <boost/python.hpp>
+#include "bytes.hpp"
+
+long get_hash(boost::python::object o)
+{
+    using namespace boost::python;
+    return PyObject_Hash(str(o).ptr());
+}
+
+using namespace libtorrent;
+
+bytes sha1_hash_bytes(const sha1_hash& bn) {
+    return bytes(bn.to_string());
+}
 
 void bind_sha1_hash()
 {
@@ -19,7 +32,8 @@ void bind_sha1_hash()
         .def("clear", &sha1_hash::clear)
         .def("is_all_zeros", &sha1_hash::is_all_zeros)
         .def("to_string", &sha1_hash::to_string)
-//        .def("__getitem__", &sha1_hash::opreator[])
+        .def("__hash__", get_hash)
+        .def("to_bytes", sha1_hash_bytes)
         ;
 
     scope().attr("big_number") = scope().attr("sha1_hash"); 
