@@ -27,6 +27,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+1.0.2 release
+
 	* added missing force_proxy to python binding
 	* anonymous_mode defaults to false
 	* make DHT DOS detection more forgiving to bursts
@@ -103,6 +105,9 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+0.16.18 release
+
+	* fix python3 support
 	* fix bug in lt_donthave extension
 	* expose i2p_alert to python. cleaning up of i2p connection code
 	* fixed overflow and download performance issue when downloading at high rates

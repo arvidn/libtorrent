@@ -124,7 +124,9 @@ cannot rely on ``error_code::message()`` to generate your strings.
 The numeric values of the errors are part of the API and will stay the same, although
 new error codes may be appended at the end.
 
-Here's a simple example of how to translate error codes::
+Here's a simple example of how to translate error codes:
+
+.. code:: c++
 
 	std::string error_code_to_string(boost::system::error_code const& ec)
 	{

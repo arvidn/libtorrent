@@ -33,44 +33,51 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
 #define TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
 
+#include <boost/cstdint.hpp>
+
 namespace libtorrent
 {
 
-// a sliding average accumulator. Add samples to it and it
-// keeps track of a sliding mean value and an average deviation
-template <int history_size>
+// an exponential moving average accumulator. Add samples to it and it keeps
+// track of a moving mean value and an average deviation
+template <int inverted_gain>
 struct sliding_average
 {
-	sliding_average(): m_mean(-1), m_average_deviation(-1) {}
+	sliding_average(): m_mean(0), m_average_deviation(0), m_num_samples(0) {}
 
 	void add_sample(int s)
 	{
-		TORRENT_ASSERT(s >= 0);
-		if (s < 0) s = 0;
-		if (m_mean == -1)
-		{
-			m_mean = s;
-			return;
-		}
-		int deviation = abs(m_mean - s);
+		// fixed point
+		s *= 64;
+		int deviation;
 
-		m_mean = m_mean - m_mean / history_size + s / history_size;
+		if (m_num_samples > 0)
+			deviation = abs(m_mean - s);
 
-		if (m_average_deviation == -1)
-		{
-			m_average_deviation = deviation;
-			return;
+		if (m_num_samples < inverted_gain)
+			++m_num_samples;
+
+		m_mean += (s - m_mean) / m_num_samples;
+
+		if (m_num_samples > 1) {
+			// the the exact same thing for deviation off the mean except -1 on
+			// the samples, because the number of deviation samples always lags
+			// behind by 1 (you need to actual samples to have a single deviation
+			// sample).
+			m_average_deviation += (deviation - m_average_deviation) / (m_num_samples - 1);
 		}
-		m_average_deviation = m_average_deviation - m_average_deviation
-			/ history_size + deviation / history_size;
 	}
 
-	int mean() const { return m_mean != -1 ? m_mean : 0; }
-	int avg_deviation() const { return m_average_deviation != -1 ? m_average_deviation : 0; }
+	int mean() const { return m_num_samples > 0 ? (m_mean + 32) / 64 : 0; }
+	int avg_deviation() const { return m_num_samples > 1 ? (m_average_deviation + 32) / 64 : 0; }
 
 private:
+	// both of these are fixed point values (* 64)
 	int m_mean;
 	int m_average_deviation;
+	// the number of samples we have received, but no more than inverted_gain
+	// this is the effective inverted_gain
+	int m_num_samples;
 };
 
 struct average_accumulator
@@ -100,7 +107,7 @@ struct average_accumulator
 	}
 
 	int m_num_samples;
-	size_type m_sample_sum;
+	boost::uint64_t m_sample_sum;
 };
 
 }
