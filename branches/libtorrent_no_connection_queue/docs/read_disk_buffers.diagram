@@ -1,0 +1,16 @@
+
+                   copy into peer's                encrypt in place
++----------------+ send buffer      +-------------+ (no copy)         +-------------+
+| receive buffer +----------------->| send buffer +--=--------------->| encrypted   |
+|                |                  |             |                   | send buffer |
++----------------+                  +-------------+                   +------+------+
+        ^                                                                   |
+        | read() from file                                write() to socket | 
+        | (copy)                                          (copy)            | 
+---=----|---------------------------------=---------------------------------|--=----
+        |                        kernel space                               |
+        |                                                                   v
++-------+-----------+                                               +---------------+
+| kernel page cache |                                               | socket kernel |
+|                   |                                               | buffer        |
++-------------------+                                               +---------------+
