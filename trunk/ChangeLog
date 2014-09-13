@@ -27,6 +27,10 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* remove potentially privacy leaking extension (non-anonymous mode)
+	* peer-id connection ordering fix in anonymous mode
+	* mingw fixes
+
 1.0.2 release
 
 	* added missing force_proxy to python binding

@@ -7036,7 +7036,7 @@ retry:
 	{
 		error_code ec;
 
-#if TORRENT_USE_IPV6
+#if TORRENT_USE_IPV6 && defined IPV6_TCLASS
 		if (m_udp_socket.local_endpoint(ec).address().is_v6())
 			m_udp_socket.set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), ec);
 		else

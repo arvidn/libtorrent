@@ -2284,18 +2284,6 @@ namespace libtorrent
 			&& t->share_mode())
 			handshake["share_mode"] = 1;
 
-		if (!m_settings.get_bool(settings_pack::anonymous_mode))
-		{
-			tcp::endpoint ep = m_ses.get_ipv6_interface();
-			if (!is_any(ep.address()))
-			{
-				std::string ipv6_address;
-				std::back_insert_iterator<std::string> out(ipv6_address);
-				detail::write_address(ep.address(), out);
-				handshake["ipv6"] = ipv6_address;
-			}
-		}
-
 		// loop backwards, to make the first extension be the last
 		// to fill in the handshake (i.e. give the first extensions priority)
 		for (extension_list_t::reverse_iterator i = m_extensions.rbegin()
@@ -3315,7 +3303,7 @@ namespace libtorrent
 					// initiate connections. So, if our peer-id is greater than
 					// the others, we should close the incoming connection,
 					// if not, we should close the outgoing one.
-					if (pid < m_ses.get_peer_id() && is_outgoing())
+					if (pid < m_our_peer_id && is_outgoing())
 					{
 						p->disconnect(errors::duplicate_peer_id, op_bittorrent);
 					}
