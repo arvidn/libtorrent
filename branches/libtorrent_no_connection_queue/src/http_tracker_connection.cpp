@@ -71,7 +71,6 @@ namespace libtorrent
 
 	http_tracker_connection::http_tracker_connection(
 		io_service& ios
-		, connection_queue& cc
 		, tracker_manager& man
 		, tracker_request const& req
 		, boost::weak_ptr<request_callback> c
@@ -84,7 +83,6 @@ namespace libtorrent
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
 		, m_ses(ses)
-		, m_cc(cc)
 		, m_ios(ios)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(i2p_conn)
@@ -206,7 +204,7 @@ namespace libtorrent
 			}
 		}
 
-		m_tracker_connection.reset(new http_connection(m_ios, m_cc, m_ses.m_host_resolver
+		m_tracker_connection.reset(new http_connection(m_ios, m_ses.m_host_resolver
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, boost::bind(&http_tracker_connection::on_connect, self(), _1)

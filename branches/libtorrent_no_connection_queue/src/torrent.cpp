@@ -785,7 +785,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_url.empty());
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
 		boost::shared_ptr<http_connection> conn(
-			new http_connection(m_ses.get_io_service(), m_ses.half_open()
+			new http_connection(m_ses.get_io_service()
 				, m_ses.get_resolver()
 				, boost::bind(&torrent::on_torrent_download, shared_from_this()
 					, _1, _2, _3, _4)
@@ -3313,10 +3313,9 @@ namespace libtorrent
 		// this is the first tracker response for this torrent
 		// instead of waiting one second for session_impl::on_tick()
 		// to be called, connect to a few peers immediately
-		int conns = (std::min)((std::min)(
+		int conns = (std::min)(
 			m_ses.settings().get_int(settings_pack::torrent_connect_boost)
-			, m_ses.settings().get_int(settings_pack::connections_limit) - m_ses.num_connections())
-			, m_ses.half_open().free_slots());
+			, m_ses.settings().get_int(settings_pack::connections_limit) - m_ses.num_connections());
 
 		if (conns > 0) m_need_connect_boost = false;
 
@@ -6257,9 +6256,9 @@ namespace libtorrent
 
 			if (c->is_disconnecting()) return;
 
-			c->m_queued_for_connection = true;
-			m_ses.half_open().enqueue(c.get()
-				, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
+#error connect immediately. what about the timeout?
+//			m_ses.half_open().enqueue(c.get()
+//				, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			debug_log("START queue peer [%p] (%d)", c.get(), num_peers());
@@ -7263,9 +7262,9 @@ namespace libtorrent
 
 		TORRENT_TRY
 		{
-			c->m_queued_for_connection = true;
-			m_ses.half_open().enqueue(c.get()
-				, seconds(timeout));
+#error connect immediately. what about the timeout?
+//			m_ses.half_open().enqueue(c.get()
+//				, seconds(timeout));
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			debug_log("START queue peer [%p] (%d)", c.get(), num_peers());

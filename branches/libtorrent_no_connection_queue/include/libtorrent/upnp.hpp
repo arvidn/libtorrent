@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
@@ -114,7 +113,7 @@ typedef boost::function<void(char const*)> log_callback_t;
 class TORRENT_EXTRA_EXPORT upnp : public intrusive_ptr_base<upnp>
 {
 public:
-	upnp(io_service& ios, connection_queue& cc
+	upnp(io_service& ios
 		, address const& listen_interface, std::string const& user_agent
 		, portmap_callback_t const& cb, log_callback_t const& lcb
 		, bool ignore_nonrouters, void* state = 0);
@@ -369,8 +368,6 @@ private:
 	bool m_disabled;
 	bool m_closing;
 	bool m_ignore_non_routers;
-
-	connection_queue& m_cc;
 
 	mutex m_mutex;
 

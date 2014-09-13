@@ -167,7 +167,6 @@ namespace libtorrent
 		, m_reading_bytes(0)
 		, m_picker_options(0)
 		, m_num_invalid_requests(0)
-		, m_connection_ticket(-1)
 		, m_remote_pieces_dled(0)
 		, m_remote_dl_rate(0)
 		, m_outstanding_writing_bytes(0)
@@ -196,7 +195,6 @@ namespace libtorrent
 		, m_peer_interested(false)
 		, m_need_interest_update(false)
 		, m_has_metadata(true)
-		, m_queued_for_connection(false)
 		, m_exceeded_limit(false)
 #if TORRENT_USE_ASSERTS
 		, m_in_constructor(true)
@@ -865,7 +863,6 @@ namespace libtorrent
 	{
 		m_counters.inc_stats_counter(counters::num_tcp_peers + m_socket->type() - 1, -1);
 
-		TORRENT_ASSERT(!m_queued_for_connection);
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
@@ -3904,8 +3901,6 @@ namespace libtorrent
 
 	void peer_connection::on_connect_timeout()
 	{
-		m_queued_for_connection = false;
-
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (t)
@@ -3936,12 +3931,6 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
 			if (t) t->dec_num_connecting();
 			m_connecting = false;
-		}
-
-		if (m_connection_ticket != -1)
-		{
-			if (m_ses.half_open_done(m_connection_ticket))
-				m_connection_ticket = -1;
 		}
 
 		// a connection attempt using uTP just failed
@@ -4120,11 +4109,6 @@ namespace libtorrent
 			if (t) t->dec_num_connecting();
 			m_connecting = false;
 		}
-		if (m_connection_ticket >= 0)
-		{
-			if (m_ses.half_open_done(m_connection_ticket))
-				m_connection_ticket = -1;
-		}
 
 		torrent_handle handle;
 		if (t) handle = t->get_handle();
@@ -4227,8 +4211,7 @@ namespace libtorrent
 
 		async_shutdown(*m_socket, m_socket);
 
-		m_ses.close_connection(this, ec, m_queued_for_connection);
-		m_queued_for_connection = false;
+		m_ses.close_connection(this, ec);
 	}
 
 	bool peer_connection::ignore_unchoke_slots() const
@@ -4622,11 +4605,6 @@ namespace libtorrent
 
 		if (!t || m_disconnecting)
 		{
-			if (m_connection_ticket != -1)
-			{
-				if (m_ses.half_open_done(m_connection_ticket))
-					m_connection_ticket = -1;
-			}
 			TORRENT_ASSERT(t || !m_connecting);
 			if (m_connecting)
 			{
@@ -6161,11 +6139,8 @@ namespace libtorrent
 		return !m_connecting && !m_disconnecting;
 	}
 
-	void peer_connection::on_allow_connect(int ticket)
+	void peer_connection::on_allow_connect()
 	{
-		TORRENT_ASSERT(m_queued_for_connection);
-		m_queued_for_connection = false;
-
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -6186,13 +6161,6 @@ namespace libtorrent
 		m_ses.session_log("ON_CONNECT: %s", print_endpoint(m_remote).c_str());
 #endif
 
-		if (ticket == -1)
-		{
-			disconnect(asio::error::operation_aborted, op_bittorrent);
-			return;		
-		}
-
-		m_connection_ticket = ticket;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		m_queued = false;
@@ -6298,11 +6266,6 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
 			if (t) t->dec_num_connecting();
 			m_connecting = false;
-		}
-		if (m_connection_ticket != -1)
-		{
-			if (m_ses.half_open_done(m_connection_ticket))
-				m_connection_ticket = -1;
 		}
 
 		TORRENT_ASSERT(!m_connected);

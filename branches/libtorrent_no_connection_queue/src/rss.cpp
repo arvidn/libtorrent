@@ -584,7 +584,7 @@ int feed::update_feed()
 	}
 
 	boost::shared_ptr<http_connection> feed(
-		new http_connection(m_ses.m_io_service, m_ses.m_half_open
+		new http_connection(m_ses.m_io_service
 			, m_ses.m_host_resolver
 			, boost::bind(&feed::on_feed, shared_from_this()
 			, _1, _2, _3, _4)));
