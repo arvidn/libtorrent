@@ -110,8 +110,9 @@ AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
     then
         AS_ECHO "found"
         ac_cv_hidden_visibility_attribute=yes
-        CXXFLAGS="$CXXFLAGS -fvisibility-inlines-hidden"
+        CXXFLAGS="$CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
         CFLAGS="$CFLAGS -fvisibility=hidden"
+        LDFLAGS="$LDFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
     fi
     rm -f visibility_conftest.*
 ])
