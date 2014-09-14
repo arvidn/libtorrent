@@ -115,7 +115,6 @@ namespace libtorrent
 			: buf(0)
 			, refcount(0)
 			, dirty(false)
-			, hitcount(0)
 			, pending(false)
 		{
 #if TORRENT_USE_ASSERTS
@@ -127,7 +126,7 @@ namespace libtorrent
 
 		char* buf;
 
-		enum { max_refcount = (1 << 15) -1 };
+		enum { max_refcount = (1 << 30) - 1 };
 
 		// the number of references to this buffer. These references
 		// might be in outstanding asyncronous requests or in peer
@@ -135,7 +134,7 @@ namespace libtorrent
 		// all references are gone and refcount reaches 0. The buf
 		// pointer in this struct doesn't count as a reference and
 		// is always the last to be cleared
-		boost::uint16_t refcount:15;
+		boost::uint32_t refcount:30;
 
 		// if this is true, this block needs to be written to
 		// disk before it's freed. Typically all blocks in a piece
@@ -143,17 +142,13 @@ namespace libtorrent
 		// (read-ahead cache). Once blocks are written to disk, the
 		// dirty flag is cleared and effectively turns the block
 		// into a read cache block
-		boost::uint16_t dirty:1;
-
-		// the number of times this block has been copied out of
-		// the cache, serving a request.
-		boost::uint16_t hitcount:15;
+		boost::uint32_t dirty:1;
 
 		// pending means that this buffer has not yet been filled in
 		// with valid data. There's an outstanding read job for this.
 		// If the dirty flag is set, it means there's an outstanding
 		// write job to write this block.
-		boost::uint16_t pending:1;
+		boost::uint32_t pending:1;
 
 #if TORRENT_USE_ASSERTS
 		// this many of the references are held by hashing operations
@@ -179,6 +174,7 @@ namespace libtorrent
 				&& num_blocks == 0
 				&& !hashing
 				&& read_jobs.size() == 0
+				&& outstanding_read == 0
 				&& (ignore_hash || !hash || hash->offset == 0);
 		}
 
@@ -209,9 +205,11 @@ namespace libtorrent
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
-		// TODO: 3 could this be a scoped_array instead? does cached_piece_entry really need to be copyable?
-		// cached_piece_entry does need to be copyable since it's part of a container, but it's possible
-		// it could be a raw pointer or boost::unique_ptr perhaps
+
+		// TODO: 3 could this be a scoped_array instead? does cached_piece_entry
+		// really need to be copyable? cached_piece_entry does need to be
+		// copyable since it's part of a container, but it's possible it could be
+		// a raw pointer or boost::unique_ptr perhaps
 		boost::shared_array<cached_block_entry> blocks;
 
 		// the last time a block was written to this piece
