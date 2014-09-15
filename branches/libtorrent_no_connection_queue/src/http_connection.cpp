@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 http_connection::http_connection(io_service& ios
-//	, connection_queue& cc
 	, resolver_interface& resolver
 	, http_handler const& handler
 	, bool bottled
@@ -90,7 +89,6 @@ http_connection::http_connection(io_service& ios
 	, m_bottled(bottled)
 	, m_called(false)
 	, m_limiter_timer_active(false)
-	, m_queued_for_connection(false)
 	, m_ssl(false)
 	, m_abort(false)
 {
@@ -388,7 +386,6 @@ void http_connection::start(std::string const& hostname, int port
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_resolve");
 #endif
-			TORRENT_ASSERT(!m_self_reference);
 			m_endpoints.clear();
 			m_resolver.async_resolve(hostname, m_resolve_flags
 				, boost::bind(&http_connection::on_resolve
@@ -401,16 +398,12 @@ void http_connection::start(std::string const& hostname, int port
 
 void http_connection::on_connect_timeout()
 {
-	TORRENT_ASSERT(!m_queued_for_connection);
-
 	// keep ourselves alive even if the callback function
 	// deletes this object
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
 	error_code ec;
 	m_sock.close(ec);
-
-	m_self_reference.reset();
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
@@ -561,17 +554,8 @@ void http_connection::on_resolve(error_code const& e
 void http_connection::queue_connect()
 {
 	TORRENT_ASSERT(!m_endpoints.empty());
-	m_self_reference = shared_from_this();
-	m_queued_for_connection = true;
-}
-
-void http_connection::on_allow_connect(int ticket)
-{
-	TORRENT_ASSERT(m_queued_for_connection);
-	m_queued_for_connection = false;
 
 	boost::shared_ptr<http_connection> me(shared_from_this());
-	m_self_reference.reset();
 #if defined TORRENT_ASIO_DEBUGGING
 	TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
 #endif
@@ -607,6 +591,7 @@ void http_connection::on_allow_connect(int ticket)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_connect");
 #endif
+#error reuse the timer for connection timeout
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }

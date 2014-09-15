@@ -133,7 +133,6 @@ private:
 	void on_resolve(error_code const& e
 		, std::vector<address> const& addresses);
 	void queue_connect();
-	void on_allow_connect(int ticket);
 	void on_connect_timeout();
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
@@ -151,9 +150,6 @@ private:
 	std::string m_user_agent;
 
 	std::vector<tcp::endpoint> m_endpoints;
-
-	// used to keep us alive when queued in the connection_queue
-	boost::shared_ptr<http_connection> m_self_reference;
 
 #ifdef TORRENT_USE_OPENSSL
 	asio::ssl::context* m_ssl_ctx;
