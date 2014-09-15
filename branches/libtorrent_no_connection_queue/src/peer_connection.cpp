@@ -182,7 +182,6 @@ namespace libtorrent
 		, m_fast_reconnect(false)
 		, m_failed(false)
 		, m_connected(pack.tor.expired())
-		, m_queued(!pack.tor.expired())
 		, m_request_large_blocks(false)
 		, m_share_mode(false)
 		, m_upload_only(false)
@@ -538,10 +537,68 @@ namespace libtorrent
 			peer_log("*** CLASS [ %s ]", m_ses.peer_classes().at(class_at(i))->label.c_str());
 		}
 #endif
-		if (t && t->ready_for_connections())
+		if (!t || !t->ready_for_connections())
+			return;
+
+		init();
+
+		error_code ec;
+		if (!t)
 		{
-			init();
+			TORRENT_ASSERT(!m_connecting);
+			disconnect(errors::torrent_aborted, op_bittorrent);
+			return;
 		}
+
+		TORRENT_ASSERT(m_connecting);
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		peer_log(">>> OPEN [ protocol: %s ]", (m_remote.address().is_v4()?"IPv4":"IPv6"));
+#endif
+		m_socket->open(m_remote.protocol(), ec);
+		if (ec)
+		{
+			disconnect(ec, op_sock_open);
+			return;
+		}
+
+		tcp::endpoint bound_ip = m_ses.bind_outgoing_socket(*m_socket
+			, m_remote.address(), ec);
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log(">>> BIND [ dst: %s ec: %s ]", print_endpoint(bound_ip).c_str()
+			, ec.message().c_str());
+#endif
+		if (ec)
+		{
+			disconnect(ec, op_sock_bind);
+			return;
+		}
+	
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log(">>> ASYNC_CONNECT [ dst: %s ]", print_endpoint(m_remote).c_str());
+#endif
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("peer_connection::on_connection_complete");
+#endif
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		t->debug_log("START connect [%p] (%d)", this, int(t->num_peers()));
+#endif
+
+		m_socket->async_connect(m_remote
+			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
+		m_connect = time_now_hires();
+
+		sent_syn(m_remote.address().is_v6());
+
+		if (t->alerts().should_post<peer_connect_alert>())
+		{
+			t->alerts().post_alert(peer_connect_alert(
+				t->get_handle(), remote(), pid(), m_socket->type()));
+		}
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log("*** LOCAL ENDPOINT[ e: %s ]", print_endpoint(m_socket->local_endpoint(ec)).c_str());
+#endif
 	}
 
 	void peer_connection::update_interest()
@@ -3899,18 +3956,6 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::on_connect_timeout()
-	{
-#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (t)
-		{
-			t->debug_log("END queue peer (timed out) [%p]", this);
-		}
-#endif
-		connect_failed(errors::timed_out);
-	}
-	
 	void peer_connection::connect_failed(error_code const& e)
 	{
 		TORRENT_ASSERT(e);
@@ -4637,6 +4682,7 @@ namespace libtorrent
 		}
 
 		on_tick();
+		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -4652,11 +4698,38 @@ namespace libtorrent
 		time_duration d;
 		d = (std::min)(now - m_last_receive, now - m_last_sent);
 
+		if (m_connecting)
+		{
+			int connect_timeout = m_settings.get_int(settings_pack::peer_connect_timeout);
+			if (m_peer_info) connect_timeout += 3 * m_peer_info->failcount;
+
+			// SSL and i2p handshakes are slow
+			if (is_ssl(*m_socket))
+				connect_timeout += 10;
+
+#if TORRENT_USE_I2P
+			if (is_i2p(*m_socket))
+				connect_timeout += 20;
+#endif
+
+			if (d > seconds(connect_timeout)
+				&& can_disconnect(error_code(errors::timed_out, get_libtorrent_category())))
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+				peer_log("*** CONNECT FAILED [ waited %d seconds ] ***", int(total_seconds(d)));
+#endif
+				connect_failed(errors::timed_out);
+				return;
+			}
+		}
+
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
 		// the peer and disconnect it
 		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network) != 0;
 
+		// TODO: 4 use a deadline_timer for timeouts. Don't rely on second_tick()!
+		// Hook this up to connect timeout as well
 		if (may_timeout && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
 			&& can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category())))
 		{
@@ -6139,90 +6212,6 @@ namespace libtorrent
 		return !m_connecting && !m_disconnecting;
 	}
 
-	void peer_connection::on_allow_connect()
-	{
-#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		{
-			boost::shared_ptr<torrent> t = m_torrent.lock();
-			t->debug_log("END queue peer [%p]", this);
-		}
-#endif
-
-#if TORRENT_USE_ASSERTS
-		// in case we disconnect here, we need to
-		// keep the connection alive until the
-		// exit invariant check is run
-		boost::shared_ptr<peer_connection> me(self());
-#endif
-		INVARIANT_CHECK;
-
-		error_code ec;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		m_ses.session_log("ON_CONNECT: %s", print_endpoint(m_remote).c_str());
-#endif
-
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-
-		m_queued = false;
-
-		if (!t)
-		{
-			TORRENT_ASSERT(!m_connecting);
-			disconnect(errors::torrent_aborted, op_bittorrent);
-			return;
-		}
-
-		TORRENT_ASSERT(m_connecting);
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		peer_log(">>> OPEN [ protocol: %s ]", (m_remote.address().is_v4()?"IPv4":"IPv6"));
-#endif
-		m_socket->open(m_remote.protocol(), ec);
-		if (ec)
-		{
-			disconnect(ec, op_sock_open);
-			return;
-		}
-
-		tcp::endpoint bound_ip = m_ses.bind_outgoing_socket(*m_socket
-			, m_remote.address(), ec);
-#if defined TORRENT_VERBOSE_LOGGING
-		peer_log(">>> BIND [ dst: %s ec: %s ]", print_endpoint(bound_ip).c_str()
-			, ec.message().c_str());
-#endif
-		if (ec)
-		{
-			disconnect(ec, op_sock_bind);
-			return;
-		}
-	
-#if defined TORRENT_VERBOSE_LOGGING
-		peer_log(">>> ASYNC_CONNECT [ dst: %s ]", print_endpoint(m_remote).c_str());
-#endif
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("peer_connection::on_connection_complete");
-#endif
-
-#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		t->debug_log("START connect [%p] (%d)", this, int(t->num_peers()));
-#endif
-
-		m_socket->async_connect(m_remote
-			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
-		m_connect = time_now_hires();
-
-		sent_syn(m_remote.address().is_v6());
-
-		if (t->alerts().should_post<peer_connect_alert>())
-		{
-			t->alerts().post_alert(peer_connect_alert(
-				t->get_handle(), remote(), pid(), m_socket->type()));
-		}
-#if defined TORRENT_VERBOSE_LOGGING
-		peer_log("*** LOCAL ENDPOINT[ e: %s ]", print_endpoint(m_socket->local_endpoint(ec)).c_str());
-#endif
-	}
-	
 	void peer_connection::on_connection_complete(error_code const& e)
 	{
 #if defined TORRENT_ASIO_DEBUGGING

@@ -116,10 +116,15 @@ namespace libtorrent
 			// being connected).
 			connecting = 0x80,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// The connection is currently queued for a connection
 			// attempt. This may happen if there is a limit set on
 			// the number of half-open TCP connections.
 			queued = 0x100,
+#else
+			// hidden
+			deprecated__ = 0x100,
+#endif
 
 			// The peer has participated in a piece that failed the
 			// hash check, and is now "on parole", which means we're

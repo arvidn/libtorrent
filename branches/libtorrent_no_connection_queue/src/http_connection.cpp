@@ -237,7 +237,8 @@ void http_connection::start(std::string const& hostname, int port
 	m_read_timeout = seconds(5);
 	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
 	error_code ec;
-	m_timer.expires_from_now(m_completion_timeout, ec);
+	m_timer.expires_from_now((std::min)(
+		m_read_timeout, m_completion_timeout), ec);
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_timeout");
 #endif
@@ -379,7 +380,7 @@ void http_connection::start(std::string const& hostname, int port
 			m_hostname = hostname;
 			m_port = port;
 			m_endpoints.push_back(tcp::endpoint(address(), port));
-			queue_connect();
+			connect();
 		}
 		else
 		{
@@ -394,16 +395,6 @@ void http_connection::start(std::string const& hostname, int port
 		m_hostname = hostname;
 		m_port = port;
 	}
-}
-
-void http_connection::on_connect_timeout()
-{
-	// keep ourselves alive even if the callback function
-	// deletes this object
-	boost::shared_ptr<http_connection> me(shared_from_this());
-
-	error_code ec;
-	m_sock.close(ec);
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
@@ -429,20 +420,19 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 #endif
 			error_code ec;
 			async_shutdown(c->m_sock, c);
-			c->m_timer.expires_at((std::min)(
-				c->m_last_receive + c->m_read_timeout
-				, c->m_start_time + c->m_completion_timeout), ec);
-			c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
 		}
 		else
 		{
 			c->callback(asio::error::timed_out);
 			c->close(true);
+			return;
 		}
-		return;
+	}
+	else
+	{
+		if (!c->m_sock.is_open()) return;
 	}
 
-	if (!c->m_sock.is_open()) return;
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_timeout");
 #endif
@@ -548,10 +538,10 @@ void http_connection::on_resolve(error_code const& e
 				== m_bind_addr.is_v4());
 #endif
 
-	queue_connect();
+	connect();
 }
 
-void http_connection::queue_connect()
+void http_connection::connect()
 {
 	TORRENT_ASSERT(!m_endpoints.empty());
 
@@ -561,10 +551,7 @@ void http_connection::queue_connect()
 #endif
 
 	TORRENT_ASSERT(!m_endpoints.empty());
-	if (m_endpoints.empty())
-	{
-		return;
-	}
+	if (m_endpoints.empty()) return;
 
 	tcp::endpoint target_address = m_endpoints.front();
 	m_endpoints.erase(m_endpoints.begin());
@@ -591,7 +578,6 @@ void http_connection::queue_connect()
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_connect");
 #endif
-#error reuse the timer for connection timeout
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }
@@ -618,7 +604,7 @@ void http_connection::on_connect(error_code const& e)
 		// The connection failed. Try the next endpoint in the list.
 		error_code ec;
 		m_sock.close(ec);
-		queue_connect();
+		connect();
 	} 
 	else
 	{ 

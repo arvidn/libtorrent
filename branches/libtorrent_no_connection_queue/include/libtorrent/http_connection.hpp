@@ -132,8 +132,7 @@ private:
 #endif
 	void on_resolve(error_code const& e
 		, std::vector<address> const& addresses);
-	void queue_connect();
-	void on_connect_timeout();
+	void connect();
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
@@ -223,8 +222,6 @@ private:
 	// quota is 0. If it isn't 0 wait for it to reach
 	// 0 and continue to hand out quota at that time.
 	bool m_limiter_timer_active;
-
-	bool m_queued_for_connection;
 
 	// true if the connection is using ssl
 	bool m_ssl;

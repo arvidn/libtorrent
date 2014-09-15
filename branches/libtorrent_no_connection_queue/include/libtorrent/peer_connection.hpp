@@ -520,21 +520,6 @@ namespace libtorrent
 		// finish the connection attempt
 		bool is_connecting() const { return m_connecting; }
 
-		// returns true if the socket of this peer hasn't been
-		// attempted to connect yet (i.e. it's queued for
-		// connection attempt).
-		bool is_queued() const { return m_queued; }
-	
-		// called when it's time for this peer_conncetion to actually
-		// initiate the tcp connection. This may be postponed until
-		// the library isn't using up the limitation of half-open
-		// tcp connections.	
-		// implements connection_interface
-		void on_allow_connect();
-		
-		// implements connection_interface. Called by the connection_queue
-		void on_connect_timeout();
-
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
 		// It will reset the used bandwidth to 0.
@@ -1305,11 +1290,6 @@ namespace libtorrent
 		// this is set to true if the connection attempt
 		// succeeded. i.e. the TCP 3-way handshake
 		bool m_connected:1;
-
-		// This is true until connect is called on the
-		// peer_connection's socket. It is false on incoming
-		// connections.
-		bool m_queued:1;
 
 		// if this is true, the blocks picked by the piece
 		// picker will be merged before passed to the

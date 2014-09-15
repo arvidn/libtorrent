@@ -182,8 +182,7 @@ namespace libtorrent
 		void on_read_impl(udp::socket* sock, udp::endpoint const& ep
 			, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
-		void on_connect_timeout();
-		void on_allow_connect();
+		void on_connect_timeout(error_code const& ec);
 		void on_connected(error_code const& ec);
 		void handshake1(error_code const& e);
 		void handshake2(error_code const& e);
@@ -201,6 +200,7 @@ namespace libtorrent
 		void unwrap(error_code const& e, char const* buf, int size);
 
 		udp::socket m_ipv4_sock;
+		deadline_timer m_timer;
 		int m_buf_size;
 
 		// if the buffer size is attempted
@@ -262,10 +262,7 @@ namespace libtorrent
 		int m_outstanding_connect;
 		int m_outstanding_timeout;
 		int m_outstanding_resolve;
-		int m_outstanding_connect_queue;
 		int m_outstanding_socks;
-
-		char timeout_stack[2000];
 #endif
 	};
 
