@@ -139,7 +139,7 @@ private:
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 
-	void callback(error_code e, char const* data = 0, int size = 0);
+	void callback(error_code e, char* data = 0, int size = 0);
 
 	std::vector<char> m_recvbuffer;
 	socket_type m_sock;
