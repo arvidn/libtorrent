@@ -1281,6 +1281,8 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 		case ref_reading: ++pe->blocks[block].reading_count; break;
 		case ref_flushing: ++pe->blocks[block].flushing_count; break;
 	};
+	TORRENT_ASSERT(pe->blocks[block].refcount >= pe->blocks[block].hashing_count
+		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count);
 #endif
 	return true;
 }
@@ -1337,6 +1339,8 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		case ref_reading: --pe->blocks[block].reading_count; break;
 		case ref_flushing: --pe->blocks[block].flushing_count; break;
 	};
+	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount >= pe->blocks[block].hashing_count
+		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count, pe);
 #endif
 }
 
@@ -1603,6 +1607,12 @@ void block_cache::check_invariant() const
 				}
 				if (p.blocks[k].pending) ++num_pending;
 				if (p.blocks[k].refcount > 0) ++num_pinned;
+
+				TORRENT_PIECE_ASSERT(p.blocks[k].refcount >=
+					p.blocks[k].hashing_count
+					+ p.blocks[k].reading_count
+					+ p.blocks[k].flushing_count, &p);
+
 			}
 			else
 			{
@@ -1678,9 +1688,6 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j, bool ex
 		j->d.io.ref.block = start_block;
 		j->buffer = bl.buf + (j->d.io.offset & (block_size()-1));
 		++m_send_buffer_blocks;
-#if TORRENT_USE_ASSERTS
-		++bl.reading_count;
-#endif
 		return j->d.io.buffer_size;
 	}
 
@@ -1703,7 +1710,6 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j, bool ex
 		std::memcpy(j->buffer + buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, to_copy);
-		++pe->blocks[block].hitcount;
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;
