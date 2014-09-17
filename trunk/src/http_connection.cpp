@@ -670,7 +670,7 @@ void http_connection::on_connect(error_code const& e)
 	}
 }
 
-void http_connection::callback(error_code e, char const* data, int size)
+void http_connection::callback(error_code e, char* data, int size)
 {
 	if (m_bottled && m_called) return;
 
@@ -779,11 +779,11 @@ void http_connection::on_read(error_code const& e
 	{
 		error_code ec = asio::error::eof;
 		TORRENT_ASSERT(bytes_transferred == 0);
-		char const* data = 0;
+		char* data = 0;
 		std::size_t size = 0;
 		if (m_bottled && m_parser.header_finished())
 		{
-			data = m_parser.get_body().begin;
+			data = &m_recvbuffer[0] + m_parser.body_start();
 			size = m_parser.get_body().left();
 		}
 		callback(ec, data, size);
@@ -865,7 +865,7 @@ void http_connection::on_read(error_code const& e
 		{
 			error_code ec;
 			m_timer.cancel(ec);
-			callback(e, m_parser.get_body().begin, m_parser.get_body().left());
+			callback(e, &m_recvbuffer[0] + m_parser.body_start(), m_parser.get_body().left());
 		}
 	}
 	else

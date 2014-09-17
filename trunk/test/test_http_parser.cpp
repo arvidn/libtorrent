@@ -316,6 +316,29 @@ int test_main()
 		TEST_EQUAL(parser.headers().find("test2")->second, "bar");
 	}
 
+	// test chunked encoding
+
+	parser.reset();
+
+	char const* chunked_input =
+		"HTTP/1.1 200 OK\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"Content-Type: text/plain\r\n"
+		"\r\n"
+		"4\r\ntest\r\n4\r\n1234\r\n10\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n";
+	received = feed_bytes(parser, chunked_input);
+
+	TEST_EQUAL(strlen(chunked_input), 24 + 94)
+	TEST_CHECK(received == make_tuple(24, 94, false));
+	TEST_CHECK(parser.finished());
+
+	char mutable_buffer[100];
+	memcpy(mutable_buffer, parser.get_body().begin, parser.get_body().left());
+	int len = parser.collapse_chunk_headers(mutable_buffer, parser.get_body().left());
+
+	TEST_CHECK(std::equal(mutable_buffer, mutable_buffer + len, "test12340123456789abcdef"));
+
 	// test url parsing
 
 	error_code ec;
