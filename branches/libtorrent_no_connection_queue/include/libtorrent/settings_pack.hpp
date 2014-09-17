@@ -1227,6 +1227,7 @@ namespace libtorrent
 			// ``choking_algorithm`` is set to.
 			unchoke_slots_limit,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``half_open_limit`` sets the maximum number of half-open connections
 			// libtorrent will have when connecting to peers. A half-open connection is one
 			// where connect() has been called, but the connection still hasn't been established
@@ -1237,6 +1238,9 @@ namespace libtorrent
 			// limiting the number of simultaneous connection attempts, peers will be put in
 			// a queue waiting for their turn to get connected.
 			half_open_limit,
+#else
+			deprecated5,
+#endif
 
 			// ``connections_limit`` sets a global limit on the number of connections
 			// opened. The number of connections is set to a hard minimum of at least two per
@@ -1284,7 +1288,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			utp_delayed_ack,
 #else
-			deprecated5,
+			deprecated6,
 #endif
 			utp_loss_multiplier,
 

@@ -73,7 +73,9 @@ int test_main()
 	TEST_NAME(contiguous_recv_buffer);
 	TEST_NAME(choking_algorithm);
 	TEST_NAME(seeding_piece_quota);
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_NAME(half_open_limit);
+#endif
 	TEST_NAME(peer_turnover_interval);
 	TEST_NAME(mmap_cache);
 
