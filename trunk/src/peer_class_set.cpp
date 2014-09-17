@@ -33,27 +33,42 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/peer_class.hpp"
 #include <vector>
-#include <algorithm> // for_find
+#include <algorithm> // for find
 
 namespace libtorrent
 {
 	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
 	{
-		if (std::find(m_class.begin(), m_class.end(), c) != m_class.end()) return;
-		m_class.push_back(c);
+		if (std::find(m_class.begin(), m_class.begin() + m_size, c)
+			!= m_class.begin() + m_size) return;
+		if (m_size >= m_class.size() - 1)
+		{
+			assert(false);
+			return;
+		}
+		m_class[m_size] = c;
 		pool.incref(c);
+		++m_size;
 	}
 
 	bool peer_class_set::has_class(peer_class_t c) const
 	{
-		return std::find(m_class.begin(), m_class.end(), c) != m_class.end();
+		return std::find(m_class.begin(), m_class.begin() + m_size, c)
+			!= m_class.begin() + m_size;
 	}
 
 	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t c)
 	{
-		std::vector<peer_class_t>::iterator i = std::find(m_class.begin(), m_class.end(), c);
-		if (i == m_class.end()) return;
-		m_class.erase(i);
+		boost::array<peer_class_t, 15>::iterator i = std::find(m_class.begin()
+			, m_class.begin() + m_size, c);
+		int idx = i - m_class.begin();
+		if (idx == m_size) return; // not found
+		if (idx < m_size - 1)
+		{
+			// place the last element in the slot of the erased one
+			m_class[idx] = m_class[m_size - 1];
+		}
+		--m_size;
 		pool.decref(c);
 	}
 }
