@@ -1622,10 +1622,6 @@ namespace aux {
 			TORRENT_ASSERT_VAL(conn == int(m_connections.size()) + 1, conn);
 		}
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		session_log(" shutting down connection queue");
-#endif
-
 		m_download_rate.close();
 		m_upload_rate.close();
 
@@ -6810,7 +6806,6 @@ retry:
 		m_udp_socket.unsubscribe(&m_tracker_manager);
 
 		TORRENT_ASSERT(m_torrents.empty());
-		TORRENT_ASSERT(m_connections.empty());
 		TORRENT_ASSERT(m_connections.empty());
 
 #ifdef TORRENT_REQUEST_LOGGING
