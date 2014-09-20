@@ -526,6 +526,10 @@ namespace libtorrent
 		// attempted to connect yet (i.e. it's queued for
 		// connection attempt).
 		bool is_queued() const { return m_queued; }
+
+		// returns true if this peer has successfully completed its connection
+		// attempt to the remote end.
+		bool is_connected() const { return m_connected; }
 	
 		// called when it's time for this peer_conncetion to actually
 		// initiate the tcp connection. This may be postponed until

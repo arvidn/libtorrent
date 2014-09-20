@@ -4612,7 +4612,7 @@ namespace libtorrent
 		{
 			for (int channel = 0; channel < 2; ++channel)
 			{
-				if ((warning & (1 << channel)) == 0) return;
+				if ((warning & (1 << channel)) == 0) continue;
 				t->alerts().post_alert(performance_alert(t->get_handle()
 					, channel == peer_connection::download_channel
 					? performance_alert::download_limit_too_low
@@ -5547,6 +5547,8 @@ namespace libtorrent
 
 	size_t peer_connection::try_read(sync_t s, error_code& ec)
 	{
+		TORRENT_ASSERT(m_connected);
+
 		if (m_quota[download_channel] == 0)
 		{
 			ec = asio::error::would_block;
