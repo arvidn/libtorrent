@@ -1343,7 +1343,11 @@ namespace libtorrent
 		// info_hash and peer_id. If we do. close this connection.
 		t->attach_peer(this);
 		if (m_disconnecting) return;
-		m_torrent = wpt;
+		// it's important to assign the torrent after successfully attaching.
+		// if the peer disconnects while attaching, it's not a proper member
+		// of the torrent and peer_connection::disconnect() will fail if it
+		// think it is
+		m_torrent = t;
 
 		if (m_exceeded_limit)
 		{
