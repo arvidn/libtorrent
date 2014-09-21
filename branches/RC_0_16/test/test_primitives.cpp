@@ -2095,6 +2095,37 @@ int test_main()
 	// test endpoint_to_bytes
 	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("10.11.12.13"), 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
 	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
+
+	{
+		session s(fingerprint("LT",0,0,0,0), 0);
+		add_torrent_params p;
+		p.url = "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567";
+		p.save_path = ".";
+		torrent_handle h = s.add_torrent(p);
+		std::vector<torrent_handle> handles = s.get_torrents();
+		TEST_EQUAL(handles.size(), 1);
+
+		TEST_NOTHROW(s.remove_torrent(h));
+
+		handles = s.get_torrents();
+		TEST_EQUAL(handles.size(), 0);
+	}
+
+	{
+		session s(fingerprint("LT",0,0,0,0), 0);
+		add_torrent_params p;
+		p.url = "http://non-existent.com/test.torrent";
+		p.save_path = ".";
+		torrent_handle h = s.add_torrent(p);
+		std::vector<torrent_handle> handles = s.get_torrents();
+		TEST_EQUAL(handles.size(), 1);
+
+		TEST_NOTHROW(s.remove_torrent(h));
+
+		handles = s.get_torrents();
+		TEST_EQUAL(handles.size(), 0);
+	}
+
 	return 0;
 }
 
