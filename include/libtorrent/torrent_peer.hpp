@@ -87,16 +87,6 @@ namespace libtorrent
 		// calculated lazily
 		mutable boost::uint32_t peer_rank;
 
-#ifndef TORRENT_DISABLE_GEO_IP
-#ifdef TORRENT_DEBUG
-		// only used in debug mode to assert that
-		// the first entry in the AS pair keeps the same
-		boost::uint16_t inet_as_num;
-#endif
-		// The AS this torrent_peer belongs to
-		std::pair<const int, int>* inet_as;
-#endif
-
 		// the time when this torrent_peer was optimistically unchoked
 		// the last time. in seconds since session was created
 		// 16 bits is enough to last for 18.2 hours

@@ -1,9 +1,5 @@
 includedir = @includedir@/libtorrent
 
-if WITH_SHIPPED_GEOIP
-GEOIP_H = GeoIP.h
-endif
-
 nobase_include_HEADERS = \
   address.hpp                  \
   add_torrent_params.hpp       \

@@ -273,14 +273,6 @@ Build features:
 |                          |   to ``asserts.log`` in the current working        |
 |                          |   directory, but won't abort the process.          |
 +--------------------------+----------------------------------------------------+
-| ``geoip``                | * ``off`` - geo ip lookups disabled                |
-|                          | * ``static`` - MaxMind_ geo ip lookup code linked  |
-|                          |   in statically. Note that this code is under      |
-|                          |   LGPL license.                                    |
-|                          | * ``shared`` - The MaxMind_ geo ip lookup library  |
-|                          |   is expected to be installed on the system and    |
-|                          |   it will be used.                                 |
-+--------------------------+----------------------------------------------------+
 | ``upnp-logging``         | * ``off`` - default. Does not log UPnP traffic.    |
 |                          | * ``on`` - creates "upnp.log" with the messages    |
 |                          |   sent to and received from UPnP devices.          |
@@ -567,10 +559,6 @@ defines you can use to control the build.
 | ``TORRENT_LOGGING``                    | This macro will enable logging of the session   |
 |                                        | events, such as tracker announces and incoming  |
 |                                        | connections (as well as blocked connections).   |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_GEO_IP``             | This is defined by default by the Jamfile. It   |
-|                                        | disables the GeoIP features, and avoids linking |
-|                                        | against LGPL:ed code.                           |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_VERBOSE_LOGGING``            | If you define this macro, every peer connection |
 |                                        | will log its traffic to a log file as well as   |

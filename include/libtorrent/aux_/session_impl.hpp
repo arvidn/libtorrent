@@ -48,14 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
-#ifndef TORRENT_DISABLE_GEO_IP
-#ifdef WITH_SHIPPED_GEOIP_H
-#include "libtorrent/GeoIP.h"
-#else
-#include <GeoIP.h>
-#endif
-#endif
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -554,25 +546,6 @@ namespace libtorrent
 			void on_i2p_accept(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
 #endif
-
-#ifndef TORRENT_DISABLE_GEO_IP
-			std::string as_name_for_ip(address const& a);
-			int as_for_ip(address const& a);
-			std::pair<const int, int>* lookup_as(int as);
-			void load_asnum_db(std::string file);
-			bool has_asnum_db() const { return m_asnum_db; }
-
-			void load_country_db(std::string file);
-			bool has_country_db() const { return m_country_db; }
-			char const* country_for_ip(address const& a);
-
-#if TORRENT_USE_WSTRING
-#ifndef TORRENT_NO_DEPRECATE
-			void load_asnum_dbw(std::wstring file);
-			void load_country_dbw(std::wstring file);
-#endif // TORRENT_NO_DEPRECATE
-#endif // TORRENT_USE_WSTRING
-#endif // TORRENT_DISABLE_GEO_IP
 
 			void start_lsd();
 			natpmp* start_natpmp();
@@ -1229,17 +1202,6 @@ namespace libtorrent
 			// if this function is set, it indicates that torrents are allowed
 			// to be unloaded. If it isn't, torrents will never be unloaded
 			user_load_function_t m_user_load_torrent;
-
-#ifndef TORRENT_DISABLE_GEO_IP
-			GeoIP* m_asnum_db;
-			GeoIP* m_country_db;
-
-			// maps AS number to the peak download rate
-			// we've seen from it. Entries are never removed
-			// from this map. Pointers to its elements
-			// are kept in the torrent_peer structures.
-			std::map<int, int> m_as_peak;
-#endif
 
 			// this is true whenever we have posted a deferred-disk job
 			// it means we don't need to post another one

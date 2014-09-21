@@ -134,9 +134,6 @@ namespace libtorrent
 		, prev_amount_download(0)
 		, connection(0)
 		, peer_rank(0)
-#ifndef TORRENT_DISABLE_GEO_IP
-		, inet_as(0)
-#endif
 		, last_optimistically_unchoked(0)
 		, last_connected(0)
 		, port(port)

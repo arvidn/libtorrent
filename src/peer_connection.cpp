@@ -233,17 +233,6 @@ namespace libtorrent
 		TORRENT_ASSERT(pack.peerinfo == 0 || pack.peerinfo->banned == false);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		std::fill(m_country, m_country + 2, 0);
-#ifndef TORRENT_DISABLE_GEO_IP
-		if (m_ses.has_country_db())
-		{
-			char const *country = m_ses.country_for_ip(m_remote.address());
-			if (country != 0)
-			{
-				m_country[0] = country[0];
-				m_country[1] = country[1];
-			}
-		}
-#endif
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
@@ -264,9 +253,6 @@ namespace libtorrent
 			, m_socket->type_name()
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
 			, print_endpoint(local_ep).c_str());
-#endif
-#ifndef TORRENT_DISABLE_GEO_IP
-		m_inet_as_name = m_ses.as_name_for_ip(m_remote.address());
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -4279,9 +4265,6 @@ namespace libtorrent
 		else p.request_timeout = int(total_seconds(m_requested - now)
 			+ m_settings.get_int(settings_pack::request_timeout)
 			+ m_timeout_extend);
-#ifndef TORRENT_DISABLE_GEO_IP
-		p.inet_as_name = m_inet_as_name;
-#endif
 
 		p.download_queue_time = download_queue_time();
 		p.queue_bytes = m_outstanding_bytes;
@@ -4354,9 +4337,7 @@ namespace libtorrent
 			p.num_hashfails = pi->hashfails;
 			p.flags |= pi->on_parole ? peer_info::on_parole : 0;
 			p.flags |= pi->optimistically_unchoked ? peer_info::optimistic_unchoke : 0;
-#ifndef TORRENT_DISABLE_GEO_IP
-			p.inet_as = pi->inet_as ? pi->inet_as->first : 0xffff;
-#else
+#ifndef TORRENT_NO_DEPRECATE
 			p.inet_as = 0xffff;
 #endif
 		}
@@ -4781,14 +4762,6 @@ namespace libtorrent
 		if (m_statistics.download_payload_rate() > m_download_rate_peak)
 		{
 			m_download_rate_peak = m_statistics.download_payload_rate();
-#ifndef TORRENT_DISABLE_GEO_IP
-			if (peer_info_struct())
-			{
-				std::pair<const int, int>* as_stats = peer_info_struct()->inet_as;
-				if (as_stats && as_stats->second < m_download_rate_peak)
-					as_stats->second = m_download_rate_peak;
-			}
-#endif
 		}
 		if (is_disconnecting()) return;
 
