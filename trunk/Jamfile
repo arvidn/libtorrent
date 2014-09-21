@@ -102,11 +102,6 @@ rule linking ( properties * )
 		result += <library>gcrypt <include>/opt/local/include ;
 	}
 
-	if <geoip>shared in $(properties)
-	{
-		result += <library>GeoIP ;
-	}
-
 	# socket functions on windows require winsock libraries
 	if <target-os>windows in $(properties)
 		|| <target-os>cygwin in $(properties)
@@ -263,11 +258,6 @@ rule building ( properties * )
 		result += <source>src/mpi.c ;
 	}
 
-	if <geoip>static in $(properties)
-	{
-		result += <source>src/GeoIP.c ;
-	}
-
 	if <encryption>off in $(properties)
 		|| <encryption>tommath in $(properties)
 	{
@@ -389,9 +379,6 @@ feature.compose <allocator>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <defin
 feature piece-allocator : valloc memalign posix_memalign : composite propagated ;
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
-
-feature geoip : off static shared : composite propagated link-incompatible ;
-feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;
 
 feature bandwidth-limit-logging : off on : composite propagated link-incompatible ;
 feature.compose <bandwidth-limit-logging>on : <define>TORRENT_VERBOSE_BANDWIDTH_LIMIT ;

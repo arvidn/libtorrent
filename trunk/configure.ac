@@ -282,21 +282,6 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-  [geoip],
-  [AS_HELP_STRING(
-    [--enable-geoip],
-    [enable geoip support (if enabled, you can use --with-libgeoip to choose whether to link against shipped or system library) [default=yes]])],
-  [
-   ARG_ENABLE_GEOIP=$enableval
-   ac_arg_enable_geoip=$enableval
-  ],
-  [
-   ARG_ENABLE_GEOIP=yes
-   ac_arg_enable_geoip=yes
-  ]
-)
-
-AC_ARG_ENABLE(
   [examples],
   [AS_HELP_STRING(
     [--enable-examples],
@@ -321,15 +306,6 @@ AC_ARG_ENABLE(
     [build python bindings [default=no]])],
   [[ARG_ENABLE_PYTHON_BINDING=$enableval]],
   [[ARG_ENABLE_PYTHON_BINDING=no]]
-)
-
-AC_ARG_WITH(
-  [libgeoip],
-  [AS_HELP_STRING(
-    [--with-libgeoip],
-    [enable linking against system libgeoip [default=shipped]])],
-  [[ARG_WITH_LIBGEOIP=$withval]],
-  [[ARG_WITH_LIBGEOIP=no]]
 )
 
 AC_ARG_WITH(
@@ -477,20 +453,6 @@ AS_CASE(["$ARG_ENABLE_ENCRYPTION"],
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_ENCRYPTION". Use either "yes" or "no".])]
 )
 
-AC_MSG_CHECKING([whether geoip support should be enabled])
-AS_CASE(["$ARG_ENABLE_GEOIP"],
-  ["yes"], [
-    AC_MSG_RESULT([yes])
-   ],
-  ["no"], [
-    AC_MSG_RESULT([no])
-    AC_DEFINE([TORRENT_DISABLE_GEO_IP],[1],[Define to disable the GeoIP support and avoid linking against LGPLed code.])
-    COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_GEO_IP "
-   ],
-  [AC_MSG_RESULT([$ARG_ENABLE_GEOIP])
-   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_GEOIP". Use either "yes" or "no".])]
-)
-
 AC_MSG_CHECKING([whether dht support should be enabled])
 AS_CASE(["$ARG_ENABLE_DHT"],
   ["yes"|"on"], [
@@ -564,41 +526,6 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
 AS_ECHO
 AS_ECHO "Checking for external libraries:"
 
-AC_MSG_CHECKING([whether to link against system libgeoip]) #depends: $ac_arg_enable_geoip
-AS_CASE(["$ARG_WITH_LIBGEOIP"],
-  ["yes"|"system"], [
-      AC_MSG_RESULT([yes])
-
-      AS_IF([test "x$ac_arg_enable_geoip" = "xno"],
-            [AC_MSG_ERROR([GeoIP support is disabled with this build configuration. Try using --enable-geoip.])])
-
-      AC_MSG_NOTICE([libgeoip: now checking for the libgeoip library...])
-
-      AC_CHECK_GEOIP([
-        LIBS="$GEOIP_LIBS $LIBS"
-        CFLAGS="$GEOIP_CFLAGS $CFLAGS"
-       ],[
-        AC_MSG_ERROR([GeoIP library not found. Try using --without-libgeoip to link against the shipped copy.])
-      ])
-   ],
-  ["no"|"shipped"], [
-      AS_IF([test "x$ac_arg_enable_geoip" = "xno"], [
-            # redundant check: session_impl.hpp just won't check for any
-            # GeoIP.h, so any value would be ok (ie. this AS_IF could be
-            # removed)
-            AC_MSG_RESULT([disabled])
-            ARG_WITH_LIBGEOIP="disabled"
-       ], [
-            AC_MSG_RESULT([no])
-            ARG_WITH_LIBGEOIP="no"
-            AC_DEFINE([WITH_SHIPPED_GEOIP_H],[1],[Define to use shipped copy of GeoIP.h])
-            COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DWITH_SHIPPED_GEOIP_H "
-      ])
-   ],
-  [AC_MSG_RESULT([$ARG_WITH_LIBGEOIP])
-   AC_MSG_ERROR([Unknown option "$ARG_WITH_LIBGEOIP". Use either "yes" or "no".])]
-)
-
 AC_MSG_CHECKING([whether to link against system libiconv])
 AS_CASE(["$ARG_WITH_LIBICONV"],
   ["yes"], [
@@ -628,7 +555,6 @@ AM_CONDITIONAL([ENABLE_EXAMPLES], [test "x$ARG_ENABLE_EXAMPLES" = "xyes"])
 AM_CONDITIONAL([ENABLE_TESTS], [test "x$ARG_ENABLE_TESTS" = "xyes"])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDING], [test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"])
 
-AM_CONDITIONAL([WITH_SHIPPED_GEOIP], [test "x$ARG_WITH_LIBGEOIP" = "xno" ])
 AM_CONDITIONAL([WITH_OPENSSL], [test "x$ARG_ENABLE_ENCRYPTION" = "xyes" -o "x$ARG_ENABLE_ENCRYPTION" = "xon" ])
 
 
@@ -738,7 +664,6 @@ Build options:
 
 Features:
   encryption support:   ${ARG_ENABLE_ENCRYPTION:-yes}
-  geoip support:        ${ARG_ENABLE_GEOIP:-yes}
   dht support:          ${ARG_ENABLE_DHT:-yes}
   pool allocators:      ${ARG_ENABLE_POOL_ALLOC:-yes}
 
@@ -787,7 +712,6 @@ END
 cat >> config.report << END
 
 External libraries:
-  system libgeoip:      ${ARG_WITH_LIBGEOIP:-no}
   system libiconv:      ${ARG_WITH_LIBICONV:-no}
 END
 

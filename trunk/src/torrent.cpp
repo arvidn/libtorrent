@@ -6004,14 +6004,6 @@ namespace libtorrent
 
 		if (m_ses.is_aborted()) return;
 
-#ifndef TORRENT_DISABLE_GEO_IP
-		int as = m_ses.as_for_ip(host->endpoint().address());
-#ifdef TORRENT_DEBUG
-		web->peer_info.inet_as_num = as;
-#endif
-		web->peer_info.inet_as = m_ses.lookup_as(as);
-#endif
-
 		if (int(m_connections.size()) >= m_max_connections
 			|| m_ses.num_connections() >= m_ses.settings().get_int(settings_pack::connections_limit))
 			return;

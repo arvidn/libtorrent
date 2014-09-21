@@ -141,7 +141,6 @@ option(static_runtime "build libtorrent with static runtime" OFF)
 option(tcmalloc "link against google performance tools tcmalloc" OFF)
 option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
 option(encryption "link against openssl and enable encryption" ON)
-option(geoip "link against LGPL GeoIP code from Maxmind, to enable geoip database support" OFF)
 option(dht "enable support for Mainline DHT" ON)
 option(resolve-countries "enable support for resolving countries from peer IPs" ON)
 option(unicode "enable unicode support" ON)
@@ -261,10 +260,6 @@ endif()
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
-endif()
-
-if (NOT geoip)
-	add_definitions(-DTORRENT_DISABLE_GEO_IP)
 endif()
 
 if (NOT resolve-countries)

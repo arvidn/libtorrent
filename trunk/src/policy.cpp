@@ -1284,9 +1284,6 @@ namespace libtorrent
 			torrent_peer const& p = **i;
 			TORRENT_ASSERT(p.in_use);
 			if (is_connect_candidate(p)) ++connect_candidates;
-#ifndef TORRENT_DISABLE_GEO_IP
-			TORRENT_ASSERT(p.inet_as == 0 || p.inet_as->first == p.inet_as_num);
-#endif
 			++total_connections;
 			if (!p.connection)
 			{

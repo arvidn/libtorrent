@@ -296,15 +296,6 @@ namespace libtorrent { namespace aux
 		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
 #endif
 
-#ifndef TORRENT_DISABLE_GEO_IP
-		virtual bool has_asnum_db() const = 0;
-		virtual bool has_country_db() const = 0;
-		virtual char const* country_for_ip(address const& a) = 0;
-		virtual std::string as_name_for_ip(address const& a) = 0;
-		virtual int as_for_ip(address const& a) = 0;
-		virtual std::pair<const int, int>* lookup_as(int as) = 0;
-#endif
-
 #if TORRENT_USE_ASSERTS
 		virtual bool is_single_thread() const = 0;
 		virtual bool has_peer(peer_connection const* p) const = 0;

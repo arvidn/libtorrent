@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_IPV6
 #define TORRENT_CFG_IPV6 ipv6_
 #else
-#define TORRENT_CFG_IPV6 noipv_-
+#define TORRENT_CFG_IPV6 noipv6_-
 #endif
 
 #ifdef TORRENT_NO_DEPRECATE

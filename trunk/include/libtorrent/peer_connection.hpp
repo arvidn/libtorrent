@@ -1084,10 +1084,6 @@ namespace libtorrent
 		handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
 		handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
 
-#ifndef TORRENT_DISABLE_GEO_IP
-		std::string m_inet_as_name;
-#endif
-
 		// if this peer is receiving a piece, this
 		// points to a disk buffer that the data is
 		// read into. This eliminates a memcopy from
