@@ -39,6 +39,22 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+void test_remove_url(std::string url)
+{
+	lt::session s(fingerprint("LT",0,0,0,0), 0);
+	add_torrent_params p;
+	p.url = url;
+	p.save_path = ".";
+	torrent_handle h = s.add_torrent(p);
+	std::vector<torrent_handle> handles = s.get_torrents();
+	TEST_EQUAL(handles.size(), 1);
+
+	TEST_NOTHROW(s.remove_torrent(h));
+
+	handles = s.get_torrents();
+	TEST_EQUAL(handles.size(), 0);
+}
+
 int test_main()
 {
 	session_proxy p1;
@@ -287,6 +303,9 @@ int test_main()
 		printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 		TEST_CHECK(magnet.find("&ws=http%3a%2f%2ffoo.com%2fbar") != std::string::npos);
 	}
+
+	test_remove_url("magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567");
+	test_remove_url("http://non-existent.com/test.torrent");
 
 	return 0;
 }
