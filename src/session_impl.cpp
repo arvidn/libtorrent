@@ -454,7 +454,6 @@ namespace aux {
 		, m_socks_listen_port(0)
 		, m_interface_index(0)
 		, m_allowed_upload_slots(8)
-		, m_num_unchoked(0)
 		, m_unchoke_time_scaler(0)
 		, m_auto_manage_time_scaler(0)
 		, m_optimistic_unchoke_time_scaler(0)
@@ -3112,7 +3111,6 @@ retry:
 
 		TORRENT_ASSERT(p->is_disconnecting());
 
-		if (!p->is_choked() && !p->ignore_unchoke_slots()) --m_num_unchoked;
 		TORRENT_ASSERT(sp.use_count() > 0);
 
 		connection_map::iterator i = m_connections.find(sp);
@@ -3136,24 +3134,6 @@ retry:
 	void session_impl::set_key(int key)
 	{
 		m_key = key;
-	}
-
-	void session_impl::unchoke_peer(peer_connection& c)
-	{
-		TORRENT_ASSERT(!c.ignore_unchoke_slots());
-		torrent* t = c.associated_torrent().lock().get();
-		TORRENT_ASSERT(t);
-		if (t->unchoke_peer(c))
-			++m_num_unchoked;
-	}
-
-	void session_impl::choke_peer(peer_connection& c)
-	{
-		TORRENT_ASSERT(!c.ignore_unchoke_slots());
-		torrent* t = c.associated_torrent().lock().get();
-		TORRENT_ASSERT(t);
-		if (t->choke_peer(c))
-			--m_num_unchoked;
 	}
 
 	int session_impl::next_port() const
@@ -4748,7 +4728,7 @@ retry:
 					if (ret)
 					{
 						pi->optimistically_unchoked = true;
-						++m_num_unchoked;
+						m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
 						pi->last_optimistically_unchoked = boost::uint16_t(session_time());
 					}
 					else
@@ -4765,8 +4745,8 @@ retry:
 					peer_connection* p = static_cast<peer_connection*>(pi->connection);
 					torrent* t = p->associated_torrent().lock().get();
 					pi->optimistically_unchoked = false;
+					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 					t->choke_peer(*p);
-					--m_num_unchoked;
 				}	
 			}
 		}
@@ -4972,6 +4952,7 @@ retry:
 				if (p->is_choked()) continue;
 				if (pi && pi->optimistically_unchoked)
 				{
+					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 					pi->optimistically_unchoked = false;
 					// force a new optimistic unchoke
 					m_optimistic_unchoke_time_scaler = 0;
@@ -5056,7 +5037,8 @@ retry:
 			// if our current upload rate is less than 90% of our 
 			// limit
 			if (m_stat.upload_rate() < upload_limit * 0.9f
-				&& m_allowed_upload_slots <= m_num_unchoked + 1
+				&& m_allowed_upload_slots
+					<= m_stats_counters[counters::num_peers_up_unchoked] + 1
 				&& m_upload_rate.queue_size() < 2)
 			{
 				++m_allowed_upload_slots;
@@ -5091,7 +5073,6 @@ retry:
 			}
 		}
 
-		m_num_unchoked = 0;
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
 		for (std::vector<peer_connection*>::iterator i = peers.begin()
@@ -5132,7 +5113,6 @@ retry:
 				}
 
 				--unchoke_set_size;
-				++m_num_unchoked;
 
 				TORRENT_ASSERT(p->peer_info_struct());
 				if (p->peer_info_struct()->optimistically_unchoked)
@@ -5142,6 +5122,7 @@ retry:
 					// proper unchoke set
 					m_optimistic_unchoke_time_scaler = 0;
 					p->peer_info_struct()->optimistically_unchoked = false;
+					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 				}
 			}
 			else
@@ -5150,8 +5131,6 @@ retry:
 				TORRENT_ASSERT(p->peer_info_struct());
 				if (!p->is_choked() && !p->peer_info_struct()->optimistically_unchoked)
 					t->choke_peer(*p);
-				if (!p->is_choked())
-					++m_num_unchoked;
 			}
 		}
 	}
@@ -6405,7 +6384,7 @@ retry:
 
 		s.num_peers = int(m_connections.size());
 		s.num_dead_peers = int(m_undead_peers.size());
-		s.num_unchoked = m_num_unchoked;
+		s.num_unchoked = m_stats_counters[counters::num_peers_up_unchoked_all];
 		s.allowed_upload_slots = m_allowed_upload_slots;
 
 		s.num_torrents = m_torrents.size();
@@ -6966,7 +6945,8 @@ retry:
 
 	bool session_impl::preemptive_unchoke() const
 	{
-		return m_num_unchoked < m_allowed_upload_slots;
+		return m_stats_counters[counters::num_peers_up_unchoked] < m_allowed_upload_slots
+			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
 	}
 
 	void session_impl::update_dht_upload_rate_limit()
@@ -7694,6 +7674,7 @@ retry:
 		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::auto_expand_choker)
 			TORRENT_ASSERT(m_allowed_upload_slots >= m_settings.get_int(settings_pack::unchoke_slots_limit));
 		int unchokes = 0;
+		int unchokes_all = 0;
 		int num_optimistic = 0;
 		int disk_queue[2] = {0, 0};
 		for (connection_map::const_iterator i = m_connections.begin();
@@ -7709,8 +7690,17 @@ retry:
 
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(!p->is_disconnecting());
-			if (p->ignore_unchoke_slots()) continue;
-			if (!p->is_choked()) ++unchokes;
+			if (p->ignore_unchoke_slots())
+			{
+				if (!p->is_choked()) ++unchokes_all;
+				continue;
+			}
+			if (!p->is_choked())
+			{
+				++unchokes;
+				++unchokes_all;
+			}
+
 			if (p->peer_info_struct()
 				&& p->peer_info_struct()->optimistically_unchoked)
 			{
@@ -7719,18 +7709,49 @@ retry:
 			}
 		}
 
-		TORRENT_ASSERT(disk_queue[peer_connection::download_channel] == m_stats_counters[counters::num_peers_down_disk]);
-		TORRENT_ASSERT(disk_queue[peer_connection::upload_channel] == m_stats_counters[counters::num_peers_up_disk]);
+		for (std::vector<boost::shared_ptr<peer_connection> >::const_iterator i
+			= m_undead_peers.begin(); i != m_undead_peers.end(); ++i)
+		{
+			peer_connection* p = i->get();
+			if (p->ignore_unchoke_slots())
+			{
+				if (!p->is_choked()) ++unchokes_all;
+				continue;
+			}
+			if (!p->is_choked())
+			{
+				++unchokes_all;
+				++unchokes;
+			}
+
+			if (p->peer_info_struct()
+				&& p->peer_info_struct()->optimistically_unchoked)
+			{
+				++num_optimistic;
+				TORRENT_ASSERT(!p->is_choked());
+			}
+		}
+
+		TORRENT_ASSERT(disk_queue[peer_connection::download_channel]
+			== m_stats_counters[counters::num_peers_down_disk]);
+		TORRENT_ASSERT(disk_queue[peer_connection::upload_channel]
+			== m_stats_counters[counters::num_peers_up_disk]);
 
 		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots))
 		{
-			TORRENT_ASSERT(num_optimistic <= m_settings.get_int(settings_pack::num_optimistic_unchoke_slots));
+			TORRENT_ASSERT(num_optimistic <= m_settings.get_int(
+				settings_pack::num_optimistic_unchoke_slots));
 		}
 
-		if (m_num_unchoked != unchokes)
-		{
-			TORRENT_ASSERT(false);
-		}
+		int unchoked_counter_all = m_stats_counters[counters::num_peers_up_unchoked_all];
+		int unchoked_counter = m_stats_counters[counters::num_peers_up_unchoked];
+		int unchoked_counter_optimistic
+			= m_stats_counters[counters::num_peers_up_unchoked_optimistic];
+
+		TORRENT_ASSERT_VAL(unchoked_counter_all == unchokes_all, unchokes_all);
+		TORRENT_ASSERT_VAL(unchoked_counter == unchokes, unchokes);
+		TORRENT_ASSERT_VAL(unchoked_counter_optimistic == num_optimistic, num_optimistic);
+
 		for (torrent_map::const_iterator j
 			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{

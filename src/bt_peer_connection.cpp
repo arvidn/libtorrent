@@ -851,10 +851,7 @@ namespace libtorrent
 				// if the peer is ignoring unchoke slots, or if we have enough
 				// unused slots, unchoke this peer right away, to save a round-trip
 				// in case it's interested.
-				if (ignore_unchoke_slots())
-					send_unchoke();
-				else if (m_ses.preemptive_unchoke())
-					m_ses.unchoke_peer(*this);
+				maybe_unchoke_this_peer();
 			}
 		}
 	}
@@ -3029,10 +3026,7 @@ namespace libtorrent
 					// if the peer is ignoring unchoke slots, or if we have enough
 					// unused slots, unchoke this peer right away, to save a round-trip
 					// in case it's interested.
-					if (ignore_unchoke_slots())
-						send_unchoke();
-					else if (m_ses.preemptive_unchoke())
-						m_ses.unchoke_peer(*this);
+					maybe_unchoke_this_peer();
 				}
 			}
 

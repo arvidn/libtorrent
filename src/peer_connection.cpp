@@ -873,7 +873,11 @@ namespace libtorrent
 		if (m_peer_interested)
 			m_counters.inc_stats_counter(counters::num_peers_up_interested, -1);
 		if (!m_choked)
-			m_counters.inc_stats_counter(counters::num_peers_up_unchoked, -1);
+		{
+			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_all, -1);
+			if (!ignore_unchoke_slots())
+				m_counters.inc_stats_counter(counters::num_peers_up_unchoked, -1);
+		}
 		if (!m_peer_choked)
 			m_counters.inc_stats_counter(counters::num_peers_down_unchoked, -1);
 		if (m_connected)
@@ -1284,8 +1288,14 @@ namespace libtorrent
 			return;
 		}
 
-		if (t->is_paused() && (!t->is_auto_managed()
-			|| !m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)))
+		if (t->is_paused()
+			&& m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)
+			&& !t->is_aborted())
+		{
+			t->resume();
+		}
+
+		if (t->is_paused() || t->is_aborted())
 		{
 			// paused torrents will not accept
 			// incoming connections unless they are auto managed
@@ -1315,15 +1325,6 @@ namespace libtorrent
 #endif // TORRENT_USE_I2P
 
 		TORRENT_ASSERT(m_torrent.expired());
-
-		if (t->is_paused()
-			&& m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)
-			&& !m_ses.is_paused()
-			&& !t->is_aborted()
-			&& !m_ses.is_aborted())
-		{
-			t->resume();
-		}
 
 		// check to make sure we don't have another connection with the same
 		// info_hash and peer_id. If we do. close this connection.
@@ -1705,44 +1706,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (is_choked())
-		{
-			if (ignore_unchoke_slots())
-			{
-#ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("ABOUT TO UNCHOKE [ peer ignores unchoke slots ]");
-#endif
-				// if this peer is expempted from the choker
-				// just unchoke it immediately
-				send_unchoke();
-			}
-			// TODO: 3 we should probably use ses.m_allowed_upload_slots here instead
-			// to work with auto-unchoke logic
-			else if (m_ses.num_uploads() < m_settings.get_int(settings_pack::unchoke_slots_limit)
-				|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0)
-			{
-				// if the peer is choked and we have upload slots left,
-				// then unchoke it. Another condition that has to be met
-				// is that the torrent doesn't keep track of the individual
-				// up/down ratio for each peer (ratio == 0) or (if it does
-				// keep track) this particular connection isn't a leecher.
-				// If the peer was choked because it was leeching, don't
-				// unchoke it again.
-				// The exception to this last condition is if we're a seed.
-				// In that case we don't care if people are leeching, they
-				// can't pay for their downloads anyway.
-				m_ses.unchoke_peer(*this);
-			}
-#if defined TORRENT_VERBOSE_LOGGING
-			else
-			{
-				peer_log("DID NOT UNCHOKE [ the number of uploads (%d) "
-					"is more than or equal to the limit (%d) ]"
-					, m_ses.num_uploads(), m_settings.get_int(settings_pack::unchoke_slots_limit));
-			}
-#endif
-		}
-		else
+		if (!is_choked())
 		{
 			// the reason to send an extra unchoke message here is that
 			// because of the handshake-round-trip optimization, we may
@@ -1756,7 +1720,51 @@ namespace libtorrent
 			peer_log("SENDING REDUNDANT UNCHOKE");
 #endif
 			write_unchoke();
+			return;
 		}
+
+		maybe_unchoke_this_peer();
+	}
+
+	void peer_connection::maybe_unchoke_this_peer()
+	{
+		if (ignore_unchoke_slots())
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("ABOUT TO UNCHOKE [ peer ignores unchoke slots ]");
+#endif
+			// if this peer is expempted from the choker
+			// just unchoke it immediately
+			send_unchoke();
+		}
+		// TODO: 3 we should probably use ses.m_allowed_upload_slots here instead
+		// to work with auto-unchoke logic
+		else if (m_ses.preemptive_unchoke())
+		{
+			// if the peer is choked and we have upload slots left,
+			// then unchoke it. Another condition that has to be met
+			// is that the torrent doesn't keep track of the individual
+			// up/down ratio for each peer (ratio == 0) or (if it does
+			// keep track) this particular connection isn't a leecher.
+			// If the peer was choked because it was leeching, don't
+			// unchoke it again.
+			// The exception to this last condition is if we're a seed.
+			// In that case we don't care if people are leeching, they
+			// can't pay for their downloads anyway.
+
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			TORRENT_ASSERT(t);
+
+			t->unchoke_peer(*this);
+		}
+#if defined TORRENT_VERBOSE_LOGGING
+		else
+		{
+			peer_log("DID NOT UNCHOKE [ the number of uploads (%d) "
+				"is more than or equal to the limit (%d) ]"
+				, m_ses.num_uploads(), m_settings.get_int(settings_pack::unchoke_slots_limit));
+		}
+#endif
 	}
 
 	// -----------------------------
@@ -1789,23 +1797,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (!is_choked())
-		{
-			if (ignore_unchoke_slots())
-			{
-				send_choke();
-			}
-			else
-			{
-				if (m_peer_info && m_peer_info->optimistically_unchoked)
-				{
-					m_peer_info->optimistically_unchoked = false;
-					m_ses.trigger_optimistic_unchoke();
-				}
-				m_ses.choke_peer(*this);
-				m_ses.trigger_unchoke();
-			}
-		}
+		choke_this_peer();
 
 		if (t->super_seeding())
 		{
@@ -1813,6 +1805,28 @@ namespace libtorrent
 			// is interested in us then
 			superseed_piece(-1, t->get_piece_to_super_seed(m_have_piece));
 		}
+	}
+
+	void peer_connection::choke_this_peer()
+	{
+		if (is_choked()) return;
+		if (ignore_unchoke_slots())
+		{
+			send_choke();
+			return;
+		}
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+
+		if (m_peer_info && m_peer_info->optimistically_unchoked)
+		{
+			m_peer_info->optimistically_unchoked = false;
+			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
+			t->trigger_optimistic_unchoke();
+		}
+		t->choke_peer(*this);
+		t->trigger_unchoke();
 	}
 
 	// -----------------------------
@@ -3568,15 +3582,26 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_peer_info && m_peer_info->optimistically_unchoked)
-			m_peer_info->optimistically_unchoked = false;
+		if (m_choked)
+		{
+			TORRENT_ASSERT(m_peer_info == NULL
+				|| m_peer_info->optimistically_unchoked == false);
+			return false;
+		}
 
-		if (m_choked) return false;
+		if (m_peer_info && m_peer_info->optimistically_unchoked)
+		{
+			m_peer_info->optimistically_unchoked = false;
+			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
+		}
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> CHOKE");
 #endif
 		write_choke();
-		m_counters.inc_stats_counter(counters::num_peers_up_unchoked, -1);
+		m_counters.inc_stats_counter(counters::num_peers_up_unchoked_all, -1);
+		if (!ignore_unchoke_slots())
+			m_counters.inc_stats_counter(counters::num_peers_up_unchoked, -1);
 		m_choked = true;
 
 		m_last_choke = time_now();
@@ -3636,7 +3661,9 @@ namespace libtorrent
 
 		m_last_unchoke = time_now();
 		write_unchoke();
-		m_counters.inc_stats_counter(counters::num_peers_up_unchoked);
+		m_counters.inc_stats_counter(counters::num_peers_up_unchoked_all);
+		if (!ignore_unchoke_slots())
+			m_counters.inc_stats_counter(counters::num_peers_up_unchoked);
 		m_choked = false;
 
 		m_uploaded_at_last_unchoke = m_statistics.total_payload_upload();

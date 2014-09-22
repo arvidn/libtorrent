@@ -338,6 +338,8 @@ namespace libtorrent
 			num_peers_connected,
 			num_peers_up_interested,
 			num_peers_down_interested,
+			num_peers_up_unchoked_all,
+			num_peers_up_unchoked_optimistic,
 			num_peers_up_unchoked,
 			num_peers_down_unchoked,
 			num_peers_up_requests,
