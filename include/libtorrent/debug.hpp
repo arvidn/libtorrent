@@ -180,6 +180,9 @@ namespace libtorrent
 		void thread_started()
 		{ m_single_thread = pthread_self(); }
 
+		void transfer_ownership()
+		{ m_single_thread = 0; }
+
 	private:
 		mutable pthread_t m_single_thread;
 	};

@@ -78,6 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/link.hpp"
 #include "libtorrent/vector_utils.hpp"
 #include "libtorrent/linked_list.hpp"
+#include "libtorrent/debug.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -233,7 +234,8 @@ namespace libtorrent
 	// for a specific download. It updates itself against
 	// the tracker
 	class TORRENT_EXTRA_EXPORT torrent
-		: public torrent_hot_members
+		: public single_threaded
+		, public torrent_hot_members
 		, public request_callback
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
@@ -276,6 +278,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		bool has_peer(peer_connection const* p) const
 		{ return sorted_find(m_connections, (peer_connection*)p) != m_connections.end(); }
+		bool is_single_thread() const { return single_threaded::is_single_thread(); }
 #endif
 
 		// this is called when the torrent has metadata.
