@@ -1468,6 +1468,7 @@ namespace libtorrent
 		// this is true while there is an outstanding
 		// async write job on the socket
 		bool m_socket_is_writing;
+		bool is_single_thread() const;
 #endif
 	};
 
