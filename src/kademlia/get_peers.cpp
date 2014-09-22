@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/performance_counters.hpp>
+#include <libtorrent/alert_types.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -143,6 +144,9 @@ bool get_peers::invoke(observer_ptr o)
 	a["info_hash"] = m_target.to_string();
 	if (m_noseeds) a["noseed"] = 1;
 
+	m_node.post_alert(new dht_outgoing_get_peers_alert(m_target, m_target
+		, o->target_ep()));
+
 	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
@@ -203,7 +207,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	// when we get close to the target zone in the DHT
 	// start using the correct info-hash, in order to
 	// start receiving peers
-	if (shared_prefix > m_node.m_table.depth() - 10)
+	if (shared_prefix > m_node.m_table.depth() - 4)
 	{
 		m_obfuscated = false;
 		// clear the queried bits on all successful nodes in
@@ -239,6 +243,9 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	obfuscated_target >>= shared_prefix + 3;
 	obfuscated_target^= m_target;
 	a["target"] = obfuscated_target.to_string();
+
+	m_node.post_alert(new dht_outgoing_get_peers_alert(m_target
+		, obfuscated_target, o->target_ep()));
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }

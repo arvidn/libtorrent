@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 	class alert_manager;
 	struct alert_dispatcher;
+	class alert;
 	struct counters;
 }
 
@@ -279,6 +280,8 @@ public:
 
 	libtorrent::dht_settings const& settings() const { return m_settings; }
 	counters& stats_counters() const { return m_counters; }
+
+	void post_alert(alert* a);
 
 protected:
 
