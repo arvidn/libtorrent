@@ -5782,7 +5782,12 @@ namespace libtorrent
 		if (pp)
 		{
 			if (pp->optimistically_unchoked)
+			{
+				pp->optimistically_unchoked = false;
+				m_stats_counters.inc_stats_counter(
+					counters::num_peers_up_unchoked_optimistic, -1);
 				trigger_optimistic_unchoke();
+			}
 
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);

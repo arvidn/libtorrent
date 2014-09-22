@@ -1150,7 +1150,8 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection_interface& c, int session_time, torrent_state* state)
+	void policy::connection_closed(const peer_connection_interface& c
+		, int session_time, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
