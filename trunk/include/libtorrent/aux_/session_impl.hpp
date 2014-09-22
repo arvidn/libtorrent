@@ -495,18 +495,23 @@ namespace libtorrent
 			int rate_limit(peer_class_t c, int channel) const;
 
 			bool preemptive_unchoke() const;
-			int num_uploads() const { return m_num_unchoked; }
+			int num_uploads() const
+			{ return m_stats_counters[counters::num_peers_up_unchoked]; }
 			int num_connections() const
 			{ return m_connections.size(); }
 
 			int peak_up_rate() const { return m_peak_up_rate; }
 
-			void unchoke_peer(peer_connection& c);
-			void choke_peer(peer_connection& c);
 			void trigger_unchoke()
-			{ m_unchoke_time_scaler = 0; }
+			{
+				TORRENT_ASSERT(is_single_thread());
+				m_unchoke_time_scaler = 0;
+			}
 			void trigger_optimistic_unchoke()
-			{ m_optimistic_unchoke_time_scaler = 0; }
+			{
+				TORRENT_ASSERT(is_single_thread());
+				m_optimistic_unchoke_time_scaler = 0;
+			}
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);
@@ -914,24 +919,24 @@ namespace libtorrent
 			// this should always be >= m_max_uploads
 			int m_allowed_upload_slots;
 
-			// the number of unchoked peers
-			int m_num_unchoked;
-
 			// this is initialized to the unchoke_interval
 			// session_setting and decreased every second.
 			// when it reaches zero, it is reset to the
 			// unchoke_interval and the unchoke set is
 			// recomputed.
+			// TODO: replace this by a proper asio timer
 			int m_unchoke_time_scaler;
 
 			// this is used to decide when to recalculate which
 			// torrents to keep queued and which to activate
+			// TODO: replace this by a proper asio timer
 			int m_auto_manage_time_scaler;
 
 			// works like unchoke_time_scaler but it
 			// is only decresed when the unchoke set
 			// is recomputed, and when it reaches zero,
 			// the optimistic unchoke is moved to another peer.
+			// TODO: replace this by a proper asio timer
 			int m_optimistic_unchoke_time_scaler;
 
 			// works like unchoke_time_scaler. Each time

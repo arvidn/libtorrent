@@ -5616,6 +5616,18 @@ namespace libtorrent
 		return true;
 	}
 
+	void torrent::trigger_unchoke()
+	{
+		m_ses.get_io_service().dispatch(boost::bind(
+			&aux::session_interface::trigger_unchoke, boost::ref(m_ses)));
+	}
+
+	void torrent::trigger_optimistic_unchoke()
+	{
+		m_ses.get_io_service().dispatch(boost::bind(
+			&aux::session_interface::trigger_optimistic_unchoke, boost::ref(m_ses)));
+	}
+
 	void torrent::cancel_block(piece_block block)
 	{
 		INVARIANT_CHECK;
@@ -5763,14 +5775,14 @@ namespace libtorrent
 		if (!p->is_choked() && !p->ignore_unchoke_slots())
 		{
 			--m_num_uploads;
-			m_ses.trigger_unchoke();
+			trigger_unchoke();
 		}
 
 		torrent_peer* pp = p->peer_info_struct();
 		if (pp)
 		{
 			if (pp->optimistically_unchoked)
-				m_ses.trigger_optimistic_unchoke();
+				trigger_optimistic_unchoke();
 
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);
@@ -9036,8 +9048,7 @@ namespace libtorrent
 					// remove any un-sent requests from the queue
 					p->clear_request_queue();
 					// don't accept new requests from the peer
-					if (!p->is_choked() && !p->ignore_unchoke_slots())
-						m_ses.choke_peer(*p);
+					p->choke_this_peer();
 					continue;
 				}
 

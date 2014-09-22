@@ -147,8 +147,6 @@ namespace libtorrent { namespace aux
 		virtual bool is_aborted() const = 0;
 		virtual int num_uploads() const = 0;
 		virtual bool preemptive_unchoke() const = 0;
-		virtual void unchoke_peer(peer_connection& c) = 0;
-		virtual void choke_peer(peer_connection& c) = 0;
 		virtual void trigger_optimistic_unchoke() = 0;
 		virtual void trigger_unchoke() = 0;
 

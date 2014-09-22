@@ -106,6 +106,11 @@ namespace libtorrent
 
 		// the number of peer connections for each kind of socket.
 		// these counts include half-open (connecting) peers.
+		// ``num_peers_up_unchoked_all`` is the total number of unchoked peers,
+		// whereas ``num_peers_up_unchoked`` only are unchoked peers that count
+		// against the limit (i.e. excluding peers that are unchoked because the
+		// limit doesn't apply to them). ``num_peers_up_unchoked_optimistic`` is
+		// the number of optimistically unchoked peers.
 		METRIC(peer, num_tcp_peers)
 		METRIC(peer, num_socks5_peers)
 		METRIC(peer, num_http_proxy_peers)
@@ -120,6 +125,8 @@ namespace libtorrent
 		METRIC(peer, num_peers_connected)
 		METRIC(peer, num_peers_up_interested)
 		METRIC(peer, num_peers_down_interested)
+		METRIC(peer, num_peers_up_unchoked_all)
+		METRIC(peer, num_peers_up_unchoked_optimistic)
 		METRIC(peer, num_peers_up_unchoked)
 		METRIC(peer, num_peers_down_unchoked)
 		METRIC(peer, num_peers_up_requests)

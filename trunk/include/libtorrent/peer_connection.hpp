@@ -469,6 +469,9 @@ namespace libtorrent
 		bool is_peer_interested() const { return m_peer_interested; }
 		bool has_peer_choked() const { return m_peer_choked; }
 
+		void choke_this_peer();
+		void maybe_unchoke_this_peer();
+
 		void update_interest();
 
 		virtual void get_peer_info(peer_info& p) const;
