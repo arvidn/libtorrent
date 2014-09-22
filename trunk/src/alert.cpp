@@ -685,5 +685,22 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string dht_outgoing_get_peers_alert::message() const
+	{
+		char msg[600];
+		char obf[70];
+		obf[0] = '\0';
+		if (obfuscated_info_hash != info_hash)
+		{
+			snprintf(obf, sizeof(obf), " [obfuscated: %s]"
+			, to_hex(obfuscated_info_hash.to_string()).c_str());
+		}
+		snprintf(msg, sizeof(msg), "outgoing dht get_peers : %s%s -> %s"
+			, to_hex(info_hash.to_string()).c_str()
+			, obf
+			, print_endpoint(ip).c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 

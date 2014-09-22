@@ -2140,9 +2140,37 @@ namespace libtorrent
 		error_code error;
 	};
 
+	// This alert is generated we send a get_peers request
+	// It belongs to the ``dht_notification`` category.
+	struct TORRENT_EXPORT dht_outgoing_get_peers_alert: alert
+	{
+		// internal
+		dht_outgoing_get_peers_alert(sha1_hash const& ih, sha1_hash const& obfih
+			, udp::endpoint ep)
+			: info_hash(ih)
+			, obfuscated_info_hash(obfih)
+			, ip(ep)
+		{}
+
+		TORRENT_DEFINE_ALERT(dht_outgoing_get_peers_alert, 78);
+
+		const static int static_category = alert::dht_notification;
+		virtual std::string message() const;
+
+		// the info_hash of the torrent we're looking for peers for.
+		sha1_hash info_hash;
+
+		// if this was an obfuscated lookup, this is the info-hash target
+		// actually sent to the node.
+		sha1_hash obfuscated_info_hash;
+
+		// the endpoint we're sending this query to
+		udp::endpoint ip;
+	};
+
 #undef TORRENT_DEFINE_ALERT
 
-	enum { num_alert_types = 74 };
+	enum { num_alert_types = 79 };
 }
 
 

@@ -115,6 +115,14 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	m_secret[1] = random();
 }
 
+void node_impl::post_alert(alert* a)
+{
+	if (!m_post_alert)
+		delete a;
+	else
+		m_post_alert->post_alert(a);
+}
+
 bool node_impl::verify_token(std::string const& token, char const* info_hash
 	, udp::endpoint const& addr)
 {
