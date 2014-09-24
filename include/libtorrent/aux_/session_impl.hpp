@@ -672,6 +672,7 @@ namespace libtorrent
 			void update_outgoing_interfaces();
 			void update_listen_interfaces();
 			void update_privileged_ports();
+			void update_auto_sequential();
 
 			void update_upnp();
 			void update_natpmp();

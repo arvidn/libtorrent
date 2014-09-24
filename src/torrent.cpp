@@ -3110,6 +3110,8 @@ namespace libtorrent
 		m_incomplete = incomplete;
 		m_downloaded = downloaded;
 
+		update_auto_sequential();
+
 		// these numbers are cached in the resume data
 		m_need_save_resume_data = true;
 	}
@@ -3304,6 +3306,31 @@ namespace libtorrent
 		do_connect_boost();
 
 		state_updated();
+	}
+
+	void torrent::update_auto_sequential()
+	{
+		if (!m_ses.settings().get_bool(settings_pack::auto_sequential))
+		{
+			m_auto_sequential = false;
+			return;
+		}
+
+		if (int(m_connections.size()) - m_num_connecting < 10)
+		{
+			// there are too few peers. Be conservative and don't assume it's
+			// well seeded until we can connect to more peers
+			m_auto_sequential = false;
+			return;
+		}
+
+		// if there are at least 10 seeds, and there are 10 times more
+		// seeds than downloaders, enter sequential download mode
+		// (for performance)
+		int downloaders = num_downloaders();
+		int seeds = num_seeds();
+		m_auto_sequential = downloaders * 10 <= seeds
+			&& seeds > 9;
 	}
 
 	void torrent::do_connect_boost()
@@ -10657,6 +10684,7 @@ namespace libtorrent
 	{
 		need_policy();
 		m_policy->set_seed(p, s);
+		update_auto_sequential();
 	}
 
 	void torrent::clear_failcount(torrent_peer* p)
@@ -11322,6 +11350,8 @@ namespace libtorrent
 		m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);
 	}
 
+	// TODO: 3 make this a gauge that's kept up to date rather than counting
+	// every time
 	int torrent::num_seeds() const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -11331,6 +11361,20 @@ namespace libtorrent
 		for (const_peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 			if ((*i)->is_seed()) ++ret;
+		return ret;
+	}
+
+	// TODO: 3 make this a gauge that's kept up to date rather than counting
+	// every time
+	int torrent::num_downloaders() const
+	{
+		TORRENT_ASSERT(is_single_thread());
+		INVARIANT_CHECK;
+
+		int ret = 0;
+		for (const_peer_iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+			if ((*i)->is_connected() && !(*i)->is_seed()) ++ret;
 		return ret;
 	}
 
