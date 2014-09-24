@@ -6945,7 +6945,8 @@ namespace libtorrent
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		return m_num_pieces == (int)m_have_piece.size() && m_num_pieces > 0 && t && t->valid_metadata();
+		return m_num_pieces == (int)m_have_piece.size()
+			&& m_num_pieces > 0 && t && t->valid_metadata();
 	}
 
 	void peer_connection::set_share_mode(bool u)

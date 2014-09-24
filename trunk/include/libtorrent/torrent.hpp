@@ -375,7 +375,8 @@ namespace libtorrent
 
 		void new_external_ip();
 
-		torrent_status::state_t state() const { return (torrent_status::state_t)m_state; }
+		torrent_status::state_t state() const
+		{ return (torrent_status::state_t)m_state; }
 		void set_state(torrent_status::state_t s);
 
 		aux::session_settings const& settings() const;
@@ -383,7 +384,7 @@ namespace libtorrent
 	
 		void set_sequential_download(bool sd);
 		bool is_sequential_download() const
-		{ return m_sequential_download; }
+		{ return m_sequential_download || m_auto_sequential; }
 	
 		void queue_up();
 		void queue_down();
@@ -625,6 +626,7 @@ namespace libtorrent
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
 		int num_seeds() const;
+		int num_downloaders() const;
 
 		typedef std::vector<peer_connection*>::iterator peer_iterator;
 		typedef std::vector<peer_connection*>::const_iterator const_peer_iterator;
@@ -643,6 +645,7 @@ namespace libtorrent
 
 		void add_suggest_piece(int piece);
 		void update_suggest_piece(int index, int change);
+		void update_auto_sequential();
 		void refresh_suggest_pieces();
 		void do_refresh_suggest_pieces();
 		void on_cache_info(disk_io_job const* j);
@@ -1611,7 +1614,11 @@ namespace libtorrent
 		// at high enough rates, it's inactive.
 		bool m_inactive:1;
 
-		// TODO: there's space for 1 bits here
+		// this is set if the auto_sequential setting is true and this swarm
+		// satisfies the criteria to be considered high-availability. i.e. if
+		// there's mostly seeds in the swarm, download the files sequentially
+		// for improved disk I/O performance.
+		bool m_auto_sequential:1;
 
 // ----
 

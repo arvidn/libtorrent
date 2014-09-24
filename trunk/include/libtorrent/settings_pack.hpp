@@ -619,6 +619,12 @@ namespace libtorrent
 			// configured proxy, if any.
 			proxy_peer_connections,
 
+			// if this setting is true, torrents with a very high availability
+			// of pieces (and seeds) are downloaded sequentially. This is more
+			// efficient for the disk I/O. With many seeds, the download order
+			// is unlikely to matter anyway
+			auto_sequential,
+
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
 		};

@@ -1,3 +1,4 @@
+	* added auto-sequential feature. download well-seeded torrents in-order
 	* removed built-in GeoIP support (this functionality is orthogonal to libtorrent)
 	* deprecate proxy settings in favor of regular settings
 	* deprecate separate settings for peer protocol encryption
