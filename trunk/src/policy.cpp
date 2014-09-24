@@ -270,7 +270,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_locked_peer != *i);
 
 		state->erased.push_back(*i);
-		if ((*i)->seed) --m_num_seeds;
+		if ((*i)->seed)
+		{
+			TORRENT_ASSERT(m_num_seeds > 0);
+			--m_num_seeds;
+		}
 		if (is_connect_candidate(**i))
 			update_connect_candidates(-1);
 		TORRENT_ASSERT(m_num_connect_candidates < int(m_peers.size()));
@@ -861,10 +865,16 @@ namespace libtorrent
 			update_connect_candidates(-1);
 
 		if (p->web_seed) return;
-		if (s) ++m_num_seeds;
-		else --m_num_seeds;
-		TORRENT_ASSERT(m_num_seeds >= 0);
-		TORRENT_ASSERT(m_num_seeds <= int(m_peers.size()));
+		if (s)
+		{
+			TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
+			++m_num_seeds;
+		}
+		else
+		{
+			TORRENT_ASSERT(m_num_seeds > 0);
+			--m_num_seeds;
+		}
 	}
 
 	// this is an internal function
@@ -911,6 +921,7 @@ namespace libtorrent
 		if (flags & flag_seed)
 		{
 			p->seed = true;
+			TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
 			++m_num_seeds;
 		}
 		if (flags & flag_utp)
@@ -948,7 +959,11 @@ namespace libtorrent
 		// so we don't have to trust this source
 		if ((flags & flag_seed) && !p->connection)
 		{
-			if (!p->seed) ++m_num_seeds;
+			if (!p->seed)
+			{
+				TORRENT_ASSERT(m_num_seeds < int(m_peers.size()));
+				++m_num_seeds;
+			}
 			p->seed = true;
 		}
 		if (flags & flag_utp)
