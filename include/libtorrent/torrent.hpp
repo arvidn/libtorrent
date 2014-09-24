@@ -1577,7 +1577,13 @@ namespace libtorrent
 		// specified in session_time
 		boost::uint16_t m_last_download;
 
-		// TODO: There are 8 bits free here
+		// the number of peer connections to seeds. This should be the same as
+		// counting the peer connections that say true for is_seed()
+		boost::uint16_t m_num_seeds;
+
+		// the timestamp of the last byte uploaded from this torrent
+		// specified in session_time
+		boost::uint16_t m_last_upload;
 
 		// this is a second count-down to when we should tick the
 		// storage for this torrent. Ticking the storage is used
@@ -1588,12 +1594,6 @@ namespace libtorrent
 		boost::uint8_t m_storage_tick;
 
 // ----
-
-		// the timestamp of the last byte uploaded from this torrent
-		// specified in session_time
-		boost::uint16_t m_last_upload;
-
-		// TODO: There are 8 bits here
 
 		// if this is true, libtorrent may pause and resume
 		// this torrent depending on queuing rules. Torrents

@@ -2184,7 +2184,6 @@ namespace libtorrent
 			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 
-			// if this is a web seed. we don't have a peer_info struct
 			t->set_seed(m_peer_info, true);
 			m_upload_only = true;
 
