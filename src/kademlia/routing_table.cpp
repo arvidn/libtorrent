@@ -56,6 +56,14 @@ namespace libtorrent { namespace dht
 TORRENT_DEFINE_LOG(table)
 #endif
 
+template <typename T, typename K>
+void erase_one(T& container, K const& key)
+{
+	typename T::iterator i = container.find(key);
+	TORRENT_ASSERT(i != container.end());
+	container.erase(i);
+}
+
 routing_table::routing_table(node_id const& id, int bucket_size
 	, dht_settings const& settings)
 	: m_bucket_size(bucket_size)
@@ -325,7 +333,7 @@ void routing_table::remove_node(node_entry* n
 	{
 		int idx = n - &bucket->replacements[0];
 		TORRENT_ASSERT(m_ips.count(n->addr.to_v4().to_bytes()) > 0);
-		m_ips.erase(n->addr.to_v4().to_bytes());
+		erase_one(m_ips, n->addr.to_v4().to_bytes());
 		bucket->replacements.erase(bucket->replacements.begin() + idx);
 	}
 
@@ -335,7 +343,7 @@ void routing_table::remove_node(node_entry* n
 	{
 		int idx = n - &bucket->live_nodes[0];
 		TORRENT_ASSERT(m_ips.count(n->addr.to_v4().to_bytes()) > 0);
-		m_ips.erase(n->addr.to_v4().to_bytes());
+		erase_one(m_ips, n->addr.to_v4().to_bytes());
 		bucket->live_nodes.erase(bucket->live_nodes.begin() + idx);
 	}
 }
@@ -489,7 +497,7 @@ bool routing_table::add_node(node_entry const& e)
 		{
 			// j points to a node that has not been pinged.
 			// Replace it with this new one
-			m_ips.erase(j->addr.to_v4().to_bytes());
+			erase_one(m_ips, j->addr.to_v4().to_bytes());
 			b->erase(j);
 			b->push_back(e);
 			m_ips.insert(e.addr.to_v4().to_bytes());
@@ -511,7 +519,7 @@ bool routing_table::add_node(node_entry const& e)
 		{
 			// i points to a node that has been marked
 			// as stale. Replace it with this new one
-			m_ips.erase(j->addr.to_v4().to_bytes());
+			erase_one(m_ips, j->addr.to_v4().to_bytes());
 			b->erase(j);
 			b->push_back(e);
 			m_ips.insert(e.addr.to_v4().to_bytes());
@@ -549,7 +557,7 @@ bool routing_table::add_node(node_entry const& e)
 			// less reliable than this one, that has been pinged
 			j = std::find_if(rb->begin(), rb->end(), boost::bind(&node_entry::pinged, _1) == false);
 			if (j == rb->end()) j = rb->begin();
-			m_ips.erase(j->addr.to_v4().to_bytes());
+			erase_one(m_ips, j->addr.to_v4().to_bytes());
 			rb->erase(j);
 		}
 
@@ -611,8 +619,10 @@ bool routing_table::add_node(node_entry const& e)
 			// this entry belongs in the new bucket
 			if (int(new_bucket.size()) < m_bucket_size)
 				new_bucket.push_back(*j);
-			else
+			else if (int(new_replacement_bucket.size()) < m_bucket_size)
 				new_replacement_bucket.push_back(*j);
+			else
+				erase_one(m_ips, j->addr.to_v4().to_bytes());
 		}
 		j = rb->erase(j);
 	}
@@ -708,13 +718,13 @@ void routing_table::node_failed(node_id const& id, udp::endpoint const& ep)
 		// has never responded at all, remove it
 		if (j->fail_count() >= m_settings.max_fail_count || !j->pinged())
 		{
-			m_ips.erase(j->addr.to_v4().to_bytes());
+			erase_one(m_ips, j->addr.to_v4().to_bytes());
 			b.erase(j);
 		}
 		return;
 	}
 
-	m_ips.erase(j->addr.to_v4().to_bytes());
+	erase_one(m_ips, j->addr.to_v4().to_bytes());
 	b.erase(j);
 
 	j = std::find_if(rb.begin(), rb.end(), boost::bind(&node_entry::pinged, _1) == true);
