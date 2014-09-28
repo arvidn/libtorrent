@@ -294,6 +294,10 @@ namespace libtorrent
 			}
 			else
 			{
+				// we either need a hostname or a valid endpoint
+				TORRENT_ASSERT(m_command == socks5_bind
+					|| m_remote_endpoint.address() != address());
+
 				write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
 				write_address(m_remote_endpoint.address(), p);
 			}
@@ -398,7 +402,7 @@ namespace libtorrent
 			// we ignore the proxy IP it was bound to
 			if (atyp == 1)
 			{
-				if (m_command == 2)
+				if (m_command == socks5_bind)
 				{
 					if (m_listen == 0)
 					{
@@ -459,7 +463,7 @@ namespace libtorrent
 			// access granted
 			if (response == 90)
 			{
-				if (m_command == 2)
+				if (m_command == socks5_bind)
 				{
 					if (m_listen == 0)
 					{
@@ -505,7 +509,7 @@ namespace libtorrent
 
 		if (handle_error(e, h)) return;
 
-		if (m_command == 2)
+		if (m_command == socks5_bind)
 		{
 			if (m_listen == 0)
 			{
