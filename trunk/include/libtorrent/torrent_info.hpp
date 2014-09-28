@@ -218,6 +218,9 @@ namespace libtorrent
 		void trim();
 	};
 
+	// TODO: 3 this type should be different from the one used by torrent. It
+	// should not include internal state.
+
 	// the web_seed_entry holds information about a web seed (also known
 	// as URL seed or HTTP seed). It is essentially a URL with some state
 	// associated with it. For more information, see `BEP 17`_ and `BEP 19`_.
