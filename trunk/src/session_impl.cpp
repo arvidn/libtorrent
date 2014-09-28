@@ -3028,7 +3028,7 @@ retry:
 		pack.ios = &m_io_service;
 		pack.tor = boost::weak_ptr<torrent>();
 		pack.s = s;
-		pack.endp = &endp;
+		pack.endp = endp;
 		pack.peerinfo = 0;
 
 		boost::shared_ptr<peer_connection> c
