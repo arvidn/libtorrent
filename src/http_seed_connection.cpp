@@ -56,6 +56,7 @@ namespace libtorrent
 		, web_seed_entry& web)
 		: web_connection_base(pack, web)
 		, m_url(web.url)
+		, m_web(&web)
 		, m_response_left(0)
 		, m_chunk_pos(0)
 		, m_partial_chunk_header(0)

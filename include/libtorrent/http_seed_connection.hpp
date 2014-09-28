@@ -111,6 +111,8 @@ namespace libtorrent
 		// if it's changed referencing back into that list will fail
 		const std::string m_url;
 
+		web_seed_entry* m_web;
+
 		// the number of bytes left to receive of the response we're
 		// currently parsing
 		size_type m_response_left;
