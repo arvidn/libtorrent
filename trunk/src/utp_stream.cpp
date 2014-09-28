@@ -1803,7 +1803,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		else
 			sack = 0;
 
-		int size_left = p->allocated - p->size;
+		boost::int32_t size_left = p->allocated - p->size;
 		TORRENT_ASSERT(size_left > 0);
 		size_left = (std::min)(size_left, m_write_buffer_size);
 		write_payload(p->buf + p->size, size_left);
