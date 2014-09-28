@@ -142,7 +142,7 @@ namespace libtorrent
 		, m_num_pieces(0)
 		, m_recv_start(0)
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
-		, m_remote(*pack.endp)
+		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
 		, m_allocator(*pack.allocator)
 		, m_ios(*pack.ios)

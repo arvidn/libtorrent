@@ -6253,7 +6253,7 @@ namespace libtorrent
 		pack.ios = &m_ses.get_io_service();
 		pack.tor = shared_from_this();
 		pack.s = s;
-		pack.endp = &web->endpoints.front();
+		pack.endp = web->endpoints.empty() ? tcp::endpoint() : web->endpoints.front();
 		pack.peerinfo = &web->peer_info;
 		if (web->type == web_seed_entry::url_seed)
 		{
@@ -7278,7 +7278,7 @@ namespace libtorrent
 		pack.ios = &m_ses.get_io_service();
 		pack.tor = shared_from_this();
 		pack.s = s;
-		pack.endp = &a;
+		pack.endp = a;
 		pack.peerinfo = peerinfo;
 
 		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(

@@ -174,7 +174,7 @@ namespace libtorrent
 		io_service* ios;
 		boost::weak_ptr<torrent> tor;
 		boost::shared_ptr<socket_type> s;
-		tcp::endpoint const* endp;
+		tcp::endpoint endp;
 		torrent_peer* peerinfo;
 	};
 

@@ -63,8 +63,9 @@ namespace libtorrent
 		, m_body_start(0)
 	{
 		TORRENT_ASSERT(&web.peer_info == pack.peerinfo);
-		TORRENT_ASSERT(!web.endpoints.empty());
-		TORRENT_ASSERT(web.endpoints.front() == *pack.endp);
+		// when going through a proxy, we don't necessarily have an endpoint here,
+		// since the proxy might be resolving the hostname, not us
+		TORRENT_ASSERT(web.endpoints.empty() || web.endpoints.front() == pack.endp);
 
 		INVARIANT_CHECK;
 
