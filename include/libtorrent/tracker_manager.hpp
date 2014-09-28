@@ -143,6 +143,30 @@ namespace libtorrent
 #endif
 	};
 
+	struct tracker_response
+	{
+		tracker_response()
+			: interval(1800)
+			, min_interval(120)
+			, complete(-1)
+			, incomplete(-1)
+			, downloaded(-1)
+		{}
+
+		std::vector<peer_entry> peers;
+		std::vector<ipv4_peer_entry> peers4;
+#if TORRENT_USE_IPV6
+		std::vector<ipv6_peer_entry> peers6;
+#endif
+		address external_ip;
+		std::string trackerid;
+		int interval;
+		int min_interval;
+		int complete;
+		int incomplete;
+		int downloaded;
+	};
+
 	struct TORRENT_EXTRA_EXPORT request_callback
 	{
 		friend class tracker_manager;
@@ -157,14 +181,7 @@ namespace libtorrent
 			tracker_request const& req
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
-			, std::vector<peer_entry>& peers
-			, int interval
-			, int min_interval
-			, int complete
-			, int incomplete
-			, int downloaded
-			, address const& external_ip
-			, std::string const& trackerid) = 0;
+			, struct tracker_response const& response) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code

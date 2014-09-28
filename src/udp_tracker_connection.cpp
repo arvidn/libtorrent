@@ -522,10 +522,13 @@ namespace libtorrent
 
 		buf += 8; // skip header
 		restart_read_timeout();
-		int interval = detail::read_int32(buf);
-		int min_interval = 60;
-		int incomplete = detail::read_int32(buf);
-		int complete = detail::read_int32(buf);
+
+		tracker_response resp;
+
+		resp.interval = detail::read_int32(buf);
+		resp.min_interval = 60;
+		resp.incomplete = detail::read_int32(buf);
+		resp.complete = detail::read_int32(buf);
 		int num_peers = (size - 20) / 6;
 		if ((size - 20) % 6 != 0)
 		{
@@ -549,22 +552,14 @@ namespace libtorrent
 		}
 
 		std::vector<peer_entry> peer_list;
+		resp.peers4.reserve(num_peers);
 		for (int i = 0; i < num_peers; ++i)
 		{
-			// TODO: it would be more efficient to not use a string here.
-			// however, the problem is that some trackers will respond
-			// with actual strings. For example i2p trackers
-			peer_entry e;
-			char ip_string[100];
-			unsigned int a = detail::read_uint8(buf);
-			unsigned int b = detail::read_uint8(buf);
-			unsigned int c = detail::read_uint8(buf);
-			unsigned int d = detail::read_uint8(buf);
-			snprintf(ip_string, 100, "%u.%u.%u.%u", a, b, c, d);
-			e.ip = ip_string;
+			ipv4_peer_entry e;
+			memcpy(&e.ip[0], buf, 4);
+			buf += 4;
 			e.port = detail::read_uint16(buf);
-			e.pid.clear();
-			peer_list.push_back(e);
+			resp.peers4.push_back(e);
 		}
 
 		std::list<address> ip_list;
@@ -575,7 +570,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list
-			, peer_list, interval, min_interval, complete, incomplete, 0, address(), "" /*trackerid*/);
+			, resp);
 
 		close();
 		return true;

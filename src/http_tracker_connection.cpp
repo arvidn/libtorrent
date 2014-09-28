@@ -369,7 +369,7 @@ namespace libtorrent
 			fail(error_code(errors::invalid_tracker_response));
 			return false;
 		}
-		ret.ip = i->string_value();
+		ret.hostname = i->string_value();
 
 		// extract port
 		i = info.dict_find_int("port");
@@ -383,21 +383,25 @@ namespace libtorrent
 		return true;
 	}
 
+	// TODO: 2 make this a free function that can be easily unit tested
 	void http_tracker_connection::parse(int status_code, lazy_entry const& e)
 	{
 		boost::shared_ptr<request_callback> cb = requester();
 		if (!cb) return;
 
 		int interval = int(e.dict_find_int_value("interval", 0));
-		int min_interval = int(e.dict_find_int_value("min interval", 30));
-
 		// if no interval is specified, default to 30 minutes
 		if (interval == 0) interval = 1800;
-		
-		std::string trackerid;
+		int min_interval = int(e.dict_find_int_value("min interval", 30));
+
+		tracker_response resp;
+		resp.interval = interval;
+		resp.min_interval = min_interval;
+
 		lazy_entry const* tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
-			trackerid = tracker_id->string_value();
+			resp.trackerid = tracker_id->string_value();
+
 		// parse the response
 		lazy_entry const* failure = e.dict_find_string("failure reason");
 		if (failure)
@@ -410,8 +414,6 @@ namespace libtorrent
 		lazy_entry const* warning = e.dict_find_string("warning message");
 		if (warning)
 			cb->tracker_warning(tracker_req(), warning->string_value());
-
-		std::vector<peer_entry> peer_list;
 
 		if (tracker_req().kind == tracker_request::scrape_request)
 		{
@@ -447,27 +449,27 @@ namespace libtorrent
 		{
 			char const* peers = peers_ent->string_ptr();
 			int len = peers_ent->string_length();
+			resp.peers4.reserve(len / 6);
 			for (int i = 0; i < len; i += 6)
 			{
 				if (len - i < 6) break;
 
-				peer_entry p;
-				p.pid.clear();
+				ipv4_peer_entry p;
 				error_code ec;
-				p.ip = detail::read_v4_address(peers).to_string(ec);
+				p.ip = detail::read_v4_address(peers).to_v4().to_bytes();
 				p.port = detail::read_uint16(peers);
-				if (ec) continue;
-				peer_list.push_back(p);
+				resp.peers4.push_back(p);
 			}
 		}
 		else if (peers_ent && peers_ent->type() == lazy_entry::list_t)
 		{
 			int len = peers_ent->list_size();
+			resp.peers.reserve(len);
 			for (int i = 0; i < len; ++i)
 			{
 				peer_entry p;
 				if (!extract_peer_info(*peers_ent->list_at(i), p)) return;
-				peer_list.push_back(p);
+				resp.peers.push_back(p);
 			}
 		}
 		else
@@ -481,17 +483,15 @@ namespace libtorrent
 		{
 			char const* peers = ipv6_peers->string_ptr();
 			int len = ipv6_peers->string_length();
+			resp.peers6.reserve(len / 18);
 			for (int i = 0; i < len; i += 18)
 			{
 				if (len - i < 18) break;
 
-				peer_entry p;
-				p.pid.clear();
-				error_code ec;
-				p.ip = detail::read_v6_address(peers).to_string(ec);
+				ipv6_peer_entry p;
+				p.ip = detail::read_v6_address(peers).to_v6().to_bytes();
 				p.port = detail::read_uint16(peers);
-				if (ec) continue;
-				peer_list.push_back(p);
+				resp.peers6.push_back(p);
 			}
 		}
 		else
@@ -511,25 +511,22 @@ namespace libtorrent
 			return;
 		}
 
-
-		// look for optional scrape info
-		address external_ip;
-
 		lazy_entry const* ip_ent = e.dict_find_string("external ip");
 		if (ip_ent)
 		{
 			char const* p = ip_ent->string_ptr();
 			if (ip_ent->string_length() == int(address_v4::bytes_type().size()))
-				external_ip = detail::read_v4_address(p);
+				resp.external_ip = detail::read_v4_address(p);
 #if TORRENT_USE_IPV6
 			else if (ip_ent->string_length() == int(address_v6::bytes_type().size()))
-				external_ip = detail::read_v6_address(p);
+				resp.external_ip = detail::read_v6_address(p);
 #endif
 		}
 		
-		int complete = int(e.dict_find_int_value("complete", -1));
-		int incomplete = int(e.dict_find_int_value("incomplete", -1));
-		int downloaded = int(e.dict_find_int_value("downloaded", -1));
+		// look for optional scrape info
+		resp.complete = int(e.dict_find_int_value("complete", -1));
+		resp.incomplete = int(e.dict_find_int_value("incomplete", -1));
+		resp.downloaded = int(e.dict_find_int_value("downloaded", -1));
 
 		std::list<address> ip_list;
 		if (m_tracker_connection)
@@ -544,8 +541,7 @@ namespace libtorrent
 			}
 		}
 
-		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
-			, interval, min_interval, complete, incomplete, downloaded, external_ip, trackerid);
+		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, resp);
 	}
 
 }
