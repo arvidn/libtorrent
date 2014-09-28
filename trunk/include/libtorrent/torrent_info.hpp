@@ -261,8 +261,8 @@ namespace libtorrent
 		ptime retry;
 
 		// if the hostname of the web seed has been resolved,
-		// this is its IP address
-		tcp::endpoint endpoint;
+		// these are its IP addresses
+		std::vector<tcp::endpoint> endpoints;
 
 		// this is the peer_info field used for the
 		// connection, just to count hash failures
