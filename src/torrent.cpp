@@ -3117,6 +3117,9 @@ namespace libtorrent
 		m_need_save_resume_data = true;
 	}
  
+	// TODO: 3 change the tracker_response interface to take a type capturing
+	// the response. Have multiple peer lists. IPv4, IPv6 and hostnames. That
+	// way we don't need to render addresses into strings
 	void torrent::tracker_response(
 		tracker_request const& r
 		, address const& tracker_ip // this is the IP we connected to
@@ -3464,6 +3467,7 @@ namespace libtorrent
 
 		if (e || host_list.empty() || m_ses.is_aborted()) return;
 
+		// TODO: add one peer per IP the hostname resolves to
 		tcp::endpoint host(host_list.front(), port);
 
 		if (m_apply_ip_filter
@@ -5851,7 +5855,6 @@ namespace libtorrent
 			peer->set_peer_info(0);
 		}
 		if (has_picker()) picker().clear_peer(&web->peer_info);
-					
 
 		m_web_seeds.erase(web);
 		update_want_tick();
@@ -5965,9 +5968,9 @@ namespace libtorrent
 			return;
 		}
 
-		if (web->endpoint.port() != 0)
+		if (!web->endpoints.empty())
 		{
-			connect_web_seed(web, web->endpoint);
+			connect_web_seed(web, web->endpoints.front());
 			return;
 		}
 
@@ -6131,16 +6134,22 @@ namespace libtorrent
 			return;
 		}
 
-		tcp::endpoint a(host->endpoint());
+		while (host != tcp::resolver::iterator())
+		{
+			// fill in the peer struct's address field
+			web->endpoints.push_back(host->endpoint());
 
-		// fill in the peer struct's address field
-		web->endpoint = a;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("  -> %s", print_endpoint(host->endpoint()).c_str());
+#endif
+			++host;
+		}
 
 		if (int(m_connections.size()) >= m_max_connections
 			|| m_ses.num_connections() >= m_ses.settings().get_int(settings_pack::connections_limit))
 			return;
 
-		connect_web_seed(web, a);
+		connect_web_seed(web, web->endpoints.front());
 	}
 
 	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a)
@@ -6162,7 +6171,6 @@ namespace libtorrent
 		TORRENT_ASSERT(web->resolving == false);
 		TORRENT_ASSERT(web->peer_info.connection == 0);
 
-		web->endpoint = a;
 		if (a.address().is_v4())
 		{
 			web->peer_info.addr = a.address().to_v4();
@@ -6245,7 +6253,7 @@ namespace libtorrent
 		pack.ios = &m_ses.get_io_service();
 		pack.tor = shared_from_this();
 		pack.s = s;
-		pack.endp = &web->endpoint;
+		pack.endp = &web->endpoints.front();
 		pack.peerinfo = &web->peer_info;
 		if (web->type == web_seed_entry::url_seed)
 		{
@@ -6299,7 +6307,8 @@ namespace libtorrent
 			web->peer_info.prev_amount_download = 0;
 			web->peer_info.prev_amount_upload = 0;
 #if defined TORRENT_VERBOSE_LOGGING 
-			debug_log("web seed connection started: %s", web->url.c_str());
+			debug_log("web seed connection started: [%s] %s"
+				, print_endpoint(a).c_str(), web->url.c_str());
 #endif
 
 			c->start();
@@ -10521,8 +10530,11 @@ namespace libtorrent
 
 	void torrent::disconnect_web_seed(peer_connection* p)
 	{
-		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, (boost::bind(&torrent_peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
+		std::list<web_seed_entry>::iterator i
+			= std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+			, (boost::bind(&torrent_peer::connection
+				, boost::bind(&web_seed_entry::peer_info, _1)) == p));
+
 		// this happens if the web server responded with a redirect
 		// or with something incorrect, so that we removed the web seed
 		// immediately, before we disconnected

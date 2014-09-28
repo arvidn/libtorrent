@@ -63,7 +63,8 @@ namespace libtorrent
 		, m_body_start(0)
 	{
 		TORRENT_ASSERT(&web.peer_info == pack.peerinfo);
-		TORRENT_ASSERT(web.endpoint == *pack.endp);
+		TORRENT_ASSERT(!web.endpoints.empty());
+		TORRENT_ASSERT(web.endpoints.front() == *pack.endp);
 
 		INVARIANT_CHECK;
 

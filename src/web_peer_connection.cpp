@@ -114,9 +114,19 @@ void web_peer_connection::on_connected()
 	web_connection_base::on_connected();
 }
 
-void web_peer_connection::disconnect(error_code const& ec, peer_connection_interface::operation_t op, int error)
+void web_peer_connection::disconnect(error_code const& ec
+	, peer_connection_interface::operation_t op, int error)
 {
 	if (is_disconnecting()) return;
+
+	if (op == peer_connection_interface::op_connect
+		&& m_web
+		&& !m_web->endpoints.empty())
+	{
+		// we failed to connect to this IP. remove it so that the next attempt
+		// uses the next IP in the list.
+		m_web->endpoints.erase(m_web->endpoints.begin());
+	}
 
 	boost::shared_ptr<torrent> t = associated_torrent().lock();
 
