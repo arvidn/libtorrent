@@ -3117,42 +3117,34 @@ namespace libtorrent
 		m_need_save_resume_data = true;
 	}
  
-	// TODO: 3 change the tracker_response interface to take a type capturing
-	// the response. Have multiple peer lists. IPv4, IPv6 and hostnames. That
-	// way we don't need to render addresses into strings
 	void torrent::tracker_response(
 		tracker_request const& r
 		, address const& tracker_ip // this is the IP we connected to
 		, std::list<address> const& tracker_ips // these are all the IPs it resolved to
-		, std::vector<peer_entry>& peer_list
-		, int interval
-		, int min_interval
-		, int complete
-		, int incomplete
-		, int downloaded 
-		, address const& external_ip
-		, const std::string& trackerid)
+		, struct tracker_response const& resp)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
 
-		if (external_ip != address() && !tracker_ips.empty())
-			m_ses.set_external_address(external_ip, aux::session_interface::source_tracker
+		if (resp.external_ip != address() && !tracker_ips.empty())
+			m_ses.set_external_address(resp.external_ip
+				, aux::session_interface::source_tracker
 				, *tracker_ips.begin());
 
 		ptime now = time_now();
 
+		int interval = resp.interval;
 		if (interval < settings().get_int(settings_pack::min_announce_interval))
 			interval = settings().get_int(settings_pack::min_announce_interval);
 
 		announce_entry* ae = find_tracker(r);
 		if (ae)
 		{
-			if (incomplete >= 0) ae->scrape_incomplete = incomplete;
-			if (complete >= 0) ae->scrape_complete = complete;
-			if (downloaded >= 0) ae->scrape_downloaded = downloaded;
+			if (resp.incomplete >= 0) ae->scrape_incomplete = resp.incomplete;
+			if (resp.complete >= 0) ae->scrape_complete = resp.complete;
+			if (resp.downloaded >= 0) ae->scrape_downloaded = resp.downloaded;
 			if (!ae->start_sent && r.event == tracker_request::started)
 				ae->start_sent = true;
 			if (!ae->complete_sent && r.event == tracker_request::completed)
@@ -3161,22 +3153,23 @@ namespace libtorrent
 			ae->updating = false;
 			ae->fails = 0;
 			ae->next_announce = now + seconds(interval);
-			ae->min_announce = now + seconds(min_interval);
+			ae->min_announce = now + seconds(resp.min_interval);
 			int tracker_index = ae - &m_trackers[0];
 			m_last_working_tracker = prioritize_tracker(tracker_index);
 
-			if ((!trackerid.empty()) && (ae->trackerid != trackerid))
+			if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))
 			{
-				ae->trackerid = trackerid;
+				ae->trackerid = resp.trackerid;
 				if (m_ses.alerts().should_post<trackerid_alert>())
-					m_ses.alerts().post_alert(trackerid_alert(get_handle(), r.url, trackerid));
+					m_ses.alerts().post_alert(trackerid_alert(get_handle()
+						, r.url, resp.trackerid));
 			}
 
 			update_scrape_state();
 		}
 		update_tracker_timer(now);
 
-		if (complete >= 0 && incomplete >= 0)
+		if (resp.complete >= 0 && resp.incomplete >= 0)
 			m_last_scrape = m_ses.session_time();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -3186,89 +3179,109 @@ namespace libtorrent
 				"we connected to: %s\n"
 				"peers:"
 			, interval
-			, print_address(external_ip).c_str()
-			, print_address(tracker_ip).c_str());
+			, print_address(resp.external_ip).c_str()
+			, print_address(resp.tracker_ip).c_str());
 
-		for (std::vector<peer_entry>::const_iterator i = peer_list.begin();
-			i != peer_list.end(); ++i)
+		for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
+			i != resp.peers.end(); ++i)
 		{
-			debug_log("  %16s %5d %s %s", i->ip.c_str(), i->port
+			debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
 				, i->pid.is_all_zeros()?"":to_hex(i->pid.to_string()).c_str()
 				, identify_client(i->pid).c_str());
 		}
+		for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
+			i != resp.peers4.end(); ++i)
+		{
+			debug_log("  %16s %5d", print_address(i->ip).c_str(), i->port);
+		}
+#if TORRENT_USE_IPV6
+		for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
+			i != resp.peers6.end(); ++i)
+		{
+			debug_log("  %16s %5d", print_address(i->ip).c_str(), i->port);
+		}
 #endif
+#endif
+
 		// for each of the peers we got from the tracker
-		for (std::vector<peer_entry>::iterator i = peer_list.begin();
-			i != peer_list.end(); ++i)
+		for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
+			i != resp.peers.end(); ++i)
 		{
 			// don't make connections to ourself
 			if (i->pid == m_ses.get_peer_id())
 				continue;
 
-			error_code ec;
-			tcp::endpoint a(address::from_string(i->ip, ec), i->port);
-
-			if (ec)
-			{
-				// assume this is because we got a hostname instead of
-				// an ip address from the tracker
-
 #if TORRENT_USE_I2P
-				char const* top_domain = strrchr(i->ip.c_str(), '.');
-				if (top_domain && strcmp(top_domain, ".i2p") == 0)
-				{
-					// this is an i2p name, we need to use the sam connection
-					// to do the name lookup
-					/*
-					m_ses.m_i2p_conn.async_name_lookup(i->ip.c_str()
-						, boost::bind(&torrent::on_i2p_resolve
-						, shared_from_this(), _1));
-					*/
-					// it seems like you're not supposed to do a name lookup
-					// on the peers returned from the tracker, but just strip
-					// the .i2p and use it as a destination
-					i->ip.resize(i->ip.size() - 4);
-					torrent_state st = get_policy_state();
-					need_policy();
-					if (m_policy->add_i2p_peer(i->ip.c_str(), peer_info::tracker, 0, &st))
-						state_updated();
-					peers_erased(st.erased);
-				}
-				else
-#endif
-				{
-#if defined TORRENT_ASIO_DEBUGGING
-					add_outstanding_async("torrent::on_peer_name_lookup");
-#endif
-					tcp::resolver::query q(i->ip, to_string(i->port).elems);
-					// TODO: instead, borrow host resolvers from a pool in session_impl. That
-					// would make the torrent object smaller
-					m_ses.get_resolver().async_resolve(i->ip, 0
-						, boost::bind(&torrent::on_peer_name_lookup
-							, shared_from_this(), _1, _2, i->port));
-				}
+			char const* top_domain = strrchr(i->hostname.c_str(), '.');
+			if (top_domain && strcmp(top_domain, ".i2p") == 0)
+			{
+				// this is an i2p name, we need to use the sam connection
+				// to do the name lookup
+				/*
+				m_ses.m_i2p_conn.async_name_lookup(i->ip.c_str()
+					, boost::bind(&torrent::on_i2p_resolve
+					, shared_from_this(), _1));
+				*/
+				// it seems like you're not supposed to do a name lookup
+				// on the peers returned from the tracker, but just strip
+				// the .i2p and use it as a destination
+				std::string hostname = i->hostname.substr(i->hostname.size() - 4);
+				torrent_state st = get_policy_state();
+				need_policy();
+				if (m_policy->add_i2p_peer(hostname.c_str(), peer_info::tracker, 0, &st))
+					state_updated();
+				peers_erased(st.erased);
 			}
 			else
+#endif
 			{
-				// ignore local addresses from the tracker (unless the tracker is local too)
-				// there are 2 reasons to allow this:
-				// 1. retrackers are popular in russia, where an ISP runs a tracker within
-				//    the AS (but not on the local network) giving out peers only from the
-				//    local network
-				// 2. it might make sense to have a tracker extension in the future where
-				//    trackers records a peer's internal and external IP, and match up
-				//    peers on the same local network
-//				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
-				if (add_peer(a, peer_info::tracker))
-					state_updated();
+#if defined TORRENT_ASIO_DEBUGGING
+				add_outstanding_async("torrent::on_peer_name_lookup");
+#endif
+				tcp::resolver::query q(i->hostname, to_string(i->port).elems);
+				m_ses.get_resolver().async_resolve(i->hostname, 0
+					, boost::bind(&torrent::on_peer_name_lookup
+						, shared_from_this(), _1, _2, i->port));
 			}
 		}
+
+		// there are 2 reasons to allow local IPs to be returned from a
+		// non-local tracker
+		// 1. retrackers are popular in russia, where an ISP runs a tracker within
+		//    the AS (but not on the local network) giving out peers only from the
+		//    local network
+		// 2. it might make sense to have a tracker extension in the future where
+		//    trackers records a peer's internal and external IP, and match up
+		//    peers on the same local network
+
+		bool need_update = false;
+		for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
+			i != resp.peers4.end(); ++i)
+		{
+			tcp::endpoint a(address_v4(i->ip), i->port);
+			need_update |= bool(add_peer(a, peer_info::tracker));
+		}
+
+#if TORRENT_USE_IPV6
+		for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
+			i != resp.peers6.end(); ++i)
+		{
+			tcp::endpoint a(address_v6(i->ip), i->port);
+			need_update |= bool(add_peer(a, peer_info::tracker));
+		}
+#endif
+		if (need_update) state_updated();
+
 		update_want_peers();
 
 		if (m_ses.alerts().should_post<tracker_reply_alert>())
 		{
 			m_ses.alerts().post_alert(tracker_reply_alert(
-				get_handle(), peer_list.size(), r.url));
+				get_handle(), resp.peers.size() + resp.peers4.size()
+#if TORRENT_USE_IPV6
+				+ resp.peers6.size()
+#endif
+				, r.url));
 		}
 		m_got_tracker_response = true;
 

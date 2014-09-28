@@ -7778,33 +7778,38 @@ retry:
 		void tracker_logger::tracker_response(tracker_request const&
 			, libtorrent::address const& tracker_ip
 			, std::list<address> const& ip_list
-			, std::vector<peer_entry>& peers
-			, int interval
-			, int min_interval
-			, int complete
-			, int incomplete
-			, int downloaded 
-			, address const& external_ip
-			, std::string const& tracker_id)
+			, struct tracker_response const& resp)
 		{
-			std::string s;
-			s = "TRACKER RESPONSE:\n";
-			char tmp[200];
-			snprintf(tmp, 200, "interval: %d\nmin_interval: %d\npeers:\n", interval, min_interval);
-			s += tmp;
-			for (std::vector<peer_entry>::const_iterator i = peers.begin();
-				i != peers.end(); ++i)
-			{
-				char pid[41];
-				to_hex((const char*)&i->pid[0], 20, pid);
-				if (i->pid.is_all_zeros()) pid[0] = 0;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("TRACKER RESPONSE\n"
+				"interval: %d\n"
+				"external ip: %s\n"
+				"we connected to: %s\n"
+				"peers:"
+				, interval
+				, print_address(resp.external_ip).c_str()
+				, print_address(resp.tracker_ip).c_str());
 
-				snprintf(tmp, 200, " %-16s %-5d %s\n", i->ip.c_str(), i->port, pid);
-				s += tmp;
+			for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
+			i != resp.peers.end(); ++i)
+			{
+				debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
+					, i->pid.is_all_zeros()?"":to_hex(i->pid.to_string()).c_str()
+					, identify_client(i->pid).c_str());
 			}
-			snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());
-			s += tmp;
-			debug_log("%s", s.c_str());
+			for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
+				i != resp.peers4.end(); ++i)
+   		{
+				debug_log("  %16s %5d", print_address(i->ip).c_str(), i->port);
+			}
+#if TORRENT_USE_IPV6
+			for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
+				i != resp.peers6.end(); ++i)
+			{
+				debug_log("  %16s %5d", print_address(i->ip).c_str(), i->port);
+			}
+#endif
+#endif
 		}
 
 		void tracker_logger::tracker_request_timed_out(

@@ -1262,14 +1262,7 @@ namespace libtorrent
 			void tracker_response(tracker_request const&
 				, libtorrent::address const& tracker_ip
 				, std::list<address> const& ip_list
-				, std::vector<peer_entry>& peers
-				, int interval
-				, int min_interval
-				, int complete
-				, int incomplete
-				, int downloaded 
-				, address const& external_ip
-				, std::string const& tracker_id);
+				, struct tracker_response const& resp);
 			void tracker_request_timed_out(
 				tracker_request const&);
 			void tracker_request_error(tracker_request const& r

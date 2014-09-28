@@ -661,9 +661,7 @@ namespace libtorrent
 			tracker_request const& r
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
-			, std::vector<peer_entry>& e, int interval, int min_interval
-			, int complete, int incomplete, int downloaded
-			, address const& external_ip, std::string const& trackerid);
+			, struct tracker_response const& resp);
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
 			, int retry_interval);
