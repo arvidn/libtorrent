@@ -114,6 +114,7 @@
 
 0.16.18 release
 
+	* enable TCP keepalive for socks5 connection for UDP associate
 	* fix python3 support
 	* fix bug in lt_donthave extension
 	* expose i2p_alert to python. cleaning up of i2p connection code

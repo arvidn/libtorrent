@@ -943,6 +943,10 @@ void udp_socket::on_allow_connect(int ticket)
 
 	error_code ec;
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
+
+	// enable keepalives
+	m_socks5_sock.set_option(boost::asio::socket_base::keep_alive(true), ec);
+
 	++m_outstanding_ops;
 #if TORRENT_USE_ASSERTS
 	++m_outstanding_connect;
