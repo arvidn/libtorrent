@@ -226,6 +226,9 @@ namespace libtorrent
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
+		lazy_entry* dict_find(std::string const& name);
+		lazy_entry const* dict_find(std::string const& name) const
+		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
 		lazy_entry const* dict_find_string(char const* name) const;
 
 		// if this is a dictionary, look for a key ``name`` whose value
@@ -248,6 +251,7 @@ namespace libtorrent
 		// if no key with the corresponding value of the right type is
 		// found, NULL is returned.
 		lazy_entry const* dict_find_dict(char const* name) const;
+		lazy_entry const* dict_find_dict(std::string const& name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
 
 		// if this is a dictionary, return the key value pair at

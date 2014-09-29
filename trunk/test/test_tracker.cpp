@@ -149,9 +149,9 @@ void test_parse_scrape_response_with_zero()
 		, ec, true, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
 
 	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.complete, 1);
-	TEST_EQUAL(resp.incomplete, 2);
-	TEST_EQUAL(resp.downloaded, 3);
+	TEST_EQUAL(resp.complete, 4);
+	TEST_EQUAL(resp.incomplete, 5);
+	TEST_EQUAL(resp.downloaded, 6);
 	TEST_EQUAL(resp.downloaders, -1);
 }
 
