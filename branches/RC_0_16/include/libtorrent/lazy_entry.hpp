@@ -160,11 +160,15 @@ namespace libtorrent
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
+		lazy_entry* dict_find(std::string const& name);
+		lazy_entry const* dict_find(std::string const& name) const
+		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
 
 		std::string dict_find_string_value(char const* name) const;
 		pascal_string dict_find_pstr(char const* name) const;
 		size_type dict_find_int_value(char const* name, size_type default_val = 0) const;
 		lazy_entry const* dict_find_dict(char const* name) const;
+		lazy_entry const* dict_find_dict(std::string const& name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
 		lazy_entry const* dict_find_string(char const* name) const;
 		lazy_entry const* dict_find_int(char const* name) const;
