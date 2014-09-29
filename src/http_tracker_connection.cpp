@@ -422,7 +422,7 @@ namespace libtorrent
 				return;
 			}
 
-			lazy_entry const* scrape_data = files->dict_find_dict(ih.c_str());
+			lazy_entry const* scrape_data = files->dict_find_dict(ih);
 			if (scrape_data == 0)
 			{
 				fail(error_code(errors::invalid_hash_entry), -1, ""
