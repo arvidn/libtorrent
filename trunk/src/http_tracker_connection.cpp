@@ -328,27 +328,70 @@ namespace libtorrent
 		received_bytes(size + parser.body_start());
 
 		// handle tracker response
-		lazy_entry e;
 		error_code ecode;
-		int res = lazy_bdecode(data, data + size, e, ecode);
 
-		if (res == 0 && e.type() == lazy_entry::dict_t)
+		boost::shared_ptr<request_callback> cb = requester();
+		if (!cb)
 		{
-			parse(parser.status_code(), e);
+			close();
+			return;
+		}
+
+		tracker_response resp = parse_tracker_response(data, size, ecode
+			, tracker_req().kind == tracker_request::scrape_request
+			, tracker_req().info_hash);
+
+		if (!resp.warning_message.empty())
+			cb->tracker_warning(tracker_req(), resp.warning_message);
+
+		if (ecode)
+		{
+			fail(ecode, parser.status_code());
+			close();
+			return;
+		}
+
+		if (!resp.failure_reason.empty())
+		{
+			fail(error_code(errors::tracker_failure), parser.status_code()
+				, resp.failure_reason.c_str(), resp.interval, resp.min_interval);
+			close();
+			return;
+		}
+
+		// do slightly different things for scrape requests
+		if (tracker_req().kind == tracker_request::scrape_request)
+		{
+			cb->tracker_scrape_response(tracker_req(), resp.complete
+				, resp.incomplete, resp.downloaded, resp.downloaders);
 		}
 		else
 		{
-			fail(ecode, parser.status_code());
+			std::list<address> ip_list;
+			if (m_tracker_connection)
+			{
+				error_code ec;
+				ip_list.push_back(
+					m_tracker_connection->socket().remote_endpoint(ec).address());
+				std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
+				for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
+					, end(epts.end()); i != end; ++i)
+				{
+					ip_list.push_back(i->address());
+				}
+			}
+
+			cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, resp);
 		}
 		close();
 	}
 
-	bool http_tracker_connection::extract_peer_info(lazy_entry const& info, peer_entry& ret)
+	bool extract_peer_info(lazy_entry const& info, peer_entry& ret, error_code& ec)
 	{
 		// extract peer id (if any)
 		if (info.type() != lazy_entry::dict_t)
 		{
-			fail(error_code(errors::invalid_peer_dict));
+			ec.assign(errors::invalid_peer_dict, get_libtorrent_category());
 			return false;
 		}
 		lazy_entry const* i = info.dict_find_string("peer id");
@@ -366,7 +409,7 @@ namespace libtorrent
 		i = info.dict_find_string("ip");
 		if (i == 0)
 		{
-			fail(error_code(errors::invalid_tracker_response));
+			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return false;
 		}
 		ret.hostname = i->string_value();
@@ -375,7 +418,7 @@ namespace libtorrent
 		i = info.dict_find_int("port");
 		if (i == 0)
 		{
-			fail(error_code(errors::invalid_tracker_response));
+			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return false;
 		}
 		ret.port = (unsigned short)i->int_value();
@@ -383,18 +426,27 @@ namespace libtorrent
 		return true;
 	}
 
-	// TODO: 2 make this a free function that can be easily unit tested
-	void http_tracker_connection::parse(int status_code, lazy_entry const& e)
+	tracker_response parse_tracker_response(char const* data, int size, error_code& ec
+		, bool scrape_request, sha1_hash scrape_ih)
 	{
-		boost::shared_ptr<request_callback> cb = requester();
-		if (!cb) return;
+		tracker_response resp;
+
+		lazy_entry e;
+		int res = lazy_bdecode(data, data + size, e, ec);
+
+		if (ec) return resp;
+
+		if (res != 0 || e.type() != lazy_entry::dict_t)
+		{
+			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
+			return resp;
+		}
 
 		int interval = int(e.dict_find_int_value("interval", 0));
 		// if no interval is specified, default to 30 minutes
 		if (interval == 0) interval = 1800;
 		int min_interval = int(e.dict_find_int_value("min interval", 30));
 
-		tracker_response resp;
 		resp.interval = interval;
 		resp.min_interval = min_interval;
 
@@ -406,43 +458,47 @@ namespace libtorrent
 		lazy_entry const* failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
-			fail(error_code(errors::tracker_failure), status_code
-				, failure->string_value().c_str(), interval, min_interval);
-			return;
+			resp.failure_reason = failure->string_value();
+			ec.assign(errors::tracker_failure, get_libtorrent_category());
+			return resp;
 		}
 
 		lazy_entry const* warning = e.dict_find_string("warning message");
 		if (warning)
-			cb->tracker_warning(tracker_req(), warning->string_value());
+			resp.warning_message = warning->string_value();
 
-		if (tracker_req().kind == tracker_request::scrape_request)
+		if (scrape_request)
 		{
-			std::string ih = tracker_req().info_hash.to_string();
-
 			lazy_entry const* files = e.dict_find_dict("files");
 			if (files == 0)
 			{
-				fail(error_code(errors::invalid_files_entry), -1, ""
-					, interval, min_interval);
-				return;
+				ec.assign(errors::invalid_files_entry, get_libtorrent_category());
+				return resp;
 			}
 
-			lazy_entry const* scrape_data = files->dict_find_dict(ih.c_str());
+			// TODO: 4 this is a bug. if the info-hash contains a 0, this will
+			// fail!
+			lazy_entry const* scrape_data = files->dict_find_dict(
+				scrape_ih.to_string().c_str());
+
 			if (scrape_data == 0)
 			{
-				fail(error_code(errors::invalid_hash_entry), -1, ""
-					, interval, min_interval);
-				return;
+				ec.assign(errors::invalid_hash_entry, get_libtorrent_category());
+				return resp;
 			}
 
-			int complete = int(scrape_data->dict_find_int_value("complete", -1));
-			int incomplete = int(scrape_data->dict_find_int_value("incomplete", -1));
-			int downloaded = int(scrape_data->dict_find_int_value("downloaded", -1));
-			int downloaders = int(scrape_data->dict_find_int_value("downloaders", -1));
-			cb->tracker_scrape_response(tracker_req(), complete
-				, incomplete, downloaded, downloaders);
-			return;
+			resp.complete = int(scrape_data->dict_find_int_value("complete", -1));
+			resp.incomplete = int(scrape_data->dict_find_int_value("incomplete", -1));
+			resp.downloaded = int(scrape_data->dict_find_int_value("downloaded", -1));
+			resp.downloaders = int(scrape_data->dict_find_int_value("downloaders", -1));
+
+			return resp;
 		}
+
+		// look for optional scrape info
+		resp.complete = int(e.dict_find_int_value("complete", -1));
+		resp.incomplete = int(e.dict_find_int_value("incomplete", -1));
+		resp.downloaded = int(e.dict_find_int_value("downloaded", -1));
 
 		lazy_entry const* peers_ent = e.dict_find("peers");
 		if (peers_ent && peers_ent->type() == lazy_entry::string_t)
@@ -465,11 +521,20 @@ namespace libtorrent
 		{
 			int len = peers_ent->list_size();
 			resp.peers.reserve(len);
+			error_code parse_error;
 			for (int i = 0; i < len; ++i)
 			{
 				peer_entry p;
-				if (!extract_peer_info(*peers_ent->list_at(i), p)) return;
+				if (!extract_peer_info(*peers_ent->list_at(i), p, parse_error))
+					continue;
 				resp.peers.push_back(p);
+			}
+
+			// only report an error if all peer entries are invalid
+			if (resp.peers.empty() && parse_error)
+			{
+				ec = parse_error;
+				return resp;
 			}
 		}
 		else
@@ -501,16 +566,15 @@ namespace libtorrent
 #else
 		lazy_entry const* ipv6_peers = 0;
 #endif
-
+/*
 		// if we didn't receive any peers. We don't care if we're stopping anyway
 		if (peers_ent == 0 && ipv6_peers == 0
 			&& tracker_req().event != tracker_request::stopped)
 		{
-			fail(error_code(errors::invalid_peers_entry), -1, ""
-				, interval, min_interval);
-			return;
+			ec.assign(errors::invalid_peers_entry, get_libtorrent_category());
+			return resp;
 		}
-
+*/
 		lazy_entry const* ip_ent = e.dict_find_string("external ip");
 		if (ip_ent)
 		{
@@ -523,26 +587,7 @@ namespace libtorrent
 #endif
 		}
 		
-		// look for optional scrape info
-		resp.complete = int(e.dict_find_int_value("complete", -1));
-		resp.incomplete = int(e.dict_find_int_value("incomplete", -1));
-		resp.downloaded = int(e.dict_find_int_value("downloaded", -1));
-
-		std::list<address> ip_list;
-		if (m_tracker_connection)
-		{
-			error_code ec;
-			ip_list.push_back(m_tracker_connection->socket().remote_endpoint(ec).address());
-			std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
-			for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
-				, end(epts.end()); i != end; ++i)
-			{
-				ip_list.push_back(i->address());
-			}
-		}
-
-		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, resp);
+		return resp;
 	}
-
 }
 

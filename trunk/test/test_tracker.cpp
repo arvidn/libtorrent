@@ -36,14 +36,176 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/tracker_manager.hpp"
+#include "libtorrent/http_tracker_connection.hpp" // for parse_tracker_response
 
 #include <fstream>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+void test_parse_hostname_peers()
+{
+	char const response[] = "d5:peersld7:peer id20:aaaaaaaaaaaaaaaaaaaa2:ip13:test_hostname4:porti1000eed7:peer id20:bbbbabaababababababa2:ip12:another_host4:porti1001eeee";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, false, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.peers.size(), 2);
+	if (resp.peers.size() == 2)
+	{
+		peer_entry const& e0 = resp.peers[0];
+		peer_entry const& e1 = resp.peers[1];
+		TEST_EQUAL(e0.hostname, "test_hostname");
+		TEST_EQUAL(e0.port, 1000);
+		TEST_EQUAL(e0.pid, peer_id("aaaaaaaaaaaaaaaaaaaa"));
+
+		TEST_EQUAL(e1.hostname, "another_host");
+		TEST_EQUAL(e1.port, 1001);
+		TEST_EQUAL(e1.pid, peer_id("bbbbabaababababababa"));
+	}
+}
+
+void test_parse_peers4()
+{
+	char const response[] = "d5:peers12:\x01\x02\x03\x04\x30\x10"
+		"\x09\x08\x07\x06\x20\x10" "e";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, false, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.peers4.size(), 2);
+	if (resp.peers.size() == 2)
+	{
+		ipv4_peer_entry const& e0 = resp.peers4[0];
+		ipv4_peer_entry const& e1 = resp.peers4[1];
+		TEST_CHECK(e0.ip == address_v4::from_string("1.2.3.4").to_bytes());
+		TEST_EQUAL(e0.port, 0x3010);
+
+		TEST_CHECK(e1.ip == address_v4::from_string("9.8.7.6").to_bytes());
+		TEST_EQUAL(e1.port, 0x2010);
+	}
+}
+
+void test_parse_interval()
+{
+	char const response[] = "d8:intervali1042e12:min intervali10e5:peers0:e";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, false, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.peers.size(), 0);
+	TEST_EQUAL(resp.peers4.size(), 0);
+	TEST_EQUAL(resp.interval, 1042);
+	TEST_EQUAL(resp.min_interval, 10);
+}
+
+void test_parse_warning()
+{
+	char const response[] = "d5:peers0:15:warning message12:test messagee";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, false, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.peers.size(), 0);
+	TEST_EQUAL(resp.warning_message, "test message");
+}
+
+void test_parse_failure_reason()
+{
+	char const response[] = "d5:peers0:14:failure reason12:test messagee";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, false, sha1_hash());
+
+	TEST_EQUAL(ec, error_code(errors::tracker_failure));
+	TEST_EQUAL(resp.peers.size(), 0);
+	TEST_EQUAL(resp.failure_reason, "test message");
+}
+
+void test_parse_scrape_response()
+{
+	char const response[] = "d5:filesd20:aaaaaaaaaaaaaaaaaaaad8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi6eeee";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, true, sha1_hash("aaaaaaaaaaaaaaaaaaaa"));
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.complete, 1);
+	TEST_EQUAL(resp.incomplete, 2);
+	TEST_EQUAL(resp.downloaded, 3);
+	TEST_EQUAL(resp.downloaders, 6);
+}
+
+void test_parse_scrape_response_with_zero()
+{
+	char const response[] = "d5:filesd20:aaa\0aaaaaaaaaaaaaaaad8:completei4e10:incompletei5e10:downloadedi6eeee";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, true, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.complete, 1);
+	TEST_EQUAL(resp.incomplete, 2);
+	TEST_EQUAL(resp.downloaded, 3);
+	TEST_EQUAL(resp.downloaders, -1);
+}
+
+void test_parse_external_ip()
+{
+	char const response[] = "d5:peers0:11:external ip4:\x01\x02\x03\x04" "e";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, false, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.peers.size(), 0);
+	TEST_EQUAL(resp.external_ip, address_v4::from_string("1.2.3.4"));
+}
+
+#if TORRENT_USE_IPV6
+void test_parse_external_ip6()
+{
+	char const response[] = "d5:peers0:11:external ip16:\xf1\x02\x03\x04\0\0\0\0\0\0\0\0\0\0\xff\xff" "e";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
+		, ec, false, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.peers.size(), 0);
+	TEST_EQUAL(resp.external_ip, address_v6::from_string("f102:0304::ffff"));
+}
+#endif
+
 int test_main()
 {
+	test_parse_hostname_peers();
+	test_parse_peers4();
+	test_parse_interval();
+	test_parse_warning();
+	test_parse_failure_reason();
+	test_parse_scrape_response();
+	test_parse_scrape_response_with_zero();
+	test_parse_external_ip();
+#if TORRENT_USE_IPV6
+	test_parse_external_ip6();
+#endif
+
+	// TODO: test parse peers6
+	// TODO: test parse tracker-id
+	// TODO: test parse failure-reason
+	// TODO: test all failure paths
+	//   invalid bencoding
+	//   not a dictionary
+	//   no files entry in scrape response
+	//   no info-hash entry in scrape response
+	//   malformed peers in peer list of dictionaries
+	//   uneven number of bytes in peers and peers6 string responses
+
 	int http_port = start_web_server();
 	int udp_port = start_udp_tracker();
 

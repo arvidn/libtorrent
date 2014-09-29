@@ -95,9 +95,6 @@ namespace libtorrent
 
 		virtual void on_timeout(error_code const&) {}
 
-		void parse(int status_code, lazy_entry const& e);
-		bool extract_peer_info(lazy_entry const& e, peer_entry& ret);
-
 		tracker_manager& m_man;
 		boost::shared_ptr<http_connection> m_tracker_connection;
 		aux::session_impl& m_ses;
@@ -109,6 +106,9 @@ namespace libtorrent
 #endif
 	};
 
+	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(
+		char const* data, int size, error_code& ec
+		, bool scrape_request, sha1_hash scrape_ih);
 }
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED

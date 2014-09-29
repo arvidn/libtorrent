@@ -237,7 +237,8 @@ namespace libtorrent
 		// if this is a dictionary, look for a key ``name`` whose value
 		// is an int. If such key exist, return a pointer to its value,
 		// otherwise NULL.
-		boost::int64_t dict_find_int_value(char const* name, boost::int64_t default_val = 0) const;
+		boost::int64_t dict_find_int_value(char const* name
+			, boost::int64_t default_val = 0) const;
 		lazy_entry const* dict_find_int(char const* name) const;
 
 		// these functions require that ``this`` is a dictionary.

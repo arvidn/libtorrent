@@ -150,20 +150,48 @@ namespace libtorrent
 			, min_interval(120)
 			, complete(-1)
 			, incomplete(-1)
+			, downloaders(-1)
 			, downloaded(-1)
 		{}
 
+		// peers from the tracker, in various forms
 		std::vector<peer_entry> peers;
 		std::vector<ipv4_peer_entry> peers4;
 #if TORRENT_USE_IPV6
 		std::vector<ipv6_peer_entry> peers6;
 #endif
+		// our external IP address (if the tracker responded with ti, otherwise
+		// INADDR_ANY)
 		address external_ip;
+
+		// the tracker id, if it was included in the response, otherwise
+		// an empty string
 		std::string trackerid;
+
+		// if the tracker returned an error, this is set to that error
+		std::string failure_reason;
+
+		// contains a warning message from the tracker, if included in
+		// the response
+		std::string warning_message;
+
+		// re-announce interval, in seconds
 		int interval;
+
+		// the lowest force-announce interval
 		int min_interval;
+
+		// the number of seeds in the swarm
 		int complete;
+
+		// the number of downloaders in the swarm
 		int incomplete;
+
+		// if supported by the tracker, the number of actively downloading peers.
+		// i.e. partial seeds. If not suppored, -1
+		int downloaders;
+
+		// the number of times the torrent has been downloaded
 		int downloaded;
 	};
 
