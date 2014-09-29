@@ -114,6 +114,7 @@
 
 0.16.18 release
 
+	* fix bug in HTTP scrape response parsing
 	* enable TCP keepalive for socks5 connection for UDP associate
 	* fix python3 support
 	* fix bug in lt_donthave extension

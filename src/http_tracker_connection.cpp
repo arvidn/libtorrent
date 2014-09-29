@@ -476,10 +476,8 @@ namespace libtorrent
 				return resp;
 			}
 
-			// TODO: 4 this is a bug. if the info-hash contains a 0, this will
-			// fail!
 			lazy_entry const* scrape_data = files->dict_find_dict(
-				scrape_ih.to_string().c_str());
+				scrape_ih.to_string());
 
 			if (scrape_data == 0)
 			{
