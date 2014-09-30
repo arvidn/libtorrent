@@ -1898,6 +1898,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (ioctl(m_fd, FS_IOC_FIEMAP, &fm) == -1)
 			return 0;
 
+		if (fm.fiemap.fm_mapped_extents != 1)
+			return 0;
+
 		if (fm.fiemap.fm_extents[0].fe_flags & FIEMAP_EXTENT_UNKNOWN)
 			return 0;
 
