@@ -21,6 +21,9 @@ counter = 0;
 #  d: distance (from target)
 #  o: outstanding searches
 #  e: event (NEW, COMPLETED, ADD, INVOKE, TIMEOUT)
+#  i: node-id
+#  a: IP address and port
+#  s: source node-id (only for ADD events)
 outstanding_searches = {}
 
 # list of completed searches
@@ -30,6 +33,8 @@ def convert_timestamp(t):
 	parts = t.split('.')
 	posix = time.strptime(parts[0], '%H:%M:%S')
 	return (posix.tm_hour * 3600 + posix.tm_min * 60 + posix.tm_sec) * 1000 + int(parts[1])
+
+last_incoming = ''
 
 for line in f:
 	counter += 1
@@ -57,18 +62,36 @@ for line in f:
 		ts = l[0]
 		event = l[3]
 
-		if event == 'NEW':
-			outstanding_searches[search_id] = [{ 't': ts, 'd': 160, 'o': 0, 'e': 'NEW'}]
-		elif event == 'INVOKE' or event == 'ADD' or event == '1ST_TIMEOUT' or event == 'TIMEOUT' or event == 'PEERS':
+		if event == 'RESPONSE':
+			outstanding = int(l[l.index('invoke-count:')+1])
+			nid = l[l.index('id:')+1]
+			addr = l[l.index('addr:')+1]
+			last_response = addr
+			outstanding_searches[search_id].append({ 't': ts, 'd': distance,
+				'o': outstanding + 1, 'a':addr, 'e': event,'i':nid, 's':source})
+		elif event == 'NEW':
+			outstanding_searches[search_id] = [{ 't': ts, 'd': 0, 'o': 0, 'e': 'NEW', 'i': ''}]
+			last_response = ''
+		elif event == 'INVOKE' or event == 'ADD' or event == '1ST_TIMEOUT' or \
+			event == 'TIMEOUT' or event == 'PEERS':
 			if not search_id in outstanding_searches:
 				print 'orphaned event: %s' % line
 			else:
 				outstanding = int(l[l.index('invoke-count:')+1])
 				distance = int(l[l.index('distance:')+1])
-				outstanding_searches[search_id].append({ 't': ts, 'd': distance, 'o': outstanding + 1, 'e': event})
+				nid = l[l.index('id:')+1]
+				addr = l[l.index('addr:')+1]
+				source = ''
+				if event == 'ADD':
+					if last_response == '': continue
+					source = last_response
+
+				outstanding_searches[search_id].append({ 't': ts, 'd': distance,
+					'o': outstanding + 1, 'a':addr, 'e': event,'i':nid, 's':source})
 		elif event == 'COMPLETED':
 				distance = int(l[l.index('distance:')+1])
-				outstanding_searches[search_id].append({ 't': ts, 'd': distance, 'o': 0, 'e': event})
+				outstanding_searches[search_id].append({ 't': ts, 'd': distance,
+					'o': 0, 'e': event,'i':''})
 
 				s = outstanding_searches[search_id]
 
@@ -81,9 +104,8 @@ for line in f:
 				searches.append(s)
 				del outstanding_searches[search_id]
 
-				
-
 	except Exception, e:
+		print e
 		print line.split(' ')
 
 lookup_times_min = []
@@ -141,13 +163,17 @@ out = open('dht_lookups.txt', 'w+')
 for s in searches:
 	for i in s:
 		if i['e'] == 'INVOKE':
-			print >>out, ' ->', i['t'], 160 - i['d']
+			print >>out, ' ->', i['t'], 160 - i['d'], i['i'], i['a']
 		elif i['e'] == '1ST_TIMEOUT':
-			print >>out, ' x ', i['t'], 160 - i['d']
+			print >>out, ' x ', i['t'], 160 - i['d'], i['i'], i['a']
 		elif i['e'] == 'TIMEOUT':
-			print >>out, ' X ', i['t'], 160 - i['d']
+			print >>out, ' X ', i['t'], 160 - i['d'], i['i'], i['a']
+		elif i['e'] == 'ADD':
+			print >>out, ' + ', i['t'], 160 - i['d'], i['i'], i['a'], i['s']
+		elif i['e'] == 'RESPONSE':
+			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
 		elif i['e'] == 'PEERS':
-			print >>out, ' <-', i['t'], 160 - i['d']
+			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
 		elif i['e'] == 'COMPLETED':
 			print >>out, '***', i['t'], 160 - i['d'], '\n'
 			break

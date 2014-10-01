@@ -170,8 +170,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 				// it claims a different node-ID. Ignore this to avoid attacks
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(traversal) << "[" << this << "] IGNORING result "
-				<< "id: " << o->id()
-				<< " address: " << o->target_addr()
+				<< "id: " << to_hex(o->id().to_string())
+				<< " addr: " << o->target_addr()
 				<< " type: " << name()
 				;
 #endif
@@ -184,8 +184,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		TORRENT_ASSERT((o->flags & observer::flag_no_id) || std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] ADD id: " << id
-			<< " address: " << addr
+		TORRENT_LOG(traversal) << "[" << this << "] ADD id: " << to_hex(id.to_string())
+			<< " addr: " << addr
 			<< " distance: " << distance_exp(m_target, id)
 			<< " invoke-count: " << m_invoke_count
 			<< " type: " << name()
@@ -298,7 +298,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		o->flags |= observer::flag_short_timeout;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << this << "] 1ST_TIMEOUT "
-			<< " id: " << o->id()
+			<< " id: " << to_hex(o->id().to_string())
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
@@ -317,7 +317,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << this << "] TIMEOUT "
-			<< " id: " << o->id()
+			<< " id: " << to_hex(o->id().to_string())
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
@@ -358,9 +358,9 @@ void traversal_algorithm::done()
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
 			TORRENT_LOG(traversal) << "[" << this << "]  "
 				<< results_target
-				<< " id: " << o->id()
+				<< " id: " << to_hex(o->id().to_string())
 				<< " distance: " << distance_exp(m_target, o->id())
-				<< " address: " << o->target_ep()
+				<< " addr: " << o->target_ep()
 				;
 			--results_target;
 			int dist = distance_exp(m_target, o->id());
@@ -433,7 +433,9 @@ bool traversal_algorithm::add_requests()
 			<< " top-invoke-count: " << outstanding
 			<< " invoke-count: " << m_invoke_count
 			<< " branch-factor: " << m_branch_factor
-			<< " distance: " << distance_exp(m_target, (*i)->id())
+			<< " distance: " << distance_exp(m_target, o->id())
+			<< " id: " << to_hex(o->id().to_string())
+			<< " addr: " << o->target_ep()
 			<< " type: " << name()
 			;
 #endif
@@ -524,6 +526,15 @@ void traversal_observer::reply(msg const& m)
 		return;
 	}
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	lazy_entry const* nid = r->dict_find_string("id");
+	TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] "
+		"RESPONSE id: " << to_hex(nid->string_value())
+		<< " invoke-count: " << m_algorithm->invoke_count()
+		<< " addr: " << m.addr
+		<< " type: " << m_algorithm->name()
+		;
+#endif
 	// look for nodes
 	lazy_entry const* n = r->dict_find_string("nodes");
 	if (n)
