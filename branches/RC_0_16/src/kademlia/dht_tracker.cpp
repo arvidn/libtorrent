@@ -248,6 +248,11 @@ namespace libtorrent { namespace dht
 
 		TORRENT_LOG(dht_tracker) << "starting DHT tracker with node id: " << m_dht.nid();
 #endif
+		for (int i = 0; i < num_ban_nodes; ++i)
+		{
+			m_ban_nodes[i].count = 0;
+			m_ban_nodes[i].limit = min_time();
+		}
 	}
 
 	// defined in node.cpp
