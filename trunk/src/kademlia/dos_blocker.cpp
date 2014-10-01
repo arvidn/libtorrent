@@ -43,7 +43,14 @@ namespace libtorrent { namespace dht
 	TORRENT_DECLARE_LOG(dht_tracker);
 #endif
 
-	dos_blocker::dos_blocker() {}
+	dos_blocker::dos_blocker()
+	{
+		for (int i = 0; i < num_ban_nodes; ++i)
+		{
+			m_ban_nodes[i].count = 0;
+			m_ban_nodes[i].limit = min_time();
+		}
+	}
 
 	bool dos_blocker::incoming(address addr, ptime now)
 	{
