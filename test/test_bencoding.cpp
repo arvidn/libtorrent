@@ -186,6 +186,20 @@ int test_main()
 		TEST_CHECK(e.dict_find_string_value("X") == "0123456789");
 	}
 
+	// dictionary key with \0
+	{
+		char b[] = "d3:a\0bi1ee";
+		lazy_entry e;
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_CHECK(ret == 0);
+		TEST_CHECK(e.dict_size() == 1);
+		lazy_entry* d = e.dict_find(std::string("a\0b", 3));
+		TEST_CHECK(d);
+		TEST_EQUAL(d->type(), lazy_entry::int_t);
+		TEST_EQUAL(d->int_value(), 1);
+	}
+
 	// test strings with negative length-prefix
 	{
 		char b[] = "-10:foobar";
