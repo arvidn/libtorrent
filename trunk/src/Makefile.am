@@ -29,10 +29,6 @@ KADEMLIA_SOURCES = \
   ../ed25519/src/verify.cpp
 endif
 
-if WITH_SHIPPED_GEOIP
-GEOIP_SOURCES = GeoIP.c
-endif
-
 if WITH_OPENSSL
 ASIO_OPENSSL_SOURCES = asio_ssl.cpp
 endif
@@ -52,7 +48,6 @@ libtorrent_rasterbar_la_SOURCES = \
   block_cache.cpp                 \
   bt_peer_connection.cpp          \
   chained_buffer.cpp              \
-  connection_queue.cpp            \
   ConvertUTF.cpp                  \
   crc32c.cpp                      \
   create_torrent.cpp              \
@@ -141,7 +136,6 @@ libtorrent_rasterbar_la_SOURCES = \
   xml_parse.cpp                   \
   \
   $(KADEMLIA_SOURCES)             \
-  $(GEOIP_SOURCES)                \
   $(ASIO_OPENSSL_SOURCES)
 
 #libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
