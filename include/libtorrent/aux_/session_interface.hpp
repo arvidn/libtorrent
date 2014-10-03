@@ -78,7 +78,6 @@ namespace libtorrent
 	struct disk_interface;
 	struct tracker_request;
 	struct request_callback;
-	class connection_queue;
 	struct utp_socket_manager;
 	struct socket_type;
 	struct block_info;
@@ -166,7 +165,7 @@ namespace libtorrent { namespace aux
 		// does nothing if the peer is already corked
 		virtual void cork_burst(peer_connection* p) = 0;
 
-		virtual void close_connection(peer_connection* p, error_code const& ec, bool cancel_with_cq) = 0;
+		virtual void close_connection(peer_connection* p, error_code const& ec) = 0;
 		virtual int num_connections() const = 0;
 
 		virtual char* allocate_buffer() = 0;
@@ -234,9 +233,6 @@ namespace libtorrent { namespace aux
 		virtual void sent_syn(bool ipv6) = 0;
 		virtual void received_synack(bool ipv6) = 0;
 		
-		// half-open
-		virtual bool half_open_done(int ticket) = 0;
-
 		virtual int peak_up_rate() const = 0;
 
 		enum torrent_list_index
@@ -268,7 +264,6 @@ namespace libtorrent { namespace aux
 
 		virtual bool has_lsd() const = 0;
 		virtual void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) = 0;
-		virtual connection_queue& half_open() = 0;
 		virtual libtorrent::utp_socket_manager* utp_socket_manager() = 0;
 		virtual void inc_boost_connections() = 0;
 		virtual void setup_socket_buffers(socket_type& s) = 0;

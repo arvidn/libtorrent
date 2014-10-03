@@ -81,7 +81,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
-#include "libtorrent/connection_interface.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/piece_picker.hpp" // for piece_block
 #include "libtorrent/socket.hpp" // for tcp::endpoint
@@ -289,7 +288,6 @@ namespace libtorrent
 		, public bandwidth_socket
 		, public peer_class_set
 		, public disk_observer
-		, public connection_interface 
 		, public peer_connection_interface 
 		, public boost::enable_shared_from_this<peer_connection>
 	{
@@ -524,25 +522,6 @@ namespace libtorrent
 		// returns true if this connection is still waiting to
 		// finish the connection attempt
 		bool is_connecting() const { return m_connecting; }
-
-		// returns true if the socket of this peer hasn't been
-		// attempted to connect yet (i.e. it's queued for
-		// connection attempt).
-		bool is_queued() const { return m_queued; }
-
-		// returns true if this peer has successfully completed its connection
-		// attempt to the remote end.
-		bool is_connected() const { return m_connected; }
-	
-		// called when it's time for this peer_conncetion to actually
-		// initiate the tcp connection. This may be postponed until
-		// the library isn't using up the limitation of half-open
-		// tcp connections.	
-		// implements connection_interface
-		void on_allow_connect(int ticket);
-		
-		// implements connection_interface. Called by the connection_queue
-		void on_connect_timeout();
 
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
@@ -1218,12 +1197,6 @@ namespace libtorrent
 		// by sending choke, unchoke.
 		int m_num_invalid_requests;
 
-		// the ticket id from the connection queue.
-		// This is used to identify the connection
-		// so that it can be removed from the queue
-		// once the connection completes
-		int m_connection_ticket;
-
 		// if [0] is -1, superseeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
 		// these two pieces can be downloaded from us by this peer.
@@ -1317,11 +1290,6 @@ namespace libtorrent
 		// succeeded. i.e. the TCP 3-way handshake
 		bool m_connected:1;
 
-		// This is true until connect is called on the
-		// peer_connection's socket. It is false on incoming
-		// connections.
-		bool m_queued:1;
-
 		// if this is true, the blocks picked by the piece
 		// picker will be merged before passed to the
 		// request function. i.e. subsequent blocks are
@@ -1373,12 +1341,6 @@ namespace libtorrent
 		// set to true if this peer has metadata, and false
 		// otherwise.
 		bool m_has_metadata:1;
-
-		// this is true while this connection is queued
-		// in the connection_queue. We may not destruct
-		// the connection while it is, since it's not
-		// held by an owning pointer, just a plain one
-		bool m_queued_for_connection:1;
 
 		// this is set to true if this peer was accepted exceeding
 		// the connection limit. It means it has to disconnect

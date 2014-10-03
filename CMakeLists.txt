@@ -16,7 +16,6 @@ set(sources
 	block_cache
 	bloom_filter
 	chained_buffer
-	connection_queue
 	create_torrent
 	disk_buffer_holder
 	entry

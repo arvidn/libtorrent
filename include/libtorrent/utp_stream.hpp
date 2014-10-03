@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTP_STREAM_HPP_INCLUDED
 #define TORRENT_UTP_STREAM_HPP_INCLUDED
 
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/io.hpp"

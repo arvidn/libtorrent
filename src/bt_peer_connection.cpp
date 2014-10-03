@@ -400,8 +400,7 @@ namespace libtorrent
 
 		if (!is_connecting() && in_handshake())
 			p.flags |= peer_info::handshake;
-		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
-		if (is_queued()) p.flags |= peer_info::queued;
+		if (is_connecting()) p.flags |= peer_info::connecting;
 
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;

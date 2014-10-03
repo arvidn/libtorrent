@@ -293,7 +293,7 @@ namespace libtorrent
 		DEPRECATED_SET(local_download_rate_limit, 0, &session_impl::update_local_download_rate),
 		SET(dht_upload_rate_limit, 4000, &session_impl::update_dht_upload_rate_limit),
 		SET(unchoke_slots_limit, 8, &session_impl::update_choking_algorithm),
-		SET(half_open_limit, 0, &session_impl::update_half_open),
+		DEPRECATED_SET(half_open_limit, 0, 0),
 		SET(connections_limit, 200, &session_impl::update_connections_limit),
 		SET(connections_slack, 10, 0),
 		SET(utp_target_delay, 100, 0),

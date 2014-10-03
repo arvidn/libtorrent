@@ -1181,9 +1181,6 @@ namespace libtorrent
 		// a pipe or an eventfd.
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
-		// internal
-		connection_queue& get_connection_queue();
-
 #ifndef TORRENT_NO_DEPRECATE
 		// Starts and stops Local Service Discovery. This service will broadcast
 		// the infohashes of all the non-private torrents on the local network to

@@ -435,7 +435,6 @@ namespace aux {
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
 		, m_disk_thread(m_io_service, this, m_stats_counters
 			, (uncork_interface*)this)
-		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 		, m_upload_rate(peer_connection::upload_channel, true)
@@ -475,7 +474,7 @@ namespace aux {
 		, m_dht_interval_update_torrents(0)
 #endif
 		, m_external_udp_port(0)
-		, m_udp_socket(m_io_service, m_half_open)
+		, m_udp_socket(m_io_service)
 		// TODO: 4 in order to support SSL over uTP, the utp_socket manager either
 		// needs to be able to receive packets on multiple ports, or we need to
 		// peek into the first few bytes the payload stream of a socket to determine
@@ -576,79 +575,6 @@ namespace aux {
 		m_ssl_mapping[0] = -1;
 		m_ssl_mapping[1] = -1;
 #endif
-#ifdef WIN32
-		// windows XP has a limit on the number of
-		// simultaneous half-open TCP connections
-		// here's a table:
-
-		// windows version       half-open connections limit
-		// --------------------- ---------------------------
-		// XP sp1 and earlier    infinite
-		// earlier than vista    8
-		// vista sp1 and earlier 5
-		// vista sp2 and later   infinite
-
-		// windows release                     version number
-		// ----------------------------------- --------------
-		// Windows 7                           6.1
-		// Windows Server 2008 R2              6.1
-		// Windows Server 2008                 6.0
-		// Windows Vista                       6.0
-		// Windows Server 2003 R2              5.2
-		// Windows Home Server                 5.2
-		// Windows Server 2003                 5.2
-		// Windows XP Professional x64 Edition 5.2
-		// Windows XP                          5.1
-		// Windows 2000                        5.0
-
- 		OSVERSIONINFOEX osv;
-		memset(&osv, 0, sizeof(osv));
-		osv.dwOSVersionInfoSize = sizeof(osv);
-		GetVersionEx((OSVERSIONINFO*)&osv);
-
-		// the low two bytes of windows_version is the actual
-		// version.
-		boost::uint32_t windows_version
-			= ((osv.dwMajorVersion & 0xff) << 16)
-			| ((osv.dwMinorVersion & 0xff) << 8)
-			| (osv.wServicePackMajor & 0xff);
-
-		// this is the format of windows_version
-		// xx xx xx
-		// |  |  |
-		// |  |  + service pack version
-		// |  + minor version
-		// + major version
-
-		// the least significant byte is the major version
-		// and the most significant one is the minor version
-		if (windows_version >= 0x060100)
-		{
-			// windows 7 and up doesn't have a half-open limit
-			m_half_open.limit(0);
-		}
-		else if (windows_version >= 0x060002)
-		{
-			// on vista SP 2 and up, there's no limit
-			m_half_open.limit(0);
-		}
-		else if (windows_version >= 0x060000)
-		{
-			// on vista the limit is 5 (in home edition)
-			m_half_open.limit(4);
-		}
-		else if (windows_version >= 0x050102)
-		{
-			// on XP SP2 the limit is 10	
-			m_half_open.limit(9);
-		}
-		else
-		{
-			// before XP SP2, there was no limit
-			m_half_open.limit(0);
-		}
-		m_settings.set_int(settings_pack::half_open_limit, m_half_open.limit());
-#endif
 
 		m_global_class = m_classes.new_peer_class("global");
 		m_tcp_peer_class = m_classes.new_peer_class("tcp");
@@ -736,7 +662,6 @@ namespace aux {
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
-		update_half_open();
 #ifndef TORRENT_NO_DEPRECATE
 		update_local_download_rate();
 		update_local_upload_rate();
@@ -1548,12 +1473,6 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		session_log(" aborting all connections (%d)", m_connections.size());
 #endif
-		m_half_open.close();
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		session_log(" connection queue: %d", m_half_open.size());
-#endif
-
 		// abort all connections
 		while (!m_connections.empty())
 		{
@@ -1563,14 +1482,6 @@ namespace aux {
 			(*m_connections.begin())->disconnect(errors::stopping_torrent, peer_connection::op_bittorrent);
 			TORRENT_ASSERT_VAL(conn == int(m_connections.size()) + 1, conn);
 		}
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		session_log(" connection queue: %d", m_half_open.size());
-#endif
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		session_log(" shutting down connection queue");
-#endif
 
 		m_download_rate.close();
 		m_upload_rate.close();
@@ -1724,7 +1635,7 @@ namespace aux {
 		req.ssl_ctx = &m_ssl_ctx;
 #endif
 		if (is_any(req.bind_ip)) req.bind_ip = m_listen_interface.address();
-		m_tracker_manager.queue_request(get_io_service(), m_half_open, req
+		m_tracker_manager.queue_request(get_io_service(), req
 			, login, c);
 	}
 
@@ -3082,12 +2993,10 @@ retry:
 	// with the connection queue, and should be cancelled
 	// TODO: should this function take a shared_ptr instead?
 	void session_impl::close_connection(peer_connection* p
-		, error_code const& ec, bool cancel_with_cq)
+		, error_code const& ec)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<peer_connection> sp(p->self());
-
-		if (cancel_with_cq) m_half_open.cancel(p);
 
 		// someone else is holding a reference, it's important that
 		// it's destructed from the network thread. Make sure the
@@ -3956,7 +3865,6 @@ retry:
 			STAT_COUNTER(num_downloading_torrents);
 			STAT_COUNTER(num_seeding_torrents);
 			STAT_COUNTER(num_peers_connected);
-			STAT_COUNTER(num_peers_half_open);
 			STAT_COUNTER(disk_blocks_in_use);
 			STAT_LOGL(d, num_peers); // total number of known peers
 			STAT_LOG(d, m_peer_allocator.live_allocations());
@@ -4766,15 +4674,9 @@ retry:
 		// zero connections speeds are allowed, we just won't make any connections
 		if (max_connections <= 0) return;
 
-		// this loop will "hand out" max(connection_speed
-		// , half_open.free_slots()) to the torrents, in a
-		// round robin fashion, so that every torrent is
-		// equally likely to connect to a peer
-
-		int free_slots = m_half_open.free_slots();
-
-		// if we don't have any free slots, return
-		if (free_slots <= -m_half_open.limit()) return;
+		// this loop will "hand out" connection_speed to the torrents, in a round
+		// robin fashion, so that every torrent is equally likely to connect to a
+		// peer
 
 		// boost connections are connections made by torrent connection
 		// boost, which are done immediately on a tracker response. These
@@ -4796,8 +4698,8 @@ retry:
 		// TODO: use a lower limit than m_settings.connections_limit
 		// to allocate the to 10% or so of connection slots for incoming
 		// connections
-		int limit = (std::min)(m_settings.get_int(settings_pack::connections_limit)
-			- num_connections(), free_slots);
+		int limit = m_settings.get_int(settings_pack::connections_limit)
+			- num_connections();
 
 		// this logic is here to smooth out the number of new connection
 		// attempts over time, to prevent connecting a large number of
@@ -4870,7 +4772,6 @@ retry:
 				if (t->try_connect_peer())
 				{
 					--max_connections;
-					--free_slots;
 					steps_since_last_connect = 0;
 					m_stats_counters.inc_stats_counter(counters::connection_attempts);
 				}
@@ -4888,7 +4789,6 @@ retry:
 			++steps_since_last_connect;
 
 			// if there are no more free connection slots, abort
-			if (free_slots <= -m_half_open.limit()) break;
 			if (max_connections == 0) return;
 			// there are no more torrents that want peers
 			if (want_peers_download.empty() && want_peers_finished.empty()) break;
@@ -6730,9 +6630,8 @@ retry:
 		{
 			sleep(1000);
 			++counter;
-			printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== conn-queue: %d connecting: %d timeout (next: %f max: %f)\x1b[0m\n\n"
-				, counter, m_half_open.size(), m_half_open.num_connecting(), m_half_open.next_timeout()
-				, m_half_open.max_timeout());
+			printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
+				, counter);
 		}
 		async_dec_threads();
 
@@ -6748,7 +6647,6 @@ retry:
 		m_udp_socket.unsubscribe(&m_tracker_manager);
 
 		TORRENT_ASSERT(m_torrents.empty());
-		TORRENT_ASSERT(m_connections.empty());
 		TORRENT_ASSERT(m_connections.empty());
 
 #ifdef TORRENT_REQUEST_LOGGING
@@ -6798,11 +6696,6 @@ retry:
 		return m_settings.get_int(settings_pack::unchoke_slots_limit);
 	}
 
-	int session_impl::max_half_open_connections() const
-	{
-		return m_settings.get_int(settings_pack::half_open_limit);
-	}
-
 	void session_impl::set_local_download_rate_limit(int bytes_per_second)
 	{
 		settings_pack* p = new settings_pack;
@@ -6828,13 +6721,6 @@ retry:
 	{
 		settings_pack* p = new settings_pack;
 		p->set_int(settings_pack::upload_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
-	}
-
-	void session_impl::set_max_half_open_connections(int limit)
-	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::half_open_limit, limit);
 		apply_settings_pack(p);
 	}
 
@@ -7152,13 +7038,6 @@ retry:
 		m_listen_sockets.clear();
 	}
 
-	void session_impl::update_half_open()
-	{
-		if (m_settings.get_int(settings_pack::half_open_limit) <= 0)
-			m_settings.set_int(settings_pack::half_open_limit, (std::numeric_limits<int>::max)());
-		m_half_open.limit(m_settings.get_int(settings_pack::half_open_limit));
-	}
-
 #ifndef TORRENT_NO_DEPRECATE
 	void session_impl::update_local_download_rate()
 	{
@@ -7404,7 +7283,6 @@ retry:
 
 		// the upnp constructor may fail and call the callbacks
 		upnp* u = new (std::nothrow) upnp(m_io_service
-			, m_half_open
 			, m_listen_interface.address()
 			, m_settings.get_str(settings_pack::user_agent)
 			, boost::bind(&session_impl::on_port_mapping

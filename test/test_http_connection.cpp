@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/resolver.hpp"
 #include "setup_transfer.hpp"
@@ -45,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 io_service ios;
-connection_queue cq(ios);
 resolver res(ios);
 
 int connect_handler_called = 0;
@@ -118,7 +116,7 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " connected: " << connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
-	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
+	boost::shared_ptr<http_connection> h(new http_connection(ios
 		, res, &::http_handler, true, 1024*1024, &::http_connect_handler));
 	h->get(url, seconds(1), 0, &ps);
 	ios.reset();

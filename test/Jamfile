@@ -95,7 +95,6 @@ test-suite libtorrent :
 	[ run test_utf8.cpp ]
 	[ run test_gzip.cpp ]
 	[ run test_bitfield.cpp ]
-	[ run test_connection_queue.cpp ]
 	[ run test_recheck.cpp ]
 	[ run test_stat_cache.cpp ]
 	[ run test_part_file.cpp ]

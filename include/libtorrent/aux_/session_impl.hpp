@@ -78,7 +78,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/socket_type.hpp"
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
@@ -317,8 +316,7 @@ namespace libtorrent
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			void close_connection(peer_connection* p, error_code const& ec
-				, bool cancel_in_cq);
+			void close_connection(peer_connection* p, error_code const& ec);
 
 #ifndef TORRENT_NO_DEPRECATE
 			void set_settings(libtorrent::session_settings const& s);
@@ -472,17 +470,12 @@ namespace libtorrent
 			void set_local_upload_rate_limit(int bytes_per_second);
 			void set_download_rate_limit(int bytes_per_second);
 			void set_upload_rate_limit(int bytes_per_second);
-			void set_max_half_open_connections(int limit);
 			void set_max_connections(int limit);
 			void set_max_uploads(int limit);
 
 			int max_connections() const;
 			int max_uploads() const;
-			int max_half_open_connections() const;
 #endif
-
-			bool half_open_done(int ticket)
-			{ return m_half_open.done(ticket); }
 
 			bandwidth_manager* get_bandwidth_manager(int channel);
 
@@ -638,7 +631,6 @@ namespace libtorrent
 
 			std::vector<block_info>& block_info_storage() { return m_block_info_storage; }
 
-			connection_queue& half_open() { return m_half_open; }
 			libtorrent::utp_socket_manager* utp_socket_manager() { return &m_utp_socket_manager; }
 			void inc_boost_connections() { ++m_boost_connections; }
 
@@ -685,7 +677,6 @@ namespace libtorrent
 			void update_dht_announce_interval();
 			void update_anonymous_mode();
 			void update_force_proxy();
-			void update_half_open();
 			void update_download_rate();
 			void update_upload_rate();
 			void update_connections_limit();
@@ -746,12 +737,6 @@ namespace libtorrent
 			// a thread pool used for async_write_some calls,
 			// to distribute its cost to multiple threads
 			std::vector<boost::shared_ptr<network_thread_pool> > m_net_thread_pool;
-
-			// this is a list of half-open tcp connections
-			// (only outgoing connections)
-			// this has to be one of the last
-			// members to be destructed
-			connection_queue m_half_open;
 
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that

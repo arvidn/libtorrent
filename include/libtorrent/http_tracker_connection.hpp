@@ -58,7 +58,6 @@ namespace libtorrent
 	struct http_connection;
 	class entry;
 	class http_parser;
-	class connection_queue;
 	namespace aux { struct session_impl; struct session_settings; }
 
 	class TORRENT_EXTRA_EXPORT http_tracker_connection
@@ -69,7 +68,6 @@ namespace libtorrent
 
 		http_tracker_connection(
 			io_service& ios
-			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
 			, boost::weak_ptr<request_callback> c
@@ -99,7 +97,6 @@ namespace libtorrent
 		boost::shared_ptr<http_connection> m_tracker_connection;
 		aux::session_impl& m_ses;
 		address m_tracker_ip;
-		connection_queue& m_cc;
 		io_service& m_ios;
 #if TORRENT_USE_I2P
 		i2p_connection* m_i2p_conn;
