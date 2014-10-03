@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
-#include "libtorrent/connection_queue.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
@@ -152,8 +151,7 @@ int run_upnp_test(char const* root_filename, char const* router_model, char cons
 
 	std::string user_agent = "test agent";
 
-	connection_queue cc(ios);
-	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4::from_string("127.0.0.1")
+	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, address_v4::from_string("127.0.0.1")
 		, user_agent, &callback, &log_callback, false);
 	upnp_handler->discover_device();
 

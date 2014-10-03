@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/xml_parse.hpp"
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/random.hpp"
@@ -70,7 +69,7 @@ namespace upnp_errors
 static error_code ec;
 
 // TODO: listen_interface is not used. It's meant to bind the broadcast socket
-upnp::upnp(io_service& ios, connection_queue& cc
+upnp::upnp(io_service& ios
 	, address const& listen_interface, std::string const& user_agent
 	, portmap_callback_t const& cb, log_callback_t const& lcb
 	, bool ignore_nonrouters, void* state)
@@ -88,7 +87,6 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_disabled(false)
 	, m_closing(false)
 	, m_ignore_non_routers(ignore_nonrouters)
-	, m_cc(cc)
 	, m_last_if_update(min_time())
 {
 	TORRENT_ASSERT(cb);
@@ -312,7 +310,7 @@ void upnp::resend_request(error_code const& ec)
 				log(msg, l);
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
-					, m_cc, m_resolver
+					, m_resolver
 					, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
@@ -633,7 +631,7 @@ void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
 
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
-					, m_cc, m_resolver
+					, m_resolver
 					, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
@@ -777,7 +775,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, m_resolver
+			, m_resolver
 			, boost::bind(&upnp::on_upnp_map_response, self(), _1, _2
 			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, boost::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
@@ -789,7 +787,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
-			, m_cc, m_resolver
+			, m_resolver
 			, boost::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
 			, boost::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
@@ -1040,7 +1038,7 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	d.upnp_connection.reset(new http_connection(m_io_service
-		, m_cc, m_resolver
+		, m_resolver
 		, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
 		, boost::ref(d), _5), true, default_max_bottled_buffer_size 
 		, boost::bind(&upnp::get_ip_address, self(), boost::ref(d))));

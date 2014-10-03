@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/connection_interface.hpp"
 
 #include "libtorrent/i2p_stream.hpp"
 
@@ -62,7 +61,6 @@ namespace libtorrent
 {
 
 struct http_connection;
-class connection_queue;
 struct resolver_interface;
 
 const int default_max_bottled_buffer_size = 2*1024*1024;
@@ -77,12 +75,10 @@ typedef boost::function<void(http_connection&, std::vector<tcp::endpoint>&)> htt
 // when bottled, the last two arguments to the handler
 // will always be 0
 struct TORRENT_EXTRA_EXPORT http_connection
-	: connection_interface
-	, boost::enable_shared_from_this<http_connection>
+	: boost::enable_shared_from_this<http_connection>
 	, boost::noncopyable
 {
 	http_connection(io_service& ios
-		, connection_queue& cc
 		, resolver_interface& resolver
 		, http_handler const& handler
 		, bool bottled = true
@@ -136,9 +132,7 @@ private:
 #endif
 	void on_resolve(error_code const& e
 		, std::vector<address> const& addresses);
-	void queue_connect();
-	void on_allow_connect(int ticket);
-	void on_connect_timeout();
+	void connect();
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
@@ -155,11 +149,6 @@ private:
 	std::string m_user_agent;
 
 	std::vector<tcp::endpoint> m_endpoints;
-
-	// used to keep us alive when queued in the connection_queue
-	boost::shared_ptr<http_connection> m_self_reference;
-
-	connection_queue& m_cc;
 
 #ifdef TORRENT_USE_OPENSSL
 	asio::ssl::context* m_ssl_ctx;
@@ -201,8 +190,6 @@ private:
 	// the number of redirects to follow (in sequence)
 	int m_redirects;
 
-	int m_connection_ticket;
-
 	// maximum size of bottled buffer
 	int m_max_bottled_buffer_size;
 	
@@ -235,8 +222,6 @@ private:
 	// quota is 0. If it isn't 0 wait for it to reach
 	// 0 and continue to hand out quota at that time.
 	bool m_limiter_timer_active;
-
-	bool m_queued_for_connection;
 
 	// true if the connection is using ssl
 	bool m_ssl;

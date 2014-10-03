@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp" // peer_entry
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/union_endpoint.hpp"
@@ -319,7 +318,6 @@ namespace libtorrent
 
 		void queue_request(
 			io_service& ios
-			, connection_queue& cc
 			, tracker_request r
 			, std::string const& auth
 			, boost::weak_ptr<request_callback> c

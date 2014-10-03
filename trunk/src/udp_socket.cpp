@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp" // for print_backtrace
 #include "libtorrent/socket.hpp"
 #include "libtorrent/udp_socket.hpp"
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
@@ -56,10 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-udp_socket::udp_socket(asio::io_service& ios
-	, connection_queue& cc)
+udp_socket::udp_socket(asio::io_service& ios)
 	: m_observers_locked(false)
 	, m_ipv4_sock(ios)
+	, m_timer(ios)
 	, m_buf_size(0)
 	, m_new_buf_size(0)
 	, m_buf(0)
@@ -72,8 +71,6 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_v6_outstanding(0)
 #endif
 	, m_socks5_sock(ios)
-	, m_connection_ticket(-1)
-	, m_cc(cc)
 	, m_resolver(ios)
 	, m_queue_packets(false)
 	, m_tunnel_packets(false)
@@ -89,7 +86,6 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_magic = 0x1337;
 	m_started = false;
 	m_outstanding_when_aborted = -1;
-	m_outstanding_connect_queue = 0;
 	m_outstanding_connect = 0;
 	m_outstanding_timeout = 0;
 	m_outstanding_resolve = 0;
@@ -636,36 +632,12 @@ void udp_socket::close()
 		m_socks5_sock.close(ec);
 	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
 	m_resolver.cancel();
+	m_timer.cancel();
 	m_abort = true;
 
 #if TORRENT_USE_ASSERTS
 	m_outstanding_when_aborted = num_outstanding();
 #endif
-
-	if (m_connection_ticket >= 0)
-	{
-		if (m_cc.done(m_connection_ticket))
-			m_connection_ticket = -1;
-
-		// we just called done, which means on_timeout
-		// won't be called. Decrement the outstanding
-		// ops counter for that
-#if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT(m_outstanding_timeout > 0);
-		--m_outstanding_timeout;
-
-		print_backtrace(timeout_stack, sizeof(timeout_stack));
-#endif
-		TORRENT_ASSERT(m_outstanding_ops > 0);
-		--m_outstanding_ops;
-		TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-			+ m_outstanding_timeout
-			+ m_outstanding_resolve
-			+ m_outstanding_connect_queue
-			+ m_outstanding_socks);
-		if (m_abort) return;
-	}
-
 }
 
 void udp_socket::set_buf_size(int s)
@@ -811,7 +783,6 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 
 	if (m_abort) return;
@@ -842,104 +813,10 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
-	// on_connect may be called from within this thread
-	// the semantics for on_connect and on_timeout is 
-	// a bit complicated. See comments in connection_queue.hpp
-	// for more details. This semantic determines how and
-	// when m_outstanding_ops may be decremented
-	// To simplyfy this, it's probably a good idea to
-	// merge on_connect and on_timeout to a single function
-
-	// on_timeout may be called before on_connected
-	// so increment the outstanding ops
-	// it may also not be called in case we call
-	// connection_queue::done first, so be sure to
-	// decrement if that happens
-	m_outstanding_ops += 2;
-
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_timeout;
-	++m_outstanding_connect_queue;
-#endif
-	m_cc.enqueue(this, seconds(10));
-}
-
-void udp_socket::on_connect_timeout()
-{
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_timeout > 0);
-	--m_outstanding_timeout;
-	print_backtrace(timeout_stack, sizeof(timeout_stack));
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
-		+ m_outstanding_socks);
-	m_queue_packets = false;
-
-	if (m_abort) return;
-
-	CHECK_MAGIC;
-	TORRENT_ASSERT(is_single_thread());
-
-	error_code ec;
-	m_socks5_sock.close(ec);
-	TORRENT_ASSERT(m_cc.done(m_connection_ticket) == false);
-	m_connection_ticket = -1;
-}
-
-void udp_socket::on_allow_connect(int ticket)
-{
-	TORRENT_ASSERT(is_single_thread());
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_connect_queue > 0);
-	--m_outstanding_connect_queue;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
-		+ m_outstanding_socks);
-
-	CHECK_MAGIC;
-
-	if (ticket == -1)
-	{
-#if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT(m_outstanding_timeout > 0);
-		--m_outstanding_timeout;
-		print_backtrace(timeout_stack, sizeof(timeout_stack));
-#endif
-		TORRENT_ASSERT(m_outstanding_ops > 0);
-		--m_outstanding_ops;
-		TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-			+ m_outstanding_timeout
-			+ m_outstanding_resolve
-			+ m_outstanding_connect_queue
-			+ m_outstanding_socks);
-		close();
-		return;
-	}
-
-	if (m_abort) return;
-	if (is_closed()) return;
-
-	if (m_connection_ticket != -1)
-	{
-		// there's already an outstanding connect. Cancel it.
-		m_socks5_sock.close();
-		m_connection_ticket = -1;
-	}
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_connected");
 #endif
-	m_connection_ticket = ticket;
 
 	error_code ec;
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
@@ -952,14 +829,55 @@ void udp_socket::on_allow_connect(int ticket)
 	++m_outstanding_connect;
 #endif
 	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
-		, boost::bind(&udp_socket::on_connected, this, _1, ticket));
+		, boost::bind(&udp_socket::on_connected, this, _1));
+
+	++m_outstanding_ops;
+#if TORRENT_USE_ASSERTS
+	++m_outstanding_timeout;
+#endif
+
+#if defined TORRENT_ASIO_DEBUGGING
+	add_outstanding_async("udp_socket::on_connect_timeout");
+#endif
+	m_timer.expires_from_now(seconds(10));
+	m_timer.async_wait(boost::bind(&udp_socket::on_connect_timeout
+		, this, _1));
 }
 
-void udp_socket::on_connected(error_code const& e, int ticket)
+void udp_socket::on_connect_timeout(error_code const& ec)
+{
+#if TORRENT_USE_ASSERTS
+	TORRENT_ASSERT(m_outstanding_timeout > 0);
+	--m_outstanding_timeout;
+#endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_socks);
+
+	if (ec == boost::asio::error::operation_aborted) return;
+
+	m_queue_packets = false;
+
+	if (m_abort) return;
+
+	CHECK_MAGIC;
+	TORRENT_ASSERT(is_single_thread());
+
+	error_code ignore;
+	m_socks5_sock.close(ignore);
+}
+
+void udp_socket::on_connected(error_code const& e)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_connected");
 #endif
+
+	TORRENT_ASSERT(is_single_thread());
+
 #if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_outstanding_connect > 0);
 	--m_outstanding_connect;
@@ -969,41 +887,12 @@ void udp_socket::on_connected(error_code const& e, int ticket)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 	CHECK_MAGIC;
 
-	TORRENT_ASSERT(is_single_thread());
-	if (m_cc.done(ticket))
-	{
-		// if the tickets mismatch, another connection attempt
-		// was initiated while waiting for this one to complete.
-		if (ticket == m_connection_ticket)
-			m_connection_ticket = -1;
-	}
-
-	// we just called done, which means on_timeout
-	// won't be called. Decrement the outstanding
-	// ops counter for that
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_timeout > 0);
-	--m_outstanding_timeout;
-	print_backtrace(timeout_stack, sizeof(timeout_stack));
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
-		+ m_outstanding_socks);
+	m_timer.cancel();
 
 	if (e == asio::error::operation_aborted) return;
-
-	// if ticket != m_connection_ticket, it means m_connection_ticket
-	// will not have been reset, and it means we are still waiting
-	// for a connection attempt.
-	if (m_connection_ticket != -1) return;
 
 	if (m_abort) return;
 
@@ -1056,7 +945,6 @@ void udp_socket::handshake1(error_code const& e)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 	if (m_abort) return;
 	CHECK_MAGIC;
@@ -1093,7 +981,6 @@ void udp_socket::handshake2(error_code const& e)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 	if (m_abort) return;
 	CHECK_MAGIC;
@@ -1175,7 +1062,6 @@ void udp_socket::handshake3(error_code const& e)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 	if (m_abort) return;
 	CHECK_MAGIC;
@@ -1212,7 +1098,6 @@ void udp_socket::handshake4(error_code const& e)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 	if (m_abort) return;
 	CHECK_MAGIC;
@@ -1279,7 +1164,6 @@ void udp_socket::connect1(error_code const& e)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 	if (m_abort) return;
 	CHECK_MAGIC;
@@ -1316,7 +1200,6 @@ void udp_socket::connect2(error_code const& e)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 
 	if (m_abort)
@@ -1388,7 +1271,6 @@ void udp_socket::hung_up(error_code const& e)
 	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
-		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
 	if (m_abort) return;
 	CHECK_MAGIC;
@@ -1423,9 +1305,8 @@ void udp_socket::drain_queue()
 	}
 }
 
-rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
-	, connection_queue& cc)
-	: udp_socket(ios, cc)
+rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios)
+	: udp_socket(ios)
 	, m_rate_limit(8000)
 	, m_quota(8000)
 	, m_last_tick(time_now())

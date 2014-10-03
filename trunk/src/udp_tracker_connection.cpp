@@ -64,7 +64,6 @@ namespace libtorrent
 	// TODO: 2 it would be nice to not have a dependency on session_impl here
 	udp_tracker_connection::udp_tracker_connection(
 		io_service& ios
-		, connection_queue& cc
 		, tracker_manager& man
 		, tracker_request const& req
 		, boost::weak_ptr<request_callback> c

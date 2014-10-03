@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/gzip.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/socket_type.hpp" // for async_shutdown
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/settings_pack.hpp"
@@ -52,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 http_connection::http_connection(io_service& ios
-	, connection_queue& cc
 	, resolver_interface& resolver
 	, http_handler const& handler
 	, bool bottled
@@ -63,16 +61,16 @@ http_connection::http_connection(io_service& ios
 	, boost::asio::ssl::context* ssl_ctx
 #endif
 	)
-	: m_cc(cc)
+	:
 #ifdef TORRENT_USE_OPENSSL
-	, m_ssl_ctx(ssl_ctx)
-	, m_own_ssl_context(false)
+	m_ssl_ctx(ssl_ctx),
+	m_own_ssl_context(false),
 #endif
-	, m_sock(ios)
+	m_sock(ios),
 #if TORRENT_USE_I2P
-	, m_i2p_conn(0)
+	m_i2p_conn(0),
 #endif
-	, m_resolver(resolver)
+	m_resolver(resolver)
 	, m_handler(handler)
 	, m_connect_handler(ch)
 	, m_filter_handler(fh)
@@ -82,7 +80,6 @@ http_connection::http_connection(io_service& ios
 	, m_start_time(time_now())
 	, m_read_pos(0)
 	, m_redirects(5)
-	, m_connection_ticket(-1)
 	, m_max_bottled_buffer_size(max_bottled_buffer_size)
 	, m_rate_limit(0)
 	, m_download_quota(0)
@@ -92,7 +89,6 @@ http_connection::http_connection(io_service& ios
 	, m_bottled(bottled)
 	, m_called(false)
 	, m_limiter_timer_active(false)
-	, m_queued_for_connection(false)
 	, m_ssl(false)
 	, m_abort(false)
 {
@@ -101,7 +97,6 @@ http_connection::http_connection(io_service& ios
 
 http_connection::~http_connection()
 {
-	TORRENT_ASSERT(m_connection_ticket == -1);
 #ifdef TORRENT_USE_OPENSSL
 	if (m_own_ssl_context) delete m_ssl_ctx;
 #endif
@@ -242,7 +237,8 @@ void http_connection::start(std::string const& hostname, int port
 	m_read_timeout = seconds(5);
 	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
 	error_code ec;
-	m_timer.expires_from_now(m_completion_timeout, ec);
+	m_timer.expires_from_now((std::min)(
+		m_read_timeout, m_completion_timeout), ec);
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_timeout");
 #endif
@@ -384,14 +380,13 @@ void http_connection::start(std::string const& hostname, int port
 			m_hostname = hostname;
 			m_port = port;
 			m_endpoints.push_back(tcp::endpoint(address(), port));
-			queue_connect();
+			connect();
 		}
 		else
 		{
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_resolve");
 #endif
-			TORRENT_ASSERT(!m_self_reference);
 			m_endpoints.clear();
 			m_resolver.async_resolve(hostname, m_resolve_flags
 				, boost::bind(&http_connection::on_resolve
@@ -400,21 +395,6 @@ void http_connection::start(std::string const& hostname, int port
 		m_hostname = hostname;
 		m_port = port;
 	}
-}
-
-void http_connection::on_connect_timeout()
-{
-	TORRENT_ASSERT(m_connection_ticket > -1);
-	TORRENT_ASSERT(!m_queued_for_connection);
-
-	// keep ourselves alive even if the callback function
-	// deletes this object
-	boost::shared_ptr<http_connection> me(shared_from_this());
-
-	error_code ec;
-	m_sock.close(ec);
-
-	m_self_reference.reset();
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
@@ -433,27 +413,26 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	if (c->m_start_time + c->m_completion_timeout < now
 		|| c->m_last_receive + c->m_read_timeout < now)
 	{
-		if (c->m_connection_ticket > -1 && !c->m_endpoints.empty())
+		if (!c->m_endpoints.empty())
 		{
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_timeout");
 #endif
 			error_code ec;
 			async_shutdown(c->m_sock, c);
-			c->m_timer.expires_at((std::min)(
-				c->m_last_receive + c->m_read_timeout
-				, c->m_start_time + c->m_completion_timeout), ec);
-			c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
 		}
 		else
 		{
 			c->callback(asio::error::timed_out);
 			c->close(true);
+			return;
 		}
-		return;
+	}
+	else
+	{
+		if (!c->m_sock.is_open()) return;
 	}
 
-	if (!c->m_sock.is_open()) return;
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_timeout");
 #endif
@@ -473,15 +452,6 @@ void http_connection::close(bool force)
 		m_sock.close(ec);
 	else
 		async_shutdown(m_sock, shared_from_this());
-
-	if (m_queued_for_connection)
-		m_cc.cancel(this);
-
-	if (m_connection_ticket > -1)
-	{
-		m_cc.done(m_connection_ticket);
-		m_connection_ticket = -1;
-	}
 
 	m_timer.cancel(ec);
 	m_limiter_timer.cancel(ec);
@@ -568,45 +538,24 @@ void http_connection::on_resolve(error_code const& e
 				== m_bind_addr.is_v4());
 #endif
 
-	queue_connect();
+	connect();
 }
 
-void http_connection::queue_connect()
+void http_connection::connect()
 {
 	TORRENT_ASSERT(!m_endpoints.empty());
-	m_self_reference = shared_from_this();
-	m_cc.enqueue(this, m_read_timeout, m_priority);
-	m_queued_for_connection = true;
-}
-
-void http_connection::on_allow_connect(int ticket)
-{
-	TORRENT_ASSERT(m_queued_for_connection);
-	m_queued_for_connection = false;
 
 	boost::shared_ptr<http_connection> me(shared_from_this());
-	m_self_reference.reset();
 #if defined TORRENT_ASIO_DEBUGGING
 	TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
 #endif
 
-	if (ticket == -1)
-	{
-		close();
-		return;
-	}
-
 	TORRENT_ASSERT(!m_endpoints.empty());
-	if (m_endpoints.empty())
-	{
-		m_cc.done(ticket);
-		return;
-	}
+	if (m_endpoints.empty()) return;
 
 	tcp::endpoint target_address = m_endpoints.front();
 	m_endpoints.erase(m_endpoints.begin());
 
-	m_connection_ticket = ticket;
 	if (m_proxy.proxy_hostnames
 		&& (m_proxy.type == settings_pack::socks5
 			|| m_proxy.type == settings_pack::socks5_pw))
@@ -638,11 +587,6 @@ void http_connection::on_connect(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_connect");
 #endif
-	if (m_connection_ticket >= 0)
-	{
-		m_cc.done(m_connection_ticket);
-		m_connection_ticket = -1;
-	}
 
 	m_last_receive = time_now_hires();
 	m_start_time = m_last_receive;
@@ -660,7 +604,7 @@ void http_connection::on_connect(error_code const& e)
 		// The connection failed. Try the next endpoint in the list.
 		error_code ec;
 		m_sock.close(ec);
-		queue_connect();
+		connect();
 	} 
 	else
 	{ 

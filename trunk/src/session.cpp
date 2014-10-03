@@ -1085,16 +1085,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_max_connections, limit);
 	}
 
-	int session::max_half_open_connections() const
-	{
-		return TORRENT_SYNC_CALL_RET(int, max_half_open_connections);
-	}
-
-	void session::set_max_half_open_connections(int limit)
-	{
-		TORRENT_ASYNC_CALL1(set_max_half_open_connections, limit);
-	}
-
 	int session::local_upload_rate_limit() const
 	{
 		return TORRENT_SYNC_CALL_RET(int, local_upload_rate_limit);
@@ -1262,11 +1252,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(delete_port_mapping, handle);
 	}
 	
-	connection_queue& session::get_connection_queue()
-	{
-		return m_impl->m_half_open;
-	}
-
 #ifndef TORRENT_NO_DEPRECATE
 	session_settings::session_settings(std::string const& user_agent_)
 	{

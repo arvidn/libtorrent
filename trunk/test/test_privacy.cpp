@@ -99,7 +99,9 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	sett.set_int(settings_pack::stop_tracker_timeout, 2);
 	sett.set_int(settings_pack::tracker_completion_timeout, 2);
 	sett.set_int(settings_pack::tracker_receive_timeout, 2);
+#ifndef TORRENT_NO_DEPRECATE
 	sett.set_int(settings_pack::half_open_limit, 2);
+#endif
 	sett.set_bool(settings_pack::announce_to_all_trackers, true);
 	sett.set_bool(settings_pack::announce_to_all_tiers, true);
 	sett.set_bool(settings_pack::force_proxy, flags & force_proxy_mode);

@@ -786,7 +786,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_url.empty());
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
 		boost::shared_ptr<http_connection> conn(
-			new http_connection(m_ses.get_io_service(), m_ses.half_open()
+			new http_connection(m_ses.get_io_service()
 				, m_ses.get_resolver()
 				, boost::bind(&torrent::on_torrent_download, shared_from_this()
 					, _1, _2, _3, _4)
@@ -3357,10 +3357,9 @@ namespace libtorrent
 		// this is the first tracker response for this torrent
 		// instead of waiting one second for session_impl::on_tick()
 		// to be called, connect to a few peers immediately
-		int conns = (std::min)((std::min)(
+		int conns = (std::min)(
 			m_ses.settings().get_int(settings_pack::torrent_connect_boost)
-			, m_ses.settings().get_int(settings_pack::connections_limit) - m_ses.num_connections())
-			, m_ses.half_open().free_slots());
+			, m_ses.settings().get_int(settings_pack::connections_limit) - m_ses.num_connections());
 
 		if (conns > 0) m_need_connect_boost = false;
 
@@ -6328,10 +6327,6 @@ namespace libtorrent
 
 			if (c->is_disconnecting()) return;
 
-			c->m_queued_for_connection = true;
-			m_ses.half_open().enqueue(c.get()
-				, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
-
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			debug_log("START queue peer [%p] (%d)", c.get(), num_peers());
 #endif
@@ -6371,7 +6366,6 @@ namespace libtorrent
 			|| is_local(p->remote().address())
 			|| p->has_country()
 			|| p->is_connecting()
-			|| p->is_queued()
 			|| p->in_handshake()
 			|| p->remote().address().is_v6()) return;
 
@@ -7191,9 +7185,6 @@ namespace libtorrent
 		}
 #endif
 
-		// extend connect timeout by this many seconds
-		int timeout_extend = 0;
-
 		TORRENT_ASSERT(want_peers() || ignore_limit);
 		TORRENT_ASSERT(m_ses.num_connections()
 			< m_ses.settings().get_int(settings_pack::connections_limit) || ignore_limit);
@@ -7224,8 +7215,6 @@ namespace libtorrent
 			s->get<i2p_stream>()->set_destination(static_cast<i2p_peer*>(peerinfo)->destination);
 			s->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
 			s->get<i2p_stream>()->set_session_id(m_ses.i2p_session());
-			// i2p setups are slow
-			timeout_extend = 20;
 		}
 		else
 #endif
@@ -7249,12 +7238,11 @@ namespace libtorrent
 			if (is_ssl_torrent() && m_ses.settings().get_int(settings_pack::ssl_listen) != 0)
 			{
 				userdata = m_ssl_ctx.get();
-				// SSL handshakes are slow
-				timeout_extend = 10;
 			}
 #endif
 
-			bool ret = instantiate_connection(m_ses.get_io_service(), m_ses.proxy(), *s, userdata, sm, true);
+			bool ret = instantiate_connection(m_ses.get_io_service()
+				, m_ses.proxy(), *s, userdata, sm, true);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 
@@ -7297,55 +7285,43 @@ namespace libtorrent
 		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
 			boost::cref(pack), m_ses.get_peer_id());
 
-#if TORRENT_USE_ASSERTS
-		c->m_in_constructor = false;
-#endif
-
- 		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
-			, size_type(peerinfo->prev_amount_upload) << 10);
- 		peerinfo->prev_amount_download = 0;
- 		peerinfo->prev_amount_upload = 0;
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			TORRENT_TRY {
-				boost::shared_ptr<peer_plugin> pp((*i)->new_connection(c.get()));
-				if (pp) c->add_extension(pp);
-			} TORRENT_CATCH (std::exception&) {}
-		}
-#endif
-
-		// add the newly connected peer to this torrent's peer list
-		sorted_insert(m_connections, boost::get_pointer(c));
-		m_ses.insert_peer(c);
-		need_policy();
-		m_policy->set_connection(peerinfo, c.get());
-		if (peerinfo->seed)
-		{
-			TORRENT_ASSERT(m_num_seeds < 0xffff);
-			++m_num_seeds;
-		}
-		update_want_peers();
-		update_want_tick();
-		c->start();
-
-		if (c->is_disconnecting()) return false;
-
-		int timeout = settings().get_int(settings_pack::peer_connect_timeout);
-		if (peerinfo) timeout += 3 * peerinfo->failcount;
-		timeout += timeout_extend;
-
 		TORRENT_TRY
 		{
-			c->m_queued_for_connection = true;
-			m_ses.half_open().enqueue(c.get()
-				, seconds(timeout));
-
-#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			debug_log("START queue peer [%p] (%d)", c.get(), num_peers());
+#if TORRENT_USE_ASSERTS
+			c->m_in_constructor = false;
 #endif
+
+	 		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
+				, size_type(peerinfo->prev_amount_upload) << 10);
+	 		peerinfo->prev_amount_download = 0;
+	 		peerinfo->prev_amount_upload = 0;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			for (extension_list_t::iterator i = m_extensions.begin()
+				, end(m_extensions.end()); i != end; ++i)
+			{
+				TORRENT_TRY {
+					boost::shared_ptr<peer_plugin> pp((*i)->new_connection(c.get()));
+					if (pp) c->add_extension(pp);
+				} TORRENT_CATCH (std::exception&) {}
+			}
+#endif
+
+			// add the newly connected peer to this torrent's peer list
+			sorted_insert(m_connections, boost::get_pointer(c));
+			m_ses.insert_peer(c);
+			need_policy();
+			m_policy->set_connection(peerinfo, c.get());
+			if (peerinfo->seed)
+			{
+				TORRENT_ASSERT(m_num_seeds < 0xffff);
+				++m_num_seeds;
+			}
+			update_want_peers();
+			update_want_tick();
+			c->start();
+
+			if (c->is_disconnecting()) return false;
 		}
 		TORRENT_CATCH (std::exception&)
 		{

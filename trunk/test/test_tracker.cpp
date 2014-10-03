@@ -218,7 +218,9 @@ int test_main()
 	lt::session* s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
 	settings_pack pack;
+#ifndef TORRENT_NO_DEPRECATE
 	pack.set_int(settings_pack::half_open_limit, 1);
+#endif
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 	s->apply_settings(pack);
@@ -273,7 +275,9 @@ int test_main()
 	s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
 
 	pack.clear();
+#ifndef TORRENT_NO_DEPRECATE
 	pack.set_int(settings_pack::half_open_limit, 1);
+#endif
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, false);
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);

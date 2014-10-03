@@ -223,7 +223,6 @@ namespace libtorrent
 
 	void tracker_manager::queue_request(
 		io_service& ios
-		, connection_queue& cc
 		, tracker_request req
 		, std::string const& auth
 		, boost::weak_ptr<request_callback> c)
@@ -250,7 +249,7 @@ namespace libtorrent
 #endif
 		{
 			con = new http_tracker_connection(
-				ios, cc, *this, req, c
+				ios, *this, req, c
 				, m_ses, auth
 #if TORRENT_USE_I2P
 				, &m_ses.m_i2p_conn
@@ -260,7 +259,7 @@ namespace libtorrent
 		else if (protocol == "udp")
 		{
 			con = new udp_tracker_connection(
-				ios, cc, *this, req , c, m_ses, m_ses.proxy());
+				ios, *this, req , c, m_ses, m_ses.proxy());
 		}
 		else
 		{
