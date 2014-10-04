@@ -4838,8 +4838,10 @@ namespace libtorrent
 		// the peer and disconnect it
 		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network) != 0;
 
-		// TODO: 4 use a deadline_timer for timeouts. Don't rely on second_tick()!
-		// Hook this up to connect timeout as well
+		// TODO: 2 use a deadline_timer for timeouts. Don't rely on second_tick()!
+		// Hook this up to connect timeout as well. This would improve performance
+		// because of less work in second_tick(), and might let use remove ticking
+		// entirely eventually
 		if (may_timeout && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
 			&& can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category())))
 		{
