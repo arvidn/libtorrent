@@ -546,9 +546,6 @@ void http_connection::connect()
 	TORRENT_ASSERT(!m_endpoints.empty());
 
 	boost::shared_ptr<http_connection> me(shared_from_this());
-#if defined TORRENT_ASIO_DEBUGGING
-	TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
-#endif
 
 	TORRENT_ASSERT(!m_endpoints.empty());
 	if (m_endpoints.empty()) return;
