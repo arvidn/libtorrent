@@ -432,10 +432,7 @@ namespace libtorrent
 		// file_storage, otherwise returns the original file_storage object.
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
-		// we need access to these for logging purposes
-#if !defined TORRENT_VERBOSE_LOGGING && !defined TORRENT_LOGGING && !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
 
 		// this identifies a read or write operation
 		// so that default_storage::readwritev() knows what to
