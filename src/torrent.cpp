@@ -3180,7 +3180,7 @@ namespace libtorrent
 				"peers:"
 			, interval
 			, print_address(resp.external_ip).c_str()
-			, print_address(resp.tracker_ip).c_str());
+			, print_address(tracker_ip).c_str());
 
 		for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
 			i != resp.peers.end(); ++i)
@@ -3192,13 +3192,13 @@ namespace libtorrent
 		for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
 			i != resp.peers4.end(); ++i)
 		{
-			debug_log("  %16s %5d", print_address(i->ip).c_str(), i->port);
+			debug_log("  %s:%d", print_address(address_v4(i->ip)).c_str(), i->port);
 		}
 #if TORRENT_USE_IPV6
 		for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
 			i != resp.peers6.end(); ++i)
 		{
-			debug_log("  %16s %5d", print_address(i->ip).c_str(), i->port);
+			debug_log("  [%s]:%d", print_address(address_v6(i->ip)).c_str(), i->port);
 		}
 #endif
 #endif
@@ -9319,7 +9319,8 @@ namespace libtorrent
 		char msg[200];
 		snprintf(msg, sizeof(msg), "*** update tracker timer: next_announce < now %d"
 			" m_waiting_tracker: %d next_announce_in: %d"
-			, next_announce <= now, m_waiting_tracker, total_seconds(now - next_announce));
+			, next_announce <= now, m_waiting_tracker
+			, int(total_seconds(now - next_announce)));
 		debug_log(msg);
 #endif
 		if (next_announce <= now) next_announce = now;

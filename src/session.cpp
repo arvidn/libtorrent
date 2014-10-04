@@ -1065,6 +1065,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_NO_DEPRECATE
+	void session::set_max_half_open_connections(int limit) {}
+	int session::max_half_open_connections() const { return 8; }
+
 	int session::max_uploads() const
 	{
 		return TORRENT_SYNC_CALL_RET(int, max_uploads);

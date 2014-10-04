@@ -7,6 +7,7 @@
 #include <libtorrent/torrent_info.hpp>
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/socket_io.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;
@@ -59,8 +60,11 @@ namespace
             d["retry"] = total_seconds(i->retry - min_time());
             d["resolving"] = i->resolving;
             d["removed"] = i->removed;
-            d["endpoint"] = make_tuple(
-                boost::lexical_cast<std::string>(i->endpoint.address()), i->endpoint.port());
+				list endpoints;
+				for (std::vector<tcp::endpoint>::const_iterator k = i->endpoints.begin()
+					, end(i->endpoints.end()); k != end; ++k)
+					endpoints.append(make_tuple(print_address(k->address()), k->port()));
+            d["endpoints"] = endpoints;
             ret.append(d);
         }
 
