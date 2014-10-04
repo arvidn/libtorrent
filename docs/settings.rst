@@ -809,7 +809,7 @@ mode.
 +----------------+------+---------+
 | name           | type | default |
 +================+======+=========+
-| anonymous_mode | bool | true    |
+| anonymous_mode | bool | false   |
 +----------------+------+---------+
 
 ``anonymous_mode`` defaults to false. When set to true, the client tries
@@ -1275,6 +1275,23 @@ any). This is only supported by SOCKS5 and HTTP.
 
 if true, peer connections are made (and accepted) over the
 configured proxy, if any.
+
+.. _auto_sequential:
+
+.. raw:: html
+
+	<a name="auto_sequential"></a>
+
++-----------------+------+---------+
+| name            | type | default |
++=================+======+=========+
+| auto_sequential | bool | true    |
++-----------------+------+---------+
+
+if this setting is true, torrents with a very high availability
+of pieces (and seeds) are downloaded sequentially. This is more
+efficient for the disk I/O. With many seeds, the download order
+is unlikely to matter anyway
 
 .. _tracker_completion_timeout:
 
@@ -2632,28 +2649,6 @@ that requires more DHT traffic, this should be raised.
 ``unchoke_slots_limit`` is the max number of unchoked peers in the session.
 The number of unchoke slots may be ignored depending on what
 ``choking_algorithm`` is set to.
-
-.. _half_open_limit:
-
-.. raw:: html
-
-	<a name="half_open_limit"></a>
-
-+-----------------+------+---------+
-| name            | type | default |
-+=================+======+=========+
-| half_open_limit | int  | 0       |
-+-----------------+------+---------+
-
-``half_open_limit`` sets the maximum number of half-open connections
-libtorrent will have when connecting to peers. A half-open connection is one
-where connect() has been called, but the connection still hasn't been established
-(nor failed). Windows XP Service Pack 2 sets a default, system wide, limit of
-the number of half-open connections to 10. So, this limit can be used to work
-nicer together with other network applications on that system. The default is
-to have no limit, and passing -1 as the limit, means to have no limit. When
-limiting the number of simultaneous connection attempts, peers will be put in
-a queue waiting for their turn to get connected.
 
 .. _connections_limit:
 
