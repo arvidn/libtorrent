@@ -90,13 +90,6 @@ char const* bootstrap::name() const { return "bootstrap"; }
 
 void bootstrap::done()
 {
-	// TODO: 4 when bootstrapping against our own IP completes,
-	// continue to issue another bootstrap against the deepest,
-	// non-full bucket. when it completes, issue a bootstrap against
-	// one bucket above it, and so on until the bootstrap lookup
-	// against the top level bucket (bucket 0) completes. That's
-	// when the bootstrap is done
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(traversal) << "[" << this << "]"
 		<< " bootstrap done, pinging remaining nodes";

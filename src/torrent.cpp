@@ -9622,6 +9622,9 @@ namespace libtorrent
 			state_updated();
 
 		// TODO: 4 this logic doesn't work for seeding torrents that are not ticked
+		// once a torrent is inactive, it may not be ticked anymore, which may
+		// prevent it from ever have m_inactive be set, because there's a delay
+		// deom becoming inactive and trigger auto-manage.
 
 		// this section determines whether the torrent is active or not. When it
 		// changes state, it may also trigger the auto-manage logic to reconsider
