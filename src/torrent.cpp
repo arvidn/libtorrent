@@ -11408,8 +11408,8 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_connections.size() >= m_num_seeds);
-		return m_connections.size() - m_num_seeds;
+		TORRENT_ASSERT(m_connections.size() >= m_num_seeds + m_num_connecting);
+		return m_connections.size() - m_num_seeds - m_num_connecting;
 	}
 
 	void torrent::tracker_request_error(tracker_request const& r
