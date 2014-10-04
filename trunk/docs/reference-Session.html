@@ -695,9 +695,6 @@ class session: public boost::noncopyable
    void <strong>add_extension</strong> (boost::function&lt;boost::shared_ptr&lt;torrent_plugin&gt;(
       torrent*, void*)&gt; ext);
    void <strong>add_extension</strong> (boost::shared_ptr&lt;plugin&gt; ext);
-   void <strong>load_country_db</strong> (char const* file);
-   void <strong>load_asnum_db</strong> (char const* file);
-   int <strong>as_for_ip</strong> (address const&amp; addr);
    ip_filter <strong>get_ip_filter</strong> () const;
    void <strong>set_ip_filter</strong> (ip_filter const&amp; f);
    void <strong>set_port_filter</strong> (port_filter const&amp; f);
@@ -1169,23 +1166,6 @@ eliminate most problems on poisoned torrents.</dd>
 #include &lt;libtorrent/extensions/smart_ban.hpp&gt;
 ses.add_extension(&amp;libtorrent::create_smart_ban_plugin);
 </pre>
-<a name="load_asnum_db()"></a>
-<a name="load_country_db()"></a>
-<a name="as_for_ip()"></a></div>
-<div class="section" id="load-asnum-db-load-country-db-as-for-ip">
-<h2>load_asnum_db() load_country_db() as_for_ip()</h2>
-<pre class="literal-block">
-void <strong>load_country_db</strong> (char const* file);
-void <strong>load_asnum_db</strong> (char const* file);
-int <strong>as_for_ip</strong> (address const&amp; addr);
-</pre>
-<p>These functions are not available if <tt class="docutils literal">TORRENT_DISABLE_GEO_IP</tt> is
-defined. They expects a path to the <a class="reference external" href="http://www.maxmind.com/app/asnum">MaxMind ASN database</a> and
-<a class="reference external" href="http://www.maxmind.com/app/geolitecountry">MaxMind GeoIP database</a> respectively. This will be used to look up
-which AS and country peers belong to.</p>
-<p><tt class="docutils literal">as_for_ip</tt> returns the AS number for the IP address specified. If
-the IP is not in the database or the ASN database is not loaded, 0 is
-returned.</p>
 <a name="get_ip_filter()"></a>
 <a name="set_ip_filter()"></a></div>
 <div class="section" id="get-ip-filter-set-ip-filter">

@@ -315,18 +315,6 @@ directory, but won't abort the process.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal">geoip</tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">off</tt> - geo ip lookups disabled</li>
-<li><tt class="docutils literal">static</tt> - <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup code linked
-in statically. Note that this code is under
-LGPL license.</li>
-<li><tt class="docutils literal">shared</tt> - The <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup library
-is expected to be installed on the system and
-it will be used.</li>
-</ul>
-</td>
-</tr>
 <tr><td><tt class="docutils literal"><span class="pre">upnp-logging</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">off</tt> - default. Does not log UPnP traffic.</li>
@@ -667,11 +655,6 @@ structs and class layouts and sizes.</td>
 <td>This macro will enable logging of the session
 events, such as tracker announces and incoming
 connections (as well as blocked connections).</td>
-</tr>
-<tr><td><tt class="docutils literal">TORRENT_DISABLE_GEO_IP</tt></td>
-<td>This is defined by default by the Jamfile. It
-disables the GeoIP features, and avoids linking
-against LGPL:ed code.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_VERBOSE_LOGGING</tt></td>
 <td>If you define this macro, every peer connection
