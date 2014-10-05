@@ -820,20 +820,23 @@ namespace libtorrent
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
 		void on_peer_name_lookup(error_code const& e
-			, std::vector<address> const& host_list
+			, std::vector<address> const& addrs
 			, int port);
 
 		// this is the asio callback that is called when a name
 		// lookup for a WEB SEED is completed.
-		void on_name_lookup(error_code const& e, tcp::resolver::iterator i
-			, std::list<web_seed_entry>::iterator url, tcp::endpoint proxy);
+		void on_name_lookup(error_code const& e
+			, std::vector<address> const& addrs
+			, int port
+			, std::list<web_seed_entry>::iterator web, tcp::endpoint proxy);
 
 		void connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a);
 
 		// this is the asio callback that is called when a name
 		// lookup for a proxy for a web seed is completed.
-		void on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator i
-			, std::list<web_seed_entry>::iterator url);
+		void on_proxy_name_lookup(error_code const& e
+			, std::vector<address> const& addrs
+			, std::list<web_seed_entry>::iterator web, int port);
 
 		// remove a web seed, or schedule it for removal in case there
 		// are outstanding operations on it
@@ -1190,10 +1193,6 @@ namespace libtorrent
 		libtorrent::stat m_stat;
 
 		// -----------------------------
-
-		// used to resolve hostnames for web seeds
-		// TODO: 2 replace all usage of this with m_ses.get_resolver()
-		mutable tcp::resolver m_host_resolver;
 
 		// this vector is allocated lazily. If no file priorities are
 		// ever changed, this remains empty. Any unallocated slot

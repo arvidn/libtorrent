@@ -700,6 +700,12 @@ namespace aux {
 		}
 	}
 
+	void session_impl::async_resolve(std::string const& host, int flags
+		, session_interface::callback_t const& h)
+	{
+		m_host_resolver.async_resolve(host, flags, h);
+	}
+
 #ifdef TORRENT_STATS
 	void session_impl::rotate_stats_log()
 	{
