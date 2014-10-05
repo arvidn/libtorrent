@@ -152,6 +152,7 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
+		, m_inactivity_timer(ses.get_io_service())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
 		, m_url(p.url)
@@ -233,7 +234,6 @@ namespace libtorrent
 		, m_downloaded(0xffffff)
 		, m_last_scrape(0)
 		, m_progress_ppm(0)
-		, m_inactive_counter(0)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
 		if (m_pinned)
@@ -4659,9 +4659,10 @@ namespace libtorrent
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
 		if (!is_paused())
-		{
 			stop_announcing();
-		}
+
+		error_code ec;
+		m_inactivity_timer.cancel(ec);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 		log_to_all_peers("ABORTING TORRENT");
@@ -7765,7 +7766,8 @@ namespace libtorrent
 
 	void torrent::update_want_scrape()
 	{
-		update_list(aux::session_interface::torrent_want_scrape, !m_allow_peers && m_auto_managed && !m_abort);
+		update_list(aux::session_interface::torrent_want_scrape
+			, !m_allow_peers && m_auto_managed && !m_abort);
 	}
 
 	void torrent::update_list(int list, bool in)
@@ -7782,7 +7784,6 @@ namespace libtorrent
 			if (!l.in_list()) return;
 			l.unlink(v, list);
 		}
-		
 	}
 
 	void torrent::disconnect_all(error_code const& ec, peer_connection_interface::operation_t op)
@@ -9624,59 +9625,46 @@ namespace libtorrent
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 			state_updated();
 
-		// TODO: 4 this logic doesn't work for seeding torrents that are not ticked
-		// once a torrent is inactive, it may not be ticked anymore, which may
-		// prevent it from ever have m_inactive be set, because there's a delay
-		// deom becoming inactive and trigger auto-manage.
-
 		// this section determines whether the torrent is active or not. When it
 		// changes state, it may also trigger the auto-manage logic to reconsider
 		// which torrents should be queued and started. There is a low pass
 		// filter in order to avoid flapping (auto_manage_startup).
-		bool is_inactive = false;
-		if (is_finished())
-			is_inactive = m_stat.upload_payload_rate() < m_ses.settings().get_int(settings_pack::inactive_up_rate);
-		else
-			is_inactive = m_stat.download_payload_rate() < m_ses.settings().get_int(settings_pack::inactive_down_rate);
+		bool is_inactive = is_inactive_internal();
 
-		if (is_inactive)
+		if (is_inactive != m_inactive
+			&& m_ses.settings().get_bool(settings_pack::dont_count_slow_torrents))
 		{
-			if (m_inactive_counter < 0) m_inactive_counter = 0;
-			if (m_inactive_counter < INT16_MAX)
-			{
-				++m_inactive_counter;
-
-				// if this torrent was just considered inactive, we may want 
-				// to dequeue some other torrent
-				if (m_inactive == false
-					&& m_inactive_counter >= m_ses.settings().get_int(settings_pack::auto_manage_startup))
-				{
-					m_inactive = true;
-					if (m_ses.settings().get_bool(settings_pack::dont_count_slow_torrents))
-						m_ses.trigger_auto_manage();
-				}
-			}
-		}
-		else
-		{
-			if (m_inactive_counter > 0) m_inactive_counter = 0;
-			if (m_inactive_counter > INT16_MIN)
-			{
-				--m_inactive_counter;
-
-				// if this torrent was just considered active, we may want 
-				// to queue some other torrent
-				if (m_inactive == true
-					&& m_inactive_counter <= -m_ses.settings().get_int(settings_pack::auto_manage_startup))
-				{
-					m_inactive = false;
-					if (m_ses.settings().get_bool(settings_pack::dont_count_slow_torrents))
-						m_ses.trigger_auto_manage();
-				}
-			}
+			m_last_active_change = m_ses.session_time();
+			int delay = m_ses.settings().get_int(settings_pack::auto_manage_startup);
+			m_inactivity_timer.expires_from_now(seconds(delay));
+			m_inactivity_timer.async_wait(boost::bind(&torrent::on_inactivity_tick
+				, shared_from_this(), _1));
 		}
 
 		update_want_tick();
+	}
+
+	bool torrent::is_inactive_internal() const
+	{
+		if (is_finished())
+			return m_stat.upload_payload_rate()
+				< m_ses.settings().get_int(settings_pack::inactive_up_rate);
+		else
+			return m_stat.download_payload_rate()
+				< m_ses.settings().get_int(settings_pack::inactive_down_rate);
+	}
+
+	void torrent::on_inactivity_tick(error_code const& ec)
+	{
+		if (ec) return;
+
+		int now = m_ses.session_time();
+		int delay = m_ses.settings().get_int(settings_pack::auto_manage_startup);
+		if (now - m_last_active_change < delay) return;
+
+		m_inactive = is_inactive_internal();
+		if (m_ses.settings().get_bool(settings_pack::dont_count_slow_torrents))
+			m_ses.trigger_auto_manage();
 	}
 
 	void torrent::maybe_connect_web_seeds()

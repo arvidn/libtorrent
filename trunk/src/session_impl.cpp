@@ -6147,6 +6147,16 @@ retry:
 #endif
 	}
 
+	void session_impl::update_count_slow()
+	{
+		error_code ec;
+		for (torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			i->second->on_inactivity_tick(ec);
+		}
+	}
+
 	address session_impl::listen_address() const
 	{
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
