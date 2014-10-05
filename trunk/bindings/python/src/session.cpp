@@ -441,20 +441,9 @@ namespace
        }
        return pieces;
     }
-#endif
 
-#ifndef TORRENT_DISABLE_GEO_IP
-    void load_asnum_db(lt::session& s, std::string file)
-    {
-        allow_threading_guard guard;
-        s.load_asnum_db(file.c_str());
-    }
-
-    void load_country_db(lt::session& s, std::string file)
-    {
-        allow_threading_guard guard;
-        s.load_country_db(file.c_str());
-    }
+    void load_asnum_db(lt::session& s, std::string file) {}
+    void load_country_db(lt::session& s, std::string file) {}
 #endif
 
     entry save_state(lt::session const& s, boost::uint32_t flags)
@@ -615,12 +604,12 @@ void bind_session()
         .value("flag_use_resume_save_path", add_torrent_params::flag_use_resume_save_path)
     ;
     class_<cache_status>("cache_status")
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("blocks_written", &cache_status::blocks_written)
         .def_readonly("writes", &cache_status::writes)
         .def_readonly("blocks_read", &cache_status::blocks_read)
         .def_readonly("blocks_read_hit", &cache_status::blocks_read_hit)
         .def_readonly("reads", &cache_status::reads)
-#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("queued_bytes", &cache_status::queued_bytes)
         .def_readonly("cache_size", &cache_status::cache_size)
 #endif
@@ -628,6 +617,7 @@ void bind_session()
         .def_readonly("read_cache_size", &cache_status::read_cache_size)
         .def_readonly("pinned_blocks", &cache_status::pinned_blocks)
         .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("average_read_time", &cache_status::average_read_time)
         .def_readonly("average_write_time", &cache_status::average_write_time)
         .def_readonly("average_hash_time", &cache_status::average_hash_time)
@@ -637,6 +627,7 @@ void bind_session()
         .def_readonly("cumulative_write_time", &cache_status::cumulative_write_time)
         .def_readonly("cumulative_hash_time", &cache_status::cumulative_hash_time)
         .def_readonly("total_read_back", &cache_status::total_read_back)
+#endif
         .def_readonly("read_queue_size", &cache_status::read_queue_size)
         .def_readonly("blocked_jobs", &cache_status::blocked_jobs)
         .def_readonly("queued_jobs", &cache_status::queued_jobs)
@@ -665,12 +656,6 @@ void bind_session()
                 , arg("alert_mask")=alert::error_notification))
         )
         .def("post_torrent_updates", allow_threads(&lt::session::post_torrent_updates))
-#ifndef TORRENT_NO_DEPRECATE
-        .def(
-            "listen_on", &listen_on
-          , (arg("min"), "max", arg("interface") = (char const*)0, arg("flags") = 0)
-        )
-#endif
         .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&lt::session::is_listening))
         .def("listen_port", allow_threads(&lt::session::listen_port))
@@ -683,14 +668,6 @@ void bind_session()
         )
         .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
-#ifndef TORRENT_NO_DEPRECATE
-        .def("start_dht", allow_threads(start_dht0))
-        .def("stop_dht", allow_threads(&lt::session::stop_dht))
-        .def("start_dht", allow_threads(start_dht1))
-        .def("dht_state", allow_threads(&lt::session::dht_state))
-        .def("set_dht_proxy", allow_threads(&lt::session::set_dht_proxy))
-        .def("dht_proxy", allow_threads(&lt::session::dht_proxy))
-#endif
 #endif
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
@@ -709,22 +686,6 @@ void bind_session()
         .def("add_feed", &add_feed)
         .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
 #ifndef TORRENT_NO_DEPRECATE
-        .def("set_local_download_rate_limit", allow_threads(&lt::session::set_local_download_rate_limit))
-        .def("local_download_rate_limit", allow_threads(&lt::session::local_download_rate_limit))
-
-        .def("set_local_upload_rate_limit", allow_threads(&lt::session::set_local_upload_rate_limit))
-        .def("local_upload_rate_limit", allow_threads(&lt::session::local_upload_rate_limit))
-
-        .def("set_download_rate_limit", allow_threads(&lt::session::set_download_rate_limit))
-        .def("download_rate_limit", allow_threads(&lt::session::download_rate_limit))
-
-        .def("set_upload_rate_limit", allow_threads(&lt::session::set_upload_rate_limit))
-        .def("upload_rate_limit", allow_threads(&lt::session::upload_rate_limit))
-
-        .def("set_max_uploads", allow_threads(&lt::session::set_max_uploads))
-        .def("set_max_connections", allow_threads(&lt::session::set_max_connections))
-        .def("max_connections", allow_threads(&lt::session::max_connections))
-        .def("num_connections", allow_threads(&lt::session::num_connections))
         .def("set_settings", &lt::session::set_settings)
         .def("settings", &lt::session::settings)
         .def("get_settings", &session_get_settings)
@@ -733,40 +694,24 @@ void bind_session()
         .def("get_settings", &session_get_settings)
 #endif
         .def("set_settings", &session_set_settings)
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&lt::session::set_pe_settings))
         .def("get_pe_settings", allow_threads(&lt::session::get_pe_settings))
 #endif
-#ifndef TORRENT_DISABLE_GEO_IP
-        .def("load_asnum_db", &load_asnum_db)
-        .def("load_country_db", &load_country_db)
 #endif
         .def("load_state", &load_state)
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
-#ifndef TORRENT_NO_DEPRECATE
-        .def("set_max_half_open_connections", allow_threads(&lt::session::set_max_half_open_connections))
-        .def("set_severity_level", allow_threads(&lt::session::set_severity_level))
-        .def("set_alert_queue_size_limit", allow_threads(&lt::session::set_alert_queue_size_limit))
-        .def("set_alert_mask", allow_threads(&lt::session::set_alert_mask))
-#endif
         .def("pop_alert", &pop_alert)
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
-        .def("set_peer_proxy", allow_threads(&lt::session::set_peer_proxy))
-        .def("set_tracker_proxy", allow_threads(&lt::session::set_tracker_proxy))
-        .def("set_web_seed_proxy", allow_threads(&lt::session::set_web_seed_proxy))
-        .def("peer_proxy", allow_threads(&lt::session::peer_proxy))
-        .def("tracker_proxy", allow_threads(&lt::session::tracker_proxy))
-        .def("web_seed_proxy", allow_threads(&lt::session::web_seed_proxy))
-#endif
 #if TORRENT_USE_I2P
         .def("set_i2p_proxy", allow_threads(&lt::session::set_i2p_proxy))
         .def("i2p_proxy", allow_threads(&lt::session::i2p_proxy))
 #endif
-        .def("set_proxy", allow_threads(&lt::session::set_proxy))
-        .def("proxy", allow_threads(&lt::session::proxy))
+#endif
         .def("set_ip_filter", allow_threads(&lt::session::set_ip_filter))
         .def("get_ip_filter", allow_threads(&lt::session::get_ip_filter))
         .def("find_torrent", allow_threads(&lt::session::find_torrent))
@@ -776,7 +721,46 @@ void bind_session()
         .def("is_paused", allow_threads(&lt::session::is_paused))
         .def("id", allow_threads(&lt::session::id))
         .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
+
 #ifndef TORRENT_NO_DEPRECATE
+        .def(
+            "listen_on", &listen_on
+          , (arg("min"), "max", arg("interface") = (char const*)0, arg("flags") = 0)
+        )
+#ifndef TORRENT_DISABLE_DHT
+        .def("start_dht", allow_threads(start_dht0))
+        .def("stop_dht", allow_threads(&lt::session::stop_dht))
+        .def("start_dht", allow_threads(start_dht1))
+        .def("dht_state", allow_threads(&lt::session::dht_state))
+        .def("set_dht_proxy", allow_threads(&lt::session::set_dht_proxy))
+        .def("dht_proxy", allow_threads(&lt::session::dht_proxy))
+#endif
+        .def("set_local_download_rate_limit", allow_threads(&lt::session::set_local_download_rate_limit))
+        .def("local_download_rate_limit", allow_threads(&lt::session::local_download_rate_limit))
+        .def("set_local_upload_rate_limit", allow_threads(&lt::session::set_local_upload_rate_limit))
+        .def("local_upload_rate_limit", allow_threads(&lt::session::local_upload_rate_limit))
+        .def("set_download_rate_limit", allow_threads(&lt::session::set_download_rate_limit))
+        .def("download_rate_limit", allow_threads(&lt::session::download_rate_limit))
+        .def("set_upload_rate_limit", allow_threads(&lt::session::set_upload_rate_limit))
+        .def("upload_rate_limit", allow_threads(&lt::session::upload_rate_limit))
+        .def("set_max_uploads", allow_threads(&lt::session::set_max_uploads))
+        .def("set_max_connections", allow_threads(&lt::session::set_max_connections))
+        .def("max_connections", allow_threads(&lt::session::max_connections))
+        .def("num_connections", allow_threads(&lt::session::num_connections))
+        .def("load_asnum_db", &load_asnum_db)
+        .def("load_country_db", &load_country_db)
+        .def("set_max_half_open_connections", allow_threads(&lt::session::set_max_half_open_connections))
+        .def("set_severity_level", allow_threads(&lt::session::set_severity_level))
+        .def("set_alert_queue_size_limit", allow_threads(&lt::session::set_alert_queue_size_limit))
+        .def("set_alert_mask", allow_threads(&lt::session::set_alert_mask))
+        .def("set_peer_proxy", allow_threads(&lt::session::set_peer_proxy))
+        .def("set_tracker_proxy", allow_threads(&lt::session::set_tracker_proxy))
+        .def("set_web_seed_proxy", allow_threads(&lt::session::set_web_seed_proxy))
+        .def("peer_proxy", allow_threads(&lt::session::peer_proxy))
+        .def("tracker_proxy", allow_threads(&lt::session::tracker_proxy))
+        .def("web_seed_proxy", allow_threads(&lt::session::web_seed_proxy))
+        .def("set_proxy", allow_threads(&lt::session::set_proxy))
+        .def("proxy", allow_threads(&lt::session::proxy))
         .def("start_upnp", &start_upnp)
         .def("stop_upnp", allow_threads(&lt::session::stop_upnp))
         .def("start_lsd", allow_threads(&lt::session::start_lsd))
@@ -793,11 +777,11 @@ void bind_session()
         .value("save_settings", lt::session::save_settings)
         .value("save_dht_settings", lt::session::save_dht_settings)
         .value("save_dht_state", lt::session::save_dht_state)
-        .value("save_i2p_proxy", lt::session::save_i2p_proxy)
         .value("save_encryption_settings", lt::session:: save_encryption_settings)
         .value("save_as_map", lt::session::save_as_map)
-        .value("save_proxy", lt::session::save_proxy)
 #ifndef TORRENT_NO_DEPRECATE
+        .value("save_i2p_proxy", lt::session::save_i2p_proxy)
+        .value("save_proxy", lt::session::save_proxy)
         .value("save_dht_proxy", lt::session::save_dht_proxy)
         .value("save_peer_proxy", lt::session::save_peer_proxy)
         .value("save_web_proxy", lt::session::save_web_proxy)

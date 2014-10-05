@@ -50,6 +50,9 @@ namespace libtorrent
 #define TORRENT_EXPORT_DEPRECATED
 #endif
 
+	// TODO: 2 this type is only used internally now. move it to an internal
+	// header and make this type properly deprecated.
+
 	// The ``proxy_settings`` structs contains the information needed to
 	// direct certain traffic to a proxy.
 	struct TORRENT_EXPORT_DEPRECATED proxy_settings

@@ -124,7 +124,9 @@ void bind_peer_info()
     pi.attr("local_connection") = (int)peer_info::local_connection;
     pi.attr("handshake") = (int)peer_info::handshake;
     pi.attr("connecting") = (int)peer_info::connecting;
+#ifndef TORRENT_NO_DEPRECATE
     pi.attr("queued") = (int)peer_info::queued;
+#endif
     pi.attr("on_parole") = (int)peer_info::on_parole;
     pi.attr("seed") = (int)peer_info::seed;
     pi.attr("optimistic_unchoke") = (int)peer_info::optimistic_unchoke;
