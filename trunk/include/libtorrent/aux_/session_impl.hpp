@@ -269,6 +269,8 @@ namespace libtorrent
 
 			io_service& get_io_service() { return m_io_service; }
 			resolver_interface& get_resolver() { return m_host_resolver; }
+			void async_resolve(std::string const& host, int flags
+				, callback_t const& h);
 
 			std::vector<torrent*>& torrent_list(int i)
 			{

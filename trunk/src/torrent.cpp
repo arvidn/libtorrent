@@ -152,7 +152,6 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
-		, m_host_resolver(ses.get_io_service())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
 		, m_url(p.url)
@@ -3239,7 +3238,7 @@ namespace libtorrent
 				add_outstanding_async("torrent::on_peer_name_lookup");
 #endif
 				tcp::resolver::query q(i->hostname, to_string(i->port).elems);
-				m_ses.get_resolver().async_resolve(i->hostname, 0
+				m_ses.async_resolve(i->hostname, 0
 					, boost::bind(&torrent::on_peer_name_lookup
 						, shared_from_this(), _1, _2, i->port));
 			}
@@ -4688,7 +4687,7 @@ namespace libtorrent
 		}
 		
 		m_storage.reset();
-		m_host_resolver.cancel();
+
 		// TODO: 2 abort lookups this torrent has made via the
 		// session host resolver interface
 
@@ -6000,9 +5999,9 @@ namespace libtorrent
 
 			// use proxy
 			web->resolving = true;
-			tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
-			m_host_resolver.async_resolve(q,
-				boost::bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
+			m_ses.async_resolve(ps.hostname, 0
+				, boost::bind(&torrent::on_proxy_name_lookup, shared_from_this()
+					, _1, _2, web, ps.port));
 		}
 		else if (ps.proxy_hostnames
 			&& (ps.type == settings_pack::socks5
@@ -6018,14 +6017,15 @@ namespace libtorrent
 
 			web->resolving = true;
 			tcp::resolver::query q(hostname, to_string(port).elems);
-			m_host_resolver.async_resolve(q,
-				boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
-					, tcp::endpoint()));
+			m_ses.async_resolve(hostname, 0, boost::bind(
+				&torrent::on_name_lookup, shared_from_this(), _1, _2
+				, port, web, tcp::endpoint()));
 		}
 	}
 
-	void torrent::on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator host
-		, std::list<web_seed_entry>::iterator web)
+	void torrent::on_proxy_name_lookup(error_code const& e
+		, std::vector<address> const& addrs
+		, std::list<web_seed_entry>::iterator web, int port)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -6052,7 +6052,7 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		if (e || host == tcp::resolver::iterator())
+		if (e || addrs.empty())
 		{
 			if (m_ses.alerts().should_post<url_seed_alert>())
 			{
@@ -6072,11 +6072,10 @@ namespace libtorrent
 			|| m_ses.num_connections() >= m_ses.settings().get_int(settings_pack::connections_limit))
 			return;
 
-		tcp::endpoint a(host->endpoint());
+		tcp::endpoint a(addrs[0], port);
 
 		using boost::tuples::ignore;
 		std::string hostname;
-		int port;
 		error_code ec;
 		std::string protocol;
 		boost::tie(protocol, ignore, hostname, port, ignore)
@@ -6105,12 +6104,16 @@ namespace libtorrent
 
 		web->resolving = true;
 		tcp::resolver::query q(hostname, to_string(port).elems);
-		m_host_resolver.async_resolve(q,
-			boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web, a));
+		m_ses.async_resolve(hostname, 0, boost::bind(
+			&torrent::on_name_lookup, shared_from_this(), _1, _2
+			, port, web, a));
 	}
 
-	void torrent::on_name_lookup(error_code const& e, tcp::resolver::iterator host
-		, std::list<web_seed_entry>::iterator web, tcp::endpoint proxy)
+	void torrent::on_name_lookup(error_code const& e
+		, std::vector<address> const& addrs
+		, int port
+		, std::list<web_seed_entry>::iterator web
+		, tcp::endpoint proxy)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -6132,7 +6135,7 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		if (e || host == tcp::resolver::iterator())
+		if (e || addrs.empty())
 		{
 			if (m_ses.alerts().should_post<url_seed_alert>())
 				m_ses.alerts().post_alert(url_seed_alert(get_handle(), web->url, e));
@@ -6146,15 +6149,15 @@ namespace libtorrent
 			return;
 		}
 
-		while (host != tcp::resolver::iterator())
+		for (std::vector<address>::const_iterator i = addrs.begin()
+			, end(addrs.end()); i != end; ++i)
 		{
 			// fill in the peer struct's address field
-			web->endpoints.push_back(host->endpoint());
+			web->endpoints.push_back(tcp::endpoint(*i, port));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-			debug_log("  -> %s", print_endpoint(host->endpoint()).c_str());
+			debug_log("  -> %s", print_endpoint(tcp::endpoint(*i, port)).c_str());
 #endif
-			++host;
 		}
 
 		if (int(m_connections.size()) >= m_max_connections
@@ -6378,7 +6381,7 @@ namespace libtorrent
 			return;
 		}
 		m_resolving_country = true;
-		m_ses.get_resolver().async_resolve(hostname, 0
+		m_ses.async_resolve(hostname, 0
 			, boost::bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
 	}
 
