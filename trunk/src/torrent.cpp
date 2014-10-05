@@ -9662,7 +9662,11 @@ namespace libtorrent
 		int delay = m_ses.settings().get_int(settings_pack::auto_manage_startup);
 		if (now - m_last_active_change < delay) return;
 
-		m_inactive = is_inactive_internal();
+		bool is_inactive = is_inactive_internal();
+		if (is_inactive == m_inactive) return;
+
+		m_inactive = is_inactive;
+
 		if (m_ses.settings().get_bool(settings_pack::dont_count_slow_torrents))
 			m_ses.trigger_auto_manage();
 	}
