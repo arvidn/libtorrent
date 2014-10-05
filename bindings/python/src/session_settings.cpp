@@ -146,7 +146,6 @@ void bind_session_settings()
         .def_readwrite("local_download_rate_limit", &session_settings::local_download_rate_limit)
         .def_readwrite("dht_upload_rate_limit", &session_settings::dht_upload_rate_limit)
         .def_readwrite("unchoke_slots_limit", &session_settings::unchoke_slots_limit)
-        .def_readwrite("half_open_limit", &session_settings::half_open_limit)
         .def_readwrite("connections_limit", &session_settings::connections_limit)
         .def_readwrite("utp_target_delay", &session_settings::utp_target_delay)
         .def_readwrite("utp_gain_factor", &session_settings::utp_gain_factor)
@@ -155,9 +154,8 @@ void bind_session_settings()
         .def_readwrite("utp_fin_resends", &session_settings::utp_fin_resends)
         .def_readwrite("utp_num_resends", &session_settings::utp_num_resends)
         .def_readwrite("utp_connect_timeout", &session_settings::utp_connect_timeout)
-#ifndef TORRENT_NO_DEPRECATE
+        .def_readwrite("half_open_limit", &session_settings::half_open_limit)
         .def_readwrite("utp_delayed_ack", &session_settings::utp_delayed_ack)
-#endif
         .def_readwrite("utp_dynamic_sock_buf", &session_settings::utp_dynamic_sock_buf)
         .def_readwrite("utp_loss_multiplier", &session_settings::utp_loss_multiplier)
         .def_readwrite("mixed_mode_algorithm", &session_settings::mixed_mode_algorithm)
@@ -195,38 +193,62 @@ void bind_session_settings()
         .value("largest_contiguous", session_settings::largest_contiguous)
         .value("avoid_readback", session_settings::avoid_readback)
     ;
+#endif // TORRENT_NO_DEPRECATE
 
-    enum_<session_settings::choking_algorithm_t>("choking_algorithm_t")
-        .value("fixed_slots_choker", session_settings::fixed_slots_choker)
-        .value("auto_expand_choker", session_settings::auto_expand_choker)
-        .value("rate_based_choker", session_settings::rate_based_choker)
-        .value("bittyrant_choker", session_settings::bittyrant_choker)
+    enum_<settings_pack::choking_algorithm_t>("choking_algorithm_t")
+        .value("fixed_slots_choker", settings_pack::fixed_slots_choker)
+        .value("auto_expand_choker", settings_pack::auto_expand_choker)
+        .value("rate_based_choker", settings_pack::rate_based_choker)
+        .value("bittyrant_choker", settings_pack::bittyrant_choker)
     ;
 
-    enum_<session_settings::seed_choking_algorithm_t>("seed_choking_algorithm_t")
-        .value("round_robin", session_settings::round_robin)
-        .value("fastest_upload", session_settings::fastest_upload)
-        .value("anti_leech", session_settings::anti_leech)
+    enum_<settings_pack::seed_choking_algorithm_t>("seed_choking_algorithm_t")
+        .value("round_robin", settings_pack::round_robin)
+        .value("fastest_upload", settings_pack::fastest_upload)
+        .value("anti_leech", settings_pack::anti_leech)
     ;
 
-    enum_<session_settings::suggest_mode_t>("suggest_mode_t")
-        .value("no_piece_suggestions", session_settings::no_piece_suggestions)
-        .value("suggest_read_cache", session_settings::suggest_read_cache)
+    enum_<settings_pack::suggest_mode_t>("suggest_mode_t")
+        .value("no_piece_suggestions", settings_pack::no_piece_suggestions)
+        .value("suggest_read_cache", settings_pack::suggest_read_cache)
     ;
 
-    enum_<session_settings::io_buffer_mode_t>("io_buffer_mode_t")
-        .value("enable_os_cache", session_settings::enable_os_cache)
-        .value("disable_os_cache_for_aligned_files", session_settings::disable_os_cache_for_aligned_files)
-        .value("disable_os_cache", session_settings::disable_os_cache)
-    ;
-
-    enum_<session_settings::bandwidth_mixed_algo_t>("bandwidth_mixed_algo_t")
-        .value("prefer_tcp", session_settings::prefer_tcp)
-        .value("peer_proportional", session_settings::peer_proportional)
-    ;
-
+    enum_<settings_pack::io_buffer_mode_t>("io_buffer_mode_t")
+        .value("enable_os_cache", settings_pack::enable_os_cache)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("disable_os_cache_for_aligned_files", settings_pack::disable_os_cache_for_aligned_files)
 #endif
+        .value("disable_os_cache", settings_pack::disable_os_cache)
+    ;
 
+    enum_<settings_pack::bandwidth_mixed_algo_t>("bandwidth_mixed_algo_t")
+        .value("prefer_tcp", settings_pack::prefer_tcp)
+        .value("peer_proportional", settings_pack::peer_proportional)
+    ;
+
+    enum_<settings_pack::enc_policy>("enc_policy")
+        .value("pe_forced", settings_pack::pe_forced)
+        .value("pe_enabled", settings_pack::pe_enabled)
+        .value("pe_disabled", settings_pack::pe_disabled)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("forced", settings_pack::pe_forced)
+        .value("enabled", settings_pack::pe_enabled)
+        .value("disabled", settings_pack::pe_disabled)
+#endif
+	  ;
+
+    enum_<settings_pack::enc_level>("enc_level")
+        .value("pe_rc4", settings_pack::pe_rc4)
+        .value("pe_plaintext", settings_pack::pe_plaintext)
+        .value("pe_both", settings_pack::pe_both)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("rc4", settings_pack::pe_rc4)
+        .value("plaintext", settings_pack::pe_plaintext)
+        .value("both", settings_pack::pe_both)
+#endif
+    ;
+
+#ifndef TORRENT_NO_DEPRECATE
     enum_<proxy_settings::proxy_type>("proxy_type")
         .value("none", proxy_settings::none)
         .value("socks4", proxy_settings::socks4)
@@ -246,6 +268,7 @@ void bind_session_settings()
         .def_readwrite("proxy_peer_connections", &proxy_settings::proxy_peer_connections)
         .def_readwrite("proxy_hostnames", &proxy_settings::proxy_hostnames)
     ;
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
     class_<dht_settings>("dht_settings")
@@ -262,19 +285,7 @@ void bind_session_settings()
     ;
 #endif
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-    enum_<pe_settings::enc_policy>("enc_policy")
-        .value("forced", pe_settings::forced)
-        .value("enabled", pe_settings::enabled)
-        .value("disabled", pe_settings::disabled)
-    ;
-
-    enum_<pe_settings::enc_level>("enc_level")
-        .value("rc4", pe_settings::rc4)
-        .value("plaintext", pe_settings::plaintext)
-        .value("both", pe_settings::both)
-    ;
-
+#ifndef TORRENT_NO_DEPRECATE
     class_<pe_settings>("pe_settings")
         .def_readwrite("out_enc_policy", &pe_settings::out_enc_policy)
         .def_readwrite("in_enc_policy", &pe_settings::in_enc_policy)

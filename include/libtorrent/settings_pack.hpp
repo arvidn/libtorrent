@@ -1470,7 +1470,7 @@ namespace libtorrent
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
 
-		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		enum suggest_mode_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
 
 		enum choking_algorithm_t
 		{

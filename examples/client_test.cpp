@@ -339,9 +339,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 {
 	using namespace libtorrent;
 	if (print_ip) out += "IP                             ";
-#ifndef TORRENT_DISABLE_GEO_IP
-	if (print_as) out += "AS                                         ";
-#endif
 	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb rcvb   q-bytes ";
@@ -358,7 +355,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
 		i != peers.end(); ++i)
 	{
-		if (i->flags & (peer_info::handshake | peer_info::connecting | peer_info::queued))
+		if (i->flags & (peer_info::handshake | peer_info::connecting))
 			continue;
 
 		if (print_ip)
@@ -369,15 +366,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 				).c_str());
 			out += str;
 		}
-
-#ifndef TORRENT_DISABLE_GEO_IP
-		if (print_as)
-		{
-			error_code ec;
-			snprintf(str, sizeof(str), "%-42s ", i->inet_as_name.c_str());
-			out += str;
-		}
-#endif
 
 		char temp[10];
 		snprintf(temp, sizeof(temp), "%d/%d"
@@ -506,13 +494,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		{
 			out += esc("31");
 			out += " connecting to peer";
-			out += esc("0");
-			out += "\n";
-		}
-		else if (i->flags & peer_info::queued)
-		{
-			out += esc("33");
-			out += " queued";
 			out += esc("0");
 			out += "\n";
 		}
@@ -1032,9 +1013,11 @@ int main(int argc, char* argv[])
 			"  -^ <limit>            Set the max number of active seeds\n"
 			"\n NETWORK OPTIONS\n"
 			"  -p <port>             sets the listen port\n"
+#ifndef TORRENT_NO_DEPRECATE
 			"  -o <limit>            limits the number of simultaneous\n"
 			"                        half-open TCP connections to the\n"
 			"                        given number.\n"
+#endif
 			"  -w <seconds>          sets the retry time for failed web seeds\n"
 			"  -x <file>             loads an emule IP-filter file\n"
 			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
@@ -1116,11 +1099,6 @@ int main(int argc, char* argv[])
 			ses.load_state(e);
 	}
 
-#ifndef TORRENT_DISABLE_GEO_IP
-	ses.load_asnum_db("GeoIPASNum.dat");
-	ses.load_country_db("GeoIP.dat");
-#endif
-
 	// load the torrents given on the commandline
 
 	std::vector<add_torrent_params> magnet_links;
@@ -1167,7 +1145,9 @@ int main(int argc, char* argv[])
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = fopen(arg, "w+"); break;
+#ifndef TORRENT_NO_DEPRECATE
 			case 'o': settings.set_int(settings_pack::half_open_limit, atoi(arg)); break;
+#endif
 			case 'h': settings.set_bool(settings_pack::allow_multiple_connections_per_ip, true); --i; break;
 			case 'p': listen_port = atoi(arg); break;
 			case 'k': high_performance_seed(settings); --i; break;
