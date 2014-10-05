@@ -672,6 +672,7 @@ namespace libtorrent
 			void update_natpmp();
 			void update_lsd();
 			void update_dht();
+			void update_count_slow();
 
 			void on_trigger_auto_manage();
 			

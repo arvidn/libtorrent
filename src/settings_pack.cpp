@@ -146,7 +146,7 @@ namespace libtorrent
 		SET(coalesce_reads, false, 0),
 		SET(coalesce_writes, false, 0),
 		SET(auto_manage_prefer_seeds, false, 0),
-		SET(dont_count_slow_torrents, true, 0),
+		SET(dont_count_slow_torrents, true, &session_impl::update_count_slow),
 		SET(close_redundant_connections, true, 0),
 		SET(prioritize_partial_pieces, false, 0),
 		SET(rate_limit_ip_overhead, true, 0),

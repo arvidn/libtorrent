@@ -838,6 +838,14 @@ namespace libtorrent
 			, std::vector<address> const& addrs
 			, std::list<web_seed_entry>::iterator web, int port);
 
+		// re-evaluates whether this torrent should be considered inactive or not
+		void on_inactivity_tick(error_code const& ec);
+
+
+		// calculate the instantaneuos inactive state (the externally facing
+		// inactive state is not instantaneous, but low-pass filtered)
+		bool is_inactive_internal() const;
+
 		// remove a web seed, or schedule it for removal in case there
 		// are outstanding operations on it
 		void remove_web_seed(std::list<web_seed_entry>::iterator web);
@@ -1187,6 +1195,10 @@ namespace libtorrent
 
 		// used for tracker announces
 		deadline_timer m_tracker_timer;
+
+		// used to detect when we are active or inactive for long enough
+		// to trigger the auto-manage logic
+		deadline_timer m_inactivity_timer;
 
 		// this is the upload and download statistics for the whole torrent.
 		// it's updated from all its peers once every second.
@@ -1634,12 +1646,10 @@ namespace libtorrent
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
 
-		// the number of seconds this torrent has been under the inactive
-		// threshold in terms of sending and receiving data. When this counter
-		// reaches the settings.inactive_torrent_timeout it will be considered
-		// inactive and possibly open up another queue slot, to start another,
-		// queued, torrent. Every second it's above the threshold
-		boost::int16_t m_inactive_counter;
+		// this is a timestamp of the last time this torrent changed its
+		// m_inactive state. The inactive state is set when transfer rates are
+		// below the active threshold. It's specified in session time unit.
+		boost::int16_t m_last_active_change;
 
 		// if this is set, accept the save path saved in the resume data, if
 		// present
