@@ -408,6 +408,8 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 	if (e == asio::error::operation_aborted) return;
 
+	if (c->m_abort) return;
+
 	ptime now = time_now_hires();
 
 	if (c->m_start_time + c->m_completion_timeout < now
