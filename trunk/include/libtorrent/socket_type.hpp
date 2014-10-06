@@ -263,7 +263,6 @@ namespace libtorrent
 		error_code get_option(GettableSocketOption& opt, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD_RET(get_option(opt, ec), ec) }
 
-
 		template <class S>
 		void instantiate(io_service& ios, void* userdata = 0)
 		{

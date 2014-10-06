@@ -83,8 +83,13 @@ int ssl_peer_disconnects = 0;
 
 bool on_alert(alert* a)
 {
-	if (alert_cast<peer_disconnected_alert>(a))
+	if (peer_disconnected_alert* e = alert_cast<peer_disconnected_alert>(a))
+	{
 		++peer_disconnects;
+		if (e->error.category() == boost::asio::error::get_ssl_category())
+			++ssl_peer_disconnects;
+	}
+
 	if (peer_error_alert* e = alert_cast<peer_error_alert>(a))
 	{
 		++peer_disconnects;
@@ -160,7 +165,7 @@ void test_ssl(int test_idx, bool use_utp)
 	peer_errors = 0;
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_ssl", 16 * 1024, &t, false, &addp, true, test.use_ssl_ports);
+		, true, false, false, "_ssl", 16 * 1024, &t, false, &addp, true);
 
 	if (test.seed_has_cert)
 	{
@@ -179,6 +184,23 @@ void test_ssl(int test_idx, bool use_utp)
 			, combine_path("..", combine_path("ssl", "dhparams.pem"))
 			, "test");
 	}
+
+	// make sure they've taken effect
+	if (test.downloader_has_cert || test.seed_has_cert)
+		test_sleep(500);
+
+	// connect the peers after setting the certificates
+	int port = 0;
+	if (test.use_ssl_ports)
+		port = ses2.ssl_listen_port();
+
+	if (port == 0)
+		port = ses2.listen_port();
+
+	fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
+		, time_now_string(), port);
+	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+		, port));
 
 #ifdef TORRENT_USE_VALGRIND
 	const int timeout = 100;
@@ -233,10 +255,21 @@ void test_ssl(int test_idx, bool use_utp)
 		test_sleep(100);
 	}
 
-	fprintf(stderr, "peer_errors: %d  expected: %d\n", peer_errors, test.peer_errors);
-	TEST_EQUAL(peer_errors, test.peer_errors);
+	fprintf(stderr, "peer_errors: %d peer_disconnects: %d expected: %d\n"
+		, peer_errors, peer_disconnects, test.peer_errors);
+	if (test.peer_errors > 0) {
+		TEST_CHECK(peer_errors + peer_disconnects >= test.peer_errors);
+	} else {
+		TEST_EQUAL(peer_errors + peer_disconnects, test.peer_errors);
+	}
+
 	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
-	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
+	if (test.ssl_disconnects > 0) {
+		TEST_CHECK(ssl_peer_disconnects >= test.ssl_disconnects);
+	} else {
+		TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
+	}
+
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
@@ -489,7 +522,6 @@ void test_malicious_peer()
 	remove_all("tmp3_ssl", ec);
 
 	// set up session
-
 	int ssl_port = 1024 + rand() % 50000;
 	settings_pack sett;
 	sett.set_int(settings_pack::alert_mask, alert_mask);
@@ -544,9 +576,11 @@ int test_main()
 #ifdef TORRENT_USE_OPENSSL
 	test_malicious_peer();
 
-	// No support for SSL/uTP yet, so always pass in false
-	for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
-		test_ssl(i, false);
+	for (int utp = 0; utp < 2; ++utp)
+	{
+		for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
+			test_ssl(i, utp);
+	}
 	
 	error_code ec;
 	remove_all("tmp1_ssl", ec);

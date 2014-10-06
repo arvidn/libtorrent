@@ -479,13 +479,14 @@ namespace aux {
 #endif
 		, m_external_udp_port(0)
 		, m_udp_socket(m_io_service)
-		// TODO: 4 in order to support SSL over uTP, the utp_socket manager either
-		// needs to be able to receive packets on multiple ports, or we need to
-		// peek into the first few bytes the payload stream of a socket to determine
-		// whether or not it's an SSL connection. (The former is simpler but won't
-		// do as well with NATs)
-		, m_utp_socket_manager(m_settings, m_udp_socket, m_stats_counters
+		, m_utp_socket_manager(m_settings, m_udp_socket, m_stats_counters, NULL
 			, boost::bind(&session_impl::incoming_connection, this, _1))
+#ifdef TORRENT_USE_OPENSSL
+		, m_ssl_udp_socket(m_io_service)
+		, m_ssl_utp_socket_manager(m_settings, m_ssl_udp_socket, m_stats_counters
+			, &m_ssl_ctx
+			, boost::bind(&session_impl::incoming_connection, this, _1))
+#endif
 		, m_boost_connections(0)
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
@@ -512,6 +513,11 @@ namespace aux {
 		m_udp_socket.subscribe(&m_tracker_manager);
 		m_udp_socket.subscribe(&m_utp_socket_manager);
 		m_udp_socket.subscribe(this);
+
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_udp_socket.subscribe(&m_ssl_utp_socket_manager);
+		m_ssl_udp_socket.subscribe(this);
+#endif
 
 #ifdef TORRENT_REQUEST_LOGGING
 		char log_filename[200];
@@ -576,8 +582,10 @@ namespace aux {
 		m_udp_mapping[0] = -1;
 		m_udp_mapping[1] = -1;
 #ifdef TORRENT_USE_OPENSSL
-		m_ssl_mapping[0] = -1;
-		m_ssl_mapping[1] = -1;
+		m_ssl_tcp_mapping[0] = -1;
+		m_ssl_tcp_mapping[1] = -1;
+		m_ssl_udp_mapping[0] = -1;
+		m_ssl_udp_mapping[1] = -1;
 #endif
 
 		m_global_class = m_classes.new_peer_class("global");
@@ -1500,6 +1508,9 @@ namespace aux {
 		// the uTP connections cannot be closed gracefully
 		m_udp_socket.close();
 		m_external_udp_port = 0;
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_udp_socket.close();
+#endif
 
 		m_undead_peers.clear();
 
@@ -2185,7 +2196,8 @@ retry:
 				listen_socket_t s;
 				s.ssl = true;
 				int retries = 10;
-				setup_listener(&s, "0.0.0.0", true, m_settings.get_int(settings_pack::ssl_listen)
+				setup_listener(&s, "0.0.0.0", true
+					, m_settings.get_int(settings_pack::ssl_listen)
 					, retries, flags, ec);
 
 				if (s.sock)
@@ -2215,7 +2227,8 @@ retry:
 					listen_socket_t s;
 					s.ssl = true;
 					int retries = 10;
-					setup_listener(&s, "::1", false, m_settings.get_int(settings_pack::ssl_listen)
+					setup_listener(&s, "::1", false
+						, m_settings.get_int(settings_pack::ssl_listen)
 						, retries, flags, ec);
 
 					if (s.sock)
@@ -2243,6 +2256,8 @@ retry:
 		}
 		else
 		{
+			// TODO: 2 the udp socket(s) should be using the same generic
+			// mechanism and not be restricted to a single one
 			// we should open a one listen socket for each entry in the
 			// listen_interfaces list
 			for (int i = 0; i < m_listen_interfaces.size(); ++i)
@@ -2340,6 +2355,34 @@ retry:
 			return;
 		}
 
+#ifdef TORRENT_USE_OPENSSL
+		// TODO: 2 use bind_to_device in udp_socket
+		int ssl_port = m_settings.get_int(settings_pack::ssl_listen);
+		udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
+		m_ssl_udp_socket.bind(ssl_bind_if, ec);
+		if (ec)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			session_log("SSL: cannot bind to UDP interface \"%s\": %s"
+				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
+#endif
+#endif
+			if (m_alerts.should_post<listen_failed_alert>())
+			{
+				error_code err;
+				m_alerts.post_alert(listen_failed_alert(print_endpoint(ssl_bind_if)
+					, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl));
+			}
+			ec.clear();
+		}
+		else
+		{
+			if (m_alerts.should_post<listen_succeeded_alert>())
+				m_alerts.post_alert(listen_succeeded_alert(
+					tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
+					, listen_succeeded_alert::utp_ssl));
+		}
+
 		// TODO: 2 use bind_to_device in udp_socket
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
@@ -2412,8 +2455,8 @@ retry:
 			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
-			if (m_ssl_mapping[0] != -1) m_natpmp->delete_mapping(m_ssl_mapping[0]);
-			if (ssl_port > 0) m_ssl_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
+			if (m_ssl_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_ssl_tcp_mapping[0]);
+			if (ssl_port > 0) m_ssl_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
 				, ssl_port, ssl_port);
 #endif
 		}
@@ -2422,8 +2465,8 @@ retry:
 			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
-			if (m_ssl_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_mapping[1]);
-			if (ssl_port > 0) m_ssl_mapping[1] = m_upnp->add_mapping(upnp::tcp
+			if (m_ssl_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_tcp_mapping[1]);
+			if (ssl_port > 0) m_ssl_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
 				, ssl_port, ssl_port);
 #endif
 		}
@@ -6111,6 +6154,10 @@ retry:
 		// open the socks incoming connection
 		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
 		m_udp_socket.set_proxy_settings(proxy());
+
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_udp_socket.set_proxy_settings(proxy());
+#endif
 	}
 
 	void session_impl::update_upnp()
@@ -6196,12 +6243,14 @@ retry:
 		// mode. We don't want to leak our listen port since it can
 		// potentially identify us if it is leaked elsewere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
-		if (m_listen_sockets.empty()) return 0;
 		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
 			if (i->ssl) return i->external_port;
 		}
+
+		if (m_ssl_udp_socket.is_open())
+			return m_ssl_udp_socket.local_port();
 #endif
 		return 0;
 	}
@@ -6666,6 +6715,11 @@ retry:
 		m_udp_socket.unsubscribe(&m_utp_socket_manager);
 		m_udp_socket.unsubscribe(&m_tracker_manager);
 
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_udp_socket.unsubscribe(this);
+		m_ssl_udp_socket.unsubscribe(&m_utp_socket_manager);
+#endif
+
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
 
@@ -6789,6 +6843,15 @@ retry:
 		else
 #endif
 			m_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
+
+#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_IPV6 && defined IPV6_TCLASS
+		if (m_ssl_udp_socket.local_endpoint(ec).address().is_v6())
+			m_ssl_udp_socket.set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), ec);
+		else
+#endif
+			m_ssl_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
+#endif
 
 #if defined TORRENT_VERBOSE_LOGGING
 		session_log(">>> SET_TOS [ udp_socket tos: %x e: %s ]"
@@ -6981,6 +7044,15 @@ retry:
 			if (m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(udp::endpoint(), ec));
 		}
+
+#ifdef TORRENT_USE_OPENSSL
+		set_socket_buffer_size(m_ssl_udp_socket, m_settings, ec);
+		if (ec)
+		{
+			if (m_alerts.should_post<udp_error_alert>())
+				m_alerts.post_alert(udp_error_alert(udp::endpoint(), ec));
+		}
+#endif
 	}
 
 	void session_impl::update_dht_announce_interval()
@@ -7036,6 +7108,9 @@ retry:
 	void session_impl::update_force_proxy()
 	{
 		m_udp_socket.set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_udp_socket.set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
+#endif
 
 		if (!m_settings.get_bool(settings_pack::force_proxy)) return;
 
@@ -7283,15 +7358,24 @@ retry:
 
 		m_natpmp = n;
 
+		int ssl_port = ssl_listen_port();
+
 		if (m_listen_interface.port() > 0)
 		{
-			remap_tcp_ports(1, m_listen_interface.port(), ssl_listen_port());
+			remap_tcp_ports(1, m_listen_interface.port(), ssl_port);
 		}
 		if (m_udp_socket.is_open())
 		{
 			m_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
+#ifdef TORRENT_USE_OPENSSL
+		if (m_ssl_udp_socket.is_open() && ssl_port > 0)
+		{
+			m_ssl_udp_mapping[0] = m_natpmp->add_mapping(natpmp::udp
+				, ssl_port, ssl_port);
+		}
+#endif
 		return n;
 	}
 
@@ -7315,16 +7399,25 @@ retry:
 
 		m_upnp = u;
 
+		int ssl_port = ssl_listen_port();
+
 		m_upnp->discover_device();
-		if (m_listen_interface.port() > 0 || ssl_listen_port() > 0)
+		if (m_listen_interface.port() > 0 || ssl_port > 0)
 		{
-			remap_tcp_ports(2, m_listen_interface.port(), ssl_listen_port());
+			remap_tcp_ports(2, m_listen_interface.port(), ssl_port);
 		}
 		if (m_udp_socket.is_open())
 		{
 			m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
 				, m_listen_interface.port(), m_listen_interface.port());
 		}
+#ifdef TORRENT_USE_OPENSSL
+		if (m_ssl_udp_socket.is_open() && ssl_port > 0)
+		{
+			m_ssl_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
+				, ssl_port, ssl_port);
+		}
+#endif
 		return u;
 	}
 
@@ -7355,7 +7448,15 @@ retry:
 	void session_impl::stop_natpmp()
 	{
 		if (m_natpmp.get())
+		{
 			m_natpmp->close();
+			m_udp_mapping[0] = -1;
+			m_tcp_mapping[0] = -1;
+#ifdef TORRENT_USE_OPENSSL
+			m_ssl_tcp_mapping[0] = -1;
+			m_ssl_udp_mapping[0] = -1;
+#endif
+		}
 		m_natpmp = 0;
 	}
 	
@@ -7367,7 +7468,8 @@ retry:
 			m_udp_mapping[1] = -1;
 			m_tcp_mapping[1] = -1;
 #ifdef TORRENT_USE_OPENSSL
-			m_ssl_mapping[1] = -1;
+			m_ssl_tcp_mapping[1] = -1;
+			m_ssl_udp_mapping[1] = -1;
 #endif
 		}
 		m_upnp = 0;

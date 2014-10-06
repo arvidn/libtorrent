@@ -217,6 +217,11 @@ public:
 	template <class GettableSocketOption>
 	error_code get_option(GettableSocketOption&, error_code& ec) { return ec; }
 
+	error_code cancel(error_code& ec)
+	{
+		cancel_handlers(asio::error::operation_aborted);
+		return error_code();
+	}
 
 	void close();
 	void close(error_code const& /*ec*/) { close(); }

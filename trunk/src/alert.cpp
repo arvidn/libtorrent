@@ -301,7 +301,7 @@ namespace libtorrent {
 		};
 		static char const* type_str[] =
 		{
-			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5"
+			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL"
 		};
 		char ret[300];
 		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
@@ -316,7 +316,7 @@ namespace libtorrent {
 	{
 		static char const* type_str[] =
 		{
-			"TCP", "TCP/SSL", "UDP"
+			"TCP", "TCP/SSL", "UDP", "uTP/SSL"
 		};
 		char ret[200];
 		snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
