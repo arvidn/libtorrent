@@ -1029,8 +1029,13 @@ namespace libtorrent
 			int m_external_udp_port;
 
 			rate_limited_udp_socket m_udp_socket;
-
 			libtorrent::utp_socket_manager m_utp_socket_manager;
+
+#ifdef TORRENT_USE_OPENSSL
+			// used for uTP connectons over SSL
+			udp_socket m_ssl_udp_socket;
+			libtorrent::utp_socket_manager m_ssl_utp_socket_manager;
+#endif
 
 			// the number of torrent connection boosts
 			// connections that have been made this second
@@ -1050,7 +1055,8 @@ namespace libtorrent
 			int m_tcp_mapping[2];
 			int m_udp_mapping[2];
 #ifdef TORRENT_USE_OPENSSL
-			int m_ssl_mapping[2];
+			int m_ssl_tcp_mapping[2];
+			int m_ssl_udp_mapping[2];
 #endif
 
 			// the timer used to fire the tick

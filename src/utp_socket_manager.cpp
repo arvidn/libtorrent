@@ -47,6 +47,7 @@ namespace libtorrent
 	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett
 		, udp_socket& s
 		, counters& cnt
+		, void* ssl_context
 		, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
@@ -57,6 +58,7 @@ namespace libtorrent
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
 		, m_counters(cnt)
+		, m_ssl_context(ssl_context)
 	{}
 
 	utp_socket_manager::~utp_socket_manager()
@@ -346,8 +348,18 @@ namespace libtorrent
 			// create the new socket with this ID
 			m_new_connection = id;
 
-			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c, 0, this);
-			utp_stream* str = c->get<utp_stream>();
+			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c
+				, m_ssl_context, this, true);
+
+
+			utp_stream* str = NULL;
+#ifdef TORRENT_USE_OPENSSL
+			if (is_ssl(*c))
+				str = &c->get<ssl_stream<utp_stream> >()->next_layer();
+			else
+#endif
+				str = c->get<utp_stream>();
+
 			TORRENT_ASSERT(str);
 			int link_mtu, utp_mtu;
 			mtu_for_dest(ep.address(), link_mtu, utp_mtu);

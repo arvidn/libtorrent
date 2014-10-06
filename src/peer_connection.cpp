@@ -6083,7 +6083,8 @@ namespace libtorrent
 
 			if (ec)
 			{
-				if (ec == boost::asio::error::try_again || ec == boost::asio::error::would_block)
+				if (ec == boost::asio::error::try_again
+					|| ec == boost::asio::error::would_block)
 				{
 					// allow reading from the socket again
 					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);

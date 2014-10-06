@@ -154,6 +154,11 @@ public:
 	}
 #endif
 
+	error_code cancel(error_code& ec)
+	{
+		return m_sock.cancel(ec);
+	}
+
 	void bind(endpoint_type const& /* endpoint */, error_code& /* ec */)
 	{
 		// the reason why we ignore binds here is because we don't

@@ -808,46 +808,41 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 //		wait_for_alert(*ses1, torrent_finished_alert::alert_type, "ses1");
 
 		error_code ec;
+		int port = 0;
 		if (use_ssl_ports)
-		{
-			fprintf(stderr, "%s: ses1: connecting peer port: %d\n", time_now_string(), int(ses2->ssl_listen_port()));
-			tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
-				, ses2->ssl_listen_port()));
-		}
-		else
-		{
-			fprintf(stderr, "%s: ses1: connecting peer port: %d\n", time_now_string(), int(ses2->listen_port()));
-			tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
-				, ses2->listen_port()));
-		}
+			port = ses2->ssl_listen_port();
+
+		if (port == 0)
+			port = ses2->listen_port();
+
+		fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
+			, time_now_string(), port);
+		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+			, port));
 
 		if (ses3)
 		{
 			// give the other peers some time to get an initial
 			// set of pieces before they start sharing with each-other
 
+			port = 0;
+			int port2 = 0;
 			if (use_ssl_ports)
 			{
-				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses2->ssl_listen_port()));
-				tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec)
-					, ses2->ssl_listen_port()));
-				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses1->ssl_listen_port()));
-				tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec)
-					, ses1->ssl_listen_port()));
+				port = ses2->ssl_listen_port();
+				port2 = ses1->ssl_listen_port();
 			}
-			else
-			{
-				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses2->listen_port()));
+
+			if (port == 0) port = ses2->listen_port();
+			if (port2 == 0) port2 = ses1->listen_port();
+
+			fprintf(stderr, "ses3: connecting peer port: %d\n", port);
+			tor3.connect_peer(tcp::endpoint(
+					address::from_string("127.0.0.1", ec), port));
+			fprintf(stderr, "ses3: connecting peer port: %d\n", port2);
 				tor3.connect_peer(tcp::endpoint(
 					address::from_string("127.0.0.1", ec)
-					, ses2->listen_port()));
-				fprintf(stderr, "ses3: connecting peer port: %d\n", int(ses1->listen_port()));
-				tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec)
-					, ses1->listen_port()));
-			}
+					, port2));
 		}
 	}
 

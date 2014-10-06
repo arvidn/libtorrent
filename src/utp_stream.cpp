@@ -3328,6 +3328,11 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
 
 void utp_stream::bind(endpoint_type const& ep, error_code& ec) { }
 
+void utp_stream::cancel_handlers(error_code const& ec)
+{
+	if (!m_impl) return;
+	m_impl->cancel_handlers(ec, false);
+}
 // returns the number of milliseconds a packet would have before
 // it would time-out if it was sent right now. Takes the RTT estimate
 // into account

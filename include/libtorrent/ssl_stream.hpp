@@ -114,6 +114,8 @@ public:
 	template <class Handler>
 	void async_shutdown(Handler const& handler)
 	{
+		error_code ec;
+		m_sock.next_layer().cancel(ec);
 		m_sock.async_shutdown(handler);
 	}
 

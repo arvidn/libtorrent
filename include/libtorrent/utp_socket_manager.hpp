@@ -51,7 +51,8 @@ namespace libtorrent
 
 	struct utp_socket_manager : udp_socket_observer
 	{
-		utp_socket_manager(aux::session_settings const& sett, udp_socket& s, counters& cnt, incoming_utp_callback_t cb);
+		utp_socket_manager(aux::session_settings const& sett, udp_socket& s
+			, counters& cnt, void* ssl_context, incoming_utp_callback_t cb);
 		~utp_socket_manager();
 
 		void get_status(utp_status& s) const;
@@ -152,6 +153,10 @@ namespace libtorrent
 
 		// stats counters
 		counters& m_counters;
+
+		// this is  passed on to the instantiate connection
+		// if this is non-null it will create SSL connections over uTP
+		void* m_ssl_context;
 	};
 }
 

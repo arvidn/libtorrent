@@ -1325,7 +1325,7 @@ namespace libtorrent
 	// listen on it.
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
-		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5 };
+		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
 
 		// internal
 		listen_failed_alert(
@@ -1368,7 +1368,7 @@ namespace libtorrent
 	// was opened for listening.
 	struct TORRENT_EXPORT listen_succeeded_alert: alert
 	{
-		enum socket_type_t { tcp, tcp_ssl, udp };
+		enum socket_type_t { tcp, tcp_ssl, udp, utp_ssl };
 
 		// internal
 		listen_succeeded_alert(tcp::endpoint const& ep, socket_type_t t)
