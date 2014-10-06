@@ -2366,7 +2366,6 @@ retry:
 			session_log("SSL: cannot bind to UDP interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
-#endif
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
@@ -2382,6 +2381,7 @@ retry:
 					tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
 					, listen_succeeded_alert::utp_ssl));
 		}
+#endif
 
 		// TODO: 2 use bind_to_device in udp_socket
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
