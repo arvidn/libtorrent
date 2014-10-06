@@ -415,13 +415,13 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	if (c->m_start_time + c->m_completion_timeout < now
 		|| c->m_last_receive + c->m_read_timeout < now)
 	{
+		// the connection timed out. If we have more endpoints to try, just
+		// close this connection. The on_connect handler will try the next
+		// endpoint in the list.
 		if (!c->m_endpoints.empty())
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("http_connection::on_timeout");
-#endif
 			error_code ec;
-			async_shutdown(c->m_sock, c);
+			c->m_sock.close(ec);
 		}
 		else
 		{
@@ -549,12 +549,6 @@ void http_connection::connect()
 
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
-	TORRENT_ASSERT(!m_endpoints.empty());
-	if (m_endpoints.empty()) return;
-
-	tcp::endpoint target_address = m_endpoints.front();
-	m_endpoints.erase(m_endpoints.begin());
-
 	if (m_proxy.proxy_hostnames
 		&& (m_proxy.type == settings_pack::socks5
 			|| m_proxy.type == settings_pack::socks5_pw))
@@ -574,6 +568,13 @@ void http_connection::connect()
 			m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
 		}
 	}
+
+	TORRENT_ASSERT(!m_endpoints.empty());
+	if (m_endpoints.empty()) return;
+
+	tcp::endpoint target_address = m_endpoints.front();
+	m_endpoints.erase(m_endpoints.begin());
+
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_connect");
 #endif
