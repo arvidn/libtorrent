@@ -36,12 +36,17 @@ def convert_timestamp(t):
 
 last_incoming = ''
 
+our_node_id = ''
+
 for line in f:
 	counter += 1
 #	if counter % 1000 == 0:
 #		print '\r%d' % counter,
 	try:
 		l = line.split(' ')
+		if 'starting DHT tracker with node id:' in line:
+			our_node_id = l[l.index('id:') + 1].strip()
+
 		if 'announce-distance:' in line:
 			idx = l.index('announce-distance:')
 
@@ -70,7 +75,9 @@ for line in f:
 			outstanding_searches[search_id].append({ 't': ts, 'd': distance,
 				'o': outstanding + 1, 'a':addr, 'e': event,'i':nid, 's':source})
 		elif event == 'NEW':
-			outstanding_searches[search_id] = [{ 't': ts, 'd': 0, 'o': 0, 'e': 'NEW', 'i': ''}]
+			nid = l[l.index('target:')+1]
+			outstanding_searches[search_id] = [{ 't': ts, 'd': 0, 'o': 0, \
+				'e': event, 'abstime': ts, 'i': nid}]
 			last_response = ''
 		elif event == 'INVOKE' or event == 'ADD' or event == '1ST_TIMEOUT' or \
 			event == 'TIMEOUT' or event == 'PEERS':
@@ -88,10 +95,15 @@ for line in f:
 
 				outstanding_searches[search_id].append({ 't': ts, 'd': distance,
 					'o': outstanding + 1, 'a':addr, 'e': event,'i':nid, 's':source})
+		elif event == 'ABORTED':
+				outstanding_searches[search_id].append({ 't': ts, 'e': event})
 		elif event == 'COMPLETED':
 				distance = int(l[l.index('distance:')+1])
+				lookup_type = l[l.index('type:')+1].strip()
 				outstanding_searches[search_id].append({ 't': ts, 'd': distance,
 					'o': 0, 'e': event,'i':''})
+
+				outstanding_searches[search_id][0]['type'] = lookup_type
 
 				s = outstanding_searches[search_id]
 
@@ -174,9 +186,13 @@ for s in searches:
 			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
 		elif i['e'] == 'PEERS':
 			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
+		elif i['e'] == 'ABORTED':
+			print >>out, 'abort'
 		elif i['e'] == 'COMPLETED':
 			print >>out, '***', i['t'], 160 - i['d'], '\n'
-			break
+		elif i['e'] == 'NEW':
+			print >>out, '===', i['abstime'], i['type'], '==='
+			print >>out, '<> ', 0, our_node_id, i['i']
 out.close()
 
 out = open('dht_announce_distribution.dat', 'w+')
