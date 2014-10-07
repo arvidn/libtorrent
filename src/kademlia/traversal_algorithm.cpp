@@ -574,6 +574,13 @@ void traversal_algorithm::abort()
 		if (o.flags & observer::flag_queried)
 			o.flags |= observer::flag_done;
 	}
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << "[" << this << "] ABORTED "
+		<< " type: " << name()
+		;
+#endif
+
 	done();
 }
 
