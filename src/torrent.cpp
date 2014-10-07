@@ -6920,10 +6920,9 @@ namespace libtorrent
 		std::back_insert_iterator<entry::string_type> banned_peers6(ret["banned_peers6"].string());
 #endif
 
-		// failcount is a 5 bit value
-		int max_failcount = (std::min)(settings().get_int(settings_pack::max_failcount), 31);
-
 		int num_saved_peers = 0;
+
+		std::vector<torrent_peer const*> deferred_peers;
 
 		if (m_policy)
 		{
@@ -6960,19 +6959,45 @@ namespace libtorrent
 				if (!p->connectable) continue;
 
 				// don't save peers that don't work
-				if (int(p->failcount) >= max_failcount) continue;
+				if (int(p->failcount) > 0) continue;
 
-				// the more peers we've saved, the more picky we get
-				// about which ones are worth saving
-				if (num_saved_peers > 10
-					&& int (p->failcount) > 0
-					&& int(p->failcount) > (40 - (num_saved_peers - 10)) * max_failcount / 40)
-					continue;
+				// don't save peers that appear to send corrupt data
+				if (int(p->trust_points) < 0) continue;
 
-				// if we have 40 peers, don't save any peers whom
-				// we've only heard from through the resume data
-				if (num_saved_peers > 40 && p->source == peer_info::resume_data)
+				if (p->last_connected == 0)
+				{
+					// we haven't connected to this peer. It might still
+					// be useful to save it, but only save it if we
+					// don't have enough peers that we actually did connect to
+					deferred_peers.push_back(p);
 					continue;
+				}
+
+#if TORRENT_USE_IPV6
+				if (addr.is_v6())
+				{
+					write_address(addr, peers6);
+					write_uint16(p->port, peers6);
+				}
+				else
+#endif
+				{
+					write_address(addr, peers);
+					write_uint16(p->port, peers);
+				}
+				++num_saved_peers;
+			}
+		}
+
+		// if we didn't save 100 peers, fill in with second choice peers
+		if (num_saved_peers < 100)
+		{
+			std::random_shuffle(deferred_peers.begin(), deferred_peers.end());
+			for (std::vector<torrent_peer const*>::const_iterator i = deferred_peers.begin()
+				, end(deferred_peers.end()); i != end && num_saved_peers < 100; ++i)
+			{
+				torrent_peer const* p = *i;
+				address addr = p->address();
 
 #if TORRENT_USE_IPV6
 				if (addr.is_v6())
