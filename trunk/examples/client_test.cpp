@@ -918,7 +918,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 	int piece = pp ? pp->piece_index : cs->piece;
 	int num_blocks = pp ? pp->blocks_in_piece : cs->blocks.size();
 
-	snprintf(str, sizeof(str), "%5d: [", piece);
+	snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
 	char const* last_color = 0;
 	for (int j = 0; j < num_blocks; ++j)
@@ -959,14 +959,16 @@ void print_piece(libtorrent::partial_piece_info* pp
 		out += str;
 	}
 	out += esc("0");
-
+	out += "]";
+/*
 	char const* cache_kind_str[] = {"read", "write", "read-volatile"};
-	snprintf(str, sizeof(str), "] %3d cache age: %-5.1f state: %s%s\n"
+	snprintf(str, sizeof(str), " %3d cache age: %-5.1f state: %s%s\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
 		, cs ? cache_kind_str[cs->kind] : "N/A"
 		, ts && ts->pieces.size() ? (ts->pieces[piece] ? " have" : " dont-have") : "");
 	out += str;
+*/
 }
 
 int main(int argc, char* argv[])
@@ -1825,6 +1827,7 @@ int main(int argc, char* argv[])
 				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::piece, _1)
 					> boost::bind(&cached_piece_info::piece, _2));
 
+				int pos = 0;
 				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin();
 					i != cs.pieces.end(); ++i)
 				{
@@ -1839,6 +1842,14 @@ int main(int argc, char* argv[])
 
 					print_piece(pp, &*i, peers, &s, out);
 
+					int num_blocks = pp ? pp->blocks_in_piece : i->blocks.size();
+					pos += num_blocks + 8;
+					if (pos + num_blocks + 8 > terminal_width)
+					{
+						out += "\n";
+						pos = 0;
+					}
+
 					if (pp) queue.erase(ppi);
 				}
 
@@ -1846,7 +1857,17 @@ int main(int argc, char* argv[])
 					, end(queue.end()); i != end; ++i)
 				{
 					print_piece(&*i, 0, peers, &s, out);
+
+					int num_blocks = i->blocks_in_piece;
+					pos += num_blocks + 8;
+					if (pos + num_blocks + 8 > terminal_width)
+					{
+						out += "\n";
+						pos = 0;
+					}
 				}
+				if (out[out.size()] != '\n') out += "\n";
+
 				snprintf(str, sizeof(str), "%s %s: read cache %s %s: downloading %s %s: cached %s %s: flushed\n"
 					, esc("34;7"), esc("0") // read cache
 					, esc("33;7"), esc("0") // downloading
