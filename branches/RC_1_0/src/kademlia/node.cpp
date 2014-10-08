@@ -476,7 +476,7 @@ void node_impl::status(session_status& s)
 	}
 }
 
-void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply
+void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 	, bool noseed, bool scrape) const
 {
 	if (m_post_alert)
@@ -487,13 +487,7 @@ void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& repl
 
 	table_t::const_iterator i = m_map.lower_bound(info_hash);
 	if (i == m_map.end()) return;
-	if (i->first != info_hash && prefix == 20) return;
-	if (prefix != 20)
-	{
-		sha1_hash mask = sha1_hash::max();
-		mask <<= (20 - prefix) * 8;
-		if ((i->first & mask) != (info_hash & mask)) return;
-	}
+	if (i->first != info_hash) return;
 
 	torrent_entry const& v = i->second;
 
@@ -756,13 +750,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	{
 		key_desc_t msg_desc[] = {
 			{"info_hash", lazy_entry::string_t, 20, 0},
-			{"ifhpfxl", lazy_entry::int_t, 0, key_desc_t::optional},
 			{"noseed", lazy_entry::int_t, 0, key_desc_t::optional},
 			{"scrape", lazy_entry::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[4];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 4, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[3];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -776,15 +769,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(info_hash, n, 0);
 		write_nodes_entry(reply, n);
 
-		int prefix = msg_keys[1] ? int(msg_keys[1]->int_value()) : 20;
-		if (prefix > 20) prefix = 20;
-		else if (prefix < 4) prefix = 4;
-
 		bool noseed = false;
 		bool scrape = false;
-		if (msg_keys[2] && msg_keys[2]->int_value() != 0) noseed = true;
-		if (msg_keys[3] && msg_keys[3]->int_value() != 0) scrape = true;
-		lookup_peers(info_hash, prefix, reply, noseed, scrape);
+		if (msg_keys[1] && msg_keys[1]->int_value() != 0) noseed = true;
+		if (msg_keys[2] && msg_keys[2]->int_value() != 0) scrape = true;
+		lookup_peers(info_hash, reply, noseed, scrape);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		if (reply.find_key("values"))
 		{
