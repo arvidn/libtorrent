@@ -196,13 +196,16 @@ public:
 		return m_sock.write_some(buffers, ec);
 	}
 
+	// the SSL stream may cache 17 kiB internally, and there's no way of
+	// asking how large its buffer is. 17 kiB isn't very much though, so it
+	// seems fine to potentially over-estimate the number of bytes available.
 #ifndef BOOST_NO_EXCEPTIONS
 	std::size_t available() const
-	{ return const_cast<sock_type&>(m_sock).next_layer().available(); }
+	{ return 17 * 1024 + const_cast<sock_type&>(m_sock).next_layer().available(); }
 #endif
 
 	std::size_t available(error_code& ec) const
-	{ return const_cast<sock_type&>(m_sock).next_layer().available(ec); }
+	{ return 17 * 1024 + const_cast<sock_type&>(m_sock).next_layer().available(ec); }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
