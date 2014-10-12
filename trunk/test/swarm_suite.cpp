@@ -146,6 +146,12 @@ void test_swarm(int flags)
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
+		if (flags & super_seeding)
+		{
+			TEST_CHECK(st1.is_seeding);
+			TEST_CHECK(st1.super_seeding);
+		}
+
 		if (st2.progress < 1.f && st2.progress > 0.5f)
 		{
 			sum_dl_rate2 += st2.download_payload_rate;

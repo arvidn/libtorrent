@@ -1905,13 +1905,6 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		choke_this_peer();
-
-		if (t->super_seeding())
-		{
-			// maybe we need to try another piece, to see if the peer
-			// is interested in us then
-			superseed_piece(-1, t->get_piece_to_super_seed(m_have_piece));
-		}
 	}
 
 	void peer_connection::choke_this_peer()
@@ -4785,6 +4778,15 @@ namespace libtorrent
 				m_counters.inc_stats_counter(counters::end_game_piece_picks);
 			if (m_disconnecting) return;
 			send_block_requests();
+		}
+
+		if (t->super_seeding()
+			&& !m_peer_interested
+			&& m_became_uninterested + seconds(10) < now)
+		{
+			// maybe we need to try another piece, to see if the peer
+			// become interested in us then
+			superseed_piece(-1, t->get_piece_to_super_seed(m_have_piece));
 		}
 
 		on_tick();

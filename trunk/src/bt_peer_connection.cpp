@@ -823,6 +823,13 @@ namespace libtorrent
 		ptr += 20;
 
 #ifdef TORRENT_VERBOSE_LOGGING
+		{
+			char hex_pid[41];
+			to_hex((char const*)&m_our_peer_id[0], 20, hex_pid);
+			hex_pid[40] = 0;
+			peer_log(">>> sent peer_id: %s client: %s"
+				, hex_pid, identify_client(m_our_peer_id).c_str());
+		}
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
 #endif
 		send_buffer(handshake, sizeof(handshake));
@@ -3275,7 +3282,7 @@ namespace libtorrent
 					if (is_print(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
 					else ascii_pid[i] = '.';
 				}
-				peer_log("<<< received peer_id: %s client: %s\nas ascii: %s\n"
+				peer_log("<<< received peer_id: %s client: %s ascii: \"%s\""
 					, hex_pid, identify_client(peer_id(recv_buffer.begin)).c_str(), ascii_pid);
 			}
 #endif

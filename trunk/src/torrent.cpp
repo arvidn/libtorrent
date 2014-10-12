@@ -4764,14 +4764,6 @@ namespace libtorrent
 			avail_vec.push_back(i);
 		}
 
-		if (min_availability > 1)
-		{
-			// if the minimum availability is 2 or more,
-			// we shouldn't be super seeding any more
-			super_seeding(false);
-			return -1;
-		}
-
 		return avail_vec[random() % avail_vec.size()];
 	}
 

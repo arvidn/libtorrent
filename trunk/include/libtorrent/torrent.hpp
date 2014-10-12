@@ -250,6 +250,7 @@ namespace libtorrent
 
 		sha1_hash const& info_hash() const
 		{
+			TORRENT_ASSERT(m_torrent_file);
 			static sha1_hash empty;
 			return m_torrent_file ? m_torrent_file->info_hash() : empty;
 		}
