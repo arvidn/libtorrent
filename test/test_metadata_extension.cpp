@@ -46,9 +46,21 @@ using boost::tuples::ignore;
 enum flags_t
 {
 	clear_files = 1,
+
+	// disconnect immediately after receiving the metadata (to test that
+	// edge case, it caused a crash once)
 	disconnect = 2,
+
+	// force encryption (to make sure the plugin uses the peer_connection
+	// API in a compatible way)
 	full_encryption = 4,
-	reverse = 8
+
+	// have the downloader connect to the seeder
+	// (instead of the other way around)
+	reverse = 8,
+
+	// only use uTP
+	utp = 16
 };
 
 void test_transfer(int flags
@@ -58,12 +70,13 @@ void test_transfer(int flags
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "test transfer: timeout=%d %s%s%s%s\n"
+	fprintf(stderr, "\n==== test transfer: timeout=%d %s%s%s%s%s ====\n\n"
 		, timeout
 		, (flags & clear_files) ? "clear-files " : ""
 		, (flags & disconnect) ? "disconnect " : ""
 		, (flags & full_encryption) ? "encryption " : ""
-		, (flags & reverse) ? "reverse " : "");
+		, (flags & reverse) ? "reverse " : ""
+		, (flags & utp) ? "utp " : "");
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -84,6 +97,23 @@ void test_transfer(int flags
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 	pack.set_bool(settings_pack::prefer_rc4, flags & full_encryption);
+
+	if (flags & utp)
+	{
+		pack.set_bool(settings_pack::utp_dynamic_sock_buf, true);
+		pack.set_bool(settings_pack::enable_incoming_utp, true);
+		pack.set_bool(settings_pack::enable_outgoing_utp, true);
+		pack.set_bool(settings_pack::enable_incoming_tcp, false);
+		pack.set_bool(settings_pack::enable_outgoing_tcp, false);
+	}
+	else
+	{
+		pack.set_bool(settings_pack::enable_incoming_utp, false);
+		pack.set_bool(settings_pack::enable_outgoing_utp, false);
+		pack.set_bool(settings_pack::enable_incoming_tcp, true);
+		pack.set_bool(settings_pack::enable_outgoing_tcp, true);
+	}
+
 	ses1.apply_settings(pack);
 	ses2.apply_settings(pack);
 
@@ -170,7 +200,8 @@ int test_main()
 	const int timeout = 3;
 #endif
 
-	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
+test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
+test_transfer(full_encryption | utp, &create_ut_metadata_plugin, timeout);
 	test_transfer(reverse, &create_ut_metadata_plugin, timeout);
 
 #ifndef TORRENT_NO_DEPRECATE
