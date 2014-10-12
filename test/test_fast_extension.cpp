@@ -450,6 +450,8 @@ void test_dont_have()
 	do_handshake(s, ih, recv_buffer);
 	send_have_all(s);
 
+	test_sleep(300);
+
 	std::vector<peer_info> pi;
 	th.get_peer_info(pi);
 
