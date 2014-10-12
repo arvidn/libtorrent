@@ -671,6 +671,9 @@ local usage-requirements =
 # disable some warnings for gcc
 	<toolset>gcc:<cflags>-fno-strict-aliasing
 	<toolset>gcc:<cflags>-Wno-missing-braces
+# suppress warnings caused by boost using c++11 features even when not
+# in c++11 mode
+	<toolset>darwin:<cxxflags>-Wno-c++11-extensions
 # assert on integer overflow
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	<boost>system:<linkflags>$(LDFLAGS)

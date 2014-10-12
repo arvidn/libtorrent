@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,17 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 int test_main()
 {
-	// with seed mode
-	test_swarm(seed_mode);
-
-	test_swarm();
-
-	// with suggest pieces
-	test_swarm(suggest);
-
-	// test explicit cache
-	test_swarm(suggest | explicit_cache);
-
+	// with super seeding
+	test_swarm(super_seeding);
+	
+	// with strict super seeding
+	test_swarm(super_seeding | strict_super_seeding);
+	
 	return 0;
 }
+
 
