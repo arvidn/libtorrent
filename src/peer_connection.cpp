@@ -1583,13 +1583,6 @@ namespace libtorrent
 				m_ses.m_unchoke_time_scaler = 0;
 			}
 		}
-
-		if (t->super_seeding())
-		{
-			// maybe we need to try another piece, to see if the peer
-			// is interested in us then
-			superseed_piece(-1, t->get_piece_to_super_seed(m_have_piece));
-		}
 	}
 
 	// -----------------------------
@@ -4162,6 +4155,15 @@ namespace libtorrent
 			request_a_block(*t, *this);
 			if (m_disconnecting) return;
 			send_block_requests();
+		}
+
+		if (t->super_seeding()
+			&& !m_peer_interested
+			&& m_became_uninterested + seconds(10) < now)
+		{
+			// maybe we need to try another piece, to see if the peer
+			// become interested in us then
+			superseed_piece(-1, t->get_piece_to_super_seed(m_have_piece));
 		}
 
 		on_tick();
