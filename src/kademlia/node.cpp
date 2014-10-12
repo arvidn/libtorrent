@@ -494,7 +494,7 @@ void node_impl::status(session_status& s)
 	}
 }
 
-void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply
+void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 	, bool noseed, bool scrape) const
 {
 	if (m_post_alert)
@@ -505,13 +505,7 @@ void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& repl
 
 	table_t::const_iterator i = m_map.lower_bound(info_hash);
 	if (i == m_map.end()) return;
-	if (i->first != info_hash && prefix == 20) return;
-	if (prefix != 20)
-	{
-		sha1_hash mask = sha1_hash::max();
-		mask <<= (20 - prefix) * 8;
-		if ((i->first & mask) != (info_hash & mask)) return;
-	}
+	if (i->first != info_hash) return;
 
 	torrent_entry const& v = i->second;
 
@@ -709,13 +703,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	key_desc_t top_desc[] = {
 		{"q", lazy_entry::string_t, 0, 0},
+		{"ro", lazy_entry::int_t, 0, key_desc_t::optional},
 		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
 			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
-	lazy_entry const* top_level[3];
+	lazy_entry const* top_level[4];
 	char error_string[200];
-	if (!verify_message(&m.message, top_desc, top_level, 3, error_string, sizeof(error_string)))
+	if (!verify_message(&m.message, top_desc, top_level, 4, error_string, sizeof(error_string)))
 	{
 		incoming_error(e, error_string);
 		return;
@@ -725,9 +720,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	char const* query = top_level[0]->string_cstr();
 
-	lazy_entry const* arg_ent = top_level[1];
-
-	node_id id(top_level[2]->string_ptr());
+	lazy_entry const* arg_ent = top_level[2];
+	bool read_only = top_level[1] && top_level[1]->int_value() != 0;
+	node_id id(top_level[3]->string_ptr());
 
 	// if this nodes ID doesn't match its IP, tell it what
 	// its IP is with an error
@@ -738,7 +733,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		return;
 	}
 
-	m_table.heard_about(id, m.addr);
+	if (!read_only)
+		m_table.heard_about(id, m.addr);
 
 	entry& reply = e["r"];
 	m_rpc.add_our_id(reply);
@@ -756,13 +752,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	{
 		key_desc_t msg_desc[] = {
 			{"info_hash", lazy_entry::string_t, 20, 0},
-			{"ifhpfxl", lazy_entry::int_t, 0, key_desc_t::optional},
 			{"noseed", lazy_entry::int_t, 0, key_desc_t::optional},
 			{"scrape", lazy_entry::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[4];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 4, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[3];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -778,15 +773,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(info_hash, n, 0);
 		write_nodes_entry(reply, n);
 
-		int prefix = msg_keys[1] ? int(msg_keys[1]->int_value()) : 20;
-		if (prefix > 20) prefix = 20;
-		else if (prefix < 4) prefix = 4;
-
 		bool noseed = false;
 		bool scrape = false;
-		if (msg_keys[2] && msg_keys[2]->int_value() != 0) noseed = true;
-		if (msg_keys[3] && msg_keys[3]->int_value() != 0) scrape = true;
-		lookup_peers(info_hash, prefix, reply, noseed, scrape);
+		if (msg_keys[1] && msg_keys[1]->int_value() != 0) noseed = true;
+		if (msg_keys[2] && msg_keys[2]->int_value() != 0) scrape = true;
+		lookup_peers(info_hash, reply, noseed, scrape);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		if (reply.find_key("values"))
 		{
@@ -810,7 +801,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_counters.inc_stats_counter(counters::dht_find_node_in);
 		sha1_hash target(msg_keys[0]->string_ptr());
 
-		// TODO: 1 find_node should write directly to the response entry
+		// TODO: 2 find_node should write directly to the response entry
 		nodes_t n;
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
