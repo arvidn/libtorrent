@@ -2527,6 +2527,8 @@ namespace libtorrent
 #endif
 				)
 			{
+				TORRENT_ASSERT(j->error.file >= 0);
+
 				// skip this file by updating m_checking_piece to the first piece following it
 				file_storage const& st = m_torrent_file->files();
 				boost::uint64_t file_size = st.file_size(j->error.file);

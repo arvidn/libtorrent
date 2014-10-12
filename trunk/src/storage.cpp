@@ -1224,6 +1224,9 @@ namespace libtorrent
 				bytes_transferred = (int)((*handle).*op.op)(adjusted_offset
 					, tmp_bufs, num_tmp_bufs, e, op.mode);
 
+				// we either get an error or 0 or more bytes read
+				TORRENT_ASSERT(e || bytes_transferred >= 0);
+
 #ifdef TORRENT_DISK_STATS
 				write_access_log(adjusted_offset + bytes_transferred, handle->file_id(), op_end | flags, time_now_hires());
 #endif
@@ -1235,12 +1238,20 @@ namespace libtorrent
 			{
 				ec.ec = e;
 				ec.file = file_index;
-				ec.operation = (op.mode & file::rw_mask) == file::read_only ? storage_error::read : storage_error::write;
+				ec.operation = (op.mode & file::rw_mask) == file::read_only
+					? storage_error::read : storage_error::write;
 				return -1;
 			}
 
 			if (file_bytes_left != bytes_transferred)
+			{
+				// fill in this information in case the caller wants to treat
+				// this as an error
+				ec.file = file_index;
+				ec.operation = (op.mode & file::rw_mask) == file::read_only
+					? storage_error::read : storage_error::write;
 				return bytes_transferred;
+			}
 
 			advance_bufs(current_buf, bytes_transferred);
 			TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);

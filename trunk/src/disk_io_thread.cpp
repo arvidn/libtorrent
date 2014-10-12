@@ -1145,6 +1145,9 @@ namespace libtorrent
 		// call disk function
 		int ret = (this->*(job_functions[j->action]))(j, completed_jobs);
 
+		// note that -2 erros are OK
+		TORRENT_ASSERT(ret != -1 || (j->error.ec && j->error.operation != 0));
+
 		--m_outstanding_jobs;
 
 		if (ret == retry_job)
@@ -1209,6 +1212,8 @@ namespace libtorrent
 		int ret = j->storage->get_storage_impl()->readv(&b, 1
 			, j->piece, j->d.io.offset, file_flags, j->error);
    
+		TORRENT_ASSERT(ret >= 0 || j->error.ec);
+
 		if (!j->error.ec)
 		{
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - start_time);
@@ -2544,6 +2549,8 @@ namespace libtorrent
 		}
 
 		m_disk_cache.maybe_free_piece(pe);
+
+		TORRENT_ASSERT(ret >= 0 || (j->error.ec && j->error.operation != 0));
 
 		return ret < 0 ? ret : 0;
 	}
