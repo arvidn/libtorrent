@@ -51,6 +51,7 @@ lib libtorrent_test
 	udp_tracker.cpp
 	peer_server.cpp
 	web_seed_suite.cpp
+	swarm_suite.cpp
 
 	: # requirements
 	# this is used to determine whether
@@ -159,6 +160,8 @@ test-suite libtorrent :
 #	[ run test_entry.cpp ]
 	[ run test_metadata_extension.cpp ]
 	[ run test_trackers_extension.cpp ]
+	[ run test_time_critical.cpp ]
+	[ run test_super_seeding.cpp ]
 	[ run test_swarm.cpp ]
 	[ run test_lsd.cpp ]
 	[ run test_pex.cpp ]

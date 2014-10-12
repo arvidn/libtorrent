@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,21 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "swarm_suite.hpp"
+#include "test.hpp"
 
-int test_main()
+enum test_flags_t
 {
-	// with seed mode
-	test_swarm(seed_mode);
+	super_seeding = 1,
+	strict_super_seeding = 2,
+	seed_mode = 4,
+	time_critical = 8,
+	suggest = 16,
+	explicit_cache = 32
+};
 
-	test_swarm();
-
-	// with suggest pieces
-	test_swarm(suggest);
-
-	// test explicit cache
-	test_swarm(suggest | explicit_cache);
-
-	return 0;
-}
+void EXPORT test_swarm(int flags = 0);
 

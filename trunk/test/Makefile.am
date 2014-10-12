@@ -40,6 +40,8 @@ test_programs = \
   test_rss                   \
   test_ssl                   \
   test_storage               \
+  test_time_critical         \
+  test_super_seeding         \
   test_swarm                 \
   test_tailqueue             \
   test_threads               \
@@ -121,14 +123,15 @@ EXTRA_DIST = Jamfile \
 EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
-	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp
+	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp
 
 libtest_la_SOURCES = main.cpp \
   setup_transfer.cpp \
   dht_server.cpp \
   udp_tracker.cpp \
   peer_server.cpp \
-  web_seed_suite.cpp
+  web_seed_suite.cpp \
+  swarm_suite.cpp
 
 test_bitfield_SOURCES = test_bitfield.cpp
 test_torrent_info_SOURCES = test_torrent_info.cpp
@@ -167,6 +170,8 @@ test_packet_buffer_SOURCES = test_packet_buffer.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
 test_settings_pack_SOURCES = test_settings_pack.cpp
+test_time_critical_SOURCES = test_time_critical.cpp
+test_super_seeding_SOURCES = test_super_seeding.cpp
 test_swarm_SOURCES = test_swarm.cpp
 test_tailqueue_SOURCES = test_tailqueue.cpp
 test_rss_SOURCES = test_rss.cpp
