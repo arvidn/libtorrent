@@ -541,24 +541,19 @@ namespace libtorrent
 			peer_log("*** CLASS [ %s ]", m_ses.peer_classes().at(class_at(i))->label.c_str());
 		}
 #endif
-		if (!t || !t->ready_for_connections())
-			return;
 
-		init();
-
-		error_code ec;
-		if (!t)
+		if (t && t->ready_for_connections())
 		{
-			TORRENT_ASSERT(!m_connecting);
-			disconnect(errors::torrent_aborted, op_bittorrent);
-			return;
+			init();
 		}
 
-		TORRENT_ASSERT(m_connecting);
+		// if this is an incoming connection, we're done here
+		if (!m_connecting) return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		peer_log(">>> OPEN [ protocol: %s ]", (m_remote.address().is_v4()?"IPv4":"IPv6"));
 #endif
+		error_code ec;
 		m_socket->open(m_remote.protocol(), ec);
 		if (ec)
 		{
@@ -586,7 +581,8 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		t->debug_log("START connect [%p] (%d)", this, int(t->num_peers()));
+		if (t)
+			t->debug_log("START connect [%p] (%d)", this, int(t->num_peers()));
 #endif
 
 		m_socket->async_connect(m_remote
@@ -595,7 +591,7 @@ namespace libtorrent
 
 		sent_syn(m_remote.address().is_v6());
 
-		if (t->alerts().should_post<peer_connect_alert>())
+		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().post_alert(peer_connect_alert(
 				t->get_handle(), remote(), pid(), m_socket->type()));
@@ -5697,11 +5693,13 @@ namespace libtorrent
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< CANNOT READ [ quota: %d  "
-				"can-write-to-disk: %s queue-limit: %d disconnecting: %s ]"
+				"can-write-to-disk: %s queue-limit: %d disconnecting: %s "
+				" connecting: %s ]"
 				, m_quota[download_channel]
 				, ((m_channel_state[download_channel] & peer_info::bw_disk)?"no":"yes")
 				, m_settings.get_int(settings_pack::max_queued_disk_bytes)
-				, (m_disconnecting?"yes":"no"));
+				, (m_disconnecting?"yes":"no")
+				, (m_connecting?"yes":"no"));
 #endif
 			// if we block reading, waiting for the disk, we will wake up
 			// by the disk_io_thread posting a message every time it drops
@@ -6370,14 +6368,6 @@ namespace libtorrent
 		RAND_add(&now, 8, 1.5);
 #endif
 
-		if (m_disconnecting) return;
-		
-		if (e)
-		{
-			connect_failed(e);
-			return;
-		}
-
 		// if t is NULL, we better not be connecting, since
 		// we can't decrement the connecting counter
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -6387,6 +6377,14 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
 			if (t) t->dec_num_connecting();
 			m_connecting = false;
+		}
+
+		if (m_disconnecting) return;
+		
+		if (e)
+		{
+			connect_failed(e);
+			return;
 		}
 
 		TORRENT_ASSERT(!m_connected);

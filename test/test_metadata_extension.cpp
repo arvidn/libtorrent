@@ -200,8 +200,8 @@ int test_main()
 	const int timeout = 3;
 #endif
 
-test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
-test_transfer(full_encryption | utp, &create_ut_metadata_plugin, timeout);
+	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
+	test_transfer(full_encryption | utp, &create_ut_metadata_plugin, timeout);
 	test_transfer(reverse, &create_ut_metadata_plugin, timeout);
 
 #ifndef TORRENT_NO_DEPRECATE
