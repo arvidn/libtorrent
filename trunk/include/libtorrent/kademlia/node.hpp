@@ -285,7 +285,7 @@ public:
 
 protected:
 
-	void lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply
+	void lookup_peers(sha1_hash const& info_hash, entry& reply
 		, bool noseed, bool scrape) const;
 	bool lookup_torrents(sha1_hash const& target, entry& reply
 		, char* tags) const;

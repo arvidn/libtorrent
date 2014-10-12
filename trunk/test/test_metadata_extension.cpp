@@ -58,11 +58,12 @@ void test_transfer(int flags
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "test transfer: timeout=%d %s%s%s\n"
+	fprintf(stderr, "test transfer: timeout=%d %s%s%s%s\n"
 		, timeout
 		, (flags & clear_files) ? "clear-files " : ""
 		, (flags & disconnect) ? "disconnect " : ""
-		, (flags & full_encryption) ? "encryption " : "");
+		, (flags & full_encryption) ? "encryption " : ""
+		, (flags & reverse) ? "reverse " : "");
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -89,12 +90,27 @@ void test_transfer(int flags
 	lt::session* downloader = &ses2;
 	lt::session* seed = &ses1;
 
+	boost::tie(tor1, tor2, ignore) = setup_transfer(seed, downloader, NULL
+		, flags & clear_files, true, false, "_meta");	
+
 	if (flags & reverse)
 	{
-		std::swap(downloader, seed);
+		error_code ec;
+		int port = seed->listen_port();
+		fprintf(stderr, "%s: downloader: connecting peer port: %d\n"
+			, time_now_string(), port);
+		tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+			, port));
 	}
-
-	boost::tie(tor1, tor2, ignore) = setup_transfer(seed, downloader, NULL, flags & clear_files, true, true, "_meta");	
+	else
+	{
+		error_code ec;
+		int port = downloader->listen_port();
+		fprintf(stderr, "%s: seed: connecting peer port: %d\n"
+			, time_now_string(), port);
+		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+			, port));
+	}
 
 	for (int i = 0; i < timeout * 10; ++i)
 	{

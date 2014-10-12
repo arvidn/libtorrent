@@ -679,12 +679,24 @@ void udp_socket::set_buf_size(int s)
 		close();
 	}
 
+	int size = m_buf_size;
+
+	// don't shrink the size of the receive buffer
+	error_code ec;
+	boost::asio::socket_base::receive_buffer_size recv_size;
+	m_ipv4_sock.get_option(recv_size, ec);
+	if (!ec) size = (std::max)(recv_size.value(), size);
+#if TORRENT_USE_IPV6
+	m_ipv6_sock.get_option(recv_size, ec);
+	if (!ec) size = (std::max)(recv_size.value(), size);
+#endif
+
 	error_code ignore_errors;
 	// set the internal buffer sizes as well
-	m_ipv4_sock.set_option(boost::asio::socket_base::receive_buffer_size(m_buf_size)
+	m_ipv4_sock.set_option(boost::asio::socket_base::receive_buffer_size(size)
 		, ignore_errors);
 #if TORRENT_USE_IPV6
-	m_ipv6_sock.set_option(boost::asio::socket_base::receive_buffer_size(m_buf_size)
+	m_ipv6_sock.set_option(boost::asio::socket_base::receive_buffer_size(size)
 		, ignore_errors);
 #endif
 }
