@@ -40,13 +40,24 @@ static const int file_sizes[] =
 	,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
 const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
 
-void test_checking(bool read_only_files, bool corrupt_files = false)
+enum
+{
+	// make sure we don't accidentally require files to be writable just to
+	// check their hashes
+	read_only_files = 1,
+
+	// make sure we detect corrupt files and mark the appropriate pieces
+	// as not had
+	corrupt_files = 2,
+};
+
+void test_checking(int flags = read_only_files)
 {
 	using namespace libtorrent;
 
 	fprintf(stderr, "==== TEST CHECKING %s%s=====\n"
-		, read_only_files?"read-only-files ":""
-		, corrupt_files?"corrupt ":"");
+		, (flags & read_only_files) ? "read-only-files ":""
+		, (flags & corrupt_files) ? "corrupt ":"");
 
 	// make the files writable again
 	for (int i = 0; i < num_files; ++i)
@@ -97,7 +108,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		, to_hex(ti->info_hash().to_string()).c_str());
 
 	// overwrite the files with new random data
-	if (corrupt_files)
+	if (flags & corrupt_files)
 	{
 		// increase the size of some files. When they're read only that forces
 		// the checker to open them in write-mode to truncate them
@@ -108,7 +119,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	}
 
 	// make the files read only
-	if (read_only_files)
+	if (flags & read_only_files)
 	{
 		for (int i = 0; i < num_files; ++i)
 		{
@@ -154,7 +165,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		if (!st.error.empty()) break;
 		test_sleep(1000);
 	}
-	if (corrupt_files)
+	if (flags & corrupt_files)
 	{
 		TEST_CHECK(!st.is_seeding);
 		TEST_CHECK(!st.error.empty());
@@ -171,7 +182,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	}
 
 	// make the files writable again
-	if (read_only_files)
+	if (flags & read_only_files)
 	{
 		for (int i = 0; i < num_files; ++i)
 		{
@@ -197,9 +208,9 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 
 int test_main()
 {
-	test_checking(false);
-	test_checking(true);
-	test_checking(true, true);
+	test_checking();
+	test_checking(read_only_files);
+	test_checking(read_only_files | corrupt_files);
 
 	return 0;
 }
