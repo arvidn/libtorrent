@@ -2,6 +2,7 @@
 
 #main {
     font-family: Verdana;
+    line-height: 1.25em;
     text-align: left;
     margin-top: 10px;
 }
@@ -22,6 +23,11 @@ h1 { font-size: 180%; }
 h2 { font-size: 130%; }
 h3 { font-size: 100%; }
 
+p {
+    font-size: 92%;
+    line-height: 1.7em;
+}
+
 a {
     text-decoration: none;
     color: #8D370A;
@@ -33,7 +39,7 @@ a:hover {
     background: #eee;
 }
 
-ul, ol { /*line-height: 1.8em;*/ }
+ul, ol { line-height: 1.8em; }
 ul { list-style: square; }
 li { margin-left: 2.8em; font-size: 92%; }
 
@@ -44,8 +50,7 @@ p, ul, ol, img {margin-bottom: 1em;}
 }
 
 .document {
-    margin-left: 10px;
-    margin-right: 10px;
+    margin: 0px;
 }
 
 .document a {
@@ -85,81 +90,82 @@ div.section p, div.section ul, div.section dl {
     position: relative;
 }
 
-#headerNav {
-}
-
-#headerNav ul {
-    margin: 2px;
-    list-style: none;
-    font-family: Tahoma;
-    text-align: right;
-    text-transform: uppercase;
-    line-height: 1em;
-}
-
-#headerNav ul li {
-    display: inline;
-    border-left: solid 1px #ccc;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin: 0;
-    font-size: 80%;
-}
-
-#headerNav ul li.first {
-    border: 0;
-}
-
-#headerNav ul li a {
-    border: none;
-    color: #666;
-}
-
-#headerNav ul li a:hover {
-    background: #eee;
-}
-
 #header {
     height: 116px;
-    background: url('img/bg.png') #1f5c85;
-    -moz-border-radius: 6pt;
-    border-radius: 6pt;
+    width: 100%;
+    border: none;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+#header tr td {
+    border: none;
 }
 
 #orange {
     margin: 0;
     padding: 0;
-    float: left;
     width: 159px;
     height: 116px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
     background: url('img/orange.png') no-repeat top left;
 }
 
 #logo {
     margin: 0;
     padding: 0;
-    float: right;
-    width: 535px;
+    text-align: center;
+    color: white;
+    font-size: 50pt;
     height: 116px;
-    background: url('img/logo.png');
+    font-family: Georgia;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    background: url('img/bg.png');
+}
+
+#gradient {
+    width: 100%;
+    clear: both;
+    height: 30px;
+    background: linear-gradient(#bbb, #ddd);
 }
 
 #footer {
-    clear: both;
-    height: 49px;
-    background: #D3D3D3;
+    margin: 0px;
+    padding: 0px;
     text-align: center;
-    margin-bottom: 1em;
-    -moz-border-radius: 6pt;
-    border-radius: 6pt;
+    background: #ddd;
+    width: 100%;
+    color: #777;
+    overflow: hidden;
 }
 
-#footer span {
-    line-height: 49px;
-    font-size: 88%;
-    text-align: center;
+#footer table {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 1em;
+}
+
+#footer tr td {
+    border: none;
+    background: none;
     color: #777;
-    display: block;
+    text-align: left;
+}
+
+#footer a {
+    color: #777;
+}
+
+#footer a:hover {
+    color: #000;
+}
+
+#filler {
+    height: 200px;
+    background: linear-gradient(#ddd, #fff);
 }
 
 table.docinfo {
