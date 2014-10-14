@@ -252,6 +252,10 @@ disconnect peers.
 
 .. _peer.num_peers_down_interested:
 
+.. _peer.num_peers_up_unchoked_all:
+
+.. _peer.num_peers_up_unchoked_optimistic:
+
 .. _peer.num_peers_up_unchoked:
 
 .. _peer.num_peers_down_unchoked:
@@ -281,6 +285,8 @@ disconnect peers.
 	<a name="peer.num_peers_connected"></a>
 	<a name="peer.num_peers_up_interested"></a>
 	<a name="peer.num_peers_down_interested"></a>
+	<a name="peer.num_peers_up_unchoked_all"></a>
+	<a name="peer.num_peers_up_unchoked_optimistic"></a>
 	<a name="peer.num_peers_up_unchoked"></a>
 	<a name="peer.num_peers_down_unchoked"></a>
 	<a name="peer.num_peers_up_requests"></a>
@@ -289,53 +295,62 @@ disconnect peers.
 	<a name="peer.num_peers_up_disk"></a>
 	<a name="peer.num_peers_down_disk"></a>
 
-+--------------------------------+-------+
-| name                           | type  |
-+================================+=======+
-| peer.num_tcp_peers             | gauge |
-+--------------------------------+-------+
-| peer.num_socks5_peers          | gauge |
-+--------------------------------+-------+
-| peer.num_http_proxy_peers      | gauge |
-+--------------------------------+-------+
-| peer.num_utp_peers             | gauge |
-+--------------------------------+-------+
-| peer.num_i2p_peers             | gauge |
-+--------------------------------+-------+
-| peer.num_ssl_peers             | gauge |
-+--------------------------------+-------+
-| peer.num_ssl_socks5_peers      | gauge |
-+--------------------------------+-------+
-| peer.num_ssl_http_proxy_peers  | gauge |
-+--------------------------------+-------+
-| peer.num_ssl_utp_peers         | gauge |
-+--------------------------------+-------+
-| peer.num_peers_half_open       | gauge |
-+--------------------------------+-------+
-| peer.num_peers_connected       | gauge |
-+--------------------------------+-------+
-| peer.num_peers_up_interested   | gauge |
-+--------------------------------+-------+
-| peer.num_peers_down_interested | gauge |
-+--------------------------------+-------+
-| peer.num_peers_up_unchoked     | gauge |
-+--------------------------------+-------+
-| peer.num_peers_down_unchoked   | gauge |
-+--------------------------------+-------+
-| peer.num_peers_up_requests     | gauge |
-+--------------------------------+-------+
-| peer.num_peers_down_requests   | gauge |
-+--------------------------------+-------+
-| peer.num_peers_end_game        | gauge |
-+--------------------------------+-------+
-| peer.num_peers_up_disk         | gauge |
-+--------------------------------+-------+
-| peer.num_peers_down_disk       | gauge |
-+--------------------------------+-------+
++---------------------------------------+-------+
+| name                                  | type  |
++=======================================+=======+
+| peer.num_tcp_peers                    | gauge |
++---------------------------------------+-------+
+| peer.num_socks5_peers                 | gauge |
++---------------------------------------+-------+
+| peer.num_http_proxy_peers             | gauge |
++---------------------------------------+-------+
+| peer.num_utp_peers                    | gauge |
++---------------------------------------+-------+
+| peer.num_i2p_peers                    | gauge |
++---------------------------------------+-------+
+| peer.num_ssl_peers                    | gauge |
++---------------------------------------+-------+
+| peer.num_ssl_socks5_peers             | gauge |
++---------------------------------------+-------+
+| peer.num_ssl_http_proxy_peers         | gauge |
++---------------------------------------+-------+
+| peer.num_ssl_utp_peers                | gauge |
++---------------------------------------+-------+
+| peer.num_peers_half_open              | gauge |
++---------------------------------------+-------+
+| peer.num_peers_connected              | gauge |
++---------------------------------------+-------+
+| peer.num_peers_up_interested          | gauge |
++---------------------------------------+-------+
+| peer.num_peers_down_interested        | gauge |
++---------------------------------------+-------+
+| peer.num_peers_up_unchoked_all        | gauge |
++---------------------------------------+-------+
+| peer.num_peers_up_unchoked_optimistic | gauge |
++---------------------------------------+-------+
+| peer.num_peers_up_unchoked            | gauge |
++---------------------------------------+-------+
+| peer.num_peers_down_unchoked          | gauge |
++---------------------------------------+-------+
+| peer.num_peers_up_requests            | gauge |
++---------------------------------------+-------+
+| peer.num_peers_down_requests          | gauge |
++---------------------------------------+-------+
+| peer.num_peers_end_game               | gauge |
++---------------------------------------+-------+
+| peer.num_peers_up_disk                | gauge |
++---------------------------------------+-------+
+| peer.num_peers_down_disk              | gauge |
++---------------------------------------+-------+
 
 
 the number of peer connections for each kind of socket.
 these counts include half-open (connecting) peers.
+``num_peers_up_unchoked_all`` is the total number of unchoked peers,
+whereas ``num_peers_up_unchoked`` only are unchoked peers that count
+against the limit (i.e. excluding peers that are unchoked because the
+limit doesn't apply to them). ``num_peers_up_unchoked_optimistic`` is
+the number of optimistically unchoked peers.
 
 .. _net.on_read_counter:
 

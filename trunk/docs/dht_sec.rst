@@ -2,7 +2,7 @@
 BitTorrent DHT security extension
 =================================
 
-:Author: Arvid Norberg, arvid@rasterbar.com
+:Author: Arvid Norberg, arvid@libtorrent.org
 :Version: 1.1.0
 
 .. contents:: Table of contents

@@ -106,7 +106,7 @@ else:
 setup(name = 'python-libtorrent',
 	version = '1.0.1',
 	author = 'Arvid Norberg',
-	author_email = 'arvid@rasterbar.com',
+	author_email = 'arvid@libtorrent.org',
 	description = 'Python bindings for libtorrent-rasterbar',
 	long_description = 'Python bindings for libtorrent-rasterbar',
 	url = 'http://libtorrent.org',
