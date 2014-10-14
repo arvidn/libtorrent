@@ -26,7 +26,6 @@ nobase_include_HEADERS = \
   byteswap.hpp                 \
   chained_buffer.hpp           \
   config.hpp                   \
-  connection_interface.hpp     \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \
   cpuid.hpp                    \
