@@ -709,9 +709,9 @@ namespace aux {
 		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.dht_upload_rate_limit);
 
-		m_udp_socket.subscribe(&m_tracker_manager);
 		m_udp_socket.subscribe(&m_utp_socket_manager);
 		m_udp_socket.subscribe(this);
+		m_udp_socket.subscribe(&m_tracker_manager);
 
 		m_disk_queues[0] = 0;
 		m_disk_queues[1] = 0;
