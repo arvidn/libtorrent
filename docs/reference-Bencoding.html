@@ -3,9 +3,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title>Bencoding</title>
-<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <link rel="stylesheet" type="text/css" href="base.css" />
 <link rel="stylesheet" type="text/css" href="rst.css" />
 <script type="text/javascript">
@@ -40,7 +40,7 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
 <td>1.0.2</td></tr>
 </tbody>
@@ -424,6 +424,8 @@ struct lazy_entry
    std::string <strong>string_value</strong> () const;
    int <strong>string_length</strong> () const;
    lazy_entry const* <strong>dict_find_string</strong> (char const* name) const;
+   lazy_entry const* <strong>dict_find</strong> (std::string const&amp; name) const;
+   lazy_entry* <strong>dict_find</strong> (std::string const&amp; name);
    lazy_entry* <strong>dict_find</strong> (char const* name);
    lazy_entry const* <strong>dict_find</strong> (char const* name) const;
    pascal_string <strong>dict_find_pstr</strong> (char const* name) const;
@@ -431,6 +433,7 @@ struct lazy_entry
    boost::int64_t <strong>dict_find_int_value</strong> (char const* name, boost::int64_t default_val = 0) const;
    lazy_entry const* <strong>dict_find_int</strong> (char const* name) const;
    lazy_entry const* <strong>dict_find_list</strong> (char const* name) const;
+   lazy_entry const* <strong>dict_find_dict</strong> (std::string const&amp; name) const;
    lazy_entry const* <strong>dict_find_dict</strong> (char const* name) const;
    std::pair&lt;std::string, lazy_entry const*&gt; <strong>dict_at</strong> (int i) const;
    int <strong>dict_size</strong> () const;
@@ -523,6 +526,8 @@ length of the string, in bytes.</p>
 <h2>dict_find() dict_find_string()</h2>
 <pre class="literal-block">
 lazy_entry const* <strong>dict_find_string</strong> (char const* name) const;
+lazy_entry const* <strong>dict_find</strong> (std::string const&amp; name) const;
+lazy_entry* <strong>dict_find</strong> (std::string const&amp; name);
 lazy_entry* <strong>dict_find</strong> (char const* name);
 lazy_entry const* <strong>dict_find</strong> (char const* name) const;
 </pre>
@@ -556,6 +561,7 @@ otherwise NULL.</p>
 <h2>dict_find_list() dict_find_dict()</h2>
 <pre class="literal-block">
 lazy_entry const* <strong>dict_find_list</strong> (char const* name) const;
+lazy_entry const* <strong>dict_find_dict</strong> (std::string const&amp; name) const;
 lazy_entry const* <strong>dict_find_dict</strong> (char const* name) const;
 </pre>
 <p>these functions require that <tt class="docutils literal">this</tt> is a dictionary.

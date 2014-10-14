@@ -3,9 +3,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
-<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <link rel="stylesheet" type="text/css" href="base.css" />
 <link rel="stylesheet" type="text/css" href="rst.css" />
 <script type="text/javascript">
@@ -40,7 +40,7 @@
 <col class="docinfo-content" />
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
-<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
 <td>1.0.2</td></tr>
 </tbody>
@@ -166,37 +166,37 @@ cannot rely on <tt class="docutils literal"><span class="pre">error_code::messag
 <p>The numeric values of the errors are part of the API and will stay the same, although
 new error codes may be appended at the end.</p>
 <p>Here's a simple example of how to translate error codes:</p>
-<pre class="literal-block">
-std::string error_code_to_string(boost::system::error_code const&amp; ec)
-{
-        if (ec.category() != libtorrent::get_libtorrent_category())
-        {
-                return ec.message();
-        }
-        // the error is a libtorrent error
+<pre class="code c++ literal-block">
+<span class="name">std</span><span class="operator">::</span><span class="name">string</span> <span class="name">error_code_to_string</span><span class="punctuation">(</span><span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">error_code</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">ec</span><span class="punctuation">)</span>
+<span class="punctuation">{</span>
+        <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">ec</span><span class="punctuation">.</span><span class="name">category</span><span class="punctuation">()</span> <span class="operator">!=</span> <span class="name">libtorrent</span><span class="operator">::</span><span class="name">get_libtorrent_category</span><span class="punctuation">())</span>
+        <span class="punctuation">{</span>
+                <span class="keyword">return</span> <span class="name">ec</span><span class="punctuation">.</span><span class="name">message</span><span class="punctuation">();</span>
+        <span class="punctuation">}</span>
+        <span class="comment single">// the error is a libtorrent error
+</span>
+        <span class="keyword type">int</span> <span class="name">code</span> <span class="operator">=</span> <span class="name">ec</span><span class="punctuation">.</span><span class="name">value</span><span class="punctuation">();</span>
+        <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword type">char</span> <span class="keyword">const</span><span class="operator">*</span> <span class="name">swedish</span><span class="punctuation">[]</span> <span class="operator">=</span>
+        <span class="punctuation">{</span>
+                <span class="literal string">&quot;inget fel&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;en fil i torrenten kolliderar med en fil fran en annan torrent&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;hash check misslyckades&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;torrentfilen ar inte en dictionary&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;'info'-nyckeln saknas eller ar korrupt i torrentfilen&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;'info'-faltet ar inte en dictionary&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;'piece length' faltet saknas eller ar korrupt i torrentfilen&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;torrentfilen saknar namnfaltet&quot;</span><span class="punctuation">,</span>
+                <span class="literal string">&quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;</span><span class="punctuation">,</span>
+                <span class="comment single">// ... more strings here
+</span>        <span class="punctuation">};</span>
 
-        int code = ec.value();
-        static const char const* swedish[] =
-        {
-                &quot;inget fel&quot;,
-                &quot;en fil i torrenten kolliderar med en fil fran en annan torrent&quot;,
-                &quot;hash check misslyckades&quot;,
-                &quot;torrentfilen ar inte en dictionary&quot;,
-                &quot;'info'-nyckeln saknas eller ar korrupt i torrentfilen&quot;,
-                &quot;'info'-faltet ar inte en dictionary&quot;,
-                &quot;'piece length' faltet saknas eller ar korrupt i torrentfilen&quot;,
-                &quot;torrentfilen saknar namnfaltet&quot;,
-                &quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;,
-                // ... more strings here
-        };
+        <span class="comment single">// use the default error string in case we don't have it
+</span>        <span class="comment single">// in our translated list
+</span>        <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">code</span> <span class="operator">&lt;</span> <span class="literal number integer">0</span> <span class="operator">||</span> <span class="name">code</span> <span class="operator">&gt;=</span> <span class="keyword">sizeof</span><span class="punctuation">(</span><span class="name">swedish</span><span class="punctuation">)</span><span class="operator">/</span><span class="keyword">sizeof</span><span class="punctuation">(</span><span class="name">swedish</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">]))</span>
+                <span class="keyword">return</span> <span class="name">ec</span><span class="punctuation">.</span><span class="name">message</span><span class="punctuation">();</span>
 
-        // use the default error string in case we don't have it
-        // in our translated list
-        if (code &lt; 0 || code &gt;= sizeof(swedish)/sizeof(swedish[0]))
-                return ec.message();
-
-        return swedish[code];
-}
+        <span class="keyword">return</span> <span class="name">swedish</span><span class="punctuation">[</span><span class="name">code</span><span class="punctuation">];</span>
+<span class="punctuation">}</span>
 </pre>
 </div>
 </div>
