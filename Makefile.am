@@ -42,13 +42,11 @@ DOCS_IMAGES = \
   docs/utp_stack.diagram          \
   docs/utp_stack.png              \
   docs/style.css                  \
-  docs/base.css                   \
   docs/rst.css                    \
   docs/img/bg.png                 \
   docs/img/blue_bottom.png        \
   docs/img/blue_top.png           \
   docs/img/dotline.gif            \
-  docs/img/logo.png               \
   docs/img/minus.gif              \
   docs/img/orange.png
 
