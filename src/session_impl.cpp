@@ -510,9 +510,9 @@ namespace aux {
 #endif
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
 
-		m_udp_socket.subscribe(&m_tracker_manager);
 		m_udp_socket.subscribe(&m_utp_socket_manager);
 		m_udp_socket.subscribe(this);
+		m_udp_socket.subscribe(&m_tracker_manager);
 
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_udp_socket.subscribe(&m_ssl_utp_socket_manager);
