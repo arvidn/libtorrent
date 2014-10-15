@@ -318,13 +318,13 @@ namespace libtorrent
 	inline asio::error::error_category get_posix_category() { return asio::error::system_category; }
 	inline asio::error::error_category get_system_category() { return asio::error::system_category; }
 
-	boost::system::error_category const& get_libtorrent_category()
+	inline boost::system::error_category const& get_libtorrent_category()
 	{
 		static ::asio::error::error_category libtorrent_category(20);
 		return libtorrent_category;
 	}
 
-	boost::system::error_category const& get_http_category()
+	inline boost::system::error_category const& get_http_category()
 	{
 		static ::asio::error::error_category http_category(21);
 		return http_category;
@@ -340,11 +340,7 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	inline boost::system::error_category& get_libtorrent_category()
-	{
-		static libtorrent_error_category libtorrent_category;
-		return libtorrent_category;
-	}
+	TORRENT_EXPORT boost::system::error_category& get_libtorrent_category();
 
 	struct TORRENT_EXPORT http_error_category : boost::system::error_category
 	{
@@ -354,11 +350,7 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	inline boost::system::error_category& get_http_category()
-	{
-		static http_error_category http_category;
-		return http_category;
-	}
+	TORRENT_EXPORT boost::system::error_category& get_http_category();
 
 	namespace errors
 	{
