@@ -13,8 +13,8 @@
 #
 #   This macro checks for Python and tries to get the include path to
 #   'Python.h'. It provides the $(PYTHON_CPPFLAGS) and $(PYTHON_LDFLAGS)
-#   output variables. It also exports $(PYTHON_EXTRA_LIBS) and
-#   $(PYTHON_EXTRA_LDFLAGS) for embedding Python in your code.
+#   output variables. It also exports $(PYTHON_EXTRA_LIBS)
+#   for embedding Python in your code.
 #
 #   You can search for some particular version of Python by passing a
 #   parameter to this macro, for example ">= '2.3.1'", or "== '2.4'". Please
@@ -97,7 +97,7 @@ This version of the AC@&t@_PYTHON_DEVEL macro
 doesn't work properly with versions of Python before
 2.1.0. You may need to re-run configure, setting the
 variables PYTHON_CPPFLAGS, PYTHON_LDFLAGS, PYTHON_SITE_PKG,
-PYTHON_EXTRA_LIBS and PYTHON_EXTRA_LDFLAGS by hand.
+PYTHON_EXTRA_LIBS by hand.
 Moreover, to disable this check, set PYTHON_NOVERSIONCHECK
 to something else than an empty string.
 ])
@@ -270,25 +270,13 @@ EOD`
 	AC_SUBST(PYTHON_EXTRA_LIBS)
 
 	#
-	# linking flags needed when embedding
-	#
-	AC_MSG_CHECKING(python extra linking flags)
-	if test -z "$PYTHON_EXTRA_LDFLAGS"; then
-		PYTHON_EXTRA_LDFLAGS=`$PYTHON -c "import distutils.sysconfig; \
-			conf = distutils.sysconfig.get_config_var; \
-			print (conf('LINKFORSHARED'))"`
-	fi
-	AC_MSG_RESULT([$PYTHON_EXTRA_LDFLAGS])
-	AC_SUBST(PYTHON_EXTRA_LDFLAGS)
-
-	#
 	# final check to see if everything compiles alright
 	#
 	AC_MSG_CHECKING([consistency of all components of python development environment])
 	# save current global flags
 	ac_save_LIBS="$LIBS"
 	ac_save_CPPFLAGS="$CPPFLAGS"
-	LIBS="$ac_save_LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LDFLAGS $PYTHON_EXTRA_LIBS"
+	LIBS="$ac_save_LIBS $PYTHON_LDFLAGS $PYTHON_EXTRA_LIBS"
 	CPPFLAGS="$ac_save_CPPFLAGS $PYTHON_CPPFLAGS"
 	AC_LANG_PUSH([C])
 	AC_LINK_IFELSE([
