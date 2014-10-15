@@ -15,7 +15,7 @@ endif
 EXTRA_PROGRAMS = $(example_programs)
 EXTRA_DIST = Jamfile
 
-client_test_SOURCES = client_test.cpp
+client_test_SOURCES = client_test.cpp print.cpp session_view.cpp torrent_view.cpp
 #client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 stats_counters_SOURCES = stats_counters.cpp
