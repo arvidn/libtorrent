@@ -4,7 +4,7 @@ projects using libtorrent
 These are some of the public projects that uses libtorrent. If you want your
 project listed here, let me_ know.
 
-.. _me: mailto:arvid@rasterbar.com
+.. _me: mailto:arvid@libtorrent.org
 
 
 .. container:: entry

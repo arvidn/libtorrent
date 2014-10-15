@@ -139,7 +139,7 @@ It is however greatly appreciated if additional features are contributed
 back to the open source project. Patches can be emailed to the mailing
 list or posted to the `bug tracker`_.
 
-.. _`bug tracker`: http://code.rasterbar.com/libtorrent/newticket
+.. _`bug tracker`: http://code.google.com/p/libtorrent/issues/entry
 
 Acknowledgements
 ================

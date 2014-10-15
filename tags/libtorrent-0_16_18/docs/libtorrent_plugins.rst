@@ -1,4 +1,4 @@
-:Author: Arvid Norberg, arvid@rasterbar.com
+:Author: Arvid Norberg, arvid@libtorrent.org
 
 libtorrent plugins
 ==================
