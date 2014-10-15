@@ -702,17 +702,19 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 
 int save_file(std::string const& filename, std::vector<char>& v)
 {
-	using namespace libtorrent;
+	FILE* f = fopen(filename.c_str(), "wb");
+	if (f == NULL)
+		return -1;
 
-	// TODO: don't use internal file type here. use fopen()
-	file f;
-	error_code ec;
-	if (!f.open(filename, file::write_only, ec)) return -1;
-	if (ec) return -1;
-	file::iovec_t b = {&v[0], v.size()};
-	size_type written = f.writev(0, &b, 1, ec);
-	if (written != int(v.size())) return -3;
-	if (ec) return -3;
+	int w = fwrite(&v[0], 1, v.size(), f);
+	if (w < 0)
+	{
+		fclose(f);
+		return -1;
+	}
+
+	if (w != int(v.size())) return -3;
+	fclose(f);
 	return 0;
 }
 
