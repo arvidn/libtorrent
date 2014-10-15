@@ -154,7 +154,7 @@ int test_main()
 				, ti->files().hash(*i) != sha1_hash(0) ? to_hex(ti->files().hash(*i).to_string()).c_str() : ""
 				, ti->files().file_path(*i).c_str()
 				, i->symlink_attribute ? "-> ": ""
-				, i->symlink_attribute && i->symlink_index != -1 ? ti->files().symlink(*i).c_str() : "");
+				, i->symlink_attribute ? ti->files().symlink(*i).c_str() : "");
 		}
 	}
 
