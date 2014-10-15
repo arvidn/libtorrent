@@ -1998,6 +1998,7 @@ namespace aux {
 
 	enum { listen_no_system_port = 0x02 };
 
+	// TODO: 3 return the listen_socket_t instead of taking it as an out-parameter
 	void session_impl::setup_listener(listen_socket_t* s, std::string const& device
 		, bool ipv4, int port, int& retries, int flags, error_code& ec)
 	{

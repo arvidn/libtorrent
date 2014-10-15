@@ -16,6 +16,7 @@ set(sources
 	block_cache
 	bloom_filter
 	chained_buffer
+	crc32c
 	create_torrent
 	disk_buffer_holder
 	entry
@@ -52,6 +53,7 @@ set(sources
 	puff
 	random
 	request_blocks
+	resolver
 	rss
 	session
 	session_call
@@ -105,6 +107,7 @@ set(sources
 
 # -- kademlia --
 set(kademlia_sources
+	dos_blocker
 	dht_tracker
 	node
 	refresh
@@ -233,7 +236,7 @@ endif()
 
 # Boost
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
-	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono)
+	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono random)
 endif()
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
