@@ -1,3 +1,5 @@
+1.0.3 release
+
 	* fix protocol race-condition in super seeding mode
 	* support read-only DHT nodes
 	* remove unused partial hash DHT lookups
