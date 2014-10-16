@@ -20,6 +20,8 @@ DOCS_IMAGES = \
   docs/delays_thumb.png           \
   docs/deluge.png                 \
   docs/disk_access.png            \
+  docs/disk_access_elevator.png   \
+  docs/disk_access_no_elevator.png \
   docs/disk_buffer_before_optimization.png  \
   docs/disk_buffer.png            \
   docs/disk_buffer_sample.png     \
