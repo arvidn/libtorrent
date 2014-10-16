@@ -227,6 +227,9 @@ private:
 	bool m_ssl;
 
 	bool m_abort;
+
+	// true while waiting for an async_connect
+	bool m_connecting;
 };
 
 }
