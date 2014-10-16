@@ -91,6 +91,7 @@ http_connection::http_connection(io_service& ios
 	, m_limiter_timer_active(false)
 	, m_ssl(false)
 	, m_abort(false)
+	, m_connecting(false)
 {
 	TORRENT_ASSERT(!m_handler.empty());
 }
@@ -422,6 +423,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		{
 			error_code ec;
 			c->m_sock.close(ec);
+			if (!c->m_connecting) c->connect();
 		}
 		else
 		{
@@ -578,6 +580,8 @@ void http_connection::connect()
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_connect");
 #endif
+	TORRENT_ASSERT(!m_connecting);
+	m_connecting = true;
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }
@@ -587,6 +591,8 @@ void http_connection::on_connect(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_connect");
 #endif
+	TORRENT_ASSERT(m_connecting);
+	m_connecting = false;
 
 	m_last_receive = time_now_hires();
 	m_start_time = m_last_receive;
