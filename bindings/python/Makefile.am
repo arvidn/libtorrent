@@ -8,6 +8,7 @@ EXTRA_DIST = \
   make_torrent.py           \
   src/alert.cpp             \
   src/big_number.cpp        \
+  src/bytes.hpp             \
   src/converters.cpp        \
   src/create_torrent.cpp    \
   src/datetime.cpp          \
