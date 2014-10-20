@@ -239,7 +239,7 @@ int test_main()
 	test_checking();
 	test_checking(read_only_files);
 	test_checking(read_only_files | corrupt_files);
-	test_checking(false, true);
+	test_checking(corrupt_files);
 
 	return 0;
 }
