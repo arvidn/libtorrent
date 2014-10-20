@@ -179,7 +179,7 @@ void test_checking(int flags = read_only_files)
 	{
 		TEST_CHECK(!st.is_seeding);
 
-		if (read_only_files)
+		if (flags & read_only_files)
 		{
 			// we expect our checking of the files to trigger
 			// attempts to truncate them, since the files are
