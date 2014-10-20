@@ -205,10 +205,10 @@ namespace libtorrent
 		}
 
 		m_tracker_connection.reset(new http_connection(m_ios, m_ses.m_host_resolver
-			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
+			, boost::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3, _4)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
-			, boost::bind(&http_tracker_connection::on_connect, self(), _1)
-			, boost::bind(&http_tracker_connection::on_filter, self(), _1, _2)
+			, boost::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
+			, boost::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
 #ifdef TORRENT_USE_OPENSSL
 			, tracker_req().ssl_ctx
 #endif
@@ -296,7 +296,7 @@ namespace libtorrent
 		, http_parser const& parser, char const* data, int size)
 	{
 		// keep this alive
-		boost::intrusive_ptr<http_tracker_connection> me(this);
+		boost::shared_ptr<http_tracker_connection> me(shared_from_this());
 
 		if (ec && ec != asio::error::eof)
 		{

@@ -77,6 +77,7 @@ namespace libtorrent
 		, m_state(action_error)
 		, m_abort(false)
 	{
+		update_transaction_id();
 	}
 
 	void udp_tracker_connection::start()
@@ -120,7 +121,7 @@ namespace libtorrent
 					? resolver_interface::prefer_cache
 					: 0
 				, boost::bind(&udp_tracker_connection::name_lookup
-					, self(), _1, _2, port));
+					, shared_from_this(), _1, _2, port));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			boost::shared_ptr<request_callback> cb = requester();
@@ -165,7 +166,7 @@ namespace libtorrent
 			, m_hostname.c_str(), print_endpoint(m_target).c_str());
 #endif
 		m_ses.m_io_service.post(boost::bind(
-			&udp_tracker_connection::start_announce, self()));
+			&udp_tracker_connection::start_announce, shared_from_this()));
 	}
 
 	void udp_tracker_connection::name_lookup(error_code const& error
@@ -221,7 +222,7 @@ namespace libtorrent
 			}
 		}
 
-		// if all endpoints were filtered by the IP filter, we can't connect
+		// ir all endpoints were filtered by the IP filter, we can't connect
 		if (m_endpoints.empty())
 		{
 			fail(error_code(errors::banned_by_ip_filter));
@@ -357,7 +358,7 @@ namespace libtorrent
 
 		const char* ptr = buf;
 		int action = detail::read_int32(ptr);
-		int transaction = detail::read_int32(ptr);
+		boost::uint32_t transaction = detail::read_uint32(ptr);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
@@ -400,6 +401,20 @@ namespace libtorrent
 		}
 		return false;
 	}
+
+	void udp_tracker_connection::update_transaction_id()
+	{
+		boost::uint32_t new_tid;
+
+		// don't use 0, because that has special meaning (unintialized)
+		do {
+			new_tid = random();
+		} while (new_tid == 0);
+
+		if (m_transaction_id != 0)
+			m_man.update_transaction_id(shared_from_this(), new_tid);
+		m_transaction_id = new_tid;
+	}
 	
 	bool udp_tracker_connection::on_connect_response(char const* buf, int size)
 	{
@@ -410,8 +425,7 @@ namespace libtorrent
 		buf += 8; // skip header
 
 		// reset transaction
-		m_transaction_id = 0;
-		m_attempts = 0;
+		update_transaction_id();
 		boost::uint64_t connection_id = detail::read_int64(buf);
 
 		mutex::scoped_lock l(m_cache_mutex);
@@ -442,8 +456,7 @@ namespace libtorrent
 		char buf[16];
 		char* ptr = buf;
 
-		if (m_transaction_id == 0)
-			m_transaction_id = random() ^ (random() << 16);
+		TORRENT_ASSERT(m_transaction_id != 0);
 
 		detail::write_uint32(0x417, ptr);
 		detail::write_uint32(0x27101980, ptr); // connection_id
@@ -472,9 +485,6 @@ namespace libtorrent
 
 	void udp_tracker_connection::send_udp_scrape()
 	{
-		if (m_transaction_id == 0)
-			m_transaction_id = random() ^ (random() << 16);
-
 		if (m_abort) return;
 
 		std::map<address, connection_cache_entry>::iterator i
@@ -579,7 +589,7 @@ namespace libtorrent
 	{
 		restart_read_timeout();
 		int action = detail::read_int32(buf);
-		int transaction = detail::read_int32(buf);
+		boost::uint32_t transaction = detail::read_uint32(buf);
 
 		if (transaction != m_transaction_id)
 		{
@@ -625,9 +635,6 @@ namespace libtorrent
 
 	void udp_tracker_connection::send_udp_announce()
 	{
-		if (m_transaction_id == 0)
-			m_transaction_id = random() ^ (random() << 16);
-
 		if (m_abort) return;
 
 		char buf[800];
