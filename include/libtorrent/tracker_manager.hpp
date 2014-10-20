@@ -44,10 +44,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
-#include <boost/intrusive_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/unordered_map.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -59,7 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp" // peer_entry
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/udp_socket.hpp" // for udp_socket_observer
@@ -73,6 +73,8 @@ namespace libtorrent
 	class tracker_manager;
 	struct timeout_handler;
 	struct tracker_connection;
+	class udp_tracker_connection;
+	class http_tracker_connection;
 	namespace aux { struct session_impl; }
 
 	// returns -1 if gzip header is invalid or the header size in bytes
@@ -222,7 +224,7 @@ namespace libtorrent
 	};
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler
-		: intrusive_ptr_base<timeout_handler>
+		: boost::enable_shared_from_this<timeout_handler>
 		, boost::noncopyable
 	{
 		timeout_handler(io_service& str);
@@ -240,9 +242,6 @@ namespace libtorrent
 	private:
 	
 		void timeout_callback(error_code const&);
-
-		boost::intrusive_ptr<timeout_handler> self()
-		{ return boost::intrusive_ptr<timeout_handler>(this); }
 
 		int m_completion_timeout;
 
@@ -264,6 +263,7 @@ namespace libtorrent
 		bool m_abort;
 	};
 
+	// TODO: 2 this class probably doesn't need to have virtual functions.
 	struct TORRENT_EXTRA_EXPORT tracker_connection
 		: timeout_handler
 	{
@@ -271,6 +271,9 @@ namespace libtorrent
 			, tracker_request const& req
 			, io_service& ios
 			, boost::weak_ptr<request_callback> r);
+
+		void update_transaction_id(boost::shared_ptr<udp_tracker_connection> c
+			, boost::uint64_t tid);
 
 		boost::shared_ptr<request_callback> requester() const;
 		virtual ~tracker_connection() {}
@@ -290,8 +293,11 @@ namespace libtorrent
 			, char const* /* hostname */
 			, char const* /* buf */, int /* size */) { return false; }
 
-		boost::intrusive_ptr<tracker_connection> self()
-		{ return boost::intrusive_ptr<tracker_connection>(this); }
+		boost::shared_ptr<tracker_connection> shared_from_this()
+		{
+			return boost::static_pointer_cast<tracker_connection>(
+				timeout_handler::shared_from_this());
+		}
 
 	private:
 
@@ -307,7 +313,9 @@ namespace libtorrent
 		tracker_manager& m_man;
 	};
 
-	class TORRENT_EXTRA_EXPORT tracker_manager: public udp_socket_observer, boost::noncopyable
+	class TORRENT_EXTRA_EXPORT tracker_manager
+		: public udp_socket_observer
+		, boost::noncopyable
 	{
 	public:
 
@@ -339,14 +347,23 @@ namespace libtorrent
 		virtual bool incoming_packet(error_code const& e, char const* hostname
 			, char const* buf, int size);
 		
+		void update_transaction_id(
+			boost::shared_ptr<udp_tracker_connection> c
+			, boost::uint64_t tid);
+
 	private:
 
 		typedef mutex mutex_t;
 		mutable mutex_t m_mutex;
 
-		typedef std::list<boost::intrusive_ptr<tracker_connection> >
-			tracker_connections_t;
-		tracker_connections_t m_connections;
+		// maps transactionid to the udp_tracker_connection
+		// TODO: 2 this should be unique_ptr in the future
+		typedef boost::unordered_map<boost::uint32_t, boost::shared_ptr<udp_tracker_connection> > udp_conns_t;
+		udp_conns_t m_udp_conns;
+
+		typedef std::vector<boost::shared_ptr<http_tracker_connection> > http_conns_t;
+		http_conns_t m_http_conns;
+
 		aux::session_impl& m_ses;
 		bool m_abort;
 	};

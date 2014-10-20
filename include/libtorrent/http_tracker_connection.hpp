@@ -83,8 +83,11 @@ namespace libtorrent
 
 	private:
 
-		boost::intrusive_ptr<http_tracker_connection> self()
-		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
+		boost::shared_ptr<http_tracker_connection> shared_from_this()
+		{
+			return boost::static_pointer_cast<http_tracker_connection>(
+				tracker_connection::shared_from_this());
+		}
 
 		void on_filter(http_connection& c, std::vector<tcp::endpoint>& endpoints);
 		void on_connect(http_connection& c);

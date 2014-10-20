@@ -77,6 +77,8 @@ namespace libtorrent
 		void start();
 		void close();
 
+		boost::uint32_t transaction_id() const { return m_transaction_id; }
+
 	private:
 
 		enum action_t
@@ -87,8 +89,13 @@ namespace libtorrent
 			action_error
 		};
 
-		boost::intrusive_ptr<udp_tracker_connection> self()
-		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
+		boost::shared_ptr<udp_tracker_connection> shared_from_this()
+		{
+			return boost::static_pointer_cast<udp_tracker_connection>(
+				tracker_connection::shared_from_this());
+		}
+
+		void update_transaction_id();
 
 		void name_lookup(error_code const& error
 			, std::vector<address> const& addresses, int port);
@@ -116,6 +123,7 @@ namespace libtorrent
 		udp::endpoint pick_target_endpoint() const;
 
 		std::string m_hostname;
+		// TODO: 3 this should be a vector
 		std::list<tcp::endpoint> m_endpoints;
 
 		aux::session_impl& m_ses;
@@ -133,7 +141,7 @@ namespace libtorrent
 
 		udp::endpoint m_target;
 
-		int m_transaction_id;
+		boost::uint32_t m_transaction_id;
 		int m_attempts;
 
 		// action_t
