@@ -13,6 +13,7 @@
 
 #include "libtorrent/session.hpp"
 #include "alert_handler.hpp"
+#include "stats_logging.hpp"
 #include "rss_filter.hpp"
 
 #include <signal.h>
@@ -32,9 +33,11 @@ void sighandler_forcequit(int s)
 
 using namespace libtorrent;
 
+namespace lt = libtorrent;
+
 struct external_ip_observer : alert_observer
 {
-	external_ip_observer(session& s, alert_handler* h)
+	external_ip_observer(lt::session& s, alert_handler* h)
 		: m_alerts(h)
 		, m_ses(s)
 	{
@@ -74,13 +77,13 @@ struct external_ip_observer : alert_observer
 	}
 
 	alert_handler* m_alerts;
-	session& m_ses;
+	lt::session& m_ses;
 	address m_last_known_addr;
 };
 
 int main(int argc, char *const argv[])
 {
-	session ses(fingerprint("LT", 0, 1, 0, 0)
+	lt::session ses(fingerprint("LT", 0, 1, 0, 0)
 		, std::make_pair(6881, 6882));
 
 	settings_pack s;
@@ -116,6 +119,7 @@ int main(int argc, char *const argv[])
 	utorrent_webui ut_handler(ses, &sett, &al, &hist, &rss_filter, &authorizer);
 	file_downloader file_handler(ses, &authorizer);
 	libtorrent_webui lt_handler(ses, &hist, &authorizer, &alerts);
+	stats_logging log(ses, &alerts);
 
 	webui_base webport;
 	webport.add_handler(&lt_handler);

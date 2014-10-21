@@ -45,6 +45,7 @@ SOURCES =
 	rss_filter
 	alert_handler
 	file_requests
+	stats_logging
 #	text_ui
 	;
 
