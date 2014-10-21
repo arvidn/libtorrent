@@ -593,34 +593,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_FUNCTION __FUNCTION__
 #endif
 
-
-// determine what timer implementation we can use
-// if one is already defined, don't pick one
-// autmatically. This lets the user control this
-// from the Jamfile
-#if !defined TORRENT_USE_ABSOLUTE_TIME \
-	&& !defined TORRENT_USE_QUERY_PERFORMANCE_TIMER \
-	&& !defined TORRENT_USE_CLOCK_GETTIME \
-	&& !defined TORRENT_USE_BOOST_DATE_TIME \
-	&& !defined TORRENT_USE_ECLOCK \
-	&& !defined TORRENT_USE_SYSTEM_TIME
-
-#if defined __APPLE__ && defined __MACH__
-#define TORRENT_USE_ABSOLUTE_TIME 1
-#elif defined(_WIN32) || defined TORRENT_MINGW
-#define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
-#elif defined(_POSIX_MONOTONIC_CLOCK) && _POSIX_MONOTONIC_CLOCK >= 0
-#define TORRENT_USE_CLOCK_GETTIME 1
-#elif defined(TORRENT_AMIGA)
-#define TORRENT_USE_ECLOCK 1
-#elif defined(TORRENT_BEOS)
-#define TORRENT_USE_SYSTEM_TIME 1
-#else
-#define TORRENT_USE_BOOST_DATE_TIME 1
-#endif
-
-#endif
-
 // debug builds have asserts enabled by default, release
 // builds have asserts if they are explicitly enabled by
 // the release_asserts macro.

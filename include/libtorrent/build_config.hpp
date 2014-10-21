@@ -37,20 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 
-#if TORRENT_USE_BOOST_DATE_TIME
-#define TORRENT_CFG_TIME boosttime_
-#elif TORRENT_USE_ABSOLUTE_TIME
-#define TORRENT_CFG_TIME absolutetime_
-#elif TORRENT_USE_QUERY_PERFORMANCE_TIMER
-#define TORRENT_CFG_TIME performancetimer_
-#elif TORRENT_USE_CLOCK_GETTIME
-#define TORRENT_CFG_TIME clocktime_
-#elif TORRENT_USE_SYSTEM_TIME
-#define TORRENT_CFG_TIME systime_
-#else
-#error what timer is used?
-#endif
-
 #if TORRENT_USE_IPV6
 #define TORRENT_CFG_IPV6 ipv6_
 #else
@@ -64,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_CFG \
-	BOOST_PP_CAT(TORRENT_CFG_TIME, \
+	BOOST_PP_CAT(TORRENT_CFG_IPV6, \
 	TORRENT_CFG_DEPR)
 
 #define TORRENT_CFG_STRING BOOST_PP_STRINGIZE(TORRENT_CFG)
