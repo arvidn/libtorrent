@@ -80,24 +80,14 @@ void test_pex()
 
 	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
 
-	// treat all IPs the same, i.e. enable rate limiting for local peers
-	ip_filter f;
-	f.add_rule(address_v4::from_string("0.0.0.0"), address_v4::from_string("255.255.255.255"), 1 << lt::session::global_peer_class_id);
-	peer_class_info pc = ses1.get_peer_class(lt::session::global_peer_class_id);
-	TEST_EQUAL(pc.upload_limit, 2000);
-	TEST_EQUAL(pc.download_limit, 2000);
-	ses1.set_peer_class(lt::session::local_peer_class_id, pc);
-
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49200");
 
 	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
-	ses3.set_peer_class(lt::session::local_peer_class_id, pc);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:50200");
 	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
-	ses2.set_peer_class(lt::session::local_peer_class_id, pc);
 
 	ses1.add_extension(create_ut_pex_plugin);
 	ses2.add_extension(create_ut_pex_plugin);
@@ -121,7 +111,7 @@ void test_pex()
 	torrent_status st1;
 	torrent_status st2;
 	torrent_status st3;
-	for (int i = 0; i < 80; ++i)
+	for (int i = 0; i < 610; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
