@@ -200,6 +200,7 @@ namespace libtorrent
 		, m_udp_socket(ses.m_udp_socket)
 		, m_host_resolver(ses.m_host_resolver)
 		, m_settings(ses.settings())
+		, m_stats_counters(ses.m_stats_counters)
 		, m_abort(false)
 	{}
 
@@ -212,13 +213,13 @@ namespace libtorrent
 	void tracker_manager::sent_bytes(int bytes)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		m_ses.m_stat.sent_tracker_bytes(bytes);
+		m_stats_counters.inc_stats_counter(counters::sent_tracker_bytes, bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		m_ses.m_stat.received_tracker_bytes(bytes);
+		m_stats_counters.inc_stats_counter(counters::recv_tracker_bytes, bytes);
 	}
 
 	void tracker_manager::remove_request(tracker_connection const* c)
