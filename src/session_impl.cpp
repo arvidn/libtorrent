@@ -1879,13 +1879,11 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
-						listen_socket_t s;
-						s.ssl = true;
 						int retries = 10;
 
-						setup_listener(&s, device, address_family
+						listen_socket_t s = setup_listener(device, address_family
 							, m_settings.get_int(settings_pack::ssl_listen)
-							, m_listen_port_retries, flags, ec);
+							, m_listen_port_retries, flags | open_ssl_socket, ec);
 
 						if (s.sock)
 						{
