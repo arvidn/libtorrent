@@ -121,23 +121,14 @@ namespace libtorrent
 
 		void sent_syn(bool ipv6)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
-#else
-			m_stat[upload_protocol].add(ipv6 ? 60 : 40);
-#endif
 		}
 
 		void received_synack(bool ipv6)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			// we received SYN-ACK and also sent ACK back
 			m_stat[download_ip_protocol].add(ipv6 ? 60 : 40);
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
-#else
-			m_stat[download_protocol].add(ipv6 ? 60 : 40);
-			m_stat[upload_protocol].add(ipv6 ? 60 : 40);
-#endif
 		}
 
 		void received_bytes(int bytes_payload, int bytes_protocol)
@@ -170,22 +161,12 @@ namespace libtorrent
 			const int mtu = 1500;
 			const int packet_size = mtu - header;
 			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
-#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[download_ip_protocol].add(overhead);
 			m_stat[upload_ip_protocol].add(overhead);
-#else
-			m_stat[download_protocol].add(overhead);
-			m_stat[upload_protocol].add(overhead);
-#endif
 		}
 
-#ifndef TORRENT_DISABLE_FULL_STATS
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
 		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
-#else
-		int upload_ip_overhead() const { return 0; }
-		int download_ip_overhead() const { return 0; }
-#endif
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms)
@@ -198,60 +179,42 @@ namespace libtorrent
 		{
 			return m_stat[upload_payload].low_pass_rate()
 				+ m_stat[upload_protocol].low_pass_rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[upload_ip_protocol].low_pass_rate()
-#endif
-				;
+				+ m_stat[upload_ip_protocol].low_pass_rate();
 		}
 
 		int low_pass_download_rate() const
 		{
 			return m_stat[download_payload].low_pass_rate()
 				+ m_stat[download_protocol].low_pass_rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[download_ip_protocol].low_pass_rate()
-#endif
-				;
+				+ m_stat[download_ip_protocol].low_pass_rate();
 		}
 
 		int upload_rate() const
 		{
 			return m_stat[upload_payload].rate()
 				+ m_stat[upload_protocol].rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[upload_ip_protocol].rate()
-#endif
-				;
+				+ m_stat[upload_ip_protocol].rate();
 		}
 
 		int download_rate() const
 		{
 			return m_stat[download_payload].rate()
 				+ m_stat[download_protocol].rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[download_ip_protocol].rate()
-#endif
-				;
+				+ m_stat[download_ip_protocol].rate();
 		}
 
 		size_type total_upload() const
 		{
 			return m_stat[upload_payload].total()
 				+ m_stat[upload_protocol].total()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[upload_ip_protocol].total()
-#endif
-				;
+				+ m_stat[upload_ip_protocol].total();
 		}
 
 		size_type total_download() const
 		{
 			return m_stat[download_payload].total()
 				+ m_stat[download_protocol].total()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[download_ip_protocol].total()
-#endif
-				;
+				+ m_stat[download_ip_protocol].total();
 		}
 
 		int upload_payload_rate() const
@@ -299,10 +262,8 @@ namespace libtorrent
 			upload_protocol,
 			download_payload,
 			download_protocol,
-#ifndef TORRENT_DISABLE_FULL_STATS
 			upload_ip_protocol,
 			download_ip_protocol,
-#endif
 			num_channels
 		};
 

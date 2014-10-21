@@ -394,16 +394,8 @@ namespace libtorrent {
 		: torrent_alert(h)
 		, interval(in)
 	{
-#ifndef TORRENT_DISABLE_FULL_STATS
 		for (int i = 0; i < num_channels; ++i)
 			transferred[i] = s[i].counter();
-#else
-		const int len = download_protocol + 1;
-		for (int i = 0; i < download_protocol + 1; ++i)
-			transferred[i] = s[i].counter();
-		for (int i = len; i < num_channels; ++i)
-			transferred[i] = 0;
-#endif
 	}
 
 	std::string stats_alert::message() const
