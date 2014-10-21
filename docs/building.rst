@@ -577,12 +577,6 @@ defines you can use to control the build.
 |                                        | which later can parsed and graphed using        |
 |                                        | ``parse_disk_log.py``.                          |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_STATS``                      | This will generate a log with transfer rates,   |
-|                                        | downloading torrents, seeding torrents, peers,  |
-|                                        | connecting peers and disk buffers in use. The   |
-|                                        | log can be parsed and graphed with              |
-|                                        | ``parse_session_stats.py``.                     |
-+----------------------------------------+-------------------------------------------------+
 | ``UNICODE``                            | If building on windows this will make sure the  |
 |                                        | UTF-8 strings in pathnames are converted into   |
 |                                        | UTF-16 before they are passed to the file       |

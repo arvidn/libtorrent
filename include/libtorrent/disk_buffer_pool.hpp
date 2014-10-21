@@ -82,11 +82,6 @@ namespace libtorrent
 
 		int block_size() const { return m_block_size; }
 
-#ifdef TORRENT_STATS
-		int disk_allocations() const
-		{ return m_allocations; }
-#endif
-
 		void release_memory();
 
 		boost::uint32_t in_use() const
@@ -190,10 +185,6 @@ namespace libtorrent
 		// memory pool for read and write operations
 		// and disk cache
 		boost::pool<page_aligned_allocator> m_pool;
-#endif
-
-#if defined TORRENT_STATS
-		int m_allocations;
 #endif
 
 		// this is specifically exempt from release_asserts

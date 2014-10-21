@@ -4,7 +4,7 @@ test_dirs:
 
 features:
  - variant=release asserts=production debug-symbols=on
- - encryption=openssl statistics=on logging=verbose disk-stats=on dht=logging request-log=on allocator=debug debug-iterators=on
+ - encryption=openssl logging=verbose disk-stats=on dht=logging request-log=on allocator=debug debug-iterators=on
 
 # all build_features are built in these directories
 build_dirs:
@@ -17,7 +17,6 @@ build_features:
  - deprecated-functions=off 
  - exception-handling=off
  - logging=verbose
- - statistics=on
  - asserts=off
  - asserts=production debug
  - asserts=on release

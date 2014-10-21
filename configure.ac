@@ -264,15 +264,6 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-  [statistics],
-  [AS_HELP_STRING(
-    [--enable-statistics],
-    [enable statistics logging feature [default=no]])],
-  [[ARG_ENABLE_STATS=$enableval]],
-  [[ARG_ENABLE_STATS=no]]
-)
-
-AC_ARG_ENABLE(
   [disk-stats],
   [AS_HELP_STRING(
     [--enable-disk-stats],
@@ -400,19 +391,6 @@ AS_CASE(["$ARG_ENABLE_LOGGING"],
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_LOGGING])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_LOGGING". Use either "yes", "no", "verbose" or "errors".])]
-)
-
-AC_MSG_CHECKING([whether statistics logging should be enabled])
-AS_CASE(["$ARG_ENABLE_STATS"],
-  ["yes"|"on"], [
-      AC_MSG_RESULT([yes])
-      AC_DEFINE([TORRENT_STATS],[1],[Define to generate a log with statistics.])
-    ],
-  ["no"|"off"], [
-      AC_MSG_RESULT([no])
-    ],
-  [AC_MSG_RESULT([$ARG_ENABLE_STATS])
-   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_STATS". Use either "yes" or "no".])]
 )
 
 AC_MSG_CHECKING([whether disk activity logging should be enabled])
@@ -659,7 +637,6 @@ Build options:
   debug build:          ${ARG_ENABLE_DEBUG:-no}
   invariant checks:     ${ARG_ENABLE_INVARIANT:-no}
   logging support:      ${ARG_ENABLE_LOGGING:-no}
-  statistics:           ${ARG_ENABLE_STATS:-no}
   disk statistics:      ${ARG_ENABLE_DISK_STATS:-no}
 
 Features:

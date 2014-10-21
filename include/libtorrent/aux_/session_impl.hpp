@@ -105,13 +105,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
-#if defined TORRENT_STATS && defined __MACH__
-#include <mach/vm_statistics.h>
-#include <mach/mach_init.h>
-#include <mach/host_info.h>
-#include <mach/mach_host.h>
-#endif
-
 namespace libtorrent
 {
 
@@ -160,25 +153,6 @@ namespace libtorrent
 	{
 		struct session_impl;
 		struct session_settings;
-
-#if defined TORRENT_STATS && !defined __MACH__
-		struct vm_statistics_data_t
-		{
-			boost::uint64_t active_count;
-			boost::uint64_t inactive_count;
-			boost::uint64_t wire_count;
-			boost::uint64_t free_count;
-			boost::uint64_t pageins;
-			boost::uint64_t pageouts;
-			boost::uint64_t faults;
-		};
-#endif
-
-		struct thread_cpu_usage
-		{
-			time_duration user_time;
-			time_duration system_time;
-		};
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger;
@@ -1127,30 +1101,6 @@ namespace libtorrent
 
 			void received_buffer(int size);
 			void sent_buffer(int size);
-
-#ifdef TORRENT_STATS
-			void rotate_stats_log();
-			void print_log_line(int tick_interval_ms, ptime now);
-			void enable_stats_logging(bool s);
-
-			bool m_stats_logging_enabled;
-
-			// the last time we rotated the log file
-			ptime m_last_log_rotation;
-	
-			// logger used to write bandwidth usage statistics
-			FILE* m_stats_logger;
-			// sequence number for log file. Log files are
-			// rotated every hour and the sequence number is
-			// incremented by one
-			int m_log_seq;
-
-			counters m_last_stats_counters;
-
-			cache_status m_last_cache_status;
-			vm_statistics_data_t m_last_vm_stat;
-			thread_cpu_usage m_network_thread_cpu_usage;
-#endif
 
 			// each second tick the timer takes a little
 			// bit longer than one second to trigger. The
