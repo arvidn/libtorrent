@@ -56,29 +56,27 @@
 <li><a class="reference internal" href="#send-buffer-watermark" id="id7">send buffer watermark</a></li>
 <li><a class="reference internal" href="#optimize-hashing-for-memory-usage" id="id8">optimize hashing for memory usage</a></li>
 <li><a class="reference internal" href="#reduce-executable-size" id="id9">reduce executable size</a></li>
-<li><a class="reference internal" href="#reduce-statistics" id="id10">reduce statistics</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#play-nice-with-the-disk" id="id11">play nice with the disk</a></li>
-<li><a class="reference internal" href="#high-performance-seeding" id="id12">high performance seeding</a><ul>
-<li><a class="reference internal" href="#file-pool" id="id13">file pool</a></li>
-<li><a class="reference internal" href="#disk-cache" id="id14">disk cache</a></li>
-<li><a class="reference internal" href="#ssd-as-level-2-cache" id="id15">SSD as level 2 cache</a></li>
-<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id16">uTP-TCP mixed mode</a></li>
-<li><a class="reference internal" href="#send-buffer-low-watermark" id="id17">send buffer low watermark</a></li>
-<li><a class="reference internal" href="#peers" id="id18">peers</a></li>
-<li><a class="reference internal" href="#torrent-limits" id="id19">torrent limits</a></li>
-<li><a class="reference internal" href="#sha-1-hashing" id="id20">SHA-1 hashing</a></li>
+<li><a class="reference internal" href="#play-nice-with-the-disk" id="id10">play nice with the disk</a></li>
+<li><a class="reference internal" href="#high-performance-seeding" id="id11">high performance seeding</a><ul>
+<li><a class="reference internal" href="#file-pool" id="id12">file pool</a></li>
+<li><a class="reference internal" href="#disk-cache" id="id13">disk cache</a></li>
+<li><a class="reference internal" href="#ssd-as-level-2-cache" id="id14">SSD as level 2 cache</a></li>
+<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id15">uTP-TCP mixed mode</a></li>
+<li><a class="reference internal" href="#send-buffer-low-watermark" id="id16">send buffer low watermark</a></li>
+<li><a class="reference internal" href="#peers" id="id17">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id18">torrent limits</a></li>
+<li><a class="reference internal" href="#sha-1-hashing" id="id19">SHA-1 hashing</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#scalability" id="id21">scalability</a></li>
-<li><a class="reference internal" href="#benchmarking" id="id22">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id23">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id24">session stats</a></li>
+<li><a class="reference internal" href="#scalability" id="id20">scalability</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id21">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id22">disk metrics</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#understanding-the-disk-thread" id="id25">understanding the disk thread</a></li>
-<li><a class="reference internal" href="#contributions" id="id26">contributions</a></li>
+<li><a class="reference internal" href="#understanding-the-disk-threads" id="id23">understanding the disk threads</a></li>
+<li><a class="reference internal" href="#contributions" id="id24">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -223,14 +221,6 @@ the client side and memory corruption will follow.</p>
 deprecated functions and struct members. As long as no deprecated functions are
 relied upon, this should be a simple way to eliminate a little bit of code.</p>
 <p>For all available options, see the <a class="reference external" href="building.html">building libtorrent</a> secion.</p>
-</div>
-<div class="section" id="reduce-statistics">
-<h2>reduce statistics</h2>
-<p>You can save some memory for each connection and each torrent by reducing the
-number of separate rates kept track of by libtorrent. If you build with <tt class="docutils literal"><span class="pre">full-stats=off</span></tt>
-(or <tt class="docutils literal"><span class="pre">-DTORRENT_DISABLE_FULL_STATS</span></tt>) you will save a few hundred bytes for each
-connection and torrent. It might make a difference if you have a very large number
-of peers or torrents.</p>
 </div>
 </div>
 <div class="section" id="play-nice-with-the-disk">
@@ -514,6 +504,7 @@ command line argument. It generates <tt class="docutils literal">disk_buffer.png
 </div>
 <div class="section" id="disk-access-log">
 <h3>disk_access.log</h3>
+<p><em>The disk access log is now binary</em></p>
 <p>The disc access log has three fields. The timestamp (milliseconds since start), operation
 and offset. The offset is the absolute offset within the torrent (not within a file). This
 log is only useful when you're downloading a single torrent, otherwise the offsets will not
@@ -540,96 +531,61 @@ file, <tt class="docutils literal">disk_access.gnuplot</tt> which assumes <tt cl
 <p>The density of the disk seeks tells you how hard the drive has to work.</p>
 </div>
 </div>
-<div class="section" id="session-stats">
-<h2>session stats</h2>
-<p>By defining <tt class="docutils literal">TORRENT_STATS</tt> libtorrent will write a log file called <tt class="docutils literal"><span class="pre">session_stats/&lt;pid&gt;.&lt;sequence&gt;.log</span></tt> which
-is in a format ready to be passed directly into gnuplot. The parser script <tt class="docutils literal">parse_session_stats.py</tt>
-generates a report in <tt class="docutils literal">session_stats_report/index.html</tt>.</p>
-<p>The first line in the log contains all the field names, separated by colon:</p>
-<pre class="literal-block">
-second:upload rate:download rate:downloading torrents:seeding torrents:peers...
-</pre>
-<p>The rest of the log is one line per second with all the fields' values.</p>
-<p>These are the fields:</p>
-<table border="1" class="docutils">
-<colgroup>
-<col width="25%" />
-<col width="75%" />
-</colgroup>
-<thead valign="bottom">
-<tr><th class="head">field name</th>
-<th class="head">description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr><td>second</td>
-<td>the time, in seconds, for this log line</td>
-</tr>
-<tr><td>upload rate</td>
-<td>the number of bytes uploaded in the last second</td>
-</tr>
-<tr><td>download rate</td>
-<td>the number of bytes downloaded in the last second</td>
-</tr>
-<tr><td>downloading torrents</td>
-<td>the number of torrents that are not seeds</td>
-</tr>
-<tr><td>seeding torrents</td>
-<td>the number of torrents that are seed</td>
-</tr>
-<tr><td>peers</td>
-<td>the total number of connected peers</td>
-</tr>
-<tr><td>connecting peers</td>
-<td>the total number of peers attempting to connect (half-open)</td>
-</tr>
-<tr><td>disk block buffers</td>
-<td>the total number of disk buffer blocks that are in use</td>
-</tr>
-<tr><td>unchoked peers</td>
-<td>the total number of unchoked peers</td>
-</tr>
-<tr><td>num list peers</td>
-<td>the total number of known peers, but not necessarily connected</td>
-</tr>
-<tr><td>peer allocations</td>
-<td>the total number of allocations for the peer list pool</td>
-</tr>
-<tr><td>peer storage bytes</td>
-<td>the total number of bytes allocated for the peer list pool</td>
-</tr>
-</tbody>
-</table>
-<p>This is an example of a graph that can be generated from this log:</p>
-<img alt="session_stats_peers.png" src="session_stats_peers.png" />
-<p>It shows statistics about the number of peers and peers states. How at the startup
-there are a lot of half-open connections, which tapers off as the total number of
-peers approaches the limit (50). It also shows how the total peer list slowly but steadily
-grows over time. This list is plotted against the right axis, as it has a different scale
-as the other fields.</p>
 </div>
-</div>
-<div class="section" id="understanding-the-disk-thread">
-<h1>understanding the disk thread</h1>
-<p>All disk operations are funneled through a separate thread, referred to as the disk thread.
-The main interface to the disk thread is a queue where disk jobs are posted, and the results
-of these jobs are then posted back on the main thread's io_service.</p>
+<div class="section" id="understanding-the-disk-threads">
+<h1>understanding the disk threads</h1>
+<p><em>This section is somewhat outdated, there are potentially more than one disk
+thread</em></p>
+<p>All disk operations are funneled through a separate thread, referred to as the
+disk thread. The main interface to the disk thread is a queue where disk jobs
+are posted, and the results of these jobs are then posted back on the main
+thread's io_service.</p>
 <p>A disk job is essentially one of:</p>
-<ol class="arabic simple">
-<li>write this block to disk, i.e. a write job. For the most part this is just a matter of sticking the block in the disk cache, but if we've run out of cache space or completed a whole piece, we'll also flush blocks to disk. This is typically very fast, since the OS just sticks these buffers in its write cache which will be flushed at a later time, presumably when the drive head will pass the place on the platter where the blocks go.</li>
-<li>read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordered queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks. If the system supports asynchronous I/O (Windows, Linux, Mac OS X, BSD, Solars for instance), jobs will be issued immediately to the OS. This especially increases read throughput, since the OS has a much greater flexibility to reorder the read jobs.</li>
+<ol class="arabic">
+<li><dl class="first docutils">
+<dt>write this block to disk, i.e. a write job. For the most part this is just a</dt>
+<dd><p class="first last">matter of sticking the block in the disk cache, but if we've run out of
+cache space or completed a whole piece, we'll also flush blocks to disk.
+This is typically very fast, since the OS just sticks these buffers in its
+write cache which will be flushed at a later time, presumably when the drive
+head will pass the place on the platter where the blocks go.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>read this block from disk. The first thing that happens is we look in the</dt>
+<dd><p class="first last">cache to see if the block is already in RAM. If it is, we'll return
+immediately with this block. If it's a cache miss, we'll have to hit the
+disk. Here we decide to defer this job. We find the physical offset on the
+drive for this block and insert the job in an ordered queue, sorted by the
+physical location. At a later time, once we don't have any more non-read
+jobs left in the queue, we pick one read job out of the ordered queue and
+service it. The order we pick jobs out of the queue is according to an
+elevator cursor moving up and down along the ordered queue of read jobs. If
+we have enough space in the cache we'll read read_cache_line_size number of
+blocks and stick those in the cache. This defaults to 32 blocks. If the
+system supports asynchronous I/O (Windows, Linux, Mac OS X, BSD, Solars for
+instance), jobs will be issued immediately to the OS. This especially
+increases read throughput, since the OS has a much greater flexibility to
+reorder the read jobs.</p>
+</dd>
+</dl>
+</li>
 </ol>
-<p>Other disk job consist of operations that needs to be synchronized with the disk I/O, like renaming files, closing files, flushing the cache, updating the settings etc. These are relatively rare though.</p>
+<p>Other disk job consist of operations that needs to be synchronized with the
+disk I/O, like renaming files, closing files, flushing the cache, updating the
+settings etc. These are relatively rare though.</p>
 </div>
 <div class="section" id="contributions">
 <h1>contributions</h1>
-<p>If you have added instrumentation for some part of libtorrent that is not covered here, or
-if you have improved any of the parser scrips, please consider contributing it back to the
-project.</p>
-<p>If you have run tests and found that some algorithm or default value in libtorrent is
-suboptimal, please contribute that knowledge back as well, to allow us to improve the library.</p>
-<p>If you have additional suggestions on how to tune libtorrent for any specific use case,
-please let us know and we'll update this document.</p>
+<p>If you have added instrumentation for some part of libtorrent that is not
+covered here, or if you have improved any of the parser scrips, please consider
+contributing it back to the project.</p>
+<p>If you have run tests and found that some algorithm or default value in
+libtorrent is suboptimal, please contribute that knowledge back as well, to
+allow us to improve the library.</p>
+<p>If you have additional suggestions on how to tune libtorrent for any specific
+use case, please let us know and we'll update this document.</p>
 </div>
 
     </div>

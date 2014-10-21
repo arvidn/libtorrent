@@ -92,6 +92,50 @@ these counters break down the peer errors into more specific
 categories. These errors are what the underlying transport
 reported (i.e. TCP or uTP)
 
+.. _peer.piece_requests:
+
+.. _peer.max_piece_requests:
+
+.. _peer.invalid_piece_requests:
+
+.. _peer.choked_piece_requests:
+
+.. _peer.cancelled_piece_requests:
+
+.. _peer.piece_rejects:
+
+.. raw:: html
+
+	<a name="peer.piece_requests"></a>
+	<a name="peer.max_piece_requests"></a>
+	<a name="peer.invalid_piece_requests"></a>
+	<a name="peer.choked_piece_requests"></a>
+	<a name="peer.cancelled_piece_requests"></a>
+	<a name="peer.piece_rejects"></a>
+
++-------------------------------+---------+
+| name                          | type    |
++===============================+=========+
+| peer.piece_requests           | counter |
++-------------------------------+---------+
+| peer.max_piece_requests       | counter |
++-------------------------------+---------+
+| peer.invalid_piece_requests   | counter |
++-------------------------------+---------+
+| peer.choked_piece_requests    | counter |
++-------------------------------+---------+
+| peer.cancelled_piece_requests | counter |
++-------------------------------+---------+
+| peer.piece_rejects            | counter |
++-------------------------------+---------+
+
+
+the total number of incoming piece requests we've received followed
+by the number of rejected piece requests for various reasons.
+max_piece_requests mean we already had too many outstanding requests
+from this peer, so we rejected it. cancelled_piece_requests are ones
+where the other end explicitly asked for the piece to be rejected.
+
 .. _peer.error_incoming_peers:
 
 .. _peer.error_outgoing_peers:
@@ -895,6 +939,47 @@ bittorrent message counters. These counters are incremented
 every time a message of the corresponding type is received from
 or sent to a bittorrent peer.
 
+.. _ses.waste_piece_timed_out:
+
+.. _ses.waste_piece_cancelled:
+
+.. _ses.waste_piece_unknown:
+
+.. _ses.waste_piece_seed:
+
+.. _ses.waste_piece_end_game:
+
+.. _ses.waste_piece_closing:
+
+.. raw:: html
+
+	<a name="ses.waste_piece_timed_out"></a>
+	<a name="ses.waste_piece_cancelled"></a>
+	<a name="ses.waste_piece_unknown"></a>
+	<a name="ses.waste_piece_seed"></a>
+	<a name="ses.waste_piece_end_game"></a>
+	<a name="ses.waste_piece_closing"></a>
+
++---------------------------+---------+
+| name                      | type    |
++===========================+=========+
+| ses.waste_piece_timed_out | counter |
++---------------------------+---------+
+| ses.waste_piece_cancelled | counter |
++---------------------------+---------+
+| ses.waste_piece_unknown   | counter |
++---------------------------+---------+
+| ses.waste_piece_seed      | counter |
++---------------------------+---------+
+| ses.waste_piece_end_game  | counter |
++---------------------------+---------+
+| ses.waste_piece_closing   | counter |
++---------------------------+---------+
+
+
+the number of wasted downloaded bytes by reason of the bytes being
+wasted.
+
 .. _picker.piece_picker_partial_loops:
 
 .. _picker.piece_picker_suggest_loops:
@@ -1236,47 +1321,6 @@ hash a piece (when verifying against the piece hash)
 cumulative time spent in various disk jobs, as well
 as total for all disk jobs. Measured in microseconds
 
-.. _ses.waste_piece_timed_out:
-
-.. _ses.waste_piece_cancelled:
-
-.. _ses.waste_piece_unknown:
-
-.. _ses.waste_piece_seed:
-
-.. _ses.waste_piece_end_game:
-
-.. _ses.waste_piece_closing:
-
-.. raw:: html
-
-	<a name="ses.waste_piece_timed_out"></a>
-	<a name="ses.waste_piece_cancelled"></a>
-	<a name="ses.waste_piece_unknown"></a>
-	<a name="ses.waste_piece_seed"></a>
-	<a name="ses.waste_piece_end_game"></a>
-	<a name="ses.waste_piece_closing"></a>
-
-+---------------------------+---------+
-| name                      | type    |
-+===========================+=========+
-| ses.waste_piece_timed_out | counter |
-+---------------------------+---------+
-| ses.waste_piece_cancelled | counter |
-+---------------------------+---------+
-| ses.waste_piece_unknown   | counter |
-+---------------------------+---------+
-| ses.waste_piece_seed      | counter |
-+---------------------------+---------+
-| ses.waste_piece_end_game  | counter |
-+---------------------------+---------+
-| ses.waste_piece_closing   | counter |
-+---------------------------+---------+
-
-
-the number of wasted downloaded bytes by reason of the bytes being
-wasted.
-
 .. _dht.dht_nodes:
 
 .. raw:: html
@@ -1508,6 +1552,26 @@ the total number of bytes sent and received by the DHT
 
 the number of DHT messages we've sent and received
 by kind.
+
+.. _dht.sent_dht_bytes:
+
+.. _dht.recv_dht_bytes:
+
+.. raw:: html
+
+	<a name="dht.sent_dht_bytes"></a>
+	<a name="dht.recv_dht_bytes"></a>
+
++--------------------+---------+
+| name               | type    |
++====================+=========+
+| dht.sent_dht_bytes | counter |
++--------------------+---------+
+| dht.recv_dht_bytes | counter |
++--------------------+---------+
+
+
+the number of bytes sent and received by the DHT
 
 .. _utp.utp_packet_loss:
 
