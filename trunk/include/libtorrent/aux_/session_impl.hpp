@@ -871,7 +871,12 @@ namespace libtorrent
 
 			void open_new_incoming_socks_connection();
 
-			void setup_listener(listen_socket_t* s, std::string const& device
+			enum listen_on_flags_t
+			{
+				open_ssl_socket = 0x10
+			};
+
+			listen_socket_t setup_listener(std::string const& device
 				, bool ipv4, int port, int& retries, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT	

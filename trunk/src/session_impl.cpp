@@ -1571,14 +1571,15 @@ namespace aux {
 
 	enum { listen_no_system_port = 0x02 };
 
-	// TODO: 3 return the listen_socket_t instead of taking it as an out-parameter
-	void session_impl::setup_listener(listen_socket_t* s, std::string const& device
+	listen_socket_t session_impl::setup_listener(std::string const& device
 		, bool ipv4, int port, int& retries, int flags, error_code& ec)
 	{
+		listen_socket_t ret;
 		int last_op = 0;
-		listen_failed_alert::socket_type_t sock_type = s->ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
-		s->sock.reset(new socket_acceptor(m_io_service));
-		s->sock->open(ipv4 ? tcp::v4() : tcp::v6(), ec);
+		listen_failed_alert::socket_type_t sock_type = (flags & open_ssl_socket)
+			? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
+		ret.sock.reset(new socket_acceptor(m_io_service));
+		ret.sock->open(ipv4 ? tcp::v4() : tcp::v6(), ec);
 		last_op = listen_failed_alert::open;
 		if (ec)
 		{
@@ -1589,7 +1590,7 @@ namespace aux {
 			session_log("failed to open socket: %s: %s"
 				, device.c_str(), ec.message().c_str());
 #endif
-			return;
+			return ret;
 		}
 
 		// SO_REUSEADDR on windows is a bit special. It actually allows
@@ -1598,7 +1599,7 @@ namespace aux {
 		// application. Don't do it!
 #ifndef TORRENT_WINDOWS
 		error_code err; // ignore errors here
-		s->sock->set_option(socket_acceptor::reuse_address(true), err);
+		ret.sock->set_option(socket_acceptor::reuse_address(true), err);
 #endif
 
 #if TORRENT_USE_IPV6
@@ -1606,7 +1607,7 @@ namespace aux {
 		{
 			error_code err; // ignore errors here
 #ifdef IPV6_V6ONLY
-			s->sock->set_option(v6only(true), err);
+			ret.sock->set_option(v6only(true), err);
 #endif
 #ifdef TORRENT_WINDOWS
 
@@ -1614,16 +1615,16 @@ namespace aux {
 #define PROTECTION_LEVEL_UNRESTRICTED 10
 #endif
 			// enable Teredo on windows
-			s->sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
+			ret.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
 #endif
 		}
 #endif // TORRENT_USE_IPV6
 
-		address bind_ip = bind_to_device(m_io_service, *s->sock, ipv4
+		address bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
 			, device.c_str(), port, ec);
 
 		if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
-			return;	
+			return ret;
 
 		while (ec && retries > 0)
 		{
@@ -1636,7 +1637,7 @@ namespace aux {
 			TORRENT_ASSERT_VAL(!ec, ec);
 			--retries;
 			port += 1;
-			bind_ip = bind_to_device(m_io_service, *s->sock, ipv4
+			bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
@@ -1646,7 +1647,7 @@ namespace aux {
 			// let the OS pick a port
 			port = 0;
 			ec.clear();
-			bind_ip = bind_to_device(m_io_service, *s->sock, ipv4
+			bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
@@ -1659,14 +1660,14 @@ namespace aux {
 			session_log("cannot bind to interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
 #endif
-			return;
+			return ret;
 		}
-		s->external_port = s->sock->local_endpoint(ec).port();
-		TORRENT_ASSERT(s->external_port == port || port == 0);
+		ret.external_port = ret.sock->local_endpoint(ec).port();
+		TORRENT_ASSERT(ret.external_port == port || port == 0);
 		last_op = listen_failed_alert::get_peer_name;
 		if (!ec)
 		{
-			s->sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
+			ret.sock->listen(m_settings.get_int(settings_pack::listen_queue_size), ec);
 			last_op = listen_failed_alert::listen;
 		}
 		if (ec)
@@ -1677,14 +1678,14 @@ namespace aux {
 			session_log("cannot listen on interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
 #endif
-			return;
+			return ret;
 		}
 
 		// if we asked the system to listen on port 0, which
 		// socket did it end up choosing?
 		if (port == 0)
 		{
-			port = s->sock->local_endpoint(ec).port();
+			port = ret.sock->local_endpoint(ec).port();
 			last_op = listen_failed_alert::get_peer_name;
 			if (ec)
 			{
@@ -1701,12 +1702,14 @@ namespace aux {
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.post_alert(listen_succeeded_alert(tcp::endpoint(bind_ip, port)
-				, s->ssl ? listen_succeeded_alert::tcp_ssl : listen_succeeded_alert::tcp));
+				, (flags & open_ssl_socket) ? listen_succeeded_alert::tcp_ssl
+				: listen_succeeded_alert::tcp));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		session_log(" listening on: %s external port: %d"
-			, print_endpoint(tcp::endpoint(bind_ip, port)).c_str(), s->external_port);
+			, print_endpoint(tcp::endpoint(bind_ip, port)).c_str(), ret.external_port);
 #endif
+		return ret;
 	}
 	
 	void session_impl::open_listen_port()
@@ -1749,8 +1752,8 @@ retry:
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
 		
-			listen_socket_t s;
-			setup_listener(&s, "0.0.0.0", true, m_listen_interface.port()
+			listen_socket_t s = setup_listener("0.0.0.0", true
+				, m_listen_interface.port()
 				, m_listen_port_retries, flags, ec);
 
 			if (s.sock)
@@ -1767,12 +1770,10 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
-				listen_socket_t s;
-				s.ssl = true;
 				int retries = 10;
-				setup_listener(&s, "0.0.0.0", true
+				listen_socket_t s = setup_listener("0.0.0.0", true
 					, m_settings.get_int(settings_pack::ssl_listen)
-					, retries, flags, ec);
+					, retries, flags | open_ssl_socket, ec);
 
 				if (s.sock)
 				{
@@ -1786,7 +1787,7 @@ retry:
 			// only try to open the IPv6 port if IPv6 is installed
 			if (supports_ipv6())
 			{
-				setup_listener(&s, "::1", false, m_listen_interface.port()
+				listen_socket_t s = setup_listener("::1", false, m_listen_interface.port()
 					, m_listen_port_retries, flags, ec);
 
 				if (s.sock)
@@ -1798,12 +1799,11 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 				if (m_settings.get_int(settings_pack::ssl_listen))
 				{
-					listen_socket_t s;
 					s.ssl = true;
 					int retries = 10;
-					setup_listener(&s, "::1", false
+					listen_socket_t s = setup_listener("::1", false
 						, m_settings.get_int(settings_pack::ssl_listen)
-						, retries, flags, ec);
+						, retries, flags | open_ssl_socket, ec);
 
 					if (s.sock)
 					{
@@ -1853,8 +1853,7 @@ retry:
 					if (!err && test_family.is_v4() != address_family)
 						continue;
 
-					listen_socket_t s;
-					setup_listener(&s, device, address_family, port
+					listen_socket_t s = setup_listener(device, address_family, port
 						, m_listen_port_retries, flags, ec);
 
 					if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
