@@ -690,7 +690,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	ip_filter f;
 	f.add_rule(address_v4::from_string("0.0.0.0")
 		, address_v4::from_string("255.255.255.255")
-		, lt::session::global_peer_class_id);
+		, 1 << lt::session::global_peer_class_id);
 	ses1->set_peer_class_filter(f);
 	ses2->set_peer_class_filter(f);
 	if (ses3) ses3->set_peer_class_filter(f);

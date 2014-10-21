@@ -55,6 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#include "libtorrent/socket_io.hpp"
+#endif
+
 namespace libtorrent
 {
 
