@@ -140,26 +140,6 @@ namespace libtorrent
 #endif
 		}
 
-		void received_dht_bytes(int bytes)
-		{
-			TORRENT_ASSERT(bytes >= 0);
-#ifndef TORRENT_DISABLE_FULL_STATS
-			m_stat[download_dht_protocol].add(bytes);
-#else
-			m_stat[download_protocol].add(bytes);
-#endif
-		}
-
-		void sent_dht_bytes(int bytes)
-		{
-			TORRENT_ASSERT(bytes >= 0);
-#ifndef TORRENT_DISABLE_FULL_STATS
-			m_stat[upload_dht_protocol].add(bytes);
-#else
-			m_stat[upload_protocol].add(bytes);
-#endif
-		}
-
 		void received_bytes(int bytes_payload, int bytes_protocol)
 		{
 			TORRENT_ASSERT(bytes_payload >= 0);
@@ -202,13 +182,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_FULL_STATS
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
 		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
-		int upload_dht() const { return m_stat[upload_dht_protocol].counter(); }
-		int download_dht() const { return m_stat[download_dht_protocol].counter(); }
 #else
 		int upload_ip_overhead() const { return 0; }
 		int download_ip_overhead() const { return 0; }
-		int upload_dht() const { return 0; }
-		int download_dht() const { return 0; }
 #endif
 
 		// should be called once every second
@@ -224,7 +200,6 @@ namespace libtorrent
 				+ m_stat[upload_protocol].low_pass_rate()
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[upload_ip_protocol].low_pass_rate()
-				+ m_stat[upload_dht_protocol].low_pass_rate()
 #endif
 				;
 		}
@@ -235,7 +210,6 @@ namespace libtorrent
 				+ m_stat[download_protocol].low_pass_rate()
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[download_ip_protocol].low_pass_rate()
-				+ m_stat[download_dht_protocol].low_pass_rate()
 #endif
 				;
 		}
@@ -246,7 +220,6 @@ namespace libtorrent
 				+ m_stat[upload_protocol].rate()
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[upload_ip_protocol].rate()
-				+ m_stat[upload_dht_protocol].rate()
 #endif
 				;
 		}
@@ -257,7 +230,6 @@ namespace libtorrent
 				+ m_stat[download_protocol].rate()
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[download_ip_protocol].rate()
-				+ m_stat[download_dht_protocol].rate()
 #endif
 				;
 		}
@@ -268,7 +240,6 @@ namespace libtorrent
 				+ m_stat[upload_protocol].total()
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[upload_ip_protocol].total()
-				+ m_stat[upload_dht_protocol].total()
 #endif
 				;
 		}
@@ -279,7 +250,6 @@ namespace libtorrent
 				+ m_stat[download_protocol].total()
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[download_ip_protocol].total()
-				+ m_stat[download_dht_protocol].total()
 #endif
 				;
 		}
@@ -331,9 +301,7 @@ namespace libtorrent
 			download_protocol,
 #ifndef TORRENT_DISABLE_FULL_STATS
 			upload_ip_protocol,
-			upload_dht_protocol,
 			download_ip_protocol,
-			download_dht_protocol,
 #endif
 			num_channels
 		};

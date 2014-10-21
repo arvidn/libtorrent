@@ -227,6 +227,8 @@ namespace libtorrent
 			dht_get_out,
 			dht_put_in,
 			dht_put_out,
+			sent_dht_bytes,
+			recv_dht_bytes,
 
 			// uTP counters
 			utp_packet_loss,
