@@ -185,15 +185,6 @@ For all available options, see the `building libtorrent`_ secion.
 
 .. _`building libtorrent`: building.html
 
-reduce statistics
------------------
-
-You can save some memory for each connection and each torrent by reducing the
-number of separate rates kept track of by libtorrent. If you build with ``full-stats=off``
-(or ``-DTORRENT_DISABLE_FULL_STATS``) you will save a few hundred bytes for each
-connection and torrent. It might make a difference if you have a very large number
-of peers or torrents.
-
 play nice with the disk
 =======================
 

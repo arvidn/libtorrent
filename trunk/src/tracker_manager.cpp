@@ -177,7 +177,6 @@ namespace libtorrent
 		close();
 	}
 
-	// TODO: 3 replace this with performance counters. remove depedency on session_impl
 	void tracker_connection::sent_bytes(int bytes)
 	{
 		m_man.sent_bytes(bytes);

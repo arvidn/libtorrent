@@ -484,7 +484,7 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 
 	if verbose: print 'prep  %s' % l
 
-	if warn_on_ifdefs and ('TORRENT_DEBUG' in l or 'TORRENT_DISABLE_FULL_STATS' in l):
+	if warn_on_ifdefs and ('TORRENT_DEBUG' in l):
 		while l.endswith('\\'):
 			lno += 1
 			l += lines[lno].strip()

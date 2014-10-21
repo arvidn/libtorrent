@@ -5389,19 +5389,11 @@ retry:
 		s.payload_upload_rate = m_stat.transfer_rate(stat::upload_payload);
 		s.total_payload_upload = m_stat.total_transfer(stat::upload_payload);
 
-#ifndef TORRENT_DISABLE_FULL_STATS
 		// IP-overhead
 		s.ip_overhead_download_rate = m_stat.transfer_rate(stat::download_ip_protocol);
 		s.total_ip_overhead_download = m_stat.total_transfer(stat::download_ip_protocol);
 		s.ip_overhead_upload_rate = m_stat.transfer_rate(stat::upload_ip_protocol);
 		s.total_ip_overhead_upload = m_stat.total_transfer(stat::upload_ip_protocol);
-#else
-		// IP-overhead
-		s.ip_overhead_download_rate = 0;
-		s.total_ip_overhead_download = 0;
-		s.ip_overhead_upload_rate = 0;
-		s.total_ip_overhead_upload = 0;
-#endif
 
 		// tracker
 		s.total_tracker_download = m_stats_counters[counters::recv_tracker_bytes];
