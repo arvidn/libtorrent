@@ -78,6 +78,7 @@ namespace libtorrent
 	class http_tracker_connection;
 	class  udp_socket;
 	struct resolver_interface;
+	struct counters;
 	namespace aux { struct session_impl; struct session_settings; }
 
 	// returns -1 if gzip header is invalid or the header size in bytes
@@ -376,6 +377,7 @@ namespace libtorrent
 		class udp_socket& m_udp_socket;
 		resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;
+		counters& m_stats_counters;
 		bool m_abort;
 	};
 }

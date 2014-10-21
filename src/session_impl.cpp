@@ -3018,17 +3018,13 @@ retry:
 		{
 			peer_class* gpc = m_classes.at(m_global_class);
 
-			gpc->channel[peer_connection::download_channel].use_quota(
 #ifndef TORRENT_DISABLE_DHT
-				m_stat.download_dht() +
+			gpc->channel[peer_connection::download_channel].use_quota(m_stat.download_dht());
 #endif
-				m_stat.download_tracker());
 
-			gpc->channel[peer_connection::upload_channel].use_quota(
 #ifndef TORRENT_DISABLE_DHT
-				m_stat.upload_dht() +
+			gpc->channel[peer_connection::upload_channel].use_quota(m_stat.upload_dht());
 #endif
-				m_stat.upload_tracker());
 
 			int up_limit = upload_rate_limit(m_global_class);
 			int down_limit = download_rate_limit(m_global_class);
@@ -4499,8 +4495,6 @@ retry:
 			, m_stat.total_transfer(stat::upload_payload));
 		m_stats_counters.set_value(counters::sent_ip_overhead_bytes
 			, m_stat.total_transfer(stat::upload_ip_protocol));
-		m_stats_counters.set_value(counters::sent_tracker_bytes
-			, m_stat.total_transfer(stat::upload_tracker_protocol));
 
 		m_stats_counters.set_value(counters::recv_bytes
 			, m_stat.total_download());
@@ -4508,8 +4502,6 @@ retry:
 			, m_stat.total_transfer(stat::download_payload));
 		m_stats_counters.set_value(counters::recv_ip_overhead_bytes
 			, m_stat.total_transfer(stat::download_ip_protocol));
-		m_stats_counters.set_value(counters::recv_tracker_bytes
-			, m_stat.total_transfer(stat::download_tracker_protocol));
 
 		m_stats_counters.set_value(counters::limiter_up_queue
 			, m_upload_rate.queue_size());
@@ -5353,6 +5345,8 @@ retry:
 		}
 	}
 
+	// TODO: 3 deprecate this function. All of this functionality should be
+	// exposed as performance counters
 	session_status session_impl::status() const
 	{
 //		INVARIANT_CHECK;
@@ -5418,11 +5412,6 @@ retry:
 		s.total_dht_upload = 0;
 #endif // TORRENT_DISABLE_DHT
 
-		// tracker
-		s.tracker_download_rate = m_stat.transfer_rate(stat::download_tracker_protocol);
-		s.total_tracker_download = m_stat.total_transfer(stat::download_tracker_protocol);
-		s.tracker_upload_rate = m_stat.transfer_rate(stat::upload_tracker_protocol);
-		s.total_tracker_upload = m_stat.total_transfer(stat::upload_tracker_protocol);
 #else
 		// IP-overhead
 		s.ip_overhead_download_rate = 0;
@@ -5435,13 +5424,15 @@ retry:
 		s.total_dht_download = 0;
 		s.dht_upload_rate = 0;
 		s.total_dht_upload = 0;
+#endif
 
 		// tracker
+		s.total_tracker_download = m_stats_counters[counters::recv_tracker_bytes];
+		s.total_tracker_upload = m_stats_counters[counters::sent_tracker_bytes];
+
+		// deprecated
 		s.tracker_download_rate = 0;
-		s.total_tracker_download = 0;
 		s.tracker_upload_rate = 0;
-		s.total_tracker_upload = 0;
-#endif
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
