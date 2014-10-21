@@ -1045,16 +1045,7 @@ namespace libtorrent
 		ret.port = sett.get_int(settings_pack::i2p_port);
 		return ret;
 	}
-#endif // TORRENT_NO_DEPRECATE
 
-#ifdef TORRENT_STATS
-	void session::enable_stats_logging(bool s)
-	{
-		TORRENT_ASYNC_CALL1(enable_stats_logging, s);
-	}
-#endif
-
-#ifndef TORRENT_NO_DEPRECATE
 	void session::set_max_half_open_connections(int limit) {}
 	int session::max_half_open_connections() const { return 8; }
 

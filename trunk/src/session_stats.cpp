@@ -69,6 +69,18 @@ namespace libtorrent
 		METRIC(peer, invalid_arg_peers)
 		METRIC(peer, aborted_peers)
 
+		// the total number of incoming piece requests we've received followed
+		// by the number of rejected piece requests for various reasons.
+		// max_piece_requests mean we already had too many outstanding requests
+		// from this peer, so we rejected it. cancelled_piece_requests are ones
+		// where the other end explicitly asked for the piece to be rejected.
+		METRIC(peer, piece_requests)
+		METRIC(peer, max_piece_requests)
+		METRIC(peer, invalid_piece_requests)
+		METRIC(peer, choked_piece_requests)
+		METRIC(peer, cancelled_piece_requests)
+		METRIC(peer, piece_rejects)
+
 		// these counters break down the peer errors into
 		// whether they happen on incoming or outgoing peers.
 		METRIC(peer, error_incoming_peers)
@@ -268,6 +280,15 @@ namespace libtorrent
 		METRIC(ses, num_outgoing_metadata)
 		METRIC(ses, num_outgoing_extended)
 
+		// the number of wasted downloaded bytes by reason of the bytes being
+		// wasted.
+		METRIC(ses, waste_piece_timed_out)
+		METRIC(ses, waste_piece_cancelled)
+		METRIC(ses, waste_piece_unknown)
+		METRIC(ses, waste_piece_seed)
+		METRIC(ses, waste_piece_end_game)
+		METRIC(ses, waste_piece_closing)
+
 		// the number of pieces considered while picking pieces
 		METRIC(picker, piece_picker_partial_loops)
 		METRIC(picker, piece_picker_suggest_loops)
@@ -346,15 +367,6 @@ namespace libtorrent
 		METRIC(disk, disk_write_time)
 		METRIC(disk, disk_hash_time)
 		METRIC(disk, disk_job_time)
-
-		// the number of wasted downloaded bytes by reason of the bytes being
-		// wasted.
-		METRIC(ses, waste_piece_timed_out)
-		METRIC(ses, waste_piece_cancelled)
-		METRIC(ses, waste_piece_unknown)
-		METRIC(ses, waste_piece_seed)
-		METRIC(ses, waste_piece_end_game)
-		METRIC(ses, waste_piece_closing)
 
 		// The number of nodes in the DHT routing table
 		METRIC(dht, dht_nodes)

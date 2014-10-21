@@ -998,11 +998,6 @@ namespace libtorrent
 		void apply_settings(settings_pack const& s);
 		aux::session_settings get_settings() const;
 
-#ifdef TORRENT_STATS
-		// internal
-		void enable_stats_logging(bool s);
-#endif
-
 #ifndef TORRENT_NO_DEPRECATE
 		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant
 		// connection to it. The only used fields in the proxy settings structs

@@ -2,6 +2,10 @@
 
 make distclean
 
+cd docs
+make
+cd ..
+
 #clear out any extended attributes that Finder may add
 sudo xattr -r -d com.apple.FinderInfo *
 

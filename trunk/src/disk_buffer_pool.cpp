@@ -121,9 +121,6 @@ namespace libtorrent
 		, m_pool(block_size, 32)
 #endif
 	{
-#if defined TORRENT_STATS
-		m_allocations = 0;
-#endif
 #if TORRENT_USE_ASSERTS
 		m_magic = 0x1337;
 		m_settings_set = false;
@@ -381,10 +378,6 @@ namespace libtorrent
 		}
 #endif // TORRENT_USE_MLOCK
 
-#if defined TORRENT_STATS
-		++m_allocations;
-#endif
-
 		TORRENT_ASSERT(is_disk_buffer(ret, l));
 		return ret;
 	}
@@ -594,10 +587,6 @@ namespace libtorrent
 			munlock(buf, m_block_size);
 #endif
 		}
-#endif
-
-#if defined TORRENT_STATS
-		--m_allocations;
 #endif
 
 #if TORRENT_HAVE_MMAP

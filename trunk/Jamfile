@@ -420,9 +420,6 @@ feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
 
-feature statistics : off on : composite propagated link-incompatible ;
-feature.compose <statistics>on : <define>TORRENT_STATS ;
-
 feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 

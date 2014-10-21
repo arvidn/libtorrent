@@ -59,9 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
-#ifdef TORRENT_STATS
-#include "libtorrent/aux_/session_impl.hpp"
-#endif
 
 namespace libtorrent { namespace
 {
