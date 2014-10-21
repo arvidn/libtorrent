@@ -141,7 +141,7 @@ namespace libtorrent
 		, char const* msg, int interval, int min_interval)
 	{
 		// m_target failed. remove it from the endpoint list
-		std::list<tcp::endpoint>::iterator i = std::find(m_endpoints.begin()
+		std::vector<tcp::endpoint>::iterator i = std::find(m_endpoints.begin()
 			, m_endpoints.end(), tcp::endpoint(m_target.address(), m_target.port()));
 
 		if (i != m_endpoints.end()) m_endpoints.erase(i);
@@ -207,7 +207,7 @@ namespace libtorrent
 		if (tracker_req().apply_ip_filter)
 		{
 			// remove endpoints that are filtered by the IP filter
-			for (std::list<tcp::endpoint>::iterator k = m_endpoints.begin();
+			for (std::vector<tcp::endpoint>::iterator k = m_endpoints.begin();
 				k != m_endpoints.end();)
 			{
 				if (m_man.ip_filter().access(k->address()) == ip_filter::blocked) 
@@ -237,7 +237,7 @@ namespace libtorrent
 
 	udp::endpoint udp_tracker_connection::pick_target_endpoint() const
 	{
-		std::list<tcp::endpoint>::const_iterator iter = m_endpoints.begin();
+		std::vector<tcp::endpoint>::const_iterator iter = m_endpoints.begin();
 		udp::endpoint target = udp::endpoint(iter->address(), iter->port());
 
 		if (bind_interface() != address_v4::any())
@@ -573,7 +573,7 @@ namespace libtorrent
 		}
 
 		std::list<address> ip_list;
-		for (std::list<tcp::endpoint>::const_iterator i = m_endpoints.begin()
+		for (std::vector<tcp::endpoint>::const_iterator i = m_endpoints.begin()
 			, end(m_endpoints.end()); i != end; ++i)
 		{
 			ip_list.push_back(i->address());
