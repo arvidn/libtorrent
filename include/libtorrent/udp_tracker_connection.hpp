@@ -119,8 +119,7 @@ namespace libtorrent
 		udp::endpoint pick_target_endpoint() const;
 
 		std::string m_hostname;
-		// TODO: 3 this should be a vector
-		std::list<tcp::endpoint> m_endpoints;
+		std::vector<tcp::endpoint> m_endpoints;
 
 		struct connection_cache_entry
 		{
