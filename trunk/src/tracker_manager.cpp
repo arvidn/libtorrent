@@ -280,7 +280,7 @@ namespace libtorrent
 		{
 			boost::shared_ptr<http_tracker_connection> con
 				= boost::make_shared<http_tracker_connection>(
-				ios, *this, req, c, auth
+				boost::ref(ios), boost::ref(*this), boost::cref(req), c, auth
 #if TORRENT_USE_I2P
 				, &m_ses.m_i2p_conn
 #endif
@@ -293,7 +293,7 @@ namespace libtorrent
 		{
 			boost::shared_ptr<udp_tracker_connection> con
 				= boost::make_shared<udp_tracker_connection>(
-					ios, *this, req , c);
+					boost::ref(ios), boost::ref(*this), boost::cref(req) , c);
 			m_udp_conns[con->transaction_id()] = con;
 			con->start();
 			return;
