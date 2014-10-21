@@ -985,17 +985,7 @@ namespace libtorrent
 	proxy_settings session::proxy() const
 	{
 		aux::session_settings sett = get_settings();
-
-		proxy_settings ret;
-		ret.hostname = sett.get_str(settings_pack::proxy_hostname);
-		ret.username = sett.get_str(settings_pack::proxy_username);
-		ret.password = sett.get_str(settings_pack::proxy_password);
-		ret.type = sett.get_int(settings_pack::proxy_type);
-		ret.port = sett.get_int(settings_pack::proxy_port);
-		ret.proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
-		ret.proxy_peer_connections = sett.get_bool(
-			settings_pack::proxy_peer_connections);
-		return ret;
+		return proxy_settings(sett);
 	}
 
 	void session::set_peer_proxy(proxy_settings const& s)

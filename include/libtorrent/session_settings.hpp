@@ -50,6 +50,8 @@ namespace libtorrent
 #define TORRENT_EXPORT_DEPRECATED
 #endif
 
+	namespace aux { struct session_settings; }
+
 	// TODO: 2 this type is only used internally now. move it to an internal
 	// header and make this type properly deprecated.
 
@@ -63,6 +65,10 @@ namespace libtorrent
 			, port(0), proxy_hostnames(true)
 			, proxy_peer_connections(true)
 		{}
+
+		// construct the proxy_settings object from the settings
+		// this constructor is implemented in session_impl.cpp
+		proxy_settings(aux::session_settings const& sett);
 
 		// the name or IP of the proxy server. ``port`` is the port number the
 		// proxy listens to. If required, ``username`` and ``password`` can be

@@ -177,7 +177,7 @@ namespace libtorrent
 		close();
 	}
 
-	// TODO: 3 replace this with performance counters. remove depedency on session
+	// TODO: 3 replace this with performance counters. remove depedency on session_impl
 	void tracker_connection::sent_bytes(int bytes)
 	{
 		m_man.sent_bytes(bytes);
@@ -193,6 +193,15 @@ namespace libtorrent
 		cancel();
 		m_man.remove_request(this);
 	}
+
+	tracker_manager::tracker_manager(aux::session_impl& ses)
+		: m_ses(ses)
+		, m_ip_filter(ses.m_ip_filter)
+		, m_udp_socket(ses.m_udp_socket)
+		, m_host_resolver(ses.m_host_resolver)
+		, m_settings(ses.settings())
+		, m_abort(false)
+	{}
 
 	tracker_manager::~tracker_manager()
 	{
@@ -271,8 +280,7 @@ namespace libtorrent
 		{
 			boost::shared_ptr<http_tracker_connection> con
 				= boost::make_shared<http_tracker_connection>(
-				ios, *this, req, c
-				, m_ses, auth
+				ios, *this, req, c, auth
 #if TORRENT_USE_I2P
 				, &m_ses.m_i2p_conn
 #endif
@@ -285,7 +293,7 @@ namespace libtorrent
 		{
 			boost::shared_ptr<udp_tracker_connection> con
 				= boost::make_shared<udp_tracker_connection>(
-					ios, *this, req , c, m_ses, m_ses.proxy());
+					ios, *this, req , c);
 			m_udp_conns[con->transaction_id()] = con;
 			con->start();
 			return;

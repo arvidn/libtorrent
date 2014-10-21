@@ -227,14 +227,17 @@ void network_thread_pool::process_job(socket_job const& j, bool post)
 	}
 }
 
-namespace detail
+// TODO: 2 find a better place for this function
+proxy_settings::proxy_settings(aux::session_settings const& sett)
 {
-	std::string generate_auth_string(std::string const& user
-		, std::string const& passwd)
-	{
-		if (user.empty()) return std::string();
-		return user + ":" + passwd;
-	}
+	hostname = sett.get_str(settings_pack::proxy_hostname);
+	username = sett.get_str(settings_pack::proxy_username);
+	password = sett.get_str(settings_pack::proxy_password);
+	type = sett.get_int(settings_pack::proxy_type);
+	port = sett.get_int(settings_pack::proxy_port);
+	proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
+	proxy_peer_connections = sett.get_bool(
+		settings_pack::proxy_peer_connections);
 }
 
 namespace aux {
@@ -674,6 +677,19 @@ namespace aux {
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
+		settings_pack* copy = new settings_pack(pack);
+		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
+		// call update_* after settings set initialized
+		m_io_service.post(boost::bind(&session_impl::init_settings, this));
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		session_log(" spawning network thread");
+#endif
+		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
+	}
+
+	void session_impl::init_settings()
+	{
 #ifndef TORRENT_NO_DEPRECATE
 		update_local_download_rate();
 		update_local_upload_rate();
@@ -689,18 +705,6 @@ namespace aux {
 		update_lsd();
 		update_dht();
 
-		settings_pack* copy = new settings_pack(pack);
-		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
-		m_io_service.post(boost::bind(&session_impl::maybe_open_listen_port, this));
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		session_log(" spawning network thread");
-#endif
-		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
-	}
-
-	void session_impl::maybe_open_listen_port()
-	{
 		if (m_listen_sockets.empty())
 		{
 			update_listen_interfaces();
@@ -1179,17 +1183,7 @@ namespace aux {
 
 	proxy_settings session_impl::proxy() const
 	{
-		proxy_settings ret;
-
-		ret.hostname = m_settings.get_str(settings_pack::proxy_hostname);
-		ret.username = m_settings.get_str(settings_pack::proxy_username);
-		ret.password = m_settings.get_str(settings_pack::proxy_password);
-		ret.type = m_settings.get_int(settings_pack::proxy_type);
-		ret.port = m_settings.get_int(settings_pack::proxy_port);
-		ret.proxy_hostnames = m_settings.get_bool(settings_pack::proxy_hostnames);
-		ret.proxy_peer_connections = m_settings.get_bool(
-			settings_pack::proxy_peer_connections);
-		return ret;
+		return proxy_settings(m_settings);
 	}
 	
 	void session_impl::load_state(lazy_entry const* e)

@@ -71,6 +71,10 @@ void test_pex()
 	pack.set_int(settings_pack::max_retry_port_bind, 800);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48200");
 
+	pack.set_bool(settings_pack::enable_dht, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 

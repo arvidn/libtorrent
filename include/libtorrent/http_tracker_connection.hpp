@@ -58,7 +58,7 @@ namespace libtorrent
 	struct http_connection;
 	class entry;
 	class http_parser;
-	namespace aux { struct session_impl; struct session_settings; }
+	namespace aux { struct session_settings; }
 
 	class TORRENT_EXTRA_EXPORT http_tracker_connection
 		: public tracker_connection
@@ -71,7 +71,6 @@ namespace libtorrent
 			, tracker_manager& man
 			, tracker_request const& req
 			, boost::weak_ptr<request_callback> c
-			, aux::session_impl& ses
 			, std::string const& password = ""
 #if TORRENT_USE_I2P
 			, i2p_connection* i2p_conn = 0
@@ -98,9 +97,7 @@ namespace libtorrent
 
 		tracker_manager& m_man;
 		boost::shared_ptr<http_connection> m_tracker_connection;
-		aux::session_impl& m_ses;
 		address m_tracker_ip;
-		io_service& m_ios;
 #if TORRENT_USE_I2P
 		i2p_connection* m_i2p_conn;
 #endif

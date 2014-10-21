@@ -180,8 +180,6 @@ struct udp_tracker
 	
 		error_code ec;
 		udp::endpoint from;
-		size_t bytes_transferred;
-		bool done = false;
 		m_socket.async_receive_from(
 			asio::buffer(buffer, sizeof(buffer)), from, 0
 			, boost::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], sizeof(buffer)));
