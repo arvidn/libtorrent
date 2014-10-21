@@ -263,7 +263,7 @@ namespace libtorrent
 			void main_thread();
 
 			void open_listen_port();
-			void maybe_open_listen_port();
+			void init_settings();
 			
 			torrent_peer_allocator_interface* get_peer_allocator() { return &m_peer_allocator; }
 

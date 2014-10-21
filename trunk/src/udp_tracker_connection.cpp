@@ -48,10 +48,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_any
 #include "libtorrent/random.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/resolver_interface.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 namespace libtorrent
 {
@@ -61,17 +63,12 @@ namespace libtorrent
 
 	mutex udp_tracker_connection::m_cache_mutex;
 
-	// TODO: 2 it would be nice to not have a dependency on session_impl here
 	udp_tracker_connection::udp_tracker_connection(
 		io_service& ios
 		, tracker_manager& man
 		, tracker_request const& req
-		, boost::weak_ptr<request_callback> c
-		, aux::session_impl& ses
-		, proxy_settings const& proxy)
+		, boost::weak_ptr<request_callback> c)
 		: tracker_connection(man, req, ios, c)
-		, m_ses(ses)
-		, m_proxy(proxy)
 		, m_transaction_id(0)
 		, m_attempts(0)
 		, m_state(action_error)
@@ -98,11 +95,11 @@ namespace libtorrent
 			return;
 		}
 		
-		aux::session_settings const& settings = m_ses.settings();
+		aux::session_settings const& settings = m_man.settings();
 
-		if (m_proxy.proxy_hostnames
-			&& (m_proxy.type == settings_pack::socks5
-				|| m_proxy.type == settings_pack::socks5_pw))
+		if (settings.get_bool(settings_pack::proxy_hostnames)
+			&& (settings.get_int(settings_pack::proxy_type) == settings_pack::socks5
+				|| settings.get_int(settings_pack::proxy_type) == settings_pack::socks5_pw))
 		{
 			m_hostname = hostname;
 			m_target.port(port);
@@ -116,7 +113,7 @@ namespace libtorrent
 			// when stopping, pass in the prefer cache flag, because we
 			// don't want to get stuck on DNS lookups when shutting down
 			// if we can avoid it
-			m_ses.m_host_resolver.async_resolve(hostname
+			m_man.host_resolver().async_resolve(hostname
 				, tracker_req().event == tracker_request::stopped
 					? resolver_interface::prefer_cache
 					: 0
@@ -165,7 +162,7 @@ namespace libtorrent
 		if (cb) cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
 			, m_hostname.c_str(), print_endpoint(m_target).c_str());
 #endif
-		m_ses.m_io_service.post(boost::bind(
+		get_io_service().post(boost::bind(
 			&udp_tracker_connection::start_announce, shared_from_this()));
 	}
 
@@ -209,7 +206,7 @@ namespace libtorrent
 			for (std::list<tcp::endpoint>::iterator k = m_endpoints.begin();
 				k != m_endpoints.end();)
 			{
-				if (m_ses.m_ip_filter.access(k->address()) == ip_filter::blocked) 
+				if (m_man.ip_filter().access(k->address()) == ip_filter::blocked) 
 				{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: %s ]"
@@ -431,7 +428,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
 		cce.connection_id = connection_id;
-		cce.expires = time_now() + seconds(m_ses.m_settings.get_int(settings_pack::udp_tracker_token_expiry));
+		cce.expires = time_now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));
 
 		if (tracker_req().kind == tracker_request::announce_request)
 			send_udp_announce();
@@ -467,11 +464,11 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_ses.m_udp_socket.send_hostname(m_hostname.c_str(), m_target.port(), buf, 16, ec);
+			m_man.udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, 16, ec);
 		}
 		else
 		{
-			m_ses.m_udp_socket.send(m_target, buf, 16, ec);
+			m_man.udp_socket().send(m_target, buf, 16, ec);
 		}
 		m_state = action_connect;
 		sent_bytes(16 + 28); // assuming UDP/IP header
@@ -509,11 +506,11 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_ses.m_udp_socket.send_hostname(m_hostname.c_str(), m_target.port(), buf, sizeof(buf), ec);
+			m_man.udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, sizeof(buf), ec);
 		}
 		else
 		{
-			m_ses.m_udp_socket.send(m_target, buf, sizeof(buf), ec);
+			m_man.udp_socket().send(m_target, buf, sizeof(buf), ec);
 		}
 		m_state = action_scrape;
 		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
@@ -642,7 +639,7 @@ namespace libtorrent
 
 		tracker_request const& req = tracker_req();
 		const bool stats = req.send_stats;
-		aux::session_settings const& settings = m_ses.settings();
+		aux::session_settings const& settings = m_man.settings();
 
 		std::map<address, connection_cache_entry>::iterator i
 			= m_connection_cache.find(m_target.address());
@@ -706,11 +703,11 @@ namespace libtorrent
 
 		if (!m_hostname.empty())
 		{
-			m_ses.m_udp_socket.send_hostname(m_hostname.c_str(), m_target.port(), buf, out - buf, ec);
+			m_man.udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, out - buf, ec);
 		}
 		else
 		{
-			m_ses.m_udp_socket.send(m_target, buf, out - buf, ec);
+			m_man.udp_socket().send(m_target, buf, out - buf, ec);
 		}
 		m_state = action_announce;
 		sent_bytes(out - buf + 28); // assuming UDP/IP header

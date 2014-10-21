@@ -59,8 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace aux { struct session_impl; }
-
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
@@ -70,9 +68,7 @@ namespace libtorrent
 			io_service& ios
 			, tracker_manager& man
 			, tracker_request const& req
-			, boost::weak_ptr<request_callback> c
-			, aux::session_impl& ses
-			, proxy_settings const& ps);
+			, boost::weak_ptr<request_callback> c);
 
 		void start();
 		void close();
@@ -126,8 +122,6 @@ namespace libtorrent
 		// TODO: 3 this should be a vector
 		std::list<tcp::endpoint> m_endpoints;
 
-		aux::session_impl& m_ses;
-
 		struct connection_cache_entry
 		{
 			boost::int64_t connection_id;
@@ -136,8 +130,6 @@ namespace libtorrent
 
 		static std::map<address, connection_cache_entry> m_connection_cache;
 		static mutex m_cache_mutex;
-
-		proxy_settings m_proxy;
 
 		udp::endpoint m_target;
 
