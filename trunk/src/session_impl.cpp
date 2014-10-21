@@ -3003,13 +3003,13 @@ retry:
 		}
 
 #ifndef TORRENT_DISABLE_DHT
+		int dht_down = 0;
+		int dht_up = 0;
 		if (m_dht)
 		{
-			int dht_down;
-			int dht_up;
 			m_dht->network_stats(dht_up, dht_down);
-			m_stat.sent_dht_bytes(dht_up);
-			m_stat.received_dht_bytes(dht_down);
+			m_stats_counters.inc_stats_counter(counters::sent_dht_bytes, dht_up);
+			m_stats_counters.inc_stats_counter(counters::recv_dht_bytes, dht_down);
 		}
 #endif
 
@@ -3019,11 +3019,8 @@ retry:
 			peer_class* gpc = m_classes.at(m_global_class);
 
 #ifndef TORRENT_DISABLE_DHT
-			gpc->channel[peer_connection::download_channel].use_quota(m_stat.download_dht());
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-			gpc->channel[peer_connection::upload_channel].use_quota(m_stat.upload_dht());
+			gpc->channel[peer_connection::download_channel].use_quota(dht_down);
+			gpc->channel[peer_connection::upload_channel].use_quota(dht_up);
 #endif
 
 			int up_limit = upload_rate_limit(m_global_class);
@@ -5398,41 +5395,27 @@ retry:
 		s.total_ip_overhead_download = m_stat.total_transfer(stat::download_ip_protocol);
 		s.ip_overhead_upload_rate = m_stat.transfer_rate(stat::upload_ip_protocol);
 		s.total_ip_overhead_upload = m_stat.total_transfer(stat::upload_ip_protocol);
-
-#ifndef TORRENT_DISABLE_DHT
-		// DHT protocol
-		s.dht_download_rate = m_stat.transfer_rate(stat::download_dht_protocol);
-		s.total_dht_download = m_stat.total_transfer(stat::download_dht_protocol);
-		s.dht_upload_rate = m_stat.transfer_rate(stat::upload_dht_protocol);
-		s.total_dht_upload = m_stat.total_transfer(stat::upload_dht_protocol);
-#else
-		s.dht_download_rate = 0;
-		s.total_dht_download = 0;
-		s.dht_upload_rate = 0;
-		s.total_dht_upload = 0;
-#endif // TORRENT_DISABLE_DHT
-
 #else
 		// IP-overhead
 		s.ip_overhead_download_rate = 0;
 		s.total_ip_overhead_download = 0;
 		s.ip_overhead_upload_rate = 0;
 		s.total_ip_overhead_upload = 0;
-
-		// DHT protocol
-		s.dht_download_rate = 0;
-		s.total_dht_download = 0;
-		s.dht_upload_rate = 0;
-		s.total_dht_upload = 0;
 #endif
 
 		// tracker
 		s.total_tracker_download = m_stats_counters[counters::recv_tracker_bytes];
 		s.total_tracker_upload = m_stats_counters[counters::sent_tracker_bytes];
 
+		// dht
+		s.total_dht_download = m_stats_counters[counters::recv_dht_bytes];
+		s.total_dht_upload = m_stats_counters[counters::sent_dht_bytes];
+
 		// deprecated
 		s.tracker_download_rate = 0;
 		s.tracker_upload_rate = 0;
+		s.dht_download_rate = 0;
+		s.dht_upload_rate = 0;
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)

@@ -416,6 +416,10 @@ namespace libtorrent
 		METRIC(dht, dht_put_in)
 		METRIC(dht, dht_put_out)
 
+		// the number of bytes sent and received by the DHT
+		METRIC(dht, sent_dht_bytes)
+		METRIC(dht, recv_dht_bytes)
+
 		// uTP counters. Each counter represents the number of time each event
 		// has occurred.
 		METRIC(utp, utp_packet_loss)
