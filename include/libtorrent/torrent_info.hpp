@@ -309,28 +309,35 @@ namespace libtorrent
 	{
 	public:
 
-		// The constructor that takes an info-hash  will initialize the info-hash to the given value,
-		// but leave all other fields empty. This is used internally when downloading torrents without
-		// the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
-		// from the swarm.
+		// The constructor that takes an info-hash  will initialize the info-hash
+		// to the given value, but leave all other fields empty. This is used
+		// internally when downloading torrents without the metadata. The
+		// metadata will be created by libtorrent as soon as it has been
+		// downloaded from the swarm.
 		// 
-		// The constructor that takes a lazy_entry will create a torrent_info object from the
-		// information found in the given torrent_file. The lazy_entry represents a tree node in
-		// an bencoded file. To load an ordinary .torrent file
-		// into a lazy_entry, use lazy_bdecode().
+		// The constructor that takes a lazy_entry will create a torrent_info
+		// object from the information found in the given torrent_file. The
+		// lazy_entry represents a tree node in an bencoded file. To load an
+		// ordinary .torrent file into a lazy_entry, use lazy_bdecode().
 		// 
-		// The version that takes a buffer pointer and a size will decode it as a .torrent file and
-		// initialize the torrent_info object for you.
+		// The version that takes a buffer pointer and a size will decode it as a
+		// .torrent file and initialize the torrent_info object for you.
 		// 
-		// The version that takes a filename will simply load the torrent file and decode it inside
-		// the constructor, for convenience. This might not be the most suitable for applications that
-		// want to be able to report detailed errors on what might go wrong.
+		// The version that takes a filename will simply load the torrent file
+		// and decode it inside the constructor, for convenience. This might not
+		// be the most suitable for applications that want to be able to report
+		// detailed errors on what might go wrong.
+		//
+		// There is an upper limit on the size of the torrent file that will be
+		// loaded by the overload taking a filename. If it's important that even
+		// very large torrent files are loaded, use one of the other overloads.
 		// 
-		// The overloads that takes an ``error_code const&`` never throws if an error occur, they
-		// will simply set the error code to describe what went wrong and not fully initialize the
-		// torrent_info object. The overloads that do not take the extra error_code parameter will
-		// always throw if an error occurs. These overloads are not available when building without
-		// exception support.
+		// The overloads that takes an ``error_code const&`` never throws if an
+		// error occur, they will simply set the error code to describe what went
+		// wrong and not fully initialize the torrent_info object. The overloads
+		// that do not take the extra error_code parameter will always throw if
+		// an error occurs. These overloads are not available when building
+		// without exception support.
 		// 
 		// The ``flags`` argument is currently unused.
 #ifndef BOOST_NO_EXCEPTIONS

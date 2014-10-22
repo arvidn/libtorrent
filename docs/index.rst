@@ -1,5 +1,5 @@
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.0.2
+:Version: 1.1.0
 
 .. raw:: html
 
