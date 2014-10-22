@@ -25,6 +25,7 @@ nobase_include_HEADERS = \
   build_config.hpp             \
   byteswap.hpp                 \
   chained_buffer.hpp           \
+  choker.hpp                   \
   config.hpp                   \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \

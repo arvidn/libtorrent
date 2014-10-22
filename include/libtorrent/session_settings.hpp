@@ -443,18 +443,21 @@ namespace libtorrent
 		{
 			// the traditional choker with a fixed number of unchoke slots, as
 			// specified by session::set_max_uploads()..
-			fixed_slots_choker,
+			fixed_slots_choker = 0,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// opens at least the number of slots as specified by
 			// session::set_max_uploads() but opens up more slots if the upload
 			// capacity is not saturated. This unchoker will work just like the
 			// ``fixed_slot_choker`` if there's no global upload rate limit set.
-			auto_expand_choker,
+			auto_expand_choker = 1,
+#endif
 
 			// opens up unchoke slots based on the upload rate achieved to peers.
 			// The more slots that are opened, the marginal upload rate required
 			// to open up another slot increases.
-			rate_based_choker,
+			rate_based_choker = 1,
+
 			// attempts to optimize download rate by finding the reciprocation
 			// rate of each peer individually and prefers peers that gives the
 			// highest *return on investment*. It still allocates all upload
@@ -464,7 +467,7 @@ namespace libtorrent
 			// this choker, see the paper_.
 			// 
 			// .. _paper: http://bittyrant.cs.washington.edu/#papers
-			bittyrant_choker 
+			bittyrant_choker  = 2
 		};
 
 		// specifies which algorithm to use to determine which peers to unchoke.
