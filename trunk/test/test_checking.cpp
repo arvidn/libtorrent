@@ -49,6 +49,8 @@ enum
 	// make sure we detect corrupt files and mark the appropriate pieces
 	// as not had
 	corrupt_files = 2,
+
+	incomplete_files = 4,
 };
 
 void test_checking(int flags = read_only_files)
@@ -56,16 +58,19 @@ void test_checking(int flags = read_only_files)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "==== TEST CHECKING %s%s=====\n"
+	fprintf(stderr, "\n==== TEST CHECKING %s%s%s=====\n\n"
 		, (flags & read_only_files) ? "read-only-files ":""
-		, (flags & corrupt_files) ? "corrupt ":"");
+		, (flags & corrupt_files) ? "corrupt ":""
+		, (flags & incomplete_files) ? "incomplete ":"");
 
 	// make the files writable again
 	for (int i = 0; i < num_files; ++i)
 	{
 		char name[1024];
 		snprintf(name, sizeof(name), "test%d", i);
-		std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+		char dirname[200];
+		snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+		std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 		path = combine_path(path, name);
 #ifdef TORRENT_WINDOWS
 		SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);
@@ -91,7 +96,8 @@ void test_checking(int flags = read_only_files)
 	std::srand(10);
 	int piece_size = 0x4000;
 
-	create_random_files(combine_path("tmp1_checking", "test_torrent_dir"), file_sizes, num_files);
+	create_random_files(combine_path("tmp1_checking", "test_torrent_dir")
+		, file_sizes, num_files);
 
 	add_files(fs, combine_path("tmp1_checking", "test_torrent_dir"));
 	libtorrent::create_torrent t(fs, piece_size, 0x4000, libtorrent::create_torrent::optimize);
@@ -107,6 +113,28 @@ void test_checking(int flags = read_only_files)
 
 	fprintf(stderr, "generated torrent: %s tmp1_checking/test_torrent_dir\n"
 		, to_hex(ti->info_hash().to_string()).c_str());
+
+	// truncate every file in half
+	if (flags & incomplete_files)
+	{
+		for (int i = 0; i < num_files; ++i)
+		{
+			char name[1024];
+			snprintf(name, sizeof(name), "test%d", i);
+			char dirname[200];
+			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
+			path = combine_path(path, name);
+
+			error_code ec;
+			file f(path, file::read_write, ec);
+			if (ec) fprintf(stderr, "ERROR: opening file \"%s\": (%d) %s\n"
+				, path.c_str(), ec.value(), ec.message().c_str());
+			f.set_size(file_sizes[i] / 2, ec);
+			if (ec) fprintf(stderr, "ERROR: truncating file \"%s\": (%d) %s\n"
+				, path.c_str(), ec.value(), ec.message().c_str());
+		}
+	}
 
 	// overwrite the files with new random data
 	if (flags & corrupt_files)
@@ -175,6 +203,15 @@ void test_checking(int flags = read_only_files)
 		if (!st.error.empty()) break;
 		test_sleep(1000);
 	}
+	if (flags & incomplete_files)
+	{
+		TEST_CHECK(!st.is_seeding);
+
+		test_sleep(500);
+		st = tor1.status();
+		TEST_CHECK(!st.is_seeding);
+	}
+
 	if (flags & corrupt_files)
 	{
 		TEST_CHECK(!st.is_seeding);
@@ -204,9 +241,13 @@ void test_checking(int flags = read_only_files)
 				fprintf(stderr, "error: %s\n", st.error.c_str());
 		}
 	}
-	else
+
+	if ((flags & (incomplete_files | corrupt_files)) == 0)
 	{
 		TEST_CHECK(st.is_seeding);
+		if (!st.error.empty())
+			fprintf(stderr, "ERROR: %s\n", st.error.c_str());
+		TEST_CHECK(st.error.empty());
 	}
 
 	// make the files writable again
@@ -237,8 +278,9 @@ void test_checking(int flags = read_only_files)
 int test_main()
 {
 	test_checking();
-	test_checking(read_only_files);
 	test_checking(read_only_files | corrupt_files);
+	test_checking(read_only_files);
+	test_checking(incomplete_files);
 	test_checking(corrupt_files);
 
 	return 0;

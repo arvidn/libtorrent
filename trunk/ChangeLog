@@ -32,6 +32,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+1.0.3 release
+
 	* fix protocol race-condition in super seeding mode
 	* support read-only DHT nodes
 	* remove unused partial hash DHT lookups

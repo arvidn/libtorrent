@@ -37,11 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-const int proxy = libtorrent::settings_pack::none;
-
-//static unsigned char random_byte()
-//{ return std::rand() & 0xff; }
-
 int test_main()
 {
 	using namespace libtorrent;

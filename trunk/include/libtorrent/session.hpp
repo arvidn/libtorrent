@@ -598,7 +598,7 @@ namespace libtorrent
 		// structure.
 		sha1_hash dht_put_item(entry data);
 
-		// store an immutable item. The ``key`` is the public key the blob is
+		// store a mutable item. The ``key`` is the public key the blob is
 		// to be stored under. The optional ``salt`` argument is a string that
 		// is to be mixed in with the key when determining where in the DHT
 		// the value is to be stored. The callback function is called from within
