@@ -627,7 +627,7 @@ namespace libtorrent
 			void update_i2p_bridge();
 			void update_peer_tos();
 			void update_user_agent();
-			void update_choking_algorithm();
+			void update_unchoke_limit();
 			void update_connection_speed();
 			void update_queued_disk_bytes();
 			void update_alert_queue_size();

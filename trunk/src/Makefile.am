@@ -48,6 +48,7 @@ libtorrent_rasterbar_la_SOURCES = \
   block_cache.cpp                 \
   bt_peer_connection.cpp          \
   chained_buffer.cpp              \
+  choker.cpp                      \
   ConvertUTF.cpp                  \
   crc32c.cpp                      \
   create_torrent.cpp              \

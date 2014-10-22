@@ -93,6 +93,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/choker.hpp"
 
 #if defined TORRENT_VERBOSE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -599,7 +600,7 @@ namespace aux {
 		update_download_rate();
 		update_upload_rate();
 		update_connections_limit();
-		update_choking_algorithm();
+		update_unchoke_limit();
 		update_disk_threads();
 		update_network_threads();
 		update_upnp();
@@ -3869,27 +3870,9 @@ retry:
 			torrent* t = p->associated_torrent().lock().get();
 			torrent_peer* pi = p->peer_info_struct();
 
-			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || pi->web_seed || t->is_paused())
+			if (p->ignore_unchoke_slots() || t == 0 || pi == 0
+				|| pi->web_seed || t->is_paused())
 				continue;
-
-			if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker)
-			{
-				if (!p->is_choked() && p->is_interesting())
-				{
-					if (!p->has_peer_choked())
-					{
-						// we're unchoked, we may want to lower our estimated
-						// reciprocation rate
-						p->decrease_est_reciprocation_rate();
-					}
-					else
-					{
-						// we've unchoked this peer, and it hasn't reciprocated
-						// we may want to increase our estimated reciprocation rate
-						p->increase_est_reciprocation_rate();
-					}
-				}
-			}
 
 			if (!p->is_peer_interested()
 				|| p->is_disconnecting()
@@ -3910,116 +3893,34 @@ retry:
 				t->choke_peer(*p);
 				continue;
 			}
+
 			peers.push_back(p.get());
 		}
 
-		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::rate_based_choker)
+		// the unchoker wants an estimate of our upload rate capacity
+		// (used by bittyrant)
+		int max_upload_rate = upload_rate_limit(m_global_class);
+		if (m_settings.get_int(settings_pack::choking_algorithm)
+			== settings_pack::bittyrant_choker
+			&& max_upload_rate == 0)
 		{
-			m_allowed_upload_slots = 0;
-			std::sort(peers.begin(), peers.end()
-				, boost::bind(&peer_connection::upload_rate_compare, _1, _2));
-
-#ifdef TORRENT_DEBUG
-			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
-				, end(peers.end()), prev(peers.end()); i != end; ++i)
-			{
-				if (prev != end)
-				{
-					boost::shared_ptr<torrent> t1 = (*prev)->associated_torrent().lock();
-					TORRENT_ASSERT(t1);
-					boost::shared_ptr<torrent> t2 = (*i)->associated_torrent().lock();
-					TORRENT_ASSERT(t2);
-					TORRENT_ASSERT((*prev)->uploaded_in_last_round() * 1000
-						* (1 + t1->priority()) / total_milliseconds(unchoke_interval)
-						>= (*i)->uploaded_in_last_round() * 1000
-						* (1 + t2->priority()) / total_milliseconds(unchoke_interval));
-				}
-				prev = i;
-			}
-#endif
-
-			// TODO: make configurable
-			int rate_threshold = 1024;
-
-			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
-				, end(peers.end()); i != end; ++i)
-			{
-				peer_connection const& p = **i;
-				int rate = int(p.uploaded_in_last_round()
-					* 1000 / total_milliseconds(unchoke_interval));
-
-				if (rate < rate_threshold) break;
-
-				++m_allowed_upload_slots;
-
-				// TODO: make configurable
-				rate_threshold += 1024;
-			}
-			// allow one optimistic unchoke
-			++m_allowed_upload_slots;
+			// we don't know at what rate we can upload. If we have a
+			// measurement of the peak, use that + 10kB/s, otherwise
+			// assume 20 kB/s
+			max_upload_rate = (std::max)(20000, m_peak_up_rate + 10000);
+			if (m_alerts.should_post<performance_alert>())
+				m_alerts.post_alert(performance_alert(torrent_handle()
+					, performance_alert::bittyrant_with_no_uplimit));
 		}
 
-		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker)
-		{
-			// if we're using the bittyrant choker, sort peers by their return
-			// on investment. i.e. download rate / upload rate
-			std::sort(peers.begin(), peers.end()
-				, boost::bind(&peer_connection::bittyrant_unchoke_compare, _1, _2));
-		}
-		else
-		{
-			// sorts the peers that are eligible for unchoke by download rate and secondary
-			// by total upload. The reason for this is, if all torrents are being seeded,
-			// the download rate will be 0, and the peers we have sent the least to should
-			// be unchoked
-			std::sort(peers.begin(), peers.end()
-				, boost::bind(&peer_connection::unchoke_compare, _1, _2));
-		}
-
-		// auto unchoke
-		peer_class* gpc = m_classes.at(m_global_class);
-		int upload_limit = gpc->channel[peer_connection::upload_channel].throttle();
-		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::auto_expand_choker
-			&& upload_limit > 0)
-		{
-			// if our current upload rate is less than 90% of our 
-			// limit
-			if (m_stat.upload_rate() < upload_limit * 0.9f
-				&& m_allowed_upload_slots
-					<= m_stats_counters[counters::num_peers_up_unchoked] + 1
-				&& m_upload_rate.queue_size() < 2)
-			{
-				++m_allowed_upload_slots;
-			}
-			else if (m_upload_rate.queue_size() > 1
-				&& m_allowed_upload_slots > m_settings.get_int(settings_pack::unchoke_slots_limit)
-				&& m_settings.get_int(settings_pack::unchoke_slots_limit) >= 0)
-			{
-				--m_allowed_upload_slots;
-			}
-		}
+		m_allowed_upload_slots = unchoke_sort(peers, max_upload_rate
+			, unchoke_interval, m_settings);
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
 
 		// reserve some upload slots for optimistic unchokes
-		int unchoke_set_size = m_allowed_upload_slots - num_opt_unchoke;
-
-		int upload_capacity_left = 0;
-		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker)
-		{
-			upload_capacity_left = upload_rate_limit(m_global_class);
-			if (upload_capacity_left == 0)
-			{
-				// we don't know at what rate we can upload. If we have a
-				// measurement of the peak, use that + 10kB/s, otherwise
-				// assume 20 kB/s
-				upload_capacity_left = (std::max)(20000, m_peak_up_rate + 10000);
-				if (m_alerts.should_post<performance_alert>())
-					m_alerts.post_alert(performance_alert(torrent_handle()
-						, performance_alert::bittyrant_with_no_uplimit));
-			}
-		}
+		int unchoke_set_size = m_allowed_upload_slots;
 
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
@@ -4037,22 +3938,8 @@ retry:
 			torrent* t = p->associated_torrent().lock().get();
 			TORRENT_ASSERT(t);
 
-			// if this peer should be unchoked depends on different things
-			// in different unchoked schemes
-			bool unchoke = false;
-			if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker)
+			if (unchoke_set_size > 0)
 			{
-				unchoke = p->est_reciprocation_rate() <= upload_capacity_left;
-			}
-			else
-			{
-				unchoke = unchoke_set_size > 0;
-			}
-
-			if (unchoke)
-			{
-				upload_capacity_left -= p->est_reciprocation_rate();
-
 				// yes, this peer should be unchoked
 				if (p->is_choked())
 				{
@@ -5835,23 +5722,20 @@ retry:
 		m_settings.set_str(settings_pack::user_agent, agent);
 	}
 
-	void session_impl::update_choking_algorithm()
+	void session_impl::update_unchoke_limit()
 	{
-		int algo = m_settings.get_int(settings_pack::choking_algorithm);
 		int unchoke_limit = m_settings.get_int(settings_pack::unchoke_slots_limit);
 
-		if (algo == settings_pack::fixed_slots_choker)
-			m_allowed_upload_slots = unchoke_limit;
-		else if (algo == settings_pack::auto_expand_choker)
-			m_allowed_upload_slots = unchoke_limit;
-
+		m_allowed_upload_slots = unchoke_limit;
+		
 		if (m_allowed_upload_slots < 0)
 			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
 
 		m_stats_counters.set_value(counters::num_unchoke_slots
 			, m_allowed_upload_slots);
 
-		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots) >= m_allowed_upload_slots / 2)
+		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots)
+			>= m_allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.post_alert(performance_alert(torrent_handle()
@@ -6642,8 +6526,7 @@ retry:
 		std::set<peer_connection*> unique_peers;
 #endif
 		TORRENT_ASSERT(m_settings.get_int(settings_pack::connections_limit) > 0);
-		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::auto_expand_choker)
-			TORRENT_ASSERT(m_allowed_upload_slots >= m_settings.get_int(settings_pack::unchoke_slots_limit));
+
 		int unchokes = 0;
 		int unchokes_all = 0;
 		int num_optimistic = 0;

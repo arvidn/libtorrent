@@ -1,3 +1,4 @@
+	* removed auto_expand_choker. use rate_based_choker instead
 	* optimize UDP tracker packet handling
 	* support SSL over uTP connections
 	* support web seeds that resolve to multiple IPs

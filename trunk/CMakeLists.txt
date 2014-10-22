@@ -16,6 +16,7 @@ set(sources
 	block_cache
 	bloom_filter
 	chained_buffer
+	choker
 	crc32c
 	create_torrent
 	disk_buffer_holder

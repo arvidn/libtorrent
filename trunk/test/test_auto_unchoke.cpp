@@ -57,16 +57,19 @@ void test_swarm()
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 100000;
+	float rate_limit = 50000;
 
 	settings_pack pack;
 	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
-	pack.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
+	pack.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
 	pack.set_int(settings_pack::unchoke_slots_limit, 1);
 	pack.set_int(settings_pack::max_retry_port_bind, 900);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48010");
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
@@ -76,6 +79,7 @@ void test_swarm()
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit / 10);
 	pack.set_int(settings_pack::download_rate_limit, rate_limit / 5);
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
+	pack.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
 
 	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
@@ -93,7 +97,7 @@ void test_swarm()
 	session_status st = ses1.status();
 	fprintf(stderr, "st.allowed_upload_slots: %d\n", st.allowed_upload_slots);
 	TEST_EQUAL(st.allowed_upload_slots, 1);
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -107,7 +111,7 @@ void test_swarm()
 		torrent_status st2 = tor2.status();
 		torrent_status st3 = tor3.status();
 
-		print_ses_rate(i, &st1, &st2, &st3);
+		print_ses_rate(i / 10.f, &st1, &st2, &st3);
 
 		test_sleep(100);
 	}
