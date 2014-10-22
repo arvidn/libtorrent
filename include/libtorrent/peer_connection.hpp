@@ -554,13 +554,10 @@ namespace libtorrent
 			return (m_endgame_mode || m_snubbed) ? 1 : m_desired_queue_size;
 		}
 
-		bool bittyrant_unchoke_compare(
-			peer_connection const* p) const;
 		// compares this connection against the given connection
 		// for which one is more eligible for an unchoke.
 		// returns true if this is more eligible
-		bool unchoke_compare(peer_connection const* p) const;
-		bool upload_rate_compare(peer_connection const* p) const;
+
 		int download_payload_rate() const { return m_statistics.download_payload_rate(); }
 
 		// resets the byte counters that are used to measure
@@ -750,6 +747,10 @@ namespace libtorrent
 		size_type uploaded_since_unchoked() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
 
+		// the time we last unchoked this peer
+		ptime time_of_last_unchoke() const
+		{ return m_last_unchoke; }
+
 		// called when the disk write buffer is drained again, and we can
 		// start downloading payload again
 		void on_disk();
@@ -768,6 +769,8 @@ namespace libtorrent
 		}
 
 		counters& stats_counters() const { return m_counters; }
+
+		int get_priority(int channel) const;
 
 	protected:
 
@@ -878,8 +881,6 @@ namespace libtorrent
 		int wanted_transfer(int channel);
 		int request_bandwidth(int channel, int bytes = 0);
 
-		int get_priority(int channel) const;
-
 		boost::shared_ptr<socket_type> m_socket;
 
 		// the queue of blocks we have requested
@@ -981,6 +982,7 @@ namespace libtorrent
 		// the time we received the last
 		// piece request from the peer
 		ptime m_last_incoming_request;
+
 		// the time when we unchoked this peer
 		ptime m_last_unchoke;
 
