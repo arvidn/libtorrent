@@ -3239,7 +3239,6 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 				add_outstanding_async("torrent::on_peer_name_lookup");
 #endif
-				tcp::resolver::query q(i->hostname, to_string(i->port).elems);
 				m_ses.async_resolve(i->hostname, 0
 					, boost::bind(&torrent::on_peer_name_lookup
 						, shared_from_this(), _1, _2, i->port));
@@ -6011,7 +6010,6 @@ namespace libtorrent
 #endif
 
 			web->resolving = true;
-			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_ses.async_resolve(hostname, 0, boost::bind(
 				&torrent::on_name_lookup, shared_from_this(), _1, _2
 				, port, web, tcp::endpoint()));
@@ -6098,7 +6096,6 @@ namespace libtorrent
 		}
 
 		web->resolving = true;
-		tcp::resolver::query q(hostname, to_string(port).elems);
 		m_ses.async_resolve(hostname, 0, boost::bind(
 			&torrent::on_name_lookup, shared_from_this(), _1, _2
 			, port, web, a));

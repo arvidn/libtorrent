@@ -254,6 +254,7 @@ protected:
 
 	endpoint_type m_remote_endpoint;
 
+	// TODO: 2 use the resolver interface that has a built-in cache
 	tcp::resolver m_resolver;
 };
 
