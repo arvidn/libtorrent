@@ -36,9 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-// TODO: 3 the first places to use this resolver is the
-// http_connection/http_tracker_connection and udp_tracker_connection.
-// make sure to prefer cache on shutdown
 	resolver::resolver(io_service& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
