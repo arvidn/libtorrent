@@ -1848,11 +1848,6 @@ The options for choking algorithms are:
 * ``fixed_slots_choker`` is the traditional choker with a fixed number of unchoke
   slots (as specified by ``session::set_max_uploads()``).
 
-* ``auto_expand_choker`` opens at least the number of slots as specified by
-  ``session::set_max_uploads()`` but opens up more slots if the upload capacity
-  is not saturated. This unchoker will work just like the ``fixed_slots_choker``
-  if there's no global upload rate limit set.
-
 * ``rate_based_choker`` opens up unchoke slots based on the upload rate
   achieved to peers. The more slots that are opened, the marginal upload
   rate required to open up another slot increases.
