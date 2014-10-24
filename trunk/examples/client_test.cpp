@@ -1348,10 +1348,7 @@ int main(int argc, char* argv[])
 #endif
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
-	settings.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
-	settings.set_bool(settings_pack::volatile_read_cache, false);
-	settings.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
-	settings.set_int(settings_pack::disk_io_read_mode, settings_pack::disable_os_cache);
+	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	ses.apply_settings(settings);
 
