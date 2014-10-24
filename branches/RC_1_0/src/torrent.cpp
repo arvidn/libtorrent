@@ -1500,7 +1500,7 @@ namespace libtorrent
 		// loading resume data. So peek ahead in this case.
 		// only do this if the user is willing to have the resume data
 		// settings override the settings set in add_torrent_params
-		if (!m_use_resume_save_path && m_resume_entry.type() == lazy_entry::dict_t)
+		if (m_use_resume_save_path && m_resume_entry.type() == lazy_entry::dict_t)
 		{
 			std::string p = m_resume_entry.dict_find_string_value("save_path");
 			if (!p.empty()) m_save_path = p;
@@ -5208,7 +5208,7 @@ namespace libtorrent
 		m_last_download = rd.dict_find_int_value("last_download", 0);
 		m_last_upload = rd.dict_find_int_value("last_upload", 0);
 
-		if (!m_use_resume_save_path)
+		if (m_use_resume_save_path)
 		{
 			std::string p = rd.dict_find_string_value("save_path");
 			if (!p.empty()) m_save_path = p;
