@@ -41,7 +41,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.0</td></tr>
+<td>1.1.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -1079,7 +1079,7 @@ void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
       , boost::uint64_t&amp;, std::string const&amp;)&gt; cb
       , std::string salt = std::string());
 </pre>
-<p>store an immutable item. The <tt class="docutils literal">key</tt> is the public key the blob is
+<p>store a mutable item. The <tt class="docutils literal">key</tt> is the public key the blob is
 to be stored under. The optional <tt class="docutils literal">salt</tt> argument is a string that
 is to be mixed in with the key when determining where in the DHT
 the value is to be stored. The callback function is called from within
