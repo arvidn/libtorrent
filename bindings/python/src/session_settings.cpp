@@ -197,7 +197,9 @@ void bind_session_settings()
 
     enum_<settings_pack::choking_algorithm_t>("choking_algorithm_t")
         .value("fixed_slots_choker", settings_pack::fixed_slots_choker)
-        .value("auto_expand_choker", settings_pack::auto_expand_choker)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("auto_expand_choker", settings_pack::rate_based_choker)
+#endif
         .value("rate_based_choker", settings_pack::rate_based_choker)
         .value("bittyrant_choker", settings_pack::bittyrant_choker)
     ;
