@@ -320,6 +320,7 @@ namespace libtorrent
 		METRIC(disk, pinned_blocks)
 		METRIC(disk, disk_blocks_in_use)
 		METRIC(disk, queued_disk_jobs)
+		METRIC(disk, num_running_disk_jobs)
 		METRIC(disk, num_read_jobs)
 		METRIC(disk, num_write_jobs)
 		METRIC(disk, num_jobs)

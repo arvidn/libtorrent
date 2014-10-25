@@ -1467,14 +1467,13 @@ void block_cache::update_stats_counters(counters& c) const
 	c.set_value(counters::arc_volatile_size, m_lru[cached_piece_entry::volatile_read_lru].size());
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 void block_cache::get_stats(cache_status* ret) const
 {
 	ret->write_cache_size = m_write_cache_size;
 	ret->read_cache_size = m_read_cache_size;
 	ret->pinned_blocks = m_pinned_blocks;
-#ifndef TORRENT_NO_DEPRECATE
 	ret->cache_size = m_read_cache_size + m_write_cache_size;
-#endif
 
 	ret->arc_mru_size = m_lru[cached_piece_entry::read_lru1].size();
 	ret->arc_mru_ghost_size = m_lru[cached_piece_entry::read_lru1_ghost].size();
@@ -1483,6 +1482,7 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->arc_write_size = m_lru[cached_piece_entry::write_lru].size();
 	ret->arc_volatile_size = m_lru[cached_piece_entry::volatile_read_lru].size();
 }
+#endif
 
 void block_cache::set_settings(aux::session_settings const& sett)
 {

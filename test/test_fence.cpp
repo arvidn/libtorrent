@@ -9,14 +9,14 @@ using namespace libtorrent;
 void test_disk_job_empty_fence()
 {
 	libtorrent::disk_job_fence fence;
-	boost::atomic<int> counter(0);
+	counters cnt;
 
 	disk_io_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
 	int ret = 0;
 	// add a fence job
-	ret = fence.raise_fence(&test_job[5], &test_job[6], &counter);
+	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we don't have any outstanding jobs
 	// we need to post this job
 	TEST_CHECK(ret == disk_job_fence::fence_post_fence);
@@ -44,7 +44,7 @@ void test_disk_job_empty_fence()
 
 void test_disk_job_fence()
 {
-	boost::atomic<int> counter(0);
+	counters cnt;
 	libtorrent::disk_job_fence fence;
 
 	disk_io_job test_job[10];
@@ -68,7 +68,7 @@ void test_disk_job_fence()
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add a fence job
-	ret = fence.raise_fence(&test_job[5], &test_job[6], &counter);
+	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
 	TEST_CHECK(ret == disk_job_fence::fence_post_flush);
@@ -117,7 +117,7 @@ void test_disk_job_fence()
 
 void test_disk_job_double_fence()
 {
-	boost::atomic<int> counter(0);
+	counters cnt;
 	libtorrent::disk_job_fence fence;
 
 	disk_io_job test_job[10];
@@ -141,12 +141,12 @@ void test_disk_job_double_fence()
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add two fence jobs
-	ret = fence.raise_fence(&test_job[5], &test_job[6], &counter);
+	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
 	TEST_CHECK(ret == disk_job_fence::fence_post_flush);
 
-	ret = fence.raise_fence(&test_job[7], &test_job[8], &counter);
+	ret = fence.raise_fence(&test_job[7], &test_job[8], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
 	TEST_CHECK(ret == disk_job_fence::fence_post_none);

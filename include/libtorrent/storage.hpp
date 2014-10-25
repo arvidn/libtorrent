@@ -69,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/performance_counters.hpp"
 
 // OVERVIEW
 //
@@ -573,7 +574,7 @@ namespace libtorrent
 		// fence_post_none if both the fence and the flush jobs were queued.
 		enum { fence_post_fence = 0, fence_post_flush = 1, fence_post_none = 2 };
 		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job
-			, boost::atomic<int>* blocked_counter);
+			, counters& cnt);
 		bool has_fence() const;
 
 		// called whenever a job completes and is posted back to the
