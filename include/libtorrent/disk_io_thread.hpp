@@ -122,9 +122,7 @@ namespace libtorrent
 			, cumulative_write_time(0)
 			, cumulative_hash_time(0)
 			, total_read_back(0)
-#endif
 			, read_queue_size(0)
-#ifndef TORRENT_NO_DEPRECATE
 			, blocked_jobs(0)
 			, queued_jobs(0)
 			, peak_queued(0)
@@ -228,12 +226,10 @@ namespace libtorrent
 		// they were flushed before the SHA-1 hash got to hash them. If this
 		// is large, a larger cache could significantly improve performance
 		int total_read_back;
-#endif
 
 		// number of read jobs in the disk job queue
 		int read_queue_size;
 	
-#ifndef TORRENT_NO_DEPRECATE
 		// number of jobs blocked because of a fence
 		int blocked_jobs;
 
@@ -540,10 +536,6 @@ namespace libtorrent
 		// exceed m_cache_size
 
 		counters& m_stats_counters;
-
-		// TODO: 3 turn these counters and gauges into session_stats
-		// counters (which also would need to be thread safe)
-		cache_status m_cache_stats;
 
 		// average read time for cache misses (in microseconds)
 		average_accumulator m_read_time;

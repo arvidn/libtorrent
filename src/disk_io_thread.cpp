@@ -2804,7 +2804,6 @@ namespace libtorrent
 		, piece_manager const* storage) const
 	{
 		mutex::scoped_lock l(m_cache_mutex);
-		*ret = m_cache_stats;
 
 #ifndef TORRENT_NO_DEPRECATE
 		ret->total_used_buffers = m_disk_cache.in_use();
@@ -2837,9 +2836,13 @@ namespace libtorrent
 
 		ret->num_jobs = jobs_in_use();
 		ret->num_read_jobs = read_jobs_in_use();
+		ret->read_queue_size = read_jobs_in_use();
 		ret->num_write_jobs = write_jobs_in_use();
 		ret->pending_jobs = m_stats_counters[counters::num_running_disk_jobs];
 		ret->num_writing_threads = m_stats_counters[counters::num_writing_threads];
+
+		for (int i = 0; i < disk_io_job::num_job_ids; ++i)
+			ret->num_fence_jobs[i] = m_stats_counters[counters::num_fenced_read + i];
 
 		m_disk_cache.get_stats(ret);
 
