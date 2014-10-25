@@ -3062,7 +3062,7 @@ namespace libtorrent
 			, job_action_name[j->action]
 			, j->storage->num_outstanding_jobs());
 
-		++m_cache_stats.num_fence_jobs[j->action];
+		m_stats_counters.inc_stats_counter(counters::num_fenced_read + j->action);
 
 		disk_io_job* fj = allocate_job(disk_io_job::flush_storage);
 		fj->storage = j->storage;
@@ -3351,7 +3351,11 @@ namespace libtorrent
 			if (j->storage)
 			{
 				if (j->flags & disk_io_job::fence)
-					--m_cache_stats.num_fence_jobs[j->action];
+				{
+					m_stats_counters.inc_stats_counter(
+						counters::num_fenced_read + j->action, -1);
+				}
+
 				ret += j->storage->job_complete(j, new_jobs);
 			}
 			TORRENT_ASSERT(ret == new_jobs.size());
