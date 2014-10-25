@@ -112,9 +112,7 @@ namespace libtorrent
 			, write_cache_size(0)
 			, read_cache_size(0)
 			, pinned_blocks(0)
-#endif
 			, total_used_buffers(0)
-#ifndef TORRENT_NO_DEPRECATE
 			, average_read_time(0)
 			, average_write_time(0)
 			, average_hash_time(0)
@@ -143,7 +141,9 @@ namespace libtorrent
 			, num_writing_threads(0)
 #endif
 		{
+#ifndef TORRENT_NO_DEPRECATE
 			memset(num_fence_jobs, 0, sizeof(num_fence_jobs));
+#endif
 		}
 
 		std::vector<cached_piece_info> pieces;
@@ -191,7 +191,6 @@ namespace libtorrent
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted
 		int pinned_blocks;
-#endif
 
 		// the total number of buffers currently in use.
 		// This includes the read/write disk cache as well as send and receive buffers
@@ -201,7 +200,6 @@ namespace libtorrent
 		// the number of microseconds an average disk I/O job
 		// has to wait in the job queue before it get processed.
 
-#ifndef TORRENT_NO_DEPRECATE
 		// the time read jobs takes on average to complete
 		// (not including the time in the queue), in microseconds. This only measures
 		// read cache misses.
@@ -272,11 +270,11 @@ namespace libtorrent
 
 		// the number of threads currently writing to disk
 		int num_writing_threads;
-#endif
 
 		// counts only fence jobs that are currently blocking jobs
 		// not fences that are themself blocked
 		int num_fence_jobs[disk_io_job::num_job_ids];
+#endif
 	};
 	
 	// this is a singleton consisting of the thread and a queue

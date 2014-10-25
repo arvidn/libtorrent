@@ -369,6 +369,28 @@ namespace libtorrent
 		METRIC(disk, disk_hash_time)
 		METRIC(disk, disk_job_time)
 
+		// for each kind of disk job, a counter of how many jobs of that kind
+		// are currently blocked by a disk fence
+		METRIC(disk, num_fenced_read)
+		METRIC(disk, num_fenced_write)
+		METRIC(disk, num_fenced_hash)
+		METRIC(disk, num_fenced_move_storage)
+		METRIC(disk, num_fenced_release_files)
+		METRIC(disk, num_fenced_delete_files)
+		METRIC(disk, num_fenced_check_fastresume)
+		METRIC(disk, num_fenced_save_resume_data)
+		METRIC(disk, num_fenced_rename_file)
+		METRIC(disk, num_fenced_stop_torrent)
+		METRIC(disk, num_fenced_cache_piece)
+		METRIC(disk, num_fenced_flush_piece)
+		METRIC(disk, num_fenced_flush_hashed)
+		METRIC(disk, num_fenced_flush_storage)
+		METRIC(disk, num_fenced_trim_cache)
+		METRIC(disk, num_fenced_file_priority)
+		METRIC(disk, num_fenced_load_torrent)
+		METRIC(disk, num_fenced_clear_piece)
+		METRIC(disk, num_fenced_tick_storage)
+
 		// The number of nodes in the DHT routing table
 		METRIC(dht, dht_nodes)
 
