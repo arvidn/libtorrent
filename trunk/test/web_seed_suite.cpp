@@ -209,8 +209,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	// the url seed (i.e. banned it)
 	TEST_CHECK(!test_ban || (th.url_seeds().empty() && th.http_seeds().empty()));
 
-	cache_status cs;
-	ses.get_cache_info(&cs);
+	std::map<std::string, boost::uint64_t> cnt = get_counters(ses);
 
 	// if the web seed senr corrupt data and we banned it, we probably didn't
 	// end up using all the cache anyway
@@ -223,21 +222,24 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 		{
 			for (int i = 0; i < 50; ++i)
 			{
-				ses.get_cache_info(&cs);
-				if (cs.read_cache_size == (torrent_file->total_size() + 0x3fff) / 0x4000
-					&& cs.total_used_buffers == (torrent_file->total_size() + 0x3fff) / 0x4000)
+				cnt = get_counters(ses);
+				if (cnt["disk.read_cache_blocks"]
+						== (torrent_file->total_size() + 0x3fff) / 0x4000
+					&& cnt["disk.disk_blocks_in_use"]
+						== (torrent_file->total_size() + 0x3fff) / 0x4000)
 					break;
-				fprintf(stderr, "cache_size: %d/%d\n", int(cs.read_cache_size), int(cs.total_used_buffers));
+				fprintf(stderr, "cache_size: %d/%d\n", int(cnt["disk.read_cache_blocks"])
+					, int(cnt["disk.disk_blocks_in_use"]));
 				test_sleep(100);
 			}
-			TEST_EQUAL(cs.read_cache_size, (torrent_file->total_size() + 0x3fff) / 0x4000);
-			TEST_EQUAL(cs.total_used_buffers, (torrent_file->total_size() + 0x3fff) / 0x4000);
+			TEST_EQUAL(cnt["disk.disk_blocks_in_use"]
+				, (torrent_file->total_size() + 0x3fff) / 0x4000);
 		}
 	}
 
 	std::cerr << "total_size: " << total_size
-		<< " read cache size: " << cs.read_cache_size
-		<< " total used buffer: " << cs.total_used_buffers
+		<< " read cache size: " << cnt["disk.disk_blocks_in_use"]
+		<< " total used buffer: " << cnt["disk.disk_blocks_in_use"]
 		<< " rate_sum: " << rate_sum
 		<< " session_rate_sum: " << ses_rate_sum
 		<< " session total download: " << ses.status().total_payload_download

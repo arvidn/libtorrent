@@ -1612,7 +1612,7 @@ namespace libtorrent
 	// fj is the flush job. If the job j is queued, we need to issue
 	// this job
 	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj
-		, boost::atomic<int>* blocked_counter)
+		, counters& cnt)
 	{
 		TORRENT_ASSERT((j->flags & disk_io_job::fence) == 0);
 		j->flags |= disk_io_job::fence;
@@ -1645,7 +1645,7 @@ namespace libtorrent
 			fj->blocked = true;
 #endif
 			m_blocked_jobs.push_back(fj);
-			++*blocked_counter;
+			cnt.inc_stats_counter(counters::blocked_disk_jobs);
 		}
 		else
 		{
@@ -1658,7 +1658,7 @@ namespace libtorrent
 		j->blocked = true;
 #endif
 		m_blocked_jobs.push_back(j);
-		++*blocked_counter;
+		cnt.inc_stats_counter(counters::blocked_disk_jobs);
 
 		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
 	}

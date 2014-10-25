@@ -109,10 +109,10 @@ namespace libtorrent
 			, reads(0)
 			, queued_bytes(0)
 			, cache_size(0)
-#endif
 			, write_cache_size(0)
 			, read_cache_size(0)
 			, pinned_blocks(0)
+#endif
 			, total_used_buffers(0)
 #ifndef TORRENT_NO_DEPRECATE
 			, average_read_time(0)
@@ -126,6 +126,7 @@ namespace libtorrent
 			, total_read_back(0)
 #endif
 			, read_queue_size(0)
+#ifndef TORRENT_NO_DEPRECATE
 			, blocked_jobs(0)
 			, queued_jobs(0)
 			, peak_queued(0)
@@ -140,6 +141,7 @@ namespace libtorrent
 			, arc_write_size(0)
 			, arc_volatile_size(0)
 			, num_writing_threads(0)
+#endif
 		{
 			memset(num_fence_jobs, 0, sizeof(num_fence_jobs));
 		}
@@ -179,7 +181,7 @@ namespace libtorrent
 		// the number of 16 KiB blocks currently in the disk cache (both read and write).
 		// This includes both read and write cache.
 		int cache_size;
-#endif
+
 		// the number of blocks in the cache used for write cache
 		int write_cache_size;
 
@@ -189,6 +191,7 @@ namespace libtorrent
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted
 		int pinned_blocks;
+#endif
 
 		// the total number of buffers currently in use.
 		// This includes the read/write disk cache as well as send and receive buffers
@@ -198,6 +201,7 @@ namespace libtorrent
 		// the number of microseconds an average disk I/O job
 		// has to wait in the job queue before it get processed.
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the time read jobs takes on average to complete
 		// (not including the time in the queue), in microseconds. This only measures
 		// read cache misses.
@@ -226,18 +230,22 @@ namespace libtorrent
 		// they were flushed before the SHA-1 hash got to hash them. If this
 		// is large, a larger cache could significantly improve performance
 		int total_read_back;
+#endif
 
 		// number of read jobs in the disk job queue
 		int read_queue_size;
 	
+#ifndef TORRENT_NO_DEPRECATE
 		// number of jobs blocked because of a fence
 		int blocked_jobs;
 
 		// number of jobs waiting to be issued (m_to_issue)
 		// average over 30 seconds
 		int queued_jobs;
+
 		// largest ever seen number of queued jobs
 		int peak_queued;
+
 		// number of jobs waiting to complete (m_pending)
 		// average over 30 seconds
 		int pending_jobs;
@@ -264,6 +272,7 @@ namespace libtorrent
 
 		// the number of threads currently writing to disk
 		int num_writing_threads;
+#endif
 
 		// counts only fence jobs that are currently blocking jobs
 		// not fences that are themself blocked
@@ -550,22 +559,10 @@ namespace libtorrent
 		// average time to serve a job (any job) in microseconds
 		average_accumulator m_job_time;
 
-		// the total number of outstanding jobs. This is used to
-		// limit the number of jobs issued in parallel. It also creates
-		// an opportunity to sort the jobs by physical offset before
-		// issued to the AIO subsystem
-		boost::atomic<int> m_outstanding_jobs;
-
 		// this is the main thread io_service. Callbacks are
 		// posted on this in order to have them execute in
 		// the main thread.
 		io_service& m_ios;
-
-		// the number of jobs that have been blocked by a fence. These
-		// jobs are queued up in their respective storage, waiting for
-		// the fence to be lowered. This counter is just used to know
-		// when it's OK to exit the main loop of the disk thread
-		boost::atomic<int> m_num_blocked_jobs;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that

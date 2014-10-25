@@ -356,6 +356,7 @@ namespace libtorrent
 			pinned_blocks,
 			disk_blocks_in_use,
 			queued_disk_jobs,
+			num_running_disk_jobs,
 			num_read_jobs,
 			num_write_jobs,
 			num_jobs,
