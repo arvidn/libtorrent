@@ -389,19 +389,33 @@ namespace libtorrent {
 		return msg;
 	}
 
-	stats_alert::stats_alert(torrent_handle const& h, int in
-		, stat const& s)
+	stats_alert::stats_alert(torrent_handle const& h, int in, stat const& s)
 		: torrent_alert(h)
 		, interval(in)
 	{
-		for (int i = 0; i < num_channels; ++i)
-			transferred[i] = s[i].counter();
+		transferred[upload_payload] = s[upload_payload].counter();
+		transferred[upload_protocol] = s[upload_protocol].counter();
+		transferred[download_payload] = s[download_payload].counter();
+		transferred[download_protocol] = s[download_protocol].counter();
+		transferred[upload_ip_protocol] = s[upload_ip_protocol].counter();
+#ifndef TORRENT_NO_DEPRECATE
+		transferred[upload_dht_protocol] = 0;
+		transferred[upload_tracker_protocol] = 0;
+#endif
+		transferred[download_ip_protocol] = s[download_ip_protocol].counter();
+#ifndef TORRENT_NO_DEPRECATE
+		transferred[download_dht_protocol] = 0;
+		transferred[download_tracker_protocol] = 0;
+#endif
 	}
 
 	std::string stats_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d %d %d %d %d"
+		snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d"
+#ifndef TORRENT_NO_DEPRECATE
+			" %d %d %d %d"
+#endif
 			, torrent_alert::message().c_str()
 			, interval
 			, transferred[0]
@@ -410,10 +424,13 @@ namespace libtorrent {
 			, transferred[3]
 			, transferred[4]
 			, transferred[5]
+#ifndef TORRENT_NO_DEPRECATE
 			, transferred[6]
 			, transferred[7]
 			, transferred[8]
-			, transferred[9]);
+			, transferred[9]
+#endif
+			);
 		return msg;
 	}
 
