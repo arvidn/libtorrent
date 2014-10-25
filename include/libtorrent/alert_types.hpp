@@ -1619,11 +1619,15 @@ namespace libtorrent
 			download_payload,
 			download_protocol,
 			upload_ip_protocol,
+#ifndef TORRENT_NO_DEPRECATE
 			upload_dht_protocol,
 			upload_tracker_protocol,
+#endif
 			download_ip_protocol,
+#ifndef TORRENT_NO_DEPRECATE
 			download_dht_protocol,
 			download_tracker_protocol,
+#endif
 			num_channels
 		};
 

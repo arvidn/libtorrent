@@ -1682,8 +1682,6 @@ namespace libtorrent
 			// just unchoke it immediately
 			send_unchoke();
 		}
-		// TODO: 3 we should probably use ses.m_allowed_upload_slots here instead
-		// to work with auto-unchoke logic
 		else if (m_ses.preemptive_unchoke())
 		{
 			// if the peer is choked and we have upload slots left,
