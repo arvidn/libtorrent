@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/policy.hpp"
+#include "libtorrent/peer_list.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include <boost/crc.hpp>

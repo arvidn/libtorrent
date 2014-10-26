@@ -95,7 +95,7 @@ libtorrent_rasterbar_la_SOURCES = \
   platform_util.cpp               \
   packet_buffer.cpp               \
   proxy_base.cpp                  \
-  policy.cpp                      \
+  peer_list.cpp                   \
   puff.cpp                        \
   random.cpp                      \
   request_blocks.cpp              \

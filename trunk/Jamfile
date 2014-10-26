@@ -545,7 +545,7 @@ SOURCES =
 	natpmp
 	packet_buffer
 	piece_picker
-	policy
+	peer_list
 	proxy_base
 	puff
 	random
