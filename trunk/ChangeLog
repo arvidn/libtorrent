@@ -35,6 +35,7 @@
 
 1.0.3 release
 
+	* fix incorrect behavior of flag_use_resume_save_path
 	* fix protocol race-condition in super seeding mode
 	* support read-only DHT nodes
 	* remove unused partial hash DHT lookups
