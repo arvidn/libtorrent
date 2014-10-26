@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/policy.hpp"
+#include "libtorrent/peer_list.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
@@ -227,7 +227,7 @@ namespace libtorrent
 		// the state of this torrent (queued, checking, downloading, etc.)
 		boost::uint32_t m_state:3;
 
-		boost::scoped_ptr<policy> m_policy;
+		boost::scoped_ptr<peer_list> m_peer_list;
 	};
 
 	// a torrent is a class that holds information
@@ -622,7 +622,7 @@ namespace libtorrent
 		void update_peer_port(int port, torrent_peer* p, int src);
 		void set_seed(torrent_peer* p, bool s);
 		void clear_failcount(torrent_peer* p);
-		std::pair<policy::iterator, policy::iterator> find_peers(address const& a);
+		std::pair<peer_list::iterator, peer_list::iterator> find_peers(address const& a);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -934,8 +934,8 @@ namespace libtorrent
 			return m_picker.get() != 0;
 		}
 
-		int num_known_peers() const { return m_policy ? m_policy->num_peers() : 0; }
-		int num_connect_candidates() const { return m_policy ? m_policy->num_connect_candidates() : 0; }
+		int num_known_peers() const { return m_peer_list ? m_peer_list->num_peers() : 0; }
+		int num_connect_candidates() const { return m_peer_list ? m_peer_list->num_connect_candidates() : 0; }
 
 		piece_manager& storage();
 		bool has_storage() const { return m_storage.get(); }
@@ -1100,9 +1100,9 @@ namespace libtorrent
 
 		void inc_stats_counter(int c, int value = 1);
 
-		// initialize the torrent_state structure passed to policy
+		// initialize the torrent_state structure passed to peer_list
 		// member functions. Don't forget to also call peers_erased()
-		// on the erased member after the policy call
+		// on the erased member after the peer_list call
 		torrent_state get_policy_state();
 
 		void construct_storage();
@@ -1482,7 +1482,7 @@ namespace libtorrent
 		unsigned int m_seeding_time:24;
 
 		// this is a counter that is decreased every
-		// second, and when it reaches 0, the policy::pulse()
+		// second, and when it reaches 0, the peer_list::pulse()
 		// is called and the time scaler is reset to 10.
 		boost::int8_t m_time_scaler;
 

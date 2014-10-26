@@ -248,7 +248,7 @@ namespace
 			h.update(j->buffer, j->d.io.buffer_size);
 			h.update((char const*)&m_salt, sizeof(m_salt));
 
-			std::pair<policy::iterator, policy::iterator> range
+			std::pair<peer_list::iterator, peer_list::iterator> range
 				= m_torrent.find_peers(a);
 
 			// there is no peer with this address anymore
@@ -338,7 +338,7 @@ namespace
 #endif
 
 			// find the peer
-			std::pair<policy::iterator, policy::iterator> range
+			std::pair<peer_list::iterator, peer_list::iterator> range
 				= m_torrent.find_peers(a);
 			if (range.first == range.second) return;
 			torrent_peer* p = NULL;

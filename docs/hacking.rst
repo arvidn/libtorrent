@@ -46,15 +46,12 @@ A *torrent* object represents all the state of swarm download. This includes
 a piece picker, a list of peer connections, file storage (torrent file). One
 important distiction is between a connected peer (*peer_connection*) and a peer
 we just know about, and may have been connected to, and may connect to in the
-future (*policy::peer*). The list of (not connected) peers may grow very large
+future (*torrent_peer*). The list of (not connected) peers may grow very large
 if not limited (through tracker responses, DHT and peer exchange). This list
 is typically limited to a few thousand peers.
 
-The *policy* in libtorrent is somewhat poorly named. It was initially intended
-to be a customization point where a client could define peer selection behavior
-and unchoke logic. It didn't end up being though, and a more accurate name would
-be peer_list. It really just maintains a potentially large list of known peers
-for a swarm (not necessarily connected).
+The *peer_list* maintains a potentially large list of known peers for a swarm
+(not necessarily connected).
 
 structure
 =========
@@ -95,8 +92,8 @@ torrent
 peer_connection
 ---------------
 
-policy
-------
+peer_list
+---------
 
 piece_picker
 ------------

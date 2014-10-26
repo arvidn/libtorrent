@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/policy.hpp"
+#include "libtorrent/peer_list.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
@@ -124,7 +124,7 @@ struct mock_torrent
 	}
 #endif
 
-	policy* m_p;
+	peer_list* m_p;
 
 private:
 
@@ -149,7 +149,7 @@ int test_main()
 	// when disallowing it
 	{
 		mock_torrent t;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
@@ -170,7 +170,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = true;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -190,7 +190,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = true;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -227,7 +227,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -259,7 +259,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		boost::shared_ptr<mock_peer_connection> c(new mock_peer_connection(true, ep("10.0.0.1", 8080)));
@@ -280,7 +280,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = true;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 
 		torrent_peer* peer2 = p.add_peer(ep("10.0.0.1", 4000), 0, 0, &st);
@@ -308,7 +308,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
@@ -352,7 +352,7 @@ int test_main()
 	{
 		mock_torrent t;
 		st.allow_multiple_connections_per_ip = false;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.1", 4000), 0, 0, &st);
@@ -393,7 +393,7 @@ int test_main()
 		mock_torrent t;
 		st.max_peerlist_size = 100;
 		st.allow_multiple_connections_per_ip = true;
-		policy p;
+		peer_list p;
 		t.m_p = &p;
 
 		for (int i = 0; i < 100; ++i)

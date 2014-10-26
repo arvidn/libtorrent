@@ -50,7 +50,7 @@ set(sources
 	piece_picker
 	platform_util
 	proxy_base
-	policy
+	peer_list
 	puff
 	random
 	request_blocks

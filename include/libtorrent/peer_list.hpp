@@ -57,8 +57,8 @@ namespace libtorrent
 	struct torrent_peer_allocator_interface;
 
 	// this object is used to communicate torrent state and
-	// some configuration to the policy object. This make
-	// the policy type not depend on the torrent type directly.
+	// some configuration to the peer_list object. This make
+	// the peer_list type not depend on the torrent type directly.
 	struct torrent_state
 	{
 		torrent_state()
@@ -75,7 +75,7 @@ namespace libtorrent
 		bool is_finished;
 		bool allow_multiple_connections_per_ip;
 
-		// this is set by policy::add_peer to either true or false
+		// this is set by peer_list::add_peer to either true or false
 		// true means the peer we just added was new, false means
 		// we already knew about the peer
 		bool first_time_seen;
@@ -101,12 +101,11 @@ namespace libtorrent
 		std::vector<torrent_peer*> erased;
 	};
 
-	// TODO: 3 this class should be renamed peer_list
-	class TORRENT_EXTRA_EXPORT policy : single_threaded
+	class TORRENT_EXTRA_EXPORT peer_list : single_threaded
 	{
 	public:
 
-		policy();
+		peer_list();
 
 #if TORRENT_USE_I2P
 		torrent_peer* add_i2p_peer(char const* destination, int src, char flags
