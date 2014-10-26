@@ -1731,7 +1731,7 @@ namespace libtorrent
 		// loading resume data. So peek ahead in this case.
 		// only do this if the user is willing to have the resume data
 		// settings override the settings set in add_torrent_params
-		if (!m_use_resume_save_path
+		if (m_use_resume_save_path
 			&& m_resume_data
 			&& m_resume_data->entry.type() == lazy_entry::dict_t)
 		{
@@ -6517,7 +6517,7 @@ namespace libtorrent
 		}
 		super_seeding(rd.dict_find_int_value("super_seeding", 0));
 
-		if (!m_use_resume_save_path)
+		if (m_use_resume_save_path)
 		{
 			std::string p = rd.dict_find_string_value("save_path");
 			if (!p.empty()) m_save_path = p;
