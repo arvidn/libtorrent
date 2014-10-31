@@ -123,8 +123,10 @@ public:
 
 	enum
 	{
+		// nodes that have not been pinged are considered failed by this flag
 		include_failed = 1
 	};
+
 	// fills the vector with the count nodes from our buckets that
 	// are nearest to the given id.
 	void find_node(node_id const& id, std::vector<node_entry>& l

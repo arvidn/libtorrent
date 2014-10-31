@@ -963,20 +963,18 @@ void routing_table::add_router_node(udp::endpoint router)
 	m_router_nodes.insert(router);
 }
 
-// we heard from this node, but we don't know if it
-// was spoofed or not (i.e. pinged == false)
+// we heard from this node, but we don't know if it was spoofed or not (i.e.
+// pinged == false)
 void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 {
 	add_node(node_entry(id, ep));
 }
 
-// this function is called every time the node sees
-// a sign of a node being alive. This node will either
-// be inserted in the k-buckets or be moved to the top
-// of its bucket.
-// the return value indicates if the table needs a refresh.
-// if true, the node should refresh the table (i.e. do a find_node
-// on its own id)
+// this function is called every time the node sees a sign of a node being
+// alive. This node will either be inserted in the k-buckets or be moved to the
+// top of its bucket. the return value indicates if the table needs a refresh.
+// if true, the node should refresh the table (i.e. do a find_node on its own
+// id)
 bool routing_table::node_seen(node_id const& id, udp::endpoint ep, int rtt)
 {
 	return add_node(node_entry(id, ep, rtt, true));
