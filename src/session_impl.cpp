@@ -4140,8 +4140,10 @@ retry:
 	{
 		TORRENT_ASSERT(m_dht);
 		m_dht_torrents.push_back(t);
-		// trigger a DHT announce right away if we just
-		// added a new torrent and there's no back-log
+		// trigger a DHT announce right away if we just added a new torrent and
+		// there's no back-log. in the timer handler, as long as there are more
+		// high priority torrents to be announced to the DHT, it will keep the
+		// timer interval short until all torrents have been announced.
 		if (m_dht_torrents.size() == 1)
 		{
 #if defined TORRENT_ASIO_DEBUGGING
