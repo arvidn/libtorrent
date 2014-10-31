@@ -211,6 +211,15 @@ void routing_table::print_state(std::ostream& os) const
 			<< " == " << i->live_nodes.size() << "|" << i->replacements.size()
 			<< " == " << total_seconds(time_now() - i->last_active)
 			<< " seconds ago ===== \n";
+
+		int id_shift;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == m_buckets.size())
+			id_shift = bucket_index;
+		else
+			id_shift = bucket_index + 1;
+
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
 			, end(i->live_nodes.end()); j != end; ++j)
 		{
@@ -226,7 +235,7 @@ void routing_table::print_state(std::ostream& os) const
 			top_mask = (0xff << mask_shift) & 0xff;
 
 			node_id id = j->id;
-			id <<= bucket_index + 1;
+			id <<= id_shift;
 			os << " prefix: " << ((id[0] & top_mask) >> mask_shift)
 				<< " id: " << j->id
 				<< " rtt: " << j->rtt
@@ -263,12 +272,20 @@ void routing_table::print_state(std::ostream& os) const
 		TORRENT_ASSERT_VAL(bucket_size_limit <= 256, bucket_size_limit);
 		bool sub_buckets[256];
 		memset(sub_buckets, 0, sizeof(sub_buckets));
+
+		int id_shift;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == m_buckets.size())
+			id_shift = bucket_index;
+		else
+			id_shift = bucket_index + 1;
 		
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
 			, end(i->live_nodes.end()); j != end; ++j)
 		{
 			node_id id = j->id;
-			id <<= bucket_index + 1;
+			id <<= id_shift;
 			int b = (id[0] & top_mask) >> mask_shift;
 			TORRENT_ASSERT(b >= 0 && b < int(sizeof(sub_buckets)/sizeof(sub_buckets[0])));
 			sub_buckets[b] = true;
@@ -663,7 +680,12 @@ bool routing_table::add_node(node_entry e)
 		mask = (0xff << mask_shift) & 0xff;
 
 		node_id id = e.id;
-		id <<= bucket_index + 1;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == m_buckets.size())
+			id <<= bucket_index;
+		else
+			id <<= bucket_index + 1;
 
 		// pick out all nodes that have the same prefix as the new node
 		std::vector<bucket_t::iterator> nodes;
@@ -746,7 +768,8 @@ bool routing_table::add_node(node_entry e)
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id << " " << e.addr();
+			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id
+				<< " " << e.addr();
 #endif
 			return ret;
 		}
