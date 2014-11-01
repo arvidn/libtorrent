@@ -35,6 +35,8 @@
 
 1.0.3 release
 
+	* improve DHT maintanence performance (by pinging instead of full lookups)
+	* fix bug in DHT routing table node-id prefix optimization
 	* fix incorrect behavior of flag_use_resume_save_path
 	* fix protocol race-condition in super seeding mode
 	* support read-only DHT nodes
