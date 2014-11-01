@@ -84,6 +84,8 @@ struct traversal_algorithm : boost::noncopyable
 	int invoke_count() const { return m_invoke_count; }
 	int branch_factor() const { return m_branch_factor; }
 
+	node_impl& node() const { return m_node; }
+
 protected:
 
 	// returns true if we're done

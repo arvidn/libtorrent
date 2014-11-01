@@ -93,8 +93,10 @@ namespace libtorrent
 		int num_nodes;
 		int num_replacements;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// number of seconds since last activity
 		int last_active;
+#endif
 	};
 
 	// holds counters and gauges for the uTP sockets
