@@ -107,6 +107,7 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	, m_rpc(m_id, m_table, sock)
 	, m_observer(observer)
 	, m_last_tracker_tick(time_now())
+	, m_last_self_refresh(min_time())
 	, m_post_alert(alert_disp)
 	, m_sock(sock)
 	, m_counters(cnt)
@@ -174,17 +175,11 @@ std::string node_impl::generate_token(udp::endpoint const& addr, char const* inf
 	return token;
 }
 
-void node_impl::refresh(node_id const& id
-	, find_data::nodes_callback const& f)
-{
-	boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, id, f));
-	r->start();
-}
-
 void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	, find_data::nodes_callback const& f)
 {
-	boost::intrusive_ptr<dht::refresh> r(new dht::bootstrap(*this, m_id, f));
+	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, m_id, f));
+	m_last_self_refresh = time_now();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	int count = 0;
@@ -272,8 +267,7 @@ void node_impl::incoming(msg const& m)
 		case 'r':
 		{
 			node_id id;
-			if (m_rpc.incoming(m, &id, m_settings))
-				refresh(id, boost::bind(&nop));
+			m_rpc.incoming(m, &id, m_settings);
 			break;
 		}
 		case 'q':
@@ -426,12 +420,85 @@ void node_impl::get_item(char const* pk, std::string const& salt
 	ta->start();
 }
 
+struct ping_observer : observer
+{
+	ping_observer(
+		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		, udp::endpoint const& ep, node_id const& id)
+		: observer(algorithm, ep, id)
+	{}
+
+	// parses out "nodes"
+	virtual void reply(msg const& m)
+	{
+		flags |= flag_done;
+
+		lazy_entry const* r = m.message.dict_find_dict("r");
+		if (!r)
+		{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(traversal) << "[" << m_algorithm.get()
+				<< "] missing response dict";
+#endif
+			return;
+		}
+
+		// look for nodes
+		lazy_entry const* n = r->dict_find_string("nodes");
+		if (n)
+		{
+			char const* nodes = n->string_ptr();
+			char const* end = nodes + n->string_length();
+
+			while (end - nodes >= 26)
+			{
+				node_id id;
+				std::copy(nodes, nodes + 20, id.begin());
+				nodes += 20;
+				m_algorithm.get()->node().m_table.heard_about(id
+					, detail::read_v4_endpoint<udp::endpoint>(nodes));
+			}
+		}
+	}
+};
+
 
 void node_impl::tick()
 {
+	// every now and then we refresh our own ID, just to keep
+	// expanding the routing table buckets closer to us.
+	ptime now = time_now();
+	if (m_last_self_refresh + minutes(10) < now)
+	{
+		boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, m_id
+			, boost::bind(&nop)));
+		r->start();
+		m_last_self_refresh = now;
+		return;
+	}
+
 	node_id target;
-	if (m_table.need_refresh(target))
-		refresh(target, boost::bind(&nop));
+	node_entry const* ne = m_table.next_refresh(target);
+	if (ne == NULL) return;
+
+	void* ptr = m_rpc.allocate_observer();
+	if (ptr == 0) return;
+
+	// create a dummy traversal_algorithm		
+	// this is unfortunately necessary for the observer
+	// to free itself from the pool when it's being released
+	boost::intrusive_ptr<traversal_algorithm> algo(
+		new traversal_algorithm(*this, (node_id::min)()));
+	observer_ptr o(new (ptr) ping_observer(algo, ne->ep(), ne->id));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	entry e;
+	e["y"] = "q";
+	e["q"] = "find_node";
+	entry& a = e["a"];
+	a["target"] = target.to_string();
+	m_rpc.invoke(e, ne->ep(), o);
 }
 
 time_duration node_impl::connection_timeout()

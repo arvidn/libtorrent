@@ -100,18 +100,15 @@ void routing_table::status(session_status& s) const
 	boost::tie(s.dht_nodes, s.dht_node_cache) = size();
 	s.dht_global_nodes = num_global_nodes();
 
-	ptime now = time_now();
-
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
 		dht_routing_bucket b;
 		b.num_nodes = i->live_nodes.size();
 		b.num_replacements = i->replacements.size();
-		if (i->last_active.time_since_epoch().count() < 0)
-			b.last_active = INT_MAX;
-		else
-			b.last_active = int(total_seconds(now - i->last_active));
+#ifndef TORRENT_NO_DEPRECATE
+		b.last_active = 0;
+#endif
 		s.dht_routing_table.push_back(b);
 	}
 }
@@ -213,21 +210,25 @@ void routing_table::print_state(std::ostream& os) const
 		os << "-";
 	os << "\n\n";
 
+	ptime now = time_now();
+
 	os << "nodes:\n";
 	int bucket_index = 0;
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++bucket_index)
 	{
-//		if (i->live_nodes.empty()) continue;
-		os << "=== BUCKET == " << bucket_index
-			<< " == " << i->live_nodes.size() << "|" << i->replacements.size();
+		os << "\n=== BUCKET == " << bucket_index
+			<< " == " << i->live_nodes.size() << "|" << i->replacements.size()
+			<< " ===== \n";
 
-		if (i->last_active < min_time() + seconds(161))
-			os << " == -";
+		int id_shift;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == m_buckets.size())
+			id_shift = bucket_index;
 		else
-			os << " == " << total_seconds(time_now() - i->last_active);
+			id_shift = bucket_index + 1;
 
-		os << " seconds ago ===== \n";
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
 			, end(i->live_nodes.end()); j != end; ++j)
 		{
@@ -243,14 +244,25 @@ void routing_table::print_state(std::ostream& os) const
 			top_mask = (0xff << mask_shift) & 0xff;
 
 			node_id id = j->id;
-			id <<= bucket_index + 1;
-			os << " prefix: " << ((id[0] & top_mask) >> mask_shift)
-				<< " id: " << j->id
-				<< " rtt: " << j->rtt
-				<< " ip: " << j->ep()
-				<< " fails: " << j->fail_count()
-				<< " pinged: " << j->pinged()
-				<< " dist: " << distance_exp(m_id, j->id)
+			id <<= id_shift;
+
+			os << " prefx: " << std::setw(2) << std::hex << ((id[0] & top_mask) >> mask_shift) << std::dec
+				<< " id: " << j->id;
+			if (j->rtt == 0xffff)
+				os << " rtt:     ";
+			else
+				os << " rtt: " << std::setw(4) << j->rtt;
+
+			os << " fail: " << j->fail_count()
+				<< " ping: " << j->pinged()
+				<< " dist: " << std::setw(3) << distance_exp(m_id, j->id);
+
+			if (j->last_queried == min_time())
+				os << " query:    ";
+			else
+				os << " query: " << std::setw(3) << total_seconds(now - j->last_queried);
+
+			os << " ip: " << j->ep()
 				<< "\n";
 		}
 	}
@@ -280,12 +292,20 @@ void routing_table::print_state(std::ostream& os) const
 		TORRENT_ASSERT_VAL(bucket_size_limit <= 256, bucket_size_limit);
 		bool sub_buckets[256];
 		memset(sub_buckets, 0, sizeof(sub_buckets));
+
+		int id_shift;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == m_buckets.size())
+			id_shift = bucket_index;
+		else
+			id_shift = bucket_index + 1;
 		
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
 			, end(i->live_nodes.end()); j != end; ++j)
 		{
 			node_id id = j->id;
-			id <<= bucket_index + 1;
+			id <<= id_shift;
 			int b = (id[0] & top_mask) >> mask_shift;
 			TORRENT_ASSERT(b >= 0 && b < int(sizeof(sub_buckets)/sizeof(sub_buckets[0])));
 			sub_buckets[b] = true;
@@ -299,72 +319,60 @@ void routing_table::print_state(std::ostream& os) const
 
 #endif
 
-void routing_table::touch_bucket(node_id const& target)
+node_entry const* routing_table::next_refresh(node_id& target)
 {
-	table_t::iterator i = find_bucket(target);
-	i->last_active = time_now();
-}
+	// find the node with the least recent 'last_queried' field. if it's too
+	// recent, return false. Otherwise return a random target ID that's close to
+	// a missing prefix for that bucket
 
-// returns true if lhs is in more need of a refresh than rhs
-bool compare_bucket_refresh(routing_table_node const& lhs, routing_table_node const& rhs)
-{
-	// add the number of nodes to prioritize buckets with few nodes in them
-	return lhs.last_active + seconds(lhs.live_nodes.size() * 5)
-		< rhs.last_active + seconds(rhs.live_nodes.size() * 5);
-}
+	node_entry* candidate = NULL;
+	int bucket_idx = -1;
 
-// TODO: instad of refreshing a bucket by using find_nodes,
-// ping each node periodically
-bool routing_table::need_refresh(node_id& target) const
-{
-	INVARIANT_CHECK;
-
-	ptime now = time_now();
-
-	// refresh our own bucket once every 15 minutes
-	if (now - minutes(15) > m_last_self_refresh)
+	// this will have a bias towards pinging nodes close to us first.
+	int idx = m_buckets.size() - 1;
+	for (table_t::reverse_iterator i = m_buckets.rbegin()
+		, end(m_buckets.rend()); i != end; ++i, --idx)
 	{
-		m_last_self_refresh = now;
-		target = m_id;
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(table) << "need_refresh [ bucket: self target: " << target << " ]";
-#endif
-		return true;
+		for (bucket_t::iterator j = i->live_nodes.begin()
+			, end(i->live_nodes.end()); j != end; ++j)
+		{
+			if (j->last_queried == min_time())
+			{
+				bucket_idx = idx;
+				candidate = &*j;
+				goto out;
+			}
+
+			if (candidate == NULL || j->last_queried < candidate->last_queried)
+			{
+				candidate = &*j;
+				bucket_idx = idx;
+			}
+		}
+	}
+out:
+
+	// make sure we don't pick the same node again next time we want to refresh
+	// the routing table
+	if (candidate)
+	{
+		candidate->last_queried = time_now();
+
+		// generate a random node_id within the given bucket
+		// TODO: 2 it would be nice to have a bias towards node-id prefixes that
+		// are missing in the bucket
+		target = generate_random_id();
+		int num_bits = bucket_idx + 1;
+		node_id mask = generate_prefix_mask(num_bits);
+
+		// target = (target & ~mask) | (root & mask)
+		node_id root = m_id;
+		root &= mask;
+		target &= ~mask;
+		target |= root;
 	}
 
-	if (m_buckets.empty()) return false;
-
-	table_t::const_iterator i = std::min_element(m_buckets.begin(), m_buckets.end()
-		, &compare_bucket_refresh);
-
-	if (now - minutes(15) < i->last_active) return false;
-	if (now - seconds(45) < m_last_refresh) return false;
-
-	// generate a random node_id within the given bucket
-	target = generate_random_id();
-	int num_bits = std::distance(m_buckets.begin(), i) + 1;
-	node_id mask = generate_prefix_mask(num_bits);
-
-	// target = (target & ~mask) | (root & mask)
-	node_id root = m_id;
-	root &= mask;
-	target &= ~mask;
-	target |= root;
-
-	// make sure this is in another subtree than m_id
-	// clear the (num_bits - 1) bit and then set it to the
-	// inverse of m_id's corresponding bit.
-	target[(num_bits - 1) / 8] &= ~(0x80 >> ((num_bits - 1) % 8));
-	target[(num_bits - 1) / 8] |=
-		(~(m_id[(num_bits - 1) / 8])) & (0x80 >> ((num_bits - 1) % 8));
-
-	TORRENT_ASSERT(distance_exp(m_id, target) == 160 - num_bits);
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(table) << "need_refresh [ bucket: " << num_bits << " target: " << target << " ]";
-#endif
-	m_last_refresh = now;
-	return true;
+	return candidate;
 }
 
 void routing_table::replacement_cache(bucket_t& nodes) const
@@ -385,8 +393,6 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 	if (num_buckets == 0)
 	{
 		m_buckets.push_back(routing_table_node());
-		// add 160 seconds to prioritize higher buckets (i.e. buckets closer to us)
-		m_buckets.back().last_active = min_time() + seconds(160);
 		++num_buckets;
 	}
 
@@ -509,6 +515,7 @@ bool routing_table::add_node(node_entry e)
 			// and be done with it
 			existing->timeout_count = 0;
 			existing->update_rtt(e.rtt);
+			existing->last_queried = e.last_queried;
 			return ret;
 		}
 		else if (existing)
@@ -680,7 +687,12 @@ bool routing_table::add_node(node_entry e)
 		mask = (0xff << mask_shift) & 0xff;
 
 		node_id id = e.id;
-		id <<= bucket_index + 1;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == m_buckets.size())
+			id <<= bucket_index;
+		else
+			id <<= bucket_index + 1;
 
 		// pick out all nodes that have the same prefix as the new node
 		std::vector<bucket_t::iterator> nodes;
@@ -763,7 +775,8 @@ bool routing_table::add_node(node_entry e)
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id << " " << e.addr();
+			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id
+				<< " " << e.addr();
 #endif
 			return ret;
 		}
@@ -823,6 +836,8 @@ bool routing_table::add_node(node_entry e)
 		nb.push_back(e);
 	else if (int(nrb.size()) < m_bucket_size)
 		nrb.push_back(e);
+	else
+		nb.push_back(e); // trigger another split
 
 	m_ips.insert(e.addr().to_v4().to_bytes());
 
@@ -842,9 +857,6 @@ void routing_table::split_bucket()
 	// this is the last bucket, and it's full already. Split
 	// it by adding another bucket
 	m_buckets.push_back(routing_table_node());
-	// the extra seconds added to the end is to prioritize
-	// buckets closer to us when refreshing
-	m_buckets.back().last_active = min_time() + seconds(160 - m_buckets.size());
 	bucket_t& new_bucket = m_buckets.back().live_nodes;
 	bucket_t& new_replacement_bucket = m_buckets.back().replacements;
 
@@ -980,20 +992,18 @@ void routing_table::add_router_node(udp::endpoint router)
 	m_router_nodes.insert(router);
 }
 
-// we heard from this node, but we don't know if it
-// was spoofed or not (i.e. pinged == false)
+// we heard from this node, but we don't know if it was spoofed or not (i.e.
+// pinged == false)
 void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 {
 	add_node(node_entry(id, ep));
 }
 
-// this function is called every time the node sees
-// a sign of a node being alive. This node will either
-// be inserted in the k-buckets or be moved to the top
-// of its bucket.
-// the return value indicates if the table needs a refresh.
-// if true, the node should refresh the table (i.e. do a find_node
-// on its own id)
+// this function is called every time the node sees a sign of a node being
+// alive. This node will either be inserted in the k-buckets or be moved to the
+// top of its bucket. the return value indicates if the table needs a refresh.
+// if true, the node should refresh the table (i.e. do a find_node on its own
+// id)
 bool routing_table::node_seen(node_id const& id, udp::endpoint ep, int rtt)
 {
 	return add_node(node_entry(id, ep, rtt, true));

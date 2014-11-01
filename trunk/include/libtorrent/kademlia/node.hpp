@@ -204,7 +204,6 @@ public:
 	virtual ~node_impl() {}
 
 	void tick();
-	void refresh(node_id const& id, find_data::nodes_callback const& f);
 	void bootstrap(std::vector<udp::endpoint> const& nodes
 		, find_data::nodes_callback const& f);
 	void add_router_node(udp::endpoint router);
@@ -316,6 +315,10 @@ private:
 	dht_mutable_table_t m_mutable_table;
 	
 	ptime m_last_tracker_tick;
+
+	// the last time we issued a bootstrap or a refresh on our own ID, to expand
+	// the routing table buckets close to us.
+	ptime m_last_self_refresh;
 
 	// secret random numbers used to create write tokens
 	int m_secret[2];

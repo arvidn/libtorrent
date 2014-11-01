@@ -1748,8 +1748,8 @@ int main(int argc, char* argv[])
 				, end(sess_stat.dht_routing_table.end()); i != end; ++i, ++bucket)
 			{
 				snprintf(str, sizeof(str)
-					, "%3d [%2d, %2d] active: %d\n"
-					, bucket, i->num_nodes, i->num_replacements, i->last_active);
+					, "%3d [%3d, %d]\n"
+					, bucket, i->num_nodes, i->num_replacements);
 				out += str;
 			}
 

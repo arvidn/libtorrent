@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/union_endpoint.hpp"
+#include "libtorrent/time.hpp" // for time_now()
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include "libtorrent/time.hpp"
@@ -47,8 +48,10 @@ namespace libtorrent { namespace dht
 
 struct node_entry
 {
-	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff, bool pinged = false)
-		: id(id_)
+	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff
+		, bool pinged = false)
+		: last_queried(pinged ? time_now() : min_time())
+		, id(id_)
 		, endpoint(ep)
 		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
@@ -59,7 +62,8 @@ struct node_entry
 	}
 
 	node_entry(udp::endpoint ep)
-		: id(0)
+		: last_queried(min_time())
+		, id(0)
 		, endpoint(ep)
 		, rtt(0xffff)
 		, timeout_count(0xff)
@@ -70,7 +74,8 @@ struct node_entry
 	}
 
 	node_entry()
-		: id(0)
+		: last_queried(min_time())
+		, id(0)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
@@ -88,8 +93,11 @@ struct node_entry
 	bool confirmed() const { return timeout_count == 0; }
 	void update_rtt(int new_rtt)
 	{
+		TORRENT_ASSERT(new_rtt <= 0xffff);
+		TORRENT_ASSERT(new_rtt >= 0);
+		if (new_rtt == 0xffff) return;
 		if (rtt == 0xffff) rtt = new_rtt;
-		else rtt = int(rtt) / 3 + int(new_rtt) * 2 / 3;
+		else rtt = int(rtt) * 2 / 3 + int(new_rtt) / 3;
 	}
 	address addr() const { return endpoint.address(); }
 	int port() const { return endpoint.port; }
@@ -97,6 +105,9 @@ struct node_entry
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	ptime first_seen;
 #endif
+
+	// the time we last received a response for a request to this peer
+	ptime last_queried;
 
 	node_id id;
 
