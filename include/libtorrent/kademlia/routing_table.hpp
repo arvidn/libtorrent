@@ -69,7 +69,6 @@ struct routing_table_node
 {
 	bucket_t replacements;
 	bucket_t live_nodes;
-	ptime last_active;
 };
 
 // differences in the implementation from the description in
@@ -116,10 +115,7 @@ public:
 	// the node will be ignored.
 	void heard_about(node_id const& id, udp::endpoint const& ep);
 	
-	// if any bucket in the routing table needs to be refreshed
-	// this function will return true and set the target to an
-	// appropriate target inside that bucket	
-	bool need_refresh(node_id& target) const;
+	node_entry const* next_refresh(node_id& target);
 
 	enum
 	{
@@ -169,8 +165,6 @@ public:
 	// the state of the routing table to the given stream
 	void print_state(std::ostream& os) const;
 #endif
-
-	void touch_bucket(node_id const& target);
 
 	int bucket_limit(int bucket) const;
 
