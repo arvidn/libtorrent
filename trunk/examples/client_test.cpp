@@ -1747,9 +1747,16 @@ int main(int argc, char* argv[])
 			for (std::vector<dht_routing_bucket>::iterator i = sess_stat.dht_routing_table.begin()
 				, end(sess_stat.dht_routing_table.end()); i != end; ++i, ++bucket)
 			{
+				char const* progress_bar =
+					"################################"
+					"################################"
+					"################################"
+					"################################";
 				snprintf(str, sizeof(str)
-					, "%3d [%3d, %d]\n"
-					, bucket, i->num_nodes, i->num_replacements);
+					, "%3d [%3d, %d] %s%s\n"
+					, bucket, i->num_nodes, i->num_replacements
+					, progress_bar + (128 - i->num_nodes)
+					, "--------" + (8 - i->num_replacements));
 				out += str;
 			}
 

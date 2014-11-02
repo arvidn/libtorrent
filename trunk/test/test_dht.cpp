@@ -308,7 +308,7 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 				{ "y", lazy_entry::string_t, 1, 0},
 			};
 
-			lazy_entry const* parsed[5];
+			lazy_entry const* parsed[6];
 			char error_string[200];
 
 //			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
@@ -1375,7 +1375,8 @@ int test_main()
 		{"q", lazy_entry::string_t, 9, 0},
 		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
 			{"id", lazy_entry::string_t, 20, 0},
-			{"target", lazy_entry::string_t, 20, key_desc_t::last_child},
+			{"target", lazy_entry::string_t, 20, key_desc_t::optional},
+			{"info_hash", lazy_entry::string_t, 20, key_desc_t::optional | key_desc_t::last_child},
 	};
 
 	dht::key_desc_t get_peers_desc[] = {
@@ -1398,6 +1399,7 @@ int test_main()
 
 	// bootstrap
 
+	g_sent_packets.clear();
 	do
 	{
 		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
@@ -1412,12 +1414,16 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(&response, find_node_desc, parsed, 6, error_string, sizeof(error_string));
+		ret = verify_message(&response, find_node_desc, parsed, 7, error_string, sizeof(error_string));
 		if (ret)
 		{
 			TEST_EQUAL(parsed[0]->string_value(), "q");
-			TEST_EQUAL(parsed[2]->string_value(), "find_node");
-			if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "find_node") break;
+			TEST_CHECK(parsed[2]->string_value() == "find_node"
+				|| parsed[2]->string_value() == "get_peers");
+
+			if (parsed[0]->string_value() != "q"
+				|| (parsed[2]->string_value() != "find_node"
+					&& parsed[2]->string_value() != "get_peers")) break;
 		}
 		else
 		{
@@ -1437,12 +1443,14 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, found_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(&response, find_node_desc, parsed, 6, error_string, sizeof(error_string));
+		ret = verify_message(&response, find_node_desc, parsed, 7, error_string, sizeof(error_string));
 		if (ret)
 		{
 			TEST_EQUAL(parsed[0]->string_value(), "q");
-			TEST_EQUAL(parsed[2]->string_value(), "find_node");
-			if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "find_node") break;
+			TEST_CHECK(parsed[2]->string_value() == "find_node"
+				|| parsed[2]->string_value() == "get_peers");
+			if (parsed[0]->string_value() != "q" || (parsed[2]->string_value() != "find_node"
+					&& parsed[2]->string_value() == "get_peers")) break;
 		}
 		else
 		{
@@ -1460,6 +1468,7 @@ int test_main()
 
 	// get_peers
 
+	g_sent_packets.clear();
 	do
 	{
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
@@ -1551,6 +1560,7 @@ int test_main()
 
 	// immutable get
 
+	g_sent_packets.clear();
 	do
 	{
 		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
@@ -1595,6 +1605,7 @@ int test_main()
 
 	// mutable get
 
+	g_sent_packets.clear();
 	do
 	{
 		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
@@ -1669,7 +1680,7 @@ int test_main()
 	};
 
 	// immutable put
-
+	g_sent_packets.clear();
 	do
 	{
 		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
@@ -1749,7 +1760,7 @@ int test_main()
 	} while (false);
 
 	// mutable put
-
+	g_sent_packets.clear();
 	do
 	{
 		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);

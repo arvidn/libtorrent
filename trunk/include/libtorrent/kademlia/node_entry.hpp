@@ -52,7 +52,8 @@ struct node_entry
 		, bool pinged = false)
 		: last_queried(pinged ? time_now() : min_time())
 		, id(id_)
-		, endpoint(ep)
+		, a(ep.address().to_v4().to_bytes())
+		, p(ep.port())
 		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
 	{
@@ -64,7 +65,8 @@ struct node_entry
 	node_entry(udp::endpoint ep)
 		: last_queried(min_time())
 		, id(0)
-		, endpoint(ep)
+		, a(ep.address().to_v4().to_bytes())
+		, p(ep.port())
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
@@ -76,6 +78,7 @@ struct node_entry
 	node_entry()
 		: last_queried(min_time())
 		, id(0)
+		, p(0)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
@@ -89,7 +92,7 @@ struct node_entry
 	void timed_out() { if (pinged() && timeout_count < 0xfe) ++timeout_count; }
 	int fail_count() const { return pinged() ? timeout_count : 0; }
 	void reset_fail_count() { if (pinged()) timeout_count = 0; }
-	udp::endpoint ep() const { return udp::endpoint(endpoint); }
+	udp::endpoint ep() const { return udp::endpoint(address_v4(a), p); }
 	bool confirmed() const { return timeout_count == 0; }
 	void update_rtt(int new_rtt)
 	{
@@ -99,8 +102,8 @@ struct node_entry
 		if (rtt == 0xffff) rtt = new_rtt;
 		else rtt = int(rtt) * 2 / 3 + int(new_rtt) / 3;
 	}
-	address addr() const { return endpoint.address(); }
-	int port() const { return endpoint.port; }
+	address addr() const { return address_v4(a); }
+	int port() const { return p; }
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	ptime first_seen;
@@ -111,7 +114,8 @@ struct node_entry
 
 	node_id id;
 
-	union_endpoint endpoint;
+	address_v4::bytes_type a;
+	boost::uint16_t p;
 
 	// the average RTT of this node
 	boost::uint16_t rtt;
