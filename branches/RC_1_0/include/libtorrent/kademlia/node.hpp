@@ -220,7 +220,7 @@ public:
 
 	node_id const& nid() const { return m_id; }
 
-	boost::tuple<int, int> size() const{ return m_table.size(); }
+	boost::tuple<int, int> size() const { return m_table.size(); }
 	size_type num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
@@ -278,6 +278,8 @@ public:
 
 protected:
 
+	void send_single_refresh(udp::endpoint const& ep, int bucket
+		, node_id const& id = node_id());
 	void lookup_peers(sha1_hash const& info_hash, entry& reply
 		, bool noseed, bool scrape) const;
 	bool lookup_torrents(sha1_hash const& target, entry& reply

@@ -338,22 +338,7 @@ void node_impl::add_node(udp::endpoint node)
 {
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
-	void* ptr = m_rpc.allocate_observer();
-	if (ptr == 0) return;
-
-	// create a dummy traversal_algorithm		
-	// this is unfortunately necessary for the observer
-	// to free itself from the pool when it's being released
-	boost::intrusive_ptr<traversal_algorithm> algo(
-		new traversal_algorithm(*this, (node_id::min)()));
-	observer_ptr o(new (ptr) null_observer(algo, node, node_id(0)));
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	o->m_in_constructor = false;
-#endif
-	entry e;
-	e["y"] = "q";
-	e["q"] = "ping";
-	m_rpc.invoke(e, node, o);
+	send_single_refresh(node, m_table.num_active_buckets());
 }
 
 void node_impl::announce(sha1_hash const& info_hash, int listen_port, int flags
@@ -464,19 +449,37 @@ void node_impl::tick()
 		return;
 	}
 
-	node_id target;
-	node_entry const* ne = m_table.next_refresh(target);
+	node_entry const* ne = m_table.next_refresh();
 	if (ne == NULL) return;
 
+	int bucket = 159 - distance_exp(m_id, ne->id);
+	send_single_refresh(ne->ep(), bucket, ne->id);
+}
+
+void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
+	, node_id const& id)
+{
 	void* ptr = m_rpc.allocate_observer();
 	if (ptr == 0) return;
+
+	// generate a random node_id within the given bucket
+	// TODO: 2 it would be nice to have a bias towards node-id prefixes that
+	// are missing in the bucket
+	node_id target = generate_random_id();
+	node_id mask = generate_prefix_mask(bucket + 1);
+
+	// target = (target & ~mask) | (root & mask)
+	node_id root = m_id;
+	root &= mask;
+	target &= ~mask;
+	target |= root;
 
 	// create a dummy traversal_algorithm		
 	// this is unfortunately necessary for the observer
 	// to free itself from the pool when it's being released
 	boost::intrusive_ptr<traversal_algorithm> algo(
 		new traversal_algorithm(*this, (node_id::min)()));
-	observer_ptr o(new (ptr) ping_observer(algo, ne->ep(), ne->id));
+	observer_ptr o(new (ptr) ping_observer(algo, ep, id));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	o->m_in_constructor = false;
 #endif
@@ -491,7 +494,7 @@ void node_impl::tick()
 
 //	e["q"] = "find_node";
 //	a["target"] = target.to_string();
-	m_rpc.invoke(e, ne->ep(), o);
+	m_rpc.invoke(e, ep, o);
 }
 
 time_duration node_impl::connection_timeout()

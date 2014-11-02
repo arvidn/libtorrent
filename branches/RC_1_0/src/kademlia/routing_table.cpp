@@ -285,7 +285,9 @@ void routing_table::print_state(std::ostream& os) const
 			sub_buckets[b] = true;
 		}
 
-		os << bucket_index << " mask:" << (top_mask >> mask_shift) << ": [";
+		os << std::dec << std::setw(2) << bucket_index << " mask: " << std::setw(2)
+			<< std::hex << (top_mask >> mask_shift) << ": [";
+
 		for (int i = 0; i < bucket_size_limit; ++i) os << (sub_buckets[i] ? "X" : " ");
 		os << "]\n";
 	}
@@ -293,7 +295,7 @@ void routing_table::print_state(std::ostream& os) const
 
 #endif
 
-node_entry const* routing_table::next_refresh(node_id& target)
+node_entry const* routing_table::next_refresh()
 {
 	// find the node with the least recent 'last_queried' field. if it's too
 	// recent, return false. Otherwise return a random target ID that's close to
@@ -329,22 +331,7 @@ out:
 	// make sure we don't pick the same node again next time we want to refresh
 	// the routing table
 	if (candidate)
-	{
 		candidate->last_queried = time_now();
-
-		// generate a random node_id within the given bucket
-		// TODO: 2 it would be nice to have a bias towards node-id prefixes that
-		// are missing in the bucket
-		target = generate_random_id();
-		int num_bits = bucket_idx + 1;
-		node_id mask = generate_prefix_mask(num_bits);
-
-		// target = (target & ~mask) | (root & mask)
-		node_id root = m_id;
-		root &= mask;
-		target &= ~mask;
-		target |= root;
-	}
 
 	return candidate;
 }
@@ -428,8 +415,8 @@ void routing_table::remove_node(node_entry* n
 		&& n < &bucket->replacements[0] + bucket->replacements.size())
 	{
 		int idx = n - &bucket->replacements[0];
-		TORRENT_ASSERT(m_ips.count(n->endpoint.address().to_v4().to_bytes()) > 0);
-		erase_one(m_ips, n->endpoint.address().to_v4().to_bytes());
+		TORRENT_ASSERT(m_ips.count(n->a) > 0);
+		erase_one(m_ips, n->a);
 		bucket->replacements.erase(bucket->replacements.begin() + idx);
 	}
 
@@ -438,8 +425,8 @@ void routing_table::remove_node(node_entry* n
 		&& n < &bucket->live_nodes[0] + bucket->live_nodes.size())
 	{
 		int idx = n - &bucket->live_nodes[0];
-		TORRENT_ASSERT(m_ips.count(n->endpoint.address().to_v4().to_bytes()) > 0);
-		erase_one(m_ips, n->endpoint.address().to_v4().to_bytes());
+		TORRENT_ASSERT(m_ips.count(n->a) > 0);
+		erase_one(m_ips, n->a);
 		bucket->live_nodes.erase(bucket->live_nodes.begin() + idx);
 	}
 }
@@ -597,15 +584,13 @@ bool routing_table::add_node(node_entry e)
 	// bit prefix has higher RTT than the new node, replace it.
 
 	// can we split the bucket?
-	bool can_split = false;
+	// only nodes that haven't failed can split the bucket, and we can only
+	// split the last bucket
+	bool can_split = (boost::next(i) == m_buckets.end() && m_buckets.size() < 159)
+		&& e.fail_count() == 0;
 
 	if (e.pinged() && e.fail_count() == 0)
 	{
-		// only nodes that are pinged and haven't failed
-		// can split the bucket, and we can only split
-		// the last bucket
-		can_split = (boost::next(i) == m_buckets.end() && m_buckets.size() < 159);
-
 		// if the node we're trying to insert is considered pinged,
 		// we may replace other nodes that aren't pinged
 
@@ -903,21 +888,40 @@ void routing_table::for_each_node(
 	}
 }
 
-void routing_table::node_failed(node_id const& id, udp::endpoint const& ep)
+void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 {
 	INVARIANT_CHECK;
 
 	// if messages to ourself fails, ignore it
-	if (id == m_id) return;
+	if (nid == m_id) return;
 
-	table_t::iterator i = find_bucket(id);
+	table_t::iterator i = find_bucket(nid);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
 
 	bucket_t::iterator j = std::find_if(b.begin(), b.end()
-		, boost::bind(&node_entry::id, _1) == id);
+		, boost::bind(&node_entry::id, _1) == nid);
 
-	if (j == b.end()) return;
+	if (j == b.end())
+	{
+		j = std::find_if(rb.begin(), rb.end()
+			, boost::bind(&node_entry::id, _1) == nid);
+
+		if (j == rb.end()
+			|| j->ep() != ep) return;
+
+		j->timed_out();
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(table) << " NODE FAILED"
+			" id: " << nid <<
+			" ip: " << j->ep() <<
+			" fails: " << j->fail_count() <<
+			" pinged: " << j->pinged() <<
+			" up-time: " << total_seconds(time_now() - j->first_seen);
+#endif
+		return;
+	}
 
 	// if the endpoint doesn't match, it's a different node
 	// claiming the same ID. The node we have in our routing
@@ -930,7 +934,7 @@ void routing_table::node_failed(node_id const& id, udp::endpoint const& ep)
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(table) << " NODE FAILED"
-			" id: " << id <<
+			" id: " << nid <<
 			" ip: " << j->ep() <<
 			" fails: " << j->fail_count() <<
 			" pinged: " << j->pinged() <<
@@ -947,7 +951,7 @@ void routing_table::node_failed(node_id const& id, udp::endpoint const& ep)
 		return;
 	}
 
-	erase_one(m_ips, j->addr().to_v4().to_bytes());
+	erase_one(m_ips, j->a);
 	b.erase(j);
 
 	// sort by RTT first, to find the node with the lowest
