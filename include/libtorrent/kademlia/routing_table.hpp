@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/array.hpp>
+#include <boost/noncopyable.hpp>
 #include <set>
 
 #include <libtorrent/kademlia/logging.hpp>
@@ -81,7 +82,7 @@ struct routing_table_node
 // 	bucket has failed, then it is put in the replacement
 // 	cache (just like in the paper).
 
-class TORRENT_EXTRA_EXPORT routing_table
+class TORRENT_EXTRA_EXPORT routing_table : boost::noncopyable
 {
 public:
 	typedef std::vector<routing_table_node> table_t;
@@ -115,7 +116,7 @@ public:
 	// the node will be ignored.
 	void heard_about(node_id const& id, udp::endpoint const& ep);
 	
-	node_entry const* next_refresh(node_id& target);
+	node_entry const* next_refresh();
 
 	enum
 	{

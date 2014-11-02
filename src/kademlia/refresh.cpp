@@ -70,9 +70,13 @@ bool refresh::invoke(observer_ptr o)
 {
 	entry e;
 	e["y"] = "q";
-	e["q"] = "find_node";
 	entry& a = e["a"];
-	a["target"] = target().to_string();
+
+	e["q"] = "get_peers";
+	a["info_hash"] = target().to_string();
+
+//	e["q"] = "find_node";
+//	a["target"] = target().to_string();
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
