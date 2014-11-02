@@ -482,9 +482,15 @@ void node_impl::tick()
 #endif
 	entry e;
 	e["y"] = "q";
-	e["q"] = "find_node";
 	entry& a = e["a"];
-	a["target"] = target.to_string();
+
+	// use get_peers instead of find_node. We'll get nodes in the response
+	// either way.
+	e["q"] = "get_peers";
+	a["info_hash"] = target.to_string();
+
+//	e["q"] = "find_node";
+//	a["target"] = target.to_string();
 	m_rpc.invoke(e, ne->ep(), o);
 }
 
