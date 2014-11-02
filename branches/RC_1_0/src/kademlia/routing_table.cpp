@@ -169,41 +169,24 @@ void routing_table::print_state(std::ostream& os) const
 		<< "global node count: " << num_global_nodes() << "\n"
 		<< "node_id: " << m_id << "\n\n";
 
-	os << "number of nodes per bucket:\n-- live ";
-	for (int i = 8; i < 160; ++i)
-		os << "-";
-	os << "\n";
+	os << "number of nodes per bucket:\n";
 
-	int max_size = bucket_limit(0);
-	for (int k = 0; k < max_size; ++k)
+	int idx = 0;
+
+	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
+		i != end; ++i, ++idx)
 	{
-		for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
-			i != end; ++i)
-		{
-			os << (int(i->live_nodes.size()) > (max_size - 1 - k) ? "|" : " ");
-		}
+		os << std::setw(2) << idx << ": ";
+		for (int k = 0; k < int(i->live_nodes.size()); ++k)
+			os << "#";
+		for (int k = 0; k < int(i->replacements.size()); ++k)
+			os << "-";
 		os << "\n";
 	}
-	for (int i = 0; i < 160; ++i) os << "+";
-	os << "\n";
-
-	for (int k = 0; k < m_bucket_size; ++k)
-	{
-		for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
-			i != end; ++i)
-		{
-			os << (int(i->replacements.size()) > k ? "|" : " ");
-		}
-		os << "\n";
-	}
-	os << "-- cached ";
-	for (int i = 10; i < 160; ++i)
-		os << "-";
-	os << "\n\n";
 
 	ptime now = time_now();
 
-	os << "nodes:\n";
+	os << "\nnodes:";
 	int bucket_index = 0;
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++bucket_index)
@@ -258,7 +241,7 @@ void routing_table::print_state(std::ostream& os) const
 		}
 	}
 
-	os << "node spread per bucket:\n";
+	os << "\nnode spread per bucket:\n";
 	bucket_index = 0;
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++bucket_index)
