@@ -245,6 +245,10 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 		TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] WARNING node returned a list which included a node with id 0";
 	}
 #endif
+
+	// let the routing table know this node may exist
+	m_node.m_table.heard_about(id, addr);
+
 	add_entry(id, addr, 0);
 }
 
@@ -281,6 +285,11 @@ void traversal_algorithm::finished(observer_ptr o)
 void traversal_algorithm::failed(observer_ptr o, int flags)
 {
 	TORRENT_ASSERT(m_invoke_count >= 0);
+
+	// don't tell the routing table about
+	// node ids that we just generated ourself
+	if ((o->flags & observer::flag_no_id) == 0)
+		m_node.m_table.node_failed(o->id(), o->target_ep());
 
 	if (m_results.empty()) return;
 
@@ -325,10 +334,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			<< " type: " << name()
 			;
 #endif
-		// don't tell the routing table about
-		// node ids that we just generated ourself
-		if ((o->flags & observer::flag_no_id) == 0)
-			m_node.m_table.node_failed(o->id(), o->target_ep());
+
 		++m_timeouts;
 		--m_invoke_count;
 		TORRENT_ASSERT(m_invoke_count >= 0);
