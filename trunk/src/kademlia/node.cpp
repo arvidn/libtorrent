@@ -477,14 +477,9 @@ void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
 	// generate a random node_id within the given bucket
 	// TODO: 2 it would be nice to have a bias towards node-id prefixes that
 	// are missing in the bucket
-	node_id target = generate_random_id();
 	node_id mask = generate_prefix_mask(bucket + 1);
-
-	// target = (target & ~mask) | (root & mask)
-	node_id root = m_id;
-	root &= mask;
-	target &= ~mask;
-	target |= root;
+	node_id target = generate_random_id() & ~mask;
+	target |= m_id & mask;
 
 	// create a dummy traversal_algorithm		
 	// this is unfortunately necessary for the observer

@@ -66,6 +66,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/request_blocks.hpp" // for request_a_block
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
+#include "libtorrent/ip_filter.hpp"
+#include "libtorrent/kademlia/node_id.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -1218,6 +1220,17 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** couldn't find a torrent with the given info_hash: %s torrents:", to_hex(ih.to_string()).c_str());
 			m_ses.log_all_torrents(this);
+#endif
+
+#ifndef TORRENT_DISABLE_DHT
+			if (dht::verify_random_id(ih))
+			{
+				// this means the hash was generated from our generate_random_id()
+				// as part of DHT traffic. The fact that we got an incoming
+				// connection on this info-hash, means the other end, making this
+				// connection fished it out of the DHT chatter. That's suspicious.
+				m_ses.get_ip_filter().add_rule(m_remote.address(), m_remote.address(), 0);
+			}
 #endif
 			disconnect(errors::invalid_info_hash, op_bittorrent, 1);
 			return;

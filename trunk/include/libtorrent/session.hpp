@@ -281,6 +281,8 @@ namespace libtorrent
 		// it to finish. The timeout can be set with apply_settings().
 		~session();
 
+		// TODO: 2 the ip filter should probably be saved here too
+
 		// flags that determines which aspects of the session should be
 		// saved when calling save_state().
 		enum save_state_flags_t

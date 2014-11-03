@@ -1130,7 +1130,7 @@ namespace aux {
 			i->second->port_filter_updated();
 	}
 
-	ip_filter const& session_impl::get_ip_filter() const
+	ip_filter& session_impl::get_ip_filter()
 	{
 		return m_ip_filter;
 	}

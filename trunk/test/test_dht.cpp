@@ -617,6 +617,16 @@ int test_main()
 		fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 	}
 
+	// ====== test node ID testing =====
+
+	{
+		node_id rnd = generate_random_id();
+		TEST_CHECK(verify_random_id(rnd));
+
+		rnd[19] ^= 0x55;
+		TEST_CHECK(!verify_random_id(rnd));
+	}
+
 	// ====== test node ID enforcement ======
 
 	// enable node_id enforcement
