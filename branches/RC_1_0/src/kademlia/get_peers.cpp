@@ -222,7 +222,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 
 	entry e;
 	e["y"] = "q";
-	e["q"] = "find_node";
+	e["q"] = "get_peers";
 	entry& a = e["a"];
 
 	// This logic will obfuscate the target info-hash
@@ -231,11 +231,11 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	// bits in the info-hash for the node we're querying to
 	// give a good answer, but not more.
 
-	// now, obfuscate the bits past shared_prefix + 5
-	node_id obfuscated_target = generate_random_id();
-	obfuscated_target >>= shared_prefix + 3;
-	obfuscated_target^= m_target;
-	a["target"] = obfuscated_target.to_string();
+	// now, obfuscate the bits past shared_prefix + 3
+	node_id mask = generate_prefix_mask(shared_prefix + 3);
+	node_id obfuscated_target = generate_random_id() & ~mask;
+	obfuscated_target |= m_target & mask;
+	a["info_hash"] = obfuscated_target.to_string();
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
