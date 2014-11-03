@@ -3,6 +3,9 @@ import sys
 import os
 import time
 import calendar
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 up_time_quanta = 500
 
@@ -31,12 +34,41 @@ def convert_timestamp(t):
 	posix = time.strptime(parts[0], '%H:%M:%S')
 	return (posix.tm_hour * 3600 + posix.tm_min * 60 + posix.tm_sec) * 1000 + int(parts[1])
 
+unique_ips = set()
+client_version_histogram = {}
+client_histogram = {}
+
 for line in f:
 	counter += 1
 #	if counter % 1000 == 0:
 #		print '\r%d' % counter,
 	try:
 		l = line.split(' ')
+		try:
+			if len(l) > 4 and l[2] == '<==' and l[1] == '[dht_tracker]':
+				ip = l[3].split(':')[0]
+				if ip not in unique_ips:
+					unique_ips.add(ip)
+					json_blob = line.split(l[3])[1]
+					version = json_blob.split("'v': '")[1].split("'")[0]
+					if len(version) == 4:
+						v = '%s-%d' % (version[0:2], (ord(version[2]) << 8) + ord(version[3]))
+					elif len(version) == 8:
+						v = '%c%c-%d' % (chr(int(version[0:2], 16)), chr(int(version[2:4], 16)), int(version[4:8], 16))
+					else:
+						v = 'unknown'
+
+					if not v in client_version_histogram:
+						client_version_histogram[v] = 1
+					else:
+						client_version_histogram[v] += 1
+
+					if not v[0:2] in client_histogram:
+						client_histogram[v[0:2]] = 1
+					else:
+						client_histogram[v[0:2]] += 1
+		except: pass
+
 		if 'announce-distance:' in line:
 			idx = l.index('announce-distance:')
 
@@ -81,10 +113,9 @@ for line in f:
 				searches.append(s)
 				del outstanding_searches[search_id]
 
-				
-
 	except Exception, e:
-		print line.split(' ')
+		print e
+		print 'ERROR: ', line.split(' ')
 
 lookup_times_min = []
 lookup_times_max = []
@@ -172,6 +203,15 @@ for k,v in sorted(node_uptime_histogram.items()):
 	print >>out, '%f %f' % (k / float(60), s / float(total_uptime_nodes))
 	print '%f %f' % (k / float(60), s / float(total_uptime_nodes))
 out.close()
+
+
+print 'clients by version'
+client_version_histogram = sorted(client_version_histogram.items(), key=lambda x: x[1], reverse=True)
+pp.pprint(client_version_histogram)
+
+print 'clients'
+client_histogram = sorted(client_histogram.items(), key=lambda x: x[1], reverse=True)
+pp.pprint(client_histogram)
 
 out = open('dht.gnuplot', 'w+')
 out.write('''
