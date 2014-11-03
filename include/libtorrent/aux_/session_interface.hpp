@@ -142,7 +142,7 @@ namespace libtorrent { namespace aux
 		virtual void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) = 0;
 
 		// ip and port filter
-		virtual ip_filter const& get_ip_filter() const = 0;
+		virtual ip_filter& get_ip_filter() = 0;
 		virtual port_filter const& get_port_filter() const = 0;
 
 		virtual boost::int64_t session_time() const = 0;

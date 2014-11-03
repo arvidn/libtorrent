@@ -328,7 +328,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 	if (ret_ent == 0)
 	{
 		// it may be an error
-		ret_ent = m.message.dict_find_dict("e");
+		ret_ent = m.message.dict_find("e");
 		o->timeout();
 		if (ret_ent == NULL)
 		{

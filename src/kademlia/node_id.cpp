@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random
+#include "libtorrent/hasher.hpp" // for hasher
 
 namespace libtorrent { namespace dht
 {
@@ -148,11 +149,34 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	return id;
 }
 
+static boost::uint32_t secret = 0;
+
 node_id generate_random_id()
 {
 	char r[20];
 	for (int i = 0; i < 20; ++i) r[i] = random() & 0xff;
-	return hasher(r, 20).final();
+	node_id ret = hasher(r, 20).final();
+
+	if (secret == 0) secret = (random() % 0xfffffffe) + 1;
+
+	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
+	// lets us verify whether a hash came from this function or not in the future.
+	hasher h((char*)&secret, 4);
+	h.update((char*)&ret[20-8], 4);
+	sha1_hash secret_hash = h.final();
+	memcpy(&ret[20-4], &secret_hash[0], 4);
+
+	return ret;
+}
+
+bool verify_random_id(node_id const& nid)
+{
+	if (secret == 0) return false;
+
+	hasher h((char*)&secret, 4);
+	h.update((char const*)&nid[20-8], 4);
+	sha1_hash secret_hash = h.final();
+	return memcmp(&nid[20-4], &secret_hash[0], 4) == 0;
 }
 
 // verifies whether a node-id matches the IP it's used from
