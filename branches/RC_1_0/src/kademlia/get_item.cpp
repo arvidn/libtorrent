@@ -216,6 +216,8 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 
 		void* ptr = m_node.m_rpc.allocate_observer();
 		if (ptr == 0) return;
+
+		// TODO: 3 we don't support CAS errors here! we need a custom observer
 		observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
 #if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
