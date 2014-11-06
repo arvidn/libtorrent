@@ -186,6 +186,9 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 		r->add_entry(node_id(0), *i, observer::flag_initial);
 	}
 	
+	// make us start as far away from our node ID as possible
+	r->trim_seed_nodes();
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(node) << "bootstrapping with " << count << " nodes";
 #endif
@@ -447,7 +450,7 @@ void node_impl::tick()
 	{
 		node_id target = m_id;
 		make_id_secret(target);
-		boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, target
+		boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target
 			, boost::bind(&nop)));
 		r->start();
 		m_last_self_refresh = now;
