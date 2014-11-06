@@ -225,6 +225,7 @@ get_out:
 		}
 
 get_out:
+		// TODO: 3 clean this up using destructors instead
 		if (prime) gcry_mpi_release(prime);
 		if (remote_key) gcry_mpi_release(remote_key);
 		if (secret) gcry_mpi_release(secret);
