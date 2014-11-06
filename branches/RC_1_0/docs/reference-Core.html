@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Core</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <link rel="stylesheet" type="text/css" href="rst.css" />
@@ -3174,24 +3174,30 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
 <strong>torrent_info</strong> (torrent_info const&amp; t, int flags = 0);
 <strong>torrent_info</strong> (std::string const&amp; filename, error_code&amp; ec, int flags = 0);
 </pre>
-<p>The constructor that takes an info-hash  will initialize the info-hash to the given value,
-but leave all other fields empty. This is used internally when downloading torrents without
-the metadata. The metadata will be created by libtorrent as soon as it has been downloaded
-from the swarm.</p>
-<p>The constructor that takes a <a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a> will create a <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object from the
-information found in the given torrent_file. The <a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a> represents a tree node in
-an bencoded file. To load an ordinary .torrent file
-into a <a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a>, use <a class="reference external" href="reference-Bencoding.html#lazy_bdecode()">lazy_bdecode()</a>.</p>
-<p>The version that takes a buffer pointer and a size will decode it as a .torrent file and
-initialize the <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object for you.</p>
-<p>The version that takes a filename will simply load the torrent file and decode it inside
-the constructor, for convenience. This might not be the most suitable for applications that
-want to be able to report detailed errors on what might go wrong.</p>
-<p>The overloads that takes an <tt class="docutils literal">error_code const&amp;</tt> never throws if an error occur, they
-will simply set the error code to describe what went wrong and not fully initialize the
-<a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object. The overloads that do not take the extra error_code parameter will
-always throw if an error occurs. These overloads are not available when building without
-exception support.</p>
+<p>The constructor that takes an info-hash  will initialize the info-hash
+to the given value, but leave all other fields empty. This is used
+internally when downloading torrents without the metadata. The
+metadata will be created by libtorrent as soon as it has been
+downloaded from the swarm.</p>
+<p>The constructor that takes a <a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a> will create a <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a>
+object from the information found in the given torrent_file. The
+<a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a> represents a tree node in an bencoded file. To load an
+ordinary .torrent file into a <a class="reference external" href="reference-Bencoding.html#lazy_entry">lazy_entry</a>, use <a class="reference external" href="reference-Bencoding.html#lazy_bdecode()">lazy_bdecode()</a>.</p>
+<p>The version that takes a buffer pointer and a size will decode it as a
+.torrent file and initialize the <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object for you.</p>
+<p>The version that takes a filename will simply load the torrent file
+and decode it inside the constructor, for convenience. This might not
+be the most suitable for applications that want to be able to report
+detailed errors on what might go wrong.</p>
+<p>There is an upper limit on the size of the torrent file that will be
+loaded by the overload taking a filename. If it's important that even
+very large torrent files are loaded, use one of the other overloads.</p>
+<p>The overloads that takes an <tt class="docutils literal">error_code const&amp;</tt> never throws if an
+error occur, they will simply set the error code to describe what went
+wrong and not fully initialize the <a class="reference external" href="reference-Core.html#torrent_info">torrent_info</a> object. The overloads
+that do not take the extra error_code parameter will always throw if
+an error occurs. These overloads are not available when building
+without exception support.</p>
 <p>The <tt class="docutils literal">flags</tt> argument is currently unused.</p>
 <a name="~torrent_info()"></a></div>
 <div class="section" id="id157">

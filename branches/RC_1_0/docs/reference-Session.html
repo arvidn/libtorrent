@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <link rel="stylesheet" type="text/css" href="rst.css" />
@@ -1062,7 +1062,7 @@ void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
       , boost::uint64_t&amp;, std::string const&amp;)&gt; cb
       , std::string salt = std::string());
 </pre>
-<p>store an immutable item. The <tt class="docutils literal">key</tt> is the public key the blob is
+<p>store a mutable item. The <tt class="docutils literal">key</tt> is the public key the blob is
 to be stored under. The optional <tt class="docutils literal">salt</tt> argument is a string that
 is to be mixed in with the key when determining where in the DHT
 the value is to be stored. The callback function is called from within
@@ -1704,7 +1704,6 @@ struct dht_routing_bucket
 {
    int num_nodes;
    int num_replacements;
-   int last_active;
 };
 </pre>
 <a name="num_nodes"></a>
@@ -1712,10 +1711,6 @@ struct dht_routing_bucket
 <dt>num_nodes  num_replacements</dt>
 <dd>the total number of nodes and replacement nodes
 in the routing table</dd>
-</dl>
-<a name="last_active"></a><dl class="docutils">
-<dt>last_active</dt>
-<dd>number of seconds since last activity</dd>
 </dl>
 <a name="utp_status"></a></div>
 <div class="section" id="utp-status">
