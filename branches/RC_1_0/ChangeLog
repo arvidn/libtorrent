@@ -89,6 +89,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix bug in error handling in protocol encryption
+
 0.16.18 release
 
 	* fix uninitialized values in DHT DOS mitigation
