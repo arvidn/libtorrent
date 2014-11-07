@@ -1274,7 +1274,7 @@ namespace libtorrent
 		{
 			// if the peer is not in parole mode, clear the queued
 			// up block requests
-			if (!t->is_seed())
+			if (t->has_picker())
 			{
 				piece_picker& p = t->picker();
 				for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()

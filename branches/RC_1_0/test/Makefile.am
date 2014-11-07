@@ -29,6 +29,7 @@ test_programs = \
   test_magnet                \
   test_packet_buffer         \
   test_read_piece            \
+  test_resume                \
   test_rss                   \
   test_ssl                   \
   test_storage               \
