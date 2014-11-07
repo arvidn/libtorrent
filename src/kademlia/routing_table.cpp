@@ -86,7 +86,8 @@ int routing_table::bucket_limit(int bucket) const
 
 void routing_table::status(session_status& s) const
 {
-	boost::tie(s.dht_nodes, s.dht_node_cache) = size();
+	int ignore;
+	boost::tie(s.dht_nodes, s.dht_node_cache, ignore) = size();
 	s.dht_global_nodes = num_global_nodes();
 
 	for (table_t::const_iterator i = m_buckets.begin()
@@ -102,17 +103,24 @@ void routing_table::status(session_status& s) const
 	}
 }
 
-boost::tuple<int, int> routing_table::size() const
+boost::tuple<int, int, int> routing_table::size() const
 {
 	int nodes = 0;
 	int replacements = 0;
+	int confirmed = 0;
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
 		nodes += i->live_nodes.size();
+		for (bucket_t::const_iterator k = i->live_nodes.begin()
+			, end(i->live_nodes.end()); k != end; ++k)
+		{
+			if (k->confirmed()) ++confirmed;
+		}
+
 		replacements += i->replacements.size();
 	}
-	return boost::make_tuple(nodes, replacements);
+	return boost::make_tuple(nodes, replacements, confirmed);
 }
 
 size_type routing_table::num_global_nodes() const

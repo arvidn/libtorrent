@@ -153,7 +153,11 @@ public:
 
 	int bucket_size() const { return m_bucket_size; }
 
-	boost::tuple<int, int> size() const;
+	// returns the number of nodes in the main buckets, number of nodes in the
+	// replacement buckets and the number of nodes in the main buckets that have
+	// been pinged and confirmed up
+	boost::tuple<int, int, int> size() const;
+
 	size_type num_global_nodes() const;
 
 	// the number of bits down we have full buckets
