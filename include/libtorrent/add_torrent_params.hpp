@@ -147,15 +147,16 @@ namespace libtorrent
 			// in there will override the seed mode you set here.
 			flag_seed_mode = 0x001,
 
-			// If ``flag_override_resume_data`` is set, the ``paused``,
-			// ``auto_managed`` and ``save_path`` of the torrent are not loaded
-			// from the resume data, but the states requested by the flags in
-			// ``add_torrent_params`` will override them.
-			//
-			// If you pass in resume data, the paused state of the torrent when
-			// the resume data was saved will override the paused state you pass
-			// in here. You can override this by setting
-			// ``flag_override_resume_data``.
+			// If ``flag_override_resume_data`` is set, flags set for this torrent
+			// in this ``add_torrent_params`` object will take precedence over
+			// whatever states are saved in the resume data. For instance, the
+			// ``paused``, ``auto_managed``, ``sequential_download``, ``seed_mode``,
+			// ``super_seeding``, ``max_uploads``, ``max_connections``,
+			// ``upload_limit`` and ``download_limit`` are all affected by this
+			// flag. The intention of this flag is to have any field in
+			// add_torrent_params configuring the torrent override the corresponding
+			// configuration from the resume file, with the one exception of save
+			// resume data, which has its own flag (for historic reasons).
 			flag_override_resume_data = 0x002,
 
 			// If ``flag_upload_mode`` is set, the torrent will be initialized in

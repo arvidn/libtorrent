@@ -669,29 +669,24 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		debug_log("starting torrent");
 #endif
-		TORRENT_ASSERT(!m_picker);
-
 		if (!m_seed_mode)
-		{
-			m_picker.reset(new piece_picker());
 			std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
 
-			if (!m_resume_data.empty())
+		if (!m_resume_data.empty())
+		{
+			int pos;
+			error_code ec;
+			if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
+				+ m_resume_data.size(), m_resume_entry, ec, &pos) != 0)
 			{
-				int pos;
-				error_code ec;
-				if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
-					+ m_resume_data.size(), m_resume_entry, ec, &pos) != 0)
-				{
-					std::vector<char>().swap(m_resume_data);
-					lazy_entry().swap(m_resume_entry);
+				std::vector<char>().swap(m_resume_data);
+				lazy_entry().swap(m_resume_entry);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-					debug_log("resume data rejected: %s pos: %d", ec.message().c_str(), pos);
+				debug_log("resume data rejected: %s pos: %d", ec.message().c_str(), pos);
 #endif
-					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
-					{
-						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
-					}
+				if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
+				{
+					m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
 				}
 			}
 		}
@@ -1495,75 +1490,6 @@ namespace libtorrent
 			return;
 		}
 
-		// Chicken-and-egg: need to load resume data to get last save_path
-		// before constructing m_owning_storage, but need storage before
-		// loading resume data. So peek ahead in this case.
-		// only do this if the user is willing to have the resume data
-		// settings override the settings set in add_torrent_params
-		if (m_use_resume_save_path && m_resume_entry.type() == lazy_entry::dict_t)
-		{
-			std::string p = m_resume_entry.dict_find_string_value("save_path");
-			if (!p.empty()) m_save_path = p;
-		}
-
-		// the shared_from_this() will create an intentional
-		// cycle of ownership, se the hpp file for description.
-		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
-			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
-			, (storage_mode_t)m_storage_mode, m_file_priority);
-		m_storage = m_owning_storage.get();
-
-		if (has_picker())
-		{
-			int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
-			int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
-				+ block_size() - 1) / block_size();
-			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
-		}
-
-		if (m_share_mode)
-		{
-			// in share mode, all pieces have their priorities initialized to 0
-			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
-		}
-
-		if (!m_connections_initialized)
-		{
-			m_connections_initialized = true;
-			// all peer connections have to initialize themselves now that the metadata
-			// is available
-			for (torrent::peer_iterator i = m_connections.begin();
-				i != m_connections.end();)
-			{
-				peer_connection* pc = *i;
-				++i;
-				if (pc->is_disconnecting()) continue;
-				pc->on_metadata_impl();
-				if (pc->is_disconnecting()) continue;
-				pc->init();
-			}
-		}
-
-		// in case file priorities were passed in via the add_torrent_params
-		// and also in the case of share mode, we need to update the priorities
-		update_piece_priorities();
-
-		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
-		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
-
-		if (m_seed_mode)
-		{
-			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
-			std::vector<char>().swap(m_resume_data);
-			lazy_entry().swap(m_resume_entry);
-#if TORRENT_USE_ASSERTS
-			m_resume_data_loaded = true;
-#endif
-			return;
-		}
-
-		set_state(torrent_status::checking_resume_data);
-
 		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
 			int ev = 0;
@@ -1597,10 +1523,87 @@ namespace libtorrent
 				read_resume_data(m_resume_entry);
 			}
 		}
+
+		// the shared_from_this() will create an intentional
+		// cycle of ownership, se the hpp file for description.
+		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
+			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
+			, (storage_mode_t)m_storage_mode, m_file_priority);
+		m_storage = m_owning_storage.get();
+
+		if (!m_seed_mode)
+		{
+			TORRENT_ASSERT(!m_picker);
+
+			m_picker.reset(new piece_picker());
+
+			int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
+			int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
+				+ block_size() - 1) / block_size();
+			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
+
+			// this resume data reqires the piece picker to have been constructed
+			// that's why it's done later
+			if (m_resume_entry.type() == lazy_entry::dict_t)
+			{
+				lazy_entry const* piece_priority = m_resume_entry.dict_find_string("piece_priority");
+				if (piece_priority && piece_priority->string_length()
+					== m_torrent_file->num_pieces())
+				{
+					char const* p = piece_priority->string_ptr();
+					for (int i = 0; i < piece_priority->string_length(); ++i)
+						m_picker->set_piece_priority(i, p[i]);
+					m_policy.recalculate_connect_candidates();
+				}
+			}
+		}
+
+		if (m_share_mode)
+		{
+			// in share mode, all pieces have their priorities initialized to 0
+			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
+		}
+
+		if (!m_connections_initialized)
+		{
+			m_connections_initialized = true;
+			// all peer connections have to initialize themselves now that the metadata
+			// is available
+			for (torrent::peer_iterator i = m_connections.begin();
+				i != m_connections.end();)
+			{
+				peer_connection* pc = *i;
+				++i;
+				if (pc->is_disconnecting()) continue;
+				pc->on_metadata_impl();
+				if (pc->is_disconnecting()) continue;
+				pc->init();
+			}
+		}
+
+		// in case file priorities were passed in via the add_torrent_params
+		// and also in the case of share mode, we need to update the priorities
+		update_piece_priorities();
+
+		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
+		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
+
+		set_state(torrent_status::checking_resume_data);
 	
 #if TORRENT_USE_ASSERTS
 		m_resume_data_loaded = true;
 #endif
+
+		if (m_seed_mode)
+		{
+			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
+			std::vector<char>().swap(m_resume_data);
+			lazy_entry().swap(m_resume_entry);
+#if TORRENT_USE_ASSERTS
+			m_resume_data_loaded = true;
+#endif
+			return;
+		}
 
 		int num_pad_files = 0;
 		TORRENT_ASSERT(block_size() > 0);
@@ -5196,13 +5199,51 @@ namespace libtorrent
 		m_complete = rd.dict_find_int_value("num_complete", 0xffffff);
 		m_incomplete = rd.dict_find_int_value("num_incomplete", 0xffffff);
 		m_downloaded = rd.dict_find_int_value("num_downloaded", 0xffffff);
-		set_upload_limit(rd.dict_find_int_value("upload_rate_limit", -1));
-		set_download_limit(rd.dict_find_int_value("download_rate_limit", -1));
-		set_max_connections(rd.dict_find_int_value("max_connections", -1));
-		set_max_uploads(rd.dict_find_int_value("max_uploads", -1));
-		m_seed_mode = rd.dict_find_int_value("seed_mode", 0) && m_torrent_file->is_valid();
-		if (m_seed_mode) m_verified.resize(m_torrent_file->num_pieces(), false);
-		super_seeding(rd.dict_find_int_value("super_seeding", 0));
+
+		if (!m_override_resume_data)
+		{
+			int up_limit_ = rd.dict_find_int_value("upload_rate_limit", -1);
+			if (up_limit_ != -1) set_upload_limit(up_limit_);
+
+			int down_limit_ = rd.dict_find_int_value("download_rate_limit", -1);
+			if (down_limit_ != -1) set_download_limit(down_limit_);
+
+			int max_connections_ = rd.dict_find_int_value("max_connections", -1);
+			if (max_connections_ != -1) set_max_connections(max_connections_);
+
+			int max_uploads_ = rd.dict_find_int_value("max_uploads", -1);
+			if (max_uploads_ != -1) set_max_uploads(max_uploads_);
+
+			int seed_mode_ = rd.dict_find_int_value("seed_mode", -1);
+			if (seed_mode_ != -1) m_seed_mode = seed_mode_ && m_torrent_file->is_valid();
+
+			int super_seeding_ = rd.dict_find_int_value("super_seeding", -1);
+			if (super_seeding_ != -1) m_super_seeding = super_seeding_;
+
+			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
+			if (auto_managed_ != -1) m_auto_managed = auto_managed_;
+
+			int sequential_ = rd.dict_find_int_value("sequential_download", -1);
+			if (sequential_ != -1) set_sequential_download(sequential_);
+
+			int paused_ = rd.dict_find_int_value("paused", -1);
+			if (paused_ != -1)
+			{
+				set_allow_peers(!paused_);
+				m_announce_to_dht = !paused_;
+				m_announce_to_trackers = !paused_;
+				m_announce_to_lsd = !paused_;
+			}
+			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
+			if (dht_ != -1) m_announce_to_dht = dht_;
+			int lsd_ = rd.dict_find_int_value("announce_to_lsd", -1);
+			if (lsd_ != -1) m_announce_to_lsd = lsd_;
+			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
+			if (track_ != -1) m_announce_to_trackers = track_;
+		}
+
+		if (m_seed_mode)
+			m_verified.resize(m_torrent_file->num_pieces(), false);
 
 		m_last_scrape = rd.dict_find_int_value("last_scrape", 0);
 		m_last_download = rd.dict_find_int_value("last_download", 0);
@@ -5249,50 +5290,16 @@ namespace libtorrent
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
-		if (file_priority && file_priority->list_size()
-			== m_torrent_file->num_files())
+		if (!m_seed_mode && !m_override_resume_data)
 		{
-			for (int i = 0; i < file_priority->list_size(); ++i)
-				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
-			update_piece_priorities();
-		}
-
-		lazy_entry const* piece_priority = rd.dict_find_string("piece_priority");
-		if (piece_priority && piece_priority->string_length()
-			== m_torrent_file->num_pieces())
-		{
-			char const* p = piece_priority->string_ptr();
-			for (int i = 0; i < piece_priority->string_length(); ++i)
-				m_picker->set_piece_priority(i, p[i]);
-			m_policy.recalculate_connect_candidates();
-		}
-
-		if (!m_override_resume_data)
-		{
-			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
-			if (auto_managed_ != -1) m_auto_managed = auto_managed_;
-		}
-
-		int sequential_ = rd.dict_find_int_value("sequential_download", -1);
-		if (sequential_ != -1) set_sequential_download(sequential_);
-
-		if (!m_override_resume_data)
-		{
-			int paused_ = rd.dict_find_int_value("paused", -1);
-			if (paused_ != -1)
+			lazy_entry const* file_priority = rd.dict_find_list("file_priority");
+			if (file_priority && file_priority->list_size()
+				== m_torrent_file->num_files())
 			{
-				set_allow_peers(!paused_);
-				m_announce_to_dht = !paused_;
-				m_announce_to_trackers = !paused_;
-				m_announce_to_lsd = !paused_;
+				for (int i = 0; i < file_priority->list_size(); ++i)
+					m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+				update_piece_priorities();
 			}
-			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
-			if (dht_ != -1) m_announce_to_dht = dht_;
-			int lsd_ = rd.dict_find_int_value("announce_to_lsd", -1);
-			if (lsd_ != -1) m_announce_to_lsd = lsd_;
-			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
-			if (track_ != -1) m_announce_to_trackers = track_;
 		}
 
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
@@ -5536,7 +5543,7 @@ namespace libtorrent
 		{
 			std::memset(&pieces[0], 1, pieces.size());
 		}
-		else
+		else if (has_picker())
 		{
 			for (int i = 0, end(pieces.size()); i < end; ++i)
 				pieces[i] = m_picker->have_piece(i) ? 1 : 0;
@@ -5657,7 +5664,7 @@ namespace libtorrent
 		{
 			std::memset(&piece_priority[0], 1, pieces.size());
 		}
-		else
+		else if (has_picker())
 		{
 			for (int i = 0, end(piece_priority.size()); i < end; ++i)
 				piece_priority[i] = m_picker->piece_priority(i);
