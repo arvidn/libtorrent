@@ -620,11 +620,15 @@ int test_main()
 	// ====== test node ID testing =====
 
 	{
-		node_id rnd = generate_random_id();
-		TEST_CHECK(verify_random_id(rnd));
+		node_id rnd = generate_secret_id();
+		TEST_CHECK(verify_secret_id(rnd));
 
 		rnd[19] ^= 0x55;
-		TEST_CHECK(!verify_random_id(rnd));
+		TEST_CHECK(!verify_secret_id(rnd));
+
+		rnd = generate_random_id();
+		make_id_secret(rnd);
+		TEST_CHECK(verify_secret_id(rnd));
 	}
 
 	// ====== test node ID enforcement ======

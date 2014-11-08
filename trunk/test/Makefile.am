@@ -37,6 +37,7 @@ test_programs = \
   test_packet_buffer         \
   test_settings_pack         \
   test_read_piece            \
+  test_resume                \
   test_rss                   \
   test_ssl                   \
   test_storage               \

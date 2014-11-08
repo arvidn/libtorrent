@@ -1756,7 +1756,7 @@ int main(int argc, char* argv[])
 					, "%3d [%3d, %d] %s%s\n"
 					, bucket, i->num_nodes, i->num_replacements
 					, progress_bar + (128 - i->num_nodes)
-					, "--------" + (8 - i->num_replacements));
+					, "--------" + (8 - (std::min)(8, i->num_replacements)));
 				out += str;
 			}
 

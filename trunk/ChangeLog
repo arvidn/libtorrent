@@ -35,6 +35,9 @@
 
 1.0.3 release
 
+	* tweak flag_override_resume_data semantics to make more sense (breaks
+	  backwards compatibility of edge-cases)
+	* improve DHT bootstrapping and periodic refresh
 	* improve DHT maintanence performance (by pinging instead of full lookups)
 	* fix bug in DHT routing table node-id prefix optimization
 	* fix incorrect behavior of flag_use_resume_save_path
@@ -122,6 +125,8 @@
 	  with more files
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
+
+	* fix bug in error handling in protocol encryption
 
 0.16.18 release
 

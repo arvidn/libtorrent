@@ -92,6 +92,15 @@ bootstrap::bootstrap(
 
 char const* bootstrap::name() const { return "bootstrap"; }
 
+void bootstrap::trim_seed_nodes()
+{
+	// when we're bootstrapping, we want to start as far away from our ID as
+	// possible, to cover as much as possible of the ID space. So, remove all
+	// nodes except for the 32 that are farthest away from us
+	if (m_results.size() > 32)
+		m_results.erase(m_results.begin(), m_results.end() - 32);
+}
+
 void bootstrap::done()
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING

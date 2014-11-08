@@ -223,16 +223,16 @@ namespace libtorrent
 		, m_deleted(false)
 		, m_pinned(p.flags & add_torrent_params::flag_pinned)
 		, m_should_be_loaded(true)
-		, m_last_download(0)
+		, m_last_download(INT16_MIN)
 		, m_num_seeds(0)
-		, m_last_upload(0)
+		, m_last_upload(INT16_MIN)
 		, m_storage_tick(0)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
 		, m_downloaded(0xffffff)
-		, m_last_scrape(0)
+		, m_last_scrape(INT16_MIN)
 		, m_progress_ppm(0)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
@@ -739,26 +739,21 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		debug_log("starting torrent");
 #endif
-		TORRENT_ASSERT(!m_picker);
+		std::vector<boost::uint64_t>().swap(m_file_progress);
 
-		if (!m_seed_mode)
+		if (m_resume_data)
 		{
-			std::vector<boost::uint64_t>().swap(m_file_progress);
-
-			if (m_resume_data)
-			{
-				int pos;
-				error_code ec;
-				if (lazy_bdecode(&m_resume_data->buf[0], &m_resume_data->buf[0]
+			int pos;
+			error_code ec;
+			if (lazy_bdecode(&m_resume_data->buf[0], &m_resume_data->buf[0]
 					+ m_resume_data->buf.size(), m_resume_data->entry, ec, &pos) != 0)
-				{
-					m_resume_data.reset();
+			{
+				m_resume_data.reset();
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-					debug_log("resume data rejected: %s pos: %d", ec.message().c_str(), pos);
+				debug_log("resume data rejected: %s pos: %d", ec.message().c_str(), pos);
 #endif
-					if (m_ses.alerts().should_post<fastresume_rejected_alert>())
-						m_ses.alerts().post_alert(fastresume_rejected_alert(get_handle(), ec, "", 0));
-				}
+				if (m_ses.alerts().should_post<fastresume_rejected_alert>())
+					m_ses.alerts().post_alert(fastresume_rejected_alert(get_handle(), ec, "", 0));
 			}
 		}
 
@@ -1726,68 +1721,6 @@ namespace libtorrent
 			return;
 		}
 
-		// Chicken-and-egg: need to load resume data to get last save_path
-		// before constructing m_owning_storage, but need storage before
-		// loading resume data. So peek ahead in this case.
-		// only do this if the user is willing to have the resume data
-		// settings override the settings set in add_torrent_params
-		if (m_use_resume_save_path
-			&& m_resume_data
-			&& m_resume_data->entry.type() == lazy_entry::dict_t)
-		{
-			std::string p = m_resume_data->entry.dict_find_string_value("save_path");
-			if (!p.empty()) m_save_path = p;
-		}
-
-		construct_storage();
-
-		if (m_share_mode && valid_metadata())
-		{
-			// in share mode, all pieces have their priorities initialized to 0
-			m_file_priority.clear();
-			m_file_priority.resize(m_torrent_file->num_files(), 0);
-		}
-
-		if (!m_connections_initialized)
-		{
-			m_connections_initialized = true;
-			// all peer connections have to initialize themselves now that the metadata
-			// is available
-			// copy the peer list since peers may disconnect and invalidate
-			// m_connections as we initialize them
-			std::vector<peer_connection*> peers = m_connections;
-			for (torrent::peer_iterator i = peers.begin();
-				i != peers.end(); ++i)
-			{
-				peer_connection* pc = *i;
-				if (pc->is_disconnecting()) continue;
-				pc->on_metadata_impl();
-				if (pc->is_disconnecting()) continue;
-				pc->init();
-			}
-		}
-
-		// in case file priorities were passed in via the add_torrent_params
-		// and also in the case of share mode, we need to update the priorities
-		update_piece_priorities();
-
-		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
-		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
-
-		if (m_seed_mode)
-		{
-			m_have_all = true;
-			m_ses.get_io_service().post(boost::bind(&torrent::files_checked, shared_from_this()));
-			m_resume_data.reset();
-#if TORRENT_USE_ASSERTS
-			m_resume_data_loaded = true;
-#endif
-			update_gauge();
-			return;
-		}
-
-		set_state(torrent_status::checking_resume_data);
-
 		if (m_resume_data && m_resume_data->entry.type() == lazy_entry::dict_t)
 		{
 			int ev = 0;
@@ -1824,6 +1757,76 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		m_resume_data_loaded = true;
 #endif
+
+		construct_storage();
+
+		if (!m_seed_mode && m_resume_data)
+		{
+			lazy_entry const* piece_priority = m_resume_data->entry.dict_find_string("piece_priority");
+			if (piece_priority && piece_priority->string_length()
+				== m_torrent_file->num_pieces())
+			{
+				char const* p = piece_priority->string_ptr();
+				for (int i = 0; i < piece_priority->string_length(); ++i)
+				{
+					int prio = p[i];
+					if (!has_picker() && prio == 1) continue;
+					need_picker();
+					m_picker->set_piece_priority(i, p[i]);
+					update_gauge();
+				}
+			}
+		}
+
+		if (m_share_mode && valid_metadata())
+		{
+			// in share mode, all pieces have their priorities initialized to 0
+			m_file_priority.clear();
+			m_file_priority.resize(m_torrent_file->num_files(), 0);
+		}
+
+		if (!m_connections_initialized)
+		{
+			m_connections_initialized = true;
+			// all peer connections have to initialize themselves now that the metadata
+			// is available
+			// copy the peer list since peers may disconnect and invalidate
+			// m_connections as we initialize them
+			std::vector<peer_connection*> peers = m_connections;
+			for (torrent::peer_iterator i = peers.begin();
+				i != peers.end(); ++i)
+			{
+				peer_connection* pc = *i;
+				if (pc->is_disconnecting()) continue;
+				pc->on_metadata_impl();
+				if (pc->is_disconnecting()) continue;
+				pc->init();
+			}
+		}
+
+		// in case file priorities were passed in via the add_torrent_params
+		// and also in the case of share mode, we need to update the priorities
+		update_piece_priorities();
+
+		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
+		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
+
+		set_state(torrent_status::checking_resume_data);
+	
+#if TORRENT_USE_ASSERTS
+		m_resume_data_loaded = true;
+#endif
+
+		if (m_seed_mode)
+		{
+			m_have_all = true;
+			m_ses.get_io_service().post(boost::bind(&torrent::files_checked, shared_from_this()));
+			m_resume_data.reset();
+			update_gauge();
+			return;
+		}
+
+		set_state(torrent_status::checking_resume_data);
 
 		int num_pad_files = 0;
 		TORRENT_ASSERT(block_size() > 0);
@@ -6505,17 +6508,63 @@ namespace libtorrent
 		m_complete = rd.dict_find_int_value("num_complete", 0xffffff);
 		m_incomplete = rd.dict_find_int_value("num_incomplete", 0xffffff);
 		m_downloaded = rd.dict_find_int_value("num_downloaded", 0xffffff);
-		set_upload_limit(rd.dict_find_int_value("upload_rate_limit", -1));
-		set_download_limit(rd.dict_find_int_value("download_rate_limit", -1));
-		set_max_connections(rd.dict_find_int_value("max_connections", -1));
-		set_max_uploads(rd.dict_find_int_value("max_uploads", -1));
-		m_seed_mode = rd.dict_find_int_value("seed_mode", 0) && m_torrent_file->is_valid();
-		if (m_seed_mode)
+
+		if (!m_override_resume_data)
 		{
-			m_verified.resize(m_torrent_file->num_pieces(), false);
-			m_verifying.resize(m_torrent_file->num_pieces(), false);
+			int up_limit_ = rd.dict_find_int_value("upload_rate_limit", -1);
+			if (up_limit_ != -1) set_upload_limit(up_limit_);
+
+			int down_limit_ = rd.dict_find_int_value("download_rate_limit", -1);
+			if (down_limit_ != -1) set_download_limit(down_limit_);
+
+			int max_connections_ = rd.dict_find_int_value("max_connections", -1);
+			if (max_connections_ != -1) set_max_connections(max_connections_);
+
+			int max_uploads_ = rd.dict_find_int_value("max_uploads", -1);
+			if (max_uploads_ != -1) set_max_uploads(max_uploads_);
+
+			int seed_mode_ = rd.dict_find_int_value("seed_mode", -1);
+			if (seed_mode_ != -1) m_seed_mode = seed_mode_ && m_torrent_file->is_valid();
+
+			int super_seeding_ = rd.dict_find_int_value("super_seeding", -1);
+			if (super_seeding_ != -1) super_seeding(super_seeding_);
+
+			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
+			if (auto_managed_ != -1) m_auto_managed = auto_managed_;
+
+			int sequential_ = rd.dict_find_int_value("sequential_download", -1);
+			if (sequential_ != -1) set_sequential_download(sequential_);
+
+			int paused_ = rd.dict_find_int_value("paused", -1);
+			if (paused_ != -1)
+			{
+				set_allow_peers(!paused_);
+				m_announce_to_dht = !paused_;
+				m_announce_to_trackers = !paused_;
+				m_announce_to_lsd = !paused_;
+
+				update_gauge();
+				update_want_peers();
+				update_want_scrape();
+			}
+			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
+			if (dht_ != -1) m_announce_to_dht = dht_;
+			int lsd_ = rd.dict_find_int_value("announce_to_lsd", -1);
+			if (lsd_ != -1) m_announce_to_lsd = lsd_;
+			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
+			if (track_ != -1) m_announce_to_trackers = track_;
 		}
-		super_seeding(rd.dict_find_int_value("super_seeding", 0));
+
+		if (m_seed_mode)
+			m_verified.resize(m_torrent_file->num_pieces(), false);
+
+		int now = m_ses.session_time();
+		int tmp = rd.dict_find_int_value("last_scrape", -1);
+		m_last_scrape = tmp == -1 ? INT16_MIN : now - tmp;
+		tmp = rd.dict_find_int_value("last_download", -1);
+		m_last_download = tmp == -1 ? INT16_MIN : now - tmp;
+		tmp = rd.dict_find_int_value("last_upload", -1);
+		m_last_upload = tmp == -1 ? INT16_MIN : now - tmp;
 
 		if (m_use_resume_save_path)
 		{
@@ -6557,77 +6606,32 @@ namespace libtorrent
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
-		if (file_priority && file_priority->list_size()
-			== m_torrent_file->num_files())
+		if (!m_seed_mode && !m_override_resume_data)
 		{
-			int num_files = m_torrent_file->num_files();
-			m_file_priority.resize(num_files);
-			for (int i = 0; i < num_files; ++i)
-				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
-			// unallocated slots are assumed to be priority 1, so cut off any
-			// trailing ones
-			int end_range = num_files - 1;
-			for (; end_range >= 0; --end_range) if (m_file_priority[end_range] != 1) break;
-			m_file_priority.resize(end_range + 1);
-
-			// initialize pad files to priority 0
-			file_storage const& fs = m_torrent_file->files();
-			for (int i = 0; i < (std::min)(fs.num_files(), end_range + 1); ++i)
+			lazy_entry const* file_priority = rd.dict_find_list("file_priority");
+			if (file_priority && file_priority->list_size()
+				== m_torrent_file->num_files())
 			{
-				if (!fs.pad_file_at(i)) continue;
-				m_file_priority[i] = 0;
+				int num_files = m_torrent_file->num_files();
+				m_file_priority.resize(num_files);
+				for (int i = 0; i < num_files; ++i)
+					m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+				// unallocated slots are assumed to be priority 1, so cut off any
+				// trailing ones
+				int end_range = num_files - 1;
+				for (; end_range >= 0; --end_range) if (m_file_priority[end_range] != 1) break;
+				m_file_priority.resize(end_range + 1);
+         
+				// initialize pad files to priority 0
+				file_storage const& fs = m_torrent_file->files();
+				for (int i = 0; i < (std::min)(fs.num_files(), end_range + 1); ++i)
+				{
+					if (!fs.pad_file_at(i)) continue;
+					m_file_priority[i] = 0;
+				}
 			}
 
 			update_piece_priorities();
-		}
-
-		lazy_entry const* piece_priority = rd.dict_find_string("piece_priority");
-		if (piece_priority && piece_priority->string_length()
-			== m_torrent_file->num_pieces())
-		{
-			char const* p = piece_priority->string_ptr();
-			for (int i = 0; i < piece_priority->string_length(); ++i)
-			{
-				int prio = p[i];
-				if (!has_picker() && prio == 1) continue;
-				need_picker();
-				m_picker->set_piece_priority(i, p[i]);
-				update_gauge();
-			}
-		}
-
-		if (!m_override_resume_data)
-		{
-			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
-			if (auto_managed_ != -1) m_auto_managed = auto_managed_;
-			update_gauge();
-		}
-
-		int sequential_ = rd.dict_find_int_value("sequential_download", -1);
-		if (sequential_ != -1) set_sequential_download(sequential_);
-
-		if (!m_override_resume_data)
-		{
-			int paused_ = rd.dict_find_int_value("paused", -1);
-			if (paused_ != -1)
-			{
-				set_allow_peers(!paused_);
-
-				m_announce_to_dht = !paused_;
-				m_announce_to_trackers = !paused_;
-				m_announce_to_lsd = !paused_;
-
-				update_gauge();
-				update_want_peers();
-				update_want_scrape();
-			}
-			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
-			if (dht_ != -1) m_announce_to_dht = dht_;
-			int lsd_ = rd.dict_find_int_value("announce_to_lsd", -1);
-			if (lsd_ != -1) m_announce_to_lsd = lsd_;
-			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
-			if (track_ != -1) m_announce_to_trackers = track_;
 		}
 
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
@@ -6873,7 +6877,7 @@ namespace libtorrent
 		{
 			std::memset(&pieces[0], m_have_all, pieces.size());
 		}
-		else
+		else if (has_picker())
 		{
 			for (int i = 0, end(pieces.size()); i < end; ++i)
 				pieces[i] = m_picker->have_piece(i) ? 1 : 0;
@@ -11191,8 +11195,8 @@ namespace libtorrent
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
-		st->last_scrape = m_last_scrape == 0 ? -1
-			: m_ses.session_time() - m_last_scrape;
+		st->last_scrape = m_last_scrape == INT16_MIN ? -1
+			: clamped_subtract(m_ses.session_time(), m_last_scrape);
 
 		st->share_mode = m_share_mode;
 		st->upload_mode = m_upload_mode;
@@ -11223,10 +11227,10 @@ namespace libtorrent
 		st->finished_time = finished_time();
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
-		st->time_since_upload = m_last_upload == 0 ? -1
-			: m_ses.session_time() - m_last_upload;
-		st->time_since_download = m_last_download == 0 ? -1
-			: m_ses.session_time() - m_last_download;
+		st->time_since_upload = m_last_upload == INT16_MIN ? -1
+			: clamped_subtract(m_ses.session_time(), m_last_upload);
+		st->time_since_download = m_last_download == INT16_MIN ? -1
+			: clamped_subtract(m_ses.session_time(), m_last_download);
 
 		st->storage_mode = (storage_mode_t)m_storage_mode;
 

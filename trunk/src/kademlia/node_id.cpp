@@ -151,25 +151,36 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 
 static boost::uint32_t secret = 0;
 
-node_id generate_random_id()
+void make_id_secret(node_id& in)
 {
-	char r[20];
-	for (int i = 0; i < 20; ++i) r[i] = random() & 0xff;
-	node_id ret = hasher(r, 20).final();
-
 	if (secret == 0) secret = (random() % 0xfffffffe) + 1;
+
+	boost::uint32_t rand = random();
 
 	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
 	// lets us verify whether a hash came from this function or not in the future.
 	hasher h((char*)&secret, 4);
-	h.update((char*)&ret[20-8], 4);
+	h.update((char*)&rand, 4);
 	sha1_hash secret_hash = h.final();
-	memcpy(&ret[20-4], &secret_hash[0], 4);
+	memcpy(&in[20-4], &secret_hash[0], 4);
+	memcpy(&in[20-8], &rand, 4);
+}
 
+node_id generate_random_id()
+{
+	char r[20];
+	for (int i = 0; i < 20; ++i) r[i] = random() & 0xff;
+	return hasher(r, 20).final();
+}
+
+node_id generate_secret_id()
+{
+	node_id ret = generate_random_id();
+	make_id_secret(ret);
 	return ret;
 }
 
-bool verify_random_id(node_id const& nid)
+bool verify_secret_id(node_id const& nid)
 {
 	if (secret == 0) return false;
 

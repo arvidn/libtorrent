@@ -178,7 +178,10 @@ std::string node_impl::generate_token(udp::endpoint const& addr, char const* inf
 void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	, find_data::nodes_callback const& f)
 {
-	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, m_id, f));
+	node_id target = m_id;
+	make_id_secret(target);
+
+	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target, f));
 	m_last_self_refresh = time_now();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -194,6 +197,9 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 		r->add_entry(node_id(0), *i, observer::flag_initial);
 	}
 	
+	// make us start as far away from our node ID as possible
+	r->trim_seed_nodes();
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(node) << "bootstrapping with " << count << " nodes";
 #endif
@@ -454,7 +460,9 @@ void node_impl::tick()
 	ptime now = time_now();
 	if (m_last_self_refresh + minutes(10) < now)
 	{
-		boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, m_id
+		node_id target = m_id;
+		make_id_secret(target);
+		boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target
 			, boost::bind(&nop)));
 		r->start();
 		m_last_self_refresh = now;
@@ -478,7 +486,7 @@ void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
 	// TODO: 2 it would be nice to have a bias towards node-id prefixes that
 	// are missing in the bucket
 	node_id mask = generate_prefix_mask(bucket + 1);
-	node_id target = generate_random_id() & ~mask;
+	node_id target = generate_secret_id() & ~mask;
 	target |= m_id & mask;
 
 	// create a dummy traversal_algorithm		
