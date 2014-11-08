@@ -107,6 +107,11 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
+
+	TORRENT_EXTRA_EXPORT void initialize_file_progress(
+		std::vector<boost::uint64_t>& file_progress
+		, piece_picker const& picker, file_storage const& fs);
+
 	namespace aux
 	{
 		struct piece_checker_data;

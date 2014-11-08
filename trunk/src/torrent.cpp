@@ -10876,7 +10876,54 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::file_progress(std::vector<size_type>& fp, int flags)
+	void initialize_file_progress(std::vector<boost::uint64_t>& file_progress
+		, piece_picker const& picker, file_storage const& fs)
+	{
+		int num_pieces = fs.num_pieces();
+		int num_files = fs.num_files();
+
+		file_progress.resize(num_files, 0);
+
+		// initialize the progress of each file
+
+		const int piece_size = fs.piece_length();
+		boost::uint64_t off = 0;
+		boost::uint64_t total_size = fs.total_size();
+		int file_index = 0;
+		for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
+		{
+			TORRENT_ASSERT(file_index < fs.num_files());
+			size_type file_offset = off - fs.file_offset(file_index);
+			while (file_offset >= fs.file_size(file_index))
+			{
+				++file_index;
+				file_offset = off - fs.file_offset(file_index);
+			}
+			TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
+
+			if (!picker.have_piece(piece)) continue;
+
+			int size = (std::min)(boost::uint64_t(piece_size), total_size - off);
+
+			while (size)
+			{
+				int add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
+				file_progress[file_index] += add;
+
+				TORRENT_ASSERT(file_progress[file_index]
+					<= fs.file_size(file_index));
+
+				size -= add;
+				if (size >= 0)
+				{
+					++file_index;
+					file_offset = 0;
+				}
+			}
+		}
+	}
+
+	void torrent::file_progress(std::vector<boost::int64_t>& fp, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())
@@ -10889,7 +10936,7 @@ namespace libtorrent
 
 		// if we're a seed, we don't have an m_file_progress anyway
 		// since we don't need one. We know we have all files
-		if (is_seed())
+		if (is_seed() || !has_picker())
 		{
 			fp.resize(m_torrent_file->num_files());
 			file_storage const& fs = m_torrent_file->files();
@@ -10911,48 +10958,12 @@ namespace libtorrent
 		{
 			// This is the first time the client asks for file progress.
 			// allocate it and make sure it's up to date
-			m_file_progress.resize(num_files, 0);
 
-			int num_pieces = m_torrent_file->num_pieces();
+			// we cover the case where we're a seed above
+			TORRENT_ASSERT(has_picker());
 
-			// initialize the progress of each file
-
-			const int piece_size = m_torrent_file->piece_length();
-			boost::uint64_t off = 0;
-			boost::uint64_t total_size = m_torrent_file->total_size();
-			int file_index = 0;
-			file_storage const& fs = m_torrent_file->files();
-			for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
-			{
-				TORRENT_ASSERT(file_index < fs.num_files());
-				size_type file_offset = off - fs.file_offset(file_index);
-				if (file_offset >= fs.file_size(file_index))
-				{
-					++file_index;
-					continue;
-				}
-				TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
-
-				if (!have_piece(piece)) continue;
-
-				int size = (std::min)(boost::uint64_t(piece_size), total_size - off);
-
-				while (size)
-				{
-					int add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
-					m_file_progress[file_index] += add;
-
-					TORRENT_ASSERT(m_file_progress[file_index]
-						<= m_torrent_file->files().file_size(file_index));
-
-					size -= add;
-					if (size > 0)
-					{
-						++file_index;
-						file_offset = 0;
-					}
-				}
-			}
+			initialize_file_progress(m_file_progress
+				, picker(), m_torrent_file->files());
 		}
 
 		fp.resize(num_files, 0);
