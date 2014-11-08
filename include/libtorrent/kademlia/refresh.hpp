@@ -43,6 +43,8 @@ namespace libtorrent { namespace dht
 class routing_table;
 class rpc_manager;
 
+// TODO: 3 collapse this class into the bootstrap class (or maybe the other
+// way around)
 class refresh : public get_peers
 {
 public:
@@ -67,6 +69,8 @@ public:
 		, done_callback const& callback);
 
 	virtual char const* name() const;
+
+	void trim_seed_nodes();
 
 protected:
 

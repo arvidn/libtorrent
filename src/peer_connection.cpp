@@ -1223,9 +1223,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
-			if (dht::verify_random_id(ih))
+			if (dht::verify_secret_id(ih))
 			{
-				// this means the hash was generated from our generate_random_id()
+				// this means the hash was generated from our generate_secret_id()
 				// as part of DHT traffic. The fact that we got an incoming
 				// connection on this info-hash, means the other end, making this
 				// connection fished it out of the DHT chatter. That's suspicious.

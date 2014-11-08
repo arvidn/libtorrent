@@ -142,9 +142,9 @@ data for the torrent. For more information, see the <tt class="docutils literal"
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/add_torrent_params.hpp">libtorrent/add_torrent_params.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="42%" />
+<col width="41%" />
 <col width="5%" />
-<col width="53%" />
+<col width="54%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -172,15 +172,16 @@ in there will override the seed mode you set here.</p>
 </tr>
 <tr><td>flag_override_resume_data</td>
 <td>2</td>
-<td><p class="first">If <tt class="docutils literal">flag_override_resume_data</tt> is set, the <tt class="docutils literal">paused</tt>,
-<tt class="docutils literal">auto_managed</tt> and <tt class="docutils literal">save_path</tt> of the torrent are not loaded
-from the resume data, but the states requested by the flags in
-<tt class="docutils literal">add_torrent_params</tt> will override them.</p>
-<p class="last">If you pass in resume data, the paused state of the torrent when
-the resume data was saved will override the paused state you pass
-in here. You can override this by setting
-<tt class="docutils literal">flag_override_resume_data</tt>.</p>
-</td>
+<td>If <tt class="docutils literal">flag_override_resume_data</tt> is set, flags set for this torrent
+in this <tt class="docutils literal">add_torrent_params</tt> object will take precedence over
+whatever states are saved in the resume data. For instance, the
+<tt class="docutils literal">paused</tt>, <tt class="docutils literal">auto_managed</tt>, <tt class="docutils literal">sequential_download</tt>, <tt class="docutils literal">seed_mode</tt>,
+<tt class="docutils literal">super_seeding</tt>, <tt class="docutils literal">max_uploads</tt>, <tt class="docutils literal">max_connections</tt>,
+<tt class="docutils literal">upload_limit</tt> and <tt class="docutils literal">download_limit</tt> are all affected by this
+flag. The intention of this flag is to have any field in
+<a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> configuring the torrent override the corresponding
+configuration from the resume file, with the one exception of save
+resume data, which has its own flag (for historic reasons).</td>
 </tr>
 <tr><td>flag_upload_mode</td>
 <td>4</td>
@@ -438,151 +439,14 @@ struct cache_status
    <strong>cache_status</strong> ();
 
    std::vector&lt;cached_piece_info&gt; pieces;
-   int write_cache_size;
-   int read_cache_size;
-   int pinned_blocks;
-   mutable int total_used_buffers;
-   int average_read_time;
-   int average_write_time;
-   int average_hash_time;
-   int average_job_time;
-   int cumulative_job_time;
-   int cumulative_read_time;
-   int cumulative_write_time;
-   int cumulative_hash_time;
-   int total_read_back;
-   int read_queue_size;
-   int blocked_jobs;
-   int queued_jobs;
-   int peak_queued;
-   int pending_jobs;
-   int num_jobs;
-   int num_read_jobs;
-   int num_write_jobs;
-   int arc_mru_size;
-   int arc_mru_ghost_size;
-   int arc_mfu_size;
-   int arc_mfu_ghost_size;
-   int arc_write_size;
-   int arc_volatile_size;
-   int num_writing_threads;
-   int num_fence_jobs[disk_io_job::num_job_ids];
 };
 </pre>
-<a name="cache_status()"></a><div class="section" id="id24">
+<a name="cache_status()"></a><div class="section" id="id25">
 <h2>cache_status()</h2>
 <pre class="literal-block">
 <strong>cache_status</strong> ();
 </pre>
 <p>initializes all counters to 0</p>
-<a name="write_cache_size"></a><dl class="docutils">
-<dt>write_cache_size</dt>
-<dd>the number of blocks in the cache used for write cache</dd>
-</dl>
-<a name="read_cache_size"></a><dl class="docutils">
-<dt>read_cache_size</dt>
-<dd>the number of 16KiB blocks in the read cache.</dd>
-</dl>
-<a name="pinned_blocks"></a><dl class="docutils">
-<dt>pinned_blocks</dt>
-<dd>the number of blocks with a refcount &gt; 0, i.e.
-they may not be evicted</dd>
-</dl>
-<a name="total_used_buffers"></a><dl class="docutils">
-<dt>total_used_buffers</dt>
-<dd>the total number of buffers currently in use.
-This includes the read/write disk cache as well as send and receive buffers
-used in peer connections.</dd>
-</dl>
-<a name="average_read_time"></a><dl class="docutils">
-<dt>average_read_time</dt>
-<dd>the time read jobs takes on average to complete
-(not including the time in the queue), in microseconds. This only measures
-read cache misses.</dd>
-</dl>
-<a name="average_write_time"></a><dl class="docutils">
-<dt>average_write_time</dt>
-<dd>the time write jobs takes to complete, on average,
-in microseconds. This does not include the time the job sits in the disk job
-queue or in the write cache, only blocks that are flushed to disk.</dd>
-</dl>
-<a name="average_hash_time"></a>
-<a name="average_job_time"></a><dl class="docutils">
-<dt>average_hash_time  average_job_time</dt>
-<dd>the time hash jobs takes to complete on average, in
-microseconds. Hash jobs include running SHA-1 on the data (which for the most
-part is done incrementally) and sometimes reading back parts of the piece. It
-also includes checking files without valid resume data.</dd>
-</dl>
-<a name="cumulative_job_time"></a>
-<a name="cumulative_read_time"></a>
-<a name="cumulative_write_time"></a>
-<a name="cumulative_hash_time"></a><dl class="docutils">
-<dt>cumulative_job_time  cumulative_read_time  cumulative_write_time  cumulative_hash_time</dt>
-<dd>the number of milliseconds spent in all disk jobs, and specific ones
-since the start of the <a class="reference external" href="reference-Session.html#session">session</a>. Times are specified in milliseconds</dd>
-</dl>
-<a name="total_read_back"></a><dl class="docutils">
-<dt>total_read_back</dt>
-<dd>the number of blocks that had to be read back from disk because
-they were flushed before the SHA-1 hash got to hash them. If this
-is large, a larger cache could significantly improve performance</dd>
-</dl>
-<a name="read_queue_size"></a><dl class="docutils">
-<dt>read_queue_size</dt>
-<dd>number of read jobs in the disk job queue</dd>
-</dl>
-<a name="blocked_jobs"></a><dl class="docutils">
-<dt>blocked_jobs</dt>
-<dd>number of jobs blocked because of a fence</dd>
-</dl>
-<a name="queued_jobs"></a><dl class="docutils">
-<dt>queued_jobs</dt>
-<dd>number of jobs waiting to be issued (m_to_issue)
-average over 30 seconds</dd>
-</dl>
-<a name="peak_queued"></a><dl class="docutils">
-<dt>peak_queued</dt>
-<dd>largest ever seen number of queued jobs</dd>
-</dl>
-<a name="pending_jobs"></a><dl class="docutils">
-<dt>pending_jobs</dt>
-<dd>number of jobs waiting to complete (m_pending)
-average over 30 seconds</dd>
-</dl>
-<a name="num_jobs"></a><dl class="docutils">
-<dt>num_jobs</dt>
-<dd>total number of disk job objects allocated right now</dd>
-</dl>
-<a name="num_read_jobs"></a><dl class="docutils">
-<dt>num_read_jobs</dt>
-<dd>total number of disk read job objects allocated right now</dd>
-</dl>
-<a name="num_write_jobs"></a><dl class="docutils">
-<dt>num_write_jobs</dt>
-<dd>total number of disk write job objects allocated right now</dd>
-</dl>
-<a name="arc_mru_size"></a>
-<a name="arc_mru_ghost_size"></a>
-<a name="arc_mfu_size"></a>
-<a name="arc_mfu_ghost_size"></a>
-<a name="arc_write_size"></a>
-<a name="arc_volatile_size"></a><dl class="docutils">
-<dt>arc_mru_size  arc_mru_ghost_size  arc_mfu_size  arc_mfu_ghost_size  arc_write_size  arc_volatile_size</dt>
-<dd>ARC cache stats. All of these counters are in number of pieces
-not blocks. A piece does not necessarily correspond to a certain
-number of blocks. The pieces in the ghost list never have any
-blocks in them</dd>
-</dl>
-<a name="num_writing_threads"></a><dl class="docutils">
-<dt>num_writing_threads</dt>
-<dd>the number of threads currently writing to disk</dd>
-</dl>
-<a name="num_fence_jobs[disk_io_job"></a><dl class="docutils">
-<dt>num_fence_jobs[disk_io_job</dt>
-<dd>counts only fence jobs that are currently blocking jobs
-not fences that are themself blocked</dd>
-</dl>
 <a name="stats_metric"></a></div>
 </div>
 <div class="section" id="stats-metric">
@@ -1656,7 +1520,6 @@ struct dht_routing_bucket
 {
    int num_nodes;
    int num_replacements;
-   int last_active;
 };
 </pre>
 <a name="num_nodes"></a>
@@ -1664,10 +1527,6 @@ struct dht_routing_bucket
 <dt>num_nodes  num_replacements</dt>
 <dd>the total number of nodes and replacement nodes
 in the routing table</dd>
-</dl>
-<a name="last_active"></a><dl class="docutils">
-<dt>last_active</dt>
-<dd>number of seconds since last activity</dd>
 </dl>
 <a name="utp_status"></a></div>
 <div class="section" id="utp-status">

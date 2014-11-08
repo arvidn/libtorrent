@@ -42,7 +42,7 @@ replot
 	out.close()
 	gnuplot_scripts += [name]
 
-gen_stats_gnuplot('dht_routing_table_size', 'nodes', ['active nodes','passive nodes'])
+gen_stats_gnuplot('dht_routing_table_size', 'nodes', ['active nodes','passive nodes', 'confirmed nodes'])
 gen_stats_gnuplot('dht_tracker_table_size', '', ['num torrents', 'num peers'])
 gen_stats_gnuplot('dht_announces', 'messages per minute', ['announces per min', 'failed announces per min'])
 gen_stats_gnuplot('dht_clients', 'messages per minute', ['total msgs per min', 'az msgs per min', 'ut msgs per min', 'lt msgs per min', 'mp msgs per min', 'gr msgs per min'])

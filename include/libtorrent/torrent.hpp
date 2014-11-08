@@ -698,8 +698,8 @@ namespace libtorrent
 		void announce_with_tracker(boost::uint8_t e
 			= tracker_request::none
 			, address const& bind_interface = address_v4::any());
-		int seconds_since_last_scrape() const { return m_ses.session_time() - m_last_scrape; }
-
+		int seconds_since_last_scrape() const
+		{ return m_last_scrape == INT16_MIN ? -1 : m_ses.session_time() - m_last_scrape; }
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();
 #endif
@@ -1583,17 +1583,19 @@ namespace libtorrent
 
 // ----
 
-		// the timestamp of the last piece passed for this torrent
-		// specified in session_time
-		boost::uint16_t m_last_download;
+		// the timestamp of the last piece passed for this torrent specified in
+		// session_time. This is signed because it must be able to represent time
+		// before the session started
+		boost::int16_t m_last_download;
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
 		boost::uint16_t m_num_seeds;
 
-		// the timestamp of the last byte uploaded from this torrent
-		// specified in session_time
-		boost::uint16_t m_last_upload;
+		// the timestamp of the last byte uploaded from this torrent specified in
+		// session_time. This is signed because it must be able to represent time
+		// before the session started
+		boost::int16_t m_last_upload;
 
 		// this is a second count-down to when we should tick the
 		// storage for this torrent. Ticking the storage is used
@@ -1636,10 +1638,10 @@ namespace libtorrent
 		// is optional and may be 0xffffff
 		unsigned int m_downloaded:24;
 
-		// the timestamp of the last scrape request to
-		// one of the trackers in this torrent
-		// specified in session_time
-		boost::uint16_t m_last_scrape;
+		// the timestamp of the last scrape request to one of the trackers in
+		// this torrent specified in session_time. This is signed because it must
+		// be able to represent time before the session started
+		boost::int16_t m_last_scrape;
 
 // ----
 

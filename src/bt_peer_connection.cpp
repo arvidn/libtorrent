@@ -2569,7 +2569,7 @@ namespace libtorrent
 			if (is_disconnecting()) return;
 			
 			// read dh key, generate shared secret
-			if (m_dh_key_exchange->compute_secret(recv_buffer.begin) == -1)
+			if (m_dh_key_exchange->compute_secret(recv_buffer.begin) != 0)
 			{
 				disconnect(errors::no_memory, op_encryption);
 				return;

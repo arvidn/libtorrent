@@ -34,8 +34,8 @@ searches = []
 
 def convert_timestamp(t):
 	parts = t.split('.')
-	posix = time.strptime(parts[0], '%H:%M:%S')
-	return (posix.tm_hour * 3600 + posix.tm_min * 60 + posix.tm_sec) * 1000 + int(parts[1])
+	hms = parts[0].split(':')
+	return (int(hms[0]) * 3600 + int(hms[1]) * 60 + int(hms[2])) * 1000 + int(parts[1])
 
 last_incoming = ''
 

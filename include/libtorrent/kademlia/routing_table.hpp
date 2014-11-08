@@ -104,6 +104,13 @@ public:
 	router_iterator router_begin() const { return m_router_nodes.begin(); }
 	router_iterator router_end() const { return m_router_nodes.end(); }
 
+	enum add_node_status_t {
+		failed_to_add = 0,
+		node_added,
+		need_bucket_split
+	};
+	add_node_status_t add_node_impl(node_entry e);
+
 	bool add_node(node_entry e);
 
 	// this function is called every time the node sees
@@ -147,7 +154,11 @@ public:
 
 	int bucket_size() const { return m_bucket_size; }
 
-	boost::tuple<int, int> size() const;
+	// returns the number of nodes in the main buckets, number of nodes in the
+	// replacement buckets and the number of nodes in the main buckets that have
+	// been pinged and confirmed up
+	boost::tuple<int, int, int> size() const;
+
 	size_type num_global_nodes() const;
 
 	// the number of bits down we have full buckets
@@ -155,9 +166,6 @@ public:
 	// we have
 	int depth() const;
 	
-	// returns true if there are no working nodes
-	// in the routing table
-	bool need_bootstrap() const;
 	int num_active_buckets() const { return m_buckets.size(); }
 	
 	void replacement_cache(bucket_t& nodes) const;
@@ -201,14 +209,6 @@ private:
 	// the last seen depth (i.e. levels in the routing table)
 	// it's mutable because it's updated by depth(), which is const
 	mutable int m_depth;
-
-	// the last time need_bootstrap() returned true
-	mutable ptime m_last_bootstrap;
-
-	// the last time the routing table was refreshed.
-	// this is used to stagger buckets needing refresh
-	// to be at least 45 seconds apart.
-	mutable ptime m_last_refresh;
 
 	// the last time we refreshed our own bucket
 	// refreshed every 15 minutes

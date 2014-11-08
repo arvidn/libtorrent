@@ -328,7 +328,7 @@ namespace libtorrent { namespace dht
 		{
 			first = false;
 			pc << "\n\n *****   starting log at " << time_now_string() << "   *****\n\n"
-				<< "minute:active nodes:passive nodes"
+				<< "minute:active nodes:passive nodes:confirmed nodes"
 				":ping replies sent:ping queries recvd"
 				":ping replies bytes sent:ping queries bytes recvd"
 				":find_node replies sent:find_node queries recv"
@@ -348,10 +348,12 @@ namespace libtorrent { namespace dht
 
 		int active;
 		int passive;
-		boost::tie(active, passive) = m_dht.size();
+		int confirmed;
+		boost::tie(active, passive, confirmed) = m_dht.size();
 		pc << (m_counter * tick_period)
 			<< "\t" << active
-			<< "\t" << passive;
+			<< "\t" << passive
+			<< "\t" << confirmed;
 		for (int i = 0; i < 5; ++i)
 			pc << "\t" << (m_replies_sent[i] / float(tick_period))
 				<< "\t" << (m_queries_received[i] / float(tick_period))

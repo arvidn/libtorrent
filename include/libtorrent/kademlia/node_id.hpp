@@ -63,7 +63,9 @@ int TORRENT_EXTRA_EXPORT distance_exp(node_id const& n1, node_id const& n2);
 
 node_id TORRENT_EXTRA_EXPORT generate_id(address const& external_ip);
 node_id TORRENT_EXTRA_EXPORT generate_random_id();
-bool TORRENT_EXTRA_EXPORT verify_random_id(node_id const& nid);
+void TORRENT_EXTRA_EXPORT make_id_secret(node_id& in);
+node_id TORRENT_EXTRA_EXPORT generate_secret_id();
+bool TORRENT_EXTRA_EXPORT verify_secret_id(node_id const& nid);
 node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, boost::uint32_t r);
 
 bool TORRENT_EXTRA_EXPORT verify_id(node_id const& nid, address const& source_ip);
