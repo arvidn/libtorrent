@@ -135,7 +135,7 @@ namespace libtorrent
 		SET(allow_multiple_connections_per_ip, false, 0),
 		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, 0),
-		SET(lazy_bitfields, true, 0),
+		SET(lazy_bitfields, false, 0),
 		SET(use_dht_as_fallback, false, 0),
 		SET(upnp_ignore_nonrouters, false, 0),
 		SET(use_parole_mode, true, 0),

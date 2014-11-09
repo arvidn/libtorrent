@@ -517,6 +517,8 @@ namespace libtorrent
 		else t->peer_is_interesting(*this);
 
 		TORRENT_ASSERT(in_handshake() || is_interesting() == interested);
+
+		disconnect_if_redundant();
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -1887,6 +1889,15 @@ namespace libtorrent
 			++m_remote_pieces_dled;
 		}
 
+		// it's important to update whether we're intersted in this peer before
+		// calling disconnect_if_redundant, otherwise we may disconnect even if
+		// we are interested
+		if (!t->has_piece_passed(index)
+			&& !t->is_seed()
+			&& !is_interesting()
+			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
+			t->peer_is_interesting(*this);
+
 		// it's important to not disconnect before we have
 		// updated the piece picker, otherwise we will incorrectly
 		// decrement the piece count without first incrementing it
@@ -1911,12 +1922,6 @@ namespace libtorrent
 			disconnect_if_redundant();
 			if (is_disconnecting()) return;
 		}
-
-		if (!t->has_piece_passed(index)
-			&& !t->is_seed()
-			&& !is_interesting()
-			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
-			t->peer_is_interesting(*this);
 
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
@@ -2100,39 +2105,21 @@ namespace libtorrent
 			return;
 		}
 
-		// let the torrent know which pieces the
-		// peer has
-		// if we're a seed, we don't keep track of piece availability
-		bool interesting = false;
+		// let the torrent know which pieces the peer has if we're a seed, we
+		// don't keep track of piece availability
 		t->peer_has(bits, this);
-
-		if (!t->is_upload_only())
-		{
-			for (int i = 0; i < (int)m_have_piece.size(); ++i)
-			{
-				bool have = bits[i];
-				if (!have || m_have_piece[i]) continue;
-				// if we don't have a picker, the assumption is that the piece
-				// priority is 1, or that we're a seed, but in that case have_piece
-				// would have returned true.
-				if (!t->have_piece(i) && (!t->has_picker() || t->picker().piece_priority(i) != 0))
-					interesting = true;
-			}
-		}
 
 		m_have_piece = bits;
 		m_num_pieces = num_pieces;
 
-		if (interesting) t->peer_is_interesting(*this);
-		else if (upload_only()
-			&& can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category())))
-			disconnect(errors::upload_upload_connection, op_bittorrent);
+		update_interest();
 	}
 
 	bool peer_connection::disconnect_if_redundant()
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_disconnecting) return false;
+		if (m_need_interest_update) return false;
 
 		// we cannot disconnect in a constructor
 		TORRENT_ASSERT(m_in_constructor == false);
@@ -2153,6 +2140,9 @@ namespace libtorrent
 		if (m_upload_only && t->is_upload_only()
 			&& can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category())))
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** the peer is upload-only and our torrent is also upload-only");
+#endif
 			disconnect(errors::upload_upload_connection, op_bittorrent);
 			return true;
 		}
@@ -2163,6 +2153,9 @@ namespace libtorrent
 			&& t->are_files_checked()
 			&& can_disconnect(error_code(errors::uninteresting_upload_peer, get_libtorrent_category())))
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** the peer is upload-only and we're not interested in it");
+#endif
 			disconnect(errors::uninteresting_upload_peer, op_bittorrent);
 			return true;
 		}
@@ -6578,6 +6571,7 @@ namespace libtorrent
 			// make sure upload only peers are disconnected
 			if (t->is_upload_only()
 				&& m_upload_only
+				&& !m_need_interest_update
 				&& t->valid_metadata()
 				&& has_metadata()
 				&& ok_to_disconnect)
@@ -6585,6 +6579,7 @@ namespace libtorrent
 
 			if (m_upload_only
 				&& !m_interesting
+				&& !m_need_interest_update
 				&& m_bitfield_received
 				&& t->are_files_checked()
 				&& t->valid_metadata()

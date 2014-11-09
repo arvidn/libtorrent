@@ -119,7 +119,7 @@ std::vector<char> generate_resume_data(torrent_info* ti)
 
 torrent_status test_resume_flags(int flags)
 {
-	session ses;
+	libtorrent::session ses;
 
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 

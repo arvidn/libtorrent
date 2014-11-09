@@ -35,6 +35,7 @@
 
 1.0.3 release
 
+	* fix bug in interest calculation, causing premature disconnects
 	* tweak flag_override_resume_data semantics to make more sense (breaks
 	  backwards compatibility of edge-cases)
 	* improve DHT bootstrapping and periodic refresh
