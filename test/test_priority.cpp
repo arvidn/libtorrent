@@ -69,6 +69,14 @@ bool on_alert(alert* a)
 	return false;
 }
 
+int udp_tracker_port;
+int tracker_port;
+
+// these are declared before the session objects
+// so that they are destructed last. This enables
+// the sessions to destruct in parallel
+std::vector<session_proxy> sp;
+
 void test_transfer(settings_pack const& sett)
 {
 	// in case the previous run was terminated
@@ -78,16 +86,11 @@ void test_transfer(settings_pack const& sett)
 	remove_all("tmp1_priority_moved", ec);
 	remove_all("tmp2_priority_moved", ec);
 
-	// these are declared before the session objects
-	// so that they are destructed last. This enables
-	// the sessions to destruct in parallel
-	session_proxy p1;
-	session_proxy p2;
-
 	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
 	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
 
 	settings_pack pack = sett;
+
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
 	// immediately to complete the second half.
@@ -106,21 +109,10 @@ void test_transfer(settings_pack const& sett)
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
-
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
-
-	pack.set_int(settings_pack::unchoke_slots_limit, 0);
-	ses1.apply_settings(pack);
-	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
-
-	pack.set_int(settings_pack::unchoke_slots_limit, -1);
-	ses1.apply_settings(pack);
-	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
-
 	pack.set_int(settings_pack::unchoke_slots_limit, 8);
-	ses1.apply_settings(pack);
-	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
 
+	ses1.apply_settings(pack);
 	ses2.apply_settings(pack);
 
 	torrent_handle tor1;
@@ -130,9 +122,6 @@ void test_transfer(settings_pack const& sett)
 	std::ofstream file("tmp1_priority/temporary");
 	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
-
-	int udp_tracker_port = start_udp_tracker();
-	int tracker_port = start_web_server();
 
 	char tracker_url[200];
 	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", tracker_port);
@@ -392,16 +381,16 @@ void test_transfer(settings_pack const& sett)
 	TEST_CHECK(st2.is_seeding);
 
 	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-
-	stop_udp_tracker();
-	stop_web_server();
+	sp.push_back(ses1.abort());
+	sp.push_back(ses2.abort());
 }
 
 int test_main()
 {
 	using namespace libtorrent;
+
+	udp_tracker_port = start_udp_tracker();
+	tracker_port = start_web_server();
 
 	// test with all kinds of proxies
 	settings_pack p;
@@ -410,12 +399,22 @@ int test_main()
 	p = settings_pack();
 	p.set_bool(settings_pack::contiguous_recv_buffer, false);
 	test_transfer(p);
+
+	p.set_bool(settings_pack::lazy_bitfields, true);
+	test_transfer(p);
 	
 	error_code ec;
 	remove_all("tmp1_priorities", ec);
 	remove_all("tmp2_priorities", ec);
 	remove_all("tmp1_priorities_moved", ec);
 	remove_all("tmp2_priorities_moved", ec);
+
+	stop_udp_tracker();
+	stop_web_server();
+
+	// we have to clear them, session doesn't really support being destructed
+	// as a global destructor (for silly reasons)
+	sp.clear();
 
 	return 0;
 }

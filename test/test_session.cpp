@@ -70,6 +70,18 @@ int test_main()
 
 	TEST_CHECK(a.get());
 
+	sett.set_int(settings_pack::unchoke_slots_limit, 0);
+	ses.apply_settings(sett);
+	TEST_CHECK(ses.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
+
+	sett.set_int(settings_pack::unchoke_slots_limit, -1);
+	ses.apply_settings(sett);
+	TEST_CHECK(ses.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
+
+	sett.set_int(settings_pack::unchoke_slots_limit, 8);
+	ses.apply_settings(sett);
+	TEST_CHECK(ses.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
+
 	// make sure the destructor waits properly
 	// for the asynchronous call to set the alert
 	// mask completes, before it goes on to destruct

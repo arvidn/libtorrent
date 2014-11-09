@@ -10936,7 +10936,8 @@ namespace libtorrent
 
 		// if we're a seed, we don't have an m_file_progress anyway
 		// since we don't need one. We know we have all files
-		if (is_seed() || !has_picker())
+		// just fill in the full file sizes as a shortcut
+		if (is_seed())
 		{
 			fp.resize(m_torrent_file->num_files());
 			file_storage const& fs = m_torrent_file->files();
@@ -10944,6 +10945,11 @@ namespace libtorrent
 				fp[i] = fs.file_size(i);
 			return;
 		}
+
+		// we're not a seed and we don't have a picker, that means we donn't
+		// have any piece yet.
+		if (!has_picker())
+			return;
 		
 		if (num_have() == 0)
 		{

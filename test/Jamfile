@@ -87,7 +87,7 @@ project
    ;
 
 feature launcher : none valgrind : composite ;
-feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <valgrind>on ;
+feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <use-valgrind>on ;
 
 test-suite libtorrent : 	
 	[ run test_resume.cpp ]
@@ -158,7 +158,6 @@ test-suite libtorrent :
 	[ run test_http_connection.cpp ]
 	[ run test_torrent.cpp ]
 	[ run test_transfer.cpp ]
-#	[ run test_entry.cpp ]
 	[ run test_metadata_extension.cpp ]
 	[ run test_trackers_extension.cpp ]
 	[ run test_time_critical.cpp ]
