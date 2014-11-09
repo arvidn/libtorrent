@@ -1255,7 +1255,7 @@ namespace libtorrent
 		, ignore_limits_on_local_network(true)
 		, connection_speed(6)
 		, send_redundant_have(true)
-		, lazy_bitfields(true)
+		, lazy_bitfields(false)
 		, inactivity_timeout(600)
 		, unchoke_interval(15)
 		, optimistic_unchoke_interval(30)

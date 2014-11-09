@@ -42,6 +42,17 @@ int test_main()
 	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
 	ses.set_alert_mask(~0);
 
+	session_settings sett;
+	sett.unchoke_slots_limit = 0;
+	ses.set_settings(sett);
+	TEST_CHECK(ses.settings().unchoke_slots_limit == 0);
+	sett.unchoke_slots_limit = -1;
+	ses.set_settings(sett);
+	TEST_CHECK(ses.settings().unchoke_slots_limit == -1);
+	sett.unchoke_slots_limit = 8;
+	ses.set_settings(sett);
+	TEST_CHECK(ses.settings().unchoke_slots_limit == 8);
+
 	// make sure the destructor waits properly
 	// for the asynchronous call to set the alert
 	// mask completes, before it goes on to destruct

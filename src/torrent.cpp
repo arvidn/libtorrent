@@ -9021,12 +9021,18 @@ namespace libtorrent
 	
 		fp.resize(m_torrent_file->num_files(), 0);
 
+		// if we're a seed, just fill in the full file sizes as a shortcut
 		if (is_seed())
 		{
 			for (int i = 0; i < m_torrent_file->num_files(); ++i)
 				fp[i] = m_torrent_file->files().file_size(i);
 			return;
 		}
+
+		// we're not a seed and we don't have a picker, that means we donn't
+		// have any piece yet.
+		if (!has_picker())
+			return;
 		
 		if (flags & torrent_handle::piece_granularity)
 		{
