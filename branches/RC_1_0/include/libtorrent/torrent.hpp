@@ -550,7 +550,7 @@ namespace libtorrent
 		bool have_piece(int index) const
 		{
 			if (!valid_metadata()) return false;
-			if (!has_picker()) return true;
+			if (!has_picker()) return is_seed();
 			return m_picker->have_piece(index);
 		}
 

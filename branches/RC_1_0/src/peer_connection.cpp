@@ -1700,6 +1700,15 @@ namespace libtorrent
 			++m_remote_pieces_dled;
 		}
 
+		// it's important to update whether we're intersted in this peer before
+		// calling disconnect_if_redundant, otherwise we may disconnect even if
+		// we are interested
+		if (!t->have_piece(index)
+			&& !t->is_seed()
+			&& !is_interesting()
+			&& t->picker().piece_priority(index) != 0)
+			t->get_policy().peer_is_interesting(*this);
+
 		// it's important to not disconnect before we have
 		// updated the piece picker, otherwise we will incorrectly
 		// decrement the piece count without first incrementing it
@@ -1714,12 +1723,6 @@ namespace libtorrent
 			disconnect_if_redundant();
 			if (is_disconnecting()) return;
 		}
-
-		if (!t->have_piece(index)
-			&& !t->is_seed()
-			&& !is_interesting()
-			&& t->picker().piece_priority(index) != 0)
-			t->get_policy().peer_is_interesting(*this);
 
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
@@ -1886,16 +1889,12 @@ namespace libtorrent
 		// let the torrent know which pieces the
 		// peer has
 		// if we're a seed, we don't keep track of piece availability
-		bool interesting = false;
 		t->peer_has(bits, this);
 
 		m_have_piece = bits;
 		m_num_pieces = num_pieces;
 
-		if (interesting) t->get_policy().peer_is_interesting(*this);
-		else if (upload_only()
-			&& can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category())))
-			disconnect(errors::upload_upload_connection);
+		update_interest();
 	}
 
 	void peer_connection::disconnect_if_redundant()
@@ -1919,6 +1918,9 @@ namespace libtorrent
 		if (m_upload_only && t->is_upload_only())
 		{
 			if (!can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category()))) return;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** the peer is upload-only and our torrent is also upload-only");
+#endif
 			disconnect(errors::upload_upload_connection);
 			return;
 		}
@@ -1929,6 +1931,9 @@ namespace libtorrent
 			&& t->are_files_checked())
 		{
 			if (!can_disconnect(error_code(errors::uninteresting_upload_peer, get_libtorrent_category()))) return;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** the peer is upload-only and we're not interested in it");
+#endif
 			disconnect(errors::uninteresting_upload_peer);
 			return;
 		}

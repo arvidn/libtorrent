@@ -2006,7 +2006,7 @@ namespace libtorrent
 			if (piece >= 0) superseed_piece(-1, piece);
 			return;
 		}
-		else if (m_supports_fast && t->is_seed())
+		else if (m_supports_fast && t->is_seed() && !m_ses.settings().lazy_bitfields)
 		{
 			write_have_all();
 			send_allowed_set();
