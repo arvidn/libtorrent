@@ -629,6 +629,8 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 // GCC requires the user to enable SSE support in order for
 // the program to have access to the intrinsics, this is
 // indicated by the __SSE4_1__ macro
+#ifndef TORRENT_HAS_SSE
+
 #if (defined _M_AMD64 || defined _M_IX86 || defined _M_X64 \
 	|| defined __amd64__ || defined __i386 || defined __i386__ \
 	|| defined __x86_64__ || defined __x86_64) \
@@ -637,6 +639,8 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #else
 #define TORRENT_HAS_SSE 0
 #endif
+
+#endif // TORRENT_HAS_SSE
 
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
