@@ -30,34 +30,36 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_CPUID_HPP_INCLUDED
-#define TORRENT_CPUID_HPP_INCLUDED
+#include "libtorrent/crc32c.hpp"
+#include "test.hpp"
 
-#include "libtorrent/config.hpp"
-#include <cstring>
-
-#if defined _MSC_VER && TORRENT_HAS_SSE
-#include <intrin.h>
-#include <nmmintrin.h>
-#endif
-
-namespace libtorrent
+int test_main()
 {
-	inline void cpuid(unsigned int info[4], int type)
-	{
-#if TORRENT_HAS_SSE && defined _MSC_VER
-		__cpuid((int*)info, type);
+	using namespace libtorrent;
 
-#elif TORRENT_HAS_SSE && defined __GNUC__
-		asm volatile
-			("cpuid" : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
-			 : "a" (type), "c" (0));
-#else
-		// for non-x86 and non-amd64, just return zeroes
-		std::memset(&info[0], 0, sizeof(unsigned int) * 4);
-#endif
-	}
+	boost::uint32_t out;
+
+	boost::uint32_t in1 = 0x5aa5feef;
+	out = crc32c_32(in1);
+
+	TEST_EQUAL(out, htonl(0xd5b9e35e));
+
+	boost::uint64_t buf[4];
+	memcpy(buf, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+		"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 32);
+
+	out = crc32c(buf, 4);
+	TEST_EQUAL(out, htonl(0xaa36918a));
+
+	memcpy(buf, "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+		"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 32);
+	out = crc32c(buf, 4);
+	TEST_EQUAL(out, htonl(0x43aba862));
+
+	memcpy(buf, "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+		"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f", 32);
+	out = crc32c(buf, 4);
+	TEST_EQUAL(out, htonl(0x4e79dd46));
+	return 0;
 }
-
-#endif // TORRENT_CPUID_HPP_INCLUDED
 

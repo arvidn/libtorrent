@@ -2,6 +2,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
   test_bitfield              \
+  test_crc32                 \
   test_torrent_info          \
   test_recheck               \
   test_stat_cache            \
@@ -135,6 +136,7 @@ libtest_la_SOURCES = main.cpp \
   swarm_suite.cpp
 
 test_bitfield_SOURCES = test_bitfield.cpp
+test_crc32_SOURCES = test_crc32.cpp
 test_torrent_info_SOURCES = test_torrent_info.cpp
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp
