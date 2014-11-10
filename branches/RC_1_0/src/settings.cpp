@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	// TODO: 4 eliminate all use of this mechanism
 	void load_struct(lazy_entry const& e, void* s, bencode_map_entry const* m, int num)
 	{
 		for (int i = 0; i < num; ++i)
