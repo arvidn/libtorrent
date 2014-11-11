@@ -150,12 +150,8 @@ namespace libtorrent
 		{ return m_obfuscated_hash; }
 #endif
 
-		sha1_hash const& info_hash() const
-		{
-			TORRENT_ASSERT(m_torrent_file);
-			static sha1_hash empty;
-			return m_torrent_file ? m_torrent_file->info_hash() : empty;
-		}
+		// This may be called from multiple threads
+		sha1_hash const& info_hash() const { return m_info_hash; }
 	
 		bool is_deleted() const { return m_deleted; }
 
@@ -1113,6 +1109,10 @@ namespace libtorrent
 		// encrypted hand shakes
 		sha1_hash m_obfuscated_hash;
 #endif
+
+		// keep a copy if the info-hash here, so it can be accessed from multiple
+		// threads, and be cheap to access from the client
+		sha1_hash m_info_hash;
 
 		// the average time it takes to download one time critical piece
 		boost::uint32_t m_average_piece_time;

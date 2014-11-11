@@ -150,9 +150,6 @@ namespace libtorrent
 		using std::swap;
 
 		// this is the crc32c (Castagnoli) polynomial
-		// TODO: 2 this could be optimized if SSE 4.2 is
-		// available. It could also be optimized given
-		// that we have a fixed length
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 
 		if (e1.address() == e2.address())
