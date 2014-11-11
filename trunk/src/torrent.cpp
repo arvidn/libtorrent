@@ -10883,6 +10883,7 @@ namespace libtorrent
 		int num_files = fs.num_files();
 
 		file_progress.resize(num_files, 0);
+		std::fill(file_progress.begin(), file_progress.end(), 0);
 
 		// initialize the progress of each file
 
@@ -10894,29 +10895,36 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(file_index < fs.num_files());
 			size_type file_offset = off - fs.file_offset(file_index);
+			TORRENT_ASSERT(file_offset >= 0);
 			while (file_offset >= fs.file_size(file_index))
 			{
 				++file_index;
+				TORRENT_ASSERT(file_index < fs.num_files());
 				file_offset = off - fs.file_offset(file_index);
+				TORRENT_ASSERT(file_offset >= 0);
 			}
 			TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
 
 			if (!picker.have_piece(piece)) continue;
 
 			int size = (std::min)(boost::uint64_t(piece_size), total_size - off);
+			TORRENT_ASSERT(size >= 0);
 
 			while (size)
 			{
 				int add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
+				TORRENT_ASSERT(add >= 0);
 				file_progress[file_index] += add;
 
 				TORRENT_ASSERT(file_progress[file_index]
 					<= fs.file_size(file_index));
 
 				size -= add;
-				if (size >= 0)
+				TORRENT_ASSERT(size >= 0);
+				if (size > 0)
 				{
 					++file_index;
+					TORRENT_ASSERT(file_index < fs.num_files());
 					file_offset = 0;
 				}
 			}
@@ -10946,11 +10954,6 @@ namespace libtorrent
 			return;
 		}
 
-		// we're not a seed and we don't have a picker, that means we donn't
-		// have any piece yet.
-		if (!has_picker())
-			return;
-		
 		if (num_have() == 0)
 		{
 			// if we don't have any pieces, just return zeroes
