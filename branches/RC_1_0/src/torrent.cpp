@@ -180,6 +180,7 @@ namespace libtorrent
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
 		, m_num_verified(0)
+		, m_info_hash(info_hash)
 		, m_average_piece_time(0)
 		, m_piece_time_deviation(0)
 		, m_total_failed_bytes(0)
@@ -554,6 +555,7 @@ namespace libtorrent
 			alerts().post_alert(torrent_update_alert(get_handle(), info_hash(), tf->info_hash()));
 
 		m_torrent_file = tf;
+		m_info_hash = tf->info_hash();
 
 		// now, we might already have this torrent in the session.
 		session_impl::torrent_map::iterator i = m_ses.m_torrents.find(m_torrent_file->info_hash());
@@ -6777,6 +6779,11 @@ namespace libtorrent
 			TORRENT_ASSERT(m_state != torrent_status::checking_files);
 		else
 			TORRENT_ASSERT(m_queued_for_checking);
+
+		if (m_torrent_file)
+		{
+			TORRENT_ASSERT(m_info_hash == m_torrent_file->info_hash());
+		}
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		if (!m_ses.m_queued_for_checking.empty())
