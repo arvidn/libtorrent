@@ -216,9 +216,10 @@ namespace libtorrent
 
 	sha1_hash torrent_handle::info_hash() const
 	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
 		const static sha1_hash empty;
-		TORRENT_SYNC_CALL_RET(sha1_hash, empty, info_hash);
-		return r;
+		if (!t) return empty;
+		return t->info_hash();
 	}
 
 	int torrent_handle::max_uploads() const

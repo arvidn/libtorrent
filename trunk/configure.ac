@@ -110,9 +110,6 @@ AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
     then
         AS_ECHO "found"
         ac_cv_hidden_visibility_attribute=yes
-        CXXFLAGS="$CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
-        CFLAGS="$CFLAGS -fvisibility=hidden"
-        LDFLAGS="$LDFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
     fi
     rm -f visibility_conftest.*
 ])
@@ -230,6 +227,15 @@ AC_ARG_ENABLE(
     [enable encryption support (requires OpenSSL to be installed on your system, you can use --with-openssl to set the path) [default=yes]])],
   [[ARG_ENABLE_ENCRYPTION=$enableval]],
   [[ARG_ENABLE_ENCRYPTION=yes]]
+)
+
+AC_ARG_ENABLE(
+  [export-all],
+  [AS_HELP_STRING(
+    [--enable-export-all],
+    [export all symbols from libtorrent, including non-public ones [default=no]])],
+  [[ARG_ENABLE_FULL_EXPORT=$enableval]],
+  [[ARG_ENABLE_FULL_EXPORT=no]]
 )
 
 AC_ARG_ENABLE(
@@ -463,6 +469,14 @@ AS_CASE(["$ARG_ENABLE_POOL_ALLOC"],
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_POOL_ALLOC". Use either "yes" or "no".])]
 )
 
+AS_IF([test "x$ac_cv_hidden_visibility_attribute" = "xyes"], [
+  AS_IF([test "x$ARG_ENABLE_FULL_EXPORT" = "xno"], [
+     CXXFLAGS="$CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
+     CFLAGS="$CFLAGS -fvisibility=hidden"
+     LDFLAGS="$LDFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
+  ])
+])
+
 AS_ECHO
 AS_ECHO "Checking for extra build files:"
 
@@ -476,7 +490,11 @@ AS_CASE(["$ARG_ENABLE_EXAMPLES"],
 
 AC_MSG_CHECKING([whether test files should be built])
 AS_CASE(["$ARG_ENABLE_TESTS"],
-  ["yes"], [AC_MSG_RESULT([yes])],
+  ["yes"], [
+      AC_MSG_RESULT([yes])
+      AC_DEFINE([TORRENT_EXPORT_EXTRA],[1],[Define to export additional symbols for unit tests.])
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_EXPORT_EXTRA "
+    ],
   ["no"],  [AC_MSG_RESULT([no])],
   [AC_MSG_RESULT([$ARG_ENABLE_TESTS])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_TESTS". Use either "yes" or "no".])]

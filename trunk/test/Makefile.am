@@ -177,6 +177,7 @@ test_time_critical_SOURCES = test_time_critical.cpp
 test_super_seeding_SOURCES = test_super_seeding.cpp
 test_swarm_SOURCES = test_swarm.cpp
 test_tailqueue_SOURCES = test_tailqueue.cpp
+test_resume_SOURCES = test_resume.cpp
 test_rss_SOURCES = test_rss.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_threads_SOURCES = test_threads.cpp
