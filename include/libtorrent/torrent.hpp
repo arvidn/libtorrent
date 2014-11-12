@@ -253,12 +253,8 @@ namespace libtorrent
 			, sha1_hash const& info_hash);
 		~torrent();
 
-		sha1_hash const& info_hash() const
-		{
-			TORRENT_ASSERT(m_torrent_file);
-			static sha1_hash empty;
-			return m_torrent_file ? m_torrent_file->info_hash() : empty;
-		}
+		// This may be called from multiple threads
+		sha1_hash const& info_hash() const { return m_info_hash; }
 	
 		bool is_deleted() const { return m_deleted; }
 
@@ -1306,6 +1302,10 @@ namespace libtorrent
 		// this is the time last any of our peers saw a seed
 		// in this swarm
 		time_t m_swarm_last_seen_complete;
+
+		// keep a copy if the info-hash here, so it can be accessed from multiple
+		// threads, and be cheap to access from the client
+		sha1_hash m_info_hash;
 
 	public:
 		// these are the lists this torrent belongs to. For more

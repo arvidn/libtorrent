@@ -164,6 +164,7 @@ namespace libtorrent
 		, m_completed_time(0)
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
+		, m_info_hash(info_hash)
 		, m_num_verified(0)
 		, m_last_saved_resume(ses.session_time())
 		, m_started(ses.session_time())
@@ -620,6 +621,7 @@ namespace libtorrent
 			alerts().post_alert(torrent_update_alert(get_handle(), info_hash(), tf->info_hash()));
 
 		m_torrent_file = tf;
+		m_info_hash = tf->info_hash();
 
 		// now, we might already have this torrent in the session.
 		boost::shared_ptr<torrent> t = m_ses.find_torrent(m_torrent_file->info_hash()).lock();
@@ -8345,6 +8347,11 @@ namespace libtorrent
 				break;
 			case counters::num_queued_seeding_torrents:
 				TORRENT_ASSERT((!m_allow_peers || m_graceful_pause_mode) && is_seed()); break;
+		}
+
+		if (m_torrent_file)
+		{
+			TORRENT_ASSERT(m_info_hash == m_torrent_file->info_hash());
 		}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
