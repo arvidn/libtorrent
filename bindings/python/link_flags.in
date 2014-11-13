@@ -1,1 +1,1 @@
-@LDFLAGS@ -L@top_builddir@/src/.libs
+-L@top_builddir@/src/.libs @LDFLAGS@
