@@ -53,7 +53,8 @@ packages = None
 
 if '--bjam' in sys.argv or ldflags == None or extra_cmd == None:
 
-	del sys.argv[sys.argv.index('--bjam')]
+	if '--bjam' in sys.argv:
+		del sys.argv[sys.argv.index('--bjam')]
 
 	if not '--help' in sys.argv \
 		and not '--help-commands' in sys.argv:
