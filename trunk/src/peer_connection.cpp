@@ -1889,15 +1889,6 @@ namespace libtorrent
 			++m_remote_pieces_dled;
 		}
 
-		// it's important to update whether we're intersted in this peer before
-		// calling disconnect_if_redundant, otherwise we may disconnect even if
-		// we are interested
-		if (!t->has_piece_passed(index)
-			&& !t->is_seed()
-			&& !is_interesting()
-			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
-			t->peer_is_interesting(*this);
-
 		// it's important to not disconnect before we have
 		// updated the piece picker, otherwise we will incorrectly
 		// decrement the piece count without first incrementing it
@@ -1919,9 +1910,19 @@ namespace libtorrent
 			if (t && t->has_picker())
 				t->picker().check_peer_invariant(m_have_piece, this);
 #endif
-			disconnect_if_redundant();
-			if (is_disconnecting()) return;
 		}
+
+		// it's important to update whether we're intersted in this peer before
+		// calling disconnect_if_redundant, otherwise we may disconnect even if
+		// we are interested
+		if (!t->has_piece_passed(index)
+			&& !t->is_seed()
+			&& !is_interesting()
+			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
+			t->peer_is_interesting(*this);
+
+		disconnect_if_redundant();
+		if (is_disconnecting()) return;
 
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
