@@ -155,6 +155,8 @@ if (build_tests)
 	add_definitions(-DTORRENT_EXPORT_EXTRA)
 endif (build_tests)
 
+include_directories(${includes})
+
 if (encryption)
 	list(APPEND sources pe_crypto asio_ssl)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
@@ -298,8 +300,6 @@ add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
 if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
 endif()
-
-include_directories(${includes})
 
 set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION ${SOVERSION})
