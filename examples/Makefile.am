@@ -12,7 +12,7 @@ bin_PROGRAMS = $(example_programs)
 endif
 
 EXTRA_PROGRAMS = $(example_programs)
-EXTRA_DIST = Jamfile
+EXTRA_DIST = Jamfile CMakeLists.txt cmake/FindLibtorrentRasterbar.cmake
 
 client_test_SOURCES = client_test.cpp
 #client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
