@@ -856,8 +856,8 @@ std::vector<std::string> list_dir(std::string path
 {
 	std::vector<std::string> ret;
 #ifdef TORRENT_WINDOWS
-	if (!f.empty() && f[f.size()-1] != '\\') f += "\\*";
-	else f += "*";
+	if (!path.empty() && path[path.size()-1] != '\\') path += "\\*";
+	else path += "*";
 
 	std::wstring wpath;
 	libtorrent::utf8_wchar(path, wpath);
@@ -1627,7 +1627,11 @@ int main(int argc, char* argv[])
 	}
 
 	// create directory for resume files
+#ifdef TORRENT_WINDOWS
+	int ret = _mkdir(path_append(save_path, ".resume").c_str());
+#else
 	int ret = mkdir(path_append(save_path, ".resume").c_str(), 0777);
+#endif
 	if (ret < 0)
 		fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
 			, errno, strerror(errno));
