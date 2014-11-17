@@ -282,11 +282,17 @@ namespace libtorrent
 		return allocate_buffer_impl(l, category);
 	}
 
+	// we allow allocating more blocks even after we exceed the max size,
+	// but communicate back to the allocator (typically the peer_connection)
+	// that we have exceeded the limit via the out-parameter "exceeded". The
+	// caller is expected to honor this by not allocating any more buffers
+	// until the disk_observer object (passed in as "o") is invoked, indicating
+	// that there's more room in the pool now. This caps the amount of over-
+	// allocation to one block per peer connection.
 	char* disk_buffer_pool::allocate_buffer(bool& exceeded
 		, boost::shared_ptr<disk_observer> o, char const* category)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
-		bool was_exceeded = m_exceeded_max_size;
 		char* ret = allocate_buffer_impl(l, category);
 		if (m_exceeded_max_size)
 		{

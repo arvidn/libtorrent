@@ -166,6 +166,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string canonicalize_path(std::string const& f);
 #endif
 
+	// TODO: move this into a separate header file, TU pair
 	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
 	{
 	public:
