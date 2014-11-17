@@ -36,6 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+
+#ifdef TORRENT_WINDOWS
+#include <direct.h> // for _mkdir
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
