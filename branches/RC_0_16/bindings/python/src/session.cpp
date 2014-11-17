@@ -79,7 +79,7 @@ namespace
 
 #ifndef TORRENT_NO_DEPRECATE
 
-    boost::shared_ptr<torrent_plugin> dummy_plugin_wrapper(torrent* t) {
+    boost::shared_ptr<torrent_plugin> dummy_plugin_wrapper(boost::python::object o) {
         return boost::shared_ptr<torrent_plugin>();
     }
 
