@@ -253,6 +253,41 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	return 0;
 }
 
+bool is_absolute_path(std::string const& f)
+{
+	if (f.empty()) return false;
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+	int i = 0;
+	// match the xx:\ or xx:/ form
+	while (f[i] && strchr("abcdefghijklmnopqrstuvxyz", f[i])) ++i;
+	if (i < int(f.size()-1) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
+		return true;
+
+	// match the \\ form
+	if (int(f.size()) >= 2 && f[0] == '\\' && f[1] == '\\')
+		return true;
+	return false;
+#else
+	if (f[0] == '/') return true;
+	return false;
+#endif
+}
+
+std::string path_append(std::string const& lhs, std::string const& rhs)
+{
+	if (lhs.empty() || lhs == ".") return rhs;
+	if (rhs.empty() || rhs == ".") return lhs;
+
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#define TORRENT_SEPARATOR "\\"
+	bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
+#else
+#define TORRENT_SEPARATOR "/"
+	bool need_sep = lhs[lhs.size()-1] != '/';
+#endif
+	return lhs + (need_sep?TORRENT_SEPARATOR:"") + rhs;
+}
+
 bool is_hex(char const *in, int len)
 {
 	for (char const* end = in + len; in < end; ++in)
@@ -802,8 +837,7 @@ void add_torrent(libtorrent::session& ses
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
-	// TODO: implement combine_path in here, since it's internal to libtorrent
-	std::string filename = combine_path(save_path, combine_path(".resume", to_hex(t->info_hash().to_string()) + ".resume"));
+	std::string filename = path_append(save_path, path_append(".resume", to_hex(t->info_hash().to_string()) + ".resume"));
 
 	load_file(filename.c_str(), p.resume_data, ec);
 
@@ -815,6 +849,67 @@ void add_torrent(libtorrent::session& ses
 	p.flags |= add_torrent_params::flag_auto_managed;
 	p.userdata = (void*)strdup(torrent.c_str());
 	ses.async_add_torrent(p);
+}
+
+std::vector<std::string> list_dir(std::string path
+	, bool (*filter_fun)(std::string const&))
+{
+	std::vector<std::string> ret;
+#ifdef TORRENT_WINDOWS
+	if (!f.empty() && f[f.size()-1] != '\\') f += "\\*";
+	else f += "*";
+
+	std::wstring wpath;
+	libtorrent::utf8_wchar(path, wpath);
+
+	WIN32_FIND_DATAW fd;
+	HANDLE handle = FindFirstFileW(wpath.c_str(), &fd);
+	if (handle == INVALID_HANDLE_VALUE)
+		return ret;
+
+	do
+	{
+		std::string p;
+		libtorrent::wchar_utf8(fd.cFileName, p);
+		if (filter_fun(p))
+			ret.push_back(p);
+	
+	} while (FindNextFileW(handle, &fd));
+	FindClose(handle);
+#else
+
+	if (!path.empty() && path[path.size()-1] == '/')
+		path.resize(path.size()-1);
+
+	DIR* handle = opendir(path.c_str());
+	if (handle == 0) return ret;
+
+	struct dirent de;
+	dirent* dummy;
+	while (readdir_r(handle, &de, &dummy) == 0)
+	{
+		if (dummy == 0) break;
+
+		std::string p = de.d_name;
+		if (filter_fun(p))
+			ret.push_back(p);
+	}
+#endif
+	return ret;
+}
+
+bool filter_fun(std::string const& p)
+{
+	for (int i = p.size() - 1; i >= 0; --i)
+	{
+		if (p[i] == '/') break;
+#ifdef TORRENT_WINDOWS
+		if (p[i] == '\\') break;
+#endif
+		if (p[i] != '.') continue;
+		return p.compare(i, 8, ".torrent") == 0;
+	}
+	return false;
 }
 
 void scan_dir(std::string const& dir_path
@@ -831,20 +926,12 @@ void scan_dir(std::string const& dir_path
 	using namespace libtorrent;
 
 	error_code ec;
-	std::vector<std::pair<boost::uint64_t, std::string> > ents;
-	// TODO: don't use internal directory type
-	for (directory i(dir_path, ec); !i.done(); i.next(ec))
-	{
-		if (extension(i.file()) != ".torrent") continue;
-		ents.push_back(std::make_pair(i.inode(), i.file()));
-	}
+	std::vector<std::string> ents = list_dir(dir_path, filter_fun);
 
-	std::sort(ents.begin(), ents.end());
-
-	for (std::vector<std::pair<boost::uint64_t, std::string> >::iterator i = ents.begin()
+	for (std::vector<std::string>::iterator i = ents.begin()
 		, end(ents.end()); i != end; ++i)
 	{
-		std::string file = combine_path(dir_path, i->second);
+		std::string file = path_append(dir_path, *i);
 
 		handles_t::iterator k = files.find(file);
 		if (k != files.end())
@@ -935,17 +1022,19 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 
 int save_file(std::string const& filename, std::vector<char>& v)
 {
-	using namespace libtorrent;
+	FILE* f = fopen(filename.c_str(), "wb");
+	if (f == NULL)
+		return -1;
 
-	// TODO: don't use internal file type here. use fopen()
-	file f;
-	error_code ec;
-	if (!f.open(filename, file::write_only, ec)) return -1;
-	if (ec) return -1;
-	file::iovec_t b = {&v[0], v.size()};
-	size_type written = f.writev(0, &b, 1, ec);
-	if (written != int(v.size())) return -3;
-	if (ec) return -3;
+	int w = fwrite(&v[0], 1, v.size(), f);
+	if (w < 0)
+	{
+		fclose(f);
+		return -1;
+	}
+
+	if (w != int(v.size())) return -3;
+	fclose(f);
 	return 0;
 }
 
@@ -965,8 +1054,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		torrent_handle h = p->handle;
 		error_code ec;
 		file_status st;
-		std::string cert = combine_path("certificates", to_hex(h.info_hash().to_string())) + ".pem";
-		std::string priv = combine_path("certificates", to_hex(h.info_hash().to_string())) + "_key.pem";
+		std::string cert = path_append("certificates", to_hex(h.info_hash().to_string())) + ".pem";
+		std::string priv = path_append("certificates", to_hex(h.info_hash().to_string())) + "_key.pem";
 		stat_file(cert, &st, ec);
 		if (ec)
 		{
@@ -1008,7 +1097,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> buffer;
 			bencode(std::back_inserter(buffer), te);
 			std::string filename = ti->name() + "." + to_hex(ti->info_hash().to_string()) + ".torrent";
-			filename = combine_path(monitor_dir, filename);
+			filename = path_append(monitor_dir, filename);
 			save_file(filename, buffer);
 
 			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
@@ -1091,7 +1180,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
 			torrent_status st = h.status(torrent_handle::query_save_path);
-			save_file(combine_path(st.save_path, combine_path(".resume", to_hex(st.info_hash.to_string()) + ".resume")), out);
+			save_file(path_append(st.save_path, path_append(".resume", to_hex(st.info_hash.to_string()) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()
@@ -1538,10 +1627,10 @@ int main(int argc, char* argv[])
 	}
 
 	// create directory for resume files
-	// TODO: don't use internal create_directory function
-	create_directory(combine_path(save_path, ".resume"), ec);
-	if (ec)
-		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
+	int ret = mkdir(path_append(save_path, ".resume").c_str(), 0777);
+	if (ret < 0)
+		fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
+			, errno, strerror(errno));
 
 	if (start_lsd)
 		ses.start_lsd();
@@ -1620,7 +1709,7 @@ int main(int argc, char* argv[])
 
 				if (ec) continue;
 
-				std::string filename = combine_path(save_path, combine_path(".resume"
+				std::string filename = path_append(save_path, path_append(".resume"
 					, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
 				load_file(filename.c_str(), p.resume_data, ec);
@@ -1754,7 +1843,7 @@ int main(int argc, char* argv[])
 
 						if (ec) continue;
 
-						std::string filename = combine_path(save_path, combine_path(".resume"
+						std::string filename = path_append(save_path, path_append(".resume"
 								, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
 						load_file(filename.c_str(), p.resume_data, ec);
@@ -1784,10 +1873,11 @@ int main(int argc, char* argv[])
 							{
 								error_code ec;
 								std::string path;
-								if (is_complete(i->first)) path = i->first;
-								else path = combine_path(monitor_dir, i->first);
-								remove(path, ec);
-								if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
+								if (is_absolute_path(i->first)) path = i->first;
+								else path = path_append(monitor_dir, i->first);
+								if (::remove(path.c_str()) < 0)
+									printf("failed to delete .torrent file: (%d) %s\n"
+										, errno, strerror(errno));
 								files.erase(i);
 							}
 							if (st.handle.is_valid())
@@ -2528,7 +2618,7 @@ int main(int argc, char* argv[])
 			torrent_status st = h.status(torrent_handle::query_save_path);
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *rd->resume_data);
-			save_file(combine_path(st.save_path, combine_path(".resume", to_hex(st.info_hash.to_string()) + ".resume")), out);
+			save_file(path_append(st.save_path, path_append(".resume", to_hex(st.info_hash.to_string()) + ".resume")), out);
 		}
 	}
 
