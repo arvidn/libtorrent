@@ -643,7 +643,13 @@ namespace libtorrent
 		}
 
 #else
-#warning THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK
+
+#ifdef _MSC_VER
+#pragma message ( "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK" )
+#else
+#warning "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK"
+#endif
+
 		// make a best guess of the interface we're using and its IP
 		udp::resolver r(ios);
 		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(ec), "0"), ec);

@@ -173,6 +173,8 @@ if (build_tests)
 	add_definitions(-DTORRENT_EXPORT_EXTRA)
 endif (build_tests)
 
+include_directories(${includes})
+
 if (encryption)
 	list(APPEND sources pe_crypto asio_ssl)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
@@ -313,8 +315,6 @@ if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
 endif()
 
-include_directories(${includes})
-
 set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION ${SOVERSION})
 
@@ -326,9 +326,7 @@ foreach (s ${COMPILETIME_OPTIONS_LIST})
 	set (COMPILETIME_OPTIONS "${COMPILETIME_OPTIONS} -D${s}")
 endforeach (s)
 
-if (MSVC)
-	configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
-endif()
+configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
 
 string (COMPARE EQUAL "${CMAKE_SIZEOF_VOID_P}" "8" IS64BITS)
 
@@ -346,14 +344,13 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION ${
 
 # === build examples ===
 if(build_examples)
-	FILE(GLOB examples RELATIVE "${PROJECT_SOURCE_DIR}" "examples/*.cpp")
-	foreach(s ${examples})
-		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s})
-		target_link_libraries(${sn} torrent-rasterbar)
-	endforeach(s)
+	# this will make some internal functions available in the
+	# DLL interface, for the examples to access
+	add_definitions(-DTORRENT_EXPORT_EXTRA)
 
-	include_directories(${Boost_INCLUDE_DIR})
+	# to build the examples, run cmake in this subdirectory
+	# after libtorrent is built
+	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
 endif()
 
 # === build tests ===

@@ -54,6 +54,8 @@ test_torrent_t test_torrents[] =
 	{ "hidden_parent_path.torrent" },
 	{ "single_multi_file.torrent" },
 	{ "slash_path.torrent" },
+	{ "slash_path2.torrent" },
+	{ "slash_path3.torrent" },
 	{ "backslash_path.torrent" },
 	{ "url_list.torrent" },
 	{ "url_list2.torrent" },
@@ -259,11 +261,7 @@ int test_main()
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti2.name() == "ctest1test2test3");
-#else
-	TEST_CHECK(ti2.name() == "test1test2test3");
-#endif
+	TEST_EQUAL(ti2.name(), "test1test2test3");
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
@@ -271,7 +269,7 @@ int test_main()
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti3(&buf[0], buf.size(), ec);
 	std::cerr << ti3.name() << std::endl;
-	TEST_CHECK(ti3.name() == "test2..test3.......test4");
+	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
 	// verify_encoding
 	std::string test = "\b?filename=4";
@@ -333,6 +331,27 @@ int test_main()
 	TEST_CHECK(!verify_encoding(test));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_____foobar");
+
+	// redundant (overlong) 2-byte sequence
+	// ascii code 0x2e encoded with a leading 0
+	test = "filename\xc0\xae";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename__");
+
+	// redundant (overlong) 3-byte sequence
+	// ascii code 0x2e encoded with two leading 0s
+	test = "filename\xe0\x80\xae";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename___");
+
+	// redundant (overlong) 4-byte sequence
+	// ascii code 0x2e encoded with three leading 0s
+	test = "filename\xf0\x80\x80\xae";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename____");
 
 	std::string root_dir = parent_path(current_working_directory());
 	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
@@ -416,6 +435,21 @@ int test_main()
 		else if (std::string(test_torrents[i].file) == "invalid_name3.torrent")
 		{
 			TEST_EQUAL(ti->name(), "foobar");
+		}
+		else if (std::string(test_torrents[i].file) == "slash_path.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->file_at(0).path, "temp/bar");
+		}
+		else if (std::string(test_torrents[i].file) == "slash_path2.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->file_at(0).path, "temp/abc....def/bar");
+		}
+		else if (std::string(test_torrents[i].file) == "slash_path3.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 1);
+			TEST_EQUAL(ti->file_at(0).path, "temp....abc");
 		}
 
 		file_storage const& fs = ti->files();

@@ -320,7 +320,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_READV 0
 
 #else
-#warning unknown OS, assuming BSD
+
+#ifdef _MSC_VER
+#pragma message ( "unknown OS, assuming BSD" )
+#else
+#warning "unknown OS, assuming BSD"
+#endif
+
 #define TORRENT_BSD
 #endif
 
@@ -359,7 +365,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // this is the maximum number of characters in a
 // path element / filename on windows
 #define TORRENT_MAX_PATH 255
-#warning unknown platform, assuming the longest path is 255
+
+#ifdef _MSC_VER
+#pragma message ( "unknown platform, assuming the longest path is 255" )
+#else
+#warning "unknown platform, assuming the longest path is 255"
+#endif
 
 #endif
 

@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <algorithm>
 #include "libtorrent/config.hpp"
+#include "libtorrent/ConvertUTF.h"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp" // is_space
 #include "libtorrent/bencode.hpp"
@@ -95,85 +96,65 @@ namespace libtorrent
 		std::string tmp_path;
 		tmp_path.reserve(target.size()+5);
 		bool valid_encoding = true;
-		for (std::string::iterator i = target.begin()
-			, end(target.end()); i != end; ++i)
+
+		UTF8 const* ptr = (UTF8 const*)&target[0];
+		UTF8 const* end = (UTF8 const*)&target[0] + target.size();
+		while (ptr < end)
 		{
-			// valid ascii-character
-			if ((*i & 0x80) == 0)
+			UTF32 codepoint;
+			UTF32* cp = &codepoint;
+			
+			// decode a single utf-8 character
+			ConversionResult res = ConvertUTF8toUTF32(&ptr, end, &cp, cp + 1
+				, lenientConversion);
+
+			// this was the last character, and nothing was
+			// written to the destination buffer (i.e. the source character was
+			// truncated)
+			if (res == sourceExhausted
+				|| res == sourceIllegal)
 			{
-				// replace invalid characters with '_'
-				if (!fix_paths || valid_path_character(*i))
+				if (cp == &codepoint)
 				{
-					tmp_path += *i;
-				}
-				else
-				{
-					tmp_path += '_';
+					if (res == sourceExhausted)
+						ptr = end;
+					else
+						++ptr;
+
+					codepoint = '_';
 					valid_encoding = false;
 				}
-				continue;
 			}
-			
-			if (end - i < 2)
+			else if ((res != conversionOK && res != targetExhausted)
+				|| codepoint == UNI_REPLACEMENT_CHAR)
 			{
-				tmp_path += "_";
+				// we expect the conversion to fail with targetExhausted, since we
+				// only pass in a single destination character slot. The last
+				// character will succeed though. Also, if the character was replaced,
+				// use our own replacement symbol (underscore).
+				codepoint = '_';
 				valid_encoding = false;
-				break;
-			}
-			
-			// valid 2-byte utf-8 character
-			if ((i[0] & 0xe0) == 0xc0
-				&& (i[1] & 0xc0) == 0x80)
-			{
-				tmp_path += i[0];
-				tmp_path += i[1];
-				i += 1;
-				continue;
 			}
 
-			if (end - i < 3)
+			// if fix paths is true, also replace characters that are invalid
+			// in filenames
+			if (fix_paths && codepoint < 0x7f && !valid_path_character(codepoint))
 			{
-				tmp_path += "_";
+				codepoint = '_';
 				valid_encoding = false;
-				break;
 			}
 
-			// valid 3-byte utf-8 character
-			if ((i[0] & 0xf0) == 0xe0
-				&& (i[1] & 0xc0) == 0x80
-				&& (i[2] & 0xc0) == 0x80)
-			{
-				tmp_path += i[0];
-				tmp_path += i[1];
-				tmp_path += i[2];
-				i += 2;
-				continue;
-			}
+			// encode codepoint into utf-8
+			cp = &codepoint;
+			UTF8 sequence[5];
+			UTF8* start = sequence;
+			res = ConvertUTF32toUTF8((const UTF32**)&cp, cp + 1, &start, start + 5, lenientConversion);
+			TORRENT_ASSERT(res == conversionOK);
 
-			if (end - i < 4)
-			{
-				tmp_path += "_";
-				valid_encoding = false;
-				break;
-			}
-
-			// valid 4-byte utf-8 character
-			if ((i[0] & 0xf8) == 0xf0
-				&& (i[1] & 0xc0) == 0x80
-				&& (i[2] & 0xc0) == 0x80
-				&& (i[3] & 0xc0) == 0x80)
-			{
-				tmp_path += i[0];
-				tmp_path += i[1];
-				tmp_path += i[2];
-				tmp_path += i[3];
-				i += 3;
-				continue;
-			}
-
-			tmp_path += "_";
-			valid_encoding = false;
+			for (int i = 0; i < start - sequence; ++i)
+				tmp_path += (char)sequence[i];
 		}
+
 		// the encoding was not valid utf-8
 		// save the original encoding and replace the
 		// commonly used path with the correctly
@@ -1229,7 +1210,7 @@ namespace libtorrent
 			}
 			m_multifile = true;
 		}
-		files.set_name(name);
+		TORRENT_ASSERT(!files.name().empty());
 
 		// extract sha-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the

@@ -35,6 +35,7 @@
 
 1.0.3 release
 
+	* handle overlong utf-8 sequences
 	* fix link order bug in makefile for python binding
 	* fix bug in interest calculation, causing premature disconnects
 	* tweak flag_override_resume_data semantics to make more sense (breaks
