@@ -1492,7 +1492,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->d.io.buffer_size <= m_disk_cache.block_size());
-		int block_size = m_disk_cache.block_size();
 
 		// should we put this write job in the cache?
 		// if we don't use the cache we shouldn't.
@@ -1569,8 +1568,7 @@ namespace libtorrent
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
-		int block_size = m_disk_cache.block_size();
-		DLOG("do_read piece: %d block: %d\n", r.piece, r.start / block_size);
+		DLOG("do_read piece: %d block: %d\n", r.piece, r.start / m_disk_cache.block_size());
 
 		disk_io_job* j = allocate_job(disk_io_job::read);
 		j->storage = storage->shared_from_this();
