@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _mkdir
 #endif
@@ -1057,23 +1056,35 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
 	{
 		torrent_handle h = p->handle;
-		error_code ec;
-		file_status st;
 		std::string cert = path_append("certificates", to_hex(h.info_hash().to_string())) + ".pem";
 		std::string priv = path_append("certificates", to_hex(h.info_hash().to_string())) + "_key.pem";
-		stat_file(cert, &st, ec);
-		if (ec)
+
+#ifdef TORRENT_WINDOWS
+		struct ::_stat st;
+		int ret = ::_stat(cert.c_str(), &st);
+		if (ret < 0 || (st.st_mode & _S_IFREG) == 0)
+#else
+		struct ::stat st;
+		int ret = ::stat(cert.c_str(), &st);
+		if (ret < 0 || (st.st_mode & S_IFREG) == 0)
+#endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), ec.message().c_str());
+			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), strerror(errno));
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
-		stat_file(priv, &st, ec);
-		if (ec)
+
+#ifdef TORRENT_WINDOWS
+		ret = ::_stat(priv.c_str(), &st);
+		if (ret < 0 || (st.st_mode & _S_IFREG) == 0)
+#else
+		ret = ::stat(priv.c_str(), &st);
+		if (ret < 0 || (st.st_mode & S_IFREG) == 0)
+#endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), ec.message().c_str());
+			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), strerror(errno));
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}

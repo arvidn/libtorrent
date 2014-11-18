@@ -329,11 +329,7 @@ install(DIRECTORY include/libtorrent
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION ${LIBDIR}/pkgconfig)
 
 # === build examples ===
-if(build_examples)
-	# this will make some internal functions available in the
-	# DLL interface, for the examples to access
-	add_definitions(-DTORRENT_EXPORT_EXTRA)
-
+if (build_examples)
 	# to build the examples, run cmake in this subdirectory
 	# after libtorrent is built
 	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
