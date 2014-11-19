@@ -109,7 +109,11 @@ std::vector<char> generate_resume_data(torrent_info* ti)
 	entry::list_type& httpseeds = rd["httpseeds"].list();
 	httpseeds.push_back(entry("http://resume_data_http_seed.com"));
 
+#ifdef TORRENT_WINDOWS
+	rd["save_path"] = "c:\\resume_data save_path";
+#else
 	rd["save_path"] = "/resume_data save_path";
+#endif
 
 	std::vector<char> ret;
 	bencode(back_inserter(ret), rd);
@@ -127,7 +131,11 @@ torrent_status test_resume_flags(int flags)
 	
 	p.ti = ti;
 	p.flags = flags;
+#ifdef TORRENT_WINDOWS
+	p.save_path = "c:\\add_torrent_params save_path";
+#else
 	p.save_path = "/add_torrent_params save_path";
+#endif
 	p.trackers.push_back("http://add_torrent_params_tracker.com/announce");
 	p.url_seeds.push_back("http://add_torrent_params_url_seed.com");
 
@@ -165,7 +173,11 @@ int test_main()
 	fprintf(stderr, "flags: 0\n");
 	s = test_resume_flags(0);
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, false);
 	TEST_EQUAL(s.auto_managed, false);
@@ -180,7 +192,11 @@ int test_main()
 	fprintf(stderr, "flags: use_resume_save_path\n");
 	s = test_resume_flags(add_torrent_params::flag_use_resume_save_path);
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\resume_data save_path");
+#else
 	TEST_EQUAL(s.save_path, "/resume_data save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, false);
 	TEST_EQUAL(s.auto_managed, false);
@@ -197,7 +213,11 @@ int test_main()
 		| add_torrent_params::flag_paused);
 
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, true);
 	TEST_EQUAL(s.auto_managed, false);
@@ -213,7 +233,11 @@ int test_main()
 	s = test_resume_flags(add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_seed_mode);
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, false);
 	TEST_EQUAL(s.auto_managed, false);
@@ -228,7 +252,11 @@ int test_main()
 	fprintf(stderr, "flags: upload_mode\n");
 	s = test_resume_flags(add_torrent_params::flag_upload_mode);
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, false);
 	TEST_EQUAL(s.auto_managed, false);
@@ -244,7 +272,11 @@ int test_main()
 	s = test_resume_flags(add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_share_mode);
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, false);
 	TEST_EQUAL(s.auto_managed, false);
@@ -260,7 +292,11 @@ int test_main()
 	fprintf(stderr, "flags: auto_managed\n");
 	s = test_resume_flags(add_torrent_params::flag_auto_managed);
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, false);
 	TEST_EQUAL(s.auto_managed, false);
@@ -276,7 +312,11 @@ int test_main()
 	fprintf(stderr, "flags: paused\n");
 	s = test_resume_flags(add_torrent_params::flag_paused);
 	default_tests(s);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
+#else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
+#endif
 	TEST_EQUAL(s.sequential_download, false);
 	TEST_EQUAL(s.paused, false);
 	TEST_EQUAL(s.auto_managed, false);

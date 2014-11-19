@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#ifdef TORRENT_WINDOWS
+#include <direct.h> // for _mkdir
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -634,8 +638,8 @@ std::vector<std::string> list_dir(std::string path
 {
 	std::vector<std::string> ret;
 #ifdef TORRENT_WINDOWS
-	if (!f.empty() && f[f.size()-1] != '\\') f += "\\*";
-	else f += "*";
+	if (!path.empty() && path[path.size()-1] != '\\') path += "\\*";
+	else path += "*";
 
 	std::wstring wpath;
 	libtorrent::utf8_wchar(path, wpath);
@@ -822,24 +826,36 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
 	{
 		torrent_handle h = p->handle;
-		error_code ec;
-		file_status st;
 		std::string base_name = path_append("certificates", to_hex(h.info_hash().to_string()));
 		std::string cert = base_name + ".pem";
 		std::string priv = base_name + "_key.pem";
-		stat_file(cert, &st, ec);
-		if (ec)
+
+#ifdef TORRENT_WINDOWS
+		struct ::_stat st;
+		int ret = ::_stat(cert.c_str(), &st);
+		if (ret < 0 || (st.st_mode & _S_IFREG) == 0)
+#else
+		struct ::stat st;
+		int ret = ::stat(cert.c_str(), &st);
+		if (ret < 0 || (st.st_mode & S_IFREG) == 0)
+#endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), ec.message().c_str());
+			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), strerror(errno));
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
-		stat_file(priv, &st, ec);
-		if (ec)
+
+#ifdef TORRENT_WINDOWS
+		ret = ::_stat(priv.c_str(), &st);
+		if (ret < 0 || (st.st_mode & _S_IFREG) == 0)
+#else
+		ret = ::stat(priv.c_str(), &st);
+		if (ret < 0 || (st.st_mode & S_IFREG) == 0)
+#endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), ec.message().c_str());
+			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), strerror(errno));
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
@@ -1408,7 +1424,11 @@ int main(int argc, char* argv[])
 	}
 
 	// create directory for resume files
+#ifdef TORRENT_WINDOWS
+	int ret = _mkdir(path_append(save_path, ".resume").c_str());
+#else
 	int ret = mkdir(path_append(save_path, ".resume").c_str(), 0777);
+#endif
 	if (ret < 0)
 		fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
 			, errno, strerror(errno));
