@@ -297,6 +297,10 @@ add_definitions(-D_FILE_OFFSET_BITS=64)
 add_definitions(-DBOOST_EXCEPTION_DISABLE)
 add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	add_definitions(-fcolor-diagnostics)
+endif()
+
 if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
 endif()
