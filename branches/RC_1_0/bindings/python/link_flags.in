@@ -1,1 +1,1 @@
--L@top_builddir@/src/.libs @LDFLAGS@
+-L@top_builddir@/src/.libs @BOOST_LDFLAGS@ @LDFLAGS@
