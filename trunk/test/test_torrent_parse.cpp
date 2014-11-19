@@ -439,12 +439,20 @@ int test_main()
 		else if (std::string(test_torrents[i].file) == "slash_path.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 1);
+#ifdef TORRENT_WINDOWS
+			TEST_EQUAL(ti->file_at(0).path, "temp\\bar");
+#else
 			TEST_EQUAL(ti->file_at(0).path, "temp/bar");
+#endif
 		}
 		else if (std::string(test_torrents[i].file) == "slash_path2.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 1);
+#ifdef TORRENT_WINDOWS
+			TEST_EQUAL(ti->file_at(0).path, "temp\\abc....def\\bar");
+#else
 			TEST_EQUAL(ti->file_at(0).path, "temp/abc....def/bar");
+#endif
 		}
 		else if (std::string(test_torrents[i].file) == "slash_path3.torrent")
 		{

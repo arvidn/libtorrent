@@ -177,6 +177,26 @@ namespace
 
 } // namespace unnamed
 
+boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
+{
+   error_code ec;
+   boost::intrusive_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
+#ifndef BOOST_NO_EXCEPTIONS
+   if (ec) throw libtorrent_exception(ec);
+#endif
+   return ret;
+}
+
+boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
+{
+   error_code ec;
+   boost::intrusive_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
+#ifndef BOOST_NO_EXCEPTIONS
+   if (ec) throw libtorrent_exception(ec);
+#endif
+   return ret;
+}
+
 void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
@@ -196,10 +216,12 @@ void bind_torrent_info()
 #ifndef TORRENT_NO_DEPRECATE
         .def(init<entry const&>(arg("e")))
 #endif
+
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
-        .def(init<char const*, int, int>((arg("buffer"), arg("length"), arg("flags") = 0)))
-        .def(init<std::string, int>((arg("file"), arg("flags") = 0)))
+        .def("__init__", make_constructor(&buffer_constructor))
+        .def("__init__", make_constructor(&file_constructor))
         .def(init<torrent_info const&>((arg("ti"))))
+
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
 #endif

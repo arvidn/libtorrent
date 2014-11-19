@@ -152,7 +152,6 @@ option(exceptions "build with exception support" ON)
 option(logging "build with logging" OFF)
 option(verbose-logging "build with verbose logging" OFF)
 option(build_tests "build tests" OFF)
-option(build_examples "build examples" ON)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
 
@@ -311,6 +310,10 @@ add_definitions(-D_FILE_OFFSET_BITS=64)
 add_definitions(-DBOOST_EXCEPTION_DISABLE)
 add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	add_definitions(-fcolor-diagnostics)
+endif()
+
 if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
 endif()
@@ -342,16 +345,10 @@ install(DIRECTORY include/libtorrent
 	PATTERN ".svn" EXCLUDE)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION ${LIBDIR}/pkgconfig)
 
-# === build examples ===
-if(build_examples)
-	# this will make some internal functions available in the
-	# DLL interface, for the examples to access
-	add_definitions(-DTORRENT_EXPORT_EXTRA)
-
-	# to build the examples, run cmake in this subdirectory
-	# after libtorrent is built
-	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
-endif()
+# === set up examples directory as an independent project ===
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
+configure_file(examples/run_cmake.sh.in examples/run_cmake.sh)
+# to build the examples, run examples/run_cmake.sh after building libtorrent
 
 # === build tests ===
 if(build_tests)
