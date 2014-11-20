@@ -177,20 +177,20 @@ namespace
 
 } // namespace unnamed
 
-boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
+boost::shared_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
 {
    error_code ec;
-   boost::intrusive_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
+   boost::shared_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
    return ret;
 }
 
-boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
+boost::shared_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
 {
    error_code ec;
-   boost::intrusive_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
+   boost::shared_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
