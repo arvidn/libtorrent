@@ -214,7 +214,9 @@ void bind_torrent_info()
 
     class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
+#ifndef BOOST_NO_EXCEPTIONS
         .def(init<entry const&>(arg("e")))
+#endif
 #endif
 
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
