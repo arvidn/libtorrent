@@ -43,36 +43,23 @@ namespace libtorrent { namespace dht
 class routing_table;
 class rpc_manager;
 
-// TODO: 3 collapse this class into the bootstrap class (or maybe the other
-// way around)
-class refresh : public get_peers
+class bootstrap : public get_peers
 {
 public:
 	typedef get_peers::nodes_callback done_callback;
 
-	refresh(node_impl& node, node_id target
+	bootstrap(node_impl& node, node_id target
 		, done_callback const& callback);
-
 	virtual char const* name() const;
-
-protected:
 
 	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
 		, node_id const& id);
-	virtual bool invoke(observer_ptr o);
-};
-
-class bootstrap : public refresh
-{
-public:
-	bootstrap(node_impl& node, node_id target
-		, done_callback const& callback);
-
-	virtual char const* name() const;
 
 	void trim_seed_nodes();
 
 protected:
+
+	virtual bool invoke(observer_ptr o);
 
 	virtual void done();
 
