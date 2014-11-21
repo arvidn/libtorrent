@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Un Shyam & Arvid Norberg
+Copyright (c) 2007-2014, Un Shyam, Arvid Norberg, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 #include <boost/cstdint.hpp>
 #include <algorithm>
@@ -301,6 +301,230 @@ get_out:
 		return ret;
 	}
 
+	int encryption_handler::encrypt(std::vector<asio::mutable_buffer>& iovec)
+	{
+		TORRENT_ASSERT(!m_send_barriers.empty());
+		TORRENT_ASSERT(m_send_barriers.front().enc_handler);
+
+		int to_process = m_send_barriers.front().next;
+
+		if (to_process != INT_MAX)
+		{
+			for (std::vector<asio::mutable_buffer>::iterator i = iovec.begin();
+				to_process >= 0; ++i)
+			{
+				if (to_process == 0)
+				{
+					iovec.erase(i, iovec.end());
+					break;
+				}
+				else if (to_process < asio::buffer_size(*i))
+				{
+					*i = asio::mutable_buffer(asio::buffer_cast<void*>(*i), to_process);
+					iovec.erase(++i, iovec.end());
+					to_process = 0;
+					break;
+				}
+				to_process -= asio::buffer_size(*i);
+			}
+			TORRENT_ASSERT(to_process == 0);
+		}
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		to_process = 0;
+		for (std::vector<asio::mutable_buffer>::iterator i = iovec.begin();
+			i != iovec.end(); ++i)
+			to_process += asio::buffer_size(*i);
+#endif
+
+		int next_barrier = 0;
+		if (iovec.empty() || (next_barrier = m_send_barriers.front().enc_handler->encrypt(iovec)))
+		{
+			if (m_send_barriers.front().next != INT_MAX)
+			{
+				if (m_send_barriers.size() == 1)
+					// transitioning back to plaintext
+					next_barrier = INT_MAX;
+				m_send_barriers.pop_front();
+			}
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			if (next_barrier != INT_MAX)
+			{
+				int overhead = 0;
+				for (std::vector<asio::mutable_buffer>::iterator i = iovec.begin();
+					i != iovec.end(); ++i)
+					overhead += asio::buffer_size(*i);
+				TORRENT_ASSERT(overhead + to_process == next_barrier);
+			}
+#endif
+		}
+		else
+		{
+			iovec.clear();
+		}
+		return next_barrier;
+	}
+
+	int encryption_handler::decrypt(crypto_receive_buffer& recv_buffer, std::size_t& bytes_transferred)
+	{
+		TORRENT_ASSERT(!is_recv_plaintext());
+		int consume = 0;
+		if (recv_buffer.crypto_packet_finished())
+		{
+			std::vector<asio::mutable_buffer> wr_buf;
+			recv_buffer.mutable_buffers(wr_buf, bytes_transferred);
+			int packet_size = 0;
+			int produce = bytes_transferred;
+			m_dec_handler->decrypt(wr_buf, consume, produce, packet_size);
+			TORRENT_ASSERT(packet_size || produce);
+			TORRENT_ASSERT(packet_size >= 0);
+			bytes_transferred = produce;
+			if (packet_size)
+				recv_buffer.crypto_cut(consume, packet_size);
+		}
+		else
+			bytes_transferred = 0;
+		return consume;
+	}
+
+	bool encryption_handler::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
+		, int pending_encryption)
+	{
+		bool place_barrier = false;
+		if (!m_send_barriers.empty())
+		{
+			std::list<barrier>::iterator end = m_send_barriers.end(); --end;
+			for (std::list<barrier>::iterator b = m_send_barriers.begin();
+				b != end; ++b)
+				pending_encryption -= b->next;
+			TORRENT_ASSERT(pending_encryption >= 0);
+			m_send_barriers.back().next = pending_encryption;
+		}
+		else if (crypto)
+			place_barrier = true;
+
+		if (crypto)
+			m_send_barriers.push_back(barrier(crypto, INT_MAX));
+
+		return place_barrier;
+	}
+
+	void encryption_handler::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto
+		, crypto_receive_buffer& recv_buffer)
+	{
+		m_dec_handler = crypto;
+		int packet_size = 0;
+		if (crypto)
+		{
+			int consume = 0;
+			int produce = 0;
+			std::vector<asio::mutable_buffer> wr_buf;
+			crypto->decrypt(wr_buf, consume, produce, packet_size);
+			TORRENT_ASSERT(wr_buf.empty());
+			TORRENT_ASSERT(consume == 0);
+			TORRENT_ASSERT(produce == 0);
+		}
+		recv_buffer.crypto_reset(packet_size);
+	}
+
+	void rc4_handler::set_incoming_key(unsigned char const* key, int len)
+	{
+		m_decrypt = true;
+#ifdef TORRENT_USE_GCRYPT
+		gcry_cipher_close(m_rc4_incoming);
+		gcry_cipher_open(&m_rc4_incoming, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+		gcry_cipher_setkey(m_rc4_incoming, key, len);
+#elif defined TORRENT_USE_OPENSSL
+		RC4_set_key(&m_remote_key, len, key);
+#else
+		rc4_init(key, len, &m_rc4_incoming);
+#endif
+		// Discard first 1024 bytes
+		char buf[1024];
+		std::vector<boost::asio::mutable_buffer> vec(1, boost::asio::mutable_buffer(buf, 1024));
+		int consume = 0;
+		int produce = 0;
+		int packet_size = 0;
+		decrypt(vec, consume, produce, packet_size);
+	}
+
+	void rc4_handler::set_outgoing_key(unsigned char const* key, int len)
+	{
+		m_encrypt = true;
+#ifdef TORRENT_USE_GCRYPT
+		gcry_cipher_close(m_rc4_outgoing);
+		gcry_cipher_open(&m_rc4_outgoing, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+		gcry_cipher_setkey(m_rc4_outgoing, key, len);
+#elif defined TORRENT_USE_OPENSSL
+		RC4_set_key(&m_local_key, len, key);
+#else
+		rc4_init(key, len, &m_rc4_outgoing);
+#endif
+		// Discard first 1024 bytes
+		char buf[1024];
+		std::vector<boost::asio::mutable_buffer> vec(1, boost::asio::mutable_buffer(buf, 1024));
+		encrypt(vec);
+	}
+
+	int rc4_handler::encrypt(std::vector<boost::asio::mutable_buffer>& buf)
+	{
+		if (!m_encrypt) return 0;
+		if (buf.empty()) return 0;
+
+		int bytes_processed = 0;
+		for (std::vector<boost::asio::mutable_buffer>::iterator i = buf.begin();
+			i != buf.end(); ++i)
+		{
+			char* pos = boost::asio::buffer_cast<char*>(*i);
+			int len = boost::asio::buffer_size(*i);
+
+			TORRENT_ASSERT(len >= 0);
+			TORRENT_ASSERT(pos);
+
+			bytes_processed += len;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_encrypt(m_rc4_outgoing, pos, len, 0, 0);
+#elif defined TORRENT_USE_OPENSSL
+			RC4(&m_local_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#else
+			rc4_encrypt((unsigned char*)pos, len, &m_rc4_outgoing);
+#endif
+		}
+		buf.clear();
+		return bytes_processed;
+	}
+
+	void rc4_handler::decrypt(std::vector<boost::asio::mutable_buffer>& buf
+		, int& consume
+		, int& produce
+		, int& packet_size)
+	{
+		if (!m_decrypt) return;
+
+		int bytes_processed = 0;
+		for (std::vector<boost::asio::mutable_buffer>::iterator i = buf.begin();
+			i != buf.end(); ++i)
+		{
+			char* pos = boost::asio::buffer_cast<char*>(*i);
+			int len = boost::asio::buffer_size(*i);
+
+			TORRENT_ASSERT(len >= 0);
+			TORRENT_ASSERT(pos);
+
+			bytes_processed += len;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_decrypt(m_rc4_incoming, pos, len, 0, 0);
+#elif defined TORRENT_USE_OPENSSL
+			RC4(&m_remote_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#else
+			rc4_encrypt((unsigned char*)pos, len, &m_rc4_incoming);
+#endif
+		}
+		buf.clear();
+		produce = bytes_processed;
+	}
+
 } // namespace libtorrent
 
 #if !defined TORRENT_USE_OPENSSL && !defined TORRENT_USE_GCRYPT
@@ -369,5 +593,5 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 
 #endif
 
-#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 

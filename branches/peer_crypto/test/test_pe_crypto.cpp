@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 char const* pe_policy(boost::uint8_t policy)
 {
@@ -137,7 +137,7 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	remove_all("tmp3_pe", ec);
 }
 
-void test_enc_handler(libtorrent::encryption_handler* a, libtorrent::encryption_handler* b)
+void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b)
 {
 #ifdef TORRENT_USE_VALGRIND
 	const int repcount = 10;
@@ -153,15 +153,37 @@ void test_enc_handler(libtorrent::encryption_handler* a, libtorrent::encryption_
 		std::generate(buf, buf + buf_len, &std::rand);
 		std::memcpy(cmp_buf, buf, buf_len);
 		
-		a->encrypt(buf, buf_len);
+		using namespace boost::asio;
+		std::vector<mutable_buffer> iovec;
+		iovec.push_back(mutable_buffer(buf, buf_len));
+		a->encrypt(iovec);
 		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
-		b->decrypt(buf, buf_len);
+		TEST_CHECK(iovec.empty());
+		int consume = 0;
+		int produce = buf_len;
+		int packet_size = 0;
+		iovec.push_back(mutable_buffer(buf, buf_len));
+		b->decrypt(iovec, consume, produce, packet_size);
 		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
+		TEST_CHECK(iovec.empty());
+		TEST_EQUAL(consume, 0);
+		TEST_EQUAL(produce, buf_len);
+		TEST_EQUAL(packet_size, 0);
 		
-		b->encrypt(buf, buf_len);
+		iovec.push_back(mutable_buffer(buf, buf_len));
+		b->encrypt(iovec);
 		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
-		a->decrypt(buf, buf_len);
+		TEST_CHECK(iovec.empty());
+		consume = 0;
+		produce = buf_len;
+		packet_size = 0;
+		iovec.push_back(mutable_buffer(buf, buf_len));
+		a->decrypt(iovec, consume, produce, packet_size);
 		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
+		TEST_CHECK(iovec.empty());
+		TEST_EQUAL(consume, 0);
+		TEST_EQUAL(produce, buf_len);
+		TEST_EQUAL(packet_size, 0);
 		
 		delete[] buf;
 		delete[] cmp_buf;
@@ -174,7 +196,7 @@ int test_main()
 {
 	using namespace libtorrent;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 #ifdef TORRENT_USE_VALGRIND
 	const int repcount = 10;

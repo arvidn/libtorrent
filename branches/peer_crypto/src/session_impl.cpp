@@ -4199,7 +4199,7 @@ retry:
 		trigger_auto_manage();
 	}
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	torrent const* session_impl::find_encrypted_torrent(sha1_hash const& info_hash
 		, sha1_hash const& xor_mask)
 	{
@@ -4692,7 +4692,7 @@ retry:
 
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
 		h.update((char*)&(*ih)[0], 20);
@@ -4904,7 +4904,7 @@ retry:
 
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
 		h.update((char*)&tptr->info_hash()[0], 20);
@@ -5527,13 +5527,13 @@ retry:
 		}
 	}
 
-#if !defined TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
 		, boost::weak_ptr<torrent> const& t)
 	{
 		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t.lock()));
 	}
-#endif // TORRENT_DISABLE_ENCRYPTION
+#endif // !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 	bool session_impl::is_listening() const
 	{

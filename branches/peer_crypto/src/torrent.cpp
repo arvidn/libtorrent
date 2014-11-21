@@ -518,7 +518,7 @@ namespace libtorrent
 		}
 		m_trackers.swap(new_trackers);
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
 		h.update((char*)&m_torrent_file->info_hash()[0], 20);
@@ -667,7 +667,7 @@ namespace libtorrent
 		}
 		m_trackers.swap(new_trackers);
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
 		h.update((char*)&m_torrent_file->info_hash()[0], 20);

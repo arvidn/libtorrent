@@ -376,7 +376,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	// in case the first file on this series of requests is a padfile
 	// we need to handle it right now, and pretend that we got a response
 	// with zeros.
-	buffer::const_interval recv_buffer = receive_buffer();
+	buffer::const_interval recv_buffer = m_recv_buffer.get();
 	handle_padfile(recv_buffer);
 	if (associated_torrent().expired()) return;
 
@@ -412,16 +412,16 @@ bool web_peer_connection::maybe_harvest_block()
 
 	boost::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
-	buffer::const_interval recv_buffer = receive_buffer();
+	buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 	incoming_piece(front_request, &m_piece[0]);
 	m_requests.pop_front();
 	if (associated_torrent().expired()) return false;
 	TORRENT_ASSERT(m_block_pos >= front_request.length);
 	m_block_pos -= front_request.length;
-	cut_receive_buffer(m_body_start, t->block_size() + request_size_overhead);
+	m_recv_buffer.cut(m_body_start, t->block_size() + request_size_overhead);
 	m_body_start = 0;
-	recv_buffer = receive_buffer();
+	recv_buffer = m_recv_buffer.get();
 //		TORRENT_ASSERT(m_received_body <= range_end - range_start);
 	m_piece.clear();
 	TORRENT_ASSERT(m_piece.empty());
@@ -510,7 +510,7 @@ void web_peer_connection::on_receive(error_code const& error
 			== dl_target);
 #endif
 
-		buffer::const_interval recv_buffer = receive_buffer();
+		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 		int payload;
 		int protocol;
@@ -540,7 +540,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 			TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
 		
-			TORRENT_ASSERT(recv_buffer.left() <= packet_size());
+			TORRENT_ASSERT(recv_buffer.left() <= m_recv_buffer.packet_size());
 			
 			// this means the entire status line hasn't been received yet
 			if (m_parser.status_code() == -1)
@@ -800,8 +800,8 @@ void web_peer_connection::on_receive(error_code const& error
 					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
 					// cut out the chunk header from the receive buffer
 					TORRENT_ASSERT(m_body_start + m_chunk_pos < INT_MAX);
-					cut_receive_buffer(header_size, t->block_size() + request_size_overhead, int(m_body_start + m_chunk_pos));
-					recv_buffer = receive_buffer();
+					m_recv_buffer.cut(header_size, t->block_size() + request_size_overhead, int(m_body_start + m_chunk_pos));
+					recv_buffer = m_recv_buffer.get();
 					recv_buffer.begin += m_body_start;
 					m_chunk_pos += chunk_size;
 					if (chunk_size == 0)
@@ -925,7 +925,7 @@ void web_peer_connection::on_receive(error_code const& error
 				}
 
 				if (maybe_harvest_block())
-					recv_buffer = receive_buffer();
+					recv_buffer = m_recv_buffer.get();
 				if (associated_torrent().expired()) return;
 			}
 
@@ -945,16 +945,16 @@ void web_peer_connection::on_receive(error_code const& error
 				TORRENT_ASSERT(m_block_pos >= r.length);
 				m_block_pos -= r.length;
 				m_received_body += r.length;
-				TORRENT_ASSERT(receive_buffer().begin + m_body_start == recv_buffer.begin);
+				TORRENT_ASSERT(m_recv_buffer.get().begin + m_body_start == recv_buffer.begin);
 				TORRENT_ASSERT(m_received_body <= range_end - range_start);
-				cut_receive_buffer(m_body_start + r.length, t->block_size() + request_size_overhead);
+				m_recv_buffer.cut(m_body_start + r.length, t->block_size() + request_size_overhead);
 				if (m_chunk_pos > 0)
 				{
 					TORRENT_ASSERT(m_chunk_pos >= r.length);
 					m_chunk_pos -= r.length;
 				}
 				m_body_start = 0;
-				recv_buffer = receive_buffer();
+				recv_buffer = m_recv_buffer.get();
 			}
 
 			if (!m_requests.empty())
@@ -989,18 +989,18 @@ void web_peer_connection::on_receive(error_code const& error
 			if (m_received_body == range_end - range_start
 				&& (!m_parser.chunked_encoding() || m_chunk_pos == -1))
 			{
-				int size_to_cut = recv_buffer.begin - receive_buffer().begin;
+				int size_to_cut = recv_buffer.begin - m_recv_buffer.get().begin;
 
-				TORRENT_ASSERT(receive_buffer().left() < size_to_cut + 1
-					|| receive_buffer()[size_to_cut] == 'H');
+				TORRENT_ASSERT(m_recv_buffer.get().left() < size_to_cut + 1
+					|| m_recv_buffer.get()[size_to_cut] == 'H');
 
-				cut_receive_buffer(size_to_cut, t->block_size() + request_size_overhead);
+				m_recv_buffer.cut(size_to_cut, t->block_size() + request_size_overhead);
 				if (m_chunk_pos > 0)
 				{
 					TORRENT_ASSERT(m_chunk_pos >= size_to_cut);
 					m_chunk_pos -= size_to_cut;
 				}
-				recv_buffer = receive_buffer();
+				recv_buffer = m_recv_buffer.get();
 				m_file_requests.pop_front();
 				m_parser.reset();
 				m_body_start = 0;
@@ -1072,7 +1072,7 @@ void web_peer_connection::on_receive(error_code const& error
 			incoming_piece_fragment(pad_size);
 
 			if (maybe_harvest_block())
-				recv_buffer = receive_buffer();
+				recv_buffer = m_recv_buffer.get();
 			if (associated_torrent().expired()) return;
 		}
 	}
