@@ -105,9 +105,9 @@ namespace libtorrent
 		, m_sent_bitfield(false)
 		, m_sent_handshake(false)
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		, m_recv_buffer(peer_connection::m_recv_buffer)
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
+		, m_recv_buffer(peer_connection::m_recv_buffer)
 #endif
 		, m_our_peer_id(pid)
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)

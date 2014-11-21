@@ -45,13 +45,15 @@ int receive_buffer::max_receive()
 
 boost::asio::mutable_buffer receive_buffer::reserve(int size)
 {
+	TORRENT_ASSERT(size > 0);
 	TORRENT_ASSERT(!m_disk_recv_buffer);
 	m_recv_buffer.resize(m_recv_pos + size);
 	return boost::asio::buffer(&m_recv_buffer[m_recv_pos], size);
 }
 
-int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2> vec, int size)
+int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, int size)
 {
+	TORRENT_ASSERT(size > 0);
 	TORRENT_ASSERT(m_recv_pos >= 0);
 	TORRENT_ASSERT(m_packet_size > 0);
 
@@ -66,6 +68,7 @@ int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2> vec, in
 		// only receive into regular buffer
 		TORRENT_ASSERT(m_recv_pos + size <= int(m_recv_buffer.size()));
 		vec[0] = boost::asio::buffer(&m_recv_buffer[m_recv_pos], size);
+		TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 		num_bufs = 1;
 	}
 	else if (m_recv_pos >= regular_buf_size)
@@ -74,6 +77,7 @@ int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2> vec, in
 		TORRENT_ASSERT(m_recv_pos - regular_buf_size >= 0);
 		TORRENT_ASSERT(m_recv_pos - regular_buf_size + size <= m_disk_recv_buffer_size);
 		vec[0] = boost::asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buf_size, size);
+		TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 		num_bufs = 1;
 	}
 	else
@@ -88,6 +92,8 @@ int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2> vec, in
 			, regular_buf_size - m_recv_pos);
 		vec[1] = boost::asio::buffer(m_disk_recv_buffer.get()
 			, size - regular_buf_size + m_recv_pos);
+		TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
+			+ boost::asio::buffer_size(vec[1])> 0);
 		num_bufs = 2;
 	}
 

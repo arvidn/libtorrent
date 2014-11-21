@@ -5562,12 +5562,15 @@ namespace libtorrent
 			{
 				if (num_bufs == 1)
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 					m_socket->async_read_some(
 						asio::mutable_buffers_1(vec[0]), make_read_handler(
 							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 				}
 				else
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
+						+ boost::asio::buffer_size(vec[1])> 0);
 					m_socket->async_read_some(
 						vec, make_read_handler(
 							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
@@ -5580,11 +5583,14 @@ namespace libtorrent
 				j.peer = self();
 				if (num_bufs == 1)
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 					j.recv_buf = asio::buffer_cast<char*>(vec[0]);
 					j.buf_size = asio::buffer_size(vec[0]);
 				}
 				else
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
+						+ boost::asio::buffer_size(vec[1])> 0);
 					j.read_vec = vec;
 				}
 				m_ses.post_socket_job(j);
@@ -5805,6 +5811,8 @@ namespace libtorrent
 		// function.
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
 
+		TORRENT_ASSERT(bytes_transferred > 0 || error);
+
 		receive_data_impl(error, bytes_transferred, 10);
 	}
 
@@ -5844,6 +5852,8 @@ namespace libtorrent
 			disconnect(error, op_sock_read);
 			return;
 		}
+
+		TORRENT_ASSERT(bytes_transferred > 0);
 
 		m_counters.inc_stats_counter(counters::on_read_counter);
 		m_ses.received_buffer(bytes_transferred);

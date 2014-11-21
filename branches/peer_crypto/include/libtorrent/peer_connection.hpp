@@ -1132,12 +1132,12 @@ namespace libtorrent
 		// us
 		int m_est_reciprocation_rate;
 
+		// stop sending data after this many bytes, INT_MAX = inf
+		int m_send_barrier;
+
 		// the number of request we should queue up
 		// at the remote end.
 		boost::uint16_t m_desired_queue_size;
-
-		// stop sending data after this many bytes, INT_MAX = inf
-		int m_send_barrier;
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		// in case the session settings is set
