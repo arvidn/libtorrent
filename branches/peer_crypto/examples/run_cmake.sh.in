@@ -1,0 +1,8 @@
+#!/bin/sh
+
+cd ${libtorrent_BINARY_DIR}/examples
+cmake \
+    -D libtorrent_includes_asio_source=${asio_source} \
+    -G "${CMAKE_GENERATOR}" \
+    $@ \
+    ${libtorrent_SOURCE_DIR}/examples
