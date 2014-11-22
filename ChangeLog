@@ -1,3 +1,5 @@
+	* add --enable-export-all option to configure script, to export all symbols
+	  from libtorrent
 	* python bindings fixes
 	* handle overlong utf-8 sequences
 	* fix bug in error handling in protocol encryption
