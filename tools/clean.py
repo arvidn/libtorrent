@@ -15,7 +15,10 @@ def clean():
 		'bjam_build.*.xml'
 		'*.exe',
 		'*.pdb',
-		'*.pyd'
+		'*.pyd',
+		'dist',
+		'build',
+		'.libs'
 	]
 	
 	directories = [
@@ -23,6 +26,7 @@ def clean():
 		'test',
 		'.',
 		'tools',
+		'src',
 		os.path.join('bindings', 'python')
 	]
 	
