@@ -450,6 +450,34 @@ namespace libtorrent
 		virtual bool write_request(peer_request const&) { return false; }
 	};
 
+	struct TORRENT_EXPORT crypto_plugin
+	{
+		// hidden
+		virtual ~crypto_plugin() {}
+
+		virtual void set_incoming_key(unsigned char const* key, int len) = 0;
+		virtual void set_outgoing_key(unsigned char const* key, int len) = 0;
+
+		// encrypted the provided buffers and returns the number of bytes which
+		// are now ready to be sent to the lower layer. This must be at least
+		// as large as the number of bytes passed in and may be larger if there
+		// is additional data to be inserted at the head of the send buffer.
+		// The additional data is retrived from the passed in vector. The
+		// vector must be cleared if no additional data is to be inserted.
+		virtual int encrypt(std::vector<boost::asio::mutable_buffer>& /*send_vec*/) = 0;
+
+		// decrypt the provided buffers.
+		// consume is set to the number of bytes which should be trimmed from the
+		// head of the buffers, default is 0
+		//
+		// produce is set to the number of bytes of payload which are now ready to
+		// be sent to the upper layer. default is the number of bytes passed in receive_vec
+		//
+		// packet_size is set to the minimum number of bytes which must be read to
+		// advance the next step of decryption. default is 0
+		virtual void decrypt(std::vector<boost::asio::mutable_buffer>& /*receive_vec*/
+			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
+	};
 }
 
 #endif

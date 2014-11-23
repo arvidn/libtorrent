@@ -142,7 +142,7 @@ namespace libtorrent
 		// from peer_info.
 		unsigned source:6;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// Hints encryption support of torrent_peer. Only effective
 		// for and when the outgoing encryption policy
 		// allows both encrypted and non encrypted

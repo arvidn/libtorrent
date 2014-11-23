@@ -85,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp" // for piece_block
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/receive_buffer.hpp"
 
 namespace libtorrent
 {
@@ -198,8 +199,6 @@ namespace libtorrent
 			, m_choked(true)
 			, m_corked(false)
 			, m_ignore_stats(false)
-			, m_recv_pos(0)
-			, m_packet_size(0)
 		{}
 
 	protected:
@@ -272,15 +271,6 @@ namespace libtorrent
 		// when this is set, the transfer stats for this connection
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
-
-		// the byte offset in m_recv_buffer that we have
-		// are passing on to the upper layer. This is
-		// always <= m_recv_end
-		int m_recv_pos:24;
-
-		// the size (in bytes) of the bittorrent message
-		// we're currently receiving
-		int m_packet_size;
 	};
 
 	class TORRENT_EXTRA_EXPORT peer_connection
@@ -680,21 +670,18 @@ namespace libtorrent
 			return boost::optional<piece_block_progress>();
 		}
 
-		// these functions are virtual to let bt_peer_connection hook into them
-		// and encrypt the content
 		enum message_type_flags { message_type_request = 1 };
-		virtual void send_buffer(char const* begin, int size, int flags = 0
-			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
-		virtual void setup_send();
+		void send_buffer(char const* begin, int size, int flags = 0);
+		void setup_send();
 
 		void cork_socket() { TORRENT_ASSERT(!m_corked); m_corked = true; }
 		bool is_corked() const { return m_corked; }
 		void uncork_socket();
 
-		virtual void append_send_buffer(char* buffer, int size
+		void append_send_buffer(char* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
 			, void* userdata = NULL, block_cache_reference ref
-			= block_cache_reference(), bool encrypted = false);
+			= block_cache_reference());
 
 		virtual void append_const_send_buffer(char const* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
@@ -718,13 +705,6 @@ namespace libtorrent
 
 		int send_buffer_capacity() const
 		{ return m_send_buffer.capacity(); }
-
-		int packet_size() const { return m_packet_size; }
-
-		bool packet_finished() const
-		{ return m_packet_size <= m_recv_pos; }
-
-		int receive_pos() const { return m_recv_pos; }
 
 		void max_out_request_queue(int s)
 		{ m_max_out_request_queue = s; }
@@ -802,43 +782,9 @@ namespace libtorrent
 		virtual void on_sent(error_code const& error
 			, std::size_t bytes_transferred) = 0;
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		buffer::interval wr_recv_buffer()
-		{
-			if (m_recv_buffer.empty())
-			{
-				TORRENT_ASSERT(m_recv_pos == 0);
-				return buffer::interval(0,0);
-			}
-			TORRENT_ASSERT(!m_disk_recv_buffer);
-			TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
-			int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
-			return buffer::interval(&m_recv_buffer[0] + m_recv_start
-				, &m_recv_buffer[0] + m_recv_start + rcv_pos);
-		}
-
-		std::pair<buffer::interval, buffer::interval> wr_recv_buffers(int bytes);
-#endif
-		
-		buffer::const_interval receive_buffer() const
-		{
-			if (m_recv_buffer.empty())
-			{
-				TORRENT_ASSERT(m_recv_pos == 0);
-				return buffer::interval(0,0);
-			}
-			int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
-			return buffer::const_interval(&m_recv_buffer[0] + m_recv_start
-				, &m_recv_buffer[0] + m_recv_start + rcv_pos);
-		}
+		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>& iovec) { return INT_MAX; }
 
 		bool allocate_disk_receive_buffer(int disk_buffer_size);
-		char* release_disk_receive_buffer();
-		bool has_disk_receive_buffer() const { return m_disk_recv_buffer; }
-		void cut_receive_buffer(int size, int packet_size, int offset = 0);
-		void reset_recv_buffer(int packet_size);
-		void normalize_receive_buffer();
-		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 
 		// if allow_encrypted is false, and the torrent 'ih' turns out
 		// to be an encrypted torrent (AES-256 encrypted) the peer will
@@ -864,6 +810,14 @@ namespace libtorrent
 
 		void receive_data_impl(error_code const& error
 			, std::size_t bytes_transferred, int read_loops);
+
+		void set_send_barrier(int bytes)
+		{
+			TORRENT_ASSERT(bytes == INT_MAX || bytes <= send_buffer_size());
+			m_send_barrier = bytes;
+		}
+
+		int get_send_barrier() const { return m_send_barrier; }
 
 		virtual int timeout() const;
 
@@ -913,8 +867,7 @@ namespace libtorrent
 		char m_channel_state[2];
 
 	protected:
-
-		buffer m_recv_buffer;
+		receive_buffer m_recv_buffer;
 
 		// number of bytes this peer can send and receive
 		int m_quota[2];
@@ -922,9 +875,6 @@ namespace libtorrent
 		// the blocks we have reserved in the piece
 		// picker and will request from this peer.
 		std::vector<pending_block> m_request_queue;
-		
-		// the start of the logical receive buffer
-		int m_recv_start:24;
 
 		// this is the limit on the number of outstanding requests
 		// we have to this peer. This is initialized to the settings
@@ -1036,12 +986,6 @@ namespace libtorrent
 		// for the round-robin unchoke algorithm.
 		size_type m_uploaded_at_last_unchoke;
 
-		// some messages needs to be read from the socket
-		// buffer in multiple stages. This soft packet
-		// size limits the read size between message handler
-		// dispatch. Ignored when set to 0
-		int m_soft_packet_size;
-
 		// the number of bytes that the other
 		// end has to send us in order to respond
 		// to all outstanding piece requests we
@@ -1067,12 +1011,6 @@ namespace libtorrent
 
 		handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
 		handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
-
-		// if this peer is receiving a piece, this
-		// points to a disk buffer that the data is
-		// read into. This eliminates a memcopy from
-		// the receive buffer into the disk buffer
-		disk_buffer_holder m_disk_recv_buffer;
 
 		// we have suggested these pieces to the peer
 		// don't suggest it again
@@ -1118,14 +1056,13 @@ namespace libtorrent
 		// keeps track of the current quotas
 		bandwidth_channel m_bandwidth_channel[num_channels];
 
-	private:
+	protected:
 		// statistics about upload and download speeds
 		// and total amount of uploads and downloads for
 		// this peer
 		// TODO: factor this out into its own class with a virtual interface
 		// torrent and session should implement this interface
 		stat m_statistics;
-	protected:
 
 		// if the timeout is extended for the outstanding
 		// requests, this is the number of seconds it was
@@ -1145,39 +1082,6 @@ namespace libtorrent
 		// into account without submitting it all
 		// immediately
 		int m_queued_time_critical;
-
-		// the number of valid, received bytes in m_recv_buffer
-		int m_recv_end:24;
-
-//#error 1 byte
-
-		// recv_buf.begin (start of actual receive buffer)
-		// |
-		// |      m_recv_start (logical start of current
-		// |      |  receive buffer, as perceived by upper layers)
-		// |      |
-		// |      |    m_recv_pos (number of bytes consumed
-		// |      |    |  by upper layer, from logical receive buffer)
-		// |      |    |
-		// |      x---------x
-		// |      |         |        recv_buf.end (end of actual receive buffer)
-		// |      |         |        |
-		// v      v         v        v
-		// *------==========---------
-		//                     ^
-		//                     |
-		//                     |
-		// ------------------->x  m_recv_end (end of received data,
-		//                          beyond this point is garbage)
-		// m_recv_buffer
-
-		// when not using contiguous receive buffers, there
-		// may be a disk_recv_buffer in the mix as well. Whenever
-		// m_disk_recv_buffer_size > 0 (and presumably also
-		// m_disk_recv_buffer != NULL) the disk buffer is imagined
-		// to be appended to the receive buffer right after m_recv_end.
-
-		int m_disk_recv_buffer_size;
 
 		// the number of bytes we are currently reading
 		// from disk, that will be added to the send
@@ -1227,6 +1131,9 @@ namespace libtorrent
 		// we need to send to this peer for it to unchoke
 		// us
 		int m_est_reciprocation_rate;
+
+		// stop sending data after this many bytes, INT_MAX = inf
+		int m_send_barrier;
 
 		// the number of request we should queue up
 		// at the remote end.

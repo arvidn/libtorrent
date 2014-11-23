@@ -145,7 +145,7 @@ namespace libtorrent
 		, fast_reconnects(0)
 		, trust_points(0)
 		, source(src)
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// assume no support in order to
 		// prefer opening non-encrypyed
 		// connections. If it fails, we'll

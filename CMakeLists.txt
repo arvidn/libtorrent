@@ -53,6 +53,7 @@ set(sources
 	peer_list
 	puff
 	random
+	receive_buffer
 	request_blocks
 	resolver
 	rss
