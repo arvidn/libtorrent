@@ -179,7 +179,7 @@ namespace libtorrent { namespace
 					//        used as a rendezvous point in case direct
 					//        connections to the peer fail
 					int flags = p->is_seed() ? 2 : 0;
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 					flags |= p->supports_encryption() ? 1 : 0;
 #endif
 					flags |= is_utp(*p->get_socket()) ? 4 :  0;
@@ -565,7 +565,7 @@ namespace libtorrent { namespace
 				//        used as a rendezvous point in case direct
 				//        connections to the peer fail
 				int flags = p->is_seed() ? 2 : 0;
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 				flags |= p->supports_encryption() ? 1 : 0;
 #endif
 				flags |= is_utp(*p->get_socket()) ? 4 :  0;

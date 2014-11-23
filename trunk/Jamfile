@@ -549,6 +549,7 @@ SOURCES =
 	proxy_base
 	puff
 	random
+	receive_buffer
 	rss
 	session
 	session_impl

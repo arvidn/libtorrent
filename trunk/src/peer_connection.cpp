@@ -91,11 +91,6 @@ namespace libtorrent
 		min_request_queue = 2,
 	};
 
-	int round_up8(int v)
-	{
-		return ((v & 7) == 0) ? v : v + (8 - (v & 7));
-	}
-
 #if defined TORRENT_REQUEST_LOGGING
 	void write_request_log(FILE* f, sha1_hash const& ih
 		, peer_connection* p, peer_request const& r)
@@ -142,7 +137,7 @@ namespace libtorrent
 		, m_peer_info(pack.peerinfo)
 		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
-		, m_recv_start(0)
+		, m_recv_buffer(*pack.allocator)
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
@@ -165,16 +160,12 @@ namespace libtorrent
 		, m_downloaded_at_last_round(0)
 		, m_uploaded_at_last_round(0)
 		, m_uploaded_at_last_unchoke(0)
-		, m_soft_packet_size(0)
 		, m_outstanding_bytes(0)
-		, m_disk_recv_buffer(*pack.allocator, 0)
 		, m_last_seen_complete(0)
 		, m_receiving_block(piece_block::invalid)
 		, m_timeout_extend(0)
 		, m_extension_outstanding_bytes(0)
 		, m_queued_time_critical(0)
-		, m_recv_end(0)
-		, m_disk_recv_buffer_size(0)
 		, m_reading_bytes(0)
 		, m_picker_options(0)
 		, m_num_invalid_requests(0)
@@ -183,6 +174,7 @@ namespace libtorrent
 		, m_outstanding_writing_bytes(0)
 		, m_download_rate_peak(0)
 		, m_upload_rate_peak(0)
+		, m_send_barrier(INT_MAX)
 		, m_desired_queue_size(2)
 		, m_speed(slow)
 		, m_prefer_whole_pieces(0)
@@ -527,9 +519,9 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_logger) return;
 
-		va_list v;	
+		va_list v;
 		va_start(v, fmt);
-	
+
 		char usr[400];
 		vsnprintf(usr, sizeof(usr), fmt, v);
 		va_end(v);
@@ -819,8 +811,6 @@ namespace libtorrent
 			if (t) t->dec_num_connecting();
 			m_connecting = false;
 		}
-
-		m_disk_recv_buffer_size = 0;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		m_extensions.clear();
@@ -2427,7 +2417,7 @@ namespace libtorrent
 		check_invariant();
 #endif
 #if TORRENT_USE_ASSERTS
-		buffer::const_interval recv_buffer = receive_buffer();
+		buffer::const_interval recv_buffer = m_recv_buffer.get();
 		int recv_pos = recv_buffer.end - recv_buffer.begin;
 		TORRENT_ASSERT(recv_pos >= 9);
 #endif
@@ -2579,8 +2569,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		TORRENT_ASSERT(!m_disk_recv_buffer);
-		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
+		m_recv_buffer.assert_no_disk_buffer();
 
 		// we're not receiving any block right now
 		m_receiving_block = piece_block::invalid;
@@ -3990,8 +3979,7 @@ namespace libtorrent
 			// make sure we free up all send buffers that are owned
 			// by the disk thread
 			m_send_buffer.clear();
-			m_disk_recv_buffer.reset();
-			m_disk_recv_buffer_size = 0;
+			m_recv_buffer.free_disk_buffer();
 		}
 
 		// we cannot do this in a constructor
@@ -4056,7 +4044,7 @@ namespace libtorrent
 			if (m_outgoing) m_counters.inc_stats_counter(counters::error_outgoing_peers);
 			else m_counters.inc_stats_counter(counters::error_incoming_peers);
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			if (type() == bittorrent_connection)
 			{
 				bt_peer_connection* bt = static_cast<bt_peer_connection*>(this);
@@ -4329,8 +4317,8 @@ namespace libtorrent
 		p.remote_dl_rate = m_remote_dl_rate;
 		p.send_buffer_size = m_send_buffer.capacity();
 		p.used_send_buffer = m_send_buffer.size();
-		p.receive_buffer_size = m_recv_buffer.capacity() + m_disk_recv_buffer_size;
-		p.used_receive_buffer = m_recv_pos;
+		p.receive_buffer_size = m_recv_buffer.capacity();
+		p.used_receive_buffer = m_recv_buffer.pos();
 		p.write_state = m_channel_state[upload_channel];
 		p.read_state = m_channel_state[download_channel];
 		
@@ -4367,10 +4355,8 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_packet_size > 0);
-		TORRENT_ASSERT(m_recv_pos <= m_packet_size - disk_buffer_size);
-		TORRENT_ASSERT(!m_disk_recv_buffer);
-		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
+		m_recv_buffer.assert_no_disk_buffer();
+		TORRENT_ASSERT(m_recv_buffer.pos() <= m_recv_buffer.packet_size() - disk_buffer_size);
 		TORRENT_ASSERT(disk_buffer_size <= 16 * 1024);
 
 		if (disk_buffer_size == 0) return true;
@@ -4382,13 +4368,15 @@ namespace libtorrent
 		}
 
 		// first free the old buffer
-		m_disk_recv_buffer.reset();
+		m_recv_buffer.free_disk_buffer();
 		// then allocate a new one
 
 		bool exceeded = false;
-		m_disk_recv_buffer.reset(m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer"));
+		m_recv_buffer.assign_disk_buffer(
+			m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer")
+			, disk_buffer_size);
 
-		if (!m_disk_recv_buffer)
+		if (!m_recv_buffer.has_disk_buffer())
 		{
 			disconnect(errors::no_memory, op_alloc_recvbuf);
 			return false;
@@ -4404,82 +4392,7 @@ namespace libtorrent
 			m_channel_state[download_channel] |= peer_info::bw_disk;
 		}
 
-		m_disk_recv_buffer_size = disk_buffer_size;
 		return true;
-	}
-
-	char* peer_connection::release_disk_receive_buffer()
-	{
-		TORRENT_ASSERT(is_single_thread());
-		if (!m_disk_recv_buffer) return 0;
-
-		TORRENT_ASSERT(m_disk_recv_buffer_size <= m_recv_end);
-		TORRENT_ASSERT(m_recv_start <= m_recv_end - m_disk_recv_buffer_size);
-		m_recv_end -= m_disk_recv_buffer_size;
-		m_disk_recv_buffer_size = 0;
-		return m_disk_recv_buffer.release();
-	}
-	
-	// size = the packet size to remove from the receive buffer
-	// packet_size = the next packet size to receive in the buffer
-	// offset = the offset into the receive buffer where to remove `size` bytes
-	void peer_connection::cut_receive_buffer(int size, int packet_size, int offset)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(packet_size > 0);
-		TORRENT_ASSERT(int(m_recv_buffer.size()) >= size);
-		TORRENT_ASSERT(int(m_recv_buffer.size()) >= m_recv_pos);
-		TORRENT_ASSERT(m_recv_pos >= size + offset);
-		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
-		TORRENT_ASSERT(m_recv_start <= m_recv_end);
-		TORRENT_ASSERT(size >= 0);
-
-		if (offset > 0)
-		{
-			TORRENT_ASSERT(m_recv_start - size <= m_recv_end);
-
-			if (size > 0)
-				std::memmove(&m_recv_buffer[0] + m_recv_start + offset
-					, &m_recv_buffer[0] + m_recv_start + offset + size
-					, m_recv_end - m_recv_start - size - offset);
-
-			m_recv_pos -= size;
-			m_recv_end -= size;
-
-#ifdef TORRENT_DEBUG
-			std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0xcc);
-#endif
-		}
-		else
-		{
-			TORRENT_ASSERT(m_recv_start + size <= m_recv_end);
-			m_recv_start += size;
-			m_recv_pos -= size;
-		}
-
-		m_packet_size = packet_size;
-	}
-
-	// the purpose of this function is to free up and cut off all messages
-	// in the receive buffer that have been parsed and processed.
-	void peer_connection::normalize_receive_buffer()
-	{
-		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(m_recv_end >= m_recv_start);
-		if (m_recv_start == 0) return;
-
-		if (m_recv_end > m_recv_start)
-			std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + m_recv_start, m_recv_end - m_recv_start);
-
-		m_recv_end -= m_recv_start;
-		m_recv_start = 0;
-
-#ifdef TORRENT_DEBUG
-		std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0xcc);
-#endif
 	}
 
 	void peer_connection::superseed_piece(int replace_piece, int new_piece)
@@ -5262,7 +5175,7 @@ namespace libtorrent
 		if (channel == download_channel)
 		{
 			return (std::max)((std::max)(m_outstanding_bytes
-				, m_packet_size - m_recv_pos) + 30
+				, m_recv_buffer.packet_bytes_remaining()) + 30
 				, int(boost::int64_t(m_statistics.download_rate()) * 2
 					/ (1000 / m_settings.get_int(settings_pack::tick_interval))));
 		}
@@ -5364,7 +5277,24 @@ namespace libtorrent
 
 		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
 
-		if (m_quota[upload_channel] == 0
+		if (m_send_barrier == 0)
+		{
+			std::vector<asio::mutable_buffer> vec;
+			m_send_buffer.build_mutable_iovec(m_send_buffer.size(), vec);
+			int next_barrier = hit_send_barrier(vec);
+			for (std::vector<asio::mutable_buffer>::reverse_iterator i = vec.rbegin();
+				i != vec.rend(); ++i)
+			{
+				m_send_buffer.prepend_buffer(asio::buffer_cast<char*>(*i)
+					, asio::buffer_size(*i)
+					, asio::buffer_size(*i)
+					, &nop
+					, NULL);
+			}
+			set_send_barrier(next_barrier);
+		}
+
+		if ((m_quota[upload_channel] == 0 || m_send_barrier == 0)
 			&& !m_send_buffer.empty()
 			&& !m_connecting)
 		{
@@ -5441,6 +5371,8 @@ namespace libtorrent
 		int amount_to_send = m_send_buffer.size();
 		if (amount_to_send > quota_left)
 			amount_to_send = quota_left;
+		if (amount_to_send > m_send_barrier)
+			amount_to_send = m_send_barrier;
 
 		TORRENT_ASSERT(amount_to_send > 0);
 
@@ -5503,11 +5435,9 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(!m_disk_recv_buffer);
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_disk);
 
-		m_disk_recv_buffer.reset(buffer);
-		m_disk_recv_buffer_size = buffer_size;
+		m_recv_buffer.assign_disk_buffer(buffer, buffer_size);
 
 		m_counters.inc_stats_counter(counters::num_peers_down_disk, -1);
 		m_channel_state[download_channel] &= ~peer_info::bw_disk;
@@ -5572,7 +5502,7 @@ namespace libtorrent
 			return 0;
 		}
 
-		int max_receive = m_packet_size - m_recv_pos;
+		int max_receive = m_recv_buffer.max_receive();
 
 		boost::array<asio::mutable_buffer, 2> vec;
 		int num_bufs = 0;
@@ -5580,7 +5510,7 @@ namespace libtorrent
 		// outstanding requests. When we're likely to receive pieces, we'll
 		// save more time from avoiding copying data from the socket
 		if ((m_settings.get_bool(settings_pack::contiguous_recv_buffer)
-			|| m_download_queue.empty()) && !m_disk_recv_buffer)
+			|| m_download_queue.empty()) && !m_recv_buffer.has_disk_buffer())
 		{
 			if (s == read_sync)
 			{
@@ -5602,12 +5532,8 @@ namespace libtorrent
 			return 0;
 		}
 
-		TORRENT_ASSERT(m_packet_size > 0);
 		TORRENT_ASSERT(max_receive >= 0);
 
-		if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
-		if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
-			max_receive = m_soft_packet_size - m_recv_pos;
 		int quota_left = m_quota[download_channel];
 		if (max_receive > quota_left)
 			max_receive = quota_left;
@@ -5618,43 +5544,7 @@ namespace libtorrent
 			return 0;
 		}
 
-		TORRENT_ASSERT(m_recv_pos >= 0);
-		TORRENT_ASSERT(m_packet_size > 0);
-
-		int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
-
-		if (int(m_recv_buffer.size()) < regular_buffer_size)
-			m_recv_buffer.resize(round_up8(regular_buffer_size));
-
-		if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos + max_receive)
-		{
-			// only receive into regular buffer
-			TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
-			vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos], max_receive);
-			num_bufs = 1;
-		}
-		else if (m_recv_pos >= regular_buffer_size)
-		{
-			// only receive into disk buffer
-			TORRENT_ASSERT(m_recv_pos - regular_buffer_size >= 0);
-			TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
-			vec[0] = asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size, max_receive);
-			num_bufs = 1;
-		}
-		else
-		{
-			// receive into both regular and disk buffer
-			TORRENT_ASSERT(max_receive + m_recv_pos > regular_buffer_size);
-			TORRENT_ASSERT(m_recv_pos < regular_buffer_size);
-			TORRENT_ASSERT(max_receive - regular_buffer_size
-				+ m_recv_pos <= m_disk_recv_buffer_size);
-
-			vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos]
-				, regular_buffer_size - m_recv_pos);
-			vec[1] = asio::buffer(m_disk_recv_buffer.get()
-				, max_receive - regular_buffer_size + m_recv_pos);
-			num_bufs = 2;
-		}
+		num_bufs = m_recv_buffer.reserve(vec, max_receive);
 
 		if (s == read_async)
 		{
@@ -5672,12 +5562,15 @@ namespace libtorrent
 			{
 				if (num_bufs == 1)
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 					m_socket->async_read_some(
 						asio::mutable_buffers_1(vec[0]), make_read_handler(
 							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 				}
 				else
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
+						+ boost::asio::buffer_size(vec[1])> 0);
 					m_socket->async_read_some(
 						vec, make_read_handler(
 							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
@@ -5690,11 +5583,14 @@ namespace libtorrent
 				j.peer = self();
 				if (num_bufs == 1)
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 					j.recv_buf = asio::buffer_cast<char*>(vec[0]);
 					j.buf_size = asio::buffer_size(vec[0]);
 				}
 				else
 				{
+					TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
+						+ boost::asio::buffer_size(vec[1])> 0);
 					j.read_vec = vec;
 				}
 				m_ses.post_socket_job(j);
@@ -5720,71 +5616,11 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-
-	// returns the last 'bytes' from the receive buffer
-	std::pair<buffer::interval, buffer::interval> peer_connection::wr_recv_buffers(int bytes)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(bytes <= m_recv_pos);
-
-		std::pair<buffer::interval, buffer::interval> vec;
-		int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
-		TORRENT_ASSERT(regular_buffer_size >= 0);
-		if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos)
-		{
-			vec.first = buffer::interval(&m_recv_buffer[0] + m_recv_start
-				+ m_recv_pos - bytes, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
-			vec.second = buffer::interval(0,0);
-		}
-		else if (m_recv_pos - bytes >= regular_buffer_size)
-		{
-			vec.first = buffer::interval(m_disk_recv_buffer.get() + m_recv_pos
-				- regular_buffer_size - bytes, m_disk_recv_buffer.get() + m_recv_pos
-				- regular_buffer_size);
-			vec.second = buffer::interval(0,0);
-		}
-		else
-		{
-			TORRENT_ASSERT(m_recv_pos - bytes < regular_buffer_size);
-			TORRENT_ASSERT(m_recv_pos > regular_buffer_size);
-			vec.first = buffer::interval(&m_recv_buffer[0] + m_recv_start + m_recv_pos - bytes
-				, &m_recv_buffer[0] + m_recv_start + regular_buffer_size);
-			vec.second = buffer::interval(m_disk_recv_buffer.get()
-				, m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size);
-		}
-		TORRENT_ASSERT(vec.first.left() + vec.second.left() == bytes);
-		return vec;
-	}
-#endif
-
-	void peer_connection::reset_recv_buffer(int packet_size)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
-		TORRENT_ASSERT(packet_size > 0);
-		if (m_recv_end > m_packet_size)
-		{
-			cut_receive_buffer(m_packet_size, packet_size);
-			return;
-		}
-
-		m_recv_pos = 0;
-		m_recv_start = 0;
-		m_recv_end = 0;
-		m_packet_size = packet_size;
-	}
-
 	void peer_connection::append_send_buffer(char* buffer, int size
 		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref, bool encrypted)
+		, block_cache_reference ref)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// bittorrent connections should never use this function, since
-		// they might be encrypted and this would circumvent the actual
-		// encryption. bt_peer_connection overrides this function with
-		// its own version.
-		TORRENT_ASSERT(encrypted || type() != bittorrent_connection);
 		m_send_buffer.append_buffer(buffer, size, size, destructor
 			, userdata, ref);
 	}
@@ -5804,8 +5640,7 @@ namespace libtorrent
 		ses->free_buffer(buffer);
 	}
 
-	void peer_connection::send_buffer(char const* buf, int size, int flags
-		, void (*fun)(char*, int, void*), void* userdata)
+	void peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		int free_space = m_send_buffer.space_in_last_buffer();
@@ -5814,7 +5649,6 @@ namespace libtorrent
 		{
 			char* dst = m_send_buffer.append(buf, free_space);
 			TORRENT_ASSERT(dst != 0);
-			if (fun) fun(dst, free_space, userdata);
 			size -= free_space;
 			buf += free_space;
 		}
@@ -5833,7 +5667,6 @@ namespace libtorrent
 			const int alloc_buf_size = m_ses.send_buffer_size();
 			int buf_size = (std::min)(alloc_buf_size, size);
 			memcpy(chain_buf, buf, buf_size);
-			if (fun) fun(chain_buf, buf_size, userdata);
 			buf += buf_size;
 			size -= buf_size;
 			m_send_buffer.append_buffer(chain_buf, alloc_buf_size, buf_size
@@ -5914,14 +5747,13 @@ namespace libtorrent
 
 		if (buffer_size > 2097152) buffer_size = 2097152;
 
-		m_recv_buffer.resize(m_recv_pos + buffer_size);
-		TORRENT_ASSERT(m_recv_start == 0);
+		asio::mutable_buffer buffer = m_recv_buffer.reserve(buffer_size);
+		TORRENT_ASSERT(m_recv_buffer.normalized());
 
 		// utp sockets aren't thread safe...
 		if (is_utp(*m_socket))
 		{
-			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
-				, buffer_size), ec);
+			bytes_transferred = m_socket->read_some(asio::mutable_buffers_1(buffer), ec);
 
 			if (ec)
 			{
@@ -5945,8 +5777,8 @@ namespace libtorrent
 #endif
 			socket_job j;
 			j.type = socket_job::read_job;
-			j.recv_buf = &m_recv_buffer[m_recv_pos];
-			j.buf_size = buffer_size;
+			j.recv_buf = asio::buffer_cast<char*>(buffer);
+			j.buf_size = asio::buffer_size(buffer);
 			j.peer = self();
 			m_ses.post_socket_job(j);
 			return;
@@ -5978,6 +5810,8 @@ namespace libtorrent
 		// that way we don't trigger any async read calls until the end of this
 		// function.
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+
+		TORRENT_ASSERT(bytes_transferred > 0 || error);
 
 		receive_data_impl(error, bytes_transferred, 10);
 	}
@@ -6019,6 +5853,8 @@ namespace libtorrent
 			return;
 		}
 
+		TORRENT_ASSERT(bytes_transferred > 0);
+
 		m_counters.inc_stats_counter(counters::on_read_counter);
 		m_ses.received_buffer(bytes_transferred);
 
@@ -6046,30 +5882,25 @@ namespace libtorrent
 				return;
 			}
 	
-			TORRENT_ASSERT(m_packet_size > 0);
 			TORRENT_ASSERT(bytes_transferred > 0);
-
-			m_recv_end += bytes_transferred;
-			TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()
-				+ m_disk_recv_buffer_size));
+			m_recv_buffer.received(bytes_transferred);
 
 			int bytes = bytes_transferred;
 			int sub_transferred = 0;
 			do {
 				INVARIANT_CHECK;
-#if TORRENT_USE_ASSERTS
+// TODO: The stats checks can not be honored when authenticated encryption is in use
+// because we may have encrypted data which we cannot authenticate yet
+#if 0
 				size_type cur_payload_dl = m_statistics.last_payload_downloaded();
 				size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
-				int packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
-				int limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
-				sub_transferred = (std::min)(bytes, limit);
-				m_recv_pos += sub_transferred;
+				sub_transferred = m_recv_buffer.advance_pos(bytes);
 				on_receive(error, sub_transferred);
 				bytes -= sub_transferred;
 				TORRENT_ASSERT(sub_transferred > 0);
 
-#if TORRENT_USE_ASSERTS
+#if 0
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
 				size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
@@ -6080,21 +5911,15 @@ namespace libtorrent
 
 			} while (bytes > 0 && sub_transferred > 0);
 
-			normalize_receive_buffer();
+			m_recv_buffer.normalize();
 
-			TORRENT_ASSERT(m_recv_pos == m_recv_end);
+			TORRENT_ASSERT(m_recv_buffer.pos_at_end());
+			TORRENT_ASSERT(m_recv_buffer.packet_size() > 0);
 
-			TORRENT_ASSERT(m_packet_size > 0);
-
-			if (m_peer_choked
-				&& m_recv_pos == 0
-				&& (m_recv_buffer.capacity() - m_packet_size) > 128)
+			if (m_peer_choked)
 			{
-				// round up to an even 8 bytes since that's the RC4 blocksize
-				buffer(round_up8(m_packet_size)).swap(m_recv_buffer);
+				m_recv_buffer.clamp_size();
 			}
-
-			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 
 			if (num_loops > read_loops) break;
 
@@ -6137,6 +5962,7 @@ namespace libtorrent
 		// we want to send data
 		return !m_send_buffer.empty()
 			&& m_quota[upload_channel] > 0
+			&& (m_send_barrier > 0)
 			&& !m_connecting;
 	}
 
@@ -6388,6 +6214,9 @@ namespace libtorrent
 
 		trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
 
+		if (m_send_barrier != INT_MAX)
+			m_send_barrier -= bytes_transferred;
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> wrote %d bytes", int(bytes_transferred));
 #endif
@@ -6405,7 +6234,7 @@ namespace libtorrent
 			// make sure we free up all send buffers that are owned
 			// by the disk thread
 			m_send_buffer.clear();
-			m_disk_recv_buffer.reset();
+			m_recv_buffer.free_disk_buffer();
 			return;
 		}
 
@@ -6448,10 +6277,9 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(m_in_use == 1337);
 		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
-		TORRENT_ASSERT(m_recv_end >= m_recv_start);
 		TORRENT_ASSERT(m_accept_fast.size() == m_accept_fast_piece_cnt.size());
 
-		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
+		m_recv_buffer.check_invariant();
 
 		for (int i = 0; i < 2; ++i)
 		{

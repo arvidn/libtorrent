@@ -85,6 +85,26 @@ namespace libtorrent
 		TORRENT_ASSERT(m_bytes <= m_capacity);
 	}
 
+	void chained_buffer::prepend_buffer(char* buffer, int s, int used_size
+		, free_buffer_fun destructor, void* userdata
+		, block_cache_reference ref)
+	{
+		TORRENT_ASSERT(s >= used_size);
+		buffer_t b;
+		b.buf = buffer;
+		b.size = s;
+		b.start = buffer;
+		b.used_size = used_size;
+		b.free_fun = destructor;
+		b.userdata = userdata;
+		b.ref = ref;
+		m_vec.push_front(b);
+
+		m_bytes += used_size;
+		m_capacity += s;
+		TORRENT_ASSERT(m_bytes <= m_capacity);
+	}
+
 	// returns the number of bytes available at the
 	// end of the last chained buffer.
 	int chained_buffer::space_in_last_buffer()
@@ -127,21 +147,31 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_tmp_vec.clear();
+		build_vec(to_send, m_tmp_vec);
+		return m_tmp_vec;
+	}
 
+	void chained_buffer::build_mutable_iovec(int bytes, std::vector<asio::mutable_buffer> &vec)
+	{
+		build_vec(bytes, vec);
+	}
+
+	template <typename Buffer>
+	void chained_buffer::build_vec(int bytes, std::vector<Buffer> &vec)
+	{
 		for (std::deque<buffer_t>::iterator i = m_vec.begin()
-			, end(m_vec.end()); to_send > 0 && i != end; ++i)
+			, end(m_vec.end()); bytes > 0 && i != end; ++i)
 		{
-			if (i->used_size > to_send)
+			if (i->used_size > bytes)
 			{
-				TORRENT_ASSERT(to_send > 0);
-				m_tmp_vec.push_back(asio::const_buffer(i->start, to_send));
+				TORRENT_ASSERT(bytes > 0);
+				vec.push_back(Buffer(i->start, bytes));
 				break;
 			}
 			TORRENT_ASSERT(i->used_size > 0);
-			m_tmp_vec.push_back(asio::const_buffer(i->start, i->used_size));
-			to_send -= i->used_size;
+			vec.push_back(Buffer(i->start, i->used_size));
+			bytes -= i->used_size;
 		}
-		return m_tmp_vec;
 	}
 
 	void chained_buffer::clear()

@@ -88,6 +88,10 @@ namespace libtorrent
 			, free_buffer_fun destructor, void* userdata
 			, block_cache_reference ref = block_cache_reference());
 
+		void prepend_buffer(char* buffer, int s, int used_size
+			, free_buffer_fun destructor, void* userdata
+			, block_cache_reference ref = block_cache_reference());
+
 		// returns the number of bytes available at the
 		// end of the last chained buffer.
 		int space_in_last_buffer();
@@ -106,9 +110,13 @@ namespace libtorrent
 
 		void clear();
 
+		void build_mutable_iovec(int bytes, std::vector<asio::mutable_buffer>& vec);
+
 		~chained_buffer();
 
 	private:
+		template <typename Buffer>
+		void build_vec(int bytes, std::vector<Buffer>& vec);
 
 		// this is the list of all the buffers we want to
 		// send

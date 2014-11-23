@@ -1112,7 +1112,7 @@ int main(int argc, char* argv[])
 			"                        share ratio rather than downloading\n"
 			"  -K                    enable piece suggestions of read cache\n"
 			"  -r <IP:port>          connect to specified peer\n"
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			"  -e                    force encrypted bittorrent connections\n"
 #endif
 			"\n QUEING OPTIONS\n"
@@ -1288,7 +1288,7 @@ int main(int argc, char* argv[])
 				--i;
 				break;
 			case 'l': settings.set_int(settings_pack::listen_queue_size, atoi(arg)); break;
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			case 'e':
 				{
 					settings.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);

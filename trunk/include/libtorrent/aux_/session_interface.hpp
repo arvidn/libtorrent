@@ -278,7 +278,7 @@ namespace libtorrent { namespace aux
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
 	
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		virtual torrent const* find_encrypted_torrent(
 			sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;
 		virtual void add_obfuscated_hash(sha1_hash const& obfuscated
