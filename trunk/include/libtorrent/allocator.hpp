@@ -71,6 +71,8 @@ namespace libtorrent
 			h.m_buf =  tmp;
 		}
 	private:
+		aligned_holder(aligned_holder const&);
+		aligned_holder& operator=(aligned_holder const&);
 		char* m_buf;
 	};
 
