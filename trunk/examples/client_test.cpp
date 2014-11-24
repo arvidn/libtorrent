@@ -382,7 +382,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb rcvb   q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
-	out += "  v disk ^    rtt ";
+	out += "  v disk ^    rtt  ";
 	if (print_block) out += "block-progress ";
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	out += "country ";
@@ -479,7 +479,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 				, int(total_seconds(i->download_queue_time)));
 			out += str;
 		}
-		snprintf(str, sizeof(str), "%s|%s %4d "
+		snprintf(str, sizeof(str), "%s|%s %5d "
 			, add_suffix(i->pending_disk_bytes).c_str()
 			, add_suffix(i->pending_disk_read_bytes).c_str()
 			, i->rtt);
