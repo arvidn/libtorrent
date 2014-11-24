@@ -634,7 +634,8 @@ void add_torrent(libtorrent::session& ses
 }
 
 std::vector<std::string> list_dir(std::string path
-	, bool (*filter_fun)(std::string const&))
+	, bool (*filter_fun)(std::string const&)
+	, libtorrent::error_code& ec)
 {
 	std::vector<std::string> ret;
 #ifdef TORRENT_WINDOWS
@@ -647,7 +648,10 @@ std::vector<std::string> list_dir(std::string path
 	WIN32_FIND_DATAW fd;
 	HANDLE handle = FindFirstFileW(wpath.c_str(), &fd);
 	if (handle == INVALID_HANDLE_VALUE)
+	{
+		ec.assign(GetLastError(), boost::system::sytem_category());
 		return ret;
+	}
 
 	do
 	{
@@ -664,7 +668,11 @@ std::vector<std::string> list_dir(std::string path
 		path.resize(path.size()-1);
 
 	DIR* handle = opendir(path.c_str());
-	if (handle == 0) return ret;
+	if (handle == 0)
+	{
+		ec.assign(errno, boost::system::generic_category());
+		return ret;
+	}
 
 	struct dirent de;
 	dirent* dummy;
@@ -676,6 +684,7 @@ std::vector<std::string> list_dir(std::string path
 		if (filter_fun(p))
 			ret.push_back(p);
 	}
+	closedir(handle);
 #endif
 	return ret;
 }
@@ -708,7 +717,13 @@ void scan_dir(std::string const& dir_path
 	using namespace libtorrent;
 
 	error_code ec;
-	std::vector<std::string> ents = list_dir(dir_path, filter_fun);
+	std::vector<std::string> ents = list_dir(dir_path, filter_fun, ec);
+	if (ec)
+	{
+		fprintf(stderr, "failed to list directory: (%s : %d) %s\n"
+			, ec.category().name(), ec.value(), ec.message().c_str());
+		return;
+	}
 
 	for (std::vector<std::string>::iterator i = ents.begin()
 		, end(ents.end()); i != end; ++i)
