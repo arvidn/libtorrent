@@ -398,14 +398,18 @@ namespace libtorrent {
 		transferred[download_payload] = s[download_payload].counter();
 		transferred[download_protocol] = s[download_protocol].counter();
 		transferred[upload_ip_protocol] = s[upload_ip_protocol].counter();
+		transferred[download_ip_protocol] = s[download_ip_protocol].counter();
+
 #ifndef TORRENT_NO_DEPRECATE
 		transferred[upload_dht_protocol] = 0;
 		transferred[upload_tracker_protocol] = 0;
-#endif
-		transferred[download_ip_protocol] = s[download_ip_protocol].counter();
-#ifndef TORRENT_NO_DEPRECATE
 		transferred[download_dht_protocol] = 0;
 		transferred[download_tracker_protocol] = 0;
+#else
+		transferred[deprecated1] = 0;
+		transferred[deprecated2] = 0;
+		transferred[deprecated3] = 0;
+		transferred[deprecated4] = 0;
 #endif
 	}
 
