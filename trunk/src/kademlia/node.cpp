@@ -489,9 +489,7 @@ void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
 	if (ptr == 0) return;
 
 	TORRENT_ASSERT(bucket >= 0);
-
-	// sanity check
-	TORRENT_ASSERT(bucket <= 50);
+	TORRENT_ASSERT(bucket <= 159);
 
 	// generate a random node_id within the given bucket
 	// TODO: 2 it would be nice to have a bias towards node-id prefixes that
