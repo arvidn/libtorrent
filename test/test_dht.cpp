@@ -1147,10 +1147,12 @@ int test_main()
 	// test node-id functions
 	using namespace libtorrent::dht;
 
+	TEST_EQUAL(generate_prefix_mask(0), to_hash("0000000000000000000000000000000000000000"));
 	TEST_EQUAL(generate_prefix_mask(1), to_hash("8000000000000000000000000000000000000000"));
 	TEST_EQUAL(generate_prefix_mask(2), to_hash("c000000000000000000000000000000000000000"));
 	TEST_EQUAL(generate_prefix_mask(11), to_hash("ffe0000000000000000000000000000000000000"));
 	TEST_EQUAL(generate_prefix_mask(17), to_hash("ffff800000000000000000000000000000000000"));
+	TEST_EQUAL(generate_prefix_mask(160), to_hash("ffffffffffffffffffffffffffffffffffffffff"));
 
 	// test kademlia functions
 
