@@ -7,6 +7,7 @@ EXTRA_DIST = \
   simple_client.py          \
   make_torrent.py           \
   src/alert.cpp             \
+  src/bytes.hpp             \
   src/big_number.cpp        \
   src/converters.cpp        \
   src/create_torrent.cpp    \
