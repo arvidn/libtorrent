@@ -327,6 +327,10 @@ node_entry const* routing_table::next_refresh()
 		for (bucket_t::iterator j = i->live_nodes.begin()
 			, end(i->live_nodes.end()); j != end; ++j)
 		{
+			// this shouldn't happen
+			TORRENT_ASSERT(m_id != j->id);
+			if (j->id == m_id) continue;
+
 			if (j->last_queried == min_time())
 			{
 				bucket_idx = idx;
@@ -455,6 +459,22 @@ bool routing_table::add_node(node_entry e)
 	while (s == need_bucket_split)
 	{
 		split_bucket();
+
+		// if this assert triggers a lot in the wild, we should probably
+		// harden our resistence towards this attack. Perhaps by never
+		// splitting a bucket (and discard nodes) if the two buckets above it
+		// are empty or close to empty
+		TORRENT_ASSERT(m_buckets.size() <= 50);
+		if (m_buckets.size() > 50)
+		{
+			// this is a sanity check. In the wild, we shouldn't see routing
+			// tables deeper than 26 or 27. If we get this deep, there might
+			// be a bug in the bucket splitting logic, or there may be someone
+			// playing a prank on us, spoofing node IDs.
+			s = add_node_impl(e);
+			if (s == node_added) return true;
+			return false;
+		}
 
 		// if the new bucket still has too many nodes in it, we need to keep
 		// splitting

@@ -472,15 +472,26 @@ void node_impl::tick()
 	node_entry const* ne = m_table.next_refresh();
 	if (ne == NULL) return;
 
+	// this shouldn't happen
+	TORRENT_ASSERT(m_id != ne->id);
+	if (ne->id == m_id) return;
+
 	int bucket = 159 - distance_exp(m_id, ne->id);
+	TORRENT_ASSERT(bucket < 160);
 	send_single_refresh(ne->ep(), bucket, ne->id);
 }
 
 void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
 	, node_id const& id)
 {
+	TORRENT_ASSERT(id != m_id);
 	void* ptr = m_rpc.allocate_observer();
 	if (ptr == 0) return;
+
+	TORRENT_ASSERT(bucket >= 0);
+
+	// sanity check
+	TORRENT_ASSERT(bucket <= 50);
 
 	// generate a random node_id within the given bucket
 	// TODO: 2 it would be nice to have a bias towards node-id prefixes that
