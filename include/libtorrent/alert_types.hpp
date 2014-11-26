@@ -1622,11 +1622,17 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			upload_dht_protocol,
 			upload_tracker_protocol,
+#else
+			deprecated1,
+			deprecated2,
 #endif
 			download_ip_protocol,
 #ifndef TORRENT_NO_DEPRECATE
 			download_dht_protocol,
 			download_tracker_protocol,
+#else
+			deprecated3,
+			deprecated4,
 #endif
 			num_channels
 		};
