@@ -260,11 +260,8 @@ namespace libtorrent
 			ec = error_code();
 
 			// if_nametoindex was introduced in vista
-			// and apparently msvc-9.0 doesn't support this, even though
-			// the _WIN32_WINNT version indicates vista+
 #if TORRENT_USE_IPV6 \
-		&& (!defined TORRENT_WINDOWS \
-			|| (_WIN32_WINNT >= _WIN32_WINNT_VISTA && _MSC_VER > 1500)) \
+		&& (!defined TORRENT_WINDOWS || _WIN32_WINNT >= 0x0600) \
 		&& !defined TORRENT_MINGW
 
 			if (i->interface_address.is_v6() &&
