@@ -255,8 +255,10 @@ endif()
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
-	add_definitions(-D_WIN32_WINNT=0x0500)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # multicore compilation
+	add_definitions(-D_WIN32_WINNT=0x0600)
+	if (MSVC)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # multicore compilation
+	endif()
 endif()
 
 if (encryption)
