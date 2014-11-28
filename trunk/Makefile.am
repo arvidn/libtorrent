@@ -120,6 +120,7 @@ EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
   CMakeLists.txt \
+  setup.py \
   LICENSE \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES) \

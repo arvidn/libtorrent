@@ -649,7 +649,7 @@ std::vector<std::string> list_dir(std::string path
 	HANDLE handle = FindFirstFileW(wpath.c_str(), &fd);
 	if (handle == INVALID_HANDLE_VALUE)
 	{
-		ec.assign(GetLastError(), boost::system::sytem_category());
+		ec.assign(GetLastError(), boost::system::system_category());
 		return ret;
 	}
 

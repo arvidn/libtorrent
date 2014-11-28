@@ -71,7 +71,7 @@ if '--bjam' in sys.argv or ldflags == None or extra_cmd == None:
 		parallel_builds = ' -j%d' % multiprocessing.cpu_count()
 
 		# build libtorrent using bjam and build the installer with distutils
-		cmdline = 'bjam boost=source link=static boost-link=static release optimization=space stage_module --abbreviate-paths' + toolset + parallel_builds
+		cmdline = 'b2 boost=source link=static boost-link=static release optimization=space stage_module --abbreviate-paths' + toolset + parallel_builds
 		print(cmdline)
 		if os.system(cmdline) != 0:
 			print('build failed')
