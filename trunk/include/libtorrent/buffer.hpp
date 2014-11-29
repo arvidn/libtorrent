@@ -61,7 +61,12 @@ public:
 			return begin[index];
 		}
 		  
-		int left() const { TORRENT_ASSERT(end >= begin); return end - begin; }
+		int left() const
+		{
+			TORRENT_ASSERT(end >= begin);
+			TORRENT_ASSERT(end - begin < INT_MAX);
+			return int(end - begin);
+		}
 
 		char* begin;
 		char* end;
@@ -87,11 +92,16 @@ public:
 
 		bool operator==(const const_interval& p_interval)
 		{
-			return (begin == p_interval.begin
-				&& end == p_interval.end);
+			return begin == p_interval.begin
+				&& end == p_interval.end;
 		}
 
-		int left() const { TORRENT_ASSERT(end >= begin); return end - begin; }
+		int left() const
+		{
+			TORRENT_ASSERT(end >= begin);
+			TORRENT_ASSERT(end - begin < INT_MAX);
+			return int(end - begin);
+		}
 
 		char const* begin;
 		char const* end;

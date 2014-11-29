@@ -158,7 +158,7 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 
-		int num_peers() const { return m_peers.size(); }
+		int num_peers() const { return int(m_peers.size()); }
 
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
 		typedef std::vector<torrent_peer*> peers_t;

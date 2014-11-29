@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _mkdir
+#include <sys/types.h> // for _stat
+#include <sys/stat.h>
 #endif
 
 #ifdef _MSC_VER
