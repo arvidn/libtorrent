@@ -316,7 +316,8 @@ namespace libtorrent
 		void set_end(char const* end)
 		{
 			TORRENT_ASSERT(end > m_begin);
-			m_len = end - m_begin;
+			TORRENT_ASSERT(end - m_begin < INT_MAX);
+			m_len = int(end - m_begin);
 		}
 		
 		// internal
