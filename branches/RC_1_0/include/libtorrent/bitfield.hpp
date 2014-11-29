@@ -169,7 +169,7 @@ namespace libtorrent
 		}
 
 		// returns the size of the bitfield in bits.
-		std::size_t size() const { return m_size; }
+		int size() const { return m_size; }
 
 		// returns true if the bitfield has zero size.
 		bool empty() const { return m_size == 0; }

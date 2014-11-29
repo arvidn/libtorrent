@@ -345,7 +345,7 @@ namespace libtorrent
 		};
 #endif
 
-		int num_peers() const { return m_peers.size(); }
+		int num_peers() const { return int(m_peers.size()); }
 
 		struct peer_address_compare
 		{
