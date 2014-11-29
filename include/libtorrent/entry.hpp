@@ -83,6 +83,7 @@ namespace libtorrent
 	// of the entry object.
 	struct TORRENT_EXPORT type_error: std::runtime_error
 	{
+		// internal
 		type_error(const char* error): std::runtime_error(error) {}
 	};
 
