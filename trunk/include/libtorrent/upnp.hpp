@@ -97,6 +97,7 @@ namespace libtorrent
 		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 	}
 
+	// the boost.system error category for UPnP errors
 	TORRENT_EXPORT boost::system::error_category& get_upnp_category();
 
 // int: port-mapping index

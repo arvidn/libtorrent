@@ -408,6 +408,7 @@ namespace libtorrent
 		// hidden
 		~default_storage();
 
+		// hidden
 		void set_file_priority(std::vector<boost::uint8_t> const& prio);
 #ifndef TORRENT_NO_DEPRECATE
 		void finalize_file(int file, storage_error& ec);

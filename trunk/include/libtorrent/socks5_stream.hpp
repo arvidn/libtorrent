@@ -64,7 +64,9 @@ namespace socks_error {
 		num_errors
 	};
 
+	// internal
 	TORRENT_EXPORT boost::system::error_code make_error_code(socks_error_code e);
+
 } // namespace socks_error
 
 // returns the error_category for SOCKS5 errors

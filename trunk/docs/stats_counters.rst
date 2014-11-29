@@ -1099,6 +1099,8 @@ triggered it
 
 .. _disk.queued_disk_jobs:
 
+.. _disk.num_running_disk_jobs:
+
 .. _disk.num_read_jobs:
 
 .. _disk.num_write_jobs:
@@ -1117,6 +1119,7 @@ triggered it
 	<a name="disk.pinned_blocks"></a>
 	<a name="disk.disk_blocks_in_use"></a>
 	<a name="disk.queued_disk_jobs"></a>
+	<a name="disk.num_running_disk_jobs"></a>
 	<a name="disk.num_read_jobs"></a>
 	<a name="disk.num_write_jobs"></a>
 	<a name="disk.num_jobs"></a>
@@ -1124,29 +1127,31 @@ triggered it
 	<a name="disk.num_running_threads"></a>
 	<a name="disk.blocked_disk_jobs"></a>
 
-+--------------------------+-------+
-| name                     | type  |
-+==========================+=======+
-| disk.request_latency     | gauge |
-+--------------------------+-------+
-| disk.pinned_blocks       | gauge |
-+--------------------------+-------+
-| disk.disk_blocks_in_use  | gauge |
-+--------------------------+-------+
-| disk.queued_disk_jobs    | gauge |
-+--------------------------+-------+
-| disk.num_read_jobs       | gauge |
-+--------------------------+-------+
-| disk.num_write_jobs      | gauge |
-+--------------------------+-------+
-| disk.num_jobs            | gauge |
-+--------------------------+-------+
-| disk.num_writing_threads | gauge |
-+--------------------------+-------+
-| disk.num_running_threads | gauge |
-+--------------------------+-------+
-| disk.blocked_disk_jobs   | gauge |
-+--------------------------+-------+
++----------------------------+-------+
+| name                       | type  |
++============================+=======+
+| disk.request_latency       | gauge |
++----------------------------+-------+
+| disk.pinned_blocks         | gauge |
++----------------------------+-------+
+| disk.disk_blocks_in_use    | gauge |
++----------------------------+-------+
+| disk.queued_disk_jobs      | gauge |
++----------------------------+-------+
+| disk.num_running_disk_jobs | gauge |
++----------------------------+-------+
+| disk.num_read_jobs         | gauge |
++----------------------------+-------+
+| disk.num_write_jobs        | gauge |
++----------------------------+-------+
+| disk.num_jobs              | gauge |
++----------------------------+-------+
+| disk.num_writing_threads   | gauge |
++----------------------------+-------+
+| disk.num_running_threads   | gauge |
++----------------------------+-------+
+| disk.blocked_disk_jobs     | gauge |
++----------------------------+-------+
 
 
 the number of microseconds it takes from receiving a request from a
@@ -1320,6 +1325,112 @@ hash a piece (when verifying against the piece hash)
 
 cumulative time spent in various disk jobs, as well
 as total for all disk jobs. Measured in microseconds
+
+.. _disk.num_fenced_read:
+
+.. _disk.num_fenced_write:
+
+.. _disk.num_fenced_hash:
+
+.. _disk.num_fenced_move_storage:
+
+.. _disk.num_fenced_release_files:
+
+.. _disk.num_fenced_delete_files:
+
+.. _disk.num_fenced_check_fastresume:
+
+.. _disk.num_fenced_save_resume_data:
+
+.. _disk.num_fenced_rename_file:
+
+.. _disk.num_fenced_stop_torrent:
+
+.. _disk.num_fenced_cache_piece:
+
+.. _disk.num_fenced_flush_piece:
+
+.. _disk.num_fenced_flush_hashed:
+
+.. _disk.num_fenced_flush_storage:
+
+.. _disk.num_fenced_trim_cache:
+
+.. _disk.num_fenced_file_priority:
+
+.. _disk.num_fenced_load_torrent:
+
+.. _disk.num_fenced_clear_piece:
+
+.. _disk.num_fenced_tick_storage:
+
+.. raw:: html
+
+	<a name="disk.num_fenced_read"></a>
+	<a name="disk.num_fenced_write"></a>
+	<a name="disk.num_fenced_hash"></a>
+	<a name="disk.num_fenced_move_storage"></a>
+	<a name="disk.num_fenced_release_files"></a>
+	<a name="disk.num_fenced_delete_files"></a>
+	<a name="disk.num_fenced_check_fastresume"></a>
+	<a name="disk.num_fenced_save_resume_data"></a>
+	<a name="disk.num_fenced_rename_file"></a>
+	<a name="disk.num_fenced_stop_torrent"></a>
+	<a name="disk.num_fenced_cache_piece"></a>
+	<a name="disk.num_fenced_flush_piece"></a>
+	<a name="disk.num_fenced_flush_hashed"></a>
+	<a name="disk.num_fenced_flush_storage"></a>
+	<a name="disk.num_fenced_trim_cache"></a>
+	<a name="disk.num_fenced_file_priority"></a>
+	<a name="disk.num_fenced_load_torrent"></a>
+	<a name="disk.num_fenced_clear_piece"></a>
+	<a name="disk.num_fenced_tick_storage"></a>
+
++----------------------------------+-------+
+| name                             | type  |
++==================================+=======+
+| disk.num_fenced_read             | gauge |
++----------------------------------+-------+
+| disk.num_fenced_write            | gauge |
++----------------------------------+-------+
+| disk.num_fenced_hash             | gauge |
++----------------------------------+-------+
+| disk.num_fenced_move_storage     | gauge |
++----------------------------------+-------+
+| disk.num_fenced_release_files    | gauge |
++----------------------------------+-------+
+| disk.num_fenced_delete_files     | gauge |
++----------------------------------+-------+
+| disk.num_fenced_check_fastresume | gauge |
++----------------------------------+-------+
+| disk.num_fenced_save_resume_data | gauge |
++----------------------------------+-------+
+| disk.num_fenced_rename_file      | gauge |
++----------------------------------+-------+
+| disk.num_fenced_stop_torrent     | gauge |
++----------------------------------+-------+
+| disk.num_fenced_cache_piece      | gauge |
++----------------------------------+-------+
+| disk.num_fenced_flush_piece      | gauge |
++----------------------------------+-------+
+| disk.num_fenced_flush_hashed     | gauge |
++----------------------------------+-------+
+| disk.num_fenced_flush_storage    | gauge |
++----------------------------------+-------+
+| disk.num_fenced_trim_cache       | gauge |
++----------------------------------+-------+
+| disk.num_fenced_file_priority    | gauge |
++----------------------------------+-------+
+| disk.num_fenced_load_torrent     | gauge |
++----------------------------------+-------+
+| disk.num_fenced_clear_piece      | gauge |
++----------------------------------+-------+
+| disk.num_fenced_tick_storage     | gauge |
++----------------------------------+-------+
+
+
+for each kind of disk job, a counter of how many jobs of that kind
+are currently blocked by a disk fence
 
 .. _dht.dht_nodes:
 

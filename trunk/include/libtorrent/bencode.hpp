@@ -102,12 +102,15 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+#ifndef TORRENT_NO_DEPRECATE
 	// thrown by bdecode() if the provided bencoded buffer does not contain
 	// valid encoding.
 	struct TORRENT_EXPORT invalid_encoding: std::exception
 	{
+		// hidden
 		virtual const char* what() const throw() { return "invalid bencoding"; }
 	};
+#endif
 
 	namespace detail
 	{
@@ -429,7 +432,7 @@ namespace libtorrent
 	// Now we just need to know how to retrieve information from the entry.
 	// 
 	// If ``bdecode()`` encounters invalid encoded data in the range given to it
-	// it will throw libtorrent_exception.
+	// it will return a default constructed ``entry`` object.
 	template<class OutIt> int bencode(OutIt out, const entry& e)
 	{
 		return detail::bencode_recursive(out, e);
