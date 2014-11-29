@@ -47,11 +47,10 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#invalid-encoding" id="id55">invalid_encoding</a></li>
-<li><a class="reference internal" href="#type-error" id="id56">type_error</a></li>
-<li><a class="reference internal" href="#entry" id="id57">entry</a></li>
-<li><a class="reference internal" href="#pascal-string" id="id58">pascal_string</a></li>
-<li><a class="reference internal" href="#lazy-entry" id="id59">lazy_entry</a></li>
+<li><a class="reference internal" href="#type-error" id="id52">type_error</a></li>
+<li><a class="reference internal" href="#entry" id="id53">entry</a></li>
+<li><a class="reference internal" href="#pascal-string" id="id54">pascal_string</a></li>
+<li><a class="reference internal" href="#lazy-entry" id="id55">lazy_entry</a></li>
 </ul>
 </div>
 <p>Bencoding is a common representation in bittorrent used for
@@ -86,19 +85,7 @@ memory allocation and data copy, the parser is also not
 recursive, which means it probably performs a little bit
 better and can have a higher recursion limit on the structures
 it's parsing.</p>
-<a name="invalid_encoding"></a><div class="section" id="invalid-encoding">
-<h1>invalid_encoding</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/bencode.hpp">libtorrent/bencode.hpp</a>&quot;</p>
-<p>thrown by <a class="reference external" href="reference-Bencoding.html#bdecode()">bdecode()</a> if the provided bencoded buffer does not contain
-valid encoding.</p>
-<pre class="literal-block">
-struct invalid_encoding: std::exception
-{
-   virtual const char* <strong>what</strong> () const throw();
-};
-</pre>
-<a name="type_error"></a></div>
-<div class="section" id="type-error">
+<a name="type_error"></a><div class="section" id="type-error">
 <h1>type_error</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/entry.hpp">libtorrent/entry.hpp</a>&quot;</p>
 <p>thrown by any accessor function of <a class="reference external" href="reference-Bencoding.html#entry">entry</a> if the accessor
@@ -107,7 +94,6 @@ of the <a class="reference external" href="reference-Bencoding.html#entry">entry
 <pre class="literal-block">
 struct type_error: std::runtime_error
 {
-   <strong>type_error</strong> (const char* error);
 };
 </pre>
 <a name="entry"></a></div>
@@ -170,7 +156,7 @@ data_type <strong>type</strong> () const;
 </pre>
 <p>returns the concrete type of the <a class="reference external" href="reference-Bencoding.html#entry">entry</a></p>
 <a name="entry()"></a></div>
-<div class="section" id="id16">
+<div class="section" id="id14">
 <h2>entry()</h2>
 <pre class="literal-block">
 <strong>entry</strong> (list_type const&amp;);
@@ -182,7 +168,7 @@ data_type <strong>type</strong> () const;
 The content of the argument is copied into the
 newly constructed <a class="reference external" href="reference-Bencoding.html#entry">entry</a></p>
 <a name="entry()"></a></div>
-<div class="section" id="id18">
+<div class="section" id="id16">
 <h2>entry()</h2>
 <pre class="literal-block">
 <strong>entry</strong> (data_type t);
@@ -265,7 +251,7 @@ void <strong>swap</strong> (entry&amp; e);
 </pre>
 <p>swaps the content of <em>this</em> with <tt class="docutils literal">e</tt>.</p>
 <a name="operator[]()"></a></div>
-<div class="section" id="id24">
+<div class="section" id="id22">
 <h2>operator[]()</h2>
 <pre class="literal-block">
 entry&amp; <strong>operator[]</strong> (std::string const&amp; key);
@@ -371,7 +357,7 @@ struct pascal_string
    char const* ptr;
 };
 </pre>
-<a name="pascal_string()"></a><div class="section" id="id31">
+<a name="pascal_string()"></a><div class="section" id="id29">
 <h2>pascal_string()</h2>
 <pre class="literal-block">
 <strong>pascal_string</strong> (char const* p, int l);
@@ -379,7 +365,7 @@ struct pascal_string
 <p>construct a string pointing to the characters at <tt class="docutils literal">p</tt>
 of length <tt class="docutils literal">l</tt> characters. No NULL termination is required.</p>
 <a name="operator<()"></a></div>
-<div class="section" id="id32">
+<div class="section" id="id30">
 <h2>operator&lt;()</h2>
 <pre class="literal-block">
 bool <strong>operator&lt;</strong> (pascal_string const&amp; rhs) const;
@@ -455,7 +441,7 @@ struct lazy_entry
    };
 };
 </pre>
-<a name="type()"></a><div class="section" id="id36">
+<a name="type()"></a><div class="section" id="id34">
 <h2>type()</h2>
 <pre class="literal-block">
 entry_type_t <strong>type</strong> () const;
@@ -634,7 +620,7 @@ std::pair&lt;char const*, int&gt; <strong>data_section</strong> () const;
 <p>returns pointers into the source buffer where
 this <a class="reference external" href="reference-Bencoding.html#entry">entry</a> has its bencoded data</p>
 <a name="swap()"></a></div>
-<div class="section" id="id44">
+<div class="section" id="id42">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (lazy_entry&amp; e);
@@ -720,9 +706,9 @@ entry e = bdecode(buf, buf + data_size);
 </pre>
 <p>Now we just need to know how to retrieve information from the <a class="reference external" href="reference-Bencoding.html#entry">entry</a>.</p>
 <p>If <tt class="docutils literal">bdecode()</tt> encounters invalid encoded data in the range given to it
-it will throw <a class="reference external" href="reference-Error_Codes.html#libtorrent_exception">libtorrent_exception</a>.</p>
+it will return a default constructed <tt class="docutils literal">entry</tt> object.</p>
 <a name="operator<<()"></a></div>
-<div class="section" id="id51">
+<div class="section" id="id48">
 <h2>operator&lt;&lt;()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/entry.hpp">libtorrent/entry.hpp</a>&quot;</p>
 <pre class="literal-block">

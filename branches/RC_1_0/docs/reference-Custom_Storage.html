@@ -519,25 +519,6 @@ class default_storage : public storage_interface, boost::noncopyable
    <strong>default_storage</strong> (file_storage const&amp; fs, file_storage const* mapped
       , std::string const&amp; path, file_pool&amp; fp
       , std::vector&lt;boost::uint8_t&gt; const&amp; file_prio);
-   bool <strong>move_slot</strong> (int src_slot, int dst_slot);
-   void <strong>hint_read</strong> (int slot, int offset, int len);
-   bool <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
-   void <strong>set_file_priority</strong> (std::vector&lt;boost::uint8_t&gt; const&amp; prio);
-   bool <strong>has_any_file</strong> ();
-   int <strong>move_storage</strong> (std::string const&amp; save_path, int flags);
-   bool <strong>write_resume_data</strong> (entry&amp; rd) const;
-   int <strong>write</strong> (char const* buf, int slot, int offset, int size);
-   int <strong>writev</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* buf, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
-   size_type <strong>physical_offset</strong> (int slot, int offset);
-   bool <strong>release_files</strong> ();
-   bool <strong>delete_files</strong> ();
-   bool <strong>verify_resume_data</strong> (lazy_entry const&amp; rd, error_code&amp; error);
-   int <strong>readv</strong> (<a class="reference external" href="file::iovec_t">file::iovec_t</a> const* bufs, int slot, int offset, int num_bufs, int flags = <a class="reference external" href="file::random_access">file::random_access</a>);
-   bool <strong>swap_slots3</strong> (int slot1, int slot2, int slot3);
-   bool <strong>initialize</strong> (bool allocate_files);
-   int <strong>read</strong> (char* buf, int slot, int offset, int size);
-   bool <strong>swap_slots</strong> (int slot1, int slot2);
-   int <strong>sparse_end</strong> (int start) const;
    file_storage const&amp; <strong>files</strong> () const;
 };
 </pre>
