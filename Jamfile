@@ -68,6 +68,7 @@ rule linking ( properties * )
 		&& ! <toolset>gcc in $(properties)
 		&& ( <asserts>on in $(properties)
 			|| <variant>debug in $(properties)
+			|| <asserts>production in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		result += <library>dbghelp ;
