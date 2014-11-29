@@ -72,7 +72,7 @@ struct bitfield
    void <strong>clear_bit</strong> (int index);
    void <strong>set_bit</strong> (int index);
    bool <strong>all_set</strong> () const;
-   std::size_t <strong>size</strong> () const;
+   int <strong>size</strong> () const;
    bool <strong>empty</strong> () const;
    char const* <strong>bytes</strong> () const;
    bitfield&amp; <strong>operator=</strong> (bitfield const&amp; rhs);
@@ -144,7 +144,7 @@ bool <strong>all_set</strong> () const;
 <div class="section" id="size">
 <h2>size()</h2>
 <pre class="literal-block">
-std::size_t <strong>size</strong> () const;
+int <strong>size</strong> () const;
 </pre>
 <p>returns the size of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> in bits.</p>
 <a name="empty()"></a></div>
