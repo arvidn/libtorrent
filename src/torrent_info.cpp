@@ -93,6 +93,8 @@ namespace libtorrent
 	// in paths
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
 	{
+		if (target.empty()) return true;
+
 		std::string tmp_path;
 		tmp_path.reserve(target.size()+5);
 		bool valid_encoding = true;
