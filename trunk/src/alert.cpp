@@ -393,12 +393,12 @@ namespace libtorrent {
 		: torrent_alert(h)
 		, interval(in)
 	{
-		transferred[upload_payload] = s[upload_payload].counter();
-		transferred[upload_protocol] = s[upload_protocol].counter();
-		transferred[download_payload] = s[download_payload].counter();
-		transferred[download_protocol] = s[download_protocol].counter();
-		transferred[upload_ip_protocol] = s[upload_ip_protocol].counter();
-		transferred[download_ip_protocol] = s[download_ip_protocol].counter();
+		transferred[upload_payload] = s[stat::upload_payload].counter();
+		transferred[upload_protocol] = s[stat::upload_protocol].counter();
+		transferred[download_payload] = s[stat::download_payload].counter();
+		transferred[download_protocol] = s[stat::download_protocol].counter();
+		transferred[upload_ip_protocol] = s[stat::upload_ip_protocol].counter();
+		transferred[download_ip_protocol] = s[stat::download_ip_protocol].counter();
 
 #ifndef TORRENT_NO_DEPRECATE
 		transferred[upload_dht_protocol] = 0;
