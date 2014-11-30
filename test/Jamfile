@@ -9,13 +9,11 @@ use-project /torrent : .. ;
 # making it possible to build on windows, especially mingw seems particular
 variant test_release
 	: release : <asserts>production <debug-symbols>on
-	  <deprecated-functions>off <invariant-checks>off <threading>multi
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
 variant test_debug : debug
 	: <encryption>openssl <statistics>on <logging>verbose <disk-stats>on
 	  <dht>logging <request-log>on <allocator>debug <debug-iterators>on
-	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
 variant test_barebones : debug
