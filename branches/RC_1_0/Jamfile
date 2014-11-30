@@ -25,6 +25,24 @@ if $(BOOST_ROOT)
 
 VERSION = 1.0.3 ;
 
+# this is a trick to get filename paths to targets to become shorter
+# making it possible to build on windows, especially mingw seems particular
+variant test_release
+	: release : <asserts>production <debug-symbols>on
+	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
+	;
+variant test_debug : debug
+	: <encryption>openssl <statistics>on <logging>verbose <disk-stats>on
+	  <dht>logging <request-log>on <allocator>debug <debug-iterators>on
+	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
+	;
+variant test_barebones : debug
+	: <ipv6>off <dht>off <extensions>off <logging>none
+	  <deprecated-functions>off <invariant-checks>off
+	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
+	;
+
+
 rule coverage ( properties * )
 {
 	local result ;
