@@ -34,7 +34,9 @@ namespace
         allow_threading_guard guard;
         error_code ec;
         s.listen_on(std::make_pair(min_, max_), ec, interface, flags);
+#ifndef BOOST_NO_EXCEPTIONS
         if (ec) throw libtorrent_exception(ec);
+#endif
     }
 
     void outgoing_ports(session& s, int _min, int _max)
@@ -290,13 +292,7 @@ namespace
         dict_to_add_torrent_params(params, p, resume_buf, files_buf);
 
         allow_threading_guard guard;
-
-#ifndef BOOST_NO_EXCEPTIONS
         s.async_add_torrent(p);
-#else
-        error_code ec;
-        s.async_add_torrent(p, ec);
-#endif
     }
 
     void dict_to_feed_settings(dict params, feed_settings& feed
