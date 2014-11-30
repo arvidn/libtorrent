@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include <cstring>
+#include <limits> // for numeric_limits
 
 namespace
 {
@@ -83,14 +84,14 @@ namespace libtorrent
 				ec = bdecode_errors::expected_string;
 				return start;
 			}
-			if (val > INT64_MAX / 10)
+			if (val > (std::numeric_limits<boost::int64_t>::max)() / 10)
 			{
 				ec = bdecode_errors::overflow;
 				return start;
 			}
 			val *= 10;
 			int digit = *start - '0';
-			if (val > INT64_MAX - digit)
+			if (val > (std::numeric_limits<boost::int64_t>::max)() - digit)
 			{
 				ec = bdecode_errors::overflow;
 				return start;

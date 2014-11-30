@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include <boost/cstdint.hpp>
+#include <limits>
 
 #define TORRENT_UTP_LOG 0
 #define TORRENT_VERBOSE_UTP_LOG 0
@@ -278,7 +279,7 @@ struct utp_socket_impl
 	{
 		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
-			m_delay_sample_hist[i] = UINT_MAX;
+			m_delay_sample_hist[i] = (std::numeric_limits<boost::uint32_t>::max)();
 	}
 
 	~utp_socket_impl();
@@ -2715,7 +2716,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		++m_duplicate_acks;
 	}
 
-	boost::uint32_t min_rtt = UINT_MAX;
+	boost::uint32_t min_rtt = (std::numeric_limits<boost::uint32_t>::max)();
 
 	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
 
@@ -3267,8 +3268,8 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	}
 
 	// make sure we don't wrap the cwnd
-	if (scaled_gain >= INT64_MAX - m_cwnd)
-		scaled_gain = INT64_MAX - m_cwnd - 1;
+	if (scaled_gain >= (std::numeric_limits<boost::int64_t>::max)() - m_cwnd)
+		scaled_gain = (std::numeric_limits<boost::int64_t>::max)() - m_cwnd - 1;
 
 	UTP_LOGV("%8p: do_ledbat delay:%d off_target: %d window_factor:%f target_factor:%f "
 		"scaled_gain:%f cwnd:%d slow_start:%d\n"
