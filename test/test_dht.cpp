@@ -797,7 +797,7 @@ int test_main()
 
 		TEST_CHECK(ret);
 
-		std::pair<const char*, int> salt(NULL, 0);
+		std::pair<const char*, int> salt((char*)0, 0);
 		if (with_salt)
 			salt = std::pair<char const*, int>("foobar", 6);
 
