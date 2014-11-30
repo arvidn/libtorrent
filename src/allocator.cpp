@@ -181,9 +181,8 @@ namespace libtorrent
 #undef PROT_WRITE
 #endif
 
-#if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
 		print_backtrace(h->stack, sizeof(h->stack));
-#endif
+
 #endif // TORRENT_DEBUG_BUFFERS
 
 #ifdef TORRENT_WINDOWS
