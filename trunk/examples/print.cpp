@@ -19,6 +19,7 @@
 #include <string.h> // for strlen
 #include <cmath>
 #include <algorithm> // for std::min
+#include <iterator> // for back_inserter
 
 char const* esc(char const* code)
 {
