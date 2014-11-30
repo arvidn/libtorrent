@@ -3,8 +3,8 @@ test_dirs:
  - test
 
 features:
- - variant=release asserts=production debug-symbols=on
- - encryption=openssl logging=verbose disk-stats=on dht=logging request-log=on allocator=debug debug-iterators=on
+ - variant=test_release
+ - variant=test_debug
 
 # all build_features are built in these directories
 build_dirs:
@@ -20,7 +20,7 @@ build_features:
  - asserts=off
  - asserts=production debug
  - asserts=on release
- - ipv6=off dht=off extensions=off logging=none deprecated-functions=off invariant-checks=off 
+ - variant=test_barebones
 
 project: libtorrent
 

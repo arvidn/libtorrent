@@ -440,6 +440,27 @@ feature.compose <profile-calls>on : <define>TORRENT_PROFILE_CALLS=1 ;
 # libtorrent functions. Used for unit testing
 feature export-extra : off on : composite propagated ;
 
+
+# this is a trick to get filename paths to targets to become shorter
+# making it possible to build on windows, especially mingw seems particular
+variant test_release
+	: release : <asserts>production <debug-symbols>on
+	  <invariant-checks>full <boost-link>shared
+	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
+	;
+variant test_debug : debug
+	: <encryption>openssl <logging>verbose <disk-stats>on
+	  <dht>logging <request-log>on <allocator>debug <debug-iterators>on
+	  <invariant-checks>full <boost-link>shared
+	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
+	;
+variant test_barebones : debug
+	: <ipv6>off <dht>off <extensions>off <logging>none <boost-link>shared
+	  <deprecated-functions>off <invariant-checks>off
+	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
+	;
+
+
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
 lib libeay32 : : <name>libeay32 ;
