@@ -4,7 +4,7 @@ test_dirs:
 
 features:
  - variant=release asserts=production debug-symbols=on
- - encryption=openssl statistics=on logging=verbose disk-stats=on dht-support=logging request-log=on allocator=debug debug-iterators=on
+ - encryption=openssl statistics=on logging=verbose disk-stats=on dht-support=logging request-log=on debug-iterators=on
 
 # all build_features are built in these directories
 build_dirs:
@@ -21,7 +21,7 @@ build_features:
  - asserts=off
  - asserts=production debug
  - asserts=on release
- - ipv6=off dht-support=off extensions=off logging=none deprecated-functions=off invariant-checks=off 
+ - ipv6=off dht-support=off logging=none deprecated-functions=off invariant-checks=off 
 
 project: libtorrent
 
