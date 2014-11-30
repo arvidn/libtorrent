@@ -36,7 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/atomic.hpp>
 #endif
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) || defined TORRENT_ASIO_DEBUGGING || defined TORRENT_PROFILE_CALLS || TORRENT_RELEASE_ASSERTS
+#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) \
+	|| defined TORRENT_ASIO_DEBUGGING \
+	|| defined TORRENT_PROFILE_CALLS \
+	|| TORRENT_RELEASE_ASSERTS \
+	|| defined TORRENT_DEBUG_BUFFERS
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
