@@ -1187,6 +1187,7 @@ int main(int argc, char* argv[])
 
 	settings_pack settings;
 	settings.set_int(settings_pack::active_loaded_limit, 20);
+	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	int refresh_delay = 500;
 	bool start_dht = true;
@@ -1284,7 +1285,10 @@ int main(int argc, char* argv[])
 			case 'E': settings.set_int(settings_pack::hashing_threads, atoi(arg)); break;
 			case 'd': settings.set_int(settings_pack::download_rate_limit, atoi(arg) * 1000); break;
 			case 'u': settings.set_int(settings_pack::upload_rate_limit, atoi(arg) * 1000); break;
-			case 'S': settings.set_int(settings_pack::unchoke_slots_limit, atoi(arg)); break;
+			case 'S':
+				settings.set_int(settings_pack::unchoke_slots_limit, atoi(arg));
+				settings.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
+				break;
 			case 'a':
 				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
 				else if (strcmp(arg, "full") == 0) allocation_mode = storage_mode_allocate;
@@ -1472,7 +1476,6 @@ int main(int argc, char* argv[])
 #endif
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
-	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	ses.apply_settings(settings);
 
