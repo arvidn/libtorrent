@@ -35,6 +35,9 @@
 
 1.0.3 release
 
+	* python binding build fix for boost-1.57.0
+	* add --enable-export-all option to configure script, to export all symbols
+	  from libtorrent
 	* fix if_nametoindex build error on windows
 	* handle overlong utf-8 sequences
 	* fix link order bug in makefile for python binding
