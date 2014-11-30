@@ -2710,7 +2710,7 @@ namespace libtorrent
 
 			recv_buffer = receive_buffer();
 			
-			int crypto_field = detail::read_int32(recv_buffer.begin);
+			boost::uint32_t crypto_field = detail::read_uint32(recv_buffer.begin);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** crypto %s : [%s%s ]"
@@ -2723,13 +2723,13 @@ namespace libtorrent
 			{
 				// select a crypto method
 				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
-				int crypto_select = crypto_field & allowed_encryption;
+				boost::uint32_t crypto_select = crypto_field & allowed_encryption;
 	
 				// when prefer_rc4 is set, keep the most significant bit
 				// otherwise keep the least significant one
 				if (m_ses.get_pe_settings().prefer_rc4)
 				{
-					int mask = INT_MAX;
+					boost::uint32_t mask = (std::numeric_limits<boost::uint32_t>::max)();
 					while (crypto_select & (mask << 1))
 					{
 						mask <<= 1;
@@ -2738,7 +2738,7 @@ namespace libtorrent
 				}
 				else
 				{
-					int mask = INT_MAX;
+					boost::uint32_t mask = (std::numeric_limits<boost::uint32_t>::max)();
 					while (crypto_select & (mask >> 1))
 					{
 						mask >>= 1;

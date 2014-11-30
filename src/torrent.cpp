@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <cctype>
 #include <numeric>
+#include <limits> // for numeric_limits
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -7998,7 +7999,7 @@ namespace libtorrent
 		if (is_inactive)
 		{
 			if (m_inactive_counter < 0) m_inactive_counter = 0;
-			if (m_inactive_counter < INT16_MAX)
+			if (m_inactive_counter < (std::numeric_limits<boost::int16_t>::max)())
 			{
 				++m_inactive_counter;
 
@@ -8016,7 +8017,7 @@ namespace libtorrent
 		else
 		{
 			if (m_inactive_counter > 0) m_inactive_counter = 0;
-			if (m_inactive_counter > INT16_MIN)
+			if (m_inactive_counter > (std::numeric_limits<boost::int16_t>::min)())
 			{
 				--m_inactive_counter;
 
