@@ -34,7 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING \
+	|| TORRENT_RELEASE_ASSERTS || defined TORRENT_DEBUG_BUFFERS
 #include <string>
 std::string demangle(char const* name);
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
