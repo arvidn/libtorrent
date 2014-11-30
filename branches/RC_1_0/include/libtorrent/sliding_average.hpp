@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
 
 #include <boost/cstdint.hpp>
+#include <cstdlib> // for std::abs
 
 namespace libtorrent
 {
@@ -52,7 +53,7 @@ struct sliding_average
 		int deviation;
 
 		if (m_num_samples > 0)
-			deviation = abs(m_mean - s);
+			deviation = std::abs(m_mean - s);
 
 		if (m_num_samples < inverted_gain)
 			++m_num_samples;
