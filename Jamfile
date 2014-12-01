@@ -161,6 +161,8 @@ rule linking ( properties * )
 		&& ( <variant>debug in $(properties)
 			|| <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
+			|| <pool-allocators>debug in $(properties)
+			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		# for backtraces in assertion failures
