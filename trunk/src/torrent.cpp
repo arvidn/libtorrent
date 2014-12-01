@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <cctype>
 #include <numeric>
+#include <limits> // for numeric_limits
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -224,16 +225,16 @@ namespace libtorrent
 		, m_deleted(false)
 		, m_pinned(p.flags & add_torrent_params::flag_pinned)
 		, m_should_be_loaded(true)
-		, m_last_download(INT16_MIN)
+		, m_last_download((std::numeric_limits<boost::int16_t>::min)())
 		, m_num_seeds(0)
-		, m_last_upload(INT16_MIN)
+		, m_last_upload((std::numeric_limits<boost::int16_t>::min)())
 		, m_storage_tick(0)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
 		, m_downloaded(0xffffff)
-		, m_last_scrape(INT16_MIN)
+		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
@@ -6562,11 +6563,11 @@ namespace libtorrent
 
 		int now = m_ses.session_time();
 		int tmp = rd.dict_find_int_value("last_scrape", -1);
-		m_last_scrape = tmp == -1 ? INT16_MIN : now - tmp;
+		m_last_scrape = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
 		tmp = rd.dict_find_int_value("last_download", -1);
-		m_last_download = tmp == -1 ? INT16_MIN : now - tmp;
+		m_last_download = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
 		tmp = rd.dict_find_int_value("last_upload", -1);
-		m_last_upload = tmp == -1 ? INT16_MIN : now - tmp;
+		m_last_upload = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
 
 		if (m_use_resume_save_path)
 		{
@@ -11222,7 +11223,7 @@ namespace libtorrent
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
-		st->last_scrape = m_last_scrape == INT16_MIN ? -1
+		st->last_scrape = m_last_scrape == (std::numeric_limits<boost::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_scrape);
 
 		st->share_mode = m_share_mode;
@@ -11254,9 +11255,9 @@ namespace libtorrent
 		st->finished_time = finished_time();
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
-		st->time_since_upload = m_last_upload == INT16_MIN ? -1
+		st->time_since_upload = m_last_upload == (std::numeric_limits<boost::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_upload);
-		st->time_since_download = m_last_download == INT16_MIN ? -1
+		st->time_since_download = m_last_download == (std::numeric_limits<boost::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_download);
 
 		st->storage_mode = (storage_mode_t)m_storage_mode;

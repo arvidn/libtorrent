@@ -68,18 +68,6 @@ POSSIBILITY OF SUCH DAMAGE.
 	build, to automatically apply these defines
 #endif
 
-// some parts pulled out of stdint.h
-// to avoid C99 or C++11 dependency
-#if !defined INT64_MAX
-#define INT64_MAX 0x7fffffffffffffffLL
-#endif
-#if !defined INT16_MAX
-#define INT16_MAX 32767
-#endif
-#if !defined INT16_MIN
-#define INT16_MIN -32768
-#endif
-
 #ifndef _MSC_VER
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS 1
