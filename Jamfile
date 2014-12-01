@@ -156,6 +156,8 @@ rule linking ( properties * )
 		&& ( <variant>debug in $(properties)
 			|| <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
+			|| <pool-allocators>debug in $(properties)
+			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
 		# for backtraces in assertion failures
@@ -185,7 +187,9 @@ rule linking ( properties * )
 				result += <library>/boost/random//boost_random/<link>static ;
 			}
 
-			if <toolset>gcc in $(properties) && <link>shared in $(properties)
+			if <toolset>gcc in $(properties)
+				&& ! <target-os>windows in $(properties)
+				&& <link>shared in $(properties)
 			{
 				result += <fpic>on ;
 			}
@@ -266,7 +270,7 @@ rule building ( properties * )
 		result += <source>src/sha1.cpp ;
 	}
 
-	if ! ( <encryption>off in $(properties) )
+	if ! <encryption>off in $(properties)
 	{
 		result += <source>src/pe_crypto.cpp ;
 	}
