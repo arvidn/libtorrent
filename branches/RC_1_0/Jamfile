@@ -188,7 +188,9 @@ rule linking ( properties * )
 				result += <library>/boost/system//boost_system/<link>static ;
 			}
 
-			if <toolset>gcc in $(properties) && <link>shared in $(properties)
+			if <toolset>gcc in $(properties)
+				&& ! <target-os>windows in $(properties)
+				&& <link>shared in $(properties)
 			{
 				result += <fpic>on ;
 			}
@@ -283,7 +285,7 @@ rule building ( properties * )
 		result += <source>src/sha1.cpp ;
 	}
 
-	if ! ( <encryption>off in $(properties) )
+	if ! <encryption>off in $(properties)
 	{
 		result += <source>src/pe_crypto.cpp ;
 	}
