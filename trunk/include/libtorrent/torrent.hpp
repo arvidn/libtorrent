@@ -700,7 +700,11 @@ namespace libtorrent
 			= tracker_request::none
 			, address const& bind_interface = address_v4::any());
 		int seconds_since_last_scrape() const
-		{ return m_last_scrape == INT16_MIN ? -1 : m_ses.session_time() - m_last_scrape; }
+		{
+			return m_last_scrape == (std::numeric_limits<boost::int16_t>::min)()
+				? -1 : m_ses.session_time() - m_last_scrape;
+		}
+
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();
 #endif
