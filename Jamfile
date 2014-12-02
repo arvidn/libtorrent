@@ -165,6 +165,7 @@ rule linking ( properties * )
 			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
 	{
+		ECHO $(properties) ;
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
 		result += <linkflags>-export-dynamic <cxxflags>-rdynamic ;
