@@ -60,7 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp" // peer_entry
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/udp_socket.hpp" // for udp_socket_observer
 #include "libtorrent/session_settings.hpp"
@@ -122,11 +121,11 @@ namespace libtorrent
 		std::string url;
 		std::string trackerid;
 
-		size_type downloaded;
-		size_type uploaded;
-		size_type left;
-		size_type corrupt;
-		size_type redundant;
+		boost::int64_t downloaded;
+		boost::int64_t uploaded;
+		boost::int64_t left;
+		boost::int64_t corrupt;
+		boost::int64_t redundant;
 		boost::uint16_t listen_port;
 
 		// values from event_t

@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/time.hpp"
@@ -66,8 +65,8 @@ namespace libtorrent
 		// the total number of bytes downloaded from and uploaded to this peer.
 		// These numbers do not include the protocol chatter, but only the
 		// payload data.
-		size_type total_download;
-		size_type total_upload;
+		boost::int64_t total_download;
+		boost::int64_t total_upload;
 
 		// the time since we last sent a request to this peer and since any
 		// transfer occurred with this peer
@@ -429,7 +428,7 @@ namespace libtorrent
 		// but this member says how much *extra* free upload this peer has got.
 		// If it is a negative number it means that this was a peer from which we
 		// have got this amount of free download.
-		size_type load_balancing;
+		boost::int64_t load_balancing;
 #endif
 
 	};

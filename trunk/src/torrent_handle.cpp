@@ -429,7 +429,7 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(set_tracker_login, name, password);
 	}
 
-	void torrent_handle::file_progress(std::vector<size_type>& progress, int flags) const
+	void torrent_handle::file_progress(std::vector<boost::int64_t>& progress, int flags) const
 	{
 		TORRENT_SYNC_CALL2(file_progress, boost::ref(progress), flags);
 	}

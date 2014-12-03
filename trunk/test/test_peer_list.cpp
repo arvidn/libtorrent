@@ -91,7 +91,7 @@ struct mock_peer_connection : peer_connection_interface
 	virtual torrent_peer* peer_info_struct() const { return m_tp; }
 	virtual void set_peer_info(torrent_peer* pi) { m_tp = pi; }
 	virtual bool is_outgoing() const { return m_outgoing; }
-	virtual void add_stat(size_type downloaded, size_type uploaded)
+	virtual void add_stat(boost::int64_t downloaded, boost::int64_t uploaded)
 	{ m_stat.add_stat(downloaded, uploaded); }
 	virtual bool fast_reconnect() const { return true; }
 	virtual bool is_choked() const { return m_choked; }
@@ -404,7 +404,7 @@ int test_main()
 			TEST_CHECK(peer);
 			if (peer == NULL || st.erased.size() > 0)
 			{
-				fprintf(stderr, "unexpected rejection of peer: %d in list. added peer %p, erased peers %d\n"
+				fprintf(stderr, "unexpected rejection of peer: %d in list. added peer %p, erased %d peers\n"
 					, p.num_peers(), peer, int(st.erased.size()));
 			}
 		}

@@ -433,12 +433,12 @@ namespace libtorrent
 		for (int i = 0; i < files().num_files(); ++i)
 		{
 			file_status s;
-			size_type cache_status = m_stat_cache.get_filesize(i);
+			boost::int64_t cache_status = m_stat_cache.get_filesize(i);
 			if (cache_status < 0 && cache_status != stat_cache::no_exist)
 			{
 				file_path = files().file_path(i, m_save_path);
 				stat_file(file_path, &s, ec.ec);
-				size_type r = s.file_size;
+				boost::int64_t r = s.file_size;
 				if (ec.ec || !(s.mode & file_status::regular_file)) r = -1;
 
 				if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
@@ -638,9 +638,9 @@ namespace libtorrent
 		file_storage const& fs = files();
 		for (int i = 0; i < fs.num_files(); ++i)
 		{
-			size_type file_size = 0;
+			boost::int64_t file_size = 0;
 			time_t file_time = 0;
-			size_type cache_state = m_stat_cache.get_filesize(i);
+			boost::int64_t cache_state = m_stat_cache.get_filesize(i);
 			if (cache_state != stat_cache::not_in_cache)
 			{
 				if (cache_state >= 0)
@@ -684,7 +684,7 @@ namespace libtorrent
 		TORRENT_ASSERT(slot >= 0);
 		TORRENT_ASSERT(slot < files().num_pieces());
 
-		size_type file_offset = (size_type)slot * files().piece_length();
+		boost::int64_t file_offset = (boost::int64_t)slot * files().piece_length();
 		int file_index = 0;
 
 		for (;;)
@@ -701,7 +701,7 @@ namespace libtorrent
 		file_handle handle = open_file(file_index, file::read_only, ec);
 		if (!handle || ec) return slot;
 
-		size_type data_start = handle->sparse_end(file_offset);
+		boost::int64_t data_start = handle->sparse_end(file_offset);
 		return int((data_start + files().piece_length() - 1) / files().piece_length());
 	}
 
@@ -803,7 +803,7 @@ namespace libtorrent
 				return false;
 			}
 
-			size_type expected_size = e->list_int_value_at(0);
+			boost::int64_t expected_size = e->list_int_value_at(0);
 			time_t expected_time = e->list_int_value_at(1);
 
 			// if we're a seed, the expected size should match
@@ -816,7 +816,7 @@ namespace libtorrent
 				return false;
 			}
 
-			size_type file_size = m_stat_cache.get_filesize(i);
+			boost::int64_t file_size = m_stat_cache.get_filesize(i);
 			time_t file_time;
 			if (file_size >= 0)
 			{
@@ -1069,7 +1069,7 @@ namespace libtorrent
 		int file_index = files().file_index_at_offset(torrent_offset);
 		TORRENT_ASSERT(torrent_offset >= files().file_offset(file_index));
 		TORRENT_ASSERT(torrent_offset < files().file_offset(file_index) + files().file_size(file_index));
-		size_type file_offset = torrent_offset - files().file_offset(file_index);
+		boost::int64_t file_offset = torrent_offset - files().file_offset(file_index);
 
 		int buf_pos = 0;
 
@@ -1214,7 +1214,7 @@ namespace libtorrent
 					}
 				}
 
-				size_type adjusted_offset = files().file_base(file_index) + file_offset;
+				boost::int64_t adjusted_offset = files().file_base(file_index) + file_offset;
 
 #ifdef TORRENT_DISK_STATS
 				int flags = ((op.mode & file::rw_mask) == file::read_only) ? op_read : op_write;

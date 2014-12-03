@@ -435,7 +435,7 @@ namespace libtorrent
 		// fully downloaded and passed the hash check count. When specifying
 		// piece granularity, the operation is a lot cheaper, since libtorrent
 		// already keeps track of this internally and no calculation is required.
-		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
+		void file_progress(std::vector<boost::int64_t>& progress, int flags = 0) const;
 
 		// This function fills in the passed in vector with status about files
 		// that are open for this torrent. Any file that is not open in this
@@ -1360,19 +1360,19 @@ namespace libtorrent
 		// torrent is paused and restarted again. When a torrent is paused, these
 		// counters are reset to 0. If you want complete, persistent, stats, see
 		// ``all_time_upload`` and ``all_time_download``.
-		size_type total_download;
-		size_type total_upload;
+		boost::int64_t total_download;
+		boost::int64_t total_upload;
 
 		// counts the amount of bytes send and received this session, but only
 		// the actual payload data (i.e the interesting data), these counters
 		// ignore any protocol overhead.
-		size_type total_payload_download;
-		size_type total_payload_upload;
+		boost::int64_t total_payload_download;
+		boost::int64_t total_payload_upload;
 
 		// the number of bytes that has been downloaded and that has failed the
 		// piece hash test. In other words, this is just how much crap that has
 		// been downloaded.
-		size_type total_failed_bytes;
+		boost::int64_t total_failed_bytes;
 
 		// the number of bytes that has been downloaded even though that data
 		// already was downloaded. The reason for this is that in some situations
@@ -1383,7 +1383,7 @@ namespace libtorrent
 		// it sends out are not replied in FIFO-order (it will re-request blocks
 		// that are skipped by an out of order block). This is supposed to be as
 		// low as possible.
-		size_type total_redundant_bytes;
+		boost::int64_t total_redundant_bytes;
 
 		// a bitmask that represents which pieces we have (set to true) and the
 		// pieces we don't have. It's a pointer and may be set to 0 if the
@@ -1398,22 +1398,22 @@ namespace libtorrent
 		// the total number of bytes of the file(s) that we have. All this does
 		// not necessarily has to be downloaded during this session (that's
 		// ``total_payload_download``).
-		size_type total_done;
+		boost::int64_t total_done;
 
 		// the number of bytes we have downloaded, only counting the pieces that
 		// we actually want to download. i.e. excluding any pieces that we have
 		// but have priority 0 (i.e. not wanted).
-		size_type total_wanted_done;
+		boost::int64_t total_wanted_done;
 
 		// The total number of bytes we want to download. This may be smaller
 		// than the total torrent size in case any pieces are prioritized to 0,
 		// i.e.  not wanted
-		size_type total_wanted;
+		boost::int64_t total_wanted;
 
 		// are accumulated upload and download payload byte counters. They are
 		// saved in and restored from resume data to keep totals across sessions.
-		size_type all_time_upload;
-		size_type all_time_download;
+		boost::int64_t all_time_upload;
+		boost::int64_t all_time_download;
 
 		// the posix-time when this torrent was added. i.e. what ``time(NULL)``
 		// returned at the time.

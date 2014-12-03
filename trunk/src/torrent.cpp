@@ -2568,7 +2568,7 @@ namespace libtorrent
 			}
 		}
 
-		m_progress_ppm = size_type(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
+		m_progress_ppm = boost::int64_t(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!need_loaded())
@@ -3506,7 +3506,7 @@ namespace libtorrent
 		update_want_peers();
 	}
 
-	size_type torrent::bytes_left() const
+	boost::int64_t torrent::bytes_left() const
 	{
 		// if we don't have the metadata yet, we
 		// cannot tell how big the torrent is.
@@ -3515,7 +3515,7 @@ namespace libtorrent
 			- quantized_bytes_done();
 	}
 
-	size_type torrent::quantized_bytes_done() const
+	boost::int64_t torrent::quantized_bytes_done() const
 	{
 //		INVARIANT_CHECK;
 
@@ -3532,7 +3532,7 @@ namespace libtorrent
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
-		size_type total_done
+		boost::int64_t total_done
 			= boost::uint64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
 
 		// if we have the last piece, we have to correct
@@ -3587,7 +3587,7 @@ namespace libtorrent
 		if (!valid_metadata() || m_torrent_file->num_pieces() == 0)
 			return;
 
-		TORRENT_ASSERT(st.total_wanted >= size_type(m_torrent_file->piece_length())
+		TORRENT_ASSERT(st.total_wanted >= boost::int64_t(m_torrent_file->piece_length())
 			* (m_torrent_file->num_pieces() - 1));
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
@@ -3611,11 +3611,11 @@ namespace libtorrent
 		}
 
 		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
-		st.total_wanted_done = size_type(num_passed() - m_picker->num_have_filtered())
+		st.total_wanted_done = boost::int64_t(num_passed() - m_picker->num_have_filtered())
 			* piece_size;
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		
-		st.total_done = size_type(num_passed()) * piece_size;
+		st.total_done = boost::int64_t(num_passed()) * piece_size;
 		// if num_passed() == num_pieces(), we should be a seed, and taken the
 		// branch above
 		TORRENT_ASSERT(num_passed() <= m_torrent_file->num_pieces());
@@ -3629,7 +3629,7 @@ namespace libtorrent
 			TORRENT_ASSERT(st.total_wanted >= 0);
 			--num_filtered_pieces;
 		}
-		st.total_wanted -= size_type(num_filtered_pieces) * piece_size;
+		st.total_wanted -= boost::int64_t(num_filtered_pieces) * piece_size;
 		TORRENT_ASSERT(st.total_wanted >= 0);
 	
 		// if we have the last piece, we have to correct
@@ -4027,16 +4027,16 @@ namespace libtorrent
 		if (!m_file_progress.empty())
 		{
 			const int piece_size = m_torrent_file->piece_length();
-			size_type off = size_type(index) * piece_size;
+			boost::int64_t off = boost::int64_t(index) * piece_size;
 			int file_index = m_torrent_file->files().file_index_at_offset(off);
 			int size = m_torrent_file->piece_size(index);
 			file_storage const& fs = m_torrent_file->files();
 			for (; size > 0; ++file_index)
 			{
-				size_type file_offset = off - fs.file_offset(file_index);
+				boost::int64_t file_offset = off - fs.file_offset(file_index);
 				TORRENT_ASSERT(file_index != fs.num_files());
 				TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
-				int add = (std::min)(fs.file_size(file_index) - file_offset, (size_type)size);
+				int add = (std::min)(fs.file_size(file_index) - file_offset, (boost::int64_t)size);
 				m_file_progress[file_index] += add;
 
 				TORRENT_ASSERT(m_file_progress[file_index]
@@ -5362,7 +5362,7 @@ namespace libtorrent
 		if (m_torrent_file->num_pieces() == 0) return;
 
 		bool need_update = false;
-		size_type position = 0;
+		boost::int64_t position = 0;
 		int piece_length = m_torrent_file->piece_length();
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
@@ -5372,8 +5372,8 @@ namespace libtorrent
 		{
 			if (i >= fs.num_files()) break;
 
-			size_type start = position;
-			size_type size = m_torrent_file->files().file_size(i);
+			boost::int64_t start = position;
+			boost::int64_t size = m_torrent_file->files().file_size(i);
 			if (size == 0) continue;
 			position += size;
 			int file_prio;
@@ -5527,7 +5527,7 @@ namespace libtorrent
 
 		if (int(bitmask.size()) != m_torrent_file->num_files()) return;
 		
-		size_type position = 0;
+		boost::int64_t position = 0;
 
 		if (m_torrent_file->num_pieces())
 		{
@@ -5537,7 +5537,7 @@ namespace libtorrent
 			std::vector<bool> piece_filter(m_torrent_file->num_pieces(), true);
 			for (int i = 0; i < (int)bitmask.size(); ++i)
 			{
-				size_type start = position;
+				boost::int64_t start = position;
 				position += m_torrent_file->files().file_size(i);
 				// is the file selected for download?
 				if (!bitmask[i])
@@ -6315,8 +6315,8 @@ namespace libtorrent
 			web->peer_info.in_use = true;
 #endif
 
-			c->add_stat(size_type(web->peer_info.prev_amount_download) << 10
-				, size_type(web->peer_info.prev_amount_upload) << 10);
+			c->add_stat(boost::int64_t(web->peer_info.prev_amount_download) << 10
+				, boost::int64_t(web->peer_info.prev_amount_upload) << 10);
 			web->peer_info.prev_amount_download = 0;
 			web->peer_info.prev_amount_upload = 0;
 #if defined TORRENT_VERBOSE_LOGGING 
@@ -7318,8 +7318,8 @@ namespace libtorrent
 			c->m_in_constructor = false;
 #endif
 
-	 		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
-				, size_type(peerinfo->prev_amount_upload) << 10);
+	 		c->add_stat(boost::int64_t(peerinfo->prev_amount_download) << 10
+				, boost::int64_t(peerinfo->prev_amount_upload) << 10);
 	 		peerinfo->prev_amount_download = 0;
 	 		peerinfo->prev_amount_upload = 0;
 
@@ -7856,12 +7856,12 @@ namespace libtorrent
 			return lhs->on_parole();
 
 		// prefer to disconnect peers that send data at a lower rate
-		size_type lhs_transferred = lhs->statistics().total_payload_download();
-		size_type rhs_transferred = rhs->statistics().total_payload_download();
+		boost::int64_t lhs_transferred = lhs->statistics().total_payload_download();
+		boost::int64_t rhs_transferred = rhs->statistics().total_payload_download();
 
 		ptime now = time_now();
-		size_type lhs_time_connected = total_seconds(now - lhs->connected_time());
-		size_type rhs_time_connected = total_seconds(now - rhs->connected_time());
+		boost::int64_t lhs_time_connected = total_seconds(now - lhs->connected_time());
+		boost::int64_t rhs_time_connected = total_seconds(now - rhs->connected_time());
 
 		lhs_transferred /= lhs_time_connected + 1;
 		rhs_transferred /= (rhs_time_connected + 1);
@@ -8479,7 +8479,7 @@ namespace libtorrent
 		}
 #endif
 
-		size_type total_done = quantized_bytes_done();
+		boost::int64_t total_done = quantized_bytes_done();
 		if (m_torrent_file->is_valid())
 		{
 			if (is_seed())
@@ -8849,13 +8849,13 @@ namespace libtorrent
 
 		int ret = 0;
 
-		size_type fin_time = finished_time();
-		size_type download_time = int(active_time()) - fin_time;
+		boost::int64_t fin_time = finished_time();
+		boost::int64_t download_time = int(active_time()) - fin_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized
 		// downloaded may be 0 if the torrent is 0-sized
-		size_type downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
+		boost::int64_t downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
 		if (fin_time < s.get_int(settings_pack::seed_time_limit)
 			&& (download_time > 1
 				&& fin_time * 100 / download_time < s.get_int(settings_pack::seed_time_ratio_limit))
@@ -10873,7 +10873,7 @@ namespace libtorrent
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;
 
-		std::vector<size_type> progress;
+		std::vector<boost::int64_t> progress;
 		file_progress(progress);
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
 		{
@@ -10902,7 +10902,7 @@ namespace libtorrent
 		for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
 		{
 			TORRENT_ASSERT(file_index < fs.num_files());
-			size_type file_offset = off - fs.file_offset(file_index);
+			boost::int64_t file_offset = off - fs.file_offset(file_index);
 			TORRENT_ASSERT(file_offset >= 0);
 			while (file_offset >= fs.file_size(file_index))
 			{
@@ -11003,14 +11003,14 @@ namespace libtorrent
 		for (std::vector<piece_picker::downloading_piece>::const_iterator
 			i = q.begin(), end(q.end()); i != end; ++i)
 		{
-			size_type offset = size_type(i->index) * m_torrent_file->piece_length();
+			boost::int64_t offset = boost::int64_t(i->index) * m_torrent_file->piece_length();
 			int file = fs.file_index_at_offset(offset);
 			int num_blocks = m_picker->blocks_in_piece(i->index);
 			piece_picker::block_info const* info = i->info;
 			for (int k = 0; k < num_blocks; ++k)
 			{
 				TORRENT_ASSERT(file < fs.num_files());
-				TORRENT_ASSERT(offset == size_type(i->index) * m_torrent_file->piece_length()
+				TORRENT_ASSERT(offset == boost::int64_t(i->index) * m_torrent_file->piece_length()
 					+ k * block_size());
 				TORRENT_ASSERT(offset < m_torrent_file->total_size());
 				while (offset >= fs.file_offset(file) + fs.file_size(file))
@@ -11019,7 +11019,7 @@ namespace libtorrent
 				}
 				TORRENT_ASSERT(file < fs.num_files());
 
-				size_type block = block_size();
+				boost::int64_t block = block_size();
 
 				if (info[k].state == piece_picker::block_info::state_none)
 				{
@@ -11055,7 +11055,7 @@ namespace libtorrent
 					while (block > 0)
 					{
 						TORRENT_ASSERT(offset <= fs.file_offset(file) + fs.file_size(file));
-						size_type slice = (std::min)(fs.file_offset(file) + fs.file_size(file) - offset
+						boost::int64_t slice = (std::min)(fs.file_offset(file) + fs.file_size(file) - offset
 							, block);
 						fp[file] += slice;
 						offset += slice;
@@ -11072,7 +11072,7 @@ namespace libtorrent
 						}
 					}
 					offset += left_over;
-					TORRENT_ASSERT(offset == size_type(i->index) * m_torrent_file->piece_length()
+					TORRENT_ASSERT(offset == boost::int64_t(i->index) * m_torrent_file->piece_length()
 						+ (k+1) * block_size());
 				}
 				else

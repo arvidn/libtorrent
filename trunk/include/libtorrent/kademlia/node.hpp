@@ -224,7 +224,7 @@ public:
 	node_id const& nid() const { return m_id; }
 
 	boost::tuple<int, int, int> size() const { return m_table.size(); }
-	size_type num_global_nodes() const
+	boost::int64_t num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
 	int data_size() const { return int(m_map.size()); }

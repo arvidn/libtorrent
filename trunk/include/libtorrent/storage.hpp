@@ -118,7 +118,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool move_storage(std::string const& save_path) { return false; }
 //		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error) { return false; }
 //		virtual bool write_resume_data(entry& rd) const { return false; }
-//		virtual size_type physical_offset(int slot, int offset)
+//		virtual boost::int64_t physical_offset(int slot, int offset)
 //		{ return slot * m_files.piece_length() + offset; };
 //		virtual sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size)
 //		{
@@ -157,14 +157,14 @@ namespace libtorrent
 	namespace aux { struct session_settings; }
 	struct cached_piece_entry;
 
-	TORRENT_EXTRA_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
+	TORRENT_EXTRA_EXPORT std::vector<std::pair<boost::int64_t, std::time_t> > get_filesizes(
 		file_storage const& t
 		, std::string const& p);
 
 	TORRENT_EXTRA_EXPORT bool match_filesizes(
 		file_storage const& t
 		, std::string const& p
-		, std::vector<std::pair<size_type, std::time_t> > const& sizes
+		, std::vector<std::pair<boost::int64_t, std::time_t> > const& sizes
 		, bool compact_mode
 		, std::string* error = 0);
 
@@ -442,7 +442,7 @@ namespace libtorrent
 		struct fileop
 		{
 			// file operation
-			size_type (file::*op)(size_type file_offset
+			boost::int64_t (file::*op)(boost::int64_t file_offset
 				, file::iovec_t const* bufs, int num_bufs, error_code& ec, int flags);
 			// file open mode (file::read_only, file::write_only etc.)
 			// this is used to open the file, but also passed along as the

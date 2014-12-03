@@ -1039,7 +1039,7 @@ namespace libtorrent
 			+ m_queued_time_critical * t->block_size() * 1000) / rate);
 	}
 
-	void peer_connection::add_stat(size_type downloaded, size_type uploaded)
+	void peer_connection::add_stat(boost::int64_t downloaded, boost::int64_t uploaded)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.add_stat(downloaded, uploaded);
@@ -5892,8 +5892,8 @@ namespace libtorrent
 // TODO: The stats checks can not be honored when authenticated encryption is in use
 // because we may have encrypted data which we cannot authenticate yet
 #if 0
-				size_type cur_payload_dl = m_statistics.last_payload_downloaded();
-				size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
+				boost::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
+				boost::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
 				sub_transferred = m_recv_buffer.advance_pos(bytes);
 				on_receive(error, sub_transferred);
@@ -5903,7 +5903,7 @@ namespace libtorrent
 #if 0
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-				size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				boost::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 				TORRENT_ASSERT(stats_diff == int(sub_transferred));
 #endif
@@ -6244,14 +6244,14 @@ namespace libtorrent
 		m_last_sent = now;
 
 #if TORRENT_USE_ASSERTS
-		size_type cur_payload_ul = m_statistics.last_payload_uploaded();
-		size_type cur_protocol_ul = m_statistics.last_protocol_uploaded();
+		boost::int64_t cur_payload_ul = m_statistics.last_payload_uploaded();
+		boost::int64_t cur_protocol_ul = m_statistics.last_protocol_uploaded();
 #endif
 		on_sent(error, bytes_transferred);
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_statistics.last_payload_uploaded() - cur_payload_ul >= 0);
 		TORRENT_ASSERT(m_statistics.last_protocol_uploaded() - cur_protocol_ul >= 0);
-		size_type stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
+		boost::int64_t stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
 			+ m_statistics.last_protocol_uploaded() - cur_protocol_ul;
 		TORRENT_ASSERT(stats_diff == int(bytes_transferred));
 #endif

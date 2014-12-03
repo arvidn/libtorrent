@@ -38,7 +38,7 @@ namespace libtorrent
 	stat_cache::stat_cache() {}
 	stat_cache::~stat_cache() {}
 
-	void stat_cache::set_cache(int i, size_type size, time_t time)
+	void stat_cache::set_cache(int i, boost::int64_t size, time_t time)
 	{
 		TORRENT_ASSERT(i >= 0);
 		if (i >= int(m_stat_cache.size()))
@@ -70,7 +70,7 @@ namespace libtorrent
 		m_stat_cache[i].file_size = cache_error;
 	}
 
-	size_type stat_cache::get_filesize(int i) const
+	boost::int64_t stat_cache::get_filesize(int i) const
 	{
 		if (i >= int(m_stat_cache.size())) return not_in_cache;
 		return m_stat_cache[i].file_size;

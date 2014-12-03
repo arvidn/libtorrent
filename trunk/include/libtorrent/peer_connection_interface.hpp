@@ -79,7 +79,7 @@ namespace libtorrent
 		virtual torrent_peer* peer_info_struct() const = 0;
 		virtual void set_peer_info(torrent_peer* pi) = 0;
 		virtual bool is_outgoing() const = 0;
-		virtual void add_stat(size_type downloaded, size_type uploaded) = 0;
+		virtual void add_stat(boost::int64_t downloaded, boost::int64_t uploaded) = 0;
 		virtual bool fast_reconnect() const = 0;
 		virtual bool is_choked() const = 0;
 		virtual bool failed() const = 0;

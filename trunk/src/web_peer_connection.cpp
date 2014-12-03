@@ -296,10 +296,10 @@ void web_peer_connection::write_request(peer_request const& r)
 		request += " HTTP/1.1\r\n";
 		add_headers(request, m_settings, using_proxy);
 		request += "\r\nRange: bytes=";
-		request += to_string(size_type(req.piece) * info.piece_length()
+		request += to_string(boost::int64_t(req.piece) * info.piece_length()
 			+ req.start).elems;
 		request += "-";
-		request += to_string(size_type(req.piece) * info.piece_length()
+		request += to_string(boost::int64_t(req.piece) * info.piece_length()
 			+ req.start + req.length - 1).elems;
 		request += "\r\n\r\n";
 		m_first_request = false;
@@ -391,8 +391,8 @@ namespace
 {
 	bool range_contains(peer_request const& range, peer_request const& req, int piece_size)
 	{
-		size_type range_start = size_type(range.piece) * piece_size + range.start;
-		size_type req_start = size_type(req.piece) * piece_size + req.start;
+		boost::int64_t range_start = boost::int64_t(range.piece) * piece_size + range.start;
+		boost::int64_t req_start = boost::int64_t(req.piece) * piece_size + req.start;
 		return range_start <= req_start
 			&& range_start + range.length >= req_start + req.length;
 	}
@@ -724,8 +724,8 @@ void web_peer_connection::on_receive(error_code const& error
 				break;
 			}
 
-			size_type range_start;
-			size_type range_end;
+			boost::int64_t range_start;
+			boost::int64_t range_end;
 			if (m_parser.status_code() == 206)
 			{
 				boost::tie(range_start, range_end) = m_parser.content_range();
@@ -774,7 +774,7 @@ void web_peer_connection::on_receive(error_code const& error
 				&& m_chunk_pos < recv_buffer.left())
 			{
 				int header_size = 0;
-				size_type chunk_size = 0;
+				boost::int64_t chunk_size = 0;
 				buffer::const_interval chunk_start = recv_buffer;
 				chunk_start.begin += m_chunk_pos;
 				TORRENT_ASSERT(chunk_start.begin[0] == '\r' || is_hex(chunk_start.begin, 1));
@@ -831,8 +831,8 @@ void web_peer_connection::on_receive(error_code const& error
 				return;
 			}
 
-			size_type left_in_response = range_end - range_start - m_range_pos;
-			int payload_transferred = int((std::min)(left_in_response, size_type(bytes_transferred)));
+			boost::int64_t left_in_response = range_end - range_start - m_range_pos;
+			int payload_transferred = int((std::min)(left_in_response, boost::int64_t(bytes_transferred)));
 
 			torrent_info const& info = t->torrent_file();
 
@@ -862,11 +862,11 @@ void web_peer_connection::on_receive(error_code const& error
 				, int(range_end - range_start));
 
 			// request start
-			size_type rs = size_type(in_range.piece) * info.piece_length() + in_range.start;
+			boost::int64_t rs = boost::int64_t(in_range.piece) * info.piece_length() + in_range.start;
 			// request end
-			size_type re = rs + in_range.length;
+			boost::int64_t re = rs + in_range.length;
 			// file start
-			size_type fs = size_type(front_request.piece) * info.piece_length() + front_request.start;
+			boost::int64_t fs = boost::int64_t(front_request.piece) * info.piece_length() + front_request.start;
 
 			// the http response body consists of 3 parts
 			// 1. the middle of a block or the ending of a block
@@ -1059,12 +1059,12 @@ void web_peer_connection::on_receive(error_code const& error
 			// bunch of zeroes here and pop it again
 			int file_index = m_file_requests.front();
 			m_file_requests.pop_front();
-			size_type file_size = info.orig_files().file_size(file_index);
+			boost::int64_t file_size = info.orig_files().file_size(file_index);
 
 			peer_request front_request = m_requests.front();
 
 			TORRENT_ASSERT(m_block_pos < front_request.length);
-			int pad_size = int((std::min)(file_size, size_type(front_request.length - m_block_pos)));
+			int pad_size = int((std::min)(file_size, boost::int64_t(front_request.length - m_block_pos)));
 
 			// insert zeroes to represent the pad file
 			m_piece.resize(m_piece.size() + size_t(pad_size), 0);

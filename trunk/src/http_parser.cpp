@@ -311,7 +311,7 @@ restart_response:
 
 				while (m_cur_chunk_end <= m_recv_pos + incoming && !m_finished && incoming > 0)
 				{
-					size_type payload = m_cur_chunk_end - m_recv_pos;
+					boost::int64_t payload = m_cur_chunk_end - m_recv_pos;
 					if (payload > 0)
 					{
 						TORRENT_ASSERT(payload < INT_MAX);
@@ -320,13 +320,13 @@ restart_response:
 						incoming -= int(payload);
 					}
 					buffer::const_interval buf(recv_buffer.begin + m_cur_chunk_end, recv_buffer.end);
-					size_type chunk_size;
+					boost::int64_t chunk_size;
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
 					{
 						if (chunk_size > 0)
 						{
-							std::pair<size_type, size_type> chunk_range(m_cur_chunk_end + header_size
+							std::pair<boost::int64_t, boost::int64_t> chunk_range(m_cur_chunk_end + header_size
 								, m_cur_chunk_end + header_size + chunk_size);
 							m_chunked_ranges.push_back(chunk_range);
 						}
@@ -370,7 +370,7 @@ restart_response:
 			}
 			else
 			{
-				size_type payload_received = m_recv_pos - m_body_start_pos + incoming;
+				boost::int64_t payload_received = m_recv_pos - m_body_start_pos + incoming;
 				if (payload_received > m_content_length
 					&& m_content_length >= 0)
 				{
@@ -394,7 +394,7 @@ restart_response:
 	}
 	
 	bool http_parser::parse_chunk_header(buffer::const_interval buf
-		, size_type* chunk_size, int* header_size)
+		, boost::int64_t* chunk_size, int* header_size)
 	{
 		char const* pos = buf.begin;
 
@@ -481,7 +481,7 @@ restart_response:
 	buffer::const_interval http_parser::get_body() const
 	{
 		TORRENT_ASSERT(m_state == read_body);
-		size_type last_byte = m_chunked_encoding && !m_chunked_ranges.empty()
+		boost::int64_t last_byte = m_chunked_encoding && !m_chunked_ranges.empty()
 			? (std::min)(m_chunked_ranges.back().second, m_recv_pos)
 			: m_content_length < 0
 				? m_recv_pos : (std::min)(m_body_start_pos + m_content_length, m_recv_pos);
@@ -524,8 +524,8 @@ restart_response:
 		// buffer, not start of the body, so subtract the size
 		// of the HTTP header from them
 		int offset = body_start();
-		std::vector<std::pair<size_type, size_type> > const& c = chunks();
-		for (std::vector<std::pair<size_type, size_type> >::const_iterator i = c.begin()
+		std::vector<std::pair<boost::int64_t, boost::int64_t> > const& c = chunks();
+		for (std::vector<std::pair<boost::int64_t, boost::int64_t> >::const_iterator i = c.begin()
 			, end(c.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(i->second - i->first < INT_MAX);

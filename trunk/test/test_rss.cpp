@@ -67,14 +67,14 @@ void print_feed(feed_status const& f)
 
 struct rss_expect
 {
-	rss_expect(int nitems, std::string url, std::string title, size_type size)
+	rss_expect(int nitems, std::string url, std::string title, boost::int64_t size)
 		: num_items(nitems), first_url(url), first_title(title), first_size(size)
 	{}
 
 	int num_items;
 	std::string first_url;
 	std::string first_title;
-	size_type first_size;
+	boost::int64_t first_size;
 };
 
 void test_feed(std::string const& filename, rss_expect const& expect)

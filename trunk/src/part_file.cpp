@@ -192,7 +192,7 @@ namespace libtorrent
 
 		l.unlock();
 
-		size_type slot_offset = size_type(m_header_size) + size_type(slot) * m_piece_size;
+		boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(slot) * m_piece_size;
 		return m_file.writev(slot_offset + offset, bufs, num_bufs, ec);
 	}
 
@@ -217,7 +217,7 @@ namespace libtorrent
 
 		l.unlock();
 
-		size_type slot_offset = size_type(m_header_size) + size_type(slot) * m_piece_size;
+		boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(slot) * m_piece_size;
 		return m_file.readv(slot_offset + offset, bufs, num_bufs, ec);
 	}
 
@@ -287,21 +287,21 @@ namespace libtorrent
 		m_path = path;
 	}
 
-	void part_file::import_file(file& f, size_type offset, size_type size, error_code& ec)
+	void part_file::import_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)
 	{
 		// not implemented
 		assert(false);
 	}
 
-	void part_file::export_file(file& f, size_type offset, size_type size, error_code& ec)
+	void part_file::export_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)
 	{
 		int piece = offset / m_piece_size;
 		int end = ((offset + size) + m_piece_size - 1) / m_piece_size;
 
 		boost::scoped_array<char> buf;
 
-		size_type piece_offset = offset - size_type(piece) * m_piece_size;
-		size_type file_offset = 0;
+		boost::int64_t piece_offset = offset - boost::int64_t(piece) * m_piece_size;
+		boost::int64_t file_offset = 0;
 		for (; piece < end; ++piece)
 		{
 			boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
@@ -313,7 +313,7 @@ namespace libtorrent
 				
 				if (!buf) buf.reset(new char[m_piece_size]);
 
-				size_type slot_offset = size_type(m_header_size) + size_type(i->second) * m_piece_size;
+				boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(i->second) * m_piece_size;
 				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
 				int ret = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
 				if (ec) return;

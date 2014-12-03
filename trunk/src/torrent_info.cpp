@@ -369,7 +369,7 @@ namespace libtorrent
 		if (target.size < 0)
 			return false;
 
-		size_type ts = dict.dict_find_int_value("mtime", -1);
+		boost::int64_t ts = dict.dict_find_int_value("mtime", -1);
 		if (ts > 0) *mtime = std::time_t(ts);
 
 		// prefer the name.utf-8
@@ -561,7 +561,7 @@ namespace libtorrent
 		ec.clear();
 		file f;
 		if (!f.open(filename, file::read_only, ec)) return -1;
-		size_type s = f.get_size(ec);
+		boost::int64_t s = f.get_size(ec);
 		if (ec) return -1;
 		if (s > limit)
 		{
@@ -571,7 +571,7 @@ namespace libtorrent
 		v.resize((unsigned int)s);
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], size_t(s) };
-		size_type read = f.readv(0, &b, 1, ec);
+		boost::int64_t read = f.readv(0, &b, 1, ec);
 		if (read != s) return -3;
 		if (ec) return -3;
 		return 0;
@@ -1472,7 +1472,7 @@ namespace libtorrent
 		}
 
 		// extract creation date
-		size_type cd = torrent_file.dict_find_int_value("creation date", -1);
+		boost::int64_t cd = torrent_file.dict_find_int_value("creation date", -1);
 		if (cd >= 0)
 		{
 			m_creation_date = long(cd);

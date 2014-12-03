@@ -37,12 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
-	TORRENT_EXTRA_EXPORT boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
+	TORRENT_EXTRA_EXPORT boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
+		to_string(boost::int64_t n);
 
 	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding

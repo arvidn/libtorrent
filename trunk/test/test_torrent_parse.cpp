@@ -464,7 +464,7 @@ int test_main()
 		for (int i = 0; i < fs.num_files(); ++i)
 		{
 			int first = ti->map_file(i, 0, 0).piece;
-			int last = ti->map_file(i, (std::max)(fs.file_size(i)-1, size_type(0)), 0).piece;
+			int last = ti->map_file(i, (std::max)(fs.file_size(i)-1, boost::int64_t(0)), 0).piece;
 			int flags = fs.file_flags(i);
 			fprintf(stderr, "  %11" PRId64 " %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
 				, fs.file_size(i)

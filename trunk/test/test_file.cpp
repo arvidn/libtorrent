@@ -53,7 +53,7 @@ int touch_file(std::string const& filename, int size)
 	if (!f.open(filename, file::write_only, ec)) return -1;
 	if (ec) return -1;
 	file::iovec_t b = {&v[0], v.size()};
-	size_type written = f.writev(0, &b, 1, ec);
+	boost::int64_t written = f.writev(0, &b, 1, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;

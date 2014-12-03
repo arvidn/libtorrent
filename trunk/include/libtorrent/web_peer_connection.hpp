@@ -126,10 +126,10 @@ namespace libtorrent
 		// the number of bytes received in the current HTTP
 		// response. used to know where in the buffer the
 		// next response starts
-		size_type m_received_body;
+		boost::int64_t m_received_body;
 
 		// position in the current range response
-		size_type m_range_pos;
+		boost::int64_t m_range_pos;
 
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
@@ -137,7 +137,7 @@ namespace libtorrent
 		// parsed. It does not necessarily point to a valid
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
-		size_type m_chunk_pos;
+		boost::int64_t m_chunk_pos;
 
 		// the position in the current block
 		int m_block_pos;
