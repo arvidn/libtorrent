@@ -1,0 +1,26 @@
++--------------+  pimpl     +--------------+
+| cGRE session +----------->| session_impl |
++--------------+            +------+-----+-+
+                      m_torrents[] |     |
++---------------------+            |     |
+| cGRE torrent_handle +-------+    |     |
++---------------------+ weak  |    |     |
+                              |    |     | m_connections[]
+                              |    | +---+-------+
+                              |    | |           |
+              m_picker        v    v |           v peers we are connected to
+      +--------------+      +--------++        +-----------------+             
+      | piece_picker |<---+-+ torrent ++    +--+ peer_connection ++            
+      +--------------+    | ++--------+|    |  ++----------------+|            
+           m_torrent_file |  +---------+    |   +-----------------+            
+ +-------------------+    |                 | 
+ | cGRE torrent_info |<---+                 | m_socket                     
+ +-------------------+    |                 |  +--------------------------+
+                          |          +------+->| socket_type (variant)    |
+      +--------+ m_policy |          |         | (TCP/uTP/SSL/socks5/...) |
+      | policy |<---------+          |         +--------------------------+
+      +------+-+                     v      
+ list of all |     m_peers[] +--------------+        
+    peers we +-------------->| policy::peer ++ contains contact information
+     know of                 ++-------------+| for peers we're not necessarily
+                              +--------------+ connected to
