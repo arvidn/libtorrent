@@ -131,7 +131,7 @@ get_out:
 
 get_out:
 		BN_free(remote_key);
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(2)">../src/torrent.cpp:6254</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it</td></tr><tr id="2" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it</h2><h4>../src/torrent.cpp:6254</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			return false;
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(2)">../src/torrent.cpp:6255</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it</td></tr><tr id="2" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it</h2><h4>../src/torrent.cpp:6255</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			return false;
 		}
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		m_connections.insert(p);
@@ -337,7 +337,7 @@ void get_item_observer::reply(msg const&amp; m)
 			else
 				new_replacement_bucket.push_back(*j);
 		}
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(6)">../src/torrent.cpp:637</a></td><td>post alert</td></tr><tr id="6" style="display: none;" colspan="3"><td colspan="3"><h2>post alert</h2><h4>../src/torrent.cpp:637</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		state_updated();
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(6)">../src/torrent.cpp:638</a></td><td>post alert</td></tr><tr id="6" style="display: none;" colspan="3"><td colspan="3"><h2>post alert</h2><h4>../src/torrent.cpp:638</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		state_updated();
 
 		set_state(torrent_status::downloading);
 
@@ -908,11 +908,11 @@ is kind of expensive, it would be nice to not do it unnecessarily</h2><h4>../src
 
 #ifdef TORRENT_DISK_STATS
 		TORRENT_ASSERT(m_buffer_allocations &gt;= 0);
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(17)">../src/torrent.cpp:1029</a></td><td>make this depend on the error and on the filesystem the files are being downloaded to. If the error is no_space_left_on_device and the filesystem doesn't support sparse files, only zero the priorities of the pieces that are at the tails of all files, leaving everything up to the highest written piece in each file</td></tr><tr id="17" style="display: none;" colspan="3"><td colspan="3"><h2>make this depend on the error and on the filesystem the
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(17)">../src/torrent.cpp:1030</a></td><td>make this depend on the error and on the filesystem the files are being downloaded to. If the error is no_space_left_on_device and the filesystem doesn't support sparse files, only zero the priorities of the pieces that are at the tails of all files, leaving everything up to the highest written piece in each file</td></tr><tr id="17" style="display: none;" colspan="3"><td colspan="3"><h2>make this depend on the error and on the filesystem the
 files are being downloaded to. If the error is no_space_left_on_device
 and the filesystem doesn't support sparse files, only zero the priorities
 of the pieces that are at the tails of all files, leaving everything
-up to the highest written piece in each file</h2><h4>../src/torrent.cpp:1029</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (c) c-&gt;disconnect(errors::no_memory);
+up to the highest written piece in each file</h2><h4>../src/torrent.cpp:1030</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (c) c-&gt;disconnect(errors::no_memory);
 			return;
 		}
 
@@ -963,8 +963,8 @@ up to the highest written piece in each file</h2><h4>../src/torrent.cpp:1029</h4
 		{
 			int size = m_torrent_file-&gt;piece_size(r.piece);
 			if (rp-&gt;fail)
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(18)">../src/torrent.cpp:5506</a></td><td>save the send_stats state instead of throwing them away it may pose an issue when downgrading though</td></tr><tr id="18" style="display: none;" colspan="3"><td colspan="3"><h2>save the send_stats state instead of throwing them away
-it may pose an issue when downgrading though</h2><h4>../src/torrent.cpp:5506</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">					for (int k = 0; k &lt; bits; ++k)
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(18)">../src/torrent.cpp:5507</a></td><td>save the send_stats state instead of throwing them away it may pose an issue when downgrading though</td></tr><tr id="18" style="display: none;" colspan="3"><td colspan="3"><h2>save the send_stats state instead of throwing them away
+it may pose an issue when downgrading though</h2><h4>../src/torrent.cpp:5507</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">					for (int k = 0; k &lt; bits; ++k)
 						v |= (i-&gt;info[j*8+k].state == piece_picker::block_info::state_finished)
 						? (1 &lt;&lt; k) : 0;
 					bitmask.append(1, v);
@@ -1015,9 +1015,9 @@ it may pose an issue when downgrading though</h2><h4>../src/torrent.cpp:5506</h4
 		// write have bitmask
 		// the pieces string has one byte per piece. Each
 		// byte is a bitmask representing different properties
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(19)">../src/torrent.cpp:6422</a></td><td>should disconnect all peers that have the pieces we have not just seeds. It would be pretty expensive to check all pieces for all peers though</td></tr><tr id="19" style="display: none;" colspan="3"><td colspan="3"><h2>should disconnect all peers that have the pieces we have
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(19)">../src/torrent.cpp:6423</a></td><td>should disconnect all peers that have the pieces we have not just seeds. It would be pretty expensive to check all pieces for all peers though</td></tr><tr id="19" style="display: none;" colspan="3"><td colspan="3"><h2>should disconnect all peers that have the pieces we have
 not just seeds. It would be pretty expensive to check all pieces
-for all peers though</h2><h4>../src/torrent.cpp:6422</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(m_state != torrent_status::finished &amp;&amp; m_state != torrent_status::seeding);
+for all peers though</h2><h4>../src/torrent.cpp:6423</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		TORRENT_ASSERT(m_state != torrent_status::finished &amp;&amp; m_state != torrent_status::seeding);
 
 		set_state(torrent_status::finished);
 		set_queue_position(-1);
@@ -2522,12 +2522,12 @@ if file_base is used. This is not a widely used feature though</h2><h4>../src/st
 	// makes unaligned requests (and the disk cache is disabled or fully utilized
 	// for write cache).
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(50)">../src/torrent.cpp:1231</a></td><td>is verify_peer_cert called once per certificate in the chain, and this function just tells us which depth we're at right now? If so, the comment makes sense. any certificate that isn't the leaf (i.e. the one presented by the peer) should be accepted automatically, given preverified is true. The leaf certificate need to be verified to make sure its DN matches the info-hash</td></tr><tr id="50" style="display: none;" colspan="3"><td colspan="3"><h2>is verify_peer_cert called once per certificate in the chain, and
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(50)">../src/torrent.cpp:1232</a></td><td>is verify_peer_cert called once per certificate in the chain, and this function just tells us which depth we're at right now? If so, the comment makes sense. any certificate that isn't the leaf (i.e. the one presented by the peer) should be accepted automatically, given preverified is true. The leaf certificate need to be verified to make sure its DN matches the info-hash</td></tr><tr id="50" style="display: none;" colspan="3"><td colspan="3"><h2>is verify_peer_cert called once per certificate in the chain, and
 this function just tells us which depth we're at right now? If so, the comment
 makes sense.
 any certificate that isn't the leaf (i.e. the one presented by the peer)
 should be accepted automatically, given preverified is true. The leaf certificate
-need to be verified to make sure its DN matches the info-hash</h2><h4>../src/torrent.cpp:1231</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (pp) p-&gt;add_extension(pp);
+need to be verified to make sure its DN matches the info-hash</h2><h4>../src/torrent.cpp:1232</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (pp) p-&gt;add_extension(pp);
 		}
 
 		// if files are checked for this torrent, call the extension
@@ -2578,12 +2578,12 @@ need to be verified to make sure its DN matches the info-hash</h2><h4>../src/tor
 			{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 				match = true;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(51)">../src/torrent.cpp:5273</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance maybe use the same format as .torrent files and reuse some code from torrent_info The mapped_files needs to be read both in the network thread and in the disk thread, since they both have their own mapped files structures which are kept in sync</td></tr><tr id="51" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(51)">../src/torrent.cpp:5274</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance maybe use the same format as .torrent files and reuse some code from torrent_info The mapped_files needs to be read both in the network thread and in the disk thread, since they both have their own mapped files structures which are kept in sync</td></tr><tr id="51" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
 renamed, but also if they have been merged into a single file for instance
 maybe use the same format as .torrent files and reuse some code from torrent_info
 The mapped_files needs to be read both in the network thread
 and in the disk thread, since they both have their own mapped files structures
-which are kept in sync</h2><h4>../src/torrent.cpp:5273</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+which are kept in sync</h2><h4>../src/torrent.cpp:5274</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		if (m_use_resume_save_path)
 		{
 			std::string p = rd.dict_find_string_value("save_path");
@@ -2634,12 +2634,12 @@ which are kept in sync</h2><h4>../src/torrent.cpp:5273</h4><pre style="backgroun
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
 		if (trackers)
 		{
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(52)">../src/torrent.cpp:5375</a></td><td>if this is a merkle torrent and we can't restore the tree, we need to wipe all the bits in the have array, but not necessarily we might want to do a full check to see if we have all the pieces. This is low priority since almost no one uses merkle torrents</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>if this is a merkle torrent and we can't
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(52)">../src/torrent.cpp:5376</a></td><td>if this is a merkle torrent and we can't restore the tree, we need to wipe all the bits in the have array, but not necessarily we might want to do a full check to see if we have all the pieces. This is low priority since almost no one uses merkle torrents</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>if this is a merkle torrent and we can't
 restore the tree, we need to wipe all the
 bits in the have array, but not necessarily
 we might want to do a full check to see if we have
 all the pieces. This is low priority since almost
-no one uses merkle torrents</h2><h4>../src/torrent.cpp:5375</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				add_web_seed(url, web_seed_entry::http_seed);
+no one uses merkle torrents</h2><h4>../src/torrent.cpp:5376</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				add_web_seed(url, web_seed_entry::http_seed);
 			}
 		}
 
@@ -2690,9 +2690,9 @@ no one uses merkle torrents</h2><h4>../src/torrent.cpp:5375</h4><pre style="back
 		ret["num_complete"] = m_complete;
 		ret["num_incomplete"] = m_incomplete;
 		ret["num_downloaded"] = m_downloaded;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(53)">../src/torrent.cpp:5562</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance. using file_base</td></tr><tr id="53" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(53)">../src/torrent.cpp:5563</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance. using file_base</td></tr><tr id="53" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
 renamed, but also if they have been merged into a single file for instance.
-using file_base</h2><h4>../src/torrent.cpp:5562</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		entry::string_type&amp; pieces = ret["pieces"].string();
+using file_base</h2><h4>../src/torrent.cpp:5563</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		entry::string_type&amp; pieces = ret["pieces"].string();
 		pieces.resize(m_torrent_file-&gt;num_pieces());
 		if (is_seed())
 		{
@@ -2743,10 +2743,10 @@ using file_base</h2><h4>../src/torrent.cpp:5562</h4><pre style="background: #f6f
 			error_code ec;
 			policy::peer const* p = *i;
 			address addr = p-&gt;address();
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(54)">../src/torrent.cpp:8192</a></td><td>go through the pieces we have and count the total number of downloaders we have. Only count peers that are interested in us since some peers might not send have messages for pieces we have it num_interested == 0, we need to pick a new piece</td></tr><tr id="54" style="display: none;" colspan="3"><td colspan="3"><h2>go through the pieces we have and count the total number
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(54)">../src/torrent.cpp:8193</a></td><td>go through the pieces we have and count the total number of downloaders we have. Only count peers that are interested in us since some peers might not send have messages for pieces we have it num_interested == 0, we need to pick a new piece</td></tr><tr id="54" style="display: none;" colspan="3"><td colspan="3"><h2>go through the pieces we have and count the total number
 of downloaders we have. Only count peers that are interested in us
 since some peers might not send have messages for pieces we have
-it num_interested == 0, we need to pick a new piece</h2><h4>../src/torrent.cpp:8192</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			}
+it num_interested == 0, we need to pick a new piece</h2><h4>../src/torrent.cpp:8193</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			}
 
 			rarest_pieces.clear();
 			rarest_rarity = pp.peer_count;
@@ -2797,8 +2797,8 @@ it num_interested == 0, we need to pick a new piece</h2><h4>../src/torrent.cpp:8
 		{
 			m_picker-&gt;get_availability(avail_vec);
 		}
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(55)">../src/torrent.cpp:8841</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="55" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
-directly into the right place</h2><h4>../src/torrent.cpp:8841</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(55)">../src/torrent.cpp:8842</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="55" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
+directly into the right place</h2><h4>../src/torrent.cpp:8842</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
 					, m_average_piece_time);
 #endif
 			}
@@ -3004,7 +3004,7 @@ static error_code ec;
 		m_mappings.swap(s-&gt;mappings);
 		delete s;
 	}
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../src/utp_stream.cpp:1612</a></td><td>this loop may not be very efficient</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>this loop may not be very efficient</h2><h4>../src/utp_stream.cpp:1612</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(59)">../src/utp_stream.cpp:1613</a></td><td>this loop may not be very efficient</td></tr><tr id="59" style="display: none;" colspan="3"><td colspan="3"><h2>this loop may not be very efficient</h2><h4>../src/utp_stream.cpp:1613</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 	char* m_buf;
 };
 
@@ -3107,7 +3107,7 @@ put completes</h2><h4>../src/kademlia/dht_tracker.cpp:433</h4><pre style="backgr
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), data);
 		sha1_hash target = item_target_id(
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(61)">../include/libtorrent/config.hpp:301</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="61" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>../include/libtorrent/config.hpp:301</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#define TORRENT_USE_SYSCTL 1
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(61)">../include/libtorrent/config.hpp:289</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="61" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>../include/libtorrent/config.hpp:289</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_MLOCK 0
 #define TORRENT_USE_IPV6 0
 #define TORRENT_ICONV_ARG (const char**)
