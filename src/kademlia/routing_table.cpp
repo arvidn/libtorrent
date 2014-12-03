@@ -132,7 +132,7 @@ boost::tuple<int, int, int> routing_table::size() const
 	return boost::make_tuple(nodes, replacements, confirmed);
 }
 
-size_type routing_table::num_global_nodes() const
+boost::int64_t routing_table::num_global_nodes() const
 {
 	int deepest_bucket = 0;
 	int deepest_size = 0;
@@ -147,8 +147,8 @@ size_type routing_table::num_global_nodes() const
 
 	if (deepest_bucket == 0) return 1 + deepest_size;
 
-	if (deepest_size < m_bucket_size / 2) return (size_type(1) << deepest_bucket) * m_bucket_size;
-	else return (size_type(2) << deepest_bucket) * deepest_size;
+	if (deepest_size < m_bucket_size / 2) return (boost::int64_t(1) << deepest_bucket) * m_bucket_size;
+	else return (boost::int64_t(2) << deepest_bucket) * deepest_size;
 }
 
 int routing_table::depth() const

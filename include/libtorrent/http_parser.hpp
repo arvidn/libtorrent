@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
@@ -91,8 +90,8 @@ namespace libtorrent
 		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer
 			, bool& error);
 		int body_start() const { return m_body_start_pos; }
-		size_type content_length() const { return m_content_length; }
-		std::pair<size_type, size_type> content_range() const
+		boost::int64_t content_length() const { return m_content_length; }
+		std::pair<boost::int64_t, boost::int64_t> content_range() const
 		{ return std::make_pair(m_range_start, m_range_end); }
 
 		// returns true if this response is using chunked encoding.
@@ -122,7 +121,7 @@ namespace libtorrent
 		// size may still have been modified, but their values are
 		// undefined
 		bool parse_chunk_header(buffer::const_interval buf
-			, size_type* chunk_size, int* header_size);
+			, boost::int64_t* chunk_size, int* header_size);
 
 		// reset the whole state and start over
 		void reset();
@@ -130,29 +129,29 @@ namespace libtorrent
 		bool connection_close() const { return m_connection_close; }
 
 		std::multimap<std::string, std::string> const& headers() const { return m_header; }
-		std::vector<std::pair<size_type, size_type> > const& chunks() const { return m_chunked_ranges; }
+		std::vector<std::pair<boost::int64_t, boost::int64_t> > const& chunks() const { return m_chunked_ranges; }
 		
 	private:
-		size_type m_recv_pos;
+		boost::int64_t m_recv_pos;
 		std::string m_method;
 		std::string m_path;
 		std::string m_protocol;
 		std::string m_server_message;
 
-		size_type m_content_length;
-		size_type m_range_start;
-		size_type m_range_end;
+		boost::int64_t m_content_length;
+		boost::int64_t m_range_start;
+		boost::int64_t m_range_end;
 
 		std::multimap<std::string, std::string> m_header;
 		buffer::const_interval m_recv_buffer;
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response
-		std::vector<std::pair<size_type, size_type> > m_chunked_ranges;
+		std::vector<std::pair<boost::int64_t, boost::int64_t> > m_chunked_ranges;
 
 		// while reading a chunk, this is the offset where the
 		// current chunk will end (it refers to the first character
 		// in the chunk tail header or the next chunk header)
-		size_type m_cur_chunk_end;
+		boost::int64_t m_cur_chunk_end;
 
 		int m_status_code;
 

@@ -1923,8 +1923,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_message_handler[packet_type] != 0);
 
 #ifdef TORRENT_DEBUG
-		size_type cur_payload_dl = statistics().last_payload_downloaded();
-		size_type cur_protocol_dl = statistics().last_protocol_downloaded();
+		boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
+		boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
 
 		// call the correct handler for this packet type
@@ -1932,7 +1932,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 		TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-		size_type stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
+		boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
 			statistics().last_protocol_downloaded() - cur_protocol_dl;
 		TORRENT_ASSERT(stats_diff == received);
 #endif
@@ -2542,8 +2542,8 @@ namespace libtorrent
 				((sub_transferred = m_recv_buffer.advance_pos(bytes_transferred)) > 0))
 			{
 	#if TORRENT_USE_ASSERTS
-				size_type cur_payload_dl = m_statistics.last_payload_downloaded();
-				size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
+				boost::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
+				boost::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
 	#endif
 				on_receive_impl(sub_transferred);
 				bytes_transferred -= sub_transferred;
@@ -2552,7 +2552,7 @@ namespace libtorrent
 	#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-				size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				boost::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 				TORRENT_ASSERT(stats_diff == int(sub_transferred));
 	#endif
@@ -3470,8 +3470,8 @@ namespace libtorrent
 				return;
 			}
 #ifdef TORRENT_DEBUG
-			size_type cur_payload_dl = statistics().last_payload_downloaded();
-			size_type cur_protocol_dl = statistics().last_protocol_downloaded();
+			boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
+			boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
 			if (dispatch_message(bytes_transferred))
 			{
@@ -3481,9 +3481,9 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 			TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-			size_type stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
+			boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
 				statistics().last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == size_type(bytes_transferred));
+			TORRENT_ASSERT(stats_diff == boost::int64_t(bytes_transferred));
 #endif
 			TORRENT_ASSERT(!m_recv_buffer.packet_finished());
 			return;

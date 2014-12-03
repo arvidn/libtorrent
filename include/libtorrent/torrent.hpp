@@ -404,10 +404,10 @@ namespace libtorrent
 		std::string name() const;
 
 		stat statistics() const { return m_stat; }
-		size_type bytes_left() const;
+		boost::int64_t bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
 		void bytes_done(torrent_status& st, bool accurate) const;
-		size_type quantized_bytes_done() const;
+		boost::int64_t quantized_bytes_done() const;
 
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
@@ -518,7 +518,7 @@ namespace libtorrent
 		// it, add it to the m_state_updates list in session_impl
 		void state_updated();
 
-		void file_progress(std::vector<size_type>& fp, int flags = 0);
+		void file_progress(std::vector<boost::int64_t>& fp, int flags = 0);
 
 #ifndef TORRENT_NO_DEPRECATED
 		void use_interface(std::string net_interface);
@@ -1156,8 +1156,8 @@ namespace libtorrent
 
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
-		size_type m_total_uploaded;
-		size_type m_total_downloaded;
+		boost::int64_t m_total_uploaded;
+		boost::int64_t m_total_downloaded;
 
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been

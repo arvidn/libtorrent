@@ -1296,7 +1296,7 @@ namespace libtorrent
 		}
 
 		// this is the offset that's aligned to block boundaries
-		size_type adjusted_offset = j->d.io.offset & ~(block_size-1);
+		boost::int64_t adjusted_offset = j->d.io.offset & ~(block_size-1);
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up

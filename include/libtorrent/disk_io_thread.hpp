@@ -174,7 +174,7 @@ namespace libtorrent
 
 		// the number of bytes queued for writing, including bytes
 		// submitted to the OS for writing, but not yet complete
-		mutable size_type queued_bytes;
+		mutable boost::int64_t queued_bytes;
 
 		// the number of 16 KiB blocks currently in the disk cache (both read and write).
 		// This includes both read and write cache.

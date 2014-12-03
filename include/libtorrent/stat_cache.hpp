@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <time.h>
 #include <vector>
+#include <boost/cstdint.hpp>
 #include "libtorrent/config.hpp"
-#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
@@ -56,10 +56,10 @@ namespace libtorrent
 
 		// returns the size of the file or one
 		// of the enums, noent or not_in_cache
-		size_type get_filesize(int i) const;
+		boost::int64_t get_filesize(int i) const;
 		time_t get_filetime(int i) const;
 
-		void set_cache(int i, size_type size, time_t time);
+		void set_cache(int i, boost::int64_t size, time_t time);
 		void set_noexist(int i);
 		void set_error(int i);
 		void set_dirty(int i);
@@ -70,8 +70,8 @@ namespace libtorrent
 
 		struct stat_cache_t
 		{
-			stat_cache_t(size_type s, time_t t = 0): file_size(s), file_time(t) {}
-			size_type file_size;
+			stat_cache_t(boost::int64_t s, time_t t = 0): file_size(s), file_time(t) {}
+			boost::int64_t file_size;
 			time_t file_time;
 		};
 		std::vector<stat_cache_t> m_stat_cache;

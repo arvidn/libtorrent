@@ -472,7 +472,7 @@ namespace libtorrent
 		{ return m_torrent; }
 
 		stat const& statistics() const { return m_statistics; }
-		void add_stat(size_type downloaded, size_type uploaded);
+		void add_stat(boost::int64_t downloaded, boost::int64_t uploaded);
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
 		void trancieve_ip_packet(int bytes, bool ipv6);
@@ -718,13 +718,13 @@ namespace libtorrent
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 		void set_last_seen_complete(int ago) { m_last_seen_complete = time(0) - ago; }
 
-		size_type uploaded_in_last_round() const
+		boost::int64_t uploaded_in_last_round() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_round; }
 
-		size_type downloaded_in_last_round() const
+		boost::int64_t downloaded_in_last_round() const
 		{ return m_statistics.total_payload_download() - m_downloaded_at_last_round; }
 
-		size_type uploaded_since_unchoked() const
+		boost::int64_t uploaded_since_unchoked() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
 
 		// the time we last unchoked this peer
@@ -975,8 +975,8 @@ namespace libtorrent
 		// measure the number of bytes transferred during
 		// an unchoke cycle, to unchoke peers the more bytes
 		// they sent us
-		size_type m_downloaded_at_last_round;
-		size_type m_uploaded_at_last_round;
+		boost::int64_t m_downloaded_at_last_round;
+		boost::int64_t m_uploaded_at_last_round;
 
 		// this is the number of bytes we had uploaded the
 		// last time this peer was unchoked. This does not
@@ -984,7 +984,7 @@ namespace libtorrent
 		// track upload across rounds, for the full duration of
 		// the peer being unchoked. Specifically, it's used
 		// for the round-robin unchoke algorithm.
-		size_type m_uploaded_at_last_unchoke;
+		boost::int64_t m_uploaded_at_last_unchoke;
 
 		// the number of bytes that the other
 		// end has to send us in order to respond

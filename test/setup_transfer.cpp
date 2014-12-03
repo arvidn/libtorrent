@@ -584,7 +584,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		file f(full_path, file::write_only, ec);
 		if (ec) fprintf(stderr, "failed to create file \"%s\": (%d) %s\n"
 			, full_path.c_str(), ec.value(), ec.message().c_str());
-		size_type offset = 0;
+		boost::int64_t offset = 0;
 		while (to_write > 0)
 		{
 			int s = (std::min)(to_write, 300000);

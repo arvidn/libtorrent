@@ -360,7 +360,7 @@ namespace libtorrent
 				&& m_chunk_pos < recv_buffer.left())
 			{
 				int header_size = 0;
-				size_type chunk_size = 0;
+				boost::int64_t chunk_size = 0;
 				buffer::const_interval chunk_start = recv_buffer;
 				chunk_start.begin += m_chunk_pos;
 				TORRENT_ASSERT(chunk_start.begin[0] == '\r' || is_hex(chunk_start.begin, 1));

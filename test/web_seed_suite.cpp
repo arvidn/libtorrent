@@ -149,7 +149,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
 
-	const size_type total_size = torrent_file->total_size();
+	const boost::int64_t total_size = torrent_file->total_size();
 
 	float rate_sum = 0.f;
 	float ses_rate_sum = 0.f;

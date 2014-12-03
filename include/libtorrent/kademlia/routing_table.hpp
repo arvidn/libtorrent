@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/session_settings.hpp>
-#include <libtorrent/size_type.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/time.hpp>
 #include <boost/unordered_set.hpp>
@@ -159,7 +158,7 @@ public:
 	// been pinged and confirmed up
 	boost::tuple<int, int, int> size() const;
 
-	size_type num_global_nodes() const;
+	boost::int64_t num_global_nodes() const;
 
 	// the number of bits down we have full buckets
 	// i.e. essentially the number of full buckets

@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/size_type.hpp"
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -232,7 +231,7 @@ int test_main()
 	TEST_CHECK(parser.header("content-type") == "text/plain");
 	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 20);
 	TEST_CHECK(parser.chunked_encoding());
-	typedef std::pair<size_type, size_type> chunk_range;
+	typedef std::pair<boost::int64_t, boost::int64_t> chunk_range;
 	std::vector<chunk_range> cmp;
 	cmp.push_back(chunk_range(96, 100));
 	cmp.push_back(chunk_range(106, 122));
@@ -265,7 +264,7 @@ int test_main()
 	received = feed_bytes(parser, web_seed_response);
 
 	TEST_CHECK(received == make_tuple(5, int(strlen(web_seed_response) - 5), false));
-	TEST_CHECK(parser.content_range() == (std::pair<size_type, size_type>(0, 4)));
+	TEST_CHECK(parser.content_range() == (std::pair<boost::int64_t, boost::int64_t>(0, 4)));
 	TEST_CHECK(parser.content_length() == 5);
 
 	parser.reset();
@@ -289,7 +288,7 @@ int test_main()
 	{
 		// test chunked encoding parser
 		char const chunk_header1[] = "f;this is a comment\r\n";
-		size_type chunk_size;
+		boost::int64_t chunk_size;
 		int header_size;
 		bool ret = parser.parse_chunk_header(buffer::const_interval(chunk_header1, chunk_header1 + 10)
 			, &chunk_size, &header_size);

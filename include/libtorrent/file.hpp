@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
@@ -96,7 +95,7 @@ namespace libtorrent
 
 	struct file_status
 	{
-		size_type file_size;
+		boost::int64_t file_size;
 		boost::uint64_t atime;
 		boost::uint64_t mtime;
 		boost::uint64_t ctime;
@@ -133,7 +132,7 @@ namespace libtorrent
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
-	TORRENT_EXTRA_EXPORT size_type file_size(std::string const& f);
+	TORRENT_EXTRA_EXPORT boost::int64_t file_size(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void recursive_copy(std::string const& old_path
@@ -309,20 +308,20 @@ typedef boost::intrusive_ptr<file> file_handle;
 		bool open(std::string const& p, int m, error_code& ec);
 		bool is_open() const;
 		void close();
-		bool set_size(size_type size, error_code& ec);
+		bool set_size(boost::int64_t size, error_code& ec);
 
 		int open_mode() const { return m_open_mode; }
 
-		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs
+		boost::int64_t writev(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
 			, error_code& ec, int flags = 0);
-		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs
+		boost::int64_t readv(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
 			, error_code& ec, int flags = 0);
 
-		size_type get_size(error_code& ec) const;
+		boost::int64_t get_size(error_code& ec) const;
 
 		// return the offset of the first byte that
 		// belongs to a data-region
-		size_type sparse_end(size_type start) const;
+		boost::int64_t sparse_end(boost::int64_t start) const;
 
 		handle_type native_handle() const { return m_file_handle; }
 

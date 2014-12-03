@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -478,7 +477,7 @@ namespace libtorrent
 		// the piece index as argument and gives you the exact size of that piece. It will always
 		// be the same as ``piece_length()`` except in the case of the last piece, which may
 		// be smaller.
-		size_type total_size() const { return m_files.total_size(); }
+		boost::int64_t total_size() const { return m_files.total_size(); }
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
 
@@ -507,7 +506,7 @@ namespace libtorrent
 		reverse_file_iterator rend_files() const TORRENT_DEPRECATED { return m_files.rend_deprecated(); }
 
 		TORRENT_DEPRECATED_PREFIX
-		file_iterator file_at_offset(size_type offset) const TORRENT_DEPRECATED
+		file_iterator file_at_offset(boost::int64_t offset) const TORRENT_DEPRECATED
 		{ return m_files.file_at_offset_deprecated(offset); }
 
 #endif // TORRENT_NO_DEPRECATE
@@ -520,7 +519,7 @@ namespace libtorrent
 		// This function will map a piece index, a byte offset within that piece and
 		// a size (in bytes) into the corresponding files with offsets where that data
 		// for that piece is supposed to be stored. See file_slice.
-		std::vector<file_slice> map_block(int piece, size_type offset, int size) const
+		std::vector<file_slice> map_block(int piece, boost::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
 			return m_files.map_block(piece, offset, size);
@@ -533,7 +532,7 @@ namespace libtorrent
 		// The input range is assumed to be valid within the torrent. ``file_offset``
 		// + ``size`` is not allowed to be greater than the file size. ``file_index``
 		// must refer to a valid file, i.e. it cannot be >= ``num_files()``.
-		peer_request map_file(int file, size_type offset, int size) const
+		peer_request map_file(int file, boost::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
 			return m_files.map_file(file, offset, size);

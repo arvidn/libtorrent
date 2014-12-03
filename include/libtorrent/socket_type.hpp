@@ -310,7 +310,7 @@ namespace libtorrent
 			>::value
 		};
 
-		size_type m_data[(storage_size + sizeof(size_type) - 1) / sizeof(size_type)];
+		boost::int64_t m_data[(storage_size + sizeof(boost::int64_t) - 1) / sizeof(boost::int64_t)];
 	};
 
 	// returns true if this socket is an SSL socket

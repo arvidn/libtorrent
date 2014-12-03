@@ -63,8 +63,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <string>
 #include <stdexcept>
+#include <boost/cstdint.hpp>
 
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
@@ -100,7 +100,7 @@ namespace libtorrent
 		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
-		typedef size_type integer_type;
+		typedef boost::int64_t integer_type;
 
 		// the types an entry can have
 		enum data_type

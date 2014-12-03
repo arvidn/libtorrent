@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <assert.h>
 #include <cstring>
+#include <boost/cstdint.hpp>
 
-#include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -78,9 +78,9 @@ namespace libtorrent
 		int rate() const { return m_5_sec_average; }
 		int low_pass_rate() const { return m_5_sec_average; }
 
-		size_type total() const { return m_total_counter; }
+		boost::int64_t total() const { return m_total_counter; }
 
-		void offset(size_type c)
+		void offset(boost::int64_t c)
 		{
 			TORRENT_ASSERT(c >= 0);
 			TORRENT_ASSERT(m_total_counter >= 0);
@@ -203,14 +203,14 @@ namespace libtorrent
 				+ m_stat[download_ip_protocol].rate();
 		}
 
-		size_type total_upload() const
+		boost::int64_t total_upload() const
 		{
 			return m_stat[upload_payload].total()
 				+ m_stat[upload_protocol].total()
 				+ m_stat[upload_ip_protocol].total();
 		}
 
-		size_type total_download() const
+		boost::int64_t total_download() const
 		{
 			return m_stat[download_payload].total()
 				+ m_stat[download_protocol].total()
@@ -222,17 +222,17 @@ namespace libtorrent
 		int download_payload_rate() const
 		{ return m_stat[download_payload].rate(); }
 
-		size_type total_payload_upload() const
+		boost::int64_t total_payload_upload() const
 		{ return m_stat[upload_payload].total(); }
-		size_type total_payload_download() const
+		boost::int64_t total_payload_download() const
 		{ return m_stat[download_payload].total(); }
 
-		size_type total_protocol_upload() const
+		boost::int64_t total_protocol_upload() const
 		{ return m_stat[upload_protocol].total(); }
-		size_type total_protocol_download() const
+		boost::int64_t total_protocol_download() const
 		{ return m_stat[download_protocol].total(); }
 
-		size_type total_transfer(int channel) const
+		boost::int64_t total_transfer(int channel) const
 		{ return m_stat[channel].total(); }
 		int transfer_rate(int channel) const
 		{ return m_stat[channel].rate(); }
@@ -240,7 +240,7 @@ namespace libtorrent
 		// this is used to offset the statistics when a
 		// peer_connection is opened and have some previous
 		// transfers from earlier connections.
-		void add_stat(size_type downloaded, size_type uploaded)
+		void add_stat(boost::int64_t downloaded, boost::int64_t uploaded)
 		{
 			m_stat[download_payload].offset(downloaded);
 			m_stat[upload_payload].offset(uploaded);

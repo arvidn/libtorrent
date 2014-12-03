@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-void test_running_torrent(boost::shared_ptr<torrent_info> info, size_type file_size)
+void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t file_size)
 {
 	settings_pack pack;
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
@@ -168,7 +168,7 @@ int test_main()
 		remove("test_torrent_dir2/tmp2");
 		remove("test_torrent_dir2/tmp3");
 		file_storage fs;
-		size_type file_size = 256 * 1024;
+		boost::int64_t file_size = 256 * 1024;
 		fs.add_file("test_torrent_dir2/tmp1", file_size);
 		fs.add_file("test_torrent_dir2/tmp2", file_size);
 		fs.add_file("test_torrent_dir2/tmp3", file_size);

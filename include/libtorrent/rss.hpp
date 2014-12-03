@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/size_type.hpp"
 
 #include <boost/enable_shared_from_this.hpp>
 #include <string>
@@ -64,7 +63,7 @@ namespace libtorrent
 
 		// the total size of the content the torrent refers to, or -1
 		// if no size was specified by the feed.
-		size_type size;
+		boost::int64_t size;
 
 		// the handle to the torrent, if the session is already downloading
 		// this torrent.
