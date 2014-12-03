@@ -69,6 +69,7 @@ DOCS_PAGES = \
   docs/troubleshooting.html       \
   docs/udp_tracker_protocol.html  \
   docs/utp.html                   \
+  docs/streaming.html             \
   docs/building.rst               \
   docs/client_test.rst            \
   docs/contributing.rst           \
@@ -87,6 +88,7 @@ DOCS_PAGES = \
   docs/troubleshooting.rst        \
   docs/udp_tracker_protocol.rst   \
   docs/utp.rst                    \
+  docs/streaming.rst              \
   docs/reference-Alerts.html      \
   docs/reference-Bencoding.html   \
   docs/reference-Core.html        \
