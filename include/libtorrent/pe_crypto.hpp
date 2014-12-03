@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 
 #ifndef TORRENT_PE_CRYPTO_HPP_INCLUDED
 #define TORRENT_PE_CRYPTO_HPP_INCLUDED
@@ -52,12 +52,7 @@ void TORRENT_EXTRA_EXPORT rc4_init(const unsigned char* in, unsigned long len, r
 unsigned long TORRENT_EXTRA_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 #endif
 
-#include <boost/asio/buffer.hpp>
-#include <list>
-
-#include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/peer_id.hpp" // For sha1_hash
-#include "libtorrent/extensions.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent
@@ -92,39 +87,14 @@ namespace libtorrent
 
 	struct encryption_handler
 	{
-		int encrypt(std::vector<asio::mutable_buffer>& iovec);
-		int decrypt(crypto_receive_buffer& recv_buffer, std::size_t& bytes_transferred);
-
-		bool switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
-			, int pending_encryption);
-
-		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto
-			, crypto_receive_buffer& recv_buffer);
-
-		bool is_send_plaintext() const
-		{
-			return m_send_barriers.empty() || m_send_barriers.back().next != INT_MAX;
-		}
-
-		bool is_recv_plaintext() const
-		{
-			return m_dec_handler.get() == NULL;
-		}
-
-	private:
-		struct barrier
-		{
-			barrier(boost::shared_ptr<crypto_plugin> plugin, int next)
-				: enc_handler(plugin), next(next) {}
-			boost::shared_ptr<crypto_plugin> enc_handler;
-			// number of bytes to next barrier
-			int next;
-		};
-		std::list<barrier> m_send_barriers;
-		boost::shared_ptr<crypto_plugin> m_dec_handler;
+		virtual void set_incoming_key(unsigned char const* key, int len) = 0;
+		virtual void set_outgoing_key(unsigned char const* key, int len) = 0;
+		virtual void encrypt(char* pos, int len) = 0;
+		virtual void decrypt(char* pos, int len) = 0;
+		virtual ~encryption_handler() {}
 	};
 
-	struct TORRENT_EXTRA_EXPORT rc4_handler : crypto_plugin
+	struct rc4_handler : encryption_handler
 	{
 	public:
 		// Input longkeys must be 20 bytes
@@ -138,8 +108,39 @@ namespace libtorrent
 #endif
 		};
 
-		void set_incoming_key(unsigned char const* key, int len);
-		void set_outgoing_key(unsigned char const* key, int len);
+		void set_incoming_key(unsigned char const* key, int len)
+		{
+			m_decrypt = true;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_close(m_rc4_incoming);
+			gcry_cipher_open(&m_rc4_incoming, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+			gcry_cipher_setkey(m_rc4_incoming, key, len);
+#elif defined TORRENT_USE_OPENSSL
+			RC4_set_key(&m_remote_key, len, key);
+#else
+			rc4_init(key, len, &m_rc4_incoming);
+#endif
+			// Discard first 1024 bytes
+			char buf[1024];
+			decrypt(buf, 1024);
+		}
+		
+		void set_outgoing_key(unsigned char const* key, int len)
+		{
+			m_encrypt = true;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_close(m_rc4_outgoing);
+			gcry_cipher_open(&m_rc4_outgoing, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+			gcry_cipher_setkey(m_rc4_outgoing, key, len);
+#elif defined TORRENT_USE_OPENSSL
+			RC4_set_key(&m_local_key, len, key);
+#else
+			rc4_init(key, len, &m_rc4_outgoing);
+#endif
+			// Discard first 1024 bytes
+			char buf[1024];
+			encrypt(buf, 1024);
+		}
 		
 		~rc4_handler()
 		{
@@ -149,11 +150,37 @@ namespace libtorrent
 #endif
 		};
 
-		int encrypt(std::vector<boost::asio::mutable_buffer>& buf);
-		void decrypt(std::vector<boost::asio::mutable_buffer>& buf
-			, int& consume
-			, int& produce
-			, int& packet_size);
+		void encrypt(char* pos, int len)
+		{
+			if (!m_encrypt) return;
+
+			TORRENT_ASSERT(len >= 0);
+			TORRENT_ASSERT(pos);
+
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_encrypt(m_rc4_outgoing, pos, len, 0, 0);
+#elif defined TORRENT_USE_OPENSSL
+			RC4(&m_local_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#else
+			rc4_encrypt((unsigned char*)pos, len, &m_rc4_outgoing);
+#endif
+		}
+
+		void decrypt(char* pos, int len)
+		{
+			if (!m_decrypt) return;
+
+			TORRENT_ASSERT(len >= 0);
+			TORRENT_ASSERT(pos);
+
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_decrypt(m_rc4_incoming, pos, len, 0, 0);
+#elif defined TORRENT_USE_OPENSSL
+			RC4(&m_remote_key, len, (const unsigned char*)pos, (unsigned char*)pos);
+#else
+			rc4_encrypt((unsigned char*)pos, len, &m_rc4_incoming);
+#endif
+		}
 
 	private:
 #ifdef TORRENT_USE_GCRYPT

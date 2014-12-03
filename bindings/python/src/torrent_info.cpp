@@ -3,11 +3,9 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/python.hpp>
-#include <boost/shared_ptr.hpp>
 #include <libtorrent/torrent_info.hpp>
+#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/socket_io.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;
@@ -60,11 +58,8 @@ namespace
             d["retry"] = total_seconds(i->retry - min_time());
             d["resolving"] = i->resolving;
             d["removed"] = i->removed;
-				list endpoints;
-				for (std::vector<tcp::endpoint>::const_iterator k = i->endpoints.begin()
-					, end(i->endpoints.end()); k != end; ++k)
-					endpoints.append(make_tuple(print_address(k->address()), k->port()));
-            d["endpoints"] = endpoints;
+            d["endpoint"] = make_tuple(
+                boost::lexical_cast<std::string>(i->endpoint.address()), i->endpoint.port());
             ret.append(d);
         }
 
@@ -177,20 +172,20 @@ namespace
 
 } // namespace unnamed
 
-boost::shared_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
+boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
+   boost::intrusive_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
    return ret;
 }
 
-boost::shared_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
+boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
+   boost::intrusive_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
@@ -212,7 +207,7 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
-    class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
+    class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef BOOST_NO_EXCEPTIONS
         .def(init<entry const&>(arg("e")))
@@ -222,7 +217,7 @@ void bind_torrent_info()
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
         .def("__init__", make_constructor(&buffer_constructor))
         .def("__init__", make_constructor(&file_constructor))
-        .def(init<torrent_info const&>((arg("ti"))))
+        .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
@@ -298,6 +293,7 @@ void bind_torrent_info()
         .add_property("send_stats", &get_send_stats)
 
         .def("reset", &announce_entry::reset)
+        .def("failed", &announce_entry::failed, arg("retry_interval") = 0)
         .def("can_announce", &announce_entry::can_announce)
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)
@@ -311,8 +307,8 @@ void bind_torrent_info()
     ;
 
 #if BOOST_VERSION > 104200
-    implicitly_convertible<boost::shared_ptr<torrent_info>, boost::shared_ptr<const torrent_info> >();
-    boost::python::register_ptr_to_python<boost::shared_ptr<const torrent_info> >();
+    implicitly_convertible<boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<const torrent_info> >();
+    boost::python::register_ptr_to_python<boost::intrusive_ptr<const torrent_info> >();
 #endif
 }
 

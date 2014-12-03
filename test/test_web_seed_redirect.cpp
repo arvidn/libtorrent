@@ -82,15 +82,15 @@ int test_main()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	boost::shared_ptr<torrent_info> torrent_file(new torrent_info(&buf[0]
+	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0]
 		, buf.size(), ec));
 
 	{
-		libtorrent::session ses(fingerprint("  ", 0,0,0,0), 0);
-		settings_pack settings;
-		settings.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
-		settings.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
-		ses.apply_settings(settings);
+		session ses(fingerprint("  ", 0,0,0,0), 0);
+		session_settings settings;
+		settings.max_queued_disk_bytes = 256 * 1024;
+		ses.set_settings(settings);
+		ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
    
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)

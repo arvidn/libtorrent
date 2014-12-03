@@ -66,12 +66,12 @@ namespace libtorrent
 
 	// lexical_cast's result depends on the locale. We need
 	// a well defined result
-	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> to_string(boost::int64_t n)
+	boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n)
 	{
-		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
+		boost::array<char, 4 + std::numeric_limits<size_type>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
-		boost::uint64_t un = n;
+		unsigned_size_type un = n;
 		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
 		do {
 			*--p = '0' + un % 10;
@@ -208,15 +208,6 @@ namespace libtorrent
 			if (*i == '\\') *i = '/';
 	}
 
-#ifdef TORRENT_WINDOWS
-	void convert_path_to_windows(std::string& path)
-	{
-		for (std::string::iterator i = path.begin()
-			, end(path.end()); i != end; ++i)
-			if (*i == '/') *i = '\\';
-	}
-#endif
-
 	std::string read_until(char const*& str, char delim, char const* end)
 	{
 		TORRENT_ASSERT(str <= end);
@@ -251,32 +242,6 @@ namespace libtorrent
 			, port == -1 ? "" : to_string(port).elems
 			, escape_path(path.c_str(), path.size()).c_str());
 		return msg;
-	}
-
-	std::string resolve_file_url(std::string const& url)
-	{
-		TORRENT_ASSERT(url.substr(0, 7) == "file://");
-		// first, strip the file:// part.
-		// On windows, we have
-		// to strip the first / as well
-		int num_to_strip = 7;
-#ifdef TORRENT_WINDOWS
-		if (url[7] == '/' || url[7] == '\\') ++num_to_strip;
-#endif
-		std::string ret = url.substr(num_to_strip);
-
-		// we also need to URL-decode it
-		error_code ec;
-		std::string unescaped = unescape_string(ret, ec);
-		if (ec) unescaped = ret;
-
-		// on windows, we need to convert forward slashes
-		// to backslashes
-#ifdef TORRENT_WINDOWS
-		convert_path_to_windows(unescaped);
-#endif
-
-		return unescaped;
 	}
 
 	std::string base64encode(const std::string& s)

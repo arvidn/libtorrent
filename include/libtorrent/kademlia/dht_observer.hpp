@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DHT_OBSERVER_HPP
 
 #include "libtorrent/address.hpp"
-#include "libtorrent/kademlia/msg.hpp"
 
 namespace libtorrent { namespace dht
 {

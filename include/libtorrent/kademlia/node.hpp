@@ -59,8 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 	class alert_manager;
 	struct alert_dispatcher;
-	class alert;
-	struct counters;
 }
 
 namespace libtorrent { namespace dht
@@ -186,7 +184,6 @@ struct count_peers
 
 struct udp_socket_interface
 {
-	virtual bool has_quota() = 0;
 	virtual bool send_packet(entry& e, udp::endpoint const& addr, int flags) = 0;
 };
 
@@ -199,7 +196,7 @@ typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 public:
 	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid, address const& external_address
-		, dht_observer* observer, counters& cnt);
+		, dht_observer* observer);
 
 	virtual ~node_impl() {}
 
@@ -224,7 +221,7 @@ public:
 	node_id const& nid() const { return m_id; }
 
 	boost::tuple<int, int, int> size() const { return m_table.size(); }
-	boost::int64_t num_global_nodes() const
+	size_type num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
 	int data_size() const { return int(m_map.size()); }
@@ -278,9 +275,6 @@ public:
 	void status(libtorrent::session_status& s);
 
 	libtorrent::dht_settings const& settings() const { return m_settings; }
-	counters& stats_counters() const { return m_counters; }
-
-	void post_alert(alert* a);
 
 protected:
 
@@ -292,7 +286,7 @@ protected:
 		, char* tags) const;
 
 	libtorrent::dht_settings const& m_settings;
-
+	
 private:
 	typedef libtorrent::mutex mutex_t;
 	mutex_t m_mutex;
@@ -327,7 +321,6 @@ private:
 
 	alert_dispatcher* m_post_alert;
 	udp_socket_interface* m_sock;
-	counters& m_counters;
 };
 
 

@@ -263,6 +263,7 @@ namespace libtorrent
 		error_code get_option(GettableSocketOption& opt, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD_RET(get_option(opt, ec), ec) }
 
+
 		template <class S>
 		void instantiate(io_service& ios, void* userdata = 0)
 		{
@@ -310,7 +311,7 @@ namespace libtorrent
 			>::value
 		};
 
-		boost::int64_t m_data[(storage_size + sizeof(boost::int64_t) - 1) / sizeof(boost::int64_t)];
+		size_type m_data[(storage_size + sizeof(size_type) - 1) / sizeof(size_type)];
 	};
 
 	// returns true if this socket is an SSL socket

@@ -2,12 +2,6 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
   test_bitfield              \
-  test_crc32                 \
-  test_torrent_info          \
-  test_recheck               \
-  test_stat_cache            \
-  test_policy                \
-  test_part_file             \
   test_file                  \
   test_file_storage          \
   test_privacy               \
@@ -16,7 +10,6 @@ test_programs = \
   test_bdecode_performance   \
   test_bencoding             \
   test_buffer                \
-  test_block_cache           \
   test_checking              \
   test_fast_extension        \
   test_hasher                \
@@ -26,7 +19,6 @@ test_programs = \
   test_lsd                   \
   test_metadata_extension    \
   test_pe_crypto             \
-  test_peer_classes          \
   test_peer_priority         \
   test_pex                   \
   test_piece_picker          \
@@ -36,16 +28,12 @@ test_programs = \
   test_http_parser           \
   test_magnet                \
   test_packet_buffer         \
-  test_settings_pack         \
   test_read_piece            \
   test_resume                \
   test_rss                   \
   test_ssl                   \
   test_storage               \
-  test_time_critical         \
-  test_super_seeding         \
   test_swarm                 \
-  test_tailqueue             \
   test_threads               \
   test_torrent               \
   test_torrent_parse         \
@@ -125,23 +113,16 @@ EXTRA_DIST = Jamfile \
 EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
-	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp
+	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp
 
 libtest_la_SOURCES = main.cpp \
   setup_transfer.cpp \
   dht_server.cpp \
   udp_tracker.cpp \
   peer_server.cpp \
-  web_seed_suite.cpp \
-  swarm_suite.cpp
+  web_seed_suite.cpp
 
 test_bitfield_SOURCES = test_bitfield.cpp
-test_crc32_SOURCES = test_crc32.cpp
-test_torrent_info_SOURCES = test_torrent_info.cpp
-test_recheck_SOURCES = test_recheck.cpp
-test_stat_cache_SOURCES = test_stat_cache.cpp
-test_policy_SOURCES = test_policy.cpp
-test_part_file_SOURCES = test_part_file.cpp
 test_file_SOURCES = test_file.cpp
 test_file_storage_SOURCES = test_file_storage.cpp
 test_privacy_SOURCES = test_privacy.cpp
@@ -151,7 +132,6 @@ test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
 test_dht_SOURCES = test_dht.cpp
 test_bencoding_SOURCES = test_bencoding.cpp
 test_buffer_SOURCES = test_buffer.cpp
-test_block_cache_SOURCES = test_block_cache.cpp
 test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_hasher_SOURCES = test_hasher.cpp
@@ -161,7 +141,6 @@ test_lsd_SOURCES = test_lsd.cpp
 test_metadata_extension_SOURCES = test_metadata_extension.cpp
 test_peer_priority_SOURCES = test_peer_priority.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
-test_peer_classes_SOURCES = test_peer_classes.cpp
 test_pex_SOURCES = test_pex.cpp
 test_piece_picker_SOURCES = test_piece_picker.cpp
 test_xml_SOURCES = test_xml.cpp
@@ -172,11 +151,7 @@ test_magnet_SOURCES = test_magnet.cpp
 test_packet_buffer_SOURCES = test_packet_buffer.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
-test_settings_pack_SOURCES = test_settings_pack.cpp
-test_time_critical_SOURCES = test_time_critical.cpp
-test_super_seeding_SOURCES = test_super_seeding.cpp
 test_swarm_SOURCES = test_swarm.cpp
-test_tailqueue_SOURCES = test_tailqueue.cpp
 test_resume_SOURCES = test_resume.cpp
 test_rss_SOURCES = test_rss.cpp
 test_ssl_SOURCES = test_ssl.cpp

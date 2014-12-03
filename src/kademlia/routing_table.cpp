@@ -48,15 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::uint8_t;
 
-#if BOOST_VERSION <= 104700
-namespace boost {
-size_t hash_value(libtorrent::address_v4::bytes_type ip)
-{
-	return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
-}
-}
-#endif
-
 namespace libtorrent { namespace dht
 {
 
@@ -75,10 +66,10 @@ void erase_one(T& container, K const& key)
 routing_table::routing_table(node_id const& id, int bucket_size
 	, dht_settings const& settings)
 	: m_settings(settings)
+	, m_bucket_size(bucket_size)
 	, m_id(id)
 	, m_depth(0)
 	, m_last_self_refresh(min_time())
-	, m_bucket_size(bucket_size)
 {
 	m_buckets.reserve(30);
 }
@@ -132,7 +123,7 @@ boost::tuple<int, int, int> routing_table::size() const
 	return boost::make_tuple(nodes, replacements, confirmed);
 }
 
-boost::int64_t routing_table::num_global_nodes() const
+size_type routing_table::num_global_nodes() const
 {
 	int deepest_bucket = 0;
 	int deepest_size = 0;
@@ -147,8 +138,8 @@ boost::int64_t routing_table::num_global_nodes() const
 
 	if (deepest_bucket == 0) return 1 + deepest_size;
 
-	if (deepest_size < m_bucket_size / 2) return (boost::int64_t(1) << deepest_bucket) * m_bucket_size;
-	else return (boost::int64_t(2) << deepest_bucket) * deepest_size;
+	if (deepest_size < m_bucket_size / 2) return (size_type(1) << deepest_bucket) * m_bucket_size;
+	else return (size_type(2) << deepest_bucket) * deepest_size;
 }
 
 int routing_table::depth() const
@@ -1130,7 +1121,7 @@ void routing_table::find_node(node_id const& target
 #if TORRENT_USE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
-	boost::unordered_multiset<address_v4::bytes_type> all_ips;
+	std::multiset<address_v4::bytes_type> all_ips;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)

@@ -39,9 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_dispatcher.hpp"
-#include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
-#include "libtorrent/ed25519.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -96,13 +94,22 @@ std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
 struct mock_socket : udp_socket_interface
 {
-	bool has_quota() { return true; }
 	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
 	{
 		g_sent_packets.push_back(std::make_pair(ep, msg));
 		return true;
 	}
 };
+
+address rand_v4()
+{
+	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+}
+
+udp::endpoint rand_ep()
+{
+	return udp::endpoint(rand_v4(), rand());
+}
 
 sha1_hash generate_next()
 {
@@ -436,6 +443,8 @@ bool get_item_cb(dht::item& i)
 // TODO: 3 test obfuscated_get_peers
 int test_main()
 {
+	random_seed(total_microseconds(time_now_hires() - min_time()));
+
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
@@ -443,8 +452,7 @@ int test_main()
 	address ext = address::from_string("236.0.0.1");
 	mock_socket s;
 	print_alert ad;
-	counters cnt;
-	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0, cnt);
+	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0);
 
 	// DHT should be running on port 48199 now
 	lazy_entry response;
@@ -1022,7 +1030,7 @@ int test_main()
 			// test a node with the same IP:port changing ID
 			add_and_replace(id, diff);
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+			tbl.node_seen(id, rand_ep(), 20 + (id[19] & 0xff));
 		}
 		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
@@ -1042,7 +1050,7 @@ int test_main()
 		{
 			add_and_replace(id, diff);
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+			tbl.node_seen(id, rand_ep(), 20 + (id[19] & 0xff));
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
@@ -1418,7 +1426,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
@@ -1488,7 +1496,7 @@ int test_main()
 	do
 	{
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1579,7 +1587,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1624,7 +1632,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1699,7 +1707,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
@@ -1779,7 +1787,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))

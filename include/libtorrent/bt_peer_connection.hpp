@@ -85,8 +85,14 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		bt_peer_connection(peer_connection_args const& pack
-			, peer_id const& pid);
+		bt_peer_connection(
+			aux::session_impl& ses
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, policy::peer* peerinfo
+			, peer_id const& pid
+			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
+			, bool outgoing = false);
 
 		void start();
 
@@ -104,14 +110,11 @@ namespace libtorrent
 
 		~bt_peer_connection();
 		
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		bool supports_encryption() const
 		{ return m_encrypted; }
 		bool rc4_encrypted() const
 		{ return m_rc4_encrypted; }
-
-		void switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto);
-		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto);
 #endif
 
 		virtual int type() const { return peer_connection::bittorrent_connection; }
@@ -164,15 +167,9 @@ namespace libtorrent
 			, std::size_t bytes_transferred);
 		void on_receive(error_code const& error
 			, std::size_t bytes_transferred);
-		void on_receive_impl(std::size_t bytes_transferred);
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>& iovec);
-#endif
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
-		bool packet_finished() const { return m_recv_buffer.packet_finished(); }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool supports_holepunch() const { return m_holepunch_id != 0; }
@@ -228,9 +225,8 @@ namespace libtorrent
 		void write_cancel(peer_request const& r);
 		void write_bitfield();
 		void write_have(int index);
-		void write_dont_have(int index);
 		void write_piece(peer_request const& r, disk_buffer_holder& buffer);
-		void write_handshake(bool plain_handshake = false);
+		void write_handshake();
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_upload_only();
@@ -269,7 +265,7 @@ namespace libtorrent
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 
 		// if (is_local()), we are 'a' otherwise 'b'
 		//
@@ -296,9 +292,6 @@ namespace libtorrent
 		// If no sync found, return -1
 		int get_syncoffset(char const* src, int src_size
 			, char const* target, int target_size) const;
-
-		// helper to cut down on boilerplate
-		void rc4_decrypt(char* pos, int len);
 #endif
 
 public:
@@ -306,16 +299,24 @@ public:
 		// these functions encrypt the send buffer if m_rc4_encrypted
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
-		virtual void append_const_send_buffer(char const* buffer, int size
-			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = NULL, block_cache_reference ref
-			= block_cache_reference());
+		virtual void append_const_send_buffer(char const* buffer, int size);
+		virtual void send_buffer(char const* begin, int size, int flags = 0
+			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
+		template <class Destructor>
+		void bt_append_send_buffer(char* buffer, int size, Destructor const& destructor)
+		{
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			if (m_rc4_encrypted)
+				m_enc_handler->encrypt(buffer, size);
+#endif
+			peer_connection::append_send_buffer(buffer, size, destructor, true);
+		}
 
 private:
 
-		enum state_t
+		enum state
 		{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 			read_pe_dhkey = 0,
 			read_pe_syncvc,
 			read_pe_synchash,
@@ -336,7 +337,7 @@ private:
 			read_packet
 		};
 		
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		enum
 		{
 			handshake_len = 68,
@@ -344,7 +345,7 @@ private:
 		};
 #endif
 
-		// state of on_receive. one of the enums in state_t
+		// state of on_receive
 		boost::uint8_t m_state;
 
 		// this is set to true if the handshake from
@@ -354,17 +355,17 @@ private:
 		bool m_supports_dht_port:1;
 		bool m_supports_fast:1;
 
-		// this is set to true when we send the bitfield message.
-		// for magnet links we can't do that right away,
-		// since we don't know how many pieces there are in
-		// the torrent.
+#if TORRENT_USE_ASSERTS
+		// this is set to true when the client's
+		// bitfield is sent to this peer
 		bool m_sent_bitfield:1;
 
-		// true if we're done sending the bittorrent handshake,
-		// and can send bittorrent messages
+		bool m_in_constructor:1;
+		
 		bool m_sent_handshake:1;
+#endif
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is set to true after the encryption method has been
 		// succesfully negotiated (either plaintext or rc4), to signal
 		// automatic encryption/decryption.
@@ -372,11 +373,20 @@ private:
 
 		// true if rc4, false if plaintext
 		bool m_rc4_encrypted:1;
+#endif
 
-		crypto_receive_buffer m_recv_buffer;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		// the message ID for upload only message
+		// 0 if not supported
+		boost::uint8_t m_upload_only_id;
+
+		// the message ID for holepunch messages
+		boost::uint8_t m_holepunch_id;
 #endif
 
 		std::string m_client_version;
+
+		static const message_handler m_message_handler[num_supported_messages];
 
 		// the peer ID we advertise for ourself
 		peer_id m_our_peer_id;
@@ -398,24 +408,25 @@ private:
 			int start;
 			int length;
 		};
-
+		static bool range_below_zero(const range& r)
+		{ return r.start < 0; }
 		std::vector<range> m_payloads;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+		// we have suggested these pieces to the peer
+		// don't suggest it again
+		bitfield m_sent_suggested_pieces;
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_enc_handler. Cannot reinitialize once
 		// initialized.
 		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
 		
-		// used during an encrypted handshake then moved
-		// into m_enc_handler if rc4 encryption is negotiated
-		// otherwise it is destroyed when the handshake completes
-		boost::shared_ptr<rc4_handler> m_rc4;
-
 		// if encryption is negotiated, this is used for
-		// encryption/decryption during the entire session.
-		encryption_handler m_enc_handler;
-
+		// encryption/decryption during the entire session. Destroyed
+		// if plaintext is selected
+		boost::scoped_ptr<encryption_handler> m_enc_handler;
+		
 		// (outgoing only) synchronize verification constant with
 		// remote peer, this will hold rc4_decrypt(vc). Destroyed
 		// after the sync step.
@@ -425,24 +436,13 @@ private:
 		// the sync hash (hash("req1",secret)). Destroyed after the
 		// sync step.
 		boost::scoped_ptr<sha1_hash> m_sync_hash;
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-		static const message_handler m_message_handler[num_supported_messages];
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// used to disconnect peer if sync points are not found within
 		// the maximum number of bytes
 		int m_sync_bytes_read;
-#endif
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		// the message ID for upload only message
-		// 0 if not supported
-		boost::uint8_t m_upload_only_id;
-
-		// the message ID for holepunch messages
-		boost::uint8_t m_holepunch_id;
-
 		// the message ID for don't-have message
 		boost::uint8_t m_dont_have_id;
 
@@ -450,13 +450,10 @@ private:
 		// 0 if not supported
 		boost::uint8_t m_share_mode_id;
 
+		// the reserved bits received from the other peer
+		// in the bittorrent handshake
 		char m_reserved_bits[8];
 #endif
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool m_in_constructor;
-#endif
-
 	};
 }
 

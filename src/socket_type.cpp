@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/socket_type.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
@@ -40,10 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 #endif
 
-#endif
-
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
 #endif
 
 namespace libtorrent
@@ -142,7 +137,6 @@ namespace libtorrent
 #else
 #define MAYBE_ASIO_DEBUGGING
 #endif
-
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 	MAYBE_ASIO_DEBUGGING \
 	s.get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, &s, holder)); \

@@ -32,14 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp" // for print_backtrace
-#include <boost/cstdint.hpp>
+#include "libtorrent/assert.hpp"
 
 #if defined TORRENT_BEOS
 #include <kernel/OS.h>
 #include <stdlib.h> // malloc/free
 #elif !defined TORRENT_WINDOWS
-#include <stdlib.h> // posix_memalign/free
+#include <stdlib.h> // valloc/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
@@ -62,10 +61,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_WINDOWS
 #include <sys/mman.h>
 #endif
+#include "libtorrent/size_type.hpp"
 
 struct alloc_header
 {
-	boost::int64_t size;
+	libtorrent::size_type size;
 	int magic;
 	char stack[3072];
 };
@@ -95,7 +95,7 @@ namespace libtorrent
 		return s;
 	}
 
-	char* page_aligned_allocator::malloc(page_aligned_allocator::size_type bytes)
+	char* page_aligned_allocator::malloc(size_type bytes)
 	{
 		TORRENT_ASSERT(bytes > 0);
 		// just sanity check (this needs to be pretty high
@@ -196,14 +196,6 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 	}
 
-#ifdef TORRENT_DEBUG_BUFFERS
-	bool page_aligned_allocator::in_use(char const* block)
-	{
-		int page = page_size();
-		alloc_header* h = (alloc_header*)(block - page);
-		return h->magic == 0x1337;
-	}
-#endif
 
 }
 

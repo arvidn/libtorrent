@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/torrent.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {
@@ -50,22 +49,18 @@ namespace libtorrent {
 	alert::~alert() {}
 	ptime alert::timestamp() const { return m_timestamp; }
 
-	torrent_alert::torrent_alert(torrent_handle const& h)
-		: handle(h)
-		, name(h.native_handle() ? h.native_handle()->name() : "")
-	{
-		if (name.empty() && h.is_valid())
-		{
-			char msg[41];
-			to_hex((char const*)&h.native_handle()->info_hash()[0], 20, msg);
-			name = msg;
-		}
-	}
 
 	std::string torrent_alert::message() const
 	{
 		if (!handle.is_valid()) return " - ";
-		return name;
+		torrent_status st = handle.status(torrent_handle::query_name);
+		if (st.name.empty())
+		{
+			char msg[41];
+			to_hex((char const*)&st.info_hash[0], 20, msg);
+			return msg;
+		}
+		return st.name;
 	}
 
 	std::string peer_alert::message() const
@@ -132,7 +127,6 @@ namespace libtorrent {
 			"too many optimistic unchoke slots",
 			"using bittyrant unchoker with no upload rate limit set",
 			"the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size",
-			"outstanding AIO operations limit reached",
 			"too few ports allowed for outgoing connections",
 			"too few file descriptors are allowed for this process. connection limit lowered"
 		};
@@ -301,11 +295,11 @@ namespace libtorrent {
 		};
 		static char const* type_str[] =
 		{
-			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL"
+			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5"
 		};
-		char ret[300];
+		char ret[250];
 		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
-			, interface.c_str()
+			, print_endpoint(endpoint).c_str()
 			, op_str[operation]
 			, type_str[sock_type]
 			, convert_from_native(error.message()).c_str());
@@ -316,7 +310,7 @@ namespace libtorrent {
 	{
 		static char const* type_str[] =
 		{
-			"TCP", "TCP/SSL", "UDP", "uTP/SSL"
+			"TCP", "TCP/SSL", "UDP"
 		};
 		char ret[200];
 		snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
@@ -359,8 +353,7 @@ namespace libtorrent {
 			"i2p_mixed",
 			"privileged_ports",
 			"utp_disabled",
-			"tcp_disabled",
-			"invalid_local_interface"
+			"tcp_disabled"
 		};
 
 		snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
@@ -389,37 +382,19 @@ namespace libtorrent {
 		return msg;
 	}
 
-	stats_alert::stats_alert(torrent_handle const& h, int in, stat const& s)
+	stats_alert::stats_alert(torrent_handle const& h, int in
+		, stat const& s)
 		: torrent_alert(h)
 		, interval(in)
 	{
-		transferred[upload_payload] = s[stat::upload_payload].counter();
-		transferred[upload_protocol] = s[stat::upload_protocol].counter();
-		transferred[download_payload] = s[stat::download_payload].counter();
-		transferred[download_protocol] = s[stat::download_protocol].counter();
-		transferred[upload_ip_protocol] = s[stat::upload_ip_protocol].counter();
-		transferred[download_ip_protocol] = s[stat::download_ip_protocol].counter();
-
-#ifndef TORRENT_NO_DEPRECATE
-		transferred[upload_dht_protocol] = 0;
-		transferred[upload_tracker_protocol] = 0;
-		transferred[download_dht_protocol] = 0;
-		transferred[download_tracker_protocol] = 0;
-#else
-		transferred[deprecated1] = 0;
-		transferred[deprecated2] = 0;
-		transferred[deprecated3] = 0;
-		transferred[deprecated4] = 0;
-#endif
+		for (int i = 0; i < num_channels; ++i)
+			transferred[i] = s[i].counter();
 	}
 
 	std::string stats_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d"
-#ifndef TORRENT_NO_DEPRECATE
-			" %d %d %d %d"
-#endif
+		snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d %d %d %d %d"
 			, torrent_alert::message().c_str()
 			, interval
 			, transferred[0]
@@ -428,13 +403,10 @@ namespace libtorrent {
 			, transferred[3]
 			, transferred[4]
 			, transferred[5]
-#ifndef TORRENT_NO_DEPRECATE
 			, transferred[6]
 			, transferred[7]
 			, transferred[8]
-			, transferred[9]
-#endif
-			);
+			, transferred[9]);
 		return msg;
 	}
 
@@ -562,57 +534,6 @@ namespace libtorrent {
 		return msg;
 	}
 
-	std::string mmap_cache_alert::message() const
-	{
-		char msg[600];
-		snprintf(msg, sizeof(msg), "mmap cache failed: (%d) %s", error.value(), error.message().c_str());
-		return msg;
-	}
-
-	std::string session_stats_alert::message() const
-	{
-		char msg[100];
-		snprintf(msg, sizeof(msg), "session stats (%d values)", int(values.size()));
-		return msg;
-	}
-
-	std::string peer_error_alert::message() const
-	{
-		char msg[200];
-		snprintf(msg, sizeof(msg), "%s peer error [%s] [%s]: %s", peer_alert::message().c_str()
-			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
-		return msg;
-	}
-
-	char const* operation_name(int op)
-	{
-		static char const* names[] = {
-			"bittorrent",
-			"iocontrol",
-			"getpeername",
-			"getname",
-			"alloc_recvbuf",
-			"alloc_sndbuf",
-			"file_write",
-			"file_read",
-			"file",
-			"sock_write",
-			"sock_read",
-			"sock_open",
-			"sock_bind",
-			"available",
-			"encryption",
-			"connect",
-			"ssl_handshake",
-			"get_interface",
-		};
-
-		if (op < 0 || op >= sizeof(names)/sizeof(names[0]))
-			return "unknown operation";
-
-		return names[op];
-	}
-
 	std::string torrent_update_alert::message() const
 	{
 		char msg[200];
@@ -634,8 +555,8 @@ namespace libtorrent {
 	std::string peer_disconnected_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "%s disconnecting [%s] [%s]: %s", peer_alert::message().c_str()
-			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
+		snprintf(msg, sizeof(msg), "%s disconnecting: [%s] %s", peer_alert::message().c_str()
+			, error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
 
@@ -695,23 +616,6 @@ namespace libtorrent {
 		char msg[600];
 		snprintf(msg, sizeof(msg), "i2p_error: [%s] %s"
 			, error.category().name(), convert_from_native(error.message()).c_str());
-		return msg;
-	}
-
-	std::string dht_outgoing_get_peers_alert::message() const
-	{
-		char msg[600];
-		char obf[70];
-		obf[0] = '\0';
-		if (obfuscated_info_hash != info_hash)
-		{
-			snprintf(obf, sizeof(obf), " [obfuscated: %s]"
-			, to_hex(obfuscated_info_hash.to_string()).c_str());
-		}
-		snprintf(msg, sizeof(msg), "outgoing dht get_peers : %s%s -> %s"
-			, to_hex(info_hash.to_string()).c_str()
-			, obf
-			, print_endpoint(ip).c_str());
 		return msg;
 	}
 

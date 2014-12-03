@@ -179,8 +179,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/policy.hpp" // for policy::peer
 
 namespace libtorrent
 {
@@ -198,7 +198,6 @@ namespace libtorrent
 	struct torrent_plugin;
 	class torrent;
 	struct torrent_peer;
-	struct add_torrent_params;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -227,11 +226,6 @@ namespace libtorrent
 		// posted
 		virtual void on_alert(alert const*) {}
 
-		// return true if the add_torrent_params should be added
-		virtual bool on_unknown_torrent(sha1_hash const& /* info_hash */
-			, peer_connection* /* pc */, add_torrent_params& /* p */)
-		{ return false; }
-
 		// called once per second
 		virtual void on_tick() {}
 
@@ -241,7 +235,7 @@ namespace libtorrent
 		// optimistically unchoked.
 		// if the plugin returns true then the ordering provided will be
 		// used and no other plugin will be allowed to change it.
-		virtual bool on_optimistic_unchoke(std::vector<torrent_peer*>& /* peers */)
+		virtual bool on_optimistic_unchoke(std::vector<policy::peer*>& /* peers */)
 		{ return false; }
 
 		// called when saving settings state
@@ -313,19 +307,6 @@ namespace libtorrent
 		// the state is one of torrent_status::state_t
 		// enum members
 		virtual void on_state(int /*s*/) {}
-
-		// called when the torrent is unloaded from RAM
-		// and loaded again, respectively
-		// unload is called right before the torrent is
-		// unloaded and load is called right after it's
-		// loaded. i.e. the full torrent state is available
-		// when these callbacks are called.
-		virtual void on_unload() {}
-		virtual void on_load() {}
-
-		// called every time policy::add_peer is called
-		// src is a bitmask of which sources this peer
-		// has been seen from. flags is a bitmask of:
 
 		enum flags_t {
 			// this is the first time we see this peer
@@ -414,10 +395,6 @@ namespace libtorrent
 		// called after a choke message has been sent to the peer
 		virtual void sent_unchoke() {}
 
-		// called after piece data has been sent to the peer
-		// this can be used for stats book keeping
-		virtual void sent_payload(int /* bytes */) {}
-
 		// called when libtorrent think this peer should be disconnected.
 		// if the plugin returns false, the peer will not be disconnected.
 		virtual bool can_disconnect(error_code const& /*ec*/) { return true; }
@@ -450,34 +427,6 @@ namespace libtorrent
 		virtual bool write_request(peer_request const&) { return false; }
 	};
 
-	struct TORRENT_EXPORT crypto_plugin
-	{
-		// hidden
-		virtual ~crypto_plugin() {}
-
-		virtual void set_incoming_key(unsigned char const* key, int len) = 0;
-		virtual void set_outgoing_key(unsigned char const* key, int len) = 0;
-
-		// encrypted the provided buffers and returns the number of bytes which
-		// are now ready to be sent to the lower layer. This must be at least
-		// as large as the number of bytes passed in and may be larger if there
-		// is additional data to be inserted at the head of the send buffer.
-		// The additional data is retrived from the passed in vector. The
-		// vector must be cleared if no additional data is to be inserted.
-		virtual int encrypt(std::vector<boost::asio::mutable_buffer>& /*send_vec*/) = 0;
-
-		// decrypt the provided buffers.
-		// consume is set to the number of bytes which should be trimmed from the
-		// head of the buffers, default is 0
-		//
-		// produce is set to the number of bytes of payload which are now ready to
-		// be sent to the upper layer. default is the number of bytes passed in receive_vec
-		//
-		// packet_size is set to the minimum number of bytes which must be read to
-		// advance the next step of decryption. default is 0
-		virtual void decrypt(std::vector<boost::asio::mutable_buffer>& /*receive_vec*/
-			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
-	};
 }
 
 #endif

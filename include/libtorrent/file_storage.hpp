@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <ctime>
-#include <boost/cstdint.hpp>
 
+#include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -63,12 +63,12 @@ namespace libtorrent
 		std::string symlink_path;
 
 		// the offset of this file inside the torrent
-		boost::int64_t offset;
+		size_type offset;
 
 		// the size of the file (in bytes) and ``offset`` is the byte offset
 		// of the file within the torrent. i.e. the sum of all the sizes of the files
 		// before it in the list.
-		boost::int64_t size;
+		size_type size;
 
 		// the offset in the file where the storage should start. The normal
 		// case is to have this set to 0, so that the storage starts saving data at the start
@@ -76,7 +76,7 @@ namespace libtorrent
 		// the ``file_base`` should be set to an offset so that the different regions do
 		// not overlap. This is used when mapping "unselected" files into a so-called part
 		// file.
-		boost::int64_t file_base;
+		size_type file_base;
 
 		// the modification time of this file specified in posix time.
 		std::time_t mtime;
@@ -220,10 +220,10 @@ namespace libtorrent
 		int file_index;
 
 		// the offset from the start of the file, in bytes
-		boost::int64_t offset;
+		size_type offset;
 
 		// the size of the window, in bytes
-		boost::int64_t size;
+		size_type size;
 	};
 
 	// The ``file_storage`` class represents a file list and the piece
@@ -284,7 +284,7 @@ namespace libtorrent
 		// The built in functions to traverse a directory to add files will
 		// make sure this requirement is fulfilled.
 		void add_file(file_entry const& e, char const* filehash = 0);
-		void add_file(std::string const& p, boost::int64_t size, int flags = 0
+		void add_file(std::string const& p, size_type size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "");
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
@@ -303,7 +303,7 @@ namespace libtorrent
 		// and pass in utf8 strings
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
-		void add_file(std::wstring const& p, boost::int64_t size, int flags = 0
+		void add_file(std::wstring const& p, size_type size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "") TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED;
@@ -317,13 +317,13 @@ namespace libtorrent
 		// returns a list of file_slice objects representing the portions of
 		// files the specified piece index, byte offset and size range overlaps.
 		// this is the inverse mapping of map_file().
-		std::vector<file_slice> map_block(int piece, boost::int64_t offset
+		std::vector<file_slice> map_block(int piece, size_type offset
 			, int size) const;
 
 		// returns a peer_request representing the piece index, byte offset
 		// and size the specified file range overlaps. This is the inverse
 		// mapping ove map_block().
-		peer_request map_file(int file, boost::int64_t offset, int size) const;
+		peer_request map_file(int file, size_type offset, int size) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// all functions depending on internal_file_entry
@@ -333,7 +333,7 @@ namespace libtorrent
 		typedef std::vector<internal_file_entry>::const_reverse_iterator reverse_iterator;
 
 		TORRENT_DEPRECATED_PREFIX
-		iterator file_at_offset(boost::int64_t offset) const TORRENT_DEPRECATED;
+		iterator file_at_offset(size_type offset) const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		iterator begin() const TORRENT_DEPRECATED { return m_files.begin(); }
 		TORRENT_DEPRECATED_PREFIX
@@ -356,7 +356,7 @@ namespace libtorrent
 		iterator end_deprecated() const { return m_files.end(); }
 		reverse_iterator rbegin_deprecated() const { return m_files.rbegin(); }
 		reverse_iterator rend_deprecated() const { return m_files.rend(); }
-		iterator file_at_offset_deprecated(boost::int64_t offset) const;
+		iterator file_at_offset_deprecated(size_type offset) const;
 #endif // TORRENT_NO_DEPRECATE
 
 		// returns the number of files in the file_storage
@@ -368,7 +368,7 @@ namespace libtorrent
 		file_entry at(int index) const;
 
 		// returns the total number of bytes all the files in this torrent spans
-		boost::int64_t total_size() const { return m_total_size; }
+		size_type total_size() const { return m_total_size; }
 
 		// set and get the number of pieces in the torrent
 		void set_num_pieces(int n) { m_num_pieces = n; }
@@ -393,7 +393,6 @@ namespace libtorrent
 		{
 			using std::swap;
 			swap(ti.m_files, m_files);
-			swap(ti.m_num_files, m_num_files);
 			swap(ti.m_file_hashes, m_file_hashes);
 			swap(ti.m_symlinks, m_symlinks);
 			swap(ti.m_mtime, m_mtime);
@@ -404,13 +403,6 @@ namespace libtorrent
 			swap(ti.m_num_pieces, m_num_pieces);
 			swap(ti.m_piece_length, m_piece_length);
 		}
-
-		// deallocates most of the memory used by this
-		// instance, leaving it only partially usable
-		void unload();
-
-		// returns true when populated with at least one file
-		bool is_loaded() const { return !m_files.empty(); }
 
 		// if pad_file_limit >= 0, files larger than that limit will be padded,
 		// default is to not add any padding (-1). The alignment specifies the
@@ -450,9 +442,9 @@ namespace libtorrent
 		time_t mtime(int index) const;
 		std::string file_path(int index, std::string const& save_path = "") const;
 		std::string file_name(int index) const;
-		boost::int64_t file_size(int index) const;
+		size_type file_size(int index) const;
 		bool pad_file_at(int index) const;
-		boost::int64_t file_offset(int index) const;
+		size_type file_offset(int index) const;
 
 		// flags indicating various attributes for files in
 		// a file_storage.
@@ -478,8 +470,6 @@ namespace libtorrent
 			flag_symlink = 8
 		};
 
-		std::vector<std::string> const& paths() const { return m_paths; }
-
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
 		int file_flags(int index) const;
@@ -490,11 +480,11 @@ namespace libtorrent
 		// the filesystem by making them all point to the same filename, but with
 		// different file bases, so that they don't overlap.
 		// torrent_info::remap_files() can be used to use a new file layout.
-		boost::int64_t file_base(int index) const;
-		void set_file_base(int index, boost::int64_t off);
+		size_type file_base(int index) const;
+		void set_file_base(int index, size_type off);
 
 		// returns the index of the file at the given offset in the torrent
-		int file_index_at_offset(boost::int64_t offset) const;
+		int file_index_at_offset(size_type offset) const;
 
 		// low-level function. returns a pointer to the internal storage for
 		// the filename. This string may not be null terinated!
@@ -513,29 +503,22 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		int file_index(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
-		boost::int64_t file_base(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		size_type file_base(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
-		void set_file_base(internal_file_entry const& fe, boost::int64_t off) TORRENT_DEPRECATED;
+		void set_file_base(internal_file_entry const& fe, size_type off) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		std::string file_name(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
-		boost::int64_t file_size(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		size_type file_size(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		bool pad_file_at(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
-		boost::int64_t file_offset(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		size_type file_offset(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 #endif
 
 	private:
-
-		// the number of bytes in a regular piece
-		// (i.e. not the potentially truncated last piece)
-		int m_piece_length;
-
-		// the number of pieces in the torrent
-		int m_num_pieces;
 
 		void update_path_index(internal_file_entry& e);
 		void reorder_file(int index, int dst);
@@ -565,7 +548,7 @@ namespace libtorrent
 		// if any file has a non-zero file base (i.e. multiple
 		// files residing in the same physical file at different
 		// offsets)
-		std::vector<boost::int64_t> m_file_base;
+		std::vector<size_type> m_file_base;
 
 		// all unique paths files have. The internal_file_entry::path_index
 		// points into this array. The paths don't include the root directory
@@ -579,12 +562,12 @@ namespace libtorrent
 		std::string m_name;
 
 		// the sum of all filesizes
-		boost::int64_t m_total_size;
+		size_type m_total_size;
 
-		// the number of files. This is used when
-		// the torrent is unloaded
-		int m_num_files;
+		// the number of pieces in the torrent
+		int m_num_pieces;
 
+		int m_piece_length;
 	};
 }
 

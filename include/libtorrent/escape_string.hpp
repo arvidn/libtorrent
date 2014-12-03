@@ -37,12 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
+#include "libtorrent/size_type.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
-	TORRENT_EXTRA_EXPORT boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
-		to_string(boost::int64_t n);
+	TORRENT_EXTRA_EXPORT boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
 
 	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
@@ -52,9 +52,6 @@ namespace libtorrent
 	// if the url does not appear to be encoded, and it contains illegal url characters
 	// it will be encoded
 	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(std::string const& url);
-
-	// convert a file://-URL to a proper path
-	TORRENT_EXTRA_EXPORT std::string resolve_file_url(std::string const& url);
 
 	// returns true if the given string (not null terminated) contains
 	// characters that would need to be escaped if used in a URL
@@ -71,9 +68,6 @@ namespace libtorrent
 
 	// replaces \ with /
 	TORRENT_EXTRA_EXPORT void convert_path_to_posix(std::string& path);
-#ifdef TORRENT_WINDOWS
-	TORRENT_EXTRA_EXPORT void convert_path_to_windows(std::string& path);
-#endif
 
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim, char const* end);
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);

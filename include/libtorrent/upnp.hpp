@@ -37,11 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/http_connection.hpp"
+#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/enum_net.hpp"
-#include "libtorrent/resolver.hpp"
 
 #include <boost/function/function1.hpp>
 #include <boost/function/function4.hpp>
@@ -114,7 +113,7 @@ typedef boost::function<void(char const*)> log_callback_t;
 class TORRENT_EXTRA_EXPORT upnp : public intrusive_ptr_base<upnp>
 {
 public:
-	upnp(io_service& ios
+	upnp(io_service& ios, connection_queue& cc
 		, address const& listen_interface, std::string const& user_agent
 		, portmap_callback_t const& cb, log_callback_t const& lcb
 		, bool ignore_nonrouters, void* state = 0);
@@ -346,8 +345,6 @@ private:
 
 	io_service& m_io_service;
 
-	resolver m_resolver;
-
 	// the udp socket used to send and receive
 	// multicast messages on the network
 	broadcast_socket m_socket;
@@ -370,13 +367,11 @@ private:
 	bool m_closing;
 	bool m_ignore_non_routers;
 
+	connection_queue& m_cc;
+
 	mutex m_mutex;
 
 	std::string m_model;
-
-	// cache of interfaces
-	mutable std::vector<ip_interface> m_interfaces;
-	mutable ptime m_last_if_update;
 };
 
 }

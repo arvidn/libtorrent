@@ -36,14 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/create_torrent.hpp"
 
-#include <boost/make_shared.hpp>
-
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
 
-boost::shared_ptr<torrent_info> generate_torrent()
+boost::intrusive_ptr<torrent_info> generate_torrent()
 {
 	file_storage fs;
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 10);
@@ -62,7 +60,7 @@ boost::shared_ptr<torrent_info> generate_torrent()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	return boost::make_shared<torrent_info>(&buf[0], buf.size());
+	return boost::intrusive_ptr<torrent_info>(new torrent_info(&buf[0], buf.size()));
 }
 
 std::vector<char> generate_resume_data(torrent_info* ti)
@@ -123,9 +121,9 @@ std::vector<char> generate_resume_data(torrent_info* ti)
 
 torrent_status test_resume_flags(int flags)
 {
-	libtorrent::session ses;
+	session ses;
 
-	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	boost::intrusive_ptr<torrent_info> ti = generate_torrent();
 
 	add_torrent_params p;
 	

@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/session_status.hpp>
+#include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 
 #include <boost/bind.hpp>
@@ -83,13 +84,14 @@ observer_ptr traversal_algorithm::new_observer(void* ptr
 traversal_algorithm::traversal_algorithm(
 	node_impl& node
 	, node_id target)
-	: m_node(node)
+	: m_ref_count(0)
+	, m_node(node)
 	, m_target(target)
-	, m_ref_count(0)
 	, m_invoke_count(0)
 	, m_branch_factor(3)
 	, m_responses(0)
 	, m_timeouts(0)
+	, m_num_target_nodes(m_node.m_table.bucket_size())
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(traversal) << "[" << this << "] NEW"
@@ -97,6 +99,21 @@ traversal_algorithm::traversal_algorithm(
 		<< " k: " << m_node.m_table.bucket_size()
 		;
 #endif
+}
+
+// returns true of lhs and rhs are too close to each other to appear
+// in the same DHT search under different node IDs
+bool compare_ip_cidr(observer_ptr const& lhs, observer_ptr const& rhs)
+{
+	if (lhs->target_addr().is_v4() != rhs->target_addr().is_v4())
+		return false;
+	// the number of bits in the IPs that may match. If
+	// more bits that this matches, something suspicious is
+	// going on and we shouldn't add the second one to our
+	// routing table
+	int cutoff = rhs->target_addr().is_v4() ? 4 : 64;
+	int dist = cidr_distance(lhs->target_addr(), rhs->target_addr());
+	return dist <= cutoff;
 }
 
 void traversal_algorithm::resort_results()
@@ -159,33 +176,34 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		if (m_node.settings().restrict_search_ips
 			&& !(flags & observer::flag_initial))
 		{
-			// mask the lower octet
-			boost::uint32_t prefix4 = o->target_addr().to_v4().to_ulong();
-			prefix4 &= 0xffffff00;
+			// don't allow multiple entries from IPs very close to each other
+			std::vector<observer_ptr>::iterator j = std::find_if(
+				m_results.begin(), m_results.end(), boost::bind(&compare_ip_cidr, _1, o));
 
-			if (m_peer4_prefixes.count(prefix4) > 0)
+			if (j != m_results.end())
 			{
 				// we already have a node in this search with an IP very
 				// close to this one. We know that it's not the same, because
 				// it claims a different node-ID. Ignore this to avoid attacks
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(traversal) << "[" << this << "] IGNORING result "
-				<< "id: " << to_hex(o->id().to_string())
-				<< " addr: " << o->target_addr()
+				<< "id: " << o->id()
+				<< " address: " << o->target_addr()
+				<< " existing node: "
+				<< (*j)->id() << " " << (*j)->target_addr()
+				<< " distance: " << distance_exp(m_target, o->id())
 				<< " type: " << name()
 				;
 #endif
 				return;
 			}
-
-			m_peer4_prefixes.insert(prefix4);
 		}
 
 		TORRENT_ASSERT((o->flags & observer::flag_no_id) || std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] ADD id: " << to_hex(id.to_string())
-			<< " addr: " << addr
+		TORRENT_LOG(traversal) << "[" << this << "] ADD id: " << id
+			<< " address: " << addr
 			<< " distance: " << distance_exp(m_target, id)
 			<< " invoke-count: " << m_invoke_count
 			<< " type: " << name()
@@ -307,7 +325,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		o->flags |= observer::flag_short_timeout;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << this << "] 1ST_TIMEOUT "
-			<< " id: " << to_hex(o->id().to_string())
+			<< " id: " << o->id()
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
@@ -326,7 +344,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << this << "] TIMEOUT "
-			<< " id: " << to_hex(o->id().to_string())
+			<< " id: " << o->id()
 			<< " distance: " << distance_exp(m_target, o->id())
 			<< " addr: " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
@@ -352,7 +370,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 void traversal_algorithm::done()
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	int results_target = m_node.m_table.bucket_size();
+	int results_target = m_num_target_nodes;
 	int closest_target = 160;
 
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
@@ -364,9 +382,9 @@ void traversal_algorithm::done()
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
 			TORRENT_LOG(traversal) << "[" << this << "]  "
 				<< results_target
-				<< " id: " << to_hex(o->id().to_string())
+				<< " id: " << o->id()
 				<< " distance: " << distance_exp(m_target, o->id())
-				<< " addr: " << o->target_ep()
+				<< " address: " << o->target_ep()
 				;
 			--results_target;
 			int dist = distance_exp(m_target, o->id());
@@ -387,7 +405,7 @@ void traversal_algorithm::done()
 
 bool traversal_algorithm::add_requests()
 {
-	int results_target = m_node.m_table.bucket_size();
+	int results_target = m_num_target_nodes;
 
 	// this only counts outstanding requests at the top of the
 	// target list. This is <= m_invoke count. m_invoke_count
@@ -439,9 +457,7 @@ bool traversal_algorithm::add_requests()
 			<< " top-invoke-count: " << outstanding
 			<< " invoke-count: " << m_invoke_count
 			<< " branch-factor: " << m_branch_factor
-			<< " distance: " << distance_exp(m_target, o->id())
-			<< " id: " << to_hex(o->id().to_string())
-			<< " addr: " << o->target_ep()
+			<< " distance: " << distance_exp(m_target, (*i)->id())
 			<< " type: " << name()
 			;
 #endif
@@ -459,7 +475,7 @@ bool traversal_algorithm::add_requests()
 		}
 	}
 
-	// this is the completion condition. If we found m_node.m_table.bucket_size()
+	// this is the completion condition. If we found m_num_target_nodes
 	// (i.e. k=8) completed results, without finding any still
 	// outstanding requests, we're done.
 	// also, if invoke count is 0, it means we didn't even find 'k'
@@ -530,15 +546,6 @@ void traversal_observer::reply(msg const& m)
 		return;
 	}
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	lazy_entry const* nid = r->dict_find_string("id");
-	TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] "
-		"RESPONSE id: " << to_hex(nid->string_value())
-		<< " invoke-count: " << m_algorithm->invoke_count()
-		<< " addr: " << m.addr
-		<< " type: " << m_algorithm->name()
-		;
-#endif
 	// look for nodes
 	lazy_entry const* n = r->dict_find_string("nodes");
 	if (n)
@@ -571,6 +578,7 @@ void traversal_observer::reply(msg const& m)
 
 void traversal_algorithm::abort()
 {
+	m_num_target_nodes = 0;
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end; ++i)
 	{
@@ -578,13 +586,6 @@ void traversal_algorithm::abort()
 		if (o.flags & observer::flag_queried)
 			o.flags |= observer::flag_done;
 	}
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << "[" << this << "] ABORTED "
-		<< " type: " << name()
-		;
-#endif
-
 	done();
 }
 
